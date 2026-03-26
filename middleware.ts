@@ -45,13 +45,18 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && pathname === '/login') {
-    const next = request.nextUrl.searchParams.get('next') || '/admin'
-    return NextResponse.redirect(new URL(next, request.url))
+    const next = request.nextUrl.searchParams.get('next')
+    const safeNext =
+      next && next.startsWith('/') && !next.startsWith('//') ? next : '/admin'
+
+    return NextResponse.redirect(new URL(safeNext, request.url))
   }
 
   return response
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

@@ -1,10 +1,13 @@
-import AdminHeader from '@/components/admin/adminHeader'
+import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireAdminAccess } from '@/lib/admin/guards'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
+  const admin = await requireAdminAccess()
   const supabase = await createSupabaseServerClient()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -14,53 +17,55 @@ export default async function AdminPage() {
       <AdminHeader
         title="Översikt"
         subtitle="Startpunkt för administration, roller och operativ kontroll."
-        userEmail={user?.email ?? null}
+        userEmail={user?.email ?? admin.email ?? null}
       />
 
       <div className="space-y-8 p-8">
         <section className="grid gap-5 xl:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               Admin
             </p>
-            <h2 className="mt-3 text-lg font-semibold text-slate-950">
+            <h2 className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">
               Roller och behörigheter
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
               Hantera användare, tilläggsroller och individuella overrides för
               systemåtkomst.
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               Foundation
             </p>
-            <h2 className="mt-3 text-lg font-semibold text-slate-950">
+            <h2 className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">
               Nästa byggsteg
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
               Efter admin foundation går vi vidare med masterdata: kunder,
               anläggningar, mätpunkter, nätägare och elområden.
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               Drift
             </p>
-            <h2 className="mt-3 text-lg font-semibold text-slate-950">
+            <h2 className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">
               Status
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
               Auth och admin är igång. Nu förbättrar vi skalet och fortsätter
               bygga systemets kärna i rätt ordning.
             </p>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-950">Vad som byggs nu</h3>
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
+            Vad som byggs nu
+          </h3>
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
               'RBAC och access',
@@ -70,7 +75,7 @@ export default async function AdminPage() {
             ].map((item) => (
               <div
                 key={item}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-700"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
               >
                 {item}
               </div>

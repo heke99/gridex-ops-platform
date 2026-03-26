@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getAdminUsers } from '@/lib/rbac/getAdminUsers'
-import AdminHeader from '@/components/admin/adminHeader'
+import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'

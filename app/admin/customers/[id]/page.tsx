@@ -1,124 +1,166 @@
-import AdminHeader from '@/components/admin/AdminHeader'
+import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { getCustomerById } from '@/lib/customers/getCustomerById'
-import type { CustomerAddressRow, CustomerNoteRow, SiteRow } from '@/types/customers'
+import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import {
+  listCustomerSitesByCustomerId,
+  listGridOwners,
+  listMeteringPointsBySiteIds,
+  listPriceAreas,
+} from '@/lib/masterdata/db'
+import CustomerSiteForm from '@/components/admin/masterdata/CustomerSiteForm'
+import CustomerSitesTable from '@/components/admin/masterdata/CustomerSitesTable'
+import MeteringPointForm from '@/components/admin/masterdata/MeteringPointForm'
+import MeteringPointsTable from '@/components/admin/masterdata/MeteringPointsTable'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminCustomerDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  await requirePermissionServer('masterdata.read')
-  const { id } = await params
-  const data = await getCustomerById(id)
-
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  return (
-    <div className="min-h-screen">
-      <AdminHeader
-        title={data.customer.full_name || data.customer.company_name || 'Kund'}
-        subtitle="Kundkort med masterdata, anläggningar och interna anteckningar."
-        userEmail={user?.email ?? null}
-      />
-
-      <div className="grid gap-6 p-8 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Grunddata</h2>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <Info label="Kundtyp" value={data.customer.customer_type} />
-              <Info label="Status" value={data.customer.status} />
-              <Info label="E-post" value={data.customer.email} />
-              <Info label="Telefon" value={data.customer.phone} />
-              <Info label="Personnummer" value={data.customer.personal_number} />
-              <Info label="Org.nr" value={data.customer.org_number} />
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Anläggningar</h2>
-            <div className="mt-4 space-y-3">
-              {data.sites.length === 0 ? (
-                <p className="text-sm text-slate-500">Inga anläggningar ännu.</p>
-              ) : (
-                data.sites.map((site: SiteRow) => (
-                  <div key={site.id} className="rounded-2xl border border-slate-200 p-4">
-                    <p className="font-medium text-slate-900">
-                      {site.nickname || site.facility_name || 'Anläggning'}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Status: {site.status} • Typ: {site.site_type}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Nätägare: {site.grid_owners?.name || '-'} • Elområde: {site.price_areas?.code || '-'}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Adresser</h2>
-            <div className="mt-4 space-y-3">
-              {data.addresses.length === 0 ? (
-                <p className="text-sm text-slate-500">Inga adresser ännu.</p>
-              ) : (
-                data.addresses.map((address: CustomerAddressRow) => (
-                  <div key={address.id} className="rounded-2xl border border-slate-200 p-4">
-                    <p className="font-medium text-slate-900">{address.type}</p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {address.street_1}
-                      {address.street_2 ? `, ${address.street_2}` : ''}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      {address.postal_code} {address.city}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Interna anteckningar</h2>
-            <div className="mt-4 space-y-3">
-              {data.notes.length === 0 ? (
-                <p className="text-sm text-slate-500">Inga anteckningar ännu.</p>
-              ) : (
-                data.notes.map((note: CustomerNoteRow) => (
-                  <div key={note.id} className="rounded-2xl border border-slate-200 p-4">
-                    <p className="text-sm text-slate-700">{note.note}</p>
-                    <p className="mt-2 text-xs text-slate-500">
-                      {new Date(note.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-  )
+type CustomerProfileRow = {
+  id: string
+  email: string | null
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  company_name: string | null
 }
 
-function Info({ label, value }: { label: string; value?: string | null }) {
+type CustomerPageProps = {
+  params: Promise<{ id: string }>
+}
+
+async function getCustomerProfile(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  id: string
+): Promise<CustomerProfileRow | null> {
+  const candidates = ['user_profiles', 'customer_profiles']
+
+  for (const tableName of candidates) {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('id, email, first_name, last_name, phone, company_name')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (!error && data) {
+      return data as CustomerProfileRow
+    }
+  }
+
+  return null
+}
+
+function formatCustomerName(customer: CustomerProfileRow): string {
+  const fullName = [customer.first_name, customer.last_name]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+
+  if (fullName) return fullName
+  if (customer.company_name) return customer.company_name
+  return 'Kund'
+}
+
+export default async function CustomerAdminDetailPage({
+  params,
+}: CustomerPageProps) {
+  await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
+
+  const { id } = await params
+  const supabase = await createSupabaseServerClient()
+
+  const [customer, gridOwners, priceAreas, sites] = await Promise.all([
+    getCustomerProfile(supabase, id),
+    listGridOwners(supabase),
+    listPriceAreas(supabase),
+    listCustomerSitesByCustomerId(supabase, id),
+  ])
+
+  if (!customer) {
+    notFound()
+  }
+
+  const meteringPoints = await listMeteringPointsBySiteIds(
+    supabase,
+    sites.map((site) => site.id)
+  )
+
+  const customerName = formatCustomerName(customer)
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-        {label}
-      </p>
-      <p className="mt-2 text-sm font-medium text-slate-900">{value || '-'}</p>
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Kundkort v2
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
+              {customerName}
+            </h1>
+            <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-600 dark:text-slate-400">
+              <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                {customer.email ?? 'Ingen e-post'}
+              </span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                {customer.phone ?? 'Ingen telefon'}
+              </span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                Kund-ID: {customer.id}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+              <div className="text-slate-500 dark:text-slate-400">Anläggningar</div>
+              <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                {sites.length}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+              <div className="text-slate-500 dark:text-slate-400">Mätpunkter</div>
+              <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                {meteringPoints.length}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+              <div className="text-slate-500 dark:text-slate-400">Nätägare</div>
+              <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                {gridOwners.length}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
+        <CustomerSiteForm
+          customerId={id}
+          gridOwners={gridOwners}
+          priceAreas={priceAreas}
+        />
+        <CustomerSitesTable
+          sites={sites}
+          gridOwners={gridOwners}
+          meteringPoints={meteringPoints}
+        />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
+        <MeteringPointForm
+          customerId={id}
+          sites={sites}
+          gridOwners={gridOwners}
+          priceAreas={priceAreas}
+        />
+        <MeteringPointsTable
+          meteringPoints={meteringPoints}
+          sites={sites}
+          gridOwners={gridOwners}
+        />
+      </section>
     </div>
   )
 }

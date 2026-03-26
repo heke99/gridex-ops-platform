@@ -1,6 +1,6 @@
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { supabaseService } from '@/lib/supabase/service'
-import AdminHeader from '@/components/admin/adminHeader'
+import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
