@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type {
   CustomerSiteRow,
   GridOwnerRow,
@@ -5,9 +6,11 @@ import type {
 } from '@/lib/masterdata/types'
 
 type MeteringPointsTableProps = {
+  customerId: string
   meteringPoints: MeteringPointRow[]
   sites: CustomerSiteRow[]
   gridOwners: GridOwnerRow[]
+  selectedMeteringPointId?: string | null
 }
 
 function getSiteName(siteId: string, sites: CustomerSiteRow[]): string {
@@ -49,9 +52,11 @@ function StatusBadge({ value }: { value: string }) {
 }
 
 export default function MeteringPointsTable({
+  customerId,
   meteringPoints,
   sites,
   gridOwners,
+  selectedMeteringPointId,
 }: MeteringPointsTableProps) {
   if (meteringPoints.length === 0) {
     return (
@@ -68,10 +73,24 @@ export default function MeteringPointsTable({
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-          Mätpunkter
-        </h2>
+      <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            Mätpunkter
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Öppna en rad för att redigera befintlig mätpunkt i formuläret.
+          </p>
+        </div>
+
+        {selectedMeteringPointId ? (
+          <Link
+            href={`/admin/customers/${customerId}`}
+            className="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Rensa val
+          </Link>
+        ) : null}
       </div>
 
       <div className="overflow-x-auto">
@@ -85,33 +104,48 @@ export default function MeteringPointsTable({
               <th className="px-6 py-3 font-medium">Nätägare</th>
               <th className="px-6 py-3 font-medium">Elområde</th>
               <th className="px-6 py-3 font-medium">Status</th>
+              <th className="px-6 py-3 font-medium">Åtgärd</th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-            {meteringPoints.map((point) => (
-              <tr
-                key={point.id}
-                className="align-top text-slate-800 dark:text-slate-100"
-              >
-                <td className="px-6 py-4">
-                  <div className="font-medium">{point.meter_point_id}</div>
-                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    {point.ediel_reference ?? 'Ingen EDIEL-referens'}
-                  </div>
-                </td>
-                <td className="px-6 py-4">{getSiteName(point.site_id, sites)}</td>
-                <td className="px-6 py-4">{point.measurement_type}</td>
-                <td className="px-6 py-4">{point.reading_frequency}</td>
-                <td className="px-6 py-4">
-                  {getGridOwnerName(point.grid_owner_id, gridOwners)}
-                </td>
-                <td className="px-6 py-4">{point.price_area_code ?? '—'}</td>
-                <td className="px-6 py-4">
-                  <StatusBadge value={point.status} />
-                </td>
-              </tr>
-            ))}
+            {meteringPoints.map((point) => {
+              const isSelected = selectedMeteringPointId === point.id
+
+              return (
+                <tr
+                  key={point.id}
+                  className={`align-top text-slate-800 dark:text-slate-100 ${
+                    isSelected ? 'bg-blue-50/70 dark:bg-blue-500/10' : ''
+                  }`}
+                >
+                  <td className="px-6 py-4">
+                    <div className="font-medium">{point.meter_point_id}</div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      {point.ediel_reference ?? 'Ingen EDIEL-referens'}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">{getSiteName(point.site_id, sites)}</td>
+                  <td className="px-6 py-4">{point.measurement_type}</td>
+                  <td className="px-6 py-4">{point.reading_frequency}</td>
+                  <td className="px-6 py-4">
+                    {getGridOwnerName(point.grid_owner_id, gridOwners)}
+                  </td>
+                  <td className="px-6 py-4">{point.price_area_code ?? '—'}</td>
+                  <td className="px-6 py-4">
+                    <StatusBadge value={point.status} />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Link
+                      href={`/admin/customers/${customerId}?editMeteringPoint=${point.id}`}
+                      className="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Redigera
+                    </Link>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

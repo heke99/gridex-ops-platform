@@ -1,3 +1,4 @@
+//app/admin/users/[id]/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'

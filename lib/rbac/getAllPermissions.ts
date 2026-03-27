@@ -1,3 +1,4 @@
+// lib/rbac/getAllPermissions.ts
 import { supabaseService } from '@/lib/supabase/service'
 
 export async function getAllPermissions() {

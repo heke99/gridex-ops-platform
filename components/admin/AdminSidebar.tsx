@@ -18,6 +18,21 @@ const NAV_ITEMS: NavItem[] = [
     description: 'Systemstatus och snabböversikt',
   },
   {
+    href: '/admin/operations',
+    label: 'Operations',
+    description: 'Driftkö, tasks och leverantörsbyten',
+  },
+  {
+    href: '/admin/operations/tasks',
+    label: 'Tasks',
+    description: 'Öppna, blockerade och klara uppgifter',
+  },
+  {
+    href: '/admin/operations/switches',
+    label: 'Switchar',
+    description: 'Leverantörsbyten och statuskedjor',
+  },
+  {
     href: '/admin/users',
     label: 'Användare',
     description: 'Roller, access och overrides',
@@ -28,10 +43,10 @@ const NAV_ITEMS: NavItem[] = [
     description: 'Behörigheter och rollstruktur',
   },
   {
-  href: '/admin/customers',
-  label: 'Kunder',
-  description: 'Kundregister och masterdata',
-},
+    href: '/admin/customers',
+    label: 'Kunder',
+    description: 'Kundregister och masterdata',
+  },
   {
     href: '/admin/audit',
     label: 'Audit',
@@ -64,7 +79,7 @@ export default function AdminSidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-2 px-4 py-5">
+      <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-5">
         {NAV_ITEMS.map((item) => {
           const active = isActive(pathname, item.href)
 
@@ -117,7 +132,7 @@ export default function AdminSidebar() {
           </p>
           <p className="mt-2 text-sm font-medium text-slate-200">Development</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Foundation för RBAC, admin och masterdata.
+            Operations center för fullmakt, tasks och switchärenden.
           </p>
         </div>
       </div>

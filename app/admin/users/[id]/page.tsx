@@ -1,3 +1,4 @@
+// app/admin/users/[id]/page.tsx
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getAdminUserById } from '@/lib/rbac/getAdminUserById'
 import { getAllRoles } from '@/lib/rbac/getAllRoles'

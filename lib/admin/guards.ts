@@ -25,6 +25,10 @@ type RoleRow = {
   roles?: RoleRelation
 }
 
+type PermissionRpcRow = {
+  gridex_get_user_permissions?: string[] | null
+}
+
 function hasAnyPermission(
   currentPermissions: string[],
   requiredPermissions: string[]
@@ -49,8 +53,28 @@ function normalizeRoleName(row: RoleRow): string | null {
 }
 
 function normalizePermissions(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value.filter((item): item is string => typeof item === 'string')
+  if (Array.isArray(value)) {
+    if (value.every((item) => typeof item === 'string')) {
+      return value.filter((item): item is string => typeof item === 'string')
+    }
+
+    const firstRow = value[0] as PermissionRpcRow | undefined
+    const nested = firstRow?.gridex_get_user_permissions
+
+    if (Array.isArray(nested)) {
+      return nested.filter((item): item is string => typeof item === 'string')
+    }
+  }
+
+  if (value && typeof value === 'object') {
+    const nested = (value as PermissionRpcRow).gridex_get_user_permissions
+
+    if (Array.isArray(nested)) {
+      return nested.filter((item): item is string => typeof item === 'string')
+    }
+  }
+
+  return []
 }
 
 function normalizeRole(role: string): string {
@@ -71,6 +95,8 @@ function isAdminRole(role: string): boolean {
     'compliance_officer',
     'compliance officer',
     'support',
+    'support_agent',
+    'support agent',
     'operations_manager',
     'operations manager',
   ].includes(normalized)

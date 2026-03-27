@@ -126,6 +126,15 @@ export const meteringPointInputSchema = z.object({
 
 export type MeteringPointInput = z.infer<typeof meteringPointInputSchema>
 
+export const customerInternalNoteInputSchema = z.object({
+  customer_id: z.string().uuid(),
+  body: requiredTrimmedString,
+})
+
+export type CustomerInternalNoteInput = z.infer<
+  typeof customerInternalNoteInputSchema
+>
+
 export function parseCheckbox(value: FormDataEntryValue | null): boolean {
   return value === 'on' || value === 'true' || value === '1'
 }

@@ -1,0 +1,590 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
+import type {
+  CustomerOperationTaskRow,
+  CustomerOperationTaskStatus,
+  PowerOfAttorneyRow,
+  SupplierSwitchEventRow,
+  SupplierSwitchRequestRow,
+  SupplierSwitchRequestStatus,
+  SupplierSwitchRequestType,
+  SwitchReadinessResult,
+} from '@/lib/operations/types'
+
+async function getActorId(supabase: SupabaseClient): Promise<string | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  return user?.id ?? null
+}
+
+export async function listPowersOfAttorneyByCustomerId(
+  supabase: SupabaseClient,
+  customerId: string
+): Promise<PowerOfAttorneyRow[]> {
+  const { data, error } = await supabase
+    .from('powers_of_attorney')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as PowerOfAttorneyRow[]
+}
+
+export async function savePowerOfAttorney(
+  supabase: SupabaseClient,
+  input: {
+    id?: string
+    customer_id: string
+    site_id?: string | null
+    scope: 'supplier_switch' | 'meter_data' | 'billing_handoff'
+    status: 'draft' | 'sent' | 'signed' | 'expired' | 'revoked'
+    signed_at?: string | null
+    valid_from?: string | null
+    valid_to?: string | null
+    document_path?: string | null
+    reference?: string | null
+    notes?: string | null
+  }
+): Promise<PowerOfAttorneyRow> {
+  const actorId = await getActorId(supabase)
+
+  const payload = {
+    customer_id: input.customer_id,
+    site_id: input.site_id ?? null,
+    scope: input.scope,
+    status: input.status,
+    signed_at: input.signed_at ?? null,
+    valid_from: input.valid_from ?? null,
+    valid_to: input.valid_to ?? null,
+    document_path: input.document_path ?? null,
+    reference: input.reference ?? null,
+    notes: input.notes ?? null,
+    updated_by: actorId,
+  }
+
+  if (input.id) {
+    const { data, error } = await supabase
+      .from('powers_of_attorney')
+      .update(payload)
+      .eq('id', input.id)
+      .select('*')
+      .single()
+
+    if (error) throw error
+    return data as PowerOfAttorneyRow
+  }
+
+  const { data, error } = await supabase
+    .from('powers_of_attorney')
+    .insert({
+      ...payload,
+      created_by: actorId,
+    })
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as PowerOfAttorneyRow
+}
+
+export async function listCustomerOperationTasks(
+  supabase: SupabaseClient,
+  customerId: string
+): Promise<CustomerOperationTaskRow[]> {
+  const { data, error } = await supabase
+    .from('customer_operation_tasks')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as CustomerOperationTaskRow[]
+}
+
+export async function listAllOperationTasks(
+  supabase: SupabaseClient,
+  options: {
+    status?: string | null
+    priority?: string | null
+    query?: string | null
+  } = {}
+): Promise<CustomerOperationTaskRow[]> {
+  let taskQuery = supabase
+    .from('customer_operation_tasks')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (options.status && options.status !== 'all') {
+    taskQuery = taskQuery.eq('status', options.status)
+  }
+
+  if (options.priority && options.priority !== 'all') {
+    taskQuery = taskQuery.eq('priority', options.priority)
+  }
+
+  const { data, error } = await taskQuery
+
+  if (error) throw error
+
+  let tasks = (data ?? []) as CustomerOperationTaskRow[]
+
+  const normalizedQuery = (options.query ?? '').trim().toLowerCase()
+
+  if (!normalizedQuery) {
+    return tasks
+  }
+
+  tasks = tasks.filter((task) => {
+    const haystack = [
+      task.title,
+      task.description,
+      task.task_type,
+      task.status,
+      task.priority,
+      task.site_id,
+      task.customer_id,
+      task.metering_point_id,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    return haystack.includes(normalizedQuery)
+  })
+
+  return tasks
+}
+
+export async function listSupplierSwitchRequestsByCustomerId(
+  supabase: SupabaseClient,
+  customerId: string
+): Promise<SupplierSwitchRequestRow[]> {
+  const { data, error } = await supabase
+    .from('supplier_switch_requests')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as SupplierSwitchRequestRow[]
+}
+
+export async function listAllSupplierSwitchRequests(
+  supabase: SupabaseClient,
+  options: {
+    status?: string | null
+    requestType?: string | null
+    query?: string | null
+  } = {}
+): Promise<SupplierSwitchRequestRow[]> {
+  let requestQuery = supabase
+    .from('supplier_switch_requests')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (options.status && options.status !== 'all') {
+    requestQuery = requestQuery.eq('status', options.status)
+  }
+
+  if (options.requestType && options.requestType !== 'all') {
+    requestQuery = requestQuery.eq('request_type', options.requestType)
+  }
+
+  const { data, error } = await requestQuery
+
+  if (error) throw error
+
+  let requests = (data ?? []) as SupplierSwitchRequestRow[]
+  const normalizedQuery = (options.query ?? '').trim().toLowerCase()
+
+  if (!normalizedQuery) {
+    return requests
+  }
+
+  requests = requests.filter((request) => {
+    const haystack = [
+      request.id,
+      request.customer_id,
+      request.site_id,
+      request.metering_point_id,
+      request.request_type,
+      request.status,
+      request.current_supplier_name,
+      request.incoming_supplier_name,
+      request.external_reference,
+      request.failure_reason,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    return haystack.includes(normalizedQuery)
+  })
+
+  return requests
+}
+
+export async function listSupplierSwitchEventsByRequestIds(
+  supabase: SupabaseClient,
+  requestIds: string[]
+): Promise<SupplierSwitchEventRow[]> {
+  if (requestIds.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('supplier_switch_events')
+    .select('*')
+    .in('switch_request_id', requestIds)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as SupplierSwitchEventRow[]
+}
+
+export async function listRecentSupplierSwitchEvents(
+  supabase: SupabaseClient,
+  limit = 50
+): Promise<SupplierSwitchEventRow[]> {
+  const { data, error } = await supabase
+    .from('supplier_switch_events')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return (data ?? []) as SupplierSwitchEventRow[]
+}
+
+async function findExistingOpenTask(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string
+    siteId: string
+    taskType: string
+  }
+): Promise<CustomerOperationTaskRow | null> {
+  const { data, error } = await supabase
+    .from('customer_operation_tasks')
+    .select('*')
+    .eq('customer_id', params.customerId)
+    .eq('site_id', params.siteId)
+    .eq('task_type', params.taskType)
+    .in('status', ['open', 'in_progress', 'blocked'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as CustomerOperationTaskRow | null) ?? null
+}
+
+export async function syncOperationTasksFromReadiness(
+  supabase: SupabaseClient,
+  readiness: SwitchReadinessResult
+): Promise<void> {
+  const actorId = await getActorId(supabase)
+  const activeTaskTypes = new Set<string>(
+    readiness.issues.map((issue) => issue.taskType)
+  )
+
+  for (const issue of readiness.issues) {
+    const existing = await findExistingOpenTask(supabase, {
+      customerId: readiness.customerId,
+      siteId: readiness.siteId,
+      taskType: issue.taskType,
+    })
+
+    if (existing) {
+      continue
+    }
+
+    const { error } = await supabase.from('customer_operation_tasks').insert({
+      customer_id: readiness.customerId,
+      site_id: readiness.siteId,
+      metering_point_id: readiness.candidateMeteringPointId,
+      task_type: issue.taskType,
+      status: issue.priority === 'critical' ? 'blocked' : 'open',
+      priority: issue.priority,
+      title: issue.title,
+      description: issue.description,
+      metadata: {
+        readinessCode: issue.code,
+      },
+      created_by: actorId,
+      updated_by: actorId,
+    })
+
+    if (error) throw error
+  }
+
+  const { data: existingOpenTasks, error: fetchOpenTasksError } = await supabase
+    .from('customer_operation_tasks')
+    .select('*')
+    .eq('customer_id', readiness.customerId)
+    .eq('site_id', readiness.siteId)
+    .in('status', ['open', 'in_progress', 'blocked'])
+
+  if (fetchOpenTasksError) throw fetchOpenTasksError
+
+  const tasks = (existingOpenTasks ?? []) as CustomerOperationTaskRow[]
+
+  for (const task of tasks) {
+    if (activeTaskTypes.has(task.task_type)) {
+      continue
+    }
+
+    const { error } = await supabase
+      .from('customer_operation_tasks')
+      .update({
+        status: 'done',
+        resolved_at: new Date().toISOString(),
+        updated_by: actorId,
+      })
+      .eq('id', task.id)
+
+    if (error) throw error
+  }
+}
+
+export async function updateOperationTaskStatus(
+  supabase: SupabaseClient,
+  params: {
+    taskId: string
+    status: CustomerOperationTaskStatus
+  }
+): Promise<CustomerOperationTaskRow> {
+  const actorId = await getActorId(supabase)
+
+  const updatePayload: {
+    status: CustomerOperationTaskStatus
+    updated_by: string | null
+    resolved_at?: string | null
+  } = {
+    status: params.status,
+    updated_by: actorId,
+  }
+
+  if (params.status === 'done') {
+    updatePayload.resolved_at = new Date().toISOString()
+  } else {
+    updatePayload.resolved_at = null
+  }
+
+  const { data, error } = await supabase
+    .from('customer_operation_tasks')
+    .update(updatePayload)
+    .eq('id', params.taskId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as CustomerOperationTaskRow
+}
+
+export async function findCustomerSiteById(
+  supabase: SupabaseClient,
+  siteId: string
+): Promise<CustomerSiteRow | null> {
+  const { data, error } = await supabase
+    .from('customer_sites')
+    .select('*')
+    .eq('id', siteId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as CustomerSiteRow | null) ?? null
+}
+
+export async function listMeteringPointsForSite(
+  supabase: SupabaseClient,
+  siteId: string
+): Promise<MeteringPointRow[]> {
+  const { data, error } = await supabase
+    .from('metering_points')
+    .select('*')
+    .eq('site_id', siteId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as MeteringPointRow[]
+}
+
+export async function findOpenSupplierSwitchRequestForSite(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string
+    siteId: string
+  }
+): Promise<SupplierSwitchRequestRow | null> {
+  const { data, error } = await supabase
+    .from('supplier_switch_requests')
+    .select('*')
+    .eq('customer_id', params.customerId)
+    .eq('site_id', params.siteId)
+    .in('status', ['draft', 'queued', 'submitted', 'accepted'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as SupplierSwitchRequestRow | null) ?? null
+}
+
+export async function createSupplierSwitchRequest(
+  supabase: SupabaseClient,
+  params: {
+    readiness: SwitchReadinessResult
+    site: CustomerSiteRow
+    meteringPoint: MeteringPointRow
+    requestType: SupplierSwitchRequestType
+    requestedStartDate: string | null
+  }
+): Promise<SupplierSwitchRequestRow> {
+  const actorId = await getActorId(supabase)
+
+  const { data, error } = await supabase
+    .from('supplier_switch_requests')
+    .insert({
+      customer_id: params.readiness.customerId,
+      site_id: params.site.id,
+      metering_point_id: params.meteringPoint.id,
+      power_of_attorney_id: params.readiness.latestPowerOfAttorneyId,
+      request_type: params.requestType,
+      status: 'queued',
+      requested_start_date: params.requestedStartDate,
+      current_supplier_name: params.site.current_supplier_name,
+      current_supplier_org_number: params.site.current_supplier_org_number,
+      incoming_supplier_name: 'Gridex',
+      incoming_supplier_org_number: null,
+      grid_owner_id:
+        params.meteringPoint.grid_owner_id ?? params.site.grid_owner_id ?? null,
+      price_area_code:
+        params.meteringPoint.price_area_code ?? params.site.price_area_code ?? null,
+      validation_snapshot: {
+        isReady: params.readiness.isReady,
+        issues: params.readiness.issues,
+        candidateMeteringPointId: params.readiness.candidateMeteringPointId,
+        latestPowerOfAttorneyId: params.readiness.latestPowerOfAttorneyId,
+      },
+      created_by: actorId,
+      updated_by: actorId,
+    })
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  const request = data as SupplierSwitchRequestRow
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: request.id,
+    eventType: 'created',
+    eventStatus: 'success',
+    message: 'Switchärende skapat och köat för vidare handläggning.',
+    payload: {
+      requestType: params.requestType,
+      requestedStartDate: params.requestedStartDate,
+    },
+  })
+
+  return request
+}
+
+export async function updateSupplierSwitchRequestStatus(
+  supabase: SupabaseClient,
+  params: {
+    requestId: string
+    status: SupplierSwitchRequestStatus
+    failureReason?: string | null
+    externalReference?: string | null
+  }
+): Promise<SupplierSwitchRequestRow> {
+  const actorId = await getActorId(supabase)
+  const nowIso = new Date().toISOString()
+
+  const updatePayload: {
+    status: SupplierSwitchRequestStatus
+    updated_by: string | null
+    submitted_at?: string | null
+    completed_at?: string | null
+    failed_at?: string | null
+    failure_reason?: string | null
+    external_reference?: string | null
+  } = {
+    status: params.status,
+    updated_by: actorId,
+    failure_reason: params.failureReason ?? null,
+    external_reference: params.externalReference ?? null,
+  }
+
+  if (params.status === 'submitted') {
+    updatePayload.submitted_at = nowIso
+  }
+
+  if (params.status === 'completed') {
+    updatePayload.completed_at = nowIso
+  }
+
+  if (params.status === 'failed' || params.status === 'rejected') {
+    updatePayload.failed_at = nowIso
+  }
+
+  const { data, error } = await supabase
+    .from('supplier_switch_requests')
+    .update(updatePayload)
+    .eq('id', params.requestId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  const saved = data as SupplierSwitchRequestRow
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: saved.id,
+    eventType: 'status_updated',
+    eventStatus: saved.status,
+    message:
+      saved.status === 'failed' || saved.status === 'rejected'
+        ? params.failureReason ?? 'Status uppdaterad med felorsak.'
+        : `Switchärende uppdaterat till status ${saved.status}.`,
+    payload: {
+      status: saved.status,
+      externalReference: saved.external_reference,
+      failureReason: saved.failure_reason,
+    },
+  })
+
+  return saved
+}
+
+export async function createSupplierSwitchEvent(
+  supabase: SupabaseClient,
+  params: {
+    switchRequestId: string
+    eventType: string
+    eventStatus: string
+    message?: string | null
+    payload?: Record<string, unknown>
+  }
+): Promise<SupplierSwitchEventRow> {
+  const actorId = await getActorId(supabase)
+
+  const { data, error } = await supabase
+    .from('supplier_switch_events')
+    .insert({
+      switch_request_id: params.switchRequestId,
+      event_type: params.eventType,
+      event_status: params.eventStatus,
+      message: params.message ?? null,
+      payload: params.payload ?? {},
+      created_by: actorId,
+    })
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as SupplierSwitchEventRow
+}

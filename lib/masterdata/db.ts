@@ -1,11 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { supabaseService } from '@/lib/supabase/service'
 import type {
+  AuditLogRow,
+  CustomerInternalNoteRow,
   CustomerSiteRow,
   GridOwnerRow,
   MeteringPointRow,
   PriceAreaRow,
 } from '@/lib/masterdata/types'
 import type {
+  CustomerInternalNoteInput,
   CustomerSiteInput,
   GridOwnerInput,
   MeteringPointInput,
@@ -216,6 +220,20 @@ export async function listMeteringPointsBySiteIds(
   return (data ?? []) as MeteringPointRow[]
 }
 
+export async function getMeteringPointById(
+  supabase: SupabaseClient,
+  meteringPointId: string
+): Promise<MeteringPointRow | null> {
+  const { data, error } = await supabase
+    .from('metering_points')
+    .select('*')
+    .eq('id', meteringPointId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as MeteringPointRow | null) ?? null
+}
+
 export async function saveMeteringPoint(
   supabase: SupabaseClient,
   input: MeteringPointInput
@@ -261,4 +279,69 @@ export async function saveMeteringPoint(
 
   if (error) throw error
   return data as MeteringPointRow
+}
+
+export async function listCustomerInternalNotesByCustomerId(
+  customerId: string
+): Promise<CustomerInternalNoteRow[]> {
+  const { data, error } = await supabaseService
+    .from('customer_internal_notes')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as CustomerInternalNoteRow[]
+}
+
+export async function createCustomerInternalNote(
+  supabase: SupabaseClient,
+  input: CustomerInternalNoteInput
+): Promise<CustomerInternalNoteRow> {
+  const actorId = await getActorId(supabase)
+
+  const { data, error } = await supabase
+    .from('customer_internal_notes')
+    .insert({
+      customer_id: input.customer_id,
+      body: input.body,
+      created_by: actorId,
+      updated_by: actorId,
+    })
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as CustomerInternalNoteRow
+}
+
+export async function listMasterdataAuditLogsForCustomer(params: {
+  customerId: string
+  siteIds: string[]
+  meteringPointIds: string[]
+  limit?: number
+}): Promise<AuditLogRow[]> {
+  const { customerId, siteIds, meteringPointIds, limit = 30 } = params
+
+  const filters: string[] = [`and(entity_type.eq.customer,entity_id.eq.${customerId})`]
+
+  if (siteIds.length > 0) {
+    filters.push(`and(entity_type.eq.customer_site,entity_id.in.(${siteIds.join(',')}))`)
+  }
+
+  if (meteringPointIds.length > 0) {
+    filters.push(
+      `and(entity_type.eq.metering_point,entity_id.in.(${meteringPointIds.join(',')}))`
+    )
+  }
+
+  const { data, error } = await supabaseService
+    .from('audit_logs')
+    .select('id, actor_user_id, entity_type, entity_id, action, old_values, new_values, metadata, created_at')
+    .or(filters.join(','))
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return (data ?? []) as AuditLogRow[]
 }

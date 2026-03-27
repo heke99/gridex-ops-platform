@@ -104,13 +104,43 @@ export type CustomerInternalNoteRow = {
   updated_by: string | null
 }
 
-export type MasterdataAuditLogRow = {
+export type AuditLogRow = {
   id: string
+  actor_user_id: string | null
   entity_type: string
   entity_id: string
-  action: 'insert' | 'update' | 'delete'
-  performed_by: string | null
-  old_data: Record<string, unknown> | null
-  new_data: Record<string, unknown> | null
+  action: string
+  old_values: Record<string, unknown> | null
+  new_values: Record<string, unknown> | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+export type CustomerListRow = {
+  id: string
+  customer_type: string | null
+  status: string | null
+  first_name: string | null
+  last_name: string | null
+  full_name: string | null
+  company_name: string | null
+  email: string | null
+  phone: string | null
+  created_at: string
+  site_count: number
+  metering_point_count: number
+  active_site_count: number
+  active_metering_point_count: number
+}
+
+export type MasterdataAuditEntry = {
+  id: string
+  actor_user_id: string | null
+  entity_type: 'customer_site' | 'metering_point'
+  entity_id: string
+  action: string
+  old_values: Record<string, unknown> | null
+  new_values: Record<string, unknown> | null
+  metadata: Record<string, unknown> | null
   created_at: string
 }

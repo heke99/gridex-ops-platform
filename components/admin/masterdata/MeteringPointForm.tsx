@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useFormStatus } from 'react-dom'
 import type {
   CustomerSiteRow,
@@ -15,9 +16,10 @@ type MeteringPointFormProps = {
   gridOwners: GridOwnerRow[]
   priceAreas: PriceAreaRow[]
   meteringPoint?: MeteringPointRow | null
+  cancelHref?: string
 }
 
-function SubmitButton() {
+function SubmitButton({ isEditing }: { isEditing: boolean }) {
   const { pending } = useFormStatus()
 
   return (
@@ -26,7 +28,11 @@ function SubmitButton() {
       disabled={pending}
       className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950"
     >
-      {pending ? 'Sparar...' : 'Spara mätpunkt'}
+      {pending
+        ? 'Sparar...'
+        : isEditing
+          ? 'Spara ändringar'
+          : 'Spara mätpunkt'}
     </button>
   )
 }
@@ -63,19 +69,33 @@ export default function MeteringPointForm({
   gridOwners,
   priceAreas,
   meteringPoint,
+  cancelHref,
 }: MeteringPointFormProps) {
+  const isEditing = Boolean(meteringPoint)
+
   return (
     <form
       action={saveMeteringPointAction}
       className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
     >
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-          {meteringPoint ? 'Redigera mätpunkt' : 'Ny mätpunkt'}
-        </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Koppla mätpunkt till anläggning, nätägare och elområde för operativ drift.
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            {isEditing ? 'Redigera mätpunkt' : 'Ny mätpunkt'}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Koppla mätpunkt till anläggning med EDIEL, status, frekvens och elområde.
+          </p>
+        </div>
+
+        {isEditing && cancelHref ? (
+          <Link
+            href={cancelHref}
+            className="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Avbryt redigering
+          </Link>
+        ) : null}
       </div>
 
       <input type="hidden" name="id" value={meteringPoint?.id ?? ''} />
@@ -94,7 +114,7 @@ export default function MeteringPointForm({
             <option value="">Välj anläggning</option>
             {sites.map((site) => (
               <option key={site.id} value={site.id}>
-                {site.site_name} {site.facility_id ? `— ${site.facility_id}` : ''}
+                {site.site_name}
               </option>
             ))}
           </select>
@@ -108,13 +128,13 @@ export default function MeteringPointForm({
 
         <Input
           name="site_facility_id"
-          label="Anläggnings-ID på mätpunkten"
+          label="Anläggnings-ID på mätpunkt"
           defaultValue={meteringPoint?.site_facility_id}
         />
 
         <Input
           name="ediel_reference"
-          label="EDIEL / mätpunktsreferens"
+          label="EDIEL-referens"
           defaultValue={meteringPoint?.ediel_reference}
         />
 
@@ -152,7 +172,7 @@ export default function MeteringPointForm({
 
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            Avläsningsfrekvens
+            Läsfrekvens
           </span>
           <select
             name="reading_frequency"
@@ -215,22 +235,20 @@ export default function MeteringPointForm({
           type="date"
           defaultValue={meteringPoint?.end_date}
         />
+
+        <label className="md:col-span-2 flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
+          <input
+            type="checkbox"
+            name="is_settlement_relevant"
+            defaultChecked={meteringPoint?.is_settlement_relevant ?? true}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          Avräkningsrelevant mätpunkt
+        </label>
       </div>
 
-      <label className="mt-4 inline-flex items-center gap-3">
-        <input
-          type="checkbox"
-          name="is_settlement_relevant"
-          defaultChecked={meteringPoint?.is_settlement_relevant ?? true}
-          className="h-4 w-4 rounded border-slate-300"
-        />
-        <span className="text-sm text-slate-700 dark:text-slate-200">
-          Relevans för settlement / fakturaunderlag
-        </span>
-      </label>
-
       <div className="mt-6 flex items-center justify-end">
-        <SubmitButton />
+        <SubmitButton isEditing={isEditing} />
       </div>
     </form>
   )

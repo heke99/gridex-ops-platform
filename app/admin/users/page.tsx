@@ -1,3 +1,4 @@
+// app/admin/users/page.tsx
 import Link from 'next/link'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getAdminUsers } from '@/lib/rbac/getAdminUsers'

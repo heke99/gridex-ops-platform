@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type {
   CustomerSiteRow,
   GridOwnerRow,
@@ -5,9 +6,11 @@ import type {
 } from '@/lib/masterdata/types'
 
 type CustomerSitesTableProps = {
+  customerId: string
   sites: CustomerSiteRow[]
   gridOwners: GridOwnerRow[]
   meteringPoints: MeteringPointRow[]
+  selectedSiteId?: string | null
 }
 
 function getGridOwnerName(
@@ -52,9 +55,11 @@ function StatusBadge({ value }: { value: string }) {
 }
 
 export default function CustomerSitesTable({
+  customerId,
   sites,
   gridOwners,
   meteringPoints,
+  selectedSiteId,
 }: CustomerSitesTableProps) {
   if (sites.length === 0) {
     return (
@@ -71,10 +76,24 @@ export default function CustomerSitesTable({
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-          Kundens anläggningar
-        </h2>
+      <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            Kundens anläggningar
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Öppna en rad för att redigera befintlig anläggning i formuläret.
+          </p>
+        </div>
+
+        {selectedSiteId ? (
+          <Link
+            href={`/admin/customers/${customerId}`}
+            className="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Rensa val
+          </Link>
+        ) : null}
       </div>
 
       <div className="overflow-x-auto">
@@ -87,37 +106,53 @@ export default function CustomerSitesTable({
               <th className="px-6 py-3 font-medium">Elområde</th>
               <th className="px-6 py-3 font-medium">Mätpunkter</th>
               <th className="px-6 py-3 font-medium">Status</th>
+              <th className="px-6 py-3 font-medium">Åtgärd</th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-            {sites.map((site) => (
-              <tr
-                key={site.id}
-                className="align-top text-slate-800 dark:text-slate-100"
-              >
-                <td className="px-6 py-4">
-                  <div className="font-medium">{site.site_name}</div>
-                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    {site.facility_id ?? 'Inget anläggnings-ID'}
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    {site.street ?? 'Ingen adress'} {site.city ? `• ${site.city}` : ''}
-                  </div>
-                </td>
-                <td className="px-6 py-4">{site.site_type}</td>
-                <td className="px-6 py-4">
-                  {getGridOwnerName(site.grid_owner_id, gridOwners)}
-                </td>
-                <td className="px-6 py-4">{site.price_area_code ?? '—'}</td>
-                <td className="px-6 py-4">
-                  {getMeteringPointCount(site.id, meteringPoints)}
-                </td>
-                <td className="px-6 py-4">
-                  <StatusBadge value={site.status} />
-                </td>
-              </tr>
-            ))}
+            {sites.map((site) => {
+              const isSelected = selectedSiteId === site.id
+
+              return (
+                <tr
+                  key={site.id}
+                  className={`align-top text-slate-800 dark:text-slate-100 ${
+                    isSelected ? 'bg-blue-50/70 dark:bg-blue-500/10' : ''
+                  }`}
+                >
+                  <td className="px-6 py-4">
+                    <div className="font-medium">{site.site_name}</div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      {site.facility_id ?? 'Inget anläggnings-ID'}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      {site.street ?? 'Ingen adress'}
+                      {site.city ? ` • ${site.city}` : ''}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">{site.site_type}</td>
+                  <td className="px-6 py-4">
+                    {getGridOwnerName(site.grid_owner_id, gridOwners)}
+                  </td>
+                  <td className="px-6 py-4">{site.price_area_code ?? '—'}</td>
+                  <td className="px-6 py-4">
+                    {getMeteringPointCount(site.id, meteringPoints)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <StatusBadge value={site.status} />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Link
+                      href={`/admin/customers/${customerId}?editSite=${site.id}`}
+                      className="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Redigera
+                    </Link>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
