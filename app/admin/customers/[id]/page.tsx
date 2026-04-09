@@ -1,3 +1,4 @@
+// app/admin/customers/[id]/page.tsx
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
@@ -28,6 +29,7 @@ import {
   listBillingUnderlaysByCustomerId,
   listGridOwnerDataRequestsByCustomerId,
   listMeteringValuesByCustomerId,
+  listOutboundRequestsByCustomerId,
   listPartnerExportsByCustomerId,
 } from '@/lib/cis/db'
 
@@ -373,6 +375,7 @@ export default async function CustomerAdminDetailPage({
     meteringValues,
     billingUnderlays,
     partnerExports,
+    outboundRequests,
   ] = await Promise.all([
     getCustomer(supabase, id),
     listGridOwners(supabase),
@@ -383,6 +386,7 @@ export default async function CustomerAdminDetailPage({
     listMeteringValuesByCustomerId(id),
     listBillingUnderlaysByCustomerId(id),
     listPartnerExportsByCustomerId(id),
+    listOutboundRequestsByCustomerId(id, { limit: 12 }),
   ])
 
   if (!customer) {
@@ -534,6 +538,7 @@ export default async function CustomerAdminDetailPage({
         meteringValues={meteringValues}
         billingUnderlays={billingUnderlays}
         partnerExports={partnerExports}
+        outboundRequests={outboundRequests}
       />
 
       <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">

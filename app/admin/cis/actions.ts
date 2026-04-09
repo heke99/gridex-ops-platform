@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  bulkQueueMissingBillingUnderlays,
   bulkQueueMissingMeterValues,
   bulkQueueReadySupplierSwitches,
   createOutboundRequest,
@@ -47,6 +48,37 @@ function normalizeYear(value: string | null): number | null {
 function normalizeDateTime(value: string | null): string | null {
   if (!value) return null
   return value
+}
+
+function normalizeMonthInput(value: string | null): { month: number; year: number } | null {
+  if (!value) return null
+  const match = /^(\d{4})-(\d{2})$/.exec(value)
+  if (!match) return null
+
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+  }
+}
+
+function buildMonthPeriod(monthInput: string | null): {
+  periodStart: string
+  periodEnd: string
+  year: number
+  month: number
+} | null {
+  const parsed = normalizeMonthInput(monthInput)
+  if (!parsed) return null
+
+  const start = new Date(Date.UTC(parsed.year, parsed.month - 1, 1))
+  const end = new Date(Date.UTC(parsed.year, parsed.month, 0))
+
+  return {
+    year: parsed.year,
+    month: parsed.month,
+    periodStart: start.toISOString().slice(0, 10),
+    periodEnd: end.toISOString().slice(0, 10),
+  }
 }
 
 async function getActor() {
@@ -450,11 +482,14 @@ export async function ingestBillingUnderlayAction(
   revalidatePath(`/admin/customers/${customerId}`)
 }
 
-export async function bulkQueueMissingMeterValuesAction(): Promise<void> {
+export async function bulkQueueMissingMeterValuesAction(
+  formData: FormData
+): Promise<void> {
   await requireAdminActionAccess(['metering.write'])
 
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
+  const period = buildMonthPeriod(formValue(formData, 'period_month'))
 
   const sitesQuery = await supabase
     .from('customer_sites')
@@ -469,9 +504,14 @@ export async function bulkQueueMissingMeterValuesAction(): Promise<void> {
     sites.map((site) => site.id)
   )
 
-  const { data: meterValues, error: meterValuesError } = await supabaseService
-    .from('metering_values')
-    .select('metering_point_id')
+  let meterValuesQuery = supabaseService.from('metering_values').select('metering_point_id')
+  if (period) {
+    meterValuesQuery = meterValuesQuery
+      .gte('period_start', period.periodStart)
+      .lte('period_end', period.periodEnd)
+  }
+
+  const { data: meterValues, error: meterValuesError } = await meterValuesQuery
 
   if (meterValuesError) throw meterValuesError
 
@@ -486,6 +526,8 @@ export async function bulkQueueMissingMeterValuesAction(): Promise<void> {
     sites,
     meteringPoints,
     existingMeterValuePointIds,
+    periodStart: period?.periodStart ?? null,
+    periodEnd: period?.periodEnd ?? null,
   })
 
   await insertAuditLog({
@@ -493,12 +535,90 @@ export async function bulkQueueMissingMeterValuesAction(): Promise<void> {
     entityType: 'outbound_request',
     entityId: result.batchKey,
     action: 'bulk_queue_missing_meter_values',
-    metadata: result,
+    metadata: {
+      ...result,
+      periodStart: period?.periodStart ?? null,
+      periodEnd: period?.periodEnd ?? null,
+    },
   })
 
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/missing-meter-values')
   revalidatePath('/admin/metering')
+}
+
+export async function bulkQueueMissingBillingUnderlaysAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess(['billing_underlay.write'])
+
+  const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
+  const period = buildMonthPeriod(formValue(formData, 'period_month'))
+
+  if (!period) {
+    throw new Error('Du måste välja månad för billing-underlag')
+  }
+
+  const sitesQuery = await supabase
+    .from('customer_sites')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (sitesQuery.error) throw sitesQuery.error
+  const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
+
+  const meteringPoints = await listMeteringPointsBySiteIds(
+    supabase,
+    sites.map((site) => site.id)
+  )
+
+  const { data: underlays, error: underlaysError } = await supabaseService
+    .from('billing_underlays')
+    .select('metering_point_id, underlay_year, underlay_month')
+    .eq('underlay_year', period.year)
+    .eq('underlay_month', period.month)
+
+  if (underlaysError) throw underlaysError
+
+  const existingUnderlayKeys = new Set(
+    (
+      (underlays ?? []) as Array<{
+        metering_point_id: string | null
+        underlay_year: number | null
+        underlay_month: number | null
+      }>
+    )
+      .filter((row) => row.metering_point_id && row.underlay_year && row.underlay_month)
+      .map((row) => `${row.metering_point_id}:${row.underlay_year}:${row.underlay_month}`)
+  )
+
+  const result = await bulkQueueMissingBillingUnderlays({
+    actorUserId: actor.id,
+    sites,
+    meteringPoints,
+    existingUnderlayKeys,
+    underlayYear: period.year,
+    underlayMonth: period.month,
+    periodStart: period.periodStart,
+    periodEnd: period.periodEnd,
+  })
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'outbound_request',
+    entityId: result.batchKey,
+    action: 'bulk_queue_missing_billing_underlays',
+    metadata: {
+      ...result,
+      year: period.year,
+      month: period.month,
+    },
+  })
+
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/missing-billing-underlays')
+  revalidatePath('/admin/billing')
 }
 
 export async function bulkQueueReadySupplierSwitchesAction(): Promise<void> {

@@ -1,3 +1,4 @@
+//components/admin/customers/CustomerBillingMeteringCard.tsx
 'use client'
 
 import { useFormStatus } from 'react-dom'
@@ -5,6 +6,7 @@ import type {
   BillingUnderlayRow,
   GridOwnerDataRequestRow,
   MeteringValueRow,
+  OutboundRequestRow,
   PartnerExportRow,
 } from '@/lib/cis/types'
 import type {
@@ -27,6 +29,7 @@ type Props = {
   meteringValues: MeteringValueRow[]
   billingUnderlays: BillingUnderlayRow[]
   partnerExports: PartnerExportRow[]
+  outboundRequests: OutboundRequestRow[]
 }
 
 function SubmitButton({
@@ -106,6 +109,7 @@ export default function CustomerBillingMeteringCard({
   meteringValues,
   billingUnderlays,
   partnerExports,
+  outboundRequests,
 }: Props) {
   return (
     <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
@@ -249,6 +253,50 @@ export default function CustomerBillingMeteringCard({
             />
           </div>
         </form>
+
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Outbound historik
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Senaste externa dispatch-requests för kunden.
+            </p>
+          </div>
+
+          <div className="space-y-3 p-4">
+            {outboundRequests.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                Inga outbound requests ännu.
+              </div>
+            ) : (
+              outboundRequests.map((request) => (
+                <article key={request.id} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(request.status)}`}>
+                      {request.status}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      {request.request_type}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      {request.channel_type}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <div>Skapad: <span className="font-medium">{formatDateTime(request.created_at)}</span></div>
+                    <div>Anläggning: <span className="font-medium">{siteLabel(request.site_id, sites)}</span></div>
+                    <div>Mätpunkt: <span className="font-medium">{meteringPointLabel(request.metering_point_id, meteringPoints)}</span></div>
+                    <div>Period: <span className="font-medium">{request.period_start ?? '—'} → {request.period_end ?? '—'}</span></div>
+                    <div>Batch: <span className="font-medium">{request.dispatch_batch_key ?? '—'}</span></div>
+                    <div>Extern referens: <span className="font-medium">{request.external_reference ?? '—'}</span></div>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </div>
 
         <form
           action={createGridOwnerDataRequestAction}

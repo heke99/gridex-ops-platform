@@ -1,7 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { bulkQueueMissingMeterValuesAction } from '@/app/admin/cis/actions'
+import { bulkQueueMissingBillingUnderlaysAction } from '@/app/admin/cis/actions'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 
 export const dynamic = 'force-dynamic'
@@ -12,32 +12,20 @@ type PageProps = {
   }>
 }
 
-function monthPeriod(monthInput: string | null): { start: string; end: string } | null {
-  if (!monthInput) return null
-
-  const match = /^(\d{4})-(\d{2})$/.exec(monthInput)
-  if (!match) return null
-
-  const year = Number(match[1])
-  const month = Number(match[2])
-  const start = new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10)
-  const end = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
-
-  return { start, end }
-}
-
 function defaultPeriod(): string {
   const now = new Date()
   const prev = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
   return `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}`
 }
 
-export default async function MissingMeterValuesPage({ searchParams }: PageProps) {
-  await requirePermissionServer('metering.read')
+export default async function MissingBillingUnderlaysPage({ searchParams }: PageProps) {
+  await requirePermissionServer('billing_underlay.read')
 
   const params = await searchParams
   const selectedPeriod = (params.period ?? defaultPeriod()).trim()
-  const period = monthPeriod(selectedPeriod)
+  const [yearText, monthText] = selectedPeriod.split('-')
+  const year = Number(yearText)
+  const month = Number(monthText)
 
   const supabase = await createSupabaseServerClient()
   const {
@@ -56,21 +44,16 @@ export default async function MissingMeterValuesPage({ searchParams }: PageProps
     ((sites ?? []) as { id: string }[]).map((site) => site.id)
   )
 
-  let valuesQuery = supabase
-    .from('metering_values')
-    .select('metering_point_id, period_start, period_end')
+  const { data: underlays, error: underlaysError } = await supabase
+    .from('billing_underlays')
+    .select('metering_point_id')
+    .eq('underlay_year', year)
+    .eq('underlay_month', month)
 
-  if (period) {
-    valuesQuery = valuesQuery
-      .gte('period_start', period.start)
-      .lte('period_end', period.end)
-  }
-
-  const { data: values, error: valuesError } = await valuesQuery
-  if (valuesError) throw valuesError
+  if (underlaysError) throw underlaysError
 
   const existingPointIds = new Set(
-    ((values ?? []) as { metering_point_id: string }[])
+    ((underlays ?? []) as { metering_point_id: string }[])
       .map((row) => row.metering_point_id)
       .filter(Boolean)
   )
@@ -80,8 +63,8 @@ export default async function MissingMeterValuesPage({ searchParams }: PageProps
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Bulk: saknade mätvärden"
-        subtitle="Köa periodspecifika mätvärdesförfrågningar utan att skapa dubbletter för samma månad."
+        title="Bulk: saknade billing-underlag"
+        subtitle="Identifiera mätpunkter som saknar billing-underlag för vald månad och köa outbound utan dubbletter."
         userEmail={user?.email ?? null}
       />
 
@@ -105,21 +88,21 @@ export default async function MissingMeterValuesPage({ searchParams }: PageProps
               <div className="mt-2 text-2xl font-semibold text-slate-950">{meteringPoints.length}</div>
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-4">
-              <div className="text-sm text-slate-500">Har värden i perioden</div>
+              <div className="text-sm text-slate-500">Har underlag i perioden</div>
               <div className="mt-2 text-2xl font-semibold text-slate-950">
                 {meteringPoints.length - missingPoints.length}
               </div>
             </div>
             <div className="rounded-2xl bg-amber-50 px-4 py-4">
-              <div className="text-sm text-amber-700">Saknar värden i perioden</div>
+              <div className="text-sm text-amber-700">Saknar underlag</div>
               <div className="mt-2 text-2xl font-semibold text-amber-900">{missingPoints.length}</div>
             </div>
           </div>
 
-          <form action={bulkQueueMissingMeterValuesAction} className="mt-6">
+          <form action={bulkQueueMissingBillingUnderlaysAction} className="mt-6">
             <input type="hidden" name="period_month" value={selectedPeriod} />
             <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
-              Köa saknade mätvärden för {selectedPeriod}
+              Köa saknade billing-underlag för {selectedPeriod}
             </button>
           </form>
         </section>
@@ -127,9 +110,7 @@ export default async function MissingMeterValuesPage({ searchParams }: PageProps
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
             <h2 className="text-lg font-semibold text-slate-950">Förhandsvisning</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Mätpunkter som saknar importerade mätvärden för vald period.
-            </p>
+            <p className="mt-1 text-sm text-slate-500">Mätpunkter som saknar billing-underlag för vald månad.</p>
           </div>
 
           <div className="overflow-x-auto">
@@ -146,7 +127,7 @@ export default async function MissingMeterValuesPage({ searchParams }: PageProps
                 {missingPoints.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-10 text-center text-sm text-slate-500">
-                      Alla mätpunkter har minst ett mätvärde registrerat för vald period.
+                      Alla mätpunkter har billing-underlag för vald period.
                     </td>
                   </tr>
                 ) : (

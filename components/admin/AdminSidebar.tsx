@@ -58,9 +58,19 @@ const NAV_ITEMS: NavItem[] = [
     description: 'Köa alla som saknar mätvärden',
   },
   {
+    href: '/admin/outbound/missing-billing-underlays',
+    label: 'Bulk billing',
+    description: 'Köa alla som saknar billing-underlag',
+  },
+  {
     href: '/admin/outbound/ready-switches',
     label: 'Bulk switch',
     description: 'Köa alla redo-för-byte',
+  },
+  {
+    href: '/admin/outbound/unresolved',
+    label: 'Unresolved',
+    description: 'Requests utan route eller dispatch-kanal',
   },
   {
     href: '/admin/integrations/routes',

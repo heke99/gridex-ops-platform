@@ -873,11 +873,105 @@ export async function findOpenOutboundBySource(params: {
   return (data as OutboundRequestRow | null) ?? null
 }
 
+export async function listOutboundRequestsByCustomerId(
+  customerId: string,
+  options: {
+    status?: string | null
+    requestType?: string | null
+    limit?: number
+  } = {}
+): Promise<OutboundRequestRow[]> {
+  let requestQuery = supabaseService
+    .from('outbound_requests')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+
+  if (options.status && options.status !== 'all') {
+    requestQuery = requestQuery.eq('status', options.status)
+  }
+
+  if (options.requestType && options.requestType !== 'all') {
+    requestQuery = requestQuery.eq('request_type', options.requestType)
+  }
+
+  if (typeof options.limit === 'number' && options.limit > 0) {
+    requestQuery = requestQuery.limit(options.limit)
+  }
+
+  const { data, error } = await requestQuery
+  if (error) throw error
+
+  return (data ?? []) as OutboundRequestRow[]
+}
+
+export async function listUnresolvedOutboundRequests(): Promise<OutboundRequestRow[]> {
+  const { data, error } = await supabaseService
+    .from('outbound_requests')
+    .select('*')
+    .eq('channel_type', 'unresolved')
+    .in('status', ['queued', 'prepared', 'sent', 'acknowledged', 'failed'])
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as OutboundRequestRow[]
+}
+
+export async function findOpenOutboundBySourceOrPeriod(params: {
+  sourceType?:
+    | 'supplier_switch_request'
+    | 'grid_owner_data_request'
+    | 'bulk_generation'
+    | 'manual'
+    | null
+  sourceId?: string | null
+  requestType: OutboundRequestType
+  customerId: string
+  meteringPointId?: string | null
+  periodStart?: string | null
+  periodEnd?: string | null
+}): Promise<OutboundRequestRow | null> {
+  let query = supabaseService
+    .from('outbound_requests')
+    .select('*')
+    .eq('request_type', params.requestType)
+    .eq('customer_id', params.customerId)
+    .in('status', ['queued', 'prepared', 'sent', 'acknowledged'])
+
+  if (params.sourceType && params.sourceId) {
+    query = query.eq('source_type', params.sourceType).eq('source_id', params.sourceId)
+  } else if (params.meteringPointId) {
+    query = query.eq('metering_point_id', params.meteringPointId)
+
+    if (params.periodStart) {
+      query = query.eq('period_start', params.periodStart)
+    } else {
+      query = query.is('period_start', null)
+    }
+
+    if (params.periodEnd) {
+      query = query.eq('period_end', params.periodEnd)
+    } else {
+      query = query.is('period_end', null)
+    }
+  }
+
+  const { data, error } = await query
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as OutboundRequestRow | null) ?? null
+}
+
 export async function bulkQueueMissingMeterValues(params: {
   actorUserId: string
   sites: CustomerSiteRow[]
   meteringPoints: MeteringPointRow[]
   existingMeterValuePointIds: Set<string>
+  periodStart?: string | null
+  periodEnd?: string | null
 }): Promise<{ batchKey: string; createdCount: number }> {
   const batchKey = buildBatchKey('missing_meter_values')
   let createdCount = 0
@@ -887,6 +981,16 @@ export async function bulkQueueMissingMeterValues(params: {
 
     const site = params.sites.find((row) => row.id === point.site_id)
     if (!site) continue
+
+    const existing = await findOpenOutboundBySourceOrPeriod({
+      requestType: 'meter_values',
+      customerId: site.customer_id,
+      meteringPointId: point.id,
+      periodStart: params.periodStart ?? null,
+      periodEnd: params.periodEnd ?? null,
+    })
+
+    if (existing) continue
 
     await createOutboundRequest({
       actorUserId: params.actorUserId,
@@ -901,6 +1005,63 @@ export async function bulkQueueMissingMeterValues(params: {
         reason: 'missing_meter_values',
         siteStatus: site.status,
       },
+      periodStart: params.periodStart ?? null,
+      periodEnd: params.periodEnd ?? null,
+      dispatchBatchKey: batchKey,
+    })
+
+    createdCount += 1
+  }
+
+  return { batchKey, createdCount }
+}
+
+export async function bulkQueueMissingBillingUnderlays(params: {
+  actorUserId: string
+  sites: CustomerSiteRow[]
+  meteringPoints: MeteringPointRow[]
+  existingUnderlayKeys: Set<string>
+  underlayYear: number
+  underlayMonth: number
+  periodStart?: string | null
+  periodEnd?: string | null
+}): Promise<{ batchKey: string; createdCount: number }> {
+  const batchKey = buildBatchKey('missing_billing_underlays')
+  let createdCount = 0
+
+  for (const point of params.meteringPoints) {
+    const site = params.sites.find((row) => row.id === point.site_id)
+    if (!site) continue
+
+    const underlayKey = `${point.id}:${params.underlayYear}:${params.underlayMonth}`
+    if (params.existingUnderlayKeys.has(underlayKey)) continue
+
+    const existing = await findOpenOutboundBySourceOrPeriod({
+      requestType: 'billing_underlay',
+      customerId: site.customer_id,
+      meteringPointId: point.id,
+      periodStart: params.periodStart ?? null,
+      periodEnd: params.periodEnd ?? null,
+    })
+
+    if (existing) continue
+
+    await createOutboundRequest({
+      actorUserId: params.actorUserId,
+      customerId: site.customer_id,
+      siteId: site.id,
+      meteringPointId: point.id,
+      gridOwnerId: point.grid_owner_id ?? site.grid_owner_id ?? null,
+      requestType: 'billing_underlay',
+      sourceType: 'bulk_generation',
+      sourceId: null,
+      payload: {
+        reason: 'missing_billing_underlay',
+        underlayYear: params.underlayYear,
+        underlayMonth: params.underlayMonth,
+      },
+      periodStart: params.periodStart ?? null,
+      periodEnd: params.periodEnd ?? null,
       dispatchBatchKey: batchKey,
     })
 
@@ -922,10 +1083,11 @@ export async function bulkQueueReadySupplierSwitches(params: {
   for (const request of params.switchRequests) {
     if (!['queued', 'submitted', 'accepted'].includes(request.status)) continue
 
-    const existing = await findOpenOutboundBySource({
+    const existing = await findOpenOutboundBySourceOrPeriod({
       sourceType: 'supplier_switch_request',
       sourceId: request.id,
       requestType: 'supplier_switch',
+      customerId: request.customer_id,
     })
 
     if (existing) continue
