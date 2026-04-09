@@ -9,7 +9,6 @@ import type {
   CustomerSiteRow,
   MeteringPointRow,
 } from '@/lib/masterdata/types'
-import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 
 export type CustomerTimelineEntry = {
   id: string
@@ -17,7 +16,6 @@ export type CustomerTimelineEntry = {
   category:
     | 'site'
     | 'metering_point'
-    | 'switch'
     | 'outbound'
     | 'data_request'
     | 'meter_value'
@@ -26,9 +24,9 @@ export type CustomerTimelineEntry = {
   title: string
   description: string
   status: string | null
-  customerId: string
   siteId: string | null
   meteringPointId: string | null
+  gridOwnerId: string | null
 }
 
 function safeDate(value: string | null | undefined): string | null {
@@ -36,15 +34,13 @@ function safeDate(value: string | null | undefined): string | null {
 }
 
 export function buildCustomerTimeline(params: {
-  customerId: string
   sites: CustomerSiteRow[]
   meteringPoints: MeteringPointRow[]
-  switchRequests: SupplierSwitchRequestRow[]
-  outboundRequests: OutboundRequestRow[]
   dataRequests: GridOwnerDataRequestRow[]
   meteringValues: MeteringValueRow[]
   billingUnderlays: BillingUnderlayRow[]
   partnerExports: PartnerExportRow[]
+  outboundRequests: OutboundRequestRow[]
 }): CustomerTimelineEntry[] {
   const entries: CustomerTimelineEntry[] = []
 
@@ -57,11 +53,11 @@ export function buildCustomerTimeline(params: {
       occurredAt,
       category: 'site',
       title: 'Anläggning skapad',
-      description: `${site.site_name ?? 'Anläggning'} registrerad.`,
+      description: site.site_name ?? site.id,
       status: site.status ?? null,
-      customerId: params.customerId,
       siteId: site.id,
       meteringPointId: null,
+      gridOwnerId: site.grid_owner_id ?? null,
     })
   }
 
@@ -70,153 +66,131 @@ export function buildCustomerTimeline(params: {
     if (!occurredAt) continue
 
     entries.push({
-      id: `metering-point:${point.id}`,
+      id: `metering_point:${point.id}`,
       occurredAt,
       category: 'metering_point',
       title: 'Mätpunkt registrerad',
-      description: `${point.meter_point_id ?? point.id} lades till.`,
+      description: point.meter_point_id ?? point.id,
       status: point.status ?? null,
-      customerId: params.customerId,
       siteId: point.site_id,
       meteringPointId: point.id,
+      gridOwnerId: point.grid_owner_id ?? null,
     })
   }
 
-  for (const row of params.switchRequests) {
-    const occurredAt = safeDate(row.updated_at ?? row.created_at)
-    if (!occurredAt) continue
-
-    entries.push({
-      id: `switch:${row.id}`,
-      occurredAt,
-      category: 'switch',
-      title: 'Switchärende uppdaterat',
-      description: `${row.request_type} · ${
-        row.incoming_supplier_name ?? 'okänd leverantör'
-      }`,
-      status: row.status ?? null,
-      customerId: row.customer_id,
-      siteId: row.site_id,
-      meteringPointId: row.metering_point_id,
-    })
-  }
-
-  for (const row of params.outboundRequests) {
+  for (const request of params.outboundRequests) {
     const occurredAt = safeDate(
-      row.acknowledged_at ??
-        row.failed_at ??
-        row.sent_at ??
-        row.prepared_at ??
-        row.queued_at ??
-        row.updated_at ??
-        row.created_at
+      request.acknowledged_at ??
+        request.failed_at ??
+        request.sent_at ??
+        request.prepared_at ??
+        request.queued_at ??
+        request.created_at
     )
     if (!occurredAt) continue
 
     entries.push({
-      id: `outbound:${row.id}`,
+      id: `outbound:${request.id}`,
       occurredAt,
       category: 'outbound',
       title: 'Outbound request',
-      description: `${row.request_type} · kanal ${row.channel_type}`,
-      status: row.status ?? null,
-      customerId: row.customer_id,
-      siteId: row.site_id,
-      meteringPointId: row.metering_point_id,
+      description: `${request.request_type} · ${request.channel_type}`,
+      status: request.status,
+      siteId: request.site_id,
+      meteringPointId: request.metering_point_id,
+      gridOwnerId: request.grid_owner_id,
     })
   }
 
-  for (const row of params.dataRequests) {
+  for (const request of params.dataRequests) {
     const occurredAt = safeDate(
-      row.received_at ??
-        row.failed_at ??
-        row.sent_at ??
-        row.requested_at ??
-        row.updated_at ??
-        row.created_at
+      request.received_at ??
+        request.failed_at ??
+        request.sent_at ??
+        request.requested_at ??
+        request.created_at
     )
     if (!occurredAt) continue
 
     entries.push({
-      id: `data-request:${row.id}`,
+      id: `data_request:${request.id}`,
       occurredAt,
       category: 'data_request',
-      title: 'Nätägarförfrågan',
-      description: `${row.request_scope} mot nätägare`,
-      status: row.status ?? null,
-      customerId: row.customer_id,
-      siteId: row.site_id,
-      meteringPointId: row.metering_point_id,
+      title: 'Request mot nätägare',
+      description: request.request_scope,
+      status: request.status,
+      siteId: request.site_id,
+      meteringPointId: request.metering_point_id,
+      gridOwnerId: request.grid_owner_id,
     })
   }
 
-  for (const row of params.meteringValues) {
-    const occurredAt = safeDate(row.read_at ?? row.created_at)
+  for (const value of params.meteringValues) {
+    const occurredAt = safeDate(value.read_at ?? value.created_at)
     if (!occurredAt) continue
 
     entries.push({
-      id: `meter-value:${row.id}`,
+      id: `meter_value:${value.id}`,
       occurredAt,
       category: 'meter_value',
-      title: 'Mätvärde mottaget',
-      description: `${row.reading_type} · ${row.value_kwh} kWh`,
-      status: row.quality_code ?? null,
-      customerId: row.customer_id,
-      siteId: row.site_id,
-      meteringPointId: row.metering_point_id,
+      title: 'Mätvärde importerat',
+      description: `${value.reading_type} · ${value.value_kwh} kWh`,
+      status: value.quality_code ?? null,
+      siteId: value.site_id,
+      meteringPointId: value.metering_point_id,
+      gridOwnerId: value.grid_owner_id,
     })
   }
 
-  for (const row of params.billingUnderlays) {
+  for (const underlay of params.billingUnderlays) {
     const occurredAt = safeDate(
-      row.exported_at ??
-        row.validated_at ??
-        row.received_at ??
-        row.updated_at ??
-        row.created_at
+      underlay.exported_at ??
+        underlay.validated_at ??
+        underlay.received_at ??
+        underlay.created_at
     )
     if (!occurredAt) continue
 
     entries.push({
-      id: `billing-underlay:${row.id}`,
+      id: `billing_underlay:${underlay.id}`,
       occurredAt,
       category: 'billing_underlay',
-      title: 'Billing-underlag',
-      description: `${row.underlay_year ?? '—'}-${String(
-        row.underlay_month ?? ''
+      title: 'Billing underlag',
+      description: `${underlay.underlay_year ?? '—'}-${String(
+        underlay.underlay_month ?? ''
       ).padStart(2, '0')}`,
-      status: row.status ?? null,
-      customerId: row.customer_id,
-      siteId: row.site_id,
-      meteringPointId: row.metering_point_id,
+      status: underlay.status,
+      siteId: underlay.site_id,
+      meteringPointId: underlay.metering_point_id,
+      gridOwnerId: underlay.grid_owner_id,
     })
   }
 
-  for (const row of params.partnerExports) {
+  for (const exportRow of params.partnerExports) {
     const occurredAt = safeDate(
-      row.acknowledged_at ??
-        row.failed_at ??
-        row.sent_at ??
-        row.queued_at ??
-        row.updated_at ??
-        row.created_at
+      exportRow.acknowledged_at ??
+        exportRow.failed_at ??
+        exportRow.sent_at ??
+        exportRow.queued_at ??
+        exportRow.created_at
     )
     if (!occurredAt) continue
 
     entries.push({
-      id: `partner-export:${row.id}`,
+      id: `partner_export:${exportRow.id}`,
       occurredAt,
       category: 'partner_export',
-      title: 'Partner-export',
-      description: `${row.export_kind} till ${row.target_system}`,
-      status: row.status ?? null,
-      customerId: row.customer_id,
-      siteId: row.site_id,
-      meteringPointId: row.metering_point_id,
+      title: 'Partnerexport',
+      description: `${exportRow.export_kind} · ${exportRow.target_system}`,
+      status: exportRow.status,
+      siteId: exportRow.site_id,
+      meteringPointId: exportRow.metering_point_id,
+      gridOwnerId: null,
     })
   }
 
-  return entries.sort((a, b) => {
-    return new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
-  })
+  return entries.sort(
+    (a, b) =>
+      new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+  )
 }

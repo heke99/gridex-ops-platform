@@ -23,6 +23,8 @@ import {
   listMeteringPointsForSite,
   listPowersOfAttorneyByCustomerId,
   savePowerOfAttorney,
+  syncCustomerOperationsForCustomer,
+  syncCustomerOperationsForSite,
   syncOperationTasksFromReadiness,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
+import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import type {
   CustomerOperationTaskRow,
   CustomerOperationTaskStatus,
@@ -319,6 +320,8 @@ export async function syncOperationTasksFromReadiness(
     if (error) throw error
   }
 
+  
+
   const { data: existingOpenTasks, error: fetchOpenTasksError } = await supabase
     .from('customer_operation_tasks')
     .select('*')
@@ -345,6 +348,71 @@ export async function syncOperationTasksFromReadiness(
       .eq('id', task.id)
 
     if (error) throw error
+  }
+}
+
+export async function syncCustomerOperationsForSite(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string
+    siteId: string
+  }
+): Promise<SwitchReadinessResult> {
+  const site = await findCustomerSiteById(supabase, params.siteId)
+
+  if (!site || site.customer_id !== params.customerId) {
+    throw new Error('Kunde inte hitta anläggningen för operations-sync')
+  }
+
+  const [meteringPoints, powersOfAttorney] = await Promise.all([
+    listMeteringPointsForSite(supabase, params.siteId),
+    listPowersOfAttorneyByCustomerId(supabase, params.customerId),
+  ])
+
+  const readiness = evaluateSiteSwitchReadiness({
+    site,
+    meteringPoints,
+    powersOfAttorney,
+  })
+
+  await syncOperationTasksFromReadiness(supabase, readiness)
+  return readiness
+}
+
+export async function syncCustomerOperationsForCustomer(
+  supabase: SupabaseClient,
+  customerId: string
+): Promise<{
+  siteCount: number
+  readyCount: number
+  blockedCount: number
+  results: SwitchReadinessResult[]
+}> {
+  const { data, error } = await supabase
+    .from('customer_sites')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  const sites = (data ?? []) as CustomerSiteRow[]
+  const results: SwitchReadinessResult[] = []
+
+  for (const site of sites) {
+    const readiness = await syncCustomerOperationsForSite(supabase, {
+      customerId,
+      siteId: site.id,
+    })
+
+    results.push(readiness)
+  }
+
+  return {
+    siteCount: sites.length,
+    readyCount: results.filter((row) => row.isReady).length,
+    blockedCount: results.filter((row) => !row.isReady).length,
+    results,
   }
 }
 
