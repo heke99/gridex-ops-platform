@@ -126,3 +126,106 @@ export type PartnerExportRow = {
   created_by: string | null
   updated_by: string | null
 }
+
+export type CommunicationRouteScope =
+  | 'supplier_switch'
+  | 'meter_values'
+  | 'billing_underlay'
+
+export type CommunicationRouteType =
+  | 'partner_api'
+  | 'ediel_partner'
+  | 'file_export'
+  | 'email_manual'
+
+export type CommunicationRouteRow = {
+  id: string
+  route_name: string
+  is_active: boolean
+  route_scope: CommunicationRouteScope
+  route_type: CommunicationRouteType
+  grid_owner_id: string | null
+  target_system: string
+  endpoint: string | null
+  target_email: string | null
+  auth_config: Record<string, unknown>
+  supported_payload_version: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+}
+
+export type OutboundRequestType =
+  | 'supplier_switch'
+  | 'meter_values'
+  | 'billing_underlay'
+
+export type OutboundRequestStatus =
+  | 'queued'
+  | 'prepared'
+  | 'sent'
+  | 'acknowledged'
+  | 'failed'
+  | 'cancelled'
+
+export type OutboundChannelType =
+  | 'partner_api'
+  | 'ediel_partner'
+  | 'file_export'
+  | 'email_manual'
+  | 'unresolved'
+
+export type OutboundRequestRow = {
+  id: string
+  customer_id: string
+  site_id: string | null
+  metering_point_id: string | null
+  grid_owner_id: string | null
+  communication_route_id: string | null
+  request_type: OutboundRequestType
+  source_type:
+    | 'supplier_switch_request'
+    | 'grid_owner_data_request'
+    | 'bulk_generation'
+    | 'manual'
+    | null
+  source_id: string | null
+  status: OutboundRequestStatus
+  channel_type: OutboundChannelType
+  payload: Record<string, unknown>
+  response_payload: Record<string, unknown>
+  period_start: string | null
+  period_end: string | null
+  external_reference: string | null
+  dispatch_batch_key: string | null
+  attempts_count: number
+  queued_at: string
+  prepared_at: string | null
+  sent_at: string | null
+  acknowledged_at: string | null
+  failed_at: string | null
+  failure_reason: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+}
+
+export type OutboundDispatchEventRow = {
+  id: string
+  outbound_request_id: string
+  event_type:
+    | 'queued'
+    | 'prepared'
+    | 'sent'
+    | 'acknowledged'
+    | 'failed'
+    | 'cancelled'
+  event_status: string
+  message: string | null
+  payload: Record<string, unknown>
+  created_at: string
+  created_by: string | null
+}

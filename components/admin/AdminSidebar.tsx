@@ -48,6 +48,26 @@ const NAV_ITEMS: NavItem[] = [
     description: 'Exportkö och extern handoff',
   },
   {
+    href: '/admin/outbound',
+    label: 'Outbound queue',
+    description: 'Extern dispatch för switch, meter och billing',
+  },
+  {
+    href: '/admin/outbound/missing-meter-values',
+    label: 'Bulk mätvärden',
+    description: 'Köa alla som saknar mätvärden',
+  },
+  {
+    href: '/admin/outbound/ready-switches',
+    label: 'Bulk switch',
+    description: 'Köa alla redo-för-byte',
+  },
+  {
+    href: '/admin/integrations/routes',
+    label: 'Communication routes',
+    description: 'Routning per nätägare och kanal',
+  },
+  {
     href: '/admin/users',
     label: 'Användare',
     description: 'Roller, access och overrides',
@@ -147,7 +167,7 @@ export default function AdminSidebar() {
           </p>
           <p className="mt-2 text-sm font-medium text-slate-200">Development</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            CIS med switching, metering, billing och partnerexports.
+            CIS med switching, metering, billing, outbound dispatch och partnerexports.
           </p>
         </div>
       </div>

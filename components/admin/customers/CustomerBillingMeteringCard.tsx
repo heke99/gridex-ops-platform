@@ -7,11 +7,16 @@ import type {
   MeteringValueRow,
   PartnerExportRow,
 } from '@/lib/cis/types'
-import type { CustomerSiteRow, GridOwnerRow, MeteringPointRow } from '@/lib/masterdata/types'
+import type {
+  CustomerSiteRow,
+  GridOwnerRow,
+  MeteringPointRow,
+} from '@/lib/masterdata/types'
 import {
   createGridOwnerDataRequestAction,
   createPartnerExportAction,
 } from '@/app/admin/customers/[id]/actions'
+import { queueOutboundRequestAction } from '@/app/admin/cis/actions'
 
 type Props = {
   customerId: string
@@ -61,7 +66,7 @@ function statusTone(status: string): string {
     return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
   }
 
-  if (['exported', 'sent'].includes(status)) {
+  if (['exported', 'sent', 'prepared'].includes(status)) {
     return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
   }
 
@@ -84,7 +89,10 @@ function meteringPointLabel(
   )
 }
 
-function gridOwnerLabel(gridOwnerId: string | null, gridOwners: GridOwnerRow[]): string {
+function gridOwnerLabel(
+  gridOwnerId: string | null,
+  gridOwners: GridOwnerRow[]
+): string {
   if (!gridOwnerId) return '—'
   return gridOwners.find((owner) => owner.id === gridOwnerId)?.name ?? gridOwnerId
 }
@@ -102,6 +110,146 @@ export default function CustomerBillingMeteringCard({
   return (
     <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
       <div className="space-y-6">
+        <form
+          action={queueOutboundRequestAction}
+          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+        >
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Köa extern outbound request
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Skapa dispatch-post för leverantörsbyte, mätvärdesförfrågan eller billing-underlag.
+              Systemet försöker sedan hitta rätt route per nätägare och scope.
+            </p>
+          </div>
+
+          <input type="hidden" name="customer_id" value={customerId} />
+
+          <div className="grid gap-4">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Requesttyp
+              </span>
+              <select
+                name="request_type"
+                defaultValue="meter_values"
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              >
+                <option value="supplier_switch">Leverantörsbyte</option>
+                <option value="meter_values">Mätvärden</option>
+                <option value="billing_underlay">Billing underlag</option>
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Anläggning
+              </span>
+              <select
+                name="site_id"
+                defaultValue=""
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              >
+                <option value="">Ingen specifik anläggning</option>
+                {sites.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.site_name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Mätpunkt
+              </span>
+              <select
+                name="metering_point_id"
+                defaultValue=""
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              >
+                <option value="">Ingen specifik mätpunkt</option>
+                {meteringPoints.map((point) => (
+                  <option key={point.id} value={point.id}>
+                    {point.meter_point_id}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Nätägare
+              </span>
+              <select
+                name="grid_owner_id"
+                defaultValue=""
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              >
+                <option value="">Välj nätägare</option>
+                {gridOwners.map((owner) => (
+                  <option key={owner.id} value={owner.id}>
+                    {owner.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Period från
+                </span>
+                <input
+                  name="period_start"
+                  type="date"
+                  className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                />
+              </label>
+
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Period till
+                </span>
+                <input
+                  name="period_end"
+                  type="date"
+                  className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                />
+              </label>
+            </div>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Extern referens
+              </span>
+              <input
+                name="external_reference"
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Payload / notering
+              </span>
+              <textarea
+                name="payload_note"
+                rows={3}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              />
+            </label>
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <SubmitButton
+              idleLabel="Köa outbound"
+              pendingLabel="Köar outbound..."
+            />
+          </div>
+        </form>
+
         <form
           action={createGridOwnerDataRequestAction}
           className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
@@ -403,11 +551,37 @@ export default function CustomerBillingMeteringCard({
                     </span>
                   </div>
                   <div className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                    <div>Nätägare: <span className="font-medium">{gridOwnerLabel(request.grid_owner_id, gridOwners)}</span></div>
-                    <div>Anläggning: <span className="font-medium">{siteLabel(request.site_id, sites)}</span></div>
-                    <div>Mätpunkt: <span className="font-medium">{meteringPointLabel(request.metering_point_id, meteringPoints)}</span></div>
-                    <div>Begärd period: <span className="font-medium">{request.requested_period_start ?? '—'} → {request.requested_period_end ?? '—'}</span></div>
-                    <div>Skapad: <span className="font-medium">{formatDateTime(request.created_at)}</span></div>
+                    <div>
+                      Nätägare:{' '}
+                      <span className="font-medium">
+                        {gridOwnerLabel(request.grid_owner_id, gridOwners)}
+                      </span>
+                    </div>
+                    <div>
+                      Anläggning:{' '}
+                      <span className="font-medium">
+                        {siteLabel(request.site_id, sites)}
+                      </span>
+                    </div>
+                    <div>
+                      Mätpunkt:{' '}
+                      <span className="font-medium">
+                        {meteringPointLabel(request.metering_point_id, meteringPoints)}
+                      </span>
+                    </div>
+                    <div>
+                      Begärd period:{' '}
+                      <span className="font-medium">
+                        {request.requested_period_start ?? '—'} →{' '}
+                        {request.requested_period_end ?? '—'}
+                      </span>
+                    </div>
+                    <div>
+                      Skapad:{' '}
+                      <span className="font-medium">
+                        {formatDateTime(request.created_at)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))
@@ -445,10 +619,27 @@ export default function CustomerBillingMeteringCard({
                     </span>
                   </div>
                   <div className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                    <div>Mätpunkt: <span className="font-medium">{meteringPointLabel(value.metering_point_id, meteringPoints)}</span></div>
-                    <div>Värde: <span className="font-medium">{value.value_kwh} kWh</span></div>
-                    <div>Tid: <span className="font-medium">{formatDateTime(value.read_at)}</span></div>
-                    <div>Kvalitet: <span className="font-medium">{value.quality_code ?? '—'}</span></div>
+                    <div>
+                      Mätpunkt:{' '}
+                      <span className="font-medium">
+                        {meteringPointLabel(value.metering_point_id, meteringPoints)}
+                      </span>
+                    </div>
+                    <div>
+                      Värde: <span className="font-medium">{value.value_kwh} kWh</span>
+                    </div>
+                    <div>
+                      Tid:{' '}
+                      <span className="font-medium">
+                        {formatDateTime(value.read_at)}
+                      </span>
+                    </div>
+                    <div>
+                      Kvalitet:{' '}
+                      <span className="font-medium">
+                        {value.quality_code ?? '—'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))
@@ -482,14 +673,33 @@ export default function CustomerBillingMeteringCard({
                       {underlay.status}
                     </span>
                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {underlay.underlay_year ?? '—'}-{String(underlay.underlay_month ?? '').padStart(2, '0')}
+                      {underlay.underlay_year ?? '—'}-
+                      {String(underlay.underlay_month ?? '').padStart(2, '0')}
                     </span>
                   </div>
                   <div className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                    <div>Anläggning: <span className="font-medium">{siteLabel(underlay.site_id, sites)}</span></div>
-                    <div>Mätpunkt: <span className="font-medium">{meteringPointLabel(underlay.metering_point_id, meteringPoints)}</span></div>
-                    <div>Total kWh: <span className="font-medium">{underlay.total_kwh ?? '—'}</span></div>
-                    <div>Total ex moms: <span className="font-medium">{underlay.total_sek_ex_vat ?? '—'} {underlay.currency}</span></div>
+                    <div>
+                      Anläggning:{' '}
+                      <span className="font-medium">
+                        {siteLabel(underlay.site_id, sites)}
+                      </span>
+                    </div>
+                    <div>
+                      Mätpunkt:{' '}
+                      <span className="font-medium">
+                        {meteringPointLabel(underlay.metering_point_id, meteringPoints)}
+                      </span>
+                    </div>
+                    <div>
+                      Total kWh:{' '}
+                      <span className="font-medium">{underlay.total_kwh ?? '—'}</span>
+                    </div>
+                    <div>
+                      Total ex moms:{' '}
+                      <span className="font-medium">
+                        {underlay.total_sek_ex_vat ?? '—'} {underlay.currency}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))
@@ -527,11 +737,34 @@ export default function CustomerBillingMeteringCard({
                     </span>
                   </div>
                   <div className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                    <div>Target system: <span className="font-medium">{exportRow.target_system}</span></div>
-                    <div>Anläggning: <span className="font-medium">{siteLabel(exportRow.site_id, sites)}</span></div>
-                    <div>Mätpunkt: <span className="font-medium">{meteringPointLabel(exportRow.metering_point_id, meteringPoints)}</span></div>
-                    <div>Extern referens: <span className="font-medium">{exportRow.external_reference ?? '—'}</span></div>
-                    <div>Köad: <span className="font-medium">{formatDateTime(exportRow.queued_at)}</span></div>
+                    <div>
+                      Target system:{' '}
+                      <span className="font-medium">{exportRow.target_system}</span>
+                    </div>
+                    <div>
+                      Anläggning:{' '}
+                      <span className="font-medium">
+                        {siteLabel(exportRow.site_id, sites)}
+                      </span>
+                    </div>
+                    <div>
+                      Mätpunkt:{' '}
+                      <span className="font-medium">
+                        {meteringPointLabel(exportRow.metering_point_id, meteringPoints)}
+                      </span>
+                    </div>
+                    <div>
+                      Extern referens:{' '}
+                      <span className="font-medium">
+                        {exportRow.external_reference ?? '—'}
+                      </span>
+                    </div>
+                    <div>
+                      Köad:{' '}
+                      <span className="font-medium">
+                        {formatDateTime(exportRow.queued_at)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))
