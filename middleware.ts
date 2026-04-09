@@ -9,6 +9,13 @@ function isProtectedPath(pathname: string) {
   )
 }
 
+function normalizeNextPath(value: string | null) {
+  if (!value) return '/dashboard'
+  if (!value.startsWith('/')) return '/dashboard'
+  if (value.startsWith('//')) return '/dashboard'
+  return value
+}
+
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({
     request,
@@ -45,11 +52,8 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && pathname === '/login') {
-    const next = request.nextUrl.searchParams.get('next')
-    const safeNext =
-      next && next.startsWith('/') && !next.startsWith('//') ? next : '/admin'
-
-    return NextResponse.redirect(new URL(safeNext, request.url))
+    const next = normalizeNextPath(request.nextUrl.searchParams.get('next'))
+    return NextResponse.redirect(new URL(next, request.url))
   }
 
   return response
