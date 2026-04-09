@@ -23,6 +23,13 @@ import type {
   CustomerSiteRow,
   MeteringPointRow,
 } from '@/lib/masterdata/types'
+import CustomerBillingMeteringCard from '@/components/admin/customers/CustomerBillingMeteringCard'
+import {
+  listBillingUnderlaysByCustomerId,
+  listGridOwnerDataRequestsByCustomerId,
+  listMeteringValuesByCustomerId,
+  listPartnerExportsByCustomerId,
+} from '@/lib/cis/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -356,12 +363,26 @@ export default async function CustomerAdminDetailPage({
 
   const supabase = await createSupabaseServerClient()
 
-  const [customer, gridOwners, priceAreas, sites, notes] = await Promise.all([
+  const [
+    customer,
+    gridOwners,
+    priceAreas,
+    sites,
+    notes,
+    dataRequests,
+    meteringValues,
+    billingUnderlays,
+    partnerExports,
+  ] = await Promise.all([
     getCustomer(supabase, id),
     listGridOwners(supabase),
     listPriceAreas(supabase),
     listCustomerSitesByCustomerId(supabase, id),
     listCustomerInternalNotesByCustomerId(id),
+    listGridOwnerDataRequestsByCustomerId(id),
+    listMeteringValuesByCustomerId(id),
+    listBillingUnderlaysByCustomerId(id),
+    listPartnerExportsByCustomerId(id),
   ])
 
   if (!customer) {
@@ -482,27 +503,38 @@ export default async function CustomerAdminDetailPage({
             </div>
 
             <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-              <div className="text-slate-500 dark:text-slate-400">Anteckningar</div>
+              <div className="text-slate-500 dark:text-slate-400">Nätägar-requests</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
-                {notes.length}
+                {dataRequests.length}
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                intern historik
+                billing + metering
               </div>
             </div>
 
             <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-              <div className="text-slate-500 dark:text-slate-400">Audit</div>
+              <div className="text-slate-500 dark:text-slate-400">Partnerexporter</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
-                {auditLogs.length}
+                {partnerExports.length}
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                senaste ändringar
+                queued / sent / ack
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      <CustomerBillingMeteringCard
+        customerId={id}
+        sites={sites}
+        meteringPoints={meteringPoints}
+        gridOwners={gridOwners}
+        dataRequests={dataRequests}
+        meteringValues={meteringValues}
+        billingUnderlays={billingUnderlays}
+        partnerExports={partnerExports}
+      />
 
       <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
         <CustomerSiteForm

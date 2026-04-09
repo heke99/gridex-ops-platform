@@ -33,6 +33,21 @@ const NAV_ITEMS: NavItem[] = [
     description: 'Leverantörsbyten och statuskedjor',
   },
   {
+    href: '/admin/metering',
+    label: 'Metering',
+    description: 'Requests och inkomna mätvärden',
+  },
+  {
+    href: '/admin/billing',
+    label: 'Billing',
+    description: 'Billing underlag från nätägare',
+  },
+  {
+    href: '/admin/partner-exports',
+    label: 'Partner exports',
+    description: 'Exportkö och extern handoff',
+  },
+  {
     href: '/admin/users',
     label: 'Användare',
     description: 'Roller, access och overrides',
@@ -74,7 +89,7 @@ export default function AdminSidebar() {
             Admin Console
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Drift, access och operativ kontroll
+            CIS, drift, access och operativ kontroll
           </p>
         </div>
       </div>
@@ -132,7 +147,7 @@ export default function AdminSidebar() {
           </p>
           <p className="mt-2 text-sm font-medium text-slate-200">Development</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Operations center för fullmakt, tasks och switchärenden.
+            CIS med switching, metering, billing och partnerexports.
           </p>
         </div>
       </div>

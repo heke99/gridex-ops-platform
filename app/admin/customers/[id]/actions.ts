@@ -27,6 +27,10 @@ import {
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
+import {
+  createGridOwnerDataRequest,
+  createPartnerExport,
+} from '@/lib/cis/db'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -60,6 +64,22 @@ function normalizeSwitchRequestType(
   if (value === 'move_in') return 'move_in'
   if (value === 'move_out_takeover') return 'move_out_takeover'
   return 'switch'
+}
+
+function normalizeGridOwnerRequestScope(
+  value: string | null
+): 'meter_values' | 'billing_underlay' | 'customer_masterdata' {
+  if (value === 'billing_underlay') return 'billing_underlay'
+  if (value === 'customer_masterdata') return 'customer_masterdata'
+  return 'meter_values'
+}
+
+function normalizePartnerExportKind(
+  value: string | null
+): 'billing_underlay' | 'meter_values' | 'customer_snapshot' {
+  if (value === 'meter_values') return 'meter_values'
+  if (value === 'customer_snapshot') return 'customer_snapshot'
+  return 'billing_underlay'
 }
 
 async function getActor() {
@@ -476,4 +496,95 @@ export async function updateOperationTaskStatusAction(
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+}
+
+export async function createGridOwnerDataRequestAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+
+  const actor = await getActor()
+  const customerId = formValue(formData, 'customer_id') ?? ''
+
+  if (!customerId) {
+    throw new Error('Customer ID saknas')
+  }
+
+  const saved = await createGridOwnerDataRequest({
+    actorUserId: actor.id,
+    customerId,
+    siteId: formValue(formData, 'site_id') || null,
+    meteringPointId: formValue(formData, 'metering_point_id') || null,
+    gridOwnerId: formValue(formData, 'grid_owner_id') || null,
+    requestScope: normalizeGridOwnerRequestScope(formValue(formData, 'request_scope')),
+    requestedPeriodStart: normalizeDateOrNull(
+      formValue(formData, 'requested_period_start')
+    ),
+    requestedPeriodEnd: normalizeDateOrNull(
+      formValue(formData, 'requested_period_end')
+    ),
+    externalReference: formValue(formData, 'external_reference') || null,
+    notes: formValue(formData, 'notes') || null,
+  })
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'grid_owner_data_request',
+    entityId: saved.id,
+    action: 'grid_owner_data_request_created',
+    newValues: saved,
+    metadata: {
+      customerId,
+      siteId: saved.site_id,
+      meteringPointId: saved.metering_point_id,
+      requestScope: saved.request_scope,
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/metering')
+  revalidatePath('/admin/billing')
+}
+
+export async function createPartnerExportAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+
+  const actor = await getActor()
+  const customerId = formValue(formData, 'customer_id') ?? ''
+
+  if (!customerId) {
+    throw new Error('Customer ID saknas')
+  }
+
+  const saved = await createPartnerExport({
+    actorUserId: actor.id,
+    customerId,
+    siteId: formValue(formData, 'site_id') || null,
+    meteringPointId: formValue(formData, 'metering_point_id') || null,
+    billingUnderlayId: formValue(formData, 'billing_underlay_id') || null,
+    exportKind: normalizePartnerExportKind(formValue(formData, 'export_kind')),
+    targetSystem: formValue(formData, 'target_system') || 'billing_partner',
+    externalReference: formValue(formData, 'external_reference') || null,
+    notes: formValue(formData, 'notes') || null,
+  })
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'partner_export',
+    entityId: saved.id,
+    action: 'partner_export_created',
+    newValues: saved,
+    metadata: {
+      customerId,
+      siteId: saved.site_id,
+      meteringPointId: saved.metering_point_id,
+      exportKind: saved.export_kind,
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/billing')
+  revalidatePath('/admin/partner-exports')
 }
