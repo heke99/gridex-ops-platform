@@ -17,7 +17,10 @@ import {
   updatePartnerExportStatus,
 } from '@/lib/cis/db'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
-import { listAllSupplierSwitchRequests } from '@/lib/operations/db'
+import {
+  listAllSupplierSwitchRequests,
+  syncCustomerOperationsForCustomer,
+} from '@/lib/operations/db'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 
 function formValue(formData: FormData, key: string): string | null {
@@ -109,6 +112,15 @@ async function insertAuditLog(params: {
   })
 
   if (error) throw error
+}
+
+async function syncCustomerOperationsAfterCisChange(
+  customerId: string
+): Promise<void> {
+  if (!customerId) return
+
+  const supabase = await createSupabaseServerClient()
+  await syncCustomerOperationsForCustomer(supabase, customerId)
 }
 
 export async function saveCommunicationRouteAction(
@@ -213,8 +225,12 @@ export async function queueOutboundRequestAction(
     },
   })
 
+  await syncCustomerOperationsAfterCisChange(customerId)
+
   revalidatePath('/admin/outbound')
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function updateOutboundRequestStatusAction(
@@ -265,10 +281,14 @@ export async function updateOutboundRequestStatusAction(
     },
   })
 
+  await syncCustomerOperationsAfterCisChange(customerId)
+
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/missing-meter-values')
   revalidatePath('/admin/outbound/ready-switches')
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function updateGridOwnerDataRequestStatusAction(
@@ -315,9 +335,13 @@ export async function updateGridOwnerDataRequestStatusAction(
     },
   })
 
+  await syncCustomerOperationsAfterCisChange(customerId)
+
   revalidatePath('/admin/metering')
   revalidatePath('/admin/billing')
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function updatePartnerExportStatusAction(
@@ -363,9 +387,13 @@ export async function updatePartnerExportStatusAction(
     },
   })
 
+  await syncCustomerOperationsAfterCisChange(customerId)
+
   revalidatePath('/admin/partner-exports')
   revalidatePath('/admin/billing')
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function ingestMeteringValueAction(
@@ -421,8 +449,12 @@ export async function ingestMeteringValueAction(
     },
   })
 
+  await syncCustomerOperationsAfterCisChange(customerId)
+
   revalidatePath('/admin/metering')
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function ingestBillingUnderlayAction(
@@ -477,9 +509,13 @@ export async function ingestBillingUnderlayAction(
     },
   })
 
+  await syncCustomerOperationsAfterCisChange(customerId)
+
   revalidatePath('/admin/billing')
   revalidatePath('/admin/partner-exports')
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function bulkQueueMissingMeterValuesAction(

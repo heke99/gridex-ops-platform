@@ -4,7 +4,10 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import { listAllOperationTasks } from '@/lib/operations/db'
-import { updateOperationTaskStatusFromAdminAction } from '@/app/admin/operations/actions'
+import {
+  runOperationsTaskAutoResolutionSweepAction,
+  updateOperationTaskStatusFromAdminAction,
+} from '@/app/admin/operations/actions'
 import { isTaskLikelyResolved } from '@/lib/operations/taskResolution'
 import type {
   CustomerSiteRow,
@@ -243,6 +246,23 @@ export default async function AdminOperationsTasksPage({
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                Filter och synk
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Kör en tasksync för att auto-resolva blockers efter att masterdata, fullmakter eller CIS-data uppdaterats.
+              </p>
+            </div>
+
+            <form action={runOperationsTaskAutoResolutionSweepAction}>
+              <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
+                Kör auto-resolution sweep
+              </button>
+            </form>
+          </div>
+
           <form className="grid gap-4 xl:grid-cols-[1.3fr_220px_220px_auto]">
             <input
               name="q"

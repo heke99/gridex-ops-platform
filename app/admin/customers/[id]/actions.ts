@@ -153,6 +153,10 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
   })
 
   const savedSite = await saveCustomerSite(supabase, parsed)
+  const readiness = await syncCustomerOperationsForSite(supabase, {
+    customerId,
+    siteId: savedSite.id,
+  })
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -164,10 +168,13 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
     metadata: {
       customerId,
       siteId: savedSite.id,
+      readiness,
     },
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function saveMeteringPointAction(formData: FormData): Promise<void> {
@@ -199,6 +206,10 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
   })
 
   const savedMeteringPoint = await saveMeteringPoint(supabase, parsed)
+  const readiness = await syncCustomerOperationsForSite(supabase, {
+    customerId,
+    siteId: savedMeteringPoint.site_id,
+  })
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -211,10 +222,13 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
       customerId,
       siteId: savedMeteringPoint.site_id,
       meteringPointId: savedMeteringPoint.id,
+      readiness,
     },
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function createCustomerInternalNoteAction(
@@ -226,12 +240,8 @@ export async function createCustomerInternalNoteAction(
   const customerId = formValue(formData, 'customer_id') ?? ''
   const body = (formValue(formData, 'body') ?? '').trim()
 
-  if (!customerId) {
-    throw new Error('Customer ID saknas')
-  }
-
-  if (!body) {
-    throw new Error('Anteckning får inte vara tom')
+  if (!customerId || !body) {
+    throw new Error('Customer ID eller anteckning saknas')
   }
 
   const { data, error } = await supabaseService
@@ -296,6 +306,13 @@ export async function createPowerOfAttorneyAction(
     notes: formValue(formData, 'notes') || null,
   })
 
+  const syncSummary = saved.site_id
+    ? await syncCustomerOperationsForSite(supabase, {
+        customerId,
+        siteId: saved.site_id,
+      })
+    : await syncCustomerOperationsForCustomer(supabase, customerId)
+
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: 'power_of_attorney',
@@ -305,10 +322,13 @@ export async function createPowerOfAttorneyAction(
     metadata: {
       customerId,
       siteId: saved.site_id,
+      syncSummary,
     },
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function runSwitchReadinessAction(
@@ -357,6 +377,8 @@ export async function runSwitchReadinessAction(
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function createSupplierSwitchRequestAction(
@@ -422,6 +444,8 @@ export async function createSupplierSwitchRequestAction(
     })
 
     revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath('/admin/operations')
+    revalidatePath('/admin/operations/tasks')
     return
   }
 
@@ -454,6 +478,8 @@ export async function createSupplierSwitchRequestAction(
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/switches')
 }
 
 export async function updateOperationTaskStatusAction(
@@ -473,6 +499,8 @@ export async function updateOperationTaskStatusAction(
 
   if (status === 'done') {
     payload.resolved_at = new Date().toISOString()
+  } else {
+    payload.resolved_at = null
   }
 
   const { data, error } = await supabaseService
@@ -498,6 +526,8 @@ export async function updateOperationTaskStatusAction(
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function createGridOwnerDataRequestAction(
@@ -506,6 +536,7 @@ export async function createGridOwnerDataRequestAction(
   await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
   const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
 
   if (!customerId) {
@@ -529,6 +560,8 @@ export async function createGridOwnerDataRequestAction(
     notes: formValue(formData, 'notes') || null,
   })
 
+  const syncSummary = await syncCustomerOperationsForCustomer(supabase, customerId)
+
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: 'grid_owner_data_request',
@@ -540,12 +573,15 @@ export async function createGridOwnerDataRequestAction(
       siteId: saved.site_id,
       meteringPointId: saved.metering_point_id,
       requestScope: saved.request_scope,
+      syncSummary,
     },
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath('/admin/metering')
   revalidatePath('/admin/billing')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function createPartnerExportAction(
@@ -554,6 +590,7 @@ export async function createPartnerExportAction(
   await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
   const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
 
   if (!customerId) {
@@ -572,6 +609,8 @@ export async function createPartnerExportAction(
     notes: formValue(formData, 'notes') || null,
   })
 
+  const syncSummary = await syncCustomerOperationsForCustomer(supabase, customerId)
+
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: 'partner_export',
@@ -583,10 +622,13 @@ export async function createPartnerExportAction(
       siteId: saved.site_id,
       meteringPointId: saved.metering_point_id,
       exportKind: saved.export_kind,
+      syncSummary,
     },
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath('/admin/billing')
   revalidatePath('/admin/partner-exports')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }

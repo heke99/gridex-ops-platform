@@ -6,6 +6,7 @@ import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  syncCustomerOperationsForCustomer,
   updateOperationTaskStatus,
   updateSupplierSwitchRequestStatus,
 } from '@/lib/operations/db'
@@ -151,8 +152,62 @@ export async function updateSupplierSwitchStatusFromAdminAction(
     },
   })
 
+  await syncCustomerOperationsForCustomer(supabase, saved.customer_id)
+
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
   revalidatePath(`/admin/customers/${saved.customer_id}`)
+}
+
+export async function runOperationsTaskAutoResolutionSweepAction(): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+
+  const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
+
+  const sitesQuery = await supabase
+    .from('customer_sites')
+    .select('customer_id')
+    .order('created_at', { ascending: false })
+
+  if (sitesQuery.error) {
+    throw sitesQuery.error
+  }
+
+  const customerIds = Array.from(
+    new Set(
+      (sitesQuery.data ?? [])
+        .map((row) => row.customer_id)
+        .filter((value): value is string => Boolean(value))
+    )
+  )
+
+  let siteCount = 0
+  let readyCount = 0
+  let blockedCount = 0
+
+  for (const customerId of customerIds) {
+    const result = await syncCustomerOperationsForCustomer(supabase, customerId)
+    siteCount += result.siteCount
+    readyCount += result.readyCount
+    blockedCount += result.blockedCount
+  }
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'operations_task_sync',
+    entityId: actor.id,
+    action: 'operations_task_auto_resolution_sweep_ran',
+    metadata: {
+      customerCount: customerIds.length,
+      siteCount,
+      readyCount,
+      blockedCount,
+    },
+  })
+
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/operations/switches')
 }
