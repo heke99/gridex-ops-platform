@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
@@ -23,6 +24,8 @@ import type {
   CustomerSiteRow,
   MeteringPointRow,
 } from '@/lib/masterdata/types'
+import type { OutboundRequestRow } from '@/lib/cis/types'
+import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import CustomerBillingMeteringCard from '@/components/admin/customers/CustomerBillingMeteringCard'
 import CustomerSwitchOperationsCard from '@/components/admin/customers/CustomerSwitchOperationsCard'
 import {
@@ -36,6 +39,7 @@ import {
   listSupplierSwitchEventsByRequestIds,
   listSupplierSwitchRequestsByCustomerId,
 } from '@/lib/operations/db'
+import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,6 +64,20 @@ type CustomerPageProps = {
     editSite?: string
     editMeteringPoint?: string
   }>
+}
+
+type CustomerLifecycleSummary = {
+  blocked: number
+  queuedForOutbound: number
+  awaitingDispatch: number
+  awaitingResponse: number
+  readyToExecute: number
+  failed: number
+  completed: number
+  activeOpen: number
+  primaryLabel: string
+  primaryHref: string
+  primaryDescription: string
 }
 
 function formatCustomerName(customer: CustomerRow): string {
@@ -102,6 +120,22 @@ function statusTone(status: string | null): string {
     default:
       return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
   }
+}
+
+function lifecycleTone(stage: string): string {
+  if (['ready_to_execute', 'completed'].includes(stage)) {
+    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+  }
+
+  if (['blocked', 'failed'].includes(stage)) {
+    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+  }
+
+  if (['awaiting_response'].includes(stage)) {
+    return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+  }
+
+  return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
 }
 
 function entityLabel(entityType: string): string {
@@ -174,6 +208,229 @@ function ActorCell({
       {actorUserId}
     </span>
   )
+}
+
+function requestSortTime(request: SupplierSwitchRequestRow): number {
+  return new Date(
+    request.completed_at ??
+      request.failed_at ??
+      request.submitted_at ??
+      request.created_at
+  ).getTime()
+}
+
+function outboundSortTime(outbound: OutboundRequestRow): number {
+  return new Date(
+    outbound.acknowledged_at ??
+      outbound.failed_at ??
+      outbound.sent_at ??
+      outbound.prepared_at ??
+      outbound.queued_at ??
+      outbound.created_at
+  ).getTime()
+}
+
+function getLatestOutboundForRequest(
+  requestId: string,
+  outboundRequests: OutboundRequestRow[]
+): OutboundRequestRow | null {
+  const rows = outboundRequests
+    .filter(
+      (row) =>
+        row.request_type === 'supplier_switch' &&
+        row.source_type === 'supplier_switch_request' &&
+        row.source_id === requestId
+    )
+    .sort((a, b) => outboundSortTime(b) - outboundSortTime(a))
+
+  return rows[0] ?? null
+}
+
+function buildCustomerLifecycleSummary(params: {
+  sites: CustomerSiteRow[]
+  switchRequests: SupplierSwitchRequestRow[]
+  outboundRequests: OutboundRequestRow[]
+}): CustomerLifecycleSummary {
+  const { sites, switchRequests, outboundRequests } = params
+
+  const latestRequestsBySite = sites
+    .map((site) => {
+      const requestsForSite = switchRequests
+        .filter((request) => request.site_id === site.id)
+        .sort((a, b) => requestSortTime(b) - requestSortTime(a))
+
+      return requestsForSite[0] ?? null
+    })
+    .filter((request): request is SupplierSwitchRequestRow => Boolean(request))
+
+  let blocked = 0
+  let queuedForOutbound = 0
+  let awaitingDispatch = 0
+  let awaitingResponse = 0
+  let readyToExecute = 0
+  let failed = 0
+  let completed = 0
+
+  for (const request of latestRequestsBySite) {
+    const outbound = getLatestOutboundForRequest(request.id, outboundRequests)
+
+    const lifecycle = getSwitchLifecycle({
+      request,
+      readiness: null,
+      outboundRequest: outbound,
+    })
+
+    switch (lifecycle.stage) {
+      case 'blocked':
+        blocked += 1
+        break
+      case 'queued_for_outbound':
+        queuedForOutbound += 1
+        break
+      case 'awaiting_dispatch':
+        awaitingDispatch += 1
+        break
+      case 'awaiting_response':
+        awaitingResponse += 1
+        break
+      case 'ready_to_execute':
+        readyToExecute += 1
+        break
+      case 'failed':
+        failed += 1
+        break
+      case 'completed':
+        completed += 1
+        break
+      default:
+        break
+    }
+  }
+
+  const activeOpen =
+    blocked +
+    queuedForOutbound +
+    awaitingDispatch +
+    awaitingResponse +
+    readyToExecute +
+    failed
+
+  if (blocked > 0) {
+    return {
+      blocked,
+      queuedForOutbound,
+      awaitingDispatch,
+      awaitingResponse,
+      readyToExecute,
+      failed,
+      completed,
+      activeOpen,
+      primaryLabel: 'Blockerade switchar',
+      primaryHref: '/admin/operations/switches?stage=blocked',
+      primaryDescription:
+        'Minst en anläggning stoppas av blockerare. Börja i blockerad kö eller öppna switchsektionen på kundkortet.',
+    }
+  }
+
+  if (readyToExecute > 0) {
+    return {
+      blocked,
+      queuedForOutbound,
+      awaitingDispatch,
+      awaitingResponse,
+      readyToExecute,
+      failed,
+      completed,
+      activeOpen,
+      primaryLabel: 'Redo att slutföra',
+      primaryHref: '/admin/operations/ready-to-execute',
+      primaryDescription:
+        'Det finns kvitterade switchar som kan slutföras nu. Gå direkt till ready-to-execute-kön.',
+    }
+  }
+
+  if (awaitingResponse > 0) {
+    return {
+      blocked,
+      queuedForOutbound,
+      awaitingDispatch,
+      awaitingResponse,
+      readyToExecute,
+      failed,
+      completed,
+      activeOpen,
+      primaryLabel: 'Väntar på kvittens',
+      primaryHref: '/admin/operations/switches?stage=awaiting_response',
+      primaryDescription:
+        'Switchen är skickad och väntar på extern återkoppling eller uppföljning.',
+    }
+  }
+
+  if (awaitingDispatch > 0) {
+    return {
+      blocked,
+      queuedForOutbound,
+      awaitingDispatch,
+      awaitingResponse,
+      readyToExecute,
+      failed,
+      completed,
+      activeOpen,
+      primaryLabel: 'Väntar på dispatch',
+      primaryHref: '/admin/operations/switches?stage=awaiting_dispatch',
+      primaryDescription:
+        'Outbound finns men dispatchen är inte helt igenom ännu. Kontrollera outbound-läget.',
+    }
+  }
+
+  if (queuedForOutbound > 0) {
+    return {
+      blocked,
+      queuedForOutbound,
+      awaitingDispatch,
+      awaitingResponse,
+      readyToExecute,
+      failed,
+      completed,
+      activeOpen,
+      primaryLabel: 'Saknar outbound',
+      primaryHref: '/admin/operations/switches?stage=queued_for_outbound',
+      primaryDescription:
+        'Det finns switchar som saknar dispatchpost och behöver köas eller felsökas.',
+    }
+  }
+
+  if (failed > 0) {
+    return {
+      blocked,
+      queuedForOutbound,
+      awaitingDispatch,
+      awaitingResponse,
+      readyToExecute,
+      failed,
+      completed,
+      activeOpen,
+      primaryLabel: 'Failed / rejected',
+      primaryHref: '/admin/operations/switches?stage=failed',
+      primaryDescription:
+        'Minst ett ärende har brutit flödet och behöver manuell bedömning, retry eller korrigering.',
+    }
+  }
+
+  return {
+    blocked,
+    queuedForOutbound,
+    awaitingDispatch,
+    awaitingResponse,
+    readyToExecute,
+    failed,
+    completed,
+    activeOpen,
+    primaryLabel: 'Inga akuta switchblockerare',
+    primaryHref: '/admin/customers',
+    primaryDescription:
+      'Kundens switchflöde har inga tydliga akuta blockerare just nu. Fortsätt från kundkortet eller granska detaljer längre ner.',
+  }
 }
 
 function NotesSection({
@@ -439,6 +696,12 @@ export default async function CustomerAdminDetailPage({
     (point) => point.status === 'active'
   ).length
 
+  const lifecycleSummary = buildCustomerLifecycleSummary({
+    sites,
+    switchRequests,
+    outboundRequests,
+  })
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -536,6 +799,132 @@ export default async function CustomerAdminDetailPage({
                 queued / sent / ack
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                Operations summary
+              </div>
+              <span
+                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
+                  lifecycleSummary.primaryLabel === 'Blockerade switchar'
+                    ? 'blocked'
+                    : lifecycleSummary.primaryLabel === 'Redo att slutföra'
+                      ? 'ready_to_execute'
+                      : lifecycleSummary.primaryLabel === 'Väntar på kvittens'
+                        ? 'awaiting_response'
+                        : lifecycleSummary.primaryLabel === 'Failed / rejected'
+                          ? 'failed'
+                          : lifecycleSummary.primaryLabel === 'Inga akuta switchblockerare'
+                            ? 'completed'
+                            : 'queued_for_outbound'
+                )}`}
+              >
+                {lifecycleSummary.primaryLabel}
+              </span>
+            </div>
+
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+              {lifecycleSummary.primaryDescription}
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="text-slate-500 dark:text-slate-400">Aktiva öppna</div>
+                <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                  {lifecycleSummary.activeOpen}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="text-slate-500 dark:text-slate-400">Ready to execute</div>
+                <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                  {lifecycleSummary.readyToExecute}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="text-slate-500 dark:text-slate-400">Väntar svar</div>
+                <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                  {lifecycleSummary.awaitingResponse}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="text-slate-500 dark:text-slate-400">Blockerade</div>
+                <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                  {lifecycleSummary.blocked}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href={lifecycleSummary.primaryHref}
+                className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
+              >
+                Öppna rekommenderad arbetsyta
+              </Link>
+
+              <Link
+                href="#switch-operations"
+                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                Gå till switchsektionen
+              </Link>
+
+              <Link
+                href="/admin/operations/switches"
+                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                Alla switchar
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
+            <Link
+              href="/admin/operations/switches?stage=queued_for_outbound"
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-950"
+            >
+              <div className="text-sm text-slate-500 dark:text-slate-400">Saknar outbound</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
+                {lifecycleSummary.queuedForOutbound}
+              </div>
+            </Link>
+
+            <Link
+              href="/admin/operations/switches?stage=awaiting_dispatch"
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-950"
+            >
+              <div className="text-sm text-slate-500 dark:text-slate-400">Väntar dispatch</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
+                {lifecycleSummary.awaitingDispatch}
+              </div>
+            </Link>
+
+            <Link
+              href="/admin/operations/switches?stage=failed"
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-950"
+            >
+              <div className="text-sm text-slate-500 dark:text-slate-400">Failed / rejected</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
+                {lifecycleSummary.failed}
+              </div>
+            </Link>
+
+            <Link
+              href="/admin/operations/ready-to-execute"
+              className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20"
+            >
+              <div className="text-sm text-slate-500 dark:text-slate-400">Completed / ready view</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
+                {lifecycleSummary.completed + lifecycleSummary.readyToExecute}
+              </div>
+            </Link>
           </div>
         </div>
       </section>

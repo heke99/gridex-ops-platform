@@ -1,3 +1,4 @@
+//app/admin/operations/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -18,9 +19,15 @@ import {
   updateSupplierSwitchRequestStatus,
   updateSupplierSwitchValidationSnapshot,
 } from '@/lib/operations/db'
-import { getOutboundRequestById, resetOutboundRequestForRetry } from '@/lib/cis/db'
+import {
+  getOutboundRequestById,
+  listOutboundRequests,
+  resetOutboundRequestForRetry,
+} from '@/lib/cis/db'
+import type { OutboundRequestRow } from '@/lib/cis/types'
 import type {
   CustomerOperationTaskStatus,
+  SupplierSwitchRequestRow,
   SupplierSwitchRequestStatus,
 } from '@/lib/operations/types'
 
@@ -83,6 +90,94 @@ async function insertAuditLog(params: {
   })
 
   if (error) throw error
+}
+
+async function writeSupplierSwitchExecutionAudit(params: {
+  actorUserId: string
+  result: Awaited<ReturnType<typeof finalizeSupplierSwitchExecution>>
+  executionSource: string
+}) {
+  const { actorUserId, result, executionSource } = params
+
+  await insertAuditLog({
+    actorUserId,
+    entityType: 'supplier_switch_request',
+    entityId: result.request.id,
+    action: 'supplier_switch_request_execution_completed',
+    oldValues: result.requestBefore,
+    newValues: result.request,
+    metadata: {
+      customerId: result.request.customer_id,
+      siteId: result.request.site_id,
+      meteringPointId: result.request.metering_point_id,
+      executionSource,
+    },
+  })
+
+  await insertAuditLog({
+    actorUserId,
+    entityType: 'customer_site',
+    entityId: result.siteAfter.id,
+    action: 'customer_site_updated_from_supplier_switch_execution',
+    oldValues: result.siteBefore,
+    newValues: result.siteAfter,
+    metadata: {
+      customerId: result.siteAfter.customer_id,
+      siteId: result.siteAfter.id,
+      switchRequestId: result.request.id,
+      executionSource,
+    },
+  })
+
+  if (result.meteringPointBefore && result.meteringPointAfter) {
+    await insertAuditLog({
+      actorUserId,
+      entityType: 'metering_point',
+      entityId: result.meteringPointAfter.id,
+      action: 'metering_point_updated_from_supplier_switch_execution',
+      oldValues: result.meteringPointBefore,
+      newValues: result.meteringPointAfter,
+      metadata: {
+        customerId: result.request.customer_id,
+        siteId: result.request.site_id,
+        meteringPointId: result.meteringPointAfter.id,
+        switchRequestId: result.request.id,
+        executionSource,
+      },
+    })
+  }
+}
+
+function findAcknowledgedOutboundForSwitch(params: {
+  request: SupplierSwitchRequestRow
+  outboundRequests: OutboundRequestRow[]
+}): OutboundRequestRow | null {
+  const { request, outboundRequests } = params
+
+  return (
+    outboundRequests.find(
+      (row) =>
+        row.request_type === 'supplier_switch' &&
+        row.source_type === 'supplier_switch_request' &&
+        row.source_id === request.id &&
+        row.status === 'acknowledged'
+    ) ?? null
+  )
+}
+
+function revalidateSupplierSwitchPaths(customerId: string, requestId?: string) {
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/operations/switches')
+  revalidatePath('/admin/operations/ready-to-execute')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/ready-switches')
+  revalidatePath('/admin/outbound/unresolved')
+  revalidatePath(`/admin/customers/${customerId}`)
+
+  if (requestId) {
+    revalidatePath(`/admin/operations/switches/${requestId}`)
+  }
 }
 
 export async function updateOperationTaskStatusFromAdminAction(
@@ -233,9 +328,15 @@ export async function validateSupplierSwitchBeforeProcessingAction(
     siteStatus: site.status,
     currentSupplierName: site.current_supplier_name ?? null,
     gridOwnerId:
-      matchedMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? request.grid_owner_id ?? null,
+      matchedMeteringPoint?.grid_owner_id ??
+      site.grid_owner_id ??
+      request.grid_owner_id ??
+      null,
     priceAreaCode:
-      matchedMeteringPoint?.price_area_code ?? site.price_area_code ?? request.price_area_code ?? null,
+      matchedMeteringPoint?.price_area_code ??
+      site.price_area_code ??
+      request.price_area_code ??
+      null,
     matchedMeteringPointId: matchedMeteringPoint?.id ?? null,
     matchedMeterPointId: matchedMeteringPoint?.meter_point_id ?? null,
     meteringPointStatus: matchedMeteringPoint?.status ?? null,
@@ -291,6 +392,7 @@ export async function validateSupplierSwitchBeforeProcessingAction(
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
+  revalidatePath('/admin/operations/ready-to-execute')
   revalidatePath(`/admin/operations/switches/${saved.id}`)
   revalidatePath(`/admin/customers/${saved.customer_id}`)
 }
@@ -315,59 +417,114 @@ export async function finalizeSupplierSwitchExecutionAction(
     executionNotes: 'Manuell slutföring från admin operations.',
   })
 
-  await insertAuditLog({
+  await writeSupplierSwitchExecutionAudit({
     actorUserId: actor.id,
-    entityType: 'supplier_switch_request',
-    entityId: result.request.id,
-    action: 'supplier_switch_request_execution_completed',
-    oldValues: result.requestBefore,
-    newValues: result.request,
-    metadata: {
-      customerId: result.request.customer_id,
-      siteId: result.request.site_id,
-      meteringPointId: result.request.metering_point_id,
-      executionSource: 'manual_admin',
-    },
+    result,
+    executionSource: 'manual_admin',
   })
-
-  await insertAuditLog({
-    actorUserId: actor.id,
-    entityType: 'customer_site',
-    entityId: result.siteAfter.id,
-    action: 'customer_site_updated_from_supplier_switch_execution',
-    oldValues: result.siteBefore,
-    newValues: result.siteAfter,
-    metadata: {
-      customerId: result.siteAfter.customer_id,
-      siteId: result.siteAfter.id,
-      switchRequestId: result.request.id,
-    },
-  })
-
-  if (result.meteringPointBefore && result.meteringPointAfter) {
-    await insertAuditLog({
-      actorUserId: actor.id,
-      entityType: 'metering_point',
-      entityId: result.meteringPointAfter.id,
-      action: 'metering_point_updated_from_supplier_switch_execution',
-      oldValues: result.meteringPointBefore,
-      newValues: result.meteringPointAfter,
-      metadata: {
-        customerId: result.request.customer_id,
-        siteId: result.request.site_id,
-        meteringPointId: result.meteringPointAfter.id,
-        switchRequestId: result.request.id,
-      },
-    })
-  }
 
   await syncCustomerOperationsForCustomer(supabase, result.request.customer_id)
 
+  revalidateSupplierSwitchPaths(result.request.customer_id, result.request.id)
+}
+
+export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+
+  const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
+
+  const [requestsQuery, outboundRequests] = await Promise.all([
+    supabase
+      .from('supplier_switch_requests')
+      .select('*')
+      .eq('status', 'accepted')
+      .order('requested_start_date', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true }),
+    listOutboundRequests({
+      status: 'all',
+      requestType: 'supplier_switch',
+      channelType: 'all',
+      query: '',
+    }),
+  ])
+
+  if (requestsQuery.error) {
+    throw requestsQuery.error
+  }
+
+  const switchRequests = (requestsQuery.data ?? []) as SupplierSwitchRequestRow[]
+
+  const readyRequests = switchRequests.filter((request) =>
+    Boolean(
+      findAcknowledgedOutboundForSwitch({
+        request,
+        outboundRequests,
+      })
+    )
+  )
+
+  let completedCount = 0
+  let skippedCount = 0
+
+  for (const request of readyRequests) {
+    const outbound = findAcknowledgedOutboundForSwitch({
+      request,
+      outboundRequests,
+    })
+
+    if (!outbound) {
+      skippedCount += 1
+      continue
+    }
+
+    const result = await finalizeSupplierSwitchExecution(supabase, {
+      requestId: request.id,
+      actorUserId: actor.id,
+      executionSource: 'bulk_admin_ready_queue',
+      executionNotes:
+        'Bulk-slutföring från ready-to-execute-kön i admin operations.',
+    })
+
+    await writeSupplierSwitchExecutionAudit({
+      actorUserId: actor.id,
+      result,
+      executionSource: 'bulk_admin_ready_queue',
+    })
+
+    await createSupplierSwitchEvent(supabase, {
+      switchRequestId: result.request.id,
+      eventType: 'bulk_execution_completed',
+      eventStatus: 'completed',
+      message: 'Switchen slutfördes från bulk-kön för ready-to-execute.',
+      payload: {
+        outboundRequestId: outbound.id,
+        outboundStatus: outbound.status,
+        executionSource: 'bulk_admin_ready_queue',
+      },
+    })
+
+    await syncCustomerOperationsForCustomer(supabase, result.request.customer_id)
+    revalidateSupplierSwitchPaths(result.request.customer_id, result.request.id)
+    completedCount += 1
+  }
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'supplier_switch_execution_bulk',
+    entityId: actor.id,
+    action: 'supplier_switch_ready_queue_bulk_execution_ran',
+    metadata: {
+      scannedAcceptedCount: switchRequests.length,
+      readyCount: readyRequests.length,
+      completedCount,
+      skippedCount,
+    },
+  })
+
   revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
-  revalidatePath(`/admin/operations/switches/${result.request.id}`)
-  revalidatePath(`/admin/customers/${result.request.customer_id}`)
+  revalidatePath('/admin/operations/ready-to-execute')
 }
 
 export async function retryOutboundFromSwitchDetailAction(
@@ -402,7 +559,9 @@ export async function retryOutboundFromSwitchDetailAction(
     requestId: switchRequestId,
     status: 'queued',
     externalReference:
-      reset.external_reference ?? formValue(formData, 'external_reference') ?? null,
+      reset.external_reference ??
+      formValue(formData, 'external_reference') ??
+      null,
   })
 
   await createSupplierSwitchEvent(supabase, {
@@ -439,6 +598,7 @@ export async function retryOutboundFromSwitchDetailAction(
   revalidatePath('/admin/outbound/unresolved')
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/switches')
+  revalidatePath('/admin/operations/ready-to-execute')
   revalidatePath(`/admin/operations/switches/${switchRequestId}`)
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath(`/admin/customers/${savedSwitch.customer_id}`)
@@ -494,4 +654,5 @@ export async function runOperationsTaskAutoResolutionSweepAction(): Promise<void
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
+  revalidatePath('/admin/operations/ready-to-execute')
 }

@@ -47,6 +47,11 @@ const NAV_GROUPS: NavGroup[] = [
         description: 'Leverantörsbyten, validation, execution',
       },
       {
+        href: '/admin/operations/ready-to-execute',
+        label: 'Ready to execute',
+        description: 'Accepted + acknowledged som väntar på intern slutföring',
+      },
+      {
         href: '/admin/outbound',
         label: 'Outbound queue',
         description: 'Dispatch, sent, acknowledged och retry',
@@ -162,7 +167,8 @@ export default function AdminSidebar() {
             Så används menyn
           </p>
           <p className="mt-2 text-sm text-slate-300">
-            Börja i Operations control tower eller Kundkort. Gå sedan vidare till Switchar eller Outbound beroende på var kedjan fastnar.
+            Börja i Operations control tower eller Kundkort. Gå sedan vidare till
+            Switchar, Ready to execute eller Outbound beroende på var kedjan fastnar.
           </p>
         </div>
       </div>
@@ -227,18 +233,6 @@ export default function AdminSidebar() {
           </section>
         ))}
       </nav>
-
-      <div className="border-t border-slate-800 px-4 py-5">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-            Miljö
-          </p>
-          <p className="mt-2 text-sm font-medium text-slate-200">Development</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            CIS med switching, metering, billing, outbound dispatch och partnerexports.
-          </p>
-        </div>
-      </div>
     </aside>
   )
 }

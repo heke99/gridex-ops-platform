@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -153,7 +154,7 @@ function SectionHeader({
 }: {
   title: string
   subtitle: string
-  action?: React.ReactNode
+  action?: ReactNode
 }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-slate-800">
@@ -268,6 +269,9 @@ export default async function AdminOperationsPage() {
   const missingOutboundSwitches = switchLifecycle.filter(
     (row) => row.lifecycle.stage === 'queued_for_outbound'
   )
+  const awaitingDispatchSwitches = switchLifecycle.filter(
+    (row) => row.lifecycle.stage === 'awaiting_dispatch'
+  )
   const awaitingResponseSwitches = switchLifecycle.filter(
     (row) => row.lifecycle.stage === 'awaiting_response'
   )
@@ -310,8 +314,8 @@ export default async function AdminOperationsPage() {
       count: blockedSwitches.length,
       description:
         'Readiness blockerar nästa steg. Börja här om leverantörsbyten inte rör sig framåt.',
-      href: '/admin/operations/switches',
-      cta: 'Öppna switchar',
+      href: '/admin/operations/switches?stage=blocked',
+      cta: 'Öppna blockerade',
       tone: 'danger' as const,
     },
     {
@@ -330,8 +334,18 @@ export default async function AdminOperationsPage() {
       count: missingOutboundSwitches.length,
       description:
         'Ärenden som är redo i kedjan men fortfarande saknar dispatch-post.',
-      href: '/admin/operations/switches',
+      href: '/admin/operations/switches?stage=queued_for_outbound',
       cta: 'Köa / felsök',
+      tone: 'warning' as const,
+    },
+    {
+      id: 'awaiting-dispatch',
+      title: 'Väntar på dispatch',
+      count: awaitingDispatchSwitches.length,
+      description:
+        'Outbound finns men ligger fortfarande i queued eller prepared och har inte gått iväg ännu.',
+      href: '/admin/operations/switches?stage=awaiting_dispatch',
+      cta: 'Öppna dispatch-kö',
       tone: 'warning' as const,
     },
     {
@@ -340,8 +354,8 @@ export default async function AdminOperationsPage() {
       count: awaitingResponseSwitches.length,
       description:
         'Skickade ärenden som väntar på svar från extern part eller manuell uppföljning.',
-      href: '/admin/outbound',
-      cta: 'Öppna outbound',
+      href: '/admin/operations/switches?stage=awaiting_response',
+      cta: 'Följ upp svar',
       tone: 'info' as const,
     },
     {
@@ -350,7 +364,7 @@ export default async function AdminOperationsPage() {
       count: readyToExecuteSwitches.length,
       description:
         'Kvitterade switchar som är klara för intern execution / finalize.',
-      href: '/admin/operations/switches',
+      href: '/admin/operations/ready-to-execute',
       cta: 'Slutför switchar',
       tone: 'success' as const,
     },
@@ -360,7 +374,7 @@ export default async function AdminOperationsPage() {
       count: failedSwitches.length,
       description:
         'Ärenden som redan brutit flödet och behöver beslut, retry eller manuell korrigering.',
-      href: '/admin/operations/switches',
+      href: '/admin/operations/switches?stage=failed',
       cta: 'Granska fel',
       tone: 'danger' as const,
     },
@@ -368,9 +382,13 @@ export default async function AdminOperationsPage() {
 
   const recentActionRows = switchLifecycle
     .filter((row) =>
-      ['blocked', 'queued_for_outbound', 'awaiting_response', 'ready_to_execute'].includes(
-        row.lifecycle.stage
-      )
+      [
+        'blocked',
+        'queued_for_outbound',
+        'awaiting_dispatch',
+        'awaiting_response',
+        'ready_to_execute',
+      ].includes(row.lifecycle.stage)
     )
     .slice(0, 12)
 
@@ -486,6 +504,18 @@ export default async function AdminOperationsPage() {
               </Link>
 
               <Link
+                href="/admin/operations/ready-to-execute"
+                className="block rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20"
+              >
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Ready to execute
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Gå hit när outbound redan är kvitterad och du bara vill slutföra switcharna snabbt, enskilt eller i bulk.
+                </div>
+              </Link>
+
+              <Link
                 href="/admin/outbound"
                 className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
               >
@@ -590,12 +620,43 @@ export default async function AdminOperationsPage() {
                         >
                           Switch detail
                         </Link>
-                        <Link
-                          href="/admin/outbound"
-                          className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                        >
-                          Outbound
-                        </Link>
+
+                        {row.lifecycle.stage === 'ready_to_execute' ? (
+                          <Link
+                            href="/admin/operations/ready-to-execute"
+                            className="rounded-2xl border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300"
+                          >
+                            Ready queue
+                          </Link>
+                        ) : row.lifecycle.stage === 'awaiting_response' ? (
+                          <Link
+                            href="/admin/operations/switches?stage=awaiting_response"
+                            className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                          >
+                            Väntar svar
+                          </Link>
+                        ) : row.lifecycle.stage === 'awaiting_dispatch' ? (
+                          <Link
+                            href="/admin/operations/switches?stage=awaiting_dispatch"
+                            className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                          >
+                            Dispatch-kö
+                          </Link>
+                        ) : row.lifecycle.stage === 'queued_for_outbound' ? (
+                          <Link
+                            href="/admin/operations/switches?stage=queued_for_outbound"
+                            className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                          >
+                            Saknar outbound
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/admin/outbound"
+                            className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                          >
+                            Outbound
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -721,7 +782,7 @@ export default async function AdminOperationsPage() {
 
             <div className="space-y-3 p-6">
               <Link
-                href="/admin/operations/switches"
+                href="/admin/operations/switches?status=draft"
                 className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -738,7 +799,7 @@ export default async function AdminOperationsPage() {
               </Link>
 
               <Link
-                href="/admin/operations/switches"
+                href="/admin/operations/switches?stage=queued_for_outbound"
                 className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -755,8 +816,25 @@ export default async function AdminOperationsPage() {
               </Link>
 
               <Link
-                href="/admin/operations/switches"
+                href="/admin/operations/switches?stage=awaiting_dispatch"
                 className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Väntar dispatch
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('submitted')}`}>
+                    {awaitingDispatchSwitches.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Outbound finns men dispatchen är ännu inte iväg eller kvitterad.
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/operations/ready-to-execute"
+                className="block rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">

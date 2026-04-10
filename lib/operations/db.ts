@@ -692,12 +692,16 @@ export async function createSupplierSwitchEvent(
   if (error) throw error
   return data as SupplierSwitchEventRow
 }
+
 export async function finalizeSupplierSwitchExecution(
   supabase: SupabaseClient,
   params: {
     requestId: string
     actorUserId: string
-    executionSource: 'manual_admin' | 'automation_sweep'
+    executionSource:
+      | 'manual_admin'
+      | 'automation_sweep'
+      | 'bulk_admin_ready_queue'
     executionNotes?: string | null
   }
 ): Promise<{
@@ -708,7 +712,10 @@ export async function finalizeSupplierSwitchExecution(
   meteringPointBefore: MeteringPointRow | null
   meteringPointAfter: MeteringPointRow | null
 }> {
-  const requestBefore = await getSupplierSwitchRequestById(supabase, params.requestId)
+  const requestBefore = await getSupplierSwitchRequestById(
+    supabase,
+    params.requestId
+  )
 
   if (!requestBefore) {
     throw new Error('Switchärendet hittades inte')
@@ -755,7 +762,8 @@ export async function finalizeSupplierSwitchExecution(
     current_supplier_org_number: requestBefore.incoming_supplier_org_number,
     status: siteBefore.status === 'closed' ? 'closed' : 'active',
     grid_owner_id: siteBefore.grid_owner_id ?? requestBefore.grid_owner_id ?? null,
-    price_area_code: siteBefore.price_area_code ?? requestBefore.price_area_code ?? null,
+    price_area_code:
+      siteBefore.price_area_code ?? requestBefore.price_area_code ?? null,
     updated_by: params.actorUserId,
   }
 
@@ -779,7 +787,9 @@ export async function finalizeSupplierSwitchExecution(
         grid_owner_id:
           meteringPointBefore.grid_owner_id ?? requestBefore.grid_owner_id ?? null,
         price_area_code:
-          meteringPointBefore.price_area_code ?? requestBefore.price_area_code ?? null,
+          meteringPointBefore.price_area_code ??
+          requestBefore.price_area_code ??
+          null,
         updated_by: params.actorUserId,
       })
       .eq('id', meteringPointBefore.id)
@@ -803,7 +813,9 @@ export async function finalizeSupplierSwitchExecution(
     message:
       params.executionSource === 'automation_sweep'
         ? 'Switchen slutfördes automatiskt efter kvitterad outbound.'
-        : 'Switchen slutfördes manuellt från operations.',
+        : params.executionSource === 'bulk_admin_ready_queue'
+          ? 'Switchen slutfördes från bulk-kön för ready-to-execute.'
+          : 'Switchen slutfördes manuellt från operations.',
     payload: {
       executionSource: params.executionSource,
       executionNotes: params.executionNotes ?? null,

@@ -1,4 +1,3 @@
-//components/admin/customers/CustomerSwitchOperationsCard.tsx
 'use client'
 
 import Link from 'next/link'
@@ -44,6 +43,17 @@ type ValidationSummary = {
   issueCodes: string[]
 }
 
+type SiteLifecycleSummary = {
+  site: CustomerSiteRow
+  requests: SupplierSwitchRequestRow[]
+  latestRequest: SupplierSwitchRequestRow | null
+  outbound: OutboundRequestRow | null
+  validation: ValidationSummary | null
+  lifecycle: ReturnType<typeof getSwitchLifecycle> | null
+  latestEvent: SupplierSwitchEventRow | null
+  stuckReason: string
+}
+
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
 
@@ -58,7 +68,11 @@ function statusTone(status: string | null | undefined): string {
     return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
   }
 
-  if (['completed', 'accepted', 'acknowledged', 'validation_passed'].includes(status)) {
+  if (
+    ['completed', 'accepted', 'acknowledged', 'validation_passed', 'ready_to_execute'].includes(
+      status
+    )
+  ) {
     return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
 
@@ -203,8 +217,29 @@ function customerJourneyHref(params: {
 
   if (lifecycleStage === 'queued_for_outbound') {
     return {
-      href: '/admin/operations/switches',
-      label: 'Öppna switchlistan',
+      href: '/admin/operations/switches?stage=queued_for_outbound',
+      label: 'Öppna saknar outbound',
+    }
+  }
+
+  if (lifecycleStage === 'awaiting_response') {
+    return {
+      href: '/admin/operations/switches?stage=awaiting_response',
+      label: 'Öppna väntar svar',
+    }
+  }
+
+  if (lifecycleStage === 'ready_to_execute') {
+    return {
+      href: '/admin/operations/ready-to-execute',
+      label: 'Öppna ready-to-execute',
+    }
+  }
+
+  if (lifecycleStage === 'blocked') {
+    return {
+      href: '/admin/operations/switches?stage=blocked',
+      label: 'Öppna blockerade switchar',
     }
   }
 
@@ -212,6 +247,105 @@ function customerJourneyHref(params: {
     href: `/admin/operations/switches/${requestId}`,
     label: 'Öppna switch detail',
   }
+}
+
+function requestSortTime(request: SupplierSwitchRequestRow): number {
+  return new Date(
+    request.completed_at ??
+      request.failed_at ??
+      request.submitted_at ??
+      request.created_at
+  ).getTime()
+}
+
+function outboundSortTime(outbound: OutboundRequestRow): number {
+  return new Date(
+    outbound.acknowledged_at ??
+      outbound.failed_at ??
+      outbound.sent_at ??
+      outbound.prepared_at ??
+      outbound.queued_at ??
+      outbound.created_at
+  ).getTime()
+}
+
+function getLatestOutboundForRequest(
+  requestId: string,
+  outboundRequests: OutboundRequestRow[]
+): OutboundRequestRow | null {
+  const rows = outboundRequests
+    .filter(
+      (row) =>
+        row.source_type === 'supplier_switch_request' &&
+        row.source_id === requestId
+    )
+    .sort((a, b) => outboundSortTime(b) - outboundSortTime(a))
+
+  return rows[0] ?? null
+}
+
+function getLatestEventForRequest(
+  requestId: string,
+  events: SupplierSwitchEventRow[]
+): SupplierSwitchEventRow | null {
+  const rows = events
+    .filter((event) => event.switch_request_id === requestId)
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+
+  return rows[0] ?? null
+}
+
+function buildSiteLifecycleSummaries(params: {
+  sites: CustomerSiteRow[]
+  switchRequests: SupplierSwitchRequestRow[]
+  switchEvents: SupplierSwitchEventRow[]
+  switchOutboundRequests: OutboundRequestRow[]
+}): SiteLifecycleSummary[] {
+  const { sites, switchRequests, switchEvents, switchOutboundRequests } = params
+
+  return sites.map((site) => {
+    const requests = switchRequests
+      .filter((request) => request.site_id === site.id)
+      .sort((a, b) => requestSortTime(b) - requestSortTime(a))
+
+    const latestRequest = requests[0] ?? null
+    const outbound = latestRequest
+      ? getLatestOutboundForRequest(latestRequest.id, switchOutboundRequests)
+      : null
+    const validation = latestRequest
+      ? readValidationSummary(latestRequest.validation_snapshot)
+      : null
+    const lifecycle = latestRequest
+      ? getSwitchLifecycle({
+          request: latestRequest,
+          readiness: null,
+          outboundRequest: outbound,
+        })
+      : null
+    const latestEvent = latestRequest
+      ? getLatestEventForRequest(latestRequest.id, switchEvents)
+      : null
+
+    return {
+      site,
+      requests,
+      latestRequest,
+      outbound,
+      validation,
+      lifecycle,
+      latestEvent,
+      stuckReason: latestRequest
+        ? explainWhySwitchIsStuck({
+            request: latestRequest,
+            outboundRequest: outbound,
+            readiness: null,
+          })
+        : 'Inget switchärende finns ännu för denna anläggning.',
+    }
+  })
 }
 
 export default function CustomerSwitchOperationsCard({
@@ -261,6 +395,38 @@ export default function CustomerSwitchOperationsCard({
     return lifecycle.stage === 'ready_to_execute'
   })
 
+  const awaitingDispatch = switchRequests.filter((request) => {
+    const outbound = switchOutboundRequests.find(
+      (row) =>
+        row.source_type === 'supplier_switch_request' &&
+        row.source_id === request.id
+    )
+
+    const lifecycle = getSwitchLifecycle({
+      request,
+      readiness: null,
+      outboundRequest: outbound ?? null,
+    })
+
+    return lifecycle.stage === 'awaiting_dispatch'
+  })
+
+  const awaitingResponse = switchRequests.filter((request) => {
+    const outbound = switchOutboundRequests.find(
+      (row) =>
+        row.source_type === 'supplier_switch_request' &&
+        row.source_id === request.id
+    )
+
+    const lifecycle = getSwitchLifecycle({
+      request,
+      readiness: null,
+      outboundRequest: outbound ?? null,
+    })
+
+    return lifecycle.stage === 'awaiting_response'
+  })
+
   const stuckSwitches = openSwitches.filter((request) => {
     const outbound = switchOutboundRequests.find(
       (row) =>
@@ -274,26 +440,16 @@ export default function CustomerSwitchOperationsCard({
     )
   })
 
-  const latestDispatch = [...switchOutboundRequests].sort((a, b) => {
-    const aTime = new Date(
-      a.acknowledged_at ??
-        a.failed_at ??
-        a.sent_at ??
-        a.prepared_at ??
-        a.queued_at ??
-        a.created_at
-    ).getTime()
-    const bTime = new Date(
-      b.acknowledged_at ??
-        b.failed_at ??
-        b.sent_at ??
-        b.prepared_at ??
-        b.queued_at ??
-        b.created_at
-    ).getTime()
+  const latestDispatch = [...switchOutboundRequests].sort(
+    (a, b) => outboundSortTime(b) - outboundSortTime(a)
+  )[0]
 
-    return bTime - aTime
-  })[0]
+  const siteLifecycleSummaries = buildSiteLifecycleSummaries({
+    sites,
+    switchRequests,
+    switchEvents,
+    switchOutboundRequests,
+  })
 
   const switchTimeline: SwitchTimelineEntry[] = [
     ...switchRequests.map((request) => ({
@@ -338,7 +494,7 @@ export default function CustomerSwitchOperationsCard({
 
   return (
     <section id="switch-operations" className="space-y-6">
-      <div className="grid gap-4 xl:grid-cols-5">
+      <div className="grid gap-4 xl:grid-cols-6">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="text-sm text-slate-500 dark:text-slate-400">
             Aktiva switchar
@@ -347,7 +503,7 @@ export default function CustomerSwitchOperationsCard({
             {openSwitches.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            draft / queued / submitted / accepted / failed
+            Draft, queued, submitted, accepted och failed som fortfarande kräver uppföljning.
           </div>
         </div>
 
@@ -359,324 +515,547 @@ export default function CustomerSwitchOperationsCard({
             {missingOutbound.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            ärenden utan dispatch-post
+            Switchärenden där extern dispatch ännu inte finns.
           </div>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="text-sm text-slate-500 dark:text-slate-400">
-            Pending review
+            Blockerade av validation
           </div>
           <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
             {blockedByValidation.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            blockerade av validation snapshot
+            Switchar där readiness eller validering fortfarande stoppar flödet.
           </div>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="text-sm text-slate-500 dark:text-slate-400">
-            Ready to execute
+            Väntar dispatch
+          </div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
+            {awaitingDispatch.length}
+          </div>
+          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Outbound finns men har ännu inte gått hela vägen vidare.
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="text-sm text-slate-500 dark:text-slate-400">
+            Väntar kvittens
+          </div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
+            {awaitingResponse.length}
+          </div>
+          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Skickade switchar som väntar på extern återkoppling.
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/10">
+          <div className="text-sm text-slate-500 dark:text-slate-400">
+            Redo att slutföra
           </div>
           <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
             {readyToExecute.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            kvitterade men ej slutmarkerade
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="text-sm text-slate-500 dark:text-slate-400">
-            Senaste dispatch
-          </div>
-          <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
-            {latestDispatch
-              ? summarizeDispatchAttempt(latestDispatch)
-              : 'Ingen dispatch ännu.'}
+            Kvitterade switchar där nästa steg är intern finalize/execution.
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
-        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Supplier switch & outbound
-                </h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Kundkortet visar nu validation, outbound, senaste event och tydligt nästa steg för varje switch.
-                </p>
-              </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_420px]">
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Lifecycle per anläggning
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                7.18: kundkortet visar nu var varje site faktiskt befinner sig i switchkedjan och vilken arbetsyta som är rätt nästa steg.
+              </p>
+            </div>
 
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/admin/operations/switches"
-                  className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                >
-                  Öppna switchar
-                </Link>
-                <Link
-                  href="/admin/outbound"
-                  className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                >
-                  Öppna outbound
-                </Link>
-                <Link
-                  href="/admin/operations"
-                  className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                >
-                  Öppna operations
-                </Link>
-              </div>
+            <div className="space-y-4 p-6">
+              {siteLifecycleSummaries.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  Inga anläggningar finns ännu för kunden.
+                </div>
+              ) : (
+                siteLifecycleSummaries.map((summary) => {
+                  const journeyLink = summary.lifecycle && summary.latestRequest
+                    ? customerJourneyHref({
+                        lifecycleStage: summary.lifecycle.stage,
+                        requestId: summary.latestRequest.id,
+                      })
+                    : null
+
+                  return (
+                    <article
+                      key={summary.site.id}
+                      className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800"
+                    >
+                      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              {summary.site.site_name}
+                            </span>
+
+                            {summary.lifecycle ? (
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
+                                  summary.lifecycle.stage
+                                )}`}
+                              >
+                                {summary.lifecycle.label}
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                Inget switchärende
+                              </span>
+                            )}
+
+                            {summary.latestRequest ? (
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                                  summary.latestRequest.status
+                                )}`}
+                              >
+                                {summary.latestRequest.status}
+                              </span>
+                            ) : null}
+
+                            {summary.outbound ? (
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                                  summary.outbound.status
+                                )}`}
+                              >
+                                outbound: {summary.outbound.status}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Site</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {summary.site.facility_id ?? summary.site.id}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Mätpunkt</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {summary.latestRequest
+                                  ? meteringPointLabel(
+                                      summary.latestRequest.metering_point_id,
+                                      meteringPoints
+                                    )
+                                  : '—'}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Requests</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {summary.requests.length}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Senaste event</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {summary.latestEvent?.event_status ?? '—'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid gap-3 md:grid-cols-2">
+                            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                Lifecycle reason
+                              </div>
+                              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                                {summary.lifecycle?.reason ??
+                                  'Inget switchärende finns ännu för denna anläggning.'}
+                              </p>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                Vad sitter fast?
+                              </div>
+                              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                                {summary.stuckReason}
+                              </p>
+                            </div>
+                          </div>
+
+                          {summary.validation ? (
+                            <div className="mt-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                Validation snapshot
+                              </div>
+                              <div className="mt-2 grid gap-2 md:grid-cols-3 text-sm text-slate-600 dark:text-slate-300">
+                                <div>
+                                  Status:{' '}
+                                  <span className="font-medium">
+                                    {summary.validation.label}
+                                  </span>
+                                </div>
+                                <div>
+                                  Senast validerad:{' '}
+                                  <span className="font-medium">
+                                    {formatDateTime(summary.validation.validatedAt)}
+                                  </span>
+                                </div>
+                                <div>
+                                  Issue count:{' '}
+                                  <span className="font-medium">
+                                    {summary.validation.issueCount}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                                Issue codes:{' '}
+                                <span className="font-medium">
+                                  {summary.validation.issueCodes.length > 0
+                                    ? summary.validation.issueCodes.join(', ')
+                                    : '—'}
+                                </span>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800">
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                            Nästa arbetsyta
+                          </h3>
+
+                          <div className="mt-4 space-y-3">
+                            {summary.latestRequest ? (
+                              <>
+                                <Link
+                                  href={`/admin/operations/switches/${summary.latestRequest.id}`}
+                                  className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                                >
+                                  Öppna switch detail
+                                </Link>
+
+                                {journeyLink ? (
+                                  <Link
+                                    href={journeyLink.href}
+                                    className="block rounded-2xl border border-emerald-300 px-4 py-2.5 text-center text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300"
+                                  >
+                                    {journeyLink.label}
+                                  </Link>
+                                ) : null}
+                              </>
+                            ) : (
+                              <Link
+                                href={`/admin/customers/${customerId}#masterdata`}
+                                className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                              >
+                                Kontrollera site/masterdata
+                              </Link>
+                            )}
+
+                            <Link
+                              href="/admin/operations/switches"
+                              className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                            >
+                              Öppna switchlistan
+                            </Link>
+
+                            <Link
+                              href="/admin/outbound"
+                              className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                            >
+                              Öppna outbound
+                            </Link>
+
+                            <Link
+                              href={`/admin/customers/${customerId}`}
+                              className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                            >
+                              Stanna på kundkortet
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  )
+                })
+              )}
             </div>
           </div>
 
-          <div className="space-y-4 p-6">
-            {switchRequests.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                Inga supplier switch-ärenden ännu för kunden.
-              </div>
-            ) : (
-              switchRequests.map((request) => {
-                const outbound =
-                  switchOutboundRequests.find(
-                    (row) =>
-                      row.source_type === 'supplier_switch_request' &&
-                      row.source_id === request.id
-                  ) ?? null
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Switchärenden på kundkortet
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Detaljerad genomgång per switchärende, med validation, outbound och nästa steg.
+              </p>
+            </div>
 
-                const lifecycle = getSwitchLifecycle({
-                  request,
-                  readiness: null,
-                  outboundRequest: outbound,
-                })
+            <div className="space-y-4 p-6">
+              {switchRequests.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  Inga switchärenden ännu för kunden.
+                </div>
+              ) : (
+                [...switchRequests]
+                  .sort((a, b) => requestSortTime(b) - requestSortTime(a))
+                  .map((request) => {
+                    const validation = readValidationSummary(
+                      request.validation_snapshot
+                    )
 
-                const latestEvent = switchEvents.find(
-                  (event) => event.switch_request_id === request.id
-                )
+                    const outbound = getLatestOutboundForRequest(
+                      request.id,
+                      switchOutboundRequests
+                    )
 
-                const stuckReason = explainWhySwitchIsStuck({
-                  request,
-                  readiness: null,
-                  outboundRequest: outbound,
-                })
+                    const lifecycle = getSwitchLifecycle({
+                      request,
+                      readiness: null,
+                      outboundRequest: outbound ?? null,
+                    })
 
-                const validation = readValidationSummary(request.validation_snapshot)
-                const nextStep = nextActionLabel({
-                  request,
-                  outboundRequest: outbound,
-                  validation,
-                  lifecycleLabel: lifecycle.label,
-                })
-                const journeyLink = customerJourneyHref({
-                  lifecycleStage: lifecycle.stage,
-                  requestId: request.id,
-                })
+                    const latestEvent = getLatestEventForRequest(
+                      request.id,
+                      switchEvents
+                    )
 
-                return (
-                  <article
-                    key={request.id}
-                    className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                          request.status
-                        )}`}
+                    const nextStep = nextActionLabel({
+                      request,
+                      outboundRequest: outbound,
+                      validation,
+                      lifecycleLabel: lifecycle.label,
+                    })
+
+                    const stuckReason = explainWhySwitchIsStuck({
+                      request,
+                      outboundRequest: outbound,
+                      readiness: null,
+                    })
+
+                    const journey = customerJourneyHref({
+                      lifecycleStage: lifecycle.stage,
+                      requestId: request.id,
+                    })
+
+                    return (
+                      <article
+                        key={request.id}
+                        className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800"
                       >
-                        {request.status}
-                      </span>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
-                          lifecycle.stage
-                        )}`}
-                      >
-                        {lifecycle.label}
-                      </span>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                          validation.isReady === false
-                            ? 'validation_failed'
-                            : validation.isReady === true
-                              ? 'validation_passed'
-                              : 'draft'
-                        )}`}
-                      >
-                        {validation.label}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {request.request_type}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <h3 className="text-base font-semibold text-slate-950 dark:text-white">
-                          Switchärende {request.id}
-                        </h3>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                          Skapat {formatDateTime(request.created_at)}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/admin/operations/switches/${request.id}`}
-                          className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                        >
-                          Öppna detail
-                        </Link>
-                        <Link
-                          href={journeyLink.href}
-                          className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                        >
-                          {journeyLink.label}
-                        </Link>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                        <div className="text-slate-500 dark:text-slate-400">Anläggning</div>
-                        <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                          {siteLabel(request.site_id, sites)}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                              request.status
+                            )}`}
+                          >
+                            {request.status}
+                          </span>
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            {request.request_type}
+                          </span>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
+                              lifecycle.stage
+                            )}`}
+                          >
+                            {lifecycle.label}
+                          </span>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                              validation.isReady === null
+                                ? 'draft'
+                                : validation.isReady
+                                  ? 'validation_passed'
+                                  : 'validation_failed'
+                            )}`}
+                          >
+                            {validation.label}
+                          </span>
                         </div>
-                      </div>
 
-                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                        <div className="text-slate-500 dark:text-slate-400">Mätpunkt</div>
-                        <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                          {meteringPointLabel(request.metering_point_id, meteringPoints)}
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                        <div className="text-slate-500 dark:text-slate-400">Startdatum</div>
-                        <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                          {request.requested_start_date ?? '—'}
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                        <div className="text-slate-500 dark:text-slate-400">Outbound</div>
-                        <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                          {outbound?.status ?? 'saknas'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                          Vad händer nu?
-                        </div>
-                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                          {nextStep}
-                        </p>
-                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                          Lifecycle: {lifecycle.reason}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                          Validation snapshot
-                        </div>
-                        <div className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
-                          <div>
-                            Senast validerad:{' '}
-                            <span className="font-medium">
-                              {formatDateTime(validation.validatedAt)}
-                            </span>
+                        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                            <div className="text-slate-500 dark:text-slate-400">Site</div>
+                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                              {siteLabel(request.site_id, sites)}
+                            </div>
                           </div>
-                          <div>
-                            Issue count:{' '}
-                            <span className="font-medium">{validation.issueCount}</span>
+
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                            <div className="text-slate-500 dark:text-slate-400">Mätpunkt</div>
+                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                              {meteringPointLabel(
+                                request.metering_point_id,
+                                meteringPoints
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            Issue codes:{' '}
-                            <span className="font-medium">
-                              {validation.issueCodes.length > 0
-                                ? validation.issueCodes.join(', ')
-                                : '—'}
-                            </span>
+
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                            <div className="text-slate-500 dark:text-slate-400">Startdatum</div>
+                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                              {request.requested_start_date ?? '—'}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                            <div className="text-slate-500 dark:text-slate-400">Senast ändrad</div>
+                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                              {formatDateTime(
+                                request.completed_at ??
+                                  request.failed_at ??
+                                  request.submitted_at ??
+                                  request.created_at
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                            <div className="text-slate-500 dark:text-slate-400">Outbound</div>
+                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                              {outbound?.status ?? 'saknas'}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                      <div>
-                        <span className="font-medium text-slate-900 dark:text-white">
-                          Varför sitter den fast:
-                        </span>{' '}
-                        {stuckReason}
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-900 dark:text-white">
-                          Senaste dispatchförsök:
-                        </span>{' '}
-                        {summarizeDispatchAttempt(outbound)}
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-900 dark:text-white">
-                          Senaste switch-event:
-                        </span>{' '}
-                        {latestEvent?.message ??
-                          (latestEvent
-                            ? `${latestEvent.event_type} · ${latestEvent.event_status}`
-                            : 'Inga switch-events ännu')}
-                      </div>
-                    </div>
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                              Vad händer nu?
+                            </div>
+                            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                              {nextStep}
+                            </p>
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              Lifecycle: {lifecycle.reason}
+                            </p>
+                          </div>
 
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      {!outbound &&
-                      ['queued', 'submitted', 'accepted'].includes(request.status) ? (
-                        <form action={queueSupplierSwitchOutboundAction}>
-                          <input type="hidden" name="request_id" value={request.id} />
-                          <button className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
-                            Köa outbound nu
-                          </button>
-                        </form>
-                      ) : null}
+                          <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                              Validation snapshot
+                            </div>
+                            <div className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                              <div>
+                                Senast validerad:{' '}
+                                <span className="font-medium">
+                                  {formatDateTime(validation.validatedAt)}
+                                </span>
+                              </div>
+                              <div>
+                                Issue count:{' '}
+                                <span className="font-medium">
+                                  {validation.issueCount}
+                                </span>
+                              </div>
+                              <div>
+                                Issue codes:{' '}
+                                <span className="font-medium">
+                                  {validation.issueCodes.length > 0
+                                    ? validation.issueCodes.join(', ')
+                                    : '—'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-                      {outbound &&
-                      ['failed', 'cancelled'].includes(outbound.status) ? (
-                        <form action={retryOutboundRequestFromCustomerAction}>
-                          <input type="hidden" name="customer_id" value={customerId} />
-                          <input
-                            type="hidden"
-                            name="outbound_request_id"
-                            value={outbound.id}
-                          />
-                          <button className="rounded-2xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
-                            Retry outbound
-                          </button>
-                        </form>
-                      ) : null}
+                        <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                          <div>
+                            <span className="font-medium text-slate-900 dark:text-white">
+                              Varför sitter den fast:
+                            </span>{' '}
+                            {stuckReason}
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-900 dark:text-white">
+                              Senaste dispatchförsök:
+                            </span>{' '}
+                            {summarizeDispatchAttempt(outbound)}
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-900 dark:text-white">
+                              Senaste switch-event:
+                            </span>{' '}
+                            {latestEvent?.message ??
+                              (latestEvent
+                                ? `${latestEvent.event_type} · ${latestEvent.event_status}`
+                                : 'Inga switch-events ännu')}
+                          </div>
+                        </div>
 
-                      <Link
-                        href={`/admin/operations/switches/${request.id}`}
-                        className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                      >
-                        Gå till switch detail
-                      </Link>
+                        <div className="mt-5 flex flex-wrap gap-3">
+                          {!outbound &&
+                          ['queued', 'submitted', 'accepted'].includes(
+                            request.status
+                          ) ? (
+                            <form action={queueSupplierSwitchOutboundAction}>
+                              <input type="hidden" name="request_id" value={request.id} />
+                              <button className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
+                                Köa outbound nu
+                              </button>
+                            </form>
+                          ) : null}
 
-                      <Link
-                        href="/admin/outbound"
-                        className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                      >
-                        Gå till outbound
-                      </Link>
-                    </div>
-                  </article>
-                )
-              })
-            )}
+                          {outbound &&
+                          ['failed', 'cancelled'].includes(outbound.status) ? (
+                            <form action={retryOutboundRequestFromCustomerAction}>
+                              <input type="hidden" name="customer_id" value={customerId} />
+                              <input
+                                type="hidden"
+                                name="outbound_request_id"
+                                value={outbound.id}
+                              />
+                              <button className="rounded-2xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
+                                Retry outbound
+                              </button>
+                            </form>
+                          ) : null}
+
+                          <Link
+                            href={`/admin/operations/switches/${request.id}`}
+                            className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                          >
+                            Gå till switch detail
+                          </Link>
+
+                          <Link
+                            href={journey.href}
+                            className="rounded-2xl border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300"
+                          >
+                            {journey.label}
+                          </Link>
+
+                          <Link
+                            href="/admin/outbound"
+                            className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                          >
+                            Gå till outbound
+                          </Link>
+                        </div>
+                      </article>
+                    )
+                  })
+              )}
+            </div>
           </div>
         </div>
 
@@ -697,13 +1076,22 @@ export default function CustomerSwitchOperationsCard({
                   1. Kundkort
                 </div>
                 <p className="mt-1">
-                  Börja här när du vill förstå status, validation, senaste event och vilket nästa steg som gäller.
+                  Börja här när du vill förstå status, validation, senaste event, site-lifecycle och vilket nästa steg som gäller per anläggning.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                 <div className="font-semibold text-slate-900 dark:text-white">
-                  2. Switch detail
+                  2. Ready to execute
+                </div>
+                <p className="mt-1">
+                  Gå hit när kundkortet visar ready_to_execute eller när outbound redan är acknowledged och du bara vill slutföra switchen.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                <div className="font-semibold text-slate-900 dark:text-white">
+                  3. Switch detail
                 </div>
                 <p className="mt-1">
                   Gå hit när du behöver full timeline, execution, statusändringar eller exakt felsökning för ett enskilt ärende.
@@ -712,7 +1100,7 @@ export default function CustomerSwitchOperationsCard({
 
               <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                 <div className="font-semibold text-slate-900 dark:text-white">
-                  3. Outbound
+                  4. Outbound
                 </div>
                 <p className="mt-1">
                   Gå hit när problemet handlar om route, dispatch, unresolved eller retry på extern kommunikation.
@@ -721,12 +1109,72 @@ export default function CustomerSwitchOperationsCard({
 
               <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                 <div className="font-semibold text-slate-900 dark:text-white">
-                  4. Switchlistan / operations
+                  5. Switchlistan / operations
                 </div>
                 <p className="mt-1">
-                  Gå hit när du vill jobba i kö, se många ärenden samtidigt eller hitta vad som sitter fast globalt.
+                  Gå hit när du vill jobba i kö, filtrera på lifecycle stage och se många ärenden samtidigt.
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Senaste dispatch
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Snabb överblick över senaste outbound-aktiviteten för kundens switchar.
+              </p>
+            </div>
+
+            <div className="p-6">
+              {!latestDispatch ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  Ingen outbound-dispatch ännu.
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                        latestDispatch.status
+                      )}`}
+                    >
+                      {latestDispatch.status}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      {latestDispatch.channel_type}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                    <div>
+                      Outbound ID:{' '}
+                      <span className="font-medium">{latestDispatch.id}</span>
+                    </div>
+                    <div>
+                      Källa:{' '}
+                      <span className="font-medium">
+                        {latestDispatch.source_type} / {latestDispatch.source_id}
+                      </span>
+                    </div>
+                    <div>
+                      Senast uppdaterad:{' '}
+                      <span className="font-medium">
+                        {formatDateTime(
+                          latestDispatch.acknowledged_at ??
+                            latestDispatch.failed_at ??
+                            latestDispatch.sent_at ??
+                            latestDispatch.prepared_at ??
+                            latestDispatch.queued_at ??
+                            latestDispatch.created_at
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -773,6 +1221,122 @@ export default function CustomerSwitchOperationsCard({
                     </div>
                   </div>
                 ))
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Snabblänkar i lifecycle
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Direkt till rätt kö beroende på vad kundens switchar väntar på.
+              </p>
+            </div>
+
+            <div className="grid gap-3 p-6">
+              <Link
+                href="/admin/operations/switches?stage=blocked"
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
+              >
+                Blockerade switchar
+              </Link>
+              <Link
+                href="/admin/operations/switches?stage=queued_for_outbound"
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
+              >
+                Saknar outbound
+              </Link>
+              <Link
+                href="/admin/operations/switches?stage=awaiting_dispatch"
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
+              >
+                Väntar dispatch
+              </Link>
+              <Link
+                href="/admin/operations/switches?stage=awaiting_response"
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
+              >
+                Väntar kvittens
+              </Link>
+              <Link
+                href="/admin/operations/ready-to-execute"
+                className="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:text-emerald-300"
+              >
+                Ready to execute
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Fastsittande switchar
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Ärenden som sannolikt kräver manuell uppföljning.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-6">
+              {stuckSwitches.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  Inga uppenbart fastsittande switchar just nu.
+                </div>
+              ) : (
+                stuckSwitches.slice(0, 8).map((request) => {
+                  const outbound = getLatestOutboundForRequest(
+                    request.id,
+                    switchOutboundRequests
+                  )
+
+                  return (
+                    <div
+                      key={request.id}
+                      className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                            request.status
+                          )}`}
+                        >
+                          {request.status}
+                        </span>
+                        {outbound ? (
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                              outbound.status
+                            )}`}
+                          >
+                            outbound: {outbound.status}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
+                        {siteLabel(request.site_id, sites)}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                        {explainWhySwitchIsStuck({
+                          request,
+                          outboundRequest: outbound,
+                          readiness: null,
+                        })}
+                      </div>
+
+                      <div className="mt-3">
+                        <Link
+                          href={`/admin/operations/switches/${request.id}`}
+                          className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
+                        >
+                          Öppna switch detail
+                        </Link>
+                      </div>
+                    </div>
+                  )
+                })
               )}
             </div>
           </div>
