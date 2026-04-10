@@ -54,16 +54,27 @@ function KpiCard({
 }
 
 function statusStyle(status: string): string {
-  if (['completed', 'accepted', 'done', 'acknowledged'].includes(status)) {
+  if (
+    [
+      'completed',
+      'accepted',
+      'done',
+      'acknowledged',
+      'ready_to_execute',
+      'ready',
+    ].includes(status)
+  ) {
     return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
 
   if (
-    ['failed', 'rejected', 'blocked', 'cancelled', 'unresolved'].includes(
-      status
-    )
+    ['failed', 'rejected', 'blocked', 'cancelled', 'unresolved'].includes(status)
   ) {
     return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+  }
+
+  if (['sent', 'submitted', 'awaiting_response'].includes(status)) {
+    return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
   }
 
   return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
@@ -80,6 +91,83 @@ function alertTone(severity: 'critical' | 'high' | 'medium' | 'low'): string {
     default:
       return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
   }
+}
+
+function QueueCard({
+  title,
+  count,
+  description,
+  href,
+  cta,
+  tone = 'neutral',
+}: {
+  title: string
+  count: number
+  description: string
+  href: string
+  cta: string
+  tone?: 'neutral' | 'danger' | 'success' | 'info' | 'warning'
+}) {
+  const toneClass =
+    tone === 'danger'
+      ? 'border-rose-200 bg-rose-50/60 dark:border-rose-900/50 dark:bg-rose-950/10'
+      : tone === 'success'
+        ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/50 dark:bg-emerald-950/10'
+        : tone === 'info'
+          ? 'border-blue-200 bg-blue-50/60 dark:border-blue-900/50 dark:bg-blue-950/10'
+          : tone === 'warning'
+            ? 'border-amber-200 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/10'
+            : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+
+  return (
+    <Link
+      href={href}
+      className={`block rounded-3xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            {title}
+          </div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
+            {count}
+          </div>
+        </div>
+
+        <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-300">
+          {cta}
+        </span>
+      </div>
+
+      <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+        {description}
+      </p>
+    </Link>
+  )
+}
+
+function SectionHeader({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string
+  subtitle: string
+  action?: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+          {title}
+        </h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          {subtitle}
+        </p>
+      </div>
+      {action}
+    </div>
+  )
 }
 
 export default async function AdminOperationsPage() {
@@ -109,7 +197,7 @@ export default async function AdminOperationsPage() {
   ] = await Promise.all([
     listAllOperationTasks(supabase),
     listAllSupplierSwitchRequests(supabase),
-    listRecentSupplierSwitchEvents(supabase, 12),
+    listRecentSupplierSwitchEvents(supabase, 20),
     listOutboundRequests({
       status: 'all',
       requestType: 'all',
@@ -141,6 +229,7 @@ export default async function AdminOperationsPage() {
   const openTasks = tasks.filter((task) =>
     ['open', 'in_progress', 'blocked'].includes(task.status)
   )
+  const blockedTasks = tasks.filter((task) => task.status === 'blocked')
   const unresolvedOutbound = outboundRequests.filter(
     (request) => request.channel_type === 'unresolved'
   )
@@ -179,6 +268,18 @@ export default async function AdminOperationsPage() {
   const missingOutboundSwitches = switchLifecycle.filter(
     (row) => row.lifecycle.stage === 'queued_for_outbound'
   )
+  const awaitingResponseSwitches = switchLifecycle.filter(
+    (row) => row.lifecycle.stage === 'awaiting_response'
+  )
+  const readyToExecuteSwitches = switchLifecycle.filter(
+    (row) => row.lifecycle.stage === 'ready_to_execute'
+  )
+  const failedSwitches = switchLifecycle.filter(
+    (row) => row.request.status === 'failed' || row.request.status === 'rejected'
+  )
+  const draftSwitches = switchLifecycle.filter(
+    (row) => row.request.status === 'draft'
+  )
 
   const exportMap = new Map(
     partnerExports
@@ -202,11 +303,82 @@ export default async function AdminOperationsPage() {
     partnerExports,
   })
 
+  const queuePriority = [
+    {
+      id: 'blocked-switches',
+      title: 'Blockerade switchar',
+      count: blockedSwitches.length,
+      description:
+        'Readiness blockerar nästa steg. Börja här om leverantörsbyten inte rör sig framåt.',
+      href: '/admin/operations/switches',
+      cta: 'Öppna switchar',
+      tone: 'danger' as const,
+    },
+    {
+      id: 'unresolved-outbound',
+      title: 'Unresolved outbound',
+      count: unresolvedOutbound.length,
+      description:
+        'Requests utan route eller dispatch-kanal. Här fastnar automationen först.',
+      href: '/admin/outbound/unresolved',
+      cta: 'Öppna unresolved',
+      tone: 'danger' as const,
+    },
+    {
+      id: 'missing-outbound',
+      title: 'Switchar utan outbound',
+      count: missingOutboundSwitches.length,
+      description:
+        'Ärenden som är redo i kedjan men fortfarande saknar dispatch-post.',
+      href: '/admin/operations/switches',
+      cta: 'Köa / felsök',
+      tone: 'warning' as const,
+    },
+    {
+      id: 'waiting-response',
+      title: 'Väntar på kvittens',
+      count: awaitingResponseSwitches.length,
+      description:
+        'Skickade ärenden som väntar på svar från extern part eller manuell uppföljning.',
+      href: '/admin/outbound',
+      cta: 'Öppna outbound',
+      tone: 'info' as const,
+    },
+    {
+      id: 'ready-to-execute',
+      title: 'Redo att slutföra',
+      count: readyToExecuteSwitches.length,
+      description:
+        'Kvitterade switchar som är klara för intern execution / finalize.',
+      href: '/admin/operations/switches',
+      cta: 'Slutför switchar',
+      tone: 'success' as const,
+    },
+    {
+      id: 'failed-switches',
+      title: 'Failed / rejected',
+      count: failedSwitches.length,
+      description:
+        'Ärenden som redan brutit flödet och behöver beslut, retry eller manuell korrigering.',
+      href: '/admin/operations/switches',
+      cta: 'Granska fel',
+      tone: 'danger' as const,
+    },
+  ]
+
+  const recentActionRows = switchLifecycle
+    .filter((row) =>
+      ['blocked', 'queued_for_outbound', 'awaiting_response', 'ready_to_execute'].includes(
+        row.lifecycle.stage
+      )
+    )
+    .slice(0, 12)
+
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Operations"
-        subtitle="Control tower för blockers, outbound, switchlivscykel, alerts och partner-handoff."
+        title="Operations control tower"
+        subtitle="En tydlig startsida för vad som kräver åtgärd nu, vart du ska gå och hur switch-, outbound- och billingkedjan mår."
         userEmail={user?.email ?? null}
       />
 
@@ -218,24 +390,24 @@ export default async function AdminOperationsPage() {
             hint="Alla tasks som kräver handläggning."
           />
           <KpiCard
-            label="Blockerade switchar"
-            value={blockedSwitches.length}
-            hint="Readinessproblem som stoppar nästa steg."
+            label="Blockerade tasks"
+            value={blockedTasks.length}
+            hint="Tasks som inte kan gå vidare utan åtgärd."
           />
           <KpiCard
-            label="Switchar utan outbound"
-            value={missingOutboundSwitches.length}
-            hint="Redo ärenden som ännu inte köats ut."
+            label="Blockerade switchar"
+            value={blockedSwitches.length}
+            hint="Readinessproblem som stoppar byte."
           />
           <KpiCard
             label="Unresolved outbound"
             value={unresolvedOutbound.length}
-            hint="Requests utan route eller kanalupplösning."
+            hint="Dispatch som saknar route eller kanal."
           />
           <KpiCard
-            label="Väntar på svar"
-            value={waitingResponseOutbound.length}
-            hint="Skickade outbound requests utan kvittens."
+            label="Redo att slutföra"
+            value={readyToExecuteSwitches.length}
+            hint="Accepted + kvitterad outbound."
           />
           <KpiCard
             label="Redo billing-exporter"
@@ -244,126 +416,199 @@ export default async function AdminOperationsPage() {
           />
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                  Automatisering
-                </h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Kör readiness-sync, skapa saknade switch-outbound och köa billing-exporter.
-                </p>
-              </div>
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Vad kräver åtgärd nu?"
+              subtitle="Det här är den operativa kön. Börja här i stället för att leta runt i menyn."
+              action={
+                <div className="flex flex-wrap gap-3">
+                  <form action={runOperationsAutomationSweepAction}>
+                    <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
+                      Kör automation sweep
+                    </button>
+                  </form>
 
-              <div className="flex flex-wrap gap-3">
-                <form action={runOperationsAutomationSweepAction}>
-                  <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
-                    Kör automation sweep
-                  </button>
-                </form>
-
-                <form
-                  action={bulkQueueReadyBillingExportsAction}
-                  className="flex items-center gap-3"
-                >
-                  <input
-                    type="month"
-                    name="period_month"
-                    defaultValue={new Date().toISOString().slice(0, 7)}
-                    className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                  />
-                  <button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-                    Köa billing-exporter
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <Link
-                href="/admin/operations/tasks"
-                className="rounded-2xl border border-slate-200 p-4 text-sm hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="font-semibold text-slate-900 dark:text-white">
-                  Tasks
+                  <form
+                    action={bulkQueueReadyBillingExportsAction}
+                    className="flex items-center gap-3"
+                  >
+                    <input
+                      type="month"
+                      name="period_month"
+                      defaultValue={new Date().toISOString().slice(0, 7)}
+                      className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    />
+                    <button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                      Köa billing-exporter
+                    </button>
+                  </form>
                 </div>
-                <div className="mt-1 text-slate-500 dark:text-slate-400">
-                  Se blockerade och öppna uppgifter i detalj.
+              }
+            />
+
+            <div className="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-3">
+              {queuePriority.map((item) => (
+                <QueueCard key={item.id} {...item} />
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Vart ska jag gå?"
+              subtitle="En enkel guide så handläggaren slipper tänka efter."
+            />
+
+            <div className="space-y-3 p-6">
+              <Link
+                href="/admin/customers"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Kundkort
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Börja här när du vill förstå en specifik kunds hela läge, switchhistorik och nästa steg.
                 </div>
               </Link>
 
               <Link
                 href="/admin/operations/switches"
-                className="rounded-2xl border border-slate-200 p-4 text-sm hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
               >
-                <div className="font-semibold text-slate-900 dark:text-white">
-                  Switchlivscykel
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Switchar
                 </div>
-                <div className="mt-1 text-slate-500 dark:text-slate-400">
-                  Granska blockers, outbound och status per ärende.
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Gå hit när du behöver en hel kö av leverantörsbyten, validering, execution och statuskontroll.
                 </div>
               </Link>
 
               <Link
                 href="/admin/outbound"
-                className="rounded-2xl border border-slate-200 p-4 text-sm hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
               >
-                <div className="font-semibold text-slate-900 dark:text-white">
-                  Outbound queue
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Outbound
                 </div>
-                <div className="mt-1 text-slate-500 dark:text-slate-400">
-                  Hantera dispatch, unresolved routes och kvittenser.
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Gå hit när problemet gäller dispatch, route, sent/acknowledged eller retry av extern kommunikation.
                 </div>
               </Link>
 
               <Link
                 href="/admin/outbound/unresolved"
-                className="rounded-2xl border border-slate-200 p-4 text-sm hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
               >
-                <div className="font-semibold text-slate-900 dark:text-white">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
                   Unresolved
                 </div>
-                <div className="mt-1 text-slate-500 dark:text-slate-400">
-                  Requests som saknar aktiv route och kräver snabb åtgärd.
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Gå hit först när outbound saknar route eller kanal. Här löser du grundorsaken.
                 </div>
               </Link>
 
               <Link
-                href="/admin/partner-exports"
-                className="rounded-2xl border border-slate-200 p-4 text-sm hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+                href="/admin/operations/tasks"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
               >
-                <div className="font-semibold text-slate-900 dark:text-white">
-                  Partner exports
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Tasks
                 </div>
-                <div className="mt-1 text-slate-500 dark:text-slate-400">
-                  Handoff av billing och andra exportflöden.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/integrations/routes"
-                className="rounded-2xl border border-slate-200 p-4 text-sm hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="font-semibold text-slate-900 dark:text-white">
-                  Communication routes
-                </div>
-                <div className="mt-1 text-slate-500 dark:text-slate-400">
-                  Routning per nätägare, scope och kanal.
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Gå hit när du vill jobba systematiskt med blockerare, handläggning och öppna operationspunkter.
                 </div>
               </Link>
             </div>
           </div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Prioriterad triage"
+              subtitle="Det här är de viktigaste raderna att öppna just nu."
+            />
+
+            <div className="space-y-3 p-6">
+              {recentActionRows.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  Inga kritiska eller väntande switchar just nu.
+                </div>
+              ) : (
+                recentActionRows.map((row) => (
+                  <div
+                    key={row.request.id}
+                    className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                          row.request.status
+                        )}`}
+                      >
+                        {row.request.status}
+                      </span>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                          row.lifecycle.stage
+                        )}`}
+                      >
+                        {row.lifecycle.label}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        {row.request.request_type}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                          Kund {row.request.customer_id}
+                        </div>
+                        <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                          {row.lifecycle.reason}
+                        </div>
+                        {row.readiness && !row.readiness.isReady ? (
+                          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            {summarizeReadinessIssues(row.readiness)}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="flex flex-wrap items-start justify-end gap-3">
+                        <Link
+                          href={`/admin/customers/${row.request.customer_id}`}
+                          className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          Kundkort
+                        </Link>
+                        <Link
+                          href={`/admin/operations/switches/${row.request.id}`}
+                          className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          Switch detail
+                        </Link>
+                        <Link
+                          href="/admin/outbound"
+                          className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          Outbound
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Toppalerts
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Prioriterad triage för det som bör hanteras först.
-              </p>
-            </div>
+            <SectionHeader
+              title="Toppalerts"
+              subtitle="Prioriterad lista över det som borde få uppmärksamhet först."
+            />
 
             <div className="space-y-3 p-6">
               {alerts.length === 0 ? (
@@ -378,7 +623,11 @@ export default async function AdminOperationsPage() {
                     className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${alertTone(alert.severity)}`}>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${alertTone(
+                          alert.severity
+                        )}`}
+                      >
                         {alert.severity}
                       </span>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
@@ -404,175 +653,176 @@ export default async function AdminOperationsPage() {
         </section>
 
         <section className="grid gap-6 xl:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 xl:col-span-2">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Switchar som kräver fokus
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Blockerade, misslyckade eller redo utan outbound.
-              </p>
-            </div>
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Outbound triage"
+              subtitle="När dispatchkedjan är problemet."
+            />
 
             <div className="space-y-3 p-6">
-              {switchLifecycle.filter((row) =>
-                ['blocked', 'queued_for_outbound', 'failed'].includes(
-                  row.lifecycle.stage
-                )
-              ).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Inga kritiska switchärenden just nu.
-                </div>
-              ) : (
-                switchLifecycle
-                  .filter((row) =>
-                    ['blocked', 'queued_for_outbound', 'failed'].includes(
-                      row.lifecycle.stage
-                    )
-                  )
-                  .slice(0, 10)
-                  .map((row) => (
-                    <div
-                      key={row.request.id}
-                      className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(row.request.status)}`}>
-                          {row.request.status}
-                        </span>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(row.lifecycle.stage)}`}>
-                          {row.lifecycle.label}
-                        </span>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                          {row.request.request_type}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-                        {row.request.incoming_supplier_name} · kund {row.request.customer_id}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        {row.lifecycle.reason}
-                      </div>
-
-                      {row.readiness && !row.readiness.isReady ? (
-                        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                          {summarizeReadinessIssues(row.readiness)}
-                        </div>
-                      ) : null}
-
-                      <div className="mt-4">
-                        <Link
-                          href={`/admin/customers/${row.request.customer_id}`}
-                          className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
-                        >
-                          Öppna kundkort
-                        </Link>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                  Outbound triage
-                </h2>
-              </div>
-
-              <div className="space-y-3 p-6">
-                <Link
-                  href="/admin/outbound/unresolved"
-                  className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-                >
+              <Link
+                href="/admin/outbound/unresolved"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Unresolved
                   </div>
-                  <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    {unresolvedOutbound.length} requests saknar route eller kanal.
-                  </div>
-                </Link>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('unresolved')}`}>
+                    {unresolvedOutbound.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Requests som saknar route eller kanal och därför inte kan dispatchas.
+                </div>
+              </Link>
 
-                <Link
-                  href="/admin/outbound"
-                  className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-                >
+              <Link
+                href="/admin/outbound"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Waiting response
                   </div>
-                  <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    {waitingResponseOutbound.length} skickade requests väntar på svar.
-                  </div>
-                </Link>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('awaiting_response')}`}>
+                    {waitingResponseOutbound.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Skickade requests som väntar på svar eller kvittens.
+                </div>
+              </Link>
 
-                <Link
-                  href="/admin/outbound"
-                  className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-                >
+              <Link
+                href="/admin/outbound"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Failed dispatches
                   </div>
-                  <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    {failedOutbound.length} requests har dispatchfel.
-                  </div>
-                </Link>
-              </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('failed')}`}>
+                    {failedOutbound.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Requests med dispatchfel som sannolikt kräver retry eller route-fix.
+                </div>
+              </Link>
             </div>
+          </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                  Redo för partner-handoff
-                </h2>
-              </div>
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Switchköer"
+              subtitle="Vad leverantörsbyteskedjan väntar på."
+            />
 
-              <div className="space-y-3 p-6">
-                {readyBillingExports.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                    Inga billing-underlag redo för export just nu.
+            <div className="space-y-3 p-6">
+              <Link
+                href="/admin/operations/switches"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Draft
                   </div>
-                ) : (
-                  readyBillingExports.slice(0, 8).map((underlay) => (
-                    <div
-                      key={underlay.id}
-                      className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(underlay.status)}`}>
-                          {underlay.status}
-                        </span>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                          {underlay.underlay_year ?? '—'}-{String(
-                            underlay.underlay_month ?? ''
-                          ).padStart(2, '0')}
-                        </span>
-                      </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('draft')}`}>
+                    {draftSwitches.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Ärenden som ännu inte kommit igenom readiness/validation fullt ut.
+                </div>
+              </Link>
 
-                      <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                        Kund {underlay.customer_id} · Site {underlay.site_id ?? '—'} ·
-                        Mätpunkt {underlay.metering_point_id ?? '—'}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+              <Link
+                href="/admin/operations/switches"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Väntar på outbound
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('queued')}`}>
+                    {missingOutboundSwitches.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Ärenden som är på väg framåt men ännu inte fått sin dispatch-post.
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/operations/switches"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Redo att slutföra
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('ready_to_execute')}`}>
+                    {readyToExecuteSwitches.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Kvitterade switchar där sista interna execution-steget återstår.
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Partner-handoff"
+              subtitle="Billing och exportkedjan efter operations."
+            />
+
+            <div className="space-y-3 p-6">
+              <Link
+                href="/admin/partner-exports"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Redo billing-exporter
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('ready')}`}>
+                    {readyBillingExports.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Underlag som kan handoffas till partner eller köas i exportflödet.
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/billing"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Billing-underlag
+                  </div>
+                  <span className="rounded-full px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {underlays.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Gå hit när nästa problem efter switchkedjan ligger i billing-underlaget.
+                </div>
+              </Link>
             </div>
           </div>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Hårdaste readiness-blockers
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Anläggningar som stoppar switchflödet just nu.
-              </p>
-            </div>
+            <SectionHeader
+              title="Hårdaste readiness-blockers"
+              subtitle="Anläggningar som just nu stoppar switchflödet."
+            />
 
             <div className="space-y-3 p-6">
               {readinessResults.filter((row) => !row.isReady).length === 0 ? (
@@ -594,7 +844,7 @@ export default async function AdminOperationsPage() {
                             {row.siteName}
                           </div>
                           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Site {row.siteId}
+                            Kund {row.customerId} · Site {row.siteId}
                           </div>
                         </div>
                         <Link
@@ -615,14 +865,10 @@ export default async function AdminOperationsPage() {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Senaste switch-events
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Tidslinje över de senaste operationerna.
-              </p>
-            </div>
+            <SectionHeader
+              title="Senaste switch-events"
+              subtitle="Tidslinje över de senaste operationerna."
+            />
 
             <div className="space-y-3 p-6">
               {events.length === 0 ? (

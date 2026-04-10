@@ -14,7 +14,11 @@ import {
   getSwitchLifecycle,
   summarizeReadinessIssues,
 } from '@/lib/operations/controlTower'
-import { updateSupplierSwitchStatusFromAdminAction } from '@/app/admin/operations/actions'
+import {
+  finalizeSupplierSwitchExecutionAction,
+  updateSupplierSwitchStatusFromAdminAction,
+  validateSupplierSwitchBeforeProcessingAction,
+} from '@/app/admin/operations/actions'
 import { queueSupplierSwitchOutboundAction } from '@/app/admin/cis/actions'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 
@@ -130,7 +134,7 @@ export default async function AdminOperationsSwitchesPage({
     <div className="min-h-screen">
       <AdminHeader
         title="Switchar"
-        subtitle="Hantera leverantörsbyten, blockers, outboundkoppling och statuskedjor. 7.10 lägger nu detail view per switchärende."
+        subtitle="Hantera leverantörsbyten, validering, outboundkoppling och intern slutföring av switchar."
         userEmail={user?.email ?? null}
       />
 
@@ -336,6 +340,15 @@ export default async function AdminOperationsSwitchesPage({
                             Öppna kundkort
                           </Link>
 
+                          <form action={validateSupplierSwitchBeforeProcessingAction}>
+                            <input type="hidden" name="request_id" value={request.id} />
+                            <button className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                              {request.status === 'draft'
+                                ? 'Validera & markera redo'
+                                : 'Kör validering'}
+                            </button>
+                          </form>
+
                           {['queued', 'submitted', 'accepted'].includes(request.status) ? (
                             outbound ? (
                               <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
@@ -349,6 +362,15 @@ export default async function AdminOperationsSwitchesPage({
                                 </button>
                               </form>
                             )
+                          ) : null}
+
+                          {lifecycle.stage === 'ready_to_execute' ? (
+                            <form action={finalizeSupplierSwitchExecutionAction}>
+                              <input type="hidden" name="request_id" value={request.id} />
+                              <button className="rounded-2xl border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30">
+                                Slutför switch
+                              </button>
+                            </form>
                           ) : null}
                         </div>
                       </div>

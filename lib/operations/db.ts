@@ -572,6 +572,30 @@ export async function createSupplierSwitchRequest(
   return request
 }
 
+export async function updateSupplierSwitchValidationSnapshot(
+  supabase: SupabaseClient,
+  params: {
+    requestId: string
+    validationSnapshot: Record<string, unknown>
+  }
+): Promise<SupplierSwitchRequestRow> {
+  const actorId = await getActorId(supabase)
+
+  const { data, error } = await supabase
+    .from('supplier_switch_requests')
+    .update({
+      validation_snapshot: params.validationSnapshot,
+      updated_by: actorId,
+    })
+    .eq('id', params.requestId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  return data as SupplierSwitchRequestRow
+}
+
 export async function updateSupplierSwitchRequestStatus(
   supabase: SupabaseClient,
   params: {
@@ -667,4 +691,137 @@ export async function createSupplierSwitchEvent(
 
   if (error) throw error
   return data as SupplierSwitchEventRow
+}
+export async function finalizeSupplierSwitchExecution(
+  supabase: SupabaseClient,
+  params: {
+    requestId: string
+    actorUserId: string
+    executionSource: 'manual_admin' | 'automation_sweep'
+    executionNotes?: string | null
+  }
+): Promise<{
+  requestBefore: SupplierSwitchRequestRow
+  request: SupplierSwitchRequestRow
+  siteBefore: CustomerSiteRow
+  siteAfter: CustomerSiteRow
+  meteringPointBefore: MeteringPointRow | null
+  meteringPointAfter: MeteringPointRow | null
+}> {
+  const requestBefore = await getSupplierSwitchRequestById(supabase, params.requestId)
+
+  if (!requestBefore) {
+    throw new Error('Switchärendet hittades inte')
+  }
+
+  const siteBefore = await findCustomerSiteById(supabase, requestBefore.site_id)
+
+  if (!siteBefore) {
+    throw new Error('Anläggningen för switchärendet hittades inte')
+  }
+
+  const pointQuery = requestBefore.metering_point_id
+    ? await supabase
+        .from('metering_points')
+        .select('*')
+        .eq('id', requestBefore.metering_point_id)
+        .maybeSingle()
+    : null
+
+  if (pointQuery?.error) {
+    throw pointQuery.error
+  }
+
+  const meteringPointBefore =
+    (pointQuery?.data as MeteringPointRow | null | undefined) ?? null
+
+  if (requestBefore.status === 'completed') {
+    return {
+      requestBefore,
+      request: requestBefore,
+      siteBefore,
+      siteAfter: siteBefore,
+      meteringPointBefore,
+      meteringPointAfter: meteringPointBefore,
+    }
+  }
+
+  if (requestBefore.status !== 'accepted') {
+    throw new Error('Switchärendet måste vara accepted innan det kan slutföras')
+  }
+
+  const siteUpdatePayload = {
+    current_supplier_name: requestBefore.incoming_supplier_name,
+    current_supplier_org_number: requestBefore.incoming_supplier_org_number,
+    status: siteBefore.status === 'closed' ? 'closed' : 'active',
+    grid_owner_id: siteBefore.grid_owner_id ?? requestBefore.grid_owner_id ?? null,
+    price_area_code: siteBefore.price_area_code ?? requestBefore.price_area_code ?? null,
+    updated_by: params.actorUserId,
+  }
+
+  const siteUpdate = await supabase
+    .from('customer_sites')
+    .update(siteUpdatePayload)
+    .eq('id', siteBefore.id)
+    .select('*')
+    .single()
+
+  if (siteUpdate.error) throw siteUpdate.error
+  const siteAfter = siteUpdate.data as CustomerSiteRow
+
+  let meteringPointAfter: MeteringPointRow | null = meteringPointBefore
+
+  if (meteringPointBefore) {
+    const pointUpdate = await supabase
+      .from('metering_points')
+      .update({
+        status: meteringPointBefore.status === 'closed' ? 'closed' : 'active',
+        grid_owner_id:
+          meteringPointBefore.grid_owner_id ?? requestBefore.grid_owner_id ?? null,
+        price_area_code:
+          meteringPointBefore.price_area_code ?? requestBefore.price_area_code ?? null,
+        updated_by: params.actorUserId,
+      })
+      .eq('id', meteringPointBefore.id)
+      .select('*')
+      .single()
+
+    if (pointUpdate.error) throw pointUpdate.error
+    meteringPointAfter = pointUpdate.data as MeteringPointRow
+  }
+
+  const request = await updateSupplierSwitchRequestStatus(supabase, {
+    requestId: requestBefore.id,
+    status: 'completed',
+    externalReference: requestBefore.external_reference,
+  })
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: request.id,
+    eventType: 'execution_completed',
+    eventStatus: 'completed',
+    message:
+      params.executionSource === 'automation_sweep'
+        ? 'Switchen slutfördes automatiskt efter kvitterad outbound.'
+        : 'Switchen slutfördes manuellt från operations.',
+    payload: {
+      executionSource: params.executionSource,
+      executionNotes: params.executionNotes ?? null,
+      previousSupplierName: requestBefore.current_supplier_name,
+      newSupplierName: request.incoming_supplier_name,
+      siteStatusBefore: siteBefore.status,
+      siteStatusAfter: siteAfter.status,
+      meteringPointStatusBefore: meteringPointBefore?.status ?? null,
+      meteringPointStatusAfter: meteringPointAfter?.status ?? null,
+    },
+  })
+
+  return {
+    requestBefore,
+    request,
+    siteBefore,
+    siteAfter,
+    meteringPointBefore,
+    meteringPointAfter,
+  }
 }

@@ -5,6 +5,10 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
+import type {
+  CustomerSiteRow,
+  MeteringPointRow,
+} from '@/lib/masterdata/types'
 import {
   createOutboundRequest,
   createPartnerExport,
@@ -23,7 +27,6 @@ import {
   updateSupplierSwitchRequestStatus,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
-import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type {
   BillingUnderlayRow,
   OutboundRequestRow,
@@ -86,6 +89,7 @@ async function insertAuditLog(params: {
   action: string
   metadata?: unknown
   newValues?: unknown
+  oldValues?: unknown
 }) {
   const { error } = await supabaseService.from('audit_logs').insert({
     actor_user_id: params.actorUserId,
@@ -94,6 +98,7 @@ async function insertAuditLog(params: {
     action: params.action,
     metadata: params.metadata ?? null,
     new_values: params.newValues ?? null,
+    old_values: params.oldValues ?? null,
   })
 
   if (error) throw error
@@ -186,6 +191,159 @@ async function syncSwitchRequestFromOutbound(params: {
   }
 
   return switchRequest
+}
+
+async function finalizeAcceptedSwitchFromAcknowledgedOutbound(params: {
+  actorUserId: string
+  request: SupplierSwitchRequestRow
+  outboundRequest: OutboundRequestRow
+}): Promise<boolean> {
+  const { actorUserId, request, outboundRequest } = params
+
+  if (request.status !== 'accepted') return false
+  if (outboundRequest.status !== 'acknowledged') return false
+  if (outboundRequest.source_type !== 'supplier_switch_request') return false
+  if (outboundRequest.source_id !== request.id) return false
+
+  const supabase = await createSupabaseServerClient()
+
+  const siteQuery = await supabase
+    .from('customer_sites')
+    .select('*')
+    .eq('id', request.site_id)
+    .maybeSingle()
+
+  if (siteQuery.error) throw siteQuery.error
+
+  const siteBefore = (siteQuery.data as CustomerSiteRow | null) ?? null
+  if (!siteBefore) {
+    throw new Error(`Kunde inte hitta site för switch ${request.id}`)
+  }
+
+  let meteringPointBefore: MeteringPointRow | null = null
+  if (request.metering_point_id) {
+    const meteringPointQuery = await supabase
+      .from('metering_points')
+      .select('*')
+      .eq('id', request.metering_point_id)
+      .maybeSingle()
+
+    if (meteringPointQuery.error) throw meteringPointQuery.error
+    meteringPointBefore =
+      (meteringPointQuery.data as MeteringPointRow | null) ?? null
+  }
+
+  const siteUpdatePayload = {
+    current_supplier_name: request.incoming_supplier_name,
+    current_supplier_org_number: request.incoming_supplier_org_number,
+    status: siteBefore.status === 'closed' ? 'closed' : 'active',
+    grid_owner_id: siteBefore.grid_owner_id ?? request.grid_owner_id ?? null,
+    price_area_code: siteBefore.price_area_code ?? request.price_area_code ?? null,
+    updated_by: actorUserId,
+  }
+
+  const siteUpdate = await supabase
+    .from('customer_sites')
+    .update(siteUpdatePayload)
+    .eq('id', siteBefore.id)
+    .select('*')
+    .single()
+
+  if (siteUpdate.error) throw siteUpdate.error
+  const siteAfter = siteUpdate.data as CustomerSiteRow
+
+  let meteringPointAfter: MeteringPointRow | null = meteringPointBefore
+
+  if (meteringPointBefore) {
+    const pointUpdate = await supabase
+      .from('metering_points')
+      .update({
+        status: meteringPointBefore.status === 'closed' ? 'closed' : 'active',
+        grid_owner_id:
+          meteringPointBefore.grid_owner_id ?? request.grid_owner_id ?? null,
+        price_area_code:
+          meteringPointBefore.price_area_code ?? request.price_area_code ?? null,
+        updated_by: actorUserId,
+      })
+      .eq('id', meteringPointBefore.id)
+      .select('*')
+      .single()
+
+    if (pointUpdate.error) throw pointUpdate.error
+    meteringPointAfter = pointUpdate.data as MeteringPointRow
+  }
+
+  const completedRequest = await updateSupplierSwitchRequestStatus(supabase, {
+    requestId: request.id,
+    status: 'completed',
+    externalReference:
+      outboundRequest.external_reference ?? request.external_reference,
+  })
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: request.id,
+    eventType: 'execution_completed',
+    eventStatus: 'completed',
+    message: `Switchen slutfördes automatiskt efter kvitterad outbound ${outboundRequest.id}.`,
+    payload: {
+      automation: true,
+      outboundRequestId: outboundRequest.id,
+      previousSupplierName: siteBefore.current_supplier_name,
+      newSupplierName: completedRequest.incoming_supplier_name,
+      siteStatusBefore: siteBefore.status,
+      siteStatusAfter: siteAfter.status,
+      meteringPointStatusBefore: meteringPointBefore?.status ?? null,
+      meteringPointStatusAfter: meteringPointAfter?.status ?? null,
+    },
+  })
+
+  await insertAuditLog({
+    actorUserId,
+    entityType: 'supplier_switch_request',
+    entityId: completedRequest.id,
+    action: 'supplier_switch_request_execution_completed_by_automation',
+    oldValues: request,
+    newValues: completedRequest,
+    metadata: {
+      outboundRequestId: outboundRequest.id,
+      customerId: completedRequest.customer_id,
+      siteId: completedRequest.site_id,
+      meteringPointId: completedRequest.metering_point_id,
+    },
+  })
+
+  await insertAuditLog({
+    actorUserId,
+    entityType: 'customer_site',
+    entityId: siteAfter.id,
+    action: 'customer_site_updated_from_supplier_switch_execution_by_automation',
+    oldValues: siteBefore,
+    newValues: siteAfter,
+    metadata: {
+      switchRequestId: completedRequest.id,
+      customerId: siteAfter.customer_id,
+      outboundRequestId: outboundRequest.id,
+    },
+  })
+
+  if (meteringPointBefore && meteringPointAfter) {
+    await insertAuditLog({
+      actorUserId,
+      entityType: 'metering_point',
+      entityId: meteringPointAfter.id,
+      action: 'metering_point_updated_from_supplier_switch_execution_by_automation',
+      oldValues: meteringPointBefore,
+      newValues: meteringPointAfter,
+      metadata: {
+        switchRequestId: completedRequest.id,
+        customerId: completedRequest.customer_id,
+        siteId: completedRequest.site_id,
+        outboundRequestId: outboundRequest.id,
+      },
+    })
+  }
+
+  return true
 }
 
 async function autoProcessOutboundRequest(params: {
@@ -359,6 +517,7 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
   let sentCount = 0
   let acknowledgedCount = 0
   let syncedSwitches = 0
+  let executedSwitches = 0
 
   for (const site of sites) {
     const powersOfAttorney = await listPowersOfAttorneyByCustomerId(
@@ -452,6 +611,42 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
     syncedSwitches += result.syncedSwitches
   }
 
+  const refreshedSwitchRequests = await listAllSupplierSwitchRequests(supabase, {
+    status: 'all',
+    requestType: 'all',
+    query: '',
+  })
+
+  const refreshedOutboundRequests = await listOutboundRequests({
+    status: 'acknowledged',
+    requestType: 'supplier_switch',
+    channelType: 'all',
+    query: '',
+  })
+
+  for (const request of refreshedSwitchRequests) {
+    if (request.status !== 'accepted') continue
+
+    const outboundRequest = refreshedOutboundRequests.find(
+      (row) =>
+        row.source_type === 'supplier_switch_request' &&
+        row.source_id === request.id &&
+        row.status === 'acknowledged'
+    )
+
+    if (!outboundRequest) continue
+
+    const executed = await finalizeAcceptedSwitchFromAcknowledgedOutbound({
+      actorUserId: actor.id,
+      request,
+      outboundRequest,
+    })
+
+    if (executed) {
+      executedSwitches += 1
+    }
+  }
+
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: 'operations_sweep',
@@ -469,6 +664,7 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
       sentCount,
       acknowledgedCount,
       syncedSwitches,
+      executedSwitches,
       candidateCount: automationCandidates.length,
       siteCount: sites.length,
       switchCount: switchRequests.length,
@@ -542,6 +738,11 @@ export async function bulkQueueReadyBillingExportsAction(
       billingUnderlayId: underlay.id,
       exportKind: 'billing_underlay',
       targetSystem: 'billing_partner',
+      payload: {
+        underlayYear: underlay.underlay_year,
+        underlayMonth: underlay.underlay_month,
+        sourceSystem: underlay.source_system,
+      },
       notes: `Batch 7 export sweep för ${period.year}-${String(
         period.month
       ).padStart(2, '0')}`,

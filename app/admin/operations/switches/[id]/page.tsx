@@ -24,8 +24,10 @@ import {
   updateOutboundRequestStatusAction,
 } from '@/app/admin/cis/actions'
 import {
+  finalizeSupplierSwitchExecutionAction,
   retryOutboundFromSwitchDetailAction,
   updateSupplierSwitchStatusFromAdminAction,
+  validateSupplierSwitchBeforeProcessingAction,
 } from '@/app/admin/operations/actions'
 import type { OutboundDispatchEventRow, OutboundRequestRow } from '@/lib/cis/types'
 import type {
@@ -38,6 +40,56 @@ export const dynamic = 'force-dynamic'
 
 type PageProps = {
   params: Promise<{ id: string }>
+}
+
+type ValidationSnapshotView = {
+  validatedAt: string | null
+  validatedBy: string | null
+  isReady: boolean | null
+  issueCodes: string[]
+  issueCount: number
+  matchedMeterPointId: string | null
+  latestPowerOfAttorneyStatus: string | null
+  siteStatus: string | null
+  priceAreaCode: string | null
+}
+
+function readValidationSnapshot(
+  snapshot: SupplierSwitchRequestRow['validation_snapshot']
+): ValidationSnapshotView {
+  const source =
+    snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)
+      ? snapshot
+      : {}
+
+  const issueCodesRaw = source.issueCodes
+  const issueCodes = Array.isArray(issueCodesRaw)
+    ? issueCodesRaw.filter((value): value is string => typeof value === 'string')
+    : []
+
+  const issueCountRaw = source.issueCount
+
+  return {
+    validatedAt: typeof source.validatedAt === 'string' ? source.validatedAt : null,
+    validatedBy: typeof source.validatedBy === 'string' ? source.validatedBy : null,
+    isReady: typeof source.isReady === 'boolean' ? source.isReady : null,
+    issueCodes,
+    issueCount:
+      typeof issueCountRaw === 'number'
+        ? issueCountRaw
+        : issueCodes.length,
+    matchedMeterPointId:
+      typeof source.matchedMeterPointId === 'string'
+        ? source.matchedMeterPointId
+        : null,
+    latestPowerOfAttorneyStatus:
+      typeof source.latestPowerOfAttorneyStatus === 'string'
+        ? source.latestPowerOfAttorneyStatus
+        : null,
+    siteStatus: typeof source.siteStatus === 'string' ? source.siteStatus : null,
+    priceAreaCode:
+      typeof source.priceAreaCode === 'string' ? source.priceAreaCode : null,
+  }
 }
 
 type TimelineEntry = {
@@ -245,11 +297,13 @@ export default async function SwitchDetailPage({ params }: PageProps) {
     outboundDispatchEvents,
   })
 
+  const validationSummary = readValidationSnapshot(request.validation_snapshot)
+
   return (
     <div className="min-h-screen">
       <AdminHeader
         title="Switch detail"
-        subtitle="Detail-vy för ett enskilt supplier switch-ärende med timeline, dispatch, retry och statuskontroll."
+        subtitle="Detail-vy för ett enskilt supplier switch-ärende med timeline, dispatch, validering och intern slutföring."
         userEmail={user?.email ?? null}
       />
 
@@ -296,7 +350,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-4">
+        <section className="grid gap-4 xl:grid-cols-5">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="text-sm text-slate-500 dark:text-slate-400">Lifecycle</div>
             <div className="mt-2 text-lg font-semibold text-slate-950 dark:text-white">
@@ -332,6 +386,22 @@ export default async function SwitchDetailPage({ params }: PageProps) {
                   ? 'Inga aktiva blockers.'
                   : summarizeReadinessIssues(readiness)
                 : 'Anläggning saknas eller kunde inte läsas.'}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-sm text-slate-500 dark:text-slate-400">Senaste validering</div>
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {validationSummary.isReady === null
+                ? 'Inte körd ännu'
+                : validationSummary.isReady
+                  ? 'Ready for processing'
+                  : 'Pending review'}
+            </div>
+            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              {validationSummary.validatedAt
+                ? `${formatDateTime(validationSummary.validatedAt)} · ${validationSummary.issueCount} issues`
+                : 'Ingen validation snapshot sparad ännu.'}
             </div>
           </div>
         </section>
@@ -404,6 +474,156 @@ export default async function SwitchDetailPage({ params }: PageProps) {
                   {request.failure_reason}
                 </div>
               ) : null}
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                    Pre-processing validation
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Steg 7.11 kör en live-validering mot databasen, sparar validation_snapshot och loggar resultatet innan vidare processing.
+                  </p>
+                </div>
+
+                <form action={validateSupplierSwitchBeforeProcessingAction}>
+                  <input type="hidden" name="request_id" value={request.id} />
+                  <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
+                    {request.status === 'draft'
+                      ? 'Validera och markera redo'
+                      : 'Kör om validering'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                  <div className="text-slate-500 dark:text-slate-400">Validation state</div>
+                  <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                    {validationSummary.isReady === null
+                      ? 'Inte körd ännu'
+                      : validationSummary.isReady
+                        ? 'Ready for processing'
+                        : 'Pending review'}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                  <div className="text-slate-500 dark:text-slate-400">Validerad</div>
+                  <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                    {validationSummary.validatedAt
+                      ? formatDateTime(validationSummary.validatedAt)
+                      : '—'}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                  <div className="text-slate-500 dark:text-slate-400">Snapshot issue count</div>
+                  <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                    {validationSummary.issueCount}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                  <div className="text-slate-500 dark:text-slate-400">Snapshot mätpunkt</div>
+                  <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                    {validationSummary.matchedMeterPointId ?? '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Snapshotdetaljer
+                  </div>
+                  <div className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                    <div>Site status: <span className="font-medium">{validationSummary.siteStatus ?? '—'}</span></div>
+                    <div>Prisområde: <span className="font-medium">{validationSummary.priceAreaCode ?? '—'}</span></div>
+                    <div>Fullmakt: <span className="font-medium">{validationSummary.latestPowerOfAttorneyStatus ?? '—'}</span></div>
+                    <div>Readiness live nu: <span className="font-medium">{readiness ? (readiness.isReady ? 'Ready for processing' : 'Pending review') : '—'}</span></div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Valideringsresultat
+                  </div>
+                  <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                    {readiness && !readiness.isReady ? (
+                      <div className="space-y-2">
+                        {readiness.issues.map((issue) => (
+                          <div key={issue.code} className="rounded-2xl bg-rose-50 px-3 py-2 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                            <div className="font-medium">{issue.title}</div>
+                            <div className="mt-1 text-xs">{issue.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl bg-emerald-50 px-3 py-2 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                        Inga aktiva blockers. Ärendet kan gå vidare i processing-flödet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                    Execute / finalize switch
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Steg 7.12 slutför switchen internt. Site får ny aktuell leverantör, mätpunkten synkas och requesten markeras completed.
+                  </p>
+                </div>
+
+                {lifecycle.stage === 'ready_to_execute' ? (
+                  <form action={finalizeSupplierSwitchExecutionAction}>
+                    <input type="hidden" name="request_id" value={request.id} />
+                    <button className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
+                      Slutför switch nu
+                    </button>
+                  </form>
+                ) : (
+                  <span className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                    Väntar på accepted + kvitterad outbound
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                  <div className="text-slate-500 dark:text-slate-400">Current lifecycle</div>
+                  <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                    {lifecycle.label}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                  <div className="text-slate-500 dark:text-slate-400">Request status</div>
+                  <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                    {request.status}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                  <div className="text-slate-500 dark:text-slate-400">Outbound status</div>
+                  <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                    {outboundRequest?.status ?? 'Ingen outbound'}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                  <div className="text-slate-500 dark:text-slate-400">Ny leverantör på site</div>
+                  <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                    {request.incoming_supplier_name}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
