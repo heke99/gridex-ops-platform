@@ -1,3 +1,4 @@
+// app/admin/customers/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -503,6 +504,15 @@ function filterLabel(filter: OperationsFilterKey): string {
   }
 }
 
+function customerDisplayName(customer: CustomerWithOperations): string {
+  return (
+    customer.full_name ||
+    customer.company_name ||
+    [customer.first_name, customer.last_name].filter(Boolean).join(' ').trim() ||
+    'Namnlös kund'
+  )
+}
+
 export default async function AdminCustomersPage({
   searchParams,
 }: CustomersPageProps) {
@@ -607,12 +617,28 @@ export default async function AdminCustomersPage({
     <div className="min-h-screen">
       <AdminHeader
         title="Kunder"
-        subtitle="Grundregister för privat- och företagskunder, nu med operationsfilter och prioriterad lista."
+        subtitle="Grundregister för privat- och företagskunder, nu med operationsfilter, kundnummer/personnummersökning och prioriterad lista."
         userEmail={user?.email ?? null}
       />
 
       <div className="space-y-6 p-8">
-        <section className="grid gap-4 xl:grid-cols-4">
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/admin/customers/intake"
+            className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
+          >
+            Kundintag / bulkimport
+          </Link>
+
+          <Link
+            href="/admin/contracts"
+            className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Avtalskatalog
+          </Link>
+        </div>
+
+        <section className="grid gap-4 xl:grid-cols-5">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="text-sm text-slate-500 dark:text-slate-400">
               Kunder i listan
@@ -661,6 +687,18 @@ export default async function AdminCustomersPage({
               Kunder med öppna switchsignaler, varav {awaitingResponseCustomers} väntar på svar.
             </div>
           </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-sm text-slate-500 dark:text-slate-400">
+              Utan aktiv signal
+            </div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
+              {noSignalCustomers}
+            </div>
+            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Kunder utan öppen switchsignal just nu.
+            </div>
+          </div>
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
@@ -669,7 +707,7 @@ export default async function AdminCustomersPage({
               Ny kund
             </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Skapa kundpost innan avtal, fullmakt och anläggning kopplas.
+              Skapa kundpost innan avtal, fullmakt och anläggning kopplas. För full kundregistrering med avtal, nätägare och bulkimport använder du Kundintag.
             </p>
 
             <form action={createCustomerAction} className="mt-6 space-y-4">
@@ -781,6 +819,9 @@ export default async function AdminCustomersPage({
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     Sorteras automatiskt efter operationsprioritet: blockerad → redo att slutföra → väntar svar → väntar dispatch → saknar outbound → failed → övriga.
                   </p>
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Sökningen stöder kundnummer, personnummer, namn, efternamn, e-post och telefon.
+                  </p>
                 </div>
 
                 <form method="get" className="flex w-full gap-3 lg:max-w-xl">
@@ -788,7 +829,7 @@ export default async function AdminCustomersPage({
                   <input
                     name="q"
                     defaultValue={query}
-                    placeholder="Sök på namn, företag, e-post eller telefon"
+                    placeholder="Sök på kundnummer, personnummer, namn eller e-post"
                     className="h-11 flex-1 rounded-2xl border border-slate-300 px-4 text-sm outline-none transition focus:border-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   />
                   <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
@@ -878,6 +919,12 @@ export default async function AdminCustomersPage({
                       Kund
                     </th>
                     <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
+                      Kundnummer
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
+                      Personnummer
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
                       Typ
                     </th>
                     <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
@@ -911,7 +958,7 @@ export default async function AdminCustomersPage({
                   {filteredCustomers.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={10}
+                        colSpan={12}
                         className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
                       >
                         Inga kunder matchade sökningen eller operationsfiltret.
@@ -929,14 +976,20 @@ export default async function AdminCustomersPage({
                           <td className="px-6 py-4">
                             <div>
                               <p className="font-medium text-slate-900 dark:text-white">
-                                {customer.full_name ||
-                                  customer.company_name ||
-                                  'Namnlös kund'}
+                                {customerDisplayName(customer)}
                               </p>
                               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                                 {customer.id}
                               </p>
                             </div>
+                          </td>
+
+                          <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                            {customer.customer_number ?? '-'}
+                          </td>
+
+                          <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                            {customer.personal_number ?? '-'}
                           </td>
 
                           <td className="px-6 py-4 text-slate-600 dark:text-slate-300">

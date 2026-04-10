@@ -1,3 +1,4 @@
+// lib/customers/getCustomerById.ts
 import { supabaseService } from '@/lib/supabase/service'
 import type { CustomerDetailData } from '@/types/customers'
 
@@ -14,6 +15,7 @@ export async function getCustomerById(customerId: string): Promise<CustomerDetai
     .from('customer_contacts')
     .select('*')
     .eq('customer_id', customerId)
+    .order('is_primary', { ascending: false })
     .order('created_at', { ascending: false })
 
   if (contactsError) throw contactsError
@@ -22,12 +24,13 @@ export async function getCustomerById(customerId: string): Promise<CustomerDetai
     .from('customer_addresses')
     .select('*')
     .eq('customer_id', customerId)
+    .order('is_primary', { ascending: false })
     .order('created_at', { ascending: false })
 
   if (addressesError) throw addressesError
 
   const { data: sites, error: sitesError } = await supabaseService
-    .from('sites')
+    .from('customer_sites')
     .select(`
       *,
       grid_owners(id, name, code),
@@ -39,7 +42,7 @@ export async function getCustomerById(customerId: string): Promise<CustomerDetai
   if (sitesError) throw sitesError
 
   const { data: notes, error: notesError } = await supabaseService
-    .from('customer_notes')
+    .from('customer_internal_notes')
     .select('*')
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })

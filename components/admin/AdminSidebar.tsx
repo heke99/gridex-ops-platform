@@ -18,23 +18,44 @@ type NavGroup = {
 const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Överblick',
-    description: 'Börja här för att förstå läget',
+    description: 'Börja här för att förstå nuläget',
     items: [
       {
         href: '/admin',
         label: 'Översikt',
-        description: 'Systemstatus och snabböversikt',
+        description: 'Systemstatus och operativ överblick',
       },
       {
         href: '/admin/operations',
         label: 'Operations control tower',
-        description: 'Vad kräver åtgärd nu och vart ska du gå',
+        description: 'Vad kräver åtgärd nu',
       },
     ],
   },
   {
-    title: 'Dagligt arbete',
-    description: 'Sidor du använder för att handlägga',
+    title: 'Kunder och avtal',
+    description: 'Dagligt arbete kring kundstock och avtal',
+    items: [
+      {
+        href: '/admin/customers',
+        label: 'Kunder',
+        description: 'Kundregister, sökning och prioritering',
+      },
+      {
+        href: '/admin/customers/intake',
+        label: 'Kundintag',
+        description: 'Skapa kund enskilt eller i bulk',
+      },
+      {
+        href: '/admin/contracts',
+        label: 'Avtalskatalog',
+        description: 'Valbara avtal och kampanjer',
+      },
+    ],
+  },
+  {
+    title: 'Operations',
+    description: 'Switchar, outbound och uppföljning',
     items: [
       {
         href: '/admin/operations/tasks',
@@ -44,22 +65,17 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/admin/operations/switches',
         label: 'Switchar',
-        description: 'Leverantörsbyten, validation, execution',
+        description: 'Leverantörsbyten och livscykel',
       },
       {
         href: '/admin/operations/ready-to-execute',
         label: 'Ready to execute',
-        description: 'Accepted + acknowledged som väntar på intern slutföring',
+        description: 'Accepted + acknowledged att slutföra',
       },
       {
         href: '/admin/outbound',
         label: 'Outbound queue',
-        description: 'Dispatch, sent, acknowledged och retry',
-      },
-      {
-        href: '/admin/customers',
-        label: 'Kunder',
-        description: 'Kundkort, masterdata och helhetsbild',
+        description: 'Dispatch, retry och ack-status',
       },
     ],
   },
@@ -75,7 +91,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/admin/outbound/ready-switches',
         label: 'Bulk switch',
-        description: 'Köa alla redo-för-byte',
+        description: 'Köa alla redo för byte',
       },
       {
         href: '/admin/outbound/missing-meter-values',
@@ -90,8 +106,8 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: 'Fackområden',
-    description: 'Gå hit när du behöver detaljarbeta',
+    title: 'Masterdata och integration',
+    description: 'Detaljarbete och tekniska flöden',
     items: [
       {
         href: '/admin/metering',
@@ -158,17 +174,16 @@ export default function AdminSidebar() {
             Admin Console
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Enkel väg från överblick till rätt arbetsyta
+            Från överblick till rätt arbetsyta utan att tappa sammanhang
           </p>
         </div>
 
         <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-            Så används menyn
+            Rekommenderat arbetsflöde
           </p>
           <p className="mt-2 text-sm text-slate-300">
-            Börja i Operations control tower eller Kundkort. Gå sedan vidare till
-            Switchar, Ready to execute eller Outbound beroende på var kedjan fastnar.
+            Börja i kundlistan eller operations control tower. Gå sedan vidare till kundkort, switchar, outbound eller ready-to-execute beroende på var kedjan fastnar.
           </p>
         </div>
       </div>
@@ -196,7 +211,7 @@ export default function AdminSidebar() {
                     className={[
                       'block rounded-2xl border px-4 py-3 transition',
                       active
-                        ? 'border-slate-600 bg-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+                        ? 'border-slate-600 bg-slate-800'
                         : 'border-transparent bg-transparent hover:border-slate-800 hover:bg-slate-900',
                     ].join(' ')}
                   >

@@ -1,5 +1,24 @@
 import { supabaseService } from '@/lib/supabase/service'
-import type { CustomerListRow } from '@/lib/masterdata/types'
+
+export type CustomerListRow = {
+  id: string
+  customer_type: string | null
+  status: string | null
+  first_name: string | null
+  last_name: string | null
+  full_name: string | null
+  company_name: string | null
+  email: string | null
+  phone: string | null
+  personal_number: string | null
+  customer_number: string | null
+  apartment_number: string | null
+  created_at: string
+  site_count: number
+  active_site_count: number
+  metering_point_count: number
+  active_metering_point_count: number
+}
 
 type CustomerBaseRow = {
   id: string
@@ -11,6 +30,9 @@ type CustomerBaseRow = {
   company_name: string | null
   email: string | null
   phone: string | null
+  personal_number: string | null
+  customer_number: string | null
+  apartment_number: string | null
   created_at: string
 }
 
@@ -42,7 +64,7 @@ export async function getCustomers(
   let customerQuery = supabaseService
     .from('customers')
     .select(
-      'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, created_at'
+      'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, customer_number, apartment_number, created_at'
     )
     .order('created_at', { ascending: false })
 
@@ -53,6 +75,8 @@ export async function getCustomers(
         `company_name.ilike.%${query}%`,
         `email.ilike.%${query}%`,
         `phone.ilike.%${query}%`,
+        `personal_number.ilike.%${query}%`,
+        `customer_number.ilike.%${query}%`,
         `first_name.ilike.%${query}%`,
         `last_name.ilike.%${query}%`,
       ].join(',')
@@ -60,7 +84,6 @@ export async function getCustomers(
   }
 
   const { data: customers, error: customerError } = await customerQuery
-
   if (customerError) throw customerError
 
   const customerRows = (customers ?? []) as CustomerBaseRow[]
@@ -134,8 +157,8 @@ export async function getCustomers(
   return customerRows.map((customer) => ({
     ...customer,
     site_count: siteCountByCustomer.get(customer.id) ?? 0,
-    metering_point_count: meteringPointCountByCustomer.get(customer.id) ?? 0,
     active_site_count: activeSiteCountByCustomer.get(customer.id) ?? 0,
+    metering_point_count: meteringPointCountByCustomer.get(customer.id) ?? 0,
     active_metering_point_count:
       activeMeteringPointCountByCustomer.get(customer.id) ?? 0,
   }))

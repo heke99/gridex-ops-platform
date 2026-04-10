@@ -1,3 +1,4 @@
+// app/admin/customers/[id]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -28,6 +29,7 @@ import type { OutboundRequestRow } from '@/lib/cis/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import CustomerBillingMeteringCard from '@/components/admin/customers/CustomerBillingMeteringCard'
 import CustomerSwitchOperationsCard from '@/components/admin/customers/CustomerSwitchOperationsCard'
+import CustomerContractsCard from '@/components/admin/customers/CustomerContractsCard'
 import {
   listBillingUnderlaysByCustomerId,
   listGridOwnerDataRequestsByCustomerId,
@@ -55,6 +57,8 @@ type CustomerRow = {
   phone: string | null
   personal_number: string | null
   org_number: string | null
+  customer_number: string | null
+  apartment_number: string | null
   created_at: string
 }
 
@@ -185,7 +189,7 @@ async function getCustomer(
   const { data, error } = await supabase
     .from('customers')
     .select(
-      'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, created_at'
+      'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
     )
     .eq('id', id)
     .maybeSingle()
@@ -736,9 +740,12 @@ export default async function CustomerAdminDetailPage({
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
                 Kund-ID: {customer.id}
               </span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                Kundnummer: {customer.customer_number ?? '—'}
+              </span>
             </div>
 
-            <div className="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-400 sm:grid-cols-2">
+            <div className="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-400 sm:grid-cols-3">
               <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   Personnummer
@@ -754,6 +761,15 @@ export default async function CustomerAdminDetailPage({
                 </div>
                 <div className="mt-1 font-medium text-slate-900 dark:text-white">
                   {customer.org_number ?? '—'}
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
+                <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  Lägenhetsnummer
+                </div>
+                <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                  {customer.apartment_number ?? '—'}
                 </div>
               </div>
             </div>
@@ -949,6 +965,8 @@ export default async function CustomerAdminDetailPage({
         partnerExports={partnerExports}
         outboundRequests={outboundRequests}
       />
+
+      <CustomerContractsCard customerId={id} />
 
       <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
         <CustomerSiteForm
