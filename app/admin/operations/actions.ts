@@ -9,7 +9,9 @@ import {
   syncCustomerOperationsForCustomer,
   updateOperationTaskStatus,
   updateSupplierSwitchRequestStatus,
+  createSupplierSwitchEvent,
 } from '@/lib/operations/db'
+import { getOutboundRequestById, resetOutboundRequestForRetry } from '@/lib/cis/db'
 import type {
   CustomerOperationTaskStatus,
   SupplierSwitchRequestStatus,
@@ -157,7 +159,82 @@ export async function updateSupplierSwitchStatusFromAdminAction(
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
+  revalidatePath(`/admin/operations/switches/${saved.id}`)
   revalidatePath(`/admin/customers/${saved.customer_id}`)
+}
+
+export async function retryOutboundFromSwitchDetailAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+
+  const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
+
+  const switchRequestId = formValue(formData, 'switch_request_id') ?? ''
+  const outboundRequestId = formValue(formData, 'outbound_request_id') ?? ''
+  const customerId = formValue(formData, 'customer_id') ?? ''
+
+  if (!switchRequestId || !outboundRequestId || !customerId) {
+    throw new Error('switch_request_id, outbound_request_id och customer_id krävs')
+  }
+
+  const outboundRequest = await getOutboundRequestById(outboundRequestId)
+
+  if (!outboundRequest) {
+    throw new Error('Outbound request hittades inte')
+  }
+
+  const reset = await resetOutboundRequestForRetry({
+    actorUserId: actor.id,
+    outboundRequestId,
+    reason: 'Manuell retry från switch detail.',
+  })
+
+  const savedSwitch = await updateSupplierSwitchRequestStatus(supabase, {
+    requestId: switchRequestId,
+    status: 'queued',
+    externalReference:
+      reset.external_reference ?? formValue(formData, 'external_reference') ?? null,
+  })
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId,
+    eventType: 'manual_retry_queued',
+    eventStatus: reset.status,
+    message: `Outbound ${reset.id} återköades manuellt från switch detail.`,
+    payload: {
+      outboundRequestId: reset.id,
+      customerId,
+      attemptsCount: reset.attempts_count,
+    },
+  })
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'outbound_request',
+    entityId: reset.id,
+    action: 'outbound_request_manual_retry_from_switch_detail',
+    newValues: reset,
+    metadata: {
+      customerId,
+      switchRequestId,
+      requestType: reset.request_type,
+      sourceType: reset.source_type,
+      sourceId: reset.source_id,
+    },
+  })
+
+  await syncCustomerOperationsForCustomer(supabase, customerId)
+
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/ready-switches')
+  revalidatePath('/admin/outbound/unresolved')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/switches')
+  revalidatePath(`/admin/operations/switches/${switchRequestId}`)
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath(`/admin/customers/${savedSwitch.customer_id}`)
 }
 
 export async function runOperationsTaskAutoResolutionSweepAction(): Promise<void> {

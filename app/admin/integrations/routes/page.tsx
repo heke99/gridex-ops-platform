@@ -30,7 +30,7 @@ export default async function CommunicationRoutesPage({
 
   const [routes, gridOwners] = await Promise.all([
     listCommunicationRoutes({
-      scope,
+      routeScope: scope,
       query,
     }),
     listGridOwners(supabase),
@@ -48,9 +48,9 @@ export default async function CommunicationRoutesPage({
         <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
           <form
             action={saveCommunicationRouteAction}
-            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
           >
-            <h2 className="text-lg font-semibold text-slate-950">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
               Ny / uppdatera route
             </h2>
 
@@ -60,14 +60,14 @@ export default async function CommunicationRoutesPage({
               <input
                 name="route_name"
                 placeholder="Route name"
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 required
               />
 
               <select
                 name="route_scope"
                 defaultValue="meter_values"
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               >
                 <option value="supplier_switch">Supplier switch</option>
                 <option value="meter_values">Meter values</option>
@@ -77,7 +77,7 @@ export default async function CommunicationRoutesPage({
               <select
                 name="route_type"
                 defaultValue="partner_api"
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               >
                 <option value="partner_api">Partner API</option>
                 <option value="ediel_partner">Ediel partner</option>
@@ -88,7 +88,7 @@ export default async function CommunicationRoutesPage({
               <select
                 name="grid_owner_id"
                 defaultValue=""
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               >
                 <option value="">Global default route</option>
                 {gridOwners.map((owner) => (
@@ -101,36 +101,36 @@ export default async function CommunicationRoutesPage({
               <input
                 name="target_system"
                 placeholder="Target system"
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 defaultValue="partner_system"
               />
 
               <input
                 name="endpoint"
                 placeholder="Endpoint / path"
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               />
 
               <input
                 name="target_email"
                 placeholder="Target email"
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               />
 
               <input
                 name="supported_payload_version"
                 placeholder="Payload version"
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               />
 
               <textarea
                 name="notes"
                 rows={4}
                 placeholder="Notes"
-                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               />
 
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <input
                   type="checkbox"
                   name="is_active"
@@ -143,44 +143,70 @@ export default async function CommunicationRoutesPage({
             </div>
 
             <div className="mt-6">
-              <button className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
+              <button className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
                 Spara route
               </button>
             </div>
           </form>
 
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-6 py-5">
-              <h2 className="text-lg font-semibold text-slate-950">Routes</h2>
-              <p className="mt-1 text-sm text-slate-500">{routes.length} träffar.</p>
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                Routes
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {routes.length} träffar.
+              </p>
             </div>
 
             <div className="space-y-3 p-6">
               {routes.length === 0 ? (
-                <div className="rounded-2xl border border-dashed px-4 py-8 text-center text-sm text-slate-500">
+                <div className="rounded-2xl border border-dashed px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                   Inga routes ännu.
                 </div>
               ) : (
                 routes.map((route) => (
-                  <div key={route.id} className="rounded-2xl border p-4">
+                  <div
+                    key={route.id}
+                    className="rounded-2xl border p-4 dark:border-slate-800"
+                  >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                         {route.route_scope}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                         {route.route_type}
                       </span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
                         {route.is_active ? 'active' : 'inactive'}
                       </span>
                     </div>
 
-                    <div className="mt-3 grid gap-2 text-sm text-slate-600">
-                      <div>Namn: <span className="font-medium">{route.route_name}</span></div>
-                      <div>Target system: <span className="font-medium">{route.target_system}</span></div>
-                      <div>Nätägare: <span className="font-medium">{route.grid_owner_id ?? 'global default'}</span></div>
-                      <div>Endpoint: <span className="font-medium">{route.endpoint ?? '—'}</span></div>
-                      <div>Email: <span className="font-medium">{route.target_email ?? '—'}</span></div>
+                    <div className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
+                      <div>
+                        Namn:{' '}
+                        <span className="font-medium">{route.route_name}</span>
+                      </div>
+                      <div>
+                        Target system:{' '}
+                        <span className="font-medium">{route.target_system}</span>
+                      </div>
+                      <div>
+                        Nätägare:{' '}
+                        <span className="font-medium">
+                          {route.grid_owner_id ?? 'global default'}
+                        </span>
+                      </div>
+                      <div>
+                        Endpoint:{' '}
+                        <span className="font-medium">{route.endpoint ?? '—'}</span>
+                      </div>
+                      <div>
+                        Email:{' '}
+                        <span className="font-medium">
+                          {route.target_email ?? '—'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))

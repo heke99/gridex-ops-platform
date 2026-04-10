@@ -173,6 +173,20 @@ export async function listSupplierSwitchRequestsByCustomerId(
   return (data ?? []) as SupplierSwitchRequestRow[]
 }
 
+export async function getSupplierSwitchRequestById(
+  supabase: SupabaseClient,
+  requestId: string
+): Promise<SupplierSwitchRequestRow | null> {
+  const { data, error } = await supabase
+    .from('supplier_switch_requests')
+    .select('*')
+    .eq('id', requestId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as SupplierSwitchRequestRow | null) ?? null
+}
+
 export async function listAllSupplierSwitchRequests(
   supabase: SupabaseClient,
   options: {
@@ -319,8 +333,6 @@ export async function syncOperationTasksFromReadiness(
 
     if (error) throw error
   }
-
-  
 
   const { data: existingOpenTasks, error: fetchOpenTasksError } = await supabase
     .from('customer_operation_tasks')

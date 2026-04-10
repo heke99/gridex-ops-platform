@@ -15,6 +15,7 @@ import {
   summarizeReadinessIssues,
 } from '@/lib/operations/controlTower'
 import { updateSupplierSwitchStatusFromAdminAction } from '@/app/admin/operations/actions'
+import { queueSupplierSwitchOutboundAction } from '@/app/admin/cis/actions'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 
 type SwitchesPageProps = {
@@ -34,6 +35,10 @@ function statusStyle(status: string): string {
 
   if (['failed', 'rejected', 'blocked', 'cancelled'].includes(status)) {
     return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+  }
+
+  if (['sent', 'submitted'].includes(status)) {
+    return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
   }
 
   return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
@@ -114,9 +119,7 @@ export default async function AdminOperationsSwitchesPage({
 
     const readiness = evaluateSiteSwitchReadiness({
       site,
-      meteringPoints: meteringPoints.filter(
-        (point) => point.site_id === site.id
-      ),
+      meteringPoints: meteringPoints.filter((point) => point.site_id === site.id),
       powersOfAttorney,
     })
 
@@ -127,7 +130,7 @@ export default async function AdminOperationsSwitchesPage({
     <div className="min-h-screen">
       <AdminHeader
         title="Switchar"
-        subtitle="Hantera leverantörsbyten, blockers, outboundkoppling och statuskedjor."
+        subtitle="Hantera leverantörsbyten, blockers, outboundkoppling och statuskedjor. 7.10 lägger nu detail view per switchärende."
         userEmail={user?.email ?? null}
       />
 
@@ -244,36 +247,28 @@ export default async function AdminOperationsSwitchesPage({
 
                         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">
-                              Kund
-                            </div>
+                            <div className="text-slate-500 dark:text-slate-400">Kund</div>
                             <div className="mt-1 font-medium text-slate-900 dark:text-white">
                               {request.customer_id}
                             </div>
                           </div>
 
                           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">
-                              Site
-                            </div>
+                            <div className="text-slate-500 dark:text-slate-400">Site</div>
                             <div className="mt-1 font-medium text-slate-900 dark:text-white">
                               {request.site_id}
                             </div>
                           </div>
 
                           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">
-                              Mätpunkt
-                            </div>
+                            <div className="text-slate-500 dark:text-slate-400">Mätpunkt</div>
                             <div className="mt-1 font-medium text-slate-900 dark:text-white">
                               {request.metering_point_id}
                             </div>
                           </div>
 
                           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">
-                              Startdatum
-                            </div>
+                            <div className="text-slate-500 dark:text-slate-400">Startdatum</div>
                             <div className="mt-1 font-medium text-slate-900 dark:text-white">
                               {request.requested_start_date ?? '—'}
                             </div>
@@ -315,12 +310,6 @@ export default async function AdminOperationsSwitchesPage({
                               {outbound?.status ?? 'Ingen outbound ännu'}
                             </span>
                           </div>
-                          <div>
-                            Outbound route:{' '}
-                            <span className="font-medium">
-                              {outbound?.communication_route_id ?? '—'}
-                            </span>
-                          </div>
 
                           {readiness && !readiness.isReady ? (
                             <div className="text-rose-700 dark:text-rose-300">
@@ -330,24 +319,37 @@ export default async function AdminOperationsSwitchesPage({
                               </span>
                             </div>
                           ) : null}
-
-                          {request.failure_reason ? (
-                            <div className="text-rose-700 dark:text-rose-300">
-                              Felorsak:{' '}
-                              <span className="font-medium">
-                                {request.failure_reason}
-                              </span>
-                            </div>
-                          ) : null}
                         </div>
 
-                        <div className="mt-4">
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                          <Link
+                            href={`/admin/operations/switches/${request.id}`}
+                            className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
+                          >
+                            Öppna detail view
+                          </Link>
+
                           <Link
                             href={`/admin/customers/${request.customer_id}`}
                             className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
                           >
                             Öppna kundkort
                           </Link>
+
+                          {['queued', 'submitted', 'accepted'].includes(request.status) ? (
+                            outbound ? (
+                              <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                Outbound finns redan
+                              </span>
+                            ) : (
+                              <form action={queueSupplierSwitchOutboundAction}>
+                                <input type="hidden" name="request_id" value={request.id} />
+                                <button className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                                  Köa outbound manuellt
+                                </button>
+                              </form>
+                            )
+                          ) : null}
                         </div>
                       </div>
 

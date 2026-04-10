@@ -9,6 +9,7 @@ import {
   bulkQueueMissingMeterValues,
   bulkQueueReadySupplierSwitches,
   createOutboundRequest,
+  findOpenOutboundBySource,
   ingestBillingUnderlay,
   ingestMeteringValue,
   saveCommunicationRoute,
@@ -18,10 +19,15 @@ import {
 } from '@/lib/cis/db'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import {
+  createSupplierSwitchEvent,
+  getSupplierSwitchRequestById,
   listAllSupplierSwitchRequests,
   syncCustomerOperationsForCustomer,
+  updateSupplierSwitchRequestStatus,
 } from '@/lib/operations/db'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
+import type { OutboundRequestRow, OutboundRequestStatus } from '@/lib/cis/types'
+import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -121,6 +127,94 @@ async function syncCustomerOperationsAfterCisChange(
 
   const supabase = await createSupabaseServerClient()
   await syncCustomerOperationsForCustomer(supabase, customerId)
+}
+
+async function syncSwitchRequestFromOutbound(params: {
+  outboundRequest: OutboundRequestRow
+  actorUserId: string
+}): Promise<SupplierSwitchRequestRow | null> {
+  const { outboundRequest } = params
+
+  if (
+    outboundRequest.request_type !== 'supplier_switch' ||
+    outboundRequest.source_type !== 'supplier_switch_request' ||
+    !outboundRequest.source_id
+  ) {
+    return null
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const switchRequest = await getSupplierSwitchRequestById(
+    supabase,
+    outboundRequest.source_id
+  )
+
+  if (!switchRequest) {
+    return null
+  }
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: switchRequest.id,
+    eventType: 'outbound_status_sync',
+    eventStatus: outboundRequest.status,
+    message: `Outbound ${outboundRequest.id} uppdaterad till ${outboundRequest.status}.`,
+    payload: {
+      outboundRequestId: outboundRequest.id,
+      outboundStatus: outboundRequest.status,
+      outboundChannelType: outboundRequest.channel_type,
+      externalReference: outboundRequest.external_reference,
+      failureReason: outboundRequest.failure_reason,
+    },
+  })
+
+  if (outboundRequest.status === 'sent') {
+    if (['draft', 'queued'].includes(switchRequest.status)) {
+      return updateSupplierSwitchRequestStatus(supabase, {
+        requestId: switchRequest.id,
+        status: 'submitted',
+        externalReference:
+          outboundRequest.external_reference ?? switchRequest.external_reference,
+      })
+    }
+
+    return switchRequest
+  }
+
+  if (outboundRequest.status === 'acknowledged') {
+    if (['draft', 'queued', 'submitted'].includes(switchRequest.status)) {
+      return updateSupplierSwitchRequestStatus(supabase, {
+        requestId: switchRequest.id,
+        status: 'accepted',
+        externalReference:
+          outboundRequest.external_reference ?? switchRequest.external_reference,
+      })
+    }
+
+    return switchRequest
+  }
+
+  if (
+    outboundRequest.status === 'failed' ||
+    outboundRequest.status === 'cancelled'
+  ) {
+    if (!['completed', 'rejected', 'failed'].includes(switchRequest.status)) {
+      return updateSupplierSwitchRequestStatus(supabase, {
+        requestId: switchRequest.id,
+        status: 'failed',
+        externalReference:
+          outboundRequest.external_reference ?? switchRequest.external_reference,
+        failureReason:
+          outboundRequest.failure_reason ??
+          (outboundRequest.status === 'cancelled'
+            ? 'Outbound dispatch avbröts manuellt.'
+            : 'Outbound dispatch misslyckades.'),
+      })
+    }
+
+    return switchRequest
+  }
+
+  return switchRequest
 }
 
 export async function saveCommunicationRouteAction(
@@ -245,6 +339,7 @@ export async function updateOutboundRequestStatusAction(
   const actor = await getActor()
   const outboundRequestId = formValue(formData, 'outbound_request_id') ?? ''
   const customerId = formValue(formData, 'customer_id') ?? ''
+  const status = (formValue(formData, 'status') as OutboundRequestStatus | null) ?? 'queued'
 
   if (!outboundRequestId || !customerId) {
     throw new Error('outbound_request_id och customer_id krävs')
@@ -253,20 +348,18 @@ export async function updateOutboundRequestStatusAction(
   const saved = await updateOutboundRequestStatus({
     actorUserId: actor.id,
     outboundRequestId,
-    status:
-      (formValue(formData, 'status') as
-        | 'queued'
-        | 'prepared'
-        | 'sent'
-        | 'acknowledged'
-        | 'failed'
-        | 'cancelled'
-        | null) ?? 'queued',
+    status,
     externalReference: formValue(formData, 'external_reference') || null,
     failureReason: formValue(formData, 'failure_reason') || null,
     responsePayload: {
       admin_note: formValue(formData, 'response_payload_note') || null,
+      dispatch_step: formValue(formData, 'dispatch_step') || null,
     },
+  })
+
+  const syncedSwitch = await syncSwitchRequestFromOutbound({
+    outboundRequest: saved,
+    actorUserId: actor.id,
   })
 
   await insertAuditLog({
@@ -278,6 +371,8 @@ export async function updateOutboundRequestStatusAction(
     metadata: {
       customerId,
       status: saved.status,
+      syncedSwitchRequestId: syncedSwitch?.id ?? null,
+      syncedSwitchStatus: syncedSwitch?.status ?? null,
     },
   })
 
@@ -286,9 +381,11 @@ export async function updateOutboundRequestStatusAction(
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/missing-meter-values')
   revalidatePath('/admin/outbound/ready-switches')
+  revalidatePath('/admin/outbound/unresolved')
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/operations/switches')
 }
 
 export async function updateGridOwnerDataRequestStatusAction(
@@ -516,6 +613,96 @@ export async function ingestBillingUnderlayAction(
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
+}
+
+export async function queueSupplierSwitchOutboundAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess(['switching.write'])
+
+  const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
+  const requestId = formValue(formData, 'request_id') ?? ''
+
+  if (!requestId) {
+    throw new Error('request_id krävs')
+  }
+
+  const request = await getSupplierSwitchRequestById(supabase, requestId)
+
+  if (!request) {
+    throw new Error('Switch request hittades inte')
+  }
+
+  const existing = await findOpenOutboundBySource({
+    sourceType: 'supplier_switch_request',
+    sourceId: request.id,
+    requestType: 'supplier_switch',
+  })
+
+  if (existing) {
+    revalidatePath('/admin/outbound')
+    revalidatePath('/admin/outbound/ready-switches')
+    revalidatePath('/admin/operations/switches')
+    revalidatePath(`/admin/customers/${request.customer_id}`)
+    return
+  }
+
+  const meteringPoints = await listMeteringPointsBySiteIds(supabase, [request.site_id])
+  const point = meteringPoints.find((row) => row.id === request.metering_point_id)
+
+  const saved = await createOutboundRequest({
+    actorUserId: actor.id,
+    customerId: request.customer_id,
+    siteId: request.site_id,
+    meteringPointId: request.metering_point_id,
+    gridOwnerId: point?.grid_owner_id ?? request.grid_owner_id ?? null,
+    requestType: 'supplier_switch',
+    sourceType: 'supplier_switch_request',
+    sourceId: request.id,
+    payload: {
+      queuedFrom: 'manual_switch_dispatch',
+      requestType: request.request_type,
+      requestedStartDate: request.requested_start_date,
+      currentSupplierName: request.current_supplier_name,
+    },
+    periodStart: request.requested_start_date ?? null,
+    externalReference: formValue(formData, 'external_reference') || null,
+  })
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: request.id,
+    eventType: 'outbound_queued',
+    eventStatus: saved.status,
+    message: `Outbound ${saved.id} köad för switchärendet.`,
+    payload: {
+      outboundRequestId: saved.id,
+      channelType: saved.channel_type,
+      routeId: saved.communication_route_id,
+    },
+  })
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'outbound_request',
+    entityId: saved.id,
+    action: 'supplier_switch_outbound_queued_manual',
+    newValues: saved,
+    metadata: {
+      customerId: request.customer_id,
+      switchRequestId: request.id,
+      queuedFrom: 'operations_switches_manual',
+    },
+  })
+
+  await syncCustomerOperationsAfterCisChange(request.customer_id)
+
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/ready-switches')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/switches')
+  revalidatePath('/admin/operations/tasks')
+  revalidatePath(`/admin/customers/${request.customer_id}`)
 }
 
 export async function bulkQueueMissingMeterValuesAction(

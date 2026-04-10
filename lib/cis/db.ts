@@ -48,6 +48,49 @@ export async function listGridOwnerDataRequestsByCustomerId(
   return (data ?? []) as GridOwnerDataRequestRow[]
 }
 
+export async function listAllGridOwnerDataRequests(options: {
+  status?: string | null
+  scope?: string | null
+  query?: string | null
+} = {}): Promise<GridOwnerDataRequestRow[]> {
+  let requestQuery = supabaseService
+    .from('grid_owner_data_requests')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (options.status && options.status !== 'all') {
+    requestQuery = requestQuery.eq('status', options.status)
+  }
+
+  if (options.scope && options.scope !== 'all') {
+    requestQuery = requestQuery.eq('request_scope', options.scope)
+  }
+
+  const { data, error } = await requestQuery
+  if (error) throw error
+
+  const rows = (data ?? []) as GridOwnerDataRequestRow[]
+  const query = normalizeQuery(options.query)
+
+  return rows.filter((row) =>
+    matchesQuery(
+      [
+        row.id,
+        row.customer_id,
+        row.site_id,
+        row.metering_point_id,
+        row.grid_owner_id,
+        row.request_scope,
+        row.status,
+        row.external_reference,
+        row.notes,
+        row.failure_reason,
+      ],
+      query
+    )
+  )
+}
+
 export async function listMeteringValuesByCustomerId(
   customerId: string
 ): Promise<MeteringValueRow[]> {
@@ -60,6 +103,37 @@ export async function listMeteringValuesByCustomerId(
 
   if (error) throw error
   return (data ?? []) as MeteringValueRow[]
+}
+
+export async function listAllMeteringValues(options: {
+  query?: string | null
+} = {}): Promise<MeteringValueRow[]> {
+  const { data, error } = await supabaseService
+    .from('metering_values')
+    .select('*')
+    .order('read_at', { ascending: false })
+    .limit(250)
+
+  if (error) throw error
+
+  const rows = (data ?? []) as MeteringValueRow[]
+  const query = normalizeQuery(options.query)
+
+  return rows.filter((row) =>
+    matchesQuery(
+      [
+        row.id,
+        row.customer_id,
+        row.site_id,
+        row.metering_point_id,
+        row.grid_owner_id,
+        row.reading_type,
+        row.quality_code,
+        row.source_system,
+      ],
+      query
+    )
+  )
 }
 
 export async function listBillingUnderlaysByCustomerId(
@@ -115,6 +189,8 @@ export async function createGridOwnerDataRequest(input: {
       requested_period_end: input.requestedPeriodEnd ?? null,
       external_reference: input.externalReference ?? null,
       notes: input.notes ?? null,
+      request_payload: {},
+      response_payload: {},
       created_by: input.actorUserId,
       updated_by: input.actorUserId,
     })
@@ -134,6 +210,7 @@ export async function createPartnerExport(input: {
   exportKind: 'billing_underlay' | 'meter_values' | 'customer_snapshot'
   targetSystem: string
   externalReference?: string | null
+  payload?: Record<string, unknown>
   notes?: string | null
 }): Promise<PartnerExportRow> {
   const { data, error } = await supabaseService
@@ -146,10 +223,12 @@ export async function createPartnerExport(input: {
       export_kind: input.exportKind,
       target_system: input.targetSystem,
       status: 'queued',
+      external_reference: input.externalReference ?? null,
       payload: {
+        ...(input.payload ?? {}),
         notes: input.notes ?? null,
       },
-      external_reference: input.externalReference ?? null,
+      response_payload: {},
       created_by: input.actorUserId,
       updated_by: input.actorUserId,
     })
@@ -160,93 +239,20 @@ export async function createPartnerExport(input: {
   return data as PartnerExportRow
 }
 
-export async function listAllGridOwnerDataRequests(options: {
-  status?: string | null
-  scope?: string | null
-  query?: string | null
-} = {}): Promise<GridOwnerDataRequestRow[]> {
-  let requestQuery = supabaseService
-    .from('grid_owner_data_requests')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (options.status && options.status !== 'all') {
-    requestQuery = requestQuery.eq('status', options.status)
-  }
-
-  if (options.scope && options.scope !== 'all') {
-    requestQuery = requestQuery.eq('request_scope', options.scope)
-  }
-
-  const { data, error } = await requestQuery
-  if (error) throw error
-
-  const rows = (data ?? []) as GridOwnerDataRequestRow[]
-  const query = normalizeQuery(options.query)
-
-  return rows.filter((row) =>
-    matchesQuery(
-      [
-        row.id,
-        row.customer_id,
-        row.site_id,
-        row.metering_point_id,
-        row.grid_owner_id,
-        row.request_scope,
-        row.status,
-        row.external_reference,
-        row.notes,
-      ],
-      query
-    )
-  )
-}
-
-export async function listAllMeteringValues(options: {
-  query?: string | null
-} = {}): Promise<MeteringValueRow[]> {
-  const { data, error } = await supabaseService
-    .from('metering_values')
-    .select('*')
-    .order('read_at', { ascending: false })
-    .limit(250)
-
-  if (error) throw error
-
-  const rows = (data ?? []) as MeteringValueRow[]
-  const query = normalizeQuery(options.query)
-
-  return rows.filter((row) =>
-    matchesQuery(
-      [
-        row.id,
-        row.customer_id,
-        row.site_id,
-        row.metering_point_id,
-        row.grid_owner_id,
-        row.reading_type,
-        row.quality_code,
-        row.source_system,
-      ],
-      query
-    )
-  )
-}
-
 export async function listAllBillingUnderlays(options: {
   status?: string | null
   query?: string | null
 } = {}): Promise<BillingUnderlayRow[]> {
-  let underlayQuery = supabaseService
+  let queryBuilder = supabaseService
     .from('billing_underlays')
     .select('*')
     .order('created_at', { ascending: false })
 
   if (options.status && options.status !== 'all') {
-    underlayQuery = underlayQuery.eq('status', options.status)
+    queryBuilder = queryBuilder.eq('status', options.status)
   }
 
-  const { data, error } = await underlayQuery
+  const { data, error } = await queryBuilder
   if (error) throw error
 
   const rows = (data ?? []) as BillingUnderlayRow[]
@@ -263,8 +269,6 @@ export async function listAllBillingUnderlays(options: {
         row.status,
         row.source_system,
         row.failure_reason,
-        row.underlay_year?.toString(),
-        row.underlay_month?.toString(),
       ],
       query
     )
@@ -276,20 +280,20 @@ export async function listAllPartnerExports(options: {
   exportKind?: string | null
   query?: string | null
 } = {}): Promise<PartnerExportRow[]> {
-  let exportQuery = supabaseService
+  let queryBuilder = supabaseService
     .from('partner_exports')
     .select('*')
     .order('created_at', { ascending: false })
 
   if (options.status && options.status !== 'all') {
-    exportQuery = exportQuery.eq('status', options.status)
+    queryBuilder = queryBuilder.eq('status', options.status)
   }
 
   if (options.exportKind && options.exportKind !== 'all') {
-    exportQuery = exportQuery.eq('export_kind', options.exportKind)
+    queryBuilder = queryBuilder.eq('export_kind', options.exportKind)
   }
 
-  const { data, error } = await exportQuery
+  const { data, error } = await queryBuilder
   if (error) throw error
 
   const rows = (data ?? []) as PartnerExportRow[]
@@ -304,8 +308,8 @@ export async function listAllPartnerExports(options: {
         row.metering_point_id,
         row.billing_underlay_id,
         row.export_kind,
-        row.target_system,
         row.status,
+        row.target_system,
         row.external_reference,
         row.failure_reason,
       ],
@@ -316,18 +320,26 @@ export async function listAllPartnerExports(options: {
 
 export async function listCommunicationRoutes(options: {
   scope?: string | null
+  routeScope?: string | null
+  routeType?: string | null
   query?: string | null
 } = {}): Promise<CommunicationRouteRow[]> {
-  let routeQuery = supabaseService
+  let queryBuilder = supabaseService
     .from('communication_routes')
     .select('*')
     .order('created_at', { ascending: false })
 
-  if (options.scope && options.scope !== 'all') {
-    routeQuery = routeQuery.eq('route_scope', options.scope)
+  const resolvedScope = options.routeScope ?? options.scope ?? null
+
+  if (resolvedScope && resolvedScope !== 'all') {
+    queryBuilder = queryBuilder.eq('route_scope', resolvedScope)
   }
 
-  const { data, error } = await routeQuery
+  if (options.routeType && options.routeType !== 'all') {
+    queryBuilder = queryBuilder.eq('route_type', options.routeType)
+  }
+
+  const { data, error } = await queryBuilder
   if (error) throw error
 
   const rows = (data ?? []) as CommunicationRouteRow[]
@@ -336,6 +348,7 @@ export async function listCommunicationRoutes(options: {
   return rows.filter((row) =>
     matchesQuery(
       [
+        row.id,
         row.route_name,
         row.route_scope,
         row.route_type,
@@ -675,6 +688,93 @@ export async function updateOutboundRequestStatus(input: {
   return row
 }
 
+export async function getOutboundRequestById(
+  outboundRequestId: string
+): Promise<OutboundRequestRow | null> {
+  const { data, error } = await supabaseService
+    .from('outbound_requests')
+    .select('*')
+    .eq('id', outboundRequestId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as OutboundRequestRow | null) ?? null
+}
+
+export async function refreshOutboundRequestRouteResolution(input: {
+  actorUserId: string
+  outboundRequestId: string
+}): Promise<OutboundRequestRow> {
+  const current = await getOutboundRequestById(input.outboundRequestId)
+
+  if (!current) {
+    throw new Error('Outbound request hittades inte')
+  }
+
+  const route = await findBestCommunicationRoute({
+    requestType: current.request_type,
+    gridOwnerId: current.grid_owner_id,
+  })
+
+  const nextChannelType = route?.route_type ?? 'unresolved'
+
+  const { data, error } = await supabaseService
+    .from('outbound_requests')
+    .update({
+      communication_route_id: route?.id ?? null,
+      channel_type: nextChannelType,
+      updated_by: input.actorUserId,
+    })
+    .eq('id', current.id)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  return data as OutboundRequestRow
+}
+
+export async function resetOutboundRequestForRetry(input: {
+  actorUserId: string
+  outboundRequestId: string
+  reason?: string | null
+}): Promise<OutboundRequestRow> {
+  const { data, error } = await supabaseService
+    .from('outbound_requests')
+    .update({
+      status: 'queued',
+      failure_reason: null,
+      failed_at: null,
+      prepared_at: null,
+      sent_at: null,
+      acknowledged_at: null,
+      updated_by: input.actorUserId,
+    })
+    .eq('id', input.outboundRequestId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  const row = data as OutboundRequestRow
+
+  await createOutboundDispatchEvent({
+    actorUserId: input.actorUserId,
+    outboundRequestId: row.id,
+    eventType: 'queued',
+    eventStatus: row.status,
+    message:
+      input.reason ??
+      'Outbound request återköad av automation för nytt dispatch-försök.',
+    payload: {
+      retry: true,
+      attemptsCount: row.attempts_count,
+    },
+  })
+
+  return row
+}
+
 export async function updateGridOwnerDataRequestStatus(input: {
   actorUserId: string
   requestId: string
@@ -765,7 +865,7 @@ export async function ingestMeteringValue(input: {
   readAt: string
   periodStart?: string | null
   periodEnd?: string | null
-  sourceSystem?: string | null
+  sourceSystem?: string
   rawPayload?: Record<string, unknown>
 }): Promise<MeteringValueRow> {
   const { data, error } = await supabaseService
@@ -805,8 +905,8 @@ export async function ingestBillingUnderlay(input: {
   status: 'pending' | 'received' | 'validated' | 'exported' | 'failed'
   totalKwh?: number | null
   totalSekExVat?: number | null
-  currency?: string | null
-  sourceSystem?: string | null
+  currency?: string
+  sourceSystem?: string
   payload?: Record<string, unknown>
   failureReason?: string | null
 }): Promise<BillingUnderlayRow> {
@@ -831,17 +931,9 @@ export async function ingestBillingUnderlay(input: {
     updated_by: input.actorUserId,
   }
 
-  if (input.status === 'received') {
-    insertPayload.received_at = now
-  }
-
-  if (input.status === 'validated') {
-    insertPayload.validated_at = now
-  }
-
-  if (input.status === 'exported') {
-    insertPayload.exported_at = now
-  }
+  if (input.status === 'received') insertPayload.received_at = now
+  if (input.status === 'validated') insertPayload.validated_at = now
+  if (input.status === 'exported') insertPayload.exported_at = now
 
   const { data, error } = await supabaseService
     .from('billing_underlays')
@@ -854,7 +946,7 @@ export async function ingestBillingUnderlay(input: {
 }
 
 export async function findOpenOutboundBySource(params: {
-  sourceType: 'supplier_switch_request' | 'grid_owner_data_request'
+  sourceType: OutboundRequestRow['source_type']
   sourceId: string
   requestType: OutboundRequestType
 }): Promise<OutboundRequestRow | null> {
@@ -874,34 +966,15 @@ export async function findOpenOutboundBySource(params: {
 }
 
 export async function listOutboundRequestsByCustomerId(
-  customerId: string,
-  options: {
-    status?: string | null
-    requestType?: string | null
-    limit?: number
-  } = {}
+  customerId: string
 ): Promise<OutboundRequestRow[]> {
-  let requestQuery = supabaseService
+  const { data, error } = await supabaseService
     .from('outbound_requests')
     .select('*')
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })
 
-  if (options.status && options.status !== 'all') {
-    requestQuery = requestQuery.eq('status', options.status)
-  }
-
-  if (options.requestType && options.requestType !== 'all') {
-    requestQuery = requestQuery.eq('request_type', options.requestType)
-  }
-
-  if (typeof options.limit === 'number' && options.limit > 0) {
-    requestQuery = requestQuery.limit(options.limit)
-  }
-
-  const { data, error } = await requestQuery
   if (error) throw error
-
   return (data ?? []) as OutboundRequestRow[]
 }
 
@@ -910,7 +983,7 @@ export async function listUnresolvedOutboundRequests(): Promise<OutboundRequestR
     .from('outbound_requests')
     .select('*')
     .eq('channel_type', 'unresolved')
-    .in('status', ['queued', 'prepared', 'sent', 'acknowledged', 'failed'])
+    .in('status', ['queued', 'prepared', 'sent', 'failed'])
     .order('created_at', { ascending: false })
 
   if (error) throw error
@@ -918,15 +991,11 @@ export async function listUnresolvedOutboundRequests(): Promise<OutboundRequestR
 }
 
 export async function findOpenOutboundBySourceOrPeriod(params: {
-  sourceType?:
-    | 'supplier_switch_request'
-    | 'grid_owner_data_request'
-    | 'bulk_generation'
-    | 'manual'
-    | null
+  sourceType?: OutboundRequestRow['source_type']
   sourceId?: string | null
   requestType: OutboundRequestType
   customerId: string
+  siteId?: string | null
   meteringPointId?: string | null
   periodStart?: string | null
   periodEnd?: string | null
@@ -938,22 +1007,14 @@ export async function findOpenOutboundBySourceOrPeriod(params: {
     .eq('customer_id', params.customerId)
     .in('status', ['queued', 'prepared', 'sent', 'acknowledged'])
 
+  if (params.siteId) query = query.eq('site_id', params.siteId)
+  if (params.meteringPointId) query = query.eq('metering_point_id', params.meteringPointId)
+
   if (params.sourceType && params.sourceId) {
     query = query.eq('source_type', params.sourceType).eq('source_id', params.sourceId)
-  } else if (params.meteringPointId) {
-    query = query.eq('metering_point_id', params.meteringPointId)
-
-    if (params.periodStart) {
-      query = query.eq('period_start', params.periodStart)
-    } else {
-      query = query.is('period_start', null)
-    }
-
-    if (params.periodEnd) {
-      query = query.eq('period_end', params.periodEnd)
-    } else {
-      query = query.is('period_end', null)
-    }
+  } else {
+    if (params.periodStart) query = query.eq('period_start', params.periodStart)
+    if (params.periodEnd) query = query.eq('period_end', params.periodEnd)
   }
 
   const { data, error } = await query
@@ -972,25 +1033,45 @@ export async function bulkQueueMissingMeterValues(params: {
   existingMeterValuePointIds: Set<string>
   periodStart?: string | null
   periodEnd?: string | null
-}): Promise<{ batchKey: string; createdCount: number }> {
-  const batchKey = buildBatchKey('missing_meter_values')
+}): Promise<{
+  batchKey: string
+  createdCount: number
+  skippedCount: number
+}> {
+  const batchKey = buildBatchKey('meter_values')
   let createdCount = 0
+  let skippedCount = 0
 
   for (const point of params.meteringPoints) {
-    if (params.existingMeterValuePointIds.has(point.id)) continue
+    if (!point.id) {
+      skippedCount += 1
+      continue
+    }
+
+    if (params.existingMeterValuePointIds.has(point.id)) {
+      skippedCount += 1
+      continue
+    }
 
     const site = params.sites.find((row) => row.id === point.site_id)
-    if (!site) continue
+    if (!site) {
+      skippedCount += 1
+      continue
+    }
 
     const existing = await findOpenOutboundBySourceOrPeriod({
       requestType: 'meter_values',
       customerId: site.customer_id,
+      siteId: site.id,
       meteringPointId: point.id,
       periodStart: params.periodStart ?? null,
       periodEnd: params.periodEnd ?? null,
     })
 
-    if (existing) continue
+    if (existing) {
+      skippedCount += 1
+      continue
+    }
 
     await createOutboundRequest({
       actorUserId: params.actorUserId,
@@ -1001,19 +1082,18 @@ export async function bulkQueueMissingMeterValues(params: {
       requestType: 'meter_values',
       sourceType: 'bulk_generation',
       sourceId: null,
-      payload: {
-        reason: 'missing_meter_values',
-        siteStatus: site.status,
-      },
       periodStart: params.periodStart ?? null,
       periodEnd: params.periodEnd ?? null,
+      payload: {
+        automation: 'missing_meter_values',
+      },
       dispatchBatchKey: batchKey,
     })
 
     createdCount += 1
   }
 
-  return { batchKey, createdCount }
+  return { batchKey, createdCount, skippedCount }
 }
 
 export async function bulkQueueMissingBillingUnderlays(params: {
@@ -1023,28 +1103,48 @@ export async function bulkQueueMissingBillingUnderlays(params: {
   existingUnderlayKeys: Set<string>
   underlayYear: number
   underlayMonth: number
-  periodStart?: string | null
-  periodEnd?: string | null
-}): Promise<{ batchKey: string; createdCount: number }> {
-  const batchKey = buildBatchKey('missing_billing_underlays')
+  periodStart: string
+  periodEnd: string
+}): Promise<{
+  batchKey: string
+  createdCount: number
+  skippedCount: number
+}> {
+  const batchKey = buildBatchKey('billing_underlay')
   let createdCount = 0
+  let skippedCount = 0
 
   for (const point of params.meteringPoints) {
-    const site = params.sites.find((row) => row.id === point.site_id)
-    if (!site) continue
+    if (!point.id) {
+      skippedCount += 1
+      continue
+    }
 
-    const underlayKey = `${point.id}:${params.underlayYear}:${params.underlayMonth}`
-    if (params.existingUnderlayKeys.has(underlayKey)) continue
+    const key = `${point.id}:${params.underlayYear}:${params.underlayMonth}`
+    if (params.existingUnderlayKeys.has(key)) {
+      skippedCount += 1
+      continue
+    }
+
+    const site = params.sites.find((row) => row.id === point.site_id)
+    if (!site) {
+      skippedCount += 1
+      continue
+    }
 
     const existing = await findOpenOutboundBySourceOrPeriod({
       requestType: 'billing_underlay',
       customerId: site.customer_id,
+      siteId: site.id,
       meteringPointId: point.id,
-      periodStart: params.periodStart ?? null,
-      periodEnd: params.periodEnd ?? null,
+      periodStart: params.periodStart,
+      periodEnd: params.periodEnd,
     })
 
-    if (existing) continue
+    if (existing) {
+      skippedCount += 1
+      continue
+    }
 
     await createOutboundRequest({
       actorUserId: params.actorUserId,
@@ -1055,20 +1155,20 @@ export async function bulkQueueMissingBillingUnderlays(params: {
       requestType: 'billing_underlay',
       sourceType: 'bulk_generation',
       sourceId: null,
+      periodStart: params.periodStart,
+      periodEnd: params.periodEnd,
       payload: {
-        reason: 'missing_billing_underlay',
+        automation: 'missing_billing_underlay',
         underlayYear: params.underlayYear,
         underlayMonth: params.underlayMonth,
       },
-      periodStart: params.periodStart ?? null,
-      periodEnd: params.periodEnd ?? null,
       dispatchBatchKey: batchKey,
     })
 
     createdCount += 1
   }
 
-  return { batchKey, createdCount }
+  return { batchKey, createdCount, skippedCount }
 }
 
 export async function bulkQueueReadySupplierSwitches(params: {
@@ -1076,51 +1176,67 @@ export async function bulkQueueReadySupplierSwitches(params: {
   switchRequests: SupplierSwitchRequestRow[]
   sites: CustomerSiteRow[]
   meteringPoints: MeteringPointRow[]
-}): Promise<{ batchKey: string; createdCount: number }> {
-  const batchKey = buildBatchKey('ready_supplier_switches')
+}): Promise<{
+  batchKey: string
+  createdCount: number
+  skippedCount: number
+}> {
+  const batchKey = buildBatchKey('supplier_switch')
   let createdCount = 0
+  let skippedCount = 0
 
   for (const request of params.switchRequests) {
-    if (!['queued', 'submitted', 'accepted'].includes(request.status)) continue
+    if (!['queued', 'submitted', 'accepted'].includes(request.status)) {
+      skippedCount += 1
+      continue
+    }
+
+    const site = params.sites.find((row) => row.id === request.site_id)
+    if (!site) {
+      skippedCount += 1
+      continue
+    }
+
+    const point = params.meteringPoints.find(
+      (row) => row.id === request.metering_point_id
+    )
 
     const existing = await findOpenOutboundBySourceOrPeriod({
       sourceType: 'supplier_switch_request',
       sourceId: request.id,
       requestType: 'supplier_switch',
       customerId: request.customer_id,
+      siteId: request.site_id,
+      meteringPointId: request.metering_point_id,
+      periodStart: request.requested_start_date ?? null,
+      periodEnd: null,
     })
 
-    if (existing) continue
-
-    const site = params.sites.find((row) => row.id === request.site_id)
-    const point = params.meteringPoints.find(
-      (row) => row.id === request.metering_point_id
-    )
+    if (existing) {
+      skippedCount += 1
+      continue
+    }
 
     await createOutboundRequest({
       actorUserId: params.actorUserId,
       customerId: request.customer_id,
       siteId: request.site_id,
       meteringPointId: request.metering_point_id,
-      gridOwnerId:
-        point?.grid_owner_id ??
-        site?.grid_owner_id ??
-        request.grid_owner_id ??
-        null,
+      gridOwnerId: point?.grid_owner_id ?? request.grid_owner_id ?? null,
       requestType: 'supplier_switch',
       sourceType: 'supplier_switch_request',
       sourceId: request.id,
-      payload: {
-        requestType: request.request_type,
-        requestedStartDate: request.requested_start_date,
-        currentSupplierName: request.current_supplier_name,
-      },
       periodStart: request.requested_start_date ?? null,
+      payload: {
+        automation: 'ready_supplier_switch',
+        requestType: request.request_type,
+        switchStatus: request.status,
+      },
       dispatchBatchKey: batchKey,
     })
 
     createdCount += 1
   }
 
-  return { batchKey, createdCount }
+  return { batchKey, createdCount, skippedCount }
 }

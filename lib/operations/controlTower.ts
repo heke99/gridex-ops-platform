@@ -1,3 +1,4 @@
+//lib/operations/controlTower.ts
 import type {
   BillingUnderlayRow,
   OutboundRequestRow,
@@ -114,6 +115,83 @@ export function getSwitchLifecycle(params: {
     label: 'Oklassificerad',
     reason: 'Kunde inte fastställa livscykel tydligt.',
   }
+}
+
+export function explainWhySwitchIsStuck(params: {
+  request: SupplierSwitchRequestRow
+  readiness?: SwitchReadinessResult | null
+  outboundRequest?: OutboundRequestRow | null
+}): string {
+  const { request, readiness, outboundRequest } = params
+
+  if (['failed', 'rejected'].includes(request.status)) {
+    return request.failure_reason ?? 'Switchärendet har felstatus.'
+  }
+
+  if (readiness && !readiness.isReady) {
+    return `Readiness blockerar: ${summarizeReadinessIssues(readiness)}`
+  }
+
+  if (!outboundRequest) {
+    return 'Switchen saknar outbound-request och har därför inte dispatchats.'
+  }
+
+  if (outboundRequest.channel_type === 'unresolved') {
+    return 'Outbound saknar route/kanal och kan inte dispatchas.'
+  }
+
+  if (['queued', 'prepared'].includes(outboundRequest.status)) {
+    return 'Outbound finns men väntar fortfarande på dispatch.'
+  }
+
+  if (outboundRequest.status === 'sent') {
+    return 'Outbound är skickad och väntar på extern återkoppling eller kvittens.'
+  }
+
+  if (
+    outboundRequest.status === 'failed' ||
+    outboundRequest.status === 'cancelled'
+  ) {
+    return (
+      outboundRequest.failure_reason ??
+      'Outbound-dispatchen misslyckades och behöver retry eller manuell åtgärd.'
+    )
+  }
+
+  if (
+    outboundRequest.status === 'acknowledged' &&
+    request.status !== 'completed'
+  ) {
+    return 'Outbound är kvitterad men switchen är ännu inte slutmarkerad internt.'
+  }
+
+  return 'Ingen tydlig blockerare kunde fastställas.'
+}
+
+export function summarizeDispatchAttempt(
+  outboundRequest: OutboundRequestRow | null | undefined
+): string {
+  if (!outboundRequest) {
+    return 'Inget dispatchförsök ännu.'
+  }
+
+  if (outboundRequest.failed_at) {
+    return `Senaste försök misslyckades ${outboundRequest.failed_at}. Försök: ${outboundRequest.attempts_count}.`
+  }
+
+  if (outboundRequest.acknowledged_at) {
+    return `Kvitterad ${outboundRequest.acknowledged_at}. Försök: ${outboundRequest.attempts_count}.`
+  }
+
+  if (outboundRequest.sent_at) {
+    return `Skickad ${outboundRequest.sent_at}. Försök: ${outboundRequest.attempts_count}.`
+  }
+
+  if (outboundRequest.prepared_at) {
+    return `Förberedd ${outboundRequest.prepared_at}. Försök: ${outboundRequest.attempts_count}.`
+  }
+
+  return `Köad ${outboundRequest.queued_at}. Försök: ${outboundRequest.attempts_count}.`
 }
 
 export function getBillingExportReadiness(params: {

@@ -9,18 +9,30 @@ import {
   createOutboundRequest,
   createPartnerExport,
   findOpenOutboundBySource,
+  listOutboundRequests,
+  refreshOutboundRequestRouteResolution,
+  resetOutboundRequestForRetry,
+  updateOutboundRequestStatus,
 } from '@/lib/cis/db'
 import {
+  createSupplierSwitchEvent,
+  getSupplierSwitchRequestById,
   listAllSupplierSwitchRequests,
   listPowersOfAttorneyByCustomerId,
   syncOperationTasksFromReadiness,
+  updateSupplierSwitchRequestStatus,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type {
   BillingUnderlayRow,
+  OutboundRequestRow,
   PartnerExportRow,
 } from '@/lib/cis/types'
+import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
+
+const RETRY_COOLDOWN_MINUTES = 15
+const MAX_AUTOMATION_RETRIES = 3
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -38,6 +50,23 @@ function normalizeMonthInput(
     year: Number(match[1]),
     month: Number(match[2]),
   }
+}
+
+function isAutoAckChannel(channelType: OutboundRequestRow['channel_type']): boolean {
+  return channelType === 'email_manual' || channelType === 'file_export'
+}
+
+function hasRetryCooldownElapsed(
+  outboundRequest: OutboundRequestRow,
+  cooldownMinutes = RETRY_COOLDOWN_MINUTES
+): boolean {
+  if (!outboundRequest.failed_at) return true
+
+  const failedAt = new Date(outboundRequest.failed_at).getTime()
+  if (Number.isNaN(failedAt)) return true
+
+  const cooldownMs = cooldownMinutes * 60 * 1000
+  return Date.now() - failedAt >= cooldownMs
 }
 
 async function getActor() {
@@ -68,6 +97,225 @@ async function insertAuditLog(params: {
   })
 
   if (error) throw error
+}
+
+async function syncSwitchRequestFromOutbound(params: {
+  actorUserId: string
+  outboundRequest: OutboundRequestRow
+}): Promise<SupplierSwitchRequestRow | null> {
+  const { outboundRequest } = params
+
+  if (
+    outboundRequest.request_type !== 'supplier_switch' ||
+    outboundRequest.source_type !== 'supplier_switch_request' ||
+    !outboundRequest.source_id
+  ) {
+    return null
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const switchRequest = await getSupplierSwitchRequestById(
+    supabase,
+    outboundRequest.source_id
+  )
+
+  if (!switchRequest) {
+    return null
+  }
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: switchRequest.id,
+    eventType: 'outbound_status_sync',
+    eventStatus: outboundRequest.status,
+    message: `Outbound ${outboundRequest.id} uppdaterad till ${outboundRequest.status} via automation sweep.`,
+    payload: {
+      outboundRequestId: outboundRequest.id,
+      outboundStatus: outboundRequest.status,
+      outboundChannelType: outboundRequest.channel_type,
+      externalReference: outboundRequest.external_reference,
+      failureReason: outboundRequest.failure_reason,
+      automation: true,
+    },
+  })
+
+  if (outboundRequest.status === 'sent') {
+    if (['draft', 'queued'].includes(switchRequest.status)) {
+      return updateSupplierSwitchRequestStatus(supabase, {
+        requestId: switchRequest.id,
+        status: 'submitted',
+        externalReference:
+          outboundRequest.external_reference ?? switchRequest.external_reference,
+      })
+    }
+
+    return switchRequest
+  }
+
+  if (outboundRequest.status === 'acknowledged') {
+    if (['draft', 'queued', 'submitted'].includes(switchRequest.status)) {
+      return updateSupplierSwitchRequestStatus(supabase, {
+        requestId: switchRequest.id,
+        status: 'accepted',
+        externalReference:
+          outboundRequest.external_reference ?? switchRequest.external_reference,
+      })
+    }
+
+    return switchRequest
+  }
+
+  if (
+    outboundRequest.status === 'failed' ||
+    outboundRequest.status === 'cancelled'
+  ) {
+    if (!['completed', 'rejected', 'failed'].includes(switchRequest.status)) {
+      return updateSupplierSwitchRequestStatus(supabase, {
+        requestId: switchRequest.id,
+        status: 'failed',
+        externalReference:
+          outboundRequest.external_reference ?? switchRequest.external_reference,
+        failureReason:
+          outboundRequest.failure_reason ??
+          (outboundRequest.status === 'cancelled'
+            ? 'Outbound dispatch avbröts av automationen.'
+            : 'Outbound dispatch misslyckades i automation sweep.'),
+      })
+    }
+
+    return switchRequest
+  }
+
+  return switchRequest
+}
+
+async function autoProcessOutboundRequest(params: {
+  actorUserId: string
+  outboundRequest: OutboundRequestRow
+}): Promise<{
+  routedResolved: number
+  retried: number
+  retryCooldownSkipped: number
+  retryLimitSkipped: number
+  unresolvedSkipped: number
+  prepared: number
+  sent: number
+  acknowledged: number
+  syncedSwitches: number
+}> {
+  const stats = {
+    routedResolved: 0,
+    retried: 0,
+    retryCooldownSkipped: 0,
+    retryLimitSkipped: 0,
+    unresolvedSkipped: 0,
+    prepared: 0,
+    sent: 0,
+    acknowledged: 0,
+    syncedSwitches: 0,
+  }
+
+  let current = params.outboundRequest
+
+  if (current.channel_type === 'unresolved') {
+    const refreshed = await refreshOutboundRequestRouteResolution({
+      actorUserId: params.actorUserId,
+      outboundRequestId: current.id,
+    })
+
+    if (
+      current.channel_type === 'unresolved' &&
+      refreshed.channel_type !== 'unresolved'
+    ) {
+      stats.routedResolved += 1
+    }
+
+    current = refreshed
+  }
+
+  if (current.status === 'failed') {
+    if (current.attempts_count >= MAX_AUTOMATION_RETRIES) {
+      stats.retryLimitSkipped += 1
+      return stats
+    }
+
+    if (!hasRetryCooldownElapsed(current)) {
+      stats.retryCooldownSkipped += 1
+      return stats
+    }
+
+    current = await resetOutboundRequestForRetry({
+      actorUserId: params.actorUserId,
+      outboundRequestId: current.id,
+      reason:
+        'Automation sweep återköade requesten efter cooldown för nytt försök.',
+    })
+    stats.retried += 1
+  }
+
+  if (current.channel_type === 'unresolved') {
+    stats.unresolvedSkipped += 1
+    return stats
+  }
+
+  if (current.status === 'queued') {
+    current = await updateOutboundRequestStatus({
+      actorUserId: params.actorUserId,
+      outboundRequestId: current.id,
+      status: 'prepared',
+      responsePayload: {
+        automation: true,
+        automation_step: 'prepare',
+      },
+    })
+    stats.prepared += 1
+  }
+
+  if (current.status === 'prepared') {
+    current = await updateOutboundRequestStatus({
+      actorUserId: params.actorUserId,
+      outboundRequestId: current.id,
+      status: 'sent',
+      responsePayload: {
+        automation: true,
+        automation_step: 'send',
+      },
+    })
+    stats.sent += 1
+
+    const synced = await syncSwitchRequestFromOutbound({
+      actorUserId: params.actorUserId,
+      outboundRequest: current,
+    })
+
+    if (synced) {
+      stats.syncedSwitches += 1
+    }
+  }
+
+  if (current.status === 'sent' && isAutoAckChannel(current.channel_type)) {
+    current = await updateOutboundRequestStatus({
+      actorUserId: params.actorUserId,
+      outboundRequestId: current.id,
+      status: 'acknowledged',
+      responsePayload: {
+        automation: true,
+        automation_step: 'acknowledge',
+        autoAckChannel: current.channel_type,
+      },
+    })
+    stats.acknowledged += 1
+
+    const synced = await syncSwitchRequestFromOutbound({
+      actorUserId: params.actorUserId,
+      outboundRequest: current,
+    })
+
+    if (synced) {
+      stats.syncedSwitches += 1
+    }
+  }
+
+  return stats
 }
 
 export async function runOperationsAutomationSweepAction(): Promise<void> {
@@ -102,6 +350,15 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
 
   let readinessSynced = 0
   let outboundCreated = 0
+  let routedResolved = 0
+  let retried = 0
+  let retryCooldownSkipped = 0
+  let retryLimitSkipped = 0
+  let unresolvedSkipped = 0
+  let preparedCount = 0
+  let sentCount = 0
+  let acknowledgedCount = 0
+  let syncedSwitches = 0
 
   for (const site of sites) {
     const powersOfAttorney = await listPowersOfAttorneyByCustomerId(
@@ -134,7 +391,7 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
 
     if (existing) continue
 
-    await createOutboundRequest({
+    const created = await createOutboundRequest({
       actorUserId: actor.id,
       customerId: request.customer_id,
       siteId: request.site_id,
@@ -145,13 +402,54 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
       sourceId: request.id,
       periodStart: request.requested_start_date ?? null,
       payload: {
-        automation: 'batch7_sweep',
+        automation: 'batch8_sweep',
         requestType: request.request_type,
         switchStatus: request.status,
       },
     })
 
+    await createSupplierSwitchEvent(supabase, {
+      switchRequestId: request.id,
+      eventType: 'outbound_queued',
+      eventStatus: created.status,
+      message: `Outbound ${created.id} köades automatiskt av automation sweep.`,
+      payload: {
+        outboundRequestId: created.id,
+        channelType: created.channel_type,
+        routeId: created.communication_route_id,
+        automation: true,
+      },
+    })
+
     outboundCreated += 1
+  }
+
+  const outboundRequests = await listOutboundRequests({
+    status: 'all',
+    requestType: 'all',
+    channelType: 'all',
+    query: '',
+  })
+
+  const automationCandidates = outboundRequests.filter((request) =>
+    ['queued', 'prepared', 'sent', 'failed'].includes(request.status)
+  )
+
+  for (const outboundRequest of automationCandidates) {
+    const result = await autoProcessOutboundRequest({
+      actorUserId: actor.id,
+      outboundRequest,
+    })
+
+    routedResolved += result.routedResolved
+    retried += result.retried
+    retryCooldownSkipped += result.retryCooldownSkipped
+    retryLimitSkipped += result.retryLimitSkipped
+    unresolvedSkipped += result.unresolvedSkipped
+    preparedCount += result.prepared
+    sentCount += result.sent
+    acknowledgedCount += result.acknowledged
+    syncedSwitches += result.syncedSwitches
   }
 
   await insertAuditLog({
@@ -162,6 +460,16 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
     metadata: {
       readinessSynced,
       outboundCreated,
+      routedResolved,
+      retried,
+      retryCooldownSkipped,
+      retryLimitSkipped,
+      unresolvedSkipped,
+      preparedCount,
+      sentCount,
+      acknowledgedCount,
+      syncedSwitches,
+      candidateCount: automationCandidates.length,
       siteCount: sites.length,
       switchCount: switchRequests.length,
     },
@@ -171,6 +479,8 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
   revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/ready-switches')
+  revalidatePath('/admin/outbound/unresolved')
 }
 
 export async function bulkQueueReadyBillingExportsAction(

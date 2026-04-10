@@ -1,4 +1,3 @@
-// app/admin/customers/[id]/page.tsx
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
@@ -25,6 +24,7 @@ import type {
   MeteringPointRow,
 } from '@/lib/masterdata/types'
 import CustomerBillingMeteringCard from '@/components/admin/customers/CustomerBillingMeteringCard'
+import CustomerSwitchOperationsCard from '@/components/admin/customers/CustomerSwitchOperationsCard'
 import {
   listBillingUnderlaysByCustomerId,
   listGridOwnerDataRequestsByCustomerId,
@@ -32,6 +32,10 @@ import {
   listOutboundRequestsByCustomerId,
   listPartnerExportsByCustomerId,
 } from '@/lib/cis/db'
+import {
+  listSupplierSwitchEventsByRequestIds,
+  listSupplierSwitchRequestsByCustomerId,
+} from '@/lib/operations/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -300,17 +304,17 @@ function AuditSection({
                   Objekt
                 </th>
                 <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
-                  Åtgärd
+                  Händelse
                 </th>
                 <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
-                  Vem
+                  Användare
                 </th>
                 <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
-                  Ändrat
+                  Detalj
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+            <tbody>
               {auditLogs.map((log) => {
                 const title =
                   log.entity_type === 'customer_site'
@@ -376,6 +380,7 @@ export default async function CustomerAdminDetailPage({
     billingUnderlays,
     partnerExports,
     outboundRequests,
+    switchRequests,
   ] = await Promise.all([
     getCustomer(supabase, id),
     listGridOwners(supabase),
@@ -386,7 +391,8 @@ export default async function CustomerAdminDetailPage({
     listMeteringValuesByCustomerId(id),
     listBillingUnderlaysByCustomerId(id),
     listPartnerExportsByCustomerId(id),
-    listOutboundRequestsByCustomerId(id, { limit: 12 }),
+    listOutboundRequestsByCustomerId(id),
+    listSupplierSwitchRequestsByCustomerId(supabase, id),
   ])
 
   if (!customer) {
@@ -396,6 +402,11 @@ export default async function CustomerAdminDetailPage({
   const meteringPoints = await listMeteringPointsBySiteIds(
     supabase,
     sites.map((site) => site.id)
+  )
+
+  const switchEvents = await listSupplierSwitchEventsByRequestIds(
+    supabase,
+    switchRequests.map((request) => request.id)
   )
 
   const selectedSite = editSiteId
@@ -528,6 +539,15 @@ export default async function CustomerAdminDetailPage({
           </div>
         </div>
       </section>
+
+      <CustomerSwitchOperationsCard
+        customerId={id}
+        sites={sites}
+        meteringPoints={meteringPoints}
+        switchRequests={switchRequests}
+        switchEvents={switchEvents}
+        outboundRequests={outboundRequests}
+      />
 
       <CustomerBillingMeteringCard
         customerId={id}
