@@ -53,6 +53,28 @@ function latestEventText(
   return latest.message ?? `${latest.event_type} — ${latest.event_status}`
 }
 
+function TriageCard({
+  title,
+  description,
+  href,
+}: {
+  title: string
+  description: string
+  href: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+    >
+      <div className="font-semibold text-slate-900 dark:text-white">{title}</div>
+      <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        {description}
+      </div>
+    </Link>
+  )
+}
+
 export default async function OutboundPage({ searchParams }: PageProps) {
   await requirePermissionServer('masterdata.read')
 
@@ -82,12 +104,16 @@ export default async function OutboundPage({ searchParams }: PageProps) {
     requests.map((row) => row.id)
   )
 
-  const unresolvedCount = requests.filter(
+  const unresolvedRequests = requests.filter(
     (request) => request.channel_type === 'unresolved'
-  ).length
-  const waitingResponseCount = requests.filter(
+  )
+  const waitingResponseRequests = requests.filter(
     (request) => request.status === 'sent'
-  ).length
+  )
+  const failedRequests = requests.filter((request) => request.status === 'failed')
+  const queuedRequests = requests.filter((request) =>
+    ['queued', 'prepared'].includes(request.status)
+  )
 
   const exportMap = new Map(
     partnerExports
@@ -111,13 +137,13 @@ export default async function OutboundPage({ searchParams }: PageProps) {
       />
 
       <div className="space-y-6 p-8">
-        <section className="grid gap-4 xl:grid-cols-3">
+        <section className="grid gap-4 xl:grid-cols-4">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
               Unresolved routes
             </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
-              {unresolvedCount}
+              {unresolvedRequests.length}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               Requests utan fungerande route eller kanalupplösning.
@@ -129,10 +155,22 @@ export default async function OutboundPage({ searchParams }: PageProps) {
               Väntar på svar
             </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
-              {waitingResponseCount}
+              {waitingResponseRequests.length}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               Skickade requests som inte kvitterats ännu.
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Dispatch-fel
+            </div>
+            <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
+              {failedRequests.length}
+            </div>
+            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Requests som behöver ny åtgärd eller route-fix.
             </div>
           </div>
 
@@ -149,247 +187,425 @@ export default async function OutboundPage({ searchParams }: PageProps) {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-4 flex flex-wrap gap-3">
-            <Link
-              href="/admin/outbound/missing-meter-values"
-              className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-            >
-              Bulk: saknade mätvärden
-            </Link>
-            <Link
-              href="/admin/outbound/ready-switches"
-              className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-            >
-              Bulk: redo för byte
-            </Link>
-            <Link
-              href="/admin/integrations/routes"
-              className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-            >
-              Communication routes
-            </Link>
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-4 flex flex-wrap gap-3">
+              <Link
+                href="/admin/outbound/missing-meter-values"
+                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+              >
+                Bulk: saknade mätvärden
+              </Link>
+              <Link
+                href="/admin/outbound/ready-switches"
+                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+              >
+                Bulk: redo för byte
+              </Link>
+              <Link
+                href="/admin/integrations/routes"
+                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+              >
+                Communication routes
+              </Link>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+              <form className="grid gap-4 xl:grid-cols-[1.2fr_220px_220px_220px_auto]">
+                <input
+                  name="q"
+                  defaultValue={query}
+                  placeholder="Sök på kund, site, mätpunkt, batch eller referens"
+                  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                />
+                <select
+                  name="status"
+                  defaultValue={status}
+                  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                >
+                  <option value="all">Alla statusar</option>
+                  <option value="queued">Queued</option>
+                  <option value="prepared">Prepared</option>
+                  <option value="sent">Sent</option>
+                  <option value="acknowledged">Acknowledged</option>
+                  <option value="failed">Failed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <select
+                  name="requestType"
+                  defaultValue={requestType}
+                  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                >
+                  <option value="all">Alla requesttyper</option>
+                  <option value="supplier_switch">Supplier switch</option>
+                  <option value="meter_values">Meter values</option>
+                  <option value="billing_underlay">Billing underlay</option>
+                </select>
+                <select
+                  name="channelType"
+                  defaultValue={channelType}
+                  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                >
+                  <option value="all">Alla kanaler</option>
+                  <option value="partner_api">Partner API</option>
+                  <option value="ediel_partner">Ediel partner</option>
+                  <option value="file_export">File export</option>
+                  <option value="email_manual">Email manual</option>
+                  <option value="unresolved">Unresolved</option>
+                </select>
+                <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
+                  Filtrera
+                </button>
+              </form>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <form action={runOperationsAutomationSweepAction}>
+                  <button className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                    Kör automation sweep
+                  </button>
+                </form>
+
+                <form
+                  action={bulkQueueReadyBillingExportsAction}
+                  className="flex gap-3"
+                >
+                  <input
+                    type="month"
+                    name="period_month"
+                    defaultValue={new Date().toISOString().slice(0, 7)}
+                    className="h-11 min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  />
+                  <button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                    Köa exporter
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-            <form className="grid gap-4 xl:grid-cols-[1.2fr_220px_220px_220px_auto]">
-              <input
-                name="q"
-                defaultValue={query}
-                placeholder="Sök på kund, site, mätpunkt, batch eller referens"
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                Snabbtriage
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Snabbvägar till det som oftast behöver åtgärdas först.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-6">
+              <TriageCard
+                href="/admin/outbound/unresolved"
+                title="Unresolved routes"
+                description={`${unresolvedRequests.length} requests saknar route eller kanal.`}
               />
-              <select
-                name="status"
-                defaultValue={status}
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-              >
-                <option value="all">Alla statusar</option>
-                <option value="queued">Queued</option>
-                <option value="prepared">Prepared</option>
-                <option value="sent">Sent</option>
-                <option value="acknowledged">Acknowledged</option>
-                <option value="failed">Failed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-              <select
-                name="requestType"
-                defaultValue={requestType}
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-              >
-                <option value="all">Alla requesttyper</option>
-                <option value="supplier_switch">Supplier switch</option>
-                <option value="meter_values">Meter values</option>
-                <option value="billing_underlay">Billing underlay</option>
-              </select>
-              <select
-                name="channelType"
-                defaultValue={channelType}
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-              >
-                <option value="all">Alla kanaler</option>
-                <option value="partner_api">Partner API</option>
-                <option value="ediel_partner">Ediel partner</option>
-                <option value="file_export">File export</option>
-                <option value="email_manual">Email manual</option>
-                <option value="unresolved">Unresolved</option>
-              </select>
-              <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
-                Filtrera
-              </button>
-            </form>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <form action={runOperationsAutomationSweepAction}>
-                <button className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-                  Kör automation sweep
-                </button>
-              </form>
-
-              <form
-                action={bulkQueueReadyBillingExportsAction}
-                className="flex gap-3"
-              >
-                <input
-                  type="month"
-                  name="period_month"
-                  defaultValue={new Date().toISOString().slice(0, 7)}
-                  className="h-11 min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                />
-                <button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-                  Köa exporter
-                </button>
-              </form>
+              <TriageCard
+                href="/admin/outbound"
+                title="Waiting response"
+                description={`${waitingResponseRequests.length} skickade requests väntar på kvittens.`}
+              />
+              <TriageCard
+                href="/admin/outbound"
+                title="Dispatch-fel"
+                description={`${failedRequests.length} requests har felstatus och bör granskas.`}
+              />
+              <TriageCard
+                href="/admin/partner-exports"
+                title="Redo för export"
+                description={`${readyBillingExports.length} billing-underlag kan skickas vidare till partner.`}
+              />
+              <TriageCard
+                href="/admin/outbound/missing-meter-values"
+                title="Saknade mätvärden"
+                description="Kör bulk-kö för att få in mätvärden där perioder saknas."
+              />
+              <TriageCard
+                href="/admin/outbound/missing-billing-underlays"
+                title="Saknade billing-underlag"
+                description="Kör bulk-kö för att samla in perioder där billing-underlag saknas."
+              />
             </div>
           </div>
         </section>
 
-        <section className="space-y-4">
-          {requests.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-              Inga outbound requests matchade filtret.
+        <section className="grid gap-6 xl:grid-cols-3">
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 xl:col-span-2">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                Prioriterade requests
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Unresolved, waiting response och failed visas först.
+              </p>
             </div>
-          ) : (
-            requests.map((request) => (
-              <article
-                key={request.id}
-                className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-              >
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(
-                          request.status
-                        )}`}
-                      >
-                        {request.status}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {request.request_type}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {request.channel_type}
-                      </span>
-                    </div>
 
-                    <h2 className="mt-3 text-base font-semibold text-slate-950 dark:text-white">
-                      Outbound request {request.id}
-                    </h2>
-
-                    <div className="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-300 md:grid-cols-2">
-                      <div>
-                        Kund: <span className="font-medium">{request.customer_id}</span>
-                      </div>
-                      <div>
-                        Site: <span className="font-medium">{request.site_id ?? '—'}</span>
-                      </div>
-                      <div>
-                        Mätpunkt:{' '}
-                        <span className="font-medium">
-                          {request.metering_point_id ?? '—'}
-                        </span>
-                      </div>
-                      <div>
-                        Nätägare:{' '}
-                        <span className="font-medium">{request.grid_owner_id ?? '—'}</span>
-                      </div>
-                      <div>
-                        Route:{' '}
-                        <span className="font-medium">
-                          {request.communication_route_id ?? '—'}
-                        </span>
-                      </div>
-                      <div>
-                        Batch:{' '}
-                        <span className="font-medium">
-                          {request.dispatch_batch_key ?? '—'}
-                        </span>
-                      </div>
-                      <div>
-                        Extern referens:{' '}
-                        <span className="font-medium">
-                          {request.external_reference ?? '—'}
-                        </span>
-                      </div>
-                      <div>
-                        Senaste event:{' '}
-                        <span className="font-medium">
-                          {latestEventText(request.id, events)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {request.channel_type === 'unresolved' ? (
-                      <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
-                        Den här requesten saknar aktiv route. Gå till Communication routes eller välj manuell hantering.
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <form
-                    action={updateOutboundRequestStatusAction}
-                    className="rounded-3xl border border-slate-200 p-4 dark:border-slate-800"
-                  >
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                      Uppdatera dispatch-status
-                    </h3>
-
-                    <input
-                      type="hidden"
-                      name="outbound_request_id"
-                      value={request.id}
-                    />
-                    <input
-                      type="hidden"
-                      name="customer_id"
-                      value={request.customer_id}
-                    />
-
-                    <div className="mt-4 grid gap-3">
-                      <select
-                        name="status"
-                        defaultValue={request.status}
-                        className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                      >
-                        <option value="queued">Queued</option>
-                        <option value="prepared">Prepared</option>
-                        <option value="sent">Sent</option>
-                        <option value="acknowledged">Acknowledged</option>
-                        <option value="failed">Failed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-
-                      <input
-                        name="external_reference"
-                        defaultValue={request.external_reference ?? ''}
-                        placeholder="Extern referens"
-                        className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                      />
-
-                      <input
-                        name="response_payload_note"
-                        placeholder="Svar / intern notering"
-                        className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                      />
-
-                      <textarea
-                        name="failure_reason"
-                        defaultValue={request.failure_reason ?? ''}
-                        placeholder="Felorsak"
-                        rows={4}
-                        className="rounded-2xl border border-slate-300 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                      />
-
-                      <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
-                        Spara status
-                      </button>
-                    </div>
-                  </form>
+            <div className="space-y-4 p-6">
+              {requests.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                  Inga outbound requests matchade filtret.
                 </div>
-              </article>
-            ))
-          )}
+              ) : (
+                [...requests]
+                  .sort((a, b) => {
+                    const rank = (request: typeof a): number => {
+                      if (request.channel_type === 'unresolved') return 4
+                      if (request.status === 'failed') return 3
+                      if (request.status === 'sent') return 2
+                      if (['queued', 'prepared'].includes(request.status)) return 1
+                      return 0
+                    }
+
+                    const byRank = rank(b) - rank(a)
+                    if (byRank !== 0) return byRank
+                    return (
+                      new Date(b.created_at).getTime() -
+                      new Date(a.created_at).getTime()
+                    )
+                  })
+                  .map((request) => (
+                    <article
+                      key={request.id}
+                      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                    >
+                      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(
+                                request.status
+                              )}`}
+                            >
+                              {request.status}
+                            </span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              {request.request_type}
+                            </span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              {request.channel_type}
+                            </span>
+                          </div>
+
+                          <h2 className="mt-3 text-base font-semibold text-slate-950 dark:text-white">
+                            Outbound request {request.id}
+                          </h2>
+
+                          <div className="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-300 md:grid-cols-2">
+                            <div>
+                              Kund: <span className="font-medium">{request.customer_id}</span>
+                            </div>
+                            <div>
+                              Site: <span className="font-medium">{request.site_id ?? '—'}</span>
+                            </div>
+                            <div>
+                              Mätpunkt:{' '}
+                              <span className="font-medium">
+                                {request.metering_point_id ?? '—'}
+                              </span>
+                            </div>
+                            <div>
+                              Nätägare:{' '}
+                              <span className="font-medium">{request.grid_owner_id ?? '—'}</span>
+                            </div>
+                            <div>
+                              Route:{' '}
+                              <span className="font-medium">
+                                {request.communication_route_id ?? '—'}
+                              </span>
+                            </div>
+                            <div>
+                              Batch:{' '}
+                              <span className="font-medium">
+                                {request.dispatch_batch_key ?? '—'}
+                              </span>
+                            </div>
+                            <div>
+                              Extern referens:{' '}
+                              <span className="font-medium">
+                                {request.external_reference ?? '—'}
+                              </span>
+                            </div>
+                            <div>
+                              Senaste event:{' '}
+                              <span className="font-medium">
+                                {latestEventText(request.id, events)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {request.channel_type === 'unresolved' ? (
+                            <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                              Den här requesten saknar aktiv route. Gå till Communication routes eller välj manuell hantering.
+                            </div>
+                          ) : null}
+
+                          {request.status === 'sent' ? (
+                            <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                              Den här requesten väntar på svar/kvittens från extern part.
+                            </div>
+                          ) : null}
+
+                          {request.status === 'failed' ? (
+                            <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                              {request.failure_reason ?? 'Dispatch misslyckades och kräver ny åtgärd.'}
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <form
+                          action={updateOutboundRequestStatusAction}
+                          className="rounded-3xl border border-slate-200 p-4 dark:border-slate-800"
+                        >
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                            Uppdatera dispatch-status
+                          </h3>
+
+                          <input
+                            type="hidden"
+                            name="outbound_request_id"
+                            value={request.id}
+                          />
+                          <input
+                            type="hidden"
+                            name="customer_id"
+                            value={request.customer_id}
+                          />
+
+                          <div className="mt-4 grid gap-3">
+                            <select
+                              name="status"
+                              defaultValue={request.status}
+                              className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                            >
+                              <option value="queued">Queued</option>
+                              <option value="prepared">Prepared</option>
+                              <option value="sent">Sent</option>
+                              <option value="acknowledged">Acknowledged</option>
+                              <option value="failed">Failed</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+
+                            <input
+                              name="external_reference"
+                              defaultValue={request.external_reference ?? ''}
+                              placeholder="Extern referens"
+                              className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                            />
+
+                            <input
+                              name="response_payload_note"
+                              placeholder="Svar / intern notering"
+                              className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                            />
+
+                            <textarea
+                              name="failure_reason"
+                              defaultValue={request.failure_reason ?? ''}
+                              placeholder="Felorsak"
+                              rows={4}
+                              className="rounded-2xl border border-slate-300 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                            />
+
+                            <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
+                              Spara status
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </article>
+                  ))
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                  Ready to export
+                </h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Billing-underlag som saknar aktiv partnerexport.
+                </p>
+              </div>
+
+              <div className="space-y-3 p-6">
+                {readyBillingExports.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                    Inga billing-underlag redo för export just nu.
+                  </div>
+                ) : (
+                  readyBillingExports.slice(0, 8).map((underlay) => (
+                    <div
+                      key={underlay.id}
+                      className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                          redo
+                        </span>
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                          {underlay.underlay_year ?? '—'}-{String(
+                            underlay.underlay_month ?? ''
+                          ).padStart(2, '0')}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                        Kund {underlay.customer_id} · Site {underlay.site_id ?? '—'} ·
+                        Mätpunkt {underlay.metering_point_id ?? '—'}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                  Köläge
+                </h2>
+              </div>
+
+              <div className="space-y-3 p-6">
+                <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Queued / Prepared
+                  </div>
+                  <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    {queuedRequests.length} requests väntar på att faktiskt dispatchas.
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Sent
+                  </div>
+                  <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    {waitingResponseRequests.length} requests väntar på extern återkoppling.
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Failed
+                  </div>
+                  <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    {failedRequests.length} requests kräver ny route, ny dispatch eller manuell åtgärd.
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Acknowledged
+                  </div>
+                  <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    {requests.filter((request) => request.status === 'acknowledged').length} requests är kvitterade.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </div>
