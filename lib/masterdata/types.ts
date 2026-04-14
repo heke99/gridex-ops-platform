@@ -67,6 +67,10 @@ export type CustomerSiteRow = {
   postal_code: string | null
   city: string | null
   country: string
+  moved_from_street: string | null
+  moved_from_postal_code: string | null
+  moved_from_city: string | null
+  moved_from_supplier_name: string | null
   internal_notes: string | null
   created_at: string
   updated_at: string

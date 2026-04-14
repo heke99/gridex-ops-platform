@@ -126,8 +126,43 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const siteId = formValue(formData, 'id') || undefined
+  const siteFlowType = normalizeSwitchRequestType(formValue(formData, 'site_flow_type'))
 
   const before = siteId ? await getCustomerSiteById(supabase, siteId) : null
+
+  const moveInDate = normalizeDateOrNull(formValue(formData, 'move_in_date'))
+  const street = formValue(formData, 'street') || undefined
+  const postalCode = formValue(formData, 'postal_code') || undefined
+  const city = formValue(formData, 'city') || undefined
+
+  let movedFromStreet = formValue(formData, 'moved_from_street') || undefined
+  let movedFromPostalCode = formValue(formData, 'moved_from_postal_code') || undefined
+  let movedFromCity = formValue(formData, 'moved_from_city') || undefined
+  let movedFromSupplierName =
+    formValue(formData, 'moved_from_supplier_name') || undefined
+
+  if (siteFlowType === 'move_in' || siteFlowType === 'move_out_takeover') {
+    if (!moveInDate) {
+      throw new Error('Inflytt eller övertag kräver datum')
+    }
+
+    if (!street) {
+      throw new Error('Inflytt eller övertag kräver gatuadress')
+    }
+
+    if (!postalCode) {
+      throw new Error('Inflytt eller övertag kräver postnummer')
+    }
+
+    if (!city) {
+      throw new Error('Inflytt eller övertag kräver stad')
+    }
+  } else {
+    movedFromStreet = undefined
+    movedFromPostalCode = undefined
+    movedFromCity = undefined
+    movedFromSupplierName = undefined
+  }
 
   const parsed = customerSiteInputSchema.parse({
     id: siteId,
@@ -138,17 +173,21 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
     status: formValue(formData, 'status') ?? 'draft',
     grid_owner_id: normalizeUuidOrNull(formValue(formData, 'grid_owner_id')),
     price_area_code: normalizePriceAreaOrNull(formValue(formData, 'price_area_code')),
-    move_in_date: formValue(formData, 'move_in_date') || undefined,
+    move_in_date: moveInDate || undefined,
     annual_consumption_kwh: formValue(formData, 'annual_consumption_kwh'),
     current_supplier_name:
       formValue(formData, 'current_supplier_name') || undefined,
     current_supplier_org_number:
       formValue(formData, 'current_supplier_org_number') || undefined,
-    street: formValue(formData, 'street') || undefined,
+    street,
     care_of: formValue(formData, 'care_of') || undefined,
-    postal_code: formValue(formData, 'postal_code') || undefined,
-    city: formValue(formData, 'city') || undefined,
+    postal_code: postalCode,
+    city,
     country: formValue(formData, 'country') || 'SE',
+    moved_from_street: movedFromStreet,
+    moved_from_postal_code: movedFromPostalCode,
+    moved_from_city: movedFromCity,
+    moved_from_supplier_name: movedFromSupplierName,
     internal_notes: formValue(formData, 'internal_notes') || undefined,
   })
 
@@ -168,6 +207,7 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
     metadata: {
       customerId,
       siteId: savedSite.id,
+      siteFlowType,
       readiness,
     },
   })

@@ -3,7 +3,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
-import type { CustomerAddressRow, CustomerContactRow } from '@/types/customers'
+import type {
+  CustomerAddressRow,
+  CustomerContactRow,
+  CustomerType,
+} from '@/types/customers'
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
@@ -21,6 +25,16 @@ function getString(formData: FormData, key: string): string {
 function getCheckbox(formData: FormData, key: string): boolean {
   const value = formData.get(key)
   return value === 'on' || value === 'true' || value === '1'
+}
+
+function normalizeCustomerType(value: string | null | undefined): CustomerType {
+  if (value === 'business') return 'business'
+  if (value === 'association') return 'association'
+  return 'private'
+}
+
+function normalizeNullableString(value: string): string | null {
+  return value.trim() ? value.trim() : null
 }
 
 async function getActorUserId(): Promise<string> {
@@ -67,11 +81,12 @@ async function saveCustomerContactAction(formData: FormData) {
 
   const customerId = getString(formData, 'customer_id')
   const contactId = getString(formData, 'id')
-  const type = getString(formData, 'type') || 'primary'
-  const name = getString(formData, 'name') || null
-  const email = getString(formData, 'email') || null
-  const phone = getString(formData, 'phone') || null
-  const title = getString(formData, 'title') || null
+  const customerType = normalizeCustomerType(getString(formData, 'customer_type'))
+  const typeInput = getString(formData, 'type') || 'primary'
+  const name = normalizeNullableString(getString(formData, 'name'))
+  const email = normalizeNullableString(getString(formData, 'email'))
+  const phone = normalizeNullableString(getString(formData, 'phone'))
+  const titleInput = normalizeNullableString(getString(formData, 'title'))
   const isPrimary = getCheckbox(formData, 'is_primary')
 
   if (!customerId) {
@@ -81,6 +96,13 @@ async function saveCustomerContactAction(formData: FormData) {
   if (!name && !email && !phone) {
     throw new Error('Ange minst namn, e-post eller telefon')
   }
+
+  if ((customerType === 'business' || customerType === 'association') && isPrimary && !name) {
+    throw new Error('Företag eller förening kräver namn på primär kontaktperson')
+  }
+
+  const type = isPrimary ? 'primary' : typeInput
+  const title = customerType === 'private' && isPrimary ? titleInput : titleInput
 
   const before = contactId
     ? await supabaseService
@@ -132,6 +154,19 @@ async function saveCustomerContactAction(formData: FormData) {
 
   if (error) throw error
 
+  if (isPrimary) {
+    const { error: customerSyncError } = await supabaseService
+      .from('customers')
+      .update({
+        email,
+        phone,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', customerId)
+
+    if (customerSyncError) throw customerSyncError
+  }
+
   await insertAuditLog({
     actorUserId,
     entityType: 'customer_contact',
@@ -141,6 +176,7 @@ async function saveCustomerContactAction(formData: FormData) {
     newValues: data,
     metadata: {
       customerId,
+      customerType,
       isPrimary,
     },
   })
@@ -155,6 +191,7 @@ async function saveCustomerAddressAction(formData: FormData) {
 
   const customerId = getString(formData, 'customer_id')
   const addressId = getString(formData, 'id')
+  const customerType = normalizeCustomerType(getString(formData, 'customer_type'))
   const type = getString(formData, 'type') || 'facility'
   const street1 = getString(formData, 'street_1')
   const street2 = getString(formData, 'street_2') || null
@@ -224,6 +261,7 @@ async function saveCustomerAddressAction(formData: FormData) {
     newValues: data,
     metadata: {
       customerId,
+      customerType,
       isActive,
     },
   })
@@ -237,19 +275,52 @@ function badgeTone(active: boolean): string {
     : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
 }
 
+function contactIntro(customerType: CustomerType): string {
+  if (customerType === 'private') {
+    return 'Privatkundens huvudkontakt är normalt kunden själv. Primär kontakt bör därför spegla den person som faktiskt ska nås.'
+  }
+
+  if (customerType === 'association') {
+    return 'Förening bör ha en tydlig primär kontaktperson, till exempel ordförande, administratör eller styrelsekontakt.'
+  }
+
+  return 'Företag bör ha en tydlig primär kontaktperson, till exempel VD, ekonomiansvarig eller driftkontakt.'
+}
+
+function addressIntro(customerType: CustomerType): string {
+  if (customerType === 'private') {
+    return 'För privatkunder är registrerad adress och anläggningsadress ofta viktigast.'
+  }
+
+  if (customerType === 'association') {
+    return 'För föreningar är registrerad adress, fakturaadress och anläggningsadress ofta olika. Spara dem separat vid behov.'
+  }
+
+  return 'För företag är registrerad adress, fakturaadress och anläggningsadress ofta olika. Spara dem separat vid behov.'
+}
+
+function defaultAddressType(customerType: CustomerType): string {
+  return customerType === 'private' ? 'registered' : 'billing'
+}
+
 function ContactForm({
   customerId,
+  customerType,
   contact,
 }: {
   customerId: string
+  customerType: CustomerType
   contact?: CustomerContactRow
 }) {
+  const isPrimaryContact = contact?.is_primary ?? !contact
+
   return (
     <form
       action={saveCustomerContactAction}
       className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
     >
       <input type="hidden" name="customer_id" value={customerId} />
+      <input type="hidden" name="customer_type" value={customerType} />
       <input type="hidden" name="id" value={contact?.id ?? ''} />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -257,7 +328,7 @@ function ContactForm({
           <span className="text-slate-600 dark:text-slate-300">Typ</span>
           <select
             name="type"
-            defaultValue={contact?.type ?? 'primary'}
+            defaultValue={contact?.type ?? (isPrimaryContact ? 'primary' : 'other')}
             className="rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
           >
             <option value="primary">Primary</option>
@@ -273,15 +344,29 @@ function ContactForm({
           <input
             name="title"
             defaultValue={contact?.title ?? ''}
+            placeholder={
+              customerType === 'private'
+                ? 'Ex. privatkund'
+                : customerType === 'association'
+                  ? 'Ex. ordförande'
+                  : 'Ex. VD'
+            }
             className="rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
           />
         </label>
 
         <label className="grid gap-1 text-sm md:col-span-2">
-          <span className="text-slate-600 dark:text-slate-300">Namn</span>
+          <span className="text-slate-600 dark:text-slate-300">
+            {customerType === 'private' ? 'Namn' : 'Kontaktperson namn'}
+          </span>
           <input
             name="name"
             defaultValue={contact?.name ?? ''}
+            placeholder={
+              customerType === 'private'
+                ? 'Fullständigt namn'
+                : 'Kontaktpersonens fullständiga namn'
+            }
             className="rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
           />
         </label>
@@ -310,11 +395,15 @@ function ContactForm({
         <input
           type="checkbox"
           name="is_primary"
-          defaultChecked={contact?.is_primary ?? false}
+          defaultChecked={contact?.is_primary ?? !contact}
           className="h-4 w-4 rounded border-slate-300"
         />
         <span>Primär kontakt</span>
       </label>
+
+      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+        Primär kontakt synkar kundens huvuduppgifter för e-post och telefon när du sparar.
+      </div>
 
       <div className="flex justify-end">
         <button className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
@@ -327,9 +416,11 @@ function ContactForm({
 
 function AddressForm({
   customerId,
+  customerType,
   address,
 }: {
   customerId: string
+  customerType: CustomerType
   address?: CustomerAddressRow
 }) {
   return (
@@ -338,6 +429,7 @@ function AddressForm({
       className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
     >
       <input type="hidden" name="customer_id" value={customerId} />
+      <input type="hidden" name="customer_type" value={customerType} />
       <input type="hidden" name="id" value={address?.id ?? ''} />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -345,7 +437,7 @@ function AddressForm({
           <span className="text-slate-600 dark:text-slate-300">Typ</span>
           <select
             name="type"
-            defaultValue={address?.type ?? 'facility'}
+            defaultValue={address?.type ?? defaultAddressType(customerType)}
             className="rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
           >
             <option value="registered">Registered</option>
@@ -451,10 +543,12 @@ function AddressForm({
 
 export default function CustomerContactsAddressesCard({
   customerId,
+  customerType,
   contacts,
   addresses,
 }: {
   customerId: string
+  customerType: CustomerType
   contacts: CustomerContactRow[]
   addresses: CustomerAddressRow[]
 }) {
@@ -466,7 +560,7 @@ export default function CustomerContactsAddressesCard({
             Kontakter
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Primär kontakt, faktura, drift och tekniska kontaktpersoner.
+            {contactIntro(customerType)}
           </p>
         </div>
 
@@ -512,7 +606,11 @@ export default function CustomerContactsAddressesCard({
                     Redigera kontakt
                   </summary>
                   <div className="mt-4">
-                    <ContactForm customerId={customerId} contact={contact} />
+                    <ContactForm
+                      customerId={customerId}
+                      customerType={customerType}
+                      contact={contact}
+                    />
                   </div>
                 </details>
               </article>
@@ -524,7 +622,7 @@ export default function CustomerContactsAddressesCard({
               Lägg till ny kontakt
             </summary>
             <div className="mt-4">
-              <ContactForm customerId={customerId} />
+              <ContactForm customerId={customerId} customerType={customerType} />
             </div>
           </details>
         </div>
@@ -536,7 +634,7 @@ export default function CustomerContactsAddressesCard({
             Adresser
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Registrerad adress, fakturaadress och anläggningsadress per kund.
+            {addressIntro(customerType)}
           </p>
         </div>
 
@@ -584,7 +682,11 @@ export default function CustomerContactsAddressesCard({
                     Redigera adress
                   </summary>
                   <div className="mt-4">
-                    <AddressForm customerId={customerId} address={address} />
+                    <AddressForm
+                      customerId={customerId}
+                      customerType={customerType}
+                      address={address}
+                    />
                   </div>
                 </details>
               </article>
@@ -596,7 +698,7 @@ export default function CustomerContactsAddressesCard({
               Lägg till ny adress
             </summary>
             <div className="mt-4">
-              <AddressForm customerId={customerId} />
+              <AddressForm customerId={customerId} customerType={customerType} />
             </div>
           </details>
         </div>

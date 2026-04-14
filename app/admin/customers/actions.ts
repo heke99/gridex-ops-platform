@@ -122,6 +122,17 @@ function normalizeIntakeFlowType(
   return null
 }
 
+function normalizeOptionalString(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+function requireValue(value: string | null | undefined, message: string) {
+  if (!normalizeOptionalString(value)) {
+    throw new Error(message)
+  }
+}
+
 async function getActorUserId(): Promise<string> {
   const supabase = await createSupabaseServerClient()
   const {
@@ -160,6 +171,7 @@ async function createPrimaryContact(params: {
   companyName?: string | null
   email?: string | null
   phone?: string | null
+  title?: string | null
 }) {
   const personName = `${params.firstName ?? ''} ${params.lastName ?? ''}`.trim() || null
 
@@ -180,7 +192,7 @@ async function createPrimaryContact(params: {
       name,
       email: params.email ?? null,
       phone: params.phone ?? null,
-      title: null,
+      title: params.title ?? null,
       is_primary: true,
     })
     .select('*')
@@ -378,6 +390,7 @@ async function createCustomerGraph(params: {
   firstName?: string | null
   lastName?: string | null
   companyName?: string | null
+  contactTitle?: string | null
   email?: string | null
   phone?: string | null
   personalNumber?: string | null
@@ -416,25 +429,80 @@ async function createCustomerGraph(params: {
   noticeMonths?: number | null
   optionalFeeLines?: Array<Record<string, unknown>>
 }) {
+  const normalizedFirstName = normalizeOptionalString(params.firstName)
+  const normalizedLastName = normalizeOptionalString(params.lastName)
+  const normalizedCompanyName = normalizeOptionalString(params.companyName)
+  const normalizedContactTitle = normalizeOptionalString(params.contactTitle)
+  const normalizedEmail = normalizeOptionalString(params.email)
+  const normalizedPhone = normalizeOptionalString(params.phone)
+  const normalizedApartmentNumber = normalizeOptionalString(params.apartmentNumber)
+  const normalizedSiteName = normalizeOptionalString(params.siteName)
+  const normalizedFacilityId = normalizeOptionalString(params.facilityId)
+  const normalizedMeterPointId = normalizeOptionalString(params.meterPointId)
+  const normalizedGridOwnerId = normalizeOptionalString(params.gridOwnerId)
+  const normalizedMoveInDate = normalizeOptionalString(params.moveInDate)
+  const normalizedCurrentSupplierName = normalizeOptionalString(params.currentSupplierName)
+  const normalizedCurrentSupplierOrgNumber = normalizeOptionalString(
+    params.currentSupplierOrgNumber
+  )
+  const normalizedStreet = normalizeOptionalString(params.street)
+  const normalizedPostalCode = normalizeOptionalString(params.postalCode)
+  const normalizedCity = normalizeOptionalString(params.city)
+  const normalizedCareOf = normalizeOptionalString(params.careOf)
+
+  let normalizedPersonalNumber = normalizeOptionalString(params.personalNumber)
+  let normalizedOrgNumber = normalizeOptionalString(params.orgNumber)
+  let normalizedMovedFromStreet = normalizeOptionalString(params.movedFromStreet)
+  let normalizedMovedFromPostalCode = normalizeOptionalString(params.movedFromPostalCode)
+  let normalizedMovedFromCity = normalizeOptionalString(params.movedFromCity)
+  let normalizedMovedFromSupplierName = normalizeOptionalString(params.movedFromSupplierName)
+
+  if (params.customerType === 'private') {
+    requireValue(normalizedFirstName, 'Privatkund kräver förnamn')
+    requireValue(normalizedLastName, 'Privatkund kräver efternamn')
+    normalizedOrgNumber = null
+  } else {
+    requireValue(normalizedCompanyName, 'Företag eller förening kräver namn')
+    requireValue(normalizedOrgNumber, 'Företag eller förening kräver organisationsnummer')
+    requireValue(normalizedFirstName, 'Företag eller förening kräver kontaktperson förnamn')
+    requireValue(normalizedLastName, 'Företag eller förening kräver kontaktperson efternamn')
+    normalizedPersonalNumber = null
+  }
+
+  if (
+    params.intakeFlowType === 'move_in' ||
+    params.intakeFlowType === 'move_out_takeover'
+  ) {
+    requireValue(normalizedMoveInDate, 'Inflytt eller övertag kräver datum')
+    requireValue(normalizedStreet, 'Inflytt eller övertag kräver gatuadress')
+    requireValue(normalizedPostalCode, 'Inflytt eller övertag kräver postnummer')
+    requireValue(normalizedCity, 'Inflytt eller övertag kräver stad')
+  } else {
+    normalizedMovedFromStreet = null
+    normalizedMovedFromPostalCode = null
+    normalizedMovedFromCity = null
+    normalizedMovedFromSupplierName = null
+  }
+
   const displayName =
     params.customerType === 'business' || params.customerType === 'association'
-      ? (params.companyName ?? '').trim()
-      : `${params.firstName ?? ''} ${params.lastName ?? ''}`.trim()
+      ? normalizedCompanyName ?? ''
+      : `${normalizedFirstName ?? ''} ${normalizedLastName ?? ''}`.trim()
 
   const { data: customer, error: customerError } = await supabaseService
     .from('customers')
     .insert({
       customer_type: params.customerType || 'private',
       status: 'draft',
-      first_name: params.firstName ?? null,
-      last_name: params.lastName ?? null,
+      first_name: normalizedFirstName,
+      last_name: normalizedLastName,
       full_name: displayName || null,
-      company_name: params.companyName ?? null,
+      company_name: normalizedCompanyName,
       email: params.email ?? null,
       phone: params.phone ?? null,
-      personal_number: params.personalNumber ?? null,
-      org_number: params.orgNumber ?? null,
-      apartment_number: params.apartmentNumber ?? null,
+      personal_number: normalizedPersonalNumber,
+      org_number: normalizedOrgNumber,
+      apartment_number: normalizedApartmentNumber,
     })
     .select('*')
     .single()
@@ -444,31 +512,32 @@ async function createCustomerGraph(params: {
   await createPrimaryContact({
     customerId: customer.id,
     customerType: params.customerType,
-    firstName: params.firstName,
-    lastName: params.lastName,
-    companyName: params.companyName,
-    email: params.email,
-    phone: params.phone,
+    firstName: normalizedFirstName,
+    lastName: normalizedLastName,
+    companyName: normalizedCompanyName,
+    title: normalizedContactTitle,
+    email: normalizedEmail,
+    phone: normalizedPhone,
   })
 
   await createFacilityAddress({
     customerId: customer.id,
-    street: params.street,
-    postalCode: params.postalCode,
-    city: params.city,
-    careOf: params.careOf,
-    moveInDate: params.moveInDate,
+    street: normalizedStreet,
+    postalCode: normalizedPostalCode,
+    city: normalizedCity,
+    careOf: normalizedCareOf,
+    moveInDate: normalizedMoveInDate,
   })
 
   let siteId: string | null = null
 
   const shouldCreateSite = Boolean(
-    params.siteName ||
-      params.facilityId ||
-      params.street ||
-      params.gridOwnerId ||
+    normalizedSiteName ||
+      normalizedFacilityId ||
+      normalizedStreet ||
+      normalizedGridOwnerId ||
       params.priceAreaCode ||
-      params.moveInDate
+      normalizedMoveInDate
   )
 
   if (shouldCreateSite) {
@@ -476,24 +545,24 @@ async function createCustomerGraph(params: {
       .from('customer_sites')
       .insert({
         customer_id: customer.id,
-        site_name: params.siteName || displayName || 'Ny anläggning',
-        facility_id: params.facilityId ?? null,
+        site_name: normalizedSiteName || displayName || 'Ny anläggning',
+        facility_id: normalizedFacilityId,
         site_type: params.siteType ?? 'consumption',
         status: 'draft',
-        grid_owner_id: params.gridOwnerId ?? null,
+        grid_owner_id: normalizedGridOwnerId,
         price_area_code: params.priceAreaCode ?? null,
-        move_in_date: params.moveInDate ?? null,
+        move_in_date: normalizedMoveInDate ?? null,
         annual_consumption_kwh: params.annualConsumptionKwh ?? null,
-        current_supplier_name: params.currentSupplierName ?? null,
-        current_supplier_org_number: params.currentSupplierOrgNumber ?? null,
-        street: params.street ?? null,
-        postal_code: params.postalCode ?? null,
-        city: params.city ?? null,
-        care_of: params.careOf ?? null,
-        moved_from_street: params.movedFromStreet ?? null,
-        moved_from_postal_code: params.movedFromPostalCode ?? null,
-        moved_from_city: params.movedFromCity ?? null,
-        moved_from_supplier_name: params.movedFromSupplierName ?? null,
+        current_supplier_name: normalizedCurrentSupplierName,
+        current_supplier_org_number: normalizedCurrentSupplierOrgNumber,
+        street: normalizedStreet,
+        postal_code: normalizedPostalCode,
+        city: normalizedCity,
+        care_of: normalizedCareOf,
+        moved_from_street: normalizedMovedFromStreet,
+        moved_from_postal_code: normalizedMovedFromPostalCode,
+        moved_from_city: normalizedMovedFromCity,
+        moved_from_supplier_name: normalizedMovedFromSupplierName,
         created_by: params.actorUserId,
         updated_by: params.actorUserId,
       })
@@ -504,17 +573,17 @@ async function createCustomerGraph(params: {
     siteId = site.id
   }
 
-  if (siteId && params.meterPointId) {
+  if (siteId && normalizedMeterPointId) {
     const { error: meteringPointError } = await supabaseService
       .from('metering_points')
       .insert({
         site_id: siteId,
-        meter_point_id: params.meterPointId,
-        site_facility_id: params.facilityId ?? null,
+        meter_point_id: normalizedMeterPointId,
+        site_facility_id: normalizedFacilityId,
         status: 'draft',
         measurement_type: 'consumption',
         reading_frequency: 'hourly',
-        grid_owner_id: params.gridOwnerId ?? null,
+        grid_owner_id: normalizedGridOwnerId,
         price_area_code: params.priceAreaCode ?? null,
         is_settlement_relevant: true,
         created_by: params.actorUserId,
@@ -636,6 +705,7 @@ export async function createCustomerAction(formData: FormData) {
     firstName: getNullableString(formData, 'firstName'),
     lastName: getNullableString(formData, 'lastName'),
     companyName: getNullableString(formData, 'companyName'),
+    contactTitle: getNullableString(formData, 'contactTitle'),
     email: getNullableString(formData, 'email'),
     phone: getNullableString(formData, 'phone'),
     personalNumber: getNullableString(formData, 'personalNumber'),
@@ -717,6 +787,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
         firstName: row.first_name || null,
         lastName: row.last_name || null,
         companyName: row.company_name || null,
+        contactTitle: row.contact_title || null,
         email: row.email || null,
         phone: row.phone || null,
         personalNumber: row.personal_number || null,

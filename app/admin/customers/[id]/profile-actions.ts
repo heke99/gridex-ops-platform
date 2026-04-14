@@ -23,6 +23,17 @@ function normalizeCustomerType(
   return 'private'
 }
 
+function normalizeOptionalString(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+function requireValue(value: string | null | undefined, message: string) {
+  if (!normalizeOptionalString(value)) {
+    throw new Error(message)
+  }
+}
+
 async function getActorUserId(): Promise<string> {
   await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
@@ -69,15 +80,41 @@ export async function saveCustomerProfileAction(formData: FormData): Promise<voi
   }
 
   const customerType = normalizeCustomerType(getNullableString(formData, 'customer_type'))
-  const firstName = getNullableString(formData, 'first_name')
-  const lastName = getNullableString(formData, 'last_name')
-  const companyName = getNullableString(formData, 'company_name')
-  const personalNumber = getNullableString(formData, 'personal_number')
-  const orgNumber = getNullableString(formData, 'org_number')
-  const email = getNullableString(formData, 'email')
-  const phone = getNullableString(formData, 'phone')
-  const apartmentNumber = getNullableString(formData, 'apartment_number')
+  const firstName = normalizeOptionalString(getNullableString(formData, 'first_name'))
+  const lastName = normalizeOptionalString(getNullableString(formData, 'last_name'))
+  const companyNameInput = normalizeOptionalString(getNullableString(formData, 'company_name'))
+  const personalNumberInput = normalizeOptionalString(
+    getNullableString(formData, 'personal_number')
+  )
+  const orgNumberInput = normalizeOptionalString(getNullableString(formData, 'org_number'))
+  const email = normalizeOptionalString(getNullableString(formData, 'email'))
+  const phone = normalizeOptionalString(getNullableString(formData, 'phone'))
+  const apartmentNumber = normalizeOptionalString(
+    getNullableString(formData, 'apartment_number')
+  )
   const status = getNullableString(formData, 'status') ?? 'draft'
+
+  requireValue(
+    firstName,
+    customerType === 'private'
+      ? 'Privatkund kräver förnamn'
+      : 'Företag eller förening kräver kontaktperson förnamn'
+  )
+  requireValue(
+    lastName,
+    customerType === 'private'
+      ? 'Privatkund kräver efternamn'
+      : 'Företag eller förening kräver kontaktperson efternamn'
+  )
+
+  const companyName = customerType === 'private' ? null : companyNameInput
+  const personalNumber = customerType === 'private' ? personalNumberInput : null
+  const orgNumber = customerType === 'private' ? null : orgNumberInput
+
+  if (customerType !== 'private') {
+    requireValue(companyName, 'Företag eller förening kräver namn')
+    requireValue(orgNumber, 'Företag eller förening kräver organisationsnummer')
+  }
 
   const fullName =
     customerType === 'private'

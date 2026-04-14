@@ -161,6 +161,10 @@ export async function saveCustomerSite(
     postal_code: input.postal_code,
     city: input.city,
     country: input.country,
+    moved_from_street: input.moved_from_street,
+    moved_from_postal_code: input.moved_from_postal_code,
+    moved_from_city: input.moved_from_city,
+    moved_from_supplier_name: input.moved_from_supplier_name,
     internal_notes: input.internal_notes,
     updated_by: actorId,
   }

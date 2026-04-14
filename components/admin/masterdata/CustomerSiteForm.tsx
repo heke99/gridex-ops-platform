@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useMemo, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import type {
   CustomerSiteRow,
@@ -16,6 +17,8 @@ type CustomerSiteFormProps = {
   site?: CustomerSiteRow | null
   cancelHref?: string
 }
+
+type SiteFlowType = 'switch' | 'move_in' | 'move_out_takeover'
 
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
   const { pending } = useFormStatus()
@@ -40,11 +43,13 @@ function Input({
   label,
   defaultValue,
   type = 'text',
+  required = false,
 }: {
   name: string
   label: string
   defaultValue?: string | null
   type?: string
+  required?: boolean
 }) {
   return (
     <label className="grid gap-2">
@@ -55,10 +60,28 @@ function Input({
         name={name}
         type={type}
         defaultValue={defaultValue ?? ''}
+        required={required}
         className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
       />
     </label>
   )
+}
+
+function inferFlowType(site?: CustomerSiteRow | null): SiteFlowType {
+  if (!site) return 'switch'
+
+  const hasMovedFromData = Boolean(
+    site.moved_from_street ||
+      site.moved_from_postal_code ||
+      site.moved_from_city ||
+      site.moved_from_supplier_name
+  )
+
+  if (hasMovedFromData) {
+    return 'move_in'
+  }
+
+  return 'switch'
 }
 
 export default function CustomerSiteForm({
@@ -69,6 +92,43 @@ export default function CustomerSiteForm({
   cancelHref,
 }: CustomerSiteFormProps) {
   const isEditing = Boolean(site)
+  const [siteFlowType, setSiteFlowType] = useState<SiteFlowType>(inferFlowType(site))
+
+  const flowSummary = useMemo(() => {
+    if (siteFlowType === 'move_in') {
+      return 'Inflytt. Flyttdatum och ny adress ska vara ifyllda. Flyttar-från-fält kan användas för tidigare adress och leverantör.'
+    }
+
+    if (siteFlowType === 'move_out_takeover') {
+      return 'Övertag vid utflytt. Övertagsdatum och adress ska vara ifyllda. Flyttar-från-fält kan användas när övertaget behöver extra historik.'
+    }
+
+    return 'Vanligt leverantörsbyte. Flyttar-från-fält rensas bort vid sparning så att gammal flyttdata inte ligger kvar.'
+  }, [siteFlowType])
+
+  const moveDateLabel =
+    siteFlowType === 'move_in'
+      ? 'Inflyttningsdatum'
+      : siteFlowType === 'move_out_takeover'
+        ? 'Övertagsdatum'
+        : 'Önskat startdatum'
+
+  const addressLabel =
+    siteFlowType === 'move_in'
+      ? 'Ny adress kunden flyttar till'
+      : siteFlowType === 'move_out_takeover'
+        ? 'Adress som tas över'
+        : 'Anläggningsadress'
+
+  const currentSupplierLabel =
+    siteFlowType === 'move_in'
+      ? 'Nuvarande elleverantör på nya anläggningen'
+      : siteFlowType === 'move_out_takeover'
+        ? 'Nuvarande elleverantör på anläggningen'
+        : 'Nuvarande elleverantör'
+
+  const requiresMoveFields =
+    siteFlowType === 'move_in' || siteFlowType === 'move_out_takeover'
 
   return (
     <form
@@ -97,6 +157,30 @@ export default function CustomerSiteForm({
 
       <input type="hidden" name="id" value={site?.id ?? ''} />
       <input type="hidden" name="customer_id" value={customerId} />
+
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+        <div className="font-semibold text-slate-900 dark:text-white">
+          Flödeslogik för anläggningen
+        </div>
+        <div className="mt-2 grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              Flöde
+            </span>
+            <select
+              name="site_flow_type"
+              value={siteFlowType}
+              onChange={(event) => setSiteFlowType(event.target.value as SiteFlowType)}
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+            >
+              <option value="switch">Byte av leverantör</option>
+              <option value="move_in">Inflytt / flytt</option>
+              <option value="move_out_takeover">Övertag vid utflytt</option>
+            </select>
+          </label>
+        </div>
+        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{flowSummary}</p>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Input
@@ -181,9 +265,10 @@ export default function CustomerSiteForm({
 
         <Input
           name="move_in_date"
-          label="Flyttdatum"
+          label={moveDateLabel}
           type="date"
           defaultValue={site?.move_in_date}
+          required={requiresMoveFields}
         />
 
         <Input
@@ -199,7 +284,7 @@ export default function CustomerSiteForm({
 
         <Input
           name="current_supplier_name"
-          label="Nuvarande leverantör"
+          label={currentSupplierLabel}
           defaultValue={site?.current_supplier_name}
         />
 
@@ -212,8 +297,9 @@ export default function CustomerSiteForm({
         <div className="md:col-span-2">
           <Input
             name="street"
-            label="Gatuadress"
+            label={addressLabel}
             defaultValue={site?.street}
+            required={requiresMoveFields}
           />
         </div>
 
@@ -222,9 +308,58 @@ export default function CustomerSiteForm({
           name="postal_code"
           label="Postnummer"
           defaultValue={site?.postal_code}
+          required={requiresMoveFields}
         />
-        <Input name="city" label="Ort" defaultValue={site?.city} />
+        <Input
+          name="city"
+          label="Ort"
+          defaultValue={site?.city}
+          required={requiresMoveFields}
+        />
         <Input name="country" label="Land" defaultValue={site?.country ?? 'SE'} />
+
+        {requiresMoveFields ? (
+          <>
+            <div className="md:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+              Fyll i tidigare adress och tidigare leverantör när det behövs. Vid vanligt byte sparas inte dessa fält.
+            </div>
+
+            <div className="md:col-span-2">
+              <Input
+                name="moved_from_street"
+                label="Flyttar från adress"
+                defaultValue={site?.moved_from_street}
+              />
+            </div>
+
+            <Input
+              name="moved_from_postal_code"
+              label="Flyttar från postnummer"
+              defaultValue={site?.moved_from_postal_code}
+            />
+
+            <Input
+              name="moved_from_city"
+              label="Flyttar från stad"
+              defaultValue={site?.moved_from_city}
+            />
+
+            <div className="md:col-span-2">
+              <Input
+                name="moved_from_supplier_name"
+                label="Flyttar från leverantör"
+                defaultValue={site?.moved_from_supplier_name}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <input type="hidden" name="moved_from_street" value="" />
+            <input type="hidden" name="moved_from_postal_code" value="" />
+            <input type="hidden" name="moved_from_city" value="" />
+            <input type="hidden" name="moved_from_supplier_name" value="" />
+          </>
+        )}
       </div>
 
       <label className="mt-4 grid gap-2">

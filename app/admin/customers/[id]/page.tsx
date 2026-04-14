@@ -28,7 +28,11 @@ import type {
 } from '@/lib/masterdata/types'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
-import type { CustomerAddressRow, CustomerContactRow } from '@/types/customers'
+import type {
+  CustomerAddressRow,
+  CustomerContactRow,
+  CustomerType,
+} from '@/types/customers'
 import CustomerBillingMeteringCard from '@/components/admin/customers/CustomerBillingMeteringCard'
 import CustomerSwitchOperationsCard from '@/components/admin/customers/CustomerSwitchOperationsCard'
 import CustomerContractsCard from '@/components/admin/customers/CustomerContractsCard'
@@ -101,6 +105,71 @@ function formatCustomerName(customer: CustomerRow): string {
   if (fullName) return fullName
   if (customer.company_name?.trim()) return customer.company_name.trim()
   return 'Kund'
+}
+
+function normalizeCustomerType(value: string | null | undefined): CustomerType {
+  if (value === 'business') return 'business'
+  if (value === 'association') return 'association'
+  return 'private'
+}
+
+function customerTypeLabel(value: string | null | undefined): string {
+  const customerType = normalizeCustomerType(value)
+
+  if (customerType === 'business') return 'Företag'
+  if (customerType === 'association') return 'Förening'
+  return 'Privatkund'
+}
+
+function customerTypeDescription(customerType: CustomerType): string {
+  if (customerType === 'business') {
+    return 'Företagskund där företagsnamn och organisationsnummer är huvudidentitet, medan kontaktperson hanteras separat.'
+  }
+
+  if (customerType === 'association') {
+    return 'Föreningskund där föreningsnamn och organisationsnummer är huvudidentitet, medan kontaktperson hanteras separat.'
+  }
+
+  return 'Privatkund där personuppgifterna är huvudidentitet för kunden.'
+}
+
+function identityPrimaryLabel(customerType: CustomerType): string {
+  return customerType === 'private' ? 'Personnummer' : 'Organisationsnummer'
+}
+
+function identityPrimaryValue(
+  customer: CustomerRow,
+  customerType: CustomerType
+): string {
+  return customerType === 'private'
+    ? maskSensitiveValue(customer.personal_number)
+    : customer.org_number ?? '—'
+}
+
+function identitySecondaryLabel(customerType: CustomerType): string {
+  if (customerType === 'private') return 'Lägenhetsnummer'
+  return customerType === 'association' ? 'Föreningsnamn' : 'Företagsnamn'
+}
+
+function identitySecondaryValue(
+  customer: CustomerRow,
+  customerType: CustomerType
+): string {
+  if (customerType === 'private') {
+    return customer.apartment_number ?? '—'
+  }
+
+  return customer.company_name ?? '—'
+}
+
+function primaryContactHeading(customerType: CustomerType): string {
+  return customerType === 'private' ? 'Huvudkontakt' : 'Primär kontaktperson'
+}
+
+function activeAddressHeading(customerType: CustomerType): string {
+  if (customerType === 'private') return 'Aktiv adress'
+  if (customerType === 'association') return 'Primär adress för föreningen'
+  return 'Primär adress för företaget'
 }
 
 function formatDateTime(value: string | null | undefined): string {
@@ -762,11 +831,27 @@ export default async function CustomerAdminDetailPage({
     outboundRequests,
   })
 
-  const primaryContact = contacts.find((contact) => contact.is_primary) ?? contacts[0] ?? null
-  const activeAddress = addresses.find((address) => address.is_active) ?? addresses[0] ?? null
+  const primaryContact =
+    contacts.find((contact) => contact.is_primary) ?? contacts[0] ?? null
+  const activeAddress =
+    addresses.find((address) => address.is_active) ?? addresses[0] ?? null
 
   const displayEmail = getBestContactEmail(customer, contacts)
   const displayPhone = getBestContactPhone(customer, contacts)
+  const normalizedCustomerType = normalizeCustomerType(customer.customer_type)
+  const customerTypeUiLabel = customerTypeLabel(customer.customer_type)
+  const primaryIdentityLabel = identityPrimaryLabel(normalizedCustomerType)
+  const primaryIdentityValue = identityPrimaryValue(
+    customer,
+    normalizedCustomerType
+  )
+  const secondaryIdentityLabel = identitySecondaryLabel(
+    normalizedCustomerType
+  )
+  const secondaryIdentityValue = identitySecondaryValue(
+    customer,
+    normalizedCustomerType
+  )
 
   return (
     <div className="space-y-6">
@@ -797,7 +882,7 @@ export default async function CustomerAdminDetailPage({
                 {displayPhone ?? 'Ingen telefon'}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                {customer.customer_type ?? 'okänd kundtyp'}
+                {customerTypeUiLabel}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
                 Kund-ID: {customer.id}
@@ -807,31 +892,35 @@ export default async function CustomerAdminDetailPage({
               </span>
             </div>
 
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+              {customerTypeDescription(normalizedCustomerType)}
+            </div>
+
             <div className="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-400 sm:grid-cols-3">
               <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  Personnummer
+                  {primaryIdentityLabel}
                 </div>
                 <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                  {maskSensitiveValue(customer.personal_number)}
+                  {primaryIdentityValue}
                 </div>
               </div>
 
               <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  Organisationsnummer
+                  {secondaryIdentityLabel}
                 </div>
                 <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                  {customer.org_number ?? '—'}
+                  {secondaryIdentityValue}
                 </div>
               </div>
 
               <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  Lägenhetsnummer
+                  Skapad
                 </div>
                 <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                  {customer.apartment_number ?? '—'}
+                  {formatDateTime(customer.created_at)}
                 </div>
               </div>
             </div>
@@ -839,21 +928,25 @@ export default async function CustomerAdminDetailPage({
             <div className="mt-4 grid gap-3 lg:grid-cols-2">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  Primär kontakt
+                  {primaryContactHeading(normalizedCustomerType)}
                 </div>
                 <div className="mt-2 font-medium text-slate-900 dark:text-white">
-                  {primaryContact?.name ?? 'Ingen primär kontakt'}
+                  {primaryContact?.name ??
+                    (normalizedCustomerType === 'private'
+                      ? customerName
+                      : 'Ingen primär kontaktperson')}
                 </div>
                 <div className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
-                  <div>E-post: {primaryContact?.email ?? '—'}</div>
-                  <div>Telefon: {primaryContact?.phone ?? '—'}</div>
+                  <div>E-post: {primaryContact?.email ?? displayEmail ?? '—'}</div>
+                  <div>Telefon: {primaryContact?.phone ?? displayPhone ?? '—'}</div>
                   <div>Typ: {primaryContact?.type ?? '—'}</div>
+                  <div>Titel: {primaryContact?.title ?? '—'}</div>
                 </div>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  Aktiv adress
+                  {activeAddressHeading(normalizedCustomerType)}
                 </div>
                 <div className="mt-2 font-medium text-slate-900 dark:text-white">
                   {activeAddress?.street_1 ?? 'Ingen aktiv adress'}
@@ -1044,7 +1137,7 @@ export default async function CustomerAdminDetailPage({
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <CustomerProfileCard customer={customer} />
         <CustomerContractOfferEligibilityCard
-          customerType={customer.customer_type}
+          customerType={normalizedCustomerType}
           offers={contractOffers}
         />
       </section>
@@ -1076,6 +1169,7 @@ export default async function CustomerAdminDetailPage({
 
       <CustomerContactsAddressesCard
         customerId={id}
+        customerType={normalizedCustomerType}
         contacts={contacts}
         addresses={addresses}
       />

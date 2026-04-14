@@ -76,6 +76,18 @@ function TriageCard({
   )
 }
 
+async function runAutomationSweepFormAction(_: FormData): Promise<void> {
+  'use server'
+  await runOperationsAutomationSweepAction()
+}
+
+async function queueReadyBillingExportsFormAction(
+  formData: FormData
+): Promise<void> {
+  'use server'
+  await bulkQueueReadyBillingExportsAction(formData)
+}
+
 export default async function OutboundPage({ searchParams }: PageProps) {
   await requirePermissionServer('masterdata.read')
 
@@ -227,7 +239,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
         <section className="grid gap-4 xl:grid-cols-4">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Automation-klara</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Automation-klara
+            </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
               {automationReadyRequests.length}
             </div>
@@ -237,7 +251,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Auto-ack kandidater</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Auto-ack kandidater
+            </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
               {autoAckCandidates.length}
             </div>
@@ -247,7 +263,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Retrybara failade</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Retrybara failade
+            </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
               {retryableFailedRequests.length}
             </div>
@@ -257,7 +275,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Queued / Prepared</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Queued / Prepared
+            </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
               {queuedRequests.length}
             </div>
@@ -269,7 +289,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
         <section className="grid gap-4 xl:grid-cols-3">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Redo switchar utan outbound</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Redo switchar utan outbound
+            </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
               {switchRequestsMissingOutbound.length}
             </div>
@@ -279,7 +301,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Supplier switch väntar på ack</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Supplier switch väntar på ack
+            </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
               {switchRequestsWaitingAck.length}
             </div>
@@ -289,7 +313,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Supplier switch dispatch-fel</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Supplier switch dispatch-fel
+            </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
               {switchRequestsFailed.length}
             </div>
@@ -383,13 +409,13 @@ export default async function OutboundPage({ searchParams }: PageProps) {
               </form>
 
               <div className="flex flex-wrap items-start gap-3 xl:justify-end">
-                <form action={runOperationsAutomationSweepAction}>
+                <form action={runAutomationSweepFormAction}>
                   <button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
                     Kör automation sweep 7.8
                   </button>
                 </form>
 
-                <form action={bulkQueueReadyBillingExportsAction}>
+                <form action={queueReadyBillingExportsFormAction}>
                   <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
                     Köa billing-exporter
                   </button>
@@ -572,7 +598,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                               <input type="hidden" name="outbound_request_id" value={request.id} />
                               <input type="hidden" name="customer_id" value={request.customer_id} />
                               <input type="hidden" name="status" value="failed" />
-                              <input type="hidden" name="failure_reason" value="Dispatch markerad som failed från snabbåtgärd." />
+                              <input
+                                type="hidden"
+                                name="failure_reason"
+                                value="Dispatch markerad som failed från snabbåtgärd."
+                              />
                               <input type="hidden" name="dispatch_step" value="fail" />
                               <button className="w-full rounded-2xl border border-rose-300 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
                                 Markera som failed
@@ -675,9 +705,8 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                           redo
                         </span>
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                          {underlay.underlay_year ?? '—'}-{String(
-                            underlay.underlay_month ?? ''
-                          ).padStart(2, '0')}
+                          {underlay.underlay_year ?? '—'}-
+                          {String(underlay.underlay_month ?? '').padStart(2, '0')}
                         </span>
                       </div>
 
@@ -731,7 +760,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                     Acknowledged
                   </div>
                   <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    {requests.filter((request) => request.status === 'acknowledged').length} requests är kvitterade.
+                    {
+                      requests.filter((request) => request.status === 'acknowledged')
+                        .length
+                    }{' '}
+                    requests är kvitterade.
                   </div>
                 </div>
               </div>

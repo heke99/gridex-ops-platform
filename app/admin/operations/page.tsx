@@ -1,3 +1,4 @@
+//app/admin/operations/page.tsx
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -169,6 +170,11 @@ function SectionHeader({
       {action}
     </div>
   )
+}
+
+async function queueReadyBillingExportsFormAction(formData: FormData): Promise<void> {
+  'use server'
+  await bulkQueueReadyBillingExportsAction(formData)
 }
 
 export default async function AdminOperationsPage() {
@@ -448,7 +454,7 @@ export default async function AdminOperationsPage() {
                   </form>
 
                   <form
-                    action={bulkQueueReadyBillingExportsAction}
+                    action={queueReadyBillingExportsFormAction}
                     className="flex items-center gap-3"
                   >
                     <input
@@ -729,7 +735,11 @@ export default async function AdminOperationsPage() {
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Unresolved
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('unresolved')}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'unresolved'
+                    )}`}
+                  >
                     {unresolvedOutbound.length}
                   </span>
                 </div>
@@ -746,7 +756,11 @@ export default async function AdminOperationsPage() {
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Waiting response
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('awaiting_response')}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'awaiting_response'
+                    )}`}
+                  >
                     {waitingResponseOutbound.length}
                   </span>
                 </div>
@@ -763,7 +777,11 @@ export default async function AdminOperationsPage() {
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Failed dispatches
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('failed')}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'failed'
+                    )}`}
+                  >
                     {failedOutbound.length}
                   </span>
                 </div>
@@ -789,7 +807,11 @@ export default async function AdminOperationsPage() {
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Draft
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('draft')}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'draft'
+                    )}`}
+                  >
                     {draftSwitches.length}
                   </span>
                 </div>
@@ -806,7 +828,11 @@ export default async function AdminOperationsPage() {
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Väntar på outbound
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('queued')}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'queued'
+                    )}`}
+                  >
                     {missingOutboundSwitches.length}
                   </span>
                 </div>
@@ -823,7 +849,11 @@ export default async function AdminOperationsPage() {
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Väntar dispatch
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('submitted')}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'submitted'
+                    )}`}
+                  >
                     {awaitingDispatchSwitches.length}
                   </span>
                 </div>
@@ -840,7 +870,11 @@ export default async function AdminOperationsPage() {
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Redo att slutföra
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('ready_to_execute')}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'ready_to_execute'
+                    )}`}
+                  >
                     {readyToExecuteSwitches.length}
                   </span>
                 </div>
@@ -866,7 +900,11 @@ export default async function AdminOperationsPage() {
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     Redo billing-exporter
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle('ready')}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'ready'
+                    )}`}
+                  >
                     {readyBillingExports.length}
                   </span>
                 </div>

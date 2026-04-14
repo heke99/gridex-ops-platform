@@ -59,11 +59,100 @@ function setFieldValue(name: string, value: string) {
     HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
   >(`[name="${name}"]`)
 
-  if (!field) return
+  if (!field || field.disabled) return
 
   field.value = value
   field.dispatchEvent(new Event('input', { bubbles: true }))
   field.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+function tokenizeRules(value: string | null): string[] {
+  return (value ?? '')
+    .split(/[\s,]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+}
+
+function matchesRule(ruleValue: string | null, selectedValue: string): boolean {
+  const rules = tokenizeRules(ruleValue)
+  if (rules.length === 0) return true
+  return rules.includes(selectedValue)
+}
+
+function isPlaceholderField(
+  field: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+): field is HTMLInputElement | HTMLTextAreaElement {
+  return field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement
+}
+
+function toggleSectionVisibility(attribute: string, selectedValue: string) {
+  const sections = document.querySelectorAll<HTMLElement>(`[${attribute}]`)
+
+  sections.forEach((section) => {
+    const shouldShow = matchesRule(section.getAttribute(attribute), selectedValue)
+    section.hidden = !shouldShow
+
+    const formFields = section.querySelectorAll<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >('input, select, textarea')
+
+    formFields.forEach((field) => {
+      if (field.hasAttribute('data-keep-enabled')) return
+      field.disabled = !shouldShow
+    })
+  })
+}
+
+function syncConditionalRequired(
+  attribute: string,
+  selectedValue: string,
+  inputType: 'customer' | 'flow'
+) {
+  const fields = document.querySelectorAll<
+    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+  >(`[${attribute}]`)
+
+  fields.forEach((field) => {
+    const isRequired = matchesRule(field.getAttribute(attribute), selectedValue)
+    field.required = isRequired && !field.disabled
+
+    const wrapper = field.closest('label')
+    if (wrapper) {
+      wrapper.dataset.required = isRequired && !field.disabled ? 'true' : 'false'
+    }
+
+    if (inputType === 'customer' && isPlaceholderField(field)) {
+      if (field.name === 'firstName') {
+        field.placeholder =
+          selectedValue === 'private' ? 'Förnamn' : 'Kontaktperson förnamn'
+      }
+
+      if (field.name === 'lastName') {
+        field.placeholder =
+          selectedValue === 'private' ? 'Efternamn' : 'Kontaktperson efternamn'
+      }
+    }
+  })
+}
+
+function syncDynamicLabels(attribute: string, selectedValue: string) {
+  const labels = document.querySelectorAll<HTMLElement>(`[${attribute}]`)
+
+  labels.forEach((label) => {
+    const nextText = label.dataset[`label${selectedValue}` as keyof DOMStringMap]
+    if (typeof nextText === 'string' && nextText.trim()) {
+      label.textContent = nextText
+    }
+  })
+}
+
+function syncDynamicForm(customerType: string, flowType: string) {
+  toggleSectionVisibility('data-customer-section', customerType)
+  toggleSectionVisibility('data-flow-section', flowType)
+  syncConditionalRequired('data-required-customer', customerType, 'customer')
+  syncConditionalRequired('data-required-flow', flowType, 'flow')
+  syncDynamicLabels('data-label-for-customer', customerType)
+  syncDynamicLabels('data-label-for-flow', flowType)
 }
 
 export default function CustomerIntakeEnhancer({ offers }: Props) {
@@ -90,6 +179,7 @@ export default function CustomerIntakeEnhancer({ offers }: Props) {
       setSelectedOfferId(contractSelect.value)
       setFlowType(flowSelect.value)
       setCustomerType(customerTypeSelect.value)
+      syncDynamicForm(customerTypeSelect.value, flowSelect.value)
     }
 
     syncState()
@@ -163,6 +253,26 @@ export default function CustomerIntakeEnhancer({ offers }: Props) {
     )
   }, [selectedOffer])
 
+  const intakeSummary = useMemo(() => {
+    if (customerType === 'private') {
+      if (flowType === 'move_in') {
+        return 'Privatkund som flyttar in. För- och efternamn används som kundnamn och adress/inflyttningsdatum ska följa med.'
+      }
+
+      if (flowType === 'move_out_takeover') {
+        return 'Privatkund som tar över anläggning vid utflytt. Kundnamnet byggs från personuppgifterna och övertagsdatum styr switchunderlaget.'
+      }
+
+      return 'Privatkund. Personfält används som kundens huvudidentitet och företags-/föreningsfält döljs.'
+    }
+
+    if (customerType === 'association') {
+      return 'Förening. Föreningsnamn och organisationsnummer sparas på kunden, medan kontaktperson sparas som primär kontakt.'
+    }
+
+    return 'Företag. Företagsnamn och organisationsnummer sparas på kunden, medan kontaktperson sparas som primär kontakt.'
+  }, [customerType, flowType])
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300">
@@ -190,8 +300,7 @@ export default function CustomerIntakeEnhancer({ offers }: Props) {
           </span>
         </div>
         <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-          Vald process används för att hålla intake enklare och kan skapa rätt
-          switchärende direkt när anläggning och mätpunkt finns.
+          {intakeSummary}
         </div>
       </div>
 

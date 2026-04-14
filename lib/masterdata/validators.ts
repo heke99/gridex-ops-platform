@@ -1,9 +1,20 @@
 import { z } from 'zod'
 
-export const priceAreaCodeSchema = z.enum(['SE1', 'SE2', 'SE3', 'SE4'])
+const requiredTrimmedString = z.string().trim().min(1, 'Fältet är obligatoriskt')
 
-export const siteTypeSchema = z.enum(['consumption', 'production', 'mixed'])
-export const siteStatusSchema = z.enum([
+const nullableTrimmedString = z
+  .union([z.string(), z.null(), z.undefined()])
+  .transform((value) => {
+    if (value === null || value === undefined) return null
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : null
+  })
+
+const priceAreaCodeSchema = z.enum(['SE1', 'SE2', 'SE3', 'SE4'])
+
+const siteTypeSchema = z.enum(['consumption', 'production', 'mixed'])
+
+const siteStatusSchema = z.enum([
   'draft',
   'active',
   'pending_move',
@@ -11,7 +22,7 @@ export const siteStatusSchema = z.enum([
   'closed',
 ])
 
-export const meteringPointStatusSchema = z.enum([
+const meteringPointStatusSchema = z.enum([
   'draft',
   'active',
   'pending_validation',
@@ -19,32 +30,9 @@ export const meteringPointStatusSchema = z.enum([
   'closed',
 ])
 
-export const measurementTypeSchema = z.enum([
-  'consumption',
-  'production',
-  'mixed',
-])
+const measurementTypeSchema = z.enum(['consumption', 'production', 'mixed'])
 
-export const readingFrequencySchema = z.enum([
-  'hourly',
-  'daily',
-  'monthly',
-  'manual',
-])
-
-const nullableTrimmedString = z
-  .string()
-  .trim()
-  .optional()
-  .transform((value) => {
-    if (!value) return null
-    return value
-  })
-
-const requiredTrimmedString = z
-  .string()
-  .trim()
-  .min(1, 'Fältet är obligatoriskt')
+const readingFrequencySchema = z.enum(['hourly', 'daily', 'monthly', 'manual'])
 
 export const gridOwnerInputSchema = z.object({
   id: z.string().uuid().optional(),
@@ -103,6 +91,10 @@ export const customerSiteInputSchema = z.object({
   postal_code: nullableTrimmedString,
   city: nullableTrimmedString,
   country: z.string().trim().default('SE'),
+  moved_from_street: nullableTrimmedString,
+  moved_from_postal_code: nullableTrimmedString,
+  moved_from_city: nullableTrimmedString,
+  moved_from_supplier_name: nullableTrimmedString,
   internal_notes: nullableTrimmedString,
 })
 
