@@ -127,6 +127,154 @@ async function insertAuditLog(params: {
   if (error) throw error
 }
 
+async function createPrimaryContact(params: {
+  customerId: string
+  customerType: string
+  firstName?: string | null
+  lastName?: string | null
+  companyName?: string | null
+  email?: string | null
+  phone?: string | null
+}) {
+  const name =
+    params.customerType === 'business'
+      ? (params.companyName ?? '').trim() || null
+      : `${params.firstName ?? ''} ${params.lastName ?? ''}`.trim() || null
+
+  if (!name && !params.email && !params.phone) {
+    return null
+  }
+
+  const { data, error } = await supabaseService
+    .from('customer_contacts')
+    .insert({
+      customer_id: params.customerId,
+      type: 'primary',
+      name,
+      email: params.email ?? null,
+      phone: params.phone ?? null,
+      title: null,
+      is_primary: true,
+    })
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+async function createFacilityAddress(params: {
+  customerId: string
+  street?: string | null
+  postalCode?: string | null
+  city?: string | null
+  careOf?: string | null
+  moveInDate?: string | null
+}) {
+  if (!params.street && !params.postalCode && !params.city) {
+    return null
+  }
+
+  const { data, error } = await supabaseService
+    .from('customer_addresses')
+    .insert({
+      customer_id: params.customerId,
+      type: 'facility',
+      street_1: params.street ?? '',
+      street_2: params.careOf ?? null,
+      postal_code: params.postalCode ?? null,
+      city: params.city ?? null,
+      country: 'SE',
+      municipality: null,
+      moved_in_at: params.moveInDate ?? null,
+      moved_out_at: null,
+      is_active: true,
+    })
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+async function syncContractLifecycleEvents(params: {
+  customerId: string
+  contractId: string
+  contractStatus: string | null | undefined
+  contractStartDate?: string | null
+  actorUserId: string
+}) {
+  const happenedAt = params.contractStartDate ?? null
+
+  if (params.contractStatus === 'pending_signature') {
+    await addCustomerContractEvent({
+      customerContractId: params.contractId,
+      customerId: params.customerId,
+      eventType: 'signature_requested',
+      happenedAt,
+      note: 'Avtal satt till väntar signering i intake-flödet',
+      actorUserId: params.actorUserId,
+    })
+    return
+  }
+
+  if (params.contractStatus === 'signed') {
+    await addCustomerContractEvent({
+      customerContractId: params.contractId,
+      customerId: params.customerId,
+      eventType: 'signed',
+      happenedAt,
+      note: 'Avtal markerat som signerat i intake-flödet',
+      actorUserId: params.actorUserId,
+    })
+    return
+  }
+
+  if (params.contractStatus === 'active') {
+    await addCustomerContractEvent({
+      customerContractId: params.contractId,
+      customerId: params.customerId,
+      eventType: 'signed',
+      happenedAt,
+      note: 'Avtal markerat som signerat i intake-flödet',
+      actorUserId: params.actorUserId,
+    })
+
+    await addCustomerContractEvent({
+      customerContractId: params.contractId,
+      customerId: params.customerId,
+      eventType: 'activated',
+      happenedAt,
+      note: 'Avtal markerat som aktivt i intake-flödet',
+      actorUserId: params.actorUserId,
+    })
+    return
+  }
+
+  if (params.contractStatus === 'terminated') {
+    await addCustomerContractEvent({
+      customerContractId: params.contractId,
+      customerId: params.customerId,
+      eventType: 'terminated',
+      happenedAt,
+      note: 'Avtal markerat som avslutat i intake-flödet',
+      actorUserId: params.actorUserId,
+    })
+    return
+  }
+
+  if (params.contractStatus === 'cancelled') {
+    await addCustomerContractEvent({
+      customerContractId: params.contractId,
+      customerId: params.customerId,
+      eventType: 'cancelled',
+      happenedAt,
+      note: 'Avtal markerat som avbrutet i intake-flödet',
+      actorUserId: params.actorUserId,
+    })
+  }
+}
+
 async function createCustomerGraph(params: {
   actorUserId: string
   customerType: string
@@ -195,6 +343,25 @@ async function createCustomerGraph(params: {
     .single()
 
   if (customerError) throw customerError
+
+  await createPrimaryContact({
+    customerId: customer.id,
+    customerType: params.customerType,
+    firstName: params.firstName,
+    lastName: params.lastName,
+    companyName: params.companyName,
+    email: params.email,
+    phone: params.phone,
+  })
+
+  await createFacilityAddress({
+    customerId: customer.id,
+    street: params.street,
+    postalCode: params.postalCode,
+    city: params.city,
+    careOf: params.careOf,
+    moveInDate: params.moveInDate,
+  })
 
   let siteId: string | null = null
 
@@ -318,6 +485,14 @@ async function createCustomerGraph(params: {
         contractOfferId: params.contractOfferId ?? null,
         customerNumber: customer.customer_number ?? null,
       },
+      actorUserId: params.actorUserId,
+    })
+
+    await syncContractLifecycleEvents({
+      customerId: customer.id,
+      contractId: contract.id,
+      contractStatus: params.contractStatus,
+      contractStartDate: params.contractStartDate,
       actorUserId: params.actorUserId,
     })
   }

@@ -27,9 +27,11 @@ import type {
 } from '@/lib/masterdata/types'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
+import type { CustomerAddressRow, CustomerContactRow } from '@/types/customers'
 import CustomerBillingMeteringCard from '@/components/admin/customers/CustomerBillingMeteringCard'
 import CustomerSwitchOperationsCard from '@/components/admin/customers/CustomerSwitchOperationsCard'
 import CustomerContractsCard from '@/components/admin/customers/CustomerContractsCard'
+import CustomerContactsAddressesCard from '@/components/admin/customers/CustomerContactsAddressesCard'
 import {
   listBillingUnderlaysByCustomerId,
   listGridOwnerDataRequestsByCustomerId,
@@ -437,6 +439,34 @@ function buildCustomerLifecycleSummary(params: {
   }
 }
 
+function getBestContactEmail(
+  customer: CustomerRow,
+  contacts: CustomerContactRow[]
+): string | null {
+  if (customer.email?.trim()) return customer.email.trim()
+
+  const primaryWithEmail =
+    contacts.find((contact) => contact.is_primary && contact.email?.trim()) ?? null
+  if (primaryWithEmail?.email?.trim()) return primaryWithEmail.email.trim()
+
+  const firstWithEmail = contacts.find((contact) => contact.email?.trim()) ?? null
+  return firstWithEmail?.email?.trim() ?? null
+}
+
+function getBestContactPhone(
+  customer: CustomerRow,
+  contacts: CustomerContactRow[]
+): string | null {
+  if (customer.phone?.trim()) return customer.phone.trim()
+
+  const primaryWithPhone =
+    contacts.find((contact) => contact.is_primary && contact.phone?.trim()) ?? null
+  if (primaryWithPhone?.phone?.trim()) return primaryWithPhone.phone.trim()
+
+  const firstWithPhone = contacts.find((contact) => contact.phone?.trim()) ?? null
+  return firstWithPhone?.phone?.trim() ?? null
+}
+
 function NotesSection({
   customerId,
   notes,
@@ -642,6 +672,8 @@ export default async function CustomerAdminDetailPage({
     partnerExports,
     outboundRequests,
     switchRequests,
+    contactsResponse,
+    addressesResponse,
   ] = await Promise.all([
     getCustomer(supabase, id),
     listGridOwners(supabase),
@@ -654,11 +686,29 @@ export default async function CustomerAdminDetailPage({
     listPartnerExportsByCustomerId(id),
     listOutboundRequestsByCustomerId(id),
     listSupplierSwitchRequestsByCustomerId(supabase, id),
+    supabase
+      .from('customer_contacts')
+      .select('*')
+      .eq('customer_id', id)
+      .order('is_primary', { ascending: false })
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('customer_addresses')
+      .select('*')
+      .eq('customer_id', id)
+      .order('is_active', { ascending: false })
+      .order('created_at', { ascending: false }),
   ])
 
   if (!customer) {
     notFound()
   }
+
+  if (contactsResponse.error) throw contactsResponse.error
+  if (addressesResponse.error) throw addressesResponse.error
+
+  const contacts = (contactsResponse.data ?? []) as CustomerContactRow[]
+  const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[]
 
   const meteringPoints = await listMeteringPointsBySiteIds(
     supabase,
@@ -706,6 +756,12 @@ export default async function CustomerAdminDetailPage({
     outboundRequests,
   })
 
+  const primaryContact = contacts.find((contact) => contact.is_primary) ?? contacts[0] ?? null
+  const activeAddress = addresses.find((address) => address.is_active) ?? addresses[0] ?? null
+
+  const displayEmail = getBestContactEmail(customer, contacts)
+  const displayPhone = getBestContactPhone(customer, contacts)
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -729,10 +785,10 @@ export default async function CustomerAdminDetailPage({
 
             <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-600 dark:text-slate-400">
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                {customer.email ?? 'Ingen e-post'}
+                {displayEmail ?? 'Ingen e-post'}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                {customer.phone ?? 'Ingen telefon'}
+                {displayPhone ?? 'Ingen telefon'}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
                 {customer.customer_type ?? 'okänd kundtyp'}
@@ -770,6 +826,40 @@ export default async function CustomerAdminDetailPage({
                 </div>
                 <div className="mt-1 font-medium text-slate-900 dark:text-white">
                   {customer.apartment_number ?? '—'}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
+                <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  Primär kontakt
+                </div>
+                <div className="mt-2 font-medium text-slate-900 dark:text-white">
+                  {primaryContact?.name ?? 'Ingen primär kontakt'}
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                  <div>E-post: {primaryContact?.email ?? '—'}</div>
+                  <div>Telefon: {primaryContact?.phone ?? '—'}</div>
+                  <div>Typ: {primaryContact?.type ?? '—'}</div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
+                <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  Aktiv adress
+                </div>
+                <div className="mt-2 font-medium text-slate-900 dark:text-white">
+                  {activeAddress?.street_1 ?? 'Ingen aktiv adress'}
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                  <div>
+                    {activeAddress
+                      ? `${activeAddress.postal_code ?? '—'} ${activeAddress.city ?? ''}`
+                      : '—'}
+                  </div>
+                  <div>Typ: {activeAddress?.type ?? '—'}</div>
+                  <div>Land: {activeAddress?.country ?? '—'}</div>
                 </div>
               </div>
             </div>
@@ -967,6 +1057,12 @@ export default async function CustomerAdminDetailPage({
       />
 
       <CustomerContractsCard customerId={id} />
+
+      <CustomerContactsAddressesCard
+        customerId={id}
+        contacts={contacts}
+        addresses={addresses}
+      />
 
       <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
         <CustomerSiteForm

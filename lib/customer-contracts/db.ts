@@ -119,6 +119,19 @@ export async function listCustomerContractsByCustomerId(
   return (data ?? []) as CustomerContractRow[]
 }
 
+export async function getCustomerContractById(
+  id: string
+): Promise<CustomerContractRow | null> {
+  const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as CustomerContractRow | null) ?? null
+}
+
 export async function listCustomerContractEventsByCustomerId(
   customerId: string
 ): Promise<CustomerContractEventRow[]> {
@@ -186,6 +199,55 @@ export async function createCustomerContract(input: {
       created_by: input.actorUserId ?? null,
       updated_by: input.actorUserId ?? null,
     })
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as CustomerContractRow
+}
+
+export async function updateCustomerContract(input: {
+  id: string
+  customerId: string
+  siteId?: string | null
+  status: CustomerContractRow['status']
+  contractName: string
+  contractType: ContractType
+  fixedPriceOrePerKwh?: number | null
+  spotMarkupOrePerKwh?: number | null
+  variableFeeOrePerKwh?: number | null
+  monthlyFeeSek?: number | null
+  bindingMonths?: number | null
+  noticeMonths?: number | null
+  startsAt?: string | null
+  endsAt?: string | null
+  signedAt?: string | null
+  terminationNoticeDate?: string | null
+  overrideReason?: string | null
+  actorUserId?: string | null
+}): Promise<CustomerContractRow> {
+  const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .update({
+      site_id: input.siteId ?? null,
+      status: input.status,
+      contract_name: input.contractName,
+      contract_type: input.contractType,
+      fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
+      spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
+      variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
+      monthly_fee_sek: input.monthlyFeeSek ?? null,
+      binding_months: input.bindingMonths ?? null,
+      notice_months: input.noticeMonths ?? null,
+      starts_at: input.startsAt ?? null,
+      ends_at: input.endsAt ?? null,
+      signed_at: input.signedAt ?? null,
+      termination_notice_date: input.terminationNoticeDate ?? null,
+      override_reason: input.overrideReason ?? null,
+      updated_by: input.actorUserId ?? null,
+    })
+    .eq('id', input.id)
+    .eq('customer_id', input.customerId)
     .select('*')
     .single()
 
