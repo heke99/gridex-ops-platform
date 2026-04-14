@@ -707,7 +707,13 @@ export async function queueSupplierSwitchOutboundAction(
 
 export async function bulkQueueMissingMeterValuesAction(
   formData: FormData
-): Promise<void> {
+): Promise<{
+  batchKey: string
+  createdCount: number
+  skippedCount: number
+  periodStart: string | null
+  periodEnd: string | null
+}> {
   await requireAdminActionAccess(['metering.write'])
 
   const actor = await getActor()
@@ -768,11 +774,24 @@ export async function bulkQueueMissingMeterValuesAction(
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/missing-meter-values')
   revalidatePath('/admin/metering')
-}
 
+  return {
+    batchKey: result.batchKey,
+    createdCount: result.createdCount,
+    skippedCount: result.skippedCount,
+    periodStart: period?.periodStart ?? null,
+    periodEnd: period?.periodEnd ?? null,
+  }
+}
 export async function bulkQueueMissingBillingUnderlaysAction(
   formData: FormData
-): Promise<void> {
+): Promise<{
+  batchKey: string
+  createdCount: number
+  skippedCount: number
+  year: number
+  month: number
+}> {
   await requireAdminActionAccess(['billing_underlay.write'])
 
   const actor = await getActor()
@@ -842,9 +861,21 @@ export async function bulkQueueMissingBillingUnderlaysAction(
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/missing-billing-underlays')
   revalidatePath('/admin/billing')
+
+  return {
+    batchKey: result.batchKey,
+    createdCount: result.createdCount,
+    skippedCount: result.skippedCount,
+    year: period.year,
+    month: period.month,
+  }
 }
 
-export async function bulkQueueReadySupplierSwitchesAction(): Promise<void> {
+export async function bulkQueueReadySupplierSwitchesAction(): Promise<{
+  batchKey: string
+  createdCount: number
+  skippedCount: number
+}> {
   await requireAdminActionAccess(['switching.write'])
 
   const actor = await getActor()
@@ -887,4 +918,6 @@ export async function bulkQueueReadySupplierSwitchesAction(): Promise<void> {
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/ready-switches')
   revalidatePath('/admin/operations/switches')
+
+  return result
 }

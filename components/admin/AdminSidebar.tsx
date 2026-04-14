@@ -58,6 +58,11 @@ const NAV_GROUPS: NavGroup[] = [
     description: 'Switchar, outbound och uppföljning',
     items: [
       {
+        href: '/admin/operations/integrity',
+        label: 'Integrity dashboard',
+        description: 'Mismatch, väntar aktiv, flytt, byte och exportredo',
+      },
+      {
         href: '/admin/operations/tasks',
         label: 'Tasks',
         description: 'Öppna, blockerade och klara uppgifter',

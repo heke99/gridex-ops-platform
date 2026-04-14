@@ -681,7 +681,14 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
 
 export async function bulkQueueReadyBillingExportsAction(
   formData: FormData
-): Promise<void> {
+): Promise<{
+  year: number
+  month: number
+  createdCount: number
+  skippedCount: number
+  candidateCount: number
+  batchKey: string
+}> {
   await requireAdminActionAccess([
     'billing_underlay.write',
     'partner_exports.write',
@@ -751,6 +758,9 @@ export async function bulkQueueReadyBillingExportsAction(
     createdCount += 1
   }
 
+  const skippedCount = Math.max(0, typedUnderlays.length - createdCount)
+  const batchKey = `billing-export:${period.year}-${String(period.month).padStart(2, '0')}`
+
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: 'partner_export',
@@ -760,7 +770,9 @@ export async function bulkQueueReadyBillingExportsAction(
       year: period.year,
       month: period.month,
       createdCount,
+      skippedCount,
       candidateCount: typedUnderlays.length,
+      batchKey,
     },
   })
 
@@ -768,4 +780,13 @@ export async function bulkQueueReadyBillingExportsAction(
   revalidatePath('/admin/billing')
   revalidatePath('/admin/partner-exports')
   revalidatePath('/admin/operations')
+
+  return {
+    year: period.year,
+    month: period.month,
+    createdCount,
+    skippedCount,
+    candidateCount: typedUnderlays.length,
+    batchKey,
+  }
 }
