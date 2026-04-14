@@ -10,6 +10,14 @@ import {
   getContractOfferById,
 } from '@/lib/customer-contracts/db'
 import type { ContractType, GreenFeeMode } from '@/lib/customer-contracts/types'
+import {
+  createSupplierSwitchRequest,
+  findCustomerSiteById,
+  listMeteringPointsForSite,
+  listPowersOfAttorneyByCustomerId,
+  syncCustomerOperationsForSite,
+} from '@/lib/operations/db'
+import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -97,6 +105,23 @@ function parseBulkRows(raw: string): Array<Record<string, string>> {
   })
 }
 
+function normalizeCustomerType(
+  value: string | null | undefined
+): 'private' | 'business' | 'association' {
+  if (value === 'business') return 'business'
+  if (value === 'association') return 'association'
+  return 'private'
+}
+
+function normalizeIntakeFlowType(
+  value: string | null | undefined
+): SupplierSwitchRequestType | null {
+  if (value === 'move_in') return 'move_in'
+  if (value === 'move_out_takeover') return 'move_out_takeover'
+  if (value === 'switch') return 'switch'
+  return null
+}
+
 async function getActorUserId(): Promise<string> {
   const supabase = await createSupabaseServerClient()
   const {
@@ -129,17 +154,19 @@ async function insertAuditLog(params: {
 
 async function createPrimaryContact(params: {
   customerId: string
-  customerType: string
+  customerType: 'private' | 'business' | 'association'
   firstName?: string | null
   lastName?: string | null
   companyName?: string | null
   email?: string | null
   phone?: string | null
 }) {
+  const personName = `${params.firstName ?? ''} ${params.lastName ?? ''}`.trim() || null
+
   const name =
-    params.customerType === 'business'
-      ? (params.companyName ?? '').trim() || null
-      : `${params.firstName ?? ''} ${params.lastName ?? ''}`.trim() || null
+    params.customerType === 'private'
+      ? personName
+      : personName || (params.companyName ?? '').trim() || null
 
   if (!name && !params.email && !params.phone) {
     return null
@@ -275,9 +302,79 @@ async function syncContractLifecycleEvents(params: {
   }
 }
 
+async function maybeCreateSwitchRequestFromIntake(params: {
+  customerId: string
+  siteId: string | null
+  intakeFlowType: SupplierSwitchRequestType | null
+}) {
+  if (!params.customerId || !params.siteId || !params.intakeFlowType) {
+    return null
+  }
+
+  const supabase = await createSupabaseServerClient()
+
+  const readiness = await syncCustomerOperationsForSite(supabase, {
+    customerId: params.customerId,
+    siteId: params.siteId,
+  })
+
+  const site = await findCustomerSiteById(supabase, params.siteId)
+  if (!site) {
+    return null
+  }
+
+  const [meteringPoints, powersOfAttorney] = await Promise.all([
+    listMeteringPointsForSite(supabase, params.siteId),
+    listPowersOfAttorneyByCustomerId(supabase, params.customerId),
+  ])
+
+  const candidateMeteringPoint =
+    meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ??
+    meteringPoints[0] ??
+    null
+
+  const hasRelevantPoa = powersOfAttorney.some(
+    (poa) =>
+      poa.scope === 'supplier_switch' &&
+      (poa.site_id === params.siteId || poa.site_id === null)
+  )
+
+  if (!candidateMeteringPoint) {
+    return {
+      created: false,
+      reason: 'Mätpunkt saknas',
+      readiness,
+    }
+  }
+
+  if (!hasRelevantPoa) {
+    return {
+      created: false,
+      reason: 'Fullmakt saknas',
+      readiness,
+    }
+  }
+
+  const request = await createSupplierSwitchRequest(supabase, {
+    readiness,
+    site,
+    meteringPoint: candidateMeteringPoint,
+    requestType: params.intakeFlowType,
+    requestedStartDate: site.move_in_date ?? null,
+  })
+
+  return {
+    created: true,
+    requestId: request.id,
+    requestType: request.request_type,
+    readiness,
+  }
+}
+
 async function createCustomerGraph(params: {
   actorUserId: string
-  customerType: string
+  customerType: 'private' | 'business' | 'association'
+  intakeFlowType?: SupplierSwitchRequestType | null
   firstName?: string | null
   lastName?: string | null
   companyName?: string | null
@@ -320,7 +417,7 @@ async function createCustomerGraph(params: {
   optionalFeeLines?: Array<Record<string, unknown>>
 }) {
   const displayName =
-    params.customerType === 'business'
+    params.customerType === 'business' || params.customerType === 'association'
       ? (params.companyName ?? '').trim()
       : `${params.firstName ?? ''} ${params.lastName ?? ''}`.trim()
 
@@ -497,6 +594,12 @@ async function createCustomerGraph(params: {
     })
   }
 
+  const switchRequestResult = await maybeCreateSwitchRequestFromIntake({
+    customerId: customer.id,
+    siteId,
+    intakeFlowType: params.intakeFlowType ?? null,
+  })
+
   await insertAuditLog({
     actorUserId: params.actorUserId,
     entityType: 'customer',
@@ -510,6 +613,11 @@ async function createCustomerGraph(params: {
       phone: customer.phone,
       customer_number: customer.customer_number,
     },
+    metadata: {
+      intakeFlowType: params.intakeFlowType ?? null,
+      siteId,
+      switchRequest: switchRequestResult ?? null,
+    },
   })
 
   return customer
@@ -521,7 +629,10 @@ export async function createCustomerAction(formData: FormData) {
 
   await createCustomerGraph({
     actorUserId,
-    customerType: getString(formData, 'customerType') || 'private',
+    customerType: normalizeCustomerType(getString(formData, 'customerType') || 'private'),
+    intakeFlowType: normalizeIntakeFlowType(
+      getNullableString(formData, 'intakeFlowType')
+    ),
     firstName: getNullableString(formData, 'firstName'),
     lastName: getNullableString(formData, 'lastName'),
     companyName: getNullableString(formData, 'companyName'),
@@ -538,12 +649,12 @@ export async function createCustomerAction(formData: FormData) {
       | 'production'
       | 'mixed',
     gridOwnerId: getNullableString(formData, 'gridOwnerId'),
-    priceAreaCode: (getNullableString(formData, 'priceAreaCode') as
+    priceAreaCode: getNullableString(formData, 'priceAreaCode') as
       | 'SE1'
       | 'SE2'
       | 'SE3'
       | 'SE4'
-      | null),
+      | null,
     moveInDate: getNullableString(formData, 'moveInDate'),
     annualConsumptionKwh: parseNumber(getString(formData, 'annualConsumptionKwh')),
     currentSupplierName: getNullableString(formData, 'currentSupplierName'),
@@ -601,7 +712,8 @@ export async function bulkCreateCustomersAction(formData: FormData) {
     try {
       await createCustomerGraph({
         actorUserId,
-        customerType: row.customer_type || 'private',
+        customerType: normalizeCustomerType(row.customer_type || 'private'),
+        intakeFlowType: normalizeIntakeFlowType(row.intake_flow_type || null),
         firstName: row.first_name || null,
         lastName: row.last_name || null,
         companyName: row.company_name || null,

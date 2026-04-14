@@ -1,5 +1,7 @@
+//app/admin/customers/intake/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
+import CustomerIntakeEnhancer from '@/components/admin/customers/CustomerIntakeEnhancer'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { listGridOwners, listPriceAreas } from '@/lib/masterdata/db'
@@ -11,8 +13,9 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const bulkExample = `customer_type;first_name;last_name;email;phone;personal_number;apartment_number;site_name;facility_id;meter_point_id;grid_owner_id;price_area_code;move_in_date;annual_consumption_kwh;street;postal_code;city;moved_from_supplier_name;contract_offer_id;contract_status;binding_months;notice_months
-private;Anna;Svensson;anna@example.se;0700000000;199001011234;1201;Anna Svensson - Lägenhet;735999111111111111;735999000000000001;REPLACE_GRID_OWNER_UUID;SE3;2026-06-01;12000;Storgatan 1;11122;Stockholm;Fortum;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;1`
+const bulkExample = `customer_type;intake_flow_type;first_name;last_name;company_name;email;phone;personal_number;org_number;apartment_number;site_name;facility_id;meter_point_id;grid_owner_id;price_area_code;move_in_date;annual_consumption_kwh;street;postal_code;city;current_supplier_name;current_supplier_org_number;moved_from_street;moved_from_postal_code;moved_from_city;moved_from_supplier_name;contract_offer_id;contract_status;binding_months;notice_months
+private;switch;Anna;Svensson;;anna@example.se;0700000000;199001011234;;1201;Anna Svensson - Lägenhet;735999111111111111;735999000000000001;REPLACE_GRID_OWNER_UUID;SE3;2026-06-01;12000;Storgatan 1;11122;Stockholm;Fortum;5560000000;;;;;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;1
+association;move_in;Sara;Ek;Brf Solrosen;sara@solrosen.se;0701111111;;769600-1234;;Brf Solrosen Huvudanläggning;735999111111111112;735999000000000002;REPLACE_GRID_OWNER_UUID;SE3;2026-08-01;54000;Föreningsgatan 4;11123;Stockholm;E.ON;5561000000;Gamla vägen 9;11121;Stockholm;Vattenfall;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;3`
 
 export default async function CustomerIntakePage() {
   await requireAdminPageAccess(['masterdata.read'])
@@ -66,7 +69,7 @@ export default async function CustomerIntakePage() {
               Skapar kundpost, anläggning, eventuell mätpunkt och kundavtal i ett och samma flöde.
             </p>
 
-            <form action={createCustomerAction} className="mt-6 space-y-6">
+            <form action={createCustomerAction} className="mt-6 space-y-6" data-customer-intake-form>
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   Kunddata
@@ -80,6 +83,17 @@ export default async function CustomerIntakePage() {
                   >
                     <option value="private">Privatkund</option>
                     <option value="business">Företagskund</option>
+                    <option value="association">Förening</option>
+                  </select>
+
+                  <select
+                    name="intakeFlowType"
+                    defaultValue="switch"
+                    className="rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  >
+                    <option value="switch">Byte av leverantör</option>
+                    <option value="move_in">Inflytt / flytt</option>
+                    <option value="move_out_takeover">Övertag vid utflytt</option>
                   </select>
 
                   <input
@@ -90,19 +104,19 @@ export default async function CustomerIntakePage() {
 
                   <input
                     name="firstName"
-                    placeholder="Förnamn"
+                    placeholder="Förnamn / kontaktperson förnamn"
                     className="rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   />
 
                   <input
                     name="lastName"
-                    placeholder="Efternamn"
+                    placeholder="Efternamn / kontaktperson efternamn"
                     className="rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   />
 
                   <input
                     name="companyName"
-                    placeholder="Företagsnamn"
+                    placeholder="Företags- eller föreningsnamn"
                     className="rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white md:col-span-2"
                   />
 
@@ -378,6 +392,23 @@ export default async function CustomerIntakePage() {
                 </div>
               </div>
 
+              <CustomerIntakeEnhancer
+                offers={contractOffers.map((offer) => ({
+                  id: offer.id,
+                  name: offer.name,
+                  contract_type: offer.contract_type,
+                  fixed_price_ore_per_kwh: offer.fixed_price_ore_per_kwh,
+                  spot_markup_ore_per_kwh: offer.spot_markup_ore_per_kwh,
+                  variable_fee_ore_per_kwh: offer.variable_fee_ore_per_kwh,
+                  monthly_fee_sek: offer.monthly_fee_sek,
+                  green_fee_mode: offer.green_fee_mode,
+                  green_fee_value: offer.green_fee_value,
+                  default_binding_months: offer.default_binding_months,
+                  default_notice_months: offer.default_notice_months,
+                  optional_fee_lines: offer.optional_fee_lines,
+                }))}
+              />
+
               <button className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
                 Skapa kund med avtal
               </button>
@@ -416,6 +447,8 @@ export default async function CustomerIntakePage() {
                 <p>Registrerar nätägare, elområde, flyttar-från-data och anläggningsinfo.</p>
                 <p>Knyter valbart avtal från admin-katalogen med möjlighet till override.</p>
                 <p>Loggar första avtalshändelsen i kundens avtalshistorik.</p>
+                <p>Kan skapa rätt switchtyp direkt från intake: leverantörsbyte, inflytt eller övertag.</p>
+                <p>Stödjer nu privat, företag och förening i samma intake-flöde.</p>
               </div>
             </section>
           </div>

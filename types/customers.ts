@@ -9,12 +9,12 @@ export type CustomerStatus =
   | 'terminated'
   | 'blocked'
 
-export type CustomerType = 'private' | 'business'
+export type CustomerType = 'private' | 'business' | 'association'
 
 export type CustomerRow = {
   id: string
-  customer_type: CustomerType
-  status: CustomerStatus
+  customer_type: CustomerType | string
+  status: CustomerStatus | string
   first_name: string | null
   last_name: string | null
   full_name: string | null
@@ -105,7 +105,6 @@ export type CustomerSiteRow = {
   move_in_date: string | null
   annual_consumption_kwh: number | null
 
-  // Dessa kan finnas i din databas även om de inte syntes i den trunkerade listan.
   annual_production_kwh?: number | null
   move_out_date?: string | null
   current_supplier_name?: string | null

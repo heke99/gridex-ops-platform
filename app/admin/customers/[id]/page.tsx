@@ -14,6 +14,7 @@ import {
   listMeteringPointsBySiteIds,
   listPriceAreas,
 } from '@/lib/masterdata/db'
+import { listContractOffers } from '@/lib/customer-contracts/db'
 import CustomerSiteForm from '@/components/admin/masterdata/CustomerSiteForm'
 import CustomerSitesTable from '@/components/admin/masterdata/CustomerSitesTable'
 import MeteringPointForm from '@/components/admin/masterdata/MeteringPointForm'
@@ -32,6 +33,9 @@ import CustomerBillingMeteringCard from '@/components/admin/customers/CustomerBi
 import CustomerSwitchOperationsCard from '@/components/admin/customers/CustomerSwitchOperationsCard'
 import CustomerContractsCard from '@/components/admin/customers/CustomerContractsCard'
 import CustomerContactsAddressesCard from '@/components/admin/customers/CustomerContactsAddressesCard'
+import CustomerProfileCard from '@/components/admin/customers/CustomerProfileCard'
+import CustomerGridOwnerFileImportCard from '@/components/admin/customers/CustomerGridOwnerFileImportCard'
+import CustomerContractOfferEligibilityCard from '@/components/admin/customers/CustomerContractOfferEligibilityCard'
 import {
   listBillingUnderlaysByCustomerId,
   listGridOwnerDataRequestsByCustomerId,
@@ -674,6 +678,7 @@ export default async function CustomerAdminDetailPage({
     switchRequests,
     contactsResponse,
     addressesResponse,
+    contractOffers,
   ] = await Promise.all([
     getCustomer(supabase, id),
     listGridOwners(supabase),
@@ -698,6 +703,7 @@ export default async function CustomerAdminDetailPage({
       .eq('customer_id', id)
       .order('is_active', { ascending: false })
       .order('created_at', { ascending: false }),
+    listContractOffers({ activeOnly: true }),
   ])
 
   if (!customer) {
@@ -1034,6 +1040,16 @@ export default async function CustomerAdminDetailPage({
           </div>
         </div>
       </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <CustomerProfileCard customer={customer} />
+        <CustomerContractOfferEligibilityCard
+          customerType={customer.customer_type}
+          offers={contractOffers}
+        />
+      </section>
+
+      <CustomerGridOwnerFileImportCard customerId={id} />
 
       <CustomerSwitchOperationsCard
         customerId={id}
