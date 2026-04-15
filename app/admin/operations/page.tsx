@@ -5,6 +5,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
+import { getEdielSummary } from '@/lib/ediel/summary'
 import {
   listAllOperationTasks,
   listAllSupplierSwitchRequests,
@@ -201,6 +202,7 @@ export default async function AdminOperationsPage() {
     underlays,
     partnerExports,
     meteringPoints,
+    edielSummary,
   ] = await Promise.all([
     listAllOperationTasks(supabase),
     listAllSupplierSwitchRequests(supabase),
@@ -214,6 +216,7 @@ export default async function AdminOperationsPage() {
     listAllBillingUnderlays({ status: 'all', query: '' }),
     listAllPartnerExports({ status: 'all', exportKind: 'all', query: '' }),
     listMeteringPointsBySiteIds(supabase, sites.map((site) => site.id)),
+    getEdielSummary(supabase),
   ])
 
   const readinessResults = await Promise.all(
@@ -335,6 +338,18 @@ export default async function AdminOperationsPage() {
       tone: 'danger' as const,
     },
     {
+      id: 'ediel-attention',
+      title: 'Ediel kräver uppföljning',
+      count:
+        edielSummary.queuedMessages +
+        edielSummary.failedMessages +
+        edielSummary.pendingAckMessages,
+      description:
+        'Köade, felade eller okvitterade Ediel-meddelanden. Här ser du direkt om Svk-flödena behöver handpåläggning.',
+      href: '/admin/ediel',
+      cta: 'Öppna Ediel',
+tone: edielSummary.failedMessages > 0 ? ('danger' as const) : ('warning' as const),    },
+    {
       id: 'missing-outbound',
       title: 'Switchar utan outbound',
       count: missingOutboundSwitches.length,
@@ -402,12 +417,12 @@ export default async function AdminOperationsPage() {
     <div className="min-h-screen">
       <AdminHeader
         title="Operations control tower"
-        subtitle="En tydlig startsida för vad som kräver åtgärd nu, vart du ska gå och hur switch-, outbound- och billingkedjan mår."
+        subtitle="En tydlig startsida för vad som kräver åtgärd nu, vart du ska gå och hur switch-, outbound-, Ediel- och billingkedjan mår."
         userEmail={user?.email ?? null}
       />
 
       <div className="space-y-8 p-8">
-        <section className="grid gap-5 lg:grid-cols-2 xl:grid-cols-6">
+        <section className="grid gap-5 lg:grid-cols-2 xl:grid-cols-8">
           <KpiCard
             label="Öppna tasks"
             value={openTasks.length}
@@ -437,6 +452,16 @@ export default async function AdminOperationsPage() {
             label="Redo billing-exporter"
             value={readyBillingExports.length}
             hint="Underlag som kan handoffas till partner nu."
+          />
+          <KpiCard
+            label="Ediel väntar"
+            value={edielSummary.queuedMessages + edielSummary.pendingAckMessages}
+            hint="Ediel-meddelanden som väntar på sändning eller kvittens."
+          />
+          <KpiCard
+            label="Ediel fel"
+            value={edielSummary.failedMessages}
+            hint="Felade Ediel-meddelanden som kräver uppföljning."
           />
         </section>
 
@@ -530,6 +555,18 @@ export default async function AdminOperationsPage() {
                 </div>
                 <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                   Gå hit när problemet gäller dispatch, route, sent/acknowledged eller retry av extern kommunikation.
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/ediel"
+                className="block rounded-2xl border border-blue-200 bg-blue-50/70 p-4 transition hover:bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/10 dark:hover:bg-blue-950/20"
+              >
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Ediel
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Gå hit när problemet gäller PRODAT, UTILTS, mailbox polling, kvittenser eller Svk-flöden som kräver handpåläggning.
                 </div>
               </Link>
 
@@ -719,7 +756,7 @@ export default async function AdminOperationsPage() {
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-3">
+        <section className="grid gap-6 xl:grid-cols-4">
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <SectionHeader
               title="Outbound triage"
@@ -880,6 +917,99 @@ export default async function AdminOperationsPage() {
                 </div>
                 <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                   Kvitterade switchar där sista interna execution-steget återstår.
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Ediel triage"
+              subtitle="När Svk- och Edielkedjan kräver uppföljning."
+            />
+
+            <div className="space-y-3 p-6">
+              <Link
+                href="/admin/ediel"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Köade / förberedda
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'queued'
+                    )}`}
+                  >
+                    {edielSummary.queuedMessages}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Ediel-meddelanden som väntar på att skickas eller tas vidare i flödet.
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/ediel"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Väntande kvittenser
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'awaiting_response'
+                    )}`}
+                  >
+                    {edielSummary.pendingAckMessages}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  APERAK eller CONTRL som ännu inte är klara eller registrerade.
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/ediel"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Felade Ediel
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      'failed'
+                    )}`}
+                  >
+                    {edielSummary.failedMessages}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Meddelanden som kräver manuell uppföljning mot route, payload eller motpart.
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/ediel/routes"
+                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Aktiva Ediel-routes
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
+                      edielSummary.activeRoutes > 0 ? 'ready' : 'blocked'
+                    )}`}
+                  >
+                    {edielSummary.activeRoutes}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Konfigurerade och aktiverade routes för Ediel-trafik.
                 </div>
               </Link>
             </div>

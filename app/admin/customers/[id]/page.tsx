@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import CustomerEdielOperationsCard from '@/components/admin/customers/CustomerEdielOperationsCard'
 import {
   getCustomerSiteById,
   getMeteringPointById,
@@ -1151,6 +1152,15 @@ export default async function CustomerAdminDetailPage({
         switchRequests={switchRequests}
         switchEvents={switchEvents}
         outboundRequests={outboundRequests}
+      />
+
+      <CustomerEdielOperationsCard
+        customerId={id}
+        sites={sites}
+        meteringPoints={meteringPoints}
+        gridOwners={gridOwners}
+        switchRequests={switchRequests}
+        dataRequests={dataRequests}
       />
 
       <CustomerBillingMeteringCard
