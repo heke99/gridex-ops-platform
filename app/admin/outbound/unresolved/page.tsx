@@ -11,6 +11,7 @@ import { listAllSupplierSwitchRequests } from '@/lib/operations/db'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import { updateOutboundRequestStatusAction } from '@/app/admin/cis/actions'
 import {
+  assignRouteToUnresolvedOutboundAction,
   rerunAllUnresolvedRouteResolutionsAction,
   rerunUnresolvedRouteResolutionAction,
 } from './actions'
@@ -35,13 +36,14 @@ type ResolutionSummary = {
   inactiveRouteMatches: CommunicationRouteRow[]
   globalActiveRoute: CommunicationRouteRow | null
   scopedActiveRoute: CommunicationRouteRow | null
+  assignableRoutes: CommunicationRouteRow[]
 }
 
 function tone(status: string): string {
-  if (['acknowledged', 'ready', 'resolved'].includes(status)) {
+  if (['acknowledged', 'ready', 'resolved', 'active'].includes(status)) {
     return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
-  if (['failed', 'cancelled', 'unresolved'].includes(status)) {
+  if (['failed', 'cancelled', 'unresolved', 'missing_route', 'inactive'].includes(status)) {
     return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
   }
   if (['sent', 'submitted'].includes(status)) {
@@ -89,6 +91,7 @@ function buildResolutionSummary(params: {
   const scope = requestScopeLabel(request.request_type)
 
   const routeMatches = routes.filter((route) => route.route_scope === scope)
+  const assignableRoutes = routeMatches.filter((route) => route.is_active)
   const scopedActiveRoute =
     routeMatches.find(
       (route) => route.is_active && route.grid_owner_id === request.grid_owner_id
@@ -114,6 +117,7 @@ function buildResolutionSummary(params: {
       inactiveRouteMatches,
       globalActiveRoute,
       scopedActiveRoute,
+      assignableRoutes,
     }
   }
 
@@ -128,6 +132,7 @@ function buildResolutionSummary(params: {
       inactiveRouteMatches,
       globalActiveRoute,
       scopedActiveRoute,
+      assignableRoutes,
     }
   }
 
@@ -146,6 +151,7 @@ function buildResolutionSummary(params: {
       inactiveRouteMatches,
       globalActiveRoute,
       scopedActiveRoute,
+      assignableRoutes,
     }
   }
 
@@ -160,6 +166,7 @@ function buildResolutionSummary(params: {
       inactiveRouteMatches,
       globalActiveRoute,
       scopedActiveRoute,
+      assignableRoutes,
     }
   }
 
@@ -174,19 +181,21 @@ function buildResolutionSummary(params: {
       inactiveRouteMatches,
       globalActiveRoute,
       scopedActiveRoute,
+      assignableRoutes,
     }
   }
 
   return {
     reasonTitle: 'Route bör gå att lösa om',
     reasonText:
-      'Det finns minst en möjlig route. Kör ny route-upplösning för att se om requesten kan lämna unresolved.',
+      'Det finns minst en möjlig route. Kör ny route-upplösning eller välj route manuellt för att få requesten ur unresolved.',
     recommendation:
-      'Klicka på “Kör route-upplösning igen”. Om den fortfarande ligger unresolved är requestdatan sannolikt ofullständig eller felkopplad.',
+      'Använd “Välj route nu” nedan om du redan vet vilken route som ska användas. Annars klicka på “Kör route-upplösning igen”.',
     routeMatches,
     inactiveRouteMatches,
     globalActiveRoute,
     scopedActiveRoute,
+    assignableRoutes,
   }
 }
 
@@ -286,6 +295,10 @@ export default async function UnresolvedOutboundPage() {
     const summary = buildResolutionSummary({ request: row, routes })
     return summary.inactiveRouteMatches.length > 0
   }).length
+  const requestsWithManualChoiceAvailable = requests.filter((row) => {
+    const summary = buildResolutionSummary({ request: row, routes })
+    return summary.assignableRoutes.length > 0
+  }).length
 
   return (
     <div className="min-h-screen">
@@ -296,7 +309,7 @@ export default async function UnresolvedOutboundPage() {
       />
 
       <div className="space-y-6 p-8">
-        <section className="grid gap-4 xl:grid-cols-5">
+        <section className="grid gap-4 xl:grid-cols-6">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="text-sm text-slate-500 dark:text-slate-400">
               Öppna unresolved
@@ -354,6 +367,18 @@ export default async function UnresolvedOutboundPage() {
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               Route finns, men är inte aktiv just nu.
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
+            <div className="text-sm text-slate-500 dark:text-slate-400">
+              Manuellt valbar route
+            </div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
+              {requestsWithManualChoiceAvailable}
+            </div>
+            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Requests där du kan välja aktiv route direkt från denna sida.
             </div>
           </div>
         </section>
@@ -526,6 +551,12 @@ export default async function UnresolvedOutboundPage() {
                                 Scope-träffar totalt:{' '}
                                 <span className="font-medium">{summary.routeMatches.length}</span>
                               </div>
+                              <div>
+                                Manuellt valbara routes:{' '}
+                                <span className="font-medium">
+                                  {summary.assignableRoutes.length}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -576,6 +607,50 @@ export default async function UnresolvedOutboundPage() {
                               </div>
                             ) : null}
                           </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-900/40 dark:bg-blue-950/10">
+                          <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                            Välj route nu
+                          </div>
+                          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                            Om du redan vet vilken route som ska användas kan du koppla den direkt härifrån utan att lämna unresolved-sidan.
+                          </p>
+
+                          {summary.assignableRoutes.length === 0 ? (
+                            <div className="mt-3 rounded-2xl border border-dashed border-slate-300 px-4 py-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                              Inga aktiva routes att välja för detta scope ännu.
+                            </div>
+                          ) : (
+                            <form
+                              action={assignRouteToUnresolvedOutboundAction}
+                              className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                            >
+                              <input type="hidden" name="outbound_request_id" value={request.id} />
+                              <input type="hidden" name="customer_id" value={request.customer_id} />
+
+                              <select
+                                name="communication_route_id"
+                                required
+                                defaultValue=""
+                                className="h-11 rounded-2xl border border-slate-300 bg-white px-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                              >
+                                <option value="" disabled>
+                                  Välj aktiv route
+                                </option>
+                                {summary.assignableRoutes.map((route) => (
+                                  <option key={route.id} value={route.id}>
+                                    {route.route_name} • {route.route_type} •{' '}
+                                    {route.grid_owner_id ?? 'global'}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <button className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
+                                Sätt route och fortsätt
+                              </button>
+                            </form>
+                          )}
                         </div>
 
                         <div className="flex flex-wrap gap-3">
@@ -660,32 +735,44 @@ export default async function UnresolvedOutboundPage() {
                                 Inga routes finns alls för scope {request.request_type}.
                               </div>
                             ) : (
-                              summary.routeMatches.slice(0, 6).map((route) => (
-                                <div
-                                  key={route.id}
-                                  className="rounded-2xl border border-slate-200 p-3 text-sm dark:border-slate-800"
-                                >
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span
-                                      className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(
-                                        route.is_active ? 'resolved' : 'failed'
-                                      )}`}
-                                    >
-                                      {route.is_active ? 'active' : 'inactive'}
-                                    </span>
-                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                      {route.route_type}
-                                    </span>
+                              summary.routeMatches.slice(0, 8).map((route) => {
+                                const isDirectMatch =
+                                  route.is_active &&
+                                  (route.grid_owner_id === request.grid_owner_id ||
+                                    route.grid_owner_id === null)
+
+                                return (
+                                  <div
+                                    key={route.id}
+                                    className="rounded-2xl border border-slate-200 p-3 text-sm dark:border-slate-800"
+                                  >
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span
+                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(
+                                          route.is_active ? 'active' : 'inactive'
+                                        )}`}
+                                      >
+                                        {route.is_active ? 'active' : 'inactive'}
+                                      </span>
+                                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                        {route.route_type}
+                                      </span>
+                                      {isDirectMatch ? (
+                                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                                          valbar nu
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <div className="mt-2 font-medium text-slate-900 dark:text-white">
+                                      {route.route_name}
+                                    </div>
+                                    <div className="mt-1 text-slate-600 dark:text-slate-300">
+                                      Grid owner: {route.grid_owner_id ?? 'global'} · Target:{' '}
+                                      {route.target_system}
+                                    </div>
                                   </div>
-                                  <div className="mt-2 font-medium text-slate-900 dark:text-white">
-                                    {route.route_name}
-                                  </div>
-                                  <div className="mt-1 text-slate-600 dark:text-slate-300">
-                                    Grid owner: {route.grid_owner_id ?? 'global'} · Target:{' '}
-                                    {route.target_system}
-                                  </div>
-                                </div>
-                              ))
+                                )
+                              })
                             )}
                           </div>
                         </div>

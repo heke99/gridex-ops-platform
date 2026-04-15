@@ -1,0 +1,532 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { supabaseService } from '@/lib/supabase/service'
+import {
+  findElectricitySupplierMatch,
+  saveElectricitySupplier,
+} from '@/lib/masterdata/db'
+import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
+import {
+  createSupplierSwitchEvent,
+  findCustomerSiteById,
+  findOpenSupplierSwitchRequestForSite,
+  listMeteringPointsForSite,
+  listPowersOfAttorneyByCustomerId,
+  syncOperationTasksFromReadiness,
+} from '@/lib/operations/db'
+
+type SwitchRequestType = 'switch' | 'move_in' | 'move_out_takeover'
+
+type RouteRow = {
+  id: string
+  route_type: string | null
+  route_name: string | null
+  target_system: string | null
+  target_email: string | null
+  is_active: boolean
+}
+
+function formValue(formData: FormData, key: string): string | null {
+  const value = formData.get(key)
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function checkboxValue(formData: FormData, key: string): boolean {
+  const value = formData.get(key)
+  return value === 'on' || value === 'true' || value === '1'
+}
+
+function normalizeDate(value: string | null): string | null {
+  if (!value) return null
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null
+}
+
+function normalizeSwitchRequestType(value: string | null): SwitchRequestType {
+  if (value === 'move_in' || value === 'move_out_takeover') return value
+  return 'switch'
+}
+
+function mapRouteTypeToChannelType(routeType: string | null): string {
+  switch (routeType) {
+    case 'partner_api':
+      return 'partner_api'
+    case 'ediel_partner':
+      return 'ediel_partner'
+    case 'file_export':
+      return 'file_export'
+    case 'email_manual':
+      return 'email_manual'
+    default:
+      return 'unresolved'
+  }
+}
+
+async function getActor() {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Du måste vara inloggad.')
+  }
+
+  return {
+    supabase,
+    user,
+  }
+}
+
+async function insertAuditLog(params: {
+  actorUserId: string
+  entityType: string
+  entityId: string
+  action: string
+  metadata?: unknown
+  newValues?: unknown
+}) {
+  const { error } = await supabaseService.from('audit_logs').insert({
+    actor_user_id: params.actorUserId,
+    entity_type: params.entityType,
+    entity_id: params.entityId,
+    action: params.action,
+    metadata: params.metadata ?? null,
+    new_values: params.newValues ?? null,
+  })
+
+  if (error) throw error
+}
+
+async function findBestSupplierSwitchRoute(params: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  gridOwnerId: string | null
+}): Promise<RouteRow | null> {
+  const { supabase, gridOwnerId } = params
+
+  if (!gridOwnerId) return null
+
+  const preferred = await supabase
+    .from('communication_routes')
+    .select('id, route_type, route_name, target_system, target_email, is_active')
+    .eq('is_active', true)
+    .eq('route_scope', 'supplier_switch')
+    .eq('grid_owner_id', gridOwnerId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (preferred.error) throw preferred.error
+  if (preferred.data) return preferred.data as RouteRow
+
+  const fallback = await supabase
+    .from('communication_routes')
+    .select('id, route_type, route_name, target_system, target_email, is_active')
+    .eq('is_active', true)
+    .eq('route_scope', 'supplier_switch')
+    .is('grid_owner_id', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (fallback.error) throw fallback.error
+  return (fallback.data as RouteRow | null) ?? null
+}
+
+async function ensureOutboundForSwitch(params: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  userId: string
+  requestRow: Record<string, unknown> & {
+    id: string
+    customer_id: string
+    site_id: string
+    metering_point_id: string
+    grid_owner_id: string | null
+    request_type: string
+    requested_start_date: string | null
+    current_supplier_name: string | null
+    current_supplier_org_number: string | null
+    incoming_supplier_name: string | null
+    incoming_supplier_org_number: string | null
+    price_area_code: string | null
+  }
+}): Promise<{
+  outboundId: string | null
+  routeResolved: boolean
+  channelType: string
+}> {
+  const { supabase, userId, requestRow } = params
+
+  const existingOutbound = await supabase
+    .from('outbound_requests')
+    .select('id, status, channel_type')
+    .eq('source_type', 'supplier_switch_request')
+    .eq('source_id', requestRow.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (existingOutbound.error) throw existingOutbound.error
+
+  if (existingOutbound.data) {
+    return {
+      outboundId: existingOutbound.data.id,
+      routeResolved: existingOutbound.data.channel_type !== 'unresolved',
+      channelType: existingOutbound.data.channel_type,
+    }
+  }
+
+  const route = await findBestSupplierSwitchRoute({
+    supabase,
+    gridOwnerId: requestRow.grid_owner_id,
+  })
+
+  const channelType = route
+    ? mapRouteTypeToChannelType(route.route_type)
+    : 'unresolved'
+
+  const outboundPayload = {
+    switch_request_id: requestRow.id,
+    request_type: requestRow.request_type,
+    current_supplier_name: requestRow.current_supplier_name,
+    current_supplier_org_number: requestRow.current_supplier_org_number,
+    incoming_supplier_name: requestRow.incoming_supplier_name,
+    incoming_supplier_org_number: requestRow.incoming_supplier_org_number,
+    requested_start_date: requestRow.requested_start_date,
+    grid_owner_id: requestRow.grid_owner_id,
+    price_area_code: requestRow.price_area_code,
+  }
+
+  const { data: outboundRow, error: outboundError } = await supabase
+    .from('outbound_requests')
+    .insert({
+      customer_id: requestRow.customer_id,
+      site_id: requestRow.site_id,
+      metering_point_id: requestRow.metering_point_id,
+      grid_owner_id: requestRow.grid_owner_id,
+      communication_route_id: route?.id ?? null,
+      request_type: 'supplier_switch',
+      source_type: 'supplier_switch_request',
+      source_id: requestRow.id,
+      status: 'queued',
+      channel_type: channelType,
+      payload: outboundPayload,
+      period_start: requestRow.requested_start_date,
+      queued_at: new Date().toISOString(),
+      attempts_count: 0,
+      created_by: userId,
+      updated_by: userId,
+    })
+    .select('id, status, channel_type')
+    .single()
+
+  if (outboundError) throw outboundError
+
+  const { error: eventError } = await supabase
+    .from('outbound_dispatch_events')
+    .insert({
+      outbound_request_id: outboundRow.id,
+      event_type: route ? 'queued' : 'unresolved',
+      event_status: route ? 'queued' : 'missing_route',
+      message: route
+        ? `Outbound köad automatiskt via route ${route.route_name ?? route.id}.`
+        : 'Outbound skapad utan route. Kräver manuell route-resolution.',
+      payload: {
+        routeResolved: Boolean(route),
+        communicationRouteId: route?.id ?? null,
+        channelType,
+      },
+      created_by: userId,
+      updated_by: userId,
+    })
+
+  if (eventError) throw eventError
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: requestRow.id,
+    eventType: route ? 'outbound_queued' : 'outbound_unresolved',
+    eventStatus: route ? 'queued' : 'missing_route',
+    message: route
+      ? 'Outbound skapades automatiskt efter switchskapande.'
+      : 'Switch skapades men saknar communication route mot nätägare.',
+    payload: {
+      outboundRequestId: outboundRow.id,
+      communicationRouteId: route?.id ?? null,
+      channelType,
+    },
+  })
+
+  return {
+    outboundId: outboundRow.id,
+    routeResolved: Boolean(route),
+    channelType,
+  }
+}
+
+export async function createDynamicSupplierSwitchRequestAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess(['switching.write', 'masterdata.write'])
+
+  const { supabase, user } = await getActor()
+
+  const customerId = formValue(formData, 'customer_id')
+  const siteId = formValue(formData, 'site_id')
+  const requestType = normalizeSwitchRequestType(formValue(formData, 'request_type'))
+  const requestedStartDate = normalizeDate(formValue(formData, 'requested_start_date'))
+
+  if (!customerId || !siteId) {
+    throw new Error('Customer ID eller site ID saknas')
+  }
+
+  const site = await findCustomerSiteById(supabase, siteId)
+
+  if (!site) {
+    throw new Error('Anläggningen kunde inte hittas')
+  }
+
+  const currentSupplierId = formValue(formData, 'current_supplier_id')
+  const incomingSupplierId = formValue(formData, 'incoming_supplier_id')
+
+  let currentSupplierName = formValue(formData, 'current_supplier_name')
+  let currentSupplierOrgNumber = formValue(formData, 'current_supplier_org_number')
+
+  let incomingSupplierName = formValue(formData, 'incoming_supplier_name') ?? 'Gridex'
+  let incomingSupplierOrgNumber = formValue(formData, 'incoming_supplier_org_number')
+
+  if (currentSupplierId) {
+    const { data, error } = await supabase
+      .from('electricity_suppliers')
+      .select('id, name, org_number')
+      .eq('id', currentSupplierId)
+      .maybeSingle()
+
+    if (error) throw error
+
+    if (data) {
+      currentSupplierName = currentSupplierName ?? data.name ?? null
+      currentSupplierOrgNumber =
+        currentSupplierOrgNumber ?? data.org_number ?? null
+    }
+  }
+
+  if (incomingSupplierId) {
+    const { data, error } = await supabase
+      .from('electricity_suppliers')
+      .select('id, name, org_number')
+      .eq('id', incomingSupplierId)
+      .maybeSingle()
+
+    if (error) throw error
+
+    if (data) {
+      incomingSupplierName = incomingSupplierName ?? data.name ?? 'Gridex'
+      incomingSupplierOrgNumber =
+        incomingSupplierOrgNumber ?? data.org_number ?? null
+    }
+  }
+
+  if (checkboxValue(formData, 'save_new_current_supplier') && currentSupplierName) {
+    const existing = await findElectricitySupplierMatch(supabase, {
+      name: currentSupplierName,
+      orgNumber: currentSupplierOrgNumber,
+    })
+
+    const saved = existing
+      ? existing
+      : await saveElectricitySupplier(supabase, {
+          name: currentSupplierName,
+          org_number: currentSupplierOrgNumber ?? null,
+          market_actor_code: null,
+          ediel_id: null,
+          contact_name: null,
+          email: formValue(formData, 'current_supplier_email'),
+          phone: formValue(formData, 'current_supplier_phone'),
+          notes: 'Skapad direkt från kundkortets switchflöde.',
+          is_active: true,
+        })
+
+    currentSupplierName = saved.name
+    currentSupplierOrgNumber = saved.org_number
+  }
+
+  if (checkboxValue(formData, 'save_new_incoming_supplier') && incomingSupplierName) {
+    const existing = await findElectricitySupplierMatch(supabase, {
+      name: incomingSupplierName,
+      orgNumber: incomingSupplierOrgNumber,
+    })
+
+    const saved = existing
+      ? existing
+      : await saveElectricitySupplier(supabase, {
+          name: incomingSupplierName,
+          org_number: incomingSupplierOrgNumber ?? null,
+          market_actor_code: null,
+          ediel_id: null,
+          contact_name: null,
+          email: formValue(formData, 'incoming_supplier_email'),
+          phone: formValue(formData, 'incoming_supplier_phone'),
+          notes: 'Skapad direkt från kundkortets switchflöde.',
+          is_active: true,
+        })
+
+    incomingSupplierName = saved.name
+    incomingSupplierOrgNumber = saved.org_number
+  }
+
+  await supabase
+    .from('customer_sites')
+    .update({
+      current_supplier_name: currentSupplierName ?? site.current_supplier_name,
+      current_supplier_org_number:
+        currentSupplierOrgNumber ?? site.current_supplier_org_number,
+      updated_by: user.id,
+    })
+    .eq('id', site.id)
+
+  const refreshedSite = await findCustomerSiteById(supabase, siteId)
+
+  if (!refreshedSite) {
+    throw new Error('Kunde inte läsa uppdaterad anläggning')
+  }
+
+  const existingOpenRequest = await findOpenSupplierSwitchRequestForSite(supabase, {
+    customerId,
+    siteId,
+  })
+
+  if (existingOpenRequest) {
+    revalidatePath(`/admin/customers/${customerId}`)
+    return
+  }
+
+  const [meteringPoints, powersOfAttorney] = await Promise.all([
+    listMeteringPointsForSite(supabase, siteId),
+    listPowersOfAttorneyByCustomerId(supabase, customerId),
+  ])
+
+  const readiness = evaluateSiteSwitchReadiness({
+    site: refreshedSite,
+    meteringPoints,
+    powersOfAttorney,
+  })
+
+  await syncOperationTasksFromReadiness(supabase, readiness)
+
+  if (!readiness.isReady || !readiness.candidateMeteringPointId) {
+    await insertAuditLog({
+      actorUserId: user.id,
+      entityType: 'customer_site',
+      entityId: siteId,
+      action: 'dynamic_switch_request_blocked',
+      metadata: {
+        customerId,
+        siteId,
+        requestType,
+        readiness,
+        currentSupplierName,
+        incomingSupplierName,
+      },
+    })
+
+    revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath('/admin/operations')
+    revalidatePath('/admin/operations/tasks')
+    return
+  }
+
+  const meteringPoint =
+    meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ??
+    null
+
+  if (!meteringPoint) {
+    throw new Error('Kunde inte hitta kandidat-mätpunkt för switchärendet')
+  }
+
+  const validationSnapshot = {
+    isReady: readiness.isReady,
+    issueCount: readiness.issues.length,
+    issues: readiness.issues,
+    issueCodes: readiness.issues.map((issue) => issue.code),
+    candidateMeteringPointId: readiness.candidateMeteringPointId,
+    latestPowerOfAttorneyId: readiness.latestPowerOfAttorneyId,
+    validatedAt: new Date().toISOString(),
+  }
+
+  const { data: requestRow, error: requestError } = await supabase
+    .from('supplier_switch_requests')
+    .insert({
+      customer_id: customerId,
+      site_id: refreshedSite.id,
+      metering_point_id: meteringPoint.id,
+      power_of_attorney_id: readiness.latestPowerOfAttorneyId,
+      request_type: requestType,
+      status: 'queued',
+      requested_start_date: requestedStartDate,
+      current_supplier_name: currentSupplierName ?? refreshedSite.current_supplier_name,
+      current_supplier_org_number:
+        currentSupplierOrgNumber ?? refreshedSite.current_supplier_org_number,
+      incoming_supplier_name: incomingSupplierName ?? 'Gridex',
+      incoming_supplier_org_number: incomingSupplierOrgNumber ?? null,
+      grid_owner_id: meteringPoint.grid_owner_id ?? refreshedSite.grid_owner_id ?? null,
+      price_area_code:
+        meteringPoint.price_area_code ?? refreshedSite.price_area_code ?? null,
+      validation_snapshot: validationSnapshot,
+      created_by: user.id,
+      updated_by: user.id,
+    })
+    .select('*')
+    .single()
+
+  if (requestError) throw requestError
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: requestRow.id,
+    eventType: 'created',
+    eventStatus: 'success',
+    message: 'Switchärende skapat från kundkortets dynamiska switchpanel.',
+    payload: {
+      requestType,
+      requestedStartDate,
+      currentSupplierName,
+      currentSupplierOrgNumber,
+      incomingSupplierName,
+      incomingSupplierOrgNumber,
+    },
+  })
+
+  const outboundResult = await ensureOutboundForSwitch({
+    supabase,
+    userId: user.id,
+    requestRow: {
+      ...requestRow,
+      request_type: requestType,
+    },
+  })
+
+  await insertAuditLog({
+    actorUserId: user.id,
+    entityType: 'supplier_switch_request',
+    entityId: requestRow.id,
+    action: 'dynamic_supplier_switch_request_created',
+    newValues: requestRow,
+    metadata: {
+      customerId,
+      siteId,
+      requestType,
+      validationSnapshot,
+      outbound: outboundResult,
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/operations/switches')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/unresolved')
+}

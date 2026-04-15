@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import type { OutboundRequestRow } from '@/lib/cis/types'
+import CustomerSwitchCreatePanel from '@/components/admin/customers/CustomerSwitchCreatePanel'
 import type {
   CustomerSiteRow,
   MeteringPointRow,
@@ -77,7 +78,7 @@ function statusTone(status: string | null | undefined): string {
   }
 
   if (
-    ['failed', 'rejected', 'cancelled', 'blocked', 'validation_failed'].includes(
+    ['failed', 'rejected', 'cancelled', 'blocked', 'validation_failed', 'missing_route'].includes(
       status
     )
   ) {
@@ -131,7 +132,11 @@ function readValidationSummary(
 
   const isReady = typeof source.isReady === 'boolean' ? source.isReady : null
   const issueCount =
-    typeof source.issueCount === 'number' ? source.issueCount : 0
+    typeof source.issueCount === 'number'
+      ? source.issueCount
+      : Array.isArray(source.issues)
+        ? source.issues.length
+        : 0
   const validatedAt =
     typeof source.validatedAt === 'string' ? source.validatedAt : null
 
@@ -184,11 +189,15 @@ function nextActionLabel(params: {
   }
 
   if (!outboundRequest && ['queued', 'submitted', 'accepted'].includes(request.status)) {
-    return 'Köa outbound eller öppna switch detail för att se varför dispatch saknas.'
+    return 'Outbound saknas. Kontrollera route-resolution eller köa outbound manuellt.'
+  }
+
+  if (outboundRequest?.channel_type === 'unresolved') {
+    return 'Route saknas. Gå till unresolved/outbound och koppla rätt route mot nätägaren.'
   }
 
   if (outboundRequest && ['queued', 'prepared'].includes(outboundRequest.status)) {
-    return 'Öppna outbound eller switch detail och dispatcha ärendet vidare.'
+    return 'Outbound finns. Nästa steg är dispatch vidare till nätägaren.'
   }
 
   if (outboundRequest?.status === 'sent') {
@@ -427,6 +436,19 @@ export default function CustomerSwitchOperationsCard({
     return lifecycle.stage === 'awaiting_response'
   })
 
+  const autoQueuedOutbound = switchOutboundRequests.filter(
+    (request) =>
+      request.source_type === 'supplier_switch_request' &&
+      request.channel_type !== 'unresolved' &&
+      ['queued', 'prepared'].includes(request.status)
+  )
+
+  const unresolvedOutbound = switchOutboundRequests.filter(
+    (request) =>
+      request.source_type === 'supplier_switch_request' &&
+      request.channel_type === 'unresolved'
+  )
+
   const stuckSwitches = openSwitches.filter((request) => {
     const outbound = switchOutboundRequests.find(
       (row) =>
@@ -436,6 +458,7 @@ export default function CustomerSwitchOperationsCard({
 
     return (
       !outbound ||
+      outbound.channel_type === 'unresolved' ||
       ['failed', 'cancelled', 'queued', 'prepared'].includes(outbound.status)
     )
   })
@@ -485,7 +508,10 @@ export default function CustomerSwitchOperationsCard({
         outbound.created_at,
       title: 'Outbound dispatch',
       description: `${outbound.status} · ${outbound.channel_type}`,
-      tone: outbound.status,
+      tone:
+        outbound.channel_type === 'unresolved'
+          ? 'missing_route'
+          : outbound.status,
     })),
   ].sort(
     (a, b) =>
@@ -494,7 +520,7 @@ export default function CustomerSwitchOperationsCard({
 
   return (
     <section id="switch-operations" className="space-y-6">
-      <div className="grid gap-4 xl:grid-cols-6">
+      <div className="grid gap-4 xl:grid-cols-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="text-sm text-slate-500 dark:text-slate-400">
             Aktiva switchar
@@ -566,7 +592,33 @@ export default function CustomerSwitchOperationsCard({
             Kvitterade switchar där nästa steg är intern finalize/execution.
           </div>
         </div>
+
+        <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
+          <div className="text-sm text-slate-500 dark:text-slate-400">
+            Auto-köad outbound
+          </div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
+            {autoQueuedOutbound.length}
+          </div>
+          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Switchar som redan fått outbound automatiskt efter skapande.
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-rose-200 bg-rose-50/60 p-6 shadow-sm dark:border-rose-900/50 dark:bg-rose-950/10">
+          <div className="text-sm text-slate-500 dark:text-slate-400">
+            Unresolved routes
+          </div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
+            {unresolvedOutbound.length}
+          </div>
+          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Switchar där route mot nätägare fortfarande saknas.
+          </div>
+        </div>
       </div>
+
+      <CustomerSwitchCreatePanel customerId={customerId} sites={sites} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_420px]">
         <div className="space-y-6">
@@ -576,7 +628,7 @@ export default function CustomerSwitchOperationsCard({
                 Lifecycle per anläggning
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                7.18: kundkortet visar nu var varje site faktiskt befinner sig i switchkedjan och vilken arbetsyta som är rätt nästa steg.
+                Kundkortet visar nu var varje site faktiskt befinner sig i switchkedjan, om outbound skapades automatiskt och vilken arbetsyta som är rätt nästa steg.
               </p>
             </div>
 
@@ -587,12 +639,13 @@ export default function CustomerSwitchOperationsCard({
                 </div>
               ) : (
                 siteLifecycleSummaries.map((summary) => {
-                  const journeyLink = summary.lifecycle && summary.latestRequest
-                    ? customerJourneyHref({
-                        lifecycleStage: summary.lifecycle.stage,
-                        requestId: summary.latestRequest.id,
-                      })
-                    : null
+                  const journeyLink =
+                    summary.lifecycle && summary.latestRequest
+                      ? customerJourneyHref({
+                          lifecycleStage: summary.lifecycle.stage,
+                          requestId: summary.latestRequest.id,
+                        })
+                      : null
 
                   return (
                     <article
@@ -633,10 +686,14 @@ export default function CustomerSwitchOperationsCard({
                             {summary.outbound ? (
                               <span
                                 className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                                  summary.outbound.status
+                                  summary.outbound.channel_type === 'unresolved'
+                                    ? 'missing_route'
+                                    : summary.outbound.status
                                 )}`}
                               >
-                                outbound: {summary.outbound.status}
+                                outbound: {summary.outbound.channel_type === 'unresolved'
+                                  ? 'unresolved'
+                                  : summary.outbound.status}
                               </span>
                             ) : null}
                           </div>
@@ -783,6 +840,13 @@ export default function CustomerSwitchOperationsCard({
                             </Link>
 
                             <Link
+                              href="/admin/outbound/unresolved"
+                              className="block rounded-2xl border border-rose-300 px-4 py-2.5 text-center text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300"
+                            >
+                              Öppna unresolved routes
+                            </Link>
+
+                            <Link
                               href={`/admin/customers/${customerId}`}
                               className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
                             >
@@ -889,6 +953,19 @@ export default function CustomerSwitchOperationsCard({
                           >
                             {validation.label}
                           </span>
+                          {outbound ? (
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                                outbound.channel_type === 'unresolved'
+                                  ? 'missing_route'
+                                  : outbound.status
+                              )}`}
+                            >
+                              {outbound.channel_type === 'unresolved'
+                                ? 'route saknas'
+                                : `outbound: ${outbound.status}`}
+                            </span>
+                          ) : null}
                         </div>
 
                         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -931,7 +1008,11 @@ export default function CustomerSwitchOperationsCard({
                           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
                             <div className="text-slate-500 dark:text-slate-400">Outbound</div>
                             <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {outbound?.status ?? 'saknas'}
+                              {outbound
+                                ? outbound.channel_type === 'unresolved'
+                                  ? 'unresolved'
+                                  : outbound.status
+                                : 'saknas'}
                             </div>
                           </div>
                         </div>
@@ -989,7 +1070,9 @@ export default function CustomerSwitchOperationsCard({
                             <span className="font-medium text-slate-900 dark:text-white">
                               Senaste dispatchförsök:
                             </span>{' '}
-                            {summarizeDispatchAttempt(outbound)}
+                            {outbound
+                              ? summarizeDispatchAttempt(outbound)
+                              : 'Inget dispatchförsök ännu'}
                           </div>
                           <div>
                             <span className="font-medium text-slate-900 dark:text-white">
@@ -1050,6 +1133,15 @@ export default function CustomerSwitchOperationsCard({
                           >
                             Gå till outbound
                           </Link>
+
+                          {outbound?.channel_type === 'unresolved' ? (
+                            <Link
+                              href="/admin/outbound/unresolved"
+                              className="rounded-2xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300"
+                            >
+                              Gå till unresolved
+                            </Link>
+                          ) : null}
                         </div>
                       </article>
                     )
@@ -1138,10 +1230,14 @@ export default function CustomerSwitchOperationsCard({
                   <div className="flex flex-wrap items-center gap-2">
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                        latestDispatch.status
+                        latestDispatch.channel_type === 'unresolved'
+                          ? 'missing_route'
+                          : latestDispatch.status
                       )}`}
                     >
-                      {latestDispatch.status}
+                      {latestDispatch.channel_type === 'unresolved'
+                        ? 'route saknas'
+                        : latestDispatch.status}
                     </span>
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                       {latestDispatch.channel_type}
@@ -1266,6 +1362,12 @@ export default function CustomerSwitchOperationsCard({
               >
                 Ready to execute
               </Link>
+              <Link
+                href="/admin/outbound/unresolved"
+                className="rounded-2xl border border-rose-200 bg-rose-50/60 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/10 dark:text-rose-300"
+              >
+                Unresolved routes
+              </Link>
             </div>
           </div>
 
@@ -1307,10 +1409,14 @@ export default function CustomerSwitchOperationsCard({
                         {outbound ? (
                           <span
                             className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                              outbound.status
+                              outbound.channel_type === 'unresolved'
+                                ? 'missing_route'
+                                : outbound.status
                             )}`}
                           >
-                            outbound: {outbound.status}
+                            {outbound.channel_type === 'unresolved'
+                              ? 'route saknas'
+                              : `outbound: ${outbound.status}`}
                           </span>
                         ) : null}
                       </div>
@@ -1326,13 +1432,22 @@ export default function CustomerSwitchOperationsCard({
                         })}
                       </div>
 
-                      <div className="mt-3">
+                      <div className="mt-3 flex flex-wrap gap-3">
                         <Link
                           href={`/admin/operations/switches/${request.id}`}
                           className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
                         >
                           Öppna switch detail
                         </Link>
+
+                        {outbound?.channel_type === 'unresolved' ? (
+                          <Link
+                            href="/admin/outbound/unresolved"
+                            className="text-sm font-medium text-rose-700 underline-offset-4 hover:underline dark:text-rose-300"
+                          >
+                            Öppna unresolved
+                          </Link>
+                        ) : null}
                       </div>
                     </div>
                   )

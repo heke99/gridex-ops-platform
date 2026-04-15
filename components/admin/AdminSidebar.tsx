@@ -115,6 +115,21 @@ const NAV_GROUPS: NavGroup[] = [
     description: 'Detaljarbete och tekniska flöden',
     items: [
       {
+        href: '/admin/network-owners',
+        label: 'Nätägare',
+        description: 'Register över elnätsägare',
+      },
+      {
+        href: '/admin/electricity-suppliers',
+        label: 'Elleverantörer',
+        description: 'Permanent register över leverantörer',
+      },
+      {
+        href: '/admin/price-area-localities',
+        label: 'Elområdes-orter',
+        description: 'Städer och orter för SE1–SE4',
+      },
+      {
         href: '/admin/metering',
         label: 'Metering',
         description: 'Requests och inkomna mätvärden',
@@ -241,10 +256,6 @@ export default function AdminSidebar() {
                           </p>
                         ) : null}
                       </div>
-
-                      {active ? (
-                        <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                      ) : null}
                     </div>
                   </Link>
                 )

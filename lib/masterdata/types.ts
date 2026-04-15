@@ -42,11 +42,41 @@ export type GridOwnerRow = {
   updated_by: string | null
 }
 
+export type ElectricitySupplierRow = {
+  id: string
+  name: string
+  org_number: string | null
+  market_actor_code: string | null
+  ediel_id: string | null
+  contact_name: string | null
+  email: string | null
+  phone: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+}
+
 export type PriceAreaRow = {
   code: PriceAreaCode
   name: string
   sort_order: number
   created_at: string
+}
+
+export type PriceAreaLocalityRow = {
+  id: string
+  price_area_code: PriceAreaCode
+  locality_name: string
+  municipality: string | null
+  postal_code: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
 }
 
 export type CustomerSiteRow = {

@@ -64,6 +64,44 @@ export const gridOwnerInputSchema = z.object({
 
 export type GridOwnerInput = z.infer<typeof gridOwnerInputSchema>
 
+export const electricitySupplierInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: requiredTrimmedString,
+  org_number: nullableTrimmedString,
+  market_actor_code: nullableTrimmedString,
+  ediel_id: nullableTrimmedString,
+  contact_name: nullableTrimmedString,
+  email: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => {
+      if (!value) return null
+      return value.toLowerCase()
+    })
+    .refine((value) => value === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
+      message: 'Ogiltig e-postadress',
+    }),
+  phone: nullableTrimmedString,
+  notes: nullableTrimmedString,
+  is_active: z.boolean().default(true),
+})
+
+export type ElectricitySupplierInput = z.infer<
+  typeof electricitySupplierInputSchema
+>
+
+export const priceAreaLocalityInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  price_area_code: priceAreaCodeSchema,
+  locality_name: requiredTrimmedString,
+  municipality: nullableTrimmedString,
+  postal_code: nullableTrimmedString,
+  is_active: z.boolean().default(true),
+})
+
+export type PriceAreaLocalityInput = z.infer<typeof priceAreaLocalityInputSchema>
+
 export const customerSiteInputSchema = z.object({
   id: z.string().uuid().optional(),
   customer_id: z.string().uuid(),
