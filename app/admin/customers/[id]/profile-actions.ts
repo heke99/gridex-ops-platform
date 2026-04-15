@@ -174,7 +174,6 @@ export async function saveCustomerProfileAction(formData: FormData): Promise<voi
         name: primaryContactName,
         email,
         phone,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', existingPrimaryContact.id)
 

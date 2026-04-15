@@ -1,11 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
 
-type AuthUserRow = {
-  id: string
-  email: string | null
-  created_at: string
-}
-
 type UserRoleRow = {
   user_id: string
   role_id: string
@@ -14,6 +8,12 @@ type UserRoleRow = {
     key: string
     name: string
   } | null
+}
+
+type ListedAuthUser = {
+  id: string
+  email?: string | null
+  created_at: string
 }
 
 export type AdminUserListItem = {
@@ -31,7 +31,12 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
 
   if (authError) throw authError
 
-  const userIds = authUsers.users.map((u) => u.id)
+  const typedUsers = (authUsers?.users ?? []) as ListedAuthUser[]
+  const userIds = typedUsers.map((user) => user.id)
+
+  if (userIds.length === 0) {
+    return []
+  }
 
   const { data: roleRows, error: roleError } = await supabaseService
     .from('user_roles')
@@ -43,13 +48,13 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
 
   const groupedRoles = new Map<string, string[]>()
 
-  for (const row of ((roleRows as unknown as UserRoleRow[]) ?? [])) {
+  for (const row of ((roleRows ?? []) as unknown as UserRoleRow[])) {
     const list = groupedRoles.get(row.user_id) ?? []
     if (row.roles?.key) list.push(row.roles.key)
     groupedRoles.set(row.user_id, list)
   }
 
-  return authUsers.users.map((user) => ({
+  return typedUsers.map((user) => ({
     id: user.id,
     email: user.email ?? null,
     created_at: user.created_at,

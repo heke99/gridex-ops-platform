@@ -12,6 +12,7 @@ import {
 import { buildAperakDraft, buildContrlDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
 import { buildProdatOutboundDraft } from '@/lib/ediel/prodat'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
+import { runEdielSelfTest } from '@/lib/ediel/selftest'
 import {
   createNegativeUtiltsResponse,
   pollAndIngestEdielMailbox,
@@ -228,6 +229,7 @@ export async function prepareSwitchZ03Action(formData: FormData) {
   })
 
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/operations')
 }
 
 export async function prepareSwitchZ09Action(formData: FormData) {
@@ -242,6 +244,7 @@ export async function prepareSwitchZ09Action(formData: FormData) {
   })
 
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/operations')
 }
 
 export async function sendEdielMessageAction(formData: FormData) {
@@ -258,6 +261,7 @@ export async function sendEdielMessageAction(formData: FormData) {
   })
 
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/operations')
 }
 
 export async function pollMailboxAction(formData: FormData) {
@@ -272,6 +276,7 @@ export async function pollMailboxAction(formData: FormData) {
   })
 
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/operations')
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
@@ -290,4 +295,40 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
   })
 
   revalidatePath('/admin/ediel')
+}
+
+export async function runEdielSelfTestAction(formData: FormData) {
+  const actorUserId = stringValue(formData, 'actorUserId')
+  const scenario = stringValue(formData, 'scenario') as
+    | 'PRODAT_Z04_IN'
+    | 'PRODAT_Z05_IN'
+    | 'PRODAT_Z06_IN'
+    | 'PRODAT_Z10_IN'
+    | 'UTILTS_S02_IN'
+    | 'UTILTS_S03_IN'
+    | 'UTILTS_E66_KVART_IN'
+    | 'UTILTS_E66_SCH_IN'
+    | 'UTILTS_E31_SCH_IN'
+    | 'UTILTS_NEGATIVE'
+    | null
+
+  if (!actorUserId || !scenario) {
+    throw new Error('Missing actor user id or scenario')
+  }
+
+  await runEdielSelfTest({
+    actorUserId,
+    scenario,
+    switchRequestId: stringValue(formData, 'switchRequestId'),
+    gridOwnerDataRequestId: stringValue(formData, 'gridOwnerDataRequestId'),
+    senderEdielId: stringValue(formData, 'senderEdielId'),
+    receiverEdielId: stringValue(formData, 'receiverEdielId'),
+    mailbox: stringValue(formData, 'mailbox'),
+    senderEmail: stringValue(formData, 'senderEmail'),
+    receiverEmail: stringValue(formData, 'receiverEmail'),
+  })
+
+  revalidatePath('/admin/ediel')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/customers')
 }

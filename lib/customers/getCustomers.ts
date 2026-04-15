@@ -1,4 +1,8 @@
 import { supabaseService } from '@/lib/supabase/service'
+import {
+  listCustomerIdsByLatestContractBucket,
+  type LatestContractBucketFilter,
+} from '@/lib/customer-contracts/db'
 
 export type CustomerListRow = {
   id: string
@@ -38,133 +42,167 @@ type CustomerBaseRow = {
   created_at: string
 }
 
+type CustomerSiteSearchRow = {
+  id: string
+  customer_id: string | null
+  site_name: string | null
+  facility_id: string | null
+  street: string | null
+  postal_code: string | null
+  city: string | null
+}
+
 type CustomerSiteCountRow = {
   id: string
   customer_id: string
   status: string | null
-  site_name?: string | null
-  facility_id?: string | null
-  street?: string | null
-  postal_code?: string | null
-  city?: string | null
+}
+
+type MeteringPointSearchRow = {
+  id: string
+  site_id: string | null
+  meter_point_id: string | null
 }
 
 type MeteringPointCountRow = {
   id: string
   site_id: string
   status: string | null
-  meter_point_id?: string | null
 }
 
 type GetCustomersOptions = {
   query?: string | null
 }
 
+export type CustomerStatusFilter =
+  | 'all'
+  | 'draft'
+  | 'pending_verification'
+  | 'active'
+  | 'inactive'
+  | 'moved'
+  | 'terminated'
+  | 'blocked'
+
+export type CustomerStatusCounts = {
+  all: number
+  draft: number
+  pending_verification: number
+  active: number
+  inactive: number
+  moved: number
+  terminated: number
+  blocked: number
+}
+
+export type CustomerListPageResult = {
+  rows: CustomerListRow[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+  counts: CustomerStatusCounts
+}
+
+type SearchContext = {
+  query: string
+  relatedCustomerIds: string[]
+}
+
 function sanitizeSearchTerm(value: string): string {
   return value.replace(/[%_,]/g, ' ').trim()
 }
 
-export async function getCustomers(
-  options: GetCustomersOptions = {}
-): Promise<CustomerListRow[]> {
-  const query = sanitizeSearchTerm(options.query ?? '')
+async function resolveRelatedCustomerIds(query: string): Promise<string[]> {
+  if (!query) return []
 
-  let matchingCustomerIdsFromSites = new Set<string>()
-  let matchingCustomerIdsFromMetering = new Set<string>()
-
-  if (query) {
-    const { data: matchingSites, error: siteSearchError } = await supabaseService
-      .from('customer_sites')
-      .select('id, customer_id, site_name, facility_id, street, postal_code, city')
-      .or(
-        [
-          `site_name.ilike.%${query}%`,
-          `facility_id.ilike.%${query}%`,
-          `street.ilike.%${query}%`,
-          `postal_code.ilike.%${query}%`,
-          `city.ilike.%${query}%`,
-        ].join(',')
-      )
-      .limit(100)
-
-    if (siteSearchError) throw siteSearchError
-
-    matchingCustomerIdsFromSites = new Set(
-      (matchingSites ?? []).map((row) => String(row.customer_id))
+  const { data: matchingSites, error: siteSearchError } = await supabaseService
+    .from('customer_sites')
+    .select('id, customer_id, site_name, facility_id, street, postal_code, city')
+    .or(
+      [
+        `site_name.ilike.%${query}%`,
+        `facility_id.ilike.%${query}%`,
+        `street.ilike.%${query}%`,
+        `postal_code.ilike.%${query}%`,
+        `city.ilike.%${query}%`,
+      ].join(',')
     )
+    .limit(250)
 
-    const { data: matchingPoints, error: pointSearchError } = await supabaseService
-      .from('metering_points')
-      .select('id, site_id, meter_point_id')
-      .or(`meter_point_id.ilike.%${query}%`)
-      .limit(100)
+  if (siteSearchError) throw siteSearchError
 
-    if (pointSearchError) throw pointSearchError
+  const typedMatchingSites = (matchingSites ?? []) as CustomerSiteSearchRow[]
 
-    const allSiteIds = new Set<string>()
+  const directCustomerIds = typedMatchingSites
+    .map((row) => row.customer_id)
+    .filter((value): value is string => Boolean(value))
 
-    for (const site of matchingSites ?? []) {
-      allSiteIds.add(String(site.id))
-    }
+  const { data: matchingPoints, error: pointSearchError } = await supabaseService
+    .from('metering_points')
+    .select('id, site_id, meter_point_id')
+    .or(`meter_point_id.ilike.%${query}%`)
+    .limit(250)
 
-    for (const point of matchingPoints ?? []) {
-      if (point.site_id) {
-        allSiteIds.add(String(point.site_id))
-      }
-    }
+  if (pointSearchError) throw pointSearchError
 
-    if (allSiteIds.size > 0) {
-      const { data: relatedSites, error: relatedSitesError } = await supabaseService
-        .from('customer_sites')
-        .select('id, customer_id')
-        .in('id', Array.from(allSiteIds))
+  const typedMatchingPoints = (matchingPoints ?? []) as MeteringPointSearchRow[]
+  const siteIds = new Set<string>()
 
-      if (relatedSitesError) throw relatedSitesError
-
-      matchingCustomerIdsFromMetering = new Set(
-        (relatedSites ?? []).map((row) => String(row.customer_id))
-      )
-    }
+  for (const site of typedMatchingSites) {
+    if (site.id) siteIds.add(String(site.id))
   }
 
-  let customerQuery = supabaseService
-    .from('customers')
-    .select(
-      'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
-    )
-    .order('created_at', { ascending: false })
-
-  if (query) {
-    const customerFilterParts = [
-      `full_name.ilike.%${query}%`,
-      `company_name.ilike.%${query}%`,
-      `email.ilike.%${query}%`,
-      `phone.ilike.%${query}%`,
-      `personal_number.ilike.%${query}%`,
-      `org_number.ilike.%${query}%`,
-      `customer_number.ilike.%${query}%`,
-      `first_name.ilike.%${query}%`,
-      `last_name.ilike.%${query}%`,
-    ]
-
-    const customerIdsFromRelations = Array.from(
-      new Set([
-        ...Array.from(matchingCustomerIdsFromSites),
-        ...Array.from(matchingCustomerIdsFromMetering),
-      ])
-    )
-
-    if (customerIdsFromRelations.length > 0) {
-      customerFilterParts.push(`id.in.(${customerIdsFromRelations.join(',')})`)
-    }
-
-    customerQuery = customerQuery.or(customerFilterParts.join(','))
+  for (const point of typedMatchingPoints) {
+    if (point.site_id) siteIds.add(String(point.site_id))
   }
 
-  const { data: customers, error: customerError } = await customerQuery
-  if (customerError) throw customerError
+  if (siteIds.size === 0) {
+    return Array.from(new Set(directCustomerIds))
+  }
 
-  const customerRows = (customers ?? []) as CustomerBaseRow[]
+  const { data: relatedSites, error: relatedSitesError } = await supabaseService
+    .from('customer_sites')
+    .select('id, customer_id')
+    .in('id', Array.from(siteIds))
+
+  if (relatedSitesError) throw relatedSitesError
+
+  const typedRelatedSites = (relatedSites ?? []) as Array<{
+    id: string
+    customer_id: string | null
+  }>
+
+  const meteringLinkedCustomerIds = typedRelatedSites
+    .map((row) => row.customer_id)
+    .filter((value): value is string => Boolean(value))
+
+  return Array.from(new Set([...directCustomerIds, ...meteringLinkedCustomerIds]))
+}
+
+function buildCustomerOrFilter(context: SearchContext): string | null {
+  if (!context.query) return null
+
+  const parts = [
+    `full_name.ilike.%${context.query}%`,
+    `company_name.ilike.%${context.query}%`,
+    `email.ilike.%${context.query}%`,
+    `phone.ilike.%${context.query}%`,
+    `personal_number.ilike.%${context.query}%`,
+    `org_number.ilike.%${context.query}%`,
+    `customer_number.ilike.%${context.query}%`,
+    `first_name.ilike.%${context.query}%`,
+    `last_name.ilike.%${context.query}%`,
+  ]
+
+  if (context.relatedCustomerIds.length > 0) {
+    parts.push(`id.in.(${context.relatedCustomerIds.join(',')})`)
+  }
+
+  return parts.join(',')
+}
+
+async function buildCustomerRows(customerRows: CustomerBaseRow[]): Promise<CustomerListRow[]> {
   const customerIds = customerRows.map((row) => row.id)
 
   if (customerIds.length === 0) {
@@ -173,7 +211,7 @@ export async function getCustomers(
 
   const { data: siteRows, error: siteError } = await supabaseService
     .from('customer_sites')
-    .select('id, customer_id, status, site_name, facility_id, street, postal_code, city')
+    .select('id, customer_id, status')
     .in('customer_id', customerIds)
 
   if (siteError) throw siteError
@@ -185,7 +223,7 @@ export async function getCustomers(
     siteIds.length > 0
       ? await supabaseService
           .from('metering_points')
-          .select('id, site_id, status, meter_point_id')
+          .select('id, site_id, status')
           .in('site_id', siteIds)
       : { data: [], error: null }
 
@@ -240,4 +278,146 @@ export async function getCustomers(
     active_metering_point_count:
       activeMeteringPointCountByCustomer.get(customer.id) ?? 0,
   }))
+}
+
+async function countCustomersByStatus(
+  context: SearchContext,
+  status?: Exclude<CustomerStatusFilter, 'all'>
+): Promise<number> {
+  let query = supabaseService
+    .from('customers')
+    .select('id', { count: 'exact', head: true })
+
+  const orFilter = buildCustomerOrFilter(context)
+  if (orFilter) {
+    query = query.or(orFilter)
+  }
+
+  if (status) {
+    query = query.eq('status', status)
+  }
+
+  const { count, error } = await query
+  if (error) throw error
+
+  return count ?? 0
+}
+
+export async function listCustomersPage(options: {
+  query?: string | null
+  page?: number
+  pageSize?: number
+  status?: CustomerStatusFilter
+  contractFilter?: LatestContractBucketFilter
+} = {}): Promise<CustomerListPageResult> {
+  const query = sanitizeSearchTerm(options.query ?? '')
+  const page = Math.max(options.page ?? 1, 1)
+  const pageSize = Math.min(Math.max(options.pageSize ?? 100, 1), 100)
+  const status = options.status ?? 'all'
+  const contractFilter = options.contractFilter ?? 'all'
+
+  const relatedCustomerIds = await resolveRelatedCustomerIds(query)
+  const context: SearchContext = {
+    query,
+    relatedCustomerIds,
+  }
+
+  let customerRows: CustomerBaseRow[] = []
+  let total = 0
+
+  if (contractFilter !== 'all') {
+    const contractFiltered = await listCustomerIdsByLatestContractBucket({
+      query,
+      customerStatus: status === 'all' ? null : status,
+      bucket: contractFilter,
+      page,
+      pageSize,
+    })
+
+    total = contractFiltered.total
+
+    if (contractFiltered.customerIds.length > 0) {
+      const { data, error } = await supabaseService
+        .from('customers')
+        .select(
+          'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
+        )
+        .in('id', contractFiltered.customerIds)
+
+      if (error) throw error
+
+      const rows = (data ?? []) as CustomerBaseRow[]
+      const rank = new Map(
+        contractFiltered.customerIds.map((id, index) => [id, index])
+      )
+
+      customerRows = rows.sort(
+        (a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0)
+      )
+    }
+  } else {
+    let rowsQuery = supabaseService
+      .from('customers')
+      .select(
+        'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at',
+        { count: 'exact' }
+      )
+      .order('created_at', { ascending: false })
+
+    const orFilter = buildCustomerOrFilter(context)
+    if (orFilter) {
+      rowsQuery = rowsQuery.or(orFilter)
+    }
+
+    if (status !== 'all') {
+      rowsQuery = rowsQuery.eq('status', status)
+    }
+
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    const { data, error, count } = await rowsQuery.range(from, to)
+    if (error) throw error
+
+    customerRows = (data ?? []) as CustomerBaseRow[]
+    total = count ?? 0
+  }
+
+  const rows = await buildCustomerRows(customerRows)
+
+  const counts: CustomerStatusCounts = {
+    all: await countCustomersByStatus(context),
+    draft: await countCustomersByStatus(context, 'draft'),
+    pending_verification: await countCustomersByStatus(context, 'pending_verification'),
+    active: await countCustomersByStatus(context, 'active'),
+    inactive: await countCustomersByStatus(context, 'inactive'),
+    moved: await countCustomersByStatus(context, 'moved'),
+    terminated: await countCustomersByStatus(context, 'terminated'),
+    blocked: await countCustomersByStatus(context, 'blocked'),
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+  return {
+    rows,
+    total,
+    page,
+    pageSize,
+    totalPages,
+    counts,
+  }
+}
+
+export async function getCustomers(
+  options: GetCustomersOptions = {}
+): Promise<CustomerListRow[]> {
+  const result = await listCustomersPage({
+    query: options.query,
+    page: 1,
+    pageSize: 100,
+    status: 'all',
+    contractFilter: 'all',
+  })
+
+  return result.rows
 }

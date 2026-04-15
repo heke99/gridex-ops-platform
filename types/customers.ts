@@ -80,11 +80,17 @@ export type CustomerNoteRow = {
   updated_at: string
 }
 
+/**
+ * Håller både nuvarande masterdata-statusar och äldre alias
+ * så att adminvyerna inte kraschar medan resten av appen successivt synkas.
+ */
 export type CustomerSiteStatus =
   | 'draft'
-  | 'pending_activation'
   | 'active'
+  | 'pending_move'
   | 'inactive'
+  | 'closed'
+  | 'pending_activation'
   | 'moved'
   | 'ended'
   | string

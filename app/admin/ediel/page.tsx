@@ -13,6 +13,7 @@ import {
   prepareSwitchZ03Action,
   prepareSwitchZ09Action,
   registerInboundUtiltsAction,
+  runEdielSelfTestAction,
   sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
 
@@ -43,20 +44,36 @@ export default async function AdminEdielPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [messages, testRuns] = await Promise.all([
+  const [messages, testRuns, switchRequestsRaw, dataRequestsRaw] = await Promise.all([
     listEdielMessages({ limit: 30 }),
     listEdielTestRuns(),
+    supabase
+      .from('supplier_switch_requests')
+      .select('id,status,customer_id,site_id,metering_point_id,external_reference,created_at')
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('grid_owner_data_requests')
+      .select('id,status,request_scope,customer_id,site_id,metering_point_id,external_reference,created_at')
+      .order('created_at', { ascending: false })
+      .limit(10),
   ])
+
+  if (switchRequestsRaw.error) throw switchRequestsRaw.error
+  if (dataRequestsRaw.error) throw dataRequestsRaw.error
+
+  const switchRequests = switchRequestsRaw.data ?? []
+  const dataRequests = dataRequestsRaw.data ?? []
 
   return (
     <div className="space-y-6">
       <AdminHeader
         title="Ediel"
-        subtitle="Tydlig inbox, outbox, mailbox-polling, SMTP-sändning, kvittenser och testspår mot Edielportalen."
+        subtitle="Tydlig inbox, outbox, mailbox-polling, SMTP-sändning, kvittenser, self-test och testspår mot Edielportalen."
         userEmail={user?.email ?? null}
       />
 
-      <section className="grid gap-4 md:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="text-sm text-slate-500">Totalt</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950">{messages.length}</div>
@@ -83,6 +100,137 @@ export default async function AdminEdielPage() {
           <div className="text-sm text-slate-500">UTILTS</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950">
             {messages.filter((row) => row.message_family === 'UTILTS').length}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Self-test / runs</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {testRuns.length}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <h2 className="text-lg font-semibold text-slate-950">Ediel self-test / simulator</h2>
+        <p className="mt-1 text-sm text-slate-700">
+          Kör interna testscenarier mot riktiga switch requests och data requests innan du fått ditt test-Ediel-id.
+          Detta simulerar inbound Ediel, kopplar meddelandena till riktiga poster, uppdaterar statusar och skapar kvittenser.
+        </p>
+
+        <form action={runEdielSelfTestAction} className="mt-4 space-y-3">
+          <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <input
+              name="scenario"
+              placeholder="Scenario, t.ex. PRODAT_Z04_IN"
+              className="rounded-xl border border-slate-300 px-3 py-2"
+              required
+            />
+            <input
+              name="switchRequestId"
+              placeholder="Switch request-id för PRODAT-scenarier"
+              className="rounded-xl border border-slate-300 px-3 py-2"
+            />
+            <input
+              name="gridOwnerDataRequestId"
+              placeholder="Data request-id för UTILTS-scenarier"
+              className="rounded-xl border border-slate-300 px-3 py-2"
+            />
+
+            <input
+              name="senderEdielId"
+              placeholder="Simulerad avsändare, t.ex. 91100"
+              defaultValue="91100"
+              className="rounded-xl border border-slate-300 px-3 py-2"
+            />
+            <input
+              name="receiverEdielId"
+              placeholder="Simulerad mottagare"
+              defaultValue="GRIDEX-SIM"
+              className="rounded-xl border border-slate-300 px-3 py-2"
+            />
+            <input
+              name="mailbox"
+              placeholder="Mailbox"
+              defaultValue="SELFTEST"
+              className="rounded-xl border border-slate-300 px-3 py-2"
+            />
+
+            <input
+              name="senderEmail"
+              placeholder="Avsändare e-post"
+              defaultValue="svk-selftest@gridex.local"
+              className="rounded-xl border border-slate-300 px-3 py-2"
+            />
+            <input
+              name="receiverEmail"
+              placeholder="Mottagare e-post"
+              defaultValue="ediel@gridex.se"
+              className="rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+            <div className="font-semibold text-slate-900">Stödda scenarier</div>
+            <div className="mt-2 grid gap-2 md:grid-cols-2">
+              <div>PRODAT_Z04_IN</div>
+              <div>PRODAT_Z05_IN</div>
+              <div>PRODAT_Z06_IN</div>
+              <div>PRODAT_Z10_IN</div>
+              <div>UTILTS_S02_IN</div>
+              <div>UTILTS_S03_IN</div>
+              <div>UTILTS_E66_KVART_IN</div>
+              <div>UTILTS_E66_SCH_IN</div>
+              <div>UTILTS_E31_SCH_IN</div>
+              <div>UTILTS_NEGATIVE</div>
+            </div>
+          </div>
+
+          <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+            Kör self-test scenario
+          </button>
+        </form>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-950">Senaste switch requests</h2>
+          <div className="mt-4 space-y-3">
+            {switchRequests.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
+                Inga switch requests ännu.
+              </div>
+            ) : (
+              switchRequests.map((row) => (
+                <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="text-sm font-semibold text-slate-950">{row.id}</div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    status {row.status} · kund {row.customer_id} · site {row.site_id}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-950">Senaste data requests</h2>
+          <div className="mt-4 space-y-3">
+            {dataRequests.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
+                Inga grid owner data requests ännu.
+              </div>
+            ) : (
+              dataRequests.map((row) => (
+                <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="text-sm font-semibold text-slate-950">{row.id}</div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {row.request_scope} · {row.status} · kund {row.customer_id}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>

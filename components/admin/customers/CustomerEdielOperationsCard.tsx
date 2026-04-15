@@ -77,11 +77,6 @@ function statusTone(status: string | null | undefined): string {
   return 'bg-slate-100 text-slate-700'
 }
 
-function siteName(siteId: string | null, sites: CustomerSiteRow[]): string {
-  if (!siteId) return '—'
-  return sites.find((site) => site.id === siteId)?.site_name ?? siteId
-}
-
 function meteringPointName(
   meteringPointId: string | null,
   meteringPoints: MeteringPointRow[]
@@ -298,6 +293,14 @@ export default async function CustomerEdielOperationsCard({
                 )
                 const profile = route ? routeProfileMap.get(route.id) ?? null : null
 
+                const autoRouteId = route?.id ?? ''
+                const autoMailbox = profile?.mailbox ?? 'ediel@gridex.se'
+                const autoSenderEdielId = profile?.sender_ediel_id ?? ''
+                const autoReceiverEdielId =
+                  profile?.receiver_ediel_id ?? gridOwner?.ediel_id ?? ''
+                const autoReceiverEmail =
+                  route?.target_email ?? gridOwner?.email ?? ''
+
                 return (
                   <article
                     key={request.id}
@@ -329,94 +332,138 @@ export default async function CustomerEdielOperationsCard({
                             : request.grid_owner_id
                         }
                       />
-                      <Grid label="Route" value={route?.route_name ?? '—'} />
-                      <Grid label="Mailbox" value={profile?.mailbox ?? '—'} />
+                      <Grid label="Auto route" value={route?.route_name ?? '—'} />
+                      <Grid label="Auto mailbox" value={autoMailbox} />
                     </div>
 
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <form action={prepareSwitchZ03Action} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                      <form
+                        action={prepareSwitchZ03Action}
+                        className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                      >
                         <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
                         <input type="hidden" name="switchRequestId" value={request.id} />
-                        <input
-                          type="hidden"
-                          name="communicationRouteId"
-                          value={route?.id ?? ''}
-                        />
-                        <input
-                          type="hidden"
-                          name="senderEdielId"
-                          value={profile?.sender_ediel_id ?? ''}
-                        />
-                        <input
-                          type="hidden"
-                          name="receiverEdielId"
-                          value={profile?.receiver_ediel_id ?? gridOwner?.ediel_id ?? ''}
-                        />
-                        <input
-                          type="hidden"
-                          name="receiverEmail"
-                          value={route?.target_email ?? gridOwner?.email ?? ''}
-                        />
-                        <input
-                          type="hidden"
-                          name="mailbox"
-                          value={profile?.mailbox ?? 'ediel@gridex.se'}
-                        />
 
                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
                           Förbered Z03
                         </div>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                          Leverantörsbytesanmälan direkt från switchärendet.
+                          Automatiskt prefyllt från vald Ediel-route. Du kan skriva över
+                          manuellt här om self test kräver det.
                         </p>
 
+                        <RoutePrefillNotice
+                          routeId={autoRouteId || null}
+                          routeName={route?.route_name ?? null}
+                          mailbox={autoMailbox}
+                          senderEdielId={autoSenderEdielId || null}
+                          receiverEdielId={autoReceiverEdielId || null}
+                        />
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <EditableField
+                            label="Communication route-id"
+                            name="communicationRouteId"
+                            defaultValue={autoRouteId}
+                            placeholder="Route-id"
+                          />
+                          <EditableField
+                            label="Mailbox"
+                            name="mailbox"
+                            defaultValue={autoMailbox}
+                            placeholder="ediel@gridex.se"
+                            required
+                          />
+                          <EditableField
+                            label="Gridex Ediel-id"
+                            name="senderEdielId"
+                            defaultValue={autoSenderEdielId}
+                            placeholder="Gridex Ediel-id"
+                            required
+                          />
+                          <EditableField
+                            label="Nätägarens Ediel-id"
+                            name="receiverEdielId"
+                            defaultValue={autoReceiverEdielId}
+                            placeholder="Nätägarens Ediel-id"
+                            required
+                          />
+                          <EditableField
+                            label="Mottagarens e-post"
+                            name="receiverEmail"
+                            defaultValue={autoReceiverEmail}
+                            placeholder="nätägare@example.se"
+                          />
+                        </div>
+
                         <button
-                          className="mt-4 w-full rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-                          disabled={!profile?.sender_ediel_id || !(profile?.receiver_ediel_id ?? gridOwner?.ediel_id)}
+                          className="mt-4 w-full rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
                         >
                           Skapa Z03-utkast
                         </button>
                       </form>
 
-                      <form action={prepareSwitchZ09Action} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                      <form
+                        action={prepareSwitchZ09Action}
+                        className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                      >
                         <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
                         <input type="hidden" name="switchRequestId" value={request.id} />
-                        <input
-                          type="hidden"
-                          name="communicationRouteId"
-                          value={route?.id ?? ''}
-                        />
-                        <input
-                          type="hidden"
-                          name="senderEdielId"
-                          value={profile?.sender_ediel_id ?? ''}
-                        />
-                        <input
-                          type="hidden"
-                          name="receiverEdielId"
-                          value={profile?.receiver_ediel_id ?? gridOwner?.ediel_id ?? ''}
-                        />
-                        <input
-                          type="hidden"
-                          name="receiverEmail"
-                          value={route?.target_email ?? gridOwner?.email ?? ''}
-                        />
-                        <input
-                          type="hidden"
-                          name="mailbox"
-                          value={profile?.mailbox ?? 'ediel@gridex.se'}
-                        />
 
                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
                           Förbered Z09
                         </div>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                          Uppdatering av grunduppgifter från verklig kund-/anläggningsdata.
+                          Automatiskt prefyllt från vald Ediel-route. Du kan skriva över
+                          manuellt här om scenariot kräver andra värden.
                         </p>
 
+                        <RoutePrefillNotice
+                          routeId={autoRouteId || null}
+                          routeName={route?.route_name ?? null}
+                          mailbox={autoMailbox}
+                          senderEdielId={autoSenderEdielId || null}
+                          receiverEdielId={autoReceiverEdielId || null}
+                        />
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <EditableField
+                            label="Communication route-id"
+                            name="communicationRouteId"
+                            defaultValue={autoRouteId}
+                            placeholder="Route-id"
+                          />
+                          <EditableField
+                            label="Mailbox"
+                            name="mailbox"
+                            defaultValue={autoMailbox}
+                            placeholder="ediel@gridex.se"
+                            required
+                          />
+                          <EditableField
+                            label="Gridex Ediel-id"
+                            name="senderEdielId"
+                            defaultValue={autoSenderEdielId}
+                            placeholder="Gridex Ediel-id"
+                            required
+                          />
+                          <EditableField
+                            label="Nätägarens Ediel-id"
+                            name="receiverEdielId"
+                            defaultValue={autoReceiverEdielId}
+                            placeholder="Nätägarens Ediel-id"
+                            required
+                          />
+                          <EditableField
+                            label="Mottagarens e-post"
+                            name="receiverEmail"
+                            defaultValue={autoReceiverEmail}
+                            placeholder="nätägare@example.se"
+                          />
+                        </div>
+
                         <button
-                          className="mt-4 w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200"
-                          disabled={!profile?.sender_ediel_id || !(profile?.receiver_ediel_id ?? gridOwner?.ediel_id)}
+                          className="mt-4 w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
                         >
                           Skapa Z09-utkast
                         </button>
@@ -454,6 +501,9 @@ export default async function CustomerEdielOperationsCard({
                   )
                   const profile = route ? routeProfileMap.get(route.id) ?? null : null
 
+                  const autoRouteId = route?.id ?? ''
+                  const autoMailbox = profile?.mailbox ?? 'INBOX'
+
                   return (
                     <article
                       key={request.id}
@@ -478,27 +528,41 @@ export default async function CustomerEdielOperationsCard({
                           label="Mätpunkt"
                           value={meteringPointName(request.metering_point_id, meteringPoints)}
                         />
-                        <Grid label="Route" value={route?.route_name ?? '—'} />
-                        <Grid label="Mailbox" value={profile?.mailbox ?? 'INBOX'} />
+                        <Grid label="Auto route" value={route?.route_name ?? '—'} />
+                        <Grid label="Auto mailbox" value={autoMailbox} />
                       </div>
 
-                      <form action={pollMailboxAction} className="mt-4">
+                      <form action={pollMailboxAction} className="mt-4 space-y-4">
                         <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
-                        <input
-                          type="hidden"
-                          name="communicationRouteId"
-                          value={route?.id ?? ''}
-                        />
-                        <input
-                          type="hidden"
-                          name="mailbox"
-                          value={profile?.mailbox ?? 'INBOX'}
-                        />
                         <input type="hidden" name="limit" value="10" />
 
+                        <RoutePrefillNotice
+                          routeId={autoRouteId || null}
+                          routeName={route?.route_name ?? null}
+                          mailbox={autoMailbox}
+                          senderEdielId={null}
+                          receiverEdielId={null}
+                          compact
+                        />
+
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <EditableField
+                            label="Communication route-id"
+                            name="communicationRouteId"
+                            defaultValue={autoRouteId}
+                            placeholder="Route-id"
+                          />
+                          <EditableField
+                            label="Mailbox"
+                            name="mailbox"
+                            defaultValue={autoMailbox}
+                            placeholder="INBOX"
+                            required
+                          />
+                        </div>
+
                         <button
-                          className="w-full rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-                          disabled={!route}
+                          className="w-full rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
                         >
                           Poll mailbox för UTILTS
                         </button>
@@ -565,9 +629,9 @@ export default async function CustomerEdielOperationsCard({
                     ) : null}
 
                     <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                      Skapad {formatDateTime(message.created_at)} ·
-                      {' '}skickad {formatDateTime(message.sent_at)} ·
-                      {' '}inkommen {formatDateTime(message.message_received_at)}
+                      Skapad {formatDateTime(message.created_at)} · skickad{' '}
+                      {formatDateTime(message.sent_at)} · inkommen{' '}
+                      {formatDateTime(message.message_received_at)}
                     </div>
                   </article>
                 ))
@@ -577,6 +641,78 @@ export default async function CustomerEdielOperationsCard({
         </div>
       </div>
     </section>
+  )
+}
+
+function RoutePrefillNotice({
+  routeId,
+  routeName,
+  mailbox,
+  senderEdielId,
+  receiverEdielId,
+  compact = false,
+}: {
+  routeId: string | null
+  routeName: string | null
+  mailbox: string | null
+  senderEdielId: string | null
+  receiverEdielId: string | null
+  compact?: boolean
+}) {
+  const hasCoreIds = Boolean(senderEdielId && receiverEdielId)
+
+  return (
+    <div
+      className={`rounded-2xl border px-3 py-3 text-sm ${
+        hasCoreIds || compact
+          ? 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300'
+          : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200'
+      }`}
+    >
+      <div className="font-medium">
+        {routeName ? `Automatiskt prefyllt från route: ${routeName}` : 'Ingen komplett Ediel-route hittad'}
+      </div>
+      <div className="mt-1 text-xs leading-5">
+        Route-id: {routeId ?? '—'} · Mailbox: {mailbox ?? '—'}
+        {!compact ? ` · Sender: ${senderEdielId ?? '—'} · Receiver: ${receiverEdielId ?? '—'}` : ''}
+      </div>
+      <div className="mt-2 text-xs leading-5">
+        Fälten nedan är skrivbara för manuell testning. Lämnar du de prefyllda värdena används Ediel-konfigurationen automatiskt. Vill du ändra standardvärden permanent gör du det i{' '}
+        <Link href="/admin/ediel/routes" className="underline">
+          Ediel-routes
+        </Link>
+        .
+      </div>
+    </div>
+  )
+}
+
+function EditableField({
+  label,
+  name,
+  defaultValue,
+  placeholder,
+  required = false,
+}: {
+  label: string
+  name: string
+  defaultValue: string
+  placeholder: string
+  required?: boolean
+}) {
+  return (
+    <label className="grid gap-1">
+      <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
+      <input
+        name={name}
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+        required={required}
+        className="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+      />
+    </label>
   )
 }
 

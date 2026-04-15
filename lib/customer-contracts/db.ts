@@ -19,6 +19,31 @@ function slugify(value: string): string {
     .replace(/-+/g, '-')
 }
 
+export type LatestCustomerContractSummary = {
+  contract_name: string
+  status: CustomerContractRow['status']
+  contract_type: CustomerContractRow['contract_type']
+  monthly_fee_sek: number | null
+  starts_at: string | null
+} | null
+
+export type LatestContractBucketFilter =
+  | 'all'
+  | 'none'
+  | 'pending_signature'
+  | 'signed'
+  | 'active'
+  | 'closed'
+
+export type LatestContractBucketCounts = {
+  all: number
+  none: number
+  pending_signature: number
+  signed: number
+  active: number
+  closed: number
+}
+
 export async function listContractOffers(options: {
   activeOnly?: boolean
 } = {}): Promise<ContractOfferRow[]> {
@@ -117,6 +142,117 @@ export async function listCustomerContractsByCustomerId(
 
   if (error) throw error
   return (data ?? []) as CustomerContractRow[]
+}
+
+export async function listLatestCustomerContractsByCustomerIds(
+  customerIds: string[]
+): Promise<Map<string, LatestCustomerContractSummary>> {
+  const result = new Map<string, LatestCustomerContractSummary>()
+
+  if (customerIds.length === 0) {
+    return result
+  }
+
+  const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .select('*')
+    .in('customer_id', customerIds)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  const rows = (data ?? []) as CustomerContractRow[]
+
+  for (const row of rows) {
+    if (!result.has(row.customer_id)) {
+      result.set(row.customer_id, {
+        contract_name: row.contract_name,
+        status: row.status,
+        contract_type: row.contract_type,
+        monthly_fee_sek: row.monthly_fee_sek,
+        starts_at: row.starts_at,
+      })
+    }
+  }
+
+  return result
+}
+
+export async function getLatestContractBucketCounts(options: {
+  query?: string | null
+  customerStatus?: string | null
+} = {}): Promise<LatestContractBucketCounts> {
+  const { data, error } = await supabaseService.rpc(
+    'admin_customer_latest_contract_counts',
+    {
+      search_text: options.query?.trim() || null,
+      customer_status: options.customerStatus?.trim() || null,
+    }
+  )
+
+  if (error) throw error
+
+  const rows = (data ?? []) as Array<{
+    bucket: string
+    total: number | string
+  }>
+
+  const counts: LatestContractBucketCounts = {
+    all: 0,
+    none: 0,
+    pending_signature: 0,
+    signed: 0,
+    active: 0,
+    closed: 0,
+  }
+
+  for (const row of rows) {
+    const total = Number(row.total ?? 0)
+
+    if (row.bucket === 'none') counts.none += total
+    if (row.bucket === 'pending_signature') counts.pending_signature += total
+    if (row.bucket === 'signed') counts.signed += total
+    if (row.bucket === 'active') counts.active += total
+    if (row.bucket === 'closed') counts.closed += total
+
+    counts.all += total
+  }
+
+  return counts
+}
+
+export async function listCustomerIdsByLatestContractBucket(options: {
+  query?: string | null
+  customerStatus?: string | null
+  bucket: LatestContractBucketFilter
+  page: number
+  pageSize: number
+}): Promise<{
+  customerIds: string[]
+  total: number
+}> {
+  const { data, error } = await supabaseService.rpc(
+    'admin_customer_ids_by_latest_contract',
+    {
+      search_text: options.query?.trim() || null,
+      customer_status: options.customerStatus?.trim() || null,
+      contract_bucket: options.bucket,
+      page_num: options.page,
+      page_size: options.pageSize,
+    }
+  )
+
+  if (error) throw error
+
+  const rows = (data ?? []) as Array<{
+    customer_id: string
+    total_count: number | string
+  }>
+
+  return {
+    customerIds: rows.map((row) => row.customer_id),
+    total: rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0,
+  }
 }
 
 export async function getCustomerContractById(
