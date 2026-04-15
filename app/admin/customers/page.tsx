@@ -1,9 +1,10 @@
-// app/admin/customers/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
+import type { IntakeActionState, IntakeFieldErrors } from './actionState'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { createCustomerAction } from './actions'
+import { initialIntakeActionState } from './actionState'
 import { getCustomers } from '@/lib/customers/getCustomers'
 import { supabaseService } from '@/lib/supabase/service'
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
@@ -513,6 +514,11 @@ function customerDisplayName(customer: CustomerWithOperations): string {
   )
 }
 
+async function createCustomerFromCustomersPage(formData: FormData) {
+  'use server'
+  await createCustomerAction(initialIntakeActionState, formData)
+}
+
 export default async function AdminCustomersPage({
   searchParams,
 }: CustomersPageProps) {
@@ -710,7 +716,7 @@ export default async function AdminCustomersPage({
               Skapa kundpost innan avtal, fullmakt och anläggning kopplas. För full kundregistrering med avtal, nätägare och bulkimport använder du Kundintag.
             </p>
 
-            <form action={createCustomerAction} className="mt-6 space-y-4">
+            <form action={createCustomerFromCustomersPage} className="mt-6 space-y-4">
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
                   Kundtyp
