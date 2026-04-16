@@ -1,5 +1,4 @@
 // lib/ediel/db.ts
-
 import { supabaseService } from '@/lib/supabase/service'
 import type {
   CreateEdielMessageEventInput,

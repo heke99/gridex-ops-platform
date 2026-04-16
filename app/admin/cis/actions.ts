@@ -1,3 +1,4 @@
+// app/admin/cis/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -13,6 +14,7 @@ import {
   ingestBillingUnderlay,
   ingestMeteringValue,
   saveCommunicationRoute,
+  syncGridOwnerDataRequestFromOutbound,
   updateGridOwnerDataRequestStatus,
   updateOutboundRequestStatus,
   updatePartnerExportStatus,
@@ -269,6 +271,7 @@ export async function saveCommunicationRouteAction(
 
   revalidatePath('/admin/integrations/routes')
   revalidatePath('/admin/outbound')
+  revalidatePath('/admin/ediel')
 }
 
 export async function queueOutboundRequestAction(
@@ -325,6 +328,7 @@ export async function queueOutboundRequestAction(
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/ediel')
 }
 
 export async function updateOutboundRequestStatusAction(
@@ -339,7 +343,8 @@ export async function updateOutboundRequestStatusAction(
   const actor = await getActor()
   const outboundRequestId = formValue(formData, 'outbound_request_id') ?? ''
   const customerId = formValue(formData, 'customer_id') ?? ''
-  const status = (formValue(formData, 'status') as OutboundRequestStatus | null) ?? 'queued'
+  const status =
+    (formValue(formData, 'status') as OutboundRequestStatus | null) ?? 'queued'
 
   if (!outboundRequestId || !customerId) {
     throw new Error('outbound_request_id och customer_id krävs')
@@ -362,6 +367,11 @@ export async function updateOutboundRequestStatusAction(
     actorUserId: actor.id,
   })
 
+  const syncedGridOwnerDataRequest = await syncGridOwnerDataRequestFromOutbound({
+    actorUserId: actor.id,
+    outboundRequest: saved,
+  })
+
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: 'outbound_request',
@@ -373,6 +383,8 @@ export async function updateOutboundRequestStatusAction(
       status: saved.status,
       syncedSwitchRequestId: syncedSwitch?.id ?? null,
       syncedSwitchStatus: syncedSwitch?.status ?? null,
+      syncedGridOwnerDataRequestId: syncedGridOwnerDataRequest?.id ?? null,
+      syncedGridOwnerDataRequestStatus: syncedGridOwnerDataRequest?.status ?? null,
     },
   })
 
@@ -386,6 +398,9 @@ export async function updateOutboundRequestStatusAction(
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
+  revalidatePath('/admin/metering')
+  revalidatePath('/admin/billing')
+  revalidatePath('/admin/ediel')
 }
 
 export async function updateGridOwnerDataRequestStatusAction(
@@ -439,6 +454,7 @@ export async function updateGridOwnerDataRequestStatusAction(
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/ediel')
 }
 
 export async function updatePartnerExportStatusAction(
@@ -703,6 +719,7 @@ export async function queueSupplierSwitchOutboundAction(
   revalidatePath('/admin/operations/switches')
   revalidatePath('/admin/operations/tasks')
   revalidatePath(`/admin/customers/${request.customer_id}`)
+  revalidatePath('/admin/ediel')
 }
 
 export async function bulkQueueMissingMeterValuesAction(
@@ -783,6 +800,7 @@ export async function bulkQueueMissingMeterValuesAction(
     periodEnd: period?.periodEnd ?? null,
   }
 }
+
 export async function bulkQueueMissingBillingUnderlaysAction(
   formData: FormData
 ): Promise<{

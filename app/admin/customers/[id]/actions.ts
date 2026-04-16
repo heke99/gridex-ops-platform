@@ -1,3 +1,4 @@
+// app/admin/customers/[id]/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -32,6 +33,9 @@ import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import {
   createGridOwnerDataRequest,
   createPartnerExport,
+  createOutboundRequest,
+  findOpenOutboundBySource,
+  updateGridOwnerDataRequestStatus,
 } from '@/lib/cis/db'
 
 function formValue(formData: FormData, key: string): string | null {
@@ -82,6 +86,13 @@ function normalizePartnerExportKind(
   if (value === 'meter_values') return 'meter_values'
   if (value === 'customer_snapshot') return 'customer_snapshot'
   return 'billing_underlay'
+}
+
+function mapGridOwnerRequestScopeToOutboundType(
+  value: 'meter_values' | 'billing_underlay' | 'customer_masterdata'
+): 'meter_values' | 'billing_underlay' {
+  if (value === 'billing_underlay') return 'billing_underlay'
+  return 'meter_values'
 }
 
 async function getActor() {
@@ -595,24 +606,82 @@ export async function createGridOwnerDataRequestAction(
     throw new Error('Customer ID saknas')
   }
 
+  const siteId = formValue(formData, 'site_id') || null
+  const meteringPointId = formValue(formData, 'metering_point_id') || null
+  const gridOwnerId = formValue(formData, 'grid_owner_id') || null
+  const requestScope = normalizeGridOwnerRequestScope(
+    formValue(formData, 'request_scope')
+  )
+  const requestedPeriodStart = normalizeDateOrNull(
+    formValue(formData, 'requested_period_start')
+  )
+  const requestedPeriodEnd = normalizeDateOrNull(
+    formValue(formData, 'requested_period_end')
+  )
+  const externalReference = formValue(formData, 'external_reference') || null
+  const notes = formValue(formData, 'notes') || null
+
   const saved = await createGridOwnerDataRequest({
     actorUserId: actor.id,
     customerId,
-    siteId: formValue(formData, 'site_id') || null,
-    meteringPointId: formValue(formData, 'metering_point_id') || null,
-    gridOwnerId: formValue(formData, 'grid_owner_id') || null,
-    requestScope: normalizeGridOwnerRequestScope(formValue(formData, 'request_scope')),
-    requestedPeriodStart: normalizeDateOrNull(
-      formValue(formData, 'requested_period_start')
-    ),
-    requestedPeriodEnd: normalizeDateOrNull(
-      formValue(formData, 'requested_period_end')
-    ),
-    externalReference: formValue(formData, 'external_reference') || null,
-    notes: formValue(formData, 'notes') || null,
+    siteId,
+    meteringPointId,
+    gridOwnerId,
+    requestScope,
+    requestedPeriodStart,
+    requestedPeriodEnd,
+    externalReference,
+    notes,
   })
 
+  const existingOutbound = await findOpenOutboundBySource({
+    sourceType: 'grid_owner_data_request',
+    sourceId: saved.id,
+    requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope),
+  })
+
+  let outbound = existingOutbound
+
+  if (!outbound) {
+    outbound = await createOutboundRequest({
+      actorUserId: actor.id,
+      customerId,
+      siteId: saved.site_id,
+      meteringPointId: saved.metering_point_id,
+      gridOwnerId: saved.grid_owner_id,
+      requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope),
+      sourceType: 'grid_owner_data_request',
+      sourceId: saved.id,
+      payload: {
+        queuedFrom: 'customer_data_request_create',
+        requestScope: saved.request_scope,
+        requestId: saved.id,
+        requestedPeriodStart: saved.requested_period_start,
+        requestedPeriodEnd: saved.requested_period_end,
+        notes: saved.notes ?? null,
+      },
+      periodStart: saved.requested_period_start ?? null,
+      periodEnd: saved.requested_period_end ?? null,
+      externalReference: saved.external_reference ?? null,
+    })
+  }
+
   const syncSummary = await syncCustomerOperationsForCustomer(supabase, customerId)
+
+  await updateGridOwnerDataRequestStatus({
+    actorUserId: actor.id,
+    requestId: saved.id,
+    status: outbound.status === 'sent' ? 'sent' : 'pending',
+    externalReference: saved.external_reference ?? outbound.external_reference ?? null,
+    responsePayload: {
+      outboundRequestId: outbound.id,
+      outboundStatus: outbound.status,
+      outboundChannelType: outbound.channel_type,
+      communicationRouteId: outbound.communication_route_id,
+      queuedAutomatically: true,
+    },
+    notes: saved.notes ?? null,
+  })
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -625,6 +694,7 @@ export async function createGridOwnerDataRequestAction(
       siteId: saved.site_id,
       meteringPointId: saved.metering_point_id,
       requestScope: saved.request_scope,
+      outboundRequestId: outbound.id,
       syncSummary,
     },
   })
@@ -634,6 +704,9 @@ export async function createGridOwnerDataRequestAction(
   revalidatePath('/admin/billing')
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/unresolved')
+  revalidatePath('/admin/ediel')
 }
 
 export async function createPartnerExportAction(

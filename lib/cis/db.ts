@@ -1,3 +1,4 @@
+// lib/cis/db.ts
 import { supabaseService } from '@/lib/supabase/service'
 import type {
   BillingUnderlayRow,
@@ -33,6 +34,16 @@ function matchesQuery(
 function buildBatchKey(prefix: string): string {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-')
   return `${prefix}_${stamp}`
+}
+
+function mergeJsonObjects(
+  base?: Record<string, unknown> | null,
+  extra?: Record<string, unknown> | null
+): Record<string, unknown> {
+  return {
+    ...(base ?? {}),
+    ...(extra ?? {}),
+  }
 }
 
 export async function listGridOwnerDataRequestsByCustomerId(
@@ -814,6 +825,142 @@ export async function updateGridOwnerDataRequestStatus(input: {
 
   if (error) throw error
   return data as GridOwnerDataRequestRow
+}
+
+export async function syncGridOwnerDataRequestFromOutbound(input: {
+  actorUserId: string
+  outboundRequest: OutboundRequestRow
+  notes?: string | null
+  extraResponsePayload?: Record<string, unknown>
+}): Promise<GridOwnerDataRequestRow | null> {
+  const { outboundRequest } = input
+
+  if (
+    outboundRequest.source_type !== 'grid_owner_data_request' ||
+    !outboundRequest.source_id
+  ) {
+    return null
+  }
+
+  const { data: current, error: currentError } = await supabaseService
+    .from('grid_owner_data_requests')
+    .select('*')
+    .eq('id', outboundRequest.source_id)
+    .maybeSingle()
+
+  if (currentError) throw currentError
+  if (!current) return null
+
+  const currentRow = current as GridOwnerDataRequestRow
+
+  const mergedResponsePayload = mergeJsonObjects(currentRow.response_payload, {
+    outboundRequestId: outboundRequest.id,
+    outboundStatus: outboundRequest.status,
+    outboundChannelType: outboundRequest.channel_type,
+    communicationRouteId: outboundRequest.communication_route_id,
+    externalReference: outboundRequest.external_reference,
+    failureReason: outboundRequest.failure_reason,
+    ...(input.extraResponsePayload ?? {}),
+  })
+
+  if (outboundRequest.status === 'queued' || outboundRequest.status === 'prepared') {
+    return updateGridOwnerDataRequestStatus({
+      actorUserId: input.actorUserId,
+      requestId: currentRow.id,
+      status: 'pending',
+      externalReference:
+        outboundRequest.external_reference ?? currentRow.external_reference ?? null,
+      responsePayload: mergedResponsePayload,
+      notes: input.notes ?? currentRow.notes ?? null,
+    })
+  }
+
+  if (outboundRequest.status === 'sent') {
+    return updateGridOwnerDataRequestStatus({
+      actorUserId: input.actorUserId,
+      requestId: currentRow.id,
+      status: 'sent',
+      externalReference:
+        outboundRequest.external_reference ?? currentRow.external_reference ?? null,
+      responsePayload: mergedResponsePayload,
+      notes: input.notes ?? currentRow.notes ?? null,
+    })
+  }
+
+  if (outboundRequest.status === 'acknowledged') {
+    return updateGridOwnerDataRequestStatus({
+      actorUserId: input.actorUserId,
+      requestId: currentRow.id,
+      status: 'received',
+      externalReference:
+        outboundRequest.external_reference ?? currentRow.external_reference ?? null,
+      responsePayload: mergedResponsePayload,
+      notes: input.notes ?? currentRow.notes ?? null,
+    })
+  }
+
+  if (
+    outboundRequest.status === 'failed' ||
+    outboundRequest.status === 'cancelled'
+  ) {
+    return updateGridOwnerDataRequestStatus({
+      actorUserId: input.actorUserId,
+      requestId: currentRow.id,
+      status: 'failed',
+      externalReference:
+        outboundRequest.external_reference ?? currentRow.external_reference ?? null,
+      failureReason:
+        outboundRequest.failure_reason ??
+        (outboundRequest.status === 'cancelled'
+          ? 'Outbound dispatch avbröts manuellt.'
+          : 'Outbound dispatch misslyckades.'),
+      responsePayload: mergedResponsePayload,
+      notes: input.notes ?? currentRow.notes ?? null,
+    })
+  }
+
+  return currentRow
+}
+
+export async function syncGridOwnerDataRequestReceivedFromEdiel(input: {
+  actorUserId: string
+  requestId: string
+  edielMessageId: string
+  externalReference?: string | null
+  parsedPayload?: Record<string, unknown>
+  notes?: string | null
+  ingestedMeterValueId?: string | null
+  extraResponsePayload?: Record<string, unknown>
+}): Promise<GridOwnerDataRequestRow | null> {
+  const { data: current, error: currentError } = await supabaseService
+    .from('grid_owner_data_requests')
+    .select('*')
+    .eq('id', input.requestId)
+    .maybeSingle()
+
+  if (currentError) throw currentError
+  if (!current) return null
+
+  const currentRow = current as GridOwnerDataRequestRow
+
+  const mergedResponsePayload = mergeJsonObjects(currentRow.response_payload, {
+    edielMessageId: input.edielMessageId,
+    externalReference: input.externalReference ?? currentRow.external_reference ?? null,
+    parsedPayload: input.parsedPayload ?? {},
+    ingestedMeterValueId: input.ingestedMeterValueId ?? null,
+    receivedVia: 'inbound_ediel',
+    ...(input.extraResponsePayload ?? {}),
+  })
+
+  return updateGridOwnerDataRequestStatus({
+    actorUserId: input.actorUserId,
+    requestId: currentRow.id,
+    status: 'received',
+    externalReference:
+      input.externalReference ?? currentRow.external_reference ?? null,
+    responsePayload: mergedResponsePayload,
+    notes: input.notes ?? currentRow.notes ?? null,
+  })
 }
 
 export async function updatePartnerExportStatus(input: {

@@ -5,9 +5,7 @@ import type {
   EdielKnownMessageCode,
   EdielMessageFamily,
 } from '@/lib/ediel/types'
-import type {
-  SupplierSwitchRequestRow,
-} from '@/lib/operations/types'
+import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type {
   CustomerSiteRow,
   GridOwnerRow,
@@ -146,8 +144,16 @@ function extractApplicationReference(rawPayload: string): string | null {
   return parts[6]?.trim() || null
 }
 
-function renderSegment(tag: string, ...parts: Array<string | null | undefined>): string {
-  return [tag, ...parts.filter((value) => value !== null && value !== undefined && value !== '')].join('+')
+function renderSegment(
+  tag: string,
+  ...parts: Array<string | null | undefined>
+): string {
+  return [
+    tag,
+    ...parts.filter(
+      (value) => value !== null && value !== undefined && value !== ''
+    ),
+  ].join('+')
 }
 
 function zCodeToDocumentName(code: ProdatOutboundCode): string {
@@ -214,7 +220,11 @@ function renderProdatDraftRaw(input: {
   const meteringPointId = sanitize(
     String(payload.meterPointId ?? payload.meteringPointId ?? payload.edielReference ?? '')
   )
-  const gridAreaId = sanitize(String(payload.gridAreaId ?? payload.gridOwnerEdielId ?? ''))
+  const edielReference = sanitize(String(payload.edielReference ?? meteringPointId))
+  const facilityId = sanitize(String(payload.facilityId ?? payload.installationId ?? ''))
+  const gridAreaId = sanitize(
+    String(payload.gridAreaId ?? payload.gridOwnerEdielId ?? '')
+  )
   const customerName = sanitize(String(payload.customerName ?? 'GRIDEX CUSTOMER'))
   const street = sanitize(String(payload.street ?? 'UNKNOWN STREET 1'))
   const postalCode = sanitize(String(payload.postalCode ?? '11122'))
@@ -225,14 +235,27 @@ function renderProdatDraftRaw(input: {
   const currentSupplierOrgNumber = sanitize(
     String(payload.currentSupplierOrgNumber ?? '')
   )
-  const startDate = sanitize(String(payload.requestedStartDate ?? payload.startDate ?? ''))
+  const startDate = sanitize(
+    String(payload.requestedStartDate ?? payload.startDate ?? '')
+  )
   const customerId = sanitize(String(payload.customerIdentifier ?? ''))
   const installationAddress = sanitize(
     `${street}${postalCode ? ', ' + postalCode : ''}${city ? ' ' + city : ''}`
   )
 
   const segments: string[] = [
-    renderSegment('UNB', 'UNOC:3', `${sender}:${senderSub}`, `${receiver}:${receiverSub}`, datePart, '', '', '', '', appRef),
+    renderSegment(
+      'UNB',
+      'UNOC:3',
+      `${sender}:${senderSub}`,
+      `${receiver}:${receiverSub}`,
+      datePart,
+      '',
+      '',
+      '',
+      '',
+      appRef
+    ),
     renderSegment('UNH', '1', 'PRODAT:D:03A:UN:1.0'),
     renderSegment('BGM', input.code, externalReference, '9'),
     renderSegment('RFF', `TN:${transactionReference}`),
@@ -242,6 +265,10 @@ function renderProdatDraftRaw(input: {
 
   if (meteringPointId) {
     segments.push(renderSegment('LOC', '172', meteringPointId))
+  }
+
+  if (facilityId) {
+    segments.push(renderSegment('LOC', '64', facilityId))
   }
 
   if (gridAreaId) {
@@ -254,6 +281,10 @@ function renderProdatDraftRaw(input: {
 
   if (customerId) {
     segments.push(renderSegment('RFF', `YC1:${customerId}`))
+  }
+
+  if (edielReference && edielReference !== meteringPointId) {
+    segments.push(renderSegment('RFF', `AAS:${edielReference}`))
   }
 
   segments.push(renderSegment('NAD', 'BY', '', '', customerName))
@@ -388,8 +419,17 @@ export function buildProdatZ03FromSwitch(params: {
       reasonForTransaction: 'E01',
       referenceToLineItem:
         params.switchRequest.external_reference ?? `SWITCH-${params.switchRequest.id}`,
-      meterPointId: params.meteringPoint.meter_point_id,
+      meterPointId:
+        params.meteringPoint.meter_point_id ??
+        (params.meteringPoint as unknown as { metering_point_id?: string | null })
+          .metering_point_id ??
+        '',
       edielReference: params.meteringPoint.ediel_reference,
+      facilityId:
+        (params.meteringPoint as unknown as { site_facility_id?: string | null })
+          .site_facility_id ??
+        params.site.facility_id ??
+        '',
       gridAreaId: params.gridOwner?.ediel_id ?? params.gridOwner?.owner_code ?? '',
       customerName: params.site.site_name,
       street: params.site.street,
@@ -439,8 +479,17 @@ export function buildProdatZ09FromSwitch(params: {
       reasonForTransaction: 'A08',
       referenceToLineItem:
         params.switchRequest.external_reference ?? `MASTERDATA-${params.switchRequest.id}`,
-      meterPointId: params.meteringPoint.meter_point_id,
+      meterPointId:
+        params.meteringPoint.meter_point_id ??
+        (params.meteringPoint as unknown as { metering_point_id?: string | null })
+          .metering_point_id ??
+        '',
       edielReference: params.meteringPoint.ediel_reference,
+      facilityId:
+        (params.meteringPoint as unknown as { site_facility_id?: string | null })
+          .site_facility_id ??
+        params.site.facility_id ??
+        '',
       gridAreaId: params.gridOwner?.ediel_id ?? params.gridOwner?.owner_code ?? '',
       customerName: params.site.site_name,
       street: params.site.street,
@@ -462,6 +511,7 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const unh = firstSegmentValue(rawSegments, 'UNH+')
   const bgm = firstSegmentValue(rawSegments, 'BGM+')
   const loc172 = firstSegmentValue(rawSegments, 'LOC+172')
+  const loc64 = firstSegmentValue(rawSegments, 'LOC+64')
   const loc322 = firstSegmentValue(rawSegments, 'LOC+322')
   const dtm = firstSegmentValue(rawSegments, 'DTM+7')
   const nadBy = firstSegmentValue(rawSegments, 'NAD+BY')
@@ -476,9 +526,11 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const bgmCode = (bgmParts[1]?.trim() || null) as ParsedProdatCode | null
   const extRef = bgmParts[2]?.trim() || extractExternalReference(rawPayload) || null
   const meterPointId = loc172?.split('+')[2]?.trim() || null
+  const facilityId = loc64?.split('+')[2]?.trim() || null
   const gridAreaId = loc322?.split('+')[2]?.trim() || null
   const requestedStartDate =
-    dtm?.split(':')[1]?.trim()?.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3') || null
+    dtm?.split(':')[1]?.trim()?.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3') ||
+    null
 
   return {
     messageFamily: 'PRODAT',
@@ -498,6 +550,8 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
       bgmCode,
       meterPointId,
       meteringPointId: meterPointId,
+      facilityId,
+      installationId: facilityId,
       gridAreaId,
       requestedStartDate,
       customerName: nadBy?.split('+')[4]?.trim() || null,

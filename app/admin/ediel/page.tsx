@@ -44,26 +44,40 @@ export default async function AdminEdielPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [messages, testRuns, switchRequestsRaw, dataRequestsRaw] = await Promise.all([
-    listEdielMessages({ limit: 30 }),
-    listEdielTestRuns(),
-    supabase
-      .from('supplier_switch_requests')
-      .select('id,status,customer_id,site_id,metering_point_id,external_reference,created_at')
-      .order('created_at', { ascending: false })
-      .limit(10),
-    supabase
-      .from('grid_owner_data_requests')
-      .select('id,status,request_scope,customer_id,site_id,metering_point_id,external_reference,created_at')
-      .order('created_at', { ascending: false })
-      .limit(10),
-  ])
+  const [messages, testRuns, switchRequestsRaw, dataRequestsRaw, outboundRaw] =
+    await Promise.all([
+      listEdielMessages({ limit: 30 }),
+      listEdielTestRuns(),
+      supabase
+        .from('supplier_switch_requests')
+        .select(
+          'id,status,customer_id,site_id,metering_point_id,external_reference,created_at'
+        )
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('grid_owner_data_requests')
+        .select(
+          'id,status,request_scope,customer_id,site_id,metering_point_id,external_reference,created_at'
+        )
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('outbound_requests')
+        .select(
+          'id,request_type,source_type,source_id,status,channel_type,communication_route_id,external_reference,customer_id,site_id,metering_point_id,created_at'
+        )
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ])
 
   if (switchRequestsRaw.error) throw switchRequestsRaw.error
   if (dataRequestsRaw.error) throw dataRequestsRaw.error
+  if (outboundRaw.error) throw outboundRaw.error
 
   const switchRequests = switchRequestsRaw.data ?? []
   const dataRequests = dataRequestsRaw.data ?? []
+  const outboundRequests = outboundRaw.data ?? []
 
   return (
     <div className="space-y-6">
@@ -76,7 +90,9 @@ export default async function AdminEdielPage() {
       <section className="grid gap-4 md:grid-cols-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="text-sm text-slate-500">Totalt</div>
-          <div className="mt-2 text-3xl font-semibold text-slate-950">{messages.length}</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {messages.length}
+          </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="text-sm text-slate-500">Outbound</div>
@@ -110,11 +126,75 @@ export default async function AdminEdielPage() {
         </div>
       </section>
 
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Outbound queue som driver Ediel/CIS
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Här ser du om ett leverantörsbyte eller en nätägarbegäran verkligen
+              har köats, vilken kanal som valts och om något fortfarande saknar
+              route eller kvittens.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-slate-500">
+                <th className="px-3 py-2">ID</th>
+                <th className="px-3 py-2">Typ</th>
+                <th className="px-3 py-2">Källa</th>
+                <th className="px-3 py-2">Source-id</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Kanal</th>
+                <th className="px-3 py-2">Route</th>
+                <th className="px-3 py-2">Extern ref</th>
+                <th className="px-3 py-2">Skapad</th>
+              </tr>
+            </thead>
+            <tbody>
+              {outboundRequests.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
+                    Inga outbound requests ännu.
+                  </td>
+                </tr>
+              ) : (
+                outboundRequests.map((row) => (
+                  <tr key={row.id} className="border-b border-slate-100 align-top">
+                    <td className="px-3 py-3 font-medium text-slate-950">{row.id}</td>
+                    <td className="px-3 py-3">{row.request_type}</td>
+                    <td className="px-3 py-3">{row.source_type}</td>
+                    <td className="px-3 py-3">{row.source_id ?? '—'}</td>
+                    <td className="px-3 py-3">{row.status}</td>
+                    <td className="px-3 py-3">{row.channel_type ?? '—'}</td>
+                    <td className="px-3 py-3">
+                      {row.communication_route_id ?? 'saknas'}
+                    </td>
+                    <td className="px-3 py-3">{row.external_reference ?? '—'}</td>
+                    <td className="px-3 py-3">
+                      {new Date(row.created_at).toLocaleString('sv-SE')}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-        <h2 className="text-lg font-semibold text-slate-950">Ediel self-test / simulator</h2>
+        <h2 className="text-lg font-semibold text-slate-950">
+          Ediel self-test / simulator
+        </h2>
         <p className="mt-1 text-sm text-slate-700">
-          Kör interna testscenarier mot riktiga switch requests och data requests innan du fått ditt test-Ediel-id.
-          Detta simulerar inbound Ediel, kopplar meddelandena till riktiga poster, uppdaterar statusar och skapar kvittenser.
+          Kör interna testscenarier mot riktiga switch requests och data requests
+          innan du fått ditt test-Ediel-id. Detta simulerar inbound Ediel, kopplar
+          meddelandena till riktiga poster, uppdaterar statusar och skapar
+          kvittenser.
         </p>
 
         <form action={runEdielSelfTestAction} className="mt-4 space-y-3">
@@ -195,7 +275,9 @@ export default async function AdminEdielPage() {
 
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Senaste switch requests</h2>
+          <h2 className="text-lg font-semibold text-slate-950">
+            Senaste switch requests
+          </h2>
           <div className="mt-4 space-y-3">
             {switchRequests.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
@@ -215,7 +297,9 @@ export default async function AdminEdielPage() {
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Senaste data requests</h2>
+          <h2 className="text-lg font-semibold text-slate-950">
+            Senaste data requests
+          </h2>
           <div className="mt-4 space-y-3">
             {dataRequests.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
@@ -239,7 +323,8 @@ export default async function AdminEdielPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-slate-950">Mailbox polling</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Hämta inkommande Ediel-trafik från IMAP, matcha mot kund/mätpunkt och skapa kvittenser.
+            Hämta inkommande Ediel-trafik från IMAP, matcha mot kund/mätpunkt och
+            skapa kvittenser.
           </p>
 
           <form action={pollMailboxAction} className="mt-4 space-y-3">
@@ -292,16 +377,45 @@ export default async function AdminEdielPage() {
 
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Skapa Z03 från switchärende</h2>
+          <h2 className="text-lg font-semibold text-slate-950">
+            Skapa Z03 från switchärende
+          </h2>
           <form action={prepareSwitchZ03Action} className="mt-4 space-y-3">
             <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
             <div className="grid gap-3 md:grid-cols-2">
-              <input name="switchRequestId" placeholder="Switch request-id" className="rounded-xl border border-slate-300 px-3 py-2" required />
-              <input name="communicationRouteId" placeholder="Route-id" className="rounded-xl border border-slate-300 px-3 py-2" />
-              <input name="senderEdielId" placeholder="Gridex Ediel-id" className="rounded-xl border border-slate-300 px-3 py-2" required />
-              <input name="receiverEdielId" placeholder="Nätägarens Ediel-id" className="rounded-xl border border-slate-300 px-3 py-2" required />
-              <input name="receiverEmail" placeholder="Nätägarens e-post" className="rounded-xl border border-slate-300 px-3 py-2" />
-              <input name="mailbox" placeholder="Mailbox" className="rounded-xl border border-slate-300 px-3 py-2" />
+              <input
+                name="switchRequestId"
+                placeholder="Switch request-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+                required
+              />
+              <input
+                name="communicationRouteId"
+                placeholder="Route-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="senderEdielId"
+                placeholder="Gridex Ediel-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+                required
+              />
+              <input
+                name="receiverEdielId"
+                placeholder="Nätägarens Ediel-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+                required
+              />
+              <input
+                name="receiverEmail"
+                placeholder="Nätägarens e-post"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="mailbox"
+                placeholder="Mailbox"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
             </div>
             <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
               Förbered Z03
@@ -310,16 +424,45 @@ export default async function AdminEdielPage() {
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Skapa Z09 från switchärende</h2>
+          <h2 className="text-lg font-semibold text-slate-950">
+            Skapa Z09 från switchärende
+          </h2>
           <form action={prepareSwitchZ09Action} className="mt-4 space-y-3">
             <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
             <div className="grid gap-3 md:grid-cols-2">
-              <input name="switchRequestId" placeholder="Switch request-id" className="rounded-xl border border-slate-300 px-3 py-2" required />
-              <input name="communicationRouteId" placeholder="Route-id" className="rounded-xl border border-slate-300 px-3 py-2" />
-              <input name="senderEdielId" placeholder="Gridex Ediel-id" className="rounded-xl border border-slate-300 px-3 py-2" required />
-              <input name="receiverEdielId" placeholder="Nätägarens Ediel-id" className="rounded-xl border border-slate-300 px-3 py-2" required />
-              <input name="receiverEmail" placeholder="Nätägarens e-post" className="rounded-xl border border-slate-300 px-3 py-2" />
-              <input name="mailbox" placeholder="Mailbox" className="rounded-xl border border-slate-300 px-3 py-2" />
+              <input
+                name="switchRequestId"
+                placeholder="Switch request-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+                required
+              />
+              <input
+                name="communicationRouteId"
+                placeholder="Route-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="senderEdielId"
+                placeholder="Gridex Ediel-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+                required
+              />
+              <input
+                name="receiverEdielId"
+                placeholder="Nätägarens Ediel-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+                required
+              />
+              <input
+                name="receiverEmail"
+                placeholder="Nätägarens e-post"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="mailbox"
+                placeholder="Mailbox"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
             </div>
             <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
               Förbered Z09
@@ -330,7 +473,9 @@ export default async function AdminEdielPage() {
 
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Negativ UTILTS-respons</h2>
+          <h2 className="text-lg font-semibold text-slate-950">
+            Negativ UTILTS-respons
+          </h2>
           <form action={createNegativeUtiltsResponseAction} className="mt-4 space-y-3">
             <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
             <input
@@ -351,15 +496,42 @@ export default async function AdminEdielPage() {
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Manuellt PRODAT-utkast</h2>
+          <h2 className="text-lg font-semibold text-slate-950">
+            Manuellt PRODAT-utkast
+          </h2>
           <form action={createProdatDraftAction} className="mt-4 space-y-3">
             <div className="grid gap-3 md:grid-cols-2">
-              <input name="code" placeholder="Z03 / Z09 / Z01 / Z13 / Z18" className="rounded-xl border border-slate-300 px-3 py-2" required />
-              <input name="receiverEdielId" placeholder="Mottagarens Ediel-id" className="rounded-xl border border-slate-300 px-3 py-2" />
-              <input name="senderEdielId" placeholder="Avsändarens Ediel-id" className="rounded-xl border border-slate-300 px-3 py-2" />
-              <input name="receiverEmail" placeholder="Mottagarens e-post" className="rounded-xl border border-slate-300 px-3 py-2" />
-              <input name="communicationRouteId" placeholder="Route-id" className="rounded-xl border border-slate-300 px-3 py-2" />
-              <input name="switchRequestId" placeholder="Switch request-id" className="rounded-xl border border-slate-300 px-3 py-2" />
+              <input
+                name="code"
+                placeholder="Z03 / Z09 / Z01 / Z13 / Z18"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+                required
+              />
+              <input
+                name="receiverEdielId"
+                placeholder="Mottagarens Ediel-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="senderEdielId"
+                placeholder="Avsändarens Ediel-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="receiverEmail"
+                placeholder="Mottagarens e-post"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="communicationRouteId"
+                placeholder="Route-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="switchRequestId"
+                placeholder="Switch request-id"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
             </div>
             <textarea
               name="payload"
@@ -374,7 +546,9 @@ export default async function AdminEdielPage() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-lg font-semibold text-slate-950">Senaste Ediel-meddelanden</h2>
+        <h2 className="text-lg font-semibold text-slate-950">
+          Senaste Ediel-meddelanden
+        </h2>
         <div className="mt-4 space-y-4">
           {messages.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">
@@ -382,7 +556,10 @@ export default async function AdminEdielPage() {
             </div>
           ) : (
             messages.map((row) => (
-              <div key={row.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div
+                key={row.id}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="text-sm font-semibold text-slate-950">
                     {row.message_family} {row.message_code}
@@ -398,12 +575,21 @@ export default async function AdminEdielPage() {
                 <div className="mt-3 grid gap-3 md:grid-cols-4">
                   <Cell label="Message-id" value={row.id} />
                   <Cell label="External reference" value={row.external_reference} />
-                  <Cell label="Correlation reference" value={row.correlation_reference} />
-                  <Cell label="Transaction reference" value={row.transaction_reference} />
+                  <Cell
+                    label="Correlation reference"
+                    value={row.correlation_reference}
+                  />
+                  <Cell
+                    label="Transaction reference"
+                    value={row.transaction_reference}
+                  />
                   <Cell label="Sender Ediel-id" value={row.sender_ediel_id} />
                   <Cell label="Receiver Ediel-id" value={row.receiver_ediel_id} />
                   <Cell label="Switch request" value={row.switch_request_id} />
-                  <Cell label="Data request" value={row.grid_owner_data_request_id} />
+                  <Cell
+                    label="Data request"
+                    value={row.grid_owner_data_request_id}
+                  />
                 </div>
 
                 <details className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
@@ -429,7 +615,10 @@ export default async function AdminEdielPage() {
             </div>
           ) : (
             testRuns.map((run) => (
-              <div key={run.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div
+                key={run.id}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="text-sm font-semibold text-slate-950">
                     {run.test_suite} / {run.test_case_code}
@@ -444,18 +633,45 @@ export default async function AdminEdielPage() {
 
                 <div className="mt-3 grid gap-3 md:grid-cols-4">
                   <Cell label="Run-id" value={run.id} />
-                  <Cell label="Godkännandeversion" value={run.approval_version} />
+                  <Cell
+                    label="Godkännandeversion"
+                    value={run.approval_version}
+                  />
                   <Cell label="Titel" value={run.title} />
                   <Cell label="Metering point-id" value={run.metering_point_id} />
                 </div>
 
-                <form action={attachMessageToTestRunAction} className="mt-4 grid gap-3 md:grid-cols-5">
+                <form
+                  action={attachMessageToTestRunAction}
+                  className="mt-4 grid gap-3 md:grid-cols-5"
+                >
                   <input type="hidden" name="testRunId" value={run.id} />
-                  <input name="edielMessageId" placeholder="Ediel message-id" className="rounded-xl border border-slate-300 px-3 py-2" required />
-                  <input name="stepNo" placeholder="Steg nr" className="rounded-xl border border-slate-300 px-3 py-2" />
-                  <input name="expectedDirection" placeholder="inbound / outbound" className="rounded-xl border border-slate-300 px-3 py-2" />
-                  <input name="expectedFamily" placeholder="PRODAT / UTILTS" className="rounded-xl border border-slate-300 px-3 py-2" />
-                  <input name="expectedCode" placeholder="Z03 / E66" className="rounded-xl border border-slate-300 px-3 py-2" />
+                  <input
+                    name="edielMessageId"
+                    placeholder="Ediel message-id"
+                    className="rounded-xl border border-slate-300 px-3 py-2"
+                    required
+                  />
+                  <input
+                    name="stepNo"
+                    placeholder="Steg nr"
+                    className="rounded-xl border border-slate-300 px-3 py-2"
+                  />
+                  <input
+                    name="expectedDirection"
+                    placeholder="inbound / outbound"
+                    className="rounded-xl border border-slate-300 px-3 py-2"
+                  />
+                  <input
+                    name="expectedFamily"
+                    placeholder="PRODAT / UTILTS"
+                    className="rounded-xl border border-slate-300 px-3 py-2"
+                  />
+                  <input
+                    name="expectedCode"
+                    placeholder="Z03 / E66"
+                    className="rounded-xl border border-slate-300 px-3 py-2"
+                  />
                   <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white md:col-span-5">
                     Koppla meddelande till testrun
                   </button>

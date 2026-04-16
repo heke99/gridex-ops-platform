@@ -9,7 +9,11 @@ import {
   createEdielTestRun,
   getEdielMessageById,
 } from '@/lib/ediel/db'
-import { buildAperakDraft, buildContrlDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
+import {
+  buildAperakDraft,
+  buildContrlDraft,
+  buildUtiltsErrDraft,
+} from '@/lib/ediel/ack'
 import { buildProdatOutboundDraft } from '@/lib/ediel/prodat'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
 import { runEdielSelfTest } from '@/lib/ediel/selftest'
@@ -262,6 +266,7 @@ export async function sendEdielMessageAction(formData: FormData) {
 
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/operations')
+  revalidatePath('/admin/outbound')
 }
 
 export async function pollMailboxAction(formData: FormData) {
@@ -277,6 +282,10 @@ export async function pollMailboxAction(formData: FormData) {
 
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/operations')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/metering')
+  revalidatePath('/admin/billing')
+  revalidatePath('/admin/customers')
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
@@ -331,4 +340,5 @@ export async function runEdielSelfTestAction(formData: FormData) {
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/operations')
   revalidatePath('/admin/customers')
+  revalidatePath('/admin/outbound')
 }

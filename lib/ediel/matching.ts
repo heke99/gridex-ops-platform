@@ -16,6 +16,8 @@ function extractMeterPointCandidates(message: EdielMessageRow): string[] {
     parsed.meteringPointId,
     parsed.edielReference,
     parsed.installationId,
+    parsed.siteFacilityId,
+    parsed.facilityId,
     parsed.objectId,
   ]
 
@@ -32,12 +34,13 @@ export async function matchMeteringPointForEdielMessage(
   for (const candidate of candidates) {
     const { data, error } = await supabaseService
       .from('metering_points')
-      .select('id, meter_point_id, metering_point_id, ediel_reference')
+      .select('id, meter_point_id, metering_point_id, ediel_reference, site_facility_id')
       .or(
         [
           `meter_point_id.eq.${candidate}`,
           `metering_point_id.eq.${candidate}`,
           `ediel_reference.eq.${candidate}`,
+          `site_facility_id.eq.${candidate}`,
         ].join(',')
       )
       .limit(1)

@@ -111,6 +111,7 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
   const unh = firstSegmentValue(rawSegments, 'UNH+')
   const bgm = firstSegmentValue(rawSegments, 'BGM+')
   const loc172 = firstSegmentValue(rawSegments, 'LOC+172')
+  const loc64 = firstSegmentValue(rawSegments, 'LOC+64')
   const dtm137 = firstSegmentValue(rawSegments, 'DTM+137')
   const dtm163 = firstSegmentValue(rawSegments, 'DTM+163')
   const qty = firstSegmentValue(rawSegments, 'QTY+')
@@ -124,6 +125,7 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
     | null
 
   const meterPointId = loc172?.split('+')[2]?.trim() || null
+  const facilityId = loc64?.split('+')[2]?.trim() || null
   const periodStart = extractDateFromDtm(dtm137)
   const periodEnd = extractDateFromDtm(dtm163)
   const quantity = extractQty(qty)
@@ -148,6 +150,9 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
       bgm,
       meterPointId,
       meteringPointId: meterPointId,
+      facilityId,
+      installationId: facilityId,
+      siteFacilityId: facilityId,
       readingType: cci ?? null,
       periodStart,
       periodEnd,
