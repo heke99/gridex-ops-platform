@@ -223,16 +223,21 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
-  const meteringPointId = formValue(formData, 'id') || undefined
+  const meteringPointRowId = formValue(formData, 'id') || undefined
 
-  const before = meteringPointId
-    ? await getMeteringPointById(supabase, meteringPointId)
+  const before = meteringPointRowId
+    ? await getMeteringPointById(supabase, meteringPointRowId)
     : null
 
+  const meterPointIdentifier =
+    formValue(formData, 'meter_point_id')?.trim() ||
+    formValue(formData, 'metering_point_id')?.trim() ||
+    ''
+
   const parsed = meteringPointInputSchema.parse({
-    id: meteringPointId,
+    id: meteringPointRowId,
     site_id: formValue(formData, 'site_id') ?? '',
-    meter_point_id: formValue(formData, 'meter_point_id') ?? '',
+    meter_point_id: meterPointIdentifier,
     site_facility_id: formValue(formData, 'site_facility_id') || undefined,
     ediel_reference: formValue(formData, 'ediel_reference') || undefined,
     status: formValue(formData, 'status') ?? 'draft',
@@ -245,7 +250,13 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
     is_settlement_relevant: parseCheckbox(formData.get('is_settlement_relevant')),
   })
 
-  const savedMeteringPoint = await saveMeteringPoint(supabase, parsed)
+  const savePayload = {
+    ...parsed,
+    metering_point_id: meterPointIdentifier,
+  }
+
+  const savedMeteringPoint = await saveMeteringPoint(supabase, savePayload as never)
+
   const readiness = await syncCustomerOperationsForSite(supabase, {
     customerId,
     siteId: savedMeteringPoint.site_id,
@@ -262,6 +273,7 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
       customerId,
       siteId: savedMeteringPoint.site_id,
       meteringPointId: savedMeteringPoint.id,
+      meterPointIdentifier,
       readiness,
     },
   })

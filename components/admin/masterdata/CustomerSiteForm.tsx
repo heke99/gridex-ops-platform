@@ -84,6 +84,24 @@ function inferFlowType(site?: CustomerSiteRow | null): SiteFlowType {
   return 'switch'
 }
 
+function gridOwnerOptionLabel(owner: GridOwnerRow): string {
+  const parts = [owner.name]
+
+  if (owner.owner_code?.trim()) {
+    parts.push(`kod: ${owner.owner_code}`)
+  }
+
+  if (owner.ediel_id?.trim()) {
+    parts.push(`EDIEL: ${owner.ediel_id}`)
+  }
+
+  if (!owner.is_active) {
+    parts.push('INAKTIV')
+  }
+
+  return parts.join(' • ')
+}
+
 export default function CustomerSiteForm({
   customerId,
   gridOwners,
@@ -93,6 +111,19 @@ export default function CustomerSiteForm({
 }: CustomerSiteFormProps) {
   const isEditing = Boolean(site)
   const [siteFlowType, setSiteFlowType] = useState<SiteFlowType>(inferFlowType(site))
+
+  const activeGridOwners = useMemo(
+    () => gridOwners.filter((owner) => owner.is_active),
+    [gridOwners]
+  )
+
+  const inactiveGridOwners = useMemo(
+    () => gridOwners.filter((owner) => !owner.is_active),
+    [gridOwners]
+  )
+
+  const selectedGridOwner =
+    gridOwners.find((owner) => owner.id === (site?.grid_owner_id ?? '')) ?? null
 
   const flowSummary = useMemo(() => {
     if (siteFlowType === 'move_in') {
@@ -112,13 +143,6 @@ export default function CustomerSiteForm({
       : siteFlowType === 'move_out_takeover'
         ? 'Övertagsdatum'
         : 'Önskat startdatum'
-
-  const addressLabel =
-    siteFlowType === 'move_in'
-      ? 'Ny adress kunden flyttar till'
-      : siteFlowType === 'move_out_takeover'
-        ? 'Adress som tas över'
-        : 'Anläggningsadress'
 
   const currentSupplierLabel =
     siteFlowType === 'move_in'
@@ -182,11 +206,40 @@ export default function CustomerSiteForm({
         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{flowSummary}</p>
       </div>
 
+      <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-3 dark:border-blue-900/50 dark:bg-blue-950/10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              Registerkopplingar
+            </div>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              Saknas rätt nätägare eller elleverantör? Lägg upp eller redigera dem i registren och kom sedan tillbaka hit.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/network-owners"
+              className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Nätägare
+            </Link>
+            <Link
+              href="/admin/electricity-suppliers"
+              className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Elleverantörer
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <Input
           name="site_name"
           label="Anläggningsnamn"
           defaultValue={site?.site_name}
+          required
         />
 
         <Input
@@ -227,7 +280,7 @@ export default function CustomerSiteForm({
           </select>
         </label>
 
-        <label className="grid gap-2">
+        <label className="grid gap-2 md:col-span-2">
           <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
             Nätägare
           </span>
@@ -237,12 +290,42 @@ export default function CustomerSiteForm({
             className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
           >
             <option value="">Välj nätägare</option>
-            {gridOwners.map((owner) => (
-              <option key={owner.id} value={owner.id}>
-                {owner.name}
-              </option>
-            ))}
+
+            {activeGridOwners.length > 0 ? (
+              <optgroup label="Aktiva nätägare">
+                {activeGridOwners.map((owner) => (
+                  <option key={owner.id} value={owner.id}>
+                    {gridOwnerOptionLabel(owner)}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+
+            {inactiveGridOwners.length > 0 ? (
+              <optgroup label="Inaktiva nätägare">
+                {inactiveGridOwners.map((owner) => (
+                  <option key={owner.id} value={owner.id}>
+                    {gridOwnerOptionLabel(owner)}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
           </select>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+            {selectedGridOwner ? (
+              <>
+                Vald nätägare: <span className="font-medium text-slate-900 dark:text-white">{selectedGridOwner.name}</span>
+                {selectedGridOwner.owner_code ? ` • kod ${selectedGridOwner.owner_code}` : ''}
+                {selectedGridOwner.ediel_id ? ` • EDIEL ${selectedGridOwner.ediel_id}` : ''}
+                {!selectedGridOwner.is_active ? ' • INAKTIV' : ''}
+              </>
+            ) : (
+              <>
+                Välj nätägare här. Om rätt nätägare saknas går du till registret och lägger upp den först.
+              </>
+            )}
+          </div>
         </label>
 
         <label className="grid gap-2">
@@ -268,12 +351,12 @@ export default function CustomerSiteForm({
           label={moveDateLabel}
           type="date"
           defaultValue={site?.move_in_date}
-          required={requiresMoveFields}
         />
 
         <Input
           name="annual_consumption_kwh"
-          label="Årsförbrukning (kWh)"
+          label="Årsförbrukning kWh"
+          type="number"
           defaultValue={
             site?.annual_consumption_kwh !== null &&
             site?.annual_consumption_kwh !== undefined
@@ -290,81 +373,45 @@ export default function CustomerSiteForm({
 
         <Input
           name="current_supplier_org_number"
-          label="Leverantör org.nr"
+          label="Nuvarande elleverantör org.nr"
           defaultValue={site?.current_supplier_org_number}
         />
 
-        <div className="md:col-span-2">
-          <Input
-            name="street"
-            label={addressLabel}
-            defaultValue={site?.street}
-            required={requiresMoveFields}
-          />
-        </div>
-
-        <Input name="care_of" label="C/O" defaultValue={site?.care_of} />
-        <Input
-          name="postal_code"
-          label="Postnummer"
-          defaultValue={site?.postal_code}
-          required={requiresMoveFields}
-        />
-        <Input
-          name="city"
-          label="Ort"
-          defaultValue={site?.city}
-          required={requiresMoveFields}
-        />
+        <Input name="street" label="Gatuadress" defaultValue={site?.street} />
+        <Input name="care_of" label="Care of" defaultValue={site?.care_of} />
+        <Input name="postal_code" label="Postnummer" defaultValue={site?.postal_code} />
+        <Input name="city" label="Stad" defaultValue={site?.city} />
         <Input name="country" label="Land" defaultValue={site?.country ?? 'SE'} />
 
         {requiresMoveFields ? (
           <>
-            <div className="md:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
-              Fyll i tidigare adress och tidigare leverantör när det behövs. Vid vanligt byte sparas inte dessa fält.
-            </div>
-
-            <div className="md:col-span-2">
-              <Input
-                name="moved_from_street"
-                label="Flyttar från adress"
-                defaultValue={site?.moved_from_street}
-              />
-            </div>
-
+            <Input
+              name="moved_from_street"
+              label="Flyttar från - gata"
+              defaultValue={site?.moved_from_street}
+            />
             <Input
               name="moved_from_postal_code"
-              label="Flyttar från postnummer"
+              label="Flyttar från - postnummer"
               defaultValue={site?.moved_from_postal_code}
             />
-
             <Input
               name="moved_from_city"
-              label="Flyttar från stad"
+              label="Flyttar från - stad"
               defaultValue={site?.moved_from_city}
             />
-
-            <div className="md:col-span-2">
-              <Input
-                name="moved_from_supplier_name"
-                label="Flyttar från leverantör"
-                defaultValue={site?.moved_from_supplier_name}
-              />
-            </div>
+            <Input
+              name="moved_from_supplier_name"
+              label="Flyttar från - tidigare elleverantör"
+              defaultValue={site?.moved_from_supplier_name}
+            />
           </>
-        ) : (
-          <>
-            <input type="hidden" name="moved_from_street" value="" />
-            <input type="hidden" name="moved_from_postal_code" value="" />
-            <input type="hidden" name="moved_from_city" value="" />
-            <input type="hidden" name="moved_from_supplier_name" value="" />
-          </>
-        )}
+        ) : null}
       </div>
 
       <label className="mt-4 grid gap-2">
         <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-          Intern anteckning på anläggningen
+          Intern notering
         </span>
         <textarea
           name="internal_notes"
@@ -374,7 +421,15 @@ export default function CustomerSiteForm({
         />
       </label>
 
-      <div className="mt-6 flex items-center justify-end">
+      <div className="mt-6 flex items-center justify-end gap-3">
+        {cancelHref ? (
+          <Link
+            href={cancelHref}
+            className="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Tillbaka
+          </Link>
+        ) : null}
         <SubmitButton isEditing={isEditing} />
       </div>
     </form>

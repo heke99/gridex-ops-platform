@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
@@ -30,6 +31,8 @@ export default async function ElectricitySuppliersPage({
     editId ? getElectricitySupplierById(supabase, editId) : Promise.resolve(null),
   ])
 
+  const activeCount = suppliers.filter((supplier) => supplier.is_active).length
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -42,15 +45,44 @@ export default async function ElectricitySuppliersPage({
               Elleverantörer
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-              Permanent register över elleverantörer. Dessa kan väljas i switchflödet och
-              nya leverantörer kan sparas direkt från kundkortet för återanvändning nästa gång.
+              Permanent register över elleverantörer. Dessa kan användas i switchflödet och
+              uppdateras centralt så att kundkorten återanvänder samma uppgifter nästa gång.
             </p>
           </div>
 
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/admin/electricity-suppliers"
+              className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Ny elleverantör
+            </Link>
+            <Link
+              href="/admin/customers"
+              className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Till kunder
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
             <div className="text-slate-500 dark:text-slate-400">Antal leverantörer</div>
             <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
               {suppliers.length}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+            <div className="text-slate-500 dark:text-slate-400">Aktiva</div>
+            <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+              {activeCount}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+            <div className="text-slate-500 dark:text-slate-400">Redigeringsläge</div>
+            <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+              {editingSupplier ? editingSupplier.name : 'Nej'}
             </div>
           </div>
         </div>

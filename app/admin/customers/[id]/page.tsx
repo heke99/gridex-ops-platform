@@ -1,4 +1,3 @@
-// app/admin/customers/[id]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -164,7 +163,8 @@ function identitySecondaryValue(
 }
 
 function primaryContactHeading(customerType: CustomerType): string {
-  return customerType === 'private' ? 'Huvudkontakt' : 'Primär kontaktperson'
+  if (customerType === 'private') return 'Huvudkontakt'
+  return 'Primär kontaktperson'
 }
 
 function activeAddressHeading(customerType: CustomerType): string {
@@ -408,7 +408,7 @@ function buildCustomerLifecycleSummary(params: {
       primaryLabel: 'Blockerade switchar',
       primaryHref: '/admin/operations/switches?stage=blocked',
       primaryDescription:
-        'Minst en anläggning stoppas av blockerare. Börja i blockerad kö eller öppna switchsektionen på kundkortet.',
+        'Minst en anläggning stoppas av blockerare. Börja i blockerad kö eller öppna switchsektionen på kundkortet först.',
     }
   }
 
@@ -539,6 +539,125 @@ function getBestContactPhone(
 
   const firstWithPhone = contacts.find((contact) => contact.phone?.trim()) ?? null
   return firstWithPhone?.phone?.trim() ?? null
+}
+
+function SectionAnchor({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id: string
+  title: string
+  description?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section id={id} className="scroll-mt-36 space-y-3">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+          {title}
+        </h2>
+        {description ? (
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {description}
+          </p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function QuickJumpLink({
+  href,
+  label,
+  tone = 'default',
+}: {
+  href: string
+  label: string
+  tone?: 'default' | 'success' | 'info' | 'warning' | 'danger'
+}) {
+  const toneClass =
+    tone === 'success'
+      ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300'
+      : tone === 'info'
+        ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/20 dark:text-blue-300'
+        : tone === 'warning'
+          ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-300'
+          : tone === 'danger'
+            ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/20 dark:text-rose-300'
+            : 'border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
+
+  return (
+    <Link
+      href={href}
+      className={`inline-flex items-center rounded-2xl border px-4 py-2.5 text-sm font-semibold transition hover:opacity-90 ${toneClass}`}
+    >
+      {label}
+    </Link>
+  )
+}
+
+function StickyActionBar({
+  lifecycleSummary,
+  dataRequestsCount,
+}: {
+  lifecycleSummary: CustomerLifecycleSummary
+  dataRequestsCount: number
+}) {
+  return (
+    <div className="sticky top-3 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-white">
+            Snabbåtgärder
+          </div>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Starta leverantörsbyte, begär uppgifter från nätägare eller hoppa direkt till Ediel utan att leta i kundkortet.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <QuickJumpLink href="#switch-operations" label="Nytt leverantörsbyte" tone="success" />
+          <QuickJumpLink href="#billing-metering" label="Begär mätvärden" tone="warning" />
+          <QuickJumpLink href="#billing-metering" label="Begär billingunderlag" tone="warning" />
+          <QuickJumpLink href="#ediel-operations" label="Öppna Ediel" tone="info" />
+          <QuickJumpLink href="#contracts" label="Avtal" />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+          <div className="text-slate-500 dark:text-slate-400">Primär signal</div>
+          <div className="mt-1 font-semibold text-slate-950 dark:text-white">
+            {lifecycleSummary.primaryLabel}
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+          <div className="text-slate-500 dark:text-slate-400">Öppna switchflöden</div>
+          <div className="mt-1 font-semibold text-slate-950 dark:text-white">
+            {lifecycleSummary.activeOpen}
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+          <div className="text-slate-500 dark:text-slate-400">Ready to execute</div>
+          <div className="mt-1 font-semibold text-slate-950 dark:text-white">
+            {lifecycleSummary.readyToExecute}
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+          <div className="text-slate-500 dark:text-slate-400">Nätägarbegäran</div>
+          <div className="mt-1 font-semibold text-slate-950 dark:text-white">
+            {dataRequestsCount}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function NotesSection({
@@ -846,9 +965,7 @@ export default async function CustomerAdminDetailPage({
     customer,
     normalizedCustomerType
   )
-  const secondaryIdentityLabel = identitySecondaryLabel(
-    normalizedCustomerType
-  )
+  const secondaryIdentityLabel = identitySecondaryLabel(normalizedCustomerType)
   const secondaryIdentityValue = identitySecondaryValue(
     customer,
     normalizedCustomerType
@@ -1008,6 +1125,47 @@ export default async function CustomerAdminDetailPage({
           </div>
         </div>
 
+        <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                Kundens arbetsyta
+              </div>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Härifrån hoppar du direkt till leverantörsbyte, nätägarbegäran, Ediel och avtal utan att leta längre ner på sidan.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <QuickJumpLink href="#switch-operations" label="Starta leverantörsbyte" tone="success" />
+              <QuickJumpLink href="#billing-metering" label="Begär uppgifter från nätägare" tone="warning" />
+              <QuickJumpLink href="#ediel-operations" label="Öppna Ediel" tone="info" />
+              <QuickJumpLink href="#contracts" label="Avtal" />
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <QuickJumpLink href="#profile" label="Profil" />
+            <QuickJumpLink href="#grid-owner-import" label="Grid owner import" />
+            <QuickJumpLink href="#switch-operations" label="Leverantörsbyte" />
+            <QuickJumpLink href="#ediel-operations" label="Ediel" />
+            <QuickJumpLink href="#billing-metering" label="Billing / metering" />
+            <QuickJumpLink href="#contracts" label="Avtal" />
+            <QuickJumpLink href="#contacts-addresses" label="Kontakter / adresser" />
+            <QuickJumpLink href="#sites" label="Anläggningar" />
+            <QuickJumpLink href="#metering-points" label="Mätpunkter" />
+            <QuickJumpLink href="#notes" label="Anteckningar" />
+            <QuickJumpLink href="#audit" label="Audit" />
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <StickyActionBar
+            lifecycleSummary={lifecycleSummary}
+            dataRequestsCount={dataRequests.length}
+          />
+        </div>
+
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
             <div className="flex flex-wrap items-center gap-3">
@@ -1079,14 +1237,21 @@ export default async function CustomerAdminDetailPage({
                 href="#switch-operations"
                 className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                Gå till switchsektionen
+                Gå till leverantörsbyte
               </Link>
 
               <Link
-                href="/admin/operations/switches"
+                href="#billing-metering"
                 className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                Alla switchar
+                Gå till nätägarbegäran
+              </Link>
+
+              <Link
+                href="#ediel-operations"
+                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                Gå till Ediel
               </Link>
             </div>
           </div>
@@ -1135,97 +1300,163 @@ export default async function CustomerAdminDetailPage({
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <CustomerProfileCard customer={customer} />
-        <CustomerContractOfferEligibilityCard
+      <SectionAnchor
+        id="profile"
+        title="Profil och erbjudanden"
+        description="Kundens profil, status och kvalificerade avtalsmöjligheter."
+      >
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <CustomerProfileCard customer={customer} />
+          <CustomerContractOfferEligibilityCard
+            customerType={normalizedCustomerType}
+            offers={contractOffers}
+          />
+        </section>
+      </SectionAnchor>
+
+      <SectionAnchor
+        id="grid-owner-import"
+        title="Grid owner import"
+        description="Importera eller synka underlag från nätägarsidan för kunden."
+      >
+        <CustomerGridOwnerFileImportCard customerId={id} />
+      </SectionAnchor>
+
+      <SectionAnchor
+        id="switch-operations"
+        title="Leverantörsbyte"
+        description="Här startar du nytt leverantörsbyte och följer kundens switchflöde."
+      >
+        <CustomerSwitchOperationsCard
+          customerId={id}
+          sites={sites}
+          meteringPoints={meteringPoints}
+          switchRequests={switchRequests}
+          switchEvents={switchEvents}
+          outboundRequests={outboundRequests}
+        />
+      </SectionAnchor>
+
+      <SectionAnchor
+        id="ediel-operations"
+        title="Ediel"
+        description="Skapa, validera och följ Ediel-flödet för kundens switchar och nätägarrelaterade meddelanden."
+      >
+        <CustomerEdielOperationsCard
+          customerId={id}
+          sites={sites}
+          meteringPoints={meteringPoints}
+          gridOwners={gridOwners}
+          switchRequests={switchRequests}
+          dataRequests={dataRequests}
+        />
+      </SectionAnchor>
+
+      <SectionAnchor
+        id="billing-metering"
+        title="Begär uppgifter från nätägare"
+        description="Här begär du mätvärden, billingunderlag och övrigt underlag från nätägaren."
+      >
+        <CustomerBillingMeteringCard
+          customerId={id}
+          sites={sites}
+          meteringPoints={meteringPoints}
+          gridOwners={gridOwners}
+          dataRequests={dataRequests}
+          meteringValues={meteringValues}
+          billingUnderlays={billingUnderlays}
+          partnerExports={partnerExports}
+          outboundRequests={outboundRequests}
+        />
+      </SectionAnchor>
+
+      <SectionAnchor
+        id="contracts"
+        title="Avtal"
+        description="Visa, hantera och uppdatera kundens avtal."
+      >
+        <CustomerContractsCard customerId={id} />
+      </SectionAnchor>
+
+      <SectionAnchor
+        id="contacts-addresses"
+        title="Kontakter och adresser"
+        description="Primära kontaktpersoner, adresser och kundens kontaktstruktur."
+      >
+        <CustomerContactsAddressesCard
+          customerId={id}
           customerType={normalizedCustomerType}
-          offers={contractOffers}
+          contacts={contacts}
+          addresses={addresses}
         />
-      </section>
+      </SectionAnchor>
 
-      <CustomerGridOwnerFileImportCard customerId={id} />
+      <SectionAnchor
+        id="sites"
+        title="Anläggningar"
+        description="Skapa eller redigera kundens anläggningar."
+      >
+        <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
+          <CustomerSiteForm
+            customerId={id}
+            gridOwners={gridOwners}
+            priceAreas={priceAreas}
+            site={safeSelectedSite}
+            cancelHref={`/admin/customers/${id}`}
+          />
+          <CustomerSitesTable
+            customerId={id}
+            sites={sites}
+            gridOwners={gridOwners}
+            meteringPoints={meteringPoints}
+            selectedSiteId={safeSelectedSite?.id ?? null}
+          />
+        </section>
+      </SectionAnchor>
 
-      <CustomerSwitchOperationsCard
-        customerId={id}
-        sites={sites}
-        meteringPoints={meteringPoints}
-        switchRequests={switchRequests}
-        switchEvents={switchEvents}
-        outboundRequests={outboundRequests}
-      />
+      <SectionAnchor
+        id="metering-points"
+        title="Mätpunkter"
+        description="Skapa eller redigera kundens mätpunkter."
+      >
+        <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
+          <MeteringPointForm
+            customerId={id}
+            sites={sites}
+            gridOwners={gridOwners}
+            priceAreas={priceAreas}
+            meteringPoint={safeSelectedMeteringPoint}
+            cancelHref={`/admin/customers/${id}`}
+          />
+          <MeteringPointsTable
+            customerId={id}
+            meteringPoints={meteringPoints}
+            sites={sites}
+            gridOwners={gridOwners}
+            selectedMeteringPointId={safeSelectedMeteringPoint?.id ?? null}
+          />
+        </section>
+      </SectionAnchor>
 
-      <CustomerEdielOperationsCard
-        customerId={id}
-        sites={sites}
-        meteringPoints={meteringPoints}
-        gridOwners={gridOwners}
-        switchRequests={switchRequests}
-        dataRequests={dataRequests}
-      />
+      <SectionAnchor
+        id="notes"
+        title="Anteckningar"
+        description="Intern support- och driftlogg för kunden."
+      >
+        <NotesSection customerId={id} notes={notes} />
+      </SectionAnchor>
 
-      <CustomerBillingMeteringCard
-        customerId={id}
-        sites={sites}
-        meteringPoints={meteringPoints}
-        gridOwners={gridOwners}
-        dataRequests={dataRequests}
-        meteringValues={meteringValues}
-        billingUnderlays={billingUnderlays}
-        partnerExports={partnerExports}
-        outboundRequests={outboundRequests}
-      />
-
-      <CustomerContractsCard customerId={id} />
-
-      <CustomerContactsAddressesCard
-        customerId={id}
-        customerType={normalizedCustomerType}
-        contacts={contacts}
-        addresses={addresses}
-      />
-
-      <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
-        <CustomerSiteForm
-          customerId={id}
-          gridOwners={gridOwners}
-          priceAreas={priceAreas}
-          site={safeSelectedSite}
-          cancelHref={`/admin/customers/${id}`}
-        />
-        <CustomerSitesTable
-          customerId={id}
+      <SectionAnchor
+        id="audit"
+        title="Audit"
+        description="Senaste ändringar i kund, anläggningar och mätpunkter."
+      >
+        <AuditSection
+          auditLogs={auditLogs}
           sites={sites}
-          gridOwners={gridOwners}
           meteringPoints={meteringPoints}
-          selectedSiteId={safeSelectedSite?.id ?? null}
         />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
-        <MeteringPointForm
-          customerId={id}
-          sites={sites}
-          gridOwners={gridOwners}
-          priceAreas={priceAreas}
-          meteringPoint={safeSelectedMeteringPoint}
-          cancelHref={`/admin/customers/${id}`}
-        />
-        <MeteringPointsTable
-          customerId={id}
-          meteringPoints={meteringPoints}
-          sites={sites}
-          gridOwners={gridOwners}
-          selectedMeteringPointId={safeSelectedMeteringPoint?.id ?? null}
-        />
-      </section>
-
-      <NotesSection customerId={id} notes={notes} />
-
-      <AuditSection
-        auditLogs={auditLogs}
-        sites={sites}
-        meteringPoints={meteringPoints}
-      />
+      </SectionAnchor>
     </div>
   )
 }
