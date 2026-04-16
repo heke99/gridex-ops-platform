@@ -1,5 +1,3 @@
-// lib/ediel/prodat.ts
-
 import type {
   CreateEdielMessageInput,
   EdielKnownMessageCode,
@@ -115,21 +113,27 @@ function extractSubAddress(value: string | null): string | null {
   return parts[1]?.trim() || null
 }
 
-function extractTransactionReference(rawPayload: string): string | null {
-  const match =
-    rawPayload.match(/RFF\+TN:([A-Za-z0-9\-_/.]+)/i) ||
-    rawPayload.match(/RFF\+ACW:([A-Za-z0-9\-_/.]+)/i) ||
-    rawPayload.match(/RFF\+CR:([A-Za-z0-9\-_/.]+)/i)
+function extractReference(rawPayload: string, qualifier: string): string | null {
+  const match = rawPayload.match(
+    new RegExp(`RFF\\+${qualifier}:([A-Za-z0-9\\-_/.:]+)`, 'i')
+  )
 
-  return match?.[1] ?? null
+  return match?.[1]?.trim() ?? null
+}
+
+function extractTransactionReference(rawPayload: string): string | null {
+  return (
+    extractReference(rawPayload, 'TN') ||
+    extractReference(rawPayload, 'ACW') ||
+    extractReference(rawPayload, 'CR')
+  )
 }
 
 function extractExternalReference(rawPayload: string): string | null {
-  const match =
-    rawPayload.match(/BGM\+[A-Z0-9]+\+([A-Za-z0-9\-_/.]+)/i) ||
-    rawPayload.match(/RFF\+ON:([A-Za-z0-9\-_/.]+)/i)
+  const bgmMatch =
+    rawPayload.match(/BGM\+[A-Z0-9]+\+([A-Za-z0-9\-_/.]+)/i)?.[1] ?? null
 
-  return match?.[1] ?? null
+  return bgmMatch || extractReference(rawPayload, 'ON')
 }
 
 function extractApplicationReference(rawPayload: string): string | null {
@@ -190,6 +194,38 @@ function defaultReasonForTransaction(code: ProdatOutboundCode): string {
   }
 }
 
+function getPayloadString(
+  payload: Record<string, unknown>,
+  ...keys: string[]
+): string {
+  for (const key of keys) {
+    const value = payload[key]
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim()
+    }
+  }
+
+  return ''
+}
+
+function getMeterPointIdentifier(point: MeteringPointRow): string {
+  const candidate =
+    (point as MeteringPointRow & { metering_point_id?: string | null })
+      .metering_point_id ??
+    point.meter_point_id ??
+    ''
+
+  return sanitize(candidate)
+}
+
+function getMeteringPointFacilityId(point: MeteringPointRow): string {
+  const candidate =
+    (point as MeteringPointRow & { site_facility_id?: string | null })
+      .site_facility_id ?? ''
+
+  return sanitize(candidate)
+}
+
 function renderProdatDraftRaw(input: {
   code: ProdatOutboundCode
   senderEdielId?: string | null
@@ -206,39 +242,57 @@ function renderProdatDraftRaw(input: {
   const receiver = input.receiverEdielId ?? '91100'
   const senderSub = input.senderSubAddress ?? 'GRIDEX'
   const receiverSub = input.receiverSubAddress ?? 'PRODAT'
-  const appRef = input.applicationReference ?? buildSupplierApplicationReference()
+  const appRef =
+    input.applicationReference ?? buildSupplierApplicationReference()
   const externalReference = input.externalReference ?? `GRX-${datePart}`
   const transactionReference = input.transactionReference ?? `GRX-TX-${datePart}`
 
   const payload = input.payload ?? {}
   const referenceToLineItem = sanitize(
-    String(payload.referenceToLineItem ?? transactionReference)
+    getPayloadString(payload, 'referenceToLineItem') || transactionReference
   )
   const reasonForTransaction = sanitize(
-    String(payload.reasonForTransaction ?? defaultReasonForTransaction(input.code))
+    getPayloadString(payload, 'reasonForTransaction') ||
+      defaultReasonForTransaction(input.code)
   )
   const meteringPointId = sanitize(
-    String(payload.meterPointId ?? payload.meteringPointId ?? payload.edielReference ?? '')
+    getPayloadString(payload, 'meterPointId', 'meteringPointId', 'edielReference')
   )
-  const edielReference = sanitize(String(payload.edielReference ?? meteringPointId))
-  const facilityId = sanitize(String(payload.facilityId ?? payload.installationId ?? ''))
+  const edielReference = sanitize(
+    getPayloadString(payload, 'edielReference') || meteringPointId
+  )
+  const facilityId = sanitize(
+    getPayloadString(payload, 'facilityId', 'installationId', 'siteFacilityId')
+  )
   const gridAreaId = sanitize(
-    String(payload.gridAreaId ?? payload.gridOwnerEdielId ?? '')
+    getPayloadString(payload, 'gridAreaId', 'gridOwnerEdielId')
   )
-  const customerName = sanitize(String(payload.customerName ?? 'GRIDEX CUSTOMER'))
-  const street = sanitize(String(payload.street ?? 'UNKNOWN STREET 1'))
-  const postalCode = sanitize(String(payload.postalCode ?? '11122'))
-  const city = sanitize(String(payload.city ?? 'STOCKHOLM'))
-  const supplierName = sanitize(String(payload.incomingSupplierName ?? 'Gridex'))
-  const supplierOrgNumber = sanitize(String(payload.incomingSupplierOrgNumber ?? ''))
-  const currentSupplierName = sanitize(String(payload.currentSupplierName ?? ''))
+  const customerName = sanitize(
+    getPayloadString(payload, 'customerName') || 'GRIDEX CUSTOMER'
+  )
+  const street = sanitize(
+    getPayloadString(payload, 'street') || 'UNKNOWN STREET 1'
+  )
+  const postalCode = sanitize(
+    getPayloadString(payload, 'postalCode') || '11122'
+  )
+  const city = sanitize(getPayloadString(payload, 'city') || 'STOCKHOLM')
+  const supplierName = sanitize(
+    getPayloadString(payload, 'incomingSupplierName') || 'Gridex'
+  )
+  const supplierOrgNumber = sanitize(
+    getPayloadString(payload, 'incomingSupplierOrgNumber')
+  )
+  const currentSupplierName = sanitize(
+    getPayloadString(payload, 'currentSupplierName')
+  )
   const currentSupplierOrgNumber = sanitize(
-    String(payload.currentSupplierOrgNumber ?? '')
+    getPayloadString(payload, 'currentSupplierOrgNumber')
   )
   const startDate = sanitize(
-    String(payload.requestedStartDate ?? payload.startDate ?? '')
+    getPayloadString(payload, 'requestedStartDate', 'startDate')
   )
-  const customerId = sanitize(String(payload.customerIdentifier ?? ''))
+  const customerId = sanitize(getPayloadString(payload, 'customerIdentifier'))
   const installationAddress = sanitize(
     `${street}${postalCode ? ', ' + postalCode : ''}${city ? ' ' + city : ''}`
   )
@@ -419,17 +473,11 @@ export function buildProdatZ03FromSwitch(params: {
       reasonForTransaction: 'E01',
       referenceToLineItem:
         params.switchRequest.external_reference ?? `SWITCH-${params.switchRequest.id}`,
-      meterPointId:
-        params.meteringPoint.meter_point_id ??
-        (params.meteringPoint as unknown as { metering_point_id?: string | null })
-          .metering_point_id ??
-        '',
+      meterPointId: getMeterPointIdentifier(params.meteringPoint),
       edielReference: params.meteringPoint.ediel_reference,
       facilityId:
-        (params.meteringPoint as unknown as { site_facility_id?: string | null })
-          .site_facility_id ??
-        params.site.facility_id ??
-        '',
+        getMeteringPointFacilityId(params.meteringPoint) ||
+        sanitize(params.site.facility_id ?? ''),
       gridAreaId: params.gridOwner?.ediel_id ?? params.gridOwner?.owner_code ?? '',
       customerName: params.site.site_name,
       street: params.site.street,
@@ -479,17 +527,11 @@ export function buildProdatZ09FromSwitch(params: {
       reasonForTransaction: 'A08',
       referenceToLineItem:
         params.switchRequest.external_reference ?? `MASTERDATA-${params.switchRequest.id}`,
-      meterPointId:
-        params.meteringPoint.meter_point_id ??
-        (params.meteringPoint as unknown as { metering_point_id?: string | null })
-          .metering_point_id ??
-        '',
+      meterPointId: getMeterPointIdentifier(params.meteringPoint),
       edielReference: params.meteringPoint.ediel_reference,
       facilityId:
-        (params.meteringPoint as unknown as { site_facility_id?: string | null })
-          .site_facility_id ??
-        params.site.facility_id ??
-        '',
+        getMeteringPointFacilityId(params.meteringPoint) ||
+        sanitize(params.site.facility_id ?? ''),
       gridAreaId: params.gridOwner?.ediel_id ?? params.gridOwner?.owner_code ?? '',
       customerName: params.site.site_name,
       street: params.site.street,
@@ -528,6 +570,8 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const meterPointId = loc172?.split('+')[2]?.trim() || null
   const facilityId = loc64?.split('+')[2]?.trim() || null
   const gridAreaId = loc322?.split('+')[2]?.trim() || null
+  const edielReference = extractReference(rawPayload, 'AAS')
+  const referenceToLineItem = extractReference(rawPayload, 'CR')
   const requestedStartDate =
     dtm?.split(':')[1]?.trim()?.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3') ||
     null
@@ -550,8 +594,11 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
       bgmCode,
       meterPointId,
       meteringPointId: meterPointId,
+      edielReference,
       facilityId,
       installationId: facilityId,
+      siteFacilityId: facilityId,
+      referenceToLineItem,
       gridAreaId,
       requestedStartDate,
       customerName: nadBy?.split('+')[4]?.trim() || null,

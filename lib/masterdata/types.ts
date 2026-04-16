@@ -1,3 +1,4 @@
+//lib/masterdata/types.ts
 export type PriceAreaCode = 'SE1' | 'SE2' | 'SE3' | 'SE4'
 
 export type SiteType = 'consumption' | 'production' | 'mixed'

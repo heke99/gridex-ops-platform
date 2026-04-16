@@ -1,5 +1,3 @@
-// lib/ediel/matching.ts
-
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
@@ -34,7 +32,9 @@ export async function matchMeteringPointForEdielMessage(
   for (const candidate of candidates) {
     const { data, error } = await supabaseService
       .from('metering_points')
-      .select('id, meter_point_id, metering_point_id, ediel_reference, site_facility_id')
+      .select(
+        'id, meter_point_id, metering_point_id, ediel_reference, site_facility_id'
+      )
       .or(
         [
           `meter_point_id.eq.${candidate}`,

@@ -1,7 +1,8 @@
-// app/admin/ediel/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireAdminActionAccess } from '@/lib/admin/guards'
 import {
   attachEdielMessageToTestRun,
   createEdielMessage,
@@ -44,7 +45,28 @@ function jsonValue(formData: FormData, key: string): Record<string, unknown> {
   }
 }
 
+async function getActor() {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
+  return user
+}
+
 export async function createProdatDraftAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
+
   const code = stringValue(formData, 'code') as
     | 'Z01'
     | 'Z03'
@@ -56,6 +78,7 @@ export async function createProdatDraftAction(formData: FormData) {
   if (!code) throw new Error('Missing PRODAT code')
 
   const draft = buildProdatOutboundDraft({
+    actorUserId: actor.id,
     code,
     communicationRouteId: stringValue(formData, 'communicationRouteId'),
     customerId: stringValue(formData, 'customerId'),
@@ -83,6 +106,7 @@ export async function createProdatDraftAction(formData: FormData) {
   const row = await createEdielMessage(draft)
 
   await createEdielMessageEvent({
+    actorUserId: actor.id,
     edielMessageId: row.id,
     eventType: 'prepared',
     eventStatus: 'success',
@@ -91,9 +115,17 @@ export async function createProdatDraftAction(formData: FormData) {
   })
 
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/outbound')
 }
 
 export async function registerInboundUtiltsAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
+
   const code = stringValue(formData, 'code') as
     | 'S01'
     | 'S02'
@@ -110,6 +142,7 @@ export async function registerInboundUtiltsAction(formData: FormData) {
   }
 
   const input = buildInboundUtiltsMessageInput({
+    actorUserId: actor.id,
     code,
     communicationRouteId: stringValue(formData, 'communicationRouteId'),
     customerId: stringValue(formData, 'customerId'),
@@ -126,10 +159,22 @@ export async function registerInboundUtiltsAction(formData: FormData) {
   })
 
   await createEdielMessage(input)
+
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/metering')
+  revalidatePath('/admin/billing')
 }
 
 export async function createAckDraftAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
+
   const sourceMessageId = stringValue(formData, 'sourceMessageId')
   const ackType = stringValue(formData, 'ackType')
   const outcome = (stringValue(formData, 'outcome') ?? 'positive') as
@@ -146,20 +191,43 @@ export async function createAckDraftAction(formData: FormData) {
 
   const draft =
     ackType === 'CONTRL'
-      ? buildContrlDraft({ sourceMessage: source, outcome, messageText })
+      ? buildContrlDraft({
+          actorUserId: actor.id,
+          sourceMessage: source,
+          outcome,
+          messageText,
+        })
       : ackType === 'APERAK'
-        ? buildAperakDraft({ sourceMessage: source, outcome, messageText })
+        ? buildAperakDraft({
+            actorUserId: actor.id,
+            sourceMessage: source,
+            outcome,
+            messageText,
+          })
         : ackType === 'UTILTS_ERR'
-          ? buildUtiltsErrDraft({ sourceMessage: source, messageText })
+          ? buildUtiltsErrDraft({
+              actorUserId: actor.id,
+              sourceMessage: source,
+              messageText,
+            })
           : null
 
   if (!draft) throw new Error(`Unsupported ack type: ${ackType}`)
 
   await createEdielMessage(draft)
+
   revalidatePath('/admin/ediel')
 }
 
 export async function createEdielTestRunAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
+
   const testSuite = stringValue(formData, 'testSuite') as
     | 'PRODAT'
     | 'UTILTS'
@@ -179,6 +247,7 @@ export async function createEdielTestRunAction(formData: FormData) {
   }
 
   await createEdielTestRun({
+    actorUserId: actor.id,
     approvalVersion: stringValue(formData, 'approvalVersion'),
     roleCode,
     testSuite,
@@ -196,6 +265,12 @@ export async function createEdielTestRunAction(formData: FormData) {
 }
 
 export async function attachMessageToTestRunAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
   const testRunId = stringValue(formData, 'testRunId')
   const edielMessageId = stringValue(formData, 'edielMessageId')
 
@@ -222,8 +297,12 @@ export async function attachMessageToTestRunAction(formData: FormData) {
 }
 
 export async function prepareSwitchZ03Action(formData: FormData) {
+  await requireAdminActionAccess(['switching.write'])
+
+  const actor = await getActor()
+
   await prepareAndQueueEdielZ03({
-    actorUserId: stringValue(formData, 'actorUserId') ?? '',
+    actorUserId: actor.id,
     senderEdielId: stringValue(formData, 'senderEdielId') ?? '',
     receiverEdielId: stringValue(formData, 'receiverEdielId') ?? '',
     receiverEmail: stringValue(formData, 'receiverEmail'),
@@ -234,11 +313,16 @@ export async function prepareSwitchZ03Action(formData: FormData) {
 
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/operations')
+  revalidatePath('/admin/outbound')
 }
 
 export async function prepareSwitchZ09Action(formData: FormData) {
+  await requireAdminActionAccess(['switching.write'])
+
+  const actor = await getActor()
+
   await prepareAndQueueEdielZ09({
-    actorUserId: stringValue(formData, 'actorUserId') ?? '',
+    actorUserId: actor.id,
     senderEdielId: stringValue(formData, 'senderEdielId') ?? '',
     receiverEdielId: stringValue(formData, 'receiverEdielId') ?? '',
     receiverEmail: stringValue(formData, 'receiverEmail'),
@@ -249,18 +333,25 @@ export async function prepareSwitchZ09Action(formData: FormData) {
 
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/operations')
+  revalidatePath('/admin/outbound')
 }
 
 export async function sendEdielMessageAction(formData: FormData) {
-  const actorUserId = stringValue(formData, 'actorUserId')
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
   const edielMessageId = stringValue(formData, 'edielMessageId')
 
-  if (!actorUserId || !edielMessageId) {
-    throw new Error('Missing actor user id or ediel message id')
+  if (!edielMessageId) {
+    throw new Error('Missing ediel message id')
   }
 
   await sendQueuedEdielMessage({
-    actorUserId,
+    actorUserId: actor.id,
     edielMessageId,
   })
 
@@ -270,11 +361,16 @@ export async function sendEdielMessageAction(formData: FormData) {
 }
 
 export async function pollMailboxAction(formData: FormData) {
-  const actorUserId = stringValue(formData, 'actorUserId')
-  if (!actorUserId) throw new Error('Missing actor user id')
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
 
   await pollAndIngestEdielMailbox({
-    actorUserId,
+    actorUserId: actor.id,
     mailbox: stringValue(formData, 'mailbox'),
     communicationRouteId: stringValue(formData, 'communicationRouteId'),
     limit: Number(stringValue(formData, 'limit') ?? '10'),
@@ -289,16 +385,21 @@ export async function pollMailboxAction(formData: FormData) {
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
-  const actorUserId = stringValue(formData, 'actorUserId')
+  await requireAdminActionAccess([
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
   const edielMessageId = stringValue(formData, 'edielMessageId')
   const messageText = stringValue(formData, 'messageText') ?? 'Functional error'
 
-  if (!actorUserId || !edielMessageId) {
-    throw new Error('Missing actor user id or ediel message id')
+  if (!edielMessageId) {
+    throw new Error('Missing ediel message id')
   }
 
   await createNegativeUtiltsResponse({
-    actorUserId,
+    actorUserId: actor.id,
     edielMessageId,
     messageText,
   })
@@ -307,7 +408,13 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
 }
 
 export async function runEdielSelfTestAction(formData: FormData) {
-  const actorUserId = stringValue(formData, 'actorUserId')
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
   const scenario = stringValue(formData, 'scenario') as
     | 'PRODAT_Z04_IN'
     | 'PRODAT_Z05_IN'
@@ -321,12 +428,12 @@ export async function runEdielSelfTestAction(formData: FormData) {
     | 'UTILTS_NEGATIVE'
     | null
 
-  if (!actorUserId || !scenario) {
-    throw new Error('Missing actor user id or scenario')
+  if (!scenario) {
+    throw new Error('Missing scenario')
   }
 
   await runEdielSelfTest({
-    actorUserId,
+    actorUserId: actor.id,
     scenario,
     switchRequestId: stringValue(formData, 'switchRequestId'),
     gridOwnerDataRequestId: stringValue(formData, 'gridOwnerDataRequestId'),

@@ -1,5 +1,3 @@
-// lib/ediel/utilts.ts
-
 import type {
   CreateEdielMessageInput,
   EdielKnownMessageCode,

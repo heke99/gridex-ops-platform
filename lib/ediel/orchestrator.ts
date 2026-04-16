@@ -1,5 +1,3 @@
-// lib/ediel/orchestrator.ts
-
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
@@ -43,7 +41,7 @@ import {
   findOpenOutboundBySource,
   ingestMeteringValue,
   syncGridOwnerDataRequestFromOutbound,
-  syncGridOwnerDataRequestReceivedFromEdiel,
+  updateGridOwnerDataRequestStatus,
   updateOutboundRequestStatus,
 } from '@/lib/cis/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -606,6 +604,19 @@ export async function pollAndIngestEdielMailbox(params: {
     }
 
     if (matchedDataRequest && message.message_family === 'UTILTS') {
+      await updateGridOwnerDataRequestStatus({
+        actorUserId: params.actorUserId,
+        requestId: matchedDataRequest.id,
+        status: 'received',
+        externalReference:
+          message.external_reference ?? matchedDataRequest.external_reference ?? null,
+        responsePayload: {
+          edielMessageId: message.id,
+          parsedPayload: message.parsed_payload,
+        },
+        notes: null,
+      })
+
       const acknowledgedOutbound = await markDataRequestOutboundAcknowledged({
         actorUserId: params.actorUserId,
         dataRequestId: matchedDataRequest.id,
@@ -628,25 +639,39 @@ export async function pollAndIngestEdielMailbox(params: {
         siteId: siteAndCustomer?.siteId ?? matchedDataRequest.site_id ?? null,
         meteringPointId:
           meteringPointId ?? matchedDataRequest.metering_point_id ?? null,
-        gridOwnerId: siteAndCustomer?.gridOwnerId ?? matchedDataRequest.grid_owner_id ?? null,
+        gridOwnerId:
+          siteAndCustomer?.gridOwnerId ?? matchedDataRequest.grid_owner_id ?? null,
         dataRequestId: matchedDataRequest.id,
         message,
       })
 
-      await syncGridOwnerDataRequestReceivedFromEdiel({
-        actorUserId: params.actorUserId,
-        requestId: matchedDataRequest.id,
-        edielMessageId: message.id,
-        externalReference:
-          message.external_reference ?? matchedDataRequest.external_reference ?? null,
-        parsedPayload: (message.parsed_payload ?? {}) as Record<string, unknown>,
-        notes: null,
-        ingestedMeterValueId: ingestedMeterValue?.id ?? null,
-        extraResponsePayload: {
-          outboundRequestId: acknowledgedOutbound?.id ?? null,
-          acknowledgedVia: acknowledgedOutbound ? 'inbound_ediel' : null,
-        },
-      })
+      if (acknowledgedOutbound) {
+        await syncGridOwnerDataRequestFromOutbound({
+          actorUserId: params.actorUserId,
+          outboundRequest: acknowledgedOutbound,
+          extraResponsePayload: {
+            edielMessageId: message.id,
+            parsedPayload: message.parsed_payload ?? {},
+            ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+          },
+        })
+      } else {
+        await updateGridOwnerDataRequestStatus({
+          actorUserId: params.actorUserId,
+          requestId: matchedDataRequest.id,
+          status: 'received',
+          externalReference:
+            message.external_reference ?? matchedDataRequest.external_reference ?? null,
+          responsePayload: {
+            ...(matchedDataRequest.response_payload ?? {}),
+            edielMessageId: message.id,
+            parsedPayload: message.parsed_payload ?? {},
+            ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+            acknowledgedVia: 'inbound_ediel_without_outbound',
+          },
+          notes: matchedDataRequest.notes ?? null,
+        })
+      }
 
       const contrl = await createEdielMessage(
         buildContrlDraft({
