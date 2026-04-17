@@ -1,4 +1,3 @@
-// lib/operations/db.ts
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
@@ -23,6 +22,16 @@ async function getActorId(supabase: SupabaseClient): Promise<string | null> {
   return user?.id ?? null
 }
 
+function appendNote(
+  existing: string | null | undefined,
+  extra: string
+): string {
+  const base = (existing ?? '').trim()
+  if (!base) return extra
+  if (base.includes(extra)) return base
+  return `${base}\n\n${extra}`
+}
+
 export async function listPowersOfAttorneyByCustomerId(
   supabase: SupabaseClient,
   customerId: string
@@ -35,6 +44,20 @@ export async function listPowersOfAttorneyByCustomerId(
 
   if (error) throw error
   return (data ?? []) as PowerOfAttorneyRow[]
+}
+
+export async function getPowerOfAttorneyById(
+  supabase: SupabaseClient,
+  powerOfAttorneyId: string
+): Promise<PowerOfAttorneyRow | null> {
+  const { data, error } = await supabase
+    .from('powers_of_attorney')
+    .select('*')
+    .eq('id', powerOfAttorneyId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as PowerOfAttorneyRow | null) ?? null
 }
 
 export async function savePowerOfAttorney(
@@ -94,6 +117,73 @@ export async function savePowerOfAttorney(
   return data as PowerOfAttorneyRow
 }
 
+export async function revokePowerOfAttorney(
+  supabase: SupabaseClient,
+  params: {
+    powerOfAttorneyId: string
+    reason?: string | null
+  }
+): Promise<PowerOfAttorneyRow> {
+  const actorId = await getActorId(supabase)
+  const existing = await getPowerOfAttorneyById(supabase, params.powerOfAttorneyId)
+
+  if (!existing) {
+    throw new Error('Fullmakten hittades inte')
+  }
+
+  const { data, error } = await supabase
+    .from('powers_of_attorney')
+    .update({
+      status: 'revoked',
+      notes: params.reason
+        ? appendNote(existing.notes, params.reason)
+        : existing.notes ?? null,
+      updated_by: actorId,
+    })
+    .eq('id', params.powerOfAttorneyId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as PowerOfAttorneyRow
+}
+
+export async function restorePowerOfAttorneyIfRevoked(
+  supabase: SupabaseClient,
+  params: {
+    powerOfAttorneyId: string
+    note?: string | null
+  }
+): Promise<PowerOfAttorneyRow> {
+  const actorId = await getActorId(supabase)
+  const existing = await getPowerOfAttorneyById(supabase, params.powerOfAttorneyId)
+
+  if (!existing) {
+    throw new Error('Fullmakten hittades inte')
+  }
+
+  if (existing.status !== 'revoked') {
+    return existing
+  }
+
+  const restoredStatus: PowerOfAttorneyRow['status'] =
+    existing.signed_at ? 'signed' : 'sent'
+
+  const { data, error } = await supabase
+    .from('powers_of_attorney')
+    .update({
+      status: restoredStatus,
+      notes: params.note ? appendNote(existing.notes, params.note) : existing.notes ?? null,
+      updated_by: actorId,
+    })
+    .eq('id', params.powerOfAttorneyId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as PowerOfAttorneyRow
+}
+
 export async function listCustomerAuthorizationDocumentsByCustomerId(
   supabase: SupabaseClient,
   customerId: string
@@ -106,6 +196,48 @@ export async function listCustomerAuthorizationDocumentsByCustomerId(
 
   if (error) throw error
   return (data ?? []) as CustomerAuthorizationDocumentRow[]
+}
+
+export async function getCustomerAuthorizationDocumentById(
+  supabase: SupabaseClient,
+  documentId: string
+): Promise<CustomerAuthorizationDocumentRow | null> {
+  const { data, error } = await supabase
+    .from('customer_authorization_documents')
+    .select('*')
+    .eq('id', documentId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as CustomerAuthorizationDocumentRow | null) ?? null
+}
+
+export async function listActiveCustomerAuthorizationDocumentsByScope(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string
+    siteId?: string | null
+    documentType: 'power_of_attorney' | 'complete_agreement'
+    excludeDocumentId?: string | null
+  }
+): Promise<CustomerAuthorizationDocumentRow[]> {
+  let query = supabase
+    .from('customer_authorization_documents')
+    .select('*')
+    .eq('customer_id', params.customerId)
+    .eq('document_type', params.documentType)
+    .eq('status', 'active')
+
+  query = params.siteId ? query.eq('site_id', params.siteId) : query.is('site_id', null)
+
+  const { data, error } = await query.order('uploaded_at', { ascending: false })
+
+  if (error) throw error
+
+  const rows = (data ?? []) as CustomerAuthorizationDocumentRow[]
+  const excludedId = params.excludeDocumentId ?? null
+
+  return excludedId ? rows.filter((row) => row.id !== excludedId) : rows
 }
 
 export async function saveCustomerAuthorizationDocument(
@@ -171,6 +303,163 @@ export async function saveCustomerAuthorizationDocument(
 
   if (error) throw error
   return data as CustomerAuthorizationDocumentRow
+}
+
+export async function updateCustomerAuthorizationDocumentStatus(
+  supabase: SupabaseClient,
+  params: {
+    documentId: string
+    status: 'uploaded' | 'active' | 'archived'
+    notesAppend?: string | null
+  }
+): Promise<CustomerAuthorizationDocumentRow> {
+  const actorId = await getActorId(supabase)
+  const existing = await getCustomerAuthorizationDocumentById(supabase, params.documentId)
+
+  if (!existing) {
+    throw new Error('Dokumentet hittades inte')
+  }
+
+  const { data, error } = await supabase
+    .from('customer_authorization_documents')
+    .update({
+      status: params.status,
+      notes: params.notesAppend
+        ? appendNote(existing.notes, params.notesAppend)
+        : existing.notes ?? null,
+      updated_by: actorId,
+    })
+    .eq('id', params.documentId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as CustomerAuthorizationDocumentRow
+}
+
+export async function archiveCustomerAuthorizationDocument(
+  supabase: SupabaseClient,
+  params: {
+    documentId: string
+    reason?: string | null
+    revokeLinkedPowerOfAttorney?: boolean
+  }
+): Promise<{
+  documentBefore: CustomerAuthorizationDocumentRow
+  documentAfter: CustomerAuthorizationDocumentRow
+  revokedPowerOfAttorney: PowerOfAttorneyRow | null
+}> {
+  const documentBefore = await getCustomerAuthorizationDocumentById(
+    supabase,
+    params.documentId
+  )
+
+  if (!documentBefore) {
+    throw new Error('Dokumentet hittades inte')
+  }
+
+  const documentAfter = await updateCustomerAuthorizationDocumentStatus(supabase, {
+    documentId: params.documentId,
+    status: 'archived',
+    notesAppend: params.reason ?? 'Dokumentet arkiverades.',
+  })
+
+  let revokedPowerOfAttorney: PowerOfAttorneyRow | null = null
+
+  if (
+    params.revokeLinkedPowerOfAttorney !== false &&
+    documentAfter.power_of_attorney_id
+  ) {
+    revokedPowerOfAttorney = await revokePowerOfAttorney(supabase, {
+      powerOfAttorneyId: documentAfter.power_of_attorney_id,
+      reason:
+        params.reason
+          ? `Fullmakten revokerades eftersom dokumentet arkiverades. Orsak: ${params.reason}`
+          : 'Fullmakten revokerades eftersom dokumentet arkiverades.',
+    })
+  }
+
+  return {
+    documentBefore,
+    documentAfter,
+    revokedPowerOfAttorney,
+  }
+}
+
+export async function setCustomerAuthorizationDocumentAsActive(
+  supabase: SupabaseClient,
+  params: {
+    documentId: string
+    archiveOtherActiveDocuments?: boolean
+  }
+): Promise<{
+  targetBefore: CustomerAuthorizationDocumentRow
+  targetAfter: CustomerAuthorizationDocumentRow
+  archivedDocuments: CustomerAuthorizationDocumentRow[]
+  revokedPowerOfAttorneyIds: string[]
+  restoredPowerOfAttorney: PowerOfAttorneyRow | null
+}> {
+  const targetBefore = await getCustomerAuthorizationDocumentById(
+    supabase,
+    params.documentId
+  )
+
+  if (!targetBefore) {
+    throw new Error('Dokumentet hittades inte')
+  }
+
+  const archivedDocuments: CustomerAuthorizationDocumentRow[] = []
+  const revokedPowerOfAttorneyIds: string[] = []
+
+  if (params.archiveOtherActiveDocuments !== false) {
+    const activeConflicts = await listActiveCustomerAuthorizationDocumentsByScope(
+      supabase,
+      {
+        customerId: targetBefore.customer_id,
+        siteId: targetBefore.site_id,
+        documentType: targetBefore.document_type,
+        excludeDocumentId: targetBefore.id,
+      }
+    )
+
+    for (const conflict of activeConflicts) {
+      const archived = await archiveCustomerAuthorizationDocument(supabase, {
+        documentId: conflict.id,
+        reason: `Arkiverat automatiskt eftersom dokument ${targetBefore.id} sattes som aktivt standarddokument.`,
+        revokeLinkedPowerOfAttorney: true,
+      })
+
+      archivedDocuments.push(archived.documentAfter)
+
+      if (archived.revokedPowerOfAttorney?.id) {
+        revokedPowerOfAttorneyIds.push(archived.revokedPowerOfAttorney.id)
+      }
+    }
+  }
+
+  const targetAfter = await updateCustomerAuthorizationDocumentStatus(supabase, {
+    documentId: targetBefore.id,
+    status: 'active',
+    notesAppend: 'Satt som aktivt standarddokument.',
+  })
+
+  let restoredPowerOfAttorney: PowerOfAttorneyRow | null = null
+
+  if (targetAfter.power_of_attorney_id) {
+    restoredPowerOfAttorney = await restorePowerOfAttorneyIfRevoked(supabase, {
+      powerOfAttorneyId: targetAfter.power_of_attorney_id,
+      note:
+        'Fullmakten återaktiverades eftersom dokumentet sattes som aktivt standarddokument.',
+    })
+  }
+
+  return {
+    targetBefore,
+    targetAfter,
+    archivedDocuments,
+    revokedPowerOfAttorneyIds,
+    restoredPowerOfAttorney,
+  }
 }
 
 export async function listCustomerOperationTasks(
