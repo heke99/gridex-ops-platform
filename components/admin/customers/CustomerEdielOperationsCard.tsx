@@ -1,9 +1,6 @@
 // components/admin/customers/CustomerEdielOperationsCard.tsx
 
 import Link from 'next/link'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { listCommunicationRoutes } from '@/lib/cis/db'
-import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import type { CommunicationRouteRow, GridOwnerDataRequestRow } from '@/lib/cis/types'
 import type {
   CustomerSiteRow,
@@ -11,6 +8,7 @@ import type {
   MeteringPointRow,
 } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   pollMailboxAction,
   prepareSwitchZ03Action,
@@ -21,29 +19,10 @@ import {
   getRecommendationSummary,
   type EdielRecommendationRouteRow,
 } from '@/lib/ediel/recommendations'
+import type { EdielRouteProfileRow } from '@/lib/ediel/types'
+import type { CustomerEdielMessageRow } from '@/lib/ediel/customerData'
 
-type EdielMessageSummaryRow = {
-  id: string
-  direction: 'inbound' | 'outbound'
-  message_family: string
-  message_code: string
-  status: string
-  sender_ediel_id: string | null
-  receiver_ediel_id: string | null
-  sender_sub_address: string | null
-  receiver_sub_address: string | null
-  external_reference: string | null
-  correlation_reference: string | null
-  transaction_reference: string | null
-  switch_request_id: string | null
-  grid_owner_data_request_id: string | null
-  communication_route_id: string | null
-  outbound_request_id: string | null
-  related_message_id: string | null
-  receiver_email: string | null
-  created_at: string
-  message_received_at: string | null
-}
+type EdielMessageSummaryRow = CustomerEdielMessageRow
 
 type Props = {
   customerId: string
@@ -52,6 +31,10 @@ type Props = {
   gridOwners: GridOwnerRow[]
   switchRequests: SupplierSwitchRequestRow[]
   dataRequests: GridOwnerDataRequestRow[]
+  communicationRoutes: CommunicationRouteRow[]
+  routeProfiles: EdielRouteProfileRow[]
+  edielMessages: EdielMessageSummaryRow[]
+  recommendationRoutes: EdielRecommendationRouteRow[]
 }
 
 type EdielValidationIssue = {
@@ -348,31 +331,15 @@ export default async function CustomerEdielOperationsCard({
   gridOwners,
   switchRequests,
   dataRequests,
+  communicationRoutes,
+  routeProfiles,
+  edielMessages,
+  recommendationRoutes,
 }: Props) {
   const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const [routes, edielMessagesRaw] = await Promise.all([
-    listCommunicationRoutes({
-      routeType: 'ediel_partner',
-    }),
-    supabase
-      .from('ediel_messages')
-      .select(
-        'id,direction,message_family,message_code,status,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,external_reference,correlation_reference,transaction_reference,switch_request_id,grid_owner_data_request_id,communication_route_id,outbound_request_id,related_message_id,receiver_email,created_at,message_received_at'
-      )
-      .eq('customer_id', customerId)
-      .order('created_at', { ascending: false })
-      .limit(50),
-  ])
-
-  if (edielMessagesRaw.error) {
-    throw edielMessagesRaw.error
-  }
-
-  const edielMessages = (edielMessagesRaw.data ?? []) as EdielMessageSummaryRow[]
+const {
+  data: { user },
+} = await supabase.auth.getUser()
   const latestSwitches = latestSwitchPerSite(sites, switchRequests)
   const openDataRequests = dataRequests
     .filter((row) => ['pending', 'sent', 'received'].includes(row.status))
@@ -380,54 +347,19 @@ export default async function CustomerEdielOperationsCard({
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
 
-  const routeProfiles = await Promise.all(
-    routes.map((route) => getEdielRouteProfileByCommunicationRouteId(route.id))
-  )
-
+  const routes = communicationRoutes
   const profileByRouteId = new Map(
-    routeProfiles
-      .filter((profile) => Boolean(profile))
-      .map((profile) => [profile!.communication_route_id, profile!])
+    routeProfiles.map((profile) => [profile.communication_route_id, profile])
   )
 
   const gridOwnerById = new Map(gridOwners.map((row) => [row.id, row]))
-
-  const workbenchRoutes: EdielRecommendationRouteRow[] = routes.map((route) => {
-    const gridOwner = route.grid_owner_id
-      ? gridOwnerById.get(route.grid_owner_id) ?? null
-      : null
-
-    const profile = profileByRouteId.get(route.id) ?? null
-
-    return {
-      id: route.id,
-      route_name: route.route_name,
-      route_scope: route.route_scope,
-      route_type: route.route_type,
-      target_email: route.target_email,
-      target_system: route.target_system,
-      grid_owner_name: gridOwner?.name ?? null,
-      grid_owner_ediel_id: gridOwner?.ediel_id ?? null,
-      is_active: route.is_active,
-      profile: profile
-        ? {
-            is_enabled: profile.is_enabled,
-            sender_ediel_id: profile.sender_ediel_id,
-            receiver_ediel_id: profile.receiver_ediel_id,
-            mailbox: profile.mailbox,
-            sender_sub_address: profile.sender_sub_address,
-            receiver_sub_address: profile.receiver_sub_address,
-            application_reference: profile.application_reference,
-          }
-        : null,
-    }
-  })
+  void gridOwnerById
 
   const recommendation = getRecommendationSummary({
     switchRequests,
     outboundRequests: [],
     messages: edielMessages,
-    routes: workbenchRoutes,
+    routes: recommendationRoutes,
     preferredFamily: 'PRODAT',
   })
 

@@ -52,6 +52,7 @@ import {
   listSupplierSwitchRequestsByCustomerId,
 } from '@/lib/operations/db'
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
+import { getCustomerEdielDataBundle } from '@/lib/ediel/customerData'
 
 export const dynamic = 'force-dynamic'
 
@@ -905,15 +906,21 @@ export default async function CustomerAdminDetailPage({
   const contacts = (contactsResponse.data ?? []) as CustomerContactRow[]
   const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[]
 
-  const meteringPoints = await listMeteringPointsBySiteIds(
-    supabase,
-    sites.map((site) => site.id)
-  )
-
-  const switchEvents = await listSupplierSwitchEventsByRequestIds(
-    supabase,
-    switchRequests.map((request) => request.id)
-  )
+  const [meteringPoints, switchEvents, edielData] = await Promise.all([
+    listMeteringPointsBySiteIds(
+      supabase,
+      sites.map((site) => site.id)
+    ),
+    listSupplierSwitchEventsByRequestIds(
+      supabase,
+      switchRequests.map((request) => request.id)
+    ),
+    getCustomerEdielDataBundle({
+      supabase,
+      customerId: id,
+      gridOwners,
+    }),
+  ])
 
   const selectedSite = editSiteId
     ? await getCustomerSiteById(supabase, editSiteId)
@@ -1334,6 +1341,8 @@ export default async function CustomerAdminDetailPage({
           switchRequests={switchRequests}
           switchEvents={switchEvents}
           outboundRequests={outboundRequests}
+          edielMessages={edielData.edielMessages}
+          edielRecommendationRoutes={edielData.recommendationRoutes}
         />
       </SectionAnchor>
 
@@ -1349,6 +1358,10 @@ export default async function CustomerAdminDetailPage({
           gridOwners={gridOwners}
           switchRequests={switchRequests}
           dataRequests={dataRequests}
+          communicationRoutes={edielData.communicationRoutes}
+          routeProfiles={edielData.routeProfiles}
+          edielMessages={edielData.edielMessages}
+          recommendationRoutes={edielData.recommendationRoutes}
         />
       </SectionAnchor>
 

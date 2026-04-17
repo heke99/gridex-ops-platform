@@ -18,6 +18,8 @@ import {
 } from '@/lib/operations/controlTower'
 import { queueSupplierSwitchOutboundAction } from '@/app/admin/cis/actions'
 import { retryOutboundRequestFromCustomerAction } from '@/app/admin/customers/[id]/switch-actions'
+import { getRecommendationSummary, type EdielRecommendationRouteRow } from '@/lib/ediel/recommendations'
+import type { CustomerEdielMessageRow } from '@/lib/ediel/customerData'
 
 type Props = {
   customerId: string
@@ -26,6 +28,8 @@ type Props = {
   switchRequests: SupplierSwitchRequestRow[]
   switchEvents: SupplierSwitchEventRow[]
   outboundRequests: OutboundRequestRow[]
+  edielMessages: CustomerEdielMessageRow[]
+  edielRecommendationRoutes: EdielRecommendationRouteRow[]
 }
 
 type SwitchTimelineEntry = {
@@ -117,6 +121,15 @@ function lifecycleTone(stage: string): string {
   }
 
   return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+}
+
+
+function routeLabel(route: EdielRecommendationRouteRow | null): string {
+  if (!route) return '—'
+
+  return `${route.route_name} (${route.route_scope})${
+    route.grid_owner_name ? ` · ${route.grid_owner_name}` : ''
+  }`
 }
 
 function siteLabel(siteId: string, sites: CustomerSiteRow[]): string {
@@ -482,6 +495,8 @@ export default function CustomerSwitchOperationsCard({
   switchRequests,
   switchEvents,
   outboundRequests,
+  edielMessages,
+  edielRecommendationRoutes,
 }: Props) {
   const switchOutboundRequests = outboundRequests.filter(
     (request) => request.request_type === 'supplier_switch'
@@ -598,6 +613,14 @@ export default function CustomerSwitchOperationsCard({
     switchOutboundRequests,
   })
 
+  const edielRecommendation = getRecommendationSummary({
+    switchRequests,
+    outboundRequests: switchOutboundRequests,
+    messages: edielMessages,
+    routes: edielRecommendationRoutes,
+    preferredFamily: 'PRODAT',
+  })
+
   const switchTimeline: SwitchTimelineEntry[] = [
     ...switchRequests.map((request) => ({
       id: `switch:${request.id}`,
@@ -650,17 +673,17 @@ export default function CustomerSwitchOperationsCard({
             Rekommenderat nästa steg i switchkedjan
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Den här panelen bygger bara på data som faktiskt finns i switchvyn: switch requests, outbound, validation och events.
+            Panelen använder nu samma EDIEL-rekommendationsmotor som /admin/ediel och CustomerEdielOperationsCard, men serverhämtad från parent-vyn.
           </p>
         </div>
 
         <div className="grid gap-4 p-6 md:grid-cols-5">
           <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Senaste switch
+              Vald switch
             </div>
             <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
-              {recommendation.latestRequest?.id ?? '—'}
+              {edielRecommendation.selectedSwitchId || recommendation.latestRequest?.id || '—'}
             </div>
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {recommendation.latestRequest?.status ?? 'Inget ärende ännu'}
@@ -669,65 +692,55 @@ export default function CustomerSwitchOperationsCard({
 
           <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Lifecycle
+              Rekommenderad route
             </div>
-            <div className="mt-2">
-              {recommendation.latestLifecycle ? (
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
-                    recommendation.latestLifecycle.stage
-                  )}`}
-                >
-                  {recommendation.latestLifecycle.label}
-                </span>
-              ) : (
-                <span className="text-sm font-semibold text-slate-950 dark:text-white">
-                  —
-                </span>
-              )}
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {routeLabel(edielRecommendation.recommendedRoute)}
             </div>
-            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              {recommendation.latestLifecycle?.reason ?? 'Ingen lifecycle ännu'}
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {edielRecommendation.recommendedRoute?.id ?? 'Ingen route vald'}
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Validation
+              Rekommenderat skickbart meddelande
             </div>
             <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
-              {recommendation.latestValidation?.label ?? '—'}
+              {edielRecommendation.recommendedSendMessage
+                ? `${edielRecommendation.recommendedSendMessage.message_family} ${edielRecommendation.recommendedSendMessage.message_code}`
+                : 'Inget skickbart meddelande'}
             </div>
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              issues: {recommendation.latestValidation?.issueCount ?? 0}
+              {edielRecommendation.recommendedSendMessage?.id ?? '—'}
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Senaste outbound
+              Rekommenderad inbound UTILTS
             </div>
             <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
-              {recommendation.latestOutbound
-                ? recommendation.latestOutbound.channel_type === 'unresolved'
-                  ? 'unresolved'
-                  : recommendation.latestOutbound.status
-                : 'saknas'}
+              {edielRecommendation.recommendedInboundUtilts
+                ? `${edielRecommendation.recommendedInboundUtilts.message_family} ${edielRecommendation.recommendedInboundUtilts.message_code}`
+                : 'Ingen inbound UTILTS ännu'}
             </div>
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {recommendation.latestOutbound?.id ?? 'Ingen outbound ännu'}
+              {edielRecommendation.recommendedInboundUtilts?.id ?? '—'}
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Senaste event
+              Rekommenderad ACK-källa
             </div>
             <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
-              {recommendation.latestEvent?.event_status ?? '—'}
+              {edielRecommendation.recommendedAckSource
+                ? `${edielRecommendation.recommendedAckSource.message_family} ${edielRecommendation.recommendedAckSource.message_code}`
+                : 'Ingen ACK-källa ännu'}
             </div>
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {recommendation.latestEvent?.event_type ?? 'Inget event ännu'}
+              {edielRecommendation.recommendedAckSource?.id ?? '—'}
             </div>
           </div>
         </div>
@@ -740,6 +753,20 @@ export default function CustomerSwitchOperationsCard({
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               {recommendation.nextStep}
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${edielRecommendation.routeHealth.hasTargetEmail ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'}`}>
+                target email {edielRecommendation.routeHealth.hasTargetEmail ? 'ok' : 'saknas'}
+              </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${edielRecommendation.routeHealth.hasSenderEdielId ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+                sender {edielRecommendation.routeHealth.hasSenderEdielId ? 'ok' : 'saknas'}
+              </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${edielRecommendation.routeHealth.hasReceiverEdielId ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+                receiver {edielRecommendation.routeHealth.hasReceiverEdielId ? 'ok' : 'saknas'}
+              </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${edielRecommendation.routeHealth.hasMailbox ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+                mailbox {edielRecommendation.routeHealth.hasMailbox ? 'ok' : 'saknas'}
+              </span>
+            </div>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href={recommendation.primaryWorkspaceHref}
@@ -748,16 +775,16 @@ export default function CustomerSwitchOperationsCard({
                 {recommendation.primaryWorkspaceLabel}
               </Link>
               <Link
-                href="/admin/outbound"
-                className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                href="/admin/ediel"
+                className="rounded-2xl border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-700 dark:border-blue-800 dark:text-blue-300"
               >
-                Öppna outbound
+                Öppna Ediel-center
               </Link>
               <Link
-                href="/admin/outbound/unresolved"
-                className="rounded-2xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300"
+                href="/admin/ediel/routes"
+                className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
               >
-                Öppna unresolved
+                Ediel-routes
               </Link>
             </div>
           </div>
@@ -789,6 +816,12 @@ export default function CustomerSwitchOperationsCard({
                 ready to execute:{' '}
                 <span className="font-semibold text-slate-900 dark:text-white">
                   {recommendation.readyToExecuteCount}
+                </span>
+              </div>
+              <div>
+                EDIEL-signaler:{' '}
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {edielMessages.length}
                 </span>
               </div>
             </div>
