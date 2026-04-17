@@ -1,4 +1,3 @@
-// app/admin/customers/[id]/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -21,15 +20,20 @@ import {
   createSupplierSwitchRequest,
   findCustomerSiteById,
   findOpenSupplierSwitchRequestForSite,
+  listCustomerAuthorizationDocumentsByCustomerId,
   listMeteringPointsForSite,
   listPowersOfAttorneyByCustomerId,
+  saveCustomerAuthorizationDocument,
   savePowerOfAttorney,
   syncCustomerOperationsForCustomer,
   syncCustomerOperationsForSite,
   syncOperationTasksFromReadiness,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
-import type { SupplierSwitchRequestType } from '@/lib/operations/types'
+import type {
+  CustomerAuthorizationDocumentRow,
+  SupplierSwitchRequestType,
+} from '@/lib/operations/types'
 import {
   createGridOwnerDataRequest,
   createPartnerExport,
@@ -93,6 +97,40 @@ function mapGridOwnerRequestScopeToOutboundType(
 ): 'meter_values' | 'billing_underlay' {
   if (value === 'billing_underlay') return 'billing_underlay'
   return 'meter_values'
+}
+
+function sanitizeFileName(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/_+/g, '_')
+}
+
+function buildCustomerDocumentPath(params: {
+  customerId: string
+  siteId: string | null
+  documentType: 'power_of_attorney' | 'complete_agreement'
+  fileName: string
+}): string {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const scope = params.siteId ? `site-${params.siteId}` : 'customer'
+  return `${params.customerId}/${scope}/${params.documentType}/${stamp}_${sanitizeFileName(params.fileName)}`
+}
+
+function toBoolean(formData: FormData, key: string): boolean {
+  return parseCheckbox(formData.get(key))
+}
+
+function formatDocumentReference(doc: CustomerAuthorizationDocumentRow): Record<string, unknown> {
+  return {
+    id: doc.id,
+    type: doc.document_type,
+    title: doc.title,
+    filePath: doc.file_path,
+    storageBucket: doc.storage_bucket,
+    reference: doc.reference,
+    uploadedAt: doc.uploaded_at,
+  }
 }
 
 async function getActor() {
@@ -365,6 +403,7 @@ export async function createPowerOfAttorneyAction(
         : null,
     valid_from: normalizeDateOrNull(formValue(formData, 'valid_from')),
     valid_to: normalizeDateOrNull(formValue(formData, 'valid_to')),
+    document_path: formValue(formData, 'document_path') || null,
     reference: formValue(formData, 'reference') || null,
     notes: formValue(formData, 'notes') || null,
   })
@@ -385,6 +424,114 @@ export async function createPowerOfAttorneyAction(
     metadata: {
       customerId,
       siteId: saved.site_id,
+      syncSummary,
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
+}
+
+export async function uploadCustomerAuthorizationDocumentAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+
+  const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
+  const customerId = formValue(formData, 'customer_id') ?? ''
+  const siteId = formValue(formData, 'site_id') || null
+  const documentType =
+    (formValue(formData, 'document_type') as 'power_of_attorney' | 'complete_agreement' | null) ??
+    'power_of_attorney'
+  const title = formValue(formData, 'title') || null
+  const reference = formValue(formData, 'reference') || null
+  const notes = formValue(formData, 'notes') || null
+  const validFrom = normalizeDateOrNull(formValue(formData, 'valid_from'))
+  const validTo = normalizeDateOrNull(formValue(formData, 'valid_to'))
+  const markAsSigned = toBoolean(formData, 'mark_as_signed')
+  const syncToPowerOfAttorney = toBoolean(formData, 'sync_to_power_of_attorney')
+  const fileValue = formData.get('document_file')
+
+  if (!customerId) {
+    throw new Error('Customer ID saknas')
+  }
+
+  if (!(fileValue instanceof File) || fileValue.size === 0) {
+    throw new Error('Du måste välja en fil att ladda upp')
+  }
+
+  const bucket = 'customer-documents'
+  const filePath = buildCustomerDocumentPath({
+    customerId,
+    siteId,
+    documentType,
+    fileName: fileValue.name || 'document.pdf',
+  })
+
+  const uploadResult = await supabaseService.storage
+    .from(bucket)
+    .upload(filePath, fileValue, {
+      contentType: fileValue.type || 'application/octet-stream',
+      upsert: false,
+    })
+
+  if (uploadResult.error) throw uploadResult.error
+
+  let savedPowerOfAttorneyId: string | null = null
+
+  if (syncToPowerOfAttorney || documentType === 'power_of_attorney') {
+    const savedPowerOfAttorney = await savePowerOfAttorney(supabase, {
+      customer_id: customerId,
+      site_id: siteId,
+      scope: 'supplier_switch',
+      status: markAsSigned ? 'signed' : 'sent',
+      signed_at: markAsSigned ? new Date().toISOString() : null,
+      valid_from: validFrom,
+      valid_to: validTo,
+      document_path: filePath,
+      reference,
+      notes,
+    })
+
+    savedPowerOfAttorneyId = savedPowerOfAttorney.id
+  }
+
+  const savedDocument = await saveCustomerAuthorizationDocument(supabase, {
+    customer_id: customerId,
+    site_id: siteId,
+    power_of_attorney_id: savedPowerOfAttorneyId,
+    document_type: documentType,
+    status: 'active',
+    title,
+    file_name: fileValue.name || null,
+    mime_type: fileValue.type || null,
+    file_size_bytes: fileValue.size || null,
+    storage_bucket: bucket,
+    file_path: filePath,
+    reference,
+    notes,
+  })
+
+  const syncSummary = siteId
+    ? await syncCustomerOperationsForSite(supabase, {
+        customerId,
+        siteId,
+      })
+    : await syncCustomerOperationsForCustomer(supabase, customerId)
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'customer_authorization_document',
+    entityId: savedDocument.id,
+    action: 'customer_authorization_document_uploaded',
+    newValues: savedDocument,
+    metadata: {
+      customerId,
+      siteId,
+      documentType,
+      linkedPowerOfAttorneyId: savedPowerOfAttorneyId,
       syncSummary,
     },
   })
@@ -707,6 +854,192 @@ export async function createGridOwnerDataRequestAction(
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/unresolved')
   revalidatePath('/admin/ediel')
+}
+
+export async function createAuthorizationRequestPackageAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+
+  const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
+  const customerId = formValue(formData, 'customer_id') ?? ''
+  const siteId = formValue(formData, 'site_id') || null
+  const selectedDocumentId = formValue(formData, 'authorization_document_id') || null
+
+  if (!customerId || !siteId) {
+    throw new Error('Customer eller anläggning saknas för request-paketet')
+  }
+
+  const site = await findCustomerSiteById(supabase, siteId)
+  if (!site) {
+    throw new Error('Anläggningen kunde inte hittas')
+  }
+
+  const [documents, meteringPoints] = await Promise.all([
+    listCustomerAuthorizationDocumentsByCustomerId(supabase, customerId),
+    listMeteringPointsForSite(supabase, siteId),
+  ])
+
+  const authorizationDocument =
+    documents.find((row) => row.id === selectedDocumentId && row.site_id === siteId) ??
+    documents.find((row) => row.id === selectedDocumentId && row.site_id === null) ??
+    documents.find((row) => row.site_id === siteId) ??
+    documents.find((row) => row.site_id === null) ??
+    null
+
+  if (!authorizationDocument) {
+    throw new Error('Ingen uppladdad fullmakt eller avtal hittades att skicka med')
+  }
+
+  const preferredMeteringPoint =
+    meteringPoints.find((row) => row.status === 'active') ??
+    meteringPoints.find((row) => row.status === 'pending_validation') ??
+    meteringPoints[0] ??
+    null
+
+  const requestNotes = formValue(formData, 'notes') || null
+  const requestReference = formValue(formData, 'external_reference') || null
+  const requestedPeriodStart = normalizeDateOrNull(
+    formValue(formData, 'requested_period_start')
+  )
+  const requestedPeriodEnd = normalizeDateOrNull(
+    formValue(formData, 'requested_period_end')
+  )
+
+  const requestPayload = {
+    authorizationDocument: formatDocumentReference(authorizationDocument),
+    customerId,
+    siteId,
+    siteName: site.site_name,
+    facilityId: site.facility_id,
+    meterPointId: preferredMeteringPoint?.meter_point_id ?? null,
+    currentSupplierName: site.current_supplier_name,
+    currentSupplierOrgNumber: site.current_supplier_org_number,
+    requestIntent: 'authorization_document_request_package',
+    notes: requestNotes,
+  }
+
+  const createdGridOwnerRequests: string[] = []
+
+  const maybeCreateGridOwnerRequest = async (
+    scope: 'customer_masterdata' | 'meter_values' | 'billing_underlay',
+    enabled: boolean
+  ) => {
+    if (!enabled) return
+
+    const saved = await createGridOwnerDataRequest({
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      meteringPointId: preferredMeteringPoint?.id ?? null,
+      gridOwnerId: preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
+      requestScope: scope,
+      requestedPeriodStart,
+      requestedPeriodEnd,
+      externalReference: requestReference,
+      notes: requestNotes
+        ? `${requestNotes}\n\nBilaga: ${authorizationDocument.file_path}`
+        : `Bilaga: ${authorizationDocument.file_path}`,
+    })
+
+    const outbound = await createOutboundRequest({
+      actorUserId: actor.id,
+      customerId,
+      siteId: saved.site_id,
+      meteringPointId: saved.metering_point_id,
+      gridOwnerId: saved.grid_owner_id,
+      requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope),
+      sourceType: 'grid_owner_data_request',
+      sourceId: saved.id,
+      payload: {
+        ...requestPayload,
+        requestScope: saved.request_scope,
+        gridOwnerDataRequestId: saved.id,
+      },
+      periodStart: saved.requested_period_start ?? null,
+      periodEnd: saved.requested_period_end ?? null,
+      externalReference: saved.external_reference ?? null,
+    })
+
+    await updateGridOwnerDataRequestStatus({
+      actorUserId: actor.id,
+      requestId: saved.id,
+      status: outbound.status === 'sent' ? 'sent' : 'pending',
+      externalReference: saved.external_reference ?? outbound.external_reference ?? null,
+      responsePayload: {
+        outboundRequestId: outbound.id,
+        authorizationDocumentId: authorizationDocument.id,
+        queuedAutomatically: true,
+      },
+      notes: saved.notes ?? null,
+    })
+
+    createdGridOwnerRequests.push(saved.id)
+  }
+
+  await maybeCreateGridOwnerRequest(
+    'customer_masterdata',
+    toBoolean(formData, 'include_customer_masterdata')
+  )
+  await maybeCreateGridOwnerRequest(
+    'meter_values',
+    toBoolean(formData, 'include_meter_values')
+  )
+  await maybeCreateGridOwnerRequest(
+    'billing_underlay',
+    toBoolean(formData, 'include_billing_underlay')
+  )
+
+  let currentSupplierOutboundId: string | null = null
+
+  if (toBoolean(formData, 'include_current_supplier_request')) {
+    const outbound = await createOutboundRequest({
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      meteringPointId: preferredMeteringPoint?.id ?? null,
+      gridOwnerId: preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
+      requestType: 'supplier_switch',
+      sourceType: 'manual',
+      payload: {
+        ...requestPayload,
+        requestScope: 'current_supplier_information_request',
+        supplierName: site.current_supplier_name,
+        supplierOrgNumber: site.current_supplier_org_number,
+        authorizationDocumentId: authorizationDocument.id,
+      },
+      externalReference: requestReference,
+    })
+
+    currentSupplierOutboundId = outbound.id
+  }
+
+  const syncSummary = await syncCustomerOperationsForSite(supabase, {
+    customerId,
+    siteId,
+  })
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'customer_authorization_document',
+    entityId: authorizationDocument.id,
+    action: 'authorization_request_package_created',
+    metadata: {
+      customerId,
+      siteId,
+      authorizationDocumentId: authorizationDocument.id,
+      gridOwnerRequestIds: createdGridOwnerRequests,
+      currentSupplierOutboundId,
+      syncSummary,
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/unresolved')
 }
 
 export async function createPartnerExportAction(

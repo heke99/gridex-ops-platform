@@ -1,3 +1,4 @@
+// lib/operations/types.ts
 export type PowerOfAttorneyScope =
   | 'supplier_switch'
   | 'meter_data'
@@ -22,6 +23,34 @@ export type PowerOfAttorneyRow = {
   document_path: string | null
   reference: string | null
   notes: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+}
+
+export type AuthorizationDocumentType =
+  | 'power_of_attorney'
+  | 'complete_agreement'
+
+export type AuthorizationDocumentStatus = 'uploaded' | 'active' | 'archived'
+
+export type CustomerAuthorizationDocumentRow = {
+  id: string
+  customer_id: string
+  site_id: string | null
+  power_of_attorney_id: string | null
+  document_type: AuthorizationDocumentType
+  status: AuthorizationDocumentStatus
+  title: string | null
+  file_name: string | null
+  mime_type: string | null
+  file_size_bytes: number | null
+  storage_bucket: string | null
+  file_path: string
+  reference: string | null
+  notes: string | null
+  uploaded_at: string
   created_at: string
   updated_at: string
   created_by: string | null

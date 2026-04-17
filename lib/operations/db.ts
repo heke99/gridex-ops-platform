@@ -1,8 +1,10 @@
+// lib/operations/db.ts
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { resolveOwnElectricitySupplier } from '@/lib/masterdata/selfSupplier'
 import type {
+  CustomerAuthorizationDocumentRow,
   CustomerOperationTaskRow,
   CustomerOperationTaskStatus,
   PowerOfAttorneyRow,
@@ -90,6 +92,85 @@ export async function savePowerOfAttorney(
 
   if (error) throw error
   return data as PowerOfAttorneyRow
+}
+
+export async function listCustomerAuthorizationDocumentsByCustomerId(
+  supabase: SupabaseClient,
+  customerId: string
+): Promise<CustomerAuthorizationDocumentRow[]> {
+  const { data, error } = await supabase
+    .from('customer_authorization_documents')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('uploaded_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as CustomerAuthorizationDocumentRow[]
+}
+
+export async function saveCustomerAuthorizationDocument(
+  supabase: SupabaseClient,
+  input: {
+    id?: string
+    customer_id: string
+    site_id?: string | null
+    power_of_attorney_id?: string | null
+    document_type: 'power_of_attorney' | 'complete_agreement'
+    status?: 'uploaded' | 'active' | 'archived'
+    title?: string | null
+    file_name?: string | null
+    mime_type?: string | null
+    file_size_bytes?: number | null
+    storage_bucket?: string | null
+    file_path: string
+    reference?: string | null
+    notes?: string | null
+    uploaded_at?: string | null
+  }
+): Promise<CustomerAuthorizationDocumentRow> {
+  const actorId = await getActorId(supabase)
+
+  const payload = {
+    customer_id: input.customer_id,
+    site_id: input.site_id ?? null,
+    power_of_attorney_id: input.power_of_attorney_id ?? null,
+    document_type: input.document_type,
+    status: input.status ?? 'uploaded',
+    title: input.title ?? null,
+    file_name: input.file_name ?? null,
+    mime_type: input.mime_type ?? null,
+    file_size_bytes: input.file_size_bytes ?? null,
+    storage_bucket: input.storage_bucket ?? null,
+    file_path: input.file_path,
+    reference: input.reference ?? null,
+    notes: input.notes ?? null,
+    uploaded_at: input.uploaded_at ?? new Date().toISOString(),
+    updated_by: actorId,
+  }
+
+  if (input.id) {
+    const { data, error } = await supabase
+      .from('customer_authorization_documents')
+      .update(payload)
+      .eq('id', input.id)
+      .select('*')
+      .single()
+
+    if (error) throw error
+    return data as CustomerAuthorizationDocumentRow
+  }
+
+  const { data, error } = await supabase
+    .from('customer_authorization_documents')
+    .insert({
+      ...payload,
+      created_by: actorId,
+    })
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as CustomerAuthorizationDocumentRow
 }
 
 export async function listCustomerOperationTasks(

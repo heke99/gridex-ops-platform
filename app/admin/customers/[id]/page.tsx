@@ -30,7 +30,11 @@ import type {
   MeteringPointRow,
 } from '@/lib/masterdata/types'
 import type { OutboundRequestRow } from '@/lib/cis/types'
-import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
+import type {
+  PowerOfAttorneyRow,
+  SupplierSwitchRequestRow,
+  CustomerAuthorizationDocumentRow,
+} from '@/lib/operations/types'
 import type {
   CustomerAddressRow,
   CustomerContactRow,
@@ -44,6 +48,7 @@ import CustomerProfileCard from '@/components/admin/customers/CustomerProfileCar
 import CustomerGridOwnerFileImportCard from '@/components/admin/customers/CustomerGridOwnerFileImportCard'
 import CustomerContractOfferEligibilityCard from '@/components/admin/customers/CustomerContractOfferEligibilityCard'
 import CustomerOperationsReadinessStrip from '@/components/admin/customers/CustomerOperationsReadinessStrip'
+import CustomerAuthorizationDocumentsCard from '@/components/admin/customers/CustomerAuthorizationDocumentsCard'
 import {
   listBillingUnderlaysByCustomerId,
   listGridOwnerDataRequestsByCustomerId,
@@ -52,6 +57,8 @@ import {
   listPartnerExportsByCustomerId,
 } from '@/lib/cis/db'
 import {
+  listCustomerAuthorizationDocumentsByCustomerId,
+  listPowersOfAttorneyByCustomerId,
   listSupplierSwitchEventsByRequestIds,
   listSupplierSwitchRequestsByCustomerId,
 } from '@/lib/operations/db'
@@ -624,6 +631,7 @@ function StickyActionBar({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" tone="success" />
           <QuickJumpLink href="#switch-operations" label="Nytt leverantörsbyte" tone="success" />
           <QuickJumpLink href="#billing-metering" label="Begär mätvärden" tone="warning" />
           <QuickJumpLink href="#billing-metering" label="Begär billingunderlag" tone="warning" />
@@ -874,6 +882,8 @@ export default async function CustomerAdminDetailPage({
     addressesResponse,
     contractOffers,
     customerContracts,
+    powersOfAttorney,
+    authorizationDocuments,
   ] = await Promise.all([
     getCustomer(supabase, id),
     listGridOwners(supabase),
@@ -900,6 +910,8 @@ export default async function CustomerAdminDetailPage({
       .order('created_at', { ascending: false }),
     listContractOffers({ activeOnly: true }),
     listCustomerContractsByCustomerId(id),
+    listPowersOfAttorneyByCustomerId(supabase, id),
+    listCustomerAuthorizationDocumentsByCustomerId(supabase, id),
   ])
 
   if (!customer) {
@@ -911,6 +923,8 @@ export default async function CustomerAdminDetailPage({
 
   const contacts = (contactsResponse.data ?? []) as CustomerContactRow[]
   const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[]
+  const poaRows = powersOfAttorney as PowerOfAttorneyRow[]
+  const documentRows = authorizationDocuments as CustomerAuthorizationDocumentRow[]
 
   const [meteringPoints, switchEvents, edielData] = await Promise.all([
     listMeteringPointsBySiteIds(
@@ -978,6 +992,30 @@ export default async function CustomerAdminDetailPage({
     )
   })
 
+  const hasUsablePowerOfAttorney = poaRows.some(
+    (row) =>
+      row.scope === 'supplier_switch' &&
+      row.status === 'signed' &&
+      Boolean(row.document_path?.trim())
+  )
+
+  const hasSwitchData = sites.some((site) => {
+    const siteMeteringPoints = meteringPoints.filter((point) => point.site_id === site.id)
+    const candidateMeteringPoint =
+      siteMeteringPoints.find((point) => point.status === 'active') ??
+      siteMeteringPoints.find((point) => point.status === 'pending_validation') ??
+      siteMeteringPoints[0] ??
+      null
+
+    return Boolean(
+      candidateMeteringPoint?.meter_point_id?.trim() &&
+        (candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id) &&
+        (candidateMeteringPoint?.price_area_code ?? site.price_area_code) &&
+        site.current_supplier_name?.trim() &&
+        site.move_in_date
+    )
+  })
+
   const readinessItems = [
     {
       label: 'Avtal',
@@ -986,6 +1024,13 @@ export default async function CustomerAdminDetailPage({
         customerContracts.length > 0
           ? `${customerContracts.length} registrerade`
           : 'Saknar kundavtal',
+    },
+    {
+      label: 'Fullmakt',
+      ok: hasUsablePowerOfAttorney,
+      detail: hasUsablePowerOfAttorney
+        ? 'Signerad fullmakt med dokument finns'
+        : 'Saknar signerad fullmakt med fil',
     },
     {
       label: 'Anläggning',
@@ -999,6 +1044,13 @@ export default async function CustomerAdminDetailPage({
         meteringPoints.length > 0
           ? `${meteringPoints.length} st`
           : 'Ingen mätpunkt',
+    },
+    {
+      label: 'Switch-data',
+      ok: hasSwitchData,
+      detail: hasSwitchData
+        ? 'Minst en anläggning har masterdata för switch'
+        : 'Nuvarande leverantör, nätägare, mätpunkt eller datum saknas',
     },
     {
       label: 'Switch',
@@ -1209,6 +1261,7 @@ export default async function CustomerAdminDetailPage({
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" tone="success" />
               <QuickJumpLink href="#switch-operations" label="Starta leverantörsbyte" tone="success" />
               <QuickJumpLink href="#billing-metering" label="Begär uppgifter från nätägare" tone="warning" />
               <QuickJumpLink href="#ediel-operations" label="Öppna Ediel" tone="info" />
@@ -1219,6 +1272,7 @@ export default async function CustomerAdminDetailPage({
           <div className="mt-4 flex flex-wrap gap-2">
             <QuickJumpLink href="#profile" label="Profil" />
             <QuickJumpLink href="#grid-owner-import" label="Grid owner import" />
+            <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" />
             <QuickJumpLink href="#switch-operations" label="Leverantörsbyte" />
             <QuickJumpLink href="#ediel-operations" label="Ediel" />
             <QuickJumpLink href="#billing-metering" label="Billing / metering" />
@@ -1396,6 +1450,20 @@ export default async function CustomerAdminDetailPage({
         description="Importera eller synka underlag från nätägarsidan för kunden."
       >
         <CustomerGridOwnerFileImportCard customerId={id} />
+      </SectionAnchor>
+
+      <SectionAnchor
+        id="authorization-documents"
+        title="Fullmakt och komplett avtal"
+        description="Ladda upp dokument på kundkortet och skapa request-paket mot nätägare och nuvarande leverantör."
+      >
+        <CustomerAuthorizationDocumentsCard
+          customerId={id}
+          sites={sites}
+          meteringPoints={meteringPoints}
+          documents={documentRows}
+          powersOfAttorney={poaRows}
+        />
       </SectionAnchor>
 
       <SectionAnchor

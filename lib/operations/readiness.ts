@@ -16,6 +16,7 @@ function isSignedAndValidPowerOfAttorney(
   now: Date
 ): boolean {
   if (poa.status !== 'signed') return false
+  if (!poa.document_path?.trim()) return false
 
   const validFrom = toDateOrNull(poa.valid_from)
   const validTo = toDateOrNull(poa.valid_to)
