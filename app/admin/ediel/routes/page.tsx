@@ -1,4 +1,3 @@
-// app/admin/ediel/routes/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
@@ -40,6 +39,104 @@ function isEdielCandidateRoute(route: CommunicationRouteRow): boolean {
   if (route.target_system?.toLowerCase().includes('ediel')) return true
   if (route.target_email?.toLowerCase().includes('ediel')) return true
   return false
+}
+
+type RouteValidationIssue = {
+  key: string
+  severity: 'error' | 'warning'
+  label: string
+  resolution: string
+}
+
+function buildRouteValidation(params: {
+  route: CommunicationRouteRow
+  gridOwner: GridOwnerRow | null
+  profile: Awaited<ReturnType<typeof getEdielRouteProfileByCommunicationRouteId>> | null
+}): RouteValidationIssue[] {
+  const issues: RouteValidationIssue[] = []
+
+  if (!params.route.is_active) {
+    issues.push({
+      key: 'route_inactive',
+      severity: 'error',
+      label: 'Communication route är inaktiv',
+      resolution: 'Aktivera routen eller välj en annan route för denna nätägare.',
+    })
+  }
+
+  if (!params.profile) {
+    issues.push({
+      key: 'profile_missing',
+      severity: 'error',
+      label: 'Ediel-profil saknas helt',
+      resolution: 'Skapa och spara en Ediel-profil för routen innan den används i drift.',
+    })
+    return issues
+  }
+
+  if (!params.profile.is_enabled) {
+    issues.push({
+      key: 'profile_disabled',
+      severity: 'error',
+      label: 'Ediel-profilen är inte aktiverad',
+      resolution: 'Slå på Ediel-profilen för routen.',
+    })
+  }
+
+  if (!params.route.target_email?.trim()) {
+    issues.push({
+      key: 'target_email',
+      severity: 'warning',
+      label: 'target_email saknas',
+      resolution:
+        'Fyll target_email på communication route för tydlig mottagare vid SMTP-sändning.',
+    })
+  }
+
+  if (!params.profile.sender_ediel_id?.trim()) {
+    issues.push({
+      key: 'sender_ediel_id',
+      severity: 'error',
+      label: 'sender_ediel_id saknas',
+      resolution: 'Fyll avsändarens Ediel-id på routeprofilen.',
+    })
+  }
+
+  if (
+    !(
+      params.profile.receiver_ediel_id?.trim() ||
+      params.gridOwner?.ediel_id?.trim()
+    )
+  ) {
+    issues.push({
+      key: 'receiver_ediel_id',
+      severity: 'error',
+      label: 'receiver_ediel_id saknas',
+      resolution:
+        'Fyll mottagarens Ediel-id på routeprofilen eller i grid owner-masterdata.',
+    })
+  }
+
+  if (!params.profile.mailbox?.trim()) {
+    issues.push({
+      key: 'mailbox',
+      severity: 'error',
+      label: 'mailbox saknas',
+      resolution: 'Fyll mailbox på routeprofilen så att rätt Ediel-brevlåda används.',
+    })
+  }
+
+  return issues
+}
+
+function isRouteReadyForOutbound(issues: RouteValidationIssue[]): boolean {
+  return issues.every((issue) => issue.severity !== 'error')
+}
+
+function summaryTone(issues: RouteValidationIssue[]): 'green' | 'yellow' | 'red' {
+  if (issues.some((issue) => issue.severity === 'error')) return 'red'
+  if (issues.length > 0) return 'yellow'
+  return 'green'
 }
 
 function Grid({
@@ -118,31 +215,41 @@ export default async function AdminEdielRoutesPage() {
 
   const gridOwnerById = new Map(gridOwners.map((row) => [row.id, row]))
 
-  const readyForTestCount = profiles.filter(
-    (profile) =>
-      profile?.is_enabled &&
-      profile?.sender_ediel_id &&
-      profile?.receiver_ediel_id &&
-      profile?.mailbox
+  const validationByRouteId = new Map(
+    edielRoutes.map((route) => {
+      const profile = profileByRouteId.get(route.id) ?? null
+      const gridOwner = route.grid_owner_id
+        ? gridOwnerById.get(route.grid_owner_id) ?? null
+        : null
+
+      return [
+        route.id,
+        buildRouteValidation({
+          route,
+          gridOwner,
+          profile,
+        }),
+      ] as const
+    })
+  )
+
+  const readyForTestCount = edielRoutes.filter((route) =>
+    isRouteReadyForOutbound(validationByRouteId.get(route.id) ?? [])
   ).length
 
-  const routesMissingTargetEmail = edielRoutes.filter(
-    (route) => !route.target_email?.trim()
+  const routesMissingTargetEmail = edielRoutes.filter((route) =>
+    (validationByRouteId.get(route.id) ?? []).some((issue) => issue.key === 'target_email')
   ).length
 
-  const routesMissingReceiverEdiel = edielRoutes.filter((route) => {
-    const profile = profileByRouteId.get(route.id) ?? null
-    const gridOwner = route.grid_owner_id
-      ? gridOwnerById.get(route.grid_owner_id) ?? null
-      : null
+  const routesMissingReceiverEdiel = edielRoutes.filter((route) =>
+    (validationByRouteId.get(route.id) ?? []).some(
+      (issue) => issue.key === 'receiver_ediel_id'
+    )
+  ).length
 
-    return !profile?.receiver_ediel_id?.trim() && !gridOwner?.ediel_id?.trim()
-  }).length
-
-  const routesMissingMailbox = edielRoutes.filter((route) => {
-    const profile = profileByRouteId.get(route.id) ?? null
-    return !profile?.mailbox?.trim()
-  }).length
+  const routesMissingMailbox = edielRoutes.filter((route) =>
+    (validationByRouteId.get(route.id) ?? []).some((issue) => issue.key === 'mailbox')
+  ).length
 
   return (
     <div className="space-y-6">
@@ -166,7 +273,7 @@ export default async function AdminEdielRoutesPage() {
             {readyForTestCount}
           </div>
           <div className="mt-2 text-xs text-emerald-700">
-            Har sender, receiver, mailbox och Ediel aktiverat.
+            Har aktiverad route/profil och de kritiska Ediel-fälten för outbound.
           </div>
         </div>
 
@@ -176,7 +283,7 @@ export default async function AdminEdielRoutesPage() {
             {routesMissingTargetEmail}
           </div>
           <div className="mt-2 text-xs text-amber-700">
-            Utan detta blir SMTP-sändning opraktisk.
+            Varning, inte alltid blockerande men bör fyllas.
           </div>
         </div>
 
@@ -186,7 +293,7 @@ export default async function AdminEdielRoutesPage() {
             {routesMissingReceiverEdiel + routesMissingMailbox}
           </div>
           <div className="mt-2 text-xs text-rose-700">
-            Route är inte redo för riktig drift ännu.
+            Blockerar riktig drift tills routeprofilen är komplett.
           </div>
         </div>
       </section>
@@ -203,7 +310,7 @@ export default async function AdminEdielRoutesPage() {
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             <div className="font-medium text-slate-900">2. target_email</div>
             <div className="mt-1">
-              Behövs för att outbound SMTP-sändning ska bli praktiskt användbar.
+              Bör finnas för att outbound SMTP-sändning ska bli tydlig och spårbar.
             </div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
@@ -215,13 +322,13 @@ export default async function AdminEdielRoutesPage() {
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             <div className="font-medium text-slate-900">4. Mailbox</div>
             <div className="mt-1">
-              Använd mailbox/adress som faktiskt kopplas till Strato-kontot.
+              Mailbox ska vara den brevlåda som faktiskt används i Ediel-transporten.
             </div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             <div className="font-medium text-slate-900">5. Enabled</div>
             <div className="mt-1">
-              Routeprofilen måste vara aktiverad för att workbenchen ska prefylla korrekt.
+              Routeprofilen måste vara aktiverad för att routen ska räknas som användbar.
             </div>
           </div>
         </div>
@@ -243,16 +350,8 @@ export default async function AdminEdielRoutesPage() {
             const effectiveReceiverEdielId =
               profile?.receiver_ediel_id ?? gridOwner?.ediel_id ?? null
 
-            const missingTargetEmail = !route.target_email?.trim()
-            const missingSenderEdiel = !profile?.sender_ediel_id?.trim()
-            const missingReceiverEdiel = !effectiveReceiverEdielId?.trim()
-            const missingMailbox = !profile?.mailbox?.trim()
-
-            const isReadyForTest =
-              Boolean(profile?.is_enabled) &&
-              !missingSenderEdiel &&
-              !missingReceiverEdiel &&
-              !missingMailbox
+            const validationIssues = validationByRouteId.get(route.id) ?? []
+            const isReadyForTest = isRouteReadyForOutbound(validationIssues)
 
             return (
               <div key={route.id} className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -272,7 +371,7 @@ export default async function AdminEdielRoutesPage() {
                     tone={profile?.is_enabled ? 'green' : 'slate'}
                   />
                   <Pill
-                    text={isReadyForTest ? 'redo för test' : 'inte redo'}
+                    text={isReadyForTest ? 'redo för outbound' : 'blockerad'}
                     tone={isReadyForTest ? 'green' : 'red'}
                   />
                 </div>
@@ -291,38 +390,65 @@ export default async function AdminEdielRoutesPage() {
                     }
                   />
                   <Grid label="Grid owner Ediel-id" value={gridOwner?.ediel_id ?? null} />
-                  <Grid label="Profile receiver Ediel-id" value={profile?.receiver_ediel_id ?? null} />
+                  <Grid
+                    label="Profile receiver Ediel-id"
+                    value={profile?.receiver_ediel_id ?? null}
+                  />
+                  <Grid label="Effective receiver Ediel-id" value={effectiveReceiverEdielId} />
                   <Grid label="Profile mailbox" value={profile?.mailbox ?? null} />
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {missingTargetEmail ? (
-                    <Pill text="saknar target_email" tone="yellow" />
+                  {validationIssues.length === 0 ? (
+                    <Pill text="inga blockerare" tone="green" />
                   ) : (
-                    <Pill text="target_email finns" tone="green" />
-                  )}
-
-                  {missingSenderEdiel ? (
-                    <Pill text="saknar sender_ediel_id" tone="red" />
-                  ) : (
-                    <Pill text="sender_ediel_id finns" tone="green" />
-                  )}
-
-                  {missingReceiverEdiel ? (
-                    <Pill text="saknar receiver_ediel_id" tone="red" />
-                  ) : (
-                    <Pill text="receiver_ediel_id finns" tone="green" />
-                  )}
-
-                  {missingMailbox ? (
-                    <Pill text="saknar mailbox" tone="red" />
-                  ) : (
-                    <Pill text="mailbox finns" tone="green" />
+                    validationIssues.map((issue) => (
+                      <Pill
+                        key={issue.key}
+                        text={issue.label}
+                        tone={issue.severity === 'error' ? 'red' : 'yellow'}
+                      />
+                    ))
                   )}
                 </div>
 
+                <div
+                  className={`mt-4 rounded-2xl border p-4 ${
+                    summaryTone(validationIssues) === 'green'
+                      ? 'border-emerald-200 bg-emerald-50'
+                      : summaryTone(validationIssues) === 'yellow'
+                        ? 'border-amber-200 bg-amber-50'
+                        : 'border-rose-200 bg-rose-50'
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-slate-900">
+                    {validationIssues.length === 0
+                      ? 'Route är användbar'
+                      : validationIssues.some((issue) => issue.severity === 'error')
+                        ? 'Route är blockerad'
+                        : 'Route är delvis användbar'}
+                  </div>
+                  <div className="mt-2 space-y-2 text-sm text-slate-700">
+                    {validationIssues.length === 0 ? (
+                      <div>
+                        Alla kritiska Ediel-fält finns på plats för outbound via denna route.
+                      </div>
+                    ) : (
+                      validationIssues.map((issue) => (
+                        <div key={issue.key}>
+                          <div className="font-medium">{issue.label}</div>
+                          <div className="text-slate-600">{issue.resolution}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
                 <div className="mt-5 grid gap-6 xl:grid-cols-2">
-                  <form action={saveEdielCommunicationRouteAction} className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <form
+                    action={saveEdielCommunicationRouteAction}
+                    className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
                     <div className="text-sm font-semibold text-slate-900">
                       Communication route
                     </div>
@@ -331,7 +457,11 @@ export default async function AdminEdielRoutesPage() {
                     <input type="hidden" name="route_name" value={route.route_name} />
                     <input type="hidden" name="route_scope" value={route.route_scope} />
                     <input type="hidden" name="route_type" value={route.route_type} />
-                    <input type="hidden" name="grid_owner_id" value={route.grid_owner_id ?? ''} />
+                    <input
+                      type="hidden"
+                      name="grid_owner_id"
+                      value={route.grid_owner_id ?? ''}
+                    />
                     <input type="hidden" name="target_system" value={route.target_system} />
                     <input type="hidden" name="endpoint" value={route.endpoint ?? ''} />
                     <input
@@ -340,7 +470,11 @@ export default async function AdminEdielRoutesPage() {
                       value={route.supported_payload_version ?? ''}
                     />
                     <input type="hidden" name="route_notes" value={route.notes ?? ''} />
-                    <input type="hidden" name="is_active" value={route.is_active ? 'true' : 'false'} />
+                    <input
+                      type="hidden"
+                      name="is_active"
+                      value={route.is_active ? 'true' : 'false'}
+                    />
 
                     <div>
                       <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -364,7 +498,10 @@ export default async function AdminEdielRoutesPage() {
                     </button>
                   </form>
 
-                  <form action={saveEdielRouteProfileAction} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+                  <form
+                    action={saveEdielRouteProfileAction}
+                    className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4"
+                  >
                     <div className="text-sm font-semibold text-slate-900">
                       Ediel-profil
                     </div>
@@ -396,13 +533,17 @@ export default async function AdminEdielRoutesPage() {
                       />
                       <input
                         name="receiverEdielId"
-                        defaultValue={profile?.receiver_ediel_id ?? gridOwner?.ediel_id ?? ''}
+                        defaultValue={
+                          profile?.receiver_ediel_id ?? gridOwner?.ediel_id ?? ''
+                        }
                         placeholder="Mottagarens Ediel-id"
                         className="rounded-xl border border-slate-300 px-3 py-2"
                       />
                       <input
                         name="applicationReference"
-                        defaultValue={profile?.application_reference ?? '23-DDQ-PRODAT'}
+                        defaultValue={
+                          profile?.application_reference ?? '23-DDQ-PRODAT'
+                        }
                         placeholder="Application Reference"
                         className="rounded-xl border border-slate-300 px-3 py-2"
                       />

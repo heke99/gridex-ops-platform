@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
+import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   getEdielRouteProfileByCommunicationRouteId,
@@ -293,13 +294,14 @@ export default async function AdminEdielPage() {
 
     const profile = profileByRouteId.get(route.id) ?? null
 
-    return {
+        return {
       id: route.id,
       route_name: route.route_name,
       route_scope: route.route_scope,
       route_type: route.route_type,
       target_email: route.target_email,
       target_system: route.target_system,
+      grid_owner_id: route.grid_owner_id,
       grid_owner_name: gridOwner?.name ?? null,
       grid_owner_ediel_id: gridOwner?.ediel_id ?? null,
       is_active: route.is_active,
@@ -358,6 +360,12 @@ export default async function AdminEdielPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Badge tone={recommendation.routeHealth.isRouteActive ? 'green' : 'red'}>
+              route {recommendation.routeHealth.isRouteActive ? 'aktiv' : 'inaktiv'}
+            </Badge>
+            <Badge tone={recommendation.routeHealth.isEdielEnabled ? 'green' : 'red'}>
+              ediel {recommendation.routeHealth.isEdielEnabled ? 'på' : 'av'}
+            </Badge>
             <Badge tone={recommendation.routeHealth.hasTargetEmail ? 'green' : 'yellow'}>
               target email {recommendation.routeHealth.hasTargetEmail ? 'ok' : 'saknas'}
             </Badge>
@@ -370,8 +378,63 @@ export default async function AdminEdielPage() {
             <Badge tone={recommendation.routeHealth.hasMailbox ? 'green' : 'red'}>
               mailbox {recommendation.routeHealth.hasMailbox ? 'ok' : 'saknas'}
             </Badge>
+            <Badge tone={recommendation.routeHealth.isReadyForOutbound ? 'green' : 'red'}>
+              outbound {recommendation.routeHealth.isReadyForOutbound ? 'redo' : 'blockerad'}
+            </Badge>
+                    <div className="mt-4 rounded-2xl border border-white/70 bg-white p-4">
+          <div className="text-sm font-semibold text-slate-900">Routebedömning</div>
+          <p className="mt-2 text-sm text-slate-600">{recommendation.routeSummary}</p>
+
+          {recommendation.routeIssues.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {recommendation.routeIssues.map((issue) => (
+                <div
+                  key={issue.key}
+                  className={`rounded-xl border px-3 py-2 text-sm ${
+                    issue.severity === 'error'
+                      ? 'border-rose-200 bg-rose-50 text-rose-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-700'
+                  }`}
+                >
+                  <div className="font-medium">{issue.label}</div>
+                  <div className="mt-1 text-xs opacity-80">{issue.resolution}</div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-4">
+            <EdielRouteIssueActions
+              route={recommendation.recommendedRoute}
+              issues={recommendation.routeIssues}
+            />
           </div>
         </div>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-white/70 bg-white p-4 text-sm text-slate-700">
+          {recommendation.routeSummary}
+        </div>
+
+        {recommendation.routeIssues.length > 0 ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {recommendation.routeIssues.map((issue) => (
+              <div
+                key={issue.key}
+                className="rounded-2xl border border-white/70 bg-white p-4"
+              >
+                <div className="flex items-center gap-2">
+                  <Badge tone={issue.severity === 'error' ? 'red' : 'yellow'}>
+                    {issue.severity === 'error' ? 'blockerare' : 'varning'}
+                  </Badge>
+                  <div className="text-sm font-semibold text-slate-950">{issue.label}</div>
+                </div>
+                <p className="mt-2 text-sm text-slate-600">{issue.resolution}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="mt-4 grid gap-4 md:grid-cols-5">
           <div className="rounded-2xl border border-white/70 bg-white p-4">

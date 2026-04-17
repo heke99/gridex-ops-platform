@@ -7,6 +7,7 @@ import type {
   GridOwnerRow,
   MeteringPointRow,
 } from '@/lib/masterdata/types'
+import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
@@ -514,6 +515,40 @@ const {
               <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasMailbox ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
                 mailbox {recommendation.routeHealth.hasMailbox ? 'ok' : 'saknas'}
               </span>
+                        <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:col-span-5">
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              Routebedömning
+            </div>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              {recommendation.routeSummary}
+            </p>
+
+            {recommendation.routeIssues.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {recommendation.routeIssues.map((issue) => (
+                  <div
+                    key={issue.key}
+                    className={`rounded-xl border px-3 py-2 text-sm ${
+                      issue.severity === 'error'
+                        ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-300'
+                        : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300'
+                    }`}
+                  >
+                    <div className="font-medium">{issue.label}</div>
+                    <div className="mt-1 text-xs opacity-80">{issue.resolution}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="mt-4">
+              <EdielRouteIssueActions
+                route={recommendation.recommendedRoute}
+                issues={recommendation.routeIssues}
+                customerId={customerId}
+              />
+            </div>
+          </div>
             </div>
           </div>
         </div>

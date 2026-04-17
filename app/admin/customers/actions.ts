@@ -1,4 +1,3 @@
-//app/admin/customers/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -1028,15 +1027,16 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
     }
 
     const switchRequestResult = await maybeCreateSwitchRequestFromIntake({
-  customerId: customer.id,
-  siteId,
-  intakeFlowType: params.intakeFlowType,
-})
+      customerId: customer.id,
+      siteId,
+      intakeFlowType: params.intakeFlowType,
+    })
 
     creationContext.switchRequestId =
-  switchRequestResult && switchRequestResult.created
-    ? (switchRequestResult.requestId ?? null)
-    : null
+      switchRequestResult && switchRequestResult.created
+        ? (switchRequestResult.requestId ?? null)
+        : null
+
     await insertAuditLog({
       actorUserId: params.actorUserId,
       entityType: 'customer',

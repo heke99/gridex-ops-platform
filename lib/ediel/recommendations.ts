@@ -53,6 +53,7 @@ export type EdielRecommendationRouteRow = {
   route_type: string
   target_email: string | null
   target_system: string | null
+  grid_owner_id: string | null
   grid_owner_name: string | null
   grid_owner_ediel_id: string | null
   is_active: boolean
@@ -67,6 +68,19 @@ export type EdielRecommendationRouteRow = {
   } | null
 }
 
+export type EdielRecommendationRouteIssue = {
+  key:
+    | 'inactive_route'
+    | 'ediel_disabled'
+    | 'target_email'
+    | 'sender_ediel_id'
+    | 'receiver_ediel_id'
+    | 'mailbox'
+  severity: 'error' | 'warning'
+  label: string
+  resolution: string
+}
+
 export type EdielRecommendationSummary = {
   selectedSwitchId: string
   recommendedRoute: EdielRecommendationRouteRow | null
@@ -78,7 +92,12 @@ export type EdielRecommendationSummary = {
     hasSenderEdielId: boolean
     hasReceiverEdielId: boolean
     hasMailbox: boolean
+    isRouteActive: boolean
+    isEdielEnabled: boolean
+    isReadyForOutbound: boolean
   }
+  routeIssues: EdielRecommendationRouteIssue[]
+  routeSummary: string
 }
 
 export function sortNewestFirst<T extends { created_at: string }>(rows: T[]): T[] {
@@ -157,7 +176,9 @@ export function getPreferredRouteId(params: {
 
   if (
     selectedSwitchOutbound?.communication_route_id &&
-    params.routes.some((route) => route.id === selectedSwitchOutbound.communication_route_id)
+    params.routes.some(
+      (route) => route.id === selectedSwitchOutbound.communication_route_id
+    )
   ) {
     return selectedSwitchOutbound.communication_route_id
   }
@@ -184,7 +205,9 @@ export function getRecommendedRoutes(params: {
 
   const enabledRoutes = getEnabledEdielRoutes(params.routes)
   const preferred = selectedSwitchOutbound?.communication_route_id
-    ? params.routes.filter((route) => route.id === selectedSwitchOutbound.communication_route_id)
+    ? params.routes.filter(
+        (route) => route.id === selectedSwitchOutbound.communication_route_id
+      )
     : []
 
   return dedupeRoutes([...preferred, ...enabledRoutes, ...params.routes])
@@ -343,6 +366,104 @@ export function getRecommendedRouteSummary(params: {
   return '—'
 }
 
+export function getRouteIssues(
+  route: EdielRecommendationRouteRow | null
+): EdielRecommendationRouteIssue[] {
+  const issues: EdielRecommendationRouteIssue[] = []
+
+  if (!route) {
+    issues.push({
+      key: 'inactive_route',
+      severity: 'error',
+      label: 'Ingen route vald',
+      resolution:
+        'Koppla en communication route för rätt nätägare och scope innan du försöker skicka Ediel.',
+    })
+    return issues
+  }
+
+  if (!route.is_active) {
+    issues.push({
+      key: 'inactive_route',
+      severity: 'error',
+      label: 'Routen är inaktiv',
+      resolution: 'Aktivera communication route eller välj en annan aktiv route.',
+    })
+  }
+
+  if (!route.profile?.is_enabled) {
+    issues.push({
+      key: 'ediel_disabled',
+      severity: 'error',
+      label: 'Ediel-profilen är inte aktiverad',
+      resolution: 'Aktivera Ediel på routeprofilen innan outbound skickas.',
+    })
+  }
+
+  if (!route.target_email?.trim()) {
+    issues.push({
+      key: 'target_email',
+      severity: 'warning',
+      label: 'target_email saknas',
+      resolution:
+        'Fyll target_email på communication route för att göra SMTP-sändning tydlig och spårbar.',
+    })
+  }
+
+  if (!route.profile?.sender_ediel_id?.trim()) {
+    issues.push({
+      key: 'sender_ediel_id',
+      severity: 'error',
+      label: 'sender_ediel_id saknas',
+      resolution: 'Fyll avsändarens Ediel-id på routeprofilen.',
+    })
+  }
+
+  if (!(route.profile?.receiver_ediel_id?.trim() || route.grid_owner_ediel_id?.trim())) {
+    issues.push({
+      key: 'receiver_ediel_id',
+      severity: 'error',
+      label: 'receiver_ediel_id saknas',
+      resolution:
+        'Fyll mottagarens Ediel-id på routeprofilen eller säkerställ att nätägarens Ediel-id finns i masterdata.',
+    })
+  }
+
+  if (!route.profile?.mailbox?.trim()) {
+    issues.push({
+      key: 'mailbox',
+      severity: 'error',
+      label: 'Mailbox saknas',
+      resolution: 'Fyll mailbox på routeprofilen så att rätt Ediel-brevlåda används.',
+    })
+  }
+
+  return issues
+}
+
+export function buildRouteSummary(
+  route: EdielRecommendationRouteRow | null,
+  issues: EdielRecommendationRouteIssue[]
+): string {
+  if (!route) {
+    return 'Ingen route kunde rekommenderas ännu.'
+  }
+
+  if (issues.length === 0) {
+    return 'Route är användbar: aktiv, Ediel-aktiverad och har de viktigaste fälten för outbound.'
+  }
+
+  const blocking = issues.filter((issue) => issue.severity === 'error')
+
+  if (blocking.length > 0) {
+    return `Route är blockerad: ${blocking.map((issue) => issue.label).join(', ')}.`
+  }
+
+  return `Route är delvis användbar men bör kompletteras: ${issues
+    .map((issue) => issue.label)
+    .join(', ')}.`
+}
+
 export function getRecommendationSummary(params: {
   switchRequests: EdielRecommendationSwitchRow[]
   outboundRequests: EdielRecommendationOutboundRow[]
@@ -381,20 +502,29 @@ export function getRecommendationSummary(params: {
       preferredFamily: params.preferredFamily ?? 'PRODAT',
     })[0] ?? null
 
+  const routeIssues = getRouteIssues(recommendedRoute)
+
+  const routeHealth = {
+    hasTargetEmail: Boolean(recommendedRoute?.target_email?.trim()),
+    hasSenderEdielId: Boolean(recommendedRoute?.profile?.sender_ediel_id?.trim()),
+    hasReceiverEdielId: Boolean(
+      recommendedRoute?.profile?.receiver_ediel_id?.trim() ||
+        recommendedRoute?.grid_owner_ediel_id?.trim()
+    ),
+    hasMailbox: Boolean(recommendedRoute?.profile?.mailbox?.trim()),
+    isRouteActive: Boolean(recommendedRoute?.is_active),
+    isEdielEnabled: Boolean(recommendedRoute?.profile?.is_enabled),
+    isReadyForOutbound: routeIssues.every((issue) => issue.severity !== 'error'),
+  }
+
   return {
     selectedSwitchId,
     recommendedRoute,
     recommendedSendMessage,
     recommendedInboundUtilts,
     recommendedAckSource,
-    routeHealth: {
-      hasTargetEmail: Boolean(recommendedRoute?.target_email?.trim()),
-      hasSenderEdielId: Boolean(recommendedRoute?.profile?.sender_ediel_id?.trim()),
-      hasReceiverEdielId: Boolean(
-        recommendedRoute?.profile?.receiver_ediel_id?.trim() ||
-          recommendedRoute?.grid_owner_ediel_id?.trim()
-      ),
-      hasMailbox: Boolean(recommendedRoute?.profile?.mailbox?.trim()),
-    },
+    routeHealth,
+    routeIssues,
+    routeSummary: buildRouteSummary(recommendedRoute, routeIssues),
   }
 }

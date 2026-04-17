@@ -14,7 +14,10 @@ import {
   listMeteringPointsBySiteIds,
   listPriceAreas,
 } from '@/lib/masterdata/db'
-import { listContractOffers } from '@/lib/customer-contracts/db'
+import {
+  listContractOffers,
+  listCustomerContractsByCustomerId,
+} from '@/lib/customer-contracts/db'
 import CustomerSiteForm from '@/components/admin/masterdata/CustomerSiteForm'
 import CustomerSitesTable from '@/components/admin/masterdata/CustomerSitesTable'
 import MeteringPointForm from '@/components/admin/masterdata/MeteringPointForm'
@@ -40,6 +43,7 @@ import CustomerContactsAddressesCard from '@/components/admin/customers/Customer
 import CustomerProfileCard from '@/components/admin/customers/CustomerProfileCard'
 import CustomerGridOwnerFileImportCard from '@/components/admin/customers/CustomerGridOwnerFileImportCard'
 import CustomerContractOfferEligibilityCard from '@/components/admin/customers/CustomerContractOfferEligibilityCard'
+import CustomerOperationsReadinessStrip from '@/components/admin/customers/CustomerOperationsReadinessStrip'
 import {
   listBillingUnderlaysByCustomerId,
   listGridOwnerDataRequestsByCustomerId,
@@ -869,6 +873,7 @@ export default async function CustomerAdminDetailPage({
     contactsResponse,
     addressesResponse,
     contractOffers,
+    customerContracts,
   ] = await Promise.all([
     getCustomer(supabase, id),
     listGridOwners(supabase),
@@ -894,6 +899,7 @@ export default async function CustomerAdminDetailPage({
       .order('is_active', { ascending: false })
       .order('created_at', { ascending: false }),
     listContractOffers({ activeOnly: true }),
+    listCustomerContractsByCustomerId(id),
   ])
 
   if (!customer) {
@@ -957,6 +963,65 @@ export default async function CustomerAdminDetailPage({
     switchRequests,
     outboundRequests,
   })
+
+  const hasReadyEdielRoute = edielData.recommendationRoutes.some((route) => {
+    const hasReceiver = Boolean(
+      route.profile?.receiver_ediel_id?.trim() || route.grid_owner_ediel_id?.trim()
+    )
+
+    return Boolean(
+      route.is_active &&
+        route.profile?.is_enabled &&
+        route.profile?.sender_ediel_id?.trim() &&
+        route.profile?.mailbox?.trim() &&
+        hasReceiver
+    )
+  })
+
+  const readinessItems = [
+    {
+      label: 'Avtal',
+      ok: customerContracts.length > 0,
+      detail:
+        customerContracts.length > 0
+          ? `${customerContracts.length} registrerade`
+          : 'Saknar kundavtal',
+    },
+    {
+      label: 'Anläggning',
+      ok: sites.length > 0,
+      detail: sites.length > 0 ? `${sites.length} st` : 'Ingen anläggning',
+    },
+    {
+      label: 'Mätpunkt',
+      ok: meteringPoints.length > 0,
+      detail:
+        meteringPoints.length > 0
+          ? `${meteringPoints.length} st`
+          : 'Ingen mätpunkt',
+    },
+    {
+      label: 'Switch',
+      ok: switchRequests.length > 0,
+      detail:
+        switchRequests.length > 0
+          ? `${switchRequests.length} ärenden`
+          : 'Inget switchärende',
+    },
+    {
+      label: 'Ediel-route',
+      ok: hasReadyEdielRoute,
+      detail: hasReadyEdielRoute ? 'Minst en route redo' : 'Route/profile blockerad',
+    },
+    {
+      label: 'Outbound',
+      ok: outboundRequests.some((row) => row.channel_type !== 'unresolved'),
+      detail:
+        outboundRequests.length > 0
+          ? `${outboundRequests.length} poster`
+          : 'Ingen outbound ännu',
+    },
+  ]
 
   const primaryContact =
     contacts.find((contact) => contact.is_primary) ?? contacts[0] ?? null
@@ -1171,6 +1236,10 @@ export default async function CustomerAdminDetailPage({
             lifecycleSummary={lifecycleSummary}
             dataRequestsCount={dataRequests.length}
           />
+        </div>
+
+        <div className="mt-6">
+          <CustomerOperationsReadinessStrip items={readinessItems} />
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">

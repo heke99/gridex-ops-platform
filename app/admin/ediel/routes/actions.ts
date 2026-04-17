@@ -1,10 +1,9 @@
-// app/admin/ediel/routes/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { upsertEdielRouteProfile } from '@/lib/ediel/db'
+import { getEdielRouteProfileByCommunicationRouteId, upsertEdielRouteProfile } from '@/lib/ediel/db'
 import { saveCommunicationRoute } from '@/lib/cis/db'
 
 function stringValue(formData: FormData, key: string): string | null {
@@ -30,7 +29,17 @@ function boolValue(formData: FormData, key: string): boolean {
   return normalized === 'true' || normalized === 'on' || normalized === '1'
 }
 
-async function getActorUserId(): Promise<string> {
+function revalidateEdielPaths(customerId?: string | null) {
+  revalidatePath('/admin/ediel/routes')
+  revalidatePath('/admin/ediel')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/integrations/routes')
+  if (customerId) {
+    revalidatePath(`/admin/customers/${customerId}`)
+  }
+}
+
+async function getActorContext() {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -40,7 +49,10 @@ async function getActorUserId(): Promise<string> {
     throw new Error('Unauthorized')
   }
 
-  return user.id
+  return {
+    supabase,
+    userId: user.id,
+  }
 }
 
 export async function saveEdielRouteProfileAction(formData: FormData) {
@@ -55,10 +67,10 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     throw new Error('Missing communication route id')
   }
 
-  const actorUserId = await getActorUserId()
+  const { userId } = await getActorContext()
 
   await upsertEdielRouteProfile({
-    actorUserId,
+    actorUserId: userId,
     communicationRouteId,
     isEnabled: boolValue(formData, 'isEnabled'),
     senderEdielId: stringValue(formData, 'senderEdielId'),
@@ -84,8 +96,7 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     notes: stringValue(formData, 'notes'),
   })
 
-  revalidatePath('/admin/ediel/routes')
-  revalidatePath('/admin/ediel')
+  revalidateEdielPaths(stringValue(formData, 'customerId'))
 }
 
 export async function saveEdielCommunicationRouteAction(formData: FormData) {
@@ -95,7 +106,7 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
     'billing_underlay.write',
   ])
 
-  const actorUserId = await getActorUserId()
+  const { userId } = await getActorContext()
 
   const id = stringValue(formData, 'id')
   const routeName = stringValue(formData, 'route_name')
@@ -117,7 +128,7 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
   }
 
   await saveCommunicationRoute({
-    actorUserId,
+    actorUserId: userId,
     id,
     routeName,
     isActive: boolValue(formData, 'is_active'),
@@ -131,8 +142,159 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
     notes: stringValue(formData, 'route_notes'),
   })
 
-  revalidatePath('/admin/ediel/routes')
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/outbound')
-  revalidatePath('/admin/integrations/routes')
+  revalidateEdielPaths(stringValue(formData, 'customerId'))
+}
+
+export async function quickFixEdielTargetEmailAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const routeId = stringValue(formData, 'routeId')
+  const targetEmail = stringValue(formData, 'targetEmail')
+  const customerId = stringValue(formData, 'customerId')
+
+  if (!routeId) {
+    throw new Error('routeId saknas')
+  }
+
+  const { supabase, userId } = await getActorContext()
+
+  const { error } = await supabase
+    .from('communication_routes')
+    .update({
+      target_email: targetEmail,
+      updated_by: userId,
+    })
+    .eq('id', routeId)
+
+  if (error) throw error
+
+  revalidateEdielPaths(customerId)
+}
+
+export async function quickFixEdielRouteActivationAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const routeId = stringValue(formData, 'routeId')
+  const customerId = stringValue(formData, 'customerId')
+  const activateRoute = boolValue(formData, 'activateRoute')
+  const enableEdiel = boolValue(formData, 'enableEdiel')
+
+  if (!routeId) {
+    throw new Error('routeId saknas')
+  }
+
+  const { supabase, userId } = await getActorContext()
+
+  if (activateRoute) {
+    const { error } = await supabase
+      .from('communication_routes')
+      .update({
+        is_active: true,
+        updated_by: userId,
+      })
+      .eq('id', routeId)
+
+    if (error) throw error
+  }
+
+  const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId)
+
+  await upsertEdielRouteProfile({
+    actorUserId: userId,
+    communicationRouteId: routeId,
+    isEnabled: enableEdiel || existingProfile?.is_enabled || false,
+    senderEdielId: existingProfile?.sender_ediel_id ?? null,
+    senderSubAddress: existingProfile?.sender_sub_address ?? null,
+    receiverEdielId: existingProfile?.receiver_ediel_id ?? null,
+    receiverSubAddress: existingProfile?.receiver_sub_address ?? null,
+    applicationReference: existingProfile?.application_reference ?? null,
+    smtpHost: existingProfile?.smtp_host ?? null,
+    smtpPort: existingProfile?.smtp_port ?? null,
+    imapHost: existingProfile?.imap_host ?? null,
+    imapPort: existingProfile?.imap_port ?? null,
+    mailbox: existingProfile?.mailbox ?? null,
+    encryptionMode: existingProfile?.encryption_mode ?? null,
+    payloadFormat: existingProfile?.payload_format ?? 'edifact',
+    notes: existingProfile?.notes ?? null,
+  })
+
+  revalidateEdielPaths(customerId)
+}
+
+export async function quickFixEdielProfileBasicsAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const routeId = stringValue(formData, 'routeId')
+  const customerId = stringValue(formData, 'customerId')
+  const senderEdielId = stringValue(formData, 'senderEdielId')
+  const receiverEdielId = stringValue(formData, 'receiverEdielId')
+  const mailbox = stringValue(formData, 'mailbox')
+  const enableEdiel = boolValue(formData, 'enableEdiel')
+
+  if (!routeId) {
+    throw new Error('routeId saknas')
+  }
+
+  const { userId } = await getActorContext()
+  const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId)
+
+  await upsertEdielRouteProfile({
+    actorUserId: userId,
+    communicationRouteId: routeId,
+    isEnabled: enableEdiel || existingProfile?.is_enabled || false,
+    senderEdielId: senderEdielId ?? existingProfile?.sender_ediel_id ?? null,
+    senderSubAddress: existingProfile?.sender_sub_address ?? null,
+    receiverEdielId: receiverEdielId ?? existingProfile?.receiver_ediel_id ?? null,
+    receiverSubAddress: existingProfile?.receiver_sub_address ?? null,
+    applicationReference: existingProfile?.application_reference ?? null,
+    smtpHost: existingProfile?.smtp_host ?? null,
+    smtpPort: existingProfile?.smtp_port ?? null,
+    imapHost: existingProfile?.imap_host ?? null,
+    imapPort: existingProfile?.imap_port ?? null,
+    mailbox: mailbox ?? existingProfile?.mailbox ?? null,
+    encryptionMode: existingProfile?.encryption_mode ?? null,
+    payloadFormat: existingProfile?.payload_format ?? 'edifact',
+    notes: existingProfile?.notes ?? null,
+  })
+
+  revalidateEdielPaths(customerId)
+}
+
+export async function quickFixGridOwnerEdielIdAction(formData: FormData) {
+  await requireAdminActionAccess(['masterdata.write', 'switching.write'])
+
+  const gridOwnerId = stringValue(formData, 'gridOwnerId')
+  const edielId = stringValue(formData, 'edielId')
+  const customerId = stringValue(formData, 'customerId')
+
+  if (!gridOwnerId) {
+    throw new Error('gridOwnerId saknas')
+  }
+
+  const { supabase, userId } = await getActorContext()
+
+  const { error } = await supabase
+    .from('grid_owners')
+    .update({
+      ediel_id: edielId,
+      updated_by: userId,
+    })
+    .eq('id', gridOwnerId)
+
+  if (error) throw error
+
+  revalidateEdielPaths(customerId)
+  revalidatePath('/admin/network-owners')
 }

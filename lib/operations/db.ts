@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
+import { resolveOwnElectricitySupplier } from '@/lib/masterdata/selfSupplier'
 import type {
   CustomerOperationTaskRow,
   CustomerOperationTaskStatus,
@@ -523,6 +524,11 @@ export async function createSupplierSwitchRequest(
   }
 ): Promise<SupplierSwitchRequestRow> {
   const actorId = await getActorId(supabase)
+  const ownSupplierLookup = await resolveOwnElectricitySupplier(supabase)
+  const ownSupplier = ownSupplierLookup.supplier
+
+  const incomingSupplierName = ownSupplier?.name ?? 'Gridex'
+  const incomingSupplierOrgNumber = ownSupplier?.org_number ?? null
 
   const { data, error } = await supabase
     .from('supplier_switch_requests')
@@ -536,8 +542,8 @@ export async function createSupplierSwitchRequest(
       requested_start_date: params.requestedStartDate,
       current_supplier_name: params.site.current_supplier_name,
       current_supplier_org_number: params.site.current_supplier_org_number,
-      incoming_supplier_name: 'Gridex',
-      incoming_supplier_org_number: null,
+      incoming_supplier_name: incomingSupplierName,
+      incoming_supplier_org_number: incomingSupplierOrgNumber,
       grid_owner_id:
         params.meteringPoint.grid_owner_id ?? params.site.grid_owner_id ?? null,
       price_area_code:
@@ -547,6 +553,7 @@ export async function createSupplierSwitchRequest(
         issues: params.readiness.issues,
         candidateMeteringPointId: params.readiness.candidateMeteringPointId,
         latestPowerOfAttorneyId: params.readiness.latestPowerOfAttorneyId,
+        ownSupplierResolution: ownSupplierLookup.resolution,
       },
       created_by: actorId,
       updated_by: actorId,
@@ -566,6 +573,9 @@ export async function createSupplierSwitchRequest(
     payload: {
       requestType: params.requestType,
       requestedStartDate: params.requestedStartDate,
+      incomingSupplierName,
+      incomingSupplierOrgNumber,
+      ownSupplierResolution: ownSupplierLookup.resolution,
     },
   })
 

@@ -80,13 +80,14 @@ export async function getCustomerEdielDataBundle(params: {
 
       const profile = profileByRouteId.get(route.id) ?? null
 
-      return {
+            return {
         id: route.id,
         route_name: route.route_name,
         route_scope: route.route_scope,
         route_type: route.route_type,
         target_email: route.target_email,
         target_system: route.target_system,
+        grid_owner_id: route.grid_owner_id,
         grid_owner_name: gridOwner?.name ?? null,
         grid_owner_ediel_id: gridOwner?.ediel_id ?? null,
         is_active: route.is_active,

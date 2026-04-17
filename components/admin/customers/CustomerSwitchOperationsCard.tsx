@@ -18,8 +18,13 @@ import {
 } from '@/lib/operations/controlTower'
 import { queueSupplierSwitchOutboundAction } from '@/app/admin/cis/actions'
 import { retryOutboundRequestFromCustomerAction } from '@/app/admin/customers/[id]/switch-actions'
-import { getRecommendationSummary, type EdielRecommendationRouteRow } from '@/lib/ediel/recommendations'
+import {
+  getRecommendationSummary,
+  type EdielRecommendationRouteIssue,
+  type EdielRecommendationRouteRow,
+} from '@/lib/ediel/recommendations'
 import type { CustomerEdielMessageRow } from '@/lib/ediel/customerData'
+import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
 
 type Props = {
   customerId: string
@@ -130,6 +135,12 @@ function routeLabel(route: EdielRecommendationRouteRow | null): string {
   return `${route.route_name} (${route.route_scope})${
     route.grid_owner_name ? ` · ${route.grid_owner_name}` : ''
   }`
+}
+
+function routeIssueTone(issue: EdielRecommendationRouteIssue): string {
+  return issue.severity === 'error'
+    ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
 }
 
 function siteLabel(siteId: string, sites: CustomerSiteRow[]): string {
@@ -750,10 +761,53 @@ export default function CustomerSwitchOperationsCard({
             <div className="text-sm font-semibold text-slate-900 dark:text-white">
               Rekommenderad åtgärd nu
             </div>
+                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                Routebedömning
+              </div>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                {edielRecommendation.routeSummary}
+              </p>
+
+              {edielRecommendation.routeIssues.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {edielRecommendation.routeIssues.map((issue) => (
+                    <div
+                      key={issue.key}
+                      className={`rounded-xl border px-3 py-2 text-sm ${
+                        issue.severity === 'error'
+                          ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-300'
+                          : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300'
+                      }`}
+                    >
+                      <div className="font-medium">{issue.label}</div>
+                      <div className="mt-1 text-xs opacity-80">{issue.resolution}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="mt-4">
+                <EdielRouteIssueActions
+                  route={edielRecommendation.recommendedRoute}
+                  issues={edielRecommendation.routeIssues}
+                  customerId={customerId}
+                />
+              </div>
+            </div>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               {recommendation.nextStep}
             </p>
+            <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+              {edielRecommendation.routeSummary}
+            </div>
             <div className="mt-4 flex flex-wrap gap-2">
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${edielRecommendation.routeHealth.isRouteActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+                route {edielRecommendation.routeHealth.isRouteActive ? 'aktiv' : 'inaktiv'}
+              </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${edielRecommendation.routeHealth.isEdielEnabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+                ediel {edielRecommendation.routeHealth.isEdielEnabled ? 'på' : 'av'}
+              </span>
               <span className={`rounded-full px-2 py-1 text-xs font-semibold ${edielRecommendation.routeHealth.hasTargetEmail ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'}`}>
                 target email {edielRecommendation.routeHealth.hasTargetEmail ? 'ok' : 'saknas'}
               </span>
@@ -767,6 +821,28 @@ export default function CustomerSwitchOperationsCard({
                 mailbox {edielRecommendation.routeHealth.hasMailbox ? 'ok' : 'saknas'}
               </span>
             </div>
+            {edielRecommendation.routeIssues.length > 0 ? (
+              <div className="mt-4 space-y-2">
+                {edielRecommendation.routeIssues.map((issue) => (
+                  <div
+                    key={issue.key}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${routeIssueTone(issue)}`}>
+                        {issue.severity === 'error' ? 'blockerare' : 'varning'}
+                      </span>
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {issue.label}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                      {issue.resolution}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href={recommendation.primaryWorkspaceHref}
