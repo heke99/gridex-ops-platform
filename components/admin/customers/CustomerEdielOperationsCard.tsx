@@ -17,6 +17,10 @@ import {
   prepareSwitchZ09Action,
   sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
+import {
+  getRecommendationSummary,
+  type EdielRecommendationRouteRow,
+} from '@/lib/ediel/recommendations'
 
 type EdielMessageSummaryRow = {
   id: string
@@ -26,12 +30,17 @@ type EdielMessageSummaryRow = {
   status: string
   sender_ediel_id: string | null
   receiver_ediel_id: string | null
+  sender_sub_address: string | null
+  receiver_sub_address: string | null
   external_reference: string | null
+  correlation_reference: string | null
   transaction_reference: string | null
   switch_request_id: string | null
   grid_owner_data_request_id: string | null
   communication_route_id: string | null
+  outbound_request_id: string | null
   related_message_id: string | null
+  receiver_email: string | null
   created_at: string
   message_received_at: string | null
 }
@@ -352,7 +361,7 @@ export default async function CustomerEdielOperationsCard({
     supabase
       .from('ediel_messages')
       .select(
-        'id,direction,message_family,message_code,status,sender_ediel_id,receiver_ediel_id,external_reference,transaction_reference,switch_request_id,grid_owner_data_request_id,communication_route_id,related_message_id,created_at,message_received_at'
+        'id,direction,message_family,message_code,status,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,external_reference,correlation_reference,transaction_reference,switch_request_id,grid_owner_data_request_id,communication_route_id,outbound_request_id,related_message_id,receiver_email,created_at,message_received_at'
       )
       .eq('customer_id', customerId)
       .order('created_at', { ascending: false })
@@ -374,11 +383,53 @@ export default async function CustomerEdielOperationsCard({
   const routeProfiles = await Promise.all(
     routes.map((route) => getEdielRouteProfileByCommunicationRouteId(route.id))
   )
-  const routeProfileMap = new Map(
+
+  const profileByRouteId = new Map(
     routeProfiles
-      .filter(Boolean)
+      .filter((profile) => Boolean(profile))
       .map((profile) => [profile!.communication_route_id, profile!])
   )
+
+  const gridOwnerById = new Map(gridOwners.map((row) => [row.id, row]))
+
+  const workbenchRoutes: EdielRecommendationRouteRow[] = routes.map((route) => {
+    const gridOwner = route.grid_owner_id
+      ? gridOwnerById.get(route.grid_owner_id) ?? null
+      : null
+
+    const profile = profileByRouteId.get(route.id) ?? null
+
+    return {
+      id: route.id,
+      route_name: route.route_name,
+      route_scope: route.route_scope,
+      route_type: route.route_type,
+      target_email: route.target_email,
+      target_system: route.target_system,
+      grid_owner_name: gridOwner?.name ?? null,
+      grid_owner_ediel_id: gridOwner?.ediel_id ?? null,
+      is_active: route.is_active,
+      profile: profile
+        ? {
+            is_enabled: profile.is_enabled,
+            sender_ediel_id: profile.sender_ediel_id,
+            receiver_ediel_id: profile.receiver_ediel_id,
+            mailbox: profile.mailbox,
+            sender_sub_address: profile.sender_sub_address,
+            receiver_sub_address: profile.receiver_sub_address,
+            application_reference: profile.application_reference,
+          }
+        : null,
+    }
+  })
+
+  const recommendation = getRecommendationSummary({
+    switchRequests,
+    outboundRequests: [],
+    messages: edielMessages,
+    routes: workbenchRoutes,
+    preferredFamily: 'PRODAT',
+  })
 
   return (
     <section className="space-y-6">
@@ -455,6 +506,87 @@ export default async function CustomerEdielOperationsCard({
         </div>
       </div>
 
+      <div className="rounded-3xl border border-blue-200 bg-blue-50/70 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
+        <div className="border-b border-blue-200 px-6 py-5 dark:border-blue-900/50">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+            Rekommenderat Ediel-nästa steg för kunden
+          </h3>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            Detta räknas fram med samma rekommendationsmotor som i Ediel-center, men visas direkt på kundkortet så handläggaren slipper hoppa mellan vyer.
+          </p>
+        </div>
+
+        <div className="grid gap-4 p-6 md:grid-cols-5">
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Senaste switch
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {recommendation.selectedSwitchId || '—'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Bästa route
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {recommendation.recommendedRoute
+                ? `${recommendation.recommendedRoute.route_name} (${recommendation.recommendedRoute.route_scope})${recommendation.recommendedRoute.grid_owner_name ? ` · ${recommendation.recommendedRoute.grid_owner_name}` : ''}`
+                : '—'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Bästa outbound att skicka
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {recommendation.recommendedSendMessage
+                ? `${recommendation.recommendedSendMessage.message_family} ${recommendation.recommendedSendMessage.message_code}`
+                : '—'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {recommendation.recommendedSendMessage?.id ?? 'Inget skickbart meddelande ännu'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Bästa inbound UTILTS
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {recommendation.recommendedInboundUtilts
+                ? `${recommendation.recommendedInboundUtilts.message_family} ${recommendation.recommendedInboundUtilts.message_code}`
+                : '—'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {recommendation.recommendedInboundUtilts?.id ?? 'Inget inbound UTILTS ännu'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Route-hälsa
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasTargetEmail ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'}`}>
+                target email {recommendation.routeHealth.hasTargetEmail ? 'ok' : 'saknas'}
+              </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasSenderEdielId ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+                sender {recommendation.routeHealth.hasSenderEdielId ? 'ok' : 'saknas'}
+              </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasReceiverEdielId ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+                receiver {recommendation.routeHealth.hasReceiverEdielId ? 'ok' : 'saknas'}
+              </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasMailbox ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+                mailbox {recommendation.routeHealth.hasMailbox ? 'ok' : 'saknas'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
@@ -484,15 +616,14 @@ export default async function CustomerEdielOperationsCard({
                   request.grid_owner_id,
                   'supplier_switch'
                 )
-                const profile = route ? routeProfileMap.get(route.id) ?? null : null
+                const profile = route ? profileByRouteId.get(route.id) ?? null : null
 
                 const autoRouteId = route?.id ?? ''
                 const autoMailbox = profile?.mailbox ?? 'ediel@gridex.se'
                 const autoSenderEdielId = profile?.sender_ediel_id ?? ''
                 const autoReceiverEdielId =
                   profile?.receiver_ediel_id ?? gridOwner?.ediel_id ?? ''
-                const autoReceiverEmail =
-                  route?.target_email ?? gridOwner?.email ?? ''
+                const autoReceiverEmail = route?.target_email ?? ''
 
                 const validationIssues = buildSwitchEdielValidation({
                   route,
@@ -717,7 +848,7 @@ export default async function CustomerEdielOperationsCard({
                     request.grid_owner_id,
                     'meter_values'
                   )
-                  const profile = route ? routeProfileMap.get(route.id) ?? null : null
+                  const profile = route ? profileByRouteId.get(route.id) ?? null : null
 
                   const autoRouteId = route?.id ?? ''
                   const autoMailbox = profile?.mailbox ?? 'INBOX'

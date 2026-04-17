@@ -149,6 +149,16 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Communication routes',
         description: 'Routning per nätägare och kanal',
       },
+      {
+        href: '/admin/ediel',
+        label: 'Ediel',
+        description: 'Inbox, outbox, self-test och SMTP/IMAP-flöden',
+      },
+      {
+        href: '/admin/ediel/routes',
+        label: 'Ediel-routes',
+        description: 'Ediel-profiler, mailbox och transportinställningar',
+      },
     ],
   },
   {

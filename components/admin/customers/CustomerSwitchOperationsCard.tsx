@@ -55,6 +55,21 @@ type SiteLifecycleSummary = {
   stuckReason: string
 }
 
+type SwitchRecommendationSummary = {
+  latestRequest: SupplierSwitchRequestRow | null
+  latestOutbound: OutboundRequestRow | null
+  latestLifecycle: ReturnType<typeof getSwitchLifecycle> | null
+  latestValidation: ValidationSummary | null
+  latestEvent: SupplierSwitchEventRow | null
+  nextStep: string
+  primaryWorkspaceHref: string
+  primaryWorkspaceLabel: string
+  unresolvedCount: number
+  autoQueuedCount: number
+  awaitingResponseCount: number
+  readyToExecuteCount: number
+}
+
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
 
@@ -77,11 +92,7 @@ function statusTone(status: string | null | undefined): string {
     return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
 
-  if (
-    ['failed', 'rejected', 'cancelled', 'blocked', 'validation_failed', 'missing_route'].includes(
-      status
-    )
-  ) {
+  if (['failed', 'rejected', 'cancelled', 'blocked', 'validation_failed', 'missing_route'].includes(status)) {
     return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
   }
 
@@ -357,6 +368,113 @@ function buildSiteLifecycleSummaries(params: {
   })
 }
 
+function buildSwitchRecommendationSummary(params: {
+  switchRequests: SupplierSwitchRequestRow[]
+  switchEvents: SupplierSwitchEventRow[]
+  switchOutboundRequests: OutboundRequestRow[]
+}): SwitchRecommendationSummary {
+  const { switchRequests, switchEvents, switchOutboundRequests } = params
+
+  const sortedRequests = [...switchRequests].sort(
+    (a, b) => requestSortTime(b) - requestSortTime(a)
+  )
+
+  const latestRequest = sortedRequests[0] ?? null
+  const latestOutbound = latestRequest
+    ? getLatestOutboundForRequest(latestRequest.id, switchOutboundRequests)
+    : null
+  const latestValidation = latestRequest
+    ? readValidationSummary(latestRequest.validation_snapshot)
+    : null
+  const latestLifecycle = latestRequest
+    ? getSwitchLifecycle({
+        request: latestRequest,
+        readiness: null,
+        outboundRequest: latestOutbound,
+      })
+    : null
+  const latestEvent = latestRequest
+    ? getLatestEventForRequest(latestRequest.id, switchEvents)
+    : null
+
+  const nextStep =
+    latestRequest && latestValidation && latestLifecycle
+      ? nextActionLabel({
+          request: latestRequest,
+          outboundRequest: latestOutbound,
+          validation: latestValidation,
+          lifecycleLabel: latestLifecycle.label,
+        })
+      : 'Skapa ett nytt switchärende eller öppna kundens senaste ärende för att fortsätta.'
+
+  const primaryWorkspace =
+    latestRequest && latestLifecycle
+      ? customerJourneyHref({
+          lifecycleStage: latestLifecycle.stage,
+          requestId: latestRequest.id,
+        })
+      : {
+          href: '/admin/operations/switches',
+          label: 'Öppna switchlistan',
+        }
+
+  const unresolvedCount = switchOutboundRequests.filter(
+    (request) =>
+      request.source_type === 'supplier_switch_request' &&
+      request.channel_type === 'unresolved'
+  ).length
+
+  const autoQueuedCount = switchOutboundRequests.filter(
+    (request) =>
+      request.source_type === 'supplier_switch_request' &&
+      request.channel_type !== 'unresolved' &&
+      ['queued', 'prepared'].includes(request.status)
+  ).length
+
+  const awaitingResponseCount = switchRequests.filter((request) => {
+    const outbound = latestRequest
+      ? getLatestOutboundForRequest(request.id, switchOutboundRequests)
+      : null
+
+    const lifecycle = getSwitchLifecycle({
+      request,
+      readiness: null,
+      outboundRequest: outbound,
+    })
+
+    return lifecycle.stage === 'awaiting_response'
+  }).length
+
+  const readyToExecuteCount = switchRequests.filter((request) => {
+    const outbound = latestRequest
+      ? getLatestOutboundForRequest(request.id, switchOutboundRequests)
+      : null
+
+    const lifecycle = getSwitchLifecycle({
+      request,
+      readiness: null,
+      outboundRequest: outbound,
+    })
+
+    return lifecycle.stage === 'ready_to_execute'
+  }).length
+
+  return {
+    latestRequest,
+    latestOutbound,
+    latestLifecycle,
+    latestValidation,
+    latestEvent,
+    nextStep,
+    primaryWorkspaceHref: primaryWorkspace.href,
+    primaryWorkspaceLabel: primaryWorkspace.label,
+    unresolvedCount,
+    autoQueuedCount,
+    awaitingResponseCount,
+    readyToExecuteCount,
+  }
+}
+
 export default function CustomerSwitchOperationsCard({
   customerId,
   sites,
@@ -474,6 +592,12 @@ export default function CustomerSwitchOperationsCard({
     switchOutboundRequests,
   })
 
+  const recommendation = buildSwitchRecommendationSummary({
+    switchRequests,
+    switchEvents,
+    switchOutboundRequests,
+  })
+
   const switchTimeline: SwitchTimelineEntry[] = [
     ...switchRequests.map((request) => ({
       id: `switch:${request.id}`,
@@ -520,6 +644,158 @@ export default function CustomerSwitchOperationsCard({
 
   return (
     <section id="switch-operations" className="space-y-6">
+      <div className="rounded-3xl border border-blue-200 bg-blue-50/70 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
+        <div className="border-b border-blue-200 px-6 py-5 dark:border-blue-900/50">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            Rekommenderat nästa steg i switchkedjan
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            Den här panelen bygger bara på data som faktiskt finns i switchvyn: switch requests, outbound, validation och events.
+          </p>
+        </div>
+
+        <div className="grid gap-4 p-6 md:grid-cols-5">
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Senaste switch
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {recommendation.latestRequest?.id ?? '—'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {recommendation.latestRequest?.status ?? 'Inget ärende ännu'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Lifecycle
+            </div>
+            <div className="mt-2">
+              {recommendation.latestLifecycle ? (
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
+                    recommendation.latestLifecycle.stage
+                  )}`}
+                >
+                  {recommendation.latestLifecycle.label}
+                </span>
+              ) : (
+                <span className="text-sm font-semibold text-slate-950 dark:text-white">
+                  —
+                </span>
+              )}
+            </div>
+            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {recommendation.latestLifecycle?.reason ?? 'Ingen lifecycle ännu'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Validation
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {recommendation.latestValidation?.label ?? '—'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              issues: {recommendation.latestValidation?.issueCount ?? 0}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Senaste outbound
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {recommendation.latestOutbound
+                ? recommendation.latestOutbound.channel_type === 'unresolved'
+                  ? 'unresolved'
+                  : recommendation.latestOutbound.status
+                : 'saknas'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {recommendation.latestOutbound?.id ?? 'Ingen outbound ännu'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Senaste event
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+              {recommendation.latestEvent?.event_status ?? '—'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {recommendation.latestEvent?.event_type ?? 'Inget event ännu'}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 px-6 pb-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]">
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              Rekommenderad åtgärd nu
+            </div>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              {recommendation.nextStep}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href={recommendation.primaryWorkspaceHref}
+                className="rounded-2xl border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300"
+              >
+                {recommendation.primaryWorkspaceLabel}
+              </Link>
+              <Link
+                href="/admin/outbound"
+                className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+              >
+                Öppna outbound
+              </Link>
+              <Link
+                href="/admin/outbound/unresolved"
+                className="rounded-2xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300"
+              >
+                Öppna unresolved
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              Operativ snabbstatus
+            </div>
+            <div className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+              <div>
+                unresolved routes:{' '}
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {recommendation.unresolvedCount}
+                </span>
+              </div>
+              <div>
+                auto-köade outbound:{' '}
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {recommendation.autoQueuedCount}
+                </span>
+              </div>
+              <div>
+                väntar kvittens:{' '}
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {recommendation.awaitingResponseCount}
+                </span>
+              </div>
+              <div>
+                ready to execute:{' '}
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {recommendation.readyToExecuteCount}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="text-sm text-slate-500 dark:text-slate-400">

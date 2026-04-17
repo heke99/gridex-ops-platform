@@ -1,20 +1,25 @@
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
+import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { listEdielMessages, listEdielTestRuns } from '@/lib/ediel/db'
+import {
+  getEdielRouteProfileByCommunicationRouteId,
+  listEdielMessages,
+  listEdielTestRuns,
+} from '@/lib/ediel/db'
 import {
   attachMessageToTestRunAction,
   createAckDraftAction,
   createEdielTestRunAction,
   createNegativeUtiltsResponseAction,
   createProdatDraftAction,
-  pollMailboxAction,
-  prepareSwitchZ03Action,
-  prepareSwitchZ09Action,
   registerInboundUtiltsAction,
   runEdielSelfTestAction,
-  sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
+import {
+  getRecommendationSummary,
+  type EdielRecommendationRouteRow,
+} from '@/lib/ediel/recommendations'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +57,30 @@ type SimpleOutboundRow = {
   site_id: string | null
   metering_point_id: string | null
   created_at: string
+}
+
+type SimpleCommunicationRouteRow = {
+  id: string
+  route_name: string
+  is_active: boolean
+  route_scope: string
+  route_type: string
+  grid_owner_id: string | null
+  target_system: string | null
+  target_email: string | null
+}
+
+type SimpleGridOwnerRow = {
+  id: string
+  name: string
+  ediel_id: string | null
+}
+
+function isEdielCandidateRoute(route: SimpleCommunicationRouteRow): boolean {
+  if (route.route_type === 'ediel_partner') return true
+  if (route.target_system?.toLowerCase().includes('ediel')) return true
+  if (route.target_email?.toLowerCase().includes('ediel')) return true
+  return false
 }
 
 function Cell({
@@ -178,46 +207,123 @@ function findMessagesForSwitchRequest(
   return messages.filter((row) => row.switch_request_id === switchRequestId)
 }
 
+function routeLabel(route: EdielRecommendationRouteRow | null): string {
+  if (!route) return '—'
+  return `${route.route_name} (${route.route_scope})${
+    route.grid_owner_name ? ` · ${route.grid_owner_name}` : ''
+  }`
+}
+
 export default async function AdminEdielPage() {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [messages, testRuns, switchRequestsRaw, dataRequestsRaw, outboundRaw] =
-    await Promise.all([
-      listEdielMessages({ limit: 50 }),
-      listEdielTestRuns(),
-      supabase
-        .from('supplier_switch_requests')
-        .select(
-          'id,status,customer_id,site_id,metering_point_id,external_reference,created_at'
-        )
-        .order('created_at', { ascending: false })
-        .limit(10),
-      supabase
-        .from('grid_owner_data_requests')
-        .select(
-          'id,status,request_scope,customer_id,site_id,metering_point_id,external_reference,created_at'
-        )
-        .order('created_at', { ascending: false })
-        .limit(10),
-      supabase
-        .from('outbound_requests')
-        .select(
-          'id,request_type,source_type,source_id,status,channel_type,communication_route_id,external_reference,customer_id,site_id,metering_point_id,created_at'
-        )
-        .order('created_at', { ascending: false })
-        .limit(40),
-    ])
+  const [
+    messages,
+    testRuns,
+    switchRequestsRaw,
+    dataRequestsRaw,
+    outboundRaw,
+    routesRaw,
+    gridOwnersRaw,
+  ] = await Promise.all([
+    listEdielMessages({ limit: 50 }),
+    listEdielTestRuns(),
+    supabase
+      .from('supplier_switch_requests')
+      .select(
+        'id,status,customer_id,site_id,metering_point_id,external_reference,created_at'
+      )
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('grid_owner_data_requests')
+      .select(
+        'id,status,request_scope,customer_id,site_id,metering_point_id,external_reference,created_at'
+      )
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('outbound_requests')
+      .select(
+        'id,request_type,source_type,source_id,status,channel_type,communication_route_id,external_reference,customer_id,site_id,metering_point_id,created_at'
+      )
+      .order('created_at', { ascending: false })
+      .limit(40),
+    supabase
+      .from('communication_routes')
+      .select(
+        'id,route_name,is_active,route_scope,route_type,grid_owner_id,target_system,target_email'
+      )
+      .order('updated_at', { ascending: false }),
+    supabase.from('grid_owners').select('id,name,ediel_id').order('name'),
+  ])
 
   if (switchRequestsRaw.error) throw switchRequestsRaw.error
   if (dataRequestsRaw.error) throw dataRequestsRaw.error
   if (outboundRaw.error) throw outboundRaw.error
+  if (routesRaw.error) throw routesRaw.error
+  if (gridOwnersRaw.error) throw gridOwnersRaw.error
 
   const switchRequests = (switchRequestsRaw.data ?? []) as SimpleSwitchRequestRow[]
   const dataRequests = (dataRequestsRaw.data ?? []) as SimpleDataRequestRow[]
   const outboundRequests = (outboundRaw.data ?? []) as SimpleOutboundRow[]
+  const allRoutes = (routesRaw.data ?? []) as SimpleCommunicationRouteRow[]
+  const gridOwners = (gridOwnersRaw.data ?? []) as SimpleGridOwnerRow[]
+
+  const edielRoutes = allRoutes.filter(isEdielCandidateRoute)
+  const routeProfiles = await Promise.all(
+    edielRoutes.map((route) => getEdielRouteProfileByCommunicationRouteId(route.id))
+  )
+
+  const profileByRouteId = new Map(
+    routeProfiles
+      .filter((profile) => Boolean(profile))
+      .map((profile) => [profile!.communication_route_id, profile!])
+  )
+
+  const gridOwnerById = new Map(gridOwners.map((row) => [row.id, row]))
+
+  const workbenchRoutes = edielRoutes.map((route) => {
+    const gridOwner = route.grid_owner_id
+      ? gridOwnerById.get(route.grid_owner_id) ?? null
+      : null
+
+    const profile = profileByRouteId.get(route.id) ?? null
+
+    return {
+      id: route.id,
+      route_name: route.route_name,
+      route_scope: route.route_scope,
+      route_type: route.route_type,
+      target_email: route.target_email,
+      target_system: route.target_system,
+      grid_owner_name: gridOwner?.name ?? null,
+      grid_owner_ediel_id: gridOwner?.ediel_id ?? null,
+      is_active: route.is_active,
+      profile: profile
+        ? {
+            is_enabled: profile.is_enabled,
+            sender_ediel_id: profile.sender_ediel_id,
+            receiver_ediel_id: profile.receiver_ediel_id,
+            mailbox: profile.mailbox,
+            sender_sub_address: profile.sender_sub_address,
+            receiver_sub_address: profile.receiver_sub_address,
+            application_reference: profile.application_reference,
+          }
+        : null,
+    }
+  })
+
+  const recommendation = getRecommendationSummary({
+    switchRequests,
+    outboundRequests,
+    messages,
+    routes: workbenchRoutes,
+    preferredFamily: 'PRODAT',
+  })
 
   const outboundWithoutRoute = outboundRequests.filter(
     (row) => !row.communication_route_id
@@ -239,6 +345,96 @@ export default async function AdminEdielPage() {
         subtitle="Tydlig inbox, outbox, mailbox-polling, SMTP-sändning, kvittenser, self-test och testspår mot Edielportalen."
         userEmail={user?.email ?? null}
       />
+
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Server-side rekommendation just nu
+            </h2>
+            <p className="mt-1 text-sm text-slate-700">
+              Den här panelen räknas fram på serversidan innan workbenchen renderas, så du ser bästa kandidat direkt.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Badge tone={recommendation.routeHealth.hasTargetEmail ? 'green' : 'yellow'}>
+              target email {recommendation.routeHealth.hasTargetEmail ? 'ok' : 'saknas'}
+            </Badge>
+            <Badge tone={recommendation.routeHealth.hasSenderEdielId ? 'green' : 'red'}>
+              sender {recommendation.routeHealth.hasSenderEdielId ? 'ok' : 'saknas'}
+            </Badge>
+            <Badge tone={recommendation.routeHealth.hasReceiverEdielId ? 'green' : 'red'}>
+              receiver {recommendation.routeHealth.hasReceiverEdielId ? 'ok' : 'saknas'}
+            </Badge>
+            <Badge tone={recommendation.routeHealth.hasMailbox ? 'green' : 'red'}>
+              mailbox {recommendation.routeHealth.hasMailbox ? 'ok' : 'saknas'}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-5">
+          <div className="rounded-2xl border border-white/70 bg-white p-4">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Senaste switch
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950">
+              {recommendation.selectedSwitchId || '—'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/70 bg-white p-4">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Bästa route
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950">
+              {routeLabel(recommendation.recommendedRoute)}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/70 bg-white p-4">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Bästa outbound att skicka
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950">
+              {recommendation.recommendedSendMessage
+                ? `${recommendation.recommendedSendMessage.message_family} ${recommendation.recommendedSendMessage.message_code}`
+                : '—'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              {recommendation.recommendedSendMessage?.id ?? 'inget skickbart meddelande'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/70 bg-white p-4">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Bästa inbound UTILTS
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950">
+              {recommendation.recommendedInboundUtilts
+                ? `${recommendation.recommendedInboundUtilts.message_family} ${recommendation.recommendedInboundUtilts.message_code}`
+                : '—'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              {recommendation.recommendedInboundUtilts?.id ?? 'inget inbound UTILTS ännu'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/70 bg-white p-4">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Bästa ACK-källa
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-950">
+              {recommendation.recommendedAckSource
+                ? `${recommendation.recommendedAckSource.message_family} ${recommendation.recommendedAckSource.message_code}`
+                : '—'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              {recommendation.recommendedAckSource?.id ?? 'ingen lämplig ACK-källa ännu'}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="grid gap-4 md:grid-cols-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -645,153 +841,12 @@ export default async function AdminEdielPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Mailbox polling</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Hämta inkommande Ediel-trafik från IMAP, matcha mot kund/mätpunkt och
-            skapa kvittenser.
-          </p>
-
-          <form action={pollMailboxAction} className="mt-4 space-y-3">
-            <div className="grid gap-3 md:grid-cols-3">
-              <input
-                name="mailbox"
-                defaultValue="INBOX"
-                placeholder="Mailbox"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="communicationRouteId"
-                placeholder="Route-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="limit"
-                defaultValue="10"
-                placeholder="Limit"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-            </div>
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Poll mailbox
-            </button>
-          </form>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">SMTP-sändning</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Skicka köade Ediel-meddelanden på riktigt via din Strato-mailbox.
-          </p>
-
-          <form action={sendEdielMessageAction} className="mt-4 space-y-3">
-            <input
-              name="edielMessageId"
-              placeholder="Ediel message-id"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2"
-              required
-            />
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Skicka Ediel-meddelande
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Skapa Z03 från switchärende
-          </h2>
-          <form action={prepareSwitchZ03Action} className="mt-4 space-y-3">
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                name="switchRequestId"
-                placeholder="Switch request-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="communicationRouteId"
-                placeholder="Route-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="senderEdielId"
-                placeholder="Gridex Ediel-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="receiverEdielId"
-                placeholder="Nätägarens Ediel-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="receiverEmail"
-                placeholder="Nätägarens e-post"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="mailbox"
-                placeholder="Mailbox"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-            </div>
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Förbered Z03
-            </button>
-          </form>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Skapa Z09 från switchärende
-          </h2>
-          <form action={prepareSwitchZ09Action} className="mt-4 space-y-3">
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                name="switchRequestId"
-                placeholder="Switch request-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="communicationRouteId"
-                placeholder="Route-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="senderEdielId"
-                placeholder="Gridex Ediel-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="receiverEdielId"
-                placeholder="Nätägarens Ediel-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="receiverEmail"
-                placeholder="Nätägarens e-post"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="mailbox"
-                placeholder="Mailbox"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-            </div>
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Förbered Z09
-            </button>
-          </form>
-        </div>
-      </section>
+      <EdielWorkbench
+        switchRequests={switchRequests}
+        outboundRequests={outboundRequests}
+        messages={messages}
+        routes={workbenchRoutes}
+      />
 
       <section className="grid gap-6 xl:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -1053,7 +1108,9 @@ export default async function AdminEdielPage() {
                     />
                     <Cell
                       label="Communication route"
-                      value={relatedOutbound?.communication_route_id ?? row.communication_route_id}
+                      value={
+                        relatedOutbound?.communication_route_id ?? row.communication_route_id
+                      }
                     />
                     <Cell
                       label="Skapad"
