@@ -8,6 +8,10 @@ import {
   findElectricitySupplierMatch,
   saveElectricitySupplier,
 } from '@/lib/masterdata/db'
+import {
+  resolveOwnElectricitySupplier,
+  setOwnElectricitySupplier,
+} from '@/lib/masterdata/selfSupplier'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import {
   createSupplierSwitchEvent,
@@ -19,6 +23,7 @@ import {
 } from '@/lib/operations/db'
 
 type SwitchRequestType = 'switch' | 'move_in' | 'move_out_takeover'
+type SwitchDirection = 'to_us' | 'from_us' | 'manual'
 
 type RouteRow = {
   id: string
@@ -49,6 +54,11 @@ function normalizeDate(value: string | null): string | null {
 function normalizeSwitchRequestType(value: string | null): SwitchRequestType {
   if (value === 'move_in' || value === 'move_out_takeover') return value
   return 'switch'
+}
+
+function normalizeSwitchDirection(value: string | null): SwitchDirection {
+  if (value === 'from_us' || value === 'manual') return value
+  return 'to_us'
 }
 
 function mapRouteTypeToChannelType(routeType: string | null): string {
@@ -267,6 +277,115 @@ async function ensureOutboundForSwitch(params: {
   }
 }
 
+async function getSupplierById(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supplierId: string
+): Promise<{
+  id: string
+  name: string | null
+  org_number: string | null
+} | null> {
+  const { data, error } = await supabase
+    .from('electricity_suppliers')
+    .select('id, name, org_number')
+    .eq('id', supplierId)
+    .maybeSingle()
+
+  if (error) throw error
+  return data ?? null
+}
+
+async function ensureSupplierRecord(params: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  supplierId: string | null
+  supplierName: string | null
+  supplierOrgNumber: string | null
+  supplierEmail: string | null
+  supplierPhone: string | null
+  saveIfMissing: boolean
+  forceCreateIfMarkedAsOwn: boolean
+}): Promise<{
+  resolvedSupplierId: string | null
+  resolvedSupplierName: string | null
+  resolvedSupplierOrgNumber: string | null
+}> {
+  const {
+    supabase,
+    supplierId,
+    supplierName,
+    supplierOrgNumber,
+    supplierEmail,
+    supplierPhone,
+    saveIfMissing,
+    forceCreateIfMarkedAsOwn,
+  } = params
+
+  let resolvedSupplierId = supplierId
+  let resolvedSupplierName = supplierName
+  let resolvedSupplierOrgNumber = supplierOrgNumber
+
+  if (resolvedSupplierId) {
+    const supplier = await getSupplierById(supabase, resolvedSupplierId)
+    if (supplier) {
+      resolvedSupplierName = resolvedSupplierName ?? supplier.name ?? null
+      resolvedSupplierOrgNumber =
+        resolvedSupplierOrgNumber ?? supplier.org_number ?? null
+      return {
+        resolvedSupplierId,
+        resolvedSupplierName,
+        resolvedSupplierOrgNumber,
+      }
+    }
+  }
+
+  if (!resolvedSupplierName) {
+    return {
+      resolvedSupplierId: null,
+      resolvedSupplierName: null,
+      resolvedSupplierOrgNumber: resolvedSupplierOrgNumber ?? null,
+    }
+  }
+
+  const existing = await findElectricitySupplierMatch(supabase, {
+    name: resolvedSupplierName,
+    orgNumber: resolvedSupplierOrgNumber,
+  })
+
+  if (existing) {
+    return {
+      resolvedSupplierId: existing.id,
+      resolvedSupplierName: existing.name,
+      resolvedSupplierOrgNumber: existing.org_number,
+    }
+  }
+
+  if (!saveIfMissing && !forceCreateIfMarkedAsOwn) {
+    return {
+      resolvedSupplierId: null,
+      resolvedSupplierName,
+      resolvedSupplierOrgNumber,
+    }
+  }
+
+  const saved = await saveElectricitySupplier(supabase, {
+    name: resolvedSupplierName,
+    org_number: resolvedSupplierOrgNumber ?? null,
+    market_actor_code: null,
+    ediel_id: null,
+    contact_name: null,
+    email: supplierEmail,
+    phone: supplierPhone,
+    notes: 'Skapad direkt från kundkortets switchflöde.',
+    is_active: true,
+  })
+
+  return {
+    resolvedSupplierId: saved.id,
+    resolvedSupplierName: saved.name,
+    resolvedSupplierOrgNumber: saved.org_number,
+  }
+}
+
 export async function createDynamicSupplierSwitchRequestAction(
   formData: FormData
 ): Promise<void> {
@@ -277,6 +396,9 @@ export async function createDynamicSupplierSwitchRequestAction(
   const customerId = formValue(formData, 'customer_id')
   const siteId = formValue(formData, 'site_id')
   const requestType = normalizeSwitchRequestType(formValue(formData, 'request_type'))
+  const switchDirection = normalizeSwitchDirection(
+    formValue(formData, 'switch_direction')
+  )
   const requestedStartDate = normalizeDate(formValue(formData, 'requested_start_date'))
 
   if (!customerId || !siteId) {
@@ -292,90 +414,107 @@ export async function createDynamicSupplierSwitchRequestAction(
   const currentSupplierId = formValue(formData, 'current_supplier_id')
   const incomingSupplierId = formValue(formData, 'incoming_supplier_id')
 
+  const currentSupplierEmail = formValue(formData, 'current_supplier_email')
+  const currentSupplierPhone = formValue(formData, 'current_supplier_phone')
+  const incomingSupplierEmail = formValue(formData, 'incoming_supplier_email')
+  const incomingSupplierPhone = formValue(formData, 'incoming_supplier_phone')
+
+  const saveNewCurrentSupplier = checkboxValue(formData, 'save_new_current_supplier')
+  const saveNewIncomingSupplier = checkboxValue(formData, 'save_new_incoming_supplier')
+  const markCurrentSupplierAsOwn = checkboxValue(
+    formData,
+    'mark_current_supplier_as_own'
+  )
+  const markIncomingSupplierAsOwn = checkboxValue(
+    formData,
+    'mark_incoming_supplier_as_own'
+  )
+
   let currentSupplierName = formValue(formData, 'current_supplier_name')
   let currentSupplierOrgNumber = formValue(formData, 'current_supplier_org_number')
 
-  let incomingSupplierName = formValue(formData, 'incoming_supplier_name') ?? 'Gridex'
+  let incomingSupplierName = formValue(formData, 'incoming_supplier_name')
   let incomingSupplierOrgNumber = formValue(formData, 'incoming_supplier_org_number')
 
-  if (currentSupplierId) {
-    const { data, error } = await supabase
-      .from('electricity_suppliers')
-      .select('id, name, org_number')
-      .eq('id', currentSupplierId)
-      .maybeSingle()
+  const ownSupplierLookup = await resolveOwnElectricitySupplier(supabase)
+  const ownSupplier = ownSupplierLookup.supplier
 
-    if (error) throw error
+  if (switchDirection === 'to_us' && ownSupplier) {
+    incomingSupplierName = incomingSupplierName ?? ownSupplier.name
+    incomingSupplierOrgNumber =
+      incomingSupplierOrgNumber ?? ownSupplier.org_number ?? null
+  }
 
-    if (data) {
-      currentSupplierName = currentSupplierName ?? data.name ?? null
-      currentSupplierOrgNumber =
-        currentSupplierOrgNumber ?? data.org_number ?? null
+  if (switchDirection === 'from_us' && ownSupplier) {
+    currentSupplierName = currentSupplierName ?? ownSupplier.name
+    currentSupplierOrgNumber =
+      currentSupplierOrgNumber ?? ownSupplier.org_number ?? null
+  }
+
+  const currentSupplierResult = await ensureSupplierRecord({
+    supabase,
+    supplierId: currentSupplierId,
+    supplierName: currentSupplierName,
+    supplierOrgNumber: currentSupplierOrgNumber,
+    supplierEmail: currentSupplierEmail,
+    supplierPhone: currentSupplierPhone,
+    saveIfMissing: saveNewCurrentSupplier,
+    forceCreateIfMarkedAsOwn: markCurrentSupplierAsOwn,
+  })
+
+  currentSupplierName = currentSupplierResult.resolvedSupplierName
+  currentSupplierOrgNumber = currentSupplierResult.resolvedSupplierOrgNumber
+
+  const incomingSupplierResult = await ensureSupplierRecord({
+    supabase,
+    supplierId: incomingSupplierId,
+    supplierName: incomingSupplierName,
+    supplierOrgNumber: incomingSupplierOrgNumber,
+    supplierEmail: incomingSupplierEmail,
+    supplierPhone: incomingSupplierPhone,
+    saveIfMissing: saveNewIncomingSupplier,
+    forceCreateIfMarkedAsOwn: markIncomingSupplierAsOwn,
+  })
+
+  incomingSupplierName = incomingSupplierResult.resolvedSupplierName
+  incomingSupplierOrgNumber = incomingSupplierResult.resolvedSupplierOrgNumber
+
+  if (switchDirection === 'to_us' && !incomingSupplierName) {
+    throw new Error(
+      ownSupplier
+        ? 'Inkommande leverantör saknas trots att riktningen är till oss.'
+        : 'Ingen egen leverantör kunde identifieras automatiskt. Välj eller skriv inkommande leverantör manuellt.'
+    )
+  }
+
+  if (switchDirection === 'from_us' && !currentSupplierName) {
+    throw new Error(
+      ownSupplier
+        ? 'Nuvarande leverantör saknas trots att riktningen är från oss.'
+        : 'Ingen egen leverantör kunde identifieras automatiskt. Välj eller skriv nuvarande leverantör manuellt.'
+    )
+  }
+
+  if (switchDirection === 'from_us' && !incomingSupplierName) {
+    throw new Error('Vid byte från oss måste ny/incoming leverantör anges.')
+  }
+
+  if (markCurrentSupplierAsOwn) {
+    if (!currentSupplierResult.resolvedSupplierId) {
+      throw new Error(
+        'Nuvarande leverantör kunde inte markeras som vår egen eftersom posten inte kunde kopplas eller sparas i leverantörsregistret.'
+      )
     }
+    await setOwnElectricitySupplier(supabase, currentSupplierResult.resolvedSupplierId)
   }
 
-  if (incomingSupplierId) {
-    const { data, error } = await supabase
-      .from('electricity_suppliers')
-      .select('id, name, org_number')
-      .eq('id', incomingSupplierId)
-      .maybeSingle()
-
-    if (error) throw error
-
-    if (data) {
-      incomingSupplierName = incomingSupplierName ?? data.name ?? 'Gridex'
-      incomingSupplierOrgNumber =
-        incomingSupplierOrgNumber ?? data.org_number ?? null
+  if (markIncomingSupplierAsOwn) {
+    if (!incomingSupplierResult.resolvedSupplierId) {
+      throw new Error(
+        'Inkommande leverantör kunde inte markeras som vår egen eftersom posten inte kunde kopplas eller sparas i leverantörsregistret.'
+      )
     }
-  }
-
-  if (checkboxValue(formData, 'save_new_current_supplier') && currentSupplierName) {
-    const existing = await findElectricitySupplierMatch(supabase, {
-      name: currentSupplierName,
-      orgNumber: currentSupplierOrgNumber,
-    })
-
-    const saved = existing
-      ? existing
-      : await saveElectricitySupplier(supabase, {
-          name: currentSupplierName,
-          org_number: currentSupplierOrgNumber ?? null,
-          market_actor_code: null,
-          ediel_id: null,
-          contact_name: null,
-          email: formValue(formData, 'current_supplier_email'),
-          phone: formValue(formData, 'current_supplier_phone'),
-          notes: 'Skapad direkt från kundkortets switchflöde.',
-          is_active: true,
-        })
-
-    currentSupplierName = saved.name
-    currentSupplierOrgNumber = saved.org_number
-  }
-
-  if (checkboxValue(formData, 'save_new_incoming_supplier') && incomingSupplierName) {
-    const existing = await findElectricitySupplierMatch(supabase, {
-      name: incomingSupplierName,
-      orgNumber: incomingSupplierOrgNumber,
-    })
-
-    const saved = existing
-      ? existing
-      : await saveElectricitySupplier(supabase, {
-          name: incomingSupplierName,
-          org_number: incomingSupplierOrgNumber ?? null,
-          market_actor_code: null,
-          ediel_id: null,
-          contact_name: null,
-          email: formValue(formData, 'incoming_supplier_email'),
-          phone: formValue(formData, 'incoming_supplier_phone'),
-          notes: 'Skapad direkt från kundkortets switchflöde.',
-          is_active: true,
-        })
-
-    incomingSupplierName = saved.name
-    incomingSupplierOrgNumber = saved.org_number
+    await setOwnElectricitySupplier(supabase, incomingSupplierResult.resolvedSupplierId)
   }
 
   await supabase
@@ -428,8 +567,12 @@ export async function createDynamicSupplierSwitchRequestAction(
         siteId,
         requestType,
         readiness,
+        switchDirection,
+        ownSupplierResolution: ownSupplierLookup.resolution,
         currentSupplierName,
         incomingSupplierName,
+        markedCurrentAsOwn: markCurrentSupplierAsOwn,
+        markedIncomingAsOwn: markIncomingSupplierAsOwn,
       },
     })
 
@@ -470,7 +613,7 @@ export async function createDynamicSupplierSwitchRequestAction(
       current_supplier_name: currentSupplierName ?? refreshedSite.current_supplier_name,
       current_supplier_org_number:
         currentSupplierOrgNumber ?? refreshedSite.current_supplier_org_number,
-      incoming_supplier_name: incomingSupplierName ?? 'Gridex',
+      incoming_supplier_name: incomingSupplierName,
       incoming_supplier_org_number: incomingSupplierOrgNumber ?? null,
       grid_owner_id: meteringPoint.grid_owner_id ?? refreshedSite.grid_owner_id ?? null,
       price_area_code:
@@ -491,11 +634,15 @@ export async function createDynamicSupplierSwitchRequestAction(
     message: 'Switchärende skapat från kundkortets dynamiska switchpanel.',
     payload: {
       requestType,
+      switchDirection,
+      ownSupplierResolution: ownSupplierLookup.resolution,
       requestedStartDate,
       currentSupplierName,
       currentSupplierOrgNumber,
       incomingSupplierName,
       incomingSupplierOrgNumber,
+      markedCurrentAsOwn: markCurrentSupplierAsOwn,
+      markedIncomingAsOwn: markIncomingSupplierAsOwn,
     },
   })
 
@@ -518,8 +665,12 @@ export async function createDynamicSupplierSwitchRequestAction(
       customerId,
       siteId,
       requestType,
+      switchDirection,
       validationSnapshot,
       outbound: outboundResult,
+      ownSupplierResolution: ownSupplierLookup.resolution,
+      markedCurrentAsOwn: markCurrentSupplierAsOwn,
+      markedIncomingAsOwn: markIncomingSupplierAsOwn,
     },
   })
 

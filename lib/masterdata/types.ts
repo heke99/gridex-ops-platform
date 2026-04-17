@@ -54,6 +54,7 @@ export type ElectricitySupplierRow = {
   phone: string | null
   notes: string | null
   is_active: boolean
+  is_own_supplier: boolean
   created_at: string
   updated_at: string
   created_by: string | null

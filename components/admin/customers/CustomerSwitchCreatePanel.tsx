@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import { createDynamicSupplierSwitchRequestAction } from '@/app/admin/customers/[id]/switch-create-actions'
 import { useFormStatus } from 'react-dom'
+import type { OwnElectricitySupplierResolution } from '@/lib/masterdata/selfSupplier'
 
 type SupplierOption = {
   id: string
   name: string
   org_number: string | null
   is_active: boolean
+  is_own_supplier: boolean
 }
 
 type CustomerOptionPayload = {
@@ -23,6 +25,8 @@ type CustomerOptionPayload = {
     personal_number: string | null
   } | null
   suppliers: SupplierOption[]
+  ownSupplier: SupplierOption | null
+  ownSupplierResolution: OwnElectricitySupplierResolution
 }
 
 type Props = {
@@ -48,6 +52,17 @@ function customerTypeLabel(value: string | null | undefined) {
   if (value === 'business') return 'Företag'
   if (value === 'association') return 'Förening'
   return 'Privatkund'
+}
+
+function ownSupplierResolutionLabel(value: OwnElectricitySupplierResolution) {
+  if (value === 'explicit_flag') return 'explicit markering i leverantörsregistret'
+  if (value === 'legacy_exact_gridex_name') {
+    return 'legacy fallback via exakt namnmatch'
+  }
+  if (value === 'legacy_partial_gridex_name') {
+    return 'legacy fallback via delvis namnmatch'
+  }
+  return 'ingen leverantör markerad ännu'
 }
 
 export default function CustomerSwitchCreatePanel({
@@ -87,6 +102,8 @@ export default function CustomerSwitchCreatePanel({
 
   const customer = payload?.customer ?? null
   const suppliers = payload?.suppliers ?? []
+  const ownSupplier = payload?.ownSupplier ?? null
+  const ownSupplierResolution = payload?.ownSupplierResolution ?? 'not_found'
 
   const customerSummary = useMemo(() => {
     if (!customer) return 'Kunddata laddas...'
@@ -106,8 +123,9 @@ export default function CustomerSwitchCreatePanel({
           Skapa nytt leverantörsbyte
         </h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Formuläret anpassar sig efter kundtyp och låter dig spara nya elleverantörer
-          direkt från kundkortet.
+          Formuläret anpassar sig efter kundtyp, tillåter manuell override och kan
+          nu markera en leverantör som er egen så att framtida autoifyllnad blir
+          korrekt.
         </p>
       </div>
 
@@ -120,9 +138,31 @@ export default function CustomerSwitchCreatePanel({
             {customerSummary}
           </div>
           <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            Privatkund använder personidentitet från kundkortet. Företag/förening använder
-            organisationsuppgifter från kundkortet. Här fyller du främst switchspecifika
-            uppgifter och leverantörer.
+            Privatkund använder personidentitet från kundkortet.
+            Företag/förening använder organisationsuppgifter från kundkortet.
+            Här fyller du främst switchspecifika uppgifter och leverantörer.
+          </div>
+        </div>
+
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            ownSupplier
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100'
+              : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100'
+          }`}
+        >
+          <div className="font-semibold">
+            {ownSupplier
+              ? 'Egen leverantör är identifierad'
+              : 'Egen leverantör är inte markerad ännu'}
+          </div>
+          <div className="mt-1">
+            {ownSupplier
+              ? `${ownSupplier.name}${ownSupplier.org_number ? ` • ${ownSupplier.org_number}` : ''}`
+              : 'Du kan markera nuvarande eller inkommande leverantör som er egen direkt i formuläret nedan. Då sparas detta för framtida autoifyllning.'}
+          </div>
+          <div className="mt-2 text-xs opacity-80">
+            Upplösning: {ownSupplierResolutionLabel(ownSupplierResolution)}.
           </div>
         </div>
 
@@ -164,7 +204,7 @@ export default function CustomerSwitchCreatePanel({
                 ) : null}
               </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
                 <label className="grid gap-2">
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                     Ärendetyp
@@ -182,6 +222,21 @@ export default function CustomerSwitchCreatePanel({
 
                 <label className="grid gap-2">
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Riktning
+                  </span>
+                  <select
+                    name="switch_direction"
+                    defaultValue="to_us"
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                  >
+                    <option value="to_us">Kund byter till oss</option>
+                    <option value="from_us">Kund byter från oss</option>
+                    <option value="manual">Manuell / specialfall</option>
+                  </select>
+                </label>
+
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                     Önskat startdatum
                   </span>
                   <input
@@ -191,6 +246,13 @@ export default function CustomerSwitchCreatePanel({
                     className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                   />
                 </label>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+                Vid <strong>kund byter till oss</strong> fylls inkommande leverantör
+                automatiskt från er egen leverantörspost om fälten lämnas tomma.
+                Vid <strong>kund byter från oss</strong> fylls nuvarande leverantör
+                automatiskt från samma källa. Du kan alltid skriva över manuellt.
               </div>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -210,6 +272,7 @@ export default function CustomerSwitchCreatePanel({
                       <option key={supplier.id} value={supplier.id}>
                         {supplier.name}
                         {supplier.org_number ? ` • ${supplier.org_number}` : ''}
+                        {supplier.is_own_supplier ? ' • EGEN' : ''}
                       </option>
                     ))}
                   </select>
@@ -267,6 +330,16 @@ export default function CustomerSwitchCreatePanel({
                   />
                   Spara nuvarande leverantör i register om den inte redan finns
                 </label>
+
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 md:col-span-2">
+                  <input
+                    type="checkbox"
+                    name="mark_current_supplier_as_own"
+                    value="true"
+                    className="h-4 w-4"
+                  />
+                  Markera nuvarande leverantör som vår egen leverantör
+                </label>
               </div>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -284,6 +357,7 @@ export default function CustomerSwitchCreatePanel({
                       <option key={supplier.id} value={supplier.id}>
                         {supplier.name}
                         {supplier.org_number ? ` • ${supplier.org_number}` : ''}
+                        {supplier.is_own_supplier ? ' • EGEN' : ''}
                       </option>
                     ))}
                   </select>
@@ -295,7 +369,7 @@ export default function CustomerSwitchCreatePanel({
                   </span>
                   <input
                     name="incoming_supplier_name"
-                    defaultValue="Gridex"
+                    defaultValue=""
                     className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                   />
                 </label>
@@ -306,6 +380,7 @@ export default function CustomerSwitchCreatePanel({
                   </span>
                   <input
                     name="incoming_supplier_org_number"
+                    defaultValue=""
                     className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                   />
                 </label>
@@ -340,12 +415,23 @@ export default function CustomerSwitchCreatePanel({
                   />
                   Spara inkommande leverantör i register om den inte redan finns
                 </label>
+
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 md:col-span-2">
+                  <input
+                    type="checkbox"
+                    name="mark_incoming_supplier_as_own"
+                    value="true"
+                    className="h-4 w-4"
+                  />
+                  Markera inkommande leverantör som vår egen leverantör
+                </label>
               </div>
 
               <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
-                Routingen för dispatch styrs fortfarande av anläggningens nätägare
-                via communication routes. Leverantörsregistret används här för korrekt
-                switchdata och återanvändbara val.
+                Routingen för dispatch styrs fortfarande av anläggningens nätägare via
+                communication routes. Leverantörsregistret används här för korrekt
+                switchdata och återanvändbara val. Det här blocket förbättrar
+                leverantörsidentiteten, inte route-logiken.
               </div>
 
               <div className="mt-5">

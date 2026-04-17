@@ -204,6 +204,7 @@ export async function listElectricitySuppliers(
   let query = supabase
     .from('electricity_suppliers')
     .select('*')
+    .order('is_own_supplier', { ascending: false })
     .order('name', { ascending: true })
 
   if (options.activeOnly) {
@@ -283,6 +284,9 @@ export async function saveElectricitySupplier(
     phone: input.phone,
     notes: input.notes,
     is_active: input.is_active,
+    ...(typeof input.is_own_supplier === 'boolean'
+      ? { is_own_supplier: input.is_own_supplier }
+      : {}),
     updated_by: actorId,
   }
 
@@ -415,20 +419,6 @@ export async function saveCustomerSite(
   return data as CustomerSiteRow
 }
 
-export async function listMeteringPointsBySiteId(
-  supabase: SupabaseClient,
-  siteId: string
-): Promise<MeteringPointRow[]> {
-  const { data, error } = await supabase
-    .from('metering_points')
-    .select('*')
-    .eq('site_id', siteId)
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return (data ?? []) as MeteringPointRow[]
-}
-
 export async function listMeteringPointsBySiteIds(
   supabase: SupabaseClient,
   siteIds: string[]
@@ -447,12 +437,12 @@ export async function listMeteringPointsBySiteIds(
 
 export async function getMeteringPointById(
   supabase: SupabaseClient,
-  meteringPointId: string
+  id: string
 ): Promise<MeteringPointRow | null> {
   const { data, error } = await supabase
     .from('metering_points')
     .select('*')
-    .eq('id', meteringPointId)
+    .eq('id', id)
     .maybeSingle()
 
   if (error) throw error
@@ -506,6 +496,20 @@ export async function saveMeteringPoint(
   return data as MeteringPointRow
 }
 
+export async function listCustomerInternalNotes(
+  supabase: SupabaseClient,
+  customerId: string
+): Promise<CustomerInternalNoteRow[]> {
+  const { data, error } = await supabase
+    .from('customer_internal_notes')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as CustomerInternalNoteRow[]
+}
+
 export async function listCustomerInternalNotesByCustomerId(
   customerId: string
 ): Promise<CustomerInternalNoteRow[]> {
@@ -519,7 +523,7 @@ export async function listCustomerInternalNotesByCustomerId(
   return (data ?? []) as CustomerInternalNoteRow[]
 }
 
-export async function createCustomerInternalNote(
+export async function addCustomerInternalNote(
   supabase: SupabaseClient,
   input: CustomerInternalNoteInput
 ): Promise<CustomerInternalNoteRow> {
@@ -540,32 +544,42 @@ export async function createCustomerInternalNote(
   return data as CustomerInternalNoteRow
 }
 
+export async function listAuditLogsForCustomer(
+  customerId: string
+): Promise<AuditLogRow[]> {
+  const { data, error } = await supabaseService
+    .from('audit_logs')
+    .select('*')
+    .eq('entity_id', customerId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (error) throw error
+  return (data ?? []) as AuditLogRow[]
+}
+
 export async function listMasterdataAuditLogsForCustomer(params: {
   customerId: string
-  siteIds: string[]
-  meteringPointIds: string[]
+  siteIds?: string[]
+  meteringPointIds?: string[]
   limit?: number
 }): Promise<AuditLogRow[]> {
-  const { customerId, siteIds, meteringPointIds, limit = 30 } = params
+  const ids = [
+    params.customerId,
+    ...(params.siteIds ?? []),
+    ...(params.meteringPointIds ?? []),
+  ].filter((value, index, array): value is string => Boolean(value) && array.indexOf(value) === index)
 
-  const filters: string[] = [`and(entity_type.eq.customer,entity_id.eq.${customerId})`]
-
-  if (siteIds.length > 0) {
-    filters.push(`and(entity_type.eq.customer_site,entity_id.in.(${siteIds.join(',')}))`)
-  }
-
-  if (meteringPointIds.length > 0) {
-    filters.push(
-      `and(entity_type.eq.metering_point,entity_id.in.(${meteringPointIds.join(',')}))`
-    )
+  if (ids.length === 0) {
+    return []
   }
 
   const { data, error } = await supabaseService
     .from('audit_logs')
-    .select('id, actor_user_id, entity_type, entity_id, action, old_values, new_values, metadata, created_at')
-    .or(filters.join(','))
+    .select('*')
+    .in('entity_id', ids)
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .limit(params.limit ?? 50)
 
   if (error) throw error
   return (data ?? []) as AuditLogRow[]

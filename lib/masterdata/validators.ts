@@ -85,6 +85,7 @@ export const electricitySupplierInputSchema = z.object({
   phone: nullableTrimmedString,
   notes: nullableTrimmedString,
   is_active: z.boolean().default(true),
+  is_own_supplier: z.boolean().optional(),
 })
 
 export type ElectricitySupplierInput = z.infer<
