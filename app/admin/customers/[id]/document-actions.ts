@@ -6,15 +6,23 @@ import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  archiveCustomerAuthorizationDocument,
+  assignAuthorizationDocumentToGridOwnerRequest,
+  assignAuthorizationDocumentToOutboundRequest,
+  assignAuthorizationDocumentToSwitchRequest,
   createSupplierSwitchEvent,
   createSupplierSwitchRequest,
   findCustomerSiteById,
+  findOpenGridOwnerDataRequestByDocument,
+  findOpenOutboundRequestByDocument,
   findOpenSupplierSwitchRequestForSite,
-  listCustomerAuthorizationDocumentsByCustomerId,
+  getCustomerAuthorizationDocumentById,
+  listActiveCustomerAuthorizationDocumentsByScope,
   listMeteringPointsForSite,
   listPowersOfAttorneyByCustomerId,
   saveCustomerAuthorizationDocument,
   savePowerOfAttorney,
+  setCustomerAuthorizationDocumentAsActive,
   syncCustomerOperationsForCustomer,
   syncCustomerOperationsForSite,
   updateSupplierSwitchValidationSnapshot,
@@ -22,7 +30,6 @@ import {
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import type {
   CustomerAuthorizationDocumentRow,
-  PowerOfAttorneyRow,
   SupplierSwitchRequestType,
 } from '@/lib/operations/types'
 import {
@@ -85,16 +92,6 @@ function normalizeJsonObject(
   return {}
 }
 
-function appendNote(
-  existing: string | null | undefined,
-  extra: string
-): string {
-  const base = (existing ?? '').trim()
-  if (!base) return extra
-  if (base.includes(extra)) return base
-  return `${base}\n\n${extra}`
-}
-
 async function getActor() {
   const supabase = await createSupabaseServerClient()
   const {
@@ -130,232 +127,6 @@ async function insertAuditLog(params: {
   if (error) throw error
 }
 
-async function getDocumentById(
-  documentId: string
-): Promise<CustomerAuthorizationDocumentRow | null> {
-  const { data, error } = await supabaseService
-    .from('customer_authorization_documents')
-    .select('*')
-    .eq('id', documentId)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as CustomerAuthorizationDocumentRow | null) ?? null
-}
-
-async function getPowerOfAttorneyById(
-  powerOfAttorneyId: string
-): Promise<PowerOfAttorneyRow | null> {
-  const { data, error } = await supabaseService
-    .from('powers_of_attorney')
-    .select('*')
-    .eq('id', powerOfAttorneyId)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as PowerOfAttorneyRow | null) ?? null
-}
-
-async function assignAuthorizationDocumentToGridOwnerRequest(params: {
-  requestId: string
-  documentId: string
-}) {
-  const { error } = await supabaseService
-    .from('grid_owner_data_requests')
-    .update({
-      authorization_document_id: params.documentId,
-    })
-    .eq('id', params.requestId)
-
-  if (error) throw error
-}
-
-async function assignAuthorizationDocumentToOutboundRequest(params: {
-  outboundRequestId: string
-  documentId: string
-}) {
-  const { error } = await supabaseService
-    .from('outbound_requests')
-    .update({
-      authorization_document_id: params.documentId,
-    })
-    .eq('id', params.outboundRequestId)
-
-  if (error) throw error
-}
-
-async function assignAuthorizationDocumentToSwitchRequest(params: {
-  requestId: string
-  documentId: string
-}) {
-  const { error } = await supabaseService
-    .from('supplier_switch_requests')
-    .update({
-      authorization_document_id: params.documentId,
-    })
-    .eq('id', params.requestId)
-
-  if (error) throw error
-}
-
-async function updateDocumentStatus(params: {
-  actorUserId: string
-  documentId: string
-  status: 'uploaded' | 'active' | 'archived'
-  notesAppend?: string | null
-  archivedReason?: string | null
-  replacedDocumentId?: string | null
-}): Promise<CustomerAuthorizationDocumentRow> {
-  const before = await getDocumentById(params.documentId)
-
-  if (!before) {
-    throw new Error('Dokumentet hittades inte')
-  }
-
-  const nextNotes = params.notesAppend
-    ? appendNote(before.notes, params.notesAppend)
-    : before.notes
-
-  const { data, error } = await supabaseService
-    .from('customer_authorization_documents')
-    .update({
-      status: params.status,
-      notes: nextNotes ?? null,
-      archived_reason:
-        params.status === 'archived' ? params.archivedReason ?? null : null,
-      replaced_document_id: params.replacedDocumentId ?? null,
-      updated_by: params.actorUserId,
-    })
-    .eq('id', params.documentId)
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return data as CustomerAuthorizationDocumentRow
-}
-
-async function revokeLinkedPowerOfAttorney(params: {
-  actorUserId: string
-  document: CustomerAuthorizationDocumentRow
-  reason: string
-}): Promise<PowerOfAttorneyRow | null> {
-  if (!params.document.power_of_attorney_id) return null
-
-  const poa = await getPowerOfAttorneyById(params.document.power_of_attorney_id)
-  if (!poa) return null
-  if (poa.status === 'revoked') return poa
-
-  const { data, error } = await supabaseService
-    .from('powers_of_attorney')
-    .update({
-      status: 'revoked',
-      notes: appendNote(poa.notes, params.reason),
-      updated_by: params.actorUserId,
-    })
-    .eq('id', poa.id)
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return data as PowerOfAttorneyRow
-}
-
-async function restoreLinkedPowerOfAttorneyIfNeeded(params: {
-  actorUserId: string
-  document: CustomerAuthorizationDocumentRow
-}): Promise<PowerOfAttorneyRow | null> {
-  if (!params.document.power_of_attorney_id) return null
-
-  const poa = await getPowerOfAttorneyById(params.document.power_of_attorney_id)
-  if (!poa) return null
-  if (poa.status !== 'revoked') return poa
-
-  const restoredStatus: PowerOfAttorneyRow['status'] =
-    poa.signed_at ? 'signed' : 'sent'
-
-  const { data, error } = await supabaseService
-    .from('powers_of_attorney')
-    .update({
-      status: restoredStatus,
-      notes: appendNote(
-        poa.notes,
-        'Fullmakten återaktiverades eftersom dokumentet sattes som aktivt standarddokument.'
-      ),
-      updated_by: params.actorUserId,
-    })
-    .eq('id', poa.id)
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return data as PowerOfAttorneyRow
-}
-
-async function listActiveDocumentsForSameScopeAndType(params: {
-  customerId: string
-  siteId: string | null
-  documentType: 'power_of_attorney' | 'complete_agreement'
-  excludeDocumentId?: string | null
-}): Promise<CustomerAuthorizationDocumentRow[]> {
-  let query = supabaseService
-    .from('customer_authorization_documents')
-    .select('*')
-    .eq('customer_id', params.customerId)
-    .eq('document_type', params.documentType)
-    .eq('status', 'active')
-
-  query = params.siteId
-    ? query.eq('site_id', params.siteId)
-    : query.is('site_id', null)
-
-  const { data, error } = await query.order('uploaded_at', { ascending: false })
-
-  if (error) throw error
-
-  const rows = (data ?? []) as CustomerAuthorizationDocumentRow[]
-  const excluded = params.excludeDocumentId ?? null
-
-  return excluded ? rows.filter((row) => row.id !== excluded) : rows
-}
-
-async function archiveDocumentInternal(params: {
-  actorUserId: string
-  documentId: string
-  reason: string
-  replacementDocumentId?: string | null
-}): Promise<{
-  documentBefore: CustomerAuthorizationDocumentRow
-  documentAfter: CustomerAuthorizationDocumentRow
-  revokedPowerOfAttorney: PowerOfAttorneyRow | null
-}> {
-  const documentBefore = await getDocumentById(params.documentId)
-
-  if (!documentBefore) {
-    throw new Error('Dokumentet hittades inte')
-  }
-
-  const documentAfter = await updateDocumentStatus({
-    actorUserId: params.actorUserId,
-    documentId: params.documentId,
-    status: 'archived',
-    notesAppend: params.reason,
-    archivedReason: params.reason,
-    replacedDocumentId: params.replacementDocumentId ?? null,
-  })
-
-  const revokedPowerOfAttorney = await revokeLinkedPowerOfAttorney({
-    actorUserId: params.actorUserId,
-    document: documentAfter,
-    reason: `Fullmakten revokerades eftersom dokumentet arkiverades. Orsak: ${params.reason}`,
-  })
-
-  return {
-    documentBefore,
-    documentAfter,
-    revokedPowerOfAttorney,
-  }
-}
-
 async function queueGridOwnerRequestsFromDocument(params: {
   actorUserId: string
   customerId: string
@@ -371,6 +142,7 @@ async function queueGridOwnerRequestsFromDocument(params: {
   includeMeterValues: boolean
   includeBillingUnderlay: boolean
 }) {
+  const supabase = await createSupabaseServerClient()
   const createdGridOwnerRequestIds: string[] = []
   const createdOutboundIds: string[] = []
 
@@ -380,53 +152,79 @@ async function queueGridOwnerRequestsFromDocument(params: {
   ) => {
     if (!enabled) return
 
-    const saved = await createGridOwnerDataRequest({
-      actorUserId: params.actorUserId,
+    const requestType = scope === 'billing_underlay' ? 'billing_underlay' : 'meter_values'
+
+    let saved = await findOpenGridOwnerDataRequestByDocument(supabase, {
       customerId: params.customerId,
       siteId: params.siteId,
       meteringPointId: params.meteringPointId,
-      gridOwnerId: params.gridOwnerId,
       requestScope: scope,
-      requestedPeriodStart: params.requestedPeriodStart,
-      requestedPeriodEnd: params.requestedPeriodEnd,
-      externalReference: params.externalReference,
-      notes: params.notes
-        ? `${params.notes}\n\nBilaga: ${params.document.file_path}`
-        : `Bilaga: ${params.document.file_path}`,
-    })
-
-    await assignAuthorizationDocumentToGridOwnerRequest({
-      requestId: saved.id,
       documentId: params.document.id,
     })
 
-    const outbound = await createOutboundRequest({
-      actorUserId: params.actorUserId,
+    if (!saved) {
+      saved = await createGridOwnerDataRequest({
+        actorUserId: params.actorUserId,
+        customerId: params.customerId,
+        siteId: params.siteId,
+        meteringPointId: params.meteringPointId,
+        gridOwnerId: params.gridOwnerId,
+        requestScope: scope,
+        requestedPeriodStart: params.requestedPeriodStart,
+        requestedPeriodEnd: params.requestedPeriodEnd,
+        externalReference: params.externalReference,
+        notes: params.notes
+          ? `${params.notes}
+
+Bilaga: ${params.document.file_path}`
+          : `Bilaga: ${params.document.file_path}`,
+      })
+
+      await assignAuthorizationDocumentToGridOwnerRequest(supabase, {
+        requestId: saved.id,
+        documentId: params.document.id,
+      })
+    }
+
+    let outbound = await findOpenOutboundRequestByDocument(supabase, {
       customerId: params.customerId,
       siteId: params.siteId,
       meteringPointId: params.meteringPointId,
-      gridOwnerId: params.gridOwnerId,
-      requestType: scope === 'billing_underlay' ? 'billing_underlay' : 'meter_values',
+      requestType,
+      documentId: params.document.id,
       sourceType: 'grid_owner_data_request',
       sourceId: saved.id,
-      payload: {
-        authorizationDocumentId: params.document.id,
-        authorizationDocumentType: params.document.document_type,
-        authorizationDocumentTitle: params.document.title,
-        authorizationDocumentPath: params.document.file_path,
-        requestScope: scope,
-        gridOwnerDataRequestId: saved.id,
-        createdFrom: 'document_upload',
-      },
-      periodStart: params.requestedPeriodStart,
-      periodEnd: params.requestedPeriodEnd,
-      externalReference: params.externalReference,
     })
 
-    await assignAuthorizationDocumentToOutboundRequest({
-      outboundRequestId: outbound.id,
-      documentId: params.document.id,
-    })
+    if (!outbound) {
+      outbound = await createOutboundRequest({
+        actorUserId: params.actorUserId,
+        customerId: params.customerId,
+        siteId: params.siteId,
+        meteringPointId: params.meteringPointId,
+        gridOwnerId: params.gridOwnerId,
+        requestType,
+        sourceType: 'grid_owner_data_request',
+        sourceId: saved.id,
+        payload: {
+          authorizationDocumentId: params.document.id,
+          authorizationDocumentType: params.document.document_type,
+          authorizationDocumentTitle: params.document.title,
+          authorizationDocumentPath: params.document.file_path,
+          requestScope: scope,
+          gridOwnerDataRequestId: saved.id,
+          createdFrom: 'document_upload',
+        },
+        periodStart: params.requestedPeriodStart,
+        periodEnd: params.requestedPeriodEnd,
+        externalReference: params.externalReference,
+      })
+
+      await assignAuthorizationDocumentToOutboundRequest(supabase, {
+        outboundRequestId: outbound.id,
+        documentId: params.document.id,
+      })
+    }
 
     await updateGridOwnerDataRequestStatus({
       actorUserId: params.actorUserId,
@@ -438,6 +236,7 @@ async function queueGridOwnerRequestsFromDocument(params: {
         authorizationDocumentId: params.document.id,
         queuedAutomatically: true,
         createdFrom: 'document_upload',
+        idempotentReuse: true,
       },
       notes: saved.notes ?? null,
     })
@@ -539,7 +338,7 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
     },
   })
 
-  await assignAuthorizationDocumentToSwitchRequest({
+  await assignAuthorizationDocumentToSwitchRequest(supabase, {
     requestId: switchRequest.id,
     documentId: params.document.id,
   })
@@ -547,14 +346,24 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
   let switchOutboundId: string | null = null
 
   if (params.autoQueueOutbound) {
-    const existingOutbound = await findOpenOutboundBySource({
-      sourceType: 'supplier_switch_request',
-      sourceId: switchRequest.id,
-      requestType: 'supplier_switch',
-    })
+    const existingOutbound =
+      (await findOpenOutboundRequestByDocument(supabase, {
+        customerId: switchRequest.customer_id,
+        siteId: switchRequest.site_id,
+        meteringPointId: switchRequest.metering_point_id,
+        requestType: 'supplier_switch',
+        documentId: params.document.id,
+        sourceType: 'supplier_switch_request',
+        sourceId: switchRequest.id,
+      })) ??
+      (await findOpenOutboundBySource({
+        sourceType: 'supplier_switch_request',
+        sourceId: switchRequest.id,
+        requestType: 'supplier_switch',
+      }))
 
     if (existingOutbound) {
-      await assignAuthorizationDocumentToOutboundRequest({
+      await assignAuthorizationDocumentToOutboundRequest(supabase, {
         outboundRequestId: existingOutbound.id,
         documentId: params.document.id,
       })
@@ -584,7 +393,7 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
         externalReference: switchRequest.external_reference ?? null,
       })
 
-      await assignAuthorizationDocumentToOutboundRequest({
+      await assignAuthorizationDocumentToOutboundRequest(supabase, {
         outboundRequestId: outbound.id,
         documentId: params.document.id,
       })
@@ -736,8 +545,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
   const revokedPowerOfAttorneyIds: string[] = []
 
   if (replaceDocumentId) {
-    const replaced = await archiveDocumentInternal({
-      actorUserId: actor.id,
+    const replaced = await archiveCustomerAuthorizationDocument(supabase, {
       documentId: replaceDocumentId,
       reason: `Ersatt av nytt dokument ${savedDocument.id} vid upload.`,
       replacementDocumentId: savedDocument.id,
@@ -751,7 +559,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
   }
 
   if (setAsActive && archivePreviousActive) {
-    const activeConflicts = await listActiveDocumentsForSameScopeAndType({
+    const activeConflicts = await listActiveCustomerAuthorizationDocumentsByScope(supabase, {
       customerId,
       siteId,
       documentType,
@@ -759,8 +567,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
     })
 
     for (const row of activeConflicts) {
-      const archived = await archiveDocumentInternal({
-        actorUserId: actor.id,
+      const archived = await archiveCustomerAuthorizationDocument(supabase, {
         documentId: row.id,
         reason: `Arkiverat automatiskt när nytt aktivt standarddokument ${savedDocument.id} laddades upp.`,
         replacementDocumentId: savedDocument.id,
@@ -890,8 +697,7 @@ export async function archiveCustomerAuthorizationDocumentAction(
     throw new Error('customer_id och document_id krävs')
   }
 
-  const archived = await archiveDocumentInternal({
-    actorUserId: actor.id,
+  const archived = await archiveCustomerAuthorizationDocument(supabase, {
     documentId,
     reason,
   })
@@ -936,47 +742,20 @@ export async function setCustomerAuthorizationDocumentActiveAction(
     throw new Error('customer_id och document_id krävs')
   }
 
-  const targetBefore = await getDocumentById(documentId)
+  const targetBefore = await getCustomerAuthorizationDocumentById(supabase, documentId)
   if (!targetBefore) {
     throw new Error('Dokumentet hittades inte')
   }
 
-  const conflicts = await listActiveDocumentsForSameScopeAndType({
-    customerId: targetBefore.customer_id,
-    siteId: targetBefore.site_id,
-    documentType: targetBefore.document_type,
-    excludeDocumentId: targetBefore.id,
-  })
-
-  const archivedConflictIds: string[] = []
-  const revokedPowerOfAttorneyIds: string[] = []
-
-  for (const conflict of conflicts) {
-    const archived = await archiveDocumentInternal({
-      actorUserId: actor.id,
-      documentId: conflict.id,
-      reason: `Arkiverat automatiskt eftersom dokument ${targetBefore.id} sattes som aktivt standarddokument.`,
-      replacementDocumentId: targetBefore.id,
-    })
-
-    archivedConflictIds.push(archived.documentAfter.id)
-
-    if (archived.revokedPowerOfAttorney?.id) {
-      revokedPowerOfAttorneyIds.push(archived.revokedPowerOfAttorney.id)
-    }
-  }
-
-  const activeDocument = await updateDocumentStatus({
-    actorUserId: actor.id,
+  const activation = await setCustomerAuthorizationDocumentAsActive(supabase, {
     documentId: targetBefore.id,
-    status: 'active',
-    notesAppend: 'Satt som aktivt standarddokument manuellt.',
+    archiveOtherActiveDocuments: true,
   })
 
-  const restoredPowerOfAttorney = await restoreLinkedPowerOfAttorneyIfNeeded({
-    actorUserId: actor.id,
-    document: activeDocument,
-  })
+  const archivedConflictIds = activation.archivedDocuments.map((row) => row.id)
+  const revokedPowerOfAttorneyIds = activation.revokedPowerOfAttorneyIds
+  const activeDocument = activation.targetAfter
+  const restoredPowerOfAttorney = activation.restoredPowerOfAttorney
 
   const syncSummary = activeDocument.site_id
     ? await syncCustomerOperationsForSite(supabase, {

@@ -212,6 +212,146 @@ export async function getCustomerAuthorizationDocumentById(
   return (data as CustomerAuthorizationDocumentRow | null) ?? null
 }
 
+
+export async function assignAuthorizationDocumentToGridOwnerRequest(
+  supabase: SupabaseClient,
+  params: {
+    requestId: string
+    documentId: string
+  }
+): Promise<void> {
+  const actorId = await getActorId(supabase)
+
+  const { error } = await supabase
+    .from('grid_owner_data_requests')
+    .update({
+      authorization_document_id: params.documentId,
+      updated_by: actorId,
+    })
+    .eq('id', params.requestId)
+
+  if (error) throw error
+}
+
+export async function assignAuthorizationDocumentToOutboundRequest(
+  supabase: SupabaseClient,
+  params: {
+    outboundRequestId: string
+    documentId: string
+  }
+): Promise<void> {
+  const actorId = await getActorId(supabase)
+
+  const { error } = await supabase
+    .from('outbound_requests')
+    .update({
+      authorization_document_id: params.documentId,
+      updated_by: actorId,
+    })
+    .eq('id', params.outboundRequestId)
+
+  if (error) throw error
+}
+
+export async function assignAuthorizationDocumentToSwitchRequest(
+  supabase: SupabaseClient,
+  params: {
+    requestId: string
+    documentId: string
+  }
+): Promise<void> {
+  const actorId = await getActorId(supabase)
+
+  const { error } = await supabase
+    .from('supplier_switch_requests')
+    .update({
+      authorization_document_id: params.documentId,
+      updated_by: actorId,
+    })
+    .eq('id', params.requestId)
+
+  if (error) throw error
+}
+
+export async function findOpenGridOwnerDataRequestByDocument(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string
+    siteId?: string | null
+    meteringPointId?: string | null
+    requestScope: 'meter_values' | 'billing_underlay' | 'customer_masterdata'
+    documentId: string
+  }
+) {
+  let query = supabase
+    .from('grid_owner_data_requests')
+    .select('*')
+    .eq('customer_id', params.customerId)
+    .eq('request_scope', params.requestScope)
+    .eq('authorization_document_id', params.documentId)
+    .in('status', ['pending', 'sent', 'received'])
+
+  query = params.siteId ? query.eq('site_id', params.siteId) : query.is('site_id', null)
+  query = params.meteringPointId
+    ? query.eq('metering_point_id', params.meteringPointId)
+    : query.is('metering_point_id', null)
+
+  const { data, error } = await query
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+export async function findOpenOutboundRequestByDocument(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string
+    siteId?: string | null
+    meteringPointId?: string | null
+    requestType: 'supplier_switch' | 'meter_values' | 'billing_underlay'
+    documentId: string
+    sourceType?:
+      | 'supplier_switch_request'
+      | 'grid_owner_data_request'
+      | 'bulk_generation'
+      | 'manual'
+      | null
+    sourceId?: string | null
+  }
+) {
+  let query = supabase
+    .from('outbound_requests')
+    .select('*')
+    .eq('customer_id', params.customerId)
+    .eq('request_type', params.requestType)
+    .eq('authorization_document_id', params.documentId)
+    .in('status', ['queued', 'prepared', 'sent', 'acknowledged'])
+
+  query = params.siteId ? query.eq('site_id', params.siteId) : query.is('site_id', null)
+  query = params.meteringPointId
+    ? query.eq('metering_point_id', params.meteringPointId)
+    : query.is('metering_point_id', null)
+
+  if (params.sourceType) {
+    query = query.eq('source_type', params.sourceType)
+  }
+
+  if (params.sourceId) {
+    query = query.eq('source_id', params.sourceId)
+  }
+
+  const { data, error } = await query
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
 export async function listActiveCustomerAuthorizationDocumentsByScope(
   supabase: SupabaseClient,
   params: {
@@ -311,6 +451,8 @@ export async function updateCustomerAuthorizationDocumentStatus(
     documentId: string
     status: 'uploaded' | 'active' | 'archived'
     notesAppend?: string | null
+    archivedReason?: string | null
+    replacedDocumentId?: string | null
   }
 ): Promise<CustomerAuthorizationDocumentRow> {
   const actorId = await getActorId(supabase)
@@ -327,6 +469,9 @@ export async function updateCustomerAuthorizationDocumentStatus(
       notes: params.notesAppend
         ? appendNote(existing.notes, params.notesAppend)
         : existing.notes ?? null,
+      archived_reason:
+        params.status === 'archived' ? params.archivedReason ?? null : null,
+      replaced_document_id: params.replacedDocumentId ?? null,
       updated_by: actorId,
     })
     .eq('id', params.documentId)
@@ -343,6 +488,7 @@ export async function archiveCustomerAuthorizationDocument(
     documentId: string
     reason?: string | null
     revokeLinkedPowerOfAttorney?: boolean
+    replacementDocumentId?: string | null
   }
 ): Promise<{
   documentBefore: CustomerAuthorizationDocumentRow
@@ -362,6 +508,8 @@ export async function archiveCustomerAuthorizationDocument(
     documentId: params.documentId,
     status: 'archived',
     notesAppend: params.reason ?? 'Dokumentet arkiverades.',
+    archivedReason: params.reason ?? 'Dokumentet arkiverades.',
+    replacedDocumentId: params.replacementDocumentId ?? null,
   })
 
   let revokedPowerOfAttorney: PowerOfAttorneyRow | null = null
