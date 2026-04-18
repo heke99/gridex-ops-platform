@@ -243,7 +243,7 @@ export default function CustomerAuthorizationDocumentsCard({
           </p>
         </div>
 
-                {uploadState.status !== 'idle' && uploadState.message ? (
+        {uploadState.status !== 'idle' && uploadState.message ? (
           <div
             className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${uploadResultClass(uploadState.status)}`}
           >
@@ -254,7 +254,7 @@ export default function CustomerAuthorizationDocumentsCard({
                   ? 'Upload klar'
                   : 'Något gick fel'}
             </div>
-            <div className="mt-1">{uploadState.message}</div>
+            <div className="mt-1 whitespace-pre-line">{uploadState.message}</div>
           </div>
         ) : null}
 

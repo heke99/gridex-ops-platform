@@ -113,6 +113,31 @@ export const initialUploadCustomerAuthorizationDocumentActionState: UploadCustom
     duplicateDocumentId: null,
   }
 
+type UploadAutomationDecision = {
+  shouldCreateGridOwnerRequests: boolean
+  shouldCreateSwitchRequest: boolean
+  shouldQueueSwitchOutbound: boolean
+  includeCustomerMasterdata: boolean
+  includeMeterValues: boolean
+  includeBillingUnderlay: boolean
+  resolvedMeteringPointId: string | null
+  resolvedGridOwnerId: string | null
+  blockedReasons: string[]
+  warnings: string[]
+}
+
+function formatMessageLines(lines: Array<string | null | undefined>): string {
+  return lines
+    .map((line) => line?.trim())
+    .filter((line): line is string => Boolean(line))
+    .join('\n')
+}
+
+function isIsoDateBefore(left: string | null, right: string | null): boolean {
+  if (!left || !right) return false
+  return left < right
+}
+
 async function buildFileChecksum(file: File): Promise<string> {
   const buffer = Buffer.from(await file.arrayBuffer())
   return createHash('sha256').update(buffer).digest('hex')
@@ -469,6 +494,161 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
   }
 }
 
+async function resolveUploadAutomationDecision(params: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  customerId: string
+  siteId: string | null
+  documentType: 'power_of_attorney' | 'complete_agreement'
+  markAsSigned: boolean
+  savedPowerOfAttorneyId: string | null
+  autoCreateGridOwnerRequests: boolean
+  includeCustomerMasterdata: boolean
+  includeMeterValues: boolean
+  includeBillingUnderlay: boolean
+  autoCreateSwitchRequest: boolean
+  autoQueueSwitchOutbound: boolean
+}): Promise<UploadAutomationDecision> {
+  const blockedReasons: string[] = []
+  const warnings: string[] = []
+
+  let shouldCreateGridOwnerRequests = params.autoCreateGridOwnerRequests
+  let shouldCreateSwitchRequest = params.autoCreateSwitchRequest
+  let shouldQueueSwitchOutbound = params.autoQueueSwitchOutbound
+  let includeCustomerMasterdata =
+    params.autoCreateGridOwnerRequests && params.includeCustomerMasterdata
+  let includeMeterValues =
+    params.autoCreateGridOwnerRequests && params.includeMeterValues
+  let includeBillingUnderlay =
+    params.autoCreateGridOwnerRequests && params.includeBillingUnderlay
+  let resolvedMeteringPointId: string | null = null
+  let resolvedGridOwnerId: string | null = null
+
+  if (
+    !params.siteId &&
+    (shouldCreateGridOwnerRequests || shouldCreateSwitchRequest || shouldQueueSwitchOutbound)
+  ) {
+    blockedReasons.push(
+      'Automatiska request-/switch-steg hoppades över eftersom ingen anläggning valdes.'
+    )
+
+    return {
+      shouldCreateGridOwnerRequests: false,
+      shouldCreateSwitchRequest: false,
+      shouldQueueSwitchOutbound: false,
+      includeCustomerMasterdata: false,
+      includeMeterValues: false,
+      includeBillingUnderlay: false,
+      resolvedMeteringPointId: null,
+      resolvedGridOwnerId: null,
+      blockedReasons,
+      warnings,
+    }
+  }
+
+  if (!params.siteId) {
+    return {
+      shouldCreateGridOwnerRequests,
+      shouldCreateSwitchRequest,
+      shouldQueueSwitchOutbound,
+      includeCustomerMasterdata,
+      includeMeterValues,
+      includeBillingUnderlay,
+      resolvedMeteringPointId,
+      resolvedGridOwnerId,
+      blockedReasons,
+      warnings,
+    }
+  }
+
+  const site = await findCustomerSiteById(params.supabase, params.siteId)
+  if (!site) {
+    blockedReasons.push('Automatiska steg stoppades eftersom vald anläggning inte hittades.')
+
+    return {
+      shouldCreateGridOwnerRequests: false,
+      shouldCreateSwitchRequest: false,
+      shouldQueueSwitchOutbound: false,
+      includeCustomerMasterdata: false,
+      includeMeterValues: false,
+      includeBillingUnderlay: false,
+      resolvedMeteringPointId: null,
+      resolvedGridOwnerId: null,
+      blockedReasons,
+      warnings,
+    }
+  }
+
+  const siteMeteringPoints = await listMeteringPointsForSite(params.supabase, params.siteId)
+  const preferredMeteringPoint =
+    siteMeteringPoints.find((row) => row.status === 'active') ??
+    siteMeteringPoints.find((row) => row.status === 'pending_validation') ??
+    siteMeteringPoints[0] ??
+    null
+
+  resolvedMeteringPointId = preferredMeteringPoint?.id ?? null
+  resolvedGridOwnerId =
+    preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null
+
+  if (!includeCustomerMasterdata && !includeMeterValues && !includeBillingUnderlay) {
+    shouldCreateGridOwnerRequests = false
+  }
+
+  if (!preferredMeteringPoint) {
+    if (includeMeterValues) {
+      includeMeterValues = false
+      warnings.push('Mätvärdesbegäran skapades inte eftersom anläggningen saknar mätpunkt.')
+    }
+
+    if (includeBillingUnderlay) {
+      includeBillingUnderlay = false
+      warnings.push('Billing-underlag skapades inte eftersom anläggningen saknar mätpunkt.')
+    }
+
+    if (shouldCreateSwitchRequest || shouldQueueSwitchOutbound) {
+      shouldCreateSwitchRequest = false
+      shouldQueueSwitchOutbound = false
+      blockedReasons.push(
+        'Supplier switch/outbound skapades inte eftersom anläggningen saknar mätpunkt.'
+      )
+    }
+  }
+
+  if (!includeCustomerMasterdata && !includeMeterValues && !includeBillingUnderlay) {
+    shouldCreateGridOwnerRequests = false
+  }
+
+  if (params.documentType === 'complete_agreement' && !params.savedPowerOfAttorneyId) {
+    if (shouldCreateSwitchRequest || shouldQueueSwitchOutbound) {
+      shouldCreateSwitchRequest = false
+      shouldQueueSwitchOutbound = false
+      blockedReasons.push(
+        'Supplier switch/outbound stoppades eftersom komplett avtal inte skapade någon kopplad fullmakt.'
+      )
+    }
+  }
+
+  if ((shouldCreateSwitchRequest || shouldQueueSwitchOutbound) && !params.markAsSigned) {
+    shouldCreateSwitchRequest = false
+    shouldQueueSwitchOutbound = false
+    blockedReasons.push(
+      'Supplier switch/outbound stoppades eftersom dokumentet inte markerades som signerat.'
+    )
+  }
+
+  return {
+    shouldCreateGridOwnerRequests,
+    shouldCreateSwitchRequest,
+    shouldQueueSwitchOutbound,
+    includeCustomerMasterdata,
+    includeMeterValues,
+    includeBillingUnderlay,
+    resolvedMeteringPointId,
+    resolvedGridOwnerId,
+    blockedReasons,
+    warnings,
+  }
+}
+
 export async function uploadCustomerAuthorizationDocumentAction(
   _previousState: UploadCustomerAuthorizationDocumentActionState,
   formData: FormData
@@ -546,6 +726,24 @@ export async function uploadCustomerAuthorizationDocumentAction(
     }
   }
 
+  if (isIsoDateBefore(validTo, validFrom)) {
+    return {
+      status: 'error',
+      message: 'Giltig till kan inte vara tidigare än giltig från.',
+      documentId: null,
+      duplicateDocumentId: null,
+    }
+  }
+
+  if (isIsoDateBefore(requestedPeriodEnd, requestedPeriodStart)) {
+    return {
+      status: 'error',
+      message: 'Begär period till kan inte vara tidigare än begär period från.',
+      documentId: null,
+      duplicateDocumentId: null,
+    }
+  }
+
   const fileChecksum = await buildFileChecksum(fileValue)
   const uploadIdempotencyKey = buildDocumentUploadIdempotencyKey({
     customerId,
@@ -553,6 +751,36 @@ export async function uploadCustomerAuthorizationDocumentAction(
     documentType,
     fileChecksum,
   })
+
+  if (replaceDocumentId) {
+    const replacementTarget = await getCustomerAuthorizationDocumentById(
+      supabase,
+      replaceDocumentId
+    )
+
+    if (!replacementTarget) {
+      return {
+        status: 'error',
+        message: 'Dokumentet som skulle ersättas hittades inte.',
+        documentId: null,
+        duplicateDocumentId: null,
+      }
+    }
+
+    const sameCustomer = replacementTarget.customer_id === customerId
+    const sameType = replacementTarget.document_type === documentType
+    const sameScope = (replacementTarget.site_id ?? null) === siteId
+
+    if (!sameCustomer || !sameType || !sameScope) {
+      return {
+        status: 'error',
+        message:
+          'Ersättningsdokumentet måste tillhöra samma kund, samma dokumenttyp och samma scope/anläggning.',
+        documentId: null,
+        duplicateDocumentId: null,
+      }
+    }
+  }
 
   const existingDocument = await findExistingCustomerAuthorizationDocumentByFingerprint(
     supabase,
@@ -629,6 +857,21 @@ export async function uploadCustomerAuthorizationDocumentAction(
     notes,
   })
 
+  const automationDecision = await resolveUploadAutomationDecision({
+    supabase,
+    customerId,
+    siteId,
+    documentType,
+    markAsSigned,
+    savedPowerOfAttorneyId,
+    autoCreateGridOwnerRequests,
+    includeCustomerMasterdata,
+    includeMeterValues,
+    includeBillingUnderlay,
+    autoCreateSwitchRequest,
+    autoQueueSwitchOutbound,
+  })
+
   const archivedDocumentIds: string[] = []
   const revokedPowerOfAttorneyIds: string[] = []
 
@@ -675,60 +918,48 @@ export async function uploadCustomerAuthorizationDocumentAction(
   let switchOutboundId: string | null = null
   let switchReadinessIssues: Array<{ code?: unknown; title?: unknown }> | null = null
 
-  if (
-    siteId &&
-    (autoCreateGridOwnerRequests ||
-      autoCreateSwitchRequest ||
-      autoQueueSwitchOutbound)
-  ) {
-    const site = await findCustomerSiteById(supabase, siteId)
-    if (!site) {
-      throw new Error('Anläggningen hittades inte')
-    }
+  if (siteId && automationDecision.shouldCreateGridOwnerRequests) {
+    const requestResult = await queueGridOwnerRequestsFromDocument({
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      document: savedDocument,
+      meteringPointId: automationDecision.resolvedMeteringPointId,
+      gridOwnerId: automationDecision.resolvedGridOwnerId,
+      externalReference,
+      requestedPeriodStart,
+      requestedPeriodEnd,
+      notes,
+      includeCustomerMasterdata: automationDecision.includeCustomerMasterdata,
+      includeMeterValues: automationDecision.includeMeterValues,
+      includeBillingUnderlay: automationDecision.includeBillingUnderlay,
+    })
 
-    const siteMeteringPoints = await listMeteringPointsForSite(supabase, siteId)
-    const preferredMeteringPoint =
-      siteMeteringPoints.find((row) => row.status === 'active') ??
-      siteMeteringPoints.find((row) => row.status === 'pending_validation') ??
-      siteMeteringPoints[0] ??
-      null
+    createdGridOwnerRequestIds = requestResult.createdGridOwnerRequestIds
+    createdGridOwnerOutboundIds = requestResult.createdOutboundIds
+  }
 
-    if (autoCreateGridOwnerRequests) {
-      const requestResult = await queueGridOwnerRequestsFromDocument({
-        actorUserId: actor.id,
-        customerId,
-        siteId,
-        document: savedDocument,
-        meteringPointId: preferredMeteringPoint?.id ?? null,
-        gridOwnerId:
-          preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
-        externalReference,
-        requestedPeriodStart,
-        requestedPeriodEnd,
-        notes,
-        includeCustomerMasterdata,
-        includeMeterValues,
-        includeBillingUnderlay,
-      })
+  if (siteId && (automationDecision.shouldCreateSwitchRequest || automationDecision.shouldQueueSwitchOutbound)) {
+    const switchResult = await ensureSwitchRequestAndOutboundFromDocument({
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      document: savedDocument,
+      requestType,
+      requestedStartDate,
+      autoQueueOutbound: automationDecision.shouldQueueSwitchOutbound,
+    })
 
-      createdGridOwnerRequestIds = requestResult.createdGridOwnerRequestIds
-      createdGridOwnerOutboundIds = requestResult.createdOutboundIds
-    }
+    switchRequestId = switchResult.switchRequestId
+    switchOutboundId = switchResult.switchOutboundId
+    switchReadinessIssues = switchResult.readinessIssues
 
-    if (autoCreateSwitchRequest || autoQueueSwitchOutbound) {
-      const switchResult = await ensureSwitchRequestAndOutboundFromDocument({
-        actorUserId: actor.id,
-        customerId,
-        siteId,
-        document: savedDocument,
-        requestType,
-        requestedStartDate,
-        autoQueueOutbound: autoQueueSwitchOutbound,
-      })
-
-      switchRequestId = switchResult.switchRequestId
-      switchOutboundId = switchResult.switchOutboundId
-      switchReadinessIssues = switchResult.readinessIssues
+    if (!switchResult.switchRequestId && switchResult.readinessIssues?.length) {
+      automationDecision.blockedReasons.push(
+        `Supplier switch skapades inte eftersom readiness blockerade: ${switchResult.readinessIssues
+          .map((issue) => String(issue.title ?? issue.code ?? 'okänd blockerare'))
+          .join(', ')}`
+      )
     }
   }
 
@@ -757,6 +988,18 @@ export async function uploadCustomerAuthorizationDocumentAction(
       switchRequestId,
       switchOutboundId,
       switchReadinessIssues,
+      automationBlockedReasons: automationDecision.blockedReasons,
+      automationWarnings: automationDecision.warnings,
+      automationDecision: {
+        shouldCreateGridOwnerRequests: automationDecision.shouldCreateGridOwnerRequests,
+        shouldCreateSwitchRequest: automationDecision.shouldCreateSwitchRequest,
+        shouldQueueSwitchOutbound: automationDecision.shouldQueueSwitchOutbound,
+        includeCustomerMasterdata: automationDecision.includeCustomerMasterdata,
+        includeMeterValues: automationDecision.includeMeterValues,
+        includeBillingUnderlay: automationDecision.includeBillingUnderlay,
+        resolvedMeteringPointId: automationDecision.resolvedMeteringPointId,
+        resolvedGridOwnerId: automationDecision.resolvedGridOwnerId,
+      },
       syncSummary,
     },
   })
@@ -767,9 +1010,27 @@ export async function uploadCustomerAuthorizationDocumentAction(
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/unresolved')
 
+  const message = formatMessageLines([
+    `Dokument ${savedDocument.id} uppladdat och registrerat. ${replaceDocumentId ? 'Ersättningsflöde kördes.' : 'Nytt dokument sparades.'}`,
+    createdGridOwnerRequestIds.length
+      ? `Skapade nätägarrequester: ${createdGridOwnerRequestIds.length}.`
+      : null,
+    createdGridOwnerOutboundIds.length
+      ? `Skapade outbounds för nätägarrequester: ${createdGridOwnerOutboundIds.length}.`
+      : null,
+    switchRequestId ? `Switch request: ${switchRequestId}.` : null,
+    switchOutboundId ? `Switch outbound: ${switchOutboundId}.` : null,
+    automationDecision.warnings.length
+      ? `Begränsningar: ${automationDecision.warnings.join(' ')}`
+      : null,
+    automationDecision.blockedReasons.length
+      ? `Automatiska steg stoppades delvis: ${automationDecision.blockedReasons.join(' ')}`
+      : null,
+  ])
+
   return {
     status: 'success',
-    message: `Dokument ${savedDocument.id} uppladdat och registrerat. ${replaceDocumentId ? 'Ersättningsflöde kördes.' : 'Nytt dokument sparades.'}`,
+    message,
     documentId: savedDocument.id,
     duplicateDocumentId: null,
   }
