@@ -13,6 +13,7 @@ import {
   buildGridOwnerDataRequestAutomationKey,
   buildOutboundRequestAutomationKey,
   assignAuthorizationDocumentToSwitchRequest,
+  createAuditLogEntry,
   createSupplierSwitchEvent,
   createSupplierSwitchRequest,
   buildSupplierSwitchRequestAutomationKey,
@@ -24,6 +25,7 @@ import {
   listActiveCustomerAuthorizationDocumentsByScope,
   listMeteringPointsForSite,
   listPowersOfAttorneyByCustomerId,
+  listSupplierSwitchRequestsByCustomerId,
   buildDocumentUploadIdempotencyKey,
   findExistingCustomerAuthorizationDocumentByFingerprint,
   saveCustomerAuthorizationDocument,
@@ -33,7 +35,6 @@ import {
   syncCustomerOperationsForSite,
   updateSupplierSwitchRequestStatus,
   updateSupplierSwitchValidationSnapshot,
-  listSupplierSwitchRequestsByCustomerId,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import type {
@@ -385,28 +386,6 @@ async function getActor() {
   }
 
   return user
-}
-
-async function insertAuditLog(params: {
-  actorUserId: string
-  entityType: string
-  entityId: string
-  action: string
-  oldValues?: unknown
-  newValues?: unknown
-  metadata?: unknown
-}) {
-  const { error } = await supabaseService.from('audit_logs').insert({
-    actor_user_id: params.actorUserId,
-    entity_type: params.entityType,
-    entity_id: params.entityId,
-    action: params.action,
-    old_values: params.oldValues ?? null,
-    new_values: params.newValues ?? null,
-    metadata: params.metadata ?? null,
-  })
-
-  if (error) throw error
 }
 
 async function queueGridOwnerRequestsFromDocument(params: {
@@ -1170,7 +1149,11 @@ export async function uploadCustomerAuthorizationDocumentAction(
     createdGridOwnerOutboundIds = requestResult.createdOutboundIds
   }
 
-  if (siteId && (automationDecision.shouldCreateSwitchRequest || automationDecision.shouldQueueSwitchOutbound)) {
+  if (
+    siteId &&
+    (automationDecision.shouldCreateSwitchRequest ||
+      automationDecision.shouldQueueSwitchOutbound)
+  ) {
     const switchResult = await ensureSwitchRequestAndOutboundFromDocument({
       actorUserId: actor.id,
       customerId,
@@ -1201,7 +1184,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
       })
     : await syncCustomerOperationsForCustomer(supabase, customerId)
 
-  await insertAuditLog({
+  await createAuditLogEntry(supabase, {
     actorUserId: actor.id,
     entityType: 'customer_authorization_document',
     entityId: savedDocument.id,
@@ -1222,13 +1205,17 @@ export async function uploadCustomerAuthorizationDocumentAction(
       automationBlockedReasons: automationDecision.blockedReasons,
       automationWarnings: automationDecision.warnings,
       automationDecision: {
-        shouldCreateGridOwnerRequests: automationDecision.shouldCreateGridOwnerRequests,
+        shouldCreateGridOwnerRequests:
+          automationDecision.shouldCreateGridOwnerRequests,
         shouldCreateSwitchRequest: automationDecision.shouldCreateSwitchRequest,
-        shouldQueueSwitchOutbound: automationDecision.shouldQueueSwitchOutbound,
-        includeCustomerMasterdata: automationDecision.includeCustomerMasterdata,
+        shouldQueueSwitchOutbound:
+          automationDecision.shouldQueueSwitchOutbound,
+        includeCustomerMasterdata:
+          automationDecision.includeCustomerMasterdata,
         includeMeterValues: automationDecision.includeMeterValues,
         includeBillingUnderlay: automationDecision.includeBillingUnderlay,
-        resolvedMeteringPointId: automationDecision.resolvedMeteringPointId,
+        resolvedMeteringPointId:
+          automationDecision.resolvedMeteringPointId,
         resolvedGridOwnerId: automationDecision.resolvedGridOwnerId,
       },
       syncSummary,
@@ -1242,7 +1229,9 @@ export async function uploadCustomerAuthorizationDocumentAction(
   revalidatePath('/admin/outbound/unresolved')
 
   const message = formatMessageLines([
-    `Dokument ${savedDocument.id} uppladdat och registrerat. ${replaceDocumentId ? 'Ersättningsflöde kördes.' : 'Nytt dokument sparades.'}`,
+    `Dokument ${savedDocument.id} uppladdat och registrerat. ${
+      replaceDocumentId ? 'Ersättningsflöde kördes.' : 'Nytt dokument sparades.'
+    }`,
     createdGridOwnerRequestIds.length
       ? `Skapade nätägarrequester: ${createdGridOwnerRequestIds.length}.`
       : null,
@@ -1303,7 +1292,7 @@ export async function archiveCustomerAuthorizationDocumentAction(
       })
     : await syncCustomerOperationsForCustomer(supabase, customerId)
 
-  await insertAuditLog({
+  await createAuditLogEntry(supabase, {
     actorUserId: actor.id,
     entityType: 'customer_authorization_document',
     entityId: archived.documentAfter.id,
@@ -1340,7 +1329,10 @@ export async function setCustomerAuthorizationDocumentActiveAction(
     throw new Error('customer_id och document_id krävs')
   }
 
-  const targetBefore = await getCustomerAuthorizationDocumentById(supabase, documentId)
+  const targetBefore = await getCustomerAuthorizationDocumentById(
+    supabase,
+    documentId
+  )
   if (!targetBefore) {
     throw new Error('Dokumentet hittades inte')
   }
@@ -1362,7 +1354,7 @@ export async function setCustomerAuthorizationDocumentActiveAction(
       })
     : await syncCustomerOperationsForCustomer(supabase, customerId)
 
-  await insertAuditLog({
+  await createAuditLogEntry(supabase, {
     actorUserId: actor.id,
     entityType: 'customer_authorization_document',
     entityId: activeDocument.id,

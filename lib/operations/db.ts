@@ -43,6 +43,33 @@ export function buildDocumentUploadIdempotencyKey(params: {
   return `cust:${params.customerId}|site:${params.siteId ?? EMPTY_UUID}|type:${params.documentType}|sha:${params.fileChecksum}`
 }
 
+export async function createAuditLogEntry(
+  supabase: SupabaseClient,
+  input: {
+    actorUserId?: string | null
+    entityType: string
+    entityId: string
+    action: string
+    oldValues?: unknown
+    newValues?: unknown
+    metadata?: unknown
+  }
+): Promise<void> {
+  const actorId = input.actorUserId ?? (await getActorId(supabase))
+
+  const { error } = await supabase.from('audit_logs').insert({
+    actor_user_id: actorId,
+    entity_type: input.entityType,
+    entity_id: input.entityId,
+    action: input.action,
+    old_values: input.oldValues ?? null,
+    new_values: input.newValues ?? null,
+    metadata: input.metadata ?? null,
+  })
+
+  if (error) throw error
+}
+
 export async function findExistingCustomerAuthorizationDocumentByFingerprint(
   supabase: SupabaseClient,
   params: {
