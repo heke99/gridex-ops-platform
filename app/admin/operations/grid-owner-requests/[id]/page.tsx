@@ -282,15 +282,10 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
 
             <div className="flex flex-wrap gap-3">
               <Link
-                href={
-                  request.request_scope === 'billing_underlay'
-                    ? '/admin/billing'
-                    : '/admin/metering'
-                }
+                href="/admin/operations"
                 className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
               >
-                Tillbaka till{' '}
-                {request.request_scope === 'billing_underlay' ? 'billing' : 'metering'}
+                Till operations
               </Link>
               <Link
                 href={`/admin/customers/${request.customer_id}`}

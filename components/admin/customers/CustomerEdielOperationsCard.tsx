@@ -843,7 +843,11 @@ const {
                       </div>
 
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <Grid label="Request" value={request.id} />
+                        <Grid
+                          label="Request"
+                          value={request.id}
+                          href={`/admin/operations/grid-owner-requests/${request.id}`}
+                        />
                         <Grid
                           label="Mätpunkt"
                           value={meteringPointName(request.metering_point_id, meteringPoints)}
@@ -1257,17 +1261,30 @@ function EditableField({
 function Grid({
   label,
   value,
+  href,
 }: {
   label: string
   value: string | null | undefined
+  href?: string
 }) {
+  const displayValue = value && value.length > 0 ? value : '—'
+
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {label}
       </div>
       <div className="mt-1 break-all text-sm text-slate-900 dark:text-white">
-        {value && value.length > 0 ? value : '—'}
+        {href && value ? (
+          <Link
+            href={href}
+            className="font-medium text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+          >
+            {displayValue}
+          </Link>
+        ) : (
+          displayValue
+        )}
       </div>
     </div>
   )

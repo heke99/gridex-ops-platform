@@ -52,6 +52,8 @@ type DashboardRow = {
   customerHref: string
   workspaceHref: string
   workspaceLabel: string
+  detailHref?: string
+  detailLabel?: string
 }
 
 type QueueCardProps = {
@@ -580,6 +582,14 @@ function QueueSection({
                       >
                         {row.workspaceLabel}
                       </Link>
+                      {row.detailHref && row.detailLabel ? (
+                        <Link
+                          href={row.detailHref}
+                          className="inline-flex items-center rounded-2xl border border-indigo-300 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-950/30"
+                        >
+                          {row.detailLabel}
+                        </Link>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -899,6 +909,8 @@ export default async function AdminOperationsIntegrityPage({
       failedUnderlays.length > 0 ||
       failedExports.length > 0
     ) {
+      const firstFailedDataRequest = failedDataRequests[0] ?? null
+
       importErrorRows.push({
         ...baseRow,
         reason: 'Kunden har import- eller handoff-fel.',
@@ -917,6 +929,10 @@ export default async function AdminOperationsIntegrityPage({
           .join(' • '),
         workspaceHref: customerHref,
         workspaceLabel: 'Felsök kundkort',
+        detailHref: firstFailedDataRequest
+          ? `/admin/operations/grid-owner-requests/${firstFailedDataRequest.id}`
+          : undefined,
+        detailLabel: firstFailedDataRequest ? 'Öppna failed request' : undefined,
       })
     }
 
