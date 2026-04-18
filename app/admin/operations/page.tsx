@@ -16,6 +16,8 @@ import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import {
   listOutboundRequests,
   listAllBillingUnderlays,
+  listAllGridOwnerDataRequests,
+  listAllMeteringValues,
   listAllPartnerExports,
 } from '@/lib/cis/db'
 import {
@@ -29,6 +31,7 @@ import {
   runOperationsAutomationSweepAction,
 } from './control-actions'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
+import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,6 +97,47 @@ function alertTone(severity: 'critical' | 'high' | 'medium' | 'low'): string {
     default:
       return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
   }
+}
+
+function formatRequestScope(scope: GridOwnerDataRequestRow['request_scope']): string {
+  switch (scope) {
+    case 'meter_values':
+      return 'Mätvärden'
+    case 'billing_underlay':
+      return 'Billing-underlag'
+    case 'customer_masterdata':
+      return 'Masterdata'
+    default:
+      return scope
+  }
+}
+
+function describeRequestFollowup(params: {
+  request: GridOwnerDataRequestRow
+  outboundCount: number
+  hasReceivedData: boolean
+}): string {
+  const { request, outboundCount, hasReceivedData } = params
+
+  if (request.status === 'failed') {
+    return request.failure_reason?.trim() || 'Requesten har felat och behöver manuell uppföljning.'
+  }
+
+  if (request.status === 'received') {
+    return hasReceivedData
+      ? 'Svar inkommet och relaterat underlag finns registrerat.'
+      : 'Svar inkommet men underlag behöver verifieras i nästa steg.'
+  }
+
+  if (request.status === 'sent') {
+    return outboundCount > 0
+      ? 'Requesten är skickad och har outbound-koppling. Följ upp kvittens eller svar.'
+      : 'Requesten står som skickad men saknar tydlig outbound-kedja att följa upp.'
+  }
+
+  return outboundCount > 0
+    ? 'Requesten väntar fortfarande på nästa steg i outbound-kedjan.'
+    : 'Requesten är skapad men saknar ännu tydlig dispatch-uppföljning.'
 }
 
 function QueueCard({
@@ -200,6 +244,8 @@ export default async function AdminOperationsPage() {
     events,
     outboundRequests,
     underlays,
+    dataRequests,
+    meteringValues,
     partnerExports,
     meteringPoints,
     edielSummary,
@@ -214,6 +260,8 @@ export default async function AdminOperationsPage() {
       query: '',
     }),
     listAllBillingUnderlays({ status: 'all', query: '' }),
+    listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '' }),
+    listAllMeteringValues({ query: '' }),
     listAllPartnerExports({ status: 'all', exportKind: 'all', query: '' }),
     listMeteringPointsBySiteIds(supabase, sites.map((site) => site.id)),
     getEdielSummary(supabase),
@@ -249,6 +297,15 @@ export default async function AdminOperationsPage() {
   const failedOutbound = outboundRequests.filter(
     (request) => request.status === 'failed'
   )
+
+  const requestOutboundMap = new Map<string, typeof outboundRequests>()
+  for (const request of outboundRequests) {
+    if (request.source_type === 'grid_owner_data_request' && request.source_id) {
+      const current = requestOutboundMap.get(request.source_id) ?? []
+      current.push(request)
+      requestOutboundMap.set(request.source_id, current)
+    }
+  }
 
   const switchLifecycle = switchRequests.map((request) => {
     const readiness = readinessResults.find(
@@ -307,6 +364,50 @@ export default async function AdminOperationsPage() {
     }).isReady
   )
 
+  const openDataRequests = dataRequests.filter((request) =>
+    ['pending', 'sent'].includes(request.status)
+  )
+  const failedDataRequests = dataRequests.filter(
+    (request) => request.status === 'failed'
+  )
+
+  const priorityDataRequests = dataRequests
+    .filter((request) =>
+      ['failed', 'pending', 'sent', 'received'].includes(request.status)
+    )
+    .map((request) => {
+      const relatedUnderlay =
+        underlays.find((row) => row.source_request_id === request.id) ?? null
+      const relatedMeterValueCount = meteringValues.filter(
+        (row) => row.source_request_id === request.id
+      ).length
+      const relatedOutbound = requestOutboundMap.get(request.id) ?? []
+
+      return {
+        request,
+        relatedUnderlay,
+        relatedMeterValueCount,
+        relatedOutbound,
+        followup: describeRequestFollowup({
+          request,
+          outboundCount: relatedOutbound.length,
+          hasReceivedData: Boolean(relatedUnderlay) || relatedMeterValueCount > 0,
+        }),
+      }
+    })
+    .sort((a, b) => {
+      const rank = (status: GridOwnerDataRequestRow['status']) => {
+        if (status === 'failed') return 0
+        if (status === 'pending') return 1
+        if (status === 'sent') return 2
+        if (status === 'received') return 3
+        return 4
+      }
+
+      return rank(a.request.status) - rank(b.request.status)
+    })
+    .slice(0, 8)
+
   const alerts = buildOperationsAlerts({
     tasks,
     switchRequests,
@@ -348,7 +449,8 @@ export default async function AdminOperationsPage() {
         'Köade, felade eller okvitterade Ediel-meddelanden. Här ser du direkt om Svk-flödena behöver handpåläggning.',
       href: '/admin/ediel',
       cta: 'Öppna Ediel',
-tone: edielSummary.failedMessages > 0 ? ('danger' as const) : ('warning' as const),    },
+      tone: edielSummary.failedMessages > 0 ? ('danger' as const) : ('warning' as const),
+    },
     {
       id: 'missing-outbound',
       title: 'Switchar utan outbound',
@@ -422,733 +524,391 @@ tone: edielSummary.failedMessages > 0 ? ('danger' as const) : ('warning' as cons
       />
 
       <div className="space-y-8 p-8">
-        <section className="grid gap-5 lg:grid-cols-2 xl:grid-cols-8">
+        <section className="grid gap-5 lg:grid-cols-2 xl:grid-cols-10">
           <KpiCard
             label="Öppna tasks"
             value={openTasks.length}
-            hint="Alla tasks som kräver handläggning."
+            hint="Pågående operativa tasks som ännu inte är klara."
           />
           <KpiCard
             label="Blockerade tasks"
             value={blockedTasks.length}
-            hint="Tasks som inte kan gå vidare utan åtgärd."
-          />
-          <KpiCard
-            label="Blockerade switchar"
-            value={blockedSwitches.length}
-            hint="Readinessproblem som stoppar byte."
+            hint="Tasks som fastnat och kräver beslut eller korrigering."
           />
           <KpiCard
             label="Unresolved outbound"
             value={unresolvedOutbound.length}
-            hint="Dispatch som saknar route eller kanal."
+            hint="Outbound requests utan fungerande route eller dispatch."
           />
           <KpiCard
-            label="Redo att slutföra"
-            value={readyToExecuteSwitches.length}
-            hint="Accepted + kvitterad outbound."
+            label="Väntar på svar"
+            value={waitingResponseOutbound.length}
+            hint="Skickade outbound requests utan kvittens eller slutligt svar."
           />
           <KpiCard
-            label="Redo billing-exporter"
+            label="Failed outbound"
+            value={failedOutbound.length}
+            hint="Outbound requests som redan har felat."
+          />
+          <KpiCard
+            label="Öppna nätägarrequests"
+            value={openDataRequests.length}
+            hint="Pending eller sent requests mot nätägare."
+          />
+          <KpiCard
+            label="Felade nätägarrequests"
+            value={failedDataRequests.length}
+            hint="Requests mot nätägare som behöver manuell uppföljning."
+          />
+          <KpiCard
+            label="Ready billing exports"
             value={readyBillingExports.length}
-            hint="Underlag som kan handoffas till partner nu."
+            hint="Billing-underlag som är klara att köa för export."
           />
           <KpiCard
-            label="Ediel väntar"
-            value={edielSummary.queuedMessages + edielSummary.pendingAckMessages}
-            hint="Ediel-meddelanden som väntar på sändning eller kvittens."
+            label="Draft switchar"
+            value={draftSwitches.length}
+            hint="Leverantörsbyten som ännu inte lämnat draft-läget."
           />
           <KpiCard
-            label="Ediel fel"
-            value={edielSummary.failedMessages}
-            hint="Felade Ediel-meddelanden som kräver uppföljning."
+            label="Ediel attention"
+            value={
+              edielSummary.queuedMessages +
+              edielSummary.failedMessages +
+              edielSummary.pendingAckMessages
+            }
+            hint="Ediel-meddelanden som behöver uppföljning nu."
           />
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Vad kräver åtgärd nu?"
-              subtitle="Det här är den operativa kön. Börja här i stället för att leta runt i menyn."
-              action={
-                <div className="flex flex-wrap gap-3">
-                  <form action={runOperationsAutomationSweepAction}>
-                    <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
-                      Kör automation sweep
-                    </button>
-                  </form>
+        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <SectionHeader
+            title="Köer att öppna först"
+            subtitle="Det här är snabbaste vägen till de arbetsytor som normalt kräver åtgärd först."
+            action={
+              <form action={runOperationsAutomationSweepAction}>
+                <button
+                  type="submit"
+                  className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Kör automation sweep
+                </button>
+              </form>
+            }
+          />
 
-                  <form
-                    action={queueReadyBillingExportsFormAction}
-                    className="flex items-center gap-3"
-                  >
-                    <input
-                      type="month"
-                      name="period_month"
-                      defaultValue={new Date().toISOString().slice(0, 7)}
-                      className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                    />
-                    <button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-                      Köa billing-exporter
-                    </button>
-                  </form>
-                </div>
-              }
-            />
-
-            <div className="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-3">
-              {queuePriority.map((item) => (
-                <QueueCard key={item.id} {...item} />
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Vart ska jag gå?"
-              subtitle="En enkel guide så handläggaren slipper tänka efter."
-            />
-
-            <div className="space-y-3 p-6">
-              <Link
-                href="/admin/customers"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Kundkort
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Börja här när du vill förstå en specifik kunds hela läge, switchhistorik och nästa steg.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/operations/switches"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Switchar
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gå hit när du behöver en hel kö av leverantörsbyten, validering, execution och statuskontroll.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/operations/ready-to-execute"
-                className="block rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20"
-              >
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Ready to execute
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gå hit när outbound redan är kvitterad och du bara vill slutföra switcharna snabbt, enskilt eller i bulk.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/outbound"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Outbound
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gå hit när problemet gäller dispatch, route, sent/acknowledged eller retry av extern kommunikation.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/ediel"
-                className="block rounded-2xl border border-blue-200 bg-blue-50/70 p-4 transition hover:bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/10 dark:hover:bg-blue-950/20"
-              >
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Ediel
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gå hit när problemet gäller PRODAT, UTILTS, mailbox polling, kvittenser eller Svk-flöden som kräver handpåläggning.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/outbound/unresolved"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Unresolved
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gå hit först när outbound saknar route eller kanal. Här löser du grundorsaken.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/operations/tasks"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Tasks
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gå hit när du vill jobba systematiskt med blockerare, handläggning och öppna operationspunkter.
-                </div>
-              </Link>
-            </div>
+          <div className="grid gap-5 p-6 md:grid-cols-2 xl:grid-cols-4">
+            {queuePriority.map((item) => (
+              <QueueCard key={item.id} {...item} />
+            ))}
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Prioriterad triage"
-              subtitle="Det här är de viktigaste raderna att öppna just nu."
-            />
+        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <SectionHeader
+            title="Alerts"
+            subtitle="Sammanfattad prioritering från control tower-logiken."
+          />
 
-            <div className="space-y-3 p-6">
-              {recentActionRows.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Inga kritiska eller väntande switchar just nu.
-                </div>
-              ) : (
-                recentActionRows.map((row) => (
-                  <div
-                    key={row.request.id}
-                    className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
-                  >
+          <div className="space-y-3 p-6">
+            {alerts.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                Inga aktiva alerts just nu.
+              </div>
+            ) : (
+              alerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                >
+                  <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                          row.request.status
-                        )}`}
-                      >
-                        {row.request.status}
-                      </span>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                          row.lifecycle.stage
-                        )}`}
-                      >
-                        {row.lifecycle.label}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {row.request.request_type}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <div>
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                          Kund {row.request.customer_id}
-                        </div>
-                        <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                          {row.lifecycle.reason}
-                        </div>
-                        {row.readiness && !row.readiness.isReady ? (
-                          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                            {summarizeReadinessIssues(row.readiness)}
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="flex flex-wrap items-start justify-end gap-3">
-                        <Link
-                          href={`/admin/customers/${row.request.customer_id}`}
-                          className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                        >
-                          Kundkort
-                        </Link>
-                        <Link
-                          href={`/admin/operations/switches/${row.request.id}`}
-                          className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                        >
-                          Switch detail
-                        </Link>
-
-                        {row.lifecycle.stage === 'ready_to_execute' ? (
-                          <Link
-                            href="/admin/operations/ready-to-execute"
-                            className="rounded-2xl border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300"
-                          >
-                            Ready queue
-                          </Link>
-                        ) : row.lifecycle.stage === 'awaiting_response' ? (
-                          <Link
-                            href="/admin/operations/switches?stage=awaiting_response"
-                            className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                          >
-                            Väntar svar
-                          </Link>
-                        ) : row.lifecycle.stage === 'awaiting_dispatch' ? (
-                          <Link
-                            href="/admin/operations/switches?stage=awaiting_dispatch"
-                            className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                          >
-                            Dispatch-kö
-                          </Link>
-                        ) : row.lifecycle.stage === 'queued_for_outbound' ? (
-                          <Link
-                            href="/admin/operations/switches?stage=queued_for_outbound"
-                            className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                          >
-                            Saknar outbound
-                          </Link>
-                        ) : (
-                          <Link
-                            href="/admin/outbound"
-                            className="rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                          >
-                            Outbound
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Toppalerts"
-              subtitle="Prioriterad lista över det som borde få uppmärksamhet först."
-            />
-
-            <div className="space-y-3 p-6">
-              {alerts.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Inga akuta alerts just nu.
-                </div>
-              ) : (
-                alerts.slice(0, 10).map((alert) => (
-                  <Link
-                    key={alert.id}
-                    href={alert.href}
-                    className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${alertTone(
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${alertTone(
                           alert.severity
                         )}`}
                       >
                         {alert.severity}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {alert.category}
+                      <span className="text-sm font-semibold text-slate-950 dark:text-white">
+                        {alert.title}
                       </span>
                     </div>
-
-                    <div className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-                      {alert.title}
-                    </div>
-                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
                       {alert.description}
-                    </div>
+                    </p>
+                  </div>
 
-                    <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                      Kund {alert.customerId ?? '—'} · Site {alert.siteId ?? '—'}
-                    </div>
+                  <Link
+                    href={alert.href}
+                    className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    Öppna
                   </Link>
-                ))
-              )}
-            </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Outbound triage"
-              subtitle="När dispatchkedjan är problemet."
-            />
+        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <SectionHeader
+            title="Grid owner requests att öppna nu"
+            subtitle="Direktvägar till konkreta request-detaljer i stället för breda billing/metering-ytor."
+          />
 
-            <div className="space-y-3 p-6">
-              <Link
-                href="/admin/outbound/unresolved"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Unresolved
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'unresolved'
-                    )}`}
-                  >
-                    {unresolvedOutbound.length}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Requests som saknar route eller kanal och därför inte kan dispatchas.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/outbound"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Waiting response
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'awaiting_response'
-                    )}`}
-                  >
-                    {waitingResponseOutbound.length}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Skickade requests som väntar på svar eller kvittens.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/outbound"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Failed dispatches
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'failed'
-                    )}`}
-                  >
-                    {failedOutbound.length}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Requests med dispatchfel som sannolikt kräver retry eller route-fix.
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Switchköer"
-              subtitle="Vad leverantörsbyteskedjan väntar på."
-            />
-
-            <div className="space-y-3 p-6">
-              <Link
-                href="/admin/operations/switches?status=draft"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Draft
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'draft'
-                    )}`}
-                  >
-                    {draftSwitches.length}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Ärenden som ännu inte kommit igenom readiness/validation fullt ut.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/operations/switches?stage=queued_for_outbound"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Väntar på outbound
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'queued'
-                    )}`}
-                  >
-                    {missingOutboundSwitches.length}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Ärenden som är på väg framåt men ännu inte fått sin dispatch-post.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/operations/switches?stage=awaiting_dispatch"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Väntar dispatch
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'submitted'
-                    )}`}
-                  >
-                    {awaitingDispatchSwitches.length}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Outbound finns men dispatchen är ännu inte iväg eller kvitterad.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/operations/ready-to-execute"
-                className="block rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Redo att slutföra
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'ready_to_execute'
-                    )}`}
-                  >
-                    {readyToExecuteSwitches.length}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Kvitterade switchar där sista interna execution-steget återstår.
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Ediel triage"
-              subtitle="När Svk- och Edielkedjan kräver uppföljning."
-            />
-
-            <div className="space-y-3 p-6">
-              <Link
-                href="/admin/ediel"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Köade / förberedda
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'queued'
-                    )}`}
-                  >
-                    {edielSummary.queuedMessages}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Ediel-meddelanden som väntar på att skickas eller tas vidare i flödet.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/ediel"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Väntande kvittenser
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'awaiting_response'
-                    )}`}
-                  >
-                    {edielSummary.pendingAckMessages}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  APERAK eller CONTRL som ännu inte är klara eller registrerade.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/ediel"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Felade Ediel
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'failed'
-                    )}`}
-                  >
-                    {edielSummary.failedMessages}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Meddelanden som kräver manuell uppföljning mot route, payload eller motpart.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/ediel/routes"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Aktiva Ediel-routes
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      edielSummary.activeRoutes > 0 ? 'ready' : 'blocked'
-                    )}`}
-                  >
-                    {edielSummary.activeRoutes}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Konfigurerade och aktiverade routes för Ediel-trafik.
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Partner-handoff"
-              subtitle="Billing och exportkedjan efter operations."
-            />
-
-            <div className="space-y-3 p-6">
-              <Link
-                href="/admin/partner-exports"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Redo billing-exporter
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      'ready'
-                    )}`}
-                  >
-                    {readyBillingExports.length}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Underlag som kan handoffas till partner eller köas i exportflödet.
-                </div>
-              </Link>
-
-              <Link
-                href="/admin/billing"
-                className="block rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Billing-underlag
-                  </div>
-                  <span className="rounded-full px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {underlays.length}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gå hit när nästa problem efter switchkedjan ligger i billing-underlaget.
-                </div>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Hårdaste readiness-blockers"
-              subtitle="Anläggningar som just nu stoppar switchflödet."
-            />
-
-            <div className="space-y-3 p-6">
-              {readinessResults.filter((row) => !row.isReady).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Inga aktiva readiness-blockers just nu.
-                </div>
-              ) : (
-                readinessResults
-                  .filter((row) => !row.isReady)
-                  .slice(0, 10)
-                  .map((row) => (
-                    <div
-                      key={row.siteId}
-                      className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+              <thead className="bg-slate-50 dark:bg-slate-950/40">
+                <tr>
+                  <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                    Request
+                  </th>
+                  <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                    Scope
+                  </th>
+                  <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                    Uppföljning
+                  </th>
+                  <th className="px-6 py-3 text-right font-medium text-slate-500 dark:text-slate-400">
+                    Öppna
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {priorityDataRequests.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-6 py-8 text-sm text-slate-500 dark:text-slate-400"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-slate-900 dark:text-white">
-                            {row.siteName}
+                      Inga prioriterade nätägarrequests just nu.
+                    </td>
+                  </tr>
+                ) : (
+                  priorityDataRequests.map((row) => (
+                    <tr key={row.request.id}>
+                      <td className="px-6 py-4 align-top">
+                        <div className="font-medium text-slate-950 dark:text-white">
+                          {row.request.id.slice(0, 8)}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          Kund {row.request.customer_id.slice(0, 8)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 align-top text-slate-600 dark:text-slate-300">
+                        {formatRequestScope(row.request.request_scope)}
+                      </td>
+                      <td className="px-6 py-4 align-top">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(
+                            row.request.status
+                          )}`}
+                        >
+                          {row.request.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 align-top text-slate-600 dark:text-slate-300">
+                        <div>{row.followup}</div>
+                        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                          Outbound: {row.relatedOutbound.length} · Underlag:{' '}
+                          {row.relatedUnderlay ? 'ja' : 'nej'} · Mätvärden:{' '}
+                          {row.relatedMeterValueCount}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 align-top text-right">
+                        <Link
+                          href={`/admin/operations/grid-owner-requests/${row.request.id}`}
+                          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                        >
+                          Öppna detail
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="grid gap-8 xl:grid-cols-[1.3fr_0.9fr]">
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Switchar som kräver action"
+              subtitle="Fokusera här när du vill jobba igenom leverantörsbyten i rätt ordning."
+            />
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+                <thead className="bg-slate-50 dark:bg-slate-950/40">
+                  <tr>
+                    <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                      Request
+                    </th>
+                    <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                      Stage
+                    </th>
+                    <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                      Readiness
+                    </th>
+                    <th className="px-6 py-3 text-right font-medium text-slate-500 dark:text-slate-400">
+                      Öppna
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {recentActionRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-6 py-8 text-sm text-slate-500 dark:text-slate-400"
+                      >
+                        Inga switchar kräver action just nu.
+                      </td>
+                    </tr>
+                  ) : (
+                    recentActionRows.map((row) => (
+                      <tr key={row.request.id}>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-slate-950 dark:text-white">
+                            {row.request.id.slice(0, 8)}
                           </div>
                           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Kund {row.customerId} · Site {row.siteId}
+                            Site {row.request.site_id?.slice(0, 8) ?? '—'}
                           </div>
-                        </div>
-                        <Link
-                          href={`/admin/customers/${row.customerId}`}
-                          className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
-                        >
-                          Kundkort
-                        </Link>
-                      </div>
-
-                      <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                        {summarizeReadinessIssues(row)}
-                      </div>
-                    </div>
-                  ))
-              )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(
+                              row.lifecycle.stage
+                            )}`}
+                          >
+                            {row.lifecycle.stage}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                          {row.readiness ? summarizeReadinessIssues(row.readiness) : 'Ingen readiness-data'}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Link
+                            href={`/admin/operations/switches/${row.request.id}`}
+                            className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                          >
+                            Öppna switch
+                          </Link>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SectionHeader
-              title="Senaste switch-events"
-              subtitle="Tidslinje över de senaste operationerna."
-            />
+          <div className="space-y-8">
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <SectionHeader
+                title="Ready billing exports"
+                subtitle="Underlag som kan köas vidare till exportpartnern nu."
+                action={
+                  <form action={queueReadyBillingExportsFormAction}>
+                    <button
+                      type="submit"
+                      className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Köa redo exports
+                    </button>
+                  </form>
+                }
+              />
 
-            <div className="space-y-3 p-6">
-              {events.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Inga switch-events ännu.
-                </div>
-              ) : (
-                events.map((event) => (
+              <div className="space-y-3 p-6">
+                {readyBillingExports.slice(0, 8).map((underlay) => (
                   <div
-                    key={event.id}
+                    key={underlay.id}
                     className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                          event.event_status
-                        )}`}
-                      >
-                        {event.event_status}
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {event.event_type}
-                      </span>
-                    </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="font-medium text-slate-950 dark:text-white">
+                          {underlay.id.slice(0, 8)}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          Underlag {underlay.underlay_year ?? '—'}-
+                          {String(underlay.underlay_month ?? '').padStart(2, '0')}
+                        </div>
+                      </div>
 
-                    <div className="mt-2 text-sm font-medium text-slate-900 dark:text-white">
-                      {event.message ?? 'Ingen meddelandetext'}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {new Date(event.created_at).toLocaleString('sv-SE')}
+                      <Link
+                        href="/admin/billing"
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        Öppna billing
+                      </Link>
                     </div>
                   </div>
-                ))
-              )}
+                ))}
+
+                {readyBillingExports.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                    Inga billing exports är redo just nu.
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <SectionHeader
+                title="Senaste switch-events"
+                subtitle="Snabb överblick över senaste händelserna i switchflödet."
+              />
+
+              <div className="space-y-3 p-6">
+                {events.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                    Inga event hittades.
+                  </div>
+                ) : (
+                  events.map((event) => (
+                    <div
+                      key={event.id}
+                      className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(
+                            event.event_status ?? event.event_type
+                          )}`}
+                        >
+                          {event.event_type}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {event.created_at ?? '—'}
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+                        {event.message ?? 'Ingen meddelandetext'}
+                      </p>
+
+                      {event.switch_request_id ? (
+                        <div className="mt-3">
+                          <Link
+                            href={`/admin/operations/switches/${event.switch_request_id}`}
+                            className="text-xs font-semibold text-slate-700 underline underline-offset-4 dark:text-slate-200"
+                          >
+                            Öppna switch
+                          </Link>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </section>

@@ -927,12 +927,14 @@ export default async function AdminOperationsIntegrityPage({
         ]
           .filter(Boolean)
           .join(' • '),
-        workspaceHref: customerHref,
-        workspaceLabel: 'Felsök kundkort',
-        detailHref: firstFailedDataRequest
+        workspaceHref: firstFailedDataRequest
           ? `/admin/operations/grid-owner-requests/${firstFailedDataRequest.id}`
-          : undefined,
-        detailLabel: firstFailedDataRequest ? 'Öppna failed request' : undefined,
+          : customerHref,
+        workspaceLabel: firstFailedDataRequest
+          ? 'Öppna failed request'
+          : 'Felsök kundkort',
+        detailHref: firstFailedDataRequest ? customerHref : undefined,
+        detailLabel: firstFailedDataRequest ? 'Öppna kundkort' : undefined,
       })
     }
 
@@ -1147,9 +1149,9 @@ export default async function AdminOperationsIntegrityPage({
           subtitle="Failed nätägarförfrågningar, failed billing underlays eller failed partner exports."
           rows={importErrorRows}
           emptyText="Inga importfel hittades."
-          workspaceHref="/admin/billing"
-          workspaceLabel="Öppna billing / importflöden"
-          workspaceDescription="Börja i kundkortet för kundspecifika fel eller gå vidare till billing, metering och partner exports för bredare felsökning."
+          workspaceHref="/admin/operations/integrity#import-errors"
+          workspaceLabel="Stanna i importfel-kön"
+          workspaceDescription="Öppna i första hand failed request direkt från raden. Gå vidare till billing, metering eller partner exports först när felet inte är knutet till ett enskilt request-id."
         />
 
         <QueueSection
