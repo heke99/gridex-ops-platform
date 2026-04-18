@@ -16,6 +16,7 @@ export type GridOwnerDataRequestRow = {
   site_id: string | null
   metering_point_id: string | null
   grid_owner_id: string | null
+  authorization_document_id: string | null
   request_scope: GridOwnerDataRequestScope
   status: GridOwnerDataRequestStatus
   requested_period_start: string | null
@@ -184,6 +185,7 @@ export type OutboundRequestRow = {
   metering_point_id: string | null
   grid_owner_id: string | null
   communication_route_id: string | null
+  authorization_document_id: string | null
   request_type: OutboundRequestType
   source_type:
     | 'supplier_switch_request'

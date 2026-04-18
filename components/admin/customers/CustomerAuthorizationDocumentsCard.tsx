@@ -488,16 +488,18 @@ export default function CustomerAuthorizationDocumentsCard({
                 )
 
                 const matchingGridOwnerRequests = relations.gridOwnerDataRequests.filter((row) => {
+                  const directMatch = row.authorization_document_id === documentRow.id
                   const responseMatch =
                     getString(row.response_payload, 'authorizationDocumentId') ===
                     documentRow.id
                   const requestMatch =
                     getString(row.request_payload, 'authorizationDocumentId') ===
                     documentRow.id
-                  return responseMatch || requestMatch
+                  return directMatch || responseMatch || requestMatch
                 })
 
                 const matchingSwitchRequests = relations.switchRequests.filter((row) => {
+                  const directMatch = row.authorization_document_id === documentRow.id
                   const snapshotMatch =
                     getString(row.validation_snapshot, 'authorizationDocumentId') ===
                       documentRow.id ||
@@ -508,7 +510,7 @@ export default function CustomerAuthorizationDocumentsCard({
                     Boolean(documentRow.power_of_attorney_id) &&
                     row.power_of_attorney_id === documentRow.power_of_attorney_id
 
-                  return snapshotMatch || poaMatch
+                  return directMatch || snapshotMatch || poaMatch
                 })
 
                 const matchingGridOwnerRequestIds = new Set(
@@ -519,6 +521,7 @@ export default function CustomerAuthorizationDocumentsCard({
                 )
 
                 const matchingOutbounds = relations.outboundRequests.filter((row) => {
+                  const directMatch = row.authorization_document_id === documentRow.id
                   const payloadMatch =
                     getString(row.payload, 'authorizationDocumentId') === documentRow.id ||
                     getString(row.response_payload, 'authorizationDocumentId') === documentRow.id
@@ -533,7 +536,7 @@ export default function CustomerAuthorizationDocumentsCard({
                     typeof row.source_id === 'string' &&
                     matchingGridOwnerRequestIds.has(row.source_id)
 
-                  return payloadMatch || switchSourceMatch || gridOwnerSourceMatch
+                  return directMatch || payloadMatch || switchSourceMatch || gridOwnerSourceMatch
                 })
 
                 return (
@@ -568,6 +571,12 @@ export default function CustomerAuthorizationDocumentsCard({
                       </div>
                       <div>
                         <span className="font-medium">Referens:</span> {documentRow.reference ?? '—'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Arkiveringsorsak:</span> {documentRow.archived_reason ?? '—'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Ersätter dokument:</span> {documentRow.replaced_document_id ?? '—'}
                       </div>
                       <div>
                         <span className="font-medium">Kopplad fullmakt:</span>{' '}

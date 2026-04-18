@@ -23,7 +23,6 @@ import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import type {
   CustomerAuthorizationDocumentRow,
   PowerOfAttorneyRow,
-  SupplierSwitchRequestRow,
   SupplierSwitchRequestType,
 } from '@/lib/operations/types'
 import {
@@ -157,11 +156,55 @@ async function getPowerOfAttorneyById(
   return (data as PowerOfAttorneyRow | null) ?? null
 }
 
+async function assignAuthorizationDocumentToGridOwnerRequest(params: {
+  requestId: string
+  documentId: string
+}) {
+  const { error } = await supabaseService
+    .from('grid_owner_data_requests')
+    .update({
+      authorization_document_id: params.documentId,
+    })
+    .eq('id', params.requestId)
+
+  if (error) throw error
+}
+
+async function assignAuthorizationDocumentToOutboundRequest(params: {
+  outboundRequestId: string
+  documentId: string
+}) {
+  const { error } = await supabaseService
+    .from('outbound_requests')
+    .update({
+      authorization_document_id: params.documentId,
+    })
+    .eq('id', params.outboundRequestId)
+
+  if (error) throw error
+}
+
+async function assignAuthorizationDocumentToSwitchRequest(params: {
+  requestId: string
+  documentId: string
+}) {
+  const { error } = await supabaseService
+    .from('supplier_switch_requests')
+    .update({
+      authorization_document_id: params.documentId,
+    })
+    .eq('id', params.requestId)
+
+  if (error) throw error
+}
+
 async function updateDocumentStatus(params: {
   actorUserId: string
   documentId: string
   status: 'uploaded' | 'active' | 'archived'
   notesAppend?: string | null
+  archivedReason?: string | null
+  replacedDocumentId?: string | null
 }): Promise<CustomerAuthorizationDocumentRow> {
   const before = await getDocumentById(params.documentId)
 
@@ -178,6 +221,9 @@ async function updateDocumentStatus(params: {
     .update({
       status: params.status,
       notes: nextNotes ?? null,
+      archived_reason:
+        params.status === 'archived' ? params.archivedReason ?? null : null,
+      replaced_document_id: params.replacedDocumentId ?? null,
       updated_by: params.actorUserId,
     })
     .eq('id', params.documentId)
@@ -276,6 +322,7 @@ async function archiveDocumentInternal(params: {
   actorUserId: string
   documentId: string
   reason: string
+  replacementDocumentId?: string | null
 }): Promise<{
   documentBefore: CustomerAuthorizationDocumentRow
   documentAfter: CustomerAuthorizationDocumentRow
@@ -292,6 +339,8 @@ async function archiveDocumentInternal(params: {
     documentId: params.documentId,
     status: 'archived',
     notesAppend: params.reason,
+    archivedReason: params.reason,
+    replacedDocumentId: params.replacementDocumentId ?? null,
   })
 
   const revokedPowerOfAttorney = await revokeLinkedPowerOfAttorney({
@@ -346,6 +395,11 @@ async function queueGridOwnerRequestsFromDocument(params: {
         : `Bilaga: ${params.document.file_path}`,
     })
 
+    await assignAuthorizationDocumentToGridOwnerRequest({
+      requestId: saved.id,
+      documentId: params.document.id,
+    })
+
     const outbound = await createOutboundRequest({
       actorUserId: params.actorUserId,
       customerId: params.customerId,
@@ -367,6 +421,11 @@ async function queueGridOwnerRequestsFromDocument(params: {
       periodStart: params.requestedPeriodStart,
       periodEnd: params.requestedPeriodEnd,
       externalReference: params.externalReference,
+    })
+
+    await assignAuthorizationDocumentToOutboundRequest({
+      outboundRequestId: outbound.id,
+      documentId: params.document.id,
     })
 
     await updateGridOwnerDataRequestStatus({
@@ -423,7 +482,7 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
     listPowersOfAttorneyByCustomerId(supabase, params.customerId),
   ])
 
-    const readiness = evaluateSiteSwitchReadiness({
+  const readiness = evaluateSiteSwitchReadiness({
     site,
     meteringPoints,
     powersOfAttorney,
@@ -480,6 +539,11 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
     },
   })
 
+  await assignAuthorizationDocumentToSwitchRequest({
+    requestId: switchRequest.id,
+    documentId: params.document.id,
+  })
+
   let switchOutboundId: string | null = null
 
   if (params.autoQueueOutbound) {
@@ -490,6 +554,11 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
     })
 
     if (existingOutbound) {
+      await assignAuthorizationDocumentToOutboundRequest({
+        outboundRequestId: existingOutbound.id,
+        documentId: params.document.id,
+      })
+
       switchOutboundId = existingOutbound.id
     } else {
       const outbound = await createOutboundRequest({
@@ -513,6 +582,11 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
         },
         periodStart: switchRequest.requested_start_date ?? null,
         externalReference: switchRequest.external_reference ?? null,
+      })
+
+      await assignAuthorizationDocumentToOutboundRequest({
+        outboundRequestId: outbound.id,
+        documentId: params.document.id,
       })
 
       switchOutboundId = outbound.id
@@ -666,6 +740,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
       actorUserId: actor.id,
       documentId: replaceDocumentId,
       reason: `Ersatt av nytt dokument ${savedDocument.id} vid upload.`,
+      replacementDocumentId: savedDocument.id,
     })
 
     archivedDocumentIds.push(replaced.documentAfter.id)
@@ -688,6 +763,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
         actorUserId: actor.id,
         documentId: row.id,
         reason: `Arkiverat automatiskt när nytt aktivt standarddokument ${savedDocument.id} laddades upp.`,
+        replacementDocumentId: savedDocument.id,
       })
 
       archivedDocumentIds.push(archived.documentAfter.id)
@@ -880,6 +956,7 @@ export async function setCustomerAuthorizationDocumentActiveAction(
       actorUserId: actor.id,
       documentId: conflict.id,
       reason: `Arkiverat automatiskt eftersom dokument ${targetBefore.id} sattes som aktivt standarddokument.`,
+      replacementDocumentId: targetBefore.id,
     })
 
     archivedConflictIds.push(archived.documentAfter.id)

@@ -40,6 +40,7 @@ export type CustomerAuthorizationDocumentRow = {
   customer_id: string
   site_id: string | null
   power_of_attorney_id: string | null
+  replaced_document_id: string | null
   document_type: AuthorizationDocumentType
   status: AuthorizationDocumentStatus
   title: string | null
@@ -50,6 +51,7 @@ export type CustomerAuthorizationDocumentRow = {
   file_path: string
   reference: string | null
   notes: string | null
+  archived_reason: string | null
   uploaded_at: string
   created_at: string
   updated_at: string
@@ -120,6 +122,7 @@ export type SupplierSwitchRequestRow = {
   site_id: string
   metering_point_id: string
   power_of_attorney_id: string | null
+  authorization_document_id: string | null
   request_type: SupplierSwitchRequestType
   status: SupplierSwitchRequestStatus
   requested_start_date: string | null
