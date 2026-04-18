@@ -1,3 +1,4 @@
+// app/admin/metering/page.tsx
 import Link from 'next/link'
 //app/admin/metering/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -308,12 +309,13 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
                   <th className="px-6 py-4 font-semibold text-slate-600">Typ</th>
                   <th className="px-6 py-4 font-semibold text-slate-600">kWh</th>
                   <th className="px-6 py-4 font-semibold text-slate-600">Kvalitet</th>
+                  <th className="px-6 py-4 font-semibold text-slate-600">Källa</th>
                 </tr>
               </thead>
               <tbody>
                 {values.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-sm text-slate-500">
+                    <td colSpan={7} className="px-6 py-10 text-center text-sm text-slate-500">
                       Inga mätvärden ännu.
                     </td>
                   </tr>
@@ -328,6 +330,18 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
                       <td className="px-6 py-4 text-slate-700">{value.reading_type}</td>
                       <td className="px-6 py-4 font-medium text-slate-900">{value.value_kwh}</td>
                       <td className="px-6 py-4 text-slate-700">{value.quality_code ?? '—'}</td>
+                      <td className="px-6 py-4 text-slate-700">
+                        {value.source_request_id ? (
+                          <Link
+                            href={`/admin/operations/grid-owner-requests/${value.source_request_id}`}
+                            className="font-medium text-indigo-700 underline-offset-2 hover:underline"
+                          >
+                            Request {value.source_request_id}
+                          </Link>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}

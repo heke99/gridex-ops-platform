@@ -1,7 +1,9 @@
+// app/admin/partner-exports/page.tsx
+import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { listAllPartnerExports } from '@/lib/cis/db'
+import { listAllBillingUnderlays, listAllPartnerExports } from '@/lib/cis/db'
 import { updatePartnerExportStatusAction } from '@/app/admin/cis/actions'
 
 export const dynamic = 'force-dynamic'
@@ -38,11 +40,19 @@ export default async function AdminPartnerExportsPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  const exports = await listAllPartnerExports({
-    status,
-    exportKind,
-    query,
-  })
+  const [exports, underlays] = await Promise.all([
+    listAllPartnerExports({
+      status,
+      exportKind,
+      query,
+    }),
+    listAllBillingUnderlays({
+      status: 'all',
+      query: '',
+    }),
+  ])
+
+  const underlayMap = new Map(underlays.map((row) => [row.id, row]))
 
   return (
     <div className="min-h-screen">
@@ -95,7 +105,12 @@ export default async function AdminPartnerExportsPage({
               Inga partnerexporter matchade filtret.
             </div>
           ) : (
-            exports.map((exportRow) => (
+            exports.map((exportRow) => {
+              const relatedUnderlay = exportRow.billing_underlay_id
+                ? underlayMap.get(exportRow.billing_underlay_id) ?? null
+                : null
+
+              return (
               <article
                 key={exportRow.id}
                 className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
@@ -111,9 +126,29 @@ export default async function AdminPartnerExportsPage({
                       </span>
                     </div>
 
-                    <h2 className="mt-3 text-base font-semibold text-slate-950">
-                      Export {exportRow.id}
-                    </h2>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <h2 className="text-base font-semibold text-slate-950">
+                        Export {exportRow.id}
+                      </h2>
+
+                      <div className="flex flex-wrap gap-2">
+                        {relatedUnderlay?.source_request_id ? (
+                          <Link
+                            href={`/admin/operations/grid-owner-requests/${relatedUnderlay.source_request_id}`}
+                            className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Öppna source request
+                          </Link>
+                        ) : null}
+
+                        <Link
+                          href="/admin/billing"
+                          className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Öppna billing
+                        </Link>
+                      </div>
+                    </div>
 
                     <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2">
                       <div>Kund: <span className="font-medium">{exportRow.customer_id}</span></div>
@@ -121,6 +156,7 @@ export default async function AdminPartnerExportsPage({
                       <div>Site: <span className="font-medium">{exportRow.site_id ?? '—'}</span></div>
                       <div>Mätpunkt: <span className="font-medium">{exportRow.metering_point_id ?? '—'}</span></div>
                       <div>Billing underlag: <span className="font-medium">{exportRow.billing_underlay_id ?? '—'}</span></div>
+                      <div>Source request: <span className="font-medium">{relatedUnderlay?.source_request_id ?? '—'}</span></div>
                       <div>Extern referens: <span className="font-medium">{exportRow.external_reference ?? '—'}</span></div>
                       <div>Köad: <span className="font-medium">{new Date(exportRow.queued_at).toLocaleString('sv-SE')}</span></div>
                       <div>Felorsak: <span className="font-medium">{exportRow.failure_reason ?? '—'}</span></div>
@@ -179,7 +215,8 @@ export default async function AdminPartnerExportsPage({
                   </form>
                 </div>
               </article>
-            ))
+              )
+            })
           )}
         </section>
       </div>

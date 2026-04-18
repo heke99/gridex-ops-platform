@@ -1,3 +1,4 @@
+// app/admin/billing/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -63,6 +64,8 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
       query,
     }),
   ])
+
+  const underlayMap = new Map(underlays.map((row) => [row.id, row]))
 
   return (
     <div className="min-h-screen">
@@ -208,13 +211,33 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                 ) : (
                   underlays.slice(0, 20).map((underlay) => (
                     <div key={underlay.id} className="rounded-2xl border p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(underlay.status)}`}>
-                          {underlay.status}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          {underlay.underlay_year ?? '—'}-{String(underlay.underlay_month ?? '').padStart(2, '0')}
-                        </span>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(underlay.status)}`}>
+                            {underlay.status}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {underlay.underlay_year ?? '—'}-{String(underlay.underlay_month ?? '').padStart(2, '0')}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {underlay.source_request_id ? (
+                            <Link
+                              href={`/admin/operations/grid-owner-requests/${underlay.source_request_id}`}
+                              className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                              Öppna source request
+                            </Link>
+                          ) : null}
+
+                          <Link
+                            href={`/admin/customers/${underlay.customer_id}#billing-metering`}
+                            className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Kundkort
+                          </Link>
+                        </div>
                       </div>
 
                       <div className="mt-3 grid gap-2 text-sm text-slate-600">
@@ -223,6 +246,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                         <div>Mätpunkt: <span className="font-medium">{underlay.metering_point_id ?? '—'}</span></div>
                         <div>Total kWh: <span className="font-medium">{underlay.total_kwh ?? '—'}</span></div>
                         <div>Total ex moms: <span className="font-medium">{underlay.total_sek_ex_vat ?? '—'} {underlay.currency}</span></div>
+                        <div>Source request: <span className="font-medium">{underlay.source_request_id ?? '—'}</span></div>
                       </div>
                     </div>
                   ))
@@ -244,13 +268,38 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                     Inga billing-exporter ännu.
                   </div>
                 ) : (
-                  exports.slice(0, 12).map((exportRow) => (
+                  exports.slice(0, 12).map((exportRow) => {
+                    const relatedUnderlay = exportRow.billing_underlay_id
+                      ? underlayMap.get(exportRow.billing_underlay_id) ?? null
+                      : null
+
+                    return (
                     <div key={exportRow.id} className="rounded-2xl border p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(exportRow.status)}`}>
-                          {exportRow.status}
-                        </span>
-                        <span className="text-xs text-slate-500">{exportRow.export_kind}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(exportRow.status)}`}>
+                            {exportRow.status}
+                          </span>
+                          <span className="text-xs text-slate-500">{exportRow.export_kind}</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {relatedUnderlay?.source_request_id ? (
+                            <Link
+                              href={`/admin/operations/grid-owner-requests/${relatedUnderlay.source_request_id}`}
+                              className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                              Öppna source request
+                            </Link>
+                          ) : null}
+
+                          <Link
+                            href={`/admin/customers/${exportRow.customer_id}#billing-metering`}
+                            className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Kundkort
+                          </Link>
+                        </div>
                       </div>
 
                       <div className="mt-3 grid gap-2 text-sm text-slate-600">
@@ -258,6 +307,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                         <div>Target system: <span className="font-medium">{exportRow.target_system}</span></div>
                         <div>Billing underlag: <span className="font-medium">{exportRow.billing_underlay_id ?? '—'}</span></div>
                         <div>Extern referens: <span className="font-medium">{exportRow.external_reference ?? '—'}</span></div>
+                        <div>Source request: <span className="font-medium">{relatedUnderlay?.source_request_id ?? '—'}</span></div>
                       </div>
 
                       <form
@@ -306,7 +356,8 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                         </div>
                       </form>
                     </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
             </div>
@@ -339,6 +390,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                 name="metering_point_id"
                 placeholder="Metering point ID"
                 className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                required
               />
               <input
                 name="source_request_id"
@@ -350,32 +402,20 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                 placeholder="Grid owner ID"
                 className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
               />
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <input
-                  name="underlay_year"
-                  placeholder="År"
-                  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-                <input
-                  name="underlay_month"
-                  placeholder="Månad"
-                  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </div>
-
-              <select
-                name="status"
-                defaultValue="received"
+              <input
+                name="underlay_year"
+                placeholder="År"
+                type="number"
                 className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
-              >
-                <option value="pending">Pending</option>
-                <option value="received">Received</option>
-                <option value="validated">Validated</option>
-                <option value="exported">Exported</option>
-                <option value="failed">Failed</option>
-              </select>
-
+                required
+              />
+              <input
+                name="underlay_month"
+                placeholder="Månad"
+                type="number"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+                required
+              />
               <input
                 name="total_kwh"
                 placeholder="Total kWh"
@@ -392,18 +432,18 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                 className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
               />
               <input
-                name="source_system"
-                defaultValue="grid_owner"
-                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
-              />
-              <input
-                name="payload_note"
-                placeholder="Payload / intern notering"
+                name="received_at"
+                type="datetime-local"
                 className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
               />
               <input
                 name="failure_reason"
                 placeholder="Felorsak"
+                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
+              />
+              <input
+                name="payload_note"
+                placeholder="Notering / payloadreferens"
                 className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
               />
             </div>

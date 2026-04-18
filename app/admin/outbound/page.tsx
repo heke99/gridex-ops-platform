@@ -1,3 +1,4 @@
+// app/admin/outbound/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -74,6 +75,43 @@ function TriageCard({
       </div>
     </Link>
   )
+
+}
+
+function buildPrimaryDetailLink(request: {
+  request_type: string
+  source_type: string | null
+  source_id: string | null
+}): { href: string; label: string } | null {
+  if (request.source_type === 'grid_owner_data_request' && request.source_id) {
+    return {
+      href: `/admin/operations/grid-owner-requests/${request.source_id}`,
+      label: 'Öppna request-detail',
+    }
+  }
+
+  if (request.source_type === 'supplier_switch_request' && request.source_id) {
+    return {
+      href: `/admin/operations/switches/${request.source_id}`,
+      label: 'Öppna switch-detail',
+    }
+  }
+
+  if (request.request_type === 'billing_underlay') {
+    return {
+      href: '/admin/billing',
+      label: 'Öppna billing',
+    }
+  }
+
+  if (request.request_type === 'meter_values') {
+    return {
+      href: '/admin/metering',
+      label: 'Öppna metering',
+    }
+  }
+
+  return null
 }
 
 async function runAutomationSweepFormAction(_: FormData): Promise<void> {
@@ -258,48 +296,36 @@ export default async function OutboundPage({ searchParams }: PageProps) {
               {autoAckCandidates.length}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Sent via email/file-export och kan kvitteras automatiskt i sweepen.
+              Sent-requests på interna/manuella kanaler som sweepen kan kvittera.
             </div>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Retrybara failade
+              Retrybara dispatch-fel
             </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
               {retryableFailedRequests.length}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Failade requests under retry-taket som kan återköas efter cooldown.
+              Failed requests som fortfarande ligger under retry-taket.
             </div>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Queued / Prepared
-            </div>
-            <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
-              {queuedRequests.length}
-            </div>
-            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Requests som väntar på första riktiga dispatch-försöket.
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-4 xl:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Redo switchar utan outbound
+              Switch utan outbound
             </div>
             <div className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">
               {switchRequestsMissingOutbound.length}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Redo switch-requestar som fortfarande saknar outbound-request.
+              Supplier-switch requests som borde ha köats men ännu saknar outbound.
             </div>
           </div>
+        </section>
 
+        <section className="grid gap-4 xl:grid-cols-4">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
               Supplier switch väntar på ack
@@ -447,7 +473,10 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                   Inga outbound requests matchade filtret.
                 </div>
               ) : (
-                requests.map((request) => (
+                requests.map((request) => {
+                  const primaryDetailLink = buildPrimaryDetailLink(request)
+
+                  return (
                   <article
                     key={request.id}
                     className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800"
@@ -470,9 +499,29 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                           </span>
                         </div>
 
-                        <h3 className="mt-3 text-base font-semibold text-slate-950 dark:text-white">
-                          Outbound request {request.id}
-                        </h3>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                          <h3 className="text-base font-semibold text-slate-950 dark:text-white">
+                            Outbound request {request.id}
+                          </h3>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            {primaryDetailLink ? (
+                              <Link
+                                href={primaryDetailLink.href}
+                                className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-950"
+                              >
+                                {primaryDetailLink.label}
+                              </Link>
+                            ) : null}
+
+                            <Link
+                              href={`/admin/customers/${request.customer_id}`}
+                              className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-950"
+                            >
+                              Kundkort
+                            </Link>
+                          </div>
+                        </div>
 
                         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
@@ -497,24 +546,48 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                           </div>
 
                           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">Batch</div>
+                            <div className="text-slate-500 dark:text-slate-400">Källa</div>
                             <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {request.dispatch_batch_key ?? '—'}
+                              {request.source_type && request.source_id
+                                ? `${request.source_type} · ${request.source_id}`
+                                : request.source_type ?? '—'}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                            <div className="text-slate-500 dark:text-slate-400">Grid owner</div>
+                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                              {request.grid_owner_id ?? '—'}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                            <div className="text-slate-500 dark:text-slate-400">Route</div>
+                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                              {request.communication_route_id ?? '—'}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                            <div className="text-slate-500 dark:text-slate-400">Period</div>
+                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                              {request.period_start ?? '—'} → {request.period_end ?? '—'}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                            <div className="text-slate-500 dark:text-slate-400">Extern referens</div>
+                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                              {request.external_reference ?? '—'}
                             </div>
                           </div>
                         </div>
 
-                        <div className="mt-4 space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                        <div className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
                           <div>
-                            Route:{' '}
+                            Batch:{' '}
                             <span className="font-medium">
-                              {request.communication_route_id ?? '—'}
-                            </span>
-                          </div>
-                          <div>
-                            Extern referens:{' '}
-                            <span className="font-medium">
-                              {request.external_reference ?? '—'}
+                              {request.dispatch_batch_key ?? '—'}
                             </span>
                           </div>
                           <div>
@@ -673,7 +746,8 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                       </div>
                     </div>
                   </article>
-                ))
+                  )
+                })
               )}
             </div>
           </div>
@@ -713,6 +787,24 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                       <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
                         Kund {underlay.customer_id} · Site {underlay.site_id ?? '—'} ·
                         Mätpunkt {underlay.metering_point_id ?? '—'}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {underlay.source_request_id ? (
+                          <Link
+                            href={`/admin/operations/grid-owner-requests/${underlay.source_request_id}`}
+                            className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-950"
+                          >
+                            Öppna source request
+                          </Link>
+                        ) : null}
+
+                        <Link
+                          href="/admin/billing"
+                          className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-950"
+                        >
+                          Öppna billing
+                        </Link>
                       </div>
                     </div>
                   ))
@@ -760,11 +852,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                     Acknowledged
                   </div>
                   <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    {
-                      requests.filter((request) => request.status === 'acknowledged')
-                        .length
-                    }{' '}
-                    requests är kvitterade.
+                    {requests.filter((request) => request.status === 'acknowledged').length} requests är klara.
                   </div>
                 </div>
               </div>
