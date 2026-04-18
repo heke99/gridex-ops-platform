@@ -570,18 +570,6 @@ function QueueSection({
 
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-2">
-                      <Link
-                        href={row.customerHref}
-                        className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        Öppna kund
-                      </Link>
-                      <Link
-                        href={row.workspaceHref}
-                        className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
-                      >
-                        {row.workspaceLabel}
-                      </Link>
                       {row.detailHref && row.detailLabel ? (
                         <Link
                           href={row.detailHref}
@@ -590,6 +578,20 @@ function QueueSection({
                           {row.detailLabel}
                         </Link>
                       ) : null}
+
+                      <Link
+                        href={row.workspaceHref}
+                        className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
+                      >
+                        {row.workspaceLabel}
+                      </Link>
+
+                      <Link
+                        href={row.customerHref}
+                        className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        Öppna kund
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -773,7 +775,10 @@ export default async function AdminOperationsIntegrityPage({
         mismatchRows.push({
           ...baseRow,
           reason: `${sitesWithoutMeteringPoint.length} anläggning(ar) saknar mätpunkt.`,
-          hint: sitesWithoutMeteringPoint.map((site) => site.site_name).slice(0, 3).join(', '),
+          hint: sitesWithoutMeteringPoint
+            .map((site) => site.site_name)
+            .slice(0, 3)
+            .join(', '),
           workspaceHref: customerHref,
           workspaceLabel: 'Lägg till mätpunkt',
         })
@@ -832,6 +837,7 @@ export default async function AdminOperationsIntegrityPage({
     )
 
     if (openMoveRequests.length > 0) {
+      const firstMoveRequest = openMoveRequests[0]
       moveRows.push({
         ...baseRow,
         reason: `${openMoveRequests.length} öppna flyttärende(n).`,
@@ -839,8 +845,10 @@ export default async function AdminOperationsIntegrityPage({
           .slice(0, 3)
           .map((request) => `${request.request_type} • ${request.status}`)
           .join(' • '),
-        workspaceHref: `/admin/operations/switches?q=${customer.id}`,
-        workspaceLabel: 'Öppna switchrad',
+        workspaceHref: `/admin/operations/switches/${firstMoveRequest.id}`,
+        workspaceLabel: 'Öppna switch',
+        detailHref: customerHref,
+        detailLabel: 'Öppna kundkort',
       })
     }
 
@@ -849,6 +857,7 @@ export default async function AdminOperationsIntegrityPage({
     )
 
     if (openSwitchRequests.length > 0) {
+      const firstSwitchRequest = openSwitchRequests[0]
       switchRows.push({
         ...baseRow,
         reason: `${openSwitchRequests.length} öppna leverantörsbyte(n).`,
@@ -856,8 +865,10 @@ export default async function AdminOperationsIntegrityPage({
           .slice(0, 3)
           .map((request) => `${request.status}`)
           .join(' • '),
-        workspaceHref: `/admin/operations/switches?q=${customer.id}`,
-        workspaceLabel: 'Öppna switchrad',
+        workspaceHref: `/admin/operations/switches/${firstSwitchRequest.id}`,
+        workspaceLabel: 'Öppna switch',
+        detailHref: customerHref,
+        detailLabel: 'Öppna kundkort',
       })
     }
 
@@ -882,6 +893,13 @@ export default async function AdminOperationsIntegrityPage({
     })
 
     if (missingMeterValuePoints.length > 0) {
+      const firstMeterRequest =
+        customerDataRequests.find(
+          (request) =>
+            request.request_scope === 'meter_values' &&
+            ['pending', 'sent', 'received', 'failed'].includes(request.status)
+        ) ?? null
+
       missingMeterValuesRows.push({
         ...baseRow,
         reason: `${missingMeterValuePoints.length} mätpunkt(er) saknar mätvärden för ${period.label}.`,
@@ -889,8 +907,14 @@ export default async function AdminOperationsIntegrityPage({
           .slice(0, 3)
           .map((point) => point.meter_point_id)
           .join(' • '),
-        workspaceHref: `/admin/outbound/missing-meter-values?period=${period.label}`,
-        workspaceLabel: 'Öppna mätvärdeskö',
+        workspaceHref: firstMeterRequest
+          ? `/admin/operations/grid-owner-requests/${firstMeterRequest.id}`
+          : `/admin/outbound/missing-meter-values?period=${period.label}`,
+        workspaceLabel: firstMeterRequest
+          ? 'Öppna första request'
+          : 'Öppna mätvärdeskö',
+        detailHref: firstMeterRequest ? customerHref : undefined,
+        detailLabel: firstMeterRequest ? 'Öppna kundkort' : undefined,
       })
     }
 
@@ -915,15 +939,9 @@ export default async function AdminOperationsIntegrityPage({
         ...baseRow,
         reason: 'Kunden har import- eller handoff-fel.',
         hint: [
-          failedDataRequests.length > 0
-            ? `${failedDataRequests.length} request-fel`
-            : null,
-          failedUnderlays.length > 0
-            ? `${failedUnderlays.length} billing-fel`
-            : null,
-          failedExports.length > 0
-            ? `${failedExports.length} export-fel`
-            : null,
+          failedDataRequests.length > 0 ? `${failedDataRequests.length} request-fel` : null,
+          failedUnderlays.length > 0 ? `${failedUnderlays.length} billing-fel` : null,
+          failedExports.length > 0 ? `${failedExports.length} export-fel` : null,
         ]
           .filter(Boolean)
           .join(' • '),
@@ -952,6 +970,8 @@ export default async function AdminOperationsIntegrityPage({
     )
 
     if (readyUnderlays.length > 0) {
+      const firstReadyUnderlay = readyUnderlays[0]
+
       readyForExportRows.push({
         ...baseRow,
         reason: `${readyUnderlays.length} billing-underlag redo för partnerexport.`,
@@ -964,8 +984,14 @@ export default async function AdminOperationsIntegrityPage({
               ).padStart(2, '0')}`
           )
           .join(' • '),
-        workspaceHref: '/admin/partner-exports',
-        workspaceLabel: 'Öppna exportkö',
+        workspaceHref: firstReadyUnderlay?.source_request_id
+          ? `/admin/operations/grid-owner-requests/${firstReadyUnderlay.source_request_id}`
+          : '/admin/partner-exports',
+        workspaceLabel: firstReadyUnderlay?.source_request_id
+          ? 'Öppna source request'
+          : 'Öppna exportkö',
+        detailHref: firstReadyUnderlay?.source_request_id ? customerHref : undefined,
+        detailLabel: firstReadyUnderlay?.source_request_id ? 'Öppna kundkort' : undefined,
       })
     }
   }
@@ -980,15 +1006,15 @@ export default async function AdminOperationsIntegrityPage({
 
       <div className="space-y-6 p-8">
         <FeedbackBanner
-  status={resolvedSearchParams.status}
-  action={resolvedSearchParams.action}
-  period={resolvedSearchParams.period}
-  message={resolvedSearchParams.message}
-  createdCount={resolvedSearchParams.createdCount}
-  skippedCount={resolvedSearchParams.skippedCount}
-  candidateCount={resolvedSearchParams.candidateCount}
-  batchKey={resolvedSearchParams.batchKey}
-/>
+          status={resolvedSearchParams.status}
+          action={resolvedSearchParams.action}
+          period={resolvedSearchParams.period}
+          message={resolvedSearchParams.message}
+          createdCount={resolvedSearchParams.createdCount}
+          skippedCount={resolvedSearchParams.skippedCount}
+          candidateCount={resolvedSearchParams.candidateCount}
+          batchKey={resolvedSearchParams.batchKey}
+        />
 
         <ActionStrip period={period} />
 
@@ -1093,7 +1119,7 @@ export default async function AdminOperationsIntegrityPage({
           emptyText="Inga öppna flyttärenden hittades."
           workspaceHref="/admin/operations/switches?requestType=move_in"
           workspaceLabel="Öppna flyttkö"
-          workspaceDescription="Använd switchlistan för att följa öppna move_in och move_out_takeover samt deras readiness och outbound-läge."
+          workspaceDescription="När konkret switch-id finns ska switch-detail vara primär väg in. Kundkortet är sekundärt här."
         />
 
         <QueueSection
@@ -1104,7 +1130,7 @@ export default async function AdminOperationsIntegrityPage({
           emptyText="Inga öppna leverantörsbyten hittades."
           workspaceHref="/admin/operations/switches?requestType=switch"
           workspaceLabel="Öppna bytekö"
-          workspaceDescription="Härifrån går du vidare till switchlistan för detaljerad uppföljning av stage, outbound och kvittens."
+          workspaceDescription="När konkret switch-id finns går raden direkt till switch-detail. Kundkortet används som sekundär arbetsyta."
           bulkAction={{
             label: 'Masskö för redo byten',
             description:
@@ -1127,7 +1153,7 @@ export default async function AdminOperationsIntegrityPage({
           emptyText="Alla kunder med mätpunkter har mätvärden för perioden."
           workspaceHref={`/admin/outbound/missing-meter-values?period=${period.label}`}
           workspaceLabel="Öppna mätvärdeskö"
-          workspaceDescription="Använd bulk-kön för att identifiera saknade periodvärden och köa begäran utan dubbletter."
+          workspaceDescription="När konkret request redan finns ska raden öppna request-detail. Bulk-kön används först när något request-id ännu inte finns."
           bulkAction={{
             label: `Köa saknade mätvärden för ${period.label}`,
             description:
@@ -1162,7 +1188,7 @@ export default async function AdminOperationsIntegrityPage({
           emptyText="Inga kunder är redo för export just nu."
           workspaceHref="/admin/partner-exports"
           workspaceLabel="Öppna exportkö"
-          workspaceDescription="Det här är arbetsytan för billing-underlag som är redo att skickas vidare till partnern."
+          workspaceDescription="När source request redan finns ska raden öppna request-detail. Exportkön är sekundär när ett konkret ärende redan finns."
           bulkAction={{
             label: `Skapa exportbatch för ${period.label}`,
             description:
@@ -1186,7 +1212,7 @@ export default async function AdminOperationsIntegrityPage({
           emptyText="Använd knappen nedan för att köa saknade billing-underlag för vald period."
           workspaceHref={`/admin/outbound/missing-billing-underlays?period=${period.label}`}
           workspaceLabel="Öppna billing-underlagskö"
-          workspaceDescription="Bra när du ser att mätvärden finns men billing-underlag ännu inte kommit in från nätägaren."
+          workspaceDescription="Bra när mätvärden finns men billing-underlag ännu inte kommit in från nätägaren."
           bulkAction={{
             label: `Köa saknade billing-underlag för ${period.label}`,
             description:

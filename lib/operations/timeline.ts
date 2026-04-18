@@ -1,3 +1,4 @@
+// lib/operations/timeline.ts
 import type {
   BillingUnderlayRow,
   GridOwnerDataRequestRow,
@@ -27,6 +28,8 @@ export type CustomerTimelineEntry = {
   siteId: string | null
   meteringPointId: string | null
   gridOwnerId: string | null
+  href?: string
+  primaryLabel?: string
 }
 
 function safeDate(value: string | null | undefined): string | null {
@@ -43,6 +46,9 @@ export function buildCustomerTimeline(params: {
   outboundRequests: OutboundRequestRow[]
 }): CustomerTimelineEntry[] {
   const entries: CustomerTimelineEntry[] = []
+  const underlayById = new Map(
+    params.billingUnderlays.map((underlay) => [underlay.id, underlay])
+  )
 
   for (const site of params.sites) {
     const occurredAt = safeDate(site.created_at)
@@ -89,6 +95,11 @@ export function buildCustomerTimeline(params: {
     )
     if (!occurredAt) continue
 
+    const isGridOwnerRequest =
+      request.source_type === 'grid_owner_data_request' && !!request.source_id
+    const isSwitchRequest =
+      request.source_type === 'supplier_switch_request' && !!request.source_id
+
     entries.push({
       id: `outbound:${request.id}`,
       occurredAt,
@@ -99,6 +110,16 @@ export function buildCustomerTimeline(params: {
       siteId: request.site_id,
       meteringPointId: request.metering_point_id,
       gridOwnerId: request.grid_owner_id,
+      href: isGridOwnerRequest
+        ? `/admin/operations/grid-owner-requests/${request.source_id}`
+        : isSwitchRequest
+          ? `/admin/operations/switches/${request.source_id}`
+          : '/admin/outbound',
+      primaryLabel: isGridOwnerRequest
+        ? 'Öppna request-detail'
+        : isSwitchRequest
+          ? 'Öppna switch-detail'
+          : 'Öppna outbound',
     })
   }
 
@@ -122,6 +143,8 @@ export function buildCustomerTimeline(params: {
       siteId: request.site_id,
       meteringPointId: request.metering_point_id,
       gridOwnerId: request.grid_owner_id,
+      href: `/admin/operations/grid-owner-requests/${request.id}`,
+      primaryLabel: 'Öppna request-detail',
     })
   }
 
@@ -139,6 +162,12 @@ export function buildCustomerTimeline(params: {
       siteId: value.site_id,
       meteringPointId: value.metering_point_id,
       gridOwnerId: value.grid_owner_id,
+      href: value.source_request_id
+        ? `/admin/operations/grid-owner-requests/${value.source_request_id}`
+        : '/admin/metering',
+      primaryLabel: value.source_request_id
+        ? 'Öppna source request'
+        : 'Öppna metering',
     })
   }
 
@@ -163,6 +192,12 @@ export function buildCustomerTimeline(params: {
       siteId: underlay.site_id,
       meteringPointId: underlay.metering_point_id,
       gridOwnerId: underlay.grid_owner_id,
+      href: underlay.source_request_id
+        ? `/admin/operations/grid-owner-requests/${underlay.source_request_id}`
+        : '/admin/billing',
+      primaryLabel: underlay.source_request_id
+        ? 'Öppna source request'
+        : 'Öppna billing',
     })
   }
 
@@ -176,6 +211,10 @@ export function buildCustomerTimeline(params: {
     )
     if (!occurredAt) continue
 
+    const relatedUnderlay = exportRow.billing_underlay_id
+      ? underlayById.get(exportRow.billing_underlay_id) ?? null
+      : null
+
     entries.push({
       id: `partner_export:${exportRow.id}`,
       occurredAt,
@@ -186,6 +225,12 @@ export function buildCustomerTimeline(params: {
       siteId: exportRow.site_id,
       meteringPointId: exportRow.metering_point_id,
       gridOwnerId: null,
+      href: relatedUnderlay?.source_request_id
+        ? `/admin/operations/grid-owner-requests/${relatedUnderlay.source_request_id}`
+        : '/admin/partner-exports',
+      primaryLabel: relatedUnderlay?.source_request_id
+        ? 'Öppna source request'
+        : 'Öppna exportkö',
     })
   }
 

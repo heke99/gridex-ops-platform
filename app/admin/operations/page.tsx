@@ -1,4 +1,4 @@
-//app/admin/operations/page.tsx
+// app/admin/operations/page.tsx
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -120,7 +120,10 @@ function describeRequestFollowup(params: {
   const { request, outboundCount, hasReceivedData } = params
 
   if (request.status === 'failed') {
-    return request.failure_reason?.trim() || 'Requesten har felat och behöver manuell uppföljning.'
+    return (
+      request.failure_reason?.trim() ||
+      'Requesten har felat och behöver manuell uppföljning.'
+    )
   }
 
   if (request.status === 'received') {
@@ -276,9 +279,7 @@ export default async function AdminOperationsPage() {
 
       return evaluateSiteSwitchReadiness({
         site,
-        meteringPoints: meteringPoints.filter(
-          (point) => point.site_id === site.id
-        ),
+        meteringPoints: meteringPoints.filter((point) => point.site_id === site.id),
         powersOfAttorney,
       })
     })
@@ -308,9 +309,7 @@ export default async function AdminOperationsPage() {
   }
 
   const switchLifecycle = switchRequests.map((request) => {
-    const readiness = readinessResults.find(
-      (row) => row.siteId === request.site_id
-    )
+    const readiness = readinessResults.find((row) => row.siteId === request.site_id)
     const outbound = outboundRequests.find(
       (row) =>
         row.source_type === 'supplier_switch_request' &&
@@ -791,7 +790,9 @@ export default async function AdminOperationsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                          {row.readiness ? summarizeReadinessIssues(row.readiness) : 'Ingen readiness-data'}
+                          {row.readiness
+                            ? summarizeReadinessIssues(row.readiness)
+                            : 'Ingen readiness-data'}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <Link
@@ -844,10 +845,16 @@ export default async function AdminOperationsPage() {
                       </div>
 
                       <Link
-                        href="/admin/billing"
+                        href={
+                          underlay.source_request_id
+                            ? `/admin/operations/grid-owner-requests/${underlay.source_request_id}`
+                            : '/admin/billing'
+                        }
                         className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
-                        Öppna billing
+                        {underlay.source_request_id
+                          ? 'Öppna source request'
+                          : 'Öppna billing'}
                       </Link>
                     </div>
                   </div>
