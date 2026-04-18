@@ -1,17 +1,16 @@
 'use client'
 
+import Link from 'next/link'
 import { useActionState, useEffect, useMemo, useState } from 'react'
 import { useFormStatus } from 'react-dom'
+import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
+import type { AuditLogRow } from '@/lib/masterdata/types'
 import type {
   CustomerAuthorizationDocumentRow,
   PowerOfAttorneyRow,
   SupplierSwitchRequestRow,
 } from '@/lib/operations/types'
-import type {
-  GridOwnerDataRequestRow,
-  OutboundRequestRow,
-} from '@/lib/cis/types'
 import {
   archiveCustomerAuthorizationDocumentAction,
   initialUploadCustomerAuthorizationDocumentActionState,
@@ -62,25 +61,22 @@ function getPowerOfAttorneyForDocument(
   powersOfAttorney: PowerOfAttorneyRow[]
 ): PowerOfAttorneyRow | null {
   if (!documentRow.power_of_attorney_id) return null
-  return (
-    powersOfAttorney.find((row) => row.id === documentRow.power_of_attorney_id) ?? null
-  )
+  return powersOfAttorney.find((row) => row.id === documentRow.power_of_attorney_id) ?? null
 }
 
-function getRecordValue(
-  value: unknown,
-  key: string
-): unknown {
+function getRecordValue(value: unknown, key: string): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
   return (value as Record<string, unknown>)[key]
 }
 
-function getString(
-  value: unknown,
-  key: string
-): string | null {
+function getString(value: unknown, key: string): string | null {
   const raw = getRecordValue(value, key)
   return typeof raw === 'string' ? raw : null
+}
+
+function getStringArray(value: unknown, key: string): string[] {
+  const raw = getRecordValue(value, key)
+  return Array.isArray(raw) ? raw.filter((entry): entry is string => typeof entry === 'string') : []
 }
 
 function statusBadgeClass(status: string) {
@@ -148,6 +144,402 @@ type RelationsResponse = {
   gridOwnerDataRequests: GridOwnerDataRequestRow[]
   outboundRequests: OutboundRequestRow[]
   switchRequests: SupplierSwitchRequestRow[]
+  documentAuditLogs: AuditLogRow[]
+}
+
+type DocumentFlowStep = {
+  label: string
+  value: string
+  href?: string
+  tone: string
+}
+
+type TimelineLink = {
+  label: string
+  href: string
+}
+
+type TimelineItem = {
+  id: string
+  occurredAt: string
+  title: string
+  description: string
+  tone: string
+  links: TimelineLink[]
+}
+
+function buildGridOwnerRequestHref(customerId: string) {
+  return `/admin/customers/${customerId}#billing-metering`
+}
+
+function buildOutboundHref(outbound: OutboundRequestRow) {
+  return outbound.channel_type === 'unresolved'
+    ? '/admin/outbound/unresolved'
+    : '/admin/outbound'
+}
+
+function buildDocumentFlowSteps(params: {
+  customerId: string
+  documentRow: CustomerAuthorizationDocumentRow
+  linkedPowerOfAttorney: PowerOfAttorneyRow | null
+  matchingGridOwnerRequests: GridOwnerDataRequestRow[]
+  matchingSwitchRequests: SupplierSwitchRequestRow[]
+  matchingOutbounds: OutboundRequestRow[]
+}): DocumentFlowStep[] {
+  const latestGridOwnerRequest =
+    [...params.matchingGridOwnerRequests].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0] ?? null
+
+  const latestSwitchRequest =
+    [...params.matchingSwitchRequests].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0] ?? null
+
+  const latestOutbound =
+    [...params.matchingOutbounds].sort((a, b) => {
+      const aTime = new Date(
+        a.acknowledged_at ?? a.failed_at ?? a.sent_at ?? a.prepared_at ?? a.queued_at ?? a.created_at
+      ).getTime()
+      const bTime = new Date(
+        b.acknowledged_at ?? b.failed_at ?? b.sent_at ?? b.prepared_at ?? b.queued_at ?? b.created_at
+      ).getTime()
+      return bTime - aTime
+    })[0] ?? null
+
+  const responseValue = latestOutbound
+    ? latestOutbound.status === 'acknowledged'
+      ? 'Kvittens mottagen'
+      : latestOutbound.status === 'sent'
+        ? 'Skickad, inväntar svar'
+        : latestOutbound.status === 'failed'
+          ? 'Svar/försök felade'
+          : latestOutbound.status === 'cancelled'
+            ? 'Stoppad efter arkivering'
+            : 'Ingen slutrespons ännu'
+    : latestGridOwnerRequest?.status === 'received'
+      ? 'Underlag mottaget'
+      : latestSwitchRequest?.status === 'completed'
+        ? 'Switch slutförd'
+        : 'Ingen respons ännu'
+
+  return [
+    {
+      label: 'Dokument',
+      value: params.documentRow.status,
+      tone: statusBadgeClass(params.documentRow.status),
+    },
+    {
+      label: 'Fullmakt',
+      value: params.linkedPowerOfAttorney?.status ?? 'saknas',
+      tone: statusBadgeClass(params.linkedPowerOfAttorney?.status ?? 'pending'),
+    },
+    latestSwitchRequest
+      ? {
+          label: 'Request',
+          value: `${latestSwitchRequest.request_type} · ${latestSwitchRequest.status}`,
+          href: `/admin/operations/switches/${latestSwitchRequest.id}`,
+          tone: statusBadgeClass(latestSwitchRequest.status),
+        }
+      : latestGridOwnerRequest
+        ? {
+            label: 'Request',
+            value: `${latestGridOwnerRequest.request_scope} · ${latestGridOwnerRequest.status}`,
+            href: buildGridOwnerRequestHref(params.customerId),
+            tone: statusBadgeClass(latestGridOwnerRequest.status),
+          }
+        : {
+            label: 'Request',
+            value: 'ingen',
+            tone: statusBadgeClass('pending'),
+          },
+    latestOutbound
+      ? {
+          label: 'Outbound',
+          value: `${latestOutbound.request_type} · ${latestOutbound.status}`,
+          href: buildOutboundHref(latestOutbound),
+          tone:
+            latestOutbound.channel_type === 'unresolved'
+              ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+              : statusBadgeClass(latestOutbound.status),
+        }
+      : {
+          label: 'Outbound',
+          value: 'ingen',
+          tone: statusBadgeClass('pending'),
+        },
+    {
+      label: 'Response',
+      value: responseValue,
+      href: latestSwitchRequest?.id
+        ? `/admin/operations/switches/${latestSwitchRequest.id}`
+        : latestOutbound
+          ? buildOutboundHref(latestOutbound)
+          : latestGridOwnerRequest
+            ? buildGridOwnerRequestHref(params.customerId)
+            : undefined,
+      tone:
+        responseValue === 'Kvittens mottagen' ||
+        responseValue === 'Underlag mottaget' ||
+        responseValue === 'Switch slutförd'
+          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+          : responseValue.includes('fel') || responseValue.includes('Stoppad')
+            ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'
+            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    },
+  ]
+}
+
+function buildDocumentTimelineItems(params: {
+  customerId: string
+  documentRow: CustomerAuthorizationDocumentRow
+  matchingAuditLogs: AuditLogRow[]
+  matchingGridOwnerRequests: GridOwnerDataRequestRow[]
+  matchingSwitchRequests: SupplierSwitchRequestRow[]
+  matchingOutbounds: OutboundRequestRow[]
+}): TimelineItem[] {
+  const items: TimelineItem[] = []
+  const sortedLogs = [...params.matchingAuditLogs].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )
+
+  const hasUploadAudit = sortedLogs.some(
+    (log) => log.action === 'customer_authorization_document_uploaded_v2'
+  )
+
+  if (!hasUploadAudit) {
+    items.push({
+      id: `${params.documentRow.id}:uploaded_fallback`,
+      occurredAt: params.documentRow.uploaded_at,
+      title: 'Dokument uppladdat',
+      description: `${documentTypeLabel(params.documentRow.document_type)} registrerat som ${params.documentRow.status}.`,
+      tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+      links: [],
+    })
+  }
+
+  for (const log of sortedLogs) {
+    if (log.action === 'customer_authorization_document_uploaded_v2') {
+      const createdGridOwnerRequestIds = getStringArray(log.metadata, 'createdGridOwnerRequestIds')
+      const createdGridOwnerOutboundIds = getStringArray(log.metadata, 'createdGridOwnerOutboundIds')
+      const linkedPowerOfAttorneyId = getString(log.metadata, 'linkedPowerOfAttorneyId')
+      const switchRequestId = getString(log.metadata, 'switchRequestId')
+      const switchOutboundId = getString(log.metadata, 'switchOutboundId')
+      const archivedDocumentIds = getStringArray(log.metadata, 'archivedDocumentIds')
+      const blockedReasons = getStringArray(log.metadata, 'automationBlockedReasons')
+      const warnings = getStringArray(log.metadata, 'automationWarnings')
+
+      const links: TimelineLink[] = []
+      if (linkedPowerOfAttorneyId) {
+        links.push({
+          label: `Fullmakt ${linkedPowerOfAttorneyId}`,
+          href: buildGridOwnerRequestHref(params.customerId),
+        })
+      }
+      createdGridOwnerRequestIds.forEach((id) => {
+        links.push({
+          label: `Request ${id}`,
+          href: buildGridOwnerRequestHref(params.customerId),
+        })
+      })
+      createdGridOwnerOutboundIds.forEach((id) => {
+        const outbound = params.matchingOutbounds.find((row) => row.id === id)
+        links.push({
+          label: `Outbound ${id}`,
+          href: outbound ? buildOutboundHref(outbound) : '/admin/outbound',
+        })
+      })
+      if (switchRequestId) {
+        links.push({
+          label: `Switch ${switchRequestId}`,
+          href: `/admin/operations/switches/${switchRequestId}`,
+        })
+      }
+      if (switchOutboundId) {
+        const outbound = params.matchingOutbounds.find((row) => row.id === switchOutboundId)
+        links.push({
+          label: `Switch outbound ${switchOutboundId}`,
+          href: outbound ? buildOutboundHref(outbound) : '/admin/outbound',
+        })
+      }
+
+      const descriptionParts = [
+        'Upload registrerades och dokumentet sparades.',
+        createdGridOwnerRequestIds.length
+          ? `Skapade nätägarrequester: ${createdGridOwnerRequestIds.join(', ')}.`
+          : null,
+        createdGridOwnerOutboundIds.length
+          ? `Skapade outbounds: ${createdGridOwnerOutboundIds.join(', ')}.`
+          : null,
+        switchRequestId ? `Skapade/återanvände switch ${switchRequestId}.` : null,
+        switchOutboundId ? `Skapade/återanvände switch-outbound ${switchOutboundId}.` : null,
+        archivedDocumentIds.length
+          ? `Ersatte/arkiverade äldre dokument: ${archivedDocumentIds.join(', ')}.`
+          : null,
+        warnings.length ? `Begränsningar: ${warnings.join(' ')}` : null,
+        blockedReasons.length ? `Blockeringar: ${blockedReasons.join(' ')}` : null,
+      ].filter((value): value is string => Boolean(value))
+
+      items.push({
+        id: log.id,
+        occurredAt: log.created_at,
+        title: 'Upload registrerad',
+        description: descriptionParts.join(' '),
+        tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+        links: links.filter(
+          (link, index, array) =>
+            array.findIndex(
+              (item) => item.label === link.label && item.href === link.href
+            ) === index
+        ),
+      })
+      continue
+    }
+
+    if (log.action === 'customer_authorization_document_set_active') {
+      const archivedConflictIds = getStringArray(log.metadata, 'archivedConflictIds')
+      const restoredPowerOfAttorneyId = getString(log.metadata, 'restoredPowerOfAttorneyId')
+      const links: TimelineLink[] = archivedConflictIds.map((id) => ({
+        label: `Tidigare aktivt dokument ${id}`,
+        href: '#',
+      }))
+
+      if (restoredPowerOfAttorneyId) {
+        links.push({
+          label: `Återställd fullmakt ${restoredPowerOfAttorneyId}`,
+          href: buildGridOwnerRequestHref(params.customerId),
+        })
+      }
+
+      items.push({
+        id: log.id,
+        occurredAt: log.created_at,
+        title: 'Satt som aktivt dokument',
+        description: [
+          'Dokumentet sattes som standarddokument för sitt scope.',
+          archivedConflictIds.length
+            ? `Arkiverade tidigare aktiva dokument: ${archivedConflictIds.join(', ')}.`
+            : null,
+          restoredPowerOfAttorneyId
+            ? `Återställde fullmakt ${restoredPowerOfAttorneyId}.`
+            : null,
+        ]
+          .filter((value): value is string => Boolean(value))
+          .join(' '),
+        tone: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
+        links,
+      })
+      continue
+    }
+
+    if (log.action === 'customer_authorization_document_archived') {
+      const revokedPowerOfAttorneyId = getString(log.metadata, 'revokedPowerOfAttorneyId')
+      const archiveImpact = getRecordValue(log.metadata, 'archiveImpact')
+      const cancelledGridOwnerRequestIds = getStringArray(
+        archiveImpact,
+        'cancelledGridOwnerRequestIds'
+      )
+      const flaggedGridOwnerRequestIds = getStringArray(
+        archiveImpact,
+        'flaggedGridOwnerRequestIds'
+      )
+      const cancelledOutboundIds = getStringArray(archiveImpact, 'cancelledOutboundIds')
+      const flaggedOutboundIds = getStringArray(archiveImpact, 'flaggedOutboundIds')
+      const failedSwitchRequestIds = getStringArray(archiveImpact, 'failedSwitchRequestIds')
+      const flaggedSwitchRequestIds = getStringArray(archiveImpact, 'flaggedSwitchRequestIds')
+
+      const links: TimelineLink[] = []
+      ;[...cancelledGridOwnerRequestIds, ...flaggedGridOwnerRequestIds].forEach((id) => {
+        links.push({
+          label: `Request ${id}`,
+          href: buildGridOwnerRequestHref(params.customerId),
+        })
+      })
+      ;[...cancelledOutboundIds, ...flaggedOutboundIds].forEach((id) => {
+        const outbound = params.matchingOutbounds.find((row) => row.id === id)
+        links.push({
+          label: `Outbound ${id}`,
+          href: outbound ? buildOutboundHref(outbound) : '/admin/outbound',
+        })
+      })
+      ;[...failedSwitchRequestIds, ...flaggedSwitchRequestIds].forEach((id) => {
+        links.push({
+          label: `Switch ${id}`,
+          href: `/admin/operations/switches/${id}`,
+        })
+      })
+      if (revokedPowerOfAttorneyId) {
+        links.push({
+          label: `Revokerad fullmakt ${revokedPowerOfAttorneyId}`,
+          href: buildGridOwnerRequestHref(params.customerId),
+        })
+      }
+
+      const reason =
+        getString(log.new_values, 'archived_reason') ??
+        getString(log.old_values, 'archived_reason') ??
+        params.documentRow.archived_reason
+
+      items.push({
+        id: log.id,
+        occurredAt: log.created_at,
+        title: 'Dokument arkiverat',
+        description: [
+          reason ? `Orsak: ${reason}.` : 'Dokumentet arkiverades.',
+          cancelledGridOwnerRequestIds.length
+            ? `Stoppade requester: ${cancelledGridOwnerRequestIds.join(', ')}.`
+            : null,
+          flaggedGridOwnerRequestIds.length
+            ? `Flaggade requester: ${flaggedGridOwnerRequestIds.join(', ')}.`
+            : null,
+          cancelledOutboundIds.length
+            ? `Stoppade outbounds: ${cancelledOutboundIds.join(', ')}.`
+            : null,
+          flaggedOutboundIds.length
+            ? `Flaggade outbounds: ${flaggedOutboundIds.join(', ')}.`
+            : null,
+          failedSwitchRequestIds.length
+            ? `Stoppade switchar: ${failedSwitchRequestIds.join(', ')}.`
+            : null,
+          flaggedSwitchRequestIds.length
+            ? `Flaggade switchar: ${flaggedSwitchRequestIds.join(', ')}.`
+            : null,
+          revokedPowerOfAttorneyId
+            ? `Revokerade fullmakt ${revokedPowerOfAttorneyId}.`
+            : null,
+        ]
+          .filter((value): value is string => Boolean(value))
+          .join(' '),
+        tone: 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+        links,
+      })
+      continue
+    }
+
+    items.push({
+      id: log.id,
+      occurredAt: log.created_at,
+      title: log.action,
+      description: 'Audit-händelse registrerad för dokumentet.',
+      tone: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+      links: [],
+    })
+  }
+
+  if (params.documentRow.replaced_document_id) {
+    items.push({
+      id: `${params.documentRow.id}:replaced_by`,
+      occurredAt: params.documentRow.updated_at,
+      title: 'Dokument ersatt',
+      description: `Dokumentet ersattes av dokument ${params.documentRow.replaced_document_id}.`,
+      tone: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+      links: [],
+    })
+  }
+
+  return items.sort(
+    (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+  )
 }
 
 export default function CustomerAuthorizationDocumentsCard({
@@ -171,6 +563,7 @@ export default function CustomerAuthorizationDocumentsCard({
     gridOwnerDataRequests: [],
     outboundRequests: [],
     switchRequests: [],
+    documentAuditLogs: [],
   })
   const [uploadState, uploadFormAction] = useActionState(
     uploadCustomerAuthorizationDocumentAction,
@@ -198,6 +591,7 @@ export default function CustomerAuthorizationDocumentsCard({
             gridOwnerDataRequests: json.gridOwnerDataRequests ?? [],
             outboundRequests: json.outboundRequests ?? [],
             switchRequests: json.switchRequests ?? [],
+            documentAuditLogs: json.documentAuditLogs ?? [],
           })
         }
       } catch {
@@ -526,7 +920,7 @@ export default function CustomerAuthorizationDocumentsCard({
                 Dokumenthistorik och kopplingar
               </h3>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Öppna, ladda ner, sätt aktiv, arkivera och följ vilka requests/outbounds som kom från dokumentet.
+                Öppna, ladda ner, sätt aktiv, arkivera och följ hela dokumentkedjan med audit/timeline.
               </p>
             </div>
             <div className="rounded-2xl bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -541,8 +935,7 @@ export default function CustomerAuthorizationDocumentsCard({
               </div>
             ) : (
               documentsForRender.map((documentRow) => {
-                const site =
-                  sites.find((row) => row.id === documentRow.site_id) ?? null
+                const site = sites.find((row) => row.id === documentRow.site_id) ?? null
                 const linkedPowerOfAttorney = getPowerOfAttorneyForDocument(
                   documentRow,
                   powersOfAttorney
@@ -551,21 +944,17 @@ export default function CustomerAuthorizationDocumentsCard({
                 const matchingGridOwnerRequests = relations.gridOwnerDataRequests.filter((row) => {
                   const directMatch = row.authorization_document_id === documentRow.id
                   const responseMatch =
-                    getString(row.response_payload, 'authorizationDocumentId') ===
-                    documentRow.id
+                    getString(row.response_payload, 'authorizationDocumentId') === documentRow.id
                   const requestMatch =
-                    getString(row.request_payload, 'authorizationDocumentId') ===
-                    documentRow.id
+                    getString(row.request_payload, 'authorizationDocumentId') === documentRow.id
                   return directMatch || responseMatch || requestMatch
                 })
 
                 const matchingSwitchRequests = relations.switchRequests.filter((row) => {
                   const directMatch = row.authorization_document_id === documentRow.id
                   const snapshotMatch =
-                    getString(row.validation_snapshot, 'authorizationDocumentId') ===
-                      documentRow.id ||
-                    getString(row.validation_snapshot, 'sourceDocumentId') ===
-                      documentRow.id
+                    getString(row.validation_snapshot, 'authorizationDocumentId') === documentRow.id ||
+                    getString(row.validation_snapshot, 'sourceDocumentId') === documentRow.id
 
                   const poaMatch =
                     Boolean(documentRow.power_of_attorney_id) &&
@@ -598,6 +987,19 @@ export default function CustomerAuthorizationDocumentsCard({
                     matchingGridOwnerRequestIds.has(row.source_id)
 
                   return directMatch || payloadMatch || switchSourceMatch || gridOwnerSourceMatch
+                })
+
+                const matchingAuditLogs = relations.documentAuditLogs.filter(
+                  (log) => log.entity_id === documentRow.id
+                )
+
+                const timelineItems = buildDocumentTimelineItems({
+                  customerId,
+                  documentRow,
+                  matchingAuditLogs,
+                  matchingGridOwnerRequests,
+                  matchingSwitchRequests,
+                  matchingOutbounds,
                 })
 
                 return (
@@ -665,6 +1067,110 @@ export default function CustomerAuthorizationDocumentsCard({
                       </div>
                     </dl>
 
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Driftkedja
+                      </div>
+                      <div className="mt-3 grid gap-2 md:grid-cols-5">
+                        {buildDocumentFlowSteps({
+                          customerId,
+                          documentRow,
+                          linkedPowerOfAttorney,
+                          matchingGridOwnerRequests,
+                          matchingSwitchRequests,
+                          matchingOutbounds,
+                        }).map((step) => {
+                          const content = (
+                            <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                {step.label}
+                              </div>
+                              <div className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${step.tone}`}>
+                                {step.value}
+                              </div>
+                            </div>
+                          )
+
+                          return step.href ? (
+                            <Link
+                              key={`${documentRow.id}:${step.label}`}
+                              href={step.href}
+                              className="block transition hover:opacity-90"
+                            >
+                              {content}
+                            </Link>
+                          ) : (
+                            <div key={`${documentRow.id}:${step.label}`}>{content}</div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Dokumenttimeline
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {timelineItems.length} händelser
+                        </div>
+                      </div>
+
+                      {timelineItems.length === 0 ? (
+                        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                          Inga timeline-händelser ännu.
+                        </p>
+                      ) : (
+                        <div className="mt-3 space-y-3">
+                          {timelineItems.map((item) => (
+                            <div
+                              key={item.id}
+                              className="rounded-2xl border border-slate-200 bg-white px-3 py-3 dark:border-slate-800 dark:bg-slate-900"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="font-medium text-slate-900 dark:text-white">
+                                  {item.title}
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                  {formatDateTime(item.occurredAt)}
+                                </div>
+                              </div>
+                              <div className="mt-2">
+                                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.tone}`}>
+                                  Händelse
+                                </span>
+                              </div>
+                              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                                {item.description}
+                              </p>
+                              {item.links.length ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {item.links.map((link, index) =>
+                                    link.href === '#' ? (
+                                      <span
+                                        key={`${item.id}:${index}`}
+                                        className="inline-flex items-center rounded-2xl bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                      >
+                                        {link.label}
+                                      </span>
+                                    ) : (
+                                      <Link
+                                        key={`${item.id}:${index}`}
+                                        href={link.href}
+                                        className="inline-flex items-center rounded-2xl bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                                      >
+                                        {link.label}
+                                      </Link>
+                                    )
+                                  )}
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {documentRow.notes ? (
                       <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:bg-slate-950 dark:text-slate-300">
                         {documentRow.notes}
@@ -718,6 +1224,41 @@ export default function CustomerAuthorizationDocumentsCard({
                       ) : null}
                     </div>
 
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {matchingSwitchRequests[0] ? (
+                        <Link
+                          href={`/admin/operations/switches/${matchingSwitchRequests[0].id}`}
+                          className="inline-flex items-center rounded-2xl bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+                        >
+                          Gå till switch-request
+                        </Link>
+                      ) : null}
+
+                      {matchingOutbounds[0] ? (
+                        <Link
+                          href={
+                            matchingOutbounds.some((row) => row.channel_type === 'unresolved')
+                              ? '/admin/outbound/unresolved'
+                              : '/admin/outbound'
+                          }
+                          className="inline-flex items-center rounded-2xl bg-sky-50 px-3 py-2 text-xs font-medium text-sky-700 hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:bg-sky-500/20"
+                        >
+                          {matchingOutbounds.some((row) => row.channel_type === 'unresolved')
+                            ? 'Gå till outbound unresolved'
+                            : 'Gå till outbound'}
+                        </Link>
+                      ) : null}
+
+                      {matchingGridOwnerRequests[0] ? (
+                        <Link
+                          href={buildGridOwnerRequestHref(customerId)}
+                          className="inline-flex items-center rounded-2xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20"
+                        >
+                          Gå till grid owner request
+                        </Link>
+                      ) : null}
+                    </div>
+
                     <div className="mt-5 grid gap-4 lg:grid-cols-3">
                       <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
                         <h5 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -725,12 +1266,15 @@ export default function CustomerAuthorizationDocumentsCard({
                         </h5>
                         <div className="mt-2 space-y-2">
                           {matchingGridOwnerRequests.length === 0 ? (
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Inga kopplade requests.</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Inga kopplade requests.
+                            </p>
                           ) : (
                             matchingGridOwnerRequests.map((row) => (
-                              <div
+                              <Link
                                 key={row.id}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-900"
+                                href={buildGridOwnerRequestHref(customerId)}
+                                className="block rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
                               >
                                 <div className="font-medium text-slate-900 dark:text-white">
                                   {row.request_scope}
@@ -738,7 +1282,7 @@ export default function CustomerAuthorizationDocumentsCard({
                                 <div className="mt-1 text-slate-500 dark:text-slate-400">
                                   {row.id} · {row.status}
                                 </div>
-                              </div>
+                              </Link>
                             ))
                           )}
                         </div>
@@ -750,12 +1294,15 @@ export default function CustomerAuthorizationDocumentsCard({
                         </h5>
                         <div className="mt-2 space-y-2">
                           {matchingSwitchRequests.length === 0 ? (
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Inga kopplade switchar.</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Inga kopplade switchar.
+                            </p>
                           ) : (
                             matchingSwitchRequests.map((row) => (
-                              <div
+                              <Link
                                 key={row.id}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-900"
+                                href={`/admin/operations/switches/${row.id}`}
+                                className="block rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
                               >
                                 <div className="font-medium text-slate-900 dark:text-white">
                                   {row.request_type}
@@ -763,7 +1310,7 @@ export default function CustomerAuthorizationDocumentsCard({
                                 <div className="mt-1 text-slate-500 dark:text-slate-400">
                                   {row.id} · {row.status}
                                 </div>
-                              </div>
+                              </Link>
                             ))
                           )}
                         </div>
@@ -775,12 +1322,15 @@ export default function CustomerAuthorizationDocumentsCard({
                         </h5>
                         <div className="mt-2 space-y-2">
                           {matchingOutbounds.length === 0 ? (
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Inga kopplade outbounds.</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Inga kopplade outbounds.
+                            </p>
                           ) : (
                             matchingOutbounds.map((row) => (
-                              <div
+                              <Link
                                 key={row.id}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-900"
+                                href={buildOutboundHref(row)}
+                                className="block rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
                               >
                                 <div className="font-medium text-slate-900 dark:text-white">
                                   {row.request_type}
@@ -788,7 +1338,7 @@ export default function CustomerAuthorizationDocumentsCard({
                                 <div className="mt-1 text-slate-500 dark:text-slate-400">
                                   {row.id} · {row.status} · {row.channel_type}
                                 </div>
-                              </div>
+                              </Link>
                             ))
                           )}
                         </div>

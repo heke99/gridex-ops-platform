@@ -31,7 +31,9 @@ import {
   setCustomerAuthorizationDocumentAsActive,
   syncCustomerOperationsForCustomer,
   syncCustomerOperationsForSite,
+  updateSupplierSwitchRequestStatus,
   updateSupplierSwitchValidationSnapshot,
+  listSupplierSwitchRequestsByCustomerId,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import type {
@@ -42,7 +44,10 @@ import {
   createGridOwnerDataRequest,
   createOutboundRequest,
   findOpenOutboundBySource,
+  listGridOwnerDataRequestsByCustomerId,
+  listOutboundRequestsByCustomerId,
   updateGridOwnerDataRequestStatus,
+  updateOutboundRequestStatus,
 } from '@/lib/cis/db'
 
 function formValue(formData: FormData, key: string): string | null {
@@ -96,6 +101,232 @@ function normalizeJsonObject(
     return value as Record<string, unknown>
   }
   return {}
+}
+
+function getRecordValue(
+  value: unknown,
+  key: string
+): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  return (value as Record<string, unknown>)[key]
+}
+
+function getString(
+  value: unknown,
+  key: string
+): string | null {
+  const raw = getRecordValue(value, key)
+  return typeof raw === 'string' ? raw : null
+}
+
+type ArchiveLinkedRecordsImpact = {
+  cancelledGridOwnerRequestIds: string[]
+  flaggedGridOwnerRequestIds: string[]
+  cancelledOutboundIds: string[]
+  flaggedOutboundIds: string[]
+  failedSwitchRequestIds: string[]
+  flaggedSwitchRequestIds: string[]
+}
+
+function mergeObjectRecord(
+  base: unknown,
+  extra: Record<string, unknown>
+): Record<string, unknown> {
+  if (base && typeof base === 'object' && !Array.isArray(base)) {
+    return {
+      ...(base as Record<string, unknown>),
+      ...extra,
+    }
+  }
+
+  return { ...extra }
+}
+
+async function handleArchivedDocumentLinkedRecords(params: {
+  actorUserId: string
+  customerId: string
+  document: CustomerAuthorizationDocumentRow
+  reason: string
+}): Promise<ArchiveLinkedRecordsImpact> {
+  const supabase = await createSupabaseServerClient()
+  const impact: ArchiveLinkedRecordsImpact = {
+    cancelledGridOwnerRequestIds: [],
+    flaggedGridOwnerRequestIds: [],
+    cancelledOutboundIds: [],
+    flaggedOutboundIds: [],
+    failedSwitchRequestIds: [],
+    flaggedSwitchRequestIds: [],
+  }
+
+  const [gridOwnerDataRequests, outboundRequests, switchRequests] = await Promise.all([
+    listGridOwnerDataRequestsByCustomerId(params.customerId),
+    listOutboundRequestsByCustomerId(params.customerId),
+    listSupplierSwitchRequestsByCustomerId(supabase, params.customerId),
+  ])
+
+  const matchingGridOwnerRequests = gridOwnerDataRequests.filter((row) => {
+    const directMatch = row.authorization_document_id === params.document.id
+    const responseMatch =
+      getString(row.response_payload, 'authorizationDocumentId') === params.document.id
+    const requestMatch =
+      getString(row.request_payload, 'authorizationDocumentId') === params.document.id
+    return directMatch || responseMatch || requestMatch
+  })
+
+  const matchingSwitchRequests = switchRequests.filter((row) => {
+    const directMatch = row.authorization_document_id === params.document.id
+    const snapshotMatch =
+      getString(row.validation_snapshot, 'authorizationDocumentId') ===
+        params.document.id ||
+      getString(row.validation_snapshot, 'sourceDocumentId') === params.document.id
+
+    const poaMatch =
+      Boolean(params.document.power_of_attorney_id) &&
+      row.power_of_attorney_id === params.document.power_of_attorney_id
+
+    return directMatch || snapshotMatch || poaMatch
+  })
+
+  const matchingGridOwnerRequestIds = new Set(
+    matchingGridOwnerRequests.map((row) => row.id)
+  )
+  const matchingSwitchRequestIds = new Set(
+    matchingSwitchRequests.map((row) => row.id)
+  )
+
+  const matchingOutbounds = outboundRequests.filter((row) => {
+    const directMatch = row.authorization_document_id === params.document.id
+    const payloadMatch =
+      getString(row.payload, 'authorizationDocumentId') === params.document.id ||
+      getString(row.response_payload, 'authorizationDocumentId') === params.document.id
+
+    const switchSourceMatch =
+      row.source_type === 'supplier_switch_request' &&
+      typeof row.source_id === 'string' &&
+      matchingSwitchRequestIds.has(row.source_id)
+
+    const gridOwnerSourceMatch =
+      row.source_type === 'grid_owner_data_request' &&
+      typeof row.source_id === 'string' &&
+      matchingGridOwnerRequestIds.has(row.source_id)
+
+    return directMatch || payloadMatch || switchSourceMatch || gridOwnerSourceMatch
+  })
+
+  for (const row of matchingGridOwnerRequests) {
+    const nextPayload = mergeObjectRecord(row.response_payload, {
+      documentArchived: true,
+      documentArchivedAt: new Date().toISOString(),
+      documentArchivedReason: params.reason,
+      authorizationDocumentId: params.document.id,
+    })
+
+    if (row.status === 'pending') {
+      await updateGridOwnerDataRequestStatus({
+        actorUserId: params.actorUserId,
+        requestId: row.id,
+        status: 'cancelled',
+        externalReference: row.external_reference,
+        responsePayload: nextPayload,
+        notes: row.notes
+          ? `${row.notes}\n\nAutomatisk markering: request stoppades eftersom dokument ${params.document.id} arkiverades. Orsak: ${params.reason}`
+          : `Automatisk markering: request stoppades eftersom dokument ${params.document.id} arkiverades. Orsak: ${params.reason}`,
+      })
+      impact.cancelledGridOwnerRequestIds.push(row.id)
+      continue
+    }
+
+    await supabaseService
+      .from('grid_owner_data_requests')
+      .update({
+        response_payload: nextPayload,
+        notes: row.notes
+          ? `${row.notes}\n\nFlaggad: kopplat dokument ${params.document.id} har arkiverats. Orsak: ${params.reason}`
+          : `Flaggad: kopplat dokument ${params.document.id} har arkiverats. Orsak: ${params.reason}`,
+        updated_by: params.actorUserId,
+      })
+      .eq('id', row.id)
+
+    impact.flaggedGridOwnerRequestIds.push(row.id)
+  }
+
+  for (const row of matchingOutbounds) {
+    const nextPayload = mergeObjectRecord(row.response_payload, {
+      documentArchived: true,
+      documentArchivedAt: new Date().toISOString(),
+      documentArchivedReason: params.reason,
+      authorizationDocumentId: params.document.id,
+    })
+
+    if (row.status === 'queued' || row.status === 'prepared') {
+      await updateOutboundRequestStatus({
+        actorUserId: params.actorUserId,
+        outboundRequestId: row.id,
+        status: 'cancelled',
+        externalReference: row.external_reference,
+        failureReason: `Outbound stoppades eftersom dokument ${params.document.id} arkiverades. Orsak: ${params.reason}`,
+        responsePayload: nextPayload,
+      })
+      impact.cancelledOutboundIds.push(row.id)
+      continue
+    }
+
+    await supabaseService
+      .from('outbound_requests')
+      .update({
+        response_payload: nextPayload,
+        updated_by: params.actorUserId,
+      })
+      .eq('id', row.id)
+
+    impact.flaggedOutboundIds.push(row.id)
+  }
+
+  for (const row of matchingSwitchRequests) {
+    const nextSnapshot = mergeObjectRecord(row.validation_snapshot, {
+      documentArchived: true,
+      documentArchivedAt: new Date().toISOString(),
+      documentArchivedReason: params.reason,
+      authorizationDocumentId: params.document.id,
+    })
+
+    if (row.status === 'draft' || row.status === 'queued' || row.status === 'submitted') {
+      await updateSupplierSwitchRequestStatus(supabase, {
+        requestId: row.id,
+        status: 'failed',
+        externalReference: row.external_reference,
+        failureReason: `Switchärendet stoppades eftersom dokument ${params.document.id} arkiverades. Orsak: ${params.reason}`,
+      })
+
+      await updateSupplierSwitchValidationSnapshot(supabase, {
+        requestId: row.id,
+        validationSnapshot: nextSnapshot,
+      })
+
+      impact.failedSwitchRequestIds.push(row.id)
+      continue
+    }
+
+    await updateSupplierSwitchValidationSnapshot(supabase, {
+      requestId: row.id,
+      validationSnapshot: nextSnapshot,
+    })
+
+    await createSupplierSwitchEvent(supabase, {
+      switchRequestId: row.id,
+      eventType: 'document_archived_flagged',
+      eventStatus: row.status,
+      message: `Kopplat dokument ${params.document.id} arkiverades. Orsak: ${params.reason}`,
+      payload: {
+        authorizationDocumentId: params.document.id,
+        archivedReason: params.reason,
+      },
+    })
+
+    impact.flaggedSwitchRequestIds.push(row.id)
+  }
+
+  return impact
 }
 
 export type UploadCustomerAuthorizationDocumentActionState = {
@@ -1058,6 +1289,13 @@ export async function archiveCustomerAuthorizationDocumentAction(
     reason,
   })
 
+  const archiveImpact = await handleArchivedDocumentLinkedRecords({
+    actorUserId: actor.id,
+    customerId,
+    document: archived.documentAfter,
+    reason,
+  })
+
   const syncSummary = archived.documentAfter.site_id
     ? await syncCustomerOperationsForSite(supabase, {
         customerId,
@@ -1075,6 +1313,7 @@ export async function archiveCustomerAuthorizationDocumentAction(
     metadata: {
       customerId,
       revokedPowerOfAttorneyId: archived.revokedPowerOfAttorney?.id ?? null,
+      archiveImpact,
       syncSummary,
     },
   })
@@ -1082,6 +1321,9 @@ export async function archiveCustomerAuthorizationDocumentAction(
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/operations/switches')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/unresolved')
 }
 
 export async function setCustomerAuthorizationDocumentActiveAction(
