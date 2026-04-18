@@ -49,6 +49,8 @@ export type CustomerAuthorizationDocumentRow = {
   file_size_bytes: number | null
   storage_bucket: string | null
   file_path: string
+  file_checksum: string | null
+  upload_idempotency_key: string | null
   reference: string | null
   notes: string | null
   archived_reason: string | null

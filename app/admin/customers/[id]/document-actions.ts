@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { createHash } from 'node:crypto'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
@@ -23,6 +24,8 @@ import {
   listActiveCustomerAuthorizationDocumentsByScope,
   listMeteringPointsForSite,
   listPowersOfAttorneyByCustomerId,
+  buildDocumentUploadIdempotencyKey,
+  findExistingCustomerAuthorizationDocumentByFingerprint,
   saveCustomerAuthorizationDocument,
   savePowerOfAttorney,
   setCustomerAuthorizationDocumentAsActive,
@@ -93,6 +96,26 @@ function normalizeJsonObject(
     return value as Record<string, unknown>
   }
   return {}
+}
+
+export type UploadCustomerAuthorizationDocumentActionState = {
+  status: 'idle' | 'success' | 'duplicate' | 'error'
+  message: string | null
+  documentId: string | null
+  duplicateDocumentId: string | null
+}
+
+export const initialUploadCustomerAuthorizationDocumentActionState: UploadCustomerAuthorizationDocumentActionState =
+  {
+    status: 'idle',
+    message: null,
+    documentId: null,
+    duplicateDocumentId: null,
+  }
+
+async function buildFileChecksum(file: File): Promise<string> {
+  const buffer = Buffer.from(await file.arrayBuffer())
+  return createHash('sha256').update(buffer).digest('hex')
 }
 
 async function getActor() {
@@ -447,8 +470,9 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
 }
 
 export async function uploadCustomerAuthorizationDocumentAction(
+  _previousState: UploadCustomerAuthorizationDocumentActionState,
   formData: FormData
-): Promise<void> {
+): Promise<UploadCustomerAuthorizationDocumentActionState> {
   await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
   const actor = await getActor()
@@ -505,11 +529,50 @@ export async function uploadCustomerAuthorizationDocumentAction(
   const fileValue = formData.get('document_file')
 
   if (!customerId) {
-    throw new Error('Customer ID saknas')
+    return {
+      status: 'error',
+      message: 'Customer ID saknas.',
+      documentId: null,
+      duplicateDocumentId: null,
+    }
   }
 
   if (!(fileValue instanceof File) || fileValue.size === 0) {
-    throw new Error('Du måste välja en fil att ladda upp')
+    return {
+      status: 'error',
+      message: 'Du måste välja en fil att ladda upp.',
+      documentId: null,
+      duplicateDocumentId: null,
+    }
+  }
+
+  const fileChecksum = await buildFileChecksum(fileValue)
+  const uploadIdempotencyKey = buildDocumentUploadIdempotencyKey({
+    customerId,
+    siteId,
+    documentType,
+    fileChecksum,
+  })
+
+  const existingDocument = await findExistingCustomerAuthorizationDocumentByFingerprint(
+    supabase,
+    {
+      customerId,
+      siteId,
+      documentType,
+      fileChecksum,
+    }
+  )
+
+  if (existingDocument) {
+    revalidatePath(`/admin/customers/${customerId}`)
+
+    return {
+      status: 'duplicate',
+      message: `Dokumentet finns redan. Befintligt dokument ${existingDocument.id} återanvändes i stället för ny upload.`,
+      documentId: existingDocument.id,
+      duplicateDocumentId: existingDocument.id,
+    }
   }
 
   const bucket = 'customer-documents'
@@ -560,6 +623,8 @@ export async function uploadCustomerAuthorizationDocumentAction(
     file_size_bytes: fileValue.size || null,
     storage_bucket: bucket,
     file_path: filePath,
+    file_checksum: fileChecksum,
+    upload_idempotency_key: uploadIdempotencyKey,
     reference,
     notes,
   })
@@ -701,6 +766,13 @@ export async function uploadCustomerAuthorizationDocumentAction(
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/unresolved')
+
+  return {
+    status: 'success',
+    message: `Dokument ${savedDocument.id} uppladdat och registrerat. ${replaceDocumentId ? 'Ersättningsflöde kördes.' : 'Nytt dokument sparades.'}`,
+    documentId: savedDocument.id,
+    duplicateDocumentId: null,
+  }
 }
 
 export async function archiveCustomerAuthorizationDocumentAction(

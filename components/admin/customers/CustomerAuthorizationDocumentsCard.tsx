@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useActionState, useEffect, useMemo, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type {
@@ -14,6 +14,7 @@ import type {
 } from '@/lib/cis/types'
 import {
   archiveCustomerAuthorizationDocumentAction,
+  initialUploadCustomerAuthorizationDocumentActionState,
   setCustomerAuthorizationDocumentActiveAction,
   uploadCustomerAuthorizationDocumentAction,
 } from '@/app/admin/customers/[id]/document-actions'
@@ -102,6 +103,47 @@ function statusBadgeClass(status: string) {
   }
 }
 
+function uploadResultClass(status: 'idle' | 'success' | 'duplicate' | 'error') {
+  switch (status) {
+    case 'success':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200'
+    case 'duplicate':
+      return 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-500/10 dark:text-amber-200'
+    case 'error':
+      return 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-200'
+    default:
+      return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300'
+  }
+}
+
+function documentFlowBadge(
+  documentRow: CustomerAuthorizationDocumentRow,
+  allDocuments: CustomerAuthorizationDocumentRow[]
+): { label: string; className: string } {
+  const replacesAnotherDocument = allDocuments.some(
+    (row) => row.replaced_document_id === documentRow.id
+  )
+
+  if (replacesAnotherDocument) {
+    return {
+      label: 'Ersättningsdokument',
+      className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
+    }
+  }
+
+  if (documentRow.status === 'archived' && documentRow.replaced_document_id) {
+    return {
+      label: 'Ersatt',
+      className: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    }
+  }
+
+  return {
+    label: 'Nytt dokument',
+    className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+  }
+}
+
 type RelationsResponse = {
   gridOwnerDataRequests: GridOwnerDataRequestRow[]
   outboundRequests: OutboundRequestRow[]
@@ -130,6 +172,10 @@ export default function CustomerAuthorizationDocumentsCard({
     outboundRequests: [],
     switchRequests: [],
   })
+  const [uploadState, uploadFormAction] = useActionState(
+    uploadCustomerAuthorizationDocumentAction,
+    initialUploadCustomerAuthorizationDocumentActionState
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -193,11 +239,26 @@ export default function CustomerAuthorizationDocumentsCard({
             Fullmakt / komplett avtal
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Upload kan nu skapa fullmakt, nätägarbegäran, supplier switch och outbound direkt.
+            Upload kan nu skapa fullmakt, nätägarbegäran, supplier switch och outbound direkt, och blockerar samma fil via checksum/idempotency.
           </p>
         </div>
 
-        <form action={uploadCustomerAuthorizationDocumentAction} className="mt-6 space-y-4">
+                {uploadState.status !== 'idle' && uploadState.message ? (
+          <div
+            className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${uploadResultClass(uploadState.status)}`}
+          >
+            <div className="font-medium">
+              {uploadState.status === 'duplicate'
+                ? 'Dubblett blockerad'
+                : uploadState.status === 'success'
+                  ? 'Upload klar'
+                  : 'Något gick fel'}
+            </div>
+            <div className="mt-1">{uploadState.message}</div>
+          </div>
+        ) : null}
+
+        <form action={uploadFormAction} className="mt-6 space-y-4">
           <input type="hidden" name="customer_id" value={customerId} />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -555,11 +616,23 @@ export default function CustomerAuthorizationDocumentsCard({
                         </p>
                       </div>
 
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(documentRow.status)}`}
-                      >
-                        {documentRow.status}
-                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(documentRow.status)}`}
+                        >
+                          {documentRow.status}
+                        </span>
+                        {(() => {
+                          const flowBadge = documentFlowBadge(documentRow, documentsForRender)
+                          return (
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${flowBadge.className}`}
+                            >
+                              {flowBadge.label}
+                            </span>
+                          )
+                        })()}
+                      </div>
                     </div>
 
                     <dl className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
@@ -571,6 +644,12 @@ export default function CustomerAuthorizationDocumentsCard({
                       </div>
                       <div>
                         <span className="font-medium">Referens:</span> {documentRow.reference ?? '—'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Checksum:</span> {documentRow.file_checksum ?? '—'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Upload key:</span> {documentRow.upload_idempotency_key ?? '—'}
                       </div>
                       <div>
                         <span className="font-medium">Arkiveringsorsak:</span> {documentRow.archived_reason ?? '—'}

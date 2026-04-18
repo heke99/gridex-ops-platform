@@ -32,6 +32,46 @@ function appendNote(
   return `${base}\n\n${extra}`
 }
 
+const EMPTY_UUID = '00000000-0000-0000-0000-000000000000'
+
+export function buildDocumentUploadIdempotencyKey(params: {
+  customerId: string
+  siteId?: string | null
+  documentType: 'power_of_attorney' | 'complete_agreement'
+  fileChecksum: string
+}): string {
+  return `cust:${params.customerId}|site:${params.siteId ?? EMPTY_UUID}|type:${params.documentType}|sha:${params.fileChecksum}`
+}
+
+export async function findExistingCustomerAuthorizationDocumentByFingerprint(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string
+    siteId?: string | null
+    documentType: 'power_of_attorney' | 'complete_agreement'
+    fileChecksum: string
+  }
+): Promise<CustomerAuthorizationDocumentRow | null> {
+  let query = supabase
+    .from('customer_authorization_documents')
+    .select('*')
+    .eq('customer_id', params.customerId)
+    .eq('document_type', params.documentType)
+    .eq('file_checksum', params.fileChecksum)
+    .neq('status', 'archived')
+    .order('uploaded_at', { ascending: false })
+    .limit(1)
+
+  query = params.siteId
+    ? query.eq('site_id', params.siteId)
+    : query.is('site_id', null)
+
+  const { data, error } = await query.maybeSingle()
+
+  if (error) throw error
+  return (data as CustomerAuthorizationDocumentRow | null) ?? null
+}
+
 export async function listPowersOfAttorneyByCustomerId(
   supabase: SupabaseClient,
   customerId: string
@@ -504,6 +544,8 @@ export async function saveCustomerAuthorizationDocument(
     file_size_bytes?: number | null
     storage_bucket?: string | null
     file_path: string
+    file_checksum?: string | null
+    upload_idempotency_key?: string | null
     reference?: string | null
     notes?: string | null
     uploaded_at?: string | null
@@ -523,6 +565,8 @@ export async function saveCustomerAuthorizationDocument(
     file_size_bytes: input.file_size_bytes ?? null,
     storage_bucket: input.storage_bucket ?? null,
     file_path: input.file_path,
+    file_checksum: input.file_checksum ?? null,
+    upload_idempotency_key: input.upload_idempotency_key ?? null,
     reference: input.reference ?? null,
     notes: input.notes ?? null,
     uploaded_at: input.uploaded_at ?? new Date().toISOString(),
