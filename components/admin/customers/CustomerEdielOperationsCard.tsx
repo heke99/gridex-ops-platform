@@ -1,5 +1,3 @@
-// components/admin/customers/CustomerEdielOperationsCard.tsx
-
 import Link from 'next/link'
 import type { CommunicationRouteRow, GridOwnerDataRequestRow } from '@/lib/cis/types'
 import type {
@@ -260,7 +258,8 @@ function messageActivityTime(message: EdielMessageSummaryRow): string {
 function sortMessagesDesc(rows: EdielMessageSummaryRow[]): EdielMessageSummaryRow[] {
   return [...rows].sort(
     (a, b) =>
-      new Date(messageActivityTime(b)).getTime() - new Date(messageActivityTime(a)).getTime()
+      new Date(messageActivityTime(b)).getTime() -
+      new Date(messageActivityTime(a)).getTime()
   )
 }
 
@@ -338,9 +337,10 @@ export default async function CustomerEdielOperationsCard({
   recommendationRoutes,
 }: Props) {
   const supabase = await createSupabaseServerClient()
-const {
-  data: { user },
-} = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   const latestSwitches = latestSwitchPerSite(sites, switchRequests)
   const openDataRequests = dataRequests
     .filter((row) => ['pending', 'sent', 'received'].includes(row.status))
@@ -352,9 +352,6 @@ const {
   const profileByRouteId = new Map(
     routeProfiles.map((profile) => [profile.communication_route_id, profile])
   )
-
-  const gridOwnerById = new Map(gridOwners.map((row) => [row.id, row]))
-  void gridOwnerById
 
   const recommendation = getRecommendationSummary({
     switchRequests,
@@ -515,7 +512,10 @@ const {
               <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasMailbox ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
                 mailbox {recommendation.routeHealth.hasMailbox ? 'ok' : 'saknas'}
               </span>
-                        <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:col-span-5">
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/80 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:col-span-5">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">
               Routebedömning
             </div>
@@ -547,8 +547,6 @@ const {
                 issues={recommendation.routeIssues}
                 customerId={customerId}
               />
-            </div>
-          </div>
             </div>
           </div>
         </div>
@@ -626,7 +624,11 @@ const {
                     </div>
 
                     <div className="mt-4 grid gap-3 md:grid-cols-4">
-                      <Grid label="Switch request" value={request.id} />
+                      <Grid
+                        label="Switch request"
+                        value={request.id}
+                        href={`/admin/operations/switches/${request.id}`}
+                      />
                       <Grid
                         label="Nätägare"
                         value={
@@ -946,8 +948,24 @@ const {
                       <Grid label="External reference" value={message.external_reference} />
                       <Grid label="Sender" value={message.sender_ediel_id} />
                       <Grid label="Receiver" value={message.receiver_ediel_id} />
-                      <Grid label="Switch request" value={message.switch_request_id} />
-                      <Grid label="Data request" value={message.grid_owner_data_request_id} />
+                      <Grid
+                        label="Switch request"
+                        value={message.switch_request_id}
+                        href={
+                          message.switch_request_id
+                            ? `/admin/operations/switches/${message.switch_request_id}`
+                            : undefined
+                        }
+                      />
+                      <Grid
+                        label="Data request"
+                        value={message.grid_owner_data_request_id}
+                        href={
+                          message.grid_owner_data_request_id
+                            ? `/admin/operations/grid-owner-requests/${message.grid_owner_data_request_id}`
+                            : undefined
+                        }
+                      />
                     </div>
 
                     {message.direction === 'outbound' &&

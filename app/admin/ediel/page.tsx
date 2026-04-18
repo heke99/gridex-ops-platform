@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
@@ -87,17 +88,30 @@ function isEdielCandidateRoute(route: SimpleCommunicationRouteRow): boolean {
 function Cell({
   label,
   value,
+  href,
 }: {
   label: string
   value: string | null | undefined
+  href?: string
 }) {
+  const displayValue = value && value.length > 0 ? value : '—'
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-3">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </div>
       <div className="mt-1 break-all text-sm text-slate-900">
-        {value && value.length > 0 ? value : '—'}
+        {href && value ? (
+          <Link
+            href={href}
+            className="font-medium text-indigo-700 underline-offset-2 hover:underline"
+          >
+            {displayValue}
+          </Link>
+        ) : (
+          displayValue
+        )}
       </div>
     </div>
   )
@@ -294,7 +308,7 @@ export default async function AdminEdielPage() {
 
     const profile = profileByRouteId.get(route.id) ?? null
 
-        return {
+    return {
       id: route.id,
       route_name: route.route_name,
       route_scope: route.route_scope,
@@ -381,7 +395,10 @@ export default async function AdminEdielPage() {
             <Badge tone={recommendation.routeHealth.isReadyForOutbound ? 'green' : 'red'}>
               outbound {recommendation.routeHealth.isReadyForOutbound ? 'redo' : 'blockerad'}
             </Badge>
-                    <div className="mt-4 rounded-2xl border border-white/70 bg-white p-4">
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-white/70 bg-white p-4">
           <div className="text-sm font-semibold text-slate-900">Routebedömning</div>
           <p className="mt-2 text-sm text-slate-600">{recommendation.routeSummary}</p>
 
@@ -410,31 +427,6 @@ export default async function AdminEdielPage() {
             />
           </div>
         </div>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-white/70 bg-white p-4 text-sm text-slate-700">
-          {recommendation.routeSummary}
-        </div>
-
-        {recommendation.routeIssues.length > 0 ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {recommendation.routeIssues.map((issue) => (
-              <div
-                key={issue.key}
-                className="rounded-2xl border border-white/70 bg-white p-4"
-              >
-                <div className="flex items-center gap-2">
-                  <Badge tone={issue.severity === 'error' ? 'red' : 'yellow'}>
-                    {issue.severity === 'error' ? 'blockerare' : 'varning'}
-                  </Badge>
-                  <div className="text-sm font-semibold text-slate-950">{issue.label}</div>
-                </div>
-                <p className="mt-2 text-sm text-slate-600">{issue.resolution}</p>
-              </div>
-            ))}
-          </div>
-        ) : null}
 
         <div className="mt-4 grid gap-4 md:grid-cols-5">
           <div className="rounded-2xl border border-white/70 bg-white p-4">
@@ -772,7 +764,12 @@ export default async function AdminEdielPage() {
                 return (
                   <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="text-sm font-semibold text-slate-950">{row.id}</div>
+                      <Link
+                        href={`/admin/operations/switches/${row.id}`}
+                        className="text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline"
+                      >
+                        {row.id}
+                      </Link>
                       <Badge tone={getRequestTone(row.status)}>{row.status}</Badge>
                       {outbound ? (
                         <Badge tone={getOutboundStatusTone(outbound.status)}>
@@ -847,7 +844,12 @@ export default async function AdminEdielPage() {
                 return (
                   <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="text-sm font-semibold text-slate-950">{row.id}</div>
+                      <Link
+                        href={`/admin/operations/grid-owner-requests/${row.id}`}
+                        className="text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline"
+                      >
+                        {row.id}
+                      </Link>
                       <Badge tone={getRequestTone(row.status)}>
                         {row.request_scope} · {row.status}
                       </Badge>
@@ -1156,10 +1158,23 @@ export default async function AdminEdielPage() {
                     />
                     <Cell label="Sender Ediel-id" value={row.sender_ediel_id} />
                     <Cell label="Receiver Ediel-id" value={row.receiver_ediel_id} />
-                    <Cell label="Switch request" value={row.switch_request_id} />
+                    <Cell
+                      label="Switch request"
+                      value={row.switch_request_id}
+                      href={
+                        row.switch_request_id
+                          ? `/admin/operations/switches/${row.switch_request_id}`
+                          : undefined
+                      }
+                    />
                     <Cell
                       label="Data request"
                       value={row.grid_owner_data_request_id}
+                      href={
+                        row.grid_owner_data_request_id
+                          ? `/admin/operations/grid-owner-requests/${row.grid_owner_data_request_id}`
+                          : undefined
+                      }
                     />
                     <Cell
                       label="Outbound request"
