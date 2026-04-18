@@ -213,6 +213,53 @@ export async function getCustomerAuthorizationDocumentById(
 }
 
 
+function findPostgresErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== 'object') return null
+  const maybeCode = (error as { code?: unknown }).code
+  return typeof maybeCode === 'string' ? maybeCode : null
+}
+
+export function buildGridOwnerDataRequestAutomationKey(params: {
+  documentId: string
+  requestScope: 'meter_values' | 'billing_underlay' | 'customer_masterdata'
+}): string {
+  return `doc:${params.documentId}|gor_scope:${params.requestScope}`
+}
+
+export function buildOutboundRequestAutomationKey(params: {
+  documentId: string
+  requestType: 'supplier_switch' | 'meter_values' | 'billing_underlay'
+  sourceType?:
+    | 'supplier_switch_request'
+    | 'grid_owner_data_request'
+    | 'bulk_generation'
+    | 'manual'
+    | null
+}): string {
+  return `doc:${params.documentId}|out_req:${params.requestType}|src:${params.sourceType ?? 'none'}`
+}
+
+export function buildSupplierSwitchRequestAutomationKey(
+  documentId: string
+): string {
+  return `doc:${documentId}|switch`
+}
+
+async function getSupplierSwitchRequestByAutomationKey(
+  supabase: SupabaseClient,
+  automationKey: string
+): Promise<SupplierSwitchRequestRow | null> {
+  const { data, error } = await supabase
+    .from('supplier_switch_requests')
+    .select('*')
+    .eq('automation_key', automationKey)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as SupplierSwitchRequestRow | null) ?? null
+}
+
+
 export async function assignAuthorizationDocumentToGridOwnerRequest(
   supabase: SupabaseClient,
   params: {
@@ -221,11 +268,23 @@ export async function assignAuthorizationDocumentToGridOwnerRequest(
   }
 ): Promise<void> {
   const actorId = await getActorId(supabase)
+  const { data: existing, error: existingError } = await supabase
+    .from('grid_owner_data_requests')
+    .select('id, request_scope')
+    .eq('id', params.requestId)
+    .single()
+
+  if (existingError) throw existingError
 
   const { error } = await supabase
     .from('grid_owner_data_requests')
     .update({
       authorization_document_id: params.documentId,
+      automation_origin: 'document_upload',
+      automation_key: buildGridOwnerDataRequestAutomationKey({
+        documentId: params.documentId,
+        requestScope: existing.request_scope,
+      }),
       updated_by: actorId,
     })
     .eq('id', params.requestId)
@@ -241,11 +300,24 @@ export async function assignAuthorizationDocumentToOutboundRequest(
   }
 ): Promise<void> {
   const actorId = await getActorId(supabase)
+  const { data: existing, error: existingError } = await supabase
+    .from('outbound_requests')
+    .select('id, request_type, source_type')
+    .eq('id', params.outboundRequestId)
+    .single()
+
+  if (existingError) throw existingError
 
   const { error } = await supabase
     .from('outbound_requests')
     .update({
       authorization_document_id: params.documentId,
+      automation_origin: 'document_upload',
+      automation_key: buildOutboundRequestAutomationKey({
+        documentId: params.documentId,
+        requestType: existing.request_type,
+        sourceType: existing.source_type,
+      }),
       updated_by: actorId,
     })
     .eq('id', params.outboundRequestId)
@@ -266,6 +338,8 @@ export async function assignAuthorizationDocumentToSwitchRequest(
     .from('supplier_switch_requests')
     .update({
       authorization_document_id: params.documentId,
+      automation_origin: 'document_upload',
+      automation_key: buildSupplierSwitchRequestAutomationKey(params.documentId),
       updated_by: actorId,
     })
     .eq('id', params.requestId)
@@ -283,6 +357,23 @@ export async function findOpenGridOwnerDataRequestByDocument(
     documentId: string
   }
 ) {
+  const automationKey = buildGridOwnerDataRequestAutomationKey({
+    documentId: params.documentId,
+    requestScope: params.requestScope,
+  })
+
+  const { data: automated, error: automatedError } = await supabase
+    .from('grid_owner_data_requests')
+    .select('*')
+    .eq('automation_key', automationKey)
+    .in('status', ['pending', 'sent', 'received'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (automatedError) throw automatedError
+  if (automated) return automated
+
   let query = supabase
     .from('grid_owner_data_requests')
     .select('*')
@@ -322,6 +413,24 @@ export async function findOpenOutboundRequestByDocument(
     sourceId?: string | null
   }
 ) {
+  const automationKey = buildOutboundRequestAutomationKey({
+    documentId: params.documentId,
+    requestType: params.requestType,
+    sourceType: params.sourceType ?? null,
+  })
+
+  const { data: automated, error: automatedError } = await supabase
+    .from('outbound_requests')
+    .select('*')
+    .eq('automation_key', automationKey)
+    .in('status', ['queued', 'prepared', 'sent', 'acknowledged'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (automatedError) throw automatedError
+  if (automated) return automated
+
   let query = supabase
     .from('outbound_requests')
     .select('*')
@@ -1039,6 +1148,9 @@ export async function createSupplierSwitchRequest(
     meteringPoint: MeteringPointRow
     requestType: SupplierSwitchRequestType
     requestedStartDate: string | null
+    authorizationDocumentId?: string | null
+    automationOrigin?: string | null
+    automationKey?: string | null
   }
 ): Promise<SupplierSwitchRequestRow> {
   const actorId = await getActorId(supabase)
@@ -1048,38 +1160,59 @@ export async function createSupplierSwitchRequest(
   const incomingSupplierName = ownSupplier?.name ?? 'Gridex'
   const incomingSupplierOrgNumber = ownSupplier?.org_number ?? null
 
+  const insertPayload = {
+    customer_id: params.readiness.customerId,
+    site_id: params.site.id,
+    metering_point_id: params.meteringPoint.id,
+    power_of_attorney_id: params.readiness.latestPowerOfAttorneyId,
+    authorization_document_id: params.authorizationDocumentId ?? null,
+    request_type: params.requestType,
+    status: 'queued' as const,
+    requested_start_date: params.requestedStartDate,
+    current_supplier_name: params.site.current_supplier_name,
+    current_supplier_org_number: params.site.current_supplier_org_number,
+    incoming_supplier_name: incomingSupplierName,
+    incoming_supplier_org_number: incomingSupplierOrgNumber,
+    grid_owner_id:
+      params.meteringPoint.grid_owner_id ?? params.site.grid_owner_id ?? null,
+    price_area_code:
+      params.meteringPoint.price_area_code ?? params.site.price_area_code ?? null,
+    validation_snapshot: {
+      isReady: params.readiness.isReady,
+      issues: params.readiness.issues,
+      candidateMeteringPointId: params.readiness.candidateMeteringPointId,
+      latestPowerOfAttorneyId: params.readiness.latestPowerOfAttorneyId,
+      ownSupplierResolution: ownSupplierLookup.resolution,
+    },
+    automation_origin: params.automationOrigin ?? null,
+    automation_key: params.automationKey ?? null,
+    created_by: actorId,
+    updated_by: actorId,
+  }
+
   const { data, error } = await supabase
     .from('supplier_switch_requests')
-    .insert({
-      customer_id: params.readiness.customerId,
-      site_id: params.site.id,
-      metering_point_id: params.meteringPoint.id,
-      power_of_attorney_id: params.readiness.latestPowerOfAttorneyId,
-      request_type: params.requestType,
-      status: 'queued',
-      requested_start_date: params.requestedStartDate,
-      current_supplier_name: params.site.current_supplier_name,
-      current_supplier_org_number: params.site.current_supplier_org_number,
-      incoming_supplier_name: incomingSupplierName,
-      incoming_supplier_org_number: incomingSupplierOrgNumber,
-      grid_owner_id:
-        params.meteringPoint.grid_owner_id ?? params.site.grid_owner_id ?? null,
-      price_area_code:
-        params.meteringPoint.price_area_code ?? params.site.price_area_code ?? null,
-      validation_snapshot: {
-        isReady: params.readiness.isReady,
-        issues: params.readiness.issues,
-        candidateMeteringPointId: params.readiness.candidateMeteringPointId,
-        latestPowerOfAttorneyId: params.readiness.latestPowerOfAttorneyId,
-        ownSupplierResolution: ownSupplierLookup.resolution,
-      },
-      created_by: actorId,
-      updated_by: actorId,
-    })
+    .insert(insertPayload)
     .select('*')
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (
+      findPostgresErrorCode(error) === '23505' &&
+      params.automationKey
+    ) {
+      const existing = await getSupplierSwitchRequestByAutomationKey(
+        supabase,
+        params.automationKey
+      )
+
+      if (existing) {
+        return existing
+      }
+    }
+
+    throw error
+  }
 
   const request = data as SupplierSwitchRequestRow
 

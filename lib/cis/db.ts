@@ -46,6 +46,39 @@ function mergeJsonObjects(
   }
 }
 
+
+function findPostgresErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== 'object') return null
+  const maybeCode = (error as { code?: unknown }).code
+  return typeof maybeCode === 'string' ? maybeCode : null
+}
+
+async function getGridOwnerDataRequestByAutomationKey(
+  automationKey: string
+): Promise<GridOwnerDataRequestRow | null> {
+  const { data, error } = await supabaseService
+    .from('grid_owner_data_requests')
+    .select('*')
+    .eq('automation_key', automationKey)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as GridOwnerDataRequestRow | null) ?? null
+}
+
+async function getOutboundRequestByAutomationKey(
+  automationKey: string
+): Promise<OutboundRequestRow | null> {
+  const { data, error } = await supabaseService
+    .from('outbound_requests')
+    .select('*')
+    .eq('automation_key', automationKey)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as OutboundRequestRow | null) ?? null
+}
+
 export async function listGridOwnerDataRequestsByCustomerId(
   customerId: string
 ): Promise<GridOwnerDataRequestRow[]> {
@@ -186,29 +219,46 @@ export async function createGridOwnerDataRequest(input: {
   requestedPeriodEnd?: string | null
   externalReference?: string | null
   notes?: string | null
+  automationOrigin?: string | null
+  automationKey?: string | null
 }): Promise<GridOwnerDataRequestRow> {
+  const insertPayload = {
+    customer_id: input.customerId,
+    site_id: input.siteId ?? null,
+    metering_point_id: input.meteringPointId ?? null,
+    grid_owner_id: input.gridOwnerId ?? null,
+    request_scope: input.requestScope,
+    status: 'pending' as const,
+    requested_period_start: input.requestedPeriodStart ?? null,
+    requested_period_end: input.requestedPeriodEnd ?? null,
+    external_reference: input.externalReference ?? null,
+    notes: input.notes ?? null,
+    request_payload: {},
+    response_payload: {},
+    automation_origin: input.automationOrigin ?? null,
+    automation_key: input.automationKey ?? null,
+    created_by: input.actorUserId,
+    updated_by: input.actorUserId,
+  }
+
   const { data, error } = await supabaseService
     .from('grid_owner_data_requests')
-    .insert({
-      customer_id: input.customerId,
-      site_id: input.siteId ?? null,
-      metering_point_id: input.meteringPointId ?? null,
-      grid_owner_id: input.gridOwnerId ?? null,
-      request_scope: input.requestScope,
-      status: 'pending',
-      requested_period_start: input.requestedPeriodStart ?? null,
-      requested_period_end: input.requestedPeriodEnd ?? null,
-      external_reference: input.externalReference ?? null,
-      notes: input.notes ?? null,
-      request_payload: {},
-      response_payload: {},
-      created_by: input.actorUserId,
-      updated_by: input.actorUserId,
-    })
+    .insert(insertPayload)
     .select('*')
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (
+      findPostgresErrorCode(error) === '23505' &&
+      input.automationKey
+    ) {
+      const existing = await getGridOwnerDataRequestByAutomationKey(input.automationKey)
+      if (existing) return existing
+    }
+
+    throw error
+  }
+
   return data as GridOwnerDataRequestRow
 }
 
@@ -505,6 +555,8 @@ export async function createOutboundRequest(input: {
   periodEnd?: string | null
   externalReference?: string | null
   dispatchBatchKey?: string | null
+  automationOrigin?: string | null
+  automationKey?: string | null
 }): Promise<OutboundRequestRow> {
   const route = await findBestCommunicationRoute({
     requestType: input.requestType,
@@ -513,31 +565,45 @@ export async function createOutboundRequest(input: {
 
   const channelType = route?.route_type ?? 'unresolved'
 
+  const insertPayload = {
+    customer_id: input.customerId,
+    site_id: input.siteId ?? null,
+    metering_point_id: input.meteringPointId ?? null,
+    grid_owner_id: input.gridOwnerId ?? null,
+    communication_route_id: route?.id ?? null,
+    request_type: input.requestType,
+    source_type: input.sourceType ?? 'manual',
+    source_id: input.sourceId ?? null,
+    status: 'queued' as const,
+    channel_type: channelType,
+    payload: input.payload ?? {},
+    period_start: input.periodStart ?? null,
+    period_end: input.periodEnd ?? null,
+    external_reference: input.externalReference ?? null,
+    dispatch_batch_key: input.dispatchBatchKey ?? null,
+    automation_origin: input.automationOrigin ?? null,
+    automation_key: input.automationKey ?? null,
+    created_by: input.actorUserId,
+    updated_by: input.actorUserId,
+  }
+
   const { data, error } = await supabaseService
     .from('outbound_requests')
-    .insert({
-      customer_id: input.customerId,
-      site_id: input.siteId ?? null,
-      metering_point_id: input.meteringPointId ?? null,
-      grid_owner_id: input.gridOwnerId ?? null,
-      communication_route_id: route?.id ?? null,
-      request_type: input.requestType,
-      source_type: input.sourceType ?? 'manual',
-      source_id: input.sourceId ?? null,
-      status: 'queued',
-      channel_type: channelType,
-      payload: input.payload ?? {},
-      period_start: input.periodStart ?? null,
-      period_end: input.periodEnd ?? null,
-      external_reference: input.externalReference ?? null,
-      dispatch_batch_key: input.dispatchBatchKey ?? null,
-      created_by: input.actorUserId,
-      updated_by: input.actorUserId,
-    })
+    .insert(insertPayload)
     .select('*')
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (
+      findPostgresErrorCode(error) === '23505' &&
+      input.automationKey
+    ) {
+      const existing = await getOutboundRequestByAutomationKey(input.automationKey)
+      if (existing) return existing
+    }
+
+    throw error
+  }
 
   const row = data as OutboundRequestRow
 

@@ -9,9 +9,12 @@ import {
   archiveCustomerAuthorizationDocument,
   assignAuthorizationDocumentToGridOwnerRequest,
   assignAuthorizationDocumentToOutboundRequest,
+  buildGridOwnerDataRequestAutomationKey,
+  buildOutboundRequestAutomationKey,
   assignAuthorizationDocumentToSwitchRequest,
   createSupplierSwitchEvent,
   createSupplierSwitchRequest,
+  buildSupplierSwitchRequestAutomationKey,
   findCustomerSiteById,
   findOpenGridOwnerDataRequestByDocument,
   findOpenOutboundRequestByDocument,
@@ -178,6 +181,11 @@ async function queueGridOwnerRequestsFromDocument(params: {
 
 Bilaga: ${params.document.file_path}`
           : `Bilaga: ${params.document.file_path}`,
+        automationOrigin: 'document_upload',
+        automationKey: buildGridOwnerDataRequestAutomationKey({
+          documentId: params.document.id,
+          requestScope: scope,
+        }),
       })
 
       await assignAuthorizationDocumentToGridOwnerRequest(supabase, {
@@ -218,6 +226,12 @@ Bilaga: ${params.document.file_path}`
         periodStart: params.requestedPeriodStart,
         periodEnd: params.requestedPeriodEnd,
         externalReference: params.externalReference,
+        automationOrigin: 'document_upload',
+        automationKey: buildOutboundRequestAutomationKey({
+          documentId: params.document.id,
+          requestType,
+          sourceType: 'grid_owner_data_request',
+        }),
       })
 
       await assignAuthorizationDocumentToOutboundRequest(supabase, {
@@ -319,6 +333,9 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
       meteringPoint: point,
       requestType: params.requestType,
       requestedStartDate: params.requestedStartDate,
+      authorizationDocumentId: params.document.id,
+      automationOrigin: 'document_upload',
+      automationKey: buildSupplierSwitchRequestAutomationKey(params.document.id),
     })
 
     switchRequestCreated = true
@@ -391,6 +408,12 @@ async function ensureSwitchRequestAndOutboundFromDocument(params: {
         },
         periodStart: switchRequest.requested_start_date ?? null,
         externalReference: switchRequest.external_reference ?? null,
+        automationOrigin: 'document_upload',
+        automationKey: buildOutboundRequestAutomationKey({
+          documentId: params.document.id,
+          requestType: 'supplier_switch',
+          sourceType: 'supplier_switch_request',
+        }),
       })
 
       await assignAuthorizationDocumentToOutboundRequest(supabase, {

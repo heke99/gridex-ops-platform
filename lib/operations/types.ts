@@ -142,6 +142,8 @@ export type SupplierSwitchRequestRow = {
   updated_at: string
   created_by: string | null
   updated_by: string | null
+  automation_origin: string | null
+  automation_key: string | null
 }
 
 export type SupplierSwitchEventRow = {

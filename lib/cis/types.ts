@@ -34,6 +34,8 @@ export type GridOwnerDataRequestRow = {
   updated_at: string
   created_by: string | null
   updated_by: string | null
+  automation_origin: string | null
+  automation_key: string | null
 }
 
 export type MeteringValueReadingType =
@@ -213,6 +215,8 @@ export type OutboundRequestRow = {
   updated_at: string
   created_by: string | null
   updated_by: string | null
+  automation_origin: string | null
+  automation_key: string | null
 }
 
 export type OutboundDispatchEventRow = {
