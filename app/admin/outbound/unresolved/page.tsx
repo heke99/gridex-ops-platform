@@ -222,18 +222,14 @@ function getPrimaryLink(params: {
 
   if (
     request.source_type === 'grid_owner_data_request' &&
-    request.source_id &&
-    dataRequests.some((row) => row.id === request.source_id)
+    request.source_id
   ) {
-    return {
-      href:
-        request.request_type === 'meter_values'
-          ? '/admin/metering'
-          : '/admin/billing',
-      label:
-        request.request_type === 'meter_values'
-          ? 'Öppna metering'
-          : 'Öppna billing',
+    const match = dataRequests.find((row) => row.id === request.source_id)
+    if (match) {
+      return {
+        href: `/admin/operations/grid-owner-requests/${match.id}`,
+        label: 'Öppna grid owner request detail',
+      }
     }
   }
 

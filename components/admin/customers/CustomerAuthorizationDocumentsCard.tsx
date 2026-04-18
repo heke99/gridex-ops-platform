@@ -168,7 +168,8 @@ type TimelineItem = {
   links: TimelineLink[]
 }
 
-function buildGridOwnerRequestHref(customerId: string) {
+function buildGridOwnerRequestHref(customerId: string, requestId?: string | null) {
+  if (requestId) return `/admin/operations/grid-owner-requests/${requestId}`
   return `/admin/customers/${customerId}#billing-metering`
 }
 
@@ -245,7 +246,7 @@ function buildDocumentFlowSteps(params: {
         ? {
             label: 'Request',
             value: `${latestGridOwnerRequest.request_scope} · ${latestGridOwnerRequest.status}`,
-            href: buildGridOwnerRequestHref(params.customerId),
+            href: buildGridOwnerRequestHref(params.customerId, latestGridOwnerRequest.id),
             tone: statusBadgeClass(latestGridOwnerRequest.status),
           }
         : {
@@ -276,7 +277,7 @@ function buildDocumentFlowSteps(params: {
         : latestOutbound
           ? buildOutboundHref(latestOutbound)
           : latestGridOwnerRequest
-            ? buildGridOwnerRequestHref(params.customerId)
+            ? buildGridOwnerRequestHref(params.customerId, latestGridOwnerRequest.id)
             : undefined,
       tone:
         responseValue === 'Kvittens mottagen' ||
@@ -339,7 +340,7 @@ function buildDocumentTimelineItems(params: {
       createdGridOwnerRequestIds.forEach((id) => {
         links.push({
           label: `Request ${id}`,
-          href: buildGridOwnerRequestHref(params.customerId),
+          href: buildGridOwnerRequestHref(params.customerId, id),
         })
       })
       createdGridOwnerOutboundIds.forEach((id) => {
@@ -452,7 +453,7 @@ function buildDocumentTimelineItems(params: {
       ;[...cancelledGridOwnerRequestIds, ...flaggedGridOwnerRequestIds].forEach((id) => {
         links.push({
           label: `Request ${id}`,
-          href: buildGridOwnerRequestHref(params.customerId),
+          href: buildGridOwnerRequestHref(params.customerId, id),
         })
       })
       ;[...cancelledOutboundIds, ...flaggedOutboundIds].forEach((id) => {
@@ -1251,7 +1252,7 @@ export default function CustomerAuthorizationDocumentsCard({
 
                       {matchingGridOwnerRequests[0] ? (
                         <Link
-                          href={buildGridOwnerRequestHref(customerId)}
+                          href={buildGridOwnerRequestHref(customerId, matchingGridOwnerRequests[0]?.id)}
                           className="inline-flex items-center rounded-2xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20"
                         >
                           Gå till grid owner request
@@ -1273,7 +1274,7 @@ export default function CustomerAuthorizationDocumentsCard({
                             matchingGridOwnerRequests.map((row) => (
                               <Link
                                 key={row.id}
-                                href={buildGridOwnerRequestHref(customerId)}
+                                href={buildGridOwnerRequestHref(customerId, row.id)}
                                 className="block rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
                               >
                                 <div className="font-medium text-slate-900 dark:text-white">
