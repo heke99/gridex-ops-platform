@@ -6,6 +6,13 @@ export type ContractType =
 
 export type GreenFeeMode = 'none' | 'sek_month' | 'ore_per_kwh'
 
+export type CustomerContractTerminationReason =
+  | 'switch_supplier'
+  | 'stop_supply'
+  | 'move_out'
+  | 'manual_override'
+  | 'other'
+
 export type ContractOfferStatus = 'draft' | 'active' | 'inactive'
 
 export type CustomerContractStatus =
@@ -66,6 +73,9 @@ export type CustomerContractRow = {
   ends_at: string | null
   signed_at: string | null
   termination_notice_date: string | null
+  termination_reason: CustomerContractTerminationReason | null
+  auto_renew_enabled: boolean
+  auto_renew_term_months: number | null
   override_reason: string | null
   created_at: string
   updated_at: string

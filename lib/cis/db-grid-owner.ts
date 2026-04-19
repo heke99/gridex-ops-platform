@@ -1,8 +1,10 @@
-// lib/cis/db-grid-owner.ts
 import { supabaseService } from '@/lib/supabase/service'
 import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/types'
 import {
-  buildCustomerIdentitySnapshot,
+  buildContractPayload,
+  buildCustomerIdentityPayload,
+  buildMeteringPointPayload,
+  buildSitePayload,
   findPostgresErrorCode,
   getCustomerExportContext,
   matchesQuery,
@@ -113,7 +115,10 @@ export async function createGridOwnerDataRequest(input: {
     notes: input.notes ?? null,
     request_payload: {
       ...(input.requestPayload ?? {}),
-      customer_snapshot: buildCustomerIdentitySnapshot(context),
+      ...buildCustomerIdentityPayload(context),
+      ...buildSitePayload(context.site),
+      ...buildMeteringPointPayload(context.meteringPoint),
+      ...buildContractPayload(context.contract),
       requested_period: {
         start: input.requestedPeriodStart ?? null,
         end: input.requestedPeriodEnd ?? null,

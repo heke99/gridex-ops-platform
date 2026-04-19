@@ -4,6 +4,7 @@ import type {
   GridOwnerDataRequestRow,
   OutboundRequestRow,
 } from '@/lib/cis/types'
+import { getContractLifecycleSummary } from '@/lib/customer-contracts/lifecycle'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { CustomerContactRow, CustomerRow } from '@/types/customers'
@@ -295,6 +296,20 @@ export function buildMeteringPointPayload(
 export function buildContractPayload(
   contract: CustomerContractRow | null
 ): Record<string, unknown> {
+  const lifecycle = contract
+    ? getContractLifecycleSummary({
+        startsAt: contract.starts_at,
+        endsAt: contract.ends_at,
+        bindingMonths: contract.binding_months,
+        noticeMonths: contract.notice_months,
+        terminationNoticeDate: contract.termination_notice_date,
+        terminationReason: contract.termination_reason,
+        autoRenewEnabled: contract.auto_renew_enabled,
+        autoRenewTermMonths: contract.auto_renew_term_months,
+        status: contract.status,
+      })
+    : null
+
   return {
     contract: contract
       ? {
@@ -313,11 +328,15 @@ export function buildContractPayload(
           green_fee_value: contract.green_fee_value ?? null,
           binding_months: contract.binding_months ?? null,
           notice_months: contract.notice_months ?? null,
+          auto_renew_enabled: contract.auto_renew_enabled,
+          auto_renew_term_months: contract.auto_renew_term_months ?? null,
+          termination_reason: contract.termination_reason ?? null,
           optional_fee_lines: contract.optional_fee_lines ?? [],
           starts_at: contract.starts_at ?? null,
           ends_at: contract.ends_at ?? null,
           signed_at: contract.signed_at ?? null,
           termination_notice_date: contract.termination_notice_date ?? null,
+          lifecycle_summary: lifecycle,
         }
       : null,
   }

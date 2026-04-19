@@ -1,3 +1,4 @@
+//components/admin/customers/CustomerContractsCard.tsx
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'

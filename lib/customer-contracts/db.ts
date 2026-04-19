@@ -6,6 +6,7 @@ import type {
   CustomerContractEventType,
   CustomerContractRow,
   GreenFeeMode,
+  CustomerContractTerminationReason,
 } from './types'
 import { deriveContractEndsAt } from './lifecycle'
 
@@ -26,6 +27,11 @@ export type LatestCustomerContractSummary = {
   contract_type: CustomerContractRow['contract_type']
   monthly_fee_sek: number | null
   starts_at: string | null
+  ends_at: string | null
+  auto_renew_enabled: boolean
+  auto_renew_term_months: number | null
+  termination_notice_date: string | null
+  termination_reason: CustomerContractTerminationReason | null
 } | null
 
 export type LatestContractBucketFilter =
@@ -172,6 +178,11 @@ export async function listLatestCustomerContractsByCustomerIds(
         contract_type: row.contract_type,
         monthly_fee_sek: row.monthly_fee_sek,
         starts_at: row.starts_at,
+        ends_at: row.ends_at,
+        auto_renew_enabled: row.auto_renew_enabled,
+        auto_renew_term_months: row.auto_renew_term_months,
+        termination_notice_date: row.termination_notice_date,
+        termination_reason: row.termination_reason,
       })
     }
   }
@@ -305,6 +316,9 @@ export async function createCustomerContract(input: {
   endsAt?: string | null
   signedAt?: string | null
   terminationNoticeDate?: string | null
+  terminationReason?: CustomerContractTerminationReason | null
+  autoRenewEnabled?: boolean | null
+  autoRenewTermMonths?: number | null
   overrideReason?: string | null
   actorUserId?: string | null
 }): Promise<CustomerContractRow> {
@@ -335,10 +349,16 @@ export async function createCustomerContract(input: {
         bindingMonths: input.bindingMonths ?? null,
         noticeMonths: input.noticeMonths ?? null,
         terminationNoticeDate: input.terminationNoticeDate ?? null,
+        terminationReason: input.terminationReason ?? null,
+        autoRenewEnabled: input.autoRenewEnabled ?? null,
+        autoRenewTermMonths: input.autoRenewTermMonths ?? null,
         status: input.status ?? 'draft',
       }),
       signed_at: input.signedAt ?? null,
       termination_notice_date: input.terminationNoticeDate ?? null,
+      termination_reason: input.terminationReason ?? null,
+      auto_renew_enabled: input.autoRenewEnabled ?? ((input.bindingMonths ?? 0) > 0),
+      auto_renew_term_months: input.autoRenewTermMonths ?? input.bindingMonths ?? null,
       override_reason: input.overrideReason ?? null,
       created_by: input.actorUserId ?? null,
       updated_by: input.actorUserId ?? null,
@@ -367,6 +387,9 @@ export async function updateCustomerContract(input: {
   endsAt?: string | null
   signedAt?: string | null
   terminationNoticeDate?: string | null
+  terminationReason?: CustomerContractTerminationReason | null
+  autoRenewEnabled?: boolean | null
+  autoRenewTermMonths?: number | null
   overrideReason?: string | null
   actorUserId?: string | null
 }): Promise<CustomerContractRow> {
@@ -390,10 +413,16 @@ export async function updateCustomerContract(input: {
         bindingMonths: input.bindingMonths ?? null,
         noticeMonths: input.noticeMonths ?? null,
         terminationNoticeDate: input.terminationNoticeDate ?? null,
+        terminationReason: input.terminationReason ?? null,
+        autoRenewEnabled: input.autoRenewEnabled ?? null,
+        autoRenewTermMonths: input.autoRenewTermMonths ?? null,
         status: input.status ?? 'draft',
       }),
       signed_at: input.signedAt ?? null,
       termination_notice_date: input.terminationNoticeDate ?? null,
+      termination_reason: input.terminationReason ?? null,
+      auto_renew_enabled: input.autoRenewEnabled ?? ((input.bindingMonths ?? 0) > 0),
+      auto_renew_term_months: input.autoRenewTermMonths ?? input.bindingMonths ?? null,
       override_reason: input.overrideReason ?? null,
       updated_by: input.actorUserId ?? null,
     })
@@ -469,7 +498,9 @@ export async function addCustomerContractEvent(input: {
   if (input.eventType === 'termination_notice_received') {
     const { data: current, error: currentError } = await supabaseService
       .from('customer_contracts')
-      .select('starts_at, ends_at, binding_months, notice_months, status')
+      .select(
+        'starts_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason'
+      )
       .eq('id', input.customerContractId)
       .maybeSingle()
 
@@ -485,6 +516,9 @@ export async function addCustomerContractEvent(input: {
           bindingMonths: current?.binding_months ?? null,
           noticeMonths: current?.notice_months ?? null,
           terminationNoticeDate: eventPayload.happened_at,
+          terminationReason: current?.termination_reason ?? null,
+          autoRenewEnabled: current?.auto_renew_enabled ?? null,
+          autoRenewTermMonths: current?.auto_renew_term_months ?? null,
           status: current?.status ?? null,
         }),
         updated_by: input.actorUserId ?? null,

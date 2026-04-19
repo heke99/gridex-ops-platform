@@ -1,4 +1,4 @@
-import type { CustomerContractRow } from './types'
+import type { CustomerContractRow, CustomerContractTerminationReason } from './types'
 
 type ContractLifecycleInput = {
   startsAt?: string | null
@@ -6,6 +6,9 @@ type ContractLifecycleInput = {
   bindingMonths?: number | null
   noticeMonths?: number | null
   terminationNoticeDate?: string | null
+  terminationReason?: CustomerContractTerminationReason | null
+  autoRenewEnabled?: boolean | null
+  autoRenewTermMonths?: number | null
   status?: CustomerContractRow['status'] | null
 }
 
@@ -18,6 +21,13 @@ export type ContractLifecycleSummary = {
   terminationPending: boolean
   terminationAllowedNow: boolean
   bindingActive: boolean
+  autoRenewEnabled: boolean
+  autoRenewTermMonths: number | null
+  autoRenewCandidate: boolean
+  currentTermStart: string | null
+  currentTermEnd: string | null
+  nextRenewalDate: string | null
+  terminationReason: CustomerContractTerminationReason | null
 }
 
 function normalizeDate(value: string | null | undefined): string | null {
@@ -71,6 +81,60 @@ function maxDate(a: string | null, b: string | null): string | null {
   return a >= b ? a : b
 }
 
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function getRenewalTermMonths(input: ContractLifecycleInput): number | null {
+  const autoRenewTermMonths =
+    typeof input.autoRenewTermMonths === 'number' && Number.isFinite(input.autoRenewTermMonths)
+      ? input.autoRenewTermMonths
+      : null
+
+  if (autoRenewTermMonths && autoRenewTermMonths > 0) {
+    return autoRenewTermMonths
+  }
+
+  const bindingMonths =
+    typeof input.bindingMonths === 'number' && Number.isFinite(input.bindingMonths)
+      ? input.bindingMonths
+      : null
+
+  if (bindingMonths && bindingMonths > 0) {
+    return bindingMonths
+  }
+
+  return null
+}
+
+function getRollingTermWindow(
+  startsAt: string | null,
+  renewalTermMonths: number | null,
+  referenceDate: string
+): { currentTermStart: string | null; currentTermEnd: string | null; nextRenewalDate: string | null } {
+  if (!startsAt || !renewalTermMonths || renewalTermMonths <= 0) {
+    return {
+      currentTermStart: startsAt,
+      currentTermEnd: startsAt,
+      nextRenewalDate: null,
+    }
+  }
+
+  let currentTermStart = startsAt
+  let currentTermEnd = addMonths(currentTermStart, renewalTermMonths)
+
+  while (currentTermEnd && referenceDate >= currentTermEnd) {
+    currentTermStart = currentTermEnd
+    currentTermEnd = addMonths(currentTermStart, renewalTermMonths)
+  }
+
+  return {
+    currentTermStart,
+    currentTermEnd,
+    nextRenewalDate: currentTermEnd,
+  }
+}
+
 export function deriveContractEndsAt(input: ContractLifecycleInput): string | null {
   const explicitEndsAt = normalizeDate(input.endsAt)
   if (explicitEndsAt) return explicitEndsAt
@@ -90,7 +154,8 @@ export function deriveContractEndsAt(input: ContractLifecycleInput): string | nu
 }
 
 export function getContractLifecycleSummary(
-  input: ContractLifecycleInput
+  input: ContractLifecycleInput,
+  referenceDate = todayIso()
 ): ContractLifecycleSummary {
   const startsAt = normalizeDate(input.startsAt)
   const explicitEndsAt = normalizeDate(input.endsAt)
@@ -100,8 +165,23 @@ export function getContractLifecycleSummary(
     ? addMonths(terminationNoticeDate, input.noticeMonths ?? 0)
     : null
   const effectiveEndDate = explicitEndsAt ?? maxDate(boundUntil, noticeEffectiveEndDate)
-  const today = new Date().toISOString().slice(0, 10)
-  const bindingActive = Boolean(boundUntil && boundUntil > today)
+  const bindingActive = Boolean(boundUntil && boundUntil > referenceDate)
+  const autoRenewEnabled = Boolean(input.autoRenewEnabled)
+  const autoRenewTermMonths = getRenewalTermMonths(input)
+  const autoRenewCandidate =
+    autoRenewEnabled &&
+    !terminationNoticeDate &&
+    Boolean(startsAt && autoRenewTermMonths && autoRenewTermMonths > 0) &&
+    !['cancelled', 'terminated', 'expired'].includes(input.status ?? '')
+
+  const rollingWindow = autoRenewCandidate
+    ? getRollingTermWindow(startsAt, autoRenewTermMonths, referenceDate)
+    : {
+        currentTermStart: startsAt,
+        currentTermEnd: effectiveEndDate,
+        nextRenewalDate: null,
+      }
+
   const terminationPending = Boolean(
     terminationNoticeDate && input.status !== 'terminated' && input.status !== 'cancelled'
   )
@@ -115,5 +195,12 @@ export function getContractLifecycleSummary(
     terminationPending,
     terminationAllowedNow: !bindingActive,
     bindingActive,
+    autoRenewEnabled,
+    autoRenewTermMonths,
+    autoRenewCandidate,
+    currentTermStart: rollingWindow.currentTermStart,
+    currentTermEnd: rollingWindow.currentTermEnd,
+    nextRenewalDate: rollingWindow.nextRenewalDate,
+    terminationReason: input.terminationReason ?? null,
   }
 }
