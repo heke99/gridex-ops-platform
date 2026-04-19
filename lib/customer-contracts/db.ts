@@ -7,6 +7,7 @@ import type {
   CustomerContractRow,
   GreenFeeMode,
 } from './types'
+import { deriveContractEndsAt } from './lifecycle'
 
 function slugify(value: string): string {
   return value
@@ -328,7 +329,14 @@ export async function createCustomerContract(input: {
       notice_months: input.noticeMonths ?? null,
       optional_fee_lines: input.optionalFeeLines ?? [],
       starts_at: input.startsAt ?? null,
-      ends_at: input.endsAt ?? null,
+      ends_at: deriveContractEndsAt({
+        startsAt: input.startsAt ?? null,
+        endsAt: input.endsAt ?? null,
+        bindingMonths: input.bindingMonths ?? null,
+        noticeMonths: input.noticeMonths ?? null,
+        terminationNoticeDate: input.terminationNoticeDate ?? null,
+        status: input.status ?? 'draft',
+      }),
       signed_at: input.signedAt ?? null,
       termination_notice_date: input.terminationNoticeDate ?? null,
       override_reason: input.overrideReason ?? null,
@@ -376,7 +384,14 @@ export async function updateCustomerContract(input: {
       binding_months: input.bindingMonths ?? null,
       notice_months: input.noticeMonths ?? null,
       starts_at: input.startsAt ?? null,
-      ends_at: input.endsAt ?? null,
+      ends_at: deriveContractEndsAt({
+        startsAt: input.startsAt ?? null,
+        endsAt: input.endsAt ?? null,
+        bindingMonths: input.bindingMonths ?? null,
+        noticeMonths: input.noticeMonths ?? null,
+        terminationNoticeDate: input.terminationNoticeDate ?? null,
+        status: input.status ?? 'draft',
+      }),
       signed_at: input.signedAt ?? null,
       termination_notice_date: input.terminationNoticeDate ?? null,
       override_reason: input.overrideReason ?? null,
@@ -452,10 +467,26 @@ export async function addCustomerContractEvent(input: {
   }
 
   if (input.eventType === 'termination_notice_received') {
+    const { data: current, error: currentError } = await supabaseService
+      .from('customer_contracts')
+      .select('starts_at, ends_at, binding_months, notice_months, status')
+      .eq('id', input.customerContractId)
+      .maybeSingle()
+
+    if (currentError) throw currentError
+
     const { error: updateError } = await supabaseService
       .from('customer_contracts')
       .update({
         termination_notice_date: eventPayload.happened_at,
+        ends_at: deriveContractEndsAt({
+          startsAt: current?.starts_at ?? null,
+          endsAt: current?.ends_at ?? null,
+          bindingMonths: current?.binding_months ?? null,
+          noticeMonths: current?.notice_months ?? null,
+          terminationNoticeDate: eventPayload.happened_at,
+          status: current?.status ?? null,
+        }),
         updated_by: input.actorUserId ?? null,
       })
       .eq('id', input.customerContractId)

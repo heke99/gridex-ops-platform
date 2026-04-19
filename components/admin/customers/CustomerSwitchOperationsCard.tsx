@@ -1,7 +1,5 @@
 'use client'
 
-'use client'
-
 import Link from 'next/link'
 import CustomerSwitchCreatePanel from '@/components/admin/customers/CustomerSwitchCreatePanel'
 import { getRecommendationSummary } from '@/lib/ediel/recommendations'
@@ -23,6 +21,7 @@ import type {
 import SwitchRecommendationPanel from '@/components/admin/customers/switch-operations/SwitchRecommendationPanel'
 import SiteLifecycleSection from '@/components/admin/customers/switch-operations/SiteLifecycleSection'
 import SwitchRequestSection from '@/components/admin/customers/switch-operations/SwitchRequestSection'
+
 export default function CustomerSwitchOperationsCard({
   customerId,
   sites,
