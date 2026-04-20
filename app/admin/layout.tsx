@@ -16,7 +16,7 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-white">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[320px_1fr]">
         <div className="hidden lg:block">
-          <AdminSidebar />
+          <AdminSidebar permissions={admin.permissions} />
         </div>
 
         <div className="flex min-h-screen flex-col">

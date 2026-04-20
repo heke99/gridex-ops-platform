@@ -1,167 +1,292 @@
 import Link from 'next/link'
+import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireAdminAccess } from '@/lib/admin/guards'
+import { getEdielSummary } from '@/lib/ediel/summary'
 
 export const dynamic = 'force-dynamic'
 
-export default async function HomePage() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+function hasAnyPermission(currentPermissions: string[], requiredPermissions?: string[]) {
+  if (!requiredPermissions || requiredPermissions.length === 0) return true
 
-  const primaryHref = user ? '/dashboard' : '/login?next=/dashboard'
+  return requiredPermissions.some((permission) =>
+    currentPermissions.includes(permission)
+  )
+}
+
+function OverviewCard({
+  eyebrow,
+  title,
+  text,
+  href,
+  cta,
+}: {
+  eyebrow: string
+  title: string
+  text: string
+  href: string
+  cta: string
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+        {eyebrow}
+      </p>
+      <h2 className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">
+        {title}
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+        {text}
+      </p>
+      <div className="mt-5">
+        <Link
+          href={href}
+          className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          {cta}
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function KpiCard({
+  label,
+  value,
+  tone = 'slate',
+  href,
+  sublabel,
+}: {
+  label: string
+  value: number | string
+  tone?: 'slate' | 'emerald' | 'amber' | 'rose' | 'blue'
+  href?: string
+  sublabel?: string
+}) {
+  const toneClasses: Record<typeof tone, string> = {
+    slate:
+      'border-slate-200 bg-white text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white',
+    emerald:
+      'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100',
+    amber:
+      'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100',
+    rose:
+      'border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-100',
+    blue:
+      'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100',
+  }
+
+  const content = (
+    <div className={`rounded-3xl border p-5 shadow-sm ${toneClasses[tone]}`}>
+      <div className="text-sm font-medium opacity-80">{label}</div>
+      <div className="mt-2 text-3xl font-semibold">{value}</div>
+      {sublabel ? <div className="mt-2 text-xs opacity-75">{sublabel}</div> : null}
+    </div>
+  )
+
+  if (!href) return content
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-8 sm:px-10 lg:px-12">
-        <header className="flex items-center justify-between">
-          <div>
-            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-300">
-              Gridex CIS
-            </div>
-            <p className="mt-3 text-sm text-slate-400">
-              Internt system för kundservice, drift och elhandelsoperationer
+    <Link href={href} className="block transition hover:scale-[1.01]">
+      {content}
+    </Link>
+  )
+}
+
+export default async function AdminPage() {
+  const admin = await requireAdminAccess()
+  const supabase = await createSupabaseServerClient()
+
+  const [
+    {
+      data: { user },
+    },
+    ediel,
+  ] = await Promise.all([supabase.auth.getUser(), getEdielSummary(supabase)])
+
+  const hasEdielAttention =
+    ediel.queuedMessages > 0 ||
+    ediel.failedMessages > 0 ||
+    ediel.pendingAckMessages > 0
+
+  const overviewCards = [
+    {
+      eyebrow: 'Admin',
+      title: 'Roller och behörigheter',
+      text: 'Hantera användare, tilläggsroller och individuella overrides för systemåtkomst.',
+      href: '/admin/users',
+      cta: 'Öppna användare',
+      requiredPermissions: ['users.read'],
+    },
+    {
+      eyebrow: 'Operations',
+      title: 'Switching och tasks',
+      text: 'Följ leverantörsbyten, readiness, tasks och operativa avvikelser.',
+      href: '/admin/operations',
+      cta: 'Öppna operations',
+      requiredPermissions: ['masterdata.read'],
+    },
+    {
+      eyebrow: 'CIS',
+      title: 'Metering, billing och exports',
+      text: 'Arbeta med mätvärden, billing-underlag, partnerexporter och kundkort.',
+      href: '/admin/metering',
+      cta: 'Öppna CIS-moduler',
+      requiredPermissions: ['metering.read', 'billing_underlay.read', 'partner_exports.read'],
+    },
+    {
+      eyebrow: 'Dispatch',
+      title: 'Outbound queue',
+      text: 'Routa extern kommunikation via partner_api, ediel_partner, file_export eller email_manual.',
+      href: '/admin/outbound',
+      cta: 'Öppna outbound',
+      requiredPermissions: ['masterdata.read'],
+    },
+  ].filter((card) => hasAnyPermission(admin.permissions, card.requiredPermissions))
+
+  const showEdielSection = hasAnyPermission(admin.permissions, ['communication.read'])
+
+  return (
+    <div className="min-h-screen">
+      <AdminHeader
+        title="Översikt"
+        subtitle="Startpunkt för administration, CIS-flöden, dispatch, Ediel och operativ kontroll."
+        userEmail={user?.email ?? admin.email ?? null}
+      />
+
+      <div className="space-y-8 p-8">
+        {overviewCards.length > 0 ? (
+          <section className="grid gap-5 xl:grid-cols-4">
+            {overviewCards.map((card) => (
+              <OverviewCard
+                key={card.href}
+                eyebrow={card.eyebrow}
+                title={card.title}
+                text={card.text}
+                href={card.href}
+                cta={card.cta}
+              />
+            ))}
+          </section>
+        ) : (
+          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm dark:border-amber-900 dark:bg-amber-950/20">
+            <h2 className="text-lg font-semibold text-amber-950 dark:text-amber-100">
+              Begränsad adminåtkomst
+            </h2>
+            <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
+              Det finns ingen snabbgenväg att visa här ännu för dina nuvarande permissions. Använd menyn till vänster för de arbetsytor du faktiskt har åtkomst till.
             </p>
-          </div>
+          </section>
+        )}
 
-          <div className="flex items-center gap-3">
-            {user ? (
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Gå till dashboard
-              </Link>
-            ) : (
-              <Link
-                href="/login?next=/dashboard"
-                className="inline-flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Logga in
-              </Link>
-            )}
-          </div>
-        </header>
-
-        <section className="flex flex-1 items-center py-14 lg:py-20">
-          <div className="grid w-full gap-10 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-emerald-300">
-                Backoffice / CIS
-              </div>
-
-              <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                Ett internt CIS-system för att hantera hela elhandelsflödet.
-              </h1>
-
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-                Gridex Ops används internt för kundregister, anläggningar,
-                mätpunkter, fullmakter, leverantörsbyten, mätvärden,
-                fakturaunderlag, partnerexporter och operativ uppföljning.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={primaryHref}
-                  className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
-                >
-                  {user ? 'Öppna dashboard' : 'Logga in till systemet'}
-                </Link>
-
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-                >
-                  Gå till admin
-                </Link>
-              </div>
-
-              <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  {
-                    title: 'Kundservice',
-                    text: 'Slå upp kund, följ ärenden och ge snabb återkoppling.',
-                  },
-                  {
-                    title: 'Switching',
-                    text: 'Hantera fullmakter, readiness och leverantörsbyten.',
-                  },
-                  {
-                    title: 'Metering',
-                    text: 'Följ mätpunkter, mätvärden och underlag för vidare processer.',
-                  },
-                  {
-                    title: 'Billing & exports',
-                    text: 'Skicka fakturaunderlag och partnerexporter med spårbarhet.',
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.title}
-                    className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur"
-                  >
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-200">
-                      {item.title}
-                    </h2>
-                    <p className="mt-3 text-sm leading-6 text-slate-400">
-                      {item.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30 backdrop-blur">
-              <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Systemöversikt
-                </p>
-
-                <div className="mt-5 grid gap-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-sm font-medium text-white">Kundkort</p>
-                    <p className="mt-2 text-sm text-slate-400">
-                      Kunder, anläggningar, mätpunkter, interna anteckningar och audit.
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-sm font-medium text-white">Operations center</p>
-                    <p className="mt-2 text-sm text-slate-400">
-                      Tasks, switchärenden, historik och operativa uppföljningar.
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-sm font-medium text-white">RBAC</p>
-                    <p className="mt-2 text-sm text-slate-400">
-                      Roller, permission overrides och åtkomststyrning för teamet.
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
-                    <p className="text-sm font-medium text-emerald-200">
-                      Nästa fokus
-                    </p>
-                    <p className="mt-2 text-sm text-emerald-100/80">
-                      Billing, metering, partner exports och fler CIS-moduler.
-                    </p>
-                  </div>
+        {showEdielSection ? (
+          <section
+            className={`rounded-3xl border p-6 shadow-sm ${
+              hasEdielAttention
+                ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20'
+                : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+            }`}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  Ediel / Svenska kraftnät
                 </div>
+                <h3 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">
+                  Ediel-läget just nu
+                </h3>
+                <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+                  Den här rutan måste vara tydlig på dashboarden, eftersom Ediel är en kritisk extern kanal. Du ska direkt se om något väntar, har felat eller kräver kvittens.
+                </p>
               </div>
 
-              <div className="mt-5 rounded-3xl border border-white/10 bg-black/20 p-5">
-                <p className="text-sm font-medium text-white">
-                  {user ? 'Du är redan inloggad.' : 'Intern åtkomst krävs.'}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Systemet är avsett för interna användare inom administration,
-                  kundservice, drift, operations och behörighetsstyrd handläggning.
-                </p>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/admin/ediel"
+                  className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950"
+                >
+                  Öppna Ediel-center
+                </Link>
+                <Link
+                  href="/admin/ediel/routes"
+                  className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                >
+                  Ediel-routes
+                </Link>
               </div>
             </div>
-          </div>
-        </section>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <KpiCard
+                label="Totala Ediel-meddelanden"
+                value={ediel.totalMessages}
+                tone="blue"
+                href="/admin/ediel"
+                sublabel="All inbound och outbound historik"
+              />
+              <KpiCard
+                label="Köade / förberedda"
+                value={ediel.queuedMessages}
+                tone={ediel.queuedMessages > 0 ? 'amber' : 'slate'}
+                href="/admin/ediel"
+                sublabel="Behöver skickas eller hanteras"
+              />
+              <KpiCard
+                label="Felade"
+                value={ediel.failedMessages}
+                tone={ediel.failedMessages > 0 ? 'rose' : 'slate'}
+                href="/admin/ediel"
+                sublabel="Kräver manuell uppföljning"
+              />
+              <KpiCard
+                label="Aktiva Ediel-routes"
+                value={ediel.activeRoutes}
+                tone={ediel.activeRoutes > 0 ? 'emerald' : 'amber'}
+                href="/admin/ediel/routes"
+                sublabel={`${ediel.configuredProfiles} profiler totalt`}
+              />
+              <KpiCard
+                label="Aktiva testruns"
+                value={ediel.activeTestRuns}
+                tone={ediel.activeTestRuns > 0 ? 'amber' : 'slate'}
+                href="/admin/ediel"
+                sublabel="TGT / testspår under arbete"
+              />
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-4">
+              <KpiCard
+                label="Inbound"
+                value={ediel.inboundMessages}
+                tone="slate"
+                href="/admin/ediel"
+                sublabel="Från nätägare / Edieltrafik in"
+              />
+              <KpiCard
+                label="Outbound"
+                value={ediel.outboundMessages}
+                tone="slate"
+                href="/admin/ediel"
+                sublabel="Z03, Z09, kvittenser och annan trafik ut"
+              />
+              <KpiCard
+                label="Drafts"
+                value={ediel.draftMessages}
+                tone={ediel.draftMessages > 0 ? 'amber' : 'slate'}
+                href="/admin/ediel"
+                sublabel="Klara att granskas eller skickas"
+              />
+              <KpiCard
+                label="Väntande kvittenser"
+                value={ediel.pendingAckMessages}
+                tone={ediel.pendingAckMessages > 0 ? 'amber' : 'slate'}
+                href="/admin/ediel"
+                sublabel="APERAK / CONTRL som väntar"
+              />
+            </div>
+          </section>
+        ) : null}
       </div>
-    </main>
+    </div>
   )
 }
