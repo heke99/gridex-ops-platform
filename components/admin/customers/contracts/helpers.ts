@@ -474,21 +474,13 @@ function getRelevantSwitchRequests(
 
   if (contract.termination_reason === 'switch_supplier') {
     return sortByNewestTimestamp(
-      sameSite.filter((row) =>
-        row.request_type === 'supplier_switch' ||
-        row.request_type === 'switch' ||
-        row.request_type === 'switch_in'
-      )
+      sameSite.filter((row) => row.request_type === 'switch')
     )
   }
 
   if (contract.termination_reason === 'move_out') {
     return sortByNewestTimestamp(
-      sameSite.filter((row) =>
-        row.request_type === 'move_out' ||
-        row.request_type === 'move_out_takeover' ||
-        row.request_type === 'takeover'
-      )
+      sameSite.filter((row) => row.request_type === 'move_out_takeover')
     )
   }
 
