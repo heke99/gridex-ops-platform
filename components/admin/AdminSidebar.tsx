@@ -1,13 +1,19 @@
+// components/admin/AdminSidebar.tsx
 'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import {
+  getAdminPageRequirement,
+  hasPermissionRequirement,
+  type AdminPageKey,
+} from '@/lib/admin/accessModel'
 
 type NavItem = {
   href: string
   label: string
   description?: string
-  requiredPermissions?: string[]
+  pageKey?: AdminPageKey
 }
 
 type NavGroup = {
@@ -29,12 +35,13 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/admin',
         label: 'Översikt',
         description: 'Systemstatus och operativ överblick',
+        pageKey: 'dashboard',
       },
       {
         href: '/admin/operations',
         label: 'Operations control tower',
         description: 'Vad kräver åtgärd nu',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'operations.control_tower',
       },
     ],
   },
@@ -46,25 +53,25 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/admin/customers',
         label: 'Kunder',
         description: 'Kundregister, sökning och prioritering',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'customers.list',
       },
       {
         href: '/admin/customers/intake',
         label: 'Kundintag',
         description: 'Skapa kund enskilt eller i bulk',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'customers.intake',
       },
       {
         href: '/admin/customers/segments',
         label: 'Kundsegment',
         description: 'Segmentering och uppföljning',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'customers.segments',
       },
       {
         href: '/admin/contracts',
         label: 'Avtalskatalog',
         description: 'Valbara avtal och kampanjer',
-        requiredPermissions: ['pricing.read'],
+        pageKey: 'contracts.catalog',
       },
     ],
   },
@@ -76,31 +83,31 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/admin/operations/integrity',
         label: 'Integrity dashboard',
         description: 'Mismatch, väntar aktiv, flytt, byte och exportredo',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'operations.integrity',
       },
       {
         href: '/admin/operations/tasks',
         label: 'Tasks',
         description: 'Öppna, blockerade och klara uppgifter',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'operations.tasks',
       },
       {
         href: '/admin/operations/switches',
         label: 'Switchar',
         description: 'Leverantörsbyten och livscykel',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'operations.switches',
       },
       {
         href: '/admin/operations/ready-to-execute',
         label: 'Ready to execute',
         description: 'Accepted + acknowledged att slutföra',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'operations.ready_to_execute',
       },
       {
         href: '/admin/outbound',
         label: 'Outbound queue',
         description: 'Dispatch, retry och ack-status',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'outbound.queue',
       },
     ],
   },
@@ -112,25 +119,25 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/admin/outbound/unresolved',
         label: 'Unresolved',
         description: 'Requests utan route eller kanal',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'outbound.unresolved',
       },
       {
         href: '/admin/outbound/ready-switches',
         label: 'Bulk switch',
         description: 'Köa alla redo för byte',
-        requiredPermissions: ['switching.read'],
+        pageKey: 'outbound.ready_switches',
       },
       {
         href: '/admin/outbound/missing-meter-values',
         label: 'Bulk mätvärden',
         description: 'Köa alla som saknar mätvärden',
-        requiredPermissions: ['metering.read'],
+        pageKey: 'outbound.missing_meter_values',
       },
       {
         href: '/admin/outbound/missing-billing-underlays',
         label: 'Bulk billing',
         description: 'Köa alla som saknar billing-underlag',
-        requiredPermissions: ['billing_underlay.read'],
+        pageKey: 'outbound.missing_billing_underlays',
       },
     ],
   },
@@ -142,55 +149,55 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/admin/network-owners',
         label: 'Nätägare',
         description: 'Register över elnätsägare',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'masterdata.network_owners',
       },
       {
         href: '/admin/electricity-suppliers',
         label: 'Elleverantörer',
         description: 'Permanent register över leverantörer',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'masterdata.electricity_suppliers',
       },
       {
         href: '/admin/price-area-localities',
         label: 'Elområdes-orter',
         description: 'Städer och orter för SE1–SE4',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'masterdata.price_area_localities',
       },
       {
         href: '/admin/metering',
         label: 'Metering',
         description: 'Requests och inkomna mätvärden',
-        requiredPermissions: ['metering.read'],
+        pageKey: 'metering.workspace',
       },
       {
         href: '/admin/billing',
         label: 'Billing',
         description: 'Billing underlag från nätägare',
-        requiredPermissions: ['billing_underlay.read'],
+        pageKey: 'billing.workspace',
       },
       {
         href: '/admin/partner-exports',
         label: 'Partner exports',
         description: 'Exportkö och extern handoff',
-        requiredPermissions: ['partner_exports.read'],
+        pageKey: 'partner_exports.workspace',
       },
       {
         href: '/admin/integrations/routes',
         label: 'Communication routes',
         description: 'Routning per nätägare och kanal',
-        requiredPermissions: ['masterdata.read'],
+        pageKey: 'integrations.routes',
       },
       {
         href: '/admin/ediel',
         label: 'Ediel',
         description: 'Inbox, outbox, self-test och SMTP/IMAP-flöden',
-        requiredPermissions: ['communication.read'],
+        pageKey: 'ediel.workspace',
       },
       {
         href: '/admin/ediel/routes',
         label: 'Ediel-routes',
         description: 'Ediel-profiler, mailbox och transportinställningar',
-        requiredPermissions: ['masterdata.read', 'switching.read'],
+        pageKey: 'ediel.routes',
       },
     ],
   },
@@ -202,19 +209,19 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/admin/users',
         label: 'Användare',
         description: 'Roller, access och overrides',
-        requiredPermissions: ['users.read'],
+        pageKey: 'users.list',
       },
       {
         href: '/admin/roles',
         label: 'Roller',
         description: 'Behörigheter och rollstruktur',
-        requiredPermissions: ['users.read', 'roles.manage', 'permissions.manage'],
+        pageKey: 'roles.catalog',
       },
       {
         href: '/admin/audit',
         label: 'Audit',
         description: 'Loggar och historik',
-        requiredPermissions: ['audit.read'],
+        pageKey: 'audit.log',
       },
     ],
   },
@@ -225,14 +232,11 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href)
 }
 
-function hasAnyPermission(
-  currentPermissions: string[],
-  requiredPermissions?: string[]
-) {
-  if (!requiredPermissions || requiredPermissions.length === 0) return true
-
-  return requiredPermissions.some((permission) =>
-    currentPermissions.includes(permission)
+function canAccessNavItem(currentPermissions: string[], item: NavItem) {
+  if (!item.pageKey) return true
+  return hasPermissionRequirement(
+    currentPermissions,
+    getAdminPageRequirement(item.pageKey)
   )
 }
 
@@ -241,9 +245,7 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
 
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) =>
-      hasAnyPermission(permissions, item.requiredPermissions)
-    ),
+    items: group.items.filter((item) => canAccessNavItem(permissions, item)),
   })).filter((group) => group.items.length > 0)
 
   return (
@@ -267,7 +269,7 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
             Permission-styrd meny
           </p>
           <p className="mt-2 text-sm text-slate-300">
-            Menyn filtreras nu efter faktiska page-guards i systemet. Det minskar felklick och gör varje roll tydligare.
+            Menyn filtreras nu från samma accessmodell som pages använder. Då minskar glappet mellan synlig navigation och faktisk åtkomst.
           </p>
         </div>
       </div>

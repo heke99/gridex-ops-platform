@@ -1,182 +1,512 @@
+// app/admin/users/[id]/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
-import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
+import { requireAdminActionAccess } from '@/lib/admin/guards'
 
-async function requireCurrentPermissions() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error('Unauthorized')
-
-  const permissions = await getUserPermissions(user.id)
-
-  return { user, permissions }
+type ActionState = {
+  ok: boolean
+  message: string
 }
 
-async function requireRoleManager() {
-  const { user, permissions } = await requireCurrentPermissions()
-
-  if (!permissions.includes('roles.manage')) {
-    throw new Error('Forbidden')
-  }
-
-  return { user, permissions }
+function normalizeText(value: FormDataEntryValue | null) {
+  return String(value ?? '').trim()
 }
 
-async function requirePermissionManager() {
-  const { user, permissions } = await requireCurrentPermissions()
-
-  if (!permissions.includes('permissions.manage')) {
-    throw new Error('Forbidden')
-  }
-
-  return { user, permissions }
+function normalizeCheckbox(value: FormDataEntryValue | null) {
+  return value === 'on' || value === 'true' || value === '1'
 }
 
-async function auditLog(params: {
-  actorUserId: string
-  entityType: string
-  entityId: string
-  action: string
-  oldValues?: unknown
-  newValues?: unknown
-  metadata?: unknown
-}) {
-  const { error } = await supabaseService.from('audit_logs').insert({
-    actor_user_id: params.actorUserId,
-    entity_type: params.entityType,
-    entity_id: params.entityId,
-    action: params.action,
-    old_values: params.oldValues ?? null,
-    new_values: params.newValues ?? null,
-    metadata: params.metadata ?? null,
-  })
+async function resolveRoleIdByKey(roleKey: string) {
+  const { data, error } = await supabaseService
+    .from('roles')
+    .select('id,key')
+    .eq('key', roleKey)
+    .maybeSingle()
 
   if (error) throw error
+  if (!data?.id) {
+    throw new Error(`Role not found: ${roleKey}`)
+  }
+
+  return data.id as string
 }
 
-function revalidateUserAccessPaths(userId: string) {
-  revalidatePath(`/admin/users/${userId}`)
-  revalidatePath('/admin/users')
-  revalidatePath('/admin/roles')
+async function resolvePermissionIdByKey(permissionKey: string) {
+  const { data, error } = await supabaseService
+    .from('permissions')
+    .select('id,key')
+    .eq('key', permissionKey)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data?.id) {
+    throw new Error(`Permission not found: ${permissionKey}`)
+  }
+
+  return data.id as string
 }
 
-export async function assignUserRoleAction(formData: FormData) {
-  const { user } = await requireRoleManager()
+async function resolvePermissionIds(permissionKeys: string[]) {
+  if (permissionKeys.length === 0) return []
 
-  const userId = String(formData.get('userId') ?? '')
-  const roleId = String(formData.get('roleId') ?? '')
-
-  if (!userId || !roleId) throw new Error('Missing fields')
-
-  const { error } = await supabaseService.from('user_roles').upsert({
-    user_id: userId,
-    role_id: roleId,
-    granted_by: user.id,
-    is_active: true,
-    expires_at: null,
-  })
+  const { data, error } = await supabaseService
+    .from('permissions')
+    .select('id,key')
+    .in('key', permissionKeys)
 
   if (error) throw error
 
-  await auditLog({
-    actorUserId: user.id,
-    entityType: 'user_role',
-    entityId: userId,
-    action: 'assign_role',
-    newValues: { roleId },
-  })
+  const byKey = new Map((data ?? []).map((row) => [row.key as string, row.id as string]))
+  const missing = permissionKeys.filter((key) => !byKey.has(key))
 
-  revalidateUserAccessPaths(userId)
+  if (missing.length > 0) {
+    throw new Error(`Permissions not found: ${missing.join(', ')}`)
+  }
+
+  return permissionKeys.map((key) => byKey.get(key) as string)
 }
 
-export async function removeUserRoleAction(formData: FormData) {
-  const { user } = await requireRoleManager()
+function parsePermissionList(raw: string) {
+  return raw
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+}
 
-  const userRoleId = String(formData.get('userRoleId') ?? '')
-  const userId = String(formData.get('userId') ?? '')
+export async function updateUserRoleAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
 
-  if (!userRoleId || !userId) throw new Error('Missing fields')
+    const userId = normalizeText(formData.get('user_id'))
+    const roleKey =
+      normalizeText(formData.get('role_key')) ||
+      normalizeText(formData.get('role'))
+
+    const preserveOverrides = normalizeCheckbox(formData.get('preserve_overrides'))
+
+    if (!userId) {
+      return { ok: false, message: 'User ID saknas.' }
+    }
+
+    if (!roleKey) {
+      return { ok: false, message: 'Roll saknas.' }
+    }
+
+    const roleId = await resolveRoleIdByKey(roleKey)
+
+    const { error: deleteRolesError } = await supabaseService
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+
+    if (deleteRolesError) throw deleteRolesError
+
+    const { error: insertRoleError } = await supabaseService
+      .from('user_roles')
+      .insert({
+        user_id: userId,
+        role_id: roleId,
+        status: 'active',
+      })
+
+    if (insertRoleError) throw insertRoleError
+
+    if (!preserveOverrides) {
+      const { error: deleteOverridesError } = await supabaseService
+        .from('user_permissions')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteOverridesError) throw deleteOverridesError
+    }
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
+
+    return {
+      ok: true,
+      message: preserveOverrides
+        ? 'Roll uppdaterades. Befintliga overrides behölls.'
+        : 'Roll uppdaterades och gamla overrides rensades.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte uppdatera rollen.',
+    }
+  }
+}
+
+export async function updateUserPermissionOverridesAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
+
+    const userId = normalizeText(formData.get('user_id'))
+    const allowKeys = parsePermissionList(normalizeText(formData.get('allow_permissions')))
+    const denyKeys = parsePermissionList(normalizeText(formData.get('deny_permissions')))
+
+    if (!userId) {
+      return { ok: false, message: 'User ID saknas.' }
+    }
+
+    const overlap = allowKeys.filter((key) => denyKeys.includes(key))
+    if (overlap.length > 0) {
+      return {
+        ok: false,
+        message: `Samma permission kan inte ligga i både allow och deny: ${overlap.join(', ')}`,
+      }
+    }
+
+    const allowIds = await resolvePermissionIds(allowKeys)
+    const denyIds = await resolvePermissionIds(denyKeys)
+
+    const { error: deleteError } = await supabaseService
+      .from('user_permissions')
+      .delete()
+      .eq('user_id', userId)
+
+    if (deleteError) throw deleteError
+
+    const rows = [
+      ...allowIds.map((permissionId) => ({
+        user_id: userId,
+        permission_id: permissionId,
+        is_allowed: true,
+      })),
+      ...denyIds.map((permissionId) => ({
+        user_id: userId,
+        permission_id: permissionId,
+        is_allowed: false,
+      })),
+    ]
+
+    if (rows.length > 0) {
+      const { error: insertError } = await supabaseService
+        .from('user_permissions')
+        .insert(rows)
+
+      if (insertError) throw insertError
+    }
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
+
+    return {
+      ok: true,
+      message: 'Permission-overrides sparades.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Kunde inte uppdatera permission-overrides.',
+    }
+  }
+}
+
+export async function clearUserPermissionOverridesAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
+
+    const userId = normalizeText(formData.get('user_id'))
+    if (!userId) {
+      return { ok: false, message: 'User ID saknas.' }
+    }
+
+    const { error } = await supabaseService
+      .from('user_permissions')
+      .delete()
+      .eq('user_id', userId)
+
+    if (error) throw error
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
+
+    return {
+      ok: true,
+      message: 'Alla permission-overrides togs bort.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Kunde inte rensa permission-overrides.',
+    }
+  }
+}
+
+export async function disableUserInternalAccessAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
+
+    const userId = normalizeText(formData.get('user_id'))
+    if (!userId) {
+      return { ok: false, message: 'User ID saknas.' }
+    }
+
+    const { error: roleDeleteError } = await supabaseService
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+
+    if (roleDeleteError) throw roleDeleteError
+
+    const { error: permissionsDeleteError } = await supabaseService
+      .from('user_permissions')
+      .delete()
+      .eq('user_id', userId)
+
+    if (permissionsDeleteError) throw permissionsDeleteError
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
+
+    return {
+      ok: true,
+      message: 'Intern access stängdes av för användaren.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Kunde inte stänga av användarens access.',
+    }
+  }
+}
+
+export async function addSecondaryRoleAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
+
+    const userId = normalizeText(formData.get('user_id'))
+    const roleKey =
+      normalizeText(formData.get('role_key')) ||
+      normalizeText(formData.get('role'))
+
+    if (!userId) {
+      return { ok: false, message: 'User ID saknas.' }
+    }
+
+    if (!roleKey) {
+      return { ok: false, message: 'Roll saknas.' }
+    }
+
+    const roleId = await resolveRoleIdByKey(roleKey)
+
+    const { error } = await supabaseService
+      .from('user_roles')
+      .upsert(
+        {
+          user_id: userId,
+          role_id: roleId,
+          status: 'active',
+        },
+        { onConflict: 'user_id,role_id' }
+      )
+
+    if (error) throw error
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
+
+    return {
+      ok: true,
+      message: 'Extra roll lades till.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte lägga till extra roll.',
+    }
+  }
+}
+
+export async function removeSecondaryRoleAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
+
+    const userId = normalizeText(formData.get('user_id'))
+    const roleKey =
+      normalizeText(formData.get('role_key')) ||
+      normalizeText(formData.get('role'))
+
+    if (!userId) {
+      return { ok: false, message: 'User ID saknas.' }
+    }
+
+    if (!roleKey) {
+      return { ok: false, message: 'Roll saknas.' }
+    }
+
+    const roleId = await resolveRoleIdByKey(roleKey)
+
+    const { error } = await supabaseService
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+      .eq('role_id', roleId)
+
+    if (error) throw error
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
+
+    return {
+      ok: true,
+      message: 'Extra roll togs bort.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte ta bort extra roll.',
+    }
+  }
+}
+
+/**
+ * Bakåtkompatibla exportnamn för dina befintliga pages.
+ */
+export async function assignUserRoleAction(formData: FormData): Promise<void> {
+  await requireAdminActionAccess({ anyOf: ['users.write'] })
+
+  const userId = normalizeText(formData.get('user_id'))
+  const roleKey =
+    normalizeText(formData.get('role_key')) ||
+    normalizeText(formData.get('role'))
+
+  if (!userId) throw new Error('User ID saknas.')
+  if (!roleKey) throw new Error('Roll saknas.')
+
+  const roleId = await resolveRoleIdByKey(roleKey)
 
   const { error } = await supabaseService
     .from('user_roles')
-    .update({ is_active: false, granted_by: user.id })
-    .eq('id', userRoleId)
+    .upsert(
+      {
+        user_id: userId,
+        role_id: roleId,
+        status: 'active',
+      },
+      { onConflict: 'user_id,role_id' }
+    )
 
   if (error) throw error
 
-  await auditLog({
-    actorUserId: user.id,
-    entityType: 'user_role',
-    entityId: userId,
-    action: 'remove_role',
-    newValues: { userRoleId },
-  })
-
-  revalidateUserAccessPaths(userId)
+  revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${userId}`)
 }
 
-export async function addUserPermissionOverrideAction(formData: FormData) {
-  const { user } = await requirePermissionManager()
+export async function removeUserRoleAction(formData: FormData): Promise<void> {
+  await requireAdminActionAccess({ anyOf: ['users.write'] })
 
-  const userId = String(formData.get('userId') ?? '')
-  const permissionId = String(formData.get('permissionId') ?? '')
-  const effect = String(formData.get('effect') ?? '')
-  const reason = String(formData.get('reason') ?? '')
+  const userId = normalizeText(formData.get('user_id'))
+  const roleKey =
+    normalizeText(formData.get('role_key')) ||
+    normalizeText(formData.get('role'))
 
-  if (!userId || !permissionId || !['allow', 'deny'].includes(effect)) {
-    throw new Error('Invalid fields')
-  }
+  if (!userId) throw new Error('User ID saknas.')
+  if (!roleKey) throw new Error('Roll saknas.')
 
-  const { error } = await supabaseService.from('user_permission_overrides').upsert({
-    user_id: userId,
-    permission_id: permissionId,
-    effect,
-    reason: reason || null,
-    granted_by: user.id,
-    expires_at: null,
-  })
-
-  if (error) throw error
-
-  await auditLog({
-    actorUserId: user.id,
-    entityType: 'user_permission_override',
-    entityId: userId,
-    action: 'add_permission_override',
-    newValues: { permissionId, effect, reason },
-  })
-
-  revalidateUserAccessPaths(userId)
-}
-
-export async function removeUserPermissionOverrideAction(formData: FormData) {
-  const { user } = await requirePermissionManager()
-
-  const overrideId = String(formData.get('overrideId') ?? '')
-  const userId = String(formData.get('userId') ?? '')
-
-  if (!overrideId || !userId) throw new Error('Missing fields')
+  const roleId = await resolveRoleIdByKey(roleKey)
 
   const { error } = await supabaseService
-    .from('user_permission_overrides')
+    .from('user_roles')
     .delete()
-    .eq('id', overrideId)
+    .eq('user_id', userId)
+    .eq('role_id', roleId)
 
   if (error) throw error
 
-  await auditLog({
-    actorUserId: user.id,
-    entityType: 'user_permission_override',
-    entityId: userId,
-    action: 'remove_permission_override',
-    newValues: { overrideId },
-  })
+  revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${userId}`)
+}
 
-  revalidateUserAccessPaths(userId)
+export async function addUserPermissionOverrideAction(formData: FormData): Promise<void> {
+  await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
+
+  const userId = normalizeText(formData.get('user_id'))
+  const permissionKey =
+    normalizeText(formData.get('permission_key')) ||
+    normalizeText(formData.get('permission'))
+
+  const effectRaw =
+    normalizeText(formData.get('effect')) ||
+    normalizeText(formData.get('mode')) ||
+    normalizeText(formData.get('value'))
+
+  if (!userId) throw new Error('User ID saknas.')
+  if (!permissionKey) throw new Error('Permission saknas.')
+
+  const permissionId = await resolvePermissionIdByKey(permissionKey)
+  const isAllowed = effectRaw === 'deny' ? false : true
+
+  const { error } = await supabaseService
+    .from('user_permissions')
+    .upsert(
+      {
+        user_id: userId,
+        permission_id: permissionId,
+        is_allowed: isAllowed,
+      },
+      { onConflict: 'user_id,permission_id' }
+    )
+
+  if (error) throw error
+
+  revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${userId}`)
+}
+
+export async function removeUserPermissionOverrideAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
+
+  const userId = normalizeText(formData.get('user_id'))
+  const permissionKey =
+    normalizeText(formData.get('permission_key')) ||
+    normalizeText(formData.get('permission'))
+
+  if (!userId) throw new Error('User ID saknas.')
+  if (!permissionKey) throw new Error('Permission saknas.')
+
+  const permissionId = await resolvePermissionIdByKey(permissionKey)
+
+  const { error } = await supabaseService
+    .from('user_permissions')
+    .delete()
+    .eq('user_id', userId)
+    .eq('permission_id', permissionId)
+
+  if (error) throw error
+
+  revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${userId}`)
 }

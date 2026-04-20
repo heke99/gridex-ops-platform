@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import { getEdielSummary } from '@/lib/ediel/summary'
 import {
@@ -226,7 +226,7 @@ async function queueReadyBillingExportsFormAction(formData: FormData): Promise<v
 }
 
 export default async function AdminOperationsPage() {
-  await requirePermissionServer('masterdata.read')
+  await requireAdminPageKeyAccess('operations.control_tower')
 
   const supabase = await createSupabaseServerClient()
   const {
@@ -434,44 +434,21 @@ export default async function AdminOperationsPage() {
       description:
         'Requests utan route eller dispatch-kanal. Här fastnar automationen först.',
       href: '/admin/outbound/unresolved',
-      cta: 'Öppna unresolved',
+      cta: 'Fixa route',
       tone: 'danger' as const,
     },
     {
-      id: 'ediel-attention',
-      title: 'Ediel kräver uppföljning',
-      count:
-        edielSummary.queuedMessages +
-        edielSummary.failedMessages +
-        edielSummary.pendingAckMessages,
-      description:
-        'Köade, felade eller okvitterade Ediel-meddelanden. Här ser du direkt om Svk-flödena behöver handpåläggning.',
-      href: '/admin/ediel',
-      cta: 'Öppna Ediel',
-      tone: edielSummary.failedMessages > 0 ? ('danger' as const) : ('warning' as const),
-    },
-    {
-      id: 'missing-outbound',
-      title: 'Switchar utan outbound',
-      count: missingOutboundSwitches.length,
-      description:
-        'Ärenden som är redo i kedjan men fortfarande saknar dispatch-post.',
-      href: '/admin/operations/switches?stage=queued_for_outbound',
-      cta: 'Köa / felsök',
-      tone: 'warning' as const,
-    },
-    {
       id: 'awaiting-dispatch',
-      title: 'Väntar på dispatch',
+      title: 'Väntar dispatch',
       count: awaitingDispatchSwitches.length,
       description:
-        'Outbound finns men ligger fortfarande i queued eller prepared och har inte gått iväg ännu.',
+        'Redo internt men ännu inte faktiskt skickade ut i extern kedja.',
       href: '/admin/operations/switches?stage=awaiting_dispatch',
       cta: 'Öppna dispatch-kö',
       tone: 'warning' as const,
     },
     {
-      id: 'waiting-response',
+      id: 'awaiting-response',
       title: 'Väntar på kvittens',
       count: awaitingResponseSwitches.length,
       description:
@@ -603,27 +580,27 @@ export default async function AdminOperationsPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <SectionHeader
-            title="Alerts"
-            subtitle="Sammanfattad prioritering från control tower-logiken."
-          />
+        <section className="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Aktiva alerts"
+              subtitle="Problem eller risker som bör uppmärksammas snabbt innan de blir större operativa fel."
+            />
 
-          <div className="space-y-3 p-6">
-            {alerts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                Inga aktiva alerts just nu.
-              </div>
-            ) : (
-              alerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
-                >
-                  <div className="space-y-2">
+            <div className="space-y-4 p-6">
+              {alerts.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  Inga aktiva alerts hittades just nu.
+                </div>
+              ) : (
+                alerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                  >
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${alertTone(
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${alertTone(
                           alert.severity
                         )}`}
                       >
@@ -633,104 +610,101 @@ export default async function AdminOperationsPage() {
                         {alert.title}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">
+
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                       {alert.description}
                     </p>
+
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <Link
+                        href={alert.href}
+                        className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
+                      >
+                        Öppna
+                      </Link>
+                    </div>
                   </div>
-
-                  <Link
-                    href={alert.href}
-                    className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    Öppna
-                  </Link>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <SectionHeader
-            title="Grid owner requests att öppna nu"
-            subtitle="Direktvägar till konkreta request-detaljer i stället för breda billing/metering-ytor."
-          />
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader
+              title="Nätägarrequests att följa upp"
+              subtitle="Requests som är mest angelägna utifrån status, svarsläge och kopplat underlag."
+            />
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-              <thead className="bg-slate-50 dark:bg-slate-950/40">
-                <tr>
-                  <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
-                    Request
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
-                    Scope
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
-                    Uppföljning
-                  </th>
-                  <th className="px-6 py-3 text-right font-medium text-slate-500 dark:text-slate-400">
-                    Öppna
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {priorityDataRequests.length === 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+                <thead className="bg-slate-50 dark:bg-slate-950/40">
                   <tr>
-                    <td
-                      colSpan={5}
-                      className="px-6 py-8 text-sm text-slate-500 dark:text-slate-400"
-                    >
-                      Inga prioriterade nätägarrequests just nu.
-                    </td>
+                    <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                      Scope
+                    </th>
+                    <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
+                      Uppföljning
+                    </th>
+                    <th className="px-6 py-3 text-right font-medium text-slate-500 dark:text-slate-400">
+                      Åtgärd
+                    </th>
                   </tr>
-                ) : (
-                  priorityDataRequests.map((row) => (
-                    <tr key={row.request.id}>
-                      <td className="px-6 py-4 align-top">
-                        <div className="font-medium text-slate-950 dark:text-white">
-                          {row.request.id.slice(0, 8)}
-                        </div>
-                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          Kund {row.request.customer_id.slice(0, 8)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 align-top text-slate-600 dark:text-slate-300">
-                        {formatRequestScope(row.request.request_scope)}
-                      </td>
-                      <td className="px-6 py-4 align-top">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(
-                            row.request.status
-                          )}`}
-                        >
-                          {row.request.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 align-top text-slate-600 dark:text-slate-300">
-                        <div>{row.followup}</div>
-                        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                          Outbound: {row.relatedOutbound.length} · Underlag:{' '}
-                          {row.relatedUnderlay ? 'ja' : 'nej'} · Mätvärden:{' '}
-                          {row.relatedMeterValueCount}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 align-top text-right">
-                        <Link
-                          href={`/admin/operations/grid-owner-requests/${row.request.id}`}
-                          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                        >
-                          Öppna detail
-                        </Link>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {priorityDataRequests.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-6 py-8 text-sm text-slate-500 dark:text-slate-400"
+                      >
+                        Inga nätägarrequests kräver särskild uppföljning just nu.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    priorityDataRequests.map((row) => (
+                      <tr key={row.request.id}>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-slate-950 dark:text-white">
+                            {formatRequestScope(row.request.request_scope)}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {row.request.id.slice(0, 8)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(
+                              row.request.status
+                            )}`}
+                          >
+                            {row.request.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                          <div>{row.followup}</div>
+                          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            Outbound: {row.relatedOutbound.length} · Underlag:{' '}
+                            {row.relatedUnderlay ? 'ja' : 'nej'} · Mätvärden:{' '}
+                            {row.relatedMeterValueCount}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 align-top text-right">
+                          <Link
+                            href={`/admin/operations/grid-owner-requests/${row.request.id}`}
+                            className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                          >
+                            Öppna detail
+                          </Link>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 

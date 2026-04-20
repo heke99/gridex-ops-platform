@@ -1,5 +1,12 @@
+// lib/admin/guards.ts
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import {
+  getAdminPageRequirement,
+  hasPermissionRequirement,
+  type AdminPageKey,
+  type PermissionRequirement,
+} from '@/lib/admin/accessModel'
 import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
 
 type GuardResult = {
@@ -15,13 +22,14 @@ type UserRoleRpcRow = {
   role_key?: string | null
 }
 
-function hasAnyPermission(
-  currentPermissions: string[],
-  requiredPermissions: string[]
-): boolean {
-  return requiredPermissions.some((permission) =>
-    currentPermissions.includes(permission)
-  )
+function normalizeRequirement(
+  input: string[] | PermissionRequirement
+): PermissionRequirement {
+  if (Array.isArray(input)) {
+    return { anyOf: input }
+  }
+
+  return input
 }
 
 async function loadBaseAdminContext(): Promise<GuardResult> {
@@ -77,7 +85,7 @@ export async function requireAdminAccess(): Promise<GuardResult> {
 }
 
 export async function requireAdminPageAccess(
-  requiredPermissions: string[] = []
+  requiredPermissions: string[] | PermissionRequirement = []
 ): Promise<GuardResult> {
   const base = await loadBaseAdminContext()
 
@@ -85,45 +93,34 @@ export async function requireAdminPageAccess(
     redirect('/login')
   }
 
-  if (requiredPermissions.length > 0 && !hasAnyPermission(base.permissions, requiredPermissions)) {
+  const requirement = normalizeRequirement(requiredPermissions)
+
+  if (!hasPermissionRequirement(base.permissions, requirement)) {
     redirect('/admin')
   }
 
   return base
 }
 
-export async function requireAdminActionAccess(
-  requiredPermissions: string[] = []
+export async function requireAdminPageKeyAccess(
+  pageKey: AdminPageKey
 ): Promise<GuardResult> {
-  const base = await loadBaseAdminContext()
-
-  if (!base.isAdmin) {
-    throw new Error('Du saknar adminbehörighet.')
-  }
-
-  if (requiredPermissions.length > 0 && !hasAnyPermission(base.permissions, requiredPermissions)) {
-    throw new Error('Du saknar behörighet för denna åtgärd.')
-  }
-
-  return base
+  return requireAdminPageAccess(getAdminPageRequirement(pageKey))
 }
 
-export async function requireAdminRole(
-  allowedRoles: string[] = []
+export async function requireAdminActionAccess(
+  requiredPermissions: string[] | PermissionRequirement = []
 ): Promise<GuardResult> {
   const base = await loadBaseAdminContext()
 
   if (!base.isAdmin) {
-    redirect('/login')
+    throw new Error('Unauthorized')
   }
 
-  if (allowedRoles.length > 0) {
-    const current = new Set(base.roles)
-    const allowed = allowedRoles.some((role) => current.has(role))
+  const requirement = normalizeRequirement(requiredPermissions)
 
-    if (!allowed) {
-      redirect('/admin')
-    }
+  if (!hasPermissionRequirement(base.permissions, requirement)) {
+    throw new Error('Forbidden')
   }
 
   return base

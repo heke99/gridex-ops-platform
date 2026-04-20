@@ -2,8 +2,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
-import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getCustomers } from '@/lib/customers/getCustomers'
 import type { ReactNode } from 'react'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
@@ -607,7 +606,7 @@ function QueueSection({
 export default async function AdminOperationsIntegrityPage({
   searchParams,
 }: PageProps) {
-  await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
+  await requireAdminPageKeyAccess('operations.integrity')
 
   const resolvedSearchParams = await searchParams
 

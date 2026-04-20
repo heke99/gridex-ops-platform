@@ -1,163 +1,363 @@
+// app/admin/users/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
-import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
+import { requireAdminActionAccess } from '@/lib/admin/guards'
 
-function normalizeEmail(value: FormDataEntryValue | null): string {
+type ActionState = {
+  ok: boolean
+  message: string
+}
+
+function normalizeEmail(value: FormDataEntryValue | null) {
   return String(value ?? '')
     .trim()
     .toLowerCase()
 }
 
-async function requireUsersWrite() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+function normalizeText(value: FormDataEntryValue | null) {
+  return String(value ?? '').trim()
+}
+
+function normalizeCheckbox(value: FormDataEntryValue | null) {
+  return value === 'on' || value === 'true' || value === '1'
+}
+
+function getBaseAppUrl() {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    'http://localhost:3000'
+  )
+}
+
+async function resolveRoleIdByKey(roleKey: string) {
+  const { data, error } = await supabaseService
+    .from('roles')
+    .select('id,key')
+    .eq('key', roleKey)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data?.id) {
+    throw new Error(`Role not found: ${roleKey}`)
+  }
+
+  return data.id as string
+}
+
+async function resolveUserByIdOrEmail(input: { userId?: string; email?: string }) {
+  if (input.userId) {
+    const { data, error } = await supabaseService.auth.admin.getUserById(input.userId)
+    if (error) throw error
+    if (!data.user) throw new Error('User not found')
+    return data.user
+  }
+
+  const email = input.email?.trim().toLowerCase()
+  if (!email) throw new Error('Missing user identifier')
+
+  const { data, error } = await supabaseService.auth.admin.listUsers()
+  if (error) throw error
+
+  const user = (data.users ?? []).find(
+    (row) => (row.email ?? '').trim().toLowerCase() === email
+  )
 
   if (!user) {
-    throw new Error('Unauthorized')
+    throw new Error(`No user found with email ${email}`)
   }
 
-  const permissions = await getUserPermissions(user.id)
-
-  if (!permissions.includes('users.write')) {
-    throw new Error('Forbidden')
-  }
-
-  return { user, permissions }
+  return user
 }
 
-async function auditLog(params: {
-  actorUserId: string
-  entityType: string
-  entityId: string
-  action: string
-  oldValues?: unknown
-  newValues?: unknown
-  metadata?: unknown
-}) {
-  const { error } = await supabaseService.from('audit_logs').insert({
-    actor_user_id: params.actorUserId,
-    entity_type: params.entityType,
-    entity_id: params.entityId,
-    action: params.action,
-    old_values: params.oldValues ?? null,
-    new_values: params.newValues ?? null,
-    metadata: params.metadata ?? null,
-  })
+export async function inviteAdminUserAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
 
-  if (error) throw error
+    const email = normalizeEmail(formData.get('email'))
+    const fullName = normalizeText(formData.get('full_name'))
+    const roleKey =
+      normalizeText(formData.get('role_key')) ||
+      normalizeText(formData.get('role'))
+
+    const sendInviteRaw = formData.get('send_invite')
+    const sendInvite =
+      sendInviteRaw === null ? true : normalizeCheckbox(sendInviteRaw)
+
+    if (!email) {
+      return { ok: false, message: 'E-post saknas.' }
+    }
+
+    if (!roleKey) {
+      return { ok: false, message: 'Roll saknas.' }
+    }
+
+    const roleId = await resolveRoleIdByKey(roleKey)
+    const redirectTo = `${getBaseAppUrl()}/login`
+
+    let userId: string | null = null
+
+    if (sendInvite) {
+      const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(email, {
+        redirectTo,
+        data: fullName ? { full_name: fullName } : undefined,
+      })
+
+      if (error) throw error
+      userId = data.user?.id ?? null
+    }
+
+    if (!userId) {
+      const existingUser = await resolveUserByIdOrEmail({ email })
+      userId = existingUser.id
+    }
+
+    const { error: profileError } = await supabaseService.from('user_profiles').upsert(
+      {
+        id: userId,
+        email,
+        full_name: fullName || null,
+      },
+      { onConflict: 'id' }
+    )
+
+    if (profileError) throw profileError
+
+    const { error: deleteRolesError } = await supabaseService
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+
+    if (deleteRolesError) throw deleteRolesError
+
+    const { error: insertRoleError } = await supabaseService
+      .from('user_roles')
+      .insert({
+        user_id: userId,
+        role_id: roleId,
+        status: 'active',
+      })
+
+    if (insertRoleError) throw insertRoleError
+
+    revalidatePath('/admin/users')
+    revalidatePath('/admin/roles')
+
+    return {
+      ok: true,
+      message: sendInvite
+        ? 'Användaren bjöds in och rollen kopplades.'
+        : 'Roll kopplades till befintlig användare.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte skapa/inbjuda användare.',
+    }
+  }
 }
 
-export async function inviteUserAction(formData: FormData) {
-  const { user, permissions } = await requireUsersWrite()
+export async function setUserRoleAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
 
-  const email = normalizeEmail(formData.get('email'))
-  const roleId = String(formData.get('roleId') ?? '').trim()
+    const userId = normalizeText(formData.get('user_id'))
+    const roleKey =
+      normalizeText(formData.get('role_key')) ||
+      normalizeText(formData.get('role'))
 
-  if (!email) {
-    throw new Error('E-post saknas')
+    if (!userId) {
+      return { ok: false, message: 'User ID saknas.' }
+    }
+
+    if (!roleKey) {
+      return { ok: false, message: 'Roll saknas.' }
+    }
+
+    const roleId = await resolveRoleIdByKey(roleKey)
+
+    const { error: deleteError } = await supabaseService
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+
+    if (deleteError) throw deleteError
+
+    const { error: insertError } = await supabaseService
+      .from('user_roles')
+      .insert({
+        user_id: userId,
+        role_id: roleId,
+        status: 'active',
+      })
+
+    if (insertError) throw insertError
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
+
+    return {
+      ok: true,
+      message: 'Rollen uppdaterades.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte uppdatera rollen.',
+    }
   }
+}
 
-  if (roleId && !permissions.includes('roles.manage')) {
-    throw new Error('Du får inte sätta roller vid inbjudan.')
-  }
+export async function setUserPermissionOverridesAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
 
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? undefined
+    const userId = normalizeText(formData.get('user_id'))
+    const allowRaw = normalizeText(formData.get('allow_permissions'))
+    const denyRaw = normalizeText(formData.get('deny_permissions'))
 
-  const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(email, {
-    redirectTo: siteUrl ? `${siteUrl.replace(/\/$/, '')}/login` : undefined,
-  })
+    if (!userId) {
+      return { ok: false, message: 'User ID saknas.' }
+    }
 
-  if (error) throw error
+    const allowKeys = allowRaw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
 
-  const invitedUserId = data.user?.id
+    const denyKeys = denyRaw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
 
-  if (invitedUserId && roleId) {
-    const { error: roleError } = await supabaseService.from('user_roles').upsert({
-      user_id: invitedUserId,
-      role_id: roleId,
-      granted_by: user.id,
-      is_active: true,
+    const overlap = allowKeys.filter((key) => denyKeys.includes(key))
+    if (overlap.length > 0) {
+      return {
+        ok: false,
+        message: `Samma permission kan inte vara både allow och deny: ${overlap.join(', ')}`,
+      }
+    }
+
+    const { data: allPermissions, error: permissionsError } = await supabaseService
+      .from('permissions')
+      .select('id,key')
+
+    if (permissionsError) throw permissionsError
+
+    const byKey = new Map((allPermissions ?? []).map((row) => [row.key as string, row.id as string]))
+
+    const allowIds = allowKeys.map((key) => {
+      const id = byKey.get(key)
+      if (!id) throw new Error(`Permission not found: ${key}`)
+      return id
     })
 
-    if (roleError) throw roleError
-  }
-
-  await auditLog({
-    actorUserId: user.id,
-    entityType: 'auth_user',
-    entityId: invitedUserId ?? email,
-    action: 'invite_user',
-    newValues: { email, roleId: roleId || null },
-  })
-
-  revalidatePath('/admin/users')
-  revalidatePath('/admin/roles')
-}
-
-export async function createUserAction(formData: FormData) {
-  const { user, permissions } = await requireUsersWrite()
-
-  const email = normalizeEmail(formData.get('email'))
-  const password = String(formData.get('password') ?? '')
-  const fullName = String(formData.get('fullName') ?? '').trim()
-  const roleId = String(formData.get('roleId') ?? '').trim()
-
-  if (!email || !password) {
-    throw new Error('E-post och lösenord krävs')
-  }
-
-  if (password.length < 10) {
-    throw new Error('Lösenord måste vara minst 10 tecken')
-  }
-
-  if (roleId && !permissions.includes('roles.manage')) {
-    throw new Error('Du får inte sätta roller vid skapande av användare.')
-  }
-
-  const { data, error } = await supabaseService.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: fullName ? { full_name: fullName } : undefined,
-  })
-
-  if (error) throw error
-
-  const createdUserId = data.user?.id
-
-  if (!createdUserId) {
-    throw new Error('Kunde inte skapa användare')
-  }
-
-  if (roleId) {
-    const { error: roleError } = await supabaseService.from('user_roles').upsert({
-      user_id: createdUserId,
-      role_id: roleId,
-      granted_by: user.id,
-      is_active: true,
+    const denyIds = denyKeys.map((key) => {
+      const id = byKey.get(key)
+      if (!id) throw new Error(`Permission not found: ${key}`)
+      return id
     })
 
-    if (roleError) throw roleError
+    const { error: deleteError } = await supabaseService
+      .from('user_permissions')
+      .delete()
+      .eq('user_id', userId)
+
+    if (deleteError) throw deleteError
+
+    const rows = [
+      ...allowIds.map((permissionId) => ({
+        user_id: userId,
+        permission_id: permissionId,
+        is_allowed: true,
+      })),
+      ...denyIds.map((permissionId) => ({
+        user_id: userId,
+        permission_id: permissionId,
+        is_allowed: false,
+      })),
+    ]
+
+    if (rows.length > 0) {
+      const { error: insertError } = await supabaseService
+        .from('user_permissions')
+        .insert(rows)
+
+      if (insertError) throw insertError
+    }
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
+
+    return {
+      ok: true,
+      message: 'Permission-overrides uppdaterades.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Kunde inte uppdatera permission-overrides.',
+    }
   }
-
-  await auditLog({
-    actorUserId: user.id,
-    entityType: 'auth_user',
-    entityId: createdUserId,
-    action: 'create_user',
-    newValues: {
-      email,
-      fullName: fullName || null,
-      roleId: roleId || null,
-    },
-  })
-
-  revalidatePath('/admin/users')
-  revalidatePath('/admin/roles')
 }
+
+export async function deactivateUserAccessAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
+
+    const userId = normalizeText(formData.get('user_id'))
+    if (!userId) {
+      return { ok: false, message: 'User ID saknas.' }
+    }
+
+    const { error: roleDeleteError } = await supabaseService
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+
+    if (roleDeleteError) throw roleDeleteError
+
+    const { error: permissionDeleteError } = await supabaseService
+      .from('user_permissions')
+      .delete()
+      .eq('user_id', userId)
+
+    if (permissionDeleteError) throw permissionDeleteError
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
+
+    return {
+      ok: true,
+      message: 'Användarens interna access togs bort.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte ta bort access.',
+    }
+  }
+}
+
+/**
+ * Bakåtkompatibla exportnamn så dina befintliga pages bygger utan att du behöver byta imports direkt.
+ */
+export const inviteUserAction = inviteAdminUserAction
+export const createUserAction = inviteAdminUserAction

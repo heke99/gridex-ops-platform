@@ -1,7 +1,8 @@
+//app/admin/operations/switches/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import {
   listAllSupplierSwitchRequests,
@@ -146,7 +147,7 @@ function KpiCard({
 export default async function AdminOperationsSwitchesPage({
   searchParams,
 }: SwitchesPageProps) {
-  await requirePermissionServer('masterdata.read')
+  await requireAdminPageKeyAccess('operations.switches')
 
   const resolvedSearchParams = await searchParams
   const supabase = await createSupabaseServerClient()

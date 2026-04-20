@@ -1,7 +1,8 @@
+//app/admin/operations/tasks/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import { listAllOperationTasks } from '@/lib/operations/db'
 import {
@@ -122,7 +123,7 @@ function taskMeteringPointLabel(
 export default async function AdminOperationsTasksPage({
   searchParams,
 }: TasksPageProps) {
-  await requirePermissionServer('masterdata.read')
+  await requireAdminPageKeyAccess('operations.tasks')
 
   const resolvedSearchParams = await searchParams
   const supabase = await createSupabaseServerClient()
