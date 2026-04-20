@@ -1,7 +1,9 @@
+//app/admin/ediel/page.tsx
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
+import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
@@ -230,6 +232,8 @@ function routeLabel(route: EdielRecommendationRouteRow | null): string {
 }
 
 export default async function AdminEdielPage() {
+  await requirePermissionServer('communication.read')
+
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },

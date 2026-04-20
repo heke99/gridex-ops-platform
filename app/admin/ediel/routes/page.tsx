@@ -1,6 +1,8 @@
+//app/admin/ediel/routes/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
+import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import {
   saveEdielCommunicationRouteAction,
   saveEdielRouteProfileAction,
@@ -180,6 +182,12 @@ function Pill({
 }
 
 export default async function AdminEdielRoutesPage() {
+  await requireAnyPermissionServer([
+    'communication.read',
+    'masterdata.read',
+    'switching.read',
+  ])
+
   const supabase = await createSupabaseServerClient()
 
   const [

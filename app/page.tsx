@@ -1,3 +1,5 @@
+// app/admin/page.tsx
+
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -109,6 +111,8 @@ export default async function AdminPage() {
     ediel.failedMessages > 0 ||
     ediel.pendingAckMessages > 0
 
+  const showEdielSection = hasAnyPermission(admin.permissions, ['communication.read'])
+
   const overviewCards = [
     {
       eyebrow: 'Admin',
@@ -143,8 +147,6 @@ export default async function AdminPage() {
       requiredPermissions: ['masterdata.read'],
     },
   ].filter((card) => hasAnyPermission(admin.permissions, card.requiredPermissions))
-
-  const showEdielSection = hasAnyPermission(admin.permissions, ['communication.read'])
 
   return (
     <div className="min-h-screen">
