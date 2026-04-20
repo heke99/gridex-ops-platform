@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
 
 type GuardResult = {
   userId: string
@@ -9,24 +10,9 @@ type GuardResult = {
   isAdmin: boolean
 }
 
-type RoleRelation =
-  | {
-      id?: string | null
-      name?: string | null
-    }
-  | {
-      id?: string | null
-      name?: string | null
-    }[]
-  | null
-
-type RoleRow = {
+type UserRoleRpcRow = {
   role_id?: string | null
-  roles?: RoleRelation
-}
-
-type PermissionRpcRow = {
-  gridex_get_user_permissions?: string[] | null
+  role_key?: string | null
 }
 
 function hasAnyPermission(
@@ -38,76 +24,7 @@ function hasAnyPermission(
   )
 }
 
-function normalizeRoleName(row: RoleRow): string | null {
-  const relation = row.roles
-
-  if (Array.isArray(relation)) {
-    return relation[0]?.name ?? null
-  }
-
-  if (relation && typeof relation === 'object') {
-    return relation.name ?? null
-  }
-
-  return null
-}
-
-function normalizePermissions(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    if (value.every((item) => typeof item === 'string')) {
-      return value.filter((item): item is string => typeof item === 'string')
-    }
-
-    const firstRow = value[0] as PermissionRpcRow | undefined
-    const nested = firstRow?.gridex_get_user_permissions
-
-    if (Array.isArray(nested)) {
-      return nested.filter((item): item is string => typeof item === 'string')
-    }
-  }
-
-  if (value && typeof value === 'object') {
-    const nested = (value as PermissionRpcRow).gridex_get_user_permissions
-
-    if (Array.isArray(nested)) {
-      return nested.filter((item): item is string => typeof item === 'string')
-    }
-  }
-
-  return []
-}
-
-function normalizeRole(role: string): string {
-  return role.trim().toLowerCase()
-}
-
-function isAdminRole(role: string): boolean {
-  const normalized = normalizeRole(role)
-
-  return [
-    'admin',
-    'super_admin',
-    'super admin',
-    'pricing_manager',
-    'pricing manager',
-    'pricing_approver',
-    'pricing approver',
-    'compliance_officer',
-    'compliance officer',
-    'support',
-    'support_agent',
-    'support agent',
-    'operations_manager',
-    'operations manager',
-  ].includes(normalized)
-}
-
-async function loadBaseAdminContext(): Promise<{
-  userId: string
-  email: string | null
-  roles: string[]
-  isAdmin: boolean
-}> {
+async function loadBaseAdminContext(): Promise<GuardResult> {
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -119,50 +36,34 @@ async function loadBaseAdminContext(): Promise<{
     redirect('/login')
   }
 
-  const { data: rolesData, error: rolesError } = await supabase
-    .from('user_roles')
-    .select(
-      `
-      role_id,
-      roles (
-        id,
-        name
-      )
-    `
-    )
-    .eq('user_id', user.id)
-    .or('is_active.is.null,is_active.eq.true')
+  const permissions = await getUserPermissions(user.id)
+
+  const { data: rolesData, error: rolesError } = await supabase.rpc(
+    'gridex_get_user_roles',
+    {
+      p_user_id: user.id,
+    }
+  )
 
   if (rolesError) {
     throw rolesError
   }
 
-  const roles = ((rolesData ?? []) as RoleRow[])
-    .map(normalizeRoleName)
-    .filter((value): value is string => Boolean(value))
+  const roles = ((rolesData ?? []) as UserRoleRpcRow[])
+    .map((row) => row.role_key ?? null)
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
 
-  const isAdmin = roles.some(isAdminRole)
+  const isAdmin =
+    permissions.length > 0 &&
+    !(roles.length === 1 && roles[0] === 'customer')
 
   return {
     userId: user.id,
     email: user.email ?? null,
+    permissions,
     roles,
     isAdmin,
   }
-}
-
-async function loadPermissions(userId: string): Promise<string[]> {
-  const supabase = await createSupabaseServerClient()
-
-  const { data, error } = await supabase.rpc('gridex_get_user_permissions', {
-    p_user_id: userId,
-  })
-
-  if (error) {
-    throw error
-  }
-
-  return normalizePermissions(data)
 }
 
 export async function requireAdminAccess(): Promise<GuardResult> {
@@ -172,10 +73,7 @@ export async function requireAdminAccess(): Promise<GuardResult> {
     redirect('/login')
   }
 
-  return {
-    ...base,
-    permissions: [],
-  }
+  return base
 }
 
 export async function requireAdminPageAccess(
@@ -187,23 +85,11 @@ export async function requireAdminPageAccess(
     redirect('/login')
   }
 
-  if (requiredPermissions.length === 0) {
-    return {
-      ...base,
-      permissions: [],
-    }
-  }
-
-  const permissions = await loadPermissions(base.userId)
-
-  if (!hasAnyPermission(permissions, requiredPermissions)) {
+  if (requiredPermissions.length > 0 && !hasAnyPermission(base.permissions, requiredPermissions)) {
     redirect('/admin')
   }
 
-  return {
-    ...base,
-    permissions,
-  }
+  return base
 }
 
 export async function requireAdminActionAccess(
@@ -215,23 +101,11 @@ export async function requireAdminActionAccess(
     throw new Error('Du saknar adminbehörighet.')
   }
 
-  if (requiredPermissions.length === 0) {
-    return {
-      ...base,
-      permissions: [],
-    }
-  }
-
-  const permissions = await loadPermissions(base.userId)
-
-  if (!hasAnyPermission(permissions, requiredPermissions)) {
+  if (requiredPermissions.length > 0 && !hasAnyPermission(base.permissions, requiredPermissions)) {
     throw new Error('Du saknar behörighet för denna åtgärd.')
   }
 
-  return {
-    ...base,
-    permissions,
-  }
+  return base
 }
 
 export async function requireAdminRole(
@@ -243,18 +117,14 @@ export async function requireAdminRole(
     redirect('/login')
   }
 
-  const normalizedCurrentRoles = base.roles.map(normalizeRole)
-  const normalizedAllowedRoles = allowedRoles.map(normalizeRole)
+  if (allowedRoles.length > 0) {
+    const current = new Set(base.roles)
+    const allowed = allowedRoles.some((role) => current.has(role))
 
-  if (
-    normalizedAllowedRoles.length > 0 &&
-    !normalizedAllowedRoles.some((role) => normalizedCurrentRoles.includes(role))
-  ) {
-    redirect('/admin')
+    if (!allowed) {
+      redirect('/admin')
+    }
   }
 
-  return {
-    ...base,
-    permissions: [],
-  }
+  return base
 }

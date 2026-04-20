@@ -1,4 +1,3 @@
-//app/admin/users/[id]/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -6,7 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
 
-async function requireSuperAdmin() {
+async function requireCurrentPermissions() {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -16,11 +15,27 @@ async function requireSuperAdmin() {
 
   const permissions = await getUserPermissions(user.id)
 
+  return { user, permissions }
+}
+
+async function requireRoleManager() {
+  const { user, permissions } = await requireCurrentPermissions()
+
   if (!permissions.includes('roles.manage')) {
     throw new Error('Forbidden')
   }
 
-  return user
+  return { user, permissions }
+}
+
+async function requirePermissionManager() {
+  const { user, permissions } = await requireCurrentPermissions()
+
+  if (!permissions.includes('permissions.manage')) {
+    throw new Error('Forbidden')
+  }
+
+  return { user, permissions }
 }
 
 async function auditLog(params: {
@@ -45,8 +60,14 @@ async function auditLog(params: {
   if (error) throw error
 }
 
+function revalidateUserAccessPaths(userId: string) {
+  revalidatePath(`/admin/users/${userId}`)
+  revalidatePath('/admin/users')
+  revalidatePath('/admin/roles')
+}
+
 export async function assignUserRoleAction(formData: FormData) {
-  const actor = await requireSuperAdmin()
+  const { user } = await requireRoleManager()
 
   const userId = String(formData.get('userId') ?? '')
   const roleId = String(formData.get('roleId') ?? '')
@@ -56,26 +77,26 @@ export async function assignUserRoleAction(formData: FormData) {
   const { error } = await supabaseService.from('user_roles').upsert({
     user_id: userId,
     role_id: roleId,
-    granted_by: actor.id,
+    granted_by: user.id,
     is_active: true,
+    expires_at: null,
   })
 
   if (error) throw error
 
   await auditLog({
-    actorUserId: actor.id,
+    actorUserId: user.id,
     entityType: 'user_role',
     entityId: userId,
     action: 'assign_role',
     newValues: { roleId },
   })
 
-  revalidatePath(`/admin/users/${userId}`)
-  revalidatePath('/admin/users')
+  revalidateUserAccessPaths(userId)
 }
 
 export async function removeUserRoleAction(formData: FormData) {
-  const actor = await requireSuperAdmin()
+  const { user } = await requireRoleManager()
 
   const userRoleId = String(formData.get('userRoleId') ?? '')
   const userId = String(formData.get('userId') ?? '')
@@ -84,25 +105,24 @@ export async function removeUserRoleAction(formData: FormData) {
 
   const { error } = await supabaseService
     .from('user_roles')
-    .update({ is_active: false, granted_by: actor.id })
+    .update({ is_active: false, granted_by: user.id })
     .eq('id', userRoleId)
 
   if (error) throw error
 
   await auditLog({
-    actorUserId: actor.id,
+    actorUserId: user.id,
     entityType: 'user_role',
     entityId: userId,
     action: 'remove_role',
     newValues: { userRoleId },
   })
 
-  revalidatePath(`/admin/users/${userId}`)
-  revalidatePath('/admin/users')
+  revalidateUserAccessPaths(userId)
 }
 
 export async function addUserPermissionOverrideAction(formData: FormData) {
-  const actor = await requireSuperAdmin()
+  const { user } = await requirePermissionManager()
 
   const userId = String(formData.get('userId') ?? '')
   const permissionId = String(formData.get('permissionId') ?? '')
@@ -118,24 +138,25 @@ export async function addUserPermissionOverrideAction(formData: FormData) {
     permission_id: permissionId,
     effect,
     reason: reason || null,
-    granted_by: actor.id,
+    granted_by: user.id,
+    expires_at: null,
   })
 
   if (error) throw error
 
   await auditLog({
-    actorUserId: actor.id,
+    actorUserId: user.id,
     entityType: 'user_permission_override',
     entityId: userId,
     action: 'add_permission_override',
     newValues: { permissionId, effect, reason },
   })
 
-  revalidatePath(`/admin/users/${userId}`)
+  revalidateUserAccessPaths(userId)
 }
 
 export async function removeUserPermissionOverrideAction(formData: FormData) {
-  const actor = await requireSuperAdmin()
+  const { user } = await requirePermissionManager()
 
   const overrideId = String(formData.get('overrideId') ?? '')
   const userId = String(formData.get('userId') ?? '')
@@ -150,12 +171,12 @@ export async function removeUserPermissionOverrideAction(formData: FormData) {
   if (error) throw error
 
   await auditLog({
-    actorUserId: actor.id,
+    actorUserId: user.id,
     entityType: 'user_permission_override',
     entityId: userId,
     action: 'remove_permission_override',
     newValues: { overrideId },
   })
 
-  revalidatePath(`/admin/users/${userId}`)
+  revalidateUserAccessPaths(userId)
 }
