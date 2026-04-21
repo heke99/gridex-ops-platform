@@ -21,8 +21,12 @@ import { runEdielSelfTest } from '@/lib/ediel/selftest'
 import {
   createNegativeUtiltsResponse,
   pollAndIngestEdielMailbox,
+  prepareAndQueueAiList,
   prepareAndQueueEdielZ03,
+  prepareAndQueueEdielZ05,
   prepareAndQueueEdielZ09,
+  prepareAndQueueUtiltsE66,
+  prepareAndQueueUtiltsE73,
   sendQueuedEdielMessage,
 } from '@/lib/ediel/orchestrator'
 
@@ -31,6 +35,13 @@ function stringValue(formData: FormData, key: string): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function numberValue(formData: FormData, key: string): number | null {
+  const raw = stringValue(formData, key)
+  if (!raw) return null
+  const parsed = Number(raw.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 function jsonValue(formData: FormData, key: string): Record<string, unknown> {
@@ -70,6 +81,7 @@ export async function createProdatDraftAction(formData: FormData) {
   const code = stringValue(formData, 'code') as
     | 'Z01'
     | 'Z03'
+    | 'Z05'
     | 'Z09'
     | 'Z13'
     | 'Z18'
@@ -77,7 +89,7 @@ export async function createProdatDraftAction(formData: FormData) {
 
   if (!code) throw new Error('Missing PRODAT code')
 
-  const draft = buildProdatOutboundDraft({
+  const draft = await buildProdatOutboundDraft({
     actorUserId: actor.id,
     code,
     communicationRouteId: stringValue(formData, 'communicationRouteId'),
@@ -89,7 +101,9 @@ export async function createProdatDraftAction(formData: FormData) {
     switchRequestId: stringValue(formData, 'switchRequestId'),
     gridOwnerDataRequestId: stringValue(formData, 'gridOwnerDataRequestId'),
     senderEdielId: stringValue(formData, 'senderEdielId'),
+    senderName: stringValue(formData, 'senderName'),
     receiverEdielId: stringValue(formData, 'receiverEdielId'),
+    receiverName: stringValue(formData, 'receiverName'),
     senderSubAddress: stringValue(formData, 'senderSubAddress'),
     receiverSubAddress: stringValue(formData, 'receiverSubAddress'),
     mailbox: stringValue(formData, 'mailbox'),
@@ -133,6 +147,7 @@ export async function registerInboundUtiltsAction(formData: FormData) {
     | 'S04'
     | 'E31'
     | 'E66'
+    | 'E73'
     | null
 
   const rawPayload = stringValue(formData, 'rawPayload')
@@ -303,12 +318,24 @@ export async function prepareSwitchZ03Action(formData: FormData) {
 
   await prepareAndQueueEdielZ03({
     actorUserId: actor.id,
-    senderEdielId: stringValue(formData, 'senderEdielId') ?? '',
-    receiverEdielId: stringValue(formData, 'receiverEdielId') ?? '',
-    receiverEmail: stringValue(formData, 'receiverEmail'),
     switchRequestId: stringValue(formData, 'switchRequestId') ?? '',
     communicationRouteId: stringValue(formData, 'communicationRouteId'),
-    mailbox: stringValue(formData, 'mailbox'),
+  })
+
+  revalidatePath('/admin/ediel')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/outbound')
+}
+
+export async function prepareSwitchZ05Action(formData: FormData) {
+  await requireAdminActionAccess(['switching.write'])
+
+  const actor = await getActor()
+
+  await prepareAndQueueEdielZ05({
+    actorUserId: actor.id,
+    switchRequestId: stringValue(formData, 'switchRequestId') ?? '',
+    communicationRouteId: stringValue(formData, 'communicationRouteId'),
   })
 
   revalidatePath('/admin/ediel')
@@ -323,16 +350,82 @@ export async function prepareSwitchZ09Action(formData: FormData) {
 
   await prepareAndQueueEdielZ09({
     actorUserId: actor.id,
-    senderEdielId: stringValue(formData, 'senderEdielId') ?? '',
-    receiverEdielId: stringValue(formData, 'receiverEdielId') ?? '',
-    receiverEmail: stringValue(formData, 'receiverEmail'),
     switchRequestId: stringValue(formData, 'switchRequestId') ?? '',
     communicationRouteId: stringValue(formData, 'communicationRouteId'),
-    mailbox: stringValue(formData, 'mailbox'),
   })
 
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/operations')
+  revalidatePath('/admin/outbound')
+}
+
+export async function prepareUtiltsE73Action(formData: FormData) {
+  await requireAdminActionAccess([
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
+
+  await prepareAndQueueUtiltsE73({
+    actorUserId: actor.id,
+    gridOwnerDataRequestId: stringValue(formData, 'gridOwnerDataRequestId') ?? '',
+    communicationRouteId: stringValue(formData, 'communicationRouteId'),
+  })
+
+  revalidatePath('/admin/ediel')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/operations')
+}
+
+export async function prepareUtiltsE66Action(formData: FormData) {
+  await requireAdminActionAccess([
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const actor = await getActor()
+
+  await prepareAndQueueUtiltsE66({
+    actorUserId: actor.id,
+    gridOwnerDataRequestId: stringValue(formData, 'gridOwnerDataRequestId') ?? '',
+    communicationRouteId: stringValue(formData, 'communicationRouteId'),
+    quantity: numberValue(formData, 'quantity'),
+    periodStart: stringValue(formData, 'periodStart'),
+    periodEnd: stringValue(formData, 'periodEnd'),
+    registrationTime: stringValue(formData, 'registrationTime'),
+  })
+
+  revalidatePath('/admin/ediel')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/operations')
+}
+
+export async function prepareAiListAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'metering.write',
+    'billing_underlay.write',
+    'switching.write',
+  ])
+
+  const actor = await getActor()
+
+  await prepareAndQueueAiList({
+    actorUserId: actor.id,
+    listType: (stringValue(formData, 'listType') as 'AI' | 'BI' | null) ?? 'AI',
+    customerId: stringValue(formData, 'customerId') ?? '',
+    siteId: stringValue(formData, 'siteId') ?? '',
+    meteringPointId: stringValue(formData, 'meteringPointId'),
+    supplierEdielId: stringValue(formData, 'supplierEdielId'),
+    balanceResponsibleEdielId: stringValue(formData, 'balanceResponsibleEdielId'),
+    receiverEdielId: stringValue(formData, 'receiverEdielId') ?? '',
+    receiverEmail: stringValue(formData, 'receiverEmail'),
+    fromDate: stringValue(formData, 'fromDate') ?? '',
+    toDate: stringValue(formData, 'toDate') ?? '',
+    communicationRouteId: stringValue(formData, 'communicationRouteId'),
+  })
+
+  revalidatePath('/admin/ediel')
   revalidatePath('/admin/outbound')
 }
 
@@ -424,7 +517,6 @@ export async function runEdielSelfTestAction(formData: FormData) {
     | 'UTILTS_S03_IN'
     | 'UTILTS_E66_KVART_IN'
     | 'UTILTS_E66_SCH_IN'
-    | 'UTILTS_E31_SCH_IN'
     | 'UTILTS_NEGATIVE'
     | null
 

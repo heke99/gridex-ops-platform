@@ -219,6 +219,17 @@ export default function EdielWorkbench({
     [messages, selectedSwitchId]
   )
 
+  const z05LinkedMessage = useMemo(
+    () =>
+      messages.find(
+        (message) =>
+          message.switch_request_id === selectedSwitchId &&
+          message.direction === 'outbound' &&
+          message.message_code === 'Z05'
+      ) ?? null,
+    [messages, selectedSwitchId]
+  )
+
   const z09LinkedMessage = useMemo(
     () =>
       messages.find(
@@ -269,6 +280,7 @@ export default function EdielWorkbench({
         setDispatchMailbox={setDispatchMailbox}
         recommendedRouteText={recommendedRouteText}
         z03LinkedMessageId={z03LinkedMessage?.id ?? null}
+        z05LinkedMessageId={z05LinkedMessage?.id ?? null}
         z09LinkedMessageId={z09LinkedMessage?.id ?? null}
         outboundRequests={outboundRequests}
       />
