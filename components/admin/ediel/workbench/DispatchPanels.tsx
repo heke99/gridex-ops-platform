@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import {
   createAckDraftAction,
   createNegativeUtiltsResponseAction,
@@ -129,7 +130,19 @@ export default function DispatchPanels({
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <div className="font-medium text-slate-900">Valt meddelande</div>
               <div className="mt-2 grid gap-2 md:grid-cols-2">
-                <div>ID: {formatMaybe(selectedMessage?.id)}</div>
+                <div>
+                  ID:{' '}
+                  {selectedMessage?.id ? (
+                    <Link
+                      href={`/admin/ediel/messages/${selectedMessage.id}`}
+                      className="text-indigo-700 underline-offset-2 hover:underline"
+                    >
+                      {selectedMessage.id}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
+                </div>
                 <div>Status: {formatMaybe(selectedMessage?.status)}</div>
                 <div>
                   Kod:{' '}
@@ -142,6 +155,15 @@ export default function DispatchPanels({
                 <div>Mottagarens e-post: {formatMaybe(selectedMessage?.receiver_email)}</div>
               </div>
             </div>
+
+            {selectedMessage?.id ? (
+              <Link
+                href={`/admin/ediel/messages/${selectedMessage.id}`}
+                className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                Öppna message detail
+              </Link>
+            ) : null}
 
             <button
               disabled={!selectedMessageId}
@@ -252,136 +274,132 @@ export default function DispatchPanels({
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <div className="font-medium text-slate-900">Valt inbound UTILTS</div>
               <div className="mt-2 space-y-1">
-                <div>ID: {formatMaybe(selectedInboundUtilts?.id)}</div>
+                <div>
+                  ID:{' '}
+                  {selectedInboundUtilts?.id ? (
+                    <Link
+                      href={`/admin/ediel/messages/${selectedInboundUtilts.id}`}
+                      className="text-indigo-700 underline-offset-2 hover:underline"
+                    >
+                      {selectedInboundUtilts.id}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
+                </div>
                 <div>
                   Kod:{' '}
                   {selectedInboundUtilts
                     ? `${selectedInboundUtilts.message_family} ${selectedInboundUtilts.message_code}`
                     : '—'}
                 </div>
-                <div>Sender Ediel-id: {formatMaybe(selectedInboundUtilts?.sender_ediel_id)}</div>
-                <div>Receiver Ediel-id: {formatMaybe(selectedInboundUtilts?.receiver_ediel_id)}</div>
+                <div>Avsändare: {formatMaybe(selectedInboundUtilts?.sender_ediel_id)}</div>
+                <div>Mottagare: {formatMaybe(selectedInboundUtilts?.receiver_ediel_id)}</div>
               </div>
             </div>
 
-            <button
-              disabled={!selectedInboundUtiltsId}
-              className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            {selectedInboundUtilts?.id ? (
+              <Link
+                href={`/admin/ediel/messages/${selectedInboundUtilts.id}`}
+                className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                Öppna inbound detail
+              </Link>
+            ) : null}
+
+            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
               Skapa UTILTS-ERR
             </button>
           </form>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Skapa ACK-utkast</h2>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2">
+          <h2 className="text-lg font-semibold text-slate-950">ACK-utkast</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Listan prioriterar meddelanden för vald switch och vald route först.
+            Välj källmeddelande för CONTRL, APERAK eller UTILTS_ERR.
           </p>
 
           <form action={createAckDraftAction} className="mt-4 space-y-4">
-            <div>
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                Källmeddelande
-              </label>
-              <select
-                value={selectedAckSourceId}
-                onChange={(event) => setSelectedAckSourceId(event.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2"
-              >
-                {ackableMessagesToShow.length === 0 ? (
-                  <option value="">Inga källmeddelanden</option>
-                ) : (
-                  ackableMessagesToShow.map((message) => (
-                    <option key={message.id} value={message.id}>
-                      {messageLabel(message)}
-                    </option>
-                  ))
-                )}
-              </select>
-              <input type="hidden" name="sourceMessageId" value={selectedAckSourceId} />
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <select
-                name="ackType"
-                defaultValue="CONTRL"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              >
-                <option value="CONTRL">CONTRL</option>
-                <option value="APERAK">APERAK</option>
-                <option value="UTILTS_ERR">UTILTS_ERR</option>
-              </select>
-
-              <select
-                name="outcome"
-                defaultValue="positive"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              >
-                <option value="positive">positive</option>
-                <option value="negative">negative</option>
-              </select>
-            </div>
-
-            <textarea
-              name="messageText"
-              placeholder="Meddelandetext"
-              className="min-h-[100px] w-full rounded-xl border border-slate-300 px-3 py-2"
-            />
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              <div className="font-medium text-slate-900">Valt källmeddelande</div>
-              <div className="mt-2 space-y-1">
-                <div>ID: {formatMaybe(selectedAckSource?.id)}</div>
-                <div>
-                  Kod:{' '}
-                  {selectedAckSource
-                    ? `${selectedAckSource.message_family} ${selectedAckSource.message_code}`
-                    : '—'}
-                </div>
-                <div>Direction: {formatMaybe(selectedAckSource?.direction)}</div>
-                <div>Sender Ediel-id: {formatMaybe(selectedAckSource?.sender_ediel_id)}</div>
-                <div>Receiver Ediel-id: {formatMaybe(selectedAckSource?.receiver_ediel_id)}</div>
-              </div>
-            </div>
-
-            <button
-              disabled={!selectedAckSourceId}
-              className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Skapa ACK-utkast
-            </button>
-          </form>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Manuellt PRODAT-utkast</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Routeprefill är kvar, men nu använder workbenchen samma rekommendationsmotor överallt.
-          </p>
-
-          <form action={createProdatDraftAction} className="mt-4 space-y-4">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  PRODAT-kod
+                  Källmeddelande
                 </label>
                 <select
-                  name="code"
+                  value={selectedAckSourceId}
+                  onChange={(event) => setSelectedAckSourceId(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                >
+                  {ackableMessagesToShow.length === 0 ? (
+                    <option value="">Inga ACK-källor</option>
+                  ) : (
+                    ackableMessagesToShow.map((message) => (
+                      <option key={message.id} value={message.id}>
+                        {messageLabel(message)}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <input type="hidden" name="sourceMessageId" value={selectedAckSourceId} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  ACK-typ
+                </label>
+                <select
                   value={prodatCode}
                   onChange={(event) =>
                     setProdatCode(event.target.value as 'Z03' | 'Z09' | 'Z01' | 'Z13' | 'Z18')
                   }
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
                 >
-                  <option value="Z03">Z03</option>
-                  <option value="Z09">Z09</option>
-                  <option value="Z01">Z01</option>
-                  <option value="Z13">Z13</option>
-                  <option value="Z18">Z18</option>
+                  <option value="Z03">CONTRL / PRODAT-kontext</option>
+                  <option value="Z09">APERAK / PRODAT-kontext</option>
+                  <option value="Z01">CONTRL / UTILTS-kontext</option>
+                  <option value="Z13">APERAK / UTILTS-kontext</option>
+                  <option value="Z18">UTILTS_ERR</option>
                 </select>
               </div>
+            </div>
 
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <div className="font-medium text-slate-900">Vald ACK-källa</div>
+              <div className="mt-2 grid gap-2 md:grid-cols-2">
+                <div>
+                  ID:{' '}
+                  {selectedAckSource?.id ? (
+                    <Link
+                      href={`/admin/ediel/messages/${selectedAckSource.id}`}
+                      className="text-indigo-700 underline-offset-2 hover:underline"
+                    >
+                      {selectedAckSource.id}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
+                </div>
+                <div>Status: {formatMaybe(selectedAckSource?.status)}</div>
+                <div>
+                  Kod:{' '}
+                  {selectedAckSource
+                    ? `${selectedAckSource.message_family} ${selectedAckSource.message_code}`
+                    : '—'}
+                </div>
+                <div>Route: {formatMaybe(selectedAckSource?.communication_route_id)}</div>
+              </div>
+            </div>
+
+            {selectedAckSource?.id ? (
+              <Link
+                href={`/admin/ediel/messages/${selectedAckSource.id}`}
+                className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                Öppna ACK-källa
+              </Link>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
                   Route
@@ -403,17 +421,24 @@ export default function DispatchPanels({
                 </select>
                 <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
               </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <input type="hidden" name="switchRequestId" value={selectedSwitchId} />
 
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Avsändarens Ediel-id
+                  Switch request-id
                 </label>
                 <input
-                  name="senderEdielId"
+                  name="switchRequestId"
+                  value={selectedSwitchId}
+                  readOnly
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Sender Ediel-id
+                </label>
+                <input
                   value={senderEdielId}
                   onChange={(event) => setSenderEdielId(event.target.value)}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
@@ -422,10 +447,9 @@ export default function DispatchPanels({
 
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Mottagarens Ediel-id
+                  Receiver Ediel-id
                 </label>
                 <input
-                  name="receiverEdielId"
                   value={receiverEdielId}
                   onChange={(event) => setReceiverEdielId(event.target.value)}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
@@ -437,7 +461,6 @@ export default function DispatchPanels({
                   Sender sub address
                 </label>
                 <input
-                  name="senderSubAddress"
                   value={senderSubAddress}
                   onChange={(event) => setSenderSubAddress(event.target.value)}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
@@ -449,7 +472,6 @@ export default function DispatchPanels({
                   Receiver sub address
                 </label>
                 <input
-                  name="receiverSubAddress"
                   value={receiverSubAddress}
                   onChange={(event) => setReceiverSubAddress(event.target.value)}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
@@ -461,7 +483,6 @@ export default function DispatchPanels({
                   Application reference
                 </label>
                 <input
-                  name="applicationReference"
                   value={applicationReference}
                   onChange={(event) => setApplicationReference(event.target.value)}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
@@ -473,7 +494,6 @@ export default function DispatchPanels({
                   Mailbox
                 </label>
                 <input
-                  name="mailbox"
                   value={dispatchMailbox}
                   onChange={(event) => setDispatchMailbox(event.target.value)}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
@@ -482,10 +502,9 @@ export default function DispatchPanels({
 
               <div className="md:col-span-2">
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Mottagarens e-post
+                  Receiver e-post
                 </label>
                 <input
-                  name="receiverEmail"
                   value={receiverEmail}
                   onChange={(event) => setReceiverEmail(event.target.value)}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
@@ -493,34 +512,152 @@ export default function DispatchPanels({
               </div>
             </div>
 
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <div className="font-medium text-slate-900">Nuvarande rekommendation</div>
+              <div className="mt-2 space-y-1">
+                <div>Route: {recommendedRouteText}</div>
+                <div>Target system: {formatMaybe(selectedRoute?.target_system)}</div>
+                <div>Grid owner: {formatMaybe(selectedRoute?.grid_owner_name)}</div>
+                <div>Mailbox i profilen: {formatMaybe(selectedRoute?.profile?.mailbox)}</div>
+              </div>
+            </div>
+
+            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+              Skapa ACK-utkast
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h2 className="text-lg font-semibold text-slate-950">Manuellt PRODAT-utkast</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          När du behöver skapa ett utkast utanför standardflödet men med samma route-kontext.
+        </p>
+
+        <form action={createProdatDraftAction} className="mt-4 grid gap-4 md:grid-cols-2">
+          <input type="hidden" name="switchRequestId" value={selectedSwitchId} />
+          <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
+
+          <div>
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              PRODAT-kod
+            </label>
+            <select
+              name="code"
+              value={prodatCode}
+              onChange={(event) =>
+                setProdatCode(event.target.value as 'Z03' | 'Z09' | 'Z01' | 'Z13' | 'Z18')
+              }
+              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            >
+              <option value="Z03">Z03</option>
+              <option value="Z09">Z09</option>
+              <option value="Z01">Z01</option>
+              <option value="Z13">Z13</option>
+              <option value="Z18">Z18</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              Sender Ediel-id
+            </label>
+            <input
+              name="senderEdielId"
+              value={senderEdielId}
+              onChange={(event) => setSenderEdielId(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              Receiver Ediel-id
+            </label>
+            <input
+              name="receiverEdielId"
+              value={receiverEdielId}
+              onChange={(event) => setReceiverEdielId(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              Receiver e-post
+            </label>
+            <input
+              name="receiverEmail"
+              value={receiverEmail}
+              onChange={(event) => setReceiverEmail(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              Sender sub address
+            </label>
+            <input
+              name="senderSubAddress"
+              value={senderSubAddress}
+              onChange={(event) => setSenderSubAddress(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              Receiver sub address
+            </label>
+            <input
+              name="receiverSubAddress"
+              value={receiverSubAddress}
+              onChange={(event) => setReceiverSubAddress(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              Application reference
+            </label>
+            <input
+              name="applicationReference"
+              value={applicationReference}
+              onChange={(event) => setApplicationReference(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              Mailbox
+            </label>
+            <input
+              name="mailbox"
+              value={dispatchMailbox}
+              onChange={(event) => setDispatchMailbox(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              Payload
+            </label>
             <textarea
               name="payload"
               placeholder='{"meterPointId":"735999...","customerName":"Test Customer"}'
               className="min-h-[140px] w-full rounded-xl border border-slate-300 px-3 py-2"
             />
+          </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              <div className="font-medium text-slate-900">Prefill från vald route</div>
-              <div className="mt-2 grid gap-2 md:grid-cols-2">
-                <div>Route: {recommendedRouteText}</div>
-                <div>Target email: {formatMaybe(selectedRoute?.target_email)}</div>
-                <div>Sender Ediel-id: {formatMaybe(senderEdielId)}</div>
-                <div>Receiver Ediel-id: {formatMaybe(receiverEdielId)}</div>
-                <div>Sender sub address: {formatMaybe(senderSubAddress)}</div>
-                <div>Receiver sub address: {formatMaybe(receiverSubAddress)}</div>
-                <div>Application ref: {formatMaybe(applicationReference)}</div>
-                <div>Mailbox: {formatMaybe(dispatchMailbox)}</div>
-              </div>
-            </div>
-
-            <button
-              disabled={!selectedRouteId}
-              className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Skapa PRODAT-utkast
-            </button>
-          </form>
-        </div>
+          <button className="md:col-span-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+            Skapa PRODAT-utkast
+          </button>
+        </form>
       </div>
     </>
   )

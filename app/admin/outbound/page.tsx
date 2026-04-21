@@ -1,4 +1,3 @@
-// app/admin/outbound/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -26,6 +25,16 @@ type PageProps = {
     channelType?: string
     q?: string
   }>
+}
+
+type LinkedEdielMessageRow = {
+  id: string
+  outbound_request_id: string | null
+  direction: string
+  message_family: string
+  message_code: string
+  status: string
+  created_at: string
 }
 
 function tone(status: string): string {
@@ -75,14 +84,26 @@ function TriageCard({
       </div>
     </Link>
   )
-
 }
 
-function buildPrimaryDetailLink(request: {
-  request_type: string
-  source_type: string | null
-  source_id: string | null
-}): { href: string; label: string } | null {
+function buildPrimaryDetailLink(
+  request: {
+    id: string
+    request_type: string
+    source_type: string | null
+    source_id: string | null
+  },
+  latestEdielMessageByOutboundId: Map<string, LinkedEdielMessageRow>
+): { href: string; label: string } | null {
+  const linkedMessage = latestEdielMessageByOutboundId.get(request.id)
+
+  if (linkedMessage) {
+    return {
+      href: `/admin/ediel/messages/${linkedMessage.id}`,
+      label: 'Öppna Ediel message detail',
+    }
+  }
+
   if (request.source_type === 'grid_owner_data_request' && request.source_id) {
     return {
       href: `/admin/operations/grid-owner-requests/${request.source_id}`,
@@ -156,9 +177,31 @@ export default async function OutboundPage({ searchParams }: PageProps) {
     }),
   ])
 
-  const events = await listOutboundDispatchEventsByRequestIds(
-    requests.map((row) => row.id)
-  )
+  const [events, linkedEdielMessagesQuery] = await Promise.all([
+    listOutboundDispatchEventsByRequestIds(requests.map((row) => row.id)),
+    requests.length === 0
+      ? Promise.resolve({ data: [], error: null })
+      : supabase
+          .from('ediel_messages')
+          .select(
+            'id,outbound_request_id,direction,message_family,message_code,status,created_at'
+          )
+          .in('outbound_request_id', requests.map((row) => row.id))
+          .order('created_at', { ascending: false }),
+  ])
+
+  if (linkedEdielMessagesQuery.error) throw linkedEdielMessagesQuery.error
+
+  const linkedEdielMessages =
+    (linkedEdielMessagesQuery.data as LinkedEdielMessageRow[] | null) ?? []
+
+  const latestEdielMessageByOutboundId = new Map<string, LinkedEdielMessageRow>()
+  for (const message of linkedEdielMessages) {
+    if (!message.outbound_request_id) continue
+    if (!latestEdielMessageByOutboundId.has(message.outbound_request_id)) {
+      latestEdielMessageByOutboundId.set(message.outbound_request_id, message)
+    }
+  }
 
   const unresolvedRequests = requests.filter(
     (request) => request.channel_type === 'unresolved'
@@ -474,278 +517,299 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                 </div>
               ) : (
                 requests.map((request) => {
-                  const primaryDetailLink = buildPrimaryDetailLink(request)
+                  const primaryDetailLink = buildPrimaryDetailLink(
+                    request,
+                    latestEdielMessageByOutboundId
+                  )
+                  const linkedMessage =
+                    latestEdielMessageByOutboundId.get(request.id) ?? null
 
                   return (
-                  <article
-                    key={request.id}
-                    className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800"
-                  >
-                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone(
-                              request.status
-                            )}`}
-                          >
-                            {request.status}
-                          </span>
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                            {request.request_type}
-                          </span>
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                            {request.channel_type}
-                          </span>
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                          <h3 className="text-base font-semibold text-slate-950 dark:text-white">
-                            Outbound request {request.id}
-                          </h3>
-
+                    <article
+                      key={request.id}
+                      className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800"
+                    >
+                      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+                        <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            {primaryDetailLink ? (
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone(
+                                request.status
+                              )}`}
+                            >
+                              {request.status}
+                            </span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              {request.request_type}
+                            </span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              {request.channel_type}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                            <h3 className="text-base font-semibold text-slate-950 dark:text-white">
+                              Outbound request {request.id}
+                            </h3>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              {primaryDetailLink ? (
+                                <Link
+                                  href={primaryDetailLink.href}
+                                  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-950"
+                                >
+                                  {primaryDetailLink.label}
+                                </Link>
+                              ) : null}
+
                               <Link
-                                href={primaryDetailLink.href}
+                                href={`/admin/customers/${request.customer_id}`}
                                 className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-950"
                               >
-                                {primaryDetailLink.label}
+                                Kundkort
                               </Link>
-                            ) : null}
-
-                            <Link
-                              href={`/admin/customers/${request.customer_id}`}
-                              className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-950"
-                            >
-                              Kundkort
-                            </Link>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">Kund</div>
-                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {request.customer_id}
                             </div>
                           </div>
 
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">Site</div>
-                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {request.site_id ?? '—'}
+                          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Kund</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {request.customer_id}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Site</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {request.site_id ?? '—'}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Mätpunkt</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {request.metering_point_id ?? '—'}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Källa</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {request.source_type && request.source_id
+                                  ? `${request.source_type} · ${request.source_id}`
+                                  : request.source_type ?? '—'}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Ediel message</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {linkedMessage ? (
+                                  <Link
+                                    href={`/admin/ediel/messages/${linkedMessage.id}`}
+                                    className="text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+                                  >
+                                    {linkedMessage.message_family} {linkedMessage.message_code} ·{' '}
+                                    {linkedMessage.status}
+                                  </Link>
+                                ) : (
+                                  '—'
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Grid owner</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {request.grid_owner_id ?? '—'}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Route</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {request.communication_route_id ?? '—'}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Period</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {request.period_start ?? '—'} → {request.period_end ?? '—'}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+                              <div className="text-slate-500 dark:text-slate-400">Extern referens</div>
+                              <div className="mt-1 font-medium text-slate-900 dark:text-white">
+                                {request.external_reference ?? '—'}
+                              </div>
                             </div>
                           </div>
 
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">Mätpunkt</div>
-                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {request.metering_point_id ?? '—'}
+                          <div className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
+                            <div>
+                              Batch:{' '}
+                              <span className="font-medium">
+                                {request.dispatch_batch_key ?? '—'}
+                              </span>
+                            </div>
+                            <div>
+                              Senaste dispatch-event:{' '}
+                              <span className="font-medium">
+                                {latestEventText(request.id, events)}
+                              </span>
+                            </div>
+                            <div>
+                              Försök:{' '}
+                              <span className="font-medium">{request.attempts_count}</span>
                             </div>
                           </div>
 
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">Källa</div>
-                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {request.source_type && request.source_id
-                                ? `${request.source_type} · ${request.source_id}`
-                                : request.source_type ?? '—'}
+                          {request.channel_type === 'unresolved' ? (
+                            <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                              Den här requesten saknar aktiv route. Sweep 7.8 försöker lösa om route finns nu, annars ligger den kvar för manuell route-fix.
                             </div>
-                          </div>
-
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">Grid owner</div>
-                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {request.grid_owner_id ?? '—'}
-                            </div>
-                          </div>
-
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">Route</div>
-                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {request.communication_route_id ?? '—'}
-                            </div>
-                          </div>
-
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">Period</div>
-                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {request.period_start ?? '—'} → {request.period_end ?? '—'}
-                            </div>
-                          </div>
-
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-                            <div className="text-slate-500 dark:text-slate-400">Extern referens</div>
-                            <div className="mt-1 font-medium text-slate-900 dark:text-white">
-                              {request.external_reference ?? '—'}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                          <div>
-                            Batch:{' '}
-                            <span className="font-medium">
-                              {request.dispatch_batch_key ?? '—'}
-                            </span>
-                          </div>
-                          <div>
-                            Senaste dispatch-event:{' '}
-                            <span className="font-medium">
-                              {latestEventText(request.id, events)}
-                            </span>
-                          </div>
-                          <div>
-                            Försök:{' '}
-                            <span className="font-medium">
-                              {request.attempts_count}
-                            </span>
-                          </div>
-                        </div>
-
-                        {request.channel_type === 'unresolved' ? (
-                          <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
-                            Den här requesten saknar aktiv route. Sweep 7.8 försöker lösa om route finns nu, annars ligger den kvar för manuell route-fix.
-                          </div>
-                        ) : null}
-
-                        {request.status === 'sent' ? (
-                          <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
-                            {['email_manual', 'file_export'].includes(request.channel_type)
-                              ? 'Den här requesten kan auto-kvitteras av sweepen eftersom kanalen är intern/manuell.'
-                              : 'Den här requesten väntar på extern återkoppling.'}
-                          </div>
-                        ) : null}
-
-                        {request.status === 'failed' ? (
-                          <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
-                            {request.failure_reason ?? 'Dispatch misslyckades och kräver ny åtgärd.'}{' '}
-                            {request.attempts_count < 3
-                              ? 'Sweep 7.8 kan återköa den efter cooldown.'
-                              : 'Retry-taket är uppnått och kräver manuell insats.'}
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {request.status === 'queued' ? (
-                            <form action={updateOutboundRequestStatusAction}>
-                              <input type="hidden" name="outbound_request_id" value={request.id} />
-                              <input type="hidden" name="customer_id" value={request.customer_id} />
-                              <input type="hidden" name="status" value="prepared" />
-                              <input type="hidden" name="dispatch_step" value="prepare" />
-                              <button className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
-                                Förbered
-                              </button>
-                            </form>
-                          ) : null}
-
-                          {['queued', 'prepared'].includes(request.status) ? (
-                            <form action={updateOutboundRequestStatusAction}>
-                              <input type="hidden" name="outbound_request_id" value={request.id} />
-                              <input type="hidden" name="customer_id" value={request.customer_id} />
-                              <input type="hidden" name="status" value="sent" />
-                              <input type="hidden" name="dispatch_step" value="send" />
-                              <button className="w-full rounded-2xl border border-blue-300 px-4 py-2.5 text-sm font-semibold text-blue-700 dark:border-blue-800 dark:text-blue-300">
-                                Markera som skickad
-                              </button>
-                            </form>
                           ) : null}
 
                           {request.status === 'sent' ? (
-                            <form action={updateOutboundRequestStatusAction}>
-                              <input type="hidden" name="outbound_request_id" value={request.id} />
-                              <input type="hidden" name="customer_id" value={request.customer_id} />
-                              <input type="hidden" name="status" value="acknowledged" />
-                              <input type="hidden" name="dispatch_step" value="ack" />
-                              <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">
-                                Markera som kvitterad
-                              </button>
-                            </form>
+                            <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                              {['email_manual', 'file_export'].includes(request.channel_type)
+                                ? 'Den här requesten kan auto-kvitteras av sweepen eftersom kanalen är intern/manuell.'
+                                : 'Den här requesten väntar på extern återkoppling.'}
+                            </div>
                           ) : null}
 
-                          {['queued', 'prepared', 'sent'].includes(request.status) ? (
-                            <form action={updateOutboundRequestStatusAction}>
-                              <input type="hidden" name="outbound_request_id" value={request.id} />
-                              <input type="hidden" name="customer_id" value={request.customer_id} />
-                              <input type="hidden" name="status" value="failed" />
-                              <input
-                                type="hidden"
-                                name="failure_reason"
-                                value="Dispatch markerad som failed från snabbåtgärd."
-                              />
-                              <input type="hidden" name="dispatch_step" value="fail" />
-                              <button className="w-full rounded-2xl border border-rose-300 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
-                                Markera som failed
-                              </button>
-                            </form>
+                          {request.status === 'failed' ? (
+                            <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                              {request.failure_reason ??
+                                'Dispatch misslyckades och kräver ny åtgärd.'}{' '}
+                              {request.attempts_count < 3
+                                ? 'Sweep 7.8 kan återköa den efter cooldown.'
+                                : 'Retry-taket är uppnått och kräver manuell insats.'}
+                            </div>
                           ) : null}
                         </div>
 
-                        <form
-                          action={updateOutboundRequestStatusAction}
-                          className="rounded-3xl border border-slate-200 p-4 dark:border-slate-800"
-                        >
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                            Uppdatera dispatch-status
-                          </h3>
+                        <div className="space-y-4">
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {request.status === 'queued' ? (
+                              <form action={updateOutboundRequestStatusAction}>
+                                <input type="hidden" name="outbound_request_id" value={request.id} />
+                                <input type="hidden" name="customer_id" value={request.customer_id} />
+                                <input type="hidden" name="status" value="prepared" />
+                                <input type="hidden" name="dispatch_step" value="prepare" />
+                                <button className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
+                                  Förbered
+                                </button>
+                              </form>
+                            ) : null}
 
-                          <input
-                            type="hidden"
-                            name="outbound_request_id"
-                            value={request.id}
-                          />
-                          <input
-                            type="hidden"
-                            name="customer_id"
-                            value={request.customer_id}
-                          />
+                            {['queued', 'prepared'].includes(request.status) ? (
+                              <form action={updateOutboundRequestStatusAction}>
+                                <input type="hidden" name="outbound_request_id" value={request.id} />
+                                <input type="hidden" name="customer_id" value={request.customer_id} />
+                                <input type="hidden" name="status" value="sent" />
+                                <input type="hidden" name="dispatch_step" value="send" />
+                                <button className="w-full rounded-2xl border border-blue-300 px-4 py-2.5 text-sm font-semibold text-blue-700 dark:border-blue-800 dark:text-blue-300">
+                                  Markera som skickad
+                                </button>
+                              </form>
+                            ) : null}
 
-                          <div className="mt-4 grid gap-3">
-                            <select
-                              name="status"
-                              defaultValue={request.status}
-                              className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                            >
-                              <option value="queued">Queued</option>
-                              <option value="prepared">Prepared</option>
-                              <option value="sent">Sent</option>
-                              <option value="acknowledged">Acknowledged</option>
-                              <option value="failed">Failed</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
+                            {request.status === 'sent' ? (
+                              <form action={updateOutboundRequestStatusAction}>
+                                <input type="hidden" name="outbound_request_id" value={request.id} />
+                                <input type="hidden" name="customer_id" value={request.customer_id} />
+                                <input type="hidden" name="status" value="acknowledged" />
+                                <input type="hidden" name="dispatch_step" value="ack" />
+                                <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">
+                                  Markera som kvitterad
+                                </button>
+                              </form>
+                            ) : null}
 
-                            <input
-                              name="external_reference"
-                              defaultValue={request.external_reference ?? ''}
-                              placeholder="Extern referens"
-                              className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                            />
-
-                            <input
-                              name="response_payload_note"
-                              placeholder="Svar / intern notering"
-                              className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                            />
-
-                            <textarea
-                              name="failure_reason"
-                              defaultValue={request.failure_reason ?? ''}
-                              placeholder="Felorsak"
-                              rows={4}
-                              className="rounded-2xl border border-slate-300 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                            />
-
-                            <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
-                              Spara status
-                            </button>
+                            {['queued', 'prepared', 'sent'].includes(request.status) ? (
+                              <form action={updateOutboundRequestStatusAction}>
+                                <input type="hidden" name="outbound_request_id" value={request.id} />
+                                <input type="hidden" name="customer_id" value={request.customer_id} />
+                                <input type="hidden" name="status" value="failed" />
+                                <input
+                                  type="hidden"
+                                  name="failure_reason"
+                                  value="Dispatch markerad som failed från snabbåtgärd."
+                                />
+                                <input type="hidden" name="dispatch_step" value="fail" />
+                                <button className="w-full rounded-2xl border border-rose-300 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
+                                  Markera som failed
+                                </button>
+                              </form>
+                            ) : null}
                           </div>
-                        </form>
+
+                          <form
+                            action={updateOutboundRequestStatusAction}
+                            className="rounded-3xl border border-slate-200 p-4 dark:border-slate-800"
+                          >
+                            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                              Uppdatera dispatch-status
+                            </h3>
+
+                            <input
+                              type="hidden"
+                              name="outbound_request_id"
+                              value={request.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="customer_id"
+                              value={request.customer_id}
+                            />
+
+                            <div className="mt-4 grid gap-3">
+                              <select
+                                name="status"
+                                defaultValue={request.status}
+                                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                              >
+                                <option value="queued">Queued</option>
+                                <option value="prepared">Prepared</option>
+                                <option value="sent">Sent</option>
+                                <option value="acknowledged">Acknowledged</option>
+                                <option value="failed">Failed</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+
+                              <input
+                                name="external_reference"
+                                defaultValue={request.external_reference ?? ''}
+                                placeholder="Extern referens"
+                                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                              />
+
+                              <input
+                                name="response_payload_note"
+                                placeholder="Svar / intern notering"
+                                className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                              />
+
+                              <textarea
+                                name="failure_reason"
+                                defaultValue={request.failure_reason ?? ''}
+                                placeholder="Felorsak"
+                                rows={4}
+                                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                              />
+
+                              <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
+                                Spara status
+                              </button>
+                            </div>
+                          </form>
+                        </div>
                       </div>
-                    </div>
-                  </article>
+                    </article>
                   )
                 })
               )}

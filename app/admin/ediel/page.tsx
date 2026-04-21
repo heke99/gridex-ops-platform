@@ -1,4 +1,3 @@
-//app/admin/ediel/page.tsx
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -642,7 +641,12 @@ export default async function AdminEdielPage() {
                             <Badge tone="green">ja</Badge>
                             {relatedMessages.slice(0, 2).map((message) => (
                               <div key={message.id} className="text-xs text-slate-500">
-                                {message.message_family} {message.message_code} · {message.id}
+                                <Link
+                                  href={`/admin/ediel/messages/${message.id}`}
+                                  className="text-indigo-700 underline-offset-2 hover:underline"
+                                >
+                                  {message.message_family} {message.message_code} · {message.id}
+                                </Link>
                               </div>
                             ))}
                           </div>
@@ -817,6 +821,17 @@ export default async function AdminEdielPage() {
                                 .join(', ')
                             : 'Inget Ediel-meddelande ännu'}
                         </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {linkedMessages.slice(0, 2).map((message) => (
+                            <Link
+                              key={message.id}
+                              href={`/admin/ediel/messages/${message.id}`}
+                              className="inline-flex items-center rounded-xl border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                            >
+                              Öppna {message.message_family} {message.message_code}
+                            </Link>
+                          ))}
+                        </div>
                         <div className="mt-1">skapad: {formatDateTime(row.created_at)}</div>
                       </div>
                     </div>
@@ -895,9 +910,23 @@ export default async function AdminEdielPage() {
                           {linkedMessages.length > 0
                             ? linkedMessages
                                 .slice(0, 3)
-                                .map((message) => `${message.direction}:${message.message_family} ${message.message_code}`)
+                                .map(
+                                  (message) =>
+                                    `${message.direction}:${message.message_family} ${message.message_code}`
+                                )
                                 .join(', ')
                             : 'Ingen Ediel-koppling ännu'}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {linkedMessages.slice(0, 3).map((message) => (
+                            <Link
+                              key={message.id}
+                              href={`/admin/ediel/messages/${message.id}`}
+                              className="inline-flex items-center rounded-xl border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                            >
+                              Öppna {message.direction}:{message.message_family} {message.message_code}
+                            </Link>
+                          ))}
                         </div>
                         <div className="mt-1">skapad: {formatDateTime(row.created_at)}</div>
                       </div>
@@ -1136,21 +1165,37 @@ export default async function AdminEdielPage() {
                   key={row.id}
                   className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
                 >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-sm font-semibold text-slate-950">
-                      {row.message_family} {row.message_code}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/admin/ediel/messages/${row.id}`}
+                        className="text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline"
+                      >
+                        {row.message_family} {row.message_code}
+                      </Link>
+                      <Badge tone={getMessageTone(row.direction)}>{row.direction}</Badge>
+                      <Badge tone={getRequestTone(row.status)}>{row.status}</Badge>
+                      {relatedOutbound ? (
+                        <Badge tone={getOutboundStatusTone(relatedOutbound.status)}>
+                          outbound {relatedOutbound.status}
+                        </Badge>
+                      ) : null}
                     </div>
-                    <Badge tone={getMessageTone(row.direction)}>{row.direction}</Badge>
-                    <Badge tone={getRequestTone(row.status)}>{row.status}</Badge>
-                    {relatedOutbound ? (
-                      <Badge tone={getOutboundStatusTone(relatedOutbound.status)}>
-                        outbound {relatedOutbound.status}
-                      </Badge>
-                    ) : null}
+
+                    <Link
+                      href={`/admin/ediel/messages/${row.id}`}
+                      className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Öppna detail
+                    </Link>
                   </div>
 
                   <div className="mt-3 grid gap-3 md:grid-cols-4">
-                    <Cell label="Message-id" value={row.id} />
+                    <Cell
+                      label="Message-id"
+                      value={row.id}
+                      href={`/admin/ediel/messages/${row.id}`}
+                    />
                     <Cell label="External reference" value={row.external_reference} />
                     <Cell
                       label="Correlation reference"
@@ -1183,6 +1228,7 @@ export default async function AdminEdielPage() {
                     <Cell
                       label="Outbound request"
                       value={row.outbound_request_id}
+                      href={row.outbound_request_id ? '/admin/outbound' : undefined}
                     />
                     <Cell
                       label="Outbound kanal"

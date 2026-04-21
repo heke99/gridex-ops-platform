@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import {
   prepareAiListAction,
@@ -226,7 +227,17 @@ export default function PrepareSwitchPanels({
                 Starta leverantörsbytesflödet från valt switchärende.
               </p>
               <div className="mt-3 text-xs text-slate-500">
-                Senaste Z03: {z03LinkedMessageId ?? 'ingen ännu'}
+                Senaste Z03:{' '}
+                {z03LinkedMessageId ? (
+                  <Link
+                    href={`/admin/ediel/messages/${z03LinkedMessageId}`}
+                    className="text-indigo-700 underline-offset-2 hover:underline"
+                  >
+                    {z03LinkedMessageId}
+                  </Link>
+                ) : (
+                  'ingen ännu'
+                )}
               </div>
               <button
                 disabled={!canPrepareSwitch}
@@ -244,7 +255,17 @@ export default function PrepareSwitchPanels({
                 Slutför/meddela bekräftat switchläge från samma ärende.
               </p>
               <div className="mt-3 text-xs text-slate-500">
-                Senaste Z05: {z05LinkedMessageId ?? 'ingen ännu'}
+                Senaste Z05:{' '}
+                {z05LinkedMessageId ? (
+                  <Link
+                    href={`/admin/ediel/messages/${z05LinkedMessageId}`}
+                    className="text-indigo-700 underline-offset-2 hover:underline"
+                  >
+                    {z05LinkedMessageId}
+                  </Link>
+                ) : (
+                  'ingen ännu'
+                )}
               </div>
               <button
                 disabled={!canPrepareSwitch}
@@ -262,7 +283,17 @@ export default function PrepareSwitchPanels({
                 Skicka masterdata-relaterat PRODAT från samma switchkontext.
               </p>
               <div className="mt-3 text-xs text-slate-500">
-                Senaste Z09: {z09LinkedMessageId ?? 'ingen ännu'}
+                Senaste Z09:{' '}
+                {z09LinkedMessageId ? (
+                  <Link
+                    href={`/admin/ediel/messages/${z09LinkedMessageId}`}
+                    className="text-indigo-700 underline-offset-2 hover:underline"
+                  >
+                    {z09LinkedMessageId}
+                  </Link>
+                ) : (
+                  'ingen ännu'
+                )}
               </div>
               <button
                 disabled={!canPrepareSwitch}
@@ -366,19 +397,16 @@ export default function PrepareSwitchPanels({
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">AI/BI-list export</h2>
+          <h2 className="text-lg font-semibold text-slate-950">AI-/BI-lista</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Exportera AI- eller BI-list från samma route-kontext. Fyll in riktiga customer/site-id från ditt kundflöde.
+            Skapa AI-/BI-lista från vald kund/site/mätpunkt. Detta är kontroll- och avvikelsehantering, inte automatisk databassynk.
           </p>
 
           <form action={prepareAiListAction} className="mt-4 space-y-4">
-            <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
-            <input type="hidden" name="supplierEdielId" value={senderEdielId} />
-
             <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Listtyp
+                  Typ
                 </label>
                 <select
                   name="listType"
@@ -393,19 +421,7 @@ export default function PrepareSwitchPanels({
 
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Mottagarens Ediel-id
-                </label>
-                <input
-                  name="receiverEdielId"
-                  value={receiverEdielId}
-                  onChange={(event) => setReceiverEdielId(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Customer-id
+                  Kund-id
                 </label>
                 <input
                   name="customerId"
@@ -441,18 +457,6 @@ export default function PrepareSwitchPanels({
 
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Balansansvarig Ediel-id
-                </label>
-                <input
-                  name="balanceResponsibleEdielId"
-                  value={aiBalanceResponsibleEdielId}
-                  onChange={(event) => setAiBalanceResponsibleEdielId(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
                   Från datum
                 </label>
                 <input
@@ -476,17 +480,67 @@ export default function PrepareSwitchPanels({
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
                 />
               </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Supplier Ediel-id
+                </label>
+                <input
+                  type="hidden"
+                  name="supplierEdielId"
+                  value={senderEdielId}
+                />
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {formatMaybe(senderEdielId)}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Receiver Ediel-id
+                </label>
+                <input
+                  name="receiverEdielId"
+                  value={receiverEdielId}
+                  onChange={(event) => setReceiverEdielId(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Receiver email
+                </label>
+                <input
+                  name="receiverEmail"
+                  value={receiverEmail}
+                  onChange={(event) => setReceiverEmail(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Balance responsible Ediel-id
+                </label>
+                <input
+                  name="balanceResponsibleEdielId"
+                  value={aiBalanceResponsibleEdielId}
+                  onChange={(event) => setAiBalanceResponsibleEdielId(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                />
+              </div>
             </div>
 
+            <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
+
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              <div className="font-medium text-slate-900">AI/BI-kontext</div>
+              <div className="font-medium text-slate-900">AI-/BI-kontext</div>
               <div className="mt-2 grid gap-2 md:grid-cols-2">
-                <div>Listtyp: {aiListType}</div>
                 <div>Route: {recommendedRouteText}</div>
                 <div>Supplier Ediel-id: {formatMaybe(senderEdielId)}</div>
                 <div>Receiver Ediel-id: {formatMaybe(receiverEdielId)}</div>
-                <div>Customer-id: {formatMaybe(aiCustomerId)}</div>
-                <div>Site-id: {formatMaybe(aiSiteId)}</div>
+                <div>Receiver email: {formatMaybe(receiverEmail)}</div>
               </div>
             </div>
 
@@ -494,7 +548,7 @@ export default function PrepareSwitchPanels({
               disabled={!selectedRouteId || !aiCustomerId || !aiSiteId || !receiverEdielId}
               className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Förbered {aiListType}-list
+              Förbered AI-/BI-lista
             </button>
           </form>
         </div>

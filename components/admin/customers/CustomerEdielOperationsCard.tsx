@@ -54,6 +54,13 @@ type SwitchEdielLifecycle = {
   lastEventAt: string | null
 }
 
+type SwitchAckState = {
+  waitsForContrl: boolean
+  waitsForAperak: boolean
+  hasNegativeAperak: boolean
+  hasAckFailure: boolean
+}
+
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
 
@@ -324,6 +331,151 @@ function buildSwitchLifecycle(
   }
 }
 
+function hasSuccessfulAckStatus(message: EdielMessageSummaryRow): boolean {
+  return ['validated', 'acknowledged', 'completed', 'accepted', 'sent'].includes(
+    (message.status ?? '').toLowerCase()
+  )
+}
+
+function hasFailedAckStatus(message: EdielMessageSummaryRow): boolean {
+  return ['failed', 'rejected', 'cancelled'].includes(
+    (message.status ?? '').toLowerCase()
+  )
+}
+
+function buildSwitchAckState(lifecycle: SwitchEdielLifecycle): SwitchAckState {
+  const hasOutbound = Boolean(lifecycle.z03Outbound || lifecycle.z09Outbound)
+
+  const hasContrl = lifecycle.contrlMessages.length > 0
+  const hasAperak = lifecycle.aperakMessages.length > 0
+
+  const hasNegativeAperak = lifecycle.aperakMessages.some((message) =>
+    hasFailedAckStatus(message)
+  )
+
+  const hasAckFailure =
+    lifecycle.contrlMessages.some((message) => hasFailedAckStatus(message)) ||
+    lifecycle.aperakMessages.some((message) => hasFailedAckStatus(message))
+
+  return {
+    waitsForContrl: hasOutbound && !hasContrl,
+    waitsForAperak: hasOutbound && !hasAperak,
+    hasNegativeAperak,
+    hasAckFailure,
+  }
+}
+
+function buildAckBadgesForMessage(message: EdielMessageSummaryRow): Array<{
+  label: string
+  className: string
+}> {
+  const family = message.message_family.toUpperCase()
+  const status = (message.status ?? '').toLowerCase()
+  const badges: Array<{ label: string; className: string }> = []
+
+  if (family === 'CONTRL') {
+    badges.push({
+      label: hasSuccessfulAckStatus(message)
+        ? 'CONTRL ok'
+        : hasFailedAckStatus(message)
+          ? 'CONTRL fel'
+          : 'CONTRL',
+      className: hasSuccessfulAckStatus(message)
+        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+        : hasFailedAckStatus(message)
+          ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+          : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+    })
+  }
+
+  if (family === 'APERAK') {
+    badges.push({
+      label: hasFailedAckStatus(message) ? 'Negativ APERAK' : 'APERAK',
+      className: hasFailedAckStatus(message)
+        ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+    })
+  }
+
+  if (family === 'UTILTS_ERR') {
+    badges.push({
+      label: 'UTILTS_ERR',
+      className:
+        'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+    })
+  }
+
+  if (
+    !['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(family) &&
+    hasFailedAckStatus(message)
+  ) {
+    badges.push({
+      label: 'Felstatus',
+      className:
+        'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+    })
+  }
+
+  return badges
+}
+
+function renderSwitchAckBadges(state: SwitchAckState) {
+  const badges: Array<{ label: string; className: string }> = []
+
+  if (state.waitsForContrl) {
+    badges.push({
+      label: 'Väntar CONTRL',
+      className:
+        'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+    })
+  }
+
+  if (state.waitsForAperak) {
+    badges.push({
+      label: 'Väntar APERAK',
+      className:
+        'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+    })
+  }
+
+  if (state.hasNegativeAperak) {
+    badges.push({
+      label: 'Negativ APERAK',
+      className:
+        'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+    })
+  }
+
+  if (state.hasAckFailure) {
+    badges.push({
+      label: 'Ack-fel',
+      className:
+        'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+    })
+  }
+
+  if (badges.length === 0) {
+    badges.push({
+      label: 'Ack-kedja ok',
+      className:
+        'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+    })
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {badges.map((badge) => (
+        <span
+          key={badge.label}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
+        >
+          {badge.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export default async function CustomerEdielOperationsCard({
   customerId,
   sites,
@@ -581,7 +733,7 @@ export default async function CustomerEdielOperationsCard({
                   request.grid_owner_id,
                   'supplier_switch'
                 )
-                const profile = route ? profileByRouteId.get(route.id) ?? null : null
+                const profile = route ? (profileByRouteId.get(route.id) ?? null) : null
 
                 const autoRouteId = route?.id ?? ''
                 const autoMailbox = profile?.mailbox ?? 'ediel@gridex.se'
@@ -601,6 +753,7 @@ export default async function CustomerEdielOperationsCard({
 
                 const blockingIssues = hasBlockingIssues(validationIssues)
                 const lifecycle = buildSwitchLifecycle(request.id, edielMessages)
+                const ackState = buildSwitchAckState(lifecycle)
 
                 return (
                   <article
@@ -651,6 +804,8 @@ export default async function CustomerEdielOperationsCard({
                     <div className="mt-4">
                       <EdielLifecyclePanel lifecycle={lifecycle} />
                     </div>
+
+                    <div className="mt-3">{renderSwitchAckBadges(ackState)}</div>
 
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       <form
@@ -817,7 +972,7 @@ export default async function CustomerEdielOperationsCard({
                     request.grid_owner_id,
                     'meter_values'
                   )
-                  const profile = route ? profileByRouteId.get(route.id) ?? null : null
+                  const profile = route ? (profileByRouteId.get(route.id) ?? null) : null
 
                   const autoRouteId = route?.id ?? ''
                   const autoMailbox = profile?.mailbox ?? 'INBOX'
@@ -922,69 +1077,97 @@ export default async function CustomerEdielOperationsCard({
                   Inga Ediel-meddelanden ännu för kunden.
                 </div>
               ) : (
-                edielMessages.map((message) => (
-                  <article
-                    key={message.id}
-                    className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {message.message_family} {message.message_code}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {message.direction}
-                      </span>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                          message.status
-                        )}`}
-                      >
-                        {message.status}
-                      </span>
-                    </div>
+                edielMessages.map((message) => {
+                  const ackBadges = buildAckBadgesForMessage(message)
 
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <Grid label="Message-id" value={message.id} />
-                      <Grid label="External reference" value={message.external_reference} />
-                      <Grid label="Sender" value={message.sender_ediel_id} />
-                      <Grid label="Receiver" value={message.receiver_ediel_id} />
-                      <Grid
-                        label="Switch request"
-                        value={message.switch_request_id}
-                        href={
-                          message.switch_request_id
-                            ? `/admin/operations/switches/${message.switch_request_id}`
-                            : undefined
-                        }
-                      />
-                      <Grid
-                        label="Data request"
-                        value={message.grid_owner_data_request_id}
-                        href={
-                          message.grid_owner_data_request_id
-                            ? `/admin/operations/grid-owner-requests/${message.grid_owner_data_request_id}`
-                            : undefined
-                        }
-                      />
-                    </div>
+                  return (
+                    <article
+                      key={message.id}
+                      className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            href={`/admin/ediel/messages/${message.id}`}
+                            className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 underline-offset-2 hover:underline dark:bg-indigo-950/40 dark:text-indigo-300"
+                          >
+                            {message.message_family} {message.message_code}
+                          </Link>
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            {message.direction}
+                          </span>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                              message.status
+                            )}`}
+                          >
+                            {message.status}
+                          </span>
+                          {ackBadges.map((badge) => (
+                            <span
+                              key={badge.label}
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
+                            >
+                              {badge.label}
+                            </span>
+                          ))}
+                        </div>
 
-                    {message.direction === 'outbound' &&
-                    ['draft', 'queued', 'prepared'].includes(message.status) ? (
-                      <form action={sendEdielMessageAction} className="mt-4">
-                        <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
-                        <input type="hidden" name="edielMessageId" value={message.id} />
-                        <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">
-                          Skicka detta meddelande nu
-                        </button>
-                      </form>
-                    ) : null}
+                        <Link
+                          href={`/admin/ediel/messages/${message.id}`}
+                          className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-950"
+                        >
+                          Öppna detail
+                        </Link>
+                      </div>
 
-                    <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                      Skapad {formatDateTime(message.created_at)} · inkommen{' '}
-                      {formatDateTime(message.message_received_at)}
-                    </div>
-                  </article>
-                ))
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <Grid
+                          label="Message-id"
+                          value={message.id}
+                          href={`/admin/ediel/messages/${message.id}`}
+                        />
+                        <Grid label="External reference" value={message.external_reference} />
+                        <Grid label="Sender" value={message.sender_ediel_id} />
+                        <Grid label="Receiver" value={message.receiver_ediel_id} />
+                        <Grid
+                          label="Switch request"
+                          value={message.switch_request_id}
+                          href={
+                            message.switch_request_id
+                              ? `/admin/operations/switches/${message.switch_request_id}`
+                              : undefined
+                          }
+                        />
+                        <Grid
+                          label="Data request"
+                          value={message.grid_owner_data_request_id}
+                          href={
+                            message.grid_owner_data_request_id
+                              ? `/admin/operations/grid-owner-requests/${message.grid_owner_data_request_id}`
+                              : undefined
+                          }
+                        />
+                      </div>
+
+                      {message.direction === 'outbound' &&
+                      ['draft', 'queued', 'prepared'].includes(message.status) ? (
+                        <form action={sendEdielMessageAction} className="mt-4">
+                          <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
+                          <input type="hidden" name="edielMessageId" value={message.id} />
+                          <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">
+                            Skicka detta meddelande nu
+                          </button>
+                        </form>
+                      ) : null}
+
+                      <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                        Skapad {formatDateTime(message.created_at)} · inkommen{' '}
+                        {formatDateTime(message.message_received_at)}
+                      </div>
+                    </article>
+                  )
+                })
               )}
             </div>
           </div>
@@ -1159,8 +1342,31 @@ function EdielLifecyclePanel({
                 {formatDateTime(lifecycle.lastEventAt)}
               </div>
               <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                Senaste inbound: {lifecycle.latestInbound ? `${lifecycle.latestInbound.message_family} ${lifecycle.latestInbound.message_code}` : '—'}
+                Senaste inbound:{' '}
+                {lifecycle.latestInbound ? (
+                  <Link
+                    href={`/admin/ediel/messages/${lifecycle.latestInbound.id}`}
+                    className="text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+                  >
+                    {lifecycle.latestInbound.message_family} {lifecycle.latestInbound.message_code}
+                  </Link>
+                ) : (
+                  '—'
+                )}
               </div>
+
+              {lifecycle.latestInbound ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {buildAckBadgesForMessage(lifecycle.latestInbound).map((badge) => (
+                    <span
+                      key={badge.label}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${badge.className}`}
+                    >
+                      {badge.label}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -1168,8 +1374,14 @@ function EdielLifecyclePanel({
             <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-200">
               <div className="font-medium">Senaste fel i Ediel-kedjan</div>
               <div className="mt-1 text-xs leading-5">
-                {lifecycle.latestFailure.message_family} {lifecycle.latestFailure.message_code} · status{' '}
-                {lifecycle.latestFailure.status} · {formatDateTime(messageActivityTime(lifecycle.latestFailure))}
+                <Link
+                  href={`/admin/ediel/messages/${lifecycle.latestFailure.id}`}
+                  className="text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+                >
+                  {lifecycle.latestFailure.message_family} {lifecycle.latestFailure.message_code}
+                </Link>{' '}
+                · status {lifecycle.latestFailure.status} ·{' '}
+                {formatDateTime(messageActivityTime(lifecycle.latestFailure))}
               </div>
             </div>
           ) : null}
@@ -1199,6 +1411,8 @@ function LifecycleCard({
     )
   }
 
+  const ackBadges = buildAckBadgesForMessage(message)
+
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -1210,9 +1424,20 @@ function LifecycleCard({
         >
           {message.status}
         </span>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+        <Link
+          href={`/admin/ediel/messages/${message.id}`}
+          className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 underline-offset-2 hover:underline dark:bg-slate-800 dark:text-slate-300"
+        >
           {message.message_family} {message.message_code}
-        </span>
+        </Link>
+        {ackBadges.map((badge) => (
+          <span
+            key={badge.label}
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
+          >
+            {badge.label}
+          </span>
+        ))}
       </div>
       <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
         {formatDateTime(messageActivityTime(message))}
@@ -1231,6 +1456,7 @@ function LifecycleCountCard({
   messages: EdielMessageSummaryRow[]
 }) {
   const latest = messages[0] ?? null
+  const latestBadges = latest ? buildAckBadgesForMessage(latest) : []
 
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
@@ -1241,8 +1467,31 @@ function LifecycleCountCard({
         {count}
       </div>
       <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-        Senaste: {latest ? `${latest.message_family} ${latest.message_code} · ${latest.status}` : '—'}
+        Senaste:{' '}
+        {latest ? (
+          <Link
+            href={`/admin/ediel/messages/${latest.id}`}
+            className="text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+          >
+            {latest.message_family} {latest.message_code} · {latest.status}
+          </Link>
+        ) : (
+          '—'
+        )}
       </div>
+
+      {latestBadges.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {latestBadges.map((badge) => (
+            <span
+              key={badge.label}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${badge.className}`}
+            >
+              {badge.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

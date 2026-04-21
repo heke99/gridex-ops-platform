@@ -201,10 +201,7 @@ export function getPrimaryLink(params: {
     }
   }
 
-  if (
-    request.source_type === 'grid_owner_data_request' &&
-    request.source_id
-  ) {
+  if (request.source_type === 'grid_owner_data_request' && request.source_id) {
     const match = dataRequests.find((row) => row.id === request.source_id)
     if (match) {
       return {
