@@ -3,11 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import {
-  getEdielRouteProfileByCommunicationRouteId,
-  upsertEdielRouteProfile,
-} from '@/lib/ediel/db'
+import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { saveCommunicationRoute } from '@/lib/cis/db'
+import type {
+  EdielEncryptionMode,
+  EdielPayloadFormat,
+  EdielRouteProfileAckMode,
+} from '@/lib/ediel/types'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -58,6 +60,81 @@ async function getActorContext() {
   }
 }
 
+async function upsertEdielRouteProfileLocal(input: {
+  actorUserId: string
+  communicationRouteId: string
+  isEnabled: boolean
+  senderEdielId: string | null
+  senderName: string | null
+  senderSubAddress: string | null
+  receiverEdielId: string | null
+  receiverName: string | null
+  receiverSubAddress: string | null
+  applicationReference: string | null
+  defaultMessageVersion: string | null
+  defaultTestFlag: 0 | 1
+  defaultTimezone: number | null
+  environment: 'test' | 'production'
+  messageStandard: 'edifact' | 'xml' | 'ai_list'
+  ackMode: EdielRouteProfileAckMode
+  smtpHost: string | null
+  smtpPort: number | null
+  imapHost: string | null
+  imapPort: number | null
+  mailbox: string | null
+  encryptionMode: EdielEncryptionMode | null
+  payloadFormat: EdielPayloadFormat
+  notes: string | null
+}) {
+  const supabase = await createSupabaseServerClient()
+  const existing = await getEdielRouteProfileByCommunicationRouteId(input.communicationRouteId)
+
+  const payload = {
+    communication_route_id: input.communicationRouteId,
+    is_enabled: input.isEnabled,
+    sender_ediel_id: input.senderEdielId,
+    sender_name: input.senderName,
+    sender_sub_address: input.senderSubAddress,
+    receiver_ediel_id: input.receiverEdielId,
+    receiver_name: input.receiverName,
+    receiver_sub_address: input.receiverSubAddress,
+    application_reference: input.applicationReference,
+    default_message_version: input.defaultMessageVersion,
+    default_test_flag: input.defaultTestFlag,
+    default_timezone: input.defaultTimezone ?? 1,
+    environment: input.environment,
+    message_standard: input.messageStandard,
+    ack_mode: input.ackMode,
+    smtp_host: input.smtpHost,
+    smtp_port: input.smtpPort,
+    imap_host: input.imapHost,
+    imap_port: input.imapPort,
+    mailbox: input.mailbox,
+    encryption_mode: input.encryptionMode,
+    payload_format: input.payloadFormat,
+    notes: input.notes,
+    updated_by: input.actorUserId,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('ediel_route_profiles')
+      .update(payload)
+      .eq('id', existing.id)
+
+    if (error) throw error
+    return
+  }
+
+  const { error } = await supabase.from('ediel_route_profiles').insert({
+    ...payload,
+    created_by: input.actorUserId,
+  })
+
+  if (error) throw error
+}
+
 export async function saveEdielRouteProfileAction(formData: FormData) {
   await requireAdminActionAccess([
     'switching.write',
@@ -72,7 +149,7 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
 
   const { userId } = await getActorContext()
 
-  await upsertEdielRouteProfile({
+  await upsertEdielRouteProfileLocal({
     actorUserId: userId,
     communicationRouteId,
     isEnabled: boolValue(formData, 'isEnabled'),
@@ -233,7 +310,7 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
 
   const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId)
 
-  await upsertEdielRouteProfile({
+  await upsertEdielRouteProfileLocal({
     actorUserId: userId,
     communicationRouteId: routeId,
     isEnabled: enableEdiel || existingProfile?.is_enabled || false,
@@ -284,7 +361,7 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
   const { userId } = await getActorContext()
   const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId)
 
-  await upsertEdielRouteProfile({
+  await upsertEdielRouteProfileLocal({
     actorUserId: userId,
     communicationRouteId: routeId,
     isEnabled: enableEdiel || existingProfile?.is_enabled || false,

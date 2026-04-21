@@ -283,7 +283,7 @@ async function runProdatInboundScenario(
     meterPointId:
       meteringPoint.ediel_reference ??
       meteringPoint.meter_point_id ??
-      meteringPoint.metering_point_id,
+      meteringPoint.meter_point_id,
     customerName:
       site.current_supplier_name ??
       site.site_name ??
@@ -319,37 +319,37 @@ async function runProdatInboundScenario(
   const notes: string[] = []
 
   try {
-    const inboundMessage = await createEdielMessage({
-      actorUserId: input.actorUserId,
-      direction: 'inbound',
-      messageStandard: 'edifact',
-      messageFamily: parsed.messageFamily,
-      messageCode: parsed.messageCode,
-      messageVersion: parsed.messageVersion ?? 'D:03A:UN:1.0',
-      processType: 'selftest',
-      environment: 'test',
-      testFlag: 1,
-      status: 'received',
-      transportType: 'manual_upload',
-      mailbox: input.mailbox ?? null,
-      senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? null,
-      receiverEdielId: input.receiverEdielId ?? null,
-      senderEmail: input.senderEmail ?? null,
-      receiverEmail: input.receiverEmail ?? null,
-      externalReference,
-      transactionReference,
-      rawPayload,
-      parsedPayload: parsed.parsedPayload,
-      validationReport: {},
-      requiresContrl: true,
-      requiresAperak: true,
-      contrlStatus: 'pending',
-      aperakStatus: 'pending',
-      utiltsErrStatus: 'not_required',
-      syntaxCheckStatus: 'pending',
-      functionalCheckStatus: 'pending',
-      messageReceivedAt: new Date().toISOString(),
-    })
+  const inboundMessage = await createEdielMessage({
+    actorUserId: input.actorUserId,
+    direction: 'inbound',
+    messageStandard: 'edifact',
+    messageFamily: parsed.messageFamily,
+    messageCode: parsed.messageCode ?? code,
+    messageVersion: parsed.messageVersion ?? 'D:03A:UN:1.0',
+    processType: 'selftest',
+    environment: 'test',
+    testFlag: 1,
+    status: 'received',
+    transportType: 'manual_upload',
+    mailbox: input.mailbox ?? null,
+    senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? null,
+    receiverEdielId: input.receiverEdielId ?? null,
+    senderEmail: input.senderEmail ?? null,
+    receiverEmail: input.receiverEmail ?? null,
+    externalReference,
+    transactionReference,
+    rawPayload,
+    parsedPayload: parsed.parsedPayload,
+    validationReport: {},
+    requiresContrl: true,
+    requiresAperak: true,
+    contrlStatus: 'pending',
+    aperakStatus: 'pending',
+    utiltsErrStatus: 'not_required',
+    syntaxCheckStatus: 'pending',
+    functionalCheckStatus: 'pending',
+    messageReceivedAt: new Date().toISOString(),
+  })
 
     createdMessageIds.push(inboundMessage.id)
 
@@ -520,7 +520,7 @@ async function runUtiltsInboundScenario(
     meterPointId:
       meteringPoint?.ediel_reference ??
       meteringPoint?.meter_point_id ??
-      meteringPoint?.metering_point_id ??
+      meteringPoint?.meter_point_id ??
       'UNKNOWN',
     periodStart: toIsoDate(request.requested_period_start),
     periodEnd: toIsoDate(request.requested_period_end),
@@ -563,29 +563,29 @@ async function runUtiltsInboundScenario(
   const notes: string[] = []
 
   try {
-    const inboundInput = buildInboundUtiltsMessageInput({
-      actorUserId: input.actorUserId,
-      code,
-      communicationRouteId: null,
-      customerId: request.customer_id,
-      siteId: request.site_id,
-      meteringPointId: request.metering_point_id,
-      gridOwnerId: request.grid_owner_id,
-      gridOwnerDataRequestId: request.id,
-      senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? '99999',
-      receiverEdielId: input.receiverEdielId ?? '00000',
-      senderEmail: input.senderEmail ?? null,
-      receiverEmail: input.receiverEmail ?? null,
-      mailbox: input.mailbox ?? null,
-      externalReference,
-      transactionReference,
-      quantity,
-      periodStart: toIsoDate(request.requested_period_start),
-      periodEnd: toIsoDate(request.requested_period_end),
-      registrationTime: new Date().toISOString(),
-      unit: 'KWH',
-    })
-
+  const inboundInput = buildInboundUtiltsMessageInput({
+    actorUserId: input.actorUserId,
+    code,
+    communicationRouteId: null,
+    customerId: request.customer_id,
+    siteId: request.site_id,
+    meteringPointId: request.metering_point_id,
+    gridOwnerId: request.grid_owner_id,
+    gridOwnerDataRequestId: request.id,
+    mailbox: input.mailbox ?? null,
+    senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? '99999',
+    receiverEdielId: input.receiverEdielId ?? '00000',
+    senderEmail: input.senderEmail ?? null,
+    receiverEmail: input.receiverEmail ?? null,
+    externalReference,
+    transactionReference,
+    rawPayload,
+    quantity,
+    periodStart: toIsoDate(request.requested_period_start),
+    periodEnd: toIsoDate(request.requested_period_end),
+    registrationTime: new Date().toISOString(),
+    unit: 'KWH',
+  })
     const inboundMessage = await createEdielMessage({
       ...inboundInput,
       rawPayload,
@@ -659,12 +659,13 @@ async function runUtiltsInboundScenario(
         siteId: request.site_id,
         meteringPointId: request.metering_point_id,
         gridOwnerId: request.grid_owner_id,
-        externalReference,
-        quantity,
-        unit: 'KWH',
+        readingType: 'consumption',
+        valueKwh: quantity,
+        qualityCode: null,
+        readAt: toIsoDate(request.requested_period_end),
         periodStart: toIsoDate(request.requested_period_start),
         periodEnd: toIsoDate(request.requested_period_end),
-        sourcePayload: {
+        rawPayload: {
           selftest: true,
           edielMessageId: inboundMessage.id,
           variant,
@@ -680,9 +681,11 @@ async function runUtiltsInboundScenario(
           siteId: request.site_id,
           meteringPointId: request.metering_point_id,
           gridOwnerId: request.grid_owner_id,
-          externalReference,
-          periodStart: toIsoDate(request.requested_period_start),
-          periodEnd: toIsoDate(request.requested_period_end),
+          sourceRequestId: request.id,
+          underlayMonth: Number(toIsoDate(request.requested_period_end).slice(5, 7)),
+          underlayYear: Number(toIsoDate(request.requested_period_end).slice(0, 4)),
+          status: 'received',
+          totalKwh: quantity,
           payload: {
             selftest: true,
             edielMessageId: inboundMessage.id,

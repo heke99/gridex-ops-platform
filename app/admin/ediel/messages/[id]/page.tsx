@@ -29,7 +29,7 @@ type SiteRow = {
   status: string | null
 }
 
-type MeteringPointRow = {
+type MeteringPointLookupRow = {
   id: string
   meter_point_id: string | null
   metering_point_id: string | null
@@ -74,6 +74,15 @@ type DataRequestRow = {
   external_reference: string | null
 }
 
+type RelatedMessageLite = {
+  id: string
+  direction: string
+  message_family: string
+  message_code: string
+  status: string
+  created_at: string
+}
+
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
   const date = new Date(value)
@@ -92,16 +101,28 @@ function prettyJson(value: unknown) {
 function toneForStatus(
   status: string | null | undefined
 ): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
-  if (status === 'acknowledged' || status === 'received' || status === 'parsed' || status === 'validated') {
+  if (
+    status === 'acknowledged' ||
+    status === 'received' ||
+    status === 'parsed' ||
+    status === 'validated' ||
+    status === 'passed'
+  ) {
     return 'green'
   }
-  if (status === 'queued' || status === 'prepared' || status === 'draft' || status === 'pending') {
+  if (
+    status === 'queued' ||
+    status === 'prepared' ||
+    status === 'draft' ||
+    status === 'pending' ||
+    status === 'running'
+  ) {
     return 'yellow'
   }
   if (status === 'failed' || status === 'cancelled' || status === 'rejected') {
     return 'red'
   }
-  if (status === 'sent' || status === 'submitted') {
+  if (status === 'sent' || status === 'submitted' || status === 'info') {
     return 'blue'
   }
   return 'slate'
@@ -157,6 +178,119 @@ function Field({
   )
 }
 
+function linkLabelForMessage(message: RelatedMessageLite | null) {
+  if (!message) return null
+  return `${message.message_family} ${message.message_code} • ${message.direction} • ${message.status}`
+}
+
+function messageLink(row: RelatedMessageLite | null) {
+  return row ? `/admin/ediel/messages/${row.id}` : undefined
+}
+
+function ackSummaryPills(message: EdielMessageRow) {
+  const pills: Array<{ text: string; tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate' }> = []
+
+  if (message.requires_contrl) {
+    pills.push({
+      text: `CONTRL ${message.contrl_status ?? 'pending'}`,
+      tone: toneForStatus(message.contrl_status),
+    })
+  }
+
+  if (message.requires_aperak) {
+    pills.push({
+      text: `APERAK ${message.aperak_status ?? 'pending'}`,
+      tone: toneForStatus(message.aperak_status),
+    })
+  }
+
+  if (message.utilts_err_status) {
+    pills.push({
+      text: `UTILTS_ERR ${message.utilts_err_status}`,
+      tone: toneForStatus(message.utilts_err_status),
+    })
+  }
+
+  return pills
+}
+
+function objectLinks(params: {
+  customer: CustomerRow | null
+  site: SiteRow | null
+  meteringPoint: MeteringPointLookupRow | null
+  route: RouteRow | null
+  outbound: OutboundRow | null
+  switchRequest: SwitchRow | null
+  dataRequest: DataRequestRow | null
+}) {
+  const links: Array<{ label: string; href: string; text: string }> = []
+
+  if (params.customer) {
+    links.push({
+      label: 'Kund',
+      href: `/admin/customers/${params.customer.id}`,
+      text:
+        params.customer.company_name ||
+        params.customer.full_name ||
+        params.customer.customer_number ||
+        params.customer.id,
+    })
+  }
+
+  if (params.site && params.customer) {
+    links.push({
+      label: 'Anläggning',
+      href: `/admin/customers/${params.customer.id}`,
+      text: params.site.site_name || params.site.id,
+    })
+  }
+
+  if (params.meteringPoint && params.customer) {
+    links.push({
+      label: 'Mätpunkt',
+      href: `/admin/customers/${params.customer.id}`,
+      text:
+        params.meteringPoint.meter_point_id ||
+        params.meteringPoint.metering_point_id ||
+        params.meteringPoint.id,
+    })
+  }
+
+  if (params.route) {
+    links.push({
+      label: 'Route',
+      href: '/admin/ediel/routes',
+      text: params.route.route_name,
+    })
+  }
+
+  if (params.outbound) {
+    links.push({
+      label: 'Outbound',
+      href: '/admin/outbound',
+      text: params.outbound.id,
+    })
+  }
+
+  if (params.switchRequest) {
+    links.push({
+      label: 'Switch',
+      href: `/admin/operations/switches/${params.switchRequest.id}`,
+      text: params.switchRequest.id,
+    })
+  }
+
+  if (params.dataRequest) {
+    links.push({
+      label: 'Data request',
+      href: `/admin/operations/grid-owner-requests/${params.dataRequest.id}`,
+      text: params.dataRequest.id,
+    })
+  }
+
+  return links
+}
+
 export default async function AdminEdielMessageDetailPage({
   params,
 }: {
@@ -180,6 +314,7 @@ export default async function AdminEdielMessageDetailPage({
     switchResult,
     dataRequestResult,
     relatedResult,
+    childMessagesResult,
   ] = await Promise.all([
     listEdielMessageEvents(message.id),
     message.customer_id
@@ -245,6 +380,11 @@ export default async function AdminEdielMessageDetailPage({
           .eq('id', message.related_message_id)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from('ediel_messages')
+      .select('id, direction, message_family, message_code, status, created_at')
+      .eq('related_message_id', message.id)
+      .order('created_at', { ascending: true }),
   ])
 
   if (customerResult.error) throw customerResult.error
@@ -256,32 +396,34 @@ export default async function AdminEdielMessageDetailPage({
   if (switchResult.error) throw switchResult.error
   if (dataRequestResult.error) throw dataRequestResult.error
   if (relatedResult.error) throw relatedResult.error
+  if (childMessagesResult.error) throw childMessagesResult.error
 
   const customer = (customerResult.data as CustomerRow | null) ?? null
   const site = (siteResult.data as SiteRow | null) ?? null
-  const meteringPoint = (meteringPointResult.data as MeteringPointRow | null) ?? null
+  const meteringPoint = (meteringPointResult.data as MeteringPointLookupRow | null) ?? null
   const gridOwner = (gridOwnerResult.data as GridOwnerRow | null) ?? null
   const route = (routeResult.data as RouteRow | null) ?? null
   const outbound = (outboundResult.data as OutboundRow | null) ?? null
   const switchRequest = (switchResult.data as SwitchRow | null) ?? null
   const dataRequest = (dataRequestResult.data as DataRequestRow | null) ?? null
-  const relatedMessage =
-    (relatedResult.data as
-      | {
-          id: string
-          direction: string
-          message_family: string
-          message_code: string
-          status: string
-          created_at: string
-        }
-      | null) ?? null
+  const relatedMessage = (relatedResult.data as RelatedMessageLite | null) ?? null
+  const childMessages = (childMessagesResult.data as RelatedMessageLite[] | null) ?? []
+
+  const links = objectLinks({
+    customer,
+    site,
+    meteringPoint,
+    route,
+    outbound,
+    switchRequest,
+    dataRequest,
+  })
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title={`Ediel message ${message.message_family} ${message.message_code}`}
-        subtitle="Detaljvy för payload, länkar, kvittenser, validering och händelser."
+        subtitle="Detaljvy för payload, ackkedja, länkar, validering och händelser."
         userEmail={context.email}
       />
 
@@ -293,10 +435,10 @@ export default async function AdminEdielMessageDetailPage({
               <Pill text={message.status} tone={toneForStatus(message.status)} />
               <Pill text={message.environment} tone={message.environment === 'production' ? 'red' : 'blue'} />
               <Pill text={message.message_family} tone="slate" />
-              <Pill text={message.message_code} tone="yellow" />
+              <Pill text={String(message.message_code)} tone="yellow" />
             </div>
 
-            {(message.status === 'queued' || message.status === 'prepared') ? (
+            {message.status === 'queued' || message.status === 'prepared' ? (
               <form action={sendEdielMessageAction}>
                 <input type="hidden" name="edielMessageId" value={message.id} />
                 <button
@@ -318,6 +460,7 @@ export default async function AdminEdielMessageDetailPage({
             <Field label="Transaction reference" value={message.transaction_reference} />
             <Field label="Correlation reference" value={message.correlation_reference} />
             <Field label="Interchange reference" value={message.interchange_reference} />
+            <Field label="Application reference" value={message.application_reference} />
             <Field label="Mailbox" value={message.mailbox} />
             <Field label="Mailbox message ID" value={message.mailbox_message_id} />
             <Field label="File name" value={message.file_name} />
@@ -329,6 +472,9 @@ export default async function AdminEdielMessageDetailPage({
             <Field label="Created" value={formatDate(message.created_at)} />
             <Field label="Sent" value={formatDate(message.message_sent_at)} />
             <Field label="Received" value={formatDate(message.message_received_at)} />
+            <Field label="Parsed" value={formatDate(message.parsed_at)} />
+            <Field label="Validated" value={formatDate(message.validated_at)} />
+            <Field label="Acknowledged" value={formatDate(message.acknowledged_at)} />
             <Field label="Ack due" value={formatDate(message.ack_due_at)} />
           </div>
         </section>
@@ -336,6 +482,16 @@ export default async function AdminEdielMessageDetailPage({
         <section className="grid gap-8 xl:grid-cols-2">
           <div className="rounded-3xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">Kvittens och validering</h2>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {ackSummaryPills(message).length === 0 ? (
+                <Pill text="Ingen ackkedja" tone="slate" />
+              ) : (
+                ackSummaryPills(message).map((pill) => (
+                  <Pill key={pill.text} text={pill.text} tone={pill.tone} />
+                ))
+              )}
+            </div>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <Field label="Requires CONTRL" value={message.requires_contrl ? 'Ja' : 'Nej'} />
@@ -369,7 +525,12 @@ export default async function AdminEdielMessageDetailPage({
               />
               <Field
                 label="Metering point"
-                value={meteringPoint?.meter_point_id ?? meteringPoint?.metering_point_id ?? meteringPoint?.id ?? null}
+                value={
+                  meteringPoint?.meter_point_id ??
+                  meteringPoint?.metering_point_id ??
+                  meteringPoint?.id ??
+                  null
+                }
                 href={customer && meteringPoint ? `/admin/customers/${customer.id}` : undefined}
               />
               <Field label="Grid owner" value={gridOwner?.name ?? null} />
@@ -394,15 +555,61 @@ export default async function AdminEdielMessageDetailPage({
                 href={dataRequest ? `/admin/operations/grid-owner-requests/${dataRequest.id}` : undefined}
               />
               <Field
-                label="Related message"
-                value={
-                  relatedMessage
-                    ? `${relatedMessage.message_family} ${relatedMessage.message_code}`
-                    : null
-                }
-                href={relatedMessage ? `/admin/ediel/messages/${relatedMessage.id}` : undefined}
+                label="Related source message"
+                value={linkLabelForMessage(relatedMessage)}
+                href={messageLink(relatedMessage)}
               />
             </div>
+
+            {links.length > 0 ? (
+              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Snabblänkar
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {links.map((link) => (
+                    <Link
+                      key={`${link.label}-${link.href}`}
+                      href={link.href}
+                      className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700"
+                    >
+                      {link.label}: {link.text}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-slate-900">Ackkedja / relaterade svar</h2>
+
+          <div className="mt-4 space-y-3">
+            {childMessages.length === 0 ? (
+              <div className="text-sm text-slate-500">Inga relaterade svar eller kvittenser ännu.</div>
+            ) : (
+              childMessages.map((row) => (
+                <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Pill text={row.direction} tone={row.direction === 'outbound' ? 'blue' : 'green'} />
+                    <Pill text={row.message_family} tone="slate" />
+                    <Pill text={String(row.message_code)} tone="yellow" />
+                    <Pill text={row.status} tone={toneForStatus(row.status)} />
+                    <span className="text-xs text-slate-500">{formatDate(row.created_at)}</span>
+                  </div>
+
+                  <div className="mt-3">
+                    <Link
+                      href={`/admin/ediel/messages/${row.id}`}
+                      className="text-sm font-medium text-indigo-700 underline-offset-2 hover:underline"
+                    >
+                      Öppna relaterat meddelande
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
 

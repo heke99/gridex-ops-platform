@@ -2,6 +2,8 @@
 
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
+import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 
 function stringOrNull(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -104,9 +106,16 @@ export async function matchSiteAndCustomerForMeteringPoint(params: {
 
 export async function findMatchingSupplierSwitchRequest(
   message: EdielMessageRow
-): Promise<{ id: string } | null> {
+): Promise<SupplierSwitchRequestRow | null> {
   if (message.switch_request_id) {
-    return { id: message.switch_request_id }
+    const { data, error } = await supabaseService
+      .from('supplier_switch_requests')
+      .select('*')
+      .eq('id', message.switch_request_id)
+      .maybeSingle()
+
+    if (error) throw error
+    return (data as SupplierSwitchRequestRow | null) ?? null
   }
 
   const meteringPointId =
@@ -121,13 +130,13 @@ export async function findMatchingSupplierSwitchRequest(
   if (references.length > 0) {
     const byReference = await supabaseService
       .from('supplier_switch_requests')
-      .select('id,external_reference')
+      .select('*')
       .in('external_reference', references)
       .order('created_at', { ascending: false })
       .limit(1)
 
     if (byReference.error) throw byReference.error
-    const hit = (byReference.data?.[0] as { id: string } | undefined) ?? null
+    const hit = (byReference.data?.[0] as SupplierSwitchRequestRow | undefined) ?? null
     if (hit) return hit
   }
 
@@ -135,20 +144,27 @@ export async function findMatchingSupplierSwitchRequest(
 
   const { data, error } = await supabaseService
     .from('supplier_switch_requests')
-    .select('id,status,metering_point_id')
+    .select('*')
     .eq('metering_point_id', meteringPointId)
     .order('created_at', { ascending: false })
     .limit(1)
 
   if (error) throw error
-  return (data?.[0] as { id: string } | undefined) ?? null
+  return (data?.[0] as SupplierSwitchRequestRow | undefined) ?? null
 }
 
 export async function findMatchingGridOwnerDataRequest(
   message: EdielMessageRow
-): Promise<{ id: string } | null> {
+): Promise<GridOwnerDataRequestRow | null> {
   if (message.grid_owner_data_request_id) {
-    return { id: message.grid_owner_data_request_id }
+    const { data, error } = await supabaseService
+      .from('grid_owner_data_requests')
+      .select('*')
+      .eq('id', message.grid_owner_data_request_id)
+      .maybeSingle()
+
+    if (error) throw error
+    return (data as GridOwnerDataRequestRow | null) ?? null
   }
 
   const meteringPointId =
@@ -163,13 +179,13 @@ export async function findMatchingGridOwnerDataRequest(
   if (references.length > 0) {
     const byReference = await supabaseService
       .from('grid_owner_data_requests')
-      .select('id,external_reference')
+      .select('*')
       .in('external_reference', references)
       .order('created_at', { ascending: false })
       .limit(1)
 
     if (byReference.error) throw byReference.error
-    const hit = (byReference.data?.[0] as { id: string } | undefined) ?? null
+    const hit = (byReference.data?.[0] as GridOwnerDataRequestRow | undefined) ?? null
     if (hit) return hit
   }
 
@@ -177,11 +193,11 @@ export async function findMatchingGridOwnerDataRequest(
 
   const { data, error } = await supabaseService
     .from('grid_owner_data_requests')
-    .select('id,status,metering_point_id')
+    .select('*')
     .eq('metering_point_id', meteringPointId)
     .order('created_at', { ascending: false })
     .limit(1)
 
   if (error) throw error
-  return (data?.[0] as { id: string } | undefined) ?? null
+  return (data?.[0] as GridOwnerDataRequestRow | undefined) ?? null
 }

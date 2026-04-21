@@ -1,5 +1,6 @@
 // lib/ediel/ack.ts
 
+import { supabaseService } from '@/lib/supabase/service'
 import type {
   CreateEdielMessageInput,
   EdielAckStatus,
@@ -11,16 +12,26 @@ import {
   buildEdielExternalReference,
   buildEdielTransactionReference,
 } from '@/lib/ediel/references'
-import {
-  inferEdielFileName,
-  inferEdielFamilyAndCodeFromRawPayload,
-} from '@/lib/ediel/classify'
+import { inferEdielFileName } from '@/lib/ediel/classify'
 import { isActiveEdielMessageFamily } from '@/lib/ediel/types'
 
-type AckOutcome = 'positive' | 'negative'
+export type AckOutcome = 'positive' | 'negative'
+export type AckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+
+export type AckPolicy = {
+  shouldSendContrl: boolean
+  shouldSendPositiveAperak: boolean
+  shouldSendNegativeAperak: boolean
+  shouldSendUtiltsErr: boolean
+  ackDueAt: string | null
+}
 
 function sanitize(value?: string | null): string {
   return (value ?? '').replace(/['+]/g, ' ').trim()
+}
+
+function ensureActorUserId(value?: string | null): string {
+  return value && value.trim() ? value.trim() : 'system'
 }
 
 function normalizeAckFamily(sourceMessage: EdielMessageRow) {
@@ -43,11 +54,15 @@ function normalizeAckFamily(sourceMessage: EdielMessageRow) {
   }
 
   if (sourceMessage.message_family === 'CONTRL') {
-    throw new Error('APERAK eller CONTRL ska inte genereras som svar på CONTRL.')
+    throw new Error('CONTRL ska inte genereras som svar på CONTRL.')
   }
 
   if (sourceMessage.message_family === 'APERAK') {
-    throw new Error('APERAK eller CONTRL ska inte genereras som svar på APERAK.')
+    throw new Error('APERAK ska inte genereras som svar på APERAK.')
+  }
+
+  if (sourceMessage.message_family === 'UTILTS_ERR') {
+    throw new Error('UTILTS_ERR ska inte genereras som svar på UTILTS_ERR.')
   }
 }
 
@@ -64,45 +79,27 @@ function sourceAckReceiver(sourceMessage: EdielMessageRow) {
   }
 }
 
-function defaultAckStatuses(ackType: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'): {
+function defaultAckStatuses(_ackType: AckFamily): {
   contrlStatus: EdielAckStatus
   aperakStatus: EdielAckStatus
   utiltsErrStatus: EdielAckStatus
   requiresContrl: boolean
   requiresAperak: boolean
+  ackDueAt: string | null
 } {
-  if (ackType === 'CONTRL') {
-    return {
-      contrlStatus: 'not_required',
-      aperakStatus: 'not_required',
-      utiltsErrStatus: 'not_required',
-      requiresContrl: false,
-      requiresAperak: false,
-    }
-  }
-
-  if (ackType === 'APERAK') {
-    return {
-      contrlStatus: 'not_required',
-      aperakStatus: 'not_required',
-      utiltsErrStatus: 'not_required',
-      requiresContrl: false,
-      requiresAperak: false,
-    }
-  }
-
   return {
     contrlStatus: 'not_required',
     aperakStatus: 'not_required',
     utiltsErrStatus: 'not_required',
     requiresContrl: false,
     requiresAperak: false,
+    ackDueAt: null,
   }
 }
 
 function buildAckExternalReference(params: {
   sourceMessage: EdielMessageRow
-  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  ackFamily: AckFamily
 }) {
   return buildEdielExternalReference({
     family: params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily,
@@ -113,12 +110,127 @@ function buildAckExternalReference(params: {
 
 function buildAckTransactionReference(params: {
   sourceMessage: EdielMessageRow
-  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  ackFamily: AckFamily
 }) {
   return buildEdielTransactionReference({
     family: params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily,
     code: params.ackFamily,
   })
+}
+
+function computeAckDueAt(sourceMessage: EdielMessageRow): string | null {
+  const base =
+    sourceMessage.message_received_at ??
+    sourceMessage.created_at ??
+    new Date().toISOString()
+
+  const baseMs = new Date(base).getTime()
+  if (!Number.isFinite(baseMs)) return null
+
+  return new Date(baseMs + 30 * 60 * 1000).toISOString()
+}
+
+function shouldPositiveAperakBeSent(sourceMessage: EdielMessageRow): boolean {
+  return sourceMessage.requires_aperak === true
+}
+
+function shouldNegativeAperakBeSent(sourceMessage: EdielMessageRow): boolean {
+  return (
+    sourceMessage.direction === 'inbound' &&
+    sourceMessage.message_standard === 'edifact' &&
+    sourceMessage.message_family !== 'CONTRL' &&
+    sourceMessage.message_family !== 'APERAK' &&
+    sourceMessage.message_family !== 'UTILTS_ERR'
+  )
+}
+
+export function getAutomaticAckPolicy(sourceMessage: EdielMessageRow): AckPolicy {
+  normalizeAckFamily(sourceMessage)
+
+  const shouldSendContrl =
+    sourceMessage.direction === 'inbound' &&
+    sourceMessage.message_standard === 'edifact' &&
+    sourceMessage.message_family !== 'CONTRL' &&
+    sourceMessage.message_family !== 'APERAK' &&
+    sourceMessage.message_family !== 'UTILTS_ERR'
+
+  const shouldSendPositiveAperak =
+    sourceMessage.direction === 'inbound' &&
+    sourceMessage.message_standard === 'edifact' &&
+    sourceMessage.message_family !== 'CONTRL' &&
+    sourceMessage.message_family !== 'APERAK' &&
+    sourceMessage.message_family !== 'UTILTS_ERR' &&
+    shouldPositiveAperakBeSent(sourceMessage)
+
+  const shouldSendNegativeAperak = shouldNegativeAperakBeSent(sourceMessage)
+
+  const shouldSendUtiltsErr =
+    sourceMessage.direction === 'inbound' &&
+    sourceMessage.message_standard === 'edifact' &&
+    sourceMessage.message_family === 'UTILTS'
+
+  return {
+    shouldSendContrl,
+    shouldSendPositiveAperak,
+    shouldSendNegativeAperak,
+    shouldSendUtiltsErr,
+    ackDueAt: computeAckDueAt(sourceMessage),
+  }
+}
+
+export async function listAckMessagesForSource(params: {
+  sourceMessageId: string
+  ackFamily?: AckFamily
+}): Promise<EdielMessageRow[]> {
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('related_message_id', params.sourceMessageId)
+    .eq('direction', 'outbound')
+    .order('created_at', { ascending: false })
+
+  if (params.ackFamily) {
+    query = query.eq(
+      'message_family',
+      params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily
+    )
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return (data ?? []) as EdielMessageRow[]
+}
+
+export async function findExistingAckForSource(params: {
+  sourceMessageId: string
+  ackFamily: AckFamily
+  outcome?: AckOutcome
+}): Promise<EdielMessageRow | null> {
+  const rows = await listAckMessagesForSource({
+    sourceMessageId: params.sourceMessageId,
+    ackFamily: params.ackFamily,
+  })
+
+  const hit =
+    rows.find((row) => {
+      const payload = row.parsed_payload ?? {}
+      const sameOutcome =
+        params.outcome === undefined ||
+        (typeof payload.ackOutcome === 'string' && payload.ackOutcome === params.outcome)
+
+      return sameOutcome
+    }) ?? null
+
+  return hit
+}
+
+export async function hasAckAlreadyBeenCreated(params: {
+  sourceMessageId: string
+  ackFamily: AckFamily
+  outcome?: AckOutcome
+}): Promise<boolean> {
+  const existing = await findExistingAckForSource(params)
+  return Boolean(existing)
 }
 
 function buildContrlSegments(params: {
@@ -131,12 +243,11 @@ function buildContrlSegments(params: {
   const resultCode = params.outcome === 'positive' ? '7' : '12'
   const text =
     sanitize(params.messageText) ||
-    (params.outcome === 'positive'
-      ? 'Syntax accepted'
-      : 'Syntax error detected')
+    (params.outcome === 'positive' ? 'Syntax accepted' : 'Syntax error detected')
 
-  const originalMessageType =
-    sanitize(`${params.sourceMessage.message_family} ${String(params.sourceMessage.message_code)}`)
+  const originalMessageType = sanitize(
+    `${params.sourceMessage.message_family} ${String(params.sourceMessage.message_code)}`
+  )
 
   return [
     `UNH+1+CONTRL:D:96A:UN:1.0`,
@@ -164,9 +275,7 @@ function buildAperakSegments(params: {
   const resultCode = params.outcome === 'positive' ? 'A01' : 'A13'
   const text =
     sanitize(params.messageText) ||
-    (params.outcome === 'positive'
-      ? 'Application accepted'
-      : 'Application error')
+    (params.outcome === 'positive' ? 'Application accepted' : 'Application error')
 
   return [
     `UNH+1+APERAK:D:01B:UN:1.0`,
@@ -192,7 +301,7 @@ function buildUtiltsErrSegments(params: {
   const text = sanitize(params.messageText) || 'Functional error in UTILTS message'
 
   return [
-    `UNH+1+UTILTS:D:03A:UN:1.0`,
+    `UNH+1+UTILTS:D:03A:UN:E5SE5A`,
     `BGM+UTILTS_ERR+${sanitize(params.externalReference)}+9`,
     `RFF+TN:${sanitize(params.transactionReference)}`,
     params.sourceMessage.transaction_reference
@@ -207,7 +316,7 @@ function buildUtiltsErrSegments(params: {
 
 function buildAckEnvelope(params: {
   sourceMessage: EdielMessageRow
-  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  ackFamily: AckFamily
   externalReference: string
   transactionReference: string
   outcome?: AckOutcome
@@ -280,11 +389,15 @@ function buildAckEnvelope(params: {
 function buildAckInput(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
-  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  ackFamily: AckFamily
   outcome?: AckOutcome
   messageText?: string | null
 }): CreateEdielMessageInput {
   normalizeAckFamily(params.sourceMessage)
+
+  if (params.ackFamily === 'UTILTS_ERR' && params.sourceMessage.message_family !== 'UTILTS') {
+    throw new Error('UTILTS_ERR ska bara skapas som svar på UTILTS.')
+  }
 
   const externalReference = buildAckExternalReference({
     sourceMessage: params.sourceMessage,
@@ -308,7 +421,7 @@ function buildAckInput(params: {
   const defaults = defaultAckStatuses(params.ackFamily)
 
   return {
-    actorUserId: params.actorUserId ?? null,
+    actorUserId: ensureActorUserId(params.actorUserId),
     direction: 'outbound',
     messageStandard: 'edifact',
     messageFamily: params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily,
@@ -375,14 +488,16 @@ function buildAckInput(params: {
       sourceMessageCode: params.sourceMessage.message_code,
       sourceTransactionReference: params.sourceMessage.transaction_reference,
       sourceExternalReference: params.sourceMessage.external_reference,
+      sourceInterchangeReference: params.sourceMessage.interchange_reference,
       messageText: params.messageText ?? null,
-      inferred: inferEdielFamilyAndCodeFromRawPayload(envelope.raw),
+      ackDueAt: computeAckDueAt(params.sourceMessage),
     },
     requiresContrl: defaults.requiresContrl,
     requiresAperak: defaults.requiresAperak,
     contrlStatus: defaults.contrlStatus,
     aperakStatus: defaults.aperakStatus,
     utiltsErrStatus: defaults.utiltsErrStatus,
+    ackDueAt: defaults.ackDueAt,
     syntaxCheckStatus: 'not_checked',
     functionalCheckStatus: 'not_checked',
   }
@@ -395,7 +510,7 @@ export function buildContrlDraft(params: {
   messageText?: string | null
 }): CreateEdielMessageInput {
   return buildAckInput({
-    actorUserId: params.actorUserId ?? null,
+    actorUserId: params.actorUserId ?? 'system',
     sourceMessage: params.sourceMessage,
     ackFamily: 'CONTRL',
     outcome: params.outcome ?? 'positive',
@@ -410,7 +525,7 @@ export function buildAperakDraft(params: {
   messageText?: string | null
 }): CreateEdielMessageInput {
   return buildAckInput({
-    actorUserId: params.actorUserId ?? null,
+    actorUserId: params.actorUserId ?? 'system',
     sourceMessage: params.sourceMessage,
     ackFamily: 'APERAK',
     outcome: params.outcome ?? 'positive',
@@ -423,12 +538,8 @@ export function buildUtiltsErrDraft(params: {
   sourceMessage: EdielMessageRow
   messageText?: string | null
 }): CreateEdielMessageInput {
-  if (params.sourceMessage.message_family !== 'UTILTS') {
-    throw new Error('UTILTS_ERR ska bara skapas som svar på UTILTS i aktiv release.')
-  }
-
   return buildAckInput({
-    actorUserId: params.actorUserId ?? null,
+    actorUserId: params.actorUserId ?? 'system',
     sourceMessage: params.sourceMessage,
     ackFamily: 'UTILTS_ERR',
     messageText: params.messageText ?? null,

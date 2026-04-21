@@ -362,6 +362,7 @@ export type EdielMessageRuleRow = {
   is_active: boolean
   valid_from: string | null
   valid_to: string | null
+  notes: string | null
   created_at: string
   updated_at: string
 }

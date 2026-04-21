@@ -551,7 +551,7 @@ export default async function AdminOperationsPage() {
             value={
               edielSummary.queuedMessages +
               edielSummary.failedMessages +
-              edielSummary.pendingAckMessages
+              edielSummary.ackPendingMessages
             }
             hint="Ediel-meddelanden som behöver uppföljning nu."
           />

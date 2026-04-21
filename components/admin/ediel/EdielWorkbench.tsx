@@ -1,4 +1,4 @@
-//components/admin/ediel/EdielWorkbench.tsx
+// components/admin/ediel/EdielWorkbench.tsx
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
@@ -52,6 +52,14 @@ export default function EdielWorkbench({
   )
   const [prodatCode, setProdatCode] = useState<'Z03' | 'Z05' | 'Z09'>('Z03')
 
+  const [senderEdielId, setSenderEdielId] = useState('')
+  const [receiverEdielId, setReceiverEdielId] = useState('')
+  const [senderSubAddress, setSenderSubAddress] = useState('GRIDEX')
+  const [receiverSubAddress, setReceiverSubAddress] = useState('EDIEL')
+  const [applicationReference, setApplicationReference] = useState('')
+  const [dispatchMailbox, setDispatchMailbox] = useState('INBOX')
+  const [receiverEmail, setReceiverEmail] = useState('')
+
   const recommendedRoutes = useMemo(
     () =>
       getRecommendedRoutes({
@@ -73,33 +81,32 @@ export default function EdielWorkbench({
   )
 
   useEffect(() => {
-    if (!selectedRouteId || !routes.some((route) => route.id === selectedRouteId)) {
-      setSelectedRouteId(preferredRouteId)
-      return
+    if (!selectedSwitchId && newestSwitchId) {
+      setSelectedSwitchId(newestSwitchId)
     }
+  }, [newestSwitchId, selectedSwitchId])
 
-    const shouldAutoSwitch =
-      preferredRouteId &&
-      selectedRouteId !== preferredRouteId &&
-      outboundRequests.some(
-        (row) =>
-          row.source_type === 'supplier_switch_request' &&
-          row.source_id === selectedSwitchId &&
-          row.communication_route_id === preferredRouteId
-      )
-
-    if (shouldAutoSwitch) {
+  useEffect(() => {
+    if (!selectedRouteId && preferredRouteId) {
       setSelectedRouteId(preferredRouteId)
     }
-  }, [preferredRouteId, routes, outboundRequests, selectedSwitchId, selectedRouteId])
+  }, [preferredRouteId, selectedRouteId])
 
   const selectedRoute = useMemo(
-    () => getSelectedRoute(routes, selectedRouteId),
+    () =>
+      getSelectedRoute({
+        routes,
+        selectedRouteId,
+      }),
     [routes, selectedRouteId]
   )
 
   const selectedPollRoute = useMemo(
-    () => getSelectedRoute(routes, pollRouteId),
+    () =>
+      getSelectedRoute({
+        routes,
+        selectedRouteId: pollRouteId,
+      }),
     [routes, pollRouteId]
   )
 
@@ -108,97 +115,87 @@ export default function EdielWorkbench({
     [switchRequests, selectedSwitchId]
   )
 
-  const [senderEdielId, setSenderEdielId] = useState(
-    selectedRoute?.profile?.sender_ediel_id ?? ''
-  )
-  const [receiverEdielId, setReceiverEdielId] = useState(
-    selectedRoute?.profile?.receiver_ediel_id ?? selectedRoute?.grid_owner_ediel_id ?? ''
-  )
-  const [receiverEmail, setReceiverEmail] = useState(selectedRoute?.target_email ?? '')
-  const [dispatchMailbox, setDispatchMailbox] = useState(selectedRoute?.profile?.mailbox ?? '')
-  const [senderSubAddress, setSenderSubAddress] = useState(
-    selectedRoute?.profile?.sender_sub_address ?? 'GRIDEX'
-  )
-  const [receiverSubAddress, setReceiverSubAddress] = useState(
-    selectedRoute?.profile?.receiver_sub_address ?? 'PRODAT'
-  )
-  const [applicationReference, setApplicationReference] = useState(
-    selectedRoute?.profile?.application_reference ?? '23-DDQ-PRODAT'
-  )
-
   useEffect(() => {
-    setSenderEdielId(selectedRoute?.profile?.sender_ediel_id ?? '')
-    setReceiverEdielId(
-      selectedRoute?.profile?.receiver_ediel_id ?? selectedRoute?.grid_owner_ediel_id ?? ''
-    )
-    setReceiverEmail(selectedRoute?.target_email ?? '')
-    setDispatchMailbox(selectedRoute?.profile?.mailbox ?? '')
-    setSenderSubAddress(selectedRoute?.profile?.sender_sub_address ?? 'GRIDEX')
-    setReceiverSubAddress(selectedRoute?.profile?.receiver_sub_address ?? 'PRODAT')
-    setApplicationReference(
-      selectedRoute?.profile?.application_reference ?? '23-DDQ-PRODAT'
-    )
-  }, [selectedRoute])
+    if (selectedRoute?.profile?.sender_ediel_id && !senderEdielId) {
+      setSenderEdielId(selectedRoute.profile.sender_ediel_id)
+    }
+
+    if (selectedRoute?.profile?.receiver_ediel_id && !receiverEdielId) {
+      setReceiverEdielId(selectedRoute.profile.receiver_ediel_id)
+    }
+
+    if (selectedRoute?.profile?.sender_sub_address) {
+      setSenderSubAddress(selectedRoute.profile.sender_sub_address)
+    }
+
+    if (selectedRoute?.profile?.receiver_sub_address) {
+      setReceiverSubAddress(selectedRoute.profile.receiver_sub_address)
+    }
+
+    if (selectedRoute?.profile?.application_reference && !applicationReference) {
+      setApplicationReference(selectedRoute.profile.application_reference)
+    }
+
+    if (selectedRoute?.profile?.mailbox && !dispatchMailbox) {
+      setDispatchMailbox(selectedRoute.profile.mailbox)
+    }
+
+    if (selectedRoute?.target_email && !receiverEmail) {
+      setReceiverEmail(selectedRoute.target_email)
+    }
+  }, [
+    selectedRoute,
+    senderEdielId,
+    receiverEdielId,
+    applicationReference,
+    dispatchMailbox,
+    receiverEmail,
+  ])
 
   const sendableMessagesToShow = useMemo(
     () =>
       getRecommendedSendableMessages({
         messages: scopedMessages,
+        outboundRequests,
         selectedSwitchId,
         selectedRouteId,
       }),
-    [scopedMessages, selectedSwitchId, selectedRouteId]
+    [scopedMessages, outboundRequests, selectedSwitchId, selectedRouteId]
   )
-
-  useEffect(() => {
-    const nextId = sendableMessagesToShow[0]?.id ?? ''
-    if (!selectedMessageId || !sendableMessagesToShow.some((row) => row.id === selectedMessageId)) {
-      setSelectedMessageId(nextId)
-    }
-  }, [selectedMessageId, sendableMessagesToShow])
 
   const inboundUtiltsMessagesToShow = useMemo(
     () =>
       getRecommendedInboundUtiltsMessages({
         messages: scopedMessages,
-        selectedRoute,
-        selectedRouteId,
+        selectedSwitchId,
       }),
-    [scopedMessages, selectedRoute, selectedRouteId]
+    [scopedMessages, selectedSwitchId]
   )
-
-  useEffect(() => {
-    const nextId = inboundUtiltsMessagesToShow[0]?.id ?? ''
-    if (
-      !selectedInboundUtiltsId ||
-      !inboundUtiltsMessagesToShow.some((row) => row.id === selectedInboundUtiltsId)
-    ) {
-      setSelectedInboundUtiltsId(nextId)
-    }
-  }, [inboundUtiltsMessagesToShow, selectedInboundUtiltsId])
-
-  const ackPreferredFamily = selectedAckSourceId
-    ? scopedMessages.find((message) => message.id === selectedAckSourceId)?.message_family ?? 'PRODAT'
-    : 'PRODAT'
 
   const ackableMessagesToShow = useMemo(
     () =>
       getRecommendedAckableMessages({
         messages: scopedMessages,
         selectedSwitchId,
-        selectedRouteId,
-        preferredFamily: ackPreferredFamily === 'UTILTS' ? 'UTILTS' : 'PRODAT',
       }),
-    [scopedMessages, selectedSwitchId, selectedRouteId, ackPreferredFamily]
+    [scopedMessages, selectedSwitchId]
   )
 
   useEffect(() => {
-    const nextId = ackableMessagesToShow[0]?.id ?? ''
-    if (
-      !selectedAckSourceId ||
-      !ackableMessagesToShow.some((row) => row.id === selectedAckSourceId)
-    ) {
-      setSelectedAckSourceId(nextId)
+    if (!selectedMessageId && sendableMessagesToShow.length > 0) {
+      setSelectedMessageId(sendableMessagesToShow[0].id)
+    }
+  }, [sendableMessagesToShow, selectedMessageId])
+
+  useEffect(() => {
+    if (!selectedInboundUtiltsId && inboundUtiltsMessagesToShow.length > 0) {
+      setSelectedInboundUtiltsId(inboundUtiltsMessagesToShow[0].id)
+    }
+  }, [inboundUtiltsMessagesToShow, selectedInboundUtiltsId])
+
+  useEffect(() => {
+    if (!selectedAckSourceId && ackableMessagesToShow.length > 0) {
+      setSelectedAckSourceId(ackableMessagesToShow[0].id)
     }
   }, [ackableMessagesToShow, selectedAckSourceId])
 
@@ -291,7 +288,6 @@ export default function EdielWorkbench({
         z03LinkedMessageId={z03LinkedMessage?.id ?? null}
         z05LinkedMessageId={z05LinkedMessage?.id ?? null}
         z09LinkedMessageId={z09LinkedMessage?.id ?? null}
-        outboundRequests={outboundRequests}
       />
 
       <DispatchPanels

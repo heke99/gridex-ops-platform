@@ -1,3 +1,5 @@
+// lib/ediel/orchestrator.ts
+
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
@@ -13,6 +15,8 @@ import {
   buildAperakDraft,
   buildContrlDraft,
   buildUtiltsErrDraft,
+  findExistingAckForSource,
+  getAutomaticAckPolicy,
 } from '@/lib/ediel/ack'
 import {
   buildProdatZ03FromSwitch,
@@ -30,10 +34,7 @@ import {
   matchMeteringPointForEdielMessage,
   matchSiteAndCustomerForMeteringPoint,
 } from '@/lib/ediel/matching'
-import {
-  sendEdielMessageViaSmtp,
-  pollEdielMailboxViaImap,
-} from '@/lib/ediel/transport'
+import { sendEdielMessageViaSmtp, pollEdielMailboxViaImap } from '@/lib/ediel/transport'
 import {
   getGridOwnerById,
   getMeteringPointById,
@@ -53,24 +54,13 @@ import {
   updateOutboundRequestStatus,
 } from '@/lib/cis/db'
 import { findBestCommunicationRoute } from '@/lib/cis/db-routes'
-import type {
-  CommunicationRouteRow,
-  GridOwnerDataRequestRow,
-} from '@/lib/cis/types'
-import type {
-  EdielMessageFamily,
-  EdielMessageRow,
-  EdielRouteProfileRow,
-} from '@/lib/ediel/types'
+import type { CommunicationRouteRow, GridOwnerDataRequestRow } from '@/lib/cis/types'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
   ACTIVE_EDIEL_MESSAGE_FAMILIES,
   isActiveEdielMessageFamily,
 } from '@/lib/ediel/types'
-import type {
-  CustomerSiteRow,
-  GridOwnerRow,
-  MeteringPointRow,
-} from '@/lib/masterdata/types'
+import type { GridOwnerRow } from '@/lib/masterdata/types'
 
 type ActiveReleaseFamily =
   | 'PRODAT'
@@ -93,6 +83,10 @@ function numberOrNull(value: unknown): number | null {
   return null
 }
 
+function ensureActorUserId(value?: string | null): string {
+  return value && value.trim() ? value.trim() : 'system'
+}
+
 function assertActiveFamily(
   family: string | null | undefined,
   context: string
@@ -104,20 +98,16 @@ function assertActiveFamily(
   }
 }
 
-function shouldAutoAck(message: EdielMessageRow): boolean {
-  if (!isActiveEdielMessageFamily(message.message_family)) return false
-  if (message.message_standard !== 'edifact') return false
-  if (message.direction !== 'inbound') return false
-  if (message.message_family === 'CONTRL') return false
-  if (message.message_family === 'APERAK') return false
-  return true
+function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
+  return (
+    isActiveEdielMessageFamily(message.message_family) &&
+    message.direction === 'inbound' &&
+    message.message_standard === 'edifact'
+  )
 }
 
-function shouldAutoPositiveAperak(message: EdielMessageRow): boolean {
-  if (!shouldAutoAck(message)) return false
-  if (message.message_family === 'UTILTS_ERR') return false
-  if (message.requires_aperak) return true
-  return false
+function buildAckKey(message: EdielMessageRow, ackFamily: string, outcome: string) {
+  return `${message.id}:${ackFamily}:${outcome}`
 }
 
 async function getGridOwnerDataRequestById(
@@ -191,13 +181,11 @@ async function resolveEdielRouteContext(params: {
   const routeProfile = await getEdielRouteProfileByCommunicationRouteId(route.id)
 
   const senderEdielId = routeProfile?.sender_ediel_id ?? actor.actor_ediel_id ?? null
-  const senderName =
-    routeProfile?.sender_name ?? actor.sender_name ?? actor.actor_name ?? null
+  const senderName = routeProfile?.sender_name ?? actor.sender_name ?? actor.actor_name ?? null
   const senderSubAddress =
     routeProfile?.sender_sub_address ?? actor.sender_sub_address ?? 'GRIDEX'
 
-  const receiverEdielId =
-    routeProfile?.receiver_ediel_id ?? params.gridOwner?.ediel_id ?? null
+  const receiverEdielId = routeProfile?.receiver_ediel_id ?? params.gridOwner?.ediel_id ?? null
   const receiverName = routeProfile?.receiver_name ?? params.gridOwner?.name ?? null
   const receiverSubAddress = routeProfile?.receiver_sub_address ?? 'EDIEL'
 
@@ -205,9 +193,7 @@ async function resolveEdielRouteContext(params: {
   const mailbox = routeProfile?.mailbox ?? actor.mailbox ?? null
 
   if (!senderEdielId) {
-    throw new Error(
-      'Avsändarens Ediel-id saknas i ediel_actor_settings eller route profile.'
-    )
+    throw new Error('Avsändarens Ediel-id saknas i ediel_actor_settings eller route profile.')
   }
 
   if (!receiverEdielId) {
@@ -356,7 +342,6 @@ async function autoFillMasterdataFromUtilts(params: {
     stringOrNull(parsed.meterPointId) ?? stringOrNull(parsed.meteringPointId)
 
   const edielReference = stringOrNull(parsed.edielReference) ?? meterPointIdentifier
-
   const currentSupplierName = stringOrNull(parsed.currentSupplierName)
 
   if (params.siteId) {
@@ -384,7 +369,6 @@ async function autoFillMasterdataFromUtilts(params: {
 
     if (meterPointIdentifier) {
       pointUpdate.meter_point_id = meterPointIdentifier
-      pointUpdate.metering_point_id = meterPointIdentifier
     }
 
     if (edielReference) {
@@ -449,31 +433,117 @@ async function autoIngestMeteringValueFromUtilts(params: {
   })
 }
 
+async function createAckIfMissing(params: {
+  actorUserId: string
+  sourceMessage: EdielMessageRow
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative'
+  messageText?: string | null
+}) {
+  const existing = await findExistingAckForSource({
+    sourceMessageId: params.sourceMessage.id,
+    ackFamily: params.ackFamily,
+    outcome: params.outcome,
+  })
+
+  if (existing) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.sourceMessage.id,
+      eventType:
+        params.ackFamily === 'CONTRL'
+          ? 'contrl_sent'
+          : params.ackFamily === 'APERAK'
+            ? 'aperak_sent'
+            : 'utilts_err_sent',
+      eventStatus: 'warning',
+      message: 'Ack skapades inte igen eftersom en sådan redan finns för källmeddelandet.',
+      payload: {
+        existingAckMessageId: existing.id,
+        duplicateKey: buildAckKey(
+          params.sourceMessage,
+          params.ackFamily,
+          params.outcome ?? 'positive'
+        ),
+      },
+    })
+
+    return existing
+  }
+
+  const draft =
+    params.ackFamily === 'CONTRL'
+      ? buildContrlDraft({
+          actorUserId: params.actorUserId,
+          sourceMessage: params.sourceMessage,
+          outcome: params.outcome ?? 'positive',
+          messageText: params.messageText ?? null,
+        })
+      : params.ackFamily === 'APERAK'
+        ? buildAperakDraft({
+            actorUserId: params.actorUserId,
+            sourceMessage: params.sourceMessage,
+            outcome: params.outcome ?? 'positive',
+            messageText: params.messageText ?? null,
+          })
+        : buildUtiltsErrDraft({
+            actorUserId: params.actorUserId,
+            sourceMessage: params.sourceMessage,
+            messageText: params.messageText ?? null,
+          })
+
+  const ackMessage = await createEdielMessage(draft)
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.sourceMessage.id,
+    eventType:
+      params.ackFamily === 'CONTRL'
+        ? 'contrl_sent'
+        : params.ackFamily === 'APERAK'
+          ? 'aperak_sent'
+          : 'utilts_err_sent',
+    eventStatus: 'success',
+    message: `Ack ${params.ackFamily} skapad.`,
+    payload: {
+      ackMessageId: ackMessage.id,
+      duplicateKey: buildAckKey(
+        params.sourceMessage,
+        params.ackFamily,
+        params.outcome ?? 'positive'
+      ),
+    },
+  })
+
+  return ackMessage
+}
+
 async function createAutomaticPositiveAcks(params: {
   actorUserId: string
   sourceMessage: EdielMessageRow
 }) {
   const createdIds: string[] = []
+  const policy = getAutomaticAckPolicy(params.sourceMessage)
 
-  const contrl = await createEdielMessage(
-    buildContrlDraft({
+  if (policy.shouldSendContrl) {
+    const contrl = await createAckIfMissing({
       actorUserId: params.actorUserId,
       sourceMessage: params.sourceMessage,
+      ackFamily: 'CONTRL',
       outcome: 'positive',
       messageText: 'Automatiskt CONTRL.',
     })
-  )
-  createdIds.push(contrl.id)
+    createdIds.push(contrl.id)
+  }
 
-  if (shouldAutoPositiveAperak(params.sourceMessage)) {
-    const aperak = await createEdielMessage(
-      buildAperakDraft({
-        actorUserId: params.actorUserId,
-        sourceMessage: params.sourceMessage,
-        outcome: 'positive',
-        messageText: 'Automatiskt APERAK.',
-      })
-    )
+  if (policy.shouldSendPositiveAperak) {
+    const aperak = await createAckIfMissing({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      ackFamily: 'APERAK',
+      outcome: 'positive',
+      messageText: 'Automatiskt APERAK.',
+    })
     createdIds.push(aperak.id)
   }
 
@@ -489,7 +559,7 @@ async function queuePreparedEdielMessage(params: {
 }) {
   await updateEdielMessageStatus({
     actorUserId: params.actorUserId,
-    id: params.messageId,
+    edielMessageId: params.messageId,
     status: 'queued',
   })
 
@@ -507,26 +577,53 @@ async function queuePreparedEdielMessage(params: {
   }
 }
 
+async function linkInboundMessageCanonically(params: {
+  actorUserId: string
+  message: EdielMessageRow
+}) {
+  const meteringPointId = await matchMeteringPointForEdielMessage(params.message)
+  const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({
+    meteringPointId,
+  })
+
+  const matchedSwitch = await findMatchingSupplierSwitchRequest(params.message)
+  const matchedDataRequest = await findMatchingGridOwnerDataRequest(params.message)
+
+  await linkEdielMessage({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.message.id,
+    switchRequestId: matchedSwitch?.id ?? null,
+    gridOwnerDataRequestId: matchedDataRequest?.id ?? null,
+    customerId: siteAndCustomer?.customerId ?? null,
+    siteId: siteAndCustomer?.siteId ?? null,
+    meteringPointId,
+    gridOwnerId: siteAndCustomer?.gridOwnerId ?? null,
+    relatedMessageId: null,
+  })
+
+  return {
+    meteringPointId,
+    siteAndCustomer,
+    matchedSwitch,
+    matchedDataRequest,
+  }
+}
+
 export async function prepareAndQueueEdielZ03(params: {
   actorUserId: string
   switchRequestId: string
   communicationRouteId?: string | null
 }) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await createSupabaseServerClient()
-  const switchRequest = await getSupplierSwitchRequestById(
-    supabase,
-    params.switchRequestId
-  )
+  const switchRequest = await getSupplierSwitchRequestById(supabase, params.switchRequestId)
 
   if (!switchRequest) throw new Error('Switch request hittades inte')
 
   const site = await getCustomerSiteById(supabase, switchRequest.site_id)
   if (!site) throw new Error('Anläggning saknas för switchärendet')
 
-  const meteringPoint = await getMeteringPointById(
-    supabase,
-    switchRequest.metering_point_id
-  )
+  const meteringPoint = await getMeteringPointById(supabase, switchRequest.metering_point_id)
   if (!meteringPoint) throw new Error('Mätpunkt saknas för switchärendet')
 
   const gridOwner = switchRequest.grid_owner_id
@@ -540,14 +637,13 @@ export async function prepareAndQueueEdielZ03(params: {
   })
 
   const outbound = await findOrCreateSwitchOutbound({
-    actorUserId: params.actorUserId,
+    actorUserId,
     switchRequestId: switchRequest.id,
     customerId: switchRequest.customer_id,
     siteId: switchRequest.site_id,
     meteringPointId: switchRequest.metering_point_id,
     gridOwnerId: switchRequest.grid_owner_id,
-    externalReference:
-      switchRequest.external_reference ?? `SWITCH-${switchRequest.id}`,
+    externalReference: switchRequest.external_reference ?? `SWITCH-${switchRequest.id}`,
     payload: {
       edielCode: 'Z03',
       queuedFrom: 'prepare_switch_z03',
@@ -558,12 +654,14 @@ export async function prepareAndQueueEdielZ03(params: {
   })
 
   const draft = await buildProdatZ03FromSwitch({
-    actorUserId: params.actorUserId,
+    actorUserId,
     senderEdielId: routeContext.senderEdielId,
     senderName: routeContext.senderName,
     receiverEdielId: routeContext.receiverEdielId,
     receiverName: routeContext.receiverName,
     receiverEmail: routeContext.receiverEmail,
+    senderSubAddress: routeContext.senderSubAddress,
+    receiverSubAddress: routeContext.receiverSubAddress,
     communicationRouteId: routeContext.route.id,
     mailbox: routeContext.mailbox,
     switchRequest,
@@ -577,7 +675,7 @@ export async function prepareAndQueueEdielZ03(params: {
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     edielMessageId: message.id,
     outboundRequestId: outbound.id,
     switchRequestId: switchRequest.id,
@@ -589,7 +687,7 @@ export async function prepareAndQueueEdielZ03(params: {
   })
 
   await queuePreparedEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
     externalReference: switchRequest.external_reference ?? `SWITCH-${switchRequest.id}`,
@@ -619,21 +717,16 @@ export async function prepareAndQueueEdielZ05(params: {
   switchRequestId: string
   communicationRouteId?: string | null
 }) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await createSupabaseServerClient()
-  const switchRequest = await getSupplierSwitchRequestById(
-    supabase,
-    params.switchRequestId
-  )
+  const switchRequest = await getSupplierSwitchRequestById(supabase, params.switchRequestId)
 
   if (!switchRequest) throw new Error('Switch request hittades inte')
 
   const site = await getCustomerSiteById(supabase, switchRequest.site_id)
   if (!site) throw new Error('Anläggning saknas för switchärendet')
 
-  const meteringPoint = await getMeteringPointById(
-    supabase,
-    switchRequest.metering_point_id
-  )
+  const meteringPoint = await getMeteringPointById(supabase, switchRequest.metering_point_id)
   if (!meteringPoint) throw new Error('Mätpunkt saknas för switchärendet')
 
   const gridOwner = switchRequest.grid_owner_id
@@ -647,14 +740,13 @@ export async function prepareAndQueueEdielZ05(params: {
   })
 
   const outbound = await findOrCreateSwitchOutbound({
-    actorUserId: params.actorUserId,
+    actorUserId,
     switchRequestId: switchRequest.id,
     customerId: switchRequest.customer_id,
     siteId: switchRequest.site_id,
     meteringPointId: switchRequest.metering_point_id,
     gridOwnerId: switchRequest.grid_owner_id,
-    externalReference:
-      switchRequest.external_reference ?? `SWITCH-DONE-${switchRequest.id}`,
+    externalReference: switchRequest.external_reference ?? `SWITCH-DONE-${switchRequest.id}`,
     payload: {
       edielCode: 'Z05',
       queuedFrom: 'prepare_switch_z05',
@@ -665,12 +757,14 @@ export async function prepareAndQueueEdielZ05(params: {
   })
 
   const draft = await buildProdatZ05FromSwitch({
-    actorUserId: params.actorUserId,
+    actorUserId,
     senderEdielId: routeContext.senderEdielId,
     senderName: routeContext.senderName,
     receiverEdielId: routeContext.receiverEdielId,
     receiverName: routeContext.receiverName,
     receiverEmail: routeContext.receiverEmail,
+    senderSubAddress: routeContext.senderSubAddress,
+    receiverSubAddress: routeContext.receiverSubAddress,
     communicationRouteId: routeContext.route.id,
     mailbox: routeContext.mailbox,
     switchRequest,
@@ -684,7 +778,7 @@ export async function prepareAndQueueEdielZ05(params: {
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     edielMessageId: message.id,
     outboundRequestId: outbound.id,
     switchRequestId: switchRequest.id,
@@ -696,11 +790,10 @@ export async function prepareAndQueueEdielZ05(params: {
   })
 
   await queuePreparedEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
-    externalReference:
-      switchRequest.external_reference ?? `SWITCH-DONE-${switchRequest.id}`,
+    externalReference: switchRequest.external_reference ?? `SWITCH-DONE-${switchRequest.id}`,
     payload: {
       edielCode: 'Z05',
       routeId: routeContext.route.id,
@@ -727,21 +820,16 @@ export async function prepareAndQueueEdielZ09(params: {
   switchRequestId: string
   communicationRouteId?: string | null
 }) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await createSupabaseServerClient()
-  const switchRequest = await getSupplierSwitchRequestById(
-    supabase,
-    params.switchRequestId
-  )
+  const switchRequest = await getSupplierSwitchRequestById(supabase, params.switchRequestId)
 
   if (!switchRequest) throw new Error('Switch request hittades inte')
 
   const site = await getCustomerSiteById(supabase, switchRequest.site_id)
   if (!site) throw new Error('Anläggning saknas för switchärendet')
 
-  const meteringPoint = await getMeteringPointById(
-    supabase,
-    switchRequest.metering_point_id
-  )
+  const meteringPoint = await getMeteringPointById(supabase, switchRequest.metering_point_id)
   if (!meteringPoint) throw new Error('Mätpunkt saknas för switchärendet')
 
   const gridOwner = switchRequest.grid_owner_id
@@ -755,14 +843,13 @@ export async function prepareAndQueueEdielZ09(params: {
   })
 
   const outbound = await findOrCreateSwitchOutbound({
-    actorUserId: params.actorUserId,
+    actorUserId,
     switchRequestId: switchRequest.id,
     customerId: switchRequest.customer_id,
     siteId: switchRequest.site_id,
     meteringPointId: switchRequest.metering_point_id,
     gridOwnerId: switchRequest.grid_owner_id,
-    externalReference:
-      switchRequest.external_reference ?? `MASTERDATA-${switchRequest.id}`,
+    externalReference: switchRequest.external_reference ?? `MASTERDATA-${switchRequest.id}`,
     payload: {
       edielCode: 'Z09',
       queuedFrom: 'prepare_switch_z09',
@@ -773,12 +860,14 @@ export async function prepareAndQueueEdielZ09(params: {
   })
 
   const draft = await buildProdatZ09FromSwitch({
-    actorUserId: params.actorUserId,
+    actorUserId,
     senderEdielId: routeContext.senderEdielId,
     senderName: routeContext.senderName,
     receiverEdielId: routeContext.receiverEdielId,
     receiverName: routeContext.receiverName,
     receiverEmail: routeContext.receiverEmail,
+    senderSubAddress: routeContext.senderSubAddress,
+    receiverSubAddress: routeContext.receiverSubAddress,
     communicationRouteId: routeContext.route.id,
     mailbox: routeContext.mailbox,
     switchRequest,
@@ -792,7 +881,7 @@ export async function prepareAndQueueEdielZ09(params: {
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     edielMessageId: message.id,
     outboundRequestId: outbound.id,
     switchRequestId: switchRequest.id,
@@ -804,11 +893,10 @@ export async function prepareAndQueueEdielZ09(params: {
   })
 
   await queuePreparedEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
-    externalReference:
-      switchRequest.external_reference ?? `MASTERDATA-${switchRequest.id}`,
+    externalReference: switchRequest.external_reference ?? `MASTERDATA-${switchRequest.id}`,
     payload: {
       edielCode: 'Z09',
       routeId: routeContext.route.id,
@@ -823,14 +911,13 @@ export async function prepareAndQueueUtiltsE73(params: {
   gridOwnerDataRequestId: string
   communicationRouteId?: string | null
 }) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await createSupabaseServerClient()
   const dataRequest = await getGridOwnerDataRequestById(params.gridOwnerDataRequestId)
 
   if (!dataRequest) throw new Error('Grid owner data request hittades inte')
 
-  const site = dataRequest.site_id
-    ? await getCustomerSiteById(supabase, dataRequest.site_id)
-    : null
+  const site = dataRequest.site_id ? await getCustomerSiteById(supabase, dataRequest.site_id) : null
   const meteringPoint = dataRequest.metering_point_id
     ? await getMeteringPointById(supabase, dataRequest.metering_point_id)
     : null
@@ -845,7 +932,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   })
 
   const outbound = await findOrCreateDataRequestOutbound({
-    actorUserId: params.actorUserId,
+    actorUserId,
     requestType: 'meter_values',
     dataRequest,
     payload: {
@@ -859,7 +946,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   })
 
   const draft = await buildUtiltsOutboundDraft({
-    actorUserId: params.actorUserId,
+    actorUserId,
     code: 'E73',
     communicationRouteId: routeContext.route.id,
     customerId: dataRequest.customer_id,
@@ -894,7 +981,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     edielMessageId: message.id,
     outboundRequestId: outbound.id,
     gridOwnerDataRequestId: dataRequest.id,
@@ -906,7 +993,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   })
 
   await queuePreparedEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
     externalReference: dataRequest.external_reference,
@@ -917,7 +1004,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   })
 
   await updateGridOwnerDataRequestStatus({
-    actorUserId: params.actorUserId,
+    actorUserId,
     requestId: dataRequest.id,
     status: 'sent',
     externalReference: message.external_reference ?? dataRequest.external_reference,
@@ -941,14 +1028,13 @@ export async function prepareAndQueueUtiltsE66(params: {
   periodEnd?: string | null
   registrationTime?: string | null
 }) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await createSupabaseServerClient()
   const dataRequest = await getGridOwnerDataRequestById(params.gridOwnerDataRequestId)
 
   if (!dataRequest) throw new Error('Grid owner data request hittades inte')
 
-  const site = dataRequest.site_id
-    ? await getCustomerSiteById(supabase, dataRequest.site_id)
-    : null
+  const site = dataRequest.site_id ? await getCustomerSiteById(supabase, dataRequest.site_id) : null
   const meteringPoint = dataRequest.metering_point_id
     ? await getMeteringPointById(supabase, dataRequest.metering_point_id)
     : null
@@ -963,7 +1049,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   })
 
   const outbound = await findOrCreateDataRequestOutbound({
-    actorUserId: params.actorUserId,
+    actorUserId,
     requestType: 'meter_values',
     dataRequest,
     payload: {
@@ -977,7 +1063,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   })
 
   const draft = await buildUtiltsOutboundDraft({
-    actorUserId: params.actorUserId,
+    actorUserId,
     code: 'E66',
     communicationRouteId: routeContext.route.id,
     customerId: dataRequest.customer_id,
@@ -1004,9 +1090,9 @@ export async function prepareAndQueueUtiltsE66(params: {
       unit: 'KWH',
       resolution:
         meteringPoint?.reading_frequency === 'monthly'
-          ? '1'
+          ? '1440'
           : meteringPoint?.reading_frequency === 'daily'
-            ? '1'
+            ? '1440'
             : '15',
       siteType: site?.site_type ?? 'consumption',
     },
@@ -1017,7 +1103,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     edielMessageId: message.id,
     outboundRequestId: outbound.id,
     gridOwnerDataRequestId: dataRequest.id,
@@ -1029,7 +1115,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   })
 
   await queuePreparedEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
     externalReference: dataRequest.external_reference,
@@ -1056,6 +1142,7 @@ export async function prepareAndQueueAiList(params: {
   toDate: string
   communicationRouteId?: string | null
 }) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await createSupabaseServerClient()
   const site = await getCustomerSiteById(supabase, params.siteId)
 
@@ -1065,9 +1152,7 @@ export async function prepareAndQueueAiList(params: {
     ? await getMeteringPointById(supabase, params.meteringPointId)
     : null
 
-  const gridOwner = site.grid_owner_id
-    ? await getGridOwnerById(supabase, site.grid_owner_id)
-    : null
+  const gridOwner = site.grid_owner_id ? await getGridOwnerById(supabase, site.grid_owner_id) : null
 
   const routeContext = await resolveEdielRouteContext({
     requestType: 'meter_values',
@@ -1084,7 +1169,7 @@ export async function prepareAndQueueAiList(params: {
   })
 
   const draft = await buildAiListOutboundDraft({
-    actorUserId: params.actorUserId,
+    actorUserId,
     listType: params.listType,
     senderEdielId: routeContext.senderEdielId,
     senderName: routeContext.senderName,
@@ -1107,7 +1192,7 @@ export async function prepareAndQueueAiList(params: {
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId,
     edielMessageId: message.id,
     customerId: params.customerId,
     siteId: params.siteId,
@@ -1117,8 +1202,8 @@ export async function prepareAndQueueAiList(params: {
   })
 
   await updateEdielMessageStatus({
-    actorUserId: params.actorUserId,
-    id: message.id,
+    actorUserId,
+    edielMessageId: message.id,
     status: 'queued',
   })
 
@@ -1129,6 +1214,7 @@ export async function sendQueuedEdielMessage(params: {
   actorUserId: string
   edielMessageId: string
 }) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
   if (!message) throw new Error('Ediel-meddelande hittades inte')
 
@@ -1137,14 +1223,14 @@ export async function sendQueuedEdielMessage(params: {
   const result = await sendEdielMessageViaSmtp(message)
 
   await updateEdielMessageStatus({
-    actorUserId: params.actorUserId,
-    id: message.id,
+    actorUserId,
+    edielMessageId: message.id,
     status: 'sent',
   })
 
   if (message.outbound_request_id) {
     await updateOutboundRequestStatus({
-      actorUserId: params.actorUserId,
+      actorUserId,
       outboundRequestId: message.outbound_request_id,
       status: 'sent',
       externalReference: message.external_reference,
@@ -1166,7 +1252,7 @@ export async function sendQueuedEdielMessage(params: {
   }
 
   await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
+    actorUserId,
     edielMessageId: message.id,
     eventType: 'sent',
     eventStatus: 'success',
@@ -1183,6 +1269,8 @@ export async function pollAndIngestEdielMailbox(params: {
   communicationRouteId?: string | null
   limit?: number
 }) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
+
   const incoming = await pollEdielMailboxViaImap({
     mailbox: params.mailbox ?? null,
     communicationRouteId: params.communicationRouteId ?? null,
@@ -1192,7 +1280,7 @@ export async function pollAndIngestEdielMailbox(params: {
   for (const message of incoming) {
     if (!isActiveEdielMessageFamily(message.message_family)) {
       await createEdielMessageEvent({
-        actorUserId: params.actorUserId,
+        actorUserId,
         edielMessageId: message.id,
         eventType: 'manual_note',
         eventStatus: 'warning',
@@ -1205,113 +1293,137 @@ export async function pollAndIngestEdielMailbox(params: {
       continue
     }
 
-    const meteringPointId = await matchMeteringPointForEdielMessage(message)
-    const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({
-      meteringPointId,
-    })
+    if (!shouldProcessInboundMessage(message)) {
+      await createEdielMessageEvent({
+        actorUserId,
+        edielMessageId: message.id,
+        eventType: 'manual_note',
+        eventStatus: 'warning',
+        message: 'Inbound meddelande ligger utanför canonical inbound-EDIFACT-flödet.',
+        payload: {
+          direction: message.direction,
+          standard: message.message_standard,
+        },
+      })
+      continue
+    }
 
-    const matchedSwitch = await findMatchingSupplierSwitchRequest(message)
-    const matchedDataRequest = await findMatchingGridOwnerDataRequest(message)
-
-    await linkEdielMessage({
-      actorUserId: params.actorUserId,
-      edielMessageId: message.id,
-      switchRequestId: matchedSwitch?.id ?? null,
-      gridOwnerDataRequestId: matchedDataRequest?.id ?? null,
-      customerId: siteAndCustomer?.customerId ?? null,
-      siteId: siteAndCustomer?.siteId ?? null,
-      meteringPointId,
-      gridOwnerId: siteAndCustomer?.gridOwnerId ?? null,
-      relatedMessageId: null,
+    const canonicalLinks = await linkInboundMessageCanonically({
+      actorUserId,
+      message,
     })
 
     await updateEdielMessageStatus({
-      actorUserId: params.actorUserId,
-      id: message.id,
+      actorUserId,
+      edielMessageId: message.id,
       status: 'parsed',
-      parsedPayload: message.parsed_payload,
+      parsedPayload: message.parsed_payload ?? {},
     })
 
-    if (matchedSwitch && message.message_family === 'PRODAT') {
+    if (canonicalLinks.matchedSwitch && message.message_family === 'PRODAT') {
       const supabase = await createSupabaseServerClient()
 
       if (message.message_code === 'Z04') {
         await updateSupplierSwitchRequestStatus(supabase, {
-          requestId: matchedSwitch.id,
+          requestId: canonicalLinks.matchedSwitch.id,
           status: 'accepted',
-          externalReference: message.external_reference ?? matchedSwitch.external_reference,
+          externalReference:
+            message.external_reference ?? canonicalLinks.matchedSwitch.external_reference,
         })
       }
 
       if (message.message_code === 'Z05') {
         await updateSupplierSwitchRequestStatus(supabase, {
-          requestId: matchedSwitch.id,
+          requestId: canonicalLinks.matchedSwitch.id,
           status: 'completed',
-          externalReference: message.external_reference ?? matchedSwitch.external_reference,
+          externalReference:
+            message.external_reference ?? canonicalLinks.matchedSwitch.external_reference,
         })
       }
 
-      if (message.message_code === 'Z04' || message.message_code === 'Z05') {
-        const ackIds = await createAutomaticPositiveAcks({
-          actorUserId: params.actorUserId,
-          sourceMessage: message,
-        })
+      const ackIds = await createAutomaticPositiveAcks({
+        actorUserId,
+        sourceMessage: message,
+      })
 
-        await createEdielMessageEvent({
-          actorUserId: params.actorUserId,
-          edielMessageId: message.id,
-          eventType: 'aperak_sent',
-          eventStatus: 'success',
-          message: 'Automatiska kvittenser skapade för inbound PRODAT.',
-          payload: {
-            createdAckMessageIds: ackIds,
-          },
-        })
-      }
+      await createEdielMessageEvent({
+        actorUserId,
+        edielMessageId: message.id,
+        eventType: 'validated',
+        eventStatus: 'success',
+        message: 'Inbound PRODAT processad via canonical motor.',
+        payload: {
+          matchedSwitchRequestId: canonicalLinks.matchedSwitch.id,
+          createdAckMessageIds: ackIds,
+        },
+      })
+
+      continue
     }
 
-    if (matchedDataRequest && message.message_family === 'UTILTS') {
+    if (canonicalLinks.matchedDataRequest && message.message_family === 'UTILTS') {
       await updateGridOwnerDataRequestStatus({
-        actorUserId: params.actorUserId,
-        requestId: matchedDataRequest.id,
+        actorUserId,
+        requestId: canonicalLinks.matchedDataRequest.id,
         status: 'received',
         externalReference:
-          message.external_reference ?? matchedDataRequest.external_reference ?? null,
+          message.external_reference ?? canonicalLinks.matchedDataRequest.external_reference ?? null,
         responsePayload: {
           edielMessageId: message.id,
-          parsedPayload: message.parsed_payload,
+          parsedPayload: message.parsed_payload ?? {},
         },
         notes: null,
       })
 
       const acknowledgedOutbound = await markDataRequestOutboundAcknowledged({
-        actorUserId: params.actorUserId,
-        dataRequestId: matchedDataRequest.id,
+        actorUserId,
+        dataRequestId: canonicalLinks.matchedDataRequest.id,
         externalReference: message.external_reference ?? null,
         edielMessageId: message.id,
       })
 
       await autoFillMasterdataFromUtilts({
-        actorUserId: params.actorUserId,
-        customerId: siteAndCustomer?.customerId ?? matchedDataRequest.customer_id ?? null,
-        siteId: siteAndCustomer?.siteId ?? matchedDataRequest.site_id ?? null,
-        meteringPointId: meteringPointId ?? matchedDataRequest.metering_point_id ?? null,
+        actorUserId,
+        customerId:
+          canonicalLinks.siteAndCustomer?.customerId ??
+          canonicalLinks.matchedDataRequest.customer_id ??
+          null,
+        siteId:
+          canonicalLinks.siteAndCustomer?.siteId ??
+          canonicalLinks.matchedDataRequest.site_id ??
+          null,
+        meteringPointId:
+          canonicalLinks.meteringPointId ??
+          canonicalLinks.matchedDataRequest.metering_point_id ??
+          null,
         message,
       })
 
       const ingestedMeterValue = await autoIngestMeteringValueFromUtilts({
-        actorUserId: params.actorUserId,
-        customerId: siteAndCustomer?.customerId ?? matchedDataRequest.customer_id ?? null,
-        siteId: siteAndCustomer?.siteId ?? matchedDataRequest.site_id ?? null,
-        meteringPointId: meteringPointId ?? matchedDataRequest.metering_point_id ?? null,
-        gridOwnerId: siteAndCustomer?.gridOwnerId ?? matchedDataRequest.grid_owner_id ?? null,
-        dataRequestId: matchedDataRequest.id,
+        actorUserId,
+        customerId:
+          canonicalLinks.siteAndCustomer?.customerId ??
+          canonicalLinks.matchedDataRequest.customer_id ??
+          null,
+        siteId:
+          canonicalLinks.siteAndCustomer?.siteId ??
+          canonicalLinks.matchedDataRequest.site_id ??
+          null,
+        meteringPointId:
+          canonicalLinks.meteringPointId ??
+          canonicalLinks.matchedDataRequest.metering_point_id ??
+          null,
+        gridOwnerId:
+          canonicalLinks.siteAndCustomer?.gridOwnerId ??
+          canonicalLinks.matchedDataRequest.grid_owner_id ??
+          null,
+        dataRequestId: canonicalLinks.matchedDataRequest.id,
         message,
       })
 
       if (acknowledgedOutbound) {
         await syncGridOwnerDataRequestFromOutbound({
-          actorUserId: params.actorUserId,
+          actorUserId,
           outboundRequest: acknowledgedOutbound,
           extraResponsePayload: {
             edielMessageId: message.id,
@@ -1321,60 +1433,63 @@ export async function pollAndIngestEdielMailbox(params: {
         })
       } else {
         await updateGridOwnerDataRequestStatus({
-          actorUserId: params.actorUserId,
-          requestId: matchedDataRequest.id,
+          actorUserId,
+          requestId: canonicalLinks.matchedDataRequest.id,
           status: 'received',
           externalReference:
-            message.external_reference ?? matchedDataRequest.external_reference ?? null,
+            message.external_reference ??
+            canonicalLinks.matchedDataRequest.external_reference ??
+            null,
           responsePayload: {
-            ...(matchedDataRequest.response_payload ?? {}),
+            ...(canonicalLinks.matchedDataRequest.response_payload ?? {}),
             edielMessageId: message.id,
             parsedPayload: message.parsed_payload ?? {},
             ingestedMeterValueId: ingestedMeterValue?.id ?? null,
             acknowledgedVia: 'inbound_ediel_without_outbound',
           },
-          notes: matchedDataRequest.notes ?? null,
+          notes: canonicalLinks.matchedDataRequest.notes ?? null,
         })
       }
 
       const ackIds = await createAutomaticPositiveAcks({
-        actorUserId: params.actorUserId,
+        actorUserId,
         sourceMessage: message,
       })
 
       await createEdielMessageEvent({
-        actorUserId: params.actorUserId,
+        actorUserId,
         edielMessageId: message.id,
         eventType: 'validated',
         eventStatus: 'success',
         message:
-          'Inbound UTILTS matchat mot data request, outbound kvitterat och masterdata uppdaterad.',
+          'Inbound UTILTS matchat mot data request, outbound kvitterat och masterdata uppdaterad via canonical motor.',
         payload: {
+          matchedGridOwnerDataRequestId: canonicalLinks.matchedDataRequest.id,
           createdAckMessageIds: ackIds,
           outboundRequestId: acknowledgedOutbound?.id ?? null,
           ingestedMeterValueId: ingestedMeterValue?.id ?? null,
         },
       })
+
+      continue
     }
 
-    if (shouldAutoAck(message) && !matchedSwitch && !matchedDataRequest) {
-      const ackIds = await createAutomaticPositiveAcks({
-        actorUserId: params.actorUserId,
-        sourceMessage: message,
-      })
+    const ackIds = await createAutomaticPositiveAcks({
+      actorUserId,
+      sourceMessage: message,
+    })
 
-      await createEdielMessageEvent({
-        actorUserId: params.actorUserId,
-        edielMessageId: message.id,
-        eventType: 'validated',
-        eventStatus: 'warning',
-        message:
-          'Inbound meddelande kvitterades automatiskt men saknar ännu stark processkoppling.',
-        payload: {
-          createdAckMessageIds: ackIds,
-        },
-      })
-    }
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'validated',
+      eventStatus: 'warning',
+      message:
+        'Inbound meddelande kvitterades automatiskt men saknar ännu stark processkoppling.',
+      payload: {
+        createdAckMessageIds: ackIds,
+      },
+    })
   }
 
   return incoming
@@ -1385,21 +1500,21 @@ export async function createNegativeUtiltsResponse(params: {
   edielMessageId: string
   messageText: string
 }) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
   const source = await getEdielMessageById(params.edielMessageId)
   if (!source) throw new Error('Källmeddelande hittades inte')
 
   assertActiveFamily(source.message_family, 'createNegativeUtiltsResponse')
 
-  const utiltsErr = await createEdielMessage(
-    buildUtiltsErrDraft({
-      actorUserId: params.actorUserId,
-      sourceMessage: source,
-      messageText: params.messageText,
-    })
-  )
+  const utiltsErr = await createAckIfMissing({
+    actorUserId,
+    sourceMessage: source,
+    ackFamily: 'UTILTS_ERR',
+    messageText: params.messageText,
+  })
 
   await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
+    actorUserId,
     edielMessageId: source.id,
     eventType: 'utilts_err_sent',
     eventStatus: 'warning',

@@ -16,9 +16,16 @@ import {
 } from '@/app/admin/ediel/actions'
 import {
   getRecommendationSummary,
+  type EdielRecommendationMessageRow,
   type EdielRecommendationRouteRow,
 } from '@/lib/ediel/recommendations'
-import type { EdielRouteProfileRow } from '@/lib/ediel/types'
+import {
+  isActiveEdielMessageFamily,
+  type EdielAckStatus,
+  type EdielMessageFamily,
+  type EdielMessageStatus,
+  type EdielRouteProfileRow,
+} from '@/lib/ediel/types'
 import type { CustomerEdielMessageRow } from '@/lib/ediel/customerData'
 
 type EdielMessageSummaryRow = CustomerEdielMessageRow
@@ -370,7 +377,6 @@ function buildAckBadgesForMessage(message: EdielMessageSummaryRow): Array<{
   className: string
 }> {
   const family = message.message_family.toUpperCase()
-  const status = (message.status ?? '').toLowerCase()
   const badges: Array<{ label: string; className: string }> = []
 
   if (family === 'CONTRL') {
@@ -476,6 +482,59 @@ function renderSwitchAckBadges(state: SwitchAckState) {
   )
 }
 
+function pickNullableString(record: Record<string, unknown>, key: string): string | null {
+  const value = record[key]
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
+}
+
+function normalizeRecommendationFamily(value: string): EdielMessageFamily {
+  const upper = value.toUpperCase()
+
+  if (isActiveEdielMessageFamily(upper)) {
+    return upper
+  }
+
+  return 'PRODAT'
+}
+
+function normalizeRecommendationStatus(value: string): EdielMessageStatus {
+  const normalized = value.toLowerCase()
+
+  if (
+    normalized === 'draft' ||
+    normalized === 'queued' ||
+    normalized === 'prepared' ||
+    normalized === 'sent' ||
+    normalized === 'received' ||
+    normalized === 'parsed' ||
+    normalized === 'validated' ||
+    normalized === 'acknowledged' ||
+    normalized === 'failed' ||
+    normalized === 'cancelled'
+  ) {
+    return normalized
+  }
+
+  return 'draft'
+}
+
+function normalizeRecommendationAckStatus(value: string | null): EdielAckStatus | null {
+  if (!value) return null
+
+  const normalized = value.toLowerCase()
+
+  if (
+    normalized === 'pending' ||
+    normalized === 'sent' ||
+    normalized === 'failed' ||
+    normalized === 'not_required'
+  ) {
+    return normalized
+  }
+
+  return null
+}
+
 export default async function CustomerEdielOperationsCard({
   customerId,
   sites,
@@ -505,10 +564,46 @@ export default async function CustomerEdielOperationsCard({
     routeProfiles.map((profile) => [profile.communication_route_id, profile])
   )
 
+  const recommendationMessages: EdielRecommendationMessageRow[] = edielMessages.map((row) => {
+    const record = row as unknown as Record<string, unknown>
+
+    return {
+      id: row.id,
+      direction: row.direction,
+      message_family: normalizeRecommendationFamily(row.message_family),
+      message_code: row.message_code,
+      status: normalizeRecommendationStatus(row.status),
+      created_at: row.created_at,
+
+      customer_id: customerId,
+      site_id: pickNullableString(record, 'site_id'),
+      metering_point_id: pickNullableString(record, 'metering_point_id'),
+      switch_request_id: pickNullableString(record, 'switch_request_id'),
+      grid_owner_data_request_id: pickNullableString(record, 'grid_owner_data_request_id'),
+      outbound_request_id: pickNullableString(record, 'outbound_request_id'),
+      communication_route_id: pickNullableString(record, 'communication_route_id'),
+
+      external_reference: pickNullableString(record, 'external_reference'),
+      transaction_reference: pickNullableString(record, 'transaction_reference'),
+
+      contrl_status: normalizeRecommendationAckStatus(
+  pickNullableString(record, 'contrl_status')
+),
+aperak_status: normalizeRecommendationAckStatus(
+  pickNullableString(record, 'aperak_status')
+),
+
+      sender_ediel_id: pickNullableString(record, 'sender_ediel_id'),
+      receiver_ediel_id: pickNullableString(record, 'receiver_ediel_id'),
+      mailbox: pickNullableString(record, 'mailbox'),
+      receiver_email: pickNullableString(record, 'receiver_email'),
+    }
+  })
+
   const recommendation = getRecommendationSummary({
     switchRequests,
     outboundRequests: [],
-    messages: edielMessages,
+    messages: recommendationMessages,
     routes: recommendationRoutes,
     preferredFamily: 'PRODAT',
   })

@@ -7,6 +7,7 @@ import type {
   CreateEdielMessageInput,
   CreateEdielTestRunInput,
   EdielMessageEventRow,
+  EdielMessageEventType,
   EdielMessageRow,
   EdielTestRunMessageRow,
   EdielTestRunRow,
@@ -24,6 +25,25 @@ function ensureJson(value: unknown): Record<string, unknown> {
     return value as Record<string, unknown>
   }
   return {}
+}
+
+function mapStatusToEventType(status: string): EdielMessageEventType {
+  if (status === 'queued') return 'queued'
+  if (status === 'prepared') return 'prepared'
+  if (status === 'sent') return 'sent'
+  if (status === 'received') return 'received'
+  if (status === 'parsed') return 'parsed'
+  if (status === 'validated') return 'validated'
+  if (status === 'acknowledged') return 'linked'
+  if (status === 'failed') return 'failed'
+  if (status === 'cancelled') return 'cancelled'
+  return 'manual_note'
+}
+
+function mapStatusToEventStatus(status: string): 'info' | 'success' | 'warning' | 'error' {
+  if (status === 'failed') return 'error'
+  if (status === 'cancelled') return 'warning'
+  return 'success'
 }
 
 export async function createEdielMessage(
@@ -122,6 +142,7 @@ export async function createEdielMessage(
       status: row.status,
       direction: row.direction,
       externalReference: row.external_reference,
+      communicationRouteId: row.communication_route_id,
     },
   })
 
@@ -157,14 +178,57 @@ export async function findEdielMessageByMailboxIdentity(params: {
 }
 
 export async function listEdielMessages(params?: {
+  family?: string
+  direction?: 'inbound' | 'outbound'
+  status?: string
   limit?: number
 }): Promise<EdielMessageRow[]> {
   const limit = params?.limit ?? 50
 
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_messages')
     .select('*')
     .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (params?.family) {
+    query = query.eq('message_family', params.family)
+  }
+
+  if (params?.direction) {
+    query = query.eq('direction', params.direction)
+  }
+
+  if (params?.status) {
+    query = query.eq('status', params.status)
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return (data ?? []) as EdielMessageRow[]
+}
+
+export async function listOverdueAckMessages(params?: {
+  limit?: number
+}): Promise<EdielMessageRow[]> {
+  const limit = params?.limit ?? 100
+  const nowIso = new Date().toISOString()
+
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('direction', 'inbound')
+    .in('message_standard', ['edifact'])
+    .lt('ack_due_at', nowIso)
+    .or(
+      [
+        'contrl_status.eq.pending',
+        'aperak_status.eq.pending',
+        'utilts_err_status.eq.pending',
+      ].join(',')
+    )
+    .order('ack_due_at', { ascending: true })
     .limit(limit)
 
   if (error) throw error
@@ -251,32 +315,8 @@ export async function updateEdielMessageStatus(
   await createEdielMessageEvent({
     actorUserId: input.actorUserId ?? null,
     edielMessageId,
-    eventType:
-      input.status === 'queued'
-        ? 'queued'
-        : input.status === 'prepared'
-          ? 'prepared'
-          : input.status === 'sent'
-            ? 'sent'
-            : input.status === 'received'
-              ? 'received'
-              : input.status === 'parsed'
-                ? 'parsed'
-                : input.status === 'validated'
-                  ? 'validated'
-                  : input.status === 'acknowledged'
-                    ? 'linked'
-                    : input.status === 'failed'
-                      ? 'failed'
-                      : input.status === 'cancelled'
-                        ? 'cancelled'
-                        : 'manual_note',
-    eventStatus:
-      input.status === 'failed'
-        ? 'error'
-        : input.status === 'cancelled'
-          ? 'warning'
-          : 'success',
+    eventType: mapStatusToEventType(input.status),
+    eventStatus: mapStatusToEventStatus(input.status),
     message: `Status uppdaterad till ${input.status}.`,
     payload: {
       failureReason: input.failureReason ?? null,
@@ -333,6 +373,7 @@ export async function linkEdielMessage(
       meteringPointId: input.meteringPointId ?? null,
       gridOwnerId: input.gridOwnerId ?? null,
       relatedMessageId: input.relatedMessageId ?? null,
+      communicationRouteId: input.communicationRouteId ?? null,
     },
   })
 

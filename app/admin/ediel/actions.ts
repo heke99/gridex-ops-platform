@@ -4,7 +4,14 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { createEdielMessage, createEdielTestRun } from '@/lib/ediel/db'
+import {
+  createEdielMessage,
+  createEdielMessageEvent,
+  createEdielTestRun,
+  getEdielMessageById,
+  listOverdueAckMessages,
+  updateEdielMessageStatus,
+} from '@/lib/ediel/db'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
 import {
   createNegativeUtiltsResponse,
@@ -17,9 +24,14 @@ import {
   prepareAndQueueUtiltsE73,
   sendQueuedEdielMessage,
 } from '@/lib/ediel/orchestrator'
-import { buildAperakDraft, buildContrlDraft } from '@/lib/ediel/ack'
+import {
+  buildAperakDraft,
+  buildContrlDraft,
+  hasAckAlreadyBeenCreated,
+} from '@/lib/ediel/ack'
 import { runEdielSelfTest, type EdielSelfTestScenarioCode } from '@/lib/ediel/selftest'
 import { inferEdielFileName } from '@/lib/ediel/classify'
+import { isActiveEdielMessageFamily } from '@/lib/ediel/types'
 
 function asString(value: FormDataEntryValue | null): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -67,6 +79,8 @@ async function getActorUserId(): Promise<string> {
 
 function revalidateEdielSurfaces() {
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/ediel/control-tower')
+  revalidatePath('/admin/ediel/messages/[id]', 'page')
   revalidatePath('/admin/operations')
   revalidatePath('/admin/outbound')
 }
@@ -86,8 +100,16 @@ function buildSimpleInboundUtiltsRaw(params: {
     .toISOString()
     .replace(/[-:]/g, '')
     .slice(2, 13)
-  const periodStart = (params.periodStart ?? new Date().toISOString().slice(0, 10)).replace(/-/g, '')
-  const periodEnd = (params.periodEnd ?? new Date().toISOString().slice(0, 10)).replace(/-/g, '')
+
+  const periodStart = (params.periodStart ?? new Date().toISOString().slice(0, 10)).replace(
+    /-/g,
+    ''
+  )
+  const periodEnd = (params.periodEnd ?? new Date().toISOString().slice(0, 10)).replace(
+    /-/g,
+    ''
+  )
+
   const quantity =
     typeof params.quantity === 'number' && Number.isFinite(params.quantity)
       ? String(params.quantity)
@@ -276,6 +298,46 @@ export async function sendEdielMessageAction(formData: FormData) {
   revalidateEdielSurfaces()
 }
 
+export async function retryEdielMessageAction(formData: FormData) {
+  await requirePermissionServer('communication.read')
+
+  const actorUserId = await getActorUserId()
+  const edielMessageId = asString(formData.get('edielMessageId'))
+
+  if (!edielMessageId) {
+    throw new Error('edielMessageId saknas')
+  }
+
+  const message = await getEdielMessageById(edielMessageId)
+  if (!message) {
+    throw new Error('Ediel-meddelande hittades inte')
+  }
+
+  if (message.direction !== 'outbound') {
+    throw new Error('Endast outbound meddelanden kan retryas via denna action')
+  }
+
+  if (!isActiveEdielMessageFamily(message.message_family)) {
+    throw new Error('Meddelandet ligger utanför aktiv release och ska inte retryas här')
+  }
+
+  if (message.status === 'failed' || message.status === 'cancelled') {
+    await updateEdielMessageStatus({
+      actorUserId,
+      edielMessageId: message.id,
+      status: 'queued',
+      failureReason: null,
+    })
+  }
+
+  await sendQueuedEdielMessage({
+    actorUserId,
+    edielMessageId: message.id,
+  })
+
+  revalidateEdielSurfaces()
+}
+
 export async function pollMailboxAction(formData: FormData) {
   await requirePermissionServer('communication.read')
 
@@ -294,6 +356,35 @@ export async function pollMailboxAction(formData: FormData) {
   })
 
   revalidateEdielSurfaces()
+}
+
+export async function sweepOverdueAckAction() {
+  await requirePermissionServer('communication.read')
+
+  const actorUserId = await getActorUserId()
+  const overdueRows = await listOverdueAckMessages({ limit: 200 })
+
+  for (const row of overdueRows) {
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: row.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Ack overdue upptäckt i manuell sweep.',
+      payload: {
+        contrlStatus: row.contrl_status,
+        aperakStatus: row.aperak_status,
+        utiltsErrStatus: row.utilts_err_status,
+        ackDueAt: row.ack_due_at,
+      },
+    })
+  }
+
+  revalidateEdielSurfaces()
+
+  return {
+    count: overdueRows.length,
+  }
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
@@ -329,9 +420,23 @@ export async function createAckDraftAction(formData: FormData) {
     throw new Error('sourceMessageId saknas')
   }
 
-  const sourceMessage = await (await import('@/lib/ediel/db')).getEdielMessageById(sourceMessageId)
+  const sourceMessage = await getEdielMessageById(sourceMessageId)
   if (!sourceMessage) {
     throw new Error('Källmeddelande hittades inte')
+  }
+
+  if (ackType !== 'CONTRL' && ackType !== 'APERAK') {
+    throw new Error(`ACK-typ ${ackType} stöds inte i createAckDraftAction`)
+  }
+
+  const alreadyExists = await hasAckAlreadyBeenCreated({
+    sourceMessageId,
+    ackFamily: ackType,
+    outcome,
+  })
+
+  if (alreadyExists) {
+    throw new Error(`Det finns redan en ${ackType} med outcome ${outcome} för detta källmeddelande`)
   }
 
   if (ackType === 'CONTRL') {
@@ -343,7 +448,9 @@ export async function createAckDraftAction(formData: FormData) {
         messageText,
       })
     )
-  } else if (ackType === 'APERAK') {
+  }
+
+  if (ackType === 'APERAK') {
     await createEdielMessage(
       buildAperakDraft({
         actorUserId,
@@ -352,8 +459,6 @@ export async function createAckDraftAction(formData: FormData) {
         messageText,
       })
     )
-  } else {
-    throw new Error(`ACK-typ ${ackType} stöds inte i createAckDraftAction`)
   }
 
   revalidateEdielSurfaces()
@@ -502,7 +607,7 @@ export async function createEdielTestRunAction(formData: FormData) {
 
   await createEdielTestRun({
     actorUserId,
-    testSuite: testSuite as 'PRODAT' | 'UTILTS' | 'CONTRL' | 'APERAK',
+    testSuite: testSuite as 'PRODAT' | 'UTILTS' | 'AI_LIST',
     roleCode: roleCode as 'supplier' | 'grid_owner' | 'balance_responsible' | 'esco',
     testCaseCode,
     title,

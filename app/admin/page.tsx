@@ -1,5 +1,3 @@
-// app/admin/page.tsx
-
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -101,7 +99,7 @@ export default async function AdminPage() {
   const hasEdielAttention =
     ediel.queuedMessages > 0 ||
     ediel.failedMessages > 0 ||
-    ediel.pendingAckMessages > 0
+    ediel.ackPendingMessages > 0
 
   return (
     <div className="min-h-screen">
@@ -246,8 +244,8 @@ export default async function AdminPage() {
             />
             <KpiCard
               label="Väntande kvittenser"
-              value={ediel.pendingAckMessages}
-              tone={ediel.pendingAckMessages > 0 ? 'amber' : 'slate'}
+              value={ediel.ackPendingMessages}
+              tone={ediel.ackPendingMessages > 0 ? 'amber' : 'slate'}
               href="/admin/ediel"
               sublabel="APERAK / CONTRL som väntar"
             />

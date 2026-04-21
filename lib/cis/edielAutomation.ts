@@ -1,9 +1,18 @@
 // lib/cis/edielAutomation.ts
 
 import { supabaseService } from '@/lib/supabase/service'
-import { createOutboundRequest, findOpenOutboundBySource, updateOutboundRequestStatus } from '@/lib/cis/db'
+import {
+  createOutboundRequest,
+  findOpenOutboundBySource,
+  updateOutboundRequestStatus,
+  updateGridOwnerDataRequestStatus,
+} from '@/lib/cis/db'
 import { findBestCommunicationRoute } from '@/lib/cis/db-routes'
-import { getGridOwnerById, getMeteringPointById, getCustomerSiteById } from '@/lib/masterdata/db'
+import {
+  getGridOwnerById,
+  getMeteringPointById,
+  getCustomerSiteById,
+} from '@/lib/masterdata/db'
 import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/types'
 import { prepareAndQueueUtiltsE66, prepareAndQueueUtiltsE73 } from '@/lib/ediel/orchestrator'
 
@@ -52,7 +61,10 @@ async function getGridOwnerDataRequestById(
   return (data as GridOwnerDataRequestRow | null) ?? null
 }
 
-function buildDataRequestExternalReference(row: GridOwnerDataRequestRow, requestType: 'meter_values' | 'billing_underlay') {
+function buildDataRequestExternalReference(
+  row: GridOwnerDataRequestRow,
+  requestType: 'meter_values' | 'billing_underlay'
+) {
   if (row.external_reference) return row.external_reference
   return `${requestType.toUpperCase()}-${row.id}`
 }
@@ -110,7 +122,7 @@ export async function ensureOutboundForGridOwnerDataRequest(
     periodStart: row.requested_period_start,
     periodEnd: row.requested_period_end,
     payload: {
-      automation_origin: 'edielAutomation.ensureOutboundForGridOwnerDataRequest',
+      automation_origin: 'lib/cis/edielAutomation.ts',
       request_scope: row.request_scope,
       requested_period_start: row.requested_period_start,
       requested_period_end: row.requested_period_end,
@@ -182,21 +194,21 @@ export async function syncInboundUtiltsToDataRequestAndOutbound(
     syncedVia: 'lib/cis/edielAutomation.ts',
   }
 
-  const { error: requestError } = await supabaseService
-    .from('grid_owner_data_requests')
-    .update({
-      status: 'received',
-      response_payload: responsePayload,
-      updated_at: new Date().toISOString(),
-      updated_by: input.actorUserId,
-    })
-    .eq('id', row.id)
-
-  if (requestError) throw requestError
+  await updateGridOwnerDataRequestStatus({
+    actorUserId: input.actorUserId,
+    requestId: row.id,
+    status: 'received',
+    externalReference: row.external_reference ?? null,
+    responsePayload,
+    notes: row.notes ?? null,
+  })
 
   if (!outbound) {
     const refreshed = await getGridOwnerDataRequestById(row.id)
-    if (!refreshed) throw new Error('Grid owner data request försvann efter sync')
+    if (!refreshed) {
+      throw new Error('Grid owner data request försvann efter sync')
+    }
+
     return {
       dataRequest: refreshed,
       outbound: null,
@@ -233,22 +245,29 @@ export async function buildDataRequestAutomationSnapshot(dataRequestId: string) 
     throw new Error('Grid owner data request hittades inte')
   }
 
-  const [site, meteringPoint, gridOwner, outboundMeterValues, outboundBillingUnderlay] =
-    await Promise.all([
-      row.site_id ? getCustomerSiteById(supabaseService, row.site_id) : null,
-      row.metering_point_id ? getMeteringPointById(supabaseService, row.metering_point_id) : null,
-      row.grid_owner_id ? getGridOwnerById(supabaseService, row.grid_owner_id) : null,
-      findOpenOutboundBySource({
-        sourceType: 'grid_owner_data_request',
-        sourceId: row.id,
-        requestType: 'meter_values',
-      }),
-      findOpenOutboundBySource({
-        sourceType: 'grid_owner_data_request',
-        sourceId: row.id,
-        requestType: 'billing_underlay',
-      }),
-    ])
+  const [
+    site,
+    meteringPoint,
+    gridOwner,
+    outboundMeterValues,
+    outboundBillingUnderlay,
+  ] = await Promise.all([
+    row.site_id ? getCustomerSiteById(supabaseService, row.site_id) : null,
+    row.metering_point_id
+      ? getMeteringPointById(supabaseService, row.metering_point_id)
+      : null,
+    row.grid_owner_id ? getGridOwnerById(supabaseService, row.grid_owner_id) : null,
+    findOpenOutboundBySource({
+      sourceType: 'grid_owner_data_request',
+      sourceId: row.id,
+      requestType: 'meter_values',
+    }),
+    findOpenOutboundBySource({
+      sourceType: 'grid_owner_data_request',
+      sourceId: row.id,
+      requestType: 'billing_underlay',
+    }),
+  ])
 
   return {
     dataRequestId: row.id,
@@ -262,7 +281,8 @@ export async function buildDataRequestAutomationSnapshot(dataRequestId: string) 
     requestedPeriodStart: row.requested_period_start,
     requestedPeriodEnd: row.requested_period_end,
     siteName: site?.site_name ?? null,
-    meterPointId: meteringPoint?.meter_point_id ?? meteringPoint?.metering_point_id ?? null,
+    meterPointId:
+      meteringPoint?.meter_point_id ?? meteringPoint?.metering_point_id ?? null,
     gridOwnerName: gridOwner?.name ?? null,
     outboundMeterValuesId: outboundMeterValues?.id ?? null,
     outboundBillingUnderlayId: outboundBillingUnderlay?.id ?? null,

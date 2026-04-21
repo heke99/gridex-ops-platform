@@ -31,6 +31,7 @@ export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
 export type ParsedProdatMessage = {
   messageFamily: Extract<EdielMessageFamily, 'PRODAT'>
   messageCode: ProdatSwitchCode | EdielKnownMessageCode | null
+  messageVersion: string | null
   transactionReference: string | null
   externalReference: string | null
   applicationReference: string | null
@@ -170,12 +171,7 @@ function inferCustomerName(
 }
 
 function inferMeterPointIdentifier(meteringPoint: MeteringPointRow): string {
-  return sanitize(
-    meteringPoint.ediel_reference ||
-      meteringPoint.meter_point_id ||
-      meteringPoint.metering_point_id ||
-      'UNKNOWN'
-  )
+  return sanitize(meteringPoint.ediel_reference || meteringPoint.meter_point_id || 'UNKNOWN')
 }
 
 function inferGridArea(gridOwner?: GridOwnerRow | null): string | null {
@@ -337,17 +333,14 @@ function buildProdatSwitchOutboundDraft(
       incomingSupplierName: input.switchRequest.incoming_supplier_name ?? null,
       siteType: input.site.site_type ?? null,
       facilityId: input.site.facility_id ?? null,
-      meterPointId:
-        input.meteringPoint.meter_point_id ??
-        input.meteringPoint.metering_point_id ??
-        null,
+      meterPointId: input.meteringPoint.meter_point_id ?? null,
       edielReference: input.meteringPoint.ediel_reference ?? null,
       gridOwnerEdielId: input.gridOwner?.ediel_id ?? null,
       gridOwnerOwnerCode: input.gridOwner?.owner_code ?? null,
     }
 
     return {
-      actorUserId: input.actorUserId ?? null,
+      actorUserId: input.actorUserId ?? 'system',
       direction: 'outbound',
       messageStandard: 'edifact',
       messageFamily: 'PRODAT',
@@ -406,6 +399,7 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const inferred = inferEdielFamilyAndCodeFromRawPayload(rawPayload)
   const unb = firstSegmentValue(rawSegments, 'UNB+')
   const bgm = firstSegmentValue(rawSegments, 'BGM+')
+  const unh = firstSegmentValue(rawSegments, 'UNH+')
   const dtm7 = firstSegmentValue(rawSegments, 'DTM+7')
   const dtm137 = firstSegmentValue(rawSegments, 'DTM+137')
   const loc172 = firstSegmentValue(rawSegments, 'LOC+172')
@@ -423,10 +417,12 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const gridAreaId = loc239?.split('+')[2]?.split(':')[0]?.trim() || null
   const customerName = nadBy?.split('+++')[1]?.trim() || null
   const adrParts = adr?.split('+') ?? []
+  const messageVersion = unh?.split('+')[2]?.trim() || null
 
   return {
     messageFamily: 'PRODAT',
     messageCode: bgmCode,
+    messageVersion,
     transactionReference:
       extractReference(rawPayload, 'TN') ||
       extractReference(rawPayload, 'CR') ||

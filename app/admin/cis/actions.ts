@@ -30,6 +30,8 @@ import {
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type { OutboundRequestRow, OutboundRequestStatus } from '@/lib/cis/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
+import { prepareAndQueueEdielZ03 } from '@/lib/ediel/orchestrator'
+import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -272,6 +274,7 @@ export async function saveCommunicationRouteAction(
   revalidatePath('/admin/integrations/routes')
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/ediel/control-tower')
 }
 
 export async function queueOutboundRequestAction(
@@ -329,6 +332,7 @@ export async function queueOutboundRequestAction(
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/ediel/control-tower')
 }
 
 export async function updateOutboundRequestStatusAction(
@@ -401,6 +405,7 @@ export async function updateOutboundRequestStatusAction(
   revalidatePath('/admin/metering')
   revalidatePath('/admin/billing')
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/ediel/control-tower')
 }
 
 export async function updateGridOwnerDataRequestStatusAction(
@@ -455,6 +460,7 @@ export async function updateGridOwnerDataRequestStatusAction(
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/ediel/control-tower')
 }
 
 export async function updatePartnerExportStatusAction(
@@ -639,6 +645,7 @@ export async function queueSupplierSwitchOutboundAction(
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
   const requestId = formValue(formData, 'request_id') ?? ''
+  const communicationRouteId = formValue(formData, 'communication_route_id') || null
 
   if (!requestId) {
     throw new Error('request_id krävs')
@@ -650,60 +657,30 @@ export async function queueSupplierSwitchOutboundAction(
     throw new Error('Switch request hittades inte')
   }
 
-  const existing = await findOpenOutboundBySource({
-    sourceType: 'supplier_switch_request',
-    sourceId: request.id,
-    requestType: 'supplier_switch',
-  })
-
-  if (existing) {
-    revalidatePath('/admin/outbound')
-    revalidatePath('/admin/outbound/ready-switches')
-    revalidatePath('/admin/operations/switches')
-    revalidatePath(`/admin/customers/${request.customer_id}`)
-    return
-  }
-
-  const meteringPoints = await listMeteringPointsBySiteIds(supabase, [request.site_id])
-  const point = meteringPoints.find((row) => row.id === request.metering_point_id)
-
-  const saved = await createOutboundRequest({
+  const message = await prepareAndQueueEdielZ03({
     actorUserId: actor.id,
-    customerId: request.customer_id,
-    siteId: request.site_id,
-    meteringPointId: request.metering_point_id,
-    gridOwnerId: point?.grid_owner_id ?? request.grid_owner_id ?? null,
-    requestType: 'supplier_switch',
-    sourceType: 'supplier_switch_request',
-    sourceId: request.id,
-    payload: {
-      queuedFrom: 'manual_switch_dispatch',
-      requestType: request.request_type,
-      requestedStartDate: request.requested_start_date,
-      currentSupplierName: request.current_supplier_name,
-    },
-    periodStart: request.requested_start_date ?? null,
-    externalReference: formValue(formData, 'external_reference') || null,
+    switchRequestId: request.id,
+    communicationRouteId,
   })
 
   await createSupplierSwitchEvent(supabase, {
     switchRequestId: request.id,
-    eventType: 'outbound_queued',
-    eventStatus: saved.status,
-    message: `Outbound ${saved.id} köad för switchärendet.`,
+    eventType: 'ediel_prepared',
+    eventStatus: 'queued',
+    message: `Canonical Ediel Z03 förberett för switchärendet.`,
     payload: {
-      outboundRequestId: saved.id,
-      channelType: saved.channel_type,
-      routeId: saved.communication_route_id,
+      edielMessageId: message.id,
+      communicationRouteId: message.communication_route_id,
+      externalReference: message.external_reference,
     },
   })
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'outbound_request',
-    entityId: saved.id,
-    action: 'supplier_switch_outbound_queued_manual',
-    newValues: saved,
+    entityType: 'ediel_message',
+    entityId: message.id,
+    action: 'supplier_switch_ediel_prepared',
+    newValues: message,
     metadata: {
       customerId: request.customer_id,
       switchRequestId: request.id,
@@ -720,6 +697,58 @@ export async function queueSupplierSwitchOutboundAction(
   revalidatePath('/admin/operations/tasks')
   revalidatePath(`/admin/customers/${request.customer_id}`)
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/ediel/control-tower')
+}
+
+export async function prepareGridOwnerDataRequestEdielAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess(['metering.write', 'billing_underlay.write'])
+
+  const actor = await getActor()
+  const requestId = formValue(formData, 'request_id') ?? ''
+  const utiltsCode =
+    (formValue(formData, 'utilts_code') as 'E66' | 'E73' | null) ?? 'E73'
+  const communicationRouteId = formValue(formData, 'communication_route_id') || null
+  const quantity = normalizeNumber(formValue(formData, 'quantity'))
+  const periodStart = formValue(formData, 'period_start') || null
+  const periodEnd = formValue(formData, 'period_end') || null
+  const registrationTime = normalizeDateTime(formValue(formData, 'registration_time'))
+
+  if (!requestId) {
+    throw new Error('request_id krävs')
+  }
+
+  const message = await ensureAndPrepareUtiltsFromDataRequest({
+    actorUserId: actor.id,
+    dataRequestId: requestId,
+    utiltsCode,
+    communicationRouteId,
+    quantity,
+    periodStart,
+    periodEnd,
+    registrationTime,
+  })
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'ediel_message',
+    entityId: message.id,
+    action: 'grid_owner_data_request_ediel_prepared',
+    newValues: message,
+    metadata: {
+      requestId,
+      utiltsCode,
+      communicationRouteId: message.communication_route_id,
+    },
+  })
+
+  revalidatePath('/admin/metering')
+  revalidatePath('/admin/billing')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/ediel')
+  revalidatePath('/admin/ediel/control-tower')
 }
 
 export async function bulkQueueMissingMeterValuesAction(

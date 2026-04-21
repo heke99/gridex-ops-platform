@@ -76,10 +76,7 @@ function buildSwitchReadinessSnapshot(params: {
     hasMeteringPoint: Boolean(params.meteringPoint),
     hasGridOwner: Boolean(params.gridOwner),
     siteName: params.site?.site_name ?? null,
-    meterPointId:
-      params.meteringPoint?.meter_point_id ??
-      params.meteringPoint?.metering_point_id ??
-      null,
+    meterPointId: params.meteringPoint?.meter_point_id ?? null,
     gridOwnerName: params.gridOwner?.name ?? null,
     gridOwnerEdielId: params.gridOwner?.ediel_id ?? null,
     requestedStartDate: params.switchRequest.requested_start_date,
@@ -119,7 +116,6 @@ async function createAutomationEvent(params: {
       ...(ensureJson(params.payload)),
       automationSource: 'lib/operations/edielAutomation.ts',
     },
-    createdBy: params.actorUserId,
   })
 }
 

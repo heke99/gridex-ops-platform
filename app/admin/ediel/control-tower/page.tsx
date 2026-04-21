@@ -3,7 +3,11 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
-import { listEdielMessages, listEdielTestRuns } from '@/lib/ediel/db'
+import {
+  listEdielMessages,
+  listEdielTestRuns,
+  listOverdueAckMessages,
+} from '@/lib/ediel/db'
 import { getEdielSummary } from '@/lib/ediel/summary'
 import { sendEdielMessageAction } from '@/app/admin/ediel/actions'
 import {
@@ -21,9 +25,16 @@ function badgeTone(
   status: string | null | undefined
 ): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
   if (status === 'acknowledged' || status === 'passed' || status === 'received') return 'green'
-  if (status === 'queued' || status === 'prepared' || status === 'draft' || status === 'running')
+  if (
+    status === 'queued' ||
+    status === 'prepared' ||
+    status === 'draft' ||
+    status === 'running' ||
+    status === 'pending'
+  ) {
     return 'yellow'
-  if (status === 'failed' || status === 'cancelled') return 'red'
+  }
+  if (status === 'failed' || status === 'cancelled' || status === 'rejected') return 'red'
   if (status === 'sent' || status === 'validated' || status === 'parsed') return 'blue'
   return 'slate'
 }
@@ -57,7 +68,11 @@ function formatDate(value: string | null | undefined) {
 }
 
 function isAckPending(message: EdielMessageRow) {
-  return message.aperak_status === 'pending' || message.contrl_status === 'pending'
+  return (
+    message.contrl_status === 'pending' ||
+    message.aperak_status === 'pending' ||
+    message.utilts_err_status === 'pending'
+  )
 }
 
 function isAckOverdue(message: EdielMessageRow) {
@@ -83,6 +98,44 @@ function sortNewest<T extends { created_at: string }>(rows: T[]) {
   return [...rows].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
+}
+
+function uniqueById<T extends { id: string }>(rows: T[]) {
+  return [...new Map(rows.map((row) => [row.id, row])).values()]
+}
+
+function messageObjectLinks(row: EdielMessageRow) {
+  const links: Array<{ href: string; label: string }> = []
+
+  if (row.switch_request_id) {
+    links.push({
+      href: `/admin/operations/switches`,
+      label: 'Switch',
+    })
+  }
+
+  if (row.grid_owner_data_request_id) {
+    links.push({
+      href: `/admin/operations/grid-owner-requests/${row.grid_owner_data_request_id}`,
+      label: 'Data request',
+    })
+  }
+
+  if (row.outbound_request_id) {
+    links.push({
+      href: `/admin/outbound`,
+      label: 'Outbound',
+    })
+  }
+
+  if (row.customer_id) {
+    links.push({
+      href: `/admin/customers/${row.customer_id}`,
+      label: 'Kund',
+    })
+  }
+
+  return links
 }
 
 function MessageTable({
@@ -111,7 +164,7 @@ function MessageTable({
               <th className="px-3 py-3">Meddelande</th>
               <th className="px-3 py-3">Status</th>
               <th className="px-3 py-3">Ack</th>
-              <th className="px-3 py-3">Länkar</th>
+              <th className="px-3 py-3">Objekt</th>
               <th className="px-3 py-3">Åtgärd</th>
             </tr>
           </thead>
@@ -123,81 +176,111 @@ function MessageTable({
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
-                <tr key={row.id} className="border-b border-slate-100 align-top">
-                  <td className="px-3 py-3 whitespace-nowrap text-slate-600">
-                    {formatDate(row.created_at)}
-                  </td>
-                  <td className="px-3 py-3">
-                    <Link
-                      href={`/admin/ediel/messages/${row.id}`}
-                      className="font-medium text-indigo-700 underline-offset-2 hover:underline"
-                    >
-                      {row.message_family} {row.message_code}
-                    </Link>
-                    <div className="mt-1 text-xs text-slate-500">
-                      {row.direction} • {row.environment} • {row.message_version ?? 'ingen version'}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500 break-all">
-                      {row.external_reference ?? row.transaction_reference ?? row.id}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <Pill text={row.status} tone={badgeTone(row.status)} />
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      {row.requires_contrl ? (
-                        <Pill
-                          text={`CONTRL ${row.contrl_status ?? 'pending'}`}
-                          tone={badgeTone(row.contrl_status)}
-                        />
-                      ) : null}
-                      {row.requires_aperak ? (
-                        <Pill
-                          text={`APERAK ${row.aperak_status ?? 'pending'}`}
-                          tone={badgeTone(row.aperak_status)}
-                        />
-                      ) : null}
-                      {row.utilts_err_status ? (
-                        <Pill
-                          text={`UTILTS_ERR ${row.utilts_err_status}`}
-                          tone={badgeTone(row.utilts_err_status)}
-                        />
-                      ) : null}
-                      {isAckOverdue(row) ? <Pill text="Ack försenad" tone="red" /> : null}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-xs text-slate-600">
-                    <div>Outbound: {row.outbound_request_id ? 'Ja' : '—'}</div>
-                    <div>Switch: {row.switch_request_id ? 'Ja' : '—'}</div>
-                    <div>Data request: {row.grid_owner_data_request_id ? 'Ja' : '—'}</div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex flex-wrap gap-2">
+              rows.map((row) => {
+                const links = messageObjectLinks(row)
+
+                return (
+                  <tr key={row.id} className="border-b border-slate-100 align-top">
+                    <td className="px-3 py-3 whitespace-nowrap text-slate-600">
+                      {formatDate(row.created_at)}
+                    </td>
+                    <td className="px-3 py-3">
                       <Link
                         href={`/admin/ediel/messages/${row.id}`}
-                        className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700"
+                        className="font-medium text-indigo-700 underline-offset-2 hover:underline"
                       >
-                        Öppna
+                        {row.message_family} {row.message_code}
                       </Link>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {row.direction} • {row.environment} • {row.message_version ?? 'ingen version'}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500 break-all">
+                        {row.external_reference ?? row.transaction_reference ?? row.id}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Pill text={row.status} tone={badgeTone(row.status)} />
+                        {row.direction === 'inbound' && isUnlinkedInbound(row) ? (
+                          <Pill text="Ej processlänkad" tone="yellow" />
+                        ) : null}
+                        {row.direction === 'outbound' &&
+                        row.transport_type === 'smtp' &&
+                        (row.status === 'queued' || row.status === 'prepared') ? (
+                          <Pill text="Redo för SMTP" tone="blue" />
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {row.requires_contrl ? (
+                          <Pill
+                            text={`CONTRL ${row.contrl_status ?? 'pending'}`}
+                            tone={badgeTone(row.contrl_status)}
+                          />
+                        ) : null}
+                        {row.requires_aperak ? (
+                          <Pill
+                            text={`APERAK ${row.aperak_status ?? 'pending'}`}
+                            tone={badgeTone(row.aperak_status)}
+                          />
+                        ) : null}
+                        {row.utilts_err_status ? (
+                          <Pill
+                            text={`UTILTS_ERR ${row.utilts_err_status}`}
+                            tone={badgeTone(row.utilts_err_status)}
+                          />
+                        ) : null}
+                        {isAckOverdue(row) ? <Pill text="Ack försenad" tone="red" /> : null}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        deadline: {formatDate(row.ack_due_at)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-slate-600">
+                      <div className="space-y-1">
+                        {links.length === 0 ? (
+                          <div>Inga länkar ännu</div>
+                        ) : (
+                          links.map((link) => (
+                            <div key={`${row.id}-${link.href}-${link.label}`}>
+                              <Link
+                                href={link.href}
+                                className="text-indigo-700 underline-offset-2 hover:underline"
+                              >
+                                {link.label}
+                              </Link>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/admin/ediel/messages/${row.id}`}
+                          className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700"
+                        >
+                          Öppna
+                        </Link>
 
-                      {showSendButton &&
-                      (row.status === 'queued' || row.status === 'prepared') ? (
-                        <form action={sendEdielMessageAction}>
-                          <input type="hidden" name="edielMessageId" value={row.id} />
-                          <button
-                            type="submit"
-                            className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white"
-                          >
-                            Skicka nu
-                          </button>
-                        </form>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                        {showSendButton &&
+                        (row.status === 'queued' || row.status === 'prepared') ? (
+                          <form action={sendEdielMessageAction}>
+                            <input type="hidden" name="edielMessageId" value={row.id} />
+                            <button
+                              type="submit"
+                              className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white"
+                            >
+                              Skicka nu
+                            </button>
+                          </form>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>
@@ -210,10 +293,11 @@ export default async function AdminEdielControlTowerPage() {
   const context = await requireAnyPermissionServer(['communication.read'])
   const supabase = await createSupabaseServerClient()
 
-  const [summary, messages, testRuns] = await Promise.all([
+  const [summary, messages, testRuns, overdueAckRows] = await Promise.all([
     getEdielSummary(supabase),
     listEdielMessages({ limit: 250 }),
     listEdielTestRuns(),
+    listOverdueAckMessages({ limit: 100 }),
   ])
 
   const scopedMessages = messages.filter((row) => isActiveEdielMessageFamily(row.message_family))
@@ -227,7 +311,11 @@ export default async function AdminEdielControlTowerPage() {
 
   const sortedMessages = sortNewest(scopedMessages)
   const pendingAck = sortedMessages.filter(isAckPending)
-  const overdueAck = sortedMessages.filter(isAckOverdue)
+  const overdueAck = uniqueById(
+    sortNewest(
+      overdueAckRows.filter((row) => isActiveEdielMessageFamily(row.message_family))
+    )
+  )
   const failedMessages = sortedMessages.filter((row) => row.status === 'failed')
   const unlinkedInbound = sortedMessages.filter(isUnlinkedInbound)
   const queuedOutbound = sortedMessages.filter(
@@ -235,6 +323,13 @@ export default async function AdminEdielControlTowerPage() {
       row.direction === 'outbound' &&
       (row.status === 'queued' || row.status === 'prepared')
   )
+  const recentInbound = sortedMessages
+    .filter((row) => row.direction === 'inbound')
+    .slice(0, 20)
+  const recentOutbound = sortedMessages
+    .filter((row) => row.direction === 'outbound')
+    .slice(0, 20)
+
   const activeTests = scopedTestRuns
     .filter((row) => ['draft', 'running'].includes(row.status))
     .slice(0, 20)
@@ -251,12 +346,17 @@ export default async function AdminEdielControlTowerPage() {
         <section className="rounded-3xl border border-blue-200 bg-blue-50 p-5">
           <div className="text-sm font-semibold text-slate-900">Aktivt Ediel-scope i release 1</div>
           <p className="mt-2 text-sm text-slate-700">
-            Control towern visar nu bara aktivt scope: {ACTIVE_EDIEL_MESSAGE_FAMILIES.join(', ')}.
-            Framtida familjer som NBS_XML eller övriga placeholders hålls utanför den operativa vyn tills de verkligen tas i bruk.
+            Control towern visar bara aktivt scope: {ACTIVE_EDIEL_MESSAGE_FAMILIES.join(', ')}.
+            Framtida familjer och test-sviter hålls utanför den operativa vyn tills de faktiskt
+            går live.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Pill text={`Aktiva familjer ${ACTIVE_EDIEL_MESSAGE_FAMILIES.length}`} tone="blue" />
-            <Pill text={`Aktiva testsviter ${ACTIVE_EDIEL_TEST_SUITES.length}`} tone="blue" />
+          <div className="mt-4 flex flex-wrap gap-2">
+            {ACTIVE_EDIEL_MESSAGE_FAMILIES.map((family) => (
+              <Pill key={family} text={family} tone="blue" />
+            ))}
+            {ACTIVE_EDIEL_TEST_SUITES.map((suite) => (
+              <Pill key={suite} text={`Test ${suite}`} tone="green" />
+            ))}
             <Pill
               text={`Dolda framtida meddelanden ${futureMessages.length}`}
               tone={futureMessages.length > 0 ? 'yellow' : 'slate'}
@@ -288,9 +388,9 @@ export default async function AdminEdielControlTowerPage() {
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Failed</div>
+            <div className="text-sm text-slate-500">Ack overdue</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {failedMessages.length}
+              {overdueAck.length}
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
@@ -321,9 +421,9 @@ export default async function AdminEdielControlTowerPage() {
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Drafts</div>
+            <div className="text-sm text-slate-500">Failed</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {scopedMessages.filter((row) => row.status === 'draft').length}
+              {failedMessages.length}
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
@@ -342,7 +442,7 @@ export default async function AdminEdielControlTowerPage() {
 
         <MessageTable
           title="Pending ack"
-          subtitle="Meddelanden som väntar på CONTRL, APERAK eller UTILTS_ERR."
+          subtitle="Meddelanden som väntar på CONTRL, APERAK eller UTILTS_ERR men ännu inte är overdue."
           rows={pendingAck.filter((row) => !isAckOverdue(row))}
         />
 
@@ -363,6 +463,18 @@ export default async function AdminEdielControlTowerPage() {
           title="Unlinked inbound"
           subtitle="Inbound som ännu inte kopplats till outbound request, switch request eller data request."
           rows={unlinkedInbound}
+        />
+
+        <MessageTable
+          title="Senaste inbound"
+          subtitle="Snabb driftvy över de senaste inkommande meddelandena i aktivt scope."
+          rows={recentInbound}
+        />
+
+        <MessageTable
+          title="Senaste outbound"
+          subtitle="Snabb driftvy över de senaste utgående meddelandena i aktivt scope."
+          rows={recentOutbound}
         />
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6">

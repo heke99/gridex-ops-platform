@@ -15,7 +15,10 @@ import {
   ACTIVE_EDIEL_MESSAGE_FAMILIES,
   isActiveEdielMessageFamily,
 } from '@/lib/ediel/types'
-import { buildInboundUtiltsMessageInput, parseInboundUtilts } from '@/lib/ediel/utilts'
+import {
+  buildInboundUtiltsMessageInput,
+  parseInboundUtilts,
+} from '@/lib/ediel/utilts'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
 import {
   inferEdielFamilyAndCodeFromRawPayload,
@@ -127,6 +130,7 @@ function buildInboundProdatMessageInput(params: {
     messageStandard: 'edifact',
     messageFamily: 'PRODAT',
     messageCode: parsed.messageCode ?? 'Z03',
+    messageVersion: parsed.messageVersion ?? 'D:03A:UN:1.0',
     status: 'received',
     transportType: 'imap',
     mailbox: params.mailbox ?? null,
@@ -156,7 +160,10 @@ function buildInboundProdatMessageInput(params: {
     contrlStatus: ack.contrlStatus,
     aperakStatus: ack.aperakStatus,
     utiltsErrStatus: ack.utiltsErrStatus,
+    syntaxCheckStatus: 'pending',
+    functionalCheckStatus: 'pending',
     messageReceivedAt: new Date().toISOString(),
+    ackDueAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
   }
 }
 
@@ -178,6 +185,7 @@ function buildInboundAiListMessageInput(params: {
     lineCount: params.rawPayload.split(/\r?\n/).filter(Boolean).length,
     separator: ';',
     importedVia: 'imap',
+    controlOnly: true,
   }
 
   return {
@@ -210,6 +218,8 @@ function buildInboundAiListMessageInput(params: {
     contrlStatus: 'not_required',
     aperakStatus: 'not_required',
     utiltsErrStatus: 'not_required',
+    syntaxCheckStatus: 'not_checked',
+    functionalCheckStatus: 'not_checked',
     messageReceivedAt: new Date().toISOString(),
   }
 }
@@ -222,9 +232,7 @@ export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
 
   if (!message.receiver_email?.trim()) {
-    throw new Error(
-      `Kan inte skicka Ediel-meddelande ${message.id} utan receiver_email.`
-    )
+    throw new Error(`Kan inte skicka Ediel-meddelande ${message.id} utan receiver_email.`)
   }
 
   const routeProfile = message.communication_route_id
@@ -238,21 +246,15 @@ export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise
     routeProfile?.mailbox ?? process.env.EDIEL_SMTP_USER ?? null
   )
   const pass = requireEnv('EDIEL_SMTP_PASS')
-  const from =
-    optionalEnv('EDIEL_SMTP_FROM', routeProfile?.mailbox ?? null) ?? user
+  const from = optionalEnv('EDIEL_SMTP_FROM', routeProfile?.mailbox ?? null) ?? user
   const replyTo = optionalEnv('EDIEL_SMTP_REPLY_TO', null)
 
   const transporter = nodemailer.createTransport({
     host,
     port,
     secure: port === 465,
-    auth: {
-      user,
-      pass,
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false },
   })
 
   const extension = inferAttachmentExtension(message)
@@ -358,7 +360,8 @@ export async function pollEdielMailboxViaImap(params?: {
 
         const senderEmail = normalizeEmail(item.envelope?.from?.[0]?.address)
         const receiverEmail = normalizeEmail(item.envelope?.to?.[0]?.address)
-        const subject = normalizeEmail(item.envelope?.subject)
+        const subject =
+          typeof item.envelope?.subject === 'string' ? item.envelope.subject : null
 
         const inferred = inferEdielFamilyAndCodeFromRawPayload(content)
 
@@ -404,8 +407,7 @@ export async function pollEdielMailboxViaImap(params?: {
           assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/PRODAT')
           createdMessage = await createEdielMessage(input)
         } else if (inferred.messageFamily === 'AI_LIST') {
-          const listType =
-            inferred.messageCode === 'BI' ? 'BI' : 'AI'
+          const listType = inferred.messageCode === 'BI' ? 'BI' : 'AI'
           const input = buildInboundAiListMessageInput({
             rawPayload: content,
             listType,

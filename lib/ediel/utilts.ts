@@ -55,6 +55,8 @@ export type UtiltsInboundDraftInput = {
   receiverEdielId?: string | null
   senderEmail?: string | null
   receiverEmail?: string | null
+  externalReference?: string | null
+  transactionReference?: string | null
   rawPayload: string
   quantity?: number | null
   periodStart?: string | null
@@ -319,7 +321,7 @@ export function buildInboundUtiltsMessageInput(
   }
 
   return {
-    actorUserId: input.actorUserId ?? null,
+    actorUserId: input.actorUserId ?? 'system',
     direction: 'inbound',
     messageStandard: 'edifact',
     messageFamily: 'UTILTS',
@@ -509,7 +511,7 @@ export async function buildUtiltsOutboundDraft(
   })
 
   return {
-    actorUserId: input.actorUserId ?? null,
+    actorUserId: input.actorUserId ?? 'system',
     direction: 'outbound',
     messageStandard: 'edifact',
     messageFamily: 'UTILTS',
