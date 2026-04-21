@@ -189,15 +189,30 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: '/admin/ediel',
-        label: 'Ediel',
+        label: 'Ediel workspace',
         description: 'Inbox, outbox, self-test och SMTP/IMAP-flöden',
         pageKey: 'ediel.workspace',
+      },
+      {
+        href: '/admin/ediel/control-tower',
+        label: 'Ediel control tower',
+        description: 'Ack, failures, olänkade meddelanden och driftvy',
       },
       {
         href: '/admin/ediel/routes',
         label: 'Ediel-routes',
         description: 'Ediel-profiler, mailbox och transportinställningar',
         pageKey: 'ediel.routes',
+      },
+      {
+        href: '/admin/ediel/settings',
+        label: 'Ediel settings',
+        description: 'Aktörskort, versionsregler och ack-policy',
+      },
+      {
+        href: '/admin/ediel/ai-list',
+        label: 'AI-/BI-listor',
+        description: 'Import/exportvy och historik för AI-/BI-listor',
       },
     ],
   },
@@ -259,34 +274,25 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
           <h1 className="text-xl font-semibold tracking-tight text-white">
             Admin Console
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Visa bara de arbetsytor användaren faktiskt får använda
-          </p>
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-            Permission-styrd meny
-          </p>
-          <p className="mt-2 text-sm text-slate-300">
-            Menyn filtreras nu från samma accessmodell som pages använder. Då minskar glappet mellan synlig navigation och faktisk åtkomst.
+          <p className="mt-2 text-sm text-slate-400">
+            Enterprise-vy för kunder, operations, integrationsflöden och styrning.
           </p>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
+      <nav className="min-h-0 flex-1 space-y-8 overflow-y-auto px-4 py-6">
         {visibleGroups.map((group) => (
           <section key={group.title}>
             <div className="px-2">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                 {group.title}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">
+              </h2>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
                 {group.description}
               </p>
             </div>
 
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-1">
               {group.items.map((item) => {
                 const active = isActive(pathname, item.href)
 
@@ -294,35 +300,22 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={[
-                      'block rounded-2xl border px-4 py-3 transition',
+                    className={`block rounded-2xl border px-3 py-3 transition ${
                       active
-                        ? 'border-slate-600 bg-slate-800'
-                        : 'border-transparent bg-transparent hover:border-slate-800 hover:bg-slate-900',
-                    ].join(' ')}
+                        ? 'border-slate-600 bg-slate-800 text-white'
+                        : 'border-transparent text-slate-200 hover:border-slate-800 hover:bg-slate-900'
+                    }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p
-                          className={[
-                            'text-sm font-semibold',
-                            active ? 'text-white' : 'text-slate-200',
-                          ].join(' ')}
-                        >
-                          {item.label}
-                        </p>
-                        {item.description ? (
-                          <p
-                            className={[
-                              'mt-1 text-xs leading-5',
-                              active ? 'text-slate-300' : 'text-slate-500',
-                            ].join(' ')}
-                          >
-                            {item.description}
-                          </p>
-                        ) : null}
+                    <div className="text-sm font-medium">{item.label}</div>
+                    {item.description ? (
+                      <div
+                        className={`mt-1 text-xs leading-5 ${
+                          active ? 'text-slate-300' : 'text-slate-500'
+                        }`}
+                      >
+                        {item.description}
                       </div>
-                    </div>
+                    ) : null}
                   </Link>
                 )
               })}
