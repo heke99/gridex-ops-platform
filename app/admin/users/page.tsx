@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getCurrentUserPermissionContext, requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getAdminUsers } from '@/lib/rbac/getAdminUsers'
 import { getAllRoles } from '@/lib/rbac/getAllRoles'
 import { getInternalRoleOptions, getRoleMeta } from '@/lib/rbac/catalog'
@@ -30,6 +30,16 @@ export default async function AdminUsersPage() {
   const privilegedCount = users.filter((row) =>
     row.roles.some((role) => ['admin', 'super_admin'].includes(role))
   ).length
+
+  async function inviteUserFormAction(formData: FormData) {
+    'use server'
+    await inviteUserAction({} as Parameters<typeof inviteUserAction>[0], formData)
+  }
+
+  async function createUserFormAction(formData: FormData) {
+    'use server'
+    await createUserAction({} as Parameters<typeof createUserAction>[0], formData)
+  }
 
   return (
     <div className="min-h-screen">
@@ -80,7 +90,7 @@ export default async function AdminUsersPage() {
                 </p>
               </div>
 
-              <form action={inviteUserAction} className="grid gap-4 px-6 py-6 md:grid-cols-3">
+              <form action={inviteUserFormAction} className="grid gap-4 px-6 py-6 md:grid-cols-3">
                 <label className="grid gap-2 md:col-span-1">
                   <span className="text-sm font-medium text-slate-700">E-post</span>
                   <input
@@ -128,7 +138,7 @@ export default async function AdminUsersPage() {
                 </p>
               </div>
 
-              <form action={createUserAction} className="grid gap-4 px-6 py-6 md:grid-cols-2">
+              <form action={createUserFormAction} className="grid gap-4 px-6 py-6 md:grid-cols-2">
                 <label className="grid gap-2">
                   <span className="text-sm font-medium text-slate-700">Namn</span>
                   <input

@@ -73,17 +73,23 @@ export async function createEdielMessage(
     .from('ediel_messages')
     .insert({
       direction: input.direction,
+      message_standard: input.messageStandard ?? 'edifact',
       message_family: input.messageFamily,
       message_code: input.messageCode,
       message_version: input.messageVersion ?? null,
+      process_type: input.processType ?? null,
+      environment: input.environment ?? 'test',
+      test_flag: input.testFlag ?? 1,
       status: input.status ?? (input.direction === 'inbound' ? 'received' : 'draft'),
 
       transport_type: input.transportType ?? 'unknown',
       mailbox: input.mailbox ?? null,
       mailbox_message_id: input.mailboxMessageId ?? null,
       sender_ediel_id: input.senderEdielId ?? null,
+      sender_name: input.senderName ?? null,
       sender_sub_address: input.senderSubAddress ?? null,
       receiver_ediel_id: input.receiverEdielId ?? null,
+      receiver_name: input.receiverName ?? null,
       receiver_sub_address: input.receiverSubAddress ?? null,
       sender_email: input.senderEmail ?? null,
       receiver_email: input.receiverEmail ?? null,
@@ -91,10 +97,14 @@ export async function createEdielMessage(
       file_name: input.fileName ?? null,
       mime_type: input.mimeType ?? null,
 
+      interchange_reference: input.interchangeReference ?? null,
       external_reference: externalReference,
       correlation_reference: correlationReference,
       transaction_reference: transactionReference,
       application_reference: input.applicationReference ?? null,
+      original_message_id: input.originalMessageId ?? null,
+      original_transaction_id: input.originalTransactionId ?? null,
+      original_message_code: input.originalMessageCode ?? null,
       related_message_id: input.relatedMessageId ?? null,
 
       communication_route_id: input.communicationRouteId ?? null,
@@ -117,6 +127,8 @@ export async function createEdielMessage(
       contrl_status: input.contrlStatus ?? ackDefaults.contrlStatus,
       aperak_status: input.aperakStatus ?? ackDefaults.aperakStatus,
       utilts_err_status: input.utiltsErrStatus ?? ackDefaults.utiltsErrStatus,
+      syntax_check_status: input.syntaxCheckStatus ?? null,
+      functional_check_status: input.functionalCheckStatus ?? null,
       failure_reason: input.failureReason ?? null,
 
       message_created_at: input.messageCreatedAt ?? null,
@@ -126,6 +138,7 @@ export async function createEdielMessage(
       validated_at: input.validatedAt ?? null,
       acknowledged_at: input.acknowledgedAt ?? null,
       failed_at: input.failedAt ?? null,
+      ack_due_at: input.ackDueAt ?? null,
 
       created_by: input.actorUserId ?? null,
       updated_by: input.actorUserId ?? null,
@@ -145,6 +158,7 @@ export async function createEdielMessage(
     message: `Created ${row.message_family} ${row.message_code} (${row.direction})`,
     payload: {
       status: row.status,
+      interchangeReference: row.interchange_reference,
       externalReference: row.external_reference,
       transactionReference: row.transaction_reference,
       correlationReference: row.correlation_reference,
@@ -231,19 +245,29 @@ export async function listEdielMessages(options: {
       [
         row.id,
         row.direction,
+        row.message_standard,
         row.message_family,
         row.message_code,
+        row.message_version,
+        row.process_type,
+        row.environment,
         row.status,
         row.mailbox,
         row.mailbox_message_id,
         row.sender_ediel_id,
+        row.sender_name,
         row.receiver_ediel_id,
+        row.receiver_name,
         row.sender_email,
         row.receiver_email,
+        row.interchange_reference,
         row.external_reference,
         row.correlation_reference,
         row.transaction_reference,
         row.application_reference,
+        row.original_message_id,
+        row.original_transaction_id,
+        row.original_message_code,
         row.subject,
         row.file_name,
         row.failure_reason,
@@ -280,6 +304,8 @@ export async function updateEdielMessageStatus(input: {
   responseAperakStatus?: EdielMessageRow['aperak_status']
   responseContrlStatus?: EdielMessageRow['contrl_status']
   utiltsErrStatus?: EdielMessageRow['utilts_err_status']
+  syntaxCheckStatus?: string | null
+  functionalCheckStatus?: string | null
 }): Promise<EdielMessageRow> {
   const current = await getEdielMessageById(input.id)
 
@@ -319,6 +345,14 @@ export async function updateEdielMessageStatus(input: {
     patch.utilts_err_status = input.utiltsErrStatus
   }
 
+  if (typeof input.syntaxCheckStatus !== 'undefined') {
+    patch.syntax_check_status = input.syntaxCheckStatus
+  }
+
+  if (typeof input.functionalCheckStatus !== 'undefined') {
+    patch.functional_check_status = input.functionalCheckStatus
+  }
+
   if (input.status === 'acknowledged') {
     patch.acknowledged_at = new Date().toISOString()
   }
@@ -353,6 +387,8 @@ export async function updateEdielMessageStatus(input: {
       previousStatus: current.status,
       nextStatus: row.status,
       failureReason: row.failure_reason,
+      syntaxCheckStatus: row.syntax_check_status,
+      functionalCheckStatus: row.functional_check_status,
     },
   })
 
@@ -457,10 +493,18 @@ export async function upsertEdielRouteProfile(
     communication_route_id: input.communicationRouteId,
     is_enabled: input.isEnabled,
     sender_ediel_id: input.senderEdielId ?? null,
+    sender_name: input.senderName ?? null,
     sender_sub_address: input.senderSubAddress ?? null,
     receiver_ediel_id: input.receiverEdielId ?? null,
+    receiver_name: input.receiverName ?? null,
     receiver_sub_address: input.receiverSubAddress ?? null,
     application_reference: input.applicationReference ?? null,
+    default_message_version: input.defaultMessageVersion ?? null,
+    default_test_flag: input.defaultTestFlag ?? 1,
+    default_timezone: input.defaultTimezone ?? 1,
+    environment: input.environment ?? 'test',
+    message_standard: input.messageStandard ?? 'edifact',
+    ack_mode: input.ackMode ?? 'default',
     smtp_host: input.smtpHost ?? null,
     smtp_port: input.smtpPort ?? null,
     imap_host: input.imapHost ?? null,
@@ -578,11 +622,24 @@ export async function listEdielTestRuns(options: {
   )
 }
 
+export async function getEdielTestRunById(
+  id: string
+): Promise<EdielTestRunRow | null> {
+  const { data, error } = await supabaseService
+    .from('ediel_test_runs')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as EdielTestRunRow | null) ?? null
+}
+
 export async function attachEdielMessageToTestRun(input: {
   testRunId: string
   edielMessageId: string
   stepNo?: number | null
-  expectedDirection?: 'inbound' | 'outbound' | null
+  expectedDirection?: string | null
   expectedFamily?: string | null
   expectedCode?: string | null
 }): Promise<EdielTestRunMessageRow> {
@@ -601,4 +658,59 @@ export async function attachEdielMessageToTestRun(input: {
 
   if (error) throw error
   return data as EdielTestRunMessageRow
+}
+
+export async function listEdielMessagesForTestRun(
+  testRunId: string
+): Promise<EdielTestRunMessageRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_test_run_messages')
+    .select('*')
+    .eq('test_run_id', testRunId)
+    .order('step_no', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return (data ?? []) as EdielTestRunMessageRow[]
+}
+
+export async function updateEdielTestRunStatus(input: {
+  actorUserId?: string | null
+  id: string
+  status: EdielTestRunRow['status']
+  startedAt?: string | null
+  completedAt?: string | null
+  failureReason?: string | null
+  notes?: string | null
+}): Promise<EdielTestRunRow> {
+  const patch: Record<string, unknown> = {
+    status: input.status,
+    updated_by: input.actorUserId ?? null,
+  }
+
+  if (typeof input.startedAt !== 'undefined') {
+    patch.started_at = input.startedAt
+  }
+
+  if (typeof input.completedAt !== 'undefined') {
+    patch.completed_at = input.completedAt
+  }
+
+  if (typeof input.failureReason !== 'undefined') {
+    patch.failure_reason = input.failureReason
+  }
+
+  if (typeof input.notes !== 'undefined') {
+    patch.notes = input.notes
+  }
+
+  const { data, error } = await supabaseService
+    .from('ediel_test_runs')
+    .update(patch)
+    .eq('id', input.id)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as EdielTestRunRow
 }

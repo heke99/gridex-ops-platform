@@ -2,12 +2,19 @@
 
 export type EdielDirection = 'inbound' | 'outbound'
 
+export type EdielMessageStandard = 'edifact' | 'xml' | 'ai_list'
+
+export type EdielEnvironment = 'test' | 'production'
+
 export type EdielMessageFamily =
   | 'PRODAT'
   | 'UTILTS'
   | 'APERAK'
   | 'CONTRL'
   | 'UTILTS_ERR'
+  | 'AI_LIST'
+  | 'NBS_XML'
+  | 'OTHER'
 
 export type EdielMessageStatus =
   | 'draft'
@@ -28,6 +35,8 @@ export type EdielTransportType =
   | 'manual_upload'
   | 'api'
   | 'sftp'
+  | 'ecp'
+  | 'xml'
   | 'unknown'
 
 export type EdielAckStatus =
@@ -56,26 +65,35 @@ export type EdielMessageCode =
   | 'S04'
   | 'E31'
   | 'E66'
+  | 'E73'
   | 'APERAK'
   | 'CONTRL'
   | 'UTILTS_ERR'
+  | 'AI'
+  | 'BI'
 
 export type EdielKnownMessageCode = EdielMessageCode | string
 
 export type EdielMessageRow = {
   id: string
   direction: EdielDirection
+  message_standard: EdielMessageStandard
   message_family: EdielMessageFamily
   message_code: EdielKnownMessageCode
   message_version: string | null
+  process_type: string | null
+  environment: EdielEnvironment
+  test_flag: 0 | 1
   status: EdielMessageStatus
 
   transport_type: EdielTransportType
   mailbox: string | null
   mailbox_message_id: string | null
   sender_ediel_id: string | null
+  sender_name: string | null
   sender_sub_address: string | null
   receiver_ediel_id: string | null
+  receiver_name: string | null
   receiver_sub_address: string | null
   sender_email: string | null
   receiver_email: string | null
@@ -83,10 +101,14 @@ export type EdielMessageRow = {
   file_name: string | null
   mime_type: string | null
 
+  interchange_reference: string | null
   external_reference: string | null
   correlation_reference: string | null
   transaction_reference: string | null
   application_reference: string | null
+  original_message_id: string | null
+  original_transaction_id: string | null
+  original_message_code: string | null
   related_message_id: string | null
 
   communication_route_id: string | null
@@ -109,6 +131,8 @@ export type EdielMessageRow = {
   contrl_status: EdielAckStatus | null
   aperak_status: EdielAckStatus | null
   utilts_err_status: EdielAckStatus | null
+  syntax_check_status: string | null
+  functional_check_status: string | null
   failure_reason: string | null
 
   message_created_at: string | null
@@ -118,6 +142,7 @@ export type EdielMessageRow = {
   validated_at: string | null
   acknowledged_at: string | null
   failed_at: string | null
+  ack_due_at: string | null
 
   created_at: string
   updated_at: string
@@ -163,7 +188,12 @@ export type EdielTestRoleCode =
   | 'balance_responsible'
   | 'esco'
 
-export type EdielTestSuite = 'PRODAT' | 'UTILTS' | 'NBS_XML' | 'OTHER'
+export type EdielTestSuite =
+  | 'PRODAT'
+  | 'UTILTS'
+  | 'AI_LIST'
+  | 'NBS_XML'
+  | 'OTHER'
 
 export type EdielTestRunStatus =
   | 'draft'
@@ -216,10 +246,18 @@ export type EdielRouteProfileRow = {
   communication_route_id: string
   is_enabled: boolean
   sender_ediel_id: string | null
+  sender_name: string | null
   sender_sub_address: string | null
   receiver_ediel_id: string | null
+  receiver_name: string | null
   receiver_sub_address: string | null
   application_reference: string | null
+  default_message_version: string | null
+  default_test_flag: 0 | 1
+  default_timezone: number
+  environment: EdielEnvironment
+  message_standard: EdielMessageStandard
+  ack_mode: 'default' | 'none' | 'contrl_only' | 'contrl_and_aperak'
   smtp_host: string | null
   smtp_port: number | null
   imap_host: string | null
@@ -234,21 +272,90 @@ export type EdielRouteProfileRow = {
   updated_by: string | null
 }
 
+export type EdielActorSettingsRow = {
+  id: string
+  actor_name: string
+  actor_ediel_id: string
+  actor_role: string
+  environment: EdielEnvironment
+  is_active: boolean
+  sender_name: string | null
+  sender_sub_address: string | null
+  default_application_reference: string | null
+  default_timezone: number
+  default_charset: string
+  default_test_flag: 0 | 1
+  smtp_from_email: string | null
+  smtp_reply_to_email: string | null
+  mailbox: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+}
+
+export type EdielMessageRuleRow = {
+  id: string
+  message_family: string
+  message_code: string
+  message_standard: EdielMessageStandard
+  version_code: string
+  direction: 'inbound' | 'outbound' | 'both'
+  requires_contrl: boolean
+  requires_aperak: boolean
+  supports_negative_response: boolean
+  is_active: boolean
+  valid_from: string | null
+  valid_to: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+}
+
+export type EdielAiListJobRow = {
+  id: string
+  list_type: 'AI' | 'BI'
+  environment: EdielEnvironment
+  sender_ediel_id: string
+  receiver_ediel_id: string
+  from_date: string | null
+  to_date: string | null
+  status: 'draft' | 'generated' | 'sent' | 'failed' | 'imported'
+  file_name: string | null
+  file_path: string | null
+  file_payload: string | null
+  validation_report: Record<string, unknown>
+  notes: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+}
+
 export type CreateEdielMessageInput = {
   actorUserId?: string | null
 
   direction: EdielDirection
+  messageStandard?: EdielMessageStandard
   messageFamily: EdielMessageFamily
   messageCode: EdielKnownMessageCode
   messageVersion?: string | null
+  processType?: string | null
+  environment?: EdielEnvironment
+  testFlag?: 0 | 1
   status?: EdielMessageStatus
 
   transportType?: EdielTransportType
   mailbox?: string | null
   mailboxMessageId?: string | null
   senderEdielId?: string | null
+  senderName?: string | null
   senderSubAddress?: string | null
   receiverEdielId?: string | null
+  receiverName?: string | null
   receiverSubAddress?: string | null
   senderEmail?: string | null
   receiverEmail?: string | null
@@ -256,10 +363,14 @@ export type CreateEdielMessageInput = {
   fileName?: string | null
   mimeType?: string | null
 
+  interchangeReference?: string | null
   externalReference?: string | null
   correlationReference?: string | null
   transactionReference?: string | null
   applicationReference?: string | null
+  originalMessageId?: string | null
+  originalTransactionId?: string | null
+  originalMessageCode?: string | null
   relatedMessageId?: string | null
 
   communicationRouteId?: string | null
@@ -282,6 +393,8 @@ export type CreateEdielMessageInput = {
   contrlStatus?: EdielAckStatus | null
   aperakStatus?: EdielAckStatus | null
   utiltsErrStatus?: EdielAckStatus | null
+  syntaxCheckStatus?: string | null
+  functionalCheckStatus?: string | null
   failureReason?: string | null
 
   messageCreatedAt?: string | null
@@ -291,6 +404,7 @@ export type CreateEdielMessageInput = {
   validatedAt?: string | null
   acknowledgedAt?: string | null
   failedAt?: string | null
+  ackDueAt?: string | null
 }
 
 export type CreateEdielMessageEventInput = {
@@ -307,10 +421,18 @@ export type UpsertEdielRouteProfileInput = {
   communicationRouteId: string
   isEnabled: boolean
   senderEdielId?: string | null
+  senderName?: string | null
   senderSubAddress?: string | null
   receiverEdielId?: string | null
+  receiverName?: string | null
   receiverSubAddress?: string | null
   applicationReference?: string | null
+  defaultMessageVersion?: string | null
+  defaultTestFlag?: 0 | 1
+  defaultTimezone?: number | null
+  environment?: EdielEnvironment
+  messageStandard?: EdielMessageStandard
+  ackMode?: 'default' | 'none' | 'contrl_only' | 'contrl_and_aperak'
   smtpHost?: string | null
   smtpPort?: number | null
   imapHost?: string | null

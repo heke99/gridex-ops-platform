@@ -1,6 +1,9 @@
 // lib/ediel/references.ts
 
-import type { EdielMessageFamily, EdielKnownMessageCode } from '@/lib/ediel/types'
+import type {
+  EdielMessageFamily,
+  EdielKnownMessageCode,
+} from '@/lib/ediel/types'
 
 function compact(value: string): string {
   return value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
@@ -41,26 +44,26 @@ export function buildEdielCorrelationReference(input?: {
 }
 
 export function buildEdielTransactionReference(input: {
-  family: EdielMessageFamily
+  family: EdielMessageFamily | string
   code: EdielKnownMessageCode
   prefix?: string | null
 }): string {
   const prefix = compact(input.prefix ?? 'GRX')
-  const family = compact(input.family).slice(0, 8)
-  const code = compact(input.code).slice(0, 12)
+  const family = compact(String(input.family)).slice(0, 10)
+  const code = compact(String(input.code)).slice(0, 12)
 
   return `${prefix}-${family}-${code}-${timestampPart()}-${randomPart(5)}`
 }
 
 export function buildEdielExternalReference(input: {
-  family: EdielMessageFamily
+  family: EdielMessageFamily | string
   code: EdielKnownMessageCode
   switchRequestId?: string | null
   gridOwnerDataRequestId?: string | null
   outboundRequestId?: string | null
 }): string {
-  const family = compact(input.family).slice(0, 8)
-  const code = compact(input.code).slice(0, 8)
+  const family = compact(String(input.family)).slice(0, 10)
+  const code = compact(String(input.code)).slice(0, 10)
   const subject =
     compact(input.switchRequestId ?? '') ||
     compact(input.gridOwnerDataRequestId ?? '') ||
@@ -70,36 +73,61 @@ export function buildEdielExternalReference(input: {
   return `${family}-${code}-${subject.slice(0, 10)}-${randomPart(6)}`
 }
 
+export function buildEdielInterchangeReference(input?: {
+  senderEdielId?: string | null
+  receiverEdielId?: string | null
+}): string {
+  const sender = compact(input?.senderEdielId ?? '00000').slice(0, 5) || '00000'
+  const receiver =
+    compact(input?.receiverEdielId ?? '00000').slice(0, 5) || '00000'
+
+  return `${sender}${receiver}${timestampPart().slice(2, 12)}${randomPart(4)}`
+}
+
+export function buildAperakTransactionReference(): string {
+  return `APE${timestampPart().slice(2)}${randomPart(4)}`
+}
+
 export function buildSupplierApplicationReference(): string {
   return '23-DDQ-PRODAT'
 }
 
 export function shouldRequireAperak(
-  family: EdielMessageFamily,
+  family: EdielMessageFamily | string,
   code: EdielKnownMessageCode
 ): boolean {
-  if (family === 'PRODAT') return true
-  if (family === 'UTILTS') return true
-  if (family === 'APERAK') return false
-  if (family === 'CONTRL') return false
-  if (family === 'UTILTS_ERR') return false
+  const resolvedFamily = String(family).toUpperCase()
+  const resolvedCode = String(code).toUpperCase()
 
-  return code !== 'CONTRL'
+  if (resolvedFamily === 'PRODAT') return true
+  if (resolvedFamily === 'UTILTS') return true
+  if (resolvedFamily === 'AI_LIST') return false
+  if (resolvedFamily === 'NBS_XML') return false
+  if (resolvedFamily === 'APERAK') return false
+  if (resolvedFamily === 'CONTRL') return false
+  if (resolvedFamily === 'UTILTS_ERR') return false
+
+  return resolvedCode !== 'CONTRL'
 }
 
 export function shouldRequireContrl(
-  family: EdielMessageFamily,
+  family: EdielMessageFamily | string,
   code: EdielKnownMessageCode
 ): boolean {
-  if (family === 'CONTRL') return false
-  if (family === 'UTILTS_ERR') return true
-  if (family === 'APERAK') return true
+  const resolvedFamily = String(family).toUpperCase()
+  const resolvedCode = String(code).toUpperCase()
 
-  return code !== 'CONTRL'
+  if (resolvedFamily === 'CONTRL') return false
+  if (resolvedFamily === 'AI_LIST') return false
+  if (resolvedFamily === 'NBS_XML') return false
+  if (resolvedFamily === 'UTILTS_ERR') return true
+  if (resolvedFamily === 'APERAK') return true
+
+  return resolvedCode !== 'CONTRL'
 }
 
 export function deriveEdielAckDefaults(input: {
-  family: EdielMessageFamily
+  family: EdielMessageFamily | string
   code: EdielKnownMessageCode
 }) {
   const requiresContrl = shouldRequireContrl(input.family, input.code)
@@ -111,6 +139,8 @@ export function deriveEdielAckDefaults(input: {
     contrlStatus: requiresContrl ? ('pending' as const) : ('not_required' as const),
     aperakStatus: requiresAperak ? ('pending' as const) : ('not_required' as const),
     utiltsErrStatus:
-      input.family === 'UTILTS' ? ('pending' as const) : ('not_required' as const),
+      String(input.family).toUpperCase() === 'UTILTS'
+        ? ('pending' as const)
+        : ('not_required' as const),
   }
 }

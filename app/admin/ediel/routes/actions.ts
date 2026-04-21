@@ -3,7 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getEdielRouteProfileByCommunicationRouteId, upsertEdielRouteProfile } from '@/lib/ediel/db'
+import {
+  getEdielRouteProfileByCommunicationRouteId,
+  upsertEdielRouteProfile,
+} from '@/lib/ediel/db'
 import { saveCommunicationRoute } from '@/lib/cis/db'
 
 function stringValue(formData: FormData, key: string): string | null {
@@ -74,25 +77,48 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     communicationRouteId,
     isEnabled: boolValue(formData, 'isEnabled'),
     senderEdielId: stringValue(formData, 'senderEdielId'),
+    senderName: stringValue(formData, 'senderName'),
     senderSubAddress: stringValue(formData, 'senderSubAddress'),
     receiverEdielId: stringValue(formData, 'receiverEdielId'),
+    receiverName: stringValue(formData, 'receiverName'),
     receiverSubAddress: stringValue(formData, 'receiverSubAddress'),
     applicationReference: stringValue(formData, 'applicationReference'),
+    defaultMessageVersion: stringValue(formData, 'defaultMessageVersion'),
+    defaultTestFlag: intValue(formData, 'defaultTestFlag') === 0 ? 0 : 1,
+    defaultTimezone: intValue(formData, 'defaultTimezone'),
+    environment:
+      (stringValue(formData, 'environment') as 'test' | 'production' | null) ??
+      'test',
+    messageStandard:
+      (stringValue(formData, 'messageStandard') as
+        | 'edifact'
+        | 'xml'
+        | 'ai_list'
+        | null) ?? 'edifact',
+    ackMode:
+      (stringValue(formData, 'ackMode') as
+        | 'default'
+        | 'none'
+        | 'contrl_only'
+        | 'contrl_and_aperak'
+        | null) ?? 'default',
     smtpHost: stringValue(formData, 'smtpHost'),
     smtpPort: intValue(formData, 'smtpPort'),
     imapHost: stringValue(formData, 'imapHost'),
     imapPort: intValue(formData, 'imapPort'),
     mailbox: stringValue(formData, 'mailbox'),
-    encryptionMode: (stringValue(formData, 'encryptionMode') as
-      | 'none'
-      | 'smime'
-      | 'pgp'
-      | null) ?? null,
-    payloadFormat: (stringValue(formData, 'payloadFormat') as
-      | 'edifact'
-      | 'xml'
-      | 'raw'
-      | null) ?? 'edifact',
+    encryptionMode:
+      (stringValue(formData, 'encryptionMode') as
+        | 'none'
+        | 'smime'
+        | 'pgp'
+        | null) ?? null,
+    payloadFormat:
+      (stringValue(formData, 'payloadFormat') as
+        | 'edifact'
+        | 'xml'
+        | 'raw'
+        | null) ?? 'edifact',
     notes: stringValue(formData, 'notes'),
   })
 
@@ -212,10 +238,18 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
     communicationRouteId: routeId,
     isEnabled: enableEdiel || existingProfile?.is_enabled || false,
     senderEdielId: existingProfile?.sender_ediel_id ?? null,
+    senderName: existingProfile?.sender_name ?? null,
     senderSubAddress: existingProfile?.sender_sub_address ?? null,
     receiverEdielId: existingProfile?.receiver_ediel_id ?? null,
+    receiverName: existingProfile?.receiver_name ?? null,
     receiverSubAddress: existingProfile?.receiver_sub_address ?? null,
     applicationReference: existingProfile?.application_reference ?? null,
+    defaultMessageVersion: existingProfile?.default_message_version ?? null,
+    defaultTestFlag: existingProfile?.default_test_flag ?? 1,
+    defaultTimezone: existingProfile?.default_timezone ?? 1,
+    environment: existingProfile?.environment ?? 'test',
+    messageStandard: existingProfile?.message_standard ?? 'edifact',
+    ackMode: existingProfile?.ack_mode ?? 'default',
     smtpHost: existingProfile?.smtp_host ?? null,
     smtpPort: existingProfile?.smtp_port ?? null,
     imapHost: existingProfile?.imap_host ?? null,
@@ -255,10 +289,18 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
     communicationRouteId: routeId,
     isEnabled: enableEdiel || existingProfile?.is_enabled || false,
     senderEdielId: senderEdielId ?? existingProfile?.sender_ediel_id ?? null,
+    senderName: existingProfile?.sender_name ?? null,
     senderSubAddress: existingProfile?.sender_sub_address ?? null,
     receiverEdielId: receiverEdielId ?? existingProfile?.receiver_ediel_id ?? null,
+    receiverName: existingProfile?.receiver_name ?? null,
     receiverSubAddress: existingProfile?.receiver_sub_address ?? null,
     applicationReference: existingProfile?.application_reference ?? null,
+    defaultMessageVersion: existingProfile?.default_message_version ?? null,
+    defaultTestFlag: existingProfile?.default_test_flag ?? 1,
+    defaultTimezone: existingProfile?.default_timezone ?? 1,
+    environment: existingProfile?.environment ?? 'test',
+    messageStandard: existingProfile?.message_standard ?? 'edifact',
+    ackMode: existingProfile?.ack_mode ?? 'default',
     smtpHost: existingProfile?.smtp_host ?? null,
     smtpPort: existingProfile?.smtp_port ?? null,
     imapHost: existingProfile?.imap_host ?? null,
@@ -273,14 +315,25 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
 }
 
 export async function quickFixGridOwnerEdielIdAction(formData: FormData) {
-  await requireAdminActionAccess(['masterdata.write', 'switching.write'])
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
 
   const gridOwnerId = stringValue(formData, 'gridOwnerId')
-  const edielId = stringValue(formData, 'edielId')
   const customerId = stringValue(formData, 'customerId')
+  const edielId =
+    stringValue(formData, 'gridOwnerEdielId') ??
+    stringValue(formData, 'edielId') ??
+    stringValue(formData, 'receiverEdielId')
 
   if (!gridOwnerId) {
     throw new Error('gridOwnerId saknas')
+  }
+
+  if (!edielId) {
+    throw new Error('Ediel-id saknas')
   }
 
   const { supabase, userId } = await getActorContext()
@@ -296,5 +349,4 @@ export async function quickFixGridOwnerEdielIdAction(formData: FormData) {
   if (error) throw error
 
   revalidateEdielPaths(customerId)
-  revalidatePath('/admin/network-owners')
 }
