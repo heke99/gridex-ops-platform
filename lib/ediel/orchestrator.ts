@@ -57,12 +57,28 @@ import type {
   CommunicationRouteRow,
   GridOwnerDataRequestRow,
 } from '@/lib/cis/types'
-import type { EdielMessageRow, EdielRouteProfileRow } from '@/lib/ediel/types'
+import type {
+  EdielMessageFamily,
+  EdielMessageRow,
+  EdielRouteProfileRow,
+} from '@/lib/ediel/types'
+import {
+  ACTIVE_EDIEL_MESSAGE_FAMILIES,
+  isActiveEdielMessageFamily,
+} from '@/lib/ediel/types'
 import type {
   CustomerSiteRow,
   GridOwnerRow,
   MeteringPointRow,
 } from '@/lib/masterdata/types'
+
+type ActiveReleaseFamily =
+  | 'PRODAT'
+  | 'UTILTS'
+  | 'APERAK'
+  | 'CONTRL'
+  | 'UTILTS_ERR'
+  | 'AI_LIST'
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
@@ -75,6 +91,33 @@ function numberOrNull(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null
   }
   return null
+}
+
+function assertActiveFamily(
+  family: string | null | undefined,
+  context: string
+): asserts family is ActiveReleaseFamily {
+  if (!isActiveEdielMessageFamily(family)) {
+    throw new Error(
+      `${context}: message family ${family ?? 'null'} ligger utanför aktiv release (${ACTIVE_EDIEL_MESSAGE_FAMILIES.join(', ')})`
+    )
+  }
+}
+
+function shouldAutoAck(message: EdielMessageRow): boolean {
+  if (!isActiveEdielMessageFamily(message.message_family)) return false
+  if (message.message_standard !== 'edifact') return false
+  if (message.direction !== 'inbound') return false
+  if (message.message_family === 'CONTRL') return false
+  if (message.message_family === 'APERAK') return false
+  return true
+}
+
+function shouldAutoPositiveAperak(message: EdielMessageRow): boolean {
+  if (!shouldAutoAck(message)) return false
+  if (message.message_family === 'UTILTS_ERR') return false
+  if (message.requires_aperak) return true
+  return false
 }
 
 async function getGridOwnerDataRequestById(
@@ -127,7 +170,7 @@ async function resolveEdielRouteContext(params: {
   const actor = await getActiveEdielActorSettings('test')
   if (!actor) {
     throw new Error(
-      'Ingen aktiv ediel_actor_settings hittades för testmiljön. Batch 1 config saknas eller är inte aktiv.'
+      'Ingen aktiv ediel_actor_settings hittades för testmiljön. Batch 1-config saknas eller är inte aktiv.'
     )
   }
 
@@ -147,46 +190,29 @@ async function resolveEdielRouteContext(params: {
 
   const routeProfile = await getEdielRouteProfileByCommunicationRouteId(route.id)
 
-  const senderEdielId =
-    routeProfile?.sender_ediel_id ??
-    actor.actor_ediel_id ??
-    null
-
+  const senderEdielId = routeProfile?.sender_ediel_id ?? actor.actor_ediel_id ?? null
   const senderName =
-    routeProfile?.sender_name ??
-    actor.sender_name ??
-    actor.actor_name ??
-    null
-
+    routeProfile?.sender_name ?? actor.sender_name ?? actor.actor_name ?? null
   const senderSubAddress =
-    routeProfile?.sender_sub_address ??
-    actor.sender_sub_address ??
-    'GRIDEX'
+    routeProfile?.sender_sub_address ?? actor.sender_sub_address ?? 'GRIDEX'
 
   const receiverEdielId =
-    routeProfile?.receiver_ediel_id ??
-    params.gridOwner?.ediel_id ??
-    null
-
-  const receiverName =
-    routeProfile?.receiver_name ??
-    params.gridOwner?.name ??
-    null
-
-  const receiverSubAddress =
-    routeProfile?.receiver_sub_address ??
-    'EDIEL'
+    routeProfile?.receiver_ediel_id ?? params.gridOwner?.ediel_id ?? null
+  const receiverName = routeProfile?.receiver_name ?? params.gridOwner?.name ?? null
+  const receiverSubAddress = routeProfile?.receiver_sub_address ?? 'EDIEL'
 
   const receiverEmail = route.target_email ?? null
   const mailbox = routeProfile?.mailbox ?? actor.mailbox ?? null
 
   if (!senderEdielId) {
-    throw new Error('Avsändarens Ediel-id saknas i ediel_actor_settings / route profile.')
+    throw new Error(
+      'Avsändarens Ediel-id saknas i ediel_actor_settings eller route profile.'
+    )
   }
 
   if (!receiverEdielId) {
     throw new Error(
-      `Mottagarens Ediel-id saknas för route ${route.route_name}. Lägg receiver_ediel_id på profile eller ediel_id på grid owner.`
+      `Mottagarens Ediel-id saknas för route ${route.route_name}. Lägg receiver_ediel_id på route profile eller ediel_id på grid owner.`
     )
   }
 
@@ -221,9 +247,7 @@ async function findOrCreateSwitchOutbound(params: {
     requestType: 'supplier_switch',
   })
 
-  if (existing) {
-    return existing
-  }
+  if (existing) return existing
 
   return createOutboundRequest({
     actorUserId: params.actorUserId,
@@ -251,9 +275,7 @@ async function findOrCreateDataRequestOutbound(params: {
     requestType: params.requestType,
   })
 
-  if (existing) {
-    return existing
-  }
+  if (existing) return existing
 
   return createOutboundRequest({
     actorUserId: params.actorUserId,
@@ -291,10 +313,7 @@ async function markDataRequestOutboundAcknowledged(params: {
   ])
 
   const outbound = candidates.find(Boolean)
-
-  if (!outbound) {
-    return null
-  }
+  if (!outbound) return null
 
   const updatedOutbound = await updateOutboundRequestStatus({
     actorUserId: params.actorUserId,
@@ -334,12 +353,9 @@ async function autoFillMasterdataFromUtilts(params: {
     stringOrNull(parsed.siteFacilityId)
 
   const meterPointIdentifier =
-    stringOrNull(parsed.meterPointId) ??
-    stringOrNull(parsed.meteringPointId)
+    stringOrNull(parsed.meterPointId) ?? stringOrNull(parsed.meteringPointId)
 
-  const edielReference =
-    stringOrNull(parsed.edielReference) ??
-    meterPointIdentifier
+  const edielReference = stringOrNull(parsed.edielReference) ?? meterPointIdentifier
 
   const currentSupplierName = stringOrNull(parsed.currentSupplierName)
 
@@ -348,13 +364,8 @@ async function autoFillMasterdataFromUtilts(params: {
       updated_at: new Date().toISOString(),
     }
 
-    if (facilityId) {
-      siteUpdate.facility_id = facilityId
-    }
-
-    if (currentSupplierName) {
-      siteUpdate.current_supplier_name = currentSupplierName
-    }
+    if (facilityId) siteUpdate.facility_id = facilityId
+    if (currentSupplierName) siteUpdate.current_supplier_name = currentSupplierName
 
     if (Object.keys(siteUpdate).length > 1) {
       const { error } = await supabaseService
@@ -438,6 +449,37 @@ async function autoIngestMeteringValueFromUtilts(params: {
   })
 }
 
+async function createAutomaticPositiveAcks(params: {
+  actorUserId: string
+  sourceMessage: EdielMessageRow
+}) {
+  const createdIds: string[] = []
+
+  const contrl = await createEdielMessage(
+    buildContrlDraft({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      outcome: 'positive',
+      messageText: 'Automatiskt CONTRL.',
+    })
+  )
+  createdIds.push(contrl.id)
+
+  if (shouldAutoPositiveAperak(params.sourceMessage)) {
+    const aperak = await createEdielMessage(
+      buildAperakDraft({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        outcome: 'positive',
+        messageText: 'Automatiskt APERAK.',
+      })
+    )
+    createdIds.push(aperak.id)
+  }
+
+  return createdIds
+}
+
 async function queuePreparedEdielMessage(params: {
   actorUserId: string
   messageId: string
@@ -476,9 +518,7 @@ export async function prepareAndQueueEdielZ03(params: {
     params.switchRequestId
   )
 
-  if (!switchRequest) {
-    throw new Error('Switch request hittades inte')
-  }
+  if (!switchRequest) throw new Error('Switch request hittades inte')
 
   const site = await getCustomerSiteById(supabase, switchRequest.site_id)
   if (!site) throw new Error('Anläggning saknas för switchärendet')
@@ -532,6 +572,8 @@ export async function prepareAndQueueEdielZ03(params: {
     gridOwner,
   })
 
+  assertActiveFamily(draft.messageFamily, 'prepareAndQueueEdielZ03')
+
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
@@ -550,8 +592,7 @@ export async function prepareAndQueueEdielZ03(params: {
     actorUserId: params.actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
-    externalReference:
-      switchRequest.external_reference ?? `SWITCH-${switchRequest.id}`,
+    externalReference: switchRequest.external_reference ?? `SWITCH-${switchRequest.id}`,
     payload: {
       edielCode: 'Z03',
       routeId: routeContext.route.id,
@@ -584,9 +625,7 @@ export async function prepareAndQueueEdielZ05(params: {
     params.switchRequestId
   )
 
-  if (!switchRequest) {
-    throw new Error('Switch request hittades inte')
-  }
+  if (!switchRequest) throw new Error('Switch request hittades inte')
 
   const site = await getCustomerSiteById(supabase, switchRequest.site_id)
   if (!site) throw new Error('Anläggning saknas för switchärendet')
@@ -640,6 +679,8 @@ export async function prepareAndQueueEdielZ05(params: {
     gridOwner,
   })
 
+  assertActiveFamily(draft.messageFamily, 'prepareAndQueueEdielZ05')
+
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
@@ -692,9 +733,7 @@ export async function prepareAndQueueEdielZ09(params: {
     params.switchRequestId
   )
 
-  if (!switchRequest) {
-    throw new Error('Switch request hittades inte')
-  }
+  if (!switchRequest) throw new Error('Switch request hittades inte')
 
   const site = await getCustomerSiteById(supabase, switchRequest.site_id)
   if (!site) throw new Error('Anläggning saknas för switchärendet')
@@ -748,6 +787,8 @@ export async function prepareAndQueueEdielZ09(params: {
     gridOwner,
   })
 
+  assertActiveFamily(draft.messageFamily, 'prepareAndQueueEdielZ09')
+
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
@@ -785,9 +826,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   const supabase = await createSupabaseServerClient()
   const dataRequest = await getGridOwnerDataRequestById(params.gridOwnerDataRequestId)
 
-  if (!dataRequest) {
-    throw new Error('Grid owner data request hittades inte')
-  }
+  if (!dataRequest) throw new Error('Grid owner data request hittades inte')
 
   const site = dataRequest.site_id
     ? await getCustomerSiteById(supabase, dataRequest.site_id)
@@ -850,6 +889,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     },
   })
 
+  assertActiveFamily(draft.messageFamily, 'prepareAndQueueUtiltsE73')
+
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
@@ -903,9 +944,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   const supabase = await createSupabaseServerClient()
   const dataRequest = await getGridOwnerDataRequestById(params.gridOwnerDataRequestId)
 
-  if (!dataRequest) {
-    throw new Error('Grid owner data request hittades inte')
-  }
+  if (!dataRequest) throw new Error('Grid owner data request hittades inte')
 
   const site = dataRequest.site_id
     ? await getCustomerSiteById(supabase, dataRequest.site_id)
@@ -973,6 +1012,8 @@ export async function prepareAndQueueUtiltsE66(params: {
     },
   })
 
+  assertActiveFamily(draft.messageFamily, 'prepareAndQueueUtiltsE66')
+
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
@@ -1018,9 +1059,7 @@ export async function prepareAndQueueAiList(params: {
   const supabase = await createSupabaseServerClient()
   const site = await getCustomerSiteById(supabase, params.siteId)
 
-  if (!site) {
-    throw new Error('Anläggning hittades inte för AI-list export')
-  }
+  if (!site) throw new Error('Anläggning hittades inte för AI-list export')
 
   const meteringPoint = params.meteringPointId
     ? await getMeteringPointById(supabase, params.meteringPointId)
@@ -1063,6 +1102,8 @@ export async function prepareAndQueueAiList(params: {
     mailbox: routeContext.mailbox,
   })
 
+  assertActiveFamily(draft.messageFamily, 'prepareAndQueueAiList')
+
   const message = await createEdielMessage(draft)
 
   await linkEdielMessage({
@@ -1090,6 +1131,8 @@ export async function sendQueuedEdielMessage(params: {
 }) {
   const message = await getEdielMessageById(params.edielMessageId)
   if (!message) throw new Error('Ediel-meddelande hittades inte')
+
+  assertActiveFamily(message.message_family, 'sendQueuedEdielMessage')
 
   const result = await sendEdielMessageViaSmtp(message)
 
@@ -1147,6 +1190,21 @@ export async function pollAndIngestEdielMailbox(params: {
   })
 
   for (const message of incoming) {
+    if (!isActiveEdielMessageFamily(message.message_family)) {
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: message.id,
+        eventType: 'manual_note',
+        eventStatus: 'warning',
+        message:
+          'Inbound meddelande ligger utanför aktiv release och behandlas därför inte vidare av orkestratorn.',
+        payload: {
+          messageFamily: message.message_family,
+        },
+      })
+      continue
+    }
+
     const meteringPointId = await matchMeteringPointForEdielMessage(message)
     const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({
       meteringPointId,
@@ -1181,8 +1239,7 @@ export async function pollAndIngestEdielMailbox(params: {
         await updateSupplierSwitchRequestStatus(supabase, {
           requestId: matchedSwitch.id,
           status: 'accepted',
-          externalReference:
-            message.external_reference ?? matchedSwitch.external_reference,
+          externalReference: message.external_reference ?? matchedSwitch.external_reference,
         })
       }
 
@@ -1190,29 +1247,24 @@ export async function pollAndIngestEdielMailbox(params: {
         await updateSupplierSwitchRequestStatus(supabase, {
           requestId: matchedSwitch.id,
           status: 'completed',
-          externalReference:
-            message.external_reference ?? matchedSwitch.external_reference,
+          externalReference: message.external_reference ?? matchedSwitch.external_reference,
         })
       }
 
       if (message.message_code === 'Z04' || message.message_code === 'Z05') {
-        const aperak = await createEdielMessage(
-          buildAperakDraft({
-            actorUserId: params.actorUserId,
-            sourceMessage: message,
-            outcome: 'positive',
-            messageText: 'Automatiskt APERAK från inbound PRODAT.',
-          })
-        )
+        const ackIds = await createAutomaticPositiveAcks({
+          actorUserId: params.actorUserId,
+          sourceMessage: message,
+        })
 
         await createEdielMessageEvent({
           actorUserId: params.actorUserId,
           edielMessageId: message.id,
           eventType: 'aperak_sent',
           eventStatus: 'success',
-          message: 'APERAK-utkast skapat automatiskt.',
+          message: 'Automatiska kvittenser skapade för inbound PRODAT.',
           payload: {
-            aperakMessageId: aperak.id,
+            createdAckMessageIds: ackIds,
           },
         })
       }
@@ -1243,8 +1295,7 @@ export async function pollAndIngestEdielMailbox(params: {
         actorUserId: params.actorUserId,
         customerId: siteAndCustomer?.customerId ?? matchedDataRequest.customer_id ?? null,
         siteId: siteAndCustomer?.siteId ?? matchedDataRequest.site_id ?? null,
-        meteringPointId:
-          meteringPointId ?? matchedDataRequest.metering_point_id ?? null,
+        meteringPointId: meteringPointId ?? matchedDataRequest.metering_point_id ?? null,
         message,
       })
 
@@ -1252,10 +1303,8 @@ export async function pollAndIngestEdielMailbox(params: {
         actorUserId: params.actorUserId,
         customerId: siteAndCustomer?.customerId ?? matchedDataRequest.customer_id ?? null,
         siteId: siteAndCustomer?.siteId ?? matchedDataRequest.site_id ?? null,
-        meteringPointId:
-          meteringPointId ?? matchedDataRequest.metering_point_id ?? null,
-        gridOwnerId:
-          siteAndCustomer?.gridOwnerId ?? matchedDataRequest.grid_owner_id ?? null,
+        meteringPointId: meteringPointId ?? matchedDataRequest.metering_point_id ?? null,
+        gridOwnerId: siteAndCustomer?.gridOwnerId ?? matchedDataRequest.grid_owner_id ?? null,
         dataRequestId: matchedDataRequest.id,
         message,
       })
@@ -1288,23 +1337,10 @@ export async function pollAndIngestEdielMailbox(params: {
         })
       }
 
-      const contrl = await createEdielMessage(
-        buildContrlDraft({
-          actorUserId: params.actorUserId,
-          sourceMessage: message,
-          outcome: 'positive',
-          messageText: 'Automatiskt CONTRL på inbound UTILTS.',
-        })
-      )
-
-      const aperak = await createEdielMessage(
-        buildAperakDraft({
-          actorUserId: params.actorUserId,
-          sourceMessage: message,
-          outcome: 'positive',
-          messageText: 'Automatiskt APERAK på inbound UTILTS.',
-        })
-      )
+      const ackIds = await createAutomaticPositiveAcks({
+        actorUserId: params.actorUserId,
+        sourceMessage: message,
+      })
 
       await createEdielMessageEvent({
         actorUserId: params.actorUserId,
@@ -1314,10 +1350,28 @@ export async function pollAndIngestEdielMailbox(params: {
         message:
           'Inbound UTILTS matchat mot data request, outbound kvitterat och masterdata uppdaterad.',
         payload: {
-          contrlMessageId: contrl.id,
-          aperakMessageId: aperak.id,
+          createdAckMessageIds: ackIds,
           outboundRequestId: acknowledgedOutbound?.id ?? null,
           ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+        },
+      })
+    }
+
+    if (shouldAutoAck(message) && !matchedSwitch && !matchedDataRequest) {
+      const ackIds = await createAutomaticPositiveAcks({
+        actorUserId: params.actorUserId,
+        sourceMessage: message,
+      })
+
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: message.id,
+        eventType: 'validated',
+        eventStatus: 'warning',
+        message:
+          'Inbound meddelande kvitterades automatiskt men saknar ännu stark processkoppling.',
+        payload: {
+          createdAckMessageIds: ackIds,
         },
       })
     }
@@ -1333,6 +1387,8 @@ export async function createNegativeUtiltsResponse(params: {
 }) {
   const source = await getEdielMessageById(params.edielMessageId)
   if (!source) throw new Error('Källmeddelande hittades inte')
+
+  assertActiveFamily(source.message_family, 'createNegativeUtiltsResponse')
 
   const utiltsErr = await createEdielMessage(
     buildUtiltsErrDraft({

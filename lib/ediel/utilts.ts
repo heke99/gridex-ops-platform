@@ -1,3 +1,4 @@
+// lib/ediel/utilts.ts
 import type {
   CreateEdielMessageInput,
   EdielKnownMessageCode,
@@ -47,6 +48,7 @@ export type UtiltsInboundDraftInput = {
   siteId?: string | null
   meteringPointId?: string | null
   gridOwnerId?: string | null
+  gridOwnerDataRequestId?: string | null
   mailbox?: string | null
   mailboxMessageId?: string | null
   senderEdielId?: string | null
@@ -54,6 +56,11 @@ export type UtiltsInboundDraftInput = {
   senderEmail?: string | null
   receiverEmail?: string | null
   rawPayload: string
+  quantity?: number | null
+  periodStart?: string | null
+  periodEnd?: string | null
+  registrationTime?: string | null
+  unit?: string | null
 }
 
 export type UtiltsOutboundDraftInput = {
@@ -145,7 +152,8 @@ function extractDateFromDtm(segment: string | null): string | null {
 }
 
 function extractQty(segment: string | null): number | null {
-  const parts = segment?.split(':') ?? []
+  if (!segment) return null
+  const parts = segment.split(':')
   const value = Number(parts[1] ?? '')
   return Number.isFinite(value) ? value : null
 }
@@ -157,7 +165,6 @@ function getPayloadString(payload: Record<string, unknown>, ...keys: string[]): 
       return value.trim()
     }
   }
-
   return ''
 }
 
@@ -172,7 +179,6 @@ function getPayloadNumber(payload: Record<string, unknown>, ...keys: string[]): 
       if (Number.isFinite(parsed)) return parsed
     }
   }
-
   return null
 }
 
@@ -180,9 +186,21 @@ function sanitize(value?: string | null): string {
   return (value ?? '').replace(/['+]/g, ' ').trim()
 }
 
-function formatDateTime203(value?: string | null): string | null {
+function normalizeDate(value?: string | null): string | null {
   if (!value) return null
-  const normalized = value.trim()
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T00:00`
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) {
+    return trimmed
+  }
+  return trimmed
+}
+
+function formatDateTime203(value?: string | null): string | null {
+  const normalized = normalizeDate(value)
   if (!normalized) return null
   return normalized.replace(/[-:T]/g, '').replace(/Z$/, '').slice(0, 12)
 }
@@ -190,9 +208,28 @@ function formatDateTime203(value?: string | null): string | null {
 function formatPeriod719(start?: string | null, end?: string | null): string | null {
   const start203 = formatDateTime203(start)
   const end203 = formatDateTime203(end)
-
   if (!start203 || !end203) return null
   return `${start203}${end203}`
+}
+
+function inferUtiltsResolution(payload: Record<string, unknown>): '15' | '60' | '1440' {
+  const resolution = getPayloadString(payload, 'resolution')
+  const frequency = getPayloadString(payload, 'readingFrequency')
+
+  if (resolution === '15' || resolution === 'PT15M') return '15'
+  if (resolution === '60' || resolution === 'PT60M' || frequency === 'hourly') return '60'
+  if (resolution === '1440' || frequency === 'daily' || frequency === 'monthly') return '1440'
+
+  return '15'
+}
+
+function inferUtiltsReadingType(payload: Record<string, unknown>): string {
+  const readingType = getPayloadString(payload, 'readingType')
+  if (readingType) return sanitize(readingType)
+
+  const siteType = getPayloadString(payload, 'siteType')
+  if (/production/i.test(siteType)) return 'PRODUCTION'
+  return 'CONSUMPTION'
 }
 
 export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
@@ -216,7 +253,7 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
     | EdielKnownMessageCode
     | null
 
-  const meterPointId = loc172?.split('+')[2]?.trim() || null
+  const meterPointId = loc172?.split('+')[2]?.split(':')[0]?.trim() || null
   const gridAreaId = loc239?.split('+')[2]?.split(':')[0]?.trim() || null
   const quantity = extractQty(qty)
 
@@ -268,9 +305,23 @@ export function buildInboundUtiltsMessageInput(
 
   const parsed = parseInboundUtilts(input.rawPayload)
 
+  const parsedPayload = {
+    ...parsed.parsedPayload,
+    quantity:
+      parsed.parsedPayload.quantity ?? input.quantity ?? null,
+    periodStart:
+      parsed.parsedPayload.periodStart ?? input.periodStart ?? null,
+    periodEnd:
+      parsed.parsedPayload.deliveryPeriod ?? input.periodEnd ?? null,
+    registrationTime:
+      parsed.parsedPayload.registrationTime ?? input.registrationTime ?? null,
+    unit: input.unit ?? 'KWH',
+  }
+
   return {
     actorUserId: input.actorUserId ?? null,
     direction: 'inbound',
+    messageStandard: 'edifact',
     messageFamily: 'UTILTS',
     messageCode: parsed.messageCode ?? input.code,
     status: 'received',
@@ -296,14 +347,17 @@ export function buildInboundUtiltsMessageInput(
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
     gridOwnerId: input.gridOwnerId ?? null,
+    gridOwnerDataRequestId: input.gridOwnerDataRequestId ?? null,
     rawPayload: input.rawPayload,
-    parsedPayload: parsed.parsedPayload,
+    parsedPayload,
     requiresContrl: ack.requiresContrl,
     requiresAperak: ack.requiresAperak,
     contrlStatus: ack.contrlStatus,
     aperakStatus: ack.aperakStatus,
     utiltsErrStatus: ack.utiltsErrStatus,
     messageReceivedAt: new Date().toISOString(),
+    syntaxCheckStatus: 'pending',
+    functionalCheckStatus: 'pending',
   }
 }
 
@@ -328,10 +382,13 @@ function renderUtiltsSegments(input: {
   const unit = sanitize(getPayloadString(payload, 'unit') || 'KWH')
   const transactionReason = sanitize(
     getPayloadString(payload, 'transactionReason') ||
-      (input.code === 'E73' ? 'Request missing validated meter data' : 'Billing energy')
+      (input.code === 'E73'
+        ? 'Request missing validated meter data'
+        : 'Validated metering values')
   )
   const siteType = sanitize(getPayloadString(payload, 'siteType') || 'Consumption')
-  const resolution = sanitize(getPayloadString(payload, 'resolution') || '15')
+  const resolution = inferUtiltsResolution(payload)
+  const readingType = inferUtiltsReadingType(payload)
 
   const segments: string[] = []
 
@@ -339,6 +396,7 @@ function renderUtiltsSegments(input: {
   segments.push(`DTM+137:${formatDateTime203(new Date().toISOString())}:203`)
   segments.push(`DTM+735:?+0100:406`)
   segments.push(`MKS+23+E02::260`)
+  segments.push(`RFF+TN:${sanitize(input.transactionReference)}`)
 
   if (meterPointId) {
     segments.push(`IDE+24+${sanitize(input.transactionReference)}`)
@@ -363,8 +421,9 @@ function renderUtiltsSegments(input: {
     segments.push(`DTM+354:${resolution}:802`)
     segments.push(`STS+7++E88::260`)
     segments.push(`MEA+AAZ++${unit}`)
-    segments.push(`CCI+++E12::260`)
+    segments.push(`CCI+++${readingType}`)
     segments.push(`CAV+E17::260`)
+
     if (quantity !== null) {
       segments.push(`SEQ++1`)
       segments.push(`QTY+136:${String(quantity)}`)
@@ -382,8 +441,6 @@ function renderUtiltsSegments(input: {
   if (siteType) {
     segments.push(`FTX+ZZZ+++${siteType}`)
   }
-
-  segments.push(`RFF+TN:${sanitize(input.transactionReference)}`)
 
   return segments
 }
@@ -426,6 +483,8 @@ export async function buildUtiltsOutboundDraft(
     ...(input.payload ?? {}),
     draftType: 'utilts_outbound',
     utiltsCode: input.code,
+    resolution: inferUtiltsResolution(input.payload ?? {}),
+    readingType: inferUtiltsReadingType(input.payload ?? {}),
   }
 
   const envelope = buildEdifactEnvelope({
@@ -469,9 +528,7 @@ export async function buildUtiltsOutboundDraft(
     senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
     receiverSubAddress: input.receiverSubAddress ?? 'DDQ',
     receiverEmail: input.receiverEmail ?? null,
-    subject:
-      input.subject ??
-      `UTILTS ${input.code} ${externalReference}`.trim(),
+    subject: input.subject ?? `UTILTS ${input.code} ${externalReference}`.trim(),
     fileName: inferEdielFileName({
       family: 'UTILTS',
       code: input.code,
@@ -500,5 +557,7 @@ export async function buildUtiltsOutboundDraft(
     aperakStatus: ack.aperakStatus,
     utiltsErrStatus: ack.utiltsErrStatus,
     ackDueAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    syntaxCheckStatus: 'not_checked',
+    functionalCheckStatus: 'not_checked',
   }
 }

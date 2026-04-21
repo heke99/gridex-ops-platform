@@ -1,56 +1,63 @@
+// lib/ediel/matching.ts
+
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
-import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 
-function normalize(value?: string | null): string {
-  return (value ?? '').trim().toLowerCase()
+function stringOrNull(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
-function extractMeterPointCandidates(message: EdielMessageRow): string[] {
-  const parsed = message.parsed_payload ?? {}
-  const values = [
-    parsed.meterPointId,
-    parsed.meteringPointId,
-    parsed.edielReference,
-    parsed.installationId,
-    parsed.siteFacilityId,
-    parsed.facilityId,
-    parsed.objectId,
-  ]
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))]
+}
 
-  return values
-    .map((value) => (typeof value === 'string' ? value.trim() : ''))
-    .filter(Boolean)
+function parsedText(message: EdielMessageRow, ...keys: string[]): string[] {
+  const payload = message.parsed_payload ?? {}
+  return uniqueStrings(keys.map((key) => stringOrNull(payload[key])))
+}
+
+async function matchMeteringPointByIdentifier(identifiers: string[]): Promise<string | null> {
+  if (identifiers.length === 0) return null
+
+  const { data, error } = await supabaseService
+    .from('metering_points')
+    .select('id,meter_point_id,metering_point_id,ediel_reference')
+    .or(
+      identifiers
+        .map((identifier) => {
+          const safe = identifier.replace(/,/g, '')
+          return `meter_point_id.eq.${safe},metering_point_id.eq.${safe},ediel_reference.eq.${safe}`
+        })
+        .join(',')
+    )
+    .limit(5)
+
+  if (error) throw error
+
+  return (data?.[0] as { id: string } | undefined)?.id ?? null
 }
 
 export async function matchMeteringPointForEdielMessage(
   message: EdielMessageRow
 ): Promise<string | null> {
-  const candidates = extractMeterPointCandidates(message)
+  if (message.metering_point_id) return message.metering_point_id
 
-  for (const candidate of candidates) {
-    const { data, error } = await supabaseService
-      .from('metering_points')
-      .select(
-        'id, meter_point_id, metering_point_id, ediel_reference, site_facility_id'
-      )
-      .or(
-        [
-          `meter_point_id.eq.${candidate}`,
-          `metering_point_id.eq.${candidate}`,
-          `ediel_reference.eq.${candidate}`,
-          `site_facility_id.eq.${candidate}`,
-        ].join(',')
-      )
-      .limit(1)
-      .maybeSingle()
+  const identifiers = uniqueStrings([
+    ...parsedText(
+      message,
+      'meterPointId',
+      'meteringPointId',
+      'edielReference',
+      'installationId',
+      'facilityId'
+    ),
+    stringOrNull(message.external_reference),
+    stringOrNull(message.transaction_reference),
+  ])
 
-    if (error) throw error
-    if (data?.id) return data.id as string
-  }
-
-  return message.metering_point_id ?? null
+  return matchMeteringPointByIdentifier(identifiers)
 }
 
 export async function matchSiteAndCustomerForMeteringPoint(params: {
@@ -64,91 +71,117 @@ export async function matchSiteAndCustomerForMeteringPoint(params: {
 
   const { data, error } = await supabaseService
     .from('metering_points')
-    .select('id, site_id, grid_owner_id')
+    .select('id,site_id,grid_owner_id')
     .eq('id', params.meteringPointId)
     .maybeSingle()
 
   if (error) throw error
-  if (!data?.site_id) return null
+  if (!data?.site_id) {
+    return {
+      siteId: null,
+      customerId: null,
+      gridOwnerId: (data as { grid_owner_id?: string | null } | null)?.grid_owner_id ?? null,
+    }
+  }
 
-  const { data: site, error: siteError } = await supabaseService
+  const siteId = data.site_id as string
+  const gridOwnerId = (data as { grid_owner_id?: string | null }).grid_owner_id ?? null
+
+  const siteRes = await supabaseService
     .from('customer_sites')
-    .select('id, customer_id')
-    .eq('id', data.site_id)
+    .select('id,customer_id')
+    .eq('id', siteId)
     .maybeSingle()
 
-  if (siteError) throw siteError
+  if (siteRes.error) throw siteRes.error
 
   return {
-    siteId: (site?.id as string | null) ?? null,
-    customerId: (site?.customer_id as string | null) ?? null,
-    gridOwnerId: (data.grid_owner_id as string | null) ?? null,
+    siteId,
+    customerId: (siteRes.data as { customer_id?: string | null } | null)?.customer_id ?? null,
+    gridOwnerId,
   }
 }
 
 export async function findMatchingSupplierSwitchRequest(
   message: EdielMessageRow
-): Promise<SupplierSwitchRequestRow | null> {
+): Promise<{ id: string } | null> {
+  if (message.switch_request_id) {
+    return { id: message.switch_request_id }
+  }
+
   const meteringPointId =
     message.metering_point_id ?? (await matchMeteringPointForEdielMessage(message))
 
-  if (!meteringPointId) return null
+  const references = uniqueStrings([
+    stringOrNull(message.external_reference),
+    stringOrNull(message.transaction_reference),
+    ...parsedText(message, 'externalReference', 'transactionReference'),
+  ])
 
-  let query = supabaseService
-    .from('supplier_switch_requests')
-    .select('*')
-    .eq('metering_point_id', meteringPointId)
-    .order('created_at', { ascending: false })
-    .limit(10)
+  if (references.length > 0) {
+    const byReference = await supabaseService
+      .from('supplier_switch_requests')
+      .select('id,external_reference')
+      .in('external_reference', references)
+      .order('created_at', { ascending: false })
+      .limit(1)
 
-  if (message.grid_owner_id) {
-    query = query.eq('grid_owner_id', message.grid_owner_id)
+    if (byReference.error) throw byReference.error
+    const hit = (byReference.data?.[0] as { id: string } | undefined) ?? null
+    if (hit) return hit
   }
 
-  const { data, error } = await query
+  if (!meteringPointId) return null
+
+  const { data, error } = await supabaseService
+    .from('supplier_switch_requests')
+    .select('id,status,metering_point_id')
+    .eq('metering_point_id', meteringPointId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
   if (error) throw error
-
-  const rows = (data ?? []) as SupplierSwitchRequestRow[]
-  const tx = normalize(message.transaction_reference)
-  const ext = normalize(message.external_reference)
-
-  const exact =
-    rows.find((row) => normalize(row.external_reference) === ext) ??
-    rows.find((row) => normalize(row.external_reference) === tx)
-
-  return exact ?? rows[0] ?? null
+  return (data?.[0] as { id: string } | undefined) ?? null
 }
 
 export async function findMatchingGridOwnerDataRequest(
   message: EdielMessageRow
-): Promise<GridOwnerDataRequestRow | null> {
+): Promise<{ id: string } | null> {
+  if (message.grid_owner_data_request_id) {
+    return { id: message.grid_owner_data_request_id }
+  }
+
   const meteringPointId =
     message.metering_point_id ?? (await matchMeteringPointForEdielMessage(message))
 
-  let query = supabaseService
+  const references = uniqueStrings([
+    stringOrNull(message.external_reference),
+    stringOrNull(message.transaction_reference),
+    ...parsedText(message, 'externalReference', 'transactionReference'),
+  ])
+
+  if (references.length > 0) {
+    const byReference = await supabaseService
+      .from('grid_owner_data_requests')
+      .select('id,external_reference')
+      .in('external_reference', references)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (byReference.error) throw byReference.error
+    const hit = (byReference.data?.[0] as { id: string } | undefined) ?? null
+    if (hit) return hit
+  }
+
+  if (!meteringPointId) return null
+
+  const { data, error } = await supabaseService
     .from('grid_owner_data_requests')
-    .select('*')
+    .select('id,status,metering_point_id')
+    .eq('metering_point_id', meteringPointId)
     .order('created_at', { ascending: false })
-    .limit(20)
+    .limit(1)
 
-  if (meteringPointId) {
-    query = query.eq('metering_point_id', meteringPointId)
-  }
-
-  if (message.grid_owner_id) {
-    query = query.eq('grid_owner_id', message.grid_owner_id)
-  }
-
-  const { data, error } = await query
   if (error) throw error
-
-  const rows = (data ?? []) as GridOwnerDataRequestRow[]
-  const ext = normalize(message.external_reference)
-  const tx = normalize(message.transaction_reference)
-
-  const exact =
-    rows.find((row) => normalize(row.external_reference) === ext) ??
-    rows.find((row) => normalize(row.external_reference) === tx)
-
-  return exact ?? rows[0] ?? null
+  return (data?.[0] as { id: string } | undefined) ?? null
 }

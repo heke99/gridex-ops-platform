@@ -1,5 +1,7 @@
 // lib/ediel/recommendations.ts
 
+import type { EdielMessageRow } from '@/lib/ediel/types'
+
 export type EdielRecommendationSwitchRow = {
   id: string
   status: string
@@ -25,25 +27,14 @@ export type EdielRecommendationOutboundRow = {
   created_at: string
 }
 
-export type EdielRecommendationMessageRow = {
-  id: string
-  direction: string
-  message_family: string
-  message_code: string
-  status: string
-  communication_route_id: string | null
-  outbound_request_id: string | null
-  switch_request_id: string | null
-  grid_owner_data_request_id: string | null
-  receiver_email: string | null
+export type EdielRecommendationRouteProfile = {
+  is_enabled: boolean
   sender_ediel_id: string | null
   receiver_ediel_id: string | null
+  mailbox: string | null
   sender_sub_address: string | null
   receiver_sub_address: string | null
-  external_reference: string | null
-  correlation_reference: string | null
-  transaction_reference: string | null
-  created_at: string
+  application_reference: string | null
 }
 
 export type EdielRecommendationRouteRow = {
@@ -57,26 +48,42 @@ export type EdielRecommendationRouteRow = {
   grid_owner_name: string | null
   grid_owner_ediel_id: string | null
   is_active: boolean
-  profile: {
-    is_enabled: boolean
-    sender_ediel_id: string | null
-    receiver_ediel_id: string | null
-    mailbox: string | null
-    sender_sub_address?: string | null
-    receiver_sub_address?: string | null
-    application_reference?: string | null
-  } | null
+  profile: EdielRecommendationRouteProfile | null
 }
 
-export type EdielRecommendationRouteIssue = {
+export type EdielRecommendationMessageRow = Pick<
+  EdielMessageRow,
+  | 'id'
+  | 'direction'
+  | 'message_family'
+  | 'message_code'
+  | 'status'
+  | 'communication_route_id'
+  | 'switch_request_id'
+  | 'grid_owner_data_request_id'
+  | 'outbound_request_id'
+  | 'customer_id'
+  | 'site_id'
+  | 'metering_point_id'
+  | 'external_reference'
+  | 'transaction_reference'
+  | 'receiver_email'
+  | 'created_at'
+  | 'contrl_status'
+  | 'aperak_status'
+>
+
+export type EdielRouteIssue = {
   key:
-    | 'inactive_route'
-    | 'ediel_disabled'
-    | 'target_email'
-    | 'sender_ediel_id'
-    | 'receiver_ediel_id'
-    | 'mailbox'
-  severity: 'error' | 'warning'
+    | 'route_missing'
+    | 'route_inactive'
+    | 'profile_missing'
+    | 'profile_disabled'
+    | 'sender_ediel_missing'
+    | 'receiver_ediel_missing'
+    | 'target_email_missing'
+    | 'mailbox_missing'
+  severity: 'warning' | 'error'
   label: string
   resolution: string
 }
@@ -87,381 +94,284 @@ export type EdielRecommendationSummary = {
   recommendedSendMessage: EdielRecommendationMessageRow | null
   recommendedInboundUtilts: EdielRecommendationMessageRow | null
   recommendedAckSource: EdielRecommendationMessageRow | null
+  routeIssues: EdielRouteIssue[]
+  routeSummary: string
   routeHealth: {
+    isRouteActive: boolean
+    isEdielEnabled: boolean
     hasTargetEmail: boolean
     hasSenderEdielId: boolean
     hasReceiverEdielId: boolean
     hasMailbox: boolean
-    isRouteActive: boolean
-    isEdielEnabled: boolean
     isReadyForOutbound: boolean
   }
-  routeIssues: EdielRecommendationRouteIssue[]
-  routeSummary: string
 }
 
-export function sortNewestFirst<T extends { created_at: string }>(rows: T[]): T[] {
+function byNewest<T extends { created_at: string }>(rows: T[]): T[] {
   return [...rows].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
 }
 
-export function dedupeMessages(
-  rows: EdielRecommendationMessageRow[]
-): EdielRecommendationMessageRow[] {
-  const seen = new Set<string>()
-  const result: EdielRecommendationMessageRow[] = []
-
-  for (const row of rows) {
-    if (seen.has(row.id)) continue
-    seen.add(row.id)
-    result.push(row)
+function isRouteHealthy(route: EdielRecommendationRouteRow | null) {
+  return {
+    isRouteActive: Boolean(route?.is_active),
+    isEdielEnabled: Boolean(route?.profile?.is_enabled ?? route?.is_active ?? false),
+    hasTargetEmail: Boolean(route?.target_email),
+    hasSenderEdielId: Boolean(route?.profile?.sender_ediel_id),
+    hasReceiverEdielId: Boolean(
+      route?.profile?.receiver_ediel_id ?? route?.grid_owner_ediel_id
+    ),
+    hasMailbox: Boolean(route?.profile?.mailbox),
   }
-
-  return result
 }
 
-export function dedupeRoutes(
-  rows: EdielRecommendationRouteRow[]
-): EdielRecommendationRouteRow[] {
-  const seen = new Set<string>()
-  const result: EdielRecommendationRouteRow[] = []
-
-  for (const row of rows) {
-    if (seen.has(row.id)) continue
-    seen.add(row.id)
-    result.push(row)
-  }
-
-  return result
-}
-
-export function getEnabledEdielRoutes(
-  routes: EdielRecommendationRouteRow[]
-): EdielRecommendationRouteRow[] {
-  return routes.filter((route) => route.is_active && route.profile?.is_enabled)
-}
-
-export function getNewestSwitchId(
-  switchRequests: EdielRecommendationSwitchRow[]
-): string {
-  return sortNewestFirst(switchRequests)[0]?.id ?? ''
-}
-
-export function findSelectedSwitchOutbound(
-  outboundRequests: EdielRecommendationOutboundRow[],
-  selectedSwitchId: string
-): EdielRecommendationOutboundRow | null {
-  return (
-    outboundRequests.find(
-      (row) =>
-        row.source_type === 'supplier_switch_request' &&
-        row.source_id === selectedSwitchId
-    ) ?? null
-  )
-}
-
-export function getPreferredRouteId(params: {
-  routes: EdielRecommendationRouteRow[]
-  outboundRequests: EdielRecommendationOutboundRow[]
-  selectedSwitchId: string
-}): string {
-  const enabledRoutes = getEnabledEdielRoutes(params.routes)
-  const fallbackRouteId = enabledRoutes[0]?.id ?? params.routes[0]?.id ?? ''
-
-  const selectedSwitchOutbound = findSelectedSwitchOutbound(
-    params.outboundRequests,
-    params.selectedSwitchId
-  )
-
-  if (
-    selectedSwitchOutbound?.communication_route_id &&
-    params.routes.some(
-      (route) => route.id === selectedSwitchOutbound.communication_route_id
-    )
-  ) {
-    return selectedSwitchOutbound.communication_route_id
-  }
-
-  return fallbackRouteId
-}
-
-export function getSelectedRoute(
-  routes: EdielRecommendationRouteRow[],
-  selectedRouteId: string
-): EdielRecommendationRouteRow | null {
-  return routes.find((route) => route.id === selectedRouteId) ?? null
-}
-
-export function getRecommendedRoutes(params: {
-  routes: EdielRecommendationRouteRow[]
-  outboundRequests: EdielRecommendationOutboundRow[]
-  selectedSwitchId: string
-}): EdielRecommendationRouteRow[] {
-  const selectedSwitchOutbound = findSelectedSwitchOutbound(
-    params.outboundRequests,
-    params.selectedSwitchId
-  )
-
-  const enabledRoutes = getEnabledEdielRoutes(params.routes)
-  const preferred = selectedSwitchOutbound?.communication_route_id
-    ? params.routes.filter(
-        (route) => route.id === selectedSwitchOutbound.communication_route_id
-      )
-    : []
-
-  return dedupeRoutes([...preferred, ...enabledRoutes, ...params.routes])
-}
-
-export function getAllSendableMessages(
-  messages: EdielRecommendationMessageRow[]
-): EdielRecommendationMessageRow[] {
-  return sortNewestFirst(
-    messages.filter(
-      (message) =>
-        message.direction === 'outbound' &&
-        ['draft', 'prepared', 'queued'].includes(message.status) &&
-        Boolean(message.receiver_email?.trim())
-    )
-  )
-}
-
-export function getRecommendedSendableMessages(params: {
-  messages: EdielRecommendationMessageRow[]
-  selectedSwitchId: string
-  selectedRouteId: string
-}): EdielRecommendationMessageRow[] {
-  const allSendableMessages = getAllSendableMessages(params.messages)
-
-  const bySwitch = params.selectedSwitchId
-    ? allSendableMessages.filter(
-        (message) => message.switch_request_id === params.selectedSwitchId
-      )
-    : []
-
-  const byRoute = params.selectedRouteId
-    ? allSendableMessages.filter(
-        (message) => message.communication_route_id === params.selectedRouteId
-      )
-    : []
-
-  const byBoth =
-    params.selectedSwitchId && params.selectedRouteId
-      ? allSendableMessages.filter(
-          (message) =>
-            message.switch_request_id === params.selectedSwitchId &&
-            message.communication_route_id === params.selectedRouteId
-        )
-      : []
-
-  const recommended = dedupeMessages([...byBoth, ...bySwitch, ...byRoute])
-  return recommended.length > 0 ? recommended : allSendableMessages
-}
-
-export function getAllInboundUtiltsMessages(
-  messages: EdielRecommendationMessageRow[]
-): EdielRecommendationMessageRow[] {
-  return sortNewestFirst(
-    messages.filter(
-      (message) =>
-        message.direction === 'inbound' && message.message_family === 'UTILTS'
-    )
-  )
-}
-
-export function getRecommendedInboundUtiltsMessages(params: {
-  messages: EdielRecommendationMessageRow[]
-  selectedRoute: EdielRecommendationRouteRow | null
-  selectedRouteId: string
-}): EdielRecommendationMessageRow[] {
-  const allInboundUtiltsMessages = getAllInboundUtiltsMessages(params.messages)
-
-  const byRoute = params.selectedRouteId
-    ? allInboundUtiltsMessages.filter(
-        (message) => message.communication_route_id === params.selectedRouteId
-      )
-    : []
-
-  const byEdielPair =
-    params.selectedRoute?.profile?.sender_ediel_id &&
-    params.selectedRoute?.profile?.receiver_ediel_id
-      ? allInboundUtiltsMessages.filter(
-          (message) =>
-            message.sender_ediel_id === params.selectedRoute?.profile?.receiver_ediel_id &&
-            message.receiver_ediel_id === params.selectedRoute?.profile?.sender_ediel_id
-        )
-      : []
-
-  const recommended = dedupeMessages([...byRoute, ...byEdielPair])
-  return recommended.length > 0 ? recommended : allInboundUtiltsMessages
-}
-
-export function getAllAckableMessages(
-  messages: EdielRecommendationMessageRow[]
-): EdielRecommendationMessageRow[] {
-  return sortNewestFirst(
-    messages.filter((message) => ['inbound', 'outbound'].includes(message.direction))
-  )
-}
-
-export function getRecommendedAckableMessages(params: {
-  messages: EdielRecommendationMessageRow[]
-  selectedSwitchId: string
-  selectedRouteId: string
-  preferredFamily?: 'PRODAT' | 'UTILTS' | null
-}): EdielRecommendationMessageRow[] {
-  const allAckableMessages = getAllAckableMessages(params.messages)
-
-  const bySwitch = params.selectedSwitchId
-    ? allAckableMessages.filter(
-        (message) => message.switch_request_id === params.selectedSwitchId
-      )
-    : []
-
-  const byRoute = params.selectedRouteId
-    ? allAckableMessages.filter(
-        (message) => message.communication_route_id === params.selectedRouteId
-      )
-    : []
-
-  const byFamily = params.preferredFamily
-    ? allAckableMessages.filter(
-        (message) => message.message_family === params.preferredFamily
-      )
-    : []
-
-  const recommended = dedupeMessages([...bySwitch, ...byRoute, ...byFamily])
-  return recommended.length > 0 ? recommended : allAckableMessages
-}
-
-export function getRecommendedRouteSummary(params: {
-  routes: EdielRecommendationRouteRow[]
-  outboundRequests: EdielRecommendationOutboundRow[]
-  selectedSwitchId: string
-  selectedRouteId: string
-}): string {
-  const selectedSwitchOutbound = findSelectedSwitchOutbound(
-    params.outboundRequests,
-    params.selectedSwitchId
-  )
-
-  const selectedRoute =
-    params.routes.find((route) => route.id === params.selectedRouteId) ?? null
-
-  if (
-    selectedSwitchOutbound?.communication_route_id &&
-    selectedRoute?.id === selectedSwitchOutbound.communication_route_id
-  ) {
-    return `${selectedRoute.route_name} (${selectedRoute.route_scope})${
-      selectedRoute.grid_owner_name ? ` · ${selectedRoute.grid_owner_name}` : ''
-    }`
-  }
-
-  if (selectedRoute) {
-    return `${selectedRoute.route_name} (${selectedRoute.route_scope})${
-      selectedRoute.grid_owner_name ? ` · ${selectedRoute.grid_owner_name}` : ''
-    }`
-  }
-
-  return '—'
-}
-
-export function getRouteIssues(
-  route: EdielRecommendationRouteRow | null
-): EdielRecommendationRouteIssue[] {
-  const issues: EdielRecommendationRouteIssue[] = []
-
+function buildRouteIssues(route: EdielRecommendationRouteRow | null): EdielRouteIssue[] {
   if (!route) {
-    issues.push({
-      key: 'inactive_route',
-      severity: 'error',
-      label: 'Ingen route vald',
-      resolution:
-        'Koppla en communication route för rätt nätägare och scope innan du försöker skicka Ediel.',
-    })
-    return issues
+    return [
+      {
+        key: 'route_missing',
+        severity: 'error',
+        label: 'Ingen Ediel-route vald',
+        resolution: 'Skapa eller välj en aktiv communication_route för aktivt scope.',
+      },
+    ]
   }
+
+  const issues: EdielRouteIssue[] = []
 
   if (!route.is_active) {
     issues.push({
-      key: 'inactive_route',
+      key: 'route_inactive',
       severity: 'error',
-      label: 'Routen är inaktiv',
-      resolution: 'Aktivera communication route eller välj en annan aktiv route.',
+      label: 'Route är inaktiv',
+      resolution: 'Aktivera communication_route innan outbound får skickas.',
     })
   }
 
-  if (!route.profile?.is_enabled) {
+  if (!route.profile) {
     issues.push({
-      key: 'ediel_disabled',
+      key: 'profile_missing',
       severity: 'error',
-      label: 'Ediel-profilen är inte aktiverad',
-      resolution: 'Aktivera Ediel på routeprofilen innan outbound skickas.',
+      label: 'Route profile saknas',
+      resolution: 'Skapa en ediel_route_profile kopplad till route.',
     })
+  } else {
+    if (!route.profile.is_enabled) {
+      issues.push({
+        key: 'profile_disabled',
+        severity: 'error',
+        label: 'Route profile är avstängd',
+        resolution: 'Sätt is_enabled=true på ediel_route_profile.',
+      })
+    }
+
+    if (!route.profile.sender_ediel_id) {
+      issues.push({
+        key: 'sender_ediel_missing',
+        severity: 'error',
+        label: 'Sender Ediel-id saknas',
+        resolution: 'Fyll sender_ediel_id i route profile eller actor settings.',
+      })
+    }
+
+    if (!(route.profile.receiver_ediel_id || route.grid_owner_ediel_id)) {
+      issues.push({
+        key: 'receiver_ediel_missing',
+        severity: 'error',
+        label: 'Receiver Ediel-id saknas',
+        resolution: 'Fyll receiver_ediel_id i route profile eller ediel_id på grid owner.',
+      })
+    }
+
+    if (!route.profile.mailbox) {
+      issues.push({
+        key: 'mailbox_missing',
+        severity: 'warning',
+        label: 'Mailbox saknas',
+        resolution: 'Fyll mailbox om IMAP/SMTP-kedjan ska vara helt driftbar.',
+      })
+    }
   }
 
-  if (!route.target_email?.trim()) {
+  if (!route.target_email) {
     issues.push({
-      key: 'target_email',
+      key: 'target_email_missing',
       severity: 'warning',
-      label: 'target_email saknas',
-      resolution:
-        'Fyll target_email på communication route för att göra SMTP-sändning tydlig och spårbar.',
-    })
-  }
-
-  if (!route.profile?.sender_ediel_id?.trim()) {
-    issues.push({
-      key: 'sender_ediel_id',
-      severity: 'error',
-      label: 'sender_ediel_id saknas',
-      resolution: 'Fyll avsändarens Ediel-id på routeprofilen.',
-    })
-  }
-
-  if (!(route.profile?.receiver_ediel_id?.trim() || route.grid_owner_ediel_id?.trim())) {
-    issues.push({
-      key: 'receiver_ediel_id',
-      severity: 'error',
-      label: 'receiver_ediel_id saknas',
-      resolution:
-        'Fyll mottagarens Ediel-id på routeprofilen eller säkerställ att nätägarens Ediel-id finns i masterdata.',
-    })
-  }
-
-  if (!route.profile?.mailbox?.trim()) {
-    issues.push({
-      key: 'mailbox',
-      severity: 'error',
-      label: 'Mailbox saknas',
-      resolution: 'Fyll mailbox på routeprofilen så att rätt Ediel-brevlåda används.',
+      label: 'Target email saknas',
+      resolution: 'Fyll target_email om routen använder mailbaserat Ediel-utbyte.',
     })
   }
 
   return issues
 }
 
-export function buildRouteSummary(
-  route: EdielRecommendationRouteRow | null,
-  issues: EdielRecommendationRouteIssue[]
+function filterMessagesForSwitch(
+  messages: EdielRecommendationMessageRow[],
+  selectedSwitchId: string,
+  selectedRouteId?: string | null
+) {
+  return messages.filter((message) => {
+    if (selectedSwitchId && message.switch_request_id !== selectedSwitchId) return false
+    if (selectedRouteId && message.communication_route_id !== selectedRouteId) return false
+    return true
+  })
+}
+
+export function getNewestSwitchId(
+  switchRequests: EdielRecommendationSwitchRow[]
 ): string {
-  if (!route) {
-    return 'Ingen route kunde rekommenderas ännu.'
+  return byNewest(switchRequests)[0]?.id ?? ''
+}
+
+export function getRecommendedRoutes(params: {
+  routes: EdielRecommendationRouteRow[]
+  outboundRequests: EdielRecommendationOutboundRow[]
+  selectedSwitchId?: string | null
+}): EdielRecommendationRouteRow[] {
+  const { routes, outboundRequests, selectedSwitchId } = params
+
+  const latestOutboundRouteId =
+    selectedSwitchId
+      ? byNewest(
+          outboundRequests.filter(
+            (row) =>
+              row.source_type === 'supplier_switch_request' &&
+              row.source_id === selectedSwitchId &&
+              row.communication_route_id
+          )
+        )[0]?.communication_route_id ?? null
+      : null
+
+  const scored = routes.map((route) => {
+    const health = isRouteHealthy(route)
+
+    let score = 0
+    if (route.id === latestOutboundRouteId) score += 100
+    if (route.is_active) score += 20
+    if (route.profile?.is_enabled) score += 20
+    if (health.hasSenderEdielId) score += 10
+    if (health.hasReceiverEdielId) score += 10
+    if (health.hasTargetEmail) score += 5
+    if (health.hasMailbox) score += 5
+    if (route.route_scope === 'supplier_switch') score += 5
+
+    return { route, score }
+  })
+
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .map((row) => row.route)
+}
+
+export function getPreferredRouteId(params: {
+  routes: EdielRecommendationRouteRow[]
+  outboundRequests: EdielRecommendationOutboundRow[]
+  selectedSwitchId?: string | null
+}): string {
+  return getRecommendedRoutes(params)[0]?.id ?? ''
+}
+
+export function getSelectedRoute(
+  routes: EdielRecommendationRouteRow[],
+  selectedRouteId?: string | null
+): EdielRecommendationRouteRow | null {
+  if (!selectedRouteId) return null
+  return routes.find((route) => route.id === selectedRouteId) ?? null
+}
+
+export function getRecommendedSendableMessages(params: {
+  messages: EdielRecommendationMessageRow[]
+  selectedSwitchId?: string | null
+  selectedRouteId?: string | null
+}): EdielRecommendationMessageRow[] {
+  const rows = filterMessagesForSwitch(
+    params.messages.filter(
+      (message) =>
+        message.direction === 'outbound' &&
+        (message.status === 'draft' ||
+          message.status === 'prepared' ||
+          message.status === 'queued')
+    ),
+    params.selectedSwitchId ?? '',
+    params.selectedRouteId
+  )
+
+  return byNewest(rows)
+}
+
+export function getRecommendedInboundUtiltsMessages(params: {
+  messages: EdielRecommendationMessageRow[]
+  selectedRoute?: EdielRecommendationRouteRow | null
+  selectedRouteId?: string | null
+}): EdielRecommendationMessageRow[] {
+  return byNewest(
+    params.messages.filter((message) => {
+      if (message.direction !== 'inbound') return false
+      if (message.message_family !== 'UTILTS') return false
+      if (params.selectedRouteId && message.communication_route_id !== params.selectedRouteId) {
+        return false
+      }
+
+      if (params.selectedRoute?.grid_owner_id && !message.grid_owner_data_request_id) {
+        return true
+      }
+
+      return true
+    })
+  )
+}
+
+export function getRecommendedAckableMessages(params: {
+  messages: EdielRecommendationMessageRow[]
+  selectedSwitchId?: string | null
+  selectedRouteId?: string | null
+  preferredFamily?: 'PRODAT' | 'UTILTS'
+}): EdielRecommendationMessageRow[] {
+  const preferredFamily = params.preferredFamily ?? 'PRODAT'
+
+  const filtered = filterMessagesForSwitch(
+    params.messages.filter((message) => {
+      if (message.direction !== 'inbound') return false
+      if (message.message_family === 'CONTRL') return false
+      if (message.message_family === 'APERAK') return false
+      if (message.message_family === 'UTILTS_ERR') return false
+      if (preferredFamily === 'PRODAT' && message.message_family !== 'PRODAT') return false
+      if (preferredFamily === 'UTILTS' && message.message_family !== 'UTILTS') return false
+      return true
+    }),
+    params.selectedSwitchId ?? '',
+    params.selectedRouteId
+  )
+
+  return byNewest(filtered)
+}
+
+export function getRecommendedRouteSummary(params: {
+  routes: EdielRecommendationRouteRow[]
+  outboundRequests: EdielRecommendationOutboundRow[]
+  selectedSwitchId?: string | null
+  selectedRouteId?: string | null
+}): string {
+  const selectedRoute = getSelectedRoute(params.routes, params.selectedRouteId)
+  if (!selectedRoute) {
+    return 'Ingen route vald ännu.'
   }
 
-  if (issues.length === 0) {
-    return 'Route är användbar: aktiv, Ediel-aktiverad och har de viktigaste fälten för outbound.'
-  }
+  const health = isRouteHealthy(selectedRoute)
+  const parts = [
+    selectedRoute.route_name,
+    selectedRoute.route_scope,
+    selectedRoute.grid_owner_name ?? 'ingen nätägare',
+    health.isRouteActive ? 'route aktiv' : 'route inaktiv',
+    health.isEdielEnabled ? 'edielprofil aktiv' : 'edielprofil av',
+    health.hasSenderEdielId ? 'sender ok' : 'sender saknas',
+    health.hasReceiverEdielId ? 'receiver ok' : 'receiver saknas',
+    health.hasTargetEmail ? 'target email ok' : 'target email saknas',
+    health.hasMailbox ? 'mailbox ok' : 'mailbox saknas',
+  ]
 
-  const blocking = issues.filter((issue) => issue.severity === 'error')
-
-  if (blocking.length > 0) {
-    return `Route är blockerad: ${blocking.map((issue) => issue.label).join(', ')}.`
-  }
-
-  return `Route är delvis användbar men bör kompletteras: ${issues
-    .map((issue) => issue.label)
-    .join(', ')}.`
+  return parts.join(' · ')
 }
 
 export function getRecommendationSummary(params: {
@@ -469,53 +379,40 @@ export function getRecommendationSummary(params: {
   outboundRequests: EdielRecommendationOutboundRow[]
   messages: EdielRecommendationMessageRow[]
   routes: EdielRecommendationRouteRow[]
-  preferredFamily?: 'PRODAT' | 'UTILTS' | null
+  preferredFamily?: 'PRODAT' | 'UTILTS'
 }): EdielRecommendationSummary {
   const selectedSwitchId = getNewestSwitchId(params.switchRequests)
-  const selectedRouteId = getPreferredRouteId({
-    routes: params.routes,
-    outboundRequests: params.outboundRequests,
-    selectedSwitchId,
-  })
+  const recommendedRoute =
+    getRecommendedRoutes({
+      routes: params.routes,
+      outboundRequests: params.outboundRequests,
+      selectedSwitchId,
+    })[0] ?? null
 
-  const recommendedRoute = getSelectedRoute(params.routes, selectedRouteId)
+  const routeHealthBase = isRouteHealthy(recommendedRoute)
+  const routeIssues = buildRouteIssues(recommendedRoute)
 
   const recommendedSendMessage =
     getRecommendedSendableMessages({
       messages: params.messages,
       selectedSwitchId,
-      selectedRouteId,
+      selectedRouteId: recommendedRoute?.id ?? null,
     })[0] ?? null
 
   const recommendedInboundUtilts =
     getRecommendedInboundUtiltsMessages({
       messages: params.messages,
       selectedRoute: recommendedRoute,
-      selectedRouteId,
+      selectedRouteId: recommendedRoute?.id ?? null,
     })[0] ?? null
 
   const recommendedAckSource =
     getRecommendedAckableMessages({
       messages: params.messages,
       selectedSwitchId,
-      selectedRouteId,
+      selectedRouteId: recommendedRoute?.id ?? null,
       preferredFamily: params.preferredFamily ?? 'PRODAT',
     })[0] ?? null
-
-  const routeIssues = getRouteIssues(recommendedRoute)
-
-  const routeHealth = {
-    hasTargetEmail: Boolean(recommendedRoute?.target_email?.trim()),
-    hasSenderEdielId: Boolean(recommendedRoute?.profile?.sender_ediel_id?.trim()),
-    hasReceiverEdielId: Boolean(
-      recommendedRoute?.profile?.receiver_ediel_id?.trim() ||
-        recommendedRoute?.grid_owner_ediel_id?.trim()
-    ),
-    hasMailbox: Boolean(recommendedRoute?.profile?.mailbox?.trim()),
-    isRouteActive: Boolean(recommendedRoute?.is_active),
-    isEdielEnabled: Boolean(recommendedRoute?.profile?.is_enabled),
-    isReadyForOutbound: routeIssues.every((issue) => issue.severity !== 'error'),
-  }
 
   return {
     selectedSwitchId,
@@ -523,8 +420,24 @@ export function getRecommendationSummary(params: {
     recommendedSendMessage,
     recommendedInboundUtilts,
     recommendedAckSource,
-    routeHealth,
     routeIssues,
-    routeSummary: buildRouteSummary(recommendedRoute, routeIssues),
+    routeSummary: getRecommendedRouteSummary({
+      routes: params.routes,
+      outboundRequests: params.outboundRequests,
+      selectedSwitchId,
+      selectedRouteId: recommendedRoute?.id ?? null,
+    }),
+    routeHealth: {
+      ...routeHealthBase,
+      isReadyForOutbound:
+        routeHealthBase.isRouteActive &&
+        routeHealthBase.isEdielEnabled &&
+        routeHealthBase.hasSenderEdielId &&
+        routeHealthBase.hasReceiverEdielId,
+    },
   }
+}
+
+export function messageLabel(message: EdielRecommendationMessageRow): string {
+  return `${message.message_family} ${message.message_code} · ${message.status} · ${message.id}`
 }

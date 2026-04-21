@@ -2,332 +2,435 @@
 
 import type {
   CreateEdielMessageInput,
+  EdielAckStatus,
   EdielMessageRow,
 } from '@/lib/ediel/types'
-import { inferEdielFileName } from '@/lib/ediel/classify'
-import { buildAperakTransactionReference } from '@/lib/ediel/references'
+import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
+import {
+  buildEdielExternalReference,
+  buildEdielTransactionReference,
+} from '@/lib/ediel/references'
+import {
+  inferEdielFileName,
+  inferEdielFamilyAndCodeFromRawPayload,
+} from '@/lib/ediel/classify'
+import { isActiveEdielMessageFamily } from '@/lib/ediel/types'
 
-export type AckOutcome = 'positive' | 'negative'
+type AckOutcome = 'positive' | 'negative'
 
-function reverseDirectionSenderReceiver(message: EdielMessageRow) {
-  return {
-    senderEdielId: message.receiver_ediel_id,
-    senderName: message.receiver_name,
-    receiverEdielId: message.sender_ediel_id,
-    receiverName: message.sender_name,
-    senderSubAddress: message.receiver_sub_address,
-    receiverSubAddress: message.sender_sub_address,
-    senderEmail: message.receiver_email,
-    receiverEmail: message.sender_email,
+function sanitize(value?: string | null): string {
+  return (value ?? '').replace(/['+]/g, ' ').trim()
+}
+
+function normalizeAckFamily(sourceMessage: EdielMessageRow) {
+  if (!isActiveEdielMessageFamily(sourceMessage.message_family)) {
+    throw new Error(
+      `Källmeddelandet ${sourceMessage.id} ligger utanför aktiv release och får inte generera automatisk ack här.`
+    )
+  }
+
+  if (sourceMessage.message_standard !== 'edifact') {
+    throw new Error(
+      `Ack-generatorn stöder bara EDIFACT i aktiv release. Meddelande ${sourceMessage.id} har standard ${sourceMessage.message_standard}.`
+    )
+  }
+
+  if (sourceMessage.direction !== 'inbound') {
+    throw new Error(
+      `Ack-generatorn ska svara på inbound meddelanden. Meddelande ${sourceMessage.id} är ${sourceMessage.direction}.`
+    )
+  }
+
+  if (sourceMessage.message_family === 'CONTRL') {
+    throw new Error('APERAK eller CONTRL ska inte genereras som svar på CONTRL.')
+  }
+
+  if (sourceMessage.message_family === 'APERAK') {
+    throw new Error('APERAK eller CONTRL ska inte genereras som svar på APERAK.')
   }
 }
 
-function buildAckSubject(
-  family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR',
-  source: EdielMessageRow,
-  outcome: AckOutcome
-): string {
-  return `${family} ${outcome.toUpperCase()} ${source.message_family} ${source.message_code} ${source.external_reference ?? source.id}`
+function sourceAckReceiver(sourceMessage: EdielMessageRow) {
+  return {
+    senderEdielId: sourceMessage.receiver_ediel_id ?? null,
+    senderName: sourceMessage.receiver_name ?? null,
+    senderSubAddress: sourceMessage.receiver_sub_address ?? 'GRIDEX',
+    receiverEdielId: sourceMessage.sender_ediel_id ?? null,
+    receiverName: sourceMessage.sender_name ?? null,
+    receiverSubAddress: sourceMessage.sender_sub_address ?? 'EDIEL',
+    receiverEmail: sourceMessage.sender_email ?? null,
+    mailbox: sourceMessage.mailbox ?? null,
+  }
 }
 
-function safeEdielId(value?: string | null): string {
-  const cleaned = (value ?? '').trim()
-  return cleaned.length > 0 ? cleaned : '00000'
-}
+function defaultAckStatuses(ackType: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'): {
+  contrlStatus: EdielAckStatus
+  aperakStatus: EdielAckStatus
+  utiltsErrStatus: EdielAckStatus
+  requiresContrl: boolean
+  requiresAperak: boolean
+} {
+  if (ackType === 'CONTRL') {
+    return {
+      contrlStatus: 'not_required',
+      aperakStatus: 'not_required',
+      utiltsErrStatus: 'not_required',
+      requiresContrl: false,
+      requiresAperak: false,
+    }
+  }
 
-function buildContrlPayload(
-  source: EdielMessageRow,
-  outcome: AckOutcome,
-  messageText?: string | null
-) {
-  const reversed = reverseDirectionSenderReceiver(source)
-  const bgmCode = outcome === 'positive' ? '7' : '27'
-
-  return buildEdifactEnvelope({
-    senderEdielId: safeEdielId(reversed.senderEdielId),
-    senderSubAddress: reversed.senderSubAddress ?? 'GRIDEX',
-    receiverEdielId: safeEdielId(reversed.receiverEdielId),
-    receiverSubAddress: reversed.receiverSubAddress ?? 'GRIDEX',
-    applicationReference: source.application_reference ?? '23-GRIDEX-CONTRL',
-    testFlag: source.test_flag ?? 1,
-    messageTypeToken: 'CONTRL:D:96A:UN',
-    segments: [
-      `BGM+${bgmCode}+${source.external_reference ?? source.id}+9`,
-      `FTX+AAO+++${messageText ?? (outcome === 'positive' ? 'OK' : 'Syntax error or transport issue')}`,
-    ],
-  })
-}
-
-function buildAperakPayload(
-  source: EdielMessageRow,
-  outcome: AckOutcome,
-  messageText?: string | null
-) {
-  const reversed = reverseDirectionSenderReceiver(source)
-  const transactionReference = buildAperakTransactionReference()
-
-  const bgmCode = outcome === 'positive' ? '312' : '313'
-  const ercCode = outcome === 'positive' ? '100::260' : '41::260'
-  const ftxText =
-    messageText ?? (outcome === 'positive' ? 'OK' : 'MANDATORY FIELD MISSING')
-
-  return buildEdifactEnvelope({
-    senderEdielId: safeEdielId(reversed.senderEdielId),
-    senderSubAddress: reversed.senderSubAddress ?? 'GRIDEX',
-    receiverEdielId: safeEdielId(reversed.receiverEdielId),
-    receiverSubAddress: reversed.receiverSubAddress ?? 'GRIDEX',
-    applicationReference: source.application_reference ?? '23-GRIDEX-APERAK',
-    testFlag: source.test_flag ?? 1,
-    messageTypeToken: `APERAK:D:04A:UN:${source.message_version ?? 'E5SE5A'}`,
-    segments: [
-      `BGM+${bgmCode}+${source.external_reference ?? source.id}+9`,
-      `DTM+137:${new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 12)}:203`,
-      `DTM+735:?+0100:406`,
-      `DOC+${String(source.message_code)}::260+${source.original_message_id ?? source.external_reference ?? source.id}`,
-      `NAD+MS+${safeEdielId(reversed.senderEdielId)}:SVK:260`,
-      `NAD+MR+${safeEdielId(reversed.receiverEdielId)}:SVK:260`,
-      `NAD+DDQ`,
-      `ERC+${ercCode}`,
-      outcome === 'positive'
-        ? `FTX+AAO+++OK`
-        : `FTX+AAO++223::260+${ftxText}`,
-      `RFF+DM:${transactionReference}`,
-      `RFF+ACW:${source.transaction_reference ?? source.original_transaction_id ?? source.external_reference ?? source.id}`,
-    ],
-  })
-}
-
-function buildUtiltsErrPayload(source: EdielMessageRow, messageText?: string | null) {
-  const reversed = reverseDirectionSenderReceiver(source)
-
-  return buildEdifactEnvelope({
-    senderEdielId: safeEdielId(reversed.senderEdielId),
-    senderSubAddress: reversed.senderSubAddress ?? 'GRIDEX',
-    receiverEdielId: safeEdielId(reversed.receiverEdielId),
-    receiverSubAddress: reversed.receiverSubAddress ?? 'GRIDEX',
-    applicationReference: source.application_reference ?? '23-GRIDEX-UTILTS',
-    testFlag: source.test_flag ?? 1,
-    messageTypeToken: 'UTILTS:D:02B:UN:E5SE5A',
-    segments: [
-      `BGM+E01::260+${source.external_reference ?? source.id}+9`,
-      `DTM+137:${new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 12)}:203`,
-      `MKS+23+E02::260`,
-      `NAD+MS+${safeEdielId(reversed.senderEdielId)}:SVK:260`,
-      `NAD+MR+${safeEdielId(reversed.receiverEdielId)}:SVK:260`,
-      `NAD+DDQ`,
-      `STS+E01::260+41+E50::260`,
-      `RFF+TN:${source.transaction_reference ?? source.original_transaction_id ?? source.id}`,
-      `RFF+E66:${source.original_message_id ?? source.external_reference ?? source.id}`,
-      `FTX+AAO+++${messageText ?? 'Functional or process error'}`,
-    ],
-  })
-}
-
-export function buildContrlDraft(input: {
-  actorUserId?: string | null
-  sourceMessage: EdielMessageRow
-  outcome?: AckOutcome
-  messageText?: string | null
-}): CreateEdielMessageInput {
-  const reversed = reverseDirectionSenderReceiver(input.sourceMessage)
-  const outcome = input.outcome ?? 'positive'
-  const envelope = buildContrlPayload(input.sourceMessage, outcome, input.messageText)
+  if (ackType === 'APERAK') {
+    return {
+      contrlStatus: 'not_required',
+      aperakStatus: 'not_required',
+      utiltsErrStatus: 'not_required',
+      requiresContrl: false,
+      requiresAperak: false,
+    }
+  }
 
   return {
-    actorUserId: input.actorUserId ?? null,
-    direction: 'outbound',
-    messageStandard: 'edifact',
-    messageFamily: 'CONTRL',
-    messageCode: 'CONTRL',
-    messageVersion: 'D96A',
-    environment: input.sourceMessage.environment ?? 'test',
-    testFlag: input.sourceMessage.test_flag ?? 1,
-    status: 'draft',
-    transportType: 'smtp',
-    senderEdielId: reversed.senderEdielId ?? null,
-    senderName: reversed.senderName ?? null,
-    receiverEdielId: reversed.receiverEdielId ?? null,
-    receiverName: reversed.receiverName ?? null,
-    senderSubAddress: reversed.senderSubAddress ?? null,
-    receiverSubAddress: reversed.receiverSubAddress ?? null,
-    senderEmail: reversed.senderEmail ?? null,
-    receiverEmail: reversed.receiverEmail ?? null,
-    subject: buildAckSubject('CONTRL', input.sourceMessage, outcome),
-    fileName: inferEdielFileName({
-      family: 'CONTRL',
-      code: 'CONTRL',
-      direction: 'outbound',
-      extension: 'edi',
-    }),
-    mimeType: 'application/edifact',
-    relatedMessageId: input.sourceMessage.id,
-    customerId: input.sourceMessage.customer_id,
-    siteId: input.sourceMessage.site_id,
-    meteringPointId: input.sourceMessage.metering_point_id,
-    gridOwnerId: input.sourceMessage.grid_owner_id,
-    communicationRouteId: input.sourceMessage.communication_route_id,
-    outboundRequestId: input.sourceMessage.outbound_request_id,
-    switchRequestId: input.sourceMessage.switch_request_id,
-    gridOwnerDataRequestId: input.sourceMessage.grid_owner_data_request_id,
-    partnerExportId: input.sourceMessage.partner_export_id,
-    externalReference: input.sourceMessage.external_reference,
-    correlationReference: input.sourceMessage.correlation_reference,
-    transactionReference: input.sourceMessage.transaction_reference,
-    interchangeReference: envelope.interchangeReference,
-    applicationReference: input.sourceMessage.application_reference,
-    originalMessageId: input.sourceMessage.external_reference,
-    originalTransactionId: input.sourceMessage.transaction_reference,
-    originalMessageCode: String(input.sourceMessage.message_code),
-    rawPayload: envelope.raw,
-    parsedPayload: {
-      sourceMessageId: input.sourceMessage.id,
-      sourceFamily: input.sourceMessage.message_family,
-      sourceCode: input.sourceMessage.message_code,
-      outcome,
-    },
-    requiresContrl: false,
-    requiresAperak: false,
     contrlStatus: 'not_required',
     aperakStatus: 'not_required',
     utiltsErrStatus: 'not_required',
+    requiresContrl: false,
+    requiresAperak: false,
   }
 }
 
-export function buildAperakDraft(input: {
+function buildAckExternalReference(params: {
+  sourceMessage: EdielMessageRow
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+}) {
+  return buildEdielExternalReference({
+    family: params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily,
+    code: params.ackFamily,
+    relatedMessageId: params.sourceMessage.id,
+  })
+}
+
+function buildAckTransactionReference(params: {
+  sourceMessage: EdielMessageRow
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+}) {
+  return buildEdielTransactionReference({
+    family: params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily,
+    code: params.ackFamily,
+  })
+}
+
+function buildContrlSegments(params: {
+  sourceMessage: EdielMessageRow
+  externalReference: string
+  transactionReference: string
+  outcome: AckOutcome
+  messageText?: string | null
+}) {
+  const resultCode = params.outcome === 'positive' ? '7' : '12'
+  const text =
+    sanitize(params.messageText) ||
+    (params.outcome === 'positive'
+      ? 'Syntax accepted'
+      : 'Syntax error detected')
+
+  const originalMessageType =
+    sanitize(`${params.sourceMessage.message_family} ${String(params.sourceMessage.message_code)}`)
+
+  return [
+    `UNH+1+CONTRL:D:96A:UN:1.0`,
+    `BGM+CONTRL+${sanitize(params.externalReference)}+9`,
+    `RFF+TN:${sanitize(params.transactionReference)}`,
+    params.sourceMessage.interchange_reference
+      ? `RFF+ACW:${sanitize(params.sourceMessage.interchange_reference)}`
+      : null,
+    params.sourceMessage.transaction_reference
+      ? `RFF+CR:${sanitize(params.sourceMessage.transaction_reference)}`
+      : null,
+    `FTX+AAI+++${originalMessageType}`,
+    `ERC+${resultCode}`,
+    `FTX+AAO+++${text}`,
+  ].filter(Boolean) as string[]
+}
+
+function buildAperakSegments(params: {
+  sourceMessage: EdielMessageRow
+  externalReference: string
+  transactionReference: string
+  outcome: AckOutcome
+  messageText?: string | null
+}) {
+  const resultCode = params.outcome === 'positive' ? 'A01' : 'A13'
+  const text =
+    sanitize(params.messageText) ||
+    (params.outcome === 'positive'
+      ? 'Application accepted'
+      : 'Application error')
+
+  return [
+    `UNH+1+APERAK:D:01B:UN:1.0`,
+    `BGM+APERAK+${sanitize(params.externalReference)}+9`,
+    `RFF+TN:${sanitize(params.transactionReference)}`,
+    params.sourceMessage.transaction_reference
+      ? `RFF+CR:${sanitize(params.sourceMessage.transaction_reference)}`
+      : null,
+    params.sourceMessage.external_reference
+      ? `RFF+ACE:${sanitize(params.sourceMessage.external_reference)}`
+      : null,
+    `ERC+${resultCode}`,
+    `FTX+AAO+++${text}`,
+  ].filter(Boolean) as string[]
+}
+
+function buildUtiltsErrSegments(params: {
+  sourceMessage: EdielMessageRow
+  externalReference: string
+  transactionReference: string
+  messageText?: string | null
+}) {
+  const text = sanitize(params.messageText) || 'Functional error in UTILTS message'
+
+  return [
+    `UNH+1+UTILTS:D:03A:UN:1.0`,
+    `BGM+UTILTS_ERR+${sanitize(params.externalReference)}+9`,
+    `RFF+TN:${sanitize(params.transactionReference)}`,
+    params.sourceMessage.transaction_reference
+      ? `RFF+CR:${sanitize(params.sourceMessage.transaction_reference)}`
+      : null,
+    params.sourceMessage.external_reference
+      ? `RFF+ACE:${sanitize(params.sourceMessage.external_reference)}`
+      : null,
+    `FTX+AAO+++${text}`,
+  ].filter(Boolean) as string[]
+}
+
+function buildAckEnvelope(params: {
+  sourceMessage: EdielMessageRow
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  externalReference: string
+  transactionReference: string
+  outcome?: AckOutcome
+  messageText?: string | null
+}) {
+  const parties = sourceAckReceiver(params.sourceMessage)
+
+  if (!parties.senderEdielId || !parties.receiverEdielId) {
+    throw new Error(
+      `Källmeddelande ${params.sourceMessage.id} saknar avsändare eller mottagare för ack-routing.`
+    )
+  }
+
+  const applicationReference =
+    params.sourceMessage.application_reference ??
+    buildDefaultApplicationReference({
+      actorSubAddress: parties.senderSubAddress ?? 'GRIDEX',
+      process: params.ackFamily === 'UTILTS_ERR' ? 'UTILTS' : params.ackFamily,
+    })
+
+  const messageTypeToken =
+    params.ackFamily === 'CONTRL'
+      ? 'CONTRL:D:96A:UN:1.0'
+      : params.ackFamily === 'APERAK'
+        ? 'APERAK:D:01B:UN:1.0'
+        : 'UTILTS:D:03A:UN:E5SE5A'
+
+  const segments =
+    params.ackFamily === 'CONTRL'
+      ? buildContrlSegments({
+          sourceMessage: params.sourceMessage,
+          externalReference: params.externalReference,
+          transactionReference: params.transactionReference,
+          outcome: params.outcome ?? 'positive',
+          messageText: params.messageText,
+        })
+      : params.ackFamily === 'APERAK'
+        ? buildAperakSegments({
+            sourceMessage: params.sourceMessage,
+            externalReference: params.externalReference,
+            transactionReference: params.transactionReference,
+            outcome: params.outcome ?? 'positive',
+            messageText: params.messageText,
+          })
+        : buildUtiltsErrSegments({
+            sourceMessage: params.sourceMessage,
+            externalReference: params.externalReference,
+            transactionReference: params.transactionReference,
+            messageText: params.messageText,
+          })
+
+  const envelope = buildEdifactEnvelope({
+    senderEdielId: parties.senderEdielId,
+    senderSubAddress: parties.senderSubAddress ?? 'GRIDEX',
+    receiverEdielId: parties.receiverEdielId,
+    receiverSubAddress: parties.receiverSubAddress ?? 'EDIEL',
+    applicationReference,
+    testFlag: params.sourceMessage.test_flag ?? 1,
+    messageTypeToken,
+    segments,
+  })
+
+  return {
+    envelope,
+    applicationReference,
+    parties,
+  }
+}
+
+function buildAckInput(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome?: AckOutcome
+  messageText?: string | null
+}): CreateEdielMessageInput {
+  normalizeAckFamily(params.sourceMessage)
+
+  const externalReference = buildAckExternalReference({
+    sourceMessage: params.sourceMessage,
+    ackFamily: params.ackFamily,
+  })
+
+  const transactionReference = buildAckTransactionReference({
+    sourceMessage: params.sourceMessage,
+    ackFamily: params.ackFamily,
+  })
+
+  const { envelope, applicationReference, parties } = buildAckEnvelope({
+    sourceMessage: params.sourceMessage,
+    ackFamily: params.ackFamily,
+    externalReference,
+    transactionReference,
+    outcome: params.outcome,
+    messageText: params.messageText,
+  })
+
+  const defaults = defaultAckStatuses(params.ackFamily)
+
+  return {
+    actorUserId: params.actorUserId ?? null,
+    direction: 'outbound',
+    messageStandard: 'edifact',
+    messageFamily: params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily,
+    messageCode: params.ackFamily,
+    messageVersion:
+      params.ackFamily === 'CONTRL'
+        ? 'D:96A:UN:1.0'
+        : params.ackFamily === 'APERAK'
+          ? 'D:01B:UN:1.0'
+          : 'E5SE5A',
+    processType:
+      params.ackFamily === 'CONTRL'
+        ? 'syntax_ack'
+        : params.ackFamily === 'APERAK'
+          ? 'application_ack'
+          : 'functional_error',
+    environment: params.sourceMessage.environment,
+    testFlag: params.sourceMessage.test_flag,
+    status: 'draft',
+    transportType: 'smtp',
+    mailbox: parties.mailbox,
+    senderEdielId: parties.senderEdielId,
+    senderName: parties.senderName,
+    receiverEdielId: parties.receiverEdielId,
+    receiverName: parties.receiverName,
+    senderSubAddress: parties.senderSubAddress,
+    receiverSubAddress: parties.receiverSubAddress,
+    receiverEmail: parties.receiverEmail,
+    subject: `${params.ackFamily} ${externalReference}`,
+    fileName: inferEdielFileName({
+      family: params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily,
+      code: params.ackFamily,
+      direction: 'outbound',
+      extension: 'edi',
+    }),
+    mimeType: 'application/edifact',
+    interchangeReference: envelope.interchangeReference,
+    applicationReference,
+    externalReference,
+    correlationReference: params.sourceMessage.correlation_reference ?? params.sourceMessage.id,
+    transactionReference,
+    originalMessageId:
+      params.sourceMessage.external_reference ??
+      params.sourceMessage.interchange_reference ??
+      params.sourceMessage.id,
+    originalTransactionId: params.sourceMessage.transaction_reference ?? null,
+    originalMessageCode: String(params.sourceMessage.message_code),
+    relatedMessageId: params.sourceMessage.id,
+    communicationRouteId: params.sourceMessage.communication_route_id,
+    outboundRequestId: params.sourceMessage.outbound_request_id,
+    switchRequestId: params.sourceMessage.switch_request_id,
+    gridOwnerDataRequestId: params.sourceMessage.grid_owner_data_request_id,
+    partnerExportId: params.sourceMessage.partner_export_id,
+    customerId: params.sourceMessage.customer_id,
+    siteId: params.sourceMessage.site_id,
+    meteringPointId: params.sourceMessage.metering_point_id,
+    gridOwnerId: params.sourceMessage.grid_owner_id,
+    rawPayload: envelope.raw,
+    parsedPayload: {
+      ackFamily: params.ackFamily,
+      ackOutcome: params.outcome ?? 'positive',
+      sourceMessageId: params.sourceMessage.id,
+      sourceMessageFamily: params.sourceMessage.message_family,
+      sourceMessageCode: params.sourceMessage.message_code,
+      sourceTransactionReference: params.sourceMessage.transaction_reference,
+      sourceExternalReference: params.sourceMessage.external_reference,
+      messageText: params.messageText ?? null,
+      inferred: inferEdielFamilyAndCodeFromRawPayload(envelope.raw),
+    },
+    requiresContrl: defaults.requiresContrl,
+    requiresAperak: defaults.requiresAperak,
+    contrlStatus: defaults.contrlStatus,
+    aperakStatus: defaults.aperakStatus,
+    utiltsErrStatus: defaults.utiltsErrStatus,
+    syntaxCheckStatus: 'not_checked',
+    functionalCheckStatus: 'not_checked',
+  }
+}
+
+export function buildContrlDraft(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
   outcome?: AckOutcome
   messageText?: string | null
 }): CreateEdielMessageInput {
-  const reversed = reverseDirectionSenderReceiver(input.sourceMessage)
-  const outcome = input.outcome ?? 'positive'
-  const envelope = buildAperakPayload(input.sourceMessage, outcome, input.messageText)
-
-  return {
-    actorUserId: input.actorUserId ?? null,
-    direction: 'outbound',
-    messageStandard: 'edifact',
-    messageFamily: 'APERAK',
-    messageCode: 'APERAK',
-    messageVersion: input.sourceMessage.message_version ?? 'E5SE5A',
-    environment: input.sourceMessage.environment ?? 'test',
-    testFlag: input.sourceMessage.test_flag ?? 1,
-    status: 'draft',
-    transportType: 'smtp',
-    senderEdielId: reversed.senderEdielId ?? null,
-    senderName: reversed.senderName ?? null,
-    receiverEdielId: reversed.receiverEdielId ?? null,
-    receiverName: reversed.receiverName ?? null,
-    senderSubAddress: reversed.senderSubAddress ?? null,
-    receiverSubAddress: reversed.receiverSubAddress ?? null,
-    senderEmail: reversed.senderEmail ?? null,
-    receiverEmail: reversed.receiverEmail ?? null,
-    subject: buildAckSubject('APERAK', input.sourceMessage, outcome),
-    fileName: inferEdielFileName({
-      family: 'APERAK',
-      code: 'APERAK',
-      direction: 'outbound',
-      extension: 'edi',
-    }),
-    mimeType: 'application/edifact',
-    relatedMessageId: input.sourceMessage.id,
-    customerId: input.sourceMessage.customer_id,
-    siteId: input.sourceMessage.site_id,
-    meteringPointId: input.sourceMessage.metering_point_id,
-    gridOwnerId: input.sourceMessage.grid_owner_id,
-    communicationRouteId: input.sourceMessage.communication_route_id,
-    outboundRequestId: input.sourceMessage.outbound_request_id,
-    switchRequestId: input.sourceMessage.switch_request_id,
-    gridOwnerDataRequestId: input.sourceMessage.grid_owner_data_request_id,
-    partnerExportId: input.sourceMessage.partner_export_id,
-    externalReference: input.sourceMessage.external_reference,
-    correlationReference: input.sourceMessage.correlation_reference,
-    transactionReference: input.sourceMessage.transaction_reference,
-    interchangeReference: envelope.interchangeReference,
-    applicationReference: input.sourceMessage.application_reference,
-    originalMessageId: input.sourceMessage.external_reference,
-    originalTransactionId: input.sourceMessage.transaction_reference,
-    originalMessageCode: String(input.sourceMessage.message_code),
-    rawPayload: envelope.raw,
-    parsedPayload: {
-      sourceMessageId: input.sourceMessage.id,
-      sourceFamily: input.sourceMessage.message_family,
-      sourceCode: input.sourceMessage.message_code,
-      outcome,
-    },
-    requiresContrl: true,
-    requiresAperak: false,
-    contrlStatus: 'pending',
-    aperakStatus: 'not_required',
-    utiltsErrStatus: 'not_required',
-  }
+  return buildAckInput({
+    actorUserId: params.actorUserId ?? null,
+    sourceMessage: params.sourceMessage,
+    ackFamily: 'CONTRL',
+    outcome: params.outcome ?? 'positive',
+    messageText: params.messageText ?? null,
+  })
 }
 
-export function buildUtiltsErrDraft(input: {
+export function buildAperakDraft(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
+  outcome?: AckOutcome
+  messageText?: string | null
+}): CreateEdielMessageInput {
+  return buildAckInput({
+    actorUserId: params.actorUserId ?? null,
+    sourceMessage: params.sourceMessage,
+    ackFamily: 'APERAK',
+    outcome: params.outcome ?? 'positive',
+    messageText: params.messageText ?? null,
+  })
+}
+
+export function buildUtiltsErrDraft(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
   messageText?: string | null
 }): CreateEdielMessageInput {
-  const reversed = reverseDirectionSenderReceiver(input.sourceMessage)
-  const envelope = buildUtiltsErrPayload(input.sourceMessage, input.messageText)
-
-  return {
-    actorUserId: input.actorUserId ?? null,
-    direction: 'outbound',
-    messageStandard: 'edifact',
-    messageFamily: 'UTILTS_ERR',
-    messageCode: 'UTILTS_ERR',
-    messageVersion: 'E5SE5A',
-    environment: input.sourceMessage.environment ?? 'test',
-    testFlag: input.sourceMessage.test_flag ?? 1,
-    status: 'draft',
-    transportType: 'smtp',
-    senderEdielId: reversed.senderEdielId ?? null,
-    senderName: reversed.senderName ?? null,
-    receiverEdielId: reversed.receiverEdielId ?? null,
-    receiverName: reversed.receiverName ?? null,
-    senderSubAddress: reversed.senderSubAddress ?? null,
-    receiverSubAddress: reversed.receiverSubAddress ?? null,
-    senderEmail: reversed.senderEmail ?? null,
-    receiverEmail: reversed.receiverEmail ?? null,
-    subject: buildAckSubject('UTILTS_ERR', input.sourceMessage, 'negative'),
-    fileName: inferEdielFileName({
-      family: 'UTILTS_ERR',
-      code: 'UTILTS_ERR',
-      direction: 'outbound',
-      extension: 'edi',
-    }),
-    mimeType: 'application/edifact',
-    relatedMessageId: input.sourceMessage.id,
-    customerId: input.sourceMessage.customer_id,
-    siteId: input.sourceMessage.site_id,
-    meteringPointId: input.sourceMessage.metering_point_id,
-    gridOwnerId: input.sourceMessage.grid_owner_id,
-    communicationRouteId: input.sourceMessage.communication_route_id,
-    outboundRequestId: input.sourceMessage.outbound_request_id,
-    switchRequestId: input.sourceMessage.switch_request_id,
-    gridOwnerDataRequestId: input.sourceMessage.grid_owner_data_request_id,
-    partnerExportId: input.sourceMessage.partner_export_id,
-    externalReference: input.sourceMessage.external_reference,
-    correlationReference: input.sourceMessage.correlation_reference,
-    transactionReference: input.sourceMessage.transaction_reference,
-    interchangeReference: envelope.interchangeReference,
-    applicationReference: input.sourceMessage.application_reference,
-    originalMessageId: input.sourceMessage.external_reference,
-    originalTransactionId: input.sourceMessage.transaction_reference,
-    originalMessageCode: String(input.sourceMessage.message_code),
-    rawPayload: envelope.raw,
-    parsedPayload: {
-      sourceMessageId: input.sourceMessage.id,
-      sourceFamily: input.sourceMessage.message_family,
-      sourceCode: input.sourceMessage.message_code,
-      outcome: 'negative',
-    },
-    requiresContrl: true,
-    requiresAperak: false,
-    contrlStatus: 'pending',
-    aperakStatus: 'not_required',
-    utiltsErrStatus: 'not_required',
+  if (params.sourceMessage.message_family !== 'UTILTS') {
+    throw new Error('UTILTS_ERR ska bara skapas som svar på UTILTS i aktiv release.')
   }
+
+  return buildAckInput({
+    actorUserId: params.actorUserId ?? null,
+    sourceMessage: params.sourceMessage,
+    ackFamily: 'UTILTS_ERR',
+    messageText: params.messageText ?? null,
+  })
 }

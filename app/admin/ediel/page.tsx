@@ -11,11 +11,7 @@ import {
   listEdielTestRuns,
 } from '@/lib/ediel/db'
 import {
-  attachMessageToTestRunAction,
-  createAckDraftAction,
   createEdielTestRunAction,
-  createNegativeUtiltsResponseAction,
-  createProdatDraftAction,
   registerInboundUtiltsAction,
   runEdielSelfTestAction,
 } from '@/app/admin/ediel/actions'
@@ -23,6 +19,12 @@ import {
   getRecommendationSummary,
   type EdielRecommendationRouteRow,
 } from '@/lib/ediel/recommendations'
+import {
+  ACTIVE_EDIEL_MESSAGE_FAMILIES,
+  ACTIVE_EDIEL_TEST_SUITES,
+  isActiveEdielMessageFamily,
+  isActiveEdielTestSuite,
+} from '@/lib/ediel/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -190,37 +192,11 @@ function getRequestTone(
   return 'slate'
 }
 
-function findOutboundForSource(
-  outboundRequests: SimpleOutboundRow[],
-  sourceType: string,
-  sourceId: string
-): SimpleOutboundRow | null {
-  return (
-    outboundRequests.find(
-      (row) => row.source_type === sourceType && row.source_id === sourceId
-    ) ?? null
-  )
-}
-
 function findMessagesForOutbound(
   messages: Awaited<ReturnType<typeof listEdielMessages>>,
   outboundRequestId: string
 ) {
   return messages.filter((row) => row.outbound_request_id === outboundRequestId)
-}
-
-function findMessagesForDataRequest(
-  messages: Awaited<ReturnType<typeof listEdielMessages>>,
-  dataRequestId: string
-) {
-  return messages.filter((row) => row.grid_owner_data_request_id === dataRequestId)
-}
-
-function findMessagesForSwitchRequest(
-  messages: Awaited<ReturnType<typeof listEdielMessages>>,
-  switchRequestId: string
-) {
-  return messages.filter((row) => row.switch_request_id === switchRequestId)
 }
 
 function routeLabel(route: EdielRecommendationRouteRow | null): string {
@@ -239,15 +215,15 @@ export default async function AdminEdielPage() {
   } = await supabase.auth.getUser()
 
   const [
-    messages,
-    testRuns,
+    messagesRaw,
+    testRunsRaw,
     switchRequestsRaw,
     dataRequestsRaw,
     outboundRaw,
     routesRaw,
     gridOwnersRaw,
   ] = await Promise.all([
-    listEdielMessages({ limit: 50 }),
+    listEdielMessages({ limit: 120 }),
     listEdielTestRuns(),
     supabase
       .from('supplier_switch_requests')
@@ -255,21 +231,21 @@ export default async function AdminEdielPage() {
         'id,status,customer_id,site_id,metering_point_id,external_reference,created_at'
       )
       .order('created_at', { ascending: false })
-      .limit(10),
+      .limit(12),
     supabase
       .from('grid_owner_data_requests')
       .select(
         'id,status,request_scope,customer_id,site_id,metering_point_id,external_reference,created_at'
       )
       .order('created_at', { ascending: false })
-      .limit(10),
+      .limit(12),
     supabase
       .from('outbound_requests')
       .select(
         'id,request_type,source_type,source_id,status,channel_type,communication_route_id,external_reference,customer_id,site_id,metering_point_id,created_at'
       )
       .order('created_at', { ascending: false })
-      .limit(40),
+      .limit(50),
     supabase
       .from('communication_routes')
       .select(
@@ -290,6 +266,12 @@ export default async function AdminEdielPage() {
   const outboundRequests = (outboundRaw.data ?? []) as SimpleOutboundRow[]
   const allRoutes = (routesRaw.data ?? []) as SimpleCommunicationRouteRow[]
   const gridOwners = (gridOwnersRaw.data ?? []) as SimpleGridOwnerRow[]
+
+  const messages = messagesRaw.filter((row) => isActiveEdielMessageFamily(row.message_family))
+  const hiddenMessagesCount = messagesRaw.length - messages.length
+
+  const testRuns = testRunsRaw.filter((row) => isActiveEdielTestSuite(row.test_suite))
+  const hiddenTestRunsCount = testRunsRaw.length - testRuns.length
 
   const edielRoutes = allRoutes.filter(isEdielCandidateRoute)
   const routeProfiles = await Promise.all(
@@ -356,14 +338,45 @@ export default async function AdminEdielPage() {
   const outboundBackedByEdielCount = outboundRequests.filter((row) =>
     messages.some((message) => message.outbound_request_id === row.id)
   ).length
+  const activeTestRunsCount = testRuns.filter((row) =>
+    ['draft', 'running'].includes(row.status)
+  ).length
 
   return (
     <div className="space-y-6">
       <AdminHeader
         title="Ediel"
-        subtitle="Tydlig inbox, outbox, mailbox-polling, SMTP-sändning, kvittenser, self-test och testspår mot Edielportalen."
+        subtitle="Operativ release 1: PRODAT, UTILTS, CONTRL, APERAK, UTILTS_ERR och AI-lista i ett och samma Ediel-system."
         userEmail={user?.email ?? null}
       />
+
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Aktivt scope är låst
+            </h2>
+            <p className="mt-1 text-sm text-slate-700">
+              Den här vyn visar bara aktivt release-scope. Framtida spår hålls utanför den operativa Ediel-vyn tills de verkligen tas i bruk.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="blue">
+              familjer: {ACTIVE_EDIEL_MESSAGE_FAMILIES.join(', ')}
+            </Badge>
+            <Badge tone="blue">
+              testsviter: {ACTIVE_EDIEL_TEST_SUITES.join(', ')}
+            </Badge>
+            <Badge tone={hiddenMessagesCount > 0 ? 'yellow' : 'green'}>
+              dolda meddelanden: {hiddenMessagesCount}
+            </Badge>
+            <Badge tone={hiddenTestRunsCount > 0 ? 'yellow' : 'green'}>
+              dolda test runs: {hiddenTestRunsCount}
+            </Badge>
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -372,7 +385,7 @@ export default async function AdminEdielPage() {
               Server-side rekommendation just nu
             </h2>
             <p className="mt-1 text-sm text-slate-700">
-              Den här panelen räknas fram på serversidan innan workbenchen renderas, så du ser bästa kandidat direkt.
+              Panelen räknas fram på serversidan innan workbenchen renderas, så du ser bästa kandidat direkt för aktivt scope.
             </p>
           </div>
 
@@ -496,7 +509,7 @@ export default async function AdminEdielPage() {
 
       <section className="grid gap-4 md:grid-cols-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="text-sm text-slate-500">Totalt</div>
+          <div className="text-sm text-slate-500">Aktiva meddelanden</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950">
             {messages.length}
           </div>
@@ -526,9 +539,9 @@ export default async function AdminEdielPage() {
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="text-sm text-slate-500">Self-test / runs</div>
+          <div className="text-sm text-slate-500">Aktiva test runs</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950">
-            {testRuns.length}
+            {activeTestRunsCount}
           </div>
         </div>
       </section>
@@ -549,7 +562,7 @@ export default async function AdminEdielPage() {
             {outboundWithoutRoute}
           </div>
           <div className="mt-2 text-xs text-amber-700">
-            Dessa är registrerade men inte skickbara ännu.
+            Registrerade men inte skickbara ännu.
           </div>
         </div>
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
@@ -572,6 +585,290 @@ export default async function AdminEdielPage() {
         </div>
       </section>
 
+      <EdielWorkbench
+        switchRequests={switchRequests}
+        outboundRequests={outboundRequests}
+        messages={messages}
+        routes={workbenchRoutes}
+      />
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-950">
+            Registrera inbound UTILTS manuellt
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Använd bara för riktade test eller när du behöver mata in ett korrekt inbound-fall i aktivt scope.
+          </p>
+
+          <form action={registerInboundUtiltsAction} className="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Meddelandekod
+              </label>
+              <select
+                name="messageCode"
+                defaultValue="E66"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              >
+                <option value="E66">E66</option>
+                <option value="S02">S02</option>
+                <option value="S03">S03</option>
+                <option value="E31">E31</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Sender Ediel-id
+              </label>
+              <input
+                name="senderEdielId"
+                defaultValue=""
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Receiver Ediel-id
+              </label>
+              <input
+                name="receiverEdielId"
+                defaultValue=""
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Kvantitet
+              </label>
+              <input
+                name="quantity"
+                defaultValue="0"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Period start
+              </label>
+              <input
+                name="periodStart"
+                type="datetime-local"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Period slut
+              </label>
+              <input
+                name="periodEnd"
+                type="datetime-local"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+                Registrera inbound UTILTS
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-950">
+            Starta self-test i aktivt scope
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Självtest är låsta till aktiv release. Framtida meddelandefamiljer körs inte här.
+          </p>
+
+          <form action={runEdielSelfTestAction} className="mt-4 space-y-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Scenario
+              </label>
+              <select
+                name="scenario"
+                defaultValue="PRODAT_Z05_IN"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              >
+                <option value="PRODAT_Z04_IN">PRODAT_Z04_IN</option>
+                <option value="PRODAT_Z05_IN">PRODAT_Z05_IN</option>
+                <option value="PRODAT_Z06_IN">PRODAT_Z06_IN</option>
+                <option value="PRODAT_Z10_IN">PRODAT_Z10_IN</option>
+                <option value="UTILTS_S02_IN">UTILTS_S02_IN</option>
+                <option value="UTILTS_S03_IN">UTILTS_S03_IN</option>
+                <option value="UTILTS_E66_KVART_IN">UTILTS_E66_KVART_IN</option>
+                <option value="UTILTS_E66_SCH_IN">UTILTS_E66_SCH_IN</option>
+                <option value="UTILTS_NEGATIVE">UTILTS_NEGATIVE</option>
+              </select>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <input
+                name="switchRequestId"
+                placeholder="switchRequestId"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="gridOwnerDataRequestId"
+                placeholder="gridOwnerDataRequestId"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="senderEdielId"
+                placeholder="senderEdielId"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="receiverEdielId"
+                placeholder="receiverEdielId"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="mailbox"
+                placeholder="mailbox"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="receiverEmail"
+                placeholder="receiverEmail"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </div>
+
+            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+              Kör self-test
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-950">
+            Skapa test run
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Endast testsviter i aktivt scope är tillåtna här.
+          </p>
+
+          <form action={createEdielTestRunAction} className="mt-4 space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Test suite
+                </label>
+                <select
+                  name="testSuite"
+                  defaultValue="PRODAT"
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                >
+                  {ACTIVE_EDIEL_TEST_SUITES.map((suite) => (
+                    <option key={suite} value={suite}>
+                      {suite}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Rollkod
+                </label>
+                <select
+                  name="roleCode"
+                  defaultValue="supplier"
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                >
+                  <option value="supplier">supplier</option>
+                  <option value="grid_owner">grid_owner</option>
+                  <option value="balance_responsible">balance_responsible</option>
+                  <option value="esco">esco</option>
+                </select>
+              </div>
+
+              <input
+                name="testCaseCode"
+                placeholder="testCaseCode"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="title"
+                placeholder="title"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="approvalVersion"
+                placeholder="approvalVersion"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="notes"
+                placeholder="notes"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </div>
+
+            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+              Skapa test run
+            </button>
+          </form>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-950">
+            Aktiva test runs
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Draft eller running inom aktiv release.
+          </p>
+
+          <div className="mt-4 space-y-3">
+            {testRuns.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                Inga aktiva test runs ännu.
+              </div>
+            ) : (
+              testRuns.slice(0, 12).map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-2xl border border-slate-200 p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950">
+                        {row.test_suite} · {row.test_case_code}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {formatDateTime(row.created_at)}
+                      </div>
+                    </div>
+                    <Badge tone={row.status === 'failed' ? 'red' : row.status === 'passed' ? 'green' : 'yellow'}>
+                      {row.status}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <Cell label="ID" value={row.id} />
+                    <Cell label="Roll" value={row.role_code} />
+                    <Cell label="Titel" value={row.title} />
+                    <Cell label="Approval version" value={row.approval_version} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -579,9 +876,7 @@ export default async function AdminEdielPage() {
               Outbound queue som driver Ediel/CIS
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Här ser du om ett leverantörsbyte eller en nätägarbegäran verkligen
-              har köats, vilken kanal som valts, om route saknas och om det sedan
-              blivit ett riktigt Ediel-meddelande.
+              Här ser du om ett leverantörsbyte eller en nätägarbegäran verkligen har köats, vilken kanal som valts, om route saknas och om det sedan blivit ett riktigt Ediel-meddelande.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -618,44 +913,54 @@ export default async function AdminEdielPage() {
               ) : (
                 outboundRequests.map((row) => {
                   const relatedMessages = findMessagesForOutbound(messages, row.id)
-                  const outboundHasEdiel = relatedMessages.length > 0
 
                   return (
                     <tr key={row.id} className="border-b border-slate-100 align-top">
-                      <td className="px-3 py-3 font-medium text-slate-950">{row.id}</td>
-                      <td className="px-3 py-3">{row.request_type}</td>
-                      <td className="px-3 py-3">{row.source_type ?? '—'}</td>
-                      <td className="px-3 py-3">{row.source_id ?? '—'}</td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2 font-mono text-xs text-slate-700">
+                        {row.id}
+                      </td>
+                      <td className="px-3 py-2">{row.request_type}</td>
+                      <td className="px-3 py-2">{row.source_type ?? '—'}</td>
+                      <td className="px-3 py-2 break-all text-xs text-slate-600">
+                        {row.source_id ?? '—'}
+                      </td>
+                      <td className="px-3 py-2">
                         <Badge tone={getOutboundStatusTone(row.status)}>{row.status}</Badge>
                       </td>
-                      <td className="px-3 py-3">{row.channel_type ?? '—'}</td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2">{row.channel_type ?? '—'}</td>
+                      <td className="px-3 py-2">
                         <Badge tone={getRouteTone(row.communication_route_id)}>
-                          {row.communication_route_id ? 'route finns' : 'saknas'}
+                          {row.communication_route_id ? 'kopplad' : 'saknas'}
                         </Badge>
                       </td>
-                      <td className="px-3 py-3">
-                        {outboundHasEdiel ? (
-                          <div className="space-y-1">
-                            <Badge tone="green">ja</Badge>
-                            {relatedMessages.slice(0, 2).map((message) => (
-                              <div key={message.id} className="text-xs text-slate-500">
-                                <Link
-                                  href={`/admin/ediel/messages/${message.id}`}
-                                  className="text-indigo-700 underline-offset-2 hover:underline"
-                                >
-                                  {message.message_family} {message.message_code} · {message.id}
-                                </Link>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <Badge tone="yellow">inte än</Badge>
-                        )}
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          {relatedMessages.length === 0 ? (
+                            <Badge tone="slate">ingen Ediel-rad</Badge>
+                          ) : (
+                            relatedMessages.slice(0, 3).map((message) => (
+                              <Link
+                                key={message.id}
+                                href={`/admin/ediel/messages/${message.id}`}
+                                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-indigo-700 hover:underline"
+                              >
+                                <span className="mr-2">
+                                  <Badge tone={getMessageTone(message.direction)}>
+                                    {message.direction}
+                                  </Badge>
+                                </span>
+                                {message.message_family} {message.message_code}
+                              </Link>
+                            ))
+                          )}
+                        </div>
                       </td>
-                      <td className="px-3 py-3">{row.external_reference ?? '—'}</td>
-                      <td className="px-3 py-3">{formatDateTime(row.created_at)}</td>
+                      <td className="px-3 py-2 break-all text-xs text-slate-600">
+                        {row.external_reference ?? '—'}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-slate-600">
+                        {formatDateTime(row.created_at)}
+                      </td>
                     </tr>
                   )
                 })
@@ -665,671 +970,130 @@ export default async function AdminEdielPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-        <h2 className="text-lg font-semibold text-slate-950">
-          Ediel self-test / simulator
-        </h2>
-        <p className="mt-1 text-sm text-slate-700">
-          Kör interna testscenarier mot riktiga switch requests och data requests
-          innan du fått ditt test-Ediel-id. Detta simulerar inbound Ediel, kopplar
-          meddelandena till riktiga poster, uppdaterar statusar och skapar
-          kvittenser.
-        </p>
-
-        <form action={runEdielSelfTestAction} className="mt-4 space-y-3">
-          <div className="grid gap-3 md:grid-cols-3">
-            <input
-              name="scenario"
-              placeholder="Scenario, t.ex. PRODAT_Z04_IN"
-              className="rounded-xl border border-slate-300 px-3 py-2"
-              required
-            />
-            <input
-              name="switchRequestId"
-              placeholder="Switch request-id för PRODAT-scenarier"
-              className="rounded-xl border border-slate-300 px-3 py-2"
-            />
-            <input
-              name="gridOwnerDataRequestId"
-              placeholder="Data request-id för UTILTS-scenarier"
-              className="rounded-xl border border-slate-300 px-3 py-2"
-            />
-
-            <input
-              name="senderEdielId"
-              placeholder="Simulerad avsändare, t.ex. 91100"
-              defaultValue="91100"
-              className="rounded-xl border border-slate-300 px-3 py-2"
-            />
-            <input
-              name="receiverEdielId"
-              placeholder="Simulerad mottagare"
-              defaultValue="GRIDEX-SIM"
-              className="rounded-xl border border-slate-300 px-3 py-2"
-            />
-            <input
-              name="mailbox"
-              placeholder="Mailbox"
-              defaultValue="SELFTEST"
-              className="rounded-xl border border-slate-300 px-3 py-2"
-            />
-
-            <input
-              name="senderEmail"
-              placeholder="Avsändare e-post"
-              defaultValue="svk-selftest@gridex.local"
-              className="rounded-xl border border-slate-300 px-3 py-2"
-            />
-            <input
-              name="receiverEmail"
-              placeholder="Mottagare e-post"
-              defaultValue="ediel@gridex.se"
-              className="rounded-xl border border-slate-300 px-3 py-2"
-            />
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-            <div className="font-semibold text-slate-900">Stödda scenarier</div>
-            <div className="mt-2 grid gap-2 md:grid-cols-2">
-              <div>PRODAT_Z04_IN</div>
-              <div>PRODAT_Z05_IN</div>
-              <div>PRODAT_Z06_IN</div>
-              <div>PRODAT_Z10_IN</div>
-              <div>UTILTS_S02_IN</div>
-              <div>UTILTS_S03_IN</div>
-              <div>UTILTS_E66_KVART_IN</div>
-              <div>UTILTS_E66_SCH_IN</div>
-              <div>UTILTS_E31_SCH_IN</div>
-              <div>UTILTS_NEGATIVE</div>
-            </div>
-          </div>
-
-          <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-            Kör self-test scenario
-          </button>
-        </form>
-      </section>
-
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Senaste switch requests
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-950">Senaste switch requests</h2>
           <div className="mt-4 space-y-3">
             {switchRequests.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
                 Inga switch requests ännu.
               </div>
             ) : (
-              switchRequests.map((row) => {
-                const outbound = findOutboundForSource(
-                  outboundRequests,
-                  'supplier_switch_request',
-                  row.id
-                )
-                const linkedMessages = findMessagesForSwitchRequest(messages, row.id)
-
-                return (
-                  <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/admin/operations/switches/${row.id}`}
-                        className="text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline"
-                      >
-                        {row.id}
-                      </Link>
-                      <Badge tone={getRequestTone(row.status)}>{row.status}</Badge>
-                      {outbound ? (
-                        <Badge tone={getOutboundStatusTone(outbound.status)}>
-                          outbound {outbound.status}
-                        </Badge>
-                      ) : (
-                        <Badge tone="yellow">ingen outbound ännu</Badge>
-                      )}
-                      {linkedMessages.length > 0 ? (
-                        <Badge tone="green">ediel-kopplad</Badge>
-                      ) : (
-                        <Badge tone="slate">ingen ediel ännu</Badge>
-                      )}
-                    </div>
-
-                    <div className="mt-2 text-xs text-slate-500">
-                      kund {row.customer_id ?? '—'} · site {row.site_id ?? '—'} ·
-                      mätpunkt {row.metering_point_id ?? '—'}
-                    </div>
-
-                    <div className="mt-3 grid gap-2 md:grid-cols-2">
-                      <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-                        <div className="font-medium text-slate-900">Outbound</div>
-                        <div className="mt-1">
-                          {outbound
-                            ? `${outbound.id} · ${outbound.request_type} · ${outbound.channel_type ?? '—'}`
-                            : 'Ingen outbound skapad'}
-                        </div>
-                        <div className="mt-1">
-                          route: {outbound?.communication_route_id ?? 'saknas'}
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-                        <div className="font-medium text-slate-900">Ediel</div>
-                        <div className="mt-1">
-                          {linkedMessages.length > 0
-                            ? linkedMessages
-                                .slice(0, 2)
-                                .map((message) => `${message.message_family} ${message.message_code}`)
-                                .join(', ')
-                            : 'Inget Ediel-meddelande ännu'}
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {linkedMessages.slice(0, 2).map((message) => (
-                            <Link
-                              key={message.id}
-                              href={`/admin/ediel/messages/${message.id}`}
-                              className="inline-flex items-center rounded-xl border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
-                            >
-                              Öppna {message.message_family} {message.message_code}
-                            </Link>
-                          ))}
-                        </div>
-                        <div className="mt-1">skapad: {formatDateTime(row.created_at)}</div>
-                      </div>
-                    </div>
+              switchRequests.map((row) => (
+                <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-slate-950">{row.id}</div>
+                    <Badge tone={getRequestTone(row.status)}>{row.status}</Badge>
                   </div>
-                )
-              })
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <Cell label="Kund" value={row.customer_id} />
+                    <Cell label="Site" value={row.site_id} />
+                    <Cell label="Mätpunkt" value={row.metering_point_id} />
+                    <Cell label="Extern ref" value={row.external_reference} />
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Senaste data requests
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-950">Senaste data requests</h2>
           <div className="mt-4 space-y-3">
             {dataRequests.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
-                Inga grid owner data requests ännu.
+              <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                Inga data requests ännu.
               </div>
             ) : (
-              dataRequests.map((row) => {
-                const outboundMeterValues = findOutboundForSource(
-                  outboundRequests,
-                  'grid_owner_data_request',
-                  row.id
-                )
-                const linkedMessages = findMessagesForDataRequest(messages, row.id)
-
-                return (
-                  <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/admin/operations/grid-owner-requests/${row.id}`}
-                        className="text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline"
-                      >
-                        {row.id}
-                      </Link>
-                      <Badge tone={getRequestTone(row.status)}>
-                        {row.request_scope} · {row.status}
-                      </Badge>
-                      {outboundMeterValues ? (
-                        <Badge tone={getOutboundStatusTone(outboundMeterValues.status)}>
-                          outbound {outboundMeterValues.status}
-                        </Badge>
-                      ) : (
-                        <Badge tone="yellow">ingen outbound ännu</Badge>
-                      )}
-                      {linkedMessages.some((message) => message.direction === 'inbound') ? (
-                        <Badge tone="green">inbound svar finns</Badge>
-                      ) : (
-                        <Badge tone="slate">inget inbound ännu</Badge>
-                      )}
+              dataRequests.map((row) => (
+                <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950">{row.id}</div>
+                      <div className="mt-1 text-xs text-slate-500">{row.request_scope}</div>
                     </div>
-
-                    <div className="mt-2 text-xs text-slate-500">
-                      kund {row.customer_id ?? '—'} · site {row.site_id ?? '—'} ·
-                      mätpunkt {row.metering_point_id ?? '—'}
-                    </div>
-
-                    <div className="mt-3 grid gap-2 md:grid-cols-2">
-                      <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-                        <div className="font-medium text-slate-900">Outbound</div>
-                        <div className="mt-1">
-                          {outboundMeterValues
-                            ? `${outboundMeterValues.id} · ${outboundMeterValues.request_type} · ${outboundMeterValues.channel_type ?? '—'}`
-                            : 'Ingen outbound skapad'}
-                        </div>
-                        <div className="mt-1">
-                          route: {outboundMeterValues?.communication_route_id ?? 'saknas'}
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-                        <div className="font-medium text-slate-900">Ediel</div>
-                        <div className="mt-1">
-                          {linkedMessages.length > 0
-                            ? linkedMessages
-                                .slice(0, 3)
-                                .map(
-                                  (message) =>
-                                    `${message.direction}:${message.message_family} ${message.message_code}`
-                                )
-                                .join(', ')
-                            : 'Ingen Ediel-koppling ännu'}
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {linkedMessages.slice(0, 3).map((message) => (
-                            <Link
-                              key={message.id}
-                              href={`/admin/ediel/messages/${message.id}`}
-                              className="inline-flex items-center rounded-xl border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
-                            >
-                              Öppna {message.direction}:{message.message_family} {message.message_code}
-                            </Link>
-                          ))}
-                        </div>
-                        <div className="mt-1">skapad: {formatDateTime(row.created_at)}</div>
-                      </div>
-                    </div>
+                    <Badge tone={getRequestTone(row.status)}>{row.status}</Badge>
                   </div>
-                )
-              })
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <Cell label="Kund" value={row.customer_id} />
+                    <Cell label="Site" value={row.site_id} />
+                    <Cell label="Mätpunkt" value={row.metering_point_id} />
+                    <Cell label="Extern ref" value={row.external_reference} />
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
       </section>
 
-      <EdielWorkbench
-        switchRequests={switchRequests}
-        outboundRequests={outboundRequests}
-        messages={messages}
-        routes={workbenchRoutes}
-      />
-
-      <section className="grid gap-6 xl:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Negativ UTILTS-respons
-          </h2>
-          <form action={createNegativeUtiltsResponseAction} className="mt-4 space-y-3">
-            <input
-              name="edielMessageId"
-              placeholder="Inbound UTILTS message-id"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2"
-              required
-            />
-            <textarea
-              name="messageText"
-              placeholder="Felorsak"
-              className="min-h-[100px] w-full rounded-xl border border-slate-300 px-3 py-2"
-            />
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Skapa UTILTS-ERR
-            </button>
-          </form>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Manuellt PRODAT-utkast
-          </h2>
-          <form action={createProdatDraftAction} className="mt-4 space-y-3">
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                name="code"
-                placeholder="Z03 / Z09 / Z01 / Z13 / Z18"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="receiverEdielId"
-                placeholder="Mottagarens Ediel-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="senderEdielId"
-                placeholder="Avsändarens Ediel-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="receiverEmail"
-                placeholder="Mottagarens e-post"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="communicationRouteId"
-                placeholder="Route-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="switchRequestId"
-                placeholder="Switch request-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-            </div>
-            <textarea
-              name="payload"
-              placeholder='{"meterPointId":"735999...","customerName":"Test Customer"}'
-              className="min-h-[140px] w-full rounded-xl border border-slate-300 px-3 py-2"
-            />
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Skapa PRODAT-utkast
-            </button>
-          </form>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Registrera inbound UTILTS manuellt
-          </h2>
-          <form action={registerInboundUtiltsAction} className="mt-4 space-y-3">
-            <input
-              name="code"
-              placeholder="S02 / S03 / E31 / E66"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2"
-              required
-            />
-            <textarea
-              name="rawPayload"
-              placeholder="Klistra in rå UTILTS-payload"
-              className="min-h-[140px] w-full rounded-xl border border-slate-300 px-3 py-2"
-              required
-            />
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Registrera inbound UTILTS
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Skapa ACK-utkast
-          </h2>
-          <form action={createAckDraftAction} className="mt-4 space-y-3">
-            <input
-              name="sourceMessageId"
-              placeholder="Källmeddelande-id"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2"
-              required
-            />
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                name="ackType"
-                placeholder="CONTRL / APERAK / UTILTS_ERR"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="outcome"
-                placeholder="positive / negative"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-            </div>
-            <textarea
-              name="messageText"
-              placeholder="Meddelandetext"
-              className="min-h-[100px] w-full rounded-xl border border-slate-300 px-3 py-2"
-            />
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Skapa ACK-utkast
-            </button>
-          </form>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Skapa testrun
-          </h2>
-          <form action={createEdielTestRunAction} className="mt-4 space-y-3">
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                name="testSuite"
-                placeholder="PRODAT / UTILTS / NBS_XML / OTHER"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="roleCode"
-                placeholder="supplier / grid_owner / balance_responsible / esco"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="testCaseCode"
-                placeholder="Test case code"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-                required
-              />
-              <input
-                name="approvalVersion"
-                placeholder="Godkännandeversion"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="customerId"
-                placeholder="Customer-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="siteId"
-                placeholder="Site-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="meteringPointId"
-                placeholder="Metering point-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-              <input
-                name="gridOwnerId"
-                placeholder="Grid owner-id"
-                className="rounded-xl border border-slate-300 px-3 py-2"
-              />
-            </div>
-            <input
-              name="title"
-              placeholder="Titel"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2"
-            />
-            <textarea
-              name="notes"
-              placeholder="Anteckningar"
-              className="min-h-[90px] w-full rounded-xl border border-slate-300 px-3 py-2"
-            />
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Skapa testrun
-            </button>
-          </form>
-        </div>
-      </section>
-
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-lg font-semibold text-slate-950">
-          Senaste Ediel-meddelanden
-        </h2>
-        <div className="mt-4 space-y-4">
-          {messages.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-              Inga Ediel-meddelanden ännu.
-            </div>
-          ) : (
-            messages.map((row) => {
-              const relatedOutbound = row.outbound_request_id
-                ? outboundRequests.find((outbound) => outbound.id === row.outbound_request_id) ?? null
-                : null
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Senaste Ediel-meddelanden i aktivt scope
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Bara familjer som ingår i första release visas här.
+            </p>
+          </div>
+          <Badge tone="blue">visar {messages.length} rader</Badge>
+        </div>
 
-              return (
-                <div
-                  key={row.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-2">
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-slate-500">
+                <th className="px-3 py-2">Tid</th>
+                <th className="px-3 py-2">ID</th>
+                <th className="px-3 py-2">Riktning</th>
+                <th className="px-3 py-2">Familj</th>
+                <th className="px-3 py-2">Kod</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Ack</th>
+                <th className="px-3 py-2">Länk</th>
+              </tr>
+            </thead>
+            <tbody>
+              {messages.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
+                    Inga Ediel-meddelanden i aktivt scope ännu.
+                  </td>
+                </tr>
+              ) : (
+                messages.map((row) => (
+                  <tr key={row.id} className="border-b border-slate-100 align-top">
+                    <td className="px-3 py-2 text-xs text-slate-600">
+                      {formatDateTime(row.created_at)}
+                    </td>
+                    <td className="px-3 py-2 break-all font-mono text-xs text-slate-700">
+                      {row.id}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge tone={getMessageTone(row.direction)}>{row.direction}</Badge>
+                    </td>
+                    <td className="px-3 py-2">{row.message_family}</td>
+                    <td className="px-3 py-2">{row.message_code}</td>
+                    <td className="px-3 py-2">
+                      <Badge tone={getOutboundStatusTone(row.status)}>{row.status}</Badge>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-600">
+                      CONTRL {row.contrl_status ?? '—'} / APERAK {row.aperak_status ?? '—'}
+                    </td>
+                    <td className="px-3 py-2">
                       <Link
                         href={`/admin/ediel/messages/${row.id}`}
-                        className="text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline"
+                        className="text-indigo-700 underline-offset-2 hover:underline"
                       >
-                        {row.message_family} {row.message_code}
+                        Öppna
                       </Link>
-                      <Badge tone={getMessageTone(row.direction)}>{row.direction}</Badge>
-                      <Badge tone={getRequestTone(row.status)}>{row.status}</Badge>
-                      {relatedOutbound ? (
-                        <Badge tone={getOutboundStatusTone(relatedOutbound.status)}>
-                          outbound {relatedOutbound.status}
-                        </Badge>
-                      ) : null}
-                    </div>
-
-                    <Link
-                      href={`/admin/ediel/messages/${row.id}`}
-                      className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                      Öppna detail
-                    </Link>
-                  </div>
-
-                  <div className="mt-3 grid gap-3 md:grid-cols-4">
-                    <Cell
-                      label="Message-id"
-                      value={row.id}
-                      href={`/admin/ediel/messages/${row.id}`}
-                    />
-                    <Cell label="External reference" value={row.external_reference} />
-                    <Cell
-                      label="Correlation reference"
-                      value={row.correlation_reference}
-                    />
-                    <Cell
-                      label="Transaction reference"
-                      value={row.transaction_reference}
-                    />
-                    <Cell label="Sender Ediel-id" value={row.sender_ediel_id} />
-                    <Cell label="Receiver Ediel-id" value={row.receiver_ediel_id} />
-                    <Cell
-                      label="Switch request"
-                      value={row.switch_request_id}
-                      href={
-                        row.switch_request_id
-                          ? `/admin/operations/switches/${row.switch_request_id}`
-                          : undefined
-                      }
-                    />
-                    <Cell
-                      label="Data request"
-                      value={row.grid_owner_data_request_id}
-                      href={
-                        row.grid_owner_data_request_id
-                          ? `/admin/operations/grid-owner-requests/${row.grid_owner_data_request_id}`
-                          : undefined
-                      }
-                    />
-                    <Cell
-                      label="Outbound request"
-                      value={row.outbound_request_id}
-                      href={row.outbound_request_id ? '/admin/outbound' : undefined}
-                    />
-                    <Cell
-                      label="Outbound kanal"
-                      value={relatedOutbound?.channel_type ?? null}
-                    />
-                    <Cell
-                      label="Communication route"
-                      value={
-                        relatedOutbound?.communication_route_id ?? row.communication_route_id
-                      }
-                    />
-                    <Cell
-                      label="Skapad"
-                      value={formatDateTime(row.created_at)}
-                    />
-                  </div>
-
-                  <details className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
-                    <summary className="cursor-pointer text-sm font-medium text-slate-700">
-                      Visa rå payload
-                    </summary>
-                    <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-xs text-slate-800">
-                      {row.raw_payload ?? '—'}
-                    </pre>
-                  </details>
-                </div>
-              )
-            })
-          )}
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-lg font-semibold text-slate-950">Testruns</h2>
-        <div className="mt-4 space-y-4">
-          {testRuns.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-              Inga testruns ännu.
-            </div>
-          ) : (
-            testRuns.map((run) => (
-              <div
-                key={run.id}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-sm font-semibold text-slate-950">
-                    {run.test_suite} / {run.test_case_code}
-                  </div>
-                  <Badge tone="slate">{run.role_code}</Badge>
-                  <Badge tone={getRequestTone(run.status)}>{run.status}</Badge>
-                </div>
-
-                <div className="mt-3 grid gap-3 md:grid-cols-4">
-                  <Cell label="Run-id" value={run.id} />
-                  <Cell
-                    label="Godkännandeversion"
-                    value={run.approval_version}
-                  />
-                  <Cell label="Titel" value={run.title} />
-                  <Cell label="Metering point-id" value={run.metering_point_id} />
-                </div>
-
-                <form
-                  action={attachMessageToTestRunAction}
-                  className="mt-4 grid gap-3 md:grid-cols-5"
-                >
-                  <input type="hidden" name="testRunId" value={run.id} />
-                  <input
-                    name="edielMessageId"
-                    placeholder="Ediel message-id"
-                    className="rounded-xl border border-slate-300 px-3 py-2"
-                    required
-                  />
-                  <input
-                    name="stepNo"
-                    placeholder="Steg nr"
-                    className="rounded-xl border border-slate-300 px-3 py-2"
-                  />
-                  <input
-                    name="expectedDirection"
-                    placeholder="inbound / outbound"
-                    className="rounded-xl border border-slate-300 px-3 py-2"
-                  />
-                  <input
-                    name="expectedFamily"
-                    placeholder="PRODAT / UTILTS"
-                    className="rounded-xl border border-slate-300 px-3 py-2"
-                  />
-                  <input
-                    name="expectedCode"
-                    placeholder="Z03 / E66"
-                    className="rounded-xl border border-slate-300 px-3 py-2"
-                  />
-                  <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white md:col-span-5">
-                    Koppla meddelande till testrun
-                  </button>
-                </form>
-              </div>
-            ))
-          )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>

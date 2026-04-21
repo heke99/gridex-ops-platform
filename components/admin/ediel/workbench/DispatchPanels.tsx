@@ -14,6 +14,25 @@ import type {
 } from '@/lib/ediel/recommendations'
 import { formatMaybe, messageLabel, routeLabel } from './helpers'
 
+type AckDraftType = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+type SupportedProdatCode = 'Z03' | 'Z05' | 'Z09'
+
+function deriveAckTypeFromSelection(
+  selectedAckSource: EdielRecommendationMessageRow | null,
+  prodatCode: SupportedProdatCode
+): AckDraftType {
+  if (selectedAckSource?.message_family === 'UTILTS') {
+    return 'APERAK'
+  }
+
+  if (selectedAckSource?.message_family === 'UTILTS_ERR') {
+    return 'UTILTS_ERR'
+  }
+
+  if (prodatCode === 'Z05') return 'APERAK'
+  return 'CONTRL'
+}
+
 export default function DispatchPanels({
   selectedMessageId,
   setSelectedMessageId,
@@ -73,8 +92,8 @@ export default function DispatchPanels({
   setSelectedAckSourceId: (value: string) => void
   ackableMessagesToShow: EdielRecommendationMessageRow[]
   selectedAckSource: EdielRecommendationMessageRow | null
-  prodatCode: 'Z03' | 'Z09' | 'Z01' | 'Z13' | 'Z18'
-  setProdatCode: (value: 'Z03' | 'Z09' | 'Z01' | 'Z13' | 'Z18') => void
+  prodatCode: SupportedProdatCode
+  setProdatCode: (value: SupportedProdatCode) => void
   selectedRouteId: string
   setSelectedRouteId: (value: string) => void
   selectedRoute: EdielRecommendationRouteRow | null
@@ -95,13 +114,15 @@ export default function DispatchPanels({
   setReceiverEmail: (value: string) => void
   recommendedRouteText: string
 }) {
+  const derivedAckType = deriveAckTypeFromSelection(selectedAckSource, prodatCode)
+
   return (
     <>
       <div className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-slate-950">Skicka Ediel-meddelande</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Listan prioriterar outbound-meddelanden för vald switch och vald route.
+            Listan prioriterar outbound-meddelanden för vald switch och vald route inom aktivt scope.
           </p>
 
           <form action={sendEdielMessageAction} className="mt-4 space-y-4">
@@ -177,7 +198,7 @@ export default function DispatchPanels({
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-slate-950">Mailbox polling</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Pollning använder vald route och mailbox. IMAP ser frisk ut; tom inbox ger bara 0 träffar.
+            Pollning använder vald route och mailbox.
           </p>
 
           <form action={pollMailboxAction} className="mt-4 space-y-4">
@@ -223,8 +244,8 @@ export default function DispatchPanels({
               <div className="mt-2 grid gap-2 md:grid-cols-2">
                 <div>Route: {selectedPollRoute ? routeLabel(selectedPollRoute) : '—'}</div>
                 <div>Mailbox i profilen: {formatMaybe(selectedPollRoute?.profile?.mailbox)}</div>
-                <div>IMAP körs mot: {mailbox || selectedPollRoute?.profile?.mailbox || 'INBOX'}</div>
-                <div>Route-id: {formatMaybe(selectedPollRoute?.id)}</div>
+                <div>IMAP körs mot: {mailbox || selectedPollRoute?.profile?.mailbox || '—'}</div>
+                <div>Target system: {formatMaybe(selectedPollRoute?.target_system)}</div>
               </div>
             </div>
 
@@ -235,17 +256,17 @@ export default function DispatchPanels({
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Negativ UTILTS-respons</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Inbound UTILTS kandidat</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Listan prioriterar inbound UTILTS för vald route eller matchande Ediel-par.
+            Aktivt scope visar bara UTILTS-spår som kan länkas vidare i processen.
           </p>
 
-          <form action={createNegativeUtiltsResponseAction} className="mt-4 space-y-4">
+          <div className="mt-4 space-y-4">
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                Inbound UTILTS-meddelande
+                Inbound UTILTS
               </label>
               <select
                 value={selectedInboundUtiltsId}
@@ -253,7 +274,7 @@ export default function DispatchPanels({
                 className="w-full rounded-xl border border-slate-300 px-3 py-2"
               >
                 {inboundUtiltsMessagesToShow.length === 0 ? (
-                  <option value="">Inga inbound UTILTS-meddelanden</option>
+                  <option value="">Inga inbound UTILTS</option>
                 ) : (
                   inboundUtiltsMessagesToShow.map((message) => (
                     <option key={message.id} value={message.id}>
@@ -262,18 +283,11 @@ export default function DispatchPanels({
                   ))
                 )}
               </select>
-              <input type="hidden" name="edielMessageId" value={selectedInboundUtiltsId} />
             </div>
-
-            <textarea
-              name="messageText"
-              placeholder="Felorsak"
-              className="min-h-[100px] w-full rounded-xl border border-slate-300 px-3 py-2"
-            />
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <div className="font-medium text-slate-900">Valt inbound UTILTS</div>
-              <div className="mt-2 space-y-1">
+              <div className="mt-2 grid gap-2 md:grid-cols-2">
                 <div>
                   ID:{' '}
                   {selectedInboundUtilts?.id ? (
@@ -287,36 +301,34 @@ export default function DispatchPanels({
                     '—'
                   )}
                 </div>
+                <div>Status: {formatMaybe(selectedInboundUtilts?.status)}</div>
                 <div>
                   Kod:{' '}
                   {selectedInboundUtilts
                     ? `${selectedInboundUtilts.message_family} ${selectedInboundUtilts.message_code}`
                     : '—'}
                 </div>
-                <div>Avsändare: {formatMaybe(selectedInboundUtilts?.sender_ediel_id)}</div>
-                <div>Mottagare: {formatMaybe(selectedInboundUtilts?.receiver_ediel_id)}</div>
+                <div>Data request: {formatMaybe(selectedInboundUtilts?.grid_owner_data_request_id)}</div>
               </div>
             </div>
 
-            {selectedInboundUtilts?.id ? (
-              <Link
-                href={`/admin/ediel/messages/${selectedInboundUtilts.id}`}
-                className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            <form action={createNegativeUtiltsResponseAction}>
+              <input type="hidden" name="edielMessageId" value={selectedInboundUtiltsId} />
+              <input type="hidden" name="messageText" value="Functional error" />
+              <button
+                disabled={!selectedInboundUtiltsId}
+                className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Öppna inbound detail
-              </Link>
-            ) : null}
-
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-              Skapa UTILTS-ERR
-            </button>
-          </form>
+                Skapa negativ UTILTS-respons
+              </button>
+            </form>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-slate-950">ACK-utkast</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Välj källmeddelande för CONTRL, APERAK eller UTILTS_ERR.
+            ACK-typen styrs nu av faktiskt sammanhang i aktivt scope istället för gamla placeholder-koder.
           </p>
 
           <form action={createAckDraftAction} className="mt-4 space-y-4">
@@ -347,19 +359,12 @@ export default function DispatchPanels({
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
                   ACK-typ
                 </label>
-                <select
-                  value={prodatCode}
-                  onChange={(event) =>
-                    setProdatCode(event.target.value as 'Z03' | 'Z09' | 'Z01' | 'Z13' | 'Z18')
-                  }
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                >
-                  <option value="Z03">CONTRL / PRODAT-kontext</option>
-                  <option value="Z09">APERAK / PRODAT-kontext</option>
-                  <option value="Z01">CONTRL / UTILTS-kontext</option>
-                  <option value="Z13">APERAK / UTILTS-kontext</option>
-                  <option value="Z18">UTILTS_ERR</option>
-                </select>
+                <input
+                  readOnly
+                  value={derivedAckType}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+                />
+                <input type="hidden" name="ackType" value={derivedAckType} />
               </div>
             </div>
 
@@ -419,7 +424,6 @@ export default function DispatchPanels({
                     ))
                   )}
                 </select>
-                <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
               </div>
 
               <div>
@@ -512,6 +516,31 @@ export default function DispatchPanels({
               </div>
             </div>
 
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Outcome
+              </label>
+              <select
+                name="outcome"
+                defaultValue="positive"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              >
+                <option value="positive">positive</option>
+                <option value="negative">negative</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Meddelandetext
+              </label>
+              <input
+                name="messageText"
+                defaultValue=""
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </div>
+
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <div className="font-medium text-slate-900">Nuvarande rekommendation</div>
               <div className="mt-2 space-y-1">
@@ -522,7 +551,10 @@ export default function DispatchPanels({
               </div>
             </div>
 
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+            <button
+              disabled={!selectedAckSourceId}
+              className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
               Skapa ACK-utkast
             </button>
           </form>
@@ -532,7 +564,7 @@ export default function DispatchPanels({
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-slate-950">Manuellt PRODAT-utkast</h2>
         <p className="mt-1 text-sm text-slate-600">
-          När du behöver skapa ett utkast utanför standardflödet men med samma route-kontext.
+          Endast koder i aktivt switch-scope visas här.
         </p>
 
         <form action={createProdatDraftAction} className="mt-4 grid gap-4 md:grid-cols-2">
@@ -544,18 +576,14 @@ export default function DispatchPanels({
               PRODAT-kod
             </label>
             <select
-              name="code"
+              name="messageCode"
               value={prodatCode}
-              onChange={(event) =>
-                setProdatCode(event.target.value as 'Z03' | 'Z09' | 'Z01' | 'Z13' | 'Z18')
-              }
+              onChange={(event) => setProdatCode(event.target.value as SupportedProdatCode)}
               className="w-full rounded-xl border border-slate-300 px-3 py-2"
             >
               <option value="Z03">Z03</option>
+              <option value="Z05">Z05</option>
               <option value="Z09">Z09</option>
-              <option value="Z01">Z01</option>
-              <option value="Z13">Z13</option>
-              <option value="Z18">Z18</option>
             </select>
           </div>
 
@@ -644,19 +672,13 @@ export default function DispatchPanels({
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-              Payload
-            </label>
-            <textarea
-              name="payload"
-              placeholder='{"meterPointId":"735999...","customerName":"Test Customer"}'
-              className="min-h-[140px] w-full rounded-xl border border-slate-300 px-3 py-2"
-            />
+            <button
+              disabled={!selectedSwitchId || !selectedRouteId}
+              className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Skapa PRODAT-utkast
+            </button>
           </div>
-
-          <button className="md:col-span-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-            Skapa PRODAT-utkast
-          </button>
         </form>
       </div>
     </>

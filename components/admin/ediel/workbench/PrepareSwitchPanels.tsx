@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   prepareAiListAction,
   prepareSwitchZ03Action,
@@ -11,7 +11,6 @@ import {
   prepareUtiltsE73Action,
 } from '@/app/admin/ediel/actions'
 import type {
-  EdielRecommendationOutboundRow,
   EdielRecommendationRouteRow,
   EdielRecommendationSwitchRow,
 } from '@/lib/ediel/recommendations'
@@ -21,6 +20,24 @@ function todayIsoDate(offsetDays = 0): string {
   const date = new Date()
   date.setDate(date.getDate() + offsetDays)
   return date.toISOString().slice(0, 10)
+}
+
+function canPrepareAiList(params: {
+  aiListType: 'AI' | 'BI'
+  aiCustomerId: string
+  aiSiteId: string
+  aiFromDate: string
+  aiToDate: string
+  senderEdielId: string
+  receiverEdielId: string
+  selectedRouteId: string
+}) {
+  if (!params.selectedRouteId) return false
+  if (!params.senderEdielId || !params.receiverEdielId) return false
+  if (!params.aiCustomerId || !params.aiSiteId) return false
+  if (!params.aiFromDate || !params.aiToDate) return false
+  if (params.aiListType === 'BI' && !params.aiSiteId) return false
+  return true
 }
 
 export default function PrepareSwitchPanels({
@@ -65,7 +82,6 @@ export default function PrepareSwitchPanels({
   z03LinkedMessageId: string | null
   z05LinkedMessageId: string | null
   z09LinkedMessageId: string | null
-  outboundRequests: EdielRecommendationOutboundRow[]
 }) {
   const [selectedDataRequestId, setSelectedDataRequestId] = useState('')
   const [e66Quantity, setE66Quantity] = useState('0')
@@ -85,17 +101,81 @@ export default function PrepareSwitchPanels({
   const [aiToDate, setAiToDate] = useState(todayIsoDate())
   const [aiBalanceResponsibleEdielId, setAiBalanceResponsibleEdielId] = useState('')
 
+  useEffect(() => {
+    setAiCustomerId(selectedSwitch?.customer_id ?? '')
+    setAiSiteId(selectedSwitch?.site_id ?? '')
+    setAiMeteringPointId(selectedSwitch?.metering_point_id ?? '')
+  }, [selectedSwitch])
+
   const latestSwitchReference = selectedSwitch?.external_reference ?? 'ingen extern ref'
   const canPrepareSwitch =
     !!selectedSwitchId && !!selectedRouteId && !!senderEdielId && !!receiverEdielId
 
+  const canPrepareE73 = Boolean(selectedDataRequestId && selectedRouteId)
+  const canPrepareE66 = Boolean(
+    selectedDataRequestId &&
+      selectedRouteId &&
+      e66PeriodStart &&
+      e66PeriodEnd &&
+      e66RegistrationTime
+  )
+
+  const canPrepareAi = useMemo(
+    () =>
+      canPrepareAiList({
+        aiListType,
+        aiCustomerId,
+        aiSiteId,
+        aiFromDate,
+        aiToDate,
+        senderEdielId,
+        receiverEdielId,
+        selectedRouteId,
+      }),
+    [
+      aiListType,
+      aiCustomerId,
+      aiSiteId,
+      aiFromDate,
+      aiToDate,
+      senderEdielId,
+      receiverEdielId,
+      selectedRouteId,
+    ]
+  )
+
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Förbered-paneler i aktiv release
+            </h2>
+            <p className="mt-1 text-sm text-slate-700">
+              Den här workbenchen är nu låst till aktivt scope: switch/prodat, data request/utilts och AI-lista.
+              Framtida familjer ska inte förberedas här.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full border border-blue-200 bg-white px-2 py-1 font-medium text-blue-700">
+              PRODAT Z03 / Z05 / Z09
+            </span>
+            <span className="rounded-full border border-blue-200 bg-white px-2 py-1 font-medium text-blue-700">
+              UTILTS E73 / E66
+            </span>
+            <span className="rounded-full border border-blue-200 bg-white px-2 py-1 font-medium text-blue-700">
+              AI-lista
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-1">
           <h2 className="text-lg font-semibold text-slate-950">Gemensam route-kontext</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Alla förbered-flöden nedan använder samma route-kontext. Byt här först, sedan kör du rätt meddelandetyp.
+            Alla prepare-flöden använder samma route-kontext. Byt route här först.
           </p>
 
           <div className="mt-4 space-y-4">
@@ -170,6 +250,7 @@ export default function PrepareSwitchPanels({
                 <div>Target system: {formatMaybe(selectedRoute?.target_system)}</div>
                 <div>Grid owner: {formatMaybe(selectedRoute?.grid_owner_name)}</div>
                 <div>Mailbox i profilen: {formatMaybe(selectedRoute?.profile?.mailbox)}</div>
+                <div>Receiver Ediel-id: {formatMaybe(selectedRoute?.profile?.receiver_ediel_id)}</div>
               </div>
             </div>
           </div>
@@ -178,7 +259,7 @@ export default function PrepareSwitchPanels({
         <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2">
           <h2 className="text-lg font-semibold text-slate-950">Switch → PRODAT</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Här använder du samma switchärende för att skapa de vanligaste outbound-meddelandena mot Ediel.
+            Ett switchärende ska kunna driva flera PRODAT-steg i samma system.
           </p>
 
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -208,7 +289,7 @@ export default function PrepareSwitchPanels({
               )}
             </select>
 
-            <div className="mt-3 grid gap-2 md:grid-cols-3 text-sm text-slate-700">
+            <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-3">
               <div>Kund: {formatMaybe(selectedSwitch?.customer_id)}</div>
               <div>Site: {formatMaybe(selectedSwitch?.site_id)}</div>
               <div>Mätpunkt: {formatMaybe(selectedSwitch?.metering_point_id)}</div>
@@ -240,6 +321,7 @@ export default function PrepareSwitchPanels({
                 )}
               </div>
               <button
+                type="submit"
                 disabled={!canPrepareSwitch}
                 className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -252,7 +334,7 @@ export default function PrepareSwitchPanels({
               <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
               <div className="text-sm font-semibold text-slate-900">Förbered Z05</div>
               <p className="mt-2 text-sm text-slate-600">
-                Slutför/meddela bekräftat switchläge från samma ärende.
+                Slut-/statusmeddelande i samma switchkedja.
               </p>
               <div className="mt-3 text-xs text-slate-500">
                 Senaste Z05:{' '}
@@ -268,6 +350,7 @@ export default function PrepareSwitchPanels({
                 )}
               </div>
               <button
+                type="submit"
                 disabled={!canPrepareSwitch}
                 className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -280,7 +363,7 @@ export default function PrepareSwitchPanels({
               <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
               <div className="text-sm font-semibold text-slate-900">Förbered Z09</div>
               <p className="mt-2 text-sm text-slate-600">
-                Skicka masterdata-relaterat PRODAT från samma switchkontext.
+                Alternativt steg i samma PRODAT-scope.
               </p>
               <div className="mt-3 text-xs text-slate-500">
                 Senaste Z09:{' '}
@@ -296,6 +379,7 @@ export default function PrepareSwitchPanels({
                 )}
               </div>
               <button
+                type="submit"
                 disabled={!canPrepareSwitch}
                 className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -308,20 +392,20 @@ export default function PrepareSwitchPanels({
 
       <div className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Grid owner data request → UTILTS</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Data request → UTILTS</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Klistra in ett riktigt data request-id från listan längre ner på sidan och använd samma route-kontext som ovan.
+            Data request-flödet hålls separat från switch men i samma Ediel-motor.
           </p>
 
           <div className="mt-4 space-y-4">
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                Data request-id
+                Grid owner data request-id
               </label>
               <input
                 value={selectedDataRequestId}
                 onChange={(event) => setSelectedDataRequestId(event.target.value)}
-                placeholder="grid_owner_data_request id"
+                placeholder="Klistra in grid_owner_data_request-id"
                 className="w-full rounded-xl border border-slate-300 px-3 py-2"
               />
             </div>
@@ -330,15 +414,13 @@ export default function PrepareSwitchPanels({
               <form action={prepareUtiltsE73Action} className="rounded-2xl border border-slate-200 p-4">
                 <input type="hidden" name="gridOwnerDataRequestId" value={selectedDataRequestId} />
                 <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
-                <div className="text-sm font-semibold text-slate-900">Förbered UTILTS E73</div>
+                <div className="text-sm font-semibold text-slate-900">Förbered E73</div>
                 <p className="mt-2 text-sm text-slate-600">
-                  Begär saknade eller validerade mätvärden via Ediel.
+                  Begär saknade/efterfrågade mätdata från nätägaren.
                 </p>
-                <div className="mt-3 text-xs text-slate-500">
-                  Kräver data request-id + route.
-                </div>
                 <button
-                  disabled={!selectedDataRequestId || !selectedRouteId}
+                  type="submit"
+                  disabled={!canPrepareE73}
                   className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Förbered E73
@@ -348,45 +430,45 @@ export default function PrepareSwitchPanels({
               <form action={prepareUtiltsE66Action} className="rounded-2xl border border-slate-200 p-4">
                 <input type="hidden" name="gridOwnerDataRequestId" value={selectedDataRequestId} />
                 <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
-
-                <div className="text-sm font-semibold text-slate-900">Förbered UTILTS E66</div>
+                <div className="text-sm font-semibold text-slate-900">Förbered E66</div>
                 <p className="mt-2 text-sm text-slate-600">
-                  Skapa ett outbound E66 med period och kvantitet.
+                  Test/registrering av validerade mätvärden i aktivt UTILTS-scope.
                 </p>
 
-                <div className="mt-3 grid gap-3">
+                <div className="mt-4 space-y-3">
                   <input
                     name="quantity"
                     value={e66Quantity}
                     onChange={(event) => setE66Quantity(event.target.value)}
-                    placeholder="Kvantitet, t.ex. 1250"
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                    placeholder="Kvantitet"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2"
                   />
                   <input
                     name="periodStart"
-                    type="date"
                     value={e66PeriodStart}
                     onChange={(event) => setE66PeriodStart(event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                    type="date"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2"
                   />
                   <input
                     name="periodEnd"
-                    type="date"
                     value={e66PeriodEnd}
                     onChange={(event) => setE66PeriodEnd(event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                    type="date"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2"
                   />
                   <input
                     name="registrationTime"
-                    type="datetime-local"
                     value={e66RegistrationTime}
                     onChange={(event) => setE66RegistrationTime(event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                    type="datetime-local"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2"
                   />
                 </div>
 
                 <button
-                  disabled={!selectedDataRequestId || !selectedRouteId}
+                  type="submit"
+                  disabled={!canPrepareE66}
                   className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Förbered E66
@@ -397,16 +479,16 @@ export default function PrepareSwitchPanels({
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">AI-/BI-lista</h2>
+          <h2 className="text-lg font-semibold text-slate-950">AI-lista</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Skapa AI-/BI-lista från vald kund/site/mätpunkt. Detta är kontroll- och avvikelsehantering, inte automatisk databassynk.
+            AI-lista ligger kvar i aktiv release men bara som kontroll-/avvikelseflöde, inte auto-update.
           </p>
 
           <form action={prepareAiListAction} className="mt-4 space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Typ
+                  Listtyp
                 </label>
                 <select
                   name="listType"
@@ -421,82 +503,6 @@ export default function PrepareSwitchPanels({
 
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Kund-id
-                </label>
-                <input
-                  name="customerId"
-                  value={aiCustomerId}
-                  onChange={(event) => setAiCustomerId(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Site-id
-                </label>
-                <input
-                  name="siteId"
-                  value={aiSiteId}
-                  onChange={(event) => setAiSiteId(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Metering point-id
-                </label>
-                <input
-                  name="meteringPointId"
-                  value={aiMeteringPointId}
-                  onChange={(event) => setAiMeteringPointId(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Från datum
-                </label>
-                <input
-                  name="fromDate"
-                  type="date"
-                  value={aiFromDate}
-                  onChange={(event) => setAiFromDate(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Till datum
-                </label>
-                <input
-                  name="toDate"
-                  type="date"
-                  value={aiToDate}
-                  onChange={(event) => setAiToDate(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Supplier Ediel-id
-                </label>
-                <input
-                  type="hidden"
-                  name="supplierEdielId"
-                  value={senderEdielId}
-                />
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  {formatMaybe(senderEdielId)}
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
                   Receiver Ediel-id
                 </label>
                 <input
@@ -507,48 +513,81 @@ export default function PrepareSwitchPanels({
                 />
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Receiver email
-                </label>
-                <input
-                  name="receiverEmail"
-                  value={receiverEmail}
-                  onChange={(event) => setReceiverEmail(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Balance responsible Ediel-id
-                </label>
-                <input
-                  name="balanceResponsibleEdielId"
-                  value={aiBalanceResponsibleEdielId}
-                  onChange={(event) => setAiBalanceResponsibleEdielId(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                />
-              </div>
+              <input
+                name="customerId"
+                value={aiCustomerId}
+                onChange={(event) => setAiCustomerId(event.target.value)}
+                placeholder="customerId"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="siteId"
+                value={aiSiteId}
+                onChange={(event) => setAiSiteId(event.target.value)}
+                placeholder="siteId"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="meteringPointId"
+                value={aiMeteringPointId}
+                onChange={(event) => setAiMeteringPointId(event.target.value)}
+                placeholder="meteringPointId"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="supplierEdielId"
+                value={senderEdielId}
+                onChange={(event) => setSenderEdielId(event.target.value)}
+                placeholder="supplierEdielId"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="balanceResponsibleEdielId"
+                value={aiBalanceResponsibleEdielId}
+                onChange={(event) => setAiBalanceResponsibleEdielId(event.target.value)}
+                placeholder="balanceResponsibleEdielId"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="receiverEmail"
+                value={receiverEmail}
+                onChange={(event) => setReceiverEmail(event.target.value)}
+                placeholder="receiverEmail"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="fromDate"
+                value={aiFromDate}
+                onChange={(event) => setAiFromDate(event.target.value)}
+                type="date"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
+              <input
+                name="toDate"
+                value={aiToDate}
+                onChange={(event) => setAiToDate(event.target.value)}
+                type="date"
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              />
             </div>
 
             <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              <div className="font-medium text-slate-900">AI-/BI-kontext</div>
-              <div className="mt-2 grid gap-2 md:grid-cols-2">
-                <div>Route: {recommendedRouteText}</div>
-                <div>Supplier Ediel-id: {formatMaybe(senderEdielId)}</div>
-                <div>Receiver Ediel-id: {formatMaybe(receiverEdielId)}</div>
-                <div>Receiver email: {formatMaybe(receiverEmail)}</div>
+              <div className="font-medium text-slate-900">AI-lista i denna release</div>
+              <div className="mt-2 space-y-1">
+                <div>Syfte: kontroll och avvikelsehantering</div>
+                <div>Format: semikolonseparerad CSV i gällande version</div>
+                <div>Ingen automatisk DB-uppdatering från filen</div>
               </div>
             </div>
 
             <button
-              disabled={!selectedRouteId || !aiCustomerId || !aiSiteId || !receiverEdielId}
+              type="submit"
+              disabled={!canPrepareAi}
               className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Förbered AI-/BI-lista
+              Förbered AI-lista
             </button>
           </form>
         </div>

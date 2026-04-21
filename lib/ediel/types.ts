@@ -74,6 +74,51 @@ export type EdielMessageCode =
 
 export type EdielKnownMessageCode = EdielMessageCode | string
 
+export const ACTIVE_EDIEL_MESSAGE_FAMILIES = [
+  'PRODAT',
+  'UTILTS',
+  'APERAK',
+  'CONTRL',
+  'UTILTS_ERR',
+  'AI_LIST',
+] as const
+
+export const FUTURE_EDIEL_MESSAGE_FAMILIES = ['NBS_XML', 'OTHER'] as const
+
+export const ACTIVE_EDIEL_TEST_SUITES = ['PRODAT', 'UTILTS', 'AI_LIST'] as const
+
+export const FUTURE_EDIEL_TEST_SUITES = ['NBS_XML', 'OTHER'] as const
+
+export type ActiveEdielMessageFamily = (typeof ACTIVE_EDIEL_MESSAGE_FAMILIES)[number]
+export type ActiveEdielTestSuite = (typeof ACTIVE_EDIEL_TEST_SUITES)[number]
+
+export function isActiveEdielMessageFamily(
+  family: string | null | undefined
+): family is ActiveEdielMessageFamily {
+  return Boolean(
+    family &&
+      (ACTIVE_EDIEL_MESSAGE_FAMILIES as readonly string[]).includes(family)
+  )
+}
+
+export function isFutureEdielMessageFamily(
+  family: string | null | undefined
+): boolean {
+  return Boolean(
+    family &&
+      (FUTURE_EDIEL_MESSAGE_FAMILIES as readonly string[]).includes(family)
+  )
+}
+
+export function isActiveEdielTestSuite(
+  suite: string | null | undefined
+): suite is ActiveEdielTestSuite {
+  return Boolean(
+    suite &&
+      (ACTIVE_EDIEL_TEST_SUITES as readonly string[]).includes(suite)
+  )
+}
+
 export type EdielMessageRow = {
   id: string
   direction: EdielDirection
@@ -238,45 +283,13 @@ export type EdielTestRunMessageRow = {
   created_at: string
 }
 
-export type EdielRoutePayloadFormat = 'edifact' | 'xml' | 'raw'
-export type EdielEncryptionMode = 'none' | 'smime' | 'pgp'
-
-export type EdielRouteProfileRow = {
-  id: string
-  communication_route_id: string
-  is_enabled: boolean
-  sender_ediel_id: string | null
-  sender_name: string | null
-  sender_sub_address: string | null
-  receiver_ediel_id: string | null
-  receiver_name: string | null
-  receiver_sub_address: string | null
-  application_reference: string | null
-  default_message_version: string | null
-  default_test_flag: 0 | 1
-  default_timezone: number
-  environment: EdielEnvironment
-  message_standard: EdielMessageStandard
-  ack_mode: 'default' | 'none' | 'contrl_only' | 'contrl_and_aperak'
-  smtp_host: string | null
-  smtp_port: number | null
-  imap_host: string | null
-  imap_port: number | null
-  mailbox: string | null
-  encryption_mode: EdielEncryptionMode | null
-  payload_format: EdielRoutePayloadFormat
-  notes: string | null
-  created_at: string
-  updated_at: string
-  created_by: string | null
-  updated_by: string | null
-}
+export type EdielActorRole = 'supplier' | 'grid_owner' | 'balance_responsible' | 'service_provider'
 
 export type EdielActorSettingsRow = {
   id: string
   actor_name: string
   actor_ediel_id: string
-  actor_role: string
+  actor_role: EdielActorRole
   environment: EdielEnvironment
   is_active: boolean
   sender_name: string | null
@@ -295,6 +308,47 @@ export type EdielActorSettingsRow = {
   updated_by: string | null
 }
 
+export type EdielRouteProfileAckMode =
+  | 'default'
+  | 'none'
+  | 'contrl_only'
+  | 'contrl_and_aperak'
+
+export type EdielEncryptionMode = 'none' | 'smime' | 'pgp'
+
+export type EdielPayloadFormat = 'edifact' | 'xml' | 'raw'
+
+export type EdielRouteProfileRow = {
+  id: string
+  communication_route_id: string
+  is_enabled: boolean
+  sender_ediel_id: string | null
+  sender_sub_address: string | null
+  receiver_ediel_id: string | null
+  receiver_sub_address: string | null
+  application_reference: string | null
+  smtp_host: string | null
+  smtp_port: number | null
+  imap_host: string | null
+  imap_port: number | null
+  mailbox: string | null
+  encryption_mode: EdielEncryptionMode | null
+  payload_format: EdielPayloadFormat
+  notes: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+  sender_name: string | null
+  receiver_name: string | null
+  default_message_version: string | null
+  default_test_flag: 0 | 1
+  default_timezone: number
+  environment: EdielEnvironment
+  message_standard: EdielMessageStandard
+  ack_mode: EdielRouteProfileAckMode
+}
+
 export type EdielMessageRuleRow = {
   id: string
   message_family: string
@@ -308,40 +362,16 @@ export type EdielMessageRuleRow = {
   is_active: boolean
   valid_from: string | null
   valid_to: string | null
-  notes: string | null
   created_at: string
   updated_at: string
-  created_by: string | null
-  updated_by: string | null
-}
-
-export type EdielAiListJobRow = {
-  id: string
-  list_type: 'AI' | 'BI'
-  environment: EdielEnvironment
-  sender_ediel_id: string
-  receiver_ediel_id: string
-  from_date: string | null
-  to_date: string | null
-  status: 'draft' | 'generated' | 'sent' | 'failed' | 'imported'
-  file_name: string | null
-  file_path: string | null
-  file_payload: string | null
-  validation_report: Record<string, unknown>
-  notes: string | null
-  created_at: string
-  updated_at: string
-  created_by: string | null
-  updated_by: string | null
 }
 
 export type CreateEdielMessageInput = {
-  actorUserId?: string | null
-
+  actorUserId: string
   direction: EdielDirection
-  messageStandard?: EdielMessageStandard
+  messageStandard: EdielMessageStandard
   messageFamily: EdielMessageFamily
-  messageCode: EdielKnownMessageCode
+  messageCode: string
   messageVersion?: string | null
   processType?: string | null
   environment?: EdielEnvironment
@@ -408,7 +438,7 @@ export type CreateEdielMessageInput = {
 }
 
 export type CreateEdielMessageEventInput = {
-  actorUserId?: string | null
+  actorUserId: string
   edielMessageId: string
   eventType: EdielMessageEventType
   eventStatus?: EdielMessageEventStatus
@@ -416,35 +446,8 @@ export type CreateEdielMessageEventInput = {
   payload?: Record<string, unknown>
 }
 
-export type UpsertEdielRouteProfileInput = {
-  actorUserId?: string | null
-  communicationRouteId: string
-  isEnabled: boolean
-  senderEdielId?: string | null
-  senderName?: string | null
-  senderSubAddress?: string | null
-  receiverEdielId?: string | null
-  receiverName?: string | null
-  receiverSubAddress?: string | null
-  applicationReference?: string | null
-  defaultMessageVersion?: string | null
-  defaultTestFlag?: 0 | 1
-  defaultTimezone?: number | null
-  environment?: EdielEnvironment
-  messageStandard?: EdielMessageStandard
-  ackMode?: 'default' | 'none' | 'contrl_only' | 'contrl_and_aperak'
-  smtpHost?: string | null
-  smtpPort?: number | null
-  imapHost?: string | null
-  imapPort?: number | null
-  mailbox?: string | null
-  encryptionMode?: EdielEncryptionMode | null
-  payloadFormat?: EdielRoutePayloadFormat
-  notes?: string | null
-}
-
 export type CreateEdielTestRunInput = {
-  actorUserId?: string | null
+  actorUserId: string
   approvalVersion?: string | null
   roleCode: EdielTestRoleCode
   testSuite: EdielTestSuite
@@ -459,4 +462,87 @@ export type CreateEdielTestRunInput = {
   completedAt?: string | null
   failureReason?: string | null
   notes?: string | null
+}
+
+export type AttachEdielMessageToTestRunInput = {
+  testRunId: string
+  edielMessageId: string
+  stepNo?: number | null
+  expectedDirection?: EdielDirection | null
+  expectedFamily?: string | null
+  expectedCode?: string | null
+}
+
+export type UpdateEdielMessageStatusInput = {
+  actorUserId: string
+  edielMessageId: string
+  status: EdielMessageStatus
+  failureReason?: string | null
+  parsedAt?: string | null
+  validatedAt?: string | null
+  acknowledgedAt?: string | null
+  failedAt?: string | null
+  messageSentAt?: string | null
+  messageReceivedAt?: string | null
+}
+
+export type LinkEdielMessageInput = {
+  actorUserId: string
+  edielMessageId: string
+  outboundRequestId?: string | null
+  switchRequestId?: string | null
+  gridOwnerDataRequestId?: string | null
+  partnerExportId?: string | null
+  customerId?: string | null
+  siteId?: string | null
+  meteringPointId?: string | null
+  gridOwnerId?: string | null
+  relatedMessageId?: string | null
+}
+
+export type EdielMailboxEnvelope = {
+  mailboxMessageId: string
+  mailbox?: string | null
+  fromEmail?: string | null
+  toEmail?: string | null
+  subject?: string | null
+  receivedAt?: string | null
+  fileName?: string | null
+  mimeType?: string | null
+  payload: string
+}
+
+export type ParsedEdielEnvelope = {
+  messageStandard: EdielMessageStandard
+  messageFamily: EdielMessageFamily
+  messageCode: string
+  messageVersion?: string | null
+  processType?: string | null
+  externalReference?: string | null
+  correlationReference?: string | null
+  transactionReference?: string | null
+  applicationReference?: string | null
+  interchangeReference?: string | null
+  originalMessageId?: string | null
+  originalTransactionId?: string | null
+  originalMessageCode?: string | null
+  senderEdielId?: string | null
+  senderName?: string | null
+  senderSubAddress?: string | null
+  receiverEdielId?: string | null
+  receiverName?: string | null
+  receiverSubAddress?: string | null
+  rawPayload: string
+  parsedPayload: Record<string, unknown>
+  validationReport?: Record<string, unknown>
+  requiresContrl?: boolean
+  requiresAperak?: boolean
+  contrlStatus?: EdielAckStatus | null
+  aperakStatus?: EdielAckStatus | null
+  utiltsErrStatus?: EdielAckStatus | null
+  syntaxCheckStatus?: string | null
+  functionalCheckStatus?: string | null
+  messageCreatedAt?: string | null
+  messageReceivedAt?: string | null
+  ackDueAt?: string | null
 }

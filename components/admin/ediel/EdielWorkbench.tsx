@@ -1,3 +1,4 @@
+//components/admin/ediel/EdielWorkbench.tsx
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
@@ -15,6 +16,7 @@ import type { EdielWorkbenchProps } from '@/components/admin/ediel/workbench/typ
 import WorkbenchSummary from '@/components/admin/ediel/workbench/WorkbenchSummary'
 import PrepareSwitchPanels from '@/components/admin/ediel/workbench/PrepareSwitchPanels'
 import DispatchPanels from '@/components/admin/ediel/workbench/DispatchPanels'
+import { isActiveEdielMessageFamily } from '@/lib/ediel/types'
 
 export default function EdielWorkbench({
   switchRequests,
@@ -22,6 +24,11 @@ export default function EdielWorkbench({
   messages,
   routes,
 }: EdielWorkbenchProps) {
+  const scopedMessages = useMemo(
+    () => messages.filter((message) => isActiveEdielMessageFamily(message.message_family)),
+    [messages]
+  )
+
   const newestSwitchId = useMemo(() => getNewestSwitchId(switchRequests), [switchRequests])
 
   const [selectedSwitchId, setSelectedSwitchId] = useState(newestSwitchId)
@@ -43,7 +50,7 @@ export default function EdielWorkbench({
       selectedSwitchId: newestSwitchId,
     })
   )
-  const [prodatCode, setProdatCode] = useState<'Z03' | 'Z09' | 'Z01' | 'Z13' | 'Z18'>('Z03')
+  const [prodatCode, setProdatCode] = useState<'Z03' | 'Z05' | 'Z09'>('Z03')
 
   const recommendedRoutes = useMemo(
     () =>
@@ -136,11 +143,11 @@ export default function EdielWorkbench({
   const sendableMessagesToShow = useMemo(
     () =>
       getRecommendedSendableMessages({
-        messages,
+        messages: scopedMessages,
         selectedSwitchId,
         selectedRouteId,
       }),
-    [messages, selectedSwitchId, selectedRouteId]
+    [scopedMessages, selectedSwitchId, selectedRouteId]
   )
 
   useEffect(() => {
@@ -153,11 +160,11 @@ export default function EdielWorkbench({
   const inboundUtiltsMessagesToShow = useMemo(
     () =>
       getRecommendedInboundUtiltsMessages({
-        messages,
+        messages: scopedMessages,
         selectedRoute,
         selectedRouteId,
       }),
-    [messages, selectedRoute, selectedRouteId]
+    [scopedMessages, selectedRoute, selectedRouteId]
   )
 
   useEffect(() => {
@@ -170,17 +177,19 @@ export default function EdielWorkbench({
     }
   }, [inboundUtiltsMessagesToShow, selectedInboundUtiltsId])
 
-  const ackPreferredFamily = prodatCode === 'Z03' || prodatCode === 'Z09' ? 'PRODAT' : 'UTILTS'
+  const ackPreferredFamily = selectedAckSourceId
+    ? scopedMessages.find((message) => message.id === selectedAckSourceId)?.message_family ?? 'PRODAT'
+    : 'PRODAT'
 
   const ackableMessagesToShow = useMemo(
     () =>
       getRecommendedAckableMessages({
-        messages,
+        messages: scopedMessages,
         selectedSwitchId,
         selectedRouteId,
-        preferredFamily: ackPreferredFamily,
+        preferredFamily: ackPreferredFamily === 'UTILTS' ? 'UTILTS' : 'PRODAT',
       }),
-    [messages, selectedSwitchId, selectedRouteId, ackPreferredFamily]
+    [scopedMessages, selectedSwitchId, selectedRouteId, ackPreferredFamily]
   )
 
   useEffect(() => {
@@ -194,51 +203,51 @@ export default function EdielWorkbench({
   }, [ackableMessagesToShow, selectedAckSourceId])
 
   const selectedMessage = useMemo(
-    () => messages.find((message) => message.id === selectedMessageId) ?? null,
-    [messages, selectedMessageId]
+    () => scopedMessages.find((message) => message.id === selectedMessageId) ?? null,
+    [scopedMessages, selectedMessageId]
   )
 
   const selectedInboundUtilts = useMemo(
-    () => messages.find((message) => message.id === selectedInboundUtiltsId) ?? null,
-    [messages, selectedInboundUtiltsId]
+    () => scopedMessages.find((message) => message.id === selectedInboundUtiltsId) ?? null,
+    [scopedMessages, selectedInboundUtiltsId]
   )
 
   const selectedAckSource = useMemo(
-    () => messages.find((message) => message.id === selectedAckSourceId) ?? null,
-    [messages, selectedAckSourceId]
+    () => scopedMessages.find((message) => message.id === selectedAckSourceId) ?? null,
+    [scopedMessages, selectedAckSourceId]
   )
 
   const z03LinkedMessage = useMemo(
     () =>
-      messages.find(
+      scopedMessages.find(
         (message) =>
           message.switch_request_id === selectedSwitchId &&
           message.direction === 'outbound' &&
           message.message_code === 'Z03'
       ) ?? null,
-    [messages, selectedSwitchId]
+    [scopedMessages, selectedSwitchId]
   )
 
   const z05LinkedMessage = useMemo(
     () =>
-      messages.find(
+      scopedMessages.find(
         (message) =>
           message.switch_request_id === selectedSwitchId &&
           message.direction === 'outbound' &&
           message.message_code === 'Z05'
       ) ?? null,
-    [messages, selectedSwitchId]
+    [scopedMessages, selectedSwitchId]
   )
 
   const z09LinkedMessage = useMemo(
     () =>
-      messages.find(
+      scopedMessages.find(
         (message) =>
           message.switch_request_id === selectedSwitchId &&
           message.direction === 'outbound' &&
           message.message_code === 'Z09'
       ) ?? null,
-    [messages, selectedSwitchId]
+    [scopedMessages, selectedSwitchId]
   )
 
   const recommendedRouteText = useMemo(

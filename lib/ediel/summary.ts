@@ -1,143 +1,93 @@
 // lib/ediel/summary.ts
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type {
+  EdielMessageRow,
+  EdielRouteProfileRow,
+  EdielTestRunRow,
+} from '@/lib/ediel/types'
 
 export type EdielSummary = {
   totalMessages: number
   inboundMessages: number
   outboundMessages: number
-  queuedMessages: number
   failedMessages: number
-  draftMessages: number
+  queuedMessages: number
+  preparedMessages: number
+  sentMessages: number
+  ackPendingMessages: number
+  ackOverdueMessages: number
   activeRoutes: number
   configuredProfiles: number
-  activeTestRuns: number
-  switchLinkedMessages: number
-  dataRequestLinkedMessages: number
-  pendingAckMessages: number
+  runningTests: number
 }
 
-type CountableResult = {
-  count: number | null
-  error: unknown
+function isAckPending(message: Pick<EdielMessageRow, 'contrl_status' | 'aperak_status'>) {
+  return message.contrl_status === 'pending' || message.aperak_status === 'pending'
 }
 
-async function countHead(query: PromiseLike<CountableResult>): Promise<number> {
-  const result = await query
+function isAckOverdue(
+  message: Pick<
+    EdielMessageRow,
+    'contrl_status' | 'aperak_status' | 'ack_due_at'
+  >
+) {
+  if (!isAckPending(message)) return false
+  if (!message.ack_due_at) return false
 
-  if (result?.error) {
-    throw result.error
-  }
+  const dueAt = new Date(message.ack_due_at)
+  if (Number.isNaN(dueAt.getTime())) return false
 
-  return result.count ?? 0
+  return dueAt.getTime() < Date.now()
 }
 
 export async function getEdielSummary(
   supabase: SupabaseClient
 ): Promise<EdielSummary> {
-  const [
-    totalMessages,
-    inboundMessages,
-    outboundMessages,
-    queuedMessages,
-    failedMessages,
-    draftMessages,
-    activeRoutes,
-    configuredProfiles,
-    activeTestRuns,
-    switchLinkedMessages,
-    dataRequestLinkedMessages,
-    pendingAperak,
-    pendingContrl,
-  ] = await Promise.all([
-    countHead(
-      supabase.from('ediel_messages').select('*', { count: 'exact', head: true })
-    ),
-    countHead(
-      supabase
-        .from('ediel_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('direction', 'inbound')
-    ),
-    countHead(
-      supabase
-        .from('ediel_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('direction', 'outbound')
-    ),
-    countHead(
-      supabase
-        .from('ediel_messages')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['queued', 'prepared'])
-    ),
-    countHead(
-      supabase
-        .from('ediel_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'failed')
-    ),
-    countHead(
-      supabase
-        .from('ediel_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'draft')
-    ),
-    countHead(
-      supabase
-        .from('ediel_route_profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('is_enabled', true)
-    ),
-    countHead(
-      supabase
-        .from('ediel_route_profiles')
-        .select('id', { count: 'exact', head: true })
-    ),
-    countHead(
-      supabase
-        .from('ediel_test_runs')
-        .select('id', { count: 'exact', head: true })
-        .in('status', ['draft', 'running'])
-    ),
-    countHead(
-      supabase
-        .from('ediel_messages')
-        .select('id', { count: 'exact', head: true })
-        .not('switch_request_id', 'is', null)
-    ),
-    countHead(
-      supabase
-        .from('ediel_messages')
-        .select('id', { count: 'exact', head: true })
-        .not('grid_owner_data_request_id', 'is', null)
-    ),
-    countHead(
-      supabase
-        .from('ediel_messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('aperak_status', 'pending')
-    ),
-    countHead(
-      supabase
-        .from('ediel_messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('contrl_status', 'pending')
-    ),
+  const [messagesRes, routesRes, profilesRes, testsRes] = await Promise.all([
+    supabase.from('ediel_messages').select('*'),
+    supabase.from('communication_routes').select('id,is_active,route_type,target_system,target_email'),
+    supabase.from('ediel_route_profiles').select('*'),
+    supabase.from('ediel_test_runs').select('*'),
   ])
 
+  if (messagesRes.error) throw messagesRes.error
+  if (routesRes.error) throw routesRes.error
+  if (profilesRes.error) throw profilesRes.error
+  if (testsRes.error) throw testsRes.error
+
+  const messages = (messagesRes.data ?? []) as EdielMessageRow[]
+  const profiles = (profilesRes.data ?? []) as EdielRouteProfileRow[]
+  const tests = (testsRes.data ?? []) as EdielTestRunRow[]
+
+  const routes = (routesRes.data ?? []) as Array<{
+    id: string
+    is_active: boolean
+    route_type: string
+    target_system: string | null
+    target_email: string | null
+  }>
+
+  const activeRoutes = routes.filter((route) => {
+    if (!route.is_active) return false
+    if (route.route_type === 'ediel_partner') return true
+    if (route.target_system?.toLowerCase().includes('ediel')) return true
+    if (route.target_email?.toLowerCase().includes('ediel')) return true
+    return false
+  }).length
+
   return {
-    totalMessages,
-    inboundMessages,
-    outboundMessages,
-    queuedMessages,
-    failedMessages,
-    draftMessages,
+    totalMessages: messages.length,
+    inboundMessages: messages.filter((row) => row.direction === 'inbound').length,
+    outboundMessages: messages.filter((row) => row.direction === 'outbound').length,
+    failedMessages: messages.filter((row) => row.status === 'failed').length,
+    queuedMessages: messages.filter((row) => row.status === 'queued').length,
+    preparedMessages: messages.filter((row) => row.status === 'prepared').length,
+    sentMessages: messages.filter((row) => row.status === 'sent').length,
+    ackPendingMessages: messages.filter(isAckPending).length,
+    ackOverdueMessages: messages.filter(isAckOverdue).length,
     activeRoutes,
-    configuredProfiles,
-    activeTestRuns,
-    switchLinkedMessages,
-    dataRequestLinkedMessages,
-    pendingAckMessages: pendingAperak + pendingContrl,
+    configuredProfiles: profiles.length,
+    runningTests: tests.filter((row) => row.status === 'draft' || row.status === 'running').length,
   }
 }

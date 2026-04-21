@@ -7,13 +7,21 @@ import {
   findEdielMessageByMailboxIdentity,
   getEdielRouteProfileByCommunicationRouteId,
 } from '@/lib/ediel/db'
-import type { EdielMessageRow } from '@/lib/ediel/types'
-import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
+import type {
+  CreateEdielMessageInput,
+  EdielMessageRow,
+} from '@/lib/ediel/types'
+import {
+  ACTIVE_EDIEL_MESSAGE_FAMILIES,
+  isActiveEdielMessageFamily,
+} from '@/lib/ediel/types'
+import { buildInboundUtiltsMessageInput, parseInboundUtilts } from '@/lib/ediel/utilts'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
 import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
+import { deriveEdielAckDefaults } from '@/lib/ediel/references'
 
 function requireEnv(name: string, fallback?: string | null): string {
   const value = process.env[name] ?? fallback ?? ''
@@ -21,6 +29,11 @@ function requireEnv(name: string, fallback?: string | null): string {
     throw new Error(`Missing required env: ${name}`)
   }
   return value
+}
+
+function optionalEnv(name: string, fallback?: string | null): string | null {
+  const value = process.env[name] ?? fallback ?? null
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
 
 function resolveSmtpPort(value?: number | null): number {
@@ -47,11 +60,167 @@ function normalizeMailboxIdentity(value: unknown): string | null {
   return null
 }
 
+function normalizeEmail(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function assertTransportFamily(messageFamily: string | null | undefined, context: string) {
+  if (!isActiveEdielMessageFamily(messageFamily)) {
+    throw new Error(
+      `${context}: message family ${messageFamily ?? 'null'} ligger utanför aktiv release (${ACTIVE_EDIEL_MESSAGE_FAMILIES.join(', ')})`
+    )
+  }
+}
+
+function inferAttachmentExtension(message: EdielMessageRow): 'edi' | 'csv' | 'xml' {
+  if (message.message_standard === 'ai_list') return 'csv'
+  if (message.message_standard === 'xml') return 'xml'
+  return 'edi'
+}
+
+function inferMimeType(message: EdielMessageRow): string {
+  if (message.mime_type?.trim()) return message.mime_type
+
+  if (message.message_standard === 'ai_list') {
+    return 'text/csv; charset=utf-8'
+  }
+
+  if (message.message_standard === 'xml') {
+    return 'application/xml; charset=utf-8'
+  }
+
+  return 'application/edifact'
+}
+
+function inferBodyText(message: EdielMessageRow): string {
+  if (typeof message.raw_payload === 'string' && message.raw_payload.length > 0) {
+    return message.raw_payload
+  }
+
+  if (message.message_standard === 'ai_list') {
+    return 'AI-list payload missing'
+  }
+
+  return ''
+}
+
+function buildInboundProdatMessageInput(params: {
+  rawPayload: string
+  communicationRouteId?: string | null
+  mailbox?: string | null
+  mailboxMessageId?: string | null
+  senderEmail?: string | null
+  receiverEmail?: string | null
+  subject?: string | null
+}): CreateEdielMessageInput {
+  const parsed = parseInboundProdat(params.rawPayload)
+  const ack = deriveEdielAckDefaults({
+    family: 'PRODAT',
+    code: parsed.messageCode ?? 'Z03',
+  })
+
+  return {
+    actorUserId: null,
+    direction: 'inbound',
+    messageStandard: 'edifact',
+    messageFamily: 'PRODAT',
+    messageCode: parsed.messageCode ?? 'Z03',
+    status: 'received',
+    transportType: 'imap',
+    mailbox: params.mailbox ?? null,
+    mailboxMessageId: params.mailboxMessageId ?? null,
+    senderEdielId: parsed.senderEdielId,
+    receiverEdielId: parsed.receiverEdielId,
+    senderSubAddress: parsed.senderSubAddress,
+    receiverSubAddress: parsed.receiverSubAddress,
+    senderEmail: params.senderEmail ?? null,
+    receiverEmail: params.receiverEmail ?? null,
+    subject: params.subject ?? null,
+    fileName: inferEdielFileName({
+      family: 'PRODAT',
+      code: parsed.messageCode ?? 'Z03',
+      direction: 'inbound',
+      extension: 'edi',
+    }),
+    mimeType: 'application/edifact',
+    externalReference: parsed.externalReference,
+    transactionReference: parsed.transactionReference,
+    applicationReference: parsed.applicationReference,
+    communicationRouteId: params.communicationRouteId ?? null,
+    rawPayload: params.rawPayload,
+    parsedPayload: parsed.parsedPayload,
+    requiresContrl: ack.requiresContrl,
+    requiresAperak: ack.requiresAperak,
+    contrlStatus: ack.contrlStatus,
+    aperakStatus: ack.aperakStatus,
+    utiltsErrStatus: ack.utiltsErrStatus,
+    messageReceivedAt: new Date().toISOString(),
+  }
+}
+
+function buildInboundAiListMessageInput(params: {
+  rawPayload: string
+  listType: 'AI' | 'BI'
+  communicationRouteId?: string | null
+  mailbox?: string | null
+  mailboxMessageId?: string | null
+  senderEmail?: string | null
+  receiverEmail?: string | null
+  subject?: string | null
+}): CreateEdielMessageInput {
+  const externalReference =
+    params.subject?.match(/[A-Z0-9._-]{6,}/)?.[0] ?? params.mailboxMessageId ?? null
+
+  const parsedPayload: Record<string, unknown> = {
+    listType: params.listType,
+    lineCount: params.rawPayload.split(/\r?\n/).filter(Boolean).length,
+    separator: ';',
+    importedVia: 'imap',
+  }
+
+  return {
+    actorUserId: null,
+    direction: 'inbound',
+    messageStandard: 'ai_list',
+    messageFamily: 'AI_LIST',
+    messageCode: params.listType,
+    messageVersion: 'CSV_SEMICOLON_2025-10-01',
+    status: 'received',
+    transportType: 'imap',
+    mailbox: params.mailbox ?? null,
+    mailboxMessageId: params.mailboxMessageId ?? null,
+    senderEmail: params.senderEmail ?? null,
+    receiverEmail: params.receiverEmail ?? null,
+    subject: params.subject ?? null,
+    fileName: inferEdielFileName({
+      family: 'AI_LIST',
+      code: params.listType,
+      direction: 'inbound',
+      extension: 'csv',
+    }),
+    mimeType: 'text/csv; charset=utf-8',
+    externalReference,
+    communicationRouteId: params.communicationRouteId ?? null,
+    rawPayload: params.rawPayload,
+    parsedPayload,
+    requiresContrl: false,
+    requiresAperak: false,
+    contrlStatus: 'not_required',
+    aperakStatus: 'not_required',
+    utiltsErrStatus: 'not_required',
+    messageReceivedAt: new Date().toISOString(),
+  }
+}
+
 export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise<{
   accepted: string[]
   rejected: string[]
   messageId: string | null
 }> {
+  assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
+
   if (!message.receiver_email?.trim()) {
     throw new Error(
       `Kan inte skicka Ediel-meddelande ${message.id} utan receiver_email.`
@@ -69,7 +238,9 @@ export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise
     routeProfile?.mailbox ?? process.env.EDIEL_SMTP_USER ?? null
   )
   const pass = requireEnv('EDIEL_SMTP_PASS')
-  const from = routeProfile?.mailbox ?? process.env.EDIEL_SMTP_FROM ?? user
+  const from =
+    optionalEnv('EDIEL_SMTP_FROM', routeProfile?.mailbox ?? null) ?? user
+  const replyTo = optionalEnv('EDIEL_SMTP_REPLY_TO', null)
 
   const transporter = nodemailer.createTransport({
     host,
@@ -79,13 +250,20 @@ export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise
       user,
       pass,
     },
+    tls: {
+      rejectUnauthorized: false,
+    },
   })
+
+  const extension = inferAttachmentExtension(message)
+  const bodyText = inferBodyText(message)
 
   const result = await transporter.sendMail({
     from,
     to: message.receiver_email,
+    replyTo: replyTo ?? undefined,
     subject: message.subject ?? `${message.message_family} ${message.message_code}`,
-    text: message.raw_payload ?? '',
+    text: bodyText,
     attachments: [
       {
         filename:
@@ -94,10 +272,10 @@ export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise
             family: message.message_family,
             code: String(message.message_code),
             direction: message.direction,
-            extension: 'edi',
+            extension,
           }),
-        content: message.raw_payload ?? '',
-        contentType: message.mime_type ?? 'application/edifact',
+        content: bodyText,
+        contentType: inferMimeType(message),
       },
     ],
   })
@@ -159,18 +337,14 @@ export async function pollEdielMailboxViaImap(params?: {
         if (count >= limit) break
 
         const mailboxMessageId = normalizeMailboxIdentity(item.uid)
-        if (!mailboxMessageId) {
-          continue
-        }
+        if (!mailboxMessageId) continue
 
         const existing = await findEdielMessageByMailboxIdentity({
           mailbox,
           mailboxMessageId,
         })
 
-        if (existing) {
-          continue
-        }
+        if (existing) continue
 
         const rawSource =
           typeof item.source === 'string'
@@ -180,65 +354,73 @@ export async function pollEdielMailboxViaImap(params?: {
               : ''
 
         const content = rawSource || ''
-        const inferred = inferEdielFamilyAndCodeFromRawPayload(content)
+        if (!content.trim()) continue
 
-        if (!inferred.messageFamily || !inferred.messageCode) {
-          continue
-        }
+        const senderEmail = normalizeEmail(item.envelope?.from?.[0]?.address)
+        const receiverEmail = normalizeEmail(item.envelope?.to?.[0]?.address)
+        const subject = normalizeEmail(item.envelope?.subject)
+
+        const inferred = inferEdielFamilyAndCodeFromRawPayload(content)
 
         let createdMessage: EdielMessageRow | null = null
 
         if (inferred.messageFamily === 'UTILTS') {
+          const utiltsCode =
+            inferred.messageCode === 'S01' ||
+            inferred.messageCode === 'S02' ||
+            inferred.messageCode === 'S03' ||
+            inferred.messageCode === 'S04' ||
+            inferred.messageCode === 'E31' ||
+            inferred.messageCode === 'E66' ||
+            inferred.messageCode === 'E73'
+              ? inferred.messageCode
+              : 'E66'
+
+          const parsed = parseInboundUtilts(content)
+          if (!isActiveEdielMessageFamily(parsed.messageFamily)) continue
+
           createdMessage = await createEdielMessage(
             buildInboundUtiltsMessageInput({
-              code: inferred.messageCode as
-                | 'S01'
-                | 'S02'
-                | 'S03'
-                | 'S04'
-                | 'E31'
-                | 'E66',
+              code: utiltsCode,
               communicationRouteId: params?.communicationRouteId ?? null,
               mailbox,
               mailboxMessageId,
-              senderEmail: item.envelope?.from?.[0]?.address ?? null,
-              receiverEmail: item.envelope?.to?.[0]?.address ?? null,
+              senderEmail,
+              receiverEmail,
               rawPayload: content,
             })
           )
         } else if (inferred.messageFamily === 'PRODAT') {
-          const parsed = parseInboundProdat(content)
-
-          createdMessage = await createEdielMessage({
-            direction: 'inbound',
-            messageFamily: 'PRODAT',
-            messageCode: parsed.messageCode ?? inferred.messageCode,
-            status: 'received',
-            transportType: 'imap',
+          const input = buildInboundProdatMessageInput({
+            rawPayload: content,
+            communicationRouteId: params?.communicationRouteId ?? null,
             mailbox,
             mailboxMessageId,
-            senderEdielId: parsed.senderEdielId,
-            receiverEdielId: parsed.receiverEdielId,
-            senderSubAddress: parsed.senderSubAddress,
-            receiverSubAddress: parsed.receiverSubAddress,
-            senderEmail: item.envelope?.from?.[0]?.address ?? null,
-            receiverEmail: item.envelope?.to?.[0]?.address ?? null,
-            subject: item.envelope?.subject ?? null,
-            fileName: inferEdielFileName({
-              family: 'PRODAT',
-              code: parsed.messageCode ?? inferred.messageCode,
-              direction: 'inbound',
-              extension: 'edi',
-            }),
-            mimeType: 'application/edifact',
-            externalReference: parsed.externalReference,
-            transactionReference: parsed.transactionReference,
-            applicationReference: parsed.applicationReference,
-            communicationRouteId: params?.communicationRouteId ?? null,
-            rawPayload: content,
-            parsedPayload: parsed.parsedPayload,
-            messageReceivedAt: new Date().toISOString(),
+            senderEmail,
+            receiverEmail,
+            subject,
           })
+
+          assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/PRODAT')
+          createdMessage = await createEdielMessage(input)
+        } else if (inferred.messageFamily === 'AI_LIST') {
+          const listType =
+            inferred.messageCode === 'BI' ? 'BI' : 'AI'
+          const input = buildInboundAiListMessageInput({
+            rawPayload: content,
+            listType,
+            communicationRouteId: params?.communicationRouteId ?? null,
+            mailbox,
+            mailboxMessageId,
+            senderEmail,
+            receiverEmail,
+            subject,
+          })
+
+          assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/AI_LIST')
+          createdMessage = await createEdielMessage(input)
+        } else {
+          continue
         }
 
         if (createdMessage) {

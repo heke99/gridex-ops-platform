@@ -9,7 +9,11 @@ import {
   linkEdielMessage,
   updateEdielMessageStatus,
 } from '@/lib/ediel/db'
-import { buildAperakDraft, buildContrlDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
+import {
+  buildAperakDraft,
+  buildContrlDraft,
+  buildUtiltsErrDraft,
+} from '@/lib/ediel/ack'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
 import {
@@ -27,6 +31,10 @@ import {
   ingestMeteringValue,
   updateGridOwnerDataRequestStatus,
 } from '@/lib/cis/db'
+import {
+  ACTIVE_EDIEL_TEST_SUITES,
+  isActiveEdielMessageFamily,
+} from '@/lib/ediel/types'
 
 export type EdielSelfTestScenarioCode =
   | 'PRODAT_Z04_IN'
@@ -70,6 +78,12 @@ function ymd(date = new Date()): string {
 function toIsoDate(value?: string | null): string {
   if (!value) return new Date().toISOString().slice(0, 10)
   return value
+}
+
+function ensureActiveSuite(suite: string) {
+  if (!(ACTIVE_EDIEL_TEST_SUITES as readonly string[]).includes(suite)) {
+    throw new Error(`Self-test suite ${suite} ligger utanför aktiv release`)
+  }
 }
 
 function buildProdatInboundRaw(params: {
@@ -176,22 +190,24 @@ async function setTestRunStatus(params: {
   if (error) throw error
 }
 
-async function createPositiveAcks(params: {
-  actorUserId: string
-  sourceMessageId: string
-}): Promise<string[]> {
+async function loadSourceMessage(sourceMessageId: string) {
   const supabase = await createSupabaseServerClient()
-
   const { data, error } = await supabase
     .from('ediel_messages')
     .select('*')
-    .eq('id', params.sourceMessageId)
+    .eq('id', sourceMessageId)
     .maybeSingle()
 
   if (error) throw error
   if (!data) throw new Error('Kunde inte hitta källmeddelandet för kvittens')
+  return data
+}
 
-  const sourceMessage = data as Awaited<ReturnType<typeof createEdielMessage>>
+async function createPositiveAcks(params: {
+  actorUserId: string
+  sourceMessageId: string
+}): Promise<string[]> {
+  const sourceMessage = await loadSourceMessage(params.sourceMessageId)
 
   const contrl = await createEdielMessage(
     buildContrlDraft({
@@ -214,46 +230,64 @@ async function createPositiveAcks(params: {
   return [contrl.id, aperak.id]
 }
 
+async function createNegativeUtiltsErr(params: {
+  actorUserId: string
+  sourceMessageId: string
+  messageText: string
+}): Promise<string> {
+  const sourceMessage = await loadSourceMessage(params.sourceMessageId)
+
+  const utiltsErr = await createEdielMessage(
+    buildUtiltsErrDraft({
+      actorUserId: params.actorUserId,
+      sourceMessage,
+      messageText: params.messageText,
+    })
+  )
+
+  return utiltsErr.id
+}
+
 async function runProdatInboundScenario(
   input: RunEdielSelfTestInput,
   code: 'Z04' | 'Z05' | 'Z06' | 'Z10'
 ): Promise<EdielSelfTestResult> {
+  ensureActiveSuite('PRODAT')
+
   if (!input.switchRequestId) {
-    throw new Error('switchRequestId krävs för detta self-test')
+    throw new Error('switchRequestId krävs för PRODAT self-test')
   }
 
   const supabase = await createSupabaseServerClient()
-
   const switchRequest = await getSupplierSwitchRequestById(supabase, input.switchRequestId)
-  if (!switchRequest) {
-    throw new Error('Switch request hittades inte')
-  }
+  if (!switchRequest) throw new Error('Switch request hittades inte')
 
   const site = await getCustomerSiteById(supabase, switchRequest.site_id)
+  if (!site) throw new Error('Kunde inte hitta anläggning för switch request')
+
   const meteringPoint = await getMeteringPointById(supabase, switchRequest.metering_point_id)
+  if (!meteringPoint) throw new Error('Kunde inte hitta mätpunkt för switch request')
+
   const gridOwner = switchRequest.grid_owner_id
     ? await getGridOwnerById(supabase, switchRequest.grid_owner_id)
     : null
 
-  if (!site || !meteringPoint) {
-    throw new Error('Kunde inte läsa site eller mätpunkt för switch request')
-  }
-
-  const senderEdielId = input.senderEdielId ?? gridOwner?.ediel_id ?? '91100'
-  const receiverEdielId = input.receiverEdielId ?? 'GRIDEX-SIM'
-  const externalReference =
-    switchRequest.external_reference ?? `${code}-${switchRequest.id}`
-  const transactionReference =
-    switchRequest.external_reference ?? `${code}-TX-${switchRequest.id}`
-
+  const externalReference = `SELFTEST-${code}-${switchRequest.id}-${nowCompact()}`
+  const transactionReference = `TX-${code}-${nowCompact()}`
   const rawPayload = buildProdatInboundRaw({
     code,
-    senderEdielId,
-    receiverEdielId,
+    senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? '99999',
+    receiverEdielId: input.receiverEdielId ?? '00000',
     externalReference,
     transactionReference,
-    meterPointId: meteringPoint.meter_point_id,
-    customerName: site.site_name,
+    meterPointId:
+      meteringPoint.ediel_reference ??
+      meteringPoint.meter_point_id ??
+      meteringPoint.metering_point_id,
+    customerName:
+      site.current_supplier_name ??
+      site.site_name ??
+      `Kund ${switchRequest.customer_id.slice(0, 8)}`,
     street: site.street,
     postalCode: site.postal_code,
     city: site.city,
@@ -262,19 +296,23 @@ async function runProdatInboundScenario(
 
   const parsed = parseInboundProdat(rawPayload)
 
+  if (!isActiveEdielMessageFamily(parsed.messageFamily)) {
+    throw new Error(`Self-test skapade family utanför aktivt scope: ${parsed.messageFamily}`)
+  }
+
   const testRun = await createEdielTestRun({
     actorUserId: input.actorUserId,
-    approvalVersion: '2026A',
+    approvalVersion: 'ACTIVE_SCOPE_R1',
     roleCode: 'supplier',
     testSuite: 'PRODAT',
-    testCaseCode: code,
-    title: `Self-test ${code}`,
+    testCaseCode: `${code}_IN`,
+    title: `Self-test ${code} inbound`,
     status: 'running',
     customerId: switchRequest.customer_id,
     siteId: switchRequest.site_id,
     meteringPointId: switchRequest.metering_point_id,
     gridOwnerId: switchRequest.grid_owner_id,
-    notes: 'Automatiskt self-test utan extern TGT-kanal.',
+    notes: 'Automatiskt PRODAT self-test inom aktivt release-scope.',
   })
 
   const createdMessageIds: string[] = []
@@ -284,29 +322,35 @@ async function runProdatInboundScenario(
     const inboundMessage = await createEdielMessage({
       actorUserId: input.actorUserId,
       direction: 'inbound',
-      messageFamily: 'PRODAT',
-      messageCode: code,
+      messageStandard: 'edifact',
+      messageFamily: parsed.messageFamily,
+      messageCode: parsed.messageCode,
+      messageVersion: parsed.messageVersion ?? 'D:03A:UN:1.0',
+      processType: 'selftest',
+      environment: 'test',
+      testFlag: 1,
       status: 'received',
       transportType: 'manual_upload',
-      mailbox: input.mailbox ?? 'SELFTEST',
-      senderEdielId,
-      receiverEdielId,
-      senderSubAddress: 'PRODAT',
-      receiverSubAddress: 'GRIDEX',
-      senderEmail: input.senderEmail ?? 'svk-selftest@gridex.local',
-      receiverEmail: input.receiverEmail ?? 'ediel@gridex.se',
+      mailbox: input.mailbox ?? null,
+      senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? null,
+      receiverEdielId: input.receiverEdielId ?? null,
+      senderEmail: input.senderEmail ?? null,
+      receiverEmail: input.receiverEmail ?? null,
       externalReference,
       transactionReference,
-      applicationReference: '23-DDQ-PRODAT',
-      customerId: switchRequest.customer_id,
-      siteId: switchRequest.site_id,
-      meteringPointId: switchRequest.metering_point_id,
-      gridOwnerId: switchRequest.grid_owner_id,
-      switchRequestId: switchRequest.id,
       rawPayload,
       parsedPayload: parsed.parsedPayload,
+      validationReport: {},
+      requiresContrl: true,
+      requiresAperak: true,
+      contrlStatus: 'pending',
+      aperakStatus: 'pending',
+      utiltsErrStatus: 'not_required',
+      syntaxCheckStatus: 'pending',
+      functionalCheckStatus: 'pending',
       messageReceivedAt: new Date().toISOString(),
     })
+
     createdMessageIds.push(inboundMessage.id)
 
     await attachEdielMessageToTestRun({
@@ -330,14 +374,16 @@ async function runProdatInboundScenario(
 
     await updateEdielMessageStatus({
       actorUserId: input.actorUserId,
-      id: inboundMessage.id,
+      edielMessageId: inboundMessage.id,
+      status: 'parsed',
+      parsedAt: new Date().toISOString(),
+    })
+
+    await updateEdielMessageStatus({
+      actorUserId: input.actorUserId,
+      edielMessageId: inboundMessage.id,
       status: 'validated',
-      parsedPayload: parsed.parsedPayload,
-      validationReport: {
-        selfTest: true,
-        scenario: code,
-        linkedSwitchRequestId: switchRequest.id,
-      },
+      validatedAt: new Date().toISOString(),
     })
 
     if (code === 'Z04') {
@@ -346,54 +392,61 @@ async function runProdatInboundScenario(
         status: 'accepted',
         externalReference,
       })
-      notes.push('Switch request uppdaterad till accepted.')
-    } else if (code === 'Z05') {
+      notes.push('Switch request markerad som accepted.')
+    }
+
+    if (code === 'Z05') {
       await updateSupplierSwitchRequestStatus(supabase, {
         requestId: switchRequest.id,
         status: 'completed',
         externalReference,
       })
-      notes.push('Switch request uppdaterad till completed.')
-    } else if (code === 'Z06') {
-      await updateSupplierSwitchRequestStatus(supabase, {
-        requestId: switchRequest.id,
-        status: 'rejected',
-        failureReason: 'Self-test rejection via Z06.',
-        externalReference,
-      })
-      notes.push('Switch request uppdaterad till rejected.')
-    } else if (code === 'Z10') {
+      notes.push('Switch request markerad som completed.')
+    }
+
+    if (code === 'Z06' || code === 'Z10') {
       await createSupplierSwitchEvent(supabase, {
         switchRequestId: switchRequest.id,
-        eventType: 'ediel_z10_received',
+        eventType: 'ediel_inbound',
         eventStatus: 'received',
-        message: 'Z10 mottaget i self-test.',
+        message: `Inbound ${code} registrerat via self-test.`,
         payload: {
           edielMessageId: inboundMessage.id,
           externalReference,
         },
       })
-      notes.push('Z10 loggad som inbound switch-event.')
+      notes.push(`${code} registrerat som inbound switch-event.`)
     }
 
-    const ackIds = await createPositiveAcks({
+    const ackMessageIds = await createPositiveAcks({
       actorUserId: input.actorUserId,
       sourceMessageId: inboundMessage.id,
     })
-    createdMessageIds.push(...ackIds)
 
-    await Promise.all(
-      ackIds.map((messageId, index) =>
-        attachEdielMessageToTestRun({
-          testRunId: testRun.id,
-          edielMessageId: messageId,
-          stepNo: index + 2,
-          expectedDirection: 'outbound',
-          expectedFamily: index === 0 ? 'CONTRL' : 'APERAK',
-          expectedCode: index === 0 ? 'CONTRL' : 'APERAK',
-        })
-      )
-    )
+    createdMessageIds.push(...ackMessageIds)
+
+    for (const [index, ackMessageId] of ackMessageIds.entries()) {
+      await attachEdielMessageToTestRun({
+        testRunId: testRun.id,
+        edielMessageId: ackMessageId,
+        stepNo: index + 2,
+        expectedDirection: 'outbound',
+        expectedFamily: index === 0 ? 'CONTRL' : 'APERAK',
+        expectedCode: index === 0 ? 'CONTRL' : 'APERAK',
+      })
+    }
+
+    await createEdielMessageEvent({
+      actorUserId: input.actorUserId,
+      edielMessageId: inboundMessage.id,
+      eventType: 'validated',
+      eventStatus: 'success',
+      message: `Self-test ${code} genomfört.`,
+      payload: {
+        createdMessageIds,
+        switchRequestId: switchRequest.id,
+      },
+    })
 
     await setTestRunStatus({
       testRunId: testRun.id,
@@ -420,24 +473,24 @@ async function runProdatInboundScenario(
 async function runUtiltsInboundScenario(
   input: RunEdielSelfTestInput,
   code: 'S02' | 'S03' | 'E66' | 'E31',
-  variant: 'sch' | 'kvart' | 'generic' | 'negative'
+  variant: 'generic' | 'kvart' | 'sch' | 'negative'
 ): Promise<EdielSelfTestResult> {
+  ensureActiveSuite('UTILTS')
+
   if (!input.gridOwnerDataRequestId) {
-    throw new Error('gridOwnerDataRequestId krävs för detta self-test')
+    throw new Error('gridOwnerDataRequestId krävs för UTILTS self-test')
   }
 
   const supabase = await createSupabaseServerClient()
-
-  const { data: request, error: requestError } = await supabase
+  const { data: request, error } = await supabase
     .from('grid_owner_data_requests')
     .select('*')
     .eq('id', input.gridOwnerDataRequestId)
     .maybeSingle()
 
-  if (requestError) throw requestError
+  if (error) throw error
   if (!request) throw new Error('Grid owner data request hittades inte')
 
-  const site = request.site_id ? await getCustomerSiteById(supabase, request.site_id) : null
   const meteringPoint = request.metering_point_id
     ? await getMeteringPointById(supabase, request.metering_point_id)
     : null
@@ -445,35 +498,32 @@ async function runUtiltsInboundScenario(
     ? await getGridOwnerById(supabase, request.grid_owner_id)
     : null
 
-  if (!meteringPoint) {
-    throw new Error('Mätpunkt saknas för data request')
-  }
-
-  const senderEdielId = input.senderEdielId ?? gridOwner?.ediel_id ?? '91100'
-  const receiverEdielId = input.receiverEdielId ?? 'GRIDEX-SIM'
-  const externalReference = request.external_reference ?? `${code}-${request.id}`
-  const transactionReference = request.external_reference ?? `${code}-TX-${request.id}`
-
+  const externalReference = `SELFTEST-${code}-${request.id}-${nowCompact()}`
+  const transactionReference = `TX-${code}-${nowCompact()}`
   const quantity =
-    code === 'S02'
-      ? 14500
-      : code === 'S03'
-        ? 72
-        : code === 'E66'
-          ? variant === 'kvart'
-            ? 12.75
-            : 58.4
-          : 480.25
+    code === 'E66'
+      ? variant === 'kvart'
+        ? 12.345
+        : variant === 'sch'
+          ? 456.789
+          : 1.0
+      : code === 'E31'
+        ? 321.123
+        : undefined
 
   const rawPayload = buildUtiltsInboundRaw({
     code,
-    senderEdielId,
-    receiverEdielId,
+    senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? '99999',
+    receiverEdielId: input.receiverEdielId ?? '00000',
     externalReference,
     transactionReference,
-    meterPointId: meteringPoint.meter_point_id,
-    periodStart: request.requested_period_start,
-    periodEnd: request.requested_period_end,
+    meterPointId:
+      meteringPoint?.ediel_reference ??
+      meteringPoint?.meter_point_id ??
+      meteringPoint?.metering_point_id ??
+      'UNKNOWN',
+    periodStart: toIsoDate(request.requested_period_start),
+    periodEnd: toIsoDate(request.requested_period_end),
     quantity,
     readingType:
       code === 'E66'
@@ -487,14 +537,16 @@ async function runUtiltsInboundScenario(
 
   const testRun = await createEdielTestRun({
     actorUserId: input.actorUserId,
-    approvalVersion: '2026A',
+    approvalVersion: 'ACTIVE_SCOPE_R1',
     roleCode: 'supplier',
     testSuite: 'UTILTS',
     testCaseCode:
       code === 'E66'
         ? variant === 'kvart'
           ? 'E66_KVART'
-          : 'E66_SCH'
+          : variant === 'sch'
+            ? 'E66_SCH'
+            : 'E66_NEG'
         : code === 'E31'
           ? 'E31_SCH'
           : code,
@@ -504,7 +556,7 @@ async function runUtiltsInboundScenario(
     siteId: request.site_id,
     meteringPointId: request.metering_point_id,
     gridOwnerId: request.grid_owner_id,
-    notes: 'Automatiskt UTILTS self-test utan extern TGT-kanal.',
+    notes: 'Automatiskt UTILTS self-test inom aktivt release-scope.',
   })
 
   const createdMessageIds: string[] = []
@@ -519,16 +571,38 @@ async function runUtiltsInboundScenario(
       siteId: request.site_id,
       meteringPointId: request.metering_point_id,
       gridOwnerId: request.grid_owner_id,
-      mailbox: input.mailbox ?? 'SELFTEST',
-      mailboxMessageId: `${code}-${Date.now()}`,
-      senderEdielId,
-      receiverEdielId,
-      senderEmail: input.senderEmail ?? 'svk-selftest@gridex.local',
-      receiverEmail: input.receiverEmail ?? 'ediel@gridex.se',
-      rawPayload,
+      gridOwnerDataRequestId: request.id,
+      senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? '99999',
+      receiverEdielId: input.receiverEdielId ?? '00000',
+      senderEmail: input.senderEmail ?? null,
+      receiverEmail: input.receiverEmail ?? null,
+      mailbox: input.mailbox ?? null,
+      externalReference,
+      transactionReference,
+      quantity,
+      periodStart: toIsoDate(request.requested_period_start),
+      periodEnd: toIsoDate(request.requested_period_end),
+      registrationTime: new Date().toISOString(),
+      unit: 'KWH',
     })
 
-    const inboundMessage = await createEdielMessage(inboundInput)
+    const inboundMessage = await createEdielMessage({
+      ...inboundInput,
+      rawPayload,
+      processType: 'selftest',
+      testFlag: 1,
+      transportType: 'manual_upload',
+      status: 'received',
+      syntaxCheckStatus: 'pending',
+      functionalCheckStatus: 'pending',
+    })
+
+    if (!isActiveEdielMessageFamily(inboundMessage.message_family)) {
+      throw new Error(
+        `Self-test skapade family utanför aktivt scope: ${inboundMessage.message_family}`
+      )
+    }
+
     createdMessageIds.push(inboundMessage.id)
 
     await attachEdielMessageToTestRun({
@@ -552,15 +626,16 @@ async function runUtiltsInboundScenario(
 
     await updateEdielMessageStatus({
       actorUserId: input.actorUserId,
-      id: inboundMessage.id,
+      edielMessageId: inboundMessage.id,
+      status: 'parsed',
+      parsedAt: new Date().toISOString(),
+    })
+
+    await updateEdielMessageStatus({
+      actorUserId: input.actorUserId,
+      edielMessageId: inboundMessage.id,
       status: 'validated',
-      parsedPayload: inboundInput.parsedPayload ?? {},
-      validationReport: {
-        selfTest: true,
-        scenario: input.scenario,
-        requestId: request.id,
-        variant,
-      },
+      validatedAt: new Date().toISOString(),
     })
 
     await updateGridOwnerDataRequestStatus({
@@ -569,131 +644,92 @@ async function runUtiltsInboundScenario(
       status: 'received',
       externalReference,
       responsePayload: {
-        selfTest: true,
         edielMessageId: inboundMessage.id,
+        selftest: true,
         code,
         variant,
       },
-      notes: `Self-test ${code} ${variant} mottaget och kopplat.`,
+      notes: null,
     })
 
-    if (code === 'E66') {
-      await ingestMeteringValue({
+    if (code === 'E66' && typeof quantity === 'number') {
+      const meteringValue = await ingestMeteringValue({
         actorUserId: input.actorUserId,
         customerId: request.customer_id,
         siteId: request.site_id,
         meteringPointId: request.metering_point_id,
-        sourceRequestId: request.id,
         gridOwnerId: request.grid_owner_id,
-        readingType: 'consumption',
-        valueKwh: quantity,
-        qualityCode: variant === 'kvart' ? 'KVART' : 'SCH',
-        readAt: new Date().toISOString(),
+        externalReference,
+        quantity,
+        unit: 'KWH',
         periodStart: toIsoDate(request.requested_period_start),
         periodEnd: toIsoDate(request.requested_period_end),
-        sourceSystem: 'ediel_selftest',
-        rawPayload: {
-          code,
+        sourcePayload: {
+          selftest: true,
+          edielMessageId: inboundMessage.id,
           variant,
-          externalReference,
         },
       })
-      notes.push(`Metering value skapad för ${variant.toUpperCase()}.`)
-    }
 
-    if (code === 'E31') {
-      const month = new Date().getMonth() + 1
-      const year = new Date().getFullYear()
+      notes.push(`Mätvärde registrerat: ${meteringValue.id}`)
 
-      await ingestBillingUnderlay({
-        actorUserId: input.actorUserId,
-        customerId: request.customer_id,
-        siteId: request.site_id,
-        meteringPointId: request.metering_point_id,
-        sourceRequestId: request.id,
-        gridOwnerId: request.grid_owner_id,
-        underlayMonth: month,
-        underlayYear: year,
-        status: 'received',
-        totalKwh: quantity,
-        totalSekExVat: null,
-        sourceSystem: 'ediel_selftest',
-        payload: {
-          code,
-          variant,
+      if (variant === 'sch') {
+        const billingUnderlay = await ingestBillingUnderlay({
+          actorUserId: input.actorUserId,
+          customerId: request.customer_id,
+          siteId: request.site_id,
+          meteringPointId: request.metering_point_id,
+          gridOwnerId: request.grid_owner_id,
           externalReference,
-        },
-      })
-      notes.push('Billing-underlag skapat från E31 self-test.')
+          periodStart: toIsoDate(request.requested_period_start),
+          periodEnd: toIsoDate(request.requested_period_end),
+          payload: {
+            selftest: true,
+            edielMessageId: inboundMessage.id,
+            quantity,
+          },
+        })
+        notes.push(`Billing underlay registrerat: ${billingUnderlay.id}`)
+      }
     }
-
-    const contrl = await createEdielMessage(
-      buildContrlDraft({
-        actorUserId: input.actorUserId,
-        sourceMessage: inboundMessage,
-        outcome: 'positive',
-        messageText: 'Self-test CONTRL OK',
-      })
-    )
-    const aperak =
-      variant === 'negative'
-        ? await createEdielMessage(
-            buildAperakDraft({
-              actorUserId: input.actorUserId,
-              sourceMessage: inboundMessage,
-              outcome: 'negative',
-              messageText: 'Self-test negativ APERAK',
-            })
-          )
-        : await createEdielMessage(
-            buildAperakDraft({
-              actorUserId: input.actorUserId,
-              sourceMessage: inboundMessage,
-              outcome: 'positive',
-              messageText: 'Self-test APERAK OK',
-            })
-          )
-
-    createdMessageIds.push(contrl.id, aperak.id)
-
-    await attachEdielMessageToTestRun({
-      testRunId: testRun.id,
-      edielMessageId: contrl.id,
-      stepNo: 2,
-      expectedDirection: 'outbound',
-      expectedFamily: 'CONTRL',
-      expectedCode: 'CONTRL',
-    })
-
-    await attachEdielMessageToTestRun({
-      testRunId: testRun.id,
-      edielMessageId: aperak.id,
-      stepNo: 3,
-      expectedDirection: 'outbound',
-      expectedFamily: 'APERAK',
-      expectedCode: 'APERAK',
-    })
 
     if (variant === 'negative') {
-      const utiltsErr = await createEdielMessage(
-        buildUtiltsErrDraft({
-          actorUserId: input.actorUserId,
-          sourceMessage: inboundMessage,
-          messageText: 'Self-test negativ UTILTS-respons.',
-        })
-      )
-      createdMessageIds.push(utiltsErr.id)
+      const utiltsErrId = await createNegativeUtiltsErr({
+        actorUserId: input.actorUserId,
+        sourceMessageId: inboundMessage.id,
+        messageText: 'Self-test functional error',
+      })
+
+      createdMessageIds.push(utiltsErrId)
 
       await attachEdielMessageToTestRun({
         testRunId: testRun.id,
-        edielMessageId: utiltsErr.id,
-        stepNo: 4,
+        edielMessageId: utiltsErrId,
+        stepNo: 2,
         expectedDirection: 'outbound',
         expectedFamily: 'UTILTS_ERR',
         expectedCode: 'UTILTS_ERR',
       })
 
-      notes.push('Negativ UTILTS-ERR skapad.')
+      notes.push('Negativ UTILTS-respons skapad.')
+    } else {
+      const ackMessageIds = await createPositiveAcks({
+        actorUserId: input.actorUserId,
+        sourceMessageId: inboundMessage.id,
+      })
+
+      createdMessageIds.push(...ackMessageIds)
+
+      for (const [index, ackMessageId] of ackMessageIds.entries()) {
+        await attachEdielMessageToTestRun({
+          testRunId: testRun.id,
+          edielMessageId: ackMessageId,
+          stepNo: index + 2,
+          expectedDirection: 'outbound',
+          expectedFamily: index === 0 ? 'CONTRL' : 'APERAK',
+          expectedCode: index === 0 ? 'CONTRL' : 'APERAK',
+        })
+      }
     }
 
     await createEdielMessageEvent({

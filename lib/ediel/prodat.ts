@@ -1,14 +1,16 @@
+// lib/ediel/prodat.ts
+
 import type {
   CreateEdielMessageInput,
   EdielKnownMessageCode,
   EdielMessageFamily,
 } from '@/lib/ediel/types'
-import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type {
   CustomerSiteRow,
   GridOwnerRow,
   MeteringPointRow,
 } from '@/lib/masterdata/types'
+import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import {
   buildDefaultApplicationReference,
   resolveMessageVersion,
@@ -24,57 +26,11 @@ import {
   inferEdielFileName,
 } from '@/lib/ediel/classify'
 
-export type ProdatOutboundCode = 'Z01' | 'Z03' | 'Z05' | 'Z09' | 'Z13' | 'Z18'
-export type ParsedProdatCode =
-  | 'Z01'
-  | 'Z02'
-  | 'Z03'
-  | 'Z04'
-  | 'Z05'
-  | 'Z06'
-  | 'Z09'
-  | 'Z10'
-  | 'Z13'
-  | 'Z14'
-  | 'Z15'
-  | 'Z18'
-  | null
-
-export type ProdatOutboundDraftInput = {
-  actorUserId?: string | null
-  code: ProdatOutboundCode
-  communicationRouteId?: string | null
-  customerId?: string | null
-  siteId?: string | null
-  meteringPointId?: string | null
-  gridOwnerId?: string | null
-  outboundRequestId?: string | null
-  switchRequestId?: string | null
-  gridOwnerDataRequestId?: string | null
-
-  senderEdielId?: string | null
-  senderName?: string | null
-  receiverEdielId?: string | null
-  receiverName?: string | null
-  senderSubAddress?: string | null
-  receiverSubAddress?: string | null
-  mailbox?: string | null
-  receiverEmail?: string | null
-  subject?: string | null
-
-  applicationReference?: string | null
-  externalReference?: string | null
-  correlationReference?: string | null
-  transactionReference?: string | null
-
-  reasonForTransaction?: string | null
-  referenceToLineItem?: string | null
-  payload?: Record<string, unknown>
-}
+export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
 
 export type ParsedProdatMessage = {
   messageFamily: Extract<EdielMessageFamily, 'PRODAT'>
-  messageCode: ParsedProdatCode | EdielKnownMessageCode | null
+  messageCode: ProdatSwitchCode | EdielKnownMessageCode | null
   transactionReference: string | null
   externalReference: string | null
   applicationReference: string | null
@@ -84,6 +40,32 @@ export type ParsedProdatMessage = {
   receiverSubAddress: string | null
   rawSegments: string[]
   parsedPayload: Record<string, unknown>
+}
+
+type BaseSwitchOutboundInput = {
+  actorUserId?: string | null
+  senderEdielId: string
+  senderName?: string | null
+  receiverEdielId: string
+  receiverName?: string | null
+  receiverEmail?: string | null
+  senderSubAddress?: string | null
+  receiverSubAddress?: string | null
+  communicationRouteId?: string | null
+  mailbox?: string | null
+  switchRequest: SupplierSwitchRequestRow
+  site: CustomerSiteRow
+  meteringPoint: MeteringPointRow
+  gridOwner?: GridOwnerRow | null
+  subject?: string | null
+  applicationReference?: string | null
+  externalReference?: string | null
+  transactionReference?: string | null
+  correlationReference?: string | null
+}
+
+function sanitize(value?: string | null): string {
+  return (value ?? '').replace(/['+]/g, ' ').trim()
 }
 
 function splitEdifactSegments(rawPayload: string): string[] {
@@ -98,12 +80,11 @@ function firstSegmentValue(segments: string[], prefix: string): string | null {
   return hit ?? null
 }
 
-function extractUnb(unb: string | null): {
+function extractUnbIds(unb: string | null): {
   senderEdielId: string | null
   receiverEdielId: string | null
   senderSubAddress: string | null
   receiverSubAddress: string | null
-  applicationReference: string | null
 } {
   if (!unb) {
     return {
@@ -111,7 +92,6 @@ function extractUnb(unb: string | null): {
       receiverEdielId: null,
       senderSubAddress: null,
       receiverSubAddress: null,
-      applicationReference: null,
     }
   }
 
@@ -124,477 +104,301 @@ function extractUnb(unb: string | null): {
 
   return {
     senderEdielId: senderParts[0]?.trim() || null,
+    senderSubAddress: senderParts[1]?.trim() || null,
     receiverEdielId: receiverParts[0]?.trim() || null,
-    senderSubAddress: senderParts[2]?.trim() || null,
-    receiverSubAddress: receiverParts[2]?.trim() || null,
-    applicationReference: parts[7]?.trim() || null,
+    receiverSubAddress: receiverParts[1]?.trim() || null,
   }
 }
 
 function extractReference(rawPayload: string, qualifier: string): string | null {
-  const match = rawPayload.match(
-    new RegExp(`RFF\\+${qualifier}:([A-Za-z0-9\\-_/.:]+)`, 'i')
-  )
-
-  return match?.[1]?.trim() ?? null
+  const regex = new RegExp(`RFF\\+${qualifier}:([A-Za-z0-9\\-_/.:]+)`, 'i')
+  return rawPayload.match(regex)?.[1] ?? null
 }
 
-function sanitize(value?: string | null): string {
-  return (value ?? '').replace(/['+]/g, ' ').trim()
+function extractApplicationReference(rawPayload: string): string | null {
+  const unb = rawPayload
+    .split("'")
+    .map((segment) => segment.trim())
+    .find((segment) => segment.startsWith('UNB+'))
+
+  if (!unb) return null
+
+  const parts = unb.split('+')
+  return parts[7]?.trim() || null
 }
 
-function getPayloadString(payload: Record<string, unknown>, ...keys: string[]): string {
-  for (const key of keys) {
-    const value = payload[key]
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim()
-    }
+function extractDateFromDtm(segment: string | null): string | null {
+  if (!segment) return null
+  const match = segment.match(/:(\d{8,12})/)
+  if (!match) return null
+  const raw = match[1]
+  if (raw.length >= 8) {
+    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
   }
-
-  return ''
+  return null
 }
 
-function formatDateYYYYMMDD(value?: string | null): string | null {
+function normalizeDate(value?: string | null): string | null {
   if (!value) return null
   const trimmed = value.trim()
   if (!trimmed) return null
-  return trimmed.replace(/-/g, '')
-}
-
-function buildDocumentName(code: ProdatOutboundCode): string {
-  switch (code) {
-    case 'Z01':
-      return 'PRODAT_Z01'
-    case 'Z03':
-      return 'PRODAT_Z03'
-    case 'Z05':
-      return 'PRODAT_Z05'
-    case 'Z09':
-      return 'PRODAT_Z09'
-    case 'Z13':
-      return 'PRODAT_Z13'
-    case 'Z18':
-      return 'PRODAT_Z18'
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T00:00`
   }
-}
-
-function defaultReasonForTransaction(code: ProdatOutboundCode): string {
-  switch (code) {
-    case 'Z03':
-      return 'E01'
-    case 'Z05':
-      return 'E01'
-    case 'Z09':
-      return 'A08'
-    default:
-      return 'E01'
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) {
+    return trimmed
   }
+  return trimmed
 }
 
-function buildBgmReference(input: ProdatOutboundDraftInput): string {
-  return (
-    input.externalReference ??
-    buildEdielExternalReference({
-      family: 'PRODAT',
-      code: input.code,
-      switchRequestId: input.switchRequestId,
-      gridOwnerDataRequestId: input.gridOwnerDataRequestId,
-      outboundRequestId: input.outboundRequestId,
-    })
+function formatDate102(value?: string | null): string | null {
+  const normalized = normalizeDate(value)
+  if (!normalized) return null
+  return normalized.slice(0, 10).replace(/-/g, '')
+}
+
+function inferCustomerName(
+  switchRequest: SupplierSwitchRequestRow,
+  site: CustomerSiteRow
+): string {
+  return sanitize(
+    site.site_name ||
+      site.current_supplier_name ||
+      switchRequest.current_supplier_name ||
+      'Kund'
   )
 }
 
-function buildTransactionReference(input: ProdatOutboundDraftInput): string {
-  return (
-    input.transactionReference ??
-    buildEdielTransactionReference({
-      family: 'PRODAT',
-      code: input.code,
-    })
+function inferMeterPointIdentifier(meteringPoint: MeteringPointRow): string {
+  return sanitize(
+    meteringPoint.ediel_reference ||
+      meteringPoint.meter_point_id ||
+      meteringPoint.metering_point_id ||
+      'UNKNOWN'
   )
 }
 
-function renderBodySegments(input: {
-  code: ProdatOutboundCode
+function inferGridArea(gridOwner?: GridOwnerRow | null): string | null {
+  return sanitize(gridOwner?.owner_code || gridOwner?.ediel_id || '') || null
+}
+
+function deriveProcessLabel(code: 'Z03' | 'Z05' | 'Z09'): string {
+  if (code === 'Z03') return 'supplier_switch_request'
+  if (code === 'Z05') return 'supplier_switch_completion'
+  return 'masterdata_update'
+}
+
+function renderProdatSegments(params: {
+  code: 'Z03' | 'Z05' | 'Z09'
   bgmReference: string
   transactionReference: string
-  payload: Record<string, unknown>
+  switchRequest: SupplierSwitchRequestRow
+  site: CustomerSiteRow
+  meteringPoint: MeteringPointRow
+  gridOwner?: GridOwnerRow | null
 }): string[] {
-  const payload = input.payload
-  const reasonForTransaction = sanitize(
-    getPayloadString(payload, 'reasonForTransaction') ||
-      defaultReasonForTransaction(input.code)
-  )
+  const customerName = inferCustomerName(params.switchRequest, params.site)
+  const meterPointId = inferMeterPointIdentifier(params.meteringPoint)
+  const gridArea = inferGridArea(params.gridOwner)
+  const startDate =
+    formatDate102(params.switchRequest.requested_start_date) ||
+    formatDate102(params.site.move_in_date)
 
-  const referenceToLineItem = sanitize(
-    getPayloadString(payload, 'referenceToLineItem') || input.transactionReference
+  const address = sanitize(params.site.street)
+  const postalCode = sanitize(params.site.postal_code)
+  const city = sanitize(params.site.city)
+  const siteType = sanitize(params.site.site_type)
+  const incomingSupplierName = sanitize(params.switchRequest.incoming_supplier_name)
+  const currentSupplierName = sanitize(
+    params.switchRequest.current_supplier_name ||
+      params.site.current_supplier_name
   )
-
-  const meterPointId = sanitize(
-    getPayloadString(payload, 'meterPointId', 'meteringPointId')
-  )
-
-  const facilityId = sanitize(
-    getPayloadString(payload, 'facilityId', 'installationId', 'siteFacilityId')
-  )
-
-  const gridOwnerEdielId = sanitize(
-    getPayloadString(payload, 'gridOwnerEdielId', 'gridAreaId')
-  )
-
-  const customerName = sanitize(
-    getPayloadString(payload, 'customerName', 'fullName', 'siteName')
-  )
-
-  const street = sanitize(getPayloadString(payload, 'street'))
-  const postalCode = sanitize(getPayloadString(payload, 'postalCode'))
-  const city = sanitize(getPayloadString(payload, 'city'))
-  const requestedStartDate = formatDateYYYYMMDD(
-    getPayloadString(payload, 'requestedStartDate', 'startDate')
-  )
-
-  const incomingSupplierName = sanitize(getPayloadString(payload, 'incomingSupplierName'))
-  const incomingSupplierOrgNumber = sanitize(
-    getPayloadString(payload, 'incomingSupplierOrgNumber')
-  )
-
-  const currentSupplierName = sanitize(getPayloadString(payload, 'currentSupplierName'))
-  const currentSupplierOrgNumber = sanitize(
-    getPayloadString(payload, 'currentSupplierOrgNumber')
-  )
+  const externalReference = sanitize(params.bgmReference)
+  const transactionReference = sanitize(params.transactionReference)
 
   const segments: string[] = []
+  segments.push(`BGM+${params.code}::260+${externalReference}+9`)
+  segments.push(`DTM+137:${formatDate102(new Date().toISOString())}:102`)
+  segments.push(`RFF+TN:${transactionReference}`)
+  segments.push(`LOC+172+${meterPointId}::9`)
 
-  segments.push(`BGM+${input.code}+${sanitize(input.bgmReference)}+9`)
-  segments.push(`DTM+137:${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')}:203`)
-  segments.push(`RFF+TN:${sanitize(input.transactionReference)}`)
-  segments.push(`RFF+CR:${referenceToLineItem}`)
-  segments.push(`FTX+ACB+++${reasonForTransaction}`)
-
-  if (meterPointId) {
-    segments.push(`LOC+172+${meterPointId}`)
+  if (gridArea) {
+    segments.push(`LOC+239+${gridArea}:SVK:260`)
   }
 
-  if (facilityId) {
-    segments.push(`LOC+64+${facilityId}`)
+  if (startDate) {
+    segments.push(`DTM+7:${startDate}:102`)
   }
 
-  if (gridOwnerEdielId) {
-    segments.push(`LOC+322+${gridOwnerEdielId}`)
+  segments.push(`NAD+BY+++${customerName}`)
+
+  if (address || postalCode || city) {
+    segments.push(`ADR+${address}+${postalCode}+${city}`)
   }
 
-  if (requestedStartDate) {
-    segments.push(`DTM+7:${requestedStartDate}:102`)
+  if (incomingSupplierName) {
+    segments.push(`FTX+AAI+++${incomingSupplierName}`)
   }
 
-  if (customerName) {
-    segments.push(`NAD+BY+++${customerName}`)
+  if (currentSupplierName) {
+    segments.push(`FTX+AAO+++${currentSupplierName}`)
   }
 
-  if (street || postalCode || city) {
-    const addressParts = [street, postalCode, city].filter(Boolean).join(':')
-    segments.push(`ADR+${addressParts}`)
+  if (siteType) {
+    segments.push(`FTX+ZZZ+++${siteType}`)
   }
 
-  if (incomingSupplierName || incomingSupplierOrgNumber) {
-    segments.push(
-      `NAD+SU+${incomingSupplierOrgNumber || ''}+++${incomingSupplierName || ''}`.replace(
-        /\+$/,
-        ''
-      )
-    )
+  if (params.code === 'Z05') {
+    segments.push(`STS+7++Z05::260`)
   }
 
-  if (currentSupplierName || currentSupplierOrgNumber) {
-    segments.push(
-      `NAD+MS+${currentSupplierOrgNumber || ''}+++${currentSupplierName || ''}`.replace(
-        /\+$/,
-        ''
-      )
-    )
+  if (params.code === 'Z09') {
+    if (params.site.facility_id) {
+      segments.push(`RFF+AVC:${sanitize(params.site.facility_id)}`)
+    }
+    if (params.meteringPoint.ediel_reference) {
+      segments.push(`RFF+Z13:${sanitize(params.meteringPoint.ediel_reference)}`)
+    }
   }
 
   return segments
 }
 
-export async function buildProdatOutboundDraft(
-  input: ProdatOutboundDraftInput
+function buildProdatSwitchOutboundDraft(
+  input: BaseSwitchOutboundInput,
+  code: 'Z03' | 'Z05' | 'Z09'
 ): Promise<CreateEdielMessageInput> {
-  const bgmReference = buildBgmReference(input)
-  const transactionReference = buildTransactionReference(input)
-  const messageVersion =
-    (await resolveMessageVersion({
-      family: 'PRODAT',
-      code: input.code,
-      fallback: 'PENDING',
-      standard: 'edifact',
-    })) ?? 'PENDING'
+  return (async () => {
+    const externalReference =
+      input.externalReference ??
+      buildEdielExternalReference({
+        family: 'PRODAT',
+        code,
+        switchRequestId: input.switchRequest.id,
+      })
 
-  const applicationReference =
-    input.applicationReference ??
-    buildDefaultApplicationReference({
-      actorSubAddress: input.senderSubAddress ?? 'GRIDEX',
-      process: 'PRODAT',
+    const transactionReference =
+      input.transactionReference ??
+      buildEdielTransactionReference({
+        family: 'PRODAT',
+        code,
+      })
+
+    const messageVersion =
+      (await resolveMessageVersion({
+        family: 'PRODAT',
+        code,
+        fallback: 'E5SE5A',
+        standard: 'edifact',
+      })) ?? 'E5SE5A'
+
+    const applicationReference =
+      input.applicationReference ??
+      buildDefaultApplicationReference({
+        actorSubAddress: input.senderSubAddress ?? 'GRIDEX',
+        process: 'PRODAT',
+      })
+
+    const segments = renderProdatSegments({
+      code,
+      bgmReference: externalReference,
+      transactionReference,
+      switchRequest: input.switchRequest,
+      site: input.site,
+      meteringPoint: input.meteringPoint,
+      gridOwner: input.gridOwner ?? null,
     })
 
-  const parsedPayload = {
-    ...(input.payload ?? {}),
-    reasonForTransaction: input.reasonForTransaction ?? null,
-    referenceToLineItem: input.referenceToLineItem ?? null,
-    draftType: 'prodat_outbound',
-    documentName: buildDocumentName(input.code),
-  }
+    const envelope = buildEdifactEnvelope({
+      senderEdielId: input.senderEdielId,
+      senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
+      receiverEdielId: input.receiverEdielId,
+      receiverSubAddress: input.receiverSubAddress ?? 'PRODAT',
+      applicationReference,
+      testFlag: 1,
+      messageTypeToken: `PRODAT:D:03A:UN:${messageVersion}`,
+      segments,
+    })
 
-  const envelope = buildEdifactEnvelope({
-    senderEdielId: input.senderEdielId ?? '00000',
-    senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
-    receiverEdielId: input.receiverEdielId ?? '00000',
-    receiverSubAddress: input.receiverSubAddress ?? 'PRODAT',
-    applicationReference,
-    testFlag: 1,
-    messageTypeToken: 'PRODAT:D:03A:UN:1.0',
-    segments: renderBodySegments({
-      code: input.code,
-      bgmReference,
-      transactionReference,
-      payload: parsedPayload,
-    }),
-  })
-
-  const ack = deriveEdielAckDefaults({
-    family: 'PRODAT',
-    code: input.code,
-  })
-
-  return {
-    actorUserId: input.actorUserId ?? null,
-    direction: 'outbound',
-    messageStandard: 'edifact',
-    messageFamily: 'PRODAT',
-    messageCode: input.code,
-    messageVersion,
-    processType: 'supplier_switch',
-    environment: 'test',
-    testFlag: 1,
-    status: 'draft',
-    transportType: 'smtp',
-    mailbox: input.mailbox ?? null,
-    senderEdielId: input.senderEdielId ?? null,
-    senderName: input.senderName ?? null,
-    receiverEdielId: input.receiverEdielId ?? null,
-    receiverName: input.receiverName ?? null,
-    senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
-    receiverSubAddress: input.receiverSubAddress ?? 'PRODAT',
-    receiverEmail: input.receiverEmail ?? null,
-    subject:
-      input.subject ??
-      `${buildDocumentName(input.code)} ${bgmReference}`.trim(),
-    fileName: inferEdielFileName({
+    const ack = deriveEdielAckDefaults({
       family: 'PRODAT',
-      code: input.code,
+      code,
+    })
+
+    const parsedPayload: Record<string, unknown> = {
+      draftType: 'prodat_switch_outbound',
+      processLabel: deriveProcessLabel(code),
+      switchRequestId: input.switchRequest.id,
+      switchRequestType: input.switchRequest.request_type,
+      switchRequestStatus: input.switchRequest.status,
+      requestedStartDate: input.switchRequest.requested_start_date,
+      currentSupplierName:
+        input.switchRequest.current_supplier_name ?? input.site.current_supplier_name ?? null,
+      incomingSupplierName: input.switchRequest.incoming_supplier_name ?? null,
+      siteType: input.site.site_type ?? null,
+      facilityId: input.site.facility_id ?? null,
+      meterPointId:
+        input.meteringPoint.meter_point_id ??
+        input.meteringPoint.metering_point_id ??
+        null,
+      edielReference: input.meteringPoint.ediel_reference ?? null,
+      gridOwnerEdielId: input.gridOwner?.ediel_id ?? null,
+      gridOwnerOwnerCode: input.gridOwner?.owner_code ?? null,
+    }
+
+    return {
+      actorUserId: input.actorUserId ?? null,
       direction: 'outbound',
-      extension: 'edi',
-    }),
-    mimeType: 'application/edifact',
-    interchangeReference: envelope.interchangeReference,
-    applicationReference,
-    externalReference: bgmReference,
-    correlationReference: input.correlationReference ?? null,
-    transactionReference,
-    communicationRouteId: input.communicationRouteId ?? null,
-    outboundRequestId: input.outboundRequestId ?? null,
-    switchRequestId: input.switchRequestId ?? null,
-    gridOwnerDataRequestId: input.gridOwnerDataRequestId ?? null,
-    customerId: input.customerId ?? null,
-    siteId: input.siteId ?? null,
-    meteringPointId: input.meteringPointId ?? null,
-    gridOwnerId: input.gridOwnerId ?? null,
-    rawPayload: envelope.raw,
-    parsedPayload,
-    requiresContrl: ack.requiresContrl,
-    requiresAperak: ack.requiresAperak,
-    contrlStatus: ack.contrlStatus,
-    aperakStatus: ack.aperakStatus,
-    utiltsErrStatus: 'not_required',
-    ackDueAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-  }
-}
-
-function getMeterPointIdentifier(point: MeteringPointRow): string {
-  return sanitize(point.meter_point_id ?? '')
-}
-
-function getFacilityIdentifier(point: MeteringPointRow, site: CustomerSiteRow): string {
-  return sanitize(point.site_facility_id ?? site.facility_id ?? '')
-}
-
-function getCustomerDisplayName(site: CustomerSiteRow): string {
-  return sanitize(site.site_name || 'GRIDEX CUSTOMER')
-}
-
-export async function buildProdatZ03FromSwitch(params: {
-  actorUserId?: string | null
-  senderEdielId: string
-  senderName?: string | null
-  receiverEdielId: string
-  receiverName?: string | null
-  receiverEmail?: string | null
-  communicationRouteId?: string | null
-  mailbox?: string | null
-  switchRequest: SupplierSwitchRequestRow
-  site: CustomerSiteRow
-  meteringPoint: MeteringPointRow
-  gridOwner?: GridOwnerRow | null
-}): Promise<CreateEdielMessageInput> {
-  return buildProdatOutboundDraft({
-    actorUserId: params.actorUserId ?? null,
-    code: 'Z03',
-    communicationRouteId: params.communicationRouteId ?? null,
-    customerId: params.switchRequest.customer_id,
-    siteId: params.switchRequest.site_id,
-    meteringPointId: params.switchRequest.metering_point_id,
-    gridOwnerId: params.switchRequest.grid_owner_id,
-    switchRequestId: params.switchRequest.id,
-    senderEdielId: params.senderEdielId,
-    senderName: params.senderName ?? null,
-    receiverEdielId: params.receiverEdielId,
-    receiverName: params.receiverName ?? null,
-    senderSubAddress: 'GRIDEX',
-    receiverSubAddress: 'PRODAT',
-    mailbox: params.mailbox ?? null,
-    receiverEmail: params.receiverEmail ?? null,
-    externalReference:
-      params.switchRequest.external_reference ?? `SWITCH-${params.switchRequest.id}`,
-    transactionReference:
-      params.switchRequest.external_reference ?? `SWITCH-${params.switchRequest.id}`,
-    payload: {
-      reasonForTransaction: 'E01',
-      referenceToLineItem:
-        params.switchRequest.external_reference ?? `SWITCH-${params.switchRequest.id}`,
-      meterPointId: getMeterPointIdentifier(params.meteringPoint),
-      facilityId: getFacilityIdentifier(params.meteringPoint, params.site),
-      gridOwnerEdielId: params.gridOwner?.ediel_id ?? '',
-      customerName: getCustomerDisplayName(params.site),
-      street: params.site.street,
-      postalCode: params.site.postal_code,
-      city: params.site.city,
-      requestedStartDate: params.switchRequest.requested_start_date,
-      incomingSupplierName: params.switchRequest.incoming_supplier_name,
-      incomingSupplierOrgNumber: params.switchRequest.incoming_supplier_org_number,
-      currentSupplierName: params.switchRequest.current_supplier_name,
-      currentSupplierOrgNumber: params.switchRequest.current_supplier_org_number,
-    },
-  })
-}
-
-export async function buildProdatZ05FromSwitch(params: {
-  actorUserId?: string | null
-  senderEdielId: string
-  senderName?: string | null
-  receiverEdielId: string
-  receiverName?: string | null
-  receiverEmail?: string | null
-  communicationRouteId?: string | null
-  mailbox?: string | null
-  switchRequest: SupplierSwitchRequestRow
-  site: CustomerSiteRow
-  meteringPoint: MeteringPointRow
-  gridOwner?: GridOwnerRow | null
-}): Promise<CreateEdielMessageInput> {
-  return buildProdatOutboundDraft({
-    actorUserId: params.actorUserId ?? null,
-    code: 'Z05',
-    communicationRouteId: params.communicationRouteId ?? null,
-    customerId: params.switchRequest.customer_id,
-    siteId: params.switchRequest.site_id,
-    meteringPointId: params.switchRequest.metering_point_id,
-    gridOwnerId: params.switchRequest.grid_owner_id,
-    switchRequestId: params.switchRequest.id,
-    senderEdielId: params.senderEdielId,
-    senderName: params.senderName ?? null,
-    receiverEdielId: params.receiverEdielId,
-    receiverName: params.receiverName ?? null,
-    senderSubAddress: 'GRIDEX',
-    receiverSubAddress: 'PRODAT',
-    mailbox: params.mailbox ?? null,
-    receiverEmail: params.receiverEmail ?? null,
-    externalReference:
-      params.switchRequest.external_reference ?? `SWITCH-DONE-${params.switchRequest.id}`,
-    transactionReference:
-      params.switchRequest.external_reference ?? `SWITCH-DONE-${params.switchRequest.id}`,
-    payload: {
-      reasonForTransaction: 'E01',
-      referenceToLineItem:
-        params.switchRequest.external_reference ?? `SWITCH-DONE-${params.switchRequest.id}`,
-      meterPointId: getMeterPointIdentifier(params.meteringPoint),
-      facilityId: getFacilityIdentifier(params.meteringPoint, params.site),
-      gridOwnerEdielId: params.gridOwner?.ediel_id ?? '',
-      customerName: getCustomerDisplayName(params.site),
-      street: params.site.street,
-      postalCode: params.site.postal_code,
-      city: params.site.city,
-      requestedStartDate: params.switchRequest.requested_start_date,
-      incomingSupplierName: params.switchRequest.incoming_supplier_name,
-      incomingSupplierOrgNumber: params.switchRequest.incoming_supplier_org_number,
-      currentSupplierName: params.switchRequest.current_supplier_name,
-      currentSupplierOrgNumber: params.switchRequest.current_supplier_org_number,
-    },
-  })
-}
-
-export async function buildProdatZ09FromSwitch(params: {
-  actorUserId?: string | null
-  senderEdielId: string
-  senderName?: string | null
-  receiverEdielId: string
-  receiverName?: string | null
-  receiverEmail?: string | null
-  communicationRouteId?: string | null
-  mailbox?: string | null
-  switchRequest: SupplierSwitchRequestRow
-  site: CustomerSiteRow
-  meteringPoint: MeteringPointRow
-  gridOwner?: GridOwnerRow | null
-}): Promise<CreateEdielMessageInput> {
-  return buildProdatOutboundDraft({
-    actorUserId: params.actorUserId ?? null,
-    code: 'Z09',
-    communicationRouteId: params.communicationRouteId ?? null,
-    customerId: params.switchRequest.customer_id,
-    siteId: params.switchRequest.site_id,
-    meteringPointId: params.switchRequest.metering_point_id,
-    gridOwnerId: params.switchRequest.grid_owner_id,
-    switchRequestId: params.switchRequest.id,
-    senderEdielId: params.senderEdielId,
-    senderName: params.senderName ?? null,
-    receiverEdielId: params.receiverEdielId,
-    receiverName: params.receiverName ?? null,
-    senderSubAddress: 'GRIDEX',
-    receiverSubAddress: 'PRODAT',
-    mailbox: params.mailbox ?? null,
-    receiverEmail: params.receiverEmail ?? null,
-    externalReference:
-      params.switchRequest.external_reference ?? `MASTERDATA-${params.switchRequest.id}`,
-    transactionReference:
-      params.switchRequest.external_reference ?? `MASTERDATA-${params.switchRequest.id}`,
-    payload: {
-      reasonForTransaction: 'A08',
-      referenceToLineItem:
-        params.switchRequest.external_reference ?? `MASTERDATA-${params.switchRequest.id}`,
-      meterPointId: getMeterPointIdentifier(params.meteringPoint),
-      facilityId: getFacilityIdentifier(params.meteringPoint, params.site),
-      gridOwnerEdielId: params.gridOwner?.ediel_id ?? '',
-      customerName: getCustomerDisplayName(params.site),
-      street: params.site.street,
-      postalCode: params.site.postal_code,
-      city: params.site.city,
-      requestedStartDate: params.switchRequest.requested_start_date,
-      incomingSupplierName: params.switchRequest.incoming_supplier_name,
-      incomingSupplierOrgNumber: params.switchRequest.incoming_supplier_org_number,
-      currentSupplierName: params.switchRequest.current_supplier_name,
-      currentSupplierOrgNumber: params.switchRequest.current_supplier_org_number,
-    },
-  })
+      messageStandard: 'edifact',
+      messageFamily: 'PRODAT',
+      messageCode: code,
+      messageVersion,
+      processType: deriveProcessLabel(code),
+      environment: 'test',
+      testFlag: 1,
+      status: 'draft',
+      transportType: 'smtp',
+      mailbox: input.mailbox ?? null,
+      senderEdielId: input.senderEdielId,
+      senderName: input.senderName ?? null,
+      receiverEdielId: input.receiverEdielId,
+      receiverName: input.receiverName ?? null,
+      senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
+      receiverSubAddress: input.receiverSubAddress ?? 'PRODAT',
+      receiverEmail: input.receiverEmail ?? null,
+      subject:
+        input.subject ??
+        `PRODAT ${code} ${externalReference}`.trim(),
+      fileName: inferEdielFileName({
+        family: 'PRODAT',
+        code,
+        direction: 'outbound',
+        extension: 'edi',
+      }),
+      mimeType: 'application/edifact',
+      interchangeReference: envelope.interchangeReference,
+      applicationReference,
+      externalReference,
+      correlationReference: input.correlationReference ?? null,
+      transactionReference,
+      communicationRouteId: input.communicationRouteId ?? null,
+      switchRequestId: input.switchRequest.id,
+      customerId: input.switchRequest.customer_id,
+      siteId: input.switchRequest.site_id,
+      meteringPointId: input.switchRequest.metering_point_id,
+      gridOwnerId: input.switchRequest.grid_owner_id,
+      rawPayload: envelope.raw,
+      parsedPayload,
+      requiresContrl: ack.requiresContrl,
+      requiresAperak: ack.requiresAperak,
+      contrlStatus: ack.contrlStatus,
+      aperakStatus: ack.aperakStatus,
+      utiltsErrStatus: ack.utiltsErrStatus,
+      ackDueAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      syntaxCheckStatus: 'not_checked',
+      functionalCheckStatus: 'not_checked',
+    }
+  })()
 }
 
 export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
@@ -602,37 +406,83 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const inferred = inferEdielFamilyAndCodeFromRawPayload(rawPayload)
   const unb = firstSegmentValue(rawSegments, 'UNB+')
   const bgm = firstSegmentValue(rawSegments, 'BGM+')
-  const ids = extractUnb(unb)
+  const dtm7 = firstSegmentValue(rawSegments, 'DTM+7')
+  const dtm137 = firstSegmentValue(rawSegments, 'DTM+137')
+  const loc172 = firstSegmentValue(rawSegments, 'LOC+172')
+  const loc239 = firstSegmentValue(rawSegments, 'LOC+239')
+  const nadBy = firstSegmentValue(rawSegments, 'NAD+BY')
+  const adr = firstSegmentValue(rawSegments, 'ADR+')
+  const ids = extractUnbIds(unb)
+
   const bgmParts = bgm?.split('+') ?? []
+  const bgmCode = (bgmParts[1]?.split(':')[0]?.trim() ||
+    inferred.messageCode ||
+    null) as ProdatSwitchCode | EdielKnownMessageCode | null
+
+  const meterPointId = loc172?.split('+')[2]?.split(':')[0]?.trim() || null
+  const gridAreaId = loc239?.split('+')[2]?.split(':')[0]?.trim() || null
+  const customerName = nadBy?.split('+++')[1]?.trim() || null
+  const adrParts = adr?.split('+') ?? []
 
   return {
     messageFamily: 'PRODAT',
-    messageCode:
-      (bgmParts[1]?.trim() as ParsedProdatCode | undefined) ??
-      (inferred.messageCode as ParsedProdatCode | null),
+    messageCode: bgmCode,
     transactionReference:
       extractReference(rawPayload, 'TN') ||
       extractReference(rawPayload, 'CR') ||
-      extractReference(rawPayload, 'ACW'),
-    externalReference: bgmParts[2]?.trim() || extractReference(rawPayload, 'ON'),
-    applicationReference: ids.applicationReference,
+      extractReference(rawPayload, 'AAS'),
+    externalReference:
+      bgmParts[2]?.trim() ||
+      extractReference(rawPayload, 'ON') ||
+      extractReference(rawPayload, 'ACE'),
+    applicationReference: extractApplicationReference(rawPayload),
     senderEdielId: ids.senderEdielId,
     receiverEdielId: ids.receiverEdielId,
     senderSubAddress: ids.senderSubAddress,
     receiverSubAddress: ids.receiverSubAddress,
     rawSegments,
     parsedPayload: {
+      meterPointId,
+      meteringPointId: meterPointId,
+      gridAreaId,
+      customerName,
+      requestedStartDate: extractDateFromDtm(dtm7),
+      createdDate: extractDateFromDtm(dtm137),
+      street: adrParts[1]?.trim() || null,
+      postalCode: adrParts[2]?.trim() || null,
+      city: adrParts[3]?.trim() || null,
+      segmentCount: rawSegments.length,
       inferredFamily: inferred.messageFamily,
       inferredCode: inferred.messageCode,
-      bgm,
-      unb,
-      meterPointId:
-        firstSegmentValue(rawSegments, 'LOC+172')?.split('+')[2]?.trim() ?? null,
-      facilityId:
-        firstSegmentValue(rawSegments, 'LOC+64')?.split('+')[2]?.trim() ?? null,
-      gridOwnerEdielId:
-        firstSegmentValue(rawSegments, 'LOC+322')?.split('+')[2]?.trim() ?? null,
-      segmentCount: rawSegments.length,
     },
   }
+}
+
+export async function buildProdatOutboundDraft(params: {
+  actorUserId?: string | null
+  switchRequestId: string
+  messageCode: 'Z03' | 'Z05' | 'Z09'
+  communicationRouteId?: string | null
+}) {
+  throw new Error(
+    'buildProdatOutboundDraft är inte längre den primära vägen. Använd buildProdatZ03FromSwitch, buildProdatZ05FromSwitch eller buildProdatZ09FromSwitch.'
+  )
+}
+
+export async function buildProdatZ03FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z03')
+}
+
+export async function buildProdatZ05FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z05')
+}
+
+export async function buildProdatZ09FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z09')
 }

@@ -6,7 +6,14 @@ import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import { listEdielMessages, listEdielTestRuns } from '@/lib/ediel/db'
 import { getEdielSummary } from '@/lib/ediel/summary'
 import { sendEdielMessageAction } from '@/app/admin/ediel/actions'
-import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
+import {
+  ACTIVE_EDIEL_MESSAGE_FAMILIES,
+  ACTIVE_EDIEL_TEST_SUITES,
+  isActiveEdielMessageFamily,
+  isActiveEdielTestSuite,
+  type EdielMessageRow,
+  type EdielTestRunRow,
+} from '@/lib/ediel/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +21,8 @@ function badgeTone(
   status: string | null | undefined
 ): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
   if (status === 'acknowledged' || status === 'passed' || status === 'received') return 'green'
-  if (status === 'queued' || status === 'prepared' || status === 'draft' || status === 'running') return 'yellow'
+  if (status === 'queued' || status === 'prepared' || status === 'draft' || status === 'running')
+    return 'yellow'
   if (status === 'failed' || status === 'cancelled') return 'red'
   if (status === 'sent' || status === 'validated' || status === 'parsed') return 'blue'
   return 'slate'
@@ -203,12 +211,21 @@ export default async function AdminEdielControlTowerPage() {
   const supabase = await createSupabaseServerClient()
 
   const [summary, messages, testRuns] = await Promise.all([
-  getEdielSummary(supabase),
-  listEdielMessages({ limit: 250 }),
-  listEdielTestRuns(),
-])
+    getEdielSummary(supabase),
+    listEdielMessages({ limit: 250 }),
+    listEdielTestRuns(),
+  ])
 
-  const sortedMessages = sortNewest(messages)
+  const scopedMessages = messages.filter((row) => isActiveEdielMessageFamily(row.message_family))
+  const futureMessages = messages.filter((row) => !isActiveEdielMessageFamily(row.message_family))
+  const scopedTestRuns = (testRuns as EdielTestRunRow[]).filter((row) =>
+    isActiveEdielTestSuite(row.test_suite)
+  )
+  const futureTestRuns = (testRuns as EdielTestRunRow[]).filter(
+    (row) => !isActiveEdielTestSuite(row.test_suite)
+  )
+
+  const sortedMessages = sortNewest(scopedMessages)
   const pendingAck = sortedMessages.filter(isAckPending)
   const overdueAck = sortedMessages.filter(isAckOverdue)
   const failedMessages = sortedMessages.filter((row) => row.status === 'failed')
@@ -218,42 +235,62 @@ export default async function AdminEdielControlTowerPage() {
       row.direction === 'outbound' &&
       (row.status === 'queued' || row.status === 'prepared')
   )
-  const activeTests = (testRuns as EdielTestRunRow[])
-  .filter((row) => ['draft', 'running'].includes(row.status))
-  .slice(0, 20)
+  const activeTests = scopedTestRuns
+    .filter((row) => ['draft', 'running'].includes(row.status))
+    .slice(0, 20)
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="Ediel control tower"
-        subtitle="Samlad driftvy för kö, ack, fel, olänkade meddelanden och testkörningar."
+        subtitle="Samlad driftvy för aktiv release-scope: PRODAT, UTILTS, CONTRL, APERAK, UTILTS_ERR och AI-lista."
         userEmail={context.email}
       />
 
       <div className="space-y-8 p-8">
+        <section className="rounded-3xl border border-blue-200 bg-blue-50 p-5">
+          <div className="text-sm font-semibold text-slate-900">Aktivt Ediel-scope i release 1</div>
+          <p className="mt-2 text-sm text-slate-700">
+            Control towern visar nu bara aktivt scope: {ACTIVE_EDIEL_MESSAGE_FAMILIES.join(', ')}.
+            Framtida familjer som NBS_XML eller övriga placeholders hålls utanför den operativa vyn tills de verkligen tas i bruk.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Pill text={`Aktiva familjer ${ACTIVE_EDIEL_MESSAGE_FAMILIES.length}`} tone="blue" />
+            <Pill text={`Aktiva testsviter ${ACTIVE_EDIEL_TEST_SUITES.length}`} tone="blue" />
+            <Pill
+              text={`Dolda framtida meddelanden ${futureMessages.length}`}
+              tone={futureMessages.length > 0 ? 'yellow' : 'slate'}
+            />
+            <Pill
+              text={`Dolda framtida testruns ${futureTestRuns.length}`}
+              tone={futureTestRuns.length > 0 ? 'yellow' : 'slate'}
+            />
+          </div>
+        </section>
+
         <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-6">
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
             <div className="text-sm text-slate-500">Totala meddelanden</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {summary.totalMessages}
+              {scopedMessages.length}
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
             <div className="text-sm text-slate-500">Kö / prepared</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {summary.queuedMessages}
+              {queuedOutbound.length}
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
             <div className="text-sm text-slate-500">Pending ack</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {summary.pendingAckMessages}
+              {pendingAck.length}
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
             <div className="text-sm text-slate-500">Failed</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {summary.failedMessages}
+              {failedMessages.length}
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
@@ -263,49 +300,76 @@ export default async function AdminEdielControlTowerPage() {
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Aktiva test runs</div>
+            <div className="text-sm text-slate-500">Aktiva testkörningar</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {summary.activeTestRuns}
+              {activeTests.length}
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+            <div className="text-sm text-slate-500">Inbound</div>
+            <div className="mt-2 text-2xl font-semibold text-slate-900">
+              {scopedMessages.filter((row) => row.direction === 'inbound').length}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+            <div className="text-sm text-slate-500">Outbound</div>
+            <div className="mt-2 text-2xl font-semibold text-slate-900">
+              {scopedMessages.filter((row) => row.direction === 'outbound').length}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+            <div className="text-sm text-slate-500">Drafts</div>
+            <div className="mt-2 text-2xl font-semibold text-slate-900">
+              {scopedMessages.filter((row) => row.status === 'draft').length}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+            <div className="text-sm text-slate-500">Profiler</div>
+            <div className="mt-2 text-2xl font-semibold text-slate-900">
+              {summary.configuredProfiles}
             </div>
           </div>
         </section>
 
         <MessageTable
-          title="Ack som väntar"
-          subtitle="Meddelanden där CONTRL eller APERAK fortfarande väntas."
-          rows={pendingAck.slice(0, 30)}
-        />
-
-        <MessageTable
           title="Ack försenad"
-          subtitle="Meddelanden där ack-due-at har passerat men kvittens saknas."
-          rows={overdueAck.slice(0, 30)}
+          subtitle="Meddelanden där kvittens förväntades men deadline har passerat."
+          rows={overdueAck}
         />
 
         <MessageTable
-          title="Köade outbound"
-          subtitle="Prepared eller queued outbound som fortfarande kan skickas."
-          rows={queuedOutbound.slice(0, 30)}
+          title="Pending ack"
+          subtitle="Meddelanden som väntar på CONTRL, APERAK eller UTILTS_ERR."
+          rows={pendingAck.filter((row) => !isAckOverdue(row))}
+        />
+
+        <MessageTable
+          title="Queued outbound"
+          subtitle="Prepared eller queued meddelanden som kan skickas direkt från control tower."
+          rows={queuedOutbound}
           showSendButton
         />
 
         <MessageTable
-          title="Olänkade inbound"
-          subtitle="Inbound som kommit in men ännu inte kopplats till switch, outbound eller data request."
-          rows={unlinkedInbound.slice(0, 30)}
+          title="Failed messages"
+          subtitle="Meddelanden som stoppat i parsing, validering eller transport."
+          rows={failedMessages}
         />
 
         <MessageTable
-          title="Failures"
-          subtitle="Felade meddelanden där detaljvyn ska användas för orsak och nästa åtgärd."
-          rows={failedMessages.slice(0, 30)}
+          title="Unlinked inbound"
+          subtitle="Inbound som ännu inte kopplats till outbound request, switch request eller data request."
+          rows={unlinkedInbound}
         />
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-slate-900">Aktiva testkörningar</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Test runs som fortfarande är i draft eller running.
+              Draft eller running inom aktivt release-scope.
             </p>
           </div>
 
@@ -313,37 +377,35 @@ export default async function AdminEdielControlTowerPage() {
             <table className="min-w-full text-sm">
               <thead className="text-left text-slate-500">
                 <tr className="border-b border-slate-200">
-                  <th className="px-3 py-3">Tid</th>
-                  <th className="px-3 py-3">Testfall</th>
+                  <th className="px-3 py-3">Skapad</th>
+                  <th className="px-3 py-3">Suite</th>
                   <th className="px-3 py-3">Status</th>
-                  <th className="px-3 py-3">Roll</th>
+                  <th className="px-3 py-3">Case</th>
+                  <th className="px-3 py-3">Objekt</th>
                 </tr>
               </thead>
               <tbody>
                 {activeTests.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-3 py-6 text-slate-500">
-                      Inga aktiva test runs.
+                    <td colSpan={5} className="px-3 py-6 text-slate-500">
+                      Inga aktiva testkörningar.
                     </td>
                   </tr>
                 ) : (
                   activeTests.map((row) => (
                     <tr key={row.id} className="border-b border-slate-100">
-                      <td className="px-3 py-3 whitespace-nowrap text-slate-600">
-                        {formatDate(row.created_at)}
-                      </td>
+                      <td className="px-3 py-3 text-slate-600">{formatDate(row.created_at)}</td>
                       <td className="px-3 py-3">
-                        <div className="font-medium text-slate-900">
-                          {row.test_case_code}
-                        </div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {row.title ?? '—'}
-                        </div>
+                        <Pill text={row.test_suite} tone="blue" />
                       </td>
                       <td className="px-3 py-3">
                         <Pill text={row.status} tone={badgeTone(row.status)} />
                       </td>
-                      <td className="px-3 py-3 text-slate-600">{row.role_code}</td>
+                      <td className="px-3 py-3 text-slate-900">{row.test_case_code}</td>
+                      <td className="px-3 py-3 text-xs text-slate-600">
+                        kund {row.customer_id ?? '—'} · site {row.site_id ?? '—'} · mp{' '}
+                        {row.metering_point_id ?? '—'}
+                      </td>
                     </tr>
                   ))
                 )}

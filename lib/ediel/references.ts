@@ -1,146 +1,121 @@
 // lib/ediel/references.ts
 
-import type {
-  EdielMessageFamily,
-  EdielKnownMessageCode,
-} from '@/lib/ediel/types'
+import type { EdielAckStatus } from '@/lib/ediel/types'
 
-function compact(value: string): string {
-  return value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+type ReferenceFamily =
+  | 'PRODAT'
+  | 'UTILTS'
+  | 'APERAK'
+  | 'CONTRL'
+  | 'UTILTS_ERR'
+  | 'AI_LIST'
+
+function compactNow(): string {
+  return new Date().toISOString().replace(/[-:TZ.]/g, '').slice(2, 14)
 }
 
-function timestampPart(date: Date = new Date()): string {
-  return date
-    .toISOString()
-    .replace(/[-:TZ.]/g, '')
-    .slice(0, 14)
+function shortId(value?: string | null): string {
+  if (!value) return 'NONE'
+  return value.replace(/-/g, '').slice(0, 12).toUpperCase()
 }
 
-function randomPart(length = 6): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let out = ''
-
-  for (let i = 0; i < length; i += 1) {
-    out += alphabet[Math.floor(Math.random() * alphabet.length)]
-  }
-
-  return out
-}
-
-export function buildEdielCorrelationReference(input?: {
-  prefix?: string | null
-  customerId?: string | null
-  siteId?: string | null
-  meteringPointId?: string | null
-}): string {
-  const base = compact(input?.prefix ?? 'GRIDEX')
-  const subject =
-    compact(input?.meteringPointId ?? '') ||
-    compact(input?.siteId ?? '') ||
-    compact(input?.customerId ?? '') ||
-    'GEN'
-
-  return `${base}-${subject.slice(0, 12)}-${timestampPart()}-${randomPart(4)}`
-}
-
-export function buildEdielTransactionReference(input: {
-  family: EdielMessageFamily | string
-  code: EdielKnownMessageCode
-  prefix?: string | null
-}): string {
-  const prefix = compact(input.prefix ?? 'GRX')
-  const family = compact(String(input.family)).slice(0, 10)
-  const code = compact(String(input.code)).slice(0, 12)
-
-  return `${prefix}-${family}-${code}-${timestampPart()}-${randomPart(5)}`
-}
-
-export function buildEdielExternalReference(input: {
-  family: EdielMessageFamily | string
-  code: EdielKnownMessageCode
+export function buildEdielExternalReference(params: {
+  family: ReferenceFamily
+  code: string
   switchRequestId?: string | null
   gridOwnerDataRequestId?: string | null
   outboundRequestId?: string | null
+  relatedMessageId?: string | null
 }): string {
-  const family = compact(String(input.family)).slice(0, 10)
-  const code = compact(String(input.code)).slice(0, 10)
-  const subject =
-    compact(input.switchRequestId ?? '') ||
-    compact(input.gridOwnerDataRequestId ?? '') ||
-    compact(input.outboundRequestId ?? '') ||
+  const family = params.family
+  const code = params.code.replace(/[^A-Za-z0-9_]/g, '').toUpperCase()
+  const refSource =
+    params.switchRequestId ??
+    params.gridOwnerDataRequestId ??
+    params.outboundRequestId ??
+    params.relatedMessageId ??
     'GEN'
 
-  return `${family}-${code}-${subject.slice(0, 10)}-${randomPart(6)}`
+  return `${family}-${code}-${shortId(refSource)}-${compactNow()}`
 }
 
-export function buildEdielInterchangeReference(input?: {
-  senderEdielId?: string | null
-  receiverEdielId?: string | null
+export function buildEdielTransactionReference(params: {
+  family: ReferenceFamily
+  code: string
 }): string {
-  const sender = compact(input?.senderEdielId ?? '00000').slice(0, 5) || '00000'
-  const receiver =
-    compact(input?.receiverEdielId ?? '00000').slice(0, 5) || '00000'
-
-  return `${sender}${receiver}${timestampPart().slice(2, 12)}${randomPart(4)}`
+  const family = params.family.replace(/[^A-Za-z0-9_]/g, '').toUpperCase()
+  const code = params.code.replace(/[^A-Za-z0-9_]/g, '').toUpperCase()
+  return `TX-${family}-${code}-${compactNow()}`
 }
 
-export function buildAperakTransactionReference(): string {
-  return `APE${timestampPart().slice(2)}${randomPart(4)}`
-}
+export function deriveEdielAckDefaults(params: {
+  family: ReferenceFamily
+  code: string
+}): {
+  requiresContrl: boolean
+  requiresAperak: boolean
+  contrlStatus: EdielAckStatus
+  aperakStatus: EdielAckStatus
+  utiltsErrStatus: EdielAckStatus
+} {
+  const family = params.family
+  const code = params.code.toUpperCase()
 
-export function buildSupplierApplicationReference(): string {
-  return '23-DDQ-PRODAT'
-}
+  if (family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR') {
+    return {
+      requiresContrl: false,
+      requiresAperak: false,
+      contrlStatus: 'not_required',
+      aperakStatus: 'not_required',
+      utiltsErrStatus: 'not_required',
+    }
+  }
 
-export function shouldRequireAperak(
-  family: EdielMessageFamily | string,
-  code: EdielKnownMessageCode
-): boolean {
-  const resolvedFamily = String(family).toUpperCase()
-  const resolvedCode = String(code).toUpperCase()
+  if (family === 'AI_LIST') {
+    return {
+      requiresContrl: false,
+      requiresAperak: false,
+      contrlStatus: 'not_required',
+      aperakStatus: 'not_required',
+      utiltsErrStatus: 'not_required',
+    }
+  }
 
-  if (resolvedFamily === 'PRODAT') return true
-  if (resolvedFamily === 'UTILTS') return true
-  if (resolvedFamily === 'AI_LIST') return false
-  if (resolvedFamily === 'NBS_XML') return false
-  if (resolvedFamily === 'APERAK') return false
-  if (resolvedFamily === 'CONTRL') return false
-  if (resolvedFamily === 'UTILTS_ERR') return false
+  if (family === 'PRODAT') {
+    return {
+      requiresContrl: true,
+      requiresAperak: true,
+      contrlStatus: 'pending',
+      aperakStatus: 'pending',
+      utiltsErrStatus: 'not_required',
+    }
+  }
 
-  return resolvedCode !== 'CONTRL'
-}
+  if (family === 'UTILTS') {
+    if (code === 'E66' || code === 'E73' || code === 'E31' || code === 'S02' || code === 'S03') {
+      return {
+        requiresContrl: true,
+        requiresAperak: true,
+        contrlStatus: 'pending',
+        aperakStatus: 'pending',
+        utiltsErrStatus: 'not_required',
+      }
+    }
 
-export function shouldRequireContrl(
-  family: EdielMessageFamily | string,
-  code: EdielKnownMessageCode
-): boolean {
-  const resolvedFamily = String(family).toUpperCase()
-  const resolvedCode = String(code).toUpperCase()
-
-  if (resolvedFamily === 'CONTRL') return false
-  if (resolvedFamily === 'AI_LIST') return false
-  if (resolvedFamily === 'NBS_XML') return false
-  if (resolvedFamily === 'UTILTS_ERR') return true
-  if (resolvedFamily === 'APERAK') return true
-
-  return resolvedCode !== 'CONTRL'
-}
-
-export function deriveEdielAckDefaults(input: {
-  family: EdielMessageFamily | string
-  code: EdielKnownMessageCode
-}) {
-  const requiresContrl = shouldRequireContrl(input.family, input.code)
-  const requiresAperak = shouldRequireAperak(input.family, input.code)
+    return {
+      requiresContrl: true,
+      requiresAperak: false,
+      contrlStatus: 'pending',
+      aperakStatus: 'not_required',
+      utiltsErrStatus: 'not_required',
+    }
+  }
 
   return {
-    requiresContrl,
-    requiresAperak,
-    contrlStatus: requiresContrl ? ('pending' as const) : ('not_required' as const),
-    aperakStatus: requiresAperak ? ('pending' as const) : ('not_required' as const),
-    utiltsErrStatus:
-      String(input.family).toUpperCase() === 'UTILTS'
-        ? ('pending' as const)
-        : ('not_required' as const),
+    requiresContrl: true,
+    requiresAperak: false,
+    contrlStatus: 'pending',
+    aperakStatus: 'not_required',
+    utiltsErrStatus: 'not_required',
   }
 }

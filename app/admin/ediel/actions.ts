@@ -1,23 +1,11 @@
+// app/admin/ediel/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
-import {
-  attachEdielMessageToTestRun,
-  createEdielMessage,
-  createEdielMessageEvent,
-  createEdielTestRun,
-  getEdielMessageById,
-} from '@/lib/ediel/db'
-import {
-  buildAperakDraft,
-  buildContrlDraft,
-  buildUtiltsErrDraft,
-} from '@/lib/ediel/ack'
-import { buildProdatOutboundDraft } from '@/lib/ediel/prodat'
+import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { createEdielMessage, createEdielTestRun } from '@/lib/ediel/db'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
-import { runEdielSelfTest } from '@/lib/ediel/selftest'
 import {
   createNegativeUtiltsResponse,
   pollAndIngestEdielMailbox,
@@ -29,515 +17,499 @@ import {
   prepareAndQueueUtiltsE73,
   sendQueuedEdielMessage,
 } from '@/lib/ediel/orchestrator'
+import { buildAperakDraft, buildContrlDraft } from '@/lib/ediel/ack'
+import { runEdielSelfTest, type EdielSelfTestScenarioCode } from '@/lib/ediel/selftest'
+import { inferEdielFileName } from '@/lib/ediel/classify'
 
-function stringValue(formData: FormData, key: string): string | null {
-  const value = formData.get(key)
-  if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
+function asString(value: FormDataEntryValue | null): string {
+  return typeof value === 'string' ? value.trim() : ''
 }
 
-function numberValue(formData: FormData, key: string): number | null {
-  const raw = stringValue(formData, key)
-  if (!raw) return null
-  const parsed = Number(raw.replace(',', '.'))
-  return Number.isFinite(parsed) ? parsed : null
+function asOptionalString(value: FormDataEntryValue | null): string | null {
+  const parsed = asString(value)
+  return parsed.length > 0 ? parsed : null
 }
 
-function jsonValue(formData: FormData, key: string): Record<string, unknown> {
-  const raw = stringValue(formData, key)
-  if (!raw) return {}
+function asNumber(value: FormDataEntryValue | null): number | null {
+  const parsed = asString(value)
+  if (!parsed) return null
+  const normalized = parsed.replace(',', '.')
+  const num = Number(normalized)
+  return Number.isFinite(num) ? num : null
+}
 
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch {
-    return {}
+function asIsoDateTimeLocal(value: FormDataEntryValue | null): string | null {
+  const parsed = asString(value)
+  if (!parsed) return null
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(parsed)) {
+    return `${parsed}:00`
   }
+  return parsed
 }
 
-async function getActor() {
+function asIsoDate(value: FormDataEntryValue | null): string | null {
+  const parsed = asString(value)
+  return parsed || null
+}
+
+async function getActorUserId(): Promise<string> {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    throw new Error('Unauthorized')
+  if (!user?.id) {
+    throw new Error('Ingen inloggad användare hittades för server action')
   }
 
-  return user
+  return user.id
 }
 
-export async function createProdatDraftAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
-
-  const actor = await getActor()
-
-  const code = stringValue(formData, 'code') as
-    | 'Z01'
-    | 'Z03'
-    | 'Z05'
-    | 'Z09'
-    | 'Z13'
-    | 'Z18'
-    | null
-
-  if (!code) throw new Error('Missing PRODAT code')
-
-  const draft = await buildProdatOutboundDraft({
-    actorUserId: actor.id,
-    code,
-    communicationRouteId: stringValue(formData, 'communicationRouteId'),
-    customerId: stringValue(formData, 'customerId'),
-    siteId: stringValue(formData, 'siteId'),
-    meteringPointId: stringValue(formData, 'meteringPointId'),
-    gridOwnerId: stringValue(formData, 'gridOwnerId'),
-    outboundRequestId: stringValue(formData, 'outboundRequestId'),
-    switchRequestId: stringValue(formData, 'switchRequestId'),
-    gridOwnerDataRequestId: stringValue(formData, 'gridOwnerDataRequestId'),
-    senderEdielId: stringValue(formData, 'senderEdielId'),
-    senderName: stringValue(formData, 'senderName'),
-    receiverEdielId: stringValue(formData, 'receiverEdielId'),
-    receiverName: stringValue(formData, 'receiverName'),
-    senderSubAddress: stringValue(formData, 'senderSubAddress'),
-    receiverSubAddress: stringValue(formData, 'receiverSubAddress'),
-    mailbox: stringValue(formData, 'mailbox'),
-    receiverEmail: stringValue(formData, 'receiverEmail'),
-    subject: stringValue(formData, 'subject'),
-    externalReference: stringValue(formData, 'externalReference'),
-    correlationReference: stringValue(formData, 'correlationReference'),
-    transactionReference: stringValue(formData, 'transactionReference'),
-    reasonForTransaction: stringValue(formData, 'reasonForTransaction'),
-    referenceToLineItem: stringValue(formData, 'referenceToLineItem'),
-    payload: jsonValue(formData, 'payload'),
-  })
-
-  const row = await createEdielMessage(draft)
-
-  await createEdielMessageEvent({
-    actorUserId: actor.id,
-    edielMessageId: row.id,
-    eventType: 'prepared',
-    eventStatus: 'success',
-    message: `Prepared outbound PRODAT ${row.message_code}`,
-    payload: { visibility: 'admin', nextStep: 'review_and_send' },
-  })
-
+function revalidateEdielSurfaces() {
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/operations')
   revalidatePath('/admin/outbound')
 }
 
-export async function registerInboundUtiltsAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'metering.write',
-    'billing_underlay.write',
-  ])
+function buildSimpleInboundUtiltsRaw(params: {
+  code: 'E66' | 'S02' | 'S03' | 'E31'
+  senderEdielId: string
+  receiverEdielId: string
+  externalReference: string
+  transactionReference: string
+  meterPointId: string
+  periodStart?: string | null
+  periodEnd?: string | null
+  quantity?: number | null
+}): string {
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .slice(2, 13)
+  const periodStart = (params.periodStart ?? new Date().toISOString().slice(0, 10)).replace(/-/g, '')
+  const periodEnd = (params.periodEnd ?? new Date().toISOString().slice(0, 10)).replace(/-/g, '')
+  const quantity =
+    typeof params.quantity === 'number' && Number.isFinite(params.quantity)
+      ? String(params.quantity)
+      : null
 
-  const actor = await getActor()
+  const segments = [
+    `UNB+UNOC:3+${params.senderEdielId}:UTILTS+${params.receiverEdielId}:GRIDEX+${stamp}+++++23-GRIDEX-UTILTS`,
+    `UNH+1+UTILTS:D:03A:UN:1.0`,
+    `BGM+${params.code}+${params.externalReference}+9`,
+    `RFF+TN:${params.transactionReference}`,
+    `LOC+172+${params.meterPointId}`,
+    `DTM+137:${periodStart}:102`,
+    `DTM+163:${periodEnd}:102`,
+    quantity ? `QTY+Z13:${quantity}:KWH` : null,
+    `UNT+${quantity ? '8' : '7'}+1`,
+    `UNZ+1+${params.externalReference}`,
+  ].filter(Boolean)
 
-  const code = stringValue(formData, 'code') as
-    | 'S01'
-    | 'S02'
-    | 'S03'
-    | 'S04'
-    | 'E31'
-    | 'E66'
-    | 'E73'
-    | null
-
-  const rawPayload = stringValue(formData, 'rawPayload')
-
-  if (!code || !rawPayload) {
-    throw new Error('Missing UTILTS code or raw payload')
-  }
-
-  const input = buildInboundUtiltsMessageInput({
-    actorUserId: actor.id,
-    code,
-    communicationRouteId: stringValue(formData, 'communicationRouteId'),
-    customerId: stringValue(formData, 'customerId'),
-    siteId: stringValue(formData, 'siteId'),
-    meteringPointId: stringValue(formData, 'meteringPointId'),
-    gridOwnerId: stringValue(formData, 'gridOwnerId'),
-    mailbox: stringValue(formData, 'mailbox'),
-    mailboxMessageId: stringValue(formData, 'mailboxMessageId'),
-    senderEdielId: stringValue(formData, 'senderEdielId'),
-    receiverEdielId: stringValue(formData, 'receiverEdielId'),
-    senderEmail: stringValue(formData, 'senderEmail'),
-    receiverEmail: stringValue(formData, 'receiverEmail'),
-    rawPayload,
-  })
-
-  await createEdielMessage(input)
-
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/outbound')
-  revalidatePath('/admin/metering')
-  revalidatePath('/admin/billing')
-}
-
-export async function createAckDraftAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
-
-  const actor = await getActor()
-
-  const sourceMessageId = stringValue(formData, 'sourceMessageId')
-  const ackType = stringValue(formData, 'ackType')
-  const outcome = (stringValue(formData, 'outcome') ?? 'positive') as
-    | 'positive'
-    | 'negative'
-  const messageText = stringValue(formData, 'messageText')
-
-  if (!sourceMessageId || !ackType) {
-    throw new Error('Missing source message or ack type')
-  }
-
-  const source = await getEdielMessageById(sourceMessageId)
-  if (!source) throw new Error('Source Ediel message not found')
-
-  const draft =
-    ackType === 'CONTRL'
-      ? buildContrlDraft({
-          actorUserId: actor.id,
-          sourceMessage: source,
-          outcome,
-          messageText,
-        })
-      : ackType === 'APERAK'
-        ? buildAperakDraft({
-            actorUserId: actor.id,
-            sourceMessage: source,
-            outcome,
-            messageText,
-          })
-        : ackType === 'UTILTS_ERR'
-          ? buildUtiltsErrDraft({
-              actorUserId: actor.id,
-              sourceMessage: source,
-              messageText,
-            })
-          : null
-
-  if (!draft) throw new Error(`Unsupported ack type: ${ackType}`)
-
-  await createEdielMessage(draft)
-
-  revalidatePath('/admin/ediel')
-}
-
-export async function createEdielTestRunAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
-
-  const actor = await getActor()
-
-  const testSuite = stringValue(formData, 'testSuite') as
-    | 'PRODAT'
-    | 'UTILTS'
-    | 'NBS_XML'
-    | 'OTHER'
-    | null
-  const roleCode = stringValue(formData, 'roleCode') as
-    | 'supplier'
-    | 'grid_owner'
-    | 'balance_responsible'
-    | 'esco'
-    | null
-  const testCaseCode = stringValue(formData, 'testCaseCode')
-
-  if (!testSuite || !roleCode || !testCaseCode) {
-    throw new Error('Missing test suite, role code, or test case code')
-  }
-
-  await createEdielTestRun({
-    actorUserId: actor.id,
-    approvalVersion: stringValue(formData, 'approvalVersion'),
-    roleCode,
-    testSuite,
-    testCaseCode,
-    title: stringValue(formData, 'title'),
-    status: 'draft',
-    customerId: stringValue(formData, 'customerId'),
-    siteId: stringValue(formData, 'siteId'),
-    meteringPointId: stringValue(formData, 'meteringPointId'),
-    gridOwnerId: stringValue(formData, 'gridOwnerId'),
-    notes: stringValue(formData, 'notes'),
-  })
-
-  revalidatePath('/admin/ediel')
-}
-
-export async function attachMessageToTestRunAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
-
-  const testRunId = stringValue(formData, 'testRunId')
-  const edielMessageId = stringValue(formData, 'edielMessageId')
-
-  if (!testRunId || !edielMessageId) {
-    throw new Error('Missing test run or Ediel message')
-  }
-
-  const stepNoRaw = stringValue(formData, 'stepNo')
-  const stepNo = stepNoRaw ? Number(stepNoRaw) : null
-
-  await attachEdielMessageToTestRun({
-    testRunId,
-    edielMessageId,
-    stepNo: Number.isFinite(stepNo) ? stepNo : null,
-    expectedDirection: (stringValue(formData, 'expectedDirection') as
-      | 'inbound'
-      | 'outbound'
-      | null) ?? null,
-    expectedFamily: stringValue(formData, 'expectedFamily'),
-    expectedCode: stringValue(formData, 'expectedCode'),
-  })
-
-  revalidatePath('/admin/ediel')
+  return `${segments.join("'")}'`
 }
 
 export async function prepareSwitchZ03Action(formData: FormData) {
-  await requireAdminActionAccess(['switching.write'])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
+  const actorUserId = await getActorUserId()
+  const switchRequestId = asString(formData.get('switchRequestId'))
+  const communicationRouteId = asOptionalString(formData.get('communicationRouteId'))
+
+  if (!switchRequestId) {
+    throw new Error('switchRequestId saknas')
+  }
 
   await prepareAndQueueEdielZ03({
-    actorUserId: actor.id,
-    switchRequestId: stringValue(formData, 'switchRequestId') ?? '',
-    communicationRouteId: stringValue(formData, 'communicationRouteId'),
+    actorUserId,
+    switchRequestId,
+    communicationRouteId,
   })
 
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/outbound')
+  revalidateEdielSurfaces()
 }
 
 export async function prepareSwitchZ05Action(formData: FormData) {
-  await requireAdminActionAccess(['switching.write'])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
+  const actorUserId = await getActorUserId()
+  const switchRequestId = asString(formData.get('switchRequestId'))
+  const communicationRouteId = asOptionalString(formData.get('communicationRouteId'))
+
+  if (!switchRequestId) {
+    throw new Error('switchRequestId saknas')
+  }
 
   await prepareAndQueueEdielZ05({
-    actorUserId: actor.id,
-    switchRequestId: stringValue(formData, 'switchRequestId') ?? '',
-    communicationRouteId: stringValue(formData, 'communicationRouteId'),
+    actorUserId,
+    switchRequestId,
+    communicationRouteId,
   })
 
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/outbound')
+  revalidateEdielSurfaces()
 }
 
 export async function prepareSwitchZ09Action(formData: FormData) {
-  await requireAdminActionAccess(['switching.write'])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
+  const actorUserId = await getActorUserId()
+  const switchRequestId = asString(formData.get('switchRequestId'))
+  const communicationRouteId = asOptionalString(formData.get('communicationRouteId'))
+
+  if (!switchRequestId) {
+    throw new Error('switchRequestId saknas')
+  }
 
   await prepareAndQueueEdielZ09({
-    actorUserId: actor.id,
-    switchRequestId: stringValue(formData, 'switchRequestId') ?? '',
-    communicationRouteId: stringValue(formData, 'communicationRouteId'),
+    actorUserId,
+    switchRequestId,
+    communicationRouteId,
   })
 
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/outbound')
+  revalidateEdielSurfaces()
 }
 
 export async function prepareUtiltsE73Action(formData: FormData) {
-  await requireAdminActionAccess([
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
+  const actorUserId = await getActorUserId()
+  const gridOwnerDataRequestId = asString(formData.get('gridOwnerDataRequestId'))
+  const communicationRouteId = asOptionalString(formData.get('communicationRouteId'))
+
+  if (!gridOwnerDataRequestId) {
+    throw new Error('gridOwnerDataRequestId saknas')
+  }
 
   await prepareAndQueueUtiltsE73({
-    actorUserId: actor.id,
-    gridOwnerDataRequestId: stringValue(formData, 'gridOwnerDataRequestId') ?? '',
-    communicationRouteId: stringValue(formData, 'communicationRouteId'),
+    actorUserId,
+    gridOwnerDataRequestId,
+    communicationRouteId,
   })
 
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/outbound')
-  revalidatePath('/admin/operations')
+  revalidateEdielSurfaces()
 }
 
 export async function prepareUtiltsE66Action(formData: FormData) {
-  await requireAdminActionAccess([
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
+  const actorUserId = await getActorUserId()
+  const gridOwnerDataRequestId = asString(formData.get('gridOwnerDataRequestId'))
+  const communicationRouteId = asOptionalString(formData.get('communicationRouteId'))
+  const quantity = asNumber(formData.get('quantity'))
+  const periodStart = asIsoDate(formData.get('periodStart'))
+  const periodEnd = asIsoDate(formData.get('periodEnd'))
+  const registrationTime = asIsoDateTimeLocal(formData.get('registrationTime'))
+
+  if (!gridOwnerDataRequestId) {
+    throw new Error('gridOwnerDataRequestId saknas')
+  }
 
   await prepareAndQueueUtiltsE66({
-    actorUserId: actor.id,
-    gridOwnerDataRequestId: stringValue(formData, 'gridOwnerDataRequestId') ?? '',
-    communicationRouteId: stringValue(formData, 'communicationRouteId'),
-    quantity: numberValue(formData, 'quantity'),
-    periodStart: stringValue(formData, 'periodStart'),
-    periodEnd: stringValue(formData, 'periodEnd'),
-    registrationTime: stringValue(formData, 'registrationTime'),
+    actorUserId,
+    gridOwnerDataRequestId,
+    communicationRouteId,
+    quantity,
+    periodStart,
+    periodEnd,
+    registrationTime,
   })
 
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/outbound')
-  revalidatePath('/admin/operations')
+  revalidateEdielSurfaces()
 }
 
 export async function prepareAiListAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'metering.write',
-    'billing_underlay.write',
-    'switching.write',
-  ])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
+  const actorUserId = await getActorUserId()
+
+  const listType = asString(formData.get('listType')) === 'BI' ? 'BI' : 'AI'
+  const customerId = asString(formData.get('customerId'))
+  const siteId = asString(formData.get('siteId'))
+  const meteringPointId = asOptionalString(formData.get('meteringPointId'))
+  const supplierEdielId = asOptionalString(formData.get('supplierEdielId'))
+  const balanceResponsibleEdielId = asOptionalString(
+    formData.get('balanceResponsibleEdielId')
+  )
+  const receiverEdielId = asString(formData.get('receiverEdielId'))
+  const receiverEmail = asOptionalString(formData.get('receiverEmail'))
+  const fromDate = asString(formData.get('fromDate'))
+  const toDate = asString(formData.get('toDate'))
+  const communicationRouteId = asOptionalString(formData.get('communicationRouteId'))
+
+  if (!customerId || !siteId || !receiverEdielId || !fromDate || !toDate) {
+    throw new Error('AI-list kräver customerId, siteId, receiverEdielId, fromDate och toDate')
+  }
 
   await prepareAndQueueAiList({
-    actorUserId: actor.id,
-    listType: (stringValue(formData, 'listType') as 'AI' | 'BI' | null) ?? 'AI',
-    customerId: stringValue(formData, 'customerId') ?? '',
-    siteId: stringValue(formData, 'siteId') ?? '',
-    meteringPointId: stringValue(formData, 'meteringPointId'),
-    supplierEdielId: stringValue(formData, 'supplierEdielId'),
-    balanceResponsibleEdielId: stringValue(formData, 'balanceResponsibleEdielId'),
-    receiverEdielId: stringValue(formData, 'receiverEdielId') ?? '',
-    receiverEmail: stringValue(formData, 'receiverEmail'),
-    fromDate: stringValue(formData, 'fromDate') ?? '',
-    toDate: stringValue(formData, 'toDate') ?? '',
-    communicationRouteId: stringValue(formData, 'communicationRouteId'),
+    actorUserId,
+    listType,
+    customerId,
+    siteId,
+    meteringPointId,
+    supplierEdielId,
+    balanceResponsibleEdielId,
+    receiverEdielId,
+    receiverEmail,
+    fromDate,
+    toDate,
+    communicationRouteId,
   })
 
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/outbound')
+  revalidateEdielSurfaces()
 }
 
 export async function sendEdielMessageAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
-  const edielMessageId = stringValue(formData, 'edielMessageId')
+  const actorUserId = await getActorUserId()
+  const edielMessageId = asString(formData.get('edielMessageId'))
 
   if (!edielMessageId) {
-    throw new Error('Missing ediel message id')
+    throw new Error('edielMessageId saknas')
   }
 
   await sendQueuedEdielMessage({
-    actorUserId: actor.id,
+    actorUserId,
     edielMessageId,
   })
 
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/outbound')
+  revalidateEdielSurfaces()
 }
 
 export async function pollMailboxAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
+  const actorUserId = await getActorUserId()
+  const mailbox = asOptionalString(formData.get('mailbox'))
+  const communicationRouteId = asOptionalString(formData.get('communicationRouteId'))
+  const limitRaw = asNumber(formData.get('limit'))
+  const limit =
+    typeof limitRaw === 'number' && limitRaw > 0 ? Math.floor(limitRaw) : 10
 
   await pollAndIngestEdielMailbox({
-    actorUserId: actor.id,
-    mailbox: stringValue(formData, 'mailbox'),
-    communicationRouteId: stringValue(formData, 'communicationRouteId'),
-    limit: Number(stringValue(formData, 'limit') ?? '10'),
+    actorUserId,
+    mailbox,
+    communicationRouteId,
+    limit,
   })
 
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/outbound')
-  revalidatePath('/admin/metering')
-  revalidatePath('/admin/billing')
-  revalidatePath('/admin/customers')
+  revalidateEdielSurfaces()
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
-  const edielMessageId = stringValue(formData, 'edielMessageId')
-  const messageText = stringValue(formData, 'messageText') ?? 'Functional error'
+  const actorUserId = await getActorUserId()
+  const edielMessageId = asString(formData.get('edielMessageId'))
+  const messageText = asOptionalString(formData.get('messageText')) ?? 'Functional error'
 
   if (!edielMessageId) {
-    throw new Error('Missing ediel message id')
+    throw new Error('edielMessageId saknas')
   }
 
   await createNegativeUtiltsResponse({
-    actorUserId: actor.id,
+    actorUserId,
     edielMessageId,
     messageText,
   })
 
-  revalidatePath('/admin/ediel')
+  revalidateEdielSurfaces()
+}
+
+export async function createAckDraftAction(formData: FormData) {
+  await requirePermissionServer('communication.read')
+
+  const actorUserId = await getActorUserId()
+  const sourceMessageId = asString(formData.get('sourceMessageId'))
+  const ackType = asString(formData.get('ackType'))
+  const outcome = asString(formData.get('outcome')) === 'negative' ? 'negative' : 'positive'
+  const messageText = asOptionalString(formData.get('messageText'))
+
+  if (!sourceMessageId) {
+    throw new Error('sourceMessageId saknas')
+  }
+
+  const sourceMessage = await (await import('@/lib/ediel/db')).getEdielMessageById(sourceMessageId)
+  if (!sourceMessage) {
+    throw new Error('Källmeddelande hittades inte')
+  }
+
+  if (ackType === 'CONTRL') {
+    await createEdielMessage(
+      buildContrlDraft({
+        actorUserId,
+        sourceMessage,
+        outcome,
+        messageText,
+      })
+    )
+  } else if (ackType === 'APERAK') {
+    await createEdielMessage(
+      buildAperakDraft({
+        actorUserId,
+        sourceMessage,
+        outcome,
+        messageText,
+      })
+    )
+  } else {
+    throw new Error(`ACK-typ ${ackType} stöds inte i createAckDraftAction`)
+  }
+
+  revalidateEdielSurfaces()
+}
+
+export async function createProdatDraftAction(formData: FormData) {
+  await requirePermissionServer('communication.read')
+
+  const actorUserId = await getActorUserId()
+  const switchRequestId = asString(formData.get('switchRequestId'))
+  const communicationRouteId = asOptionalString(formData.get('communicationRouteId'))
+  const messageCode = asString(formData.get('messageCode'))
+
+  if (!switchRequestId) {
+    throw new Error('switchRequestId saknas')
+  }
+
+  if (messageCode === 'Z03') {
+    await prepareAndQueueEdielZ03({
+      actorUserId,
+      switchRequestId,
+      communicationRouteId,
+    })
+  } else if (messageCode === 'Z05') {
+    await prepareAndQueueEdielZ05({
+      actorUserId,
+      switchRequestId,
+      communicationRouteId,
+    })
+  } else if (messageCode === 'Z09') {
+    await prepareAndQueueEdielZ09({
+      actorUserId,
+      switchRequestId,
+      communicationRouteId,
+    })
+  } else {
+    throw new Error(`PRODAT-kod ${messageCode} stöds inte`)
+  }
+
+  revalidateEdielSurfaces()
+}
+
+export async function registerInboundUtiltsAction(formData: FormData) {
+  await requirePermissionServer('communication.read')
+
+  const actorUserId = await getActorUserId()
+
+  const messageCodeRaw = asString(formData.get('messageCode'))
+  const messageCode =
+    messageCodeRaw === 'S02' || messageCodeRaw === 'S03' || messageCodeRaw === 'E31'
+      ? messageCodeRaw
+      : 'E66'
+
+  const senderEdielId = asOptionalString(formData.get('senderEdielId')) ?? '99999'
+  const receiverEdielId = asOptionalString(formData.get('receiverEdielId')) ?? '00000'
+  const quantity = asNumber(formData.get('quantity'))
+  const periodStart = asIsoDateTimeLocal(formData.get('periodStart')) ?? new Date().toISOString()
+  const periodEnd = asIsoDateTimeLocal(formData.get('periodEnd')) ?? new Date().toISOString()
+
+  const externalReference = `IN-${messageCode}-${Date.now()}`
+  const transactionReference = `TX-${messageCode}-${Date.now()}`
+  const meterPointId = 'SELFTEST-MP'
+
+  const rawPayload = buildSimpleInboundUtiltsRaw({
+    code: messageCode,
+    senderEdielId,
+    receiverEdielId,
+    externalReference,
+    transactionReference,
+    meterPointId,
+    periodStart,
+    periodEnd,
+    quantity,
+  })
+
+  const input = buildInboundUtiltsMessageInput({
+    actorUserId,
+    code: messageCode,
+    senderEdielId,
+    receiverEdielId,
+    rawPayload,
+    quantity,
+    periodStart,
+    periodEnd,
+    registrationTime: new Date().toISOString(),
+    unit: 'KWH',
+  })
+
+  const fileName = inferEdielFileName({
+    family: 'UTILTS',
+    code: messageCode,
+    direction: 'inbound',
+    extension: 'edi',
+  })
+
+  await createEdielMessage({
+    ...input,
+    fileName,
+  })
+
+  revalidateEdielSurfaces()
 }
 
 export async function runEdielSelfTestAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePermissionServer('communication.read')
 
-  const actor = await getActor()
-  const scenario = stringValue(formData, 'scenario') as
-    | 'PRODAT_Z04_IN'
-    | 'PRODAT_Z05_IN'
-    | 'PRODAT_Z06_IN'
-    | 'PRODAT_Z10_IN'
-    | 'UTILTS_S02_IN'
-    | 'UTILTS_S03_IN'
-    | 'UTILTS_E66_KVART_IN'
-    | 'UTILTS_E66_SCH_IN'
-    | 'UTILTS_NEGATIVE'
-    | null
+  const actorUserId = await getActorUserId()
 
-  if (!scenario) {
-    throw new Error('Missing scenario')
-  }
+  const scenario = asString(formData.get('scenario')) as EdielSelfTestScenarioCode
+  const switchRequestId = asOptionalString(formData.get('switchRequestId'))
+  const gridOwnerDataRequestId = asOptionalString(formData.get('gridOwnerDataRequestId'))
+  const senderEdielId = asOptionalString(formData.get('senderEdielId'))
+  const receiverEdielId = asOptionalString(formData.get('receiverEdielId'))
+  const mailbox = asOptionalString(formData.get('mailbox'))
+  const receiverEmail = asOptionalString(formData.get('receiverEmail'))
 
   await runEdielSelfTest({
-    actorUserId: actor.id,
+    actorUserId,
     scenario,
-    switchRequestId: stringValue(formData, 'switchRequestId'),
-    gridOwnerDataRequestId: stringValue(formData, 'gridOwnerDataRequestId'),
-    senderEdielId: stringValue(formData, 'senderEdielId'),
-    receiverEdielId: stringValue(formData, 'receiverEdielId'),
-    mailbox: stringValue(formData, 'mailbox'),
-    senderEmail: stringValue(formData, 'senderEmail'),
-    receiverEmail: stringValue(formData, 'receiverEmail'),
+    switchRequestId,
+    gridOwnerDataRequestId,
+    senderEdielId,
+    receiverEdielId,
+    mailbox,
+    receiverEmail,
   })
 
-  revalidatePath('/admin/ediel')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/customers')
-  revalidatePath('/admin/outbound')
+  revalidateEdielSurfaces()
+}
+
+export async function createEdielTestRunAction(formData: FormData) {
+  await requirePermissionServer('communication.read')
+
+  const actorUserId = await getActorUserId()
+
+  const testSuite = asString(formData.get('testSuite'))
+  const roleCode = asString(formData.get('roleCode'))
+  const testCaseCode = asString(formData.get('testCaseCode'))
+  const title = asOptionalString(formData.get('title'))
+  const approvalVersion = asOptionalString(formData.get('approvalVersion'))
+  const notes = asOptionalString(formData.get('notes'))
+
+  if (!testSuite || !roleCode || !testCaseCode) {
+    throw new Error('testSuite, roleCode och testCaseCode krävs')
+  }
+
+  await createEdielTestRun({
+    actorUserId,
+    testSuite: testSuite as 'PRODAT' | 'UTILTS' | 'CONTRL' | 'APERAK',
+    roleCode: roleCode as 'supplier' | 'grid_owner' | 'balance_responsible' | 'esco',
+    testCaseCode,
+    title,
+    approvalVersion,
+    notes,
+    status: 'draft',
+  })
+
+  revalidateEdielSurfaces()
 }
