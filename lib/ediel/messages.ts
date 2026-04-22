@@ -1,94 +1,148 @@
 // lib/ediel/messages.ts
 
-export type BuildEdifactEnvelopeInput = {
+import { buildEdielInterchangeReference } from '@/lib/ediel/references'
+
+type BuildEdifactEnvelopeInput = {
   senderEdielId: string
   senderSubAddress?: string | null
   receiverEdielId: string
   receiverSubAddress?: string | null
   applicationReference?: string | null
-  testFlag?: 0 | 1
+  testFlag?: 0 | 1 | number | null
   messageTypeToken: string
   segments: string[]
 }
 
-export type BuiltEdifactEnvelope = {
+type BuiltEdifactEnvelope = {
   raw: string
   interchangeReference: string
   messageReference: string
+  segmentCount: number
 }
 
-function sanitize(value?: string | null): string {
-  return (value ?? '').replace(/['+]/g, ' ').trim()
+function trimOrNull(value?: string | null): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
-function utcStampYYMMDDHHMM(date = new Date()): string {
-  const yy = String(date.getUTCFullYear()).slice(-2)
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const dd = String(date.getUTCDate()).padStart(2, '0')
-  const hh = String(date.getUTCHours()).padStart(2, '0')
-  const mi = String(date.getUTCMinutes()).padStart(2, '0')
-  return `${yy}${mm}${dd}:${hh}${mi}`
+function sanitizeSegment(value: string): string {
+  return value.replace(/[\r\n]+/g, '').trim()
 }
 
-function buildInterchangeReference(date = new Date()): string {
-  const base = date.toISOString().replace(/[-:TZ.]/g, '').slice(2, 14)
-  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase()
-  return `${base}${suffix}`
+function utcDateYYMMDD(date = new Date()) {
+  const year = String(date.getUTCFullYear()).slice(-2)
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  return `${year}${month}${day}`
 }
 
-function ensureSegments(segments: string[]): string[] {
-  return segments
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-    .map((segment) => segment.endsWith("'") ? segment.slice(0, -1) : segment)
+function utcTimeHHMM(date = new Date()) {
+  const hours = String(date.getUTCHours()).padStart(2, '0')
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+  return `${hours}${minutes}`
+}
+
+function buildUnaSegment() {
+  return "UNA:+.? '"
+}
+
+function buildUnbSegment(params: {
+  senderEdielId: string
+  senderSubAddress?: string | null
+  receiverEdielId: string
+  receiverSubAddress?: string | null
+  applicationReference?: string | null
+  interchangeReference: string
+  testFlag?: number | null
+}) {
+  const senderSub = trimOrNull(params.senderSubAddress)
+  const receiverSub = trimOrNull(params.receiverSubAddress)
+
+  const senderComposite = senderSub
+    ? `${params.senderEdielId}:14:${senderSub}`
+    : `${params.senderEdielId}:14`
+  const receiverComposite = receiverSub
+    ? `${params.receiverEdielId}:14:${receiverSub}`
+    : `${params.receiverEdielId}:14`
+
+  const applicationReference = trimOrNull(params.applicationReference)
+  const testFlag = params.testFlag === 0 ? '0' : '1'
+
+  const parts = [
+    'UNB',
+    'UNOC:3',
+    senderComposite,
+    receiverComposite,
+    `${utcDateYYMMDD()}:${utcTimeHHMM()}`,
+    params.interchangeReference,
+    applicationReference ?? '',
+    '',
+    '',
+    testFlag,
+  ]
+
+  return parts.join('+')
+}
+
+function buildUnzSegment(params: { messageCount: number; interchangeReference: string }) {
+  return `UNZ+${params.messageCount}+${params.interchangeReference}`
+}
+
+function buildUntSegment(params: { segmentCount: number; messageReference: string }) {
+  return `UNT+${params.segmentCount}+${params.messageReference}`
+}
+
+function messageRefToken() {
+  return '1'
 }
 
 export function buildEdifactEnvelope(
   input: BuildEdifactEnvelopeInput
 ): BuiltEdifactEnvelope {
-  const messageReference = '1'
-  const interchangeReference = buildInterchangeReference()
-  const senderSub = sanitize(input.senderSubAddress) || 'GRIDEX'
-  const receiverSub = sanitize(input.receiverSubAddress) || 'EDIEL'
-  const applicationReference = sanitize(input.applicationReference)
-  const testFlag = input.testFlag ?? 1
+  const interchangeReference = buildEdielInterchangeReference({
+    senderEdielId: input.senderEdielId,
+    receiverEdielId: input.receiverEdielId,
+  })
 
-  const coreSegments = ensureSegments(input.segments)
+  const messageReference = messageRefToken()
 
-  const unbParts = [
-    'UNB',
-    'UNOC:3',
-    `${sanitize(input.senderEdielId)}:${senderSub}`,
-    `${sanitize(input.receiverEdielId)}:${receiverSub}`,
-    utcStampYYMMDDHHMM(),
-    interchangeReference,
+  const bodySegments = input.segments.map(sanitizeSegment).filter(Boolean)
+  const hasUnh = bodySegments[0]?.startsWith('UNH+')
+  const normalizedBody = hasUnh
+    ? bodySegments
+    : [`UNH+${messageReference}+${input.messageTypeToken}`, ...bodySegments]
+
+  const unt = buildUntSegment({
+    segmentCount: normalizedBody.length + 1,
+    messageReference,
+  })
+
+  const segments = [
+    buildUnaSegment(),
+    buildUnbSegment({
+      senderEdielId: input.senderEdielId,
+      senderSubAddress: input.senderSubAddress,
+      receiverEdielId: input.receiverEdielId,
+      receiverSubAddress: input.receiverSubAddress,
+      applicationReference: input.applicationReference,
+      interchangeReference,
+      testFlag: input.testFlag ?? 1,
+    }),
+    ...normalizedBody,
+    unt,
+    buildUnzSegment({
+      messageCount: 1,
+      interchangeReference,
+    }),
   ]
 
-  if (applicationReference) {
-    while (unbParts.length < 8) {
-      unbParts.push('')
-    }
-    unbParts[7] = applicationReference
-  }
-
-  if (typeof testFlag === 'number') {
-    while (unbParts.length < 11) {
-      unbParts.push('')
-    }
-    unbParts[10] = String(testFlag)
-  }
-
-  const unb = unbParts.join('+')
-  const unh = `UNH+${messageReference}+${sanitize(input.messageTypeToken)}`
-  const unt = `UNT+${coreSegments.length + 2}+${messageReference}`
-  const unz = `UNZ+1+${interchangeReference}`
-
-  const allSegments = [unb, unh, ...coreSegments, unt, unz]
-  const raw = `${allSegments.join("'")}'`
+  const raw = segments.join("'") + "'"
 
   return {
     raw,
     interchangeReference,
     messageReference,
+    segmentCount: normalizedBody.length + 2,
   }
 }

@@ -1,86 +1,73 @@
 // app/admin/ediel/messages/[id]/page.tsx
+
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import {
   getEdielMessageById,
+  getEdielMessageAckStateById,
   listEdielMessageEvents,
+  listAckMessagesForSource,
 } from '@/lib/ediel/db'
-import { sendEdielMessageAction } from '@/app/admin/ediel/actions'
-import type {
-  EdielMessageEventRow,
-  EdielMessageRow,
-} from '@/lib/ediel/types'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createNegativeUtiltsResponseAction, sendEdielMessageAction } from '@/app/admin/ediel/actions'
 
 export const dynamic = 'force-dynamic'
 
-type CustomerRow = {
-  id: string
-  full_name: string | null
-  company_name: string | null
-  customer_number: string | null
+function tone(
+  kind: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+): string {
+  if (kind === 'green') return 'bg-emerald-100 text-emerald-700'
+  if (kind === 'yellow') return 'bg-amber-100 text-amber-700'
+  if (kind === 'red') return 'bg-rose-100 text-rose-700'
+  if (kind === 'blue') return 'bg-blue-100 text-blue-700'
+  return 'bg-slate-100 text-slate-700'
 }
 
-type SiteRow = {
-  id: string
-  site_name: string | null
-  status: string | null
+function badgeTone(status: string | null | undefined): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
+  if (!status) return 'slate'
+  if (
+    status === 'acknowledged' ||
+    status === 'received' ||
+    status === 'aperak_received' ||
+    status === 'aperak_received_positive' ||
+    status === 'contrl_completed' ||
+    status === 'contrl_received' ||
+    status === 'utilts_err_received' ||
+    status === 'no_ack_required'
+  ) {
+    return 'green'
+  }
+  if (
+    status === 'queued' ||
+    status === 'prepared' ||
+    status === 'pending' ||
+    status === 'awaiting_contrl' ||
+    status === 'awaiting_aperak' ||
+    status === 'in_progress'
+  ) {
+    return 'yellow'
+  }
+  if (
+    status === 'failed' ||
+    status === 'contrl_failed' ||
+    status === 'ack_overdue' ||
+    status === 'aperak_received_negative'
+  ) {
+    return 'red'
+  }
+  if (status === 'sent' || status === 'validated' || status === 'parsed') {
+    return 'blue'
+  }
+  return 'slate'
 }
 
-type MeteringPointLookupRow = {
-  id: string
-  meter_point_id: string | null
-  metering_point_id: string | null
-  status: string | null
-}
-
-type GridOwnerRow = {
-  id: string
-  name: string | null
-  ediel_id: string | null
-}
-
-type RouteRow = {
-  id: string
-  route_name: string
-  route_scope: string
-  route_type: string
-  target_system: string | null
-  target_email: string | null
-  is_active: boolean
-}
-
-type OutboundRow = {
-  id: string
-  status: string
-  request_type: string
-  source_type: string | null
-  source_id: string | null
-}
-
-type SwitchRow = {
-  id: string
-  status: string
-  request_type: string
-  external_reference: string | null
-}
-
-type DataRequestRow = {
-  id: string
-  status: string
-  request_scope: string
-  external_reference: string | null
-}
-
-type RelatedMessageLite = {
-  id: string
-  direction: string
-  message_family: string
-  message_code: string
-  status: string
-  created_at: string
+function Pill({ text }: { text: string }) {
+  return (
+    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone(badgeTone(text))}`}>
+      {text}
+    </span>
+  )
 }
 
 function formatDate(value: string | null | undefined) {
@@ -90,579 +77,365 @@ function formatDate(value: string | null | undefined) {
   return date.toLocaleString('sv-SE')
 }
 
-function prettyJson(value: unknown) {
-  try {
-    return JSON.stringify(value ?? {}, null, 2)
-  } catch {
-    return String(value ?? '')
-  }
-}
-
-function toneForStatus(
-  status: string | null | undefined
-): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
-  if (
-    status === 'acknowledged' ||
-    status === 'received' ||
-    status === 'parsed' ||
-    status === 'validated' ||
-    status === 'passed'
-  ) {
-    return 'green'
-  }
-  if (
-    status === 'queued' ||
-    status === 'prepared' ||
-    status === 'draft' ||
-    status === 'pending' ||
-    status === 'running'
-  ) {
-    return 'yellow'
-  }
-  if (status === 'failed' || status === 'cancelled' || status === 'rejected') {
-    return 'red'
-  }
-  if (status === 'sent' || status === 'submitted' || status === 'info') {
-    return 'blue'
-  }
-  return 'slate'
-}
-
-function Pill({
-  text,
-  tone,
-}: {
-  text: string
-  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
-}) {
-  const toneClass =
-    tone === 'green'
-      ? 'bg-emerald-100 text-emerald-700'
-      : tone === 'yellow'
-        ? 'bg-amber-100 text-amber-700'
-        : tone === 'red'
-          ? 'bg-rose-100 text-rose-700'
-          : tone === 'blue'
-            ? 'bg-blue-100 text-blue-700'
-            : 'bg-slate-100 text-slate-700'
-
-  return <span className={`rounded-full px-2 py-1 text-xs font-medium ${toneClass}`}>{text}</span>
-}
-
-function Field({
-  label,
-  value,
-  href,
-}: {
-  label: string
-  value: string | null | undefined
-  href?: string
-}) {
-  const display = value && value.length > 0 ? value : '—'
-
+function JsonBlock({ value }: { value: unknown }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </div>
-      <div className="mt-2 break-all text-sm text-slate-900">
-        {href && value ? (
-          <Link href={href} className="text-indigo-700 underline-offset-2 hover:underline">
-            {display}
-          </Link>
-        ) : (
-          display
-        )}
-      </div>
-    </div>
+    <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
+      {JSON.stringify(value ?? {}, null, 2)}
+    </pre>
   )
-}
-
-function linkLabelForMessage(message: RelatedMessageLite | null) {
-  if (!message) return null
-  return `${message.message_family} ${message.message_code} • ${message.direction} • ${message.status}`
-}
-
-function messageLink(row: RelatedMessageLite | null) {
-  return row ? `/admin/ediel/messages/${row.id}` : undefined
-}
-
-function ackSummaryPills(message: EdielMessageRow) {
-  const pills: Array<{ text: string; tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate' }> = []
-
-  if (message.requires_contrl) {
-    pills.push({
-      text: `CONTRL ${message.contrl_status ?? 'pending'}`,
-      tone: toneForStatus(message.contrl_status),
-    })
-  }
-
-  if (message.requires_aperak) {
-    pills.push({
-      text: `APERAK ${message.aperak_status ?? 'pending'}`,
-      tone: toneForStatus(message.aperak_status),
-    })
-  }
-
-  if (message.utilts_err_status) {
-    pills.push({
-      text: `UTILTS_ERR ${message.utilts_err_status}`,
-      tone: toneForStatus(message.utilts_err_status),
-    })
-  }
-
-  return pills
-}
-
-function objectLinks(params: {
-  customer: CustomerRow | null
-  site: SiteRow | null
-  meteringPoint: MeteringPointLookupRow | null
-  route: RouteRow | null
-  outbound: OutboundRow | null
-  switchRequest: SwitchRow | null
-  dataRequest: DataRequestRow | null
-}) {
-  const links: Array<{ label: string; href: string; text: string }> = []
-
-  if (params.customer) {
-    links.push({
-      label: 'Kund',
-      href: `/admin/customers/${params.customer.id}`,
-      text:
-        params.customer.company_name ||
-        params.customer.full_name ||
-        params.customer.customer_number ||
-        params.customer.id,
-    })
-  }
-
-  if (params.site && params.customer) {
-    links.push({
-      label: 'Anläggning',
-      href: `/admin/customers/${params.customer.id}`,
-      text: params.site.site_name || params.site.id,
-    })
-  }
-
-  if (params.meteringPoint && params.customer) {
-    links.push({
-      label: 'Mätpunkt',
-      href: `/admin/customers/${params.customer.id}`,
-      text:
-        params.meteringPoint.meter_point_id ||
-        params.meteringPoint.metering_point_id ||
-        params.meteringPoint.id,
-    })
-  }
-
-  if (params.route) {
-    links.push({
-      label: 'Route',
-      href: '/admin/ediel/routes',
-      text: params.route.route_name,
-    })
-  }
-
-  if (params.outbound) {
-    links.push({
-      label: 'Outbound',
-      href: '/admin/outbound',
-      text: params.outbound.id,
-    })
-  }
-
-  if (params.switchRequest) {
-    links.push({
-      label: 'Switch',
-      href: `/admin/operations/switches/${params.switchRequest.id}`,
-      text: params.switchRequest.id,
-    })
-  }
-
-  if (params.dataRequest) {
-    links.push({
-      label: 'Data request',
-      href: `/admin/operations/grid-owner-requests/${params.dataRequest.id}`,
-      text: params.dataRequest.id,
-    })
-  }
-
-  return links
 }
 
 export default async function AdminEdielMessageDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }> | { id: string }
+  params: Promise<{ id: string }>
 }) {
-  const resolvedParams = await params
+  const { id } = await params
   const context = await requireAnyPermissionServer(['communication.read'])
   const supabase = await createSupabaseServerClient()
 
-  const message = await getEdielMessageById(resolvedParams.id)
-  if (!message) notFound()
-
-  const [
-    events,
-    customerResult,
-    siteResult,
-    meteringPointResult,
-    gridOwnerResult,
-    routeResult,
-    outboundResult,
-    switchResult,
-    dataRequestResult,
-    relatedResult,
-    childMessagesResult,
-  ] = await Promise.all([
-    listEdielMessageEvents(message.id),
-    message.customer_id
-      ? supabase
-          .from('customers')
-          .select('id, full_name, company_name, customer_number')
-          .eq('id', message.customer_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    message.site_id
-      ? supabase
-          .from('customer_sites')
-          .select('id, site_name, status')
-          .eq('id', message.site_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    message.metering_point_id
-      ? supabase
-          .from('metering_points')
-          .select('id, meter_point_id, metering_point_id, status')
-          .eq('id', message.metering_point_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    message.grid_owner_id
-      ? supabase
-          .from('grid_owners')
-          .select('id, name, ediel_id')
-          .eq('id', message.grid_owner_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    message.communication_route_id
-      ? supabase
-          .from('communication_routes')
-          .select('id, route_name, route_scope, route_type, target_system, target_email, is_active')
-          .eq('id', message.communication_route_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    message.outbound_request_id
-      ? supabase
-          .from('outbound_requests')
-          .select('id, status, request_type, source_type, source_id')
-          .eq('id', message.outbound_request_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    message.switch_request_id
-      ? supabase
-          .from('supplier_switch_requests')
-          .select('id, status, request_type, external_reference')
-          .eq('id', message.switch_request_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    message.grid_owner_data_request_id
-      ? supabase
-          .from('grid_owner_data_requests')
-          .select('id, status, request_scope, external_reference')
-          .eq('id', message.grid_owner_data_request_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    message.related_message_id
-      ? supabase
-          .from('ediel_messages')
-          .select('id, direction, message_family, message_code, status, created_at')
-          .eq('id', message.related_message_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    supabase
-      .from('ediel_messages')
-      .select('id, direction, message_family, message_code, status, created_at')
-      .eq('related_message_id', message.id)
-      .order('created_at', { ascending: true }),
+  const [message, ackState, events] = await Promise.all([
+    getEdielMessageById(id),
+    getEdielMessageAckStateById(id),
+    listEdielMessageEvents(id),
   ])
 
-  if (customerResult.error) throw customerResult.error
-  if (siteResult.error) throw siteResult.error
-  if (meteringPointResult.error) throw meteringPointResult.error
-  if (gridOwnerResult.error) throw gridOwnerResult.error
-  if (routeResult.error) throw routeResult.error
-  if (outboundResult.error) throw outboundResult.error
-  if (switchResult.error) throw switchResult.error
-  if (dataRequestResult.error) throw dataRequestResult.error
-  if (relatedResult.error) throw relatedResult.error
-  if (childMessagesResult.error) throw childMessagesResult.error
+  if (!message) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <AdminHeader
+          title="Ediel message"
+          subtitle="Meddelandet hittades inte."
+          userEmail={context.email}
+        />
+        <div className="p-8">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+            Ingen rad hittades för detta meddelande.
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-  const customer = (customerResult.data as CustomerRow | null) ?? null
-  const site = (siteResult.data as SiteRow | null) ?? null
-  const meteringPoint = (meteringPointResult.data as MeteringPointLookupRow | null) ?? null
-  const gridOwner = (gridOwnerResult.data as GridOwnerRow | null) ?? null
-  const route = (routeResult.data as RouteRow | null) ?? null
-  const outbound = (outboundResult.data as OutboundRow | null) ?? null
-  const switchRequest = (switchResult.data as SwitchRow | null) ?? null
-  const dataRequest = (dataRequestResult.data as DataRequestRow | null) ?? null
-  const relatedMessage = (relatedResult.data as RelatedMessageLite | null) ?? null
-  const childMessages = (childMessagesResult.data as RelatedMessageLite[] | null) ?? []
+  const relatedAckMessages =
+    message.direction === 'inbound'
+      ? await listAckMessagesForSource({ sourceMessageId: message.id })
+      : []
 
-  const links = objectLinks({
-    customer,
-    site,
-    meteringPoint,
-    route,
-    outbound,
-    switchRequest,
-    dataRequest,
-  })
+  const linkedMessage =
+    message.related_message_id
+      ? await getEdielMessageById(message.related_message_id)
+      : null
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
-        title={`Ediel message ${message.message_family} ${message.message_code}`}
-        subtitle="Detaljvy för payload, ackkedja, länkar, validering och händelser."
+        title={`Ediel ${message.message_family} ${message.message_code}`}
+        subtitle="Detaljvy för råpayload, parsing, ack state machine och processlänkar."
         userEmail={context.email}
       />
 
       <div className="space-y-8 p-8">
         <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Pill text={message.direction} tone={message.direction === 'outbound' ? 'blue' : 'green'} />
-              <Pill text={message.status} tone={toneForStatus(message.status)} />
-              <Pill text={message.environment} tone={message.environment === 'production' ? 'red' : 'blue'} />
-              <Pill text={message.message_family} tone="slate" />
-              <Pill text={String(message.message_code)} tone="yellow" />
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="flex flex-wrap gap-2">
+                <Pill text={message.status} />
+                <Pill text={message.direction} />
+                <Pill text={message.environment} />
+                <Pill text={message.message_standard} />
+                {ackState?.canonical_ack_state ? (
+                  <Pill text={ackState.canonical_ack_state} />
+                ) : null}
+              </div>
+
+              <h1 className="mt-4 text-2xl font-semibold text-slate-900">
+                {message.message_family} {message.message_code}
+              </h1>
+
+              <div className="mt-2 space-y-1 text-sm text-slate-600">
+                <div>Version: {message.message_version ?? '—'}</div>
+                <div>External ref: {message.external_reference ?? '—'}</div>
+                <div>Transaction ref: {message.transaction_reference ?? '—'}</div>
+                <div>Interchange ref: {message.interchange_reference ?? '—'}</div>
+                <div>Application ref: {message.application_reference ?? '—'}</div>
+              </div>
             </div>
 
-            {message.status === 'queued' || message.status === 'prepared' ? (
-              <form action={sendEdielMessageAction}>
-                <input type="hidden" name="edielMessageId" value={message.id} />
-                <button
-                  type="submit"
-                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                >
-                  Skicka nu
-                </button>
-              </form>
-            ) : null}
-          </div>
+            <div className="flex flex-wrap gap-2">
+              {(message.status === 'queued' || message.status === 'prepared') &&
+              message.direction === 'outbound' ? (
+                <form action={sendEdielMessageAction}>
+                  <input type="hidden" name="edielMessageId" value={message.id} />
+                  <button
+                    type="submit"
+                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                  >
+                    Skicka nu
+                  </button>
+                </form>
+              ) : null}
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4">
-            <Field label="Message ID" value={message.id} />
-            <Field label="Version" value={message.message_version} />
-            <Field label="Process" value={message.process_type} />
-            <Field label="Subject" value={message.subject} />
-            <Field label="External reference" value={message.external_reference} />
-            <Field label="Transaction reference" value={message.transaction_reference} />
-            <Field label="Correlation reference" value={message.correlation_reference} />
-            <Field label="Interchange reference" value={message.interchange_reference} />
-            <Field label="Application reference" value={message.application_reference} />
-            <Field label="Mailbox" value={message.mailbox} />
-            <Field label="Mailbox message ID" value={message.mailbox_message_id} />
-            <Field label="File name" value={message.file_name} />
-            <Field label="Mime type" value={message.mime_type} />
-            <Field label="Sender Ediel ID" value={message.sender_ediel_id} />
-            <Field label="Sender name" value={message.sender_name} />
-            <Field label="Receiver Ediel ID" value={message.receiver_ediel_id} />
-            <Field label="Receiver name" value={message.receiver_name} />
-            <Field label="Created" value={formatDate(message.created_at)} />
-            <Field label="Sent" value={formatDate(message.message_sent_at)} />
-            <Field label="Received" value={formatDate(message.message_received_at)} />
-            <Field label="Parsed" value={formatDate(message.parsed_at)} />
-            <Field label="Validated" value={formatDate(message.validated_at)} />
-            <Field label="Acknowledged" value={formatDate(message.acknowledged_at)} />
-            <Field label="Ack due" value={formatDate(message.ack_due_at)} />
+              {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
+                <form action={createNegativeUtiltsResponseAction} className="flex flex-col gap-2">
+                  <input type="hidden" name="edielMessageId" value={message.id} />
+                  <input
+                    type="text"
+                    name="messageText"
+                    placeholder="Anledning för UTILTS_ERR"
+                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+                  >
+                    Skapa UTILTS_ERR
+                  </button>
+                </form>
+              ) : null}
+            </div>
           </div>
         </section>
 
-        <section className="grid gap-8 xl:grid-cols-2">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Kvittens och validering</h2>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {ackSummaryPills(message).length === 0 ? (
-                <Pill text="Ingen ackkedja" tone="slate" />
-              ) : (
-                ackSummaryPills(message).map((pill) => (
-                  <Pill key={pill.text} text={pill.text} tone={pill.tone} />
-                ))
-              )}
-            </div>
-
+        <section className="grid gap-6 xl:grid-cols-3">
+          <article className="rounded-3xl border border-slate-200 bg-white p-6 xl:col-span-2">
+            <h2 className="text-lg font-semibold text-slate-900">Kernel / ack state</h2>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <Field label="Requires CONTRL" value={message.requires_contrl ? 'Ja' : 'Nej'} />
-              <Field label="CONTRL status" value={message.contrl_status} />
-              <Field label="Requires APERAK" value={message.requires_aperak ? 'Ja' : 'Nej'} />
-              <Field label="APERAK status" value={message.aperak_status} />
-              <Field label="UTILTS_ERR status" value={message.utilts_err_status} />
-              <Field label="Syntax check" value={message.syntax_check_status} />
-              <Field label="Functional check" value={message.functional_check_status} />
-              <Field label="Failure reason" value={message.failure_reason} />
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Kopplade objekt</h2>
-
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <Field
-                label="Customer"
-                value={
-                  customer
-                    ? customer.company_name || customer.full_name || customer.customer_number || customer.id
-                    : null
-                }
-                href={customer ? `/admin/customers/${customer.id}` : undefined}
-              />
-              <Field
-                label="Site"
-                value={site?.site_name ?? site?.id ?? null}
-                href={customer && site ? `/admin/customers/${customer.id}` : undefined}
-              />
-              <Field
-                label="Metering point"
-                value={
-                  meteringPoint?.meter_point_id ??
-                  meteringPoint?.metering_point_id ??
-                  meteringPoint?.id ??
-                  null
-                }
-                href={customer && meteringPoint ? `/admin/customers/${customer.id}` : undefined}
-              />
-              <Field label="Grid owner" value={gridOwner?.name ?? null} />
-              <Field
-                label="Route"
-                value={route?.route_name ?? null}
-                href={route ? '/admin/ediel/routes' : undefined}
-              />
-              <Field
-                label="Outbound request"
-                value={outbound?.id ?? null}
-                href={outbound ? '/admin/outbound' : undefined}
-              />
-              <Field
-                label="Switch request"
-                value={switchRequest?.id ?? null}
-                href={switchRequest ? `/admin/operations/switches/${switchRequest.id}` : undefined}
-              />
-              <Field
-                label="Grid owner data request"
-                value={dataRequest?.id ?? null}
-                href={dataRequest ? `/admin/operations/grid-owner-requests/${dataRequest.id}` : undefined}
-              />
-              <Field
-                label="Related source message"
-                value={linkLabelForMessage(relatedMessage)}
-                href={messageLink(relatedMessage)}
-              />
-            </div>
-
-            {links.length > 0 ? (
-              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Snabblänkar
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {links.map((link) => (
-                    <Link
-                      key={`${link.label}-${link.href}`}
-                      href={link.href}
-                      className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700"
-                    >
-                      {link.label}: {link.text}
-                    </Link>
-                  ))}
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Canonical ack state</div>
+                <div className="mt-2">
+                  <Pill text={ackState?.canonical_ack_state ?? 'okänd'} />
                 </div>
               </div>
-            ) : null}
-          </div>
-        </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Ackkedja / relaterade svar</h2>
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Ack deadline</div>
+                <div className="mt-2 text-sm text-slate-700">{formatDate(message.ack_due_at)}</div>
+              </div>
 
-          <div className="mt-4 space-y-3">
-            {childMessages.length === 0 ? (
-              <div className="text-sm text-slate-500">Inga relaterade svar eller kvittenser ännu.</div>
-            ) : (
-              childMessages.map((row) => (
-                <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Pill text={row.direction} tone={row.direction === 'outbound' ? 'blue' : 'green'} />
-                    <Pill text={row.message_family} tone="slate" />
-                    <Pill text={String(row.message_code)} tone="yellow" />
-                    <Pill text={row.status} tone={toneForStatus(row.status)} />
-                    <span className="text-xs text-slate-500">{formatDate(row.created_at)}</span>
-                  </div>
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">CONTRL</div>
+                <div className="mt-2"><Pill text={message.contrl_status ?? '—'} /></div>
+              </div>
 
-                  <div className="mt-3">
-                    <Link
-                      href={`/admin/ediel/messages/${row.id}`}
-                      className="text-sm font-medium text-indigo-700 underline-offset-2 hover:underline"
-                    >
-                      Öppna relaterat meddelande
-                    </Link>
-                  </div>
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">APERAK</div>
+                <div className="mt-2"><Pill text={message.aperak_status ?? '—'} /></div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">UTILTS_ERR</div>
+                <div className="mt-2"><Pill text={message.utilts_err_status ?? '—'} /></div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Checks</div>
+                <div className="mt-2 space-y-1 text-sm text-slate-700">
+                  <div>Syntax: {message.syntax_check_status ?? '—'}</div>
+                  <div>Functional: {message.functional_check_status ?? '—'}</div>
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+            </div>
+          </article>
+
+          <article className="rounded-3xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Processlänkar</h2>
+            <div className="mt-4 space-y-3 text-sm">
+              <div>
+                <div className="text-slate-500">Switch</div>
+                {message.switch_request_id ? (
+                  <Link
+                    href={`/admin/operations/switches`}
+                    className="text-indigo-700 underline-offset-2 hover:underline"
+                  >
+                    {message.switch_request_id}
+                  </Link>
+                ) : (
+                  <div className="text-slate-700">—</div>
+                )}
+              </div>
+
+              <div>
+                <div className="text-slate-500">Grid owner request</div>
+                {message.grid_owner_data_request_id ? (
+                  <Link
+                    href={`/admin/operations/grid-owner-requests/${message.grid_owner_data_request_id}`}
+                    className="text-indigo-700 underline-offset-2 hover:underline"
+                  >
+                    {message.grid_owner_data_request_id}
+                  </Link>
+                ) : (
+                  <div className="text-slate-700">—</div>
+                )}
+              </div>
+
+              <div>
+                <div className="text-slate-500">Outbound</div>
+                {message.outbound_request_id ? (
+                  <Link
+                    href="/admin/outbound"
+                    className="text-indigo-700 underline-offset-2 hover:underline"
+                  >
+                    {message.outbound_request_id}
+                  </Link>
+                ) : (
+                  <div className="text-slate-700">—</div>
+                )}
+              </div>
+
+              <div>
+                <div className="text-slate-500">Kund</div>
+                {message.customer_id ? (
+                  <Link
+                    href={`/admin/customers/${message.customer_id}`}
+                    className="text-indigo-700 underline-offset-2 hover:underline"
+                  >
+                    {message.customer_id}
+                  </Link>
+                ) : (
+                  <div className="text-slate-700">—</div>
+                )}
+              </div>
+
+              <div>
+                <div className="text-slate-500">Relaterat meddelande</div>
+                {linkedMessage ? (
+                  <Link
+                    href={`/admin/ediel/messages/${linkedMessage.id}`}
+                    className="text-indigo-700 underline-offset-2 hover:underline"
+                  >
+                    {linkedMessage.message_family} {linkedMessage.message_code}
+                  </Link>
+                ) : (
+                  <div className="text-slate-700">—</div>
+                )}
+              </div>
+            </div>
+          </article>
         </section>
 
-        <section className="grid gap-8 xl:grid-cols-2">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6">
+        {relatedAckMessages.length > 0 ? (
+          <section className="rounded-3xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Skapade ack-meddelanden</h2>
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="text-left text-slate-500">
+                  <tr className="border-b border-slate-200">
+                    <th className="px-3 py-3">Tid</th>
+                    <th className="px-3 py-3">Meddelande</th>
+                    <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3">Öppna</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relatedAckMessages.map((row) => (
+                    <tr key={row.id} className="border-b border-slate-100">
+                      <td className="px-3 py-3 text-slate-600">{formatDate(row.created_at)}</td>
+                      <td className="px-3 py-3 text-slate-900">
+                        {row.message_family} {row.message_code}
+                      </td>
+                      <td className="px-3 py-3">
+                        <Pill text={row.status} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <Link
+                          href={`/admin/ediel/messages/${row.id}`}
+                          className="text-indigo-700 underline-offset-2 hover:underline"
+                        >
+                          Öppna
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="grid gap-6 xl:grid-cols-2">
+          <article className="rounded-3xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Råpayload</h2>
+            <div className="mt-4">
+              <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
+                {message.raw_payload ?? '—'}
+              </pre>
+            </div>
+          </article>
+
+          <article className="rounded-3xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">Parsed payload</h2>
-            <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
-              {prettyJson(message.parsed_payload)}
-            </pre>
-          </div>
+            <div className="mt-4">
+              <JsonBlock value={message.parsed_payload ?? {}} />
+            </div>
+          </article>
+        </section>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6">
+        <section className="grid gap-6 xl:grid-cols-2">
+          <article className="rounded-3xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">Validation report</h2>
-            <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
-              {prettyJson(message.validation_report)}
-            </pre>
-          </div>
+            <div className="mt-4">
+              <JsonBlock value={message.validation_report ?? {}} />
+            </div>
+          </article>
+
+          <article className="rounded-3xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Metadata</h2>
+            <div className="mt-4 space-y-2 text-sm text-slate-700">
+              <div>Sender: {message.sender_ediel_id ?? '—'} / {message.sender_email ?? '—'}</div>
+              <div>Receiver: {message.receiver_ediel_id ?? '—'} / {message.receiver_email ?? '—'}</div>
+              <div>Mailbox: {message.mailbox ?? '—'}</div>
+              <div>Mailbox message id: {message.mailbox_message_id ?? '—'}</div>
+              <div>Created: {formatDate(message.created_at)}</div>
+              <div>Received: {formatDate(message.message_received_at)}</div>
+              <div>Sent: {formatDate(message.message_sent_at)}</div>
+              <div>Parsed: {formatDate(message.parsed_at)}</div>
+              <div>Validated: {formatDate(message.validated_at)}</div>
+              <div>Acknowledged: {formatDate(message.acknowledged_at)}</div>
+              <div>Failed: {formatDate(message.failed_at)}</div>
+              <div>Failure reason: {message.failure_reason ?? '—'}</div>
+            </div>
+          </article>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Raw payload</h2>
-          <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100 whitespace-pre-wrap">
-            {message.raw_payload ?? '—'}
-          </pre>
-        </section>
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Händelser</h2>
-
-          <div className="mt-4 space-y-3">
-            {(events as EdielMessageEventRow[]).length === 0 ? (
-              <div className="text-sm text-slate-500">Inga events ännu.</div>
-            ) : (
-              (events as EdielMessageEventRow[]).map((event) => (
-                <div key={event.id} className="rounded-2xl border border-slate-200 p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Pill text={event.event_type} tone="slate" />
-                    <Pill text={event.event_status} tone={toneForStatus(event.event_status)} />
-                    <span className="text-xs text-slate-500">
-                      {formatDate(event.created_at)}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 text-sm text-slate-900">
-                    {event.message ?? '—'}
-                  </div>
-
-                  <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-100">
-                    {prettyJson(event.payload)}
-                  </pre>
-                </div>
-              ))
-            )}
+          <h2 className="text-lg font-semibold text-slate-900">Eventlogg</h2>
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="text-left text-slate-500">
+                <tr className="border-b border-slate-200">
+                  <th className="px-3 py-3">Tid</th>
+                  <th className="px-3 py-3">Typ</th>
+                  <th className="px-3 py-3">Status</th>
+                  <th className="px-3 py-3">Meddelande</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-6 text-slate-500">
+                      Inga events ännu.
+                    </td>
+                  </tr>
+                ) : (
+                  events.map((event) => (
+                    <tr key={event.id} className="border-b border-slate-100 align-top">
+                      <td className="px-3 py-3 text-slate-600">{formatDate(event.created_at)}</td>
+                      <td className="px-3 py-3"><Pill text={event.event_type} /></td>
+                      <td className="px-3 py-3"><Pill text={event.event_status} /></td>
+                      <td className="px-3 py-3 text-slate-700">
+                        <div>{event.message ?? '—'}</div>
+                        {event.payload && Object.keys(event.payload).length > 0 ? (
+                          <div className="mt-2">
+                            <JsonBlock value={event.payload} />
+                          </div>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
       </div>

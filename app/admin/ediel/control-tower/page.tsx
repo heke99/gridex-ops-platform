@@ -1,531 +1,342 @@
 // app/admin/ediel/control-tower/page.tsx
+
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
-import {
-  listEdielMessages,
-  listEdielTestRuns,
-  listOverdueAckMessages,
-} from '@/lib/ediel/db'
-import { getEdielSummary } from '@/lib/ediel/summary'
-import { sendEdielMessageAction } from '@/app/admin/ediel/actions'
-import {
-  ACTIVE_EDIEL_MESSAGE_FAMILIES,
-  ACTIVE_EDIEL_TEST_SUITES,
-  isActiveEdielMessageFamily,
-  isActiveEdielTestSuite,
-  type EdielMessageRow,
-  type EdielTestRunRow,
-} from '@/lib/ediel/types'
+import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { listDuplicateAckCandidates, listEdielMessages, listOverdueAckMessages, listRuleAmbiguities } from '@/lib/ediel/db'
 
-export const dynamic = 'force-dynamic'
+function tone(
+  value: 'green' | 'yellow' | 'red' | 'slate' | 'blue'
+): string {
+  if (value === 'green') {
+    return 'border-green-200 bg-green-50 text-green-700'
+  }
+  if (value === 'yellow') {
+    return 'border-yellow-200 bg-yellow-50 text-yellow-700'
+  }
+  if (value === 'red') {
+    return 'border-red-200 bg-red-50 text-red-700'
+  }
+  if (value === 'blue') {
+    return 'border-blue-200 bg-blue-50 text-blue-700'
+  }
+  return 'border-slate-200 bg-slate-50 text-slate-700'
+}
 
-function badgeTone(
-  status: string | null | undefined
-): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
-  if (status === 'acknowledged' || status === 'passed' || status === 'received') return 'green'
+function ackTone(state: string): string {
+  if (state === 'ack_overdue' || state === 'failed') return tone('red')
+  if (state === 'awaiting_contrl' || state === 'awaiting_aperak') return tone('yellow')
   if (
-    status === 'queued' ||
-    status === 'prepared' ||
-    status === 'draft' ||
-    status === 'running' ||
-    status === 'pending'
+    state === 'contrl_completed' ||
+    state === 'aperak_received' ||
+    state === 'utilts_err_received' ||
+    state === 'no_ack_required'
   ) {
-    return 'yellow'
+    return tone('green')
   }
-  if (status === 'failed' || status === 'cancelled' || status === 'rejected') return 'red'
-  if (status === 'sent' || status === 'validated' || status === 'parsed') return 'blue'
-  return 'slate'
-}
-
-function Pill({
-  text,
-  tone,
-}: {
-  text: string
-  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
-}) {
-  const toneClass =
-    tone === 'green'
-      ? 'bg-emerald-100 text-emerald-700'
-      : tone === 'yellow'
-        ? 'bg-amber-100 text-amber-700'
-        : tone === 'red'
-          ? 'bg-rose-100 text-rose-700'
-          : tone === 'blue'
-            ? 'bg-blue-100 text-blue-700'
-            : 'bg-slate-100 text-slate-700'
-
-  return <span className={`rounded-full px-2 py-1 text-xs font-medium ${toneClass}`}>{text}</span>
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('sv-SE')
-}
-
-function isAckPending(message: EdielMessageRow) {
-  return (
-    message.contrl_status === 'pending' ||
-    message.aperak_status === 'pending' ||
-    message.utilts_err_status === 'pending'
-  )
-}
-
-function isAckOverdue(message: EdielMessageRow) {
-  if (!isAckPending(message) || !message.ack_due_at) return false
-  const due = new Date(message.ack_due_at)
-  return !Number.isNaN(due.getTime()) && due.getTime() < Date.now()
-}
-
-function isUnlinkedInbound(message: EdielMessageRow) {
-  return (
-    message.direction === 'inbound' &&
-    !message.outbound_request_id &&
-    !message.switch_request_id &&
-    !message.grid_owner_data_request_id &&
-    (message.status === 'received' ||
-      message.status === 'parsed' ||
-      message.status === 'validated' ||
-      message.status === 'failed')
-  )
-}
-
-function sortNewest<T extends { created_at: string }>(rows: T[]) {
-  return [...rows].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
-}
-
-function uniqueById<T extends { id: string }>(rows: T[]) {
-  return [...new Map(rows.map((row) => [row.id, row])).values()]
-}
-
-function messageObjectLinks(row: EdielMessageRow) {
-  const links: Array<{ href: string; label: string }> = []
-
-  if (row.switch_request_id) {
-    links.push({
-      href: `/admin/operations/switches`,
-      label: 'Switch',
-    })
-  }
-
-  if (row.grid_owner_data_request_id) {
-    links.push({
-      href: `/admin/operations/grid-owner-requests/${row.grid_owner_data_request_id}`,
-      label: 'Data request',
-    })
-  }
-
-  if (row.outbound_request_id) {
-    links.push({
-      href: `/admin/outbound`,
-      label: 'Outbound',
-    })
-  }
-
-  if (row.customer_id) {
-    links.push({
-      href: `/admin/customers/${row.customer_id}`,
-      label: 'Kund',
-    })
-  }
-
-  return links
-}
-
-function MessageTable({
-  title,
-  subtitle,
-  rows,
-  showSendButton = false,
-}: {
-  title: string
-  subtitle: string
-  rows: EdielMessageRow[]
-  showSendButton?: boolean
-}) {
-  return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="text-left text-slate-500">
-            <tr className="border-b border-slate-200">
-              <th className="px-3 py-3">Tid</th>
-              <th className="px-3 py-3">Meddelande</th>
-              <th className="px-3 py-3">Status</th>
-              <th className="px-3 py-3">Ack</th>
-              <th className="px-3 py-3">Objekt</th>
-              <th className="px-3 py-3">Åtgärd</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-3 py-6 text-slate-500">
-                  Inga rader.
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => {
-                const links = messageObjectLinks(row)
-
-                return (
-                  <tr key={row.id} className="border-b border-slate-100 align-top">
-                    <td className="px-3 py-3 whitespace-nowrap text-slate-600">
-                      {formatDate(row.created_at)}
-                    </td>
-                    <td className="px-3 py-3">
-                      <Link
-                        href={`/admin/ediel/messages/${row.id}`}
-                        className="font-medium text-indigo-700 underline-offset-2 hover:underline"
-                      >
-                        {row.message_family} {row.message_code}
-                      </Link>
-                      <div className="mt-1 text-xs text-slate-500">
-                        {row.direction} • {row.environment} • {row.message_version ?? 'ingen version'}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-500 break-all">
-                        {row.external_reference ?? row.transaction_reference ?? row.id}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Pill text={row.status} tone={badgeTone(row.status)} />
-                        {row.direction === 'inbound' && isUnlinkedInbound(row) ? (
-                          <Pill text="Ej processlänkad" tone="yellow" />
-                        ) : null}
-                        {row.direction === 'outbound' &&
-                        row.transport_type === 'smtp' &&
-                        (row.status === 'queued' || row.status === 'prepared') ? (
-                          <Pill text="Redo för SMTP" tone="blue" />
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        {row.requires_contrl ? (
-                          <Pill
-                            text={`CONTRL ${row.contrl_status ?? 'pending'}`}
-                            tone={badgeTone(row.contrl_status)}
-                          />
-                        ) : null}
-                        {row.requires_aperak ? (
-                          <Pill
-                            text={`APERAK ${row.aperak_status ?? 'pending'}`}
-                            tone={badgeTone(row.aperak_status)}
-                          />
-                        ) : null}
-                        {row.utilts_err_status ? (
-                          <Pill
-                            text={`UTILTS_ERR ${row.utilts_err_status}`}
-                            tone={badgeTone(row.utilts_err_status)}
-                          />
-                        ) : null}
-                        {isAckOverdue(row) ? <Pill text="Ack försenad" tone="red" /> : null}
-                      </div>
-                      <div className="mt-2 text-xs text-slate-500">
-                        deadline: {formatDate(row.ack_due_at)}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-xs text-slate-600">
-                      <div className="space-y-1">
-                        {links.length === 0 ? (
-                          <div>Inga länkar ännu</div>
-                        ) : (
-                          links.map((link) => (
-                            <div key={`${row.id}-${link.href}-${link.label}`}>
-                              <Link
-                                href={link.href}
-                                className="text-indigo-700 underline-offset-2 hover:underline"
-                              >
-                                {link.label}
-                              </Link>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/admin/ediel/messages/${row.id}`}
-                          className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700"
-                        >
-                          Öppna
-                        </Link>
-
-                        {showSendButton &&
-                        (row.status === 'queued' || row.status === 'prepared') ? (
-                          <form action={sendEdielMessageAction}>
-                            <input type="hidden" name="edielMessageId" value={row.id} />
-                            <button
-                              type="submit"
-                              className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white"
-                            >
-                              Skicka nu
-                            </button>
-                          </form>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  )
+  return tone('slate')
 }
 
 export default async function AdminEdielControlTowerPage() {
-  const context = await requireAnyPermissionServer(['communication.read'])
-  const supabase = await createSupabaseServerClient()
+  await requirePermissionServer('operations.read')
 
-  const [summary, messages, testRuns, overdueAckRows] = await Promise.all([
-    getEdielSummary(supabase),
-    listEdielMessages({ limit: 250 }),
-    listEdielTestRuns(),
-    listOverdueAckMessages({ limit: 100 }),
-  ])
-
-  const scopedMessages = messages.filter((row) => isActiveEdielMessageFamily(row.message_family))
-  const futureMessages = messages.filter((row) => !isActiveEdielMessageFamily(row.message_family))
-  const scopedTestRuns = (testRuns as EdielTestRunRow[]).filter((row) =>
-    isActiveEdielTestSuite(row.test_suite)
-  )
-  const futureTestRuns = (testRuns as EdielTestRunRow[]).filter(
-    (row) => !isActiveEdielTestSuite(row.test_suite)
-  )
-
-  const sortedMessages = sortNewest(scopedMessages)
-  const pendingAck = sortedMessages.filter(isAckPending)
-  const overdueAck = uniqueById(
-    sortNewest(
-      overdueAckRows.filter((row) => isActiveEdielMessageFamily(row.message_family))
-    )
-  )
-  const failedMessages = sortedMessages.filter((row) => row.status === 'failed')
-  const unlinkedInbound = sortedMessages.filter(isUnlinkedInbound)
-  const queuedOutbound = sortedMessages.filter(
-    (row) =>
-      row.direction === 'outbound' &&
-      (row.status === 'queued' || row.status === 'prepared')
-  )
-  const recentInbound = sortedMessages
-    .filter((row) => row.direction === 'inbound')
-    .slice(0, 20)
-  const recentOutbound = sortedMessages
-    .filter((row) => row.direction === 'outbound')
-    .slice(0, 20)
-
-  const activeTests = scopedTestRuns
-    .filter((row) => ['draft', 'running'].includes(row.status))
-    .slice(0, 20)
+  const [recentMessages, overdueMessages, duplicateAckCandidates, ruleAmbiguities] =
+    await Promise.all([
+      listEdielMessages({ limit: 20 }),
+      listOverdueAckMessages({ limit: 50 }),
+      listDuplicateAckCandidates(),
+      listRuleAmbiguities(),
+    ])
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <AdminHeader
-        title="Ediel control tower"
-        subtitle="Samlad driftvy för aktiv release-scope: PRODAT, UTILTS, CONTRL, APERAK, UTILTS_ERR och AI-lista."
-        userEmail={context.email}
-      />
+    <div className="space-y-6">
+      <AdminHeader title="Ediel Control Tower" />
 
-      <div className="space-y-8 p-8">
-        <section className="rounded-3xl border border-blue-200 bg-blue-50 p-5">
-          <div className="text-sm font-semibold text-slate-900">Aktivt Ediel-scope i release 1</div>
-          <p className="mt-2 text-sm text-slate-700">
-            Control towern visar bara aktivt scope: {ACTIVE_EDIEL_MESSAGE_FAMILIES.join(', ')}.
-            Framtida familjer och test-sviter hålls utanför den operativa vyn tills de faktiskt
-            går live.
+      <section className="grid gap-4 md:grid-cols-4">
+        <article className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">Senaste meddelanden</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">
+            {recentMessages.length}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {ACTIVE_EDIEL_MESSAGE_FAMILIES.map((family) => (
-              <Pill key={family} text={family} tone="blue" />
-            ))}
-            {ACTIVE_EDIEL_TEST_SUITES.map((suite) => (
-              <Pill key={suite} text={`Test ${suite}`} tone="green" />
-            ))}
-            <Pill
-              text={`Dolda framtida meddelanden ${futureMessages.length}`}
-              tone={futureMessages.length > 0 ? 'yellow' : 'slate'}
-            />
-            <Pill
-              text={`Dolda framtida testruns ${futureTestRuns.length}`}
-              tone={futureTestRuns.length > 0 ? 'yellow' : 'slate'}
-            />
-          </div>
-        </section>
+        </article>
 
-        <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Totala meddelanden</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {scopedMessages.length}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Kö / prepared</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {queuedOutbound.length}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Pending ack</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {pendingAck.length}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Ack overdue</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {overdueAck.length}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Aktiva routes</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {summary.activeRoutes}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Aktiva testkörningar</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {activeTests.length}
-            </div>
-          </div>
-        </section>
+        <article className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">Försenade kvittenser</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">
+            {overdueMessages.length}
+          </p>
+        </article>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Inbound</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {scopedMessages.filter((row) => row.direction === 'inbound').length}
-            </div>
+        <article className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">Ack-dubletter</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">
+            {duplicateAckCandidates.length}
+          </p>
+        </article>
+
+        <article className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">Regelkonflikter</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">
+            {ruleAmbiguities.length}
+          </p>
+        </article>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="text-base font-semibold text-slate-900">Försenade kvittenser</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Meddelanden där CONTRL, APERAK eller UTILTS_ERR fortfarande är pending efter ack_due_at.
+          </p>
+        </div>
+
+        {overdueMessages.length === 0 ? (
+          <div className="px-5 py-6 text-sm text-slate-500">
+            Inga försenade kvittenser just nu.
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Outbound</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {scopedMessages.filter((row) => row.direction === 'outbound').length}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Failed</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {failedMessages.length}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Profiler</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">
-              {summary.configuredProfiles}
-            </div>
-          </div>
-        </section>
-
-        <MessageTable
-          title="Ack försenad"
-          subtitle="Meddelanden där kvittens förväntades men deadline har passerat."
-          rows={overdueAck}
-        />
-
-        <MessageTable
-          title="Pending ack"
-          subtitle="Meddelanden som väntar på CONTRL, APERAK eller UTILTS_ERR men ännu inte är overdue."
-          rows={pendingAck.filter((row) => !isAckOverdue(row))}
-        />
-
-        <MessageTable
-          title="Queued outbound"
-          subtitle="Prepared eller queued meddelanden som kan skickas direkt från control tower."
-          rows={queuedOutbound}
-          showSendButton
-        />
-
-        <MessageTable
-          title="Failed messages"
-          subtitle="Meddelanden som stoppat i parsing, validering eller transport."
-          rows={failedMessages}
-        />
-
-        <MessageTable
-          title="Unlinked inbound"
-          subtitle="Inbound som ännu inte kopplats till outbound request, switch request eller data request."
-          rows={unlinkedInbound}
-        />
-
-        <MessageTable
-          title="Senaste inbound"
-          subtitle="Snabb driftvy över de senaste inkommande meddelandena i aktivt scope."
-          rows={recentInbound}
-        />
-
-        <MessageTable
-          title="Senaste outbound"
-          subtitle="Snabb driftvy över de senaste utgående meddelandena i aktivt scope."
-          rows={recentOutbound}
-        />
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Aktiva testkörningar</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Draft eller running inom aktivt release-scope.
-            </p>
-          </div>
-
+        ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="text-left text-slate-500">
-                <tr className="border-b border-slate-200">
-                  <th className="px-3 py-3">Skapad</th>
-                  <th className="px-3 py-3">Suite</th>
-                  <th className="px-3 py-3">Status</th>
-                  <th className="px-3 py-3">Case</th>
-                  <th className="px-3 py-3">Objekt</th>
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Meddelande</th>
+                  <th className="px-4 py-3 font-medium">Riktning</th>
+                  <th className="px-4 py-3 font-medium">Ack-status</th>
+                  <th className="px-4 py-3 font-medium">Due</th>
+                  <th className="px-4 py-3 font-medium">Relation</th>
                 </tr>
               </thead>
-              <tbody>
-                {activeTests.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-6 text-slate-500">
-                      Inga aktiva testkörningar.
-                    </td>
-                  </tr>
-                ) : (
-                  activeTests.map((row) => (
-                    <tr key={row.id} className="border-b border-slate-100">
-                      <td className="px-3 py-3 text-slate-600">{formatDate(row.created_at)}</td>
-                      <td className="px-3 py-3">
-                        <Pill text={row.test_suite} tone="blue" />
+              <tbody className="divide-y divide-slate-100">
+                {overdueMessages.map((row) => {
+                  const canonicalState =
+                    row.contrl_status === 'pending'
+                      ? 'awaiting_contrl'
+                      : row.aperak_status === 'pending'
+                        ? 'awaiting_aperak'
+                        : row.utilts_err_status === 'pending'
+                          ? 'ack_overdue'
+                          : 'in_progress'
+
+                  return (
+                    <tr key={row.id}>
+                      <td className="px-4 py-3 align-top">
+                        <Link
+                          href={`/admin/ediel/messages/${row.id}`}
+                          className="font-medium text-slate-900 underline-offset-2 hover:underline"
+                        >
+                          {row.message_family} {row.message_code}
+                        </Link>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {row.external_reference || row.transaction_reference || row.id}
+                        </div>
                       </td>
-                      <td className="px-3 py-3">
-                        <Pill text={row.status} tone={badgeTone(row.status)} />
+                      <td className="px-4 py-3 align-top text-slate-700">
+                        {row.direction}
                       </td>
-                      <td className="px-3 py-3 text-slate-900">{row.test_case_code}</td>
-                      <td className="px-3 py-3 text-xs text-slate-600">
-                        kund {row.customer_id ?? '—'} · site {row.site_id ?? '—'} · mp{' '}
-                        {row.metering_point_id ?? '—'}
+                      <td className="px-4 py-3 align-top">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${ackTone(canonicalState)}`}
+                        >
+                          {canonicalState}
+                        </span>
+                        <div className="mt-2 space-y-1 text-xs text-slate-500">
+                          <div>CONTRL: {row.contrl_status ?? '—'}</div>
+                          <div>APERAK: {row.aperak_status ?? '—'}</div>
+                          <div>UTILTS_ERR: {row.utilts_err_status ?? '—'}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs text-slate-500">
+                        {row.ack_due_at ? new Date(row.ack_due_at).toLocaleString() : '—'}
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs text-slate-500">
+                        {row.switch_request_id ? (
+                          <Link
+                            href={`/admin/operations/switches/${row.switch_request_id}`}
+                            className="underline-offset-2 hover:underline"
+                          >
+                            Switch
+                          </Link>
+                        ) : row.grid_owner_data_request_id ? (
+                          <Link
+                            href={`/admin/operations/grid-owner-requests/${row.grid_owner_data_request_id}`}
+                            className="underline-offset-2 hover:underline"
+                          >
+                            Grid owner request
+                          </Link>
+                        ) : row.outbound_request_id ? (
+                          <Link
+                            href={`/admin/outbound`}
+                            className="underline-offset-2 hover:underline"
+                          >
+                            Outbound
+                          </Link>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                     </tr>
-                  ))
-                )}
+                  )
+                })}
               </tbody>
             </table>
           </div>
-        </section>
-      </div>
+        )}
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <article className="rounded-2xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-base font-semibold text-slate-900">Dublettskydd ack</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              DB-vyn visar om det ändå finns mer än en outbound CONTRL/APERAK/UTILTS_ERR för samma source message.
+            </p>
+          </div>
+
+          {duplicateAckCandidates.length === 0 ? (
+            <div className="px-5 py-6 text-sm text-slate-500">
+              Inga ack-dubletter hittades.
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {duplicateAckCandidates.map((row) => (
+                <li key={`${row.related_message_id}-${row.message_family}`} className="px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {row.message_family} × {row.duplicate_count}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Source message: {row.related_message_id}
+                      </p>
+                    </div>
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${tone('red')}`}>
+                      måste städas
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+
+        <article className="rounded-2xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-base font-semibold text-slate-900">Regelambiguiteter</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Visar om flera aktiva regler fortfarande tävlar om samma family/code/standard/direction.
+            </p>
+          </div>
+
+          {ruleAmbiguities.length === 0 ? (
+            <div className="px-5 py-6 text-sm text-slate-500">
+              Inga regelambiguiteter hittades.
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {ruleAmbiguities.map((row) => (
+                <li
+                  key={`${row.message_family}-${row.message_code}-${row.message_standard}-${row.direction}`}
+                  className="px-5 py-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {row.message_family} {row.message_code}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {row.message_standard} / {row.direction}
+                      </p>
+                      <p className="mt-2 text-xs text-slate-500">
+                        Versioner: {row.version_codes.join(', ')}
+                      </p>
+                    </div>
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${tone('red')}`}>
+                      {row.active_rule_count} aktiva
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="text-base font-semibold text-slate-900">Senaste Ediel-meddelanden</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Snabbvy för senaste flödena medan Batch 1–3 kopplas in i resten av systemet.
+          </p>
+        </div>
+
+        {recentMessages.length === 0 ? (
+          <div className="px-5 py-6 text-sm text-slate-500">
+            Inga meddelanden hittades.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Meddelande</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Ack</th>
+                  <th className="px-4 py-3 font-medium">Sender → Receiver</th>
+                  <th className="px-4 py-3 font-medium">Tid</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentMessages.map((row) => {
+                  const ackState =
+                    row.contrl_status === 'pending'
+                      ? 'awaiting_contrl'
+                      : row.aperak_status === 'pending'
+                        ? 'awaiting_aperak'
+                        : row.status === 'failed'
+                          ? 'failed'
+                          : row.requires_contrl === false && row.requires_aperak === false
+                            ? 'no_ack_required'
+                            : row.aperak_status === 'received'
+                              ? 'aperak_received'
+                              : row.contrl_status === 'received'
+                                ? 'contrl_completed'
+                                : 'in_progress'
+
+                  return (
+                    <tr key={row.id}>
+                      <td className="px-4 py-3 align-top">
+                        <Link
+                          href={`/admin/ediel/messages/${row.id}`}
+                          className="font-medium text-slate-900 underline-offset-2 hover:underline"
+                        >
+                          {row.message_family} {row.message_code}
+                        </Link>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {row.message_version || 'utan version'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-slate-700">{row.status}</td>
+                      <td className="px-4 py-3 align-top">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${ackTone(ackState)}`}
+                        >
+                          {ackState}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs text-slate-500">
+                        {row.sender_ediel_id || '—'} → {row.receiver_ediel_id || '—'}
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs text-slate-500">
+                        {new Date(row.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

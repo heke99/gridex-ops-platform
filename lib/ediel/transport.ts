@@ -3,9 +3,9 @@
 import nodemailer from 'nodemailer'
 import { ImapFlow } from 'imapflow'
 import {
-  createEdielMessage,
-  findEdielMessageByMailboxIdentity,
-  getEdielRouteProfileByCommunicationRouteId,
+  getEdielMessageById,
+  updateEdielMessageStatus,
+  createEdielMessageEvent,
 } from '@/lib/ediel/db'
 import type {
   CreateEdielMessageInput,
@@ -25,6 +25,8 @@ import {
   inferEdielFileName,
 } from '@/lib/ediel/classify'
 import { deriveEdielAckDefaults } from '@/lib/ediel/references'
+import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
+import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 
 function requireEnv(name: string, fallback?: string | null): string {
   const value = process.env[name] ?? fallback ?? ''
@@ -52,14 +54,8 @@ function resolveImapPort(value?: number | null): number {
 }
 
 function normalizeMailboxIdentity(value: unknown): string | null {
-  if (typeof value === 'string' && value.trim().length > 0) {
-    return value.trim()
-  }
-
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return String(value)
-  }
-
+  if (typeof value === 'string' && value.trim().length > 0) return value.trim()
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
   return null
 }
 
@@ -85,15 +81,8 @@ function inferAttachmentExtension(message: EdielMessageRow): 'edi' | 'csv' | 'xm
 
 function inferMimeType(message: EdielMessageRow): string {
   if (message.mime_type?.trim()) return message.mime_type
-
-  if (message.message_standard === 'ai_list') {
-    return 'text/csv; charset=utf-8'
-  }
-
-  if (message.message_standard === 'xml') {
-    return 'application/xml; charset=utf-8'
-  }
-
+  if (message.message_standard === 'ai_list') return 'text/csv; charset=utf-8'
+  if (message.message_standard === 'xml') return 'application/xml; charset=utf-8'
   return 'application/edifact'
 }
 
@@ -149,6 +138,7 @@ function buildInboundProdatMessageInput(params: {
       extension: 'edi',
     }),
     mimeType: 'application/edifact',
+    interchangeReference: parsed.interchangeReference ?? null,
     externalReference: parsed.externalReference,
     transactionReference: parsed.transactionReference,
     applicationReference: parsed.applicationReference,
@@ -180,21 +170,13 @@ function buildInboundAiListMessageInput(params: {
   const externalReference =
     params.subject?.match(/[A-Z0-9._-]{6,}/)?.[0] ?? params.mailboxMessageId ?? null
 
-  const parsedPayload: Record<string, unknown> = {
-    listType: params.listType,
-    lineCount: params.rawPayload.split(/\r?\n/).filter(Boolean).length,
-    separator: ';',
-    importedVia: 'imap',
-    controlOnly: true,
-  }
-
   return {
     actorUserId: null,
     direction: 'inbound',
     messageStandard: 'ai_list',
     messageFamily: 'AI_LIST',
     messageCode: params.listType,
-    messageVersion: 'CSV_SEMICOLON_2025-10-01',
+    messageVersion: 'Ver20140401',
     status: 'received',
     transportType: 'imap',
     mailbox: params.mailbox ?? null,
@@ -212,7 +194,13 @@ function buildInboundAiListMessageInput(params: {
     externalReference,
     communicationRouteId: params.communicationRouteId ?? null,
     rawPayload: params.rawPayload,
-    parsedPayload,
+    parsedPayload: {
+      listType: params.listType,
+      lineCount: params.rawPayload.split(/\r?\n/).filter(Boolean).length,
+      separator: ';',
+      importedVia: 'imap',
+      controlOnly: true,
+    },
     requiresContrl: false,
     requiresAperak: false,
     contrlStatus: 'not_required',
@@ -282,6 +270,26 @@ export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise
     ],
   })
 
+  await updateEdielMessageStatus({
+    actorUserId: 'system',
+    edielMessageId: message.id,
+    status: 'sent',
+    messageSentAt: new Date().toISOString(),
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: 'system',
+    edielMessageId: message.id,
+    eventType: 'sent',
+    eventStatus: 'success',
+    message: 'Ediel-meddelande skickat via SMTP.',
+    payload: {
+      smtpMessageId: result.messageId ?? null,
+      accepted: result.accepted.map(String),
+      rejected: result.rejected.map(String),
+    },
+  })
+
   return {
     accepted: result.accepted.map(String),
     rejected: result.rejected.map(String),
@@ -290,10 +298,12 @@ export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise
 }
 
 export async function pollEdielMailboxViaImap(params?: {
+  actorUserId?: string | null
   mailbox?: string | null
   communicationRouteId?: string | null
   limit?: number
 }): Promise<EdielMessageRow[]> {
+  const actorUserId = params?.actorUserId ?? 'system'
   const routeProfile = params?.communicationRouteId
     ? await getEdielRouteProfileByCommunicationRouteId(params.communicationRouteId)
     : null
@@ -341,13 +351,6 @@ export async function pollEdielMailboxViaImap(params?: {
         const mailboxMessageId = normalizeMailboxIdentity(item.uid)
         if (!mailboxMessageId) continue
 
-        const existing = await findEdielMessageByMailboxIdentity({
-          mailbox,
-          mailboxMessageId,
-        })
-
-        if (existing) continue
-
         const rawSource =
           typeof item.source === 'string'
             ? item.source
@@ -364,37 +367,34 @@ export async function pollEdielMailboxViaImap(params?: {
           typeof item.envelope?.subject === 'string' ? item.envelope.subject : null
 
         const inferred = inferEdielFamilyAndCodeFromRawPayload(content)
-
-        let createdMessage: EdielMessageRow | null = null
+        let input: CreateEdielMessageInput | null = null
 
         if (inferred.messageFamily === 'UTILTS') {
           const utiltsCode =
             inferred.messageCode === 'S01' ||
-            inferred.messageCode === 'S02' ||
-            inferred.messageCode === 'S03' ||
-            inferred.messageCode === 'S04' ||
-            inferred.messageCode === 'E31' ||
-            inferred.messageCode === 'E66' ||
-            inferred.messageCode === 'E73'
+              inferred.messageCode === 'S02' ||
+              inferred.messageCode === 'S03' ||
+              inferred.messageCode === 'S04' ||
+              inferred.messageCode === 'E31' ||
+              inferred.messageCode === 'E66' ||
+              inferred.messageCode === 'E73'
               ? inferred.messageCode
               : 'E66'
 
           const parsed = parseInboundUtilts(content)
           if (!isActiveEdielMessageFamily(parsed.messageFamily)) continue
 
-          createdMessage = await createEdielMessage(
-            buildInboundUtiltsMessageInput({
-              code: utiltsCode,
-              communicationRouteId: params?.communicationRouteId ?? null,
-              mailbox,
-              mailboxMessageId,
-              senderEmail,
-              receiverEmail,
-              rawPayload: content,
-            })
-          )
+          input = buildInboundUtiltsMessageInput({
+            code: utiltsCode,
+            communicationRouteId: params?.communicationRouteId ?? null,
+            mailbox,
+            mailboxMessageId,
+            senderEmail,
+            receiverEmail,
+            rawPayload: content,
+          })
         } else if (inferred.messageFamily === 'PRODAT') {
-          const input = buildInboundProdatMessageInput({
+          input = buildInboundProdatMessageInput({
             rawPayload: content,
             communicationRouteId: params?.communicationRouteId ?? null,
             mailbox,
@@ -405,10 +405,9 @@ export async function pollEdielMailboxViaImap(params?: {
           })
 
           assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/PRODAT')
-          createdMessage = await createEdielMessage(input)
         } else if (inferred.messageFamily === 'AI_LIST') {
           const listType = inferred.messageCode === 'BI' ? 'BI' : 'AI'
-          const input = buildInboundAiListMessageInput({
+          input = buildInboundAiListMessageInput({
             rawPayload: content,
             listType,
             communicationRouteId: params?.communicationRouteId ?? null,
@@ -420,13 +419,18 @@ export async function pollEdielMailboxViaImap(params?: {
           })
 
           assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/AI_LIST')
-          createdMessage = await createEdielMessage(input)
         } else {
           continue
         }
 
-        if (createdMessage) {
-          created.push(createdMessage)
+        const createdMessage = await registerInboundCanonicalMessage({
+          actorUserId,
+          input,
+        })
+
+        const justCreated = await getEdielMessageById(createdMessage.id)
+        if (justCreated) {
+          created.push(justCreated)
           count += 1
         }
       }

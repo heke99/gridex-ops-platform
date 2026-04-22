@@ -9,11 +9,49 @@ import type {
   EdielMessageEventRow,
   EdielMessageEventType,
   EdielMessageRow,
+  EdielRouteProfileRow,
   EdielTestRunMessageRow,
   EdielTestRunRow,
   LinkEdielMessageInput,
   UpdateEdielMessageStatusInput,
 } from '@/lib/ediel/types'
+
+type EdielMessageAckStateRow = {
+  id: string
+  direction: EdielMessageRow['direction']
+  message_family: EdielMessageRow['message_family']
+  message_code: string
+  message_version: string | null
+  status: EdielMessageRow['status']
+  environment: EdielMessageRow['environment']
+  requires_contrl: boolean
+  requires_aperak: boolean
+  contrl_status: EdielMessageRow['contrl_status']
+  aperak_status: EdielMessageRow['aperak_status']
+  utilts_err_status: EdielMessageRow['utilts_err_status']
+  ack_due_at: string | null
+  message_sent_at: string | null
+  message_received_at: string | null
+  acknowledged_at: string | null
+  failed_at: string | null
+  canonical_ack_state: string
+}
+
+type DuplicateAckCandidateRow = {
+  related_message_id: string
+  message_family: string
+  duplicate_count: number
+  message_ids: string[]
+}
+
+type RuleAmbiguityRow = {
+  message_family: string
+  message_code: string
+  message_standard: string
+  direction: string
+  active_rule_count: number
+  version_codes: string[]
+}
 
 function cleanObject<T extends Record<string, unknown>>(value: T): T {
   const entries = Object.entries(value).filter(([, v]) => v !== undefined)
@@ -162,6 +200,19 @@ export async function getEdielMessageById(
   return (data as EdielMessageRow | null) ?? null
 }
 
+export async function getEdielMessageAckStateById(
+  id: string
+): Promise<EdielMessageAckStateRow | null> {
+  const { data, error } = await supabaseService
+    .from('ediel_message_ack_state_v')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as EdielMessageAckStateRow | null) ?? null
+}
+
 export async function findEdielMessageByMailboxIdentity(params: {
   mailbox: string
   mailboxMessageId: string
@@ -213,26 +264,44 @@ export async function listOverdueAckMessages(params?: {
   limit?: number
 }): Promise<EdielMessageRow[]> {
   const limit = params?.limit ?? 100
-  const nowIso = new Date().toISOString()
 
   const { data, error } = await supabaseService
-    .from('ediel_messages')
-    .select('*')
-    .eq('direction', 'inbound')
-    .in('message_standard', ['edifact'])
-    .lt('ack_due_at', nowIso)
-    .or(
-      [
-        'contrl_status.eq.pending',
-        'aperak_status.eq.pending',
-        'utilts_err_status.eq.pending',
-      ].join(',')
-    )
+    .from('ediel_overdue_message_acks_v')
+    .select('id')
     .order('ack_due_at', { ascending: true })
     .limit(limit)
 
   if (error) throw error
-  return (data ?? []) as EdielMessageRow[]
+
+  const ids = (data ?? []).map((row) => row.id as string)
+  if (ids.length === 0) return []
+
+  const { data: messages, error: messagesError } = await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .in('id', ids)
+    .order('ack_due_at', { ascending: true })
+
+  if (messagesError) throw messagesError
+  return (messages ?? []) as EdielMessageRow[]
+}
+
+export async function listDuplicateAckCandidates(): Promise<DuplicateAckCandidateRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_duplicate_ack_candidates_v')
+    .select('*')
+
+  if (error) throw error
+  return (data ?? []) as DuplicateAckCandidateRow[]
+}
+
+export async function listRuleAmbiguities(): Promise<RuleAmbiguityRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_rule_ambiguities_v')
+    .select('*')
+
+  if (error) throw error
+  return (data ?? []) as RuleAmbiguityRow[]
 }
 
 export async function createEdielMessageEvent(
@@ -446,7 +515,7 @@ export async function attachEdielMessageToTestRun(
 
 export async function getEdielRouteProfileByCommunicationRouteId(
   communicationRouteId: string
-) {
+): Promise<EdielRouteProfileRow | null> {
   const { data, error } = await supabaseService
     .from('ediel_route_profiles')
     .select('*')
@@ -454,5 +523,5 @@ export async function getEdielRouteProfileByCommunicationRouteId(
     .maybeSingle()
 
   if (error) throw error
-  return data
+  return (data as EdielRouteProfileRow | null) ?? null
 }
