@@ -19,7 +19,7 @@ import {
   matchSiteAndCustomerForMeteringPoint,
 } from '@/lib/ediel/matching'
 import { linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
-import { buildContrlDraft, buildAperakDraft, buildUtiltsErrDraft, getAutomaticAckPolicy } from '@/lib/ediel/ack'
+import { buildContrlDraft, buildAperakDraft, buildUtiltsErrDraft, getAutomaticAckPolicy, getCanonicalAckState } from '@/lib/ediel/ack'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 
@@ -159,6 +159,7 @@ async function processInboundProdatMessage(params: {
         'Inbound PRODAT kvitterades automatiskt men saknar ännu stark switch-koppling.',
       payload: {
         createdAckMessageIds: ackIds,
+        canonicalAckState: getCanonicalAckState(params.message),
       },
     })
 
@@ -291,6 +292,7 @@ export async function pollAndIngestEdielMailbox(params: {
         'Inbound meddelande kvitterades automatiskt men saknar ännu stark processkoppling.',
       payload: {
         createdAckMessageIds: ackIds,
+        canonicalAckState: getCanonicalAckState(params.message),
       },
     })
   }

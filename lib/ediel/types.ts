@@ -74,6 +74,40 @@ export type EdielMessageCode =
 
 export type EdielKnownMessageCode = EdielMessageCode | string
 
+export type EdielCanonicalAckState =
+  | 'awaiting_contrl'
+  | 'contrl_received'
+  | 'contrl_failed'
+  | 'awaiting_aperak'
+  | 'aperak_received_positive'
+  | 'aperak_received_negative'
+  | 'utilts_err_received'
+  | 'ack_overdue'
+  | 'no_ack_required'
+  | 'in_progress'
+  | 'failed'
+
+export type EdielMessageAckStateRow = {
+  id: string
+  direction: EdielMessageRow['direction']
+  message_family: EdielMessageRow['message_family']
+  message_code: string
+  message_version: string | null
+  status: EdielMessageRow['status']
+  environment: EdielMessageRow['environment']
+  requires_contrl: boolean
+  requires_aperak: boolean
+  contrl_status: EdielMessageRow['contrl_status']
+  aperak_status: EdielMessageRow['aperak_status']
+  utilts_err_status: EdielMessageRow['utilts_err_status']
+  ack_due_at: string | null
+  message_sent_at: string | null
+  message_received_at: string | null
+  acknowledged_at: string | null
+  failed_at: string | null
+  canonical_ack_state: EdielCanonicalAckState | string
+}
+
 export const ACTIVE_EDIEL_MESSAGE_FAMILIES = [
   'PRODAT',
   'UTILTS',

@@ -63,6 +63,7 @@ export async function findOrCreateSwitchOutbound(params: {
   siteId: string
   meteringPointId: string
   gridOwnerId: string | null
+  communicationRouteId?: string | null
   externalReference: string | null
   payload: Record<string, unknown>
 }) {
@@ -80,6 +81,7 @@ export async function findOrCreateSwitchOutbound(params: {
     siteId: params.siteId,
     meteringPointId: params.meteringPointId,
     gridOwnerId: params.gridOwnerId,
+    communicationRouteId: params.communicationRouteId ?? null,
     requestType: 'supplier_switch',
     sourceType: 'supplier_switch_request',
     sourceId: params.switchRequestId,
@@ -91,6 +93,7 @@ export async function findOrCreateSwitchOutbound(params: {
 export async function findOrCreateDataRequestOutbound(params: {
   actorUserId: string
   requestType: 'meter_values' | 'billing_underlay'
+  communicationRouteId?: string | null
   dataRequest: GridOwnerDataRequestRow
   payload: Record<string, unknown>
 }) {
@@ -108,6 +111,7 @@ export async function findOrCreateDataRequestOutbound(params: {
     siteId: params.dataRequest.site_id,
     meteringPointId: params.dataRequest.metering_point_id,
     gridOwnerId: params.dataRequest.grid_owner_id,
+    communicationRouteId: params.communicationRouteId ?? null,
     requestType: params.requestType,
     sourceType: 'grid_owner_data_request',
     sourceId: params.dataRequest.id,

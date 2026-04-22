@@ -2,7 +2,10 @@
 
 import Link from 'next/link'
 import CustomerSwitchCreatePanel from '@/components/admin/customers/CustomerSwitchCreatePanel'
-import { getRecommendationSummary } from '@/lib/ediel/recommendations'
+import {
+  getRecommendationSummary,
+  type EdielRecommendationMessageRow,
+} from '@/lib/ediel/recommendations'
 import { getSwitchLifecycle, explainWhySwitchIsStuck } from '@/lib/operations/controlTower'
 import {
   buildSiteLifecycleSummaries,
@@ -20,7 +23,107 @@ import type {
 } from '@/components/admin/customers/switch-operations/types'
 import SwitchRecommendationPanel from '@/components/admin/customers/switch-operations/SwitchRecommendationPanel'
 import SiteLifecycleSection from '@/components/admin/customers/switch-operations/SiteLifecycleSection'
-import SwitchRequestSection from '@/components/admin/customers/switch-operations/SwitchRequestSection'
+import type { ReactNode } from 'react'
+
+function normalizeRecommendationStatus(value: string): EdielRecommendationMessageRow['status'] {
+  if (
+    value === 'draft' ||
+    value === 'prepared' ||
+    value === 'queued' ||
+    value === 'sent' ||
+    value === 'acknowledged' ||
+    value === 'failed' ||
+    value === 'received' ||
+    value === 'parsed' ||
+    value === 'validated'
+  ) {
+    return value
+  }
+
+  return 'draft'
+}
+
+function normalizeRecommendationFamily(value: string): EdielRecommendationMessageRow['message_family'] {
+  if (
+    value === 'PRODAT' ||
+    value === 'UTILTS' ||
+    value === 'CONTRL' ||
+    value === 'APERAK' ||
+    value === 'UTILTS_ERR' ||
+    value === 'AI_LIST'
+  ) {
+    return value
+  }
+
+  if (value === 'XML') {
+    return 'NBS_XML'
+  }
+
+  return 'OTHER'
+}
+
+function normalizeRecommendationAckStatus(
+  value: string | null
+): EdielRecommendationMessageRow['contrl_status'] {
+  if (value === 'pending' || value === 'sent' || value === 'failed' || value === 'not_required') {
+    return value
+  }
+
+  if (value === 'received' || value === 'acknowledged') {
+    return 'received'
+  }
+
+  return null
+}
+
+function toRecommendationMessages(params: {
+  customerId: string
+  edielMessages: CustomerSwitchOperationsCardProps['edielMessages']
+}): EdielRecommendationMessageRow[] {
+  return params.edielMessages.map((row) => ({
+    id: row.id,
+    direction: row.direction,
+    message_family: normalizeRecommendationFamily(row.message_family),
+    message_code: row.message_code,
+    status: normalizeRecommendationStatus(row.status),
+    communication_route_id: row.communication_route_id,
+    switch_request_id: row.switch_request_id,
+    grid_owner_data_request_id: row.grid_owner_data_request_id,
+    outbound_request_id: row.outbound_request_id,
+    customer_id: params.customerId,
+    site_id: null,
+    metering_point_id: null,
+    external_reference: row.external_reference,
+    transaction_reference: row.transaction_reference,
+    receiver_email: row.receiver_email,
+    created_at: row.created_at,
+    contrl_status: normalizeRecommendationAckStatus(null),
+    aperak_status: normalizeRecommendationAckStatus(null),
+  }))
+}
+
+
+function SwitchRequestSection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description?: string
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold text-slate-950 dark:text-white">{title}</h3>
+        {description ? (
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  )
+}
 
 export default function CustomerSwitchOperationsCard({
   customerId,
@@ -131,10 +234,15 @@ export default function CustomerSwitchOperationsCard({
     switchOutboundRequests,
   })
 
+  const recommendationMessages = toRecommendationMessages({
+    customerId,
+    edielMessages,
+  })
+
   const edielRecommendation = getRecommendationSummary({
     switchRequests,
     outboundRequests: switchOutboundRequests,
-    messages: edielMessages,
+    messages: recommendationMessages,
     routes: edielRecommendationRoutes,
     preferredFamily: 'PRODAT',
   })
@@ -259,342 +367,152 @@ export default function CustomerSwitchOperationsCard({
         </div>
 
         <div className="rounded-3xl border border-rose-200 bg-rose-50/60 p-6 shadow-sm dark:border-rose-900/50 dark:bg-rose-950/10">
-          <div className="text-sm text-slate-500 dark:text-slate-400">Unresolved routes</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">Oupplösta outbound</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
             {unresolvedOutbound.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Switchar där route mot nätägare fortfarande saknas.
+            Switch-dispatch där route eller transportkedja fortfarande saknas.
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/10">
+          <div className="text-sm text-slate-500 dark:text-slate-400">Fastnade switchar</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
+            {stuckSwitches.length}
+          </div>
+          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Ärenden som saknar väg framåt eller fortfarande står kvar i manuell uppföljning.
           </div>
         </div>
       </div>
 
-      <CustomerSwitchCreatePanel customerId={customerId} sites={sites} />
+      <SwitchRequestSection
+        title="Skapa nytt switchärende"
+        description="Starta nytt leverantörsbyte eller bytesspår direkt från kundkortet."
+      >
+        <CustomerSwitchCreatePanel customerId={customerId} sites={sites} />
+      </SwitchRequestSection>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_420px]">
-        <div className="space-y-6">
-          <SiteLifecycleSection
-            customerId={customerId}
-            meteringPoints={meteringPoints}
-            siteLifecycleSummaries={siteLifecycleSummaries}
-          />
+      <SiteLifecycleSection
+        customerId={customerId}
+        siteLifecycleSummaries={siteLifecycleSummaries}
+        meteringPoints={meteringPoints}
+      />
 
-          <SwitchRequestSection
-            customerId={customerId}
-            sites={sites}
-            meteringPoints={meteringPoints}
-            switchRequests={switchRequests}
-            switchEvents={switchEvents}
-            switchOutboundRequests={switchOutboundRequests}
-          />
+      <SwitchRequestSection
+        title="Senaste dispatch"
+        description="Snabb överblick av senaste outbound för switchflödena."
+      >
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200">
+          {latestDispatch ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="font-medium">
+                  {latestDispatch.status} · {latestDispatch.channel_type}
+                </div>
+                <div className="text-slate-500 dark:text-slate-400">
+                  {formatDateTime(
+                    latestDispatch.sent_at ??
+                      latestDispatch.prepared_at ??
+                      latestDispatch.queued_at ??
+                      latestDispatch.created_at
+                  )}
+                </div>
+              </div>
+              <Link
+                href={`/admin/outbound/${latestDispatch.id}`}
+                className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
+              >
+                Öppna outbound
+              </Link>
+            </div>
+          ) : (
+            'Ingen outbound dispatch finns ännu för switchärenden på kunden.'
+          )}
         </div>
+      </SwitchRequestSection>
 
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Så hittar du rätt sida
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Snabbguide för handläggare så man slipper tänka efter varje gång.
-              </p>
+      <SwitchRequestSection
+        title="Vad gör att switchar fastnar?"
+        description="Kort förklaring per aktivt ärende så support snabbt ser nästa arbetsyta."
+      >
+        <div className="space-y-3">
+          {openSwitches.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              Inga aktiva switchärenden för kunden just nu.
             </div>
+          ) : (
+            openSwitches.map((request) => {
+              const outbound = getLatestOutboundForRequest(request.id, switchOutboundRequests)
+              const reason = explainWhySwitchIsStuck({
+                request,
+                readiness: null,
+                outboundRequest: outbound ?? null,
+              })
 
-            <div className="space-y-3 p-6 text-sm text-slate-600 dark:text-slate-300">
-              <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                <div className="font-semibold text-slate-900 dark:text-white">1. Kundkort</div>
-                <p className="mt-1">
-                  Börja här när du vill förstå status, validation, senaste event,
-                  site-lifecycle och vilket nästa steg som gäller per anläggning.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                <div className="font-semibold text-slate-900 dark:text-white">
-                  2. Ready to execute
-                </div>
-                <p className="mt-1">
-                  Gå hit när kundkortet visar ready_to_execute eller när outbound redan är
-                  acknowledged och du bara vill slutföra switchen.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                <div className="font-semibold text-slate-900 dark:text-white">
-                  3. Switch detail
-                </div>
-                <p className="mt-1">
-                  Gå hit när du behöver full timeline, execution, statusändringar eller exakt
-                  felsökning för ett enskilt ärende.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                <div className="font-semibold text-slate-900 dark:text-white">4. Outbound</div>
-                <p className="mt-1">
-                  Gå hit när problemet handlar om route, dispatch, unresolved eller retry på
-                  extern kommunikation.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                <div className="font-semibold text-slate-900 dark:text-white">
-                  5. Switchlistan / operations
-                </div>
-                <p className="mt-1">
-                  Gå hit när du vill jobba i kö, filtrera på lifecycle stage och se många
-                  ärenden samtidigt.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Senaste dispatch
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Snabb överblick över senaste outbound-aktiviteten för kundens switchar.
-              </p>
-            </div>
-
-            <div className="p-6">
-              {!latestDispatch ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Ingen outbound-dispatch ännu.
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                  <div className="flex flex-wrap items-center gap-2">
+              return (
+                <div
+                  key={request.id}
+                  className="rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {request.request_type} · {siteLabel(request.site_id, sites)}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        {reason}
+                      </div>
+                    </div>
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                        latestDispatch.channel_type === 'unresolved'
-                          ? 'missing_route'
-                          : latestDispatch.status
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusTone(
+                        request.status
                       )}`}
                     >
-                      {latestDispatch.channel_type === 'unresolved'
-                        ? 'route saknas'
-                        : latestDispatch.status}
-                    </span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                      {latestDispatch.channel_type}
+                      {request.status}
                     </span>
                   </div>
-
-                  <div className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                    <div>
-                      Outbound ID: <span className="font-medium">{latestDispatch.id}</span>
-                    </div>
-                    <div>
-                      Källa:{' '}
-                      <span className="font-medium">
-                        {latestDispatch.source_type} / {latestDispatch.source_id}
-                      </span>
-                    </div>
-                    <div>
-                      Senast uppdaterad:{' '}
-                      <span className="font-medium">
-                        {formatDateTime(
-                          latestDispatch.acknowledged_at ??
-                            latestDispatch.failed_at ??
-                            latestDispatch.sent_at ??
-                            latestDispatch.prepared_at ??
-                            latestDispatch.queued_at ??
-                            latestDispatch.created_at
-                        )}
-                      </span>
-                    </div>
-                  </div>
                 </div>
-              )}
-            </div>
-          </div>
+              )
+            })
+          )}
+        </div>
+      </SwitchRequestSection>
 
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Switch-timeline
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Samlad tidslinje för request, events och outbound dispatch.
-              </p>
+      <SwitchRequestSection
+        title="Tidslinje"
+        description="Senaste switch-, event- och dispatchhändelser i samma lista."
+      >
+        <div className="space-y-3">
+          {switchTimeline.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              Ingen historik ännu.
             </div>
-
-            <div className="space-y-3 p-6">
-              {switchTimeline.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Ingen switchhistorik ännu.
-                </div>
-              ) : (
-                switchTimeline.slice(0, 14).map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {entry.title}
-                      </div>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                          entry.tone
-                        )}`}
-                      >
-                        {entry.tone}
-                      </span>
+          ) : (
+            switchTimeline.slice(0, 12).map((entry) => (
+              <div
+                key={entry.id}
+                className="rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {entry.title}
                     </div>
-
-                    <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                       {entry.description}
                     </div>
-
-                    <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                      {formatDateTime(entry.occurredAt)}
-                    </div>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Snabblänkar i lifecycle
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Direkt till rätt kö beroende på vad kundens switchar väntar på.
-              </p>
-            </div>
-
-            <div className="grid gap-3 p-6">
-              <Link
-                href="/admin/operations/switches?stage=blocked"
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
-              >
-                Blockerade switchar
-              </Link>
-              <Link
-                href="/admin/operations/switches?stage=queued_for_outbound"
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
-              >
-                Saknar outbound
-              </Link>
-              <Link
-                href="/admin/operations/switches?stage=awaiting_dispatch"
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
-              >
-                Väntar dispatch
-              </Link>
-              <Link
-                href="/admin/operations/switches?stage=awaiting_response"
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
-              >
-                Väntar kvittens
-              </Link>
-              <Link
-                href="/admin/operations/ready-to-execute"
-                className="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:text-emerald-300"
-              >
-                Ready to execute
-              </Link>
-              <Link
-                href="/admin/outbound/unresolved"
-                className="rounded-2xl border border-rose-200 bg-rose-50/60 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/10 dark:text-rose-300"
-              >
-                Unresolved routes
-              </Link>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Fastsittande switchar
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Ärenden som sannolikt kräver manuell uppföljning.
-              </p>
-            </div>
-
-            <div className="space-y-3 p-6">
-              {stuckSwitches.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Inga uppenbart fastsittande switchar just nu.
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    {formatDateTime(entry.occurredAt)}
+                  </div>
                 </div>
-              ) : (
-                stuckSwitches.slice(0, 8).map((request) => {
-                  const outbound = getLatestOutboundForRequest(
-                    request.id,
-                    switchOutboundRequests
-                  )
-
-                  return (
-                    <div
-                      key={request.id}
-                      className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                            request.status
-                          )}`}
-                        >
-                          {request.status}
-                        </span>
-                        {outbound ? (
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                              outbound.channel_type === 'unresolved'
-                                ? 'missing_route'
-                                : outbound.status
-                            )}`}
-                          >
-                            {outbound.channel_type === 'unresolved'
-                              ? 'route saknas'
-                              : `outbound: ${outbound.status}`}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      <div className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-                        {siteLabel(request.site_id, sites)}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        {explainWhySwitchIsStuck({
-                          request,
-                          outboundRequest: outbound,
-                          readiness: null,
-                        })}
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-3">
-                        <Link
-                          href={`/admin/operations/switches/${request.id}`}
-                          className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
-                        >
-                          Öppna switch detail
-                        </Link>
-
-                        {outbound?.channel_type === 'unresolved' ? (
-                          <Link
-                            href="/admin/outbound/unresolved"
-                            className="text-sm font-medium text-rose-700 underline-offset-4 hover:underline dark:text-rose-300"
-                          >
-                            Öppna unresolved
-                          </Link>
-                        ) : null}
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          </div>
+              </div>
+            ))
+          )}
         </div>
-      </div>
+      </SwitchRequestSection>
     </section>
   )
 }

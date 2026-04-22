@@ -37,6 +37,9 @@ export type CanonicalRouteContext = {
   payloadFormat: 'edifact' | 'xml' | 'raw' | null
   messageStandard: EdielMessageStandard
   environment: EdielEnvironment
+  routeKey: string
+  routeDecisionReason: string
+  routeSelectionSource: 'explicit_route' | 'auto_route'
 }
 
 function trimOrNull(value?: string | null): string | null {
@@ -61,16 +64,27 @@ async function resolveCommunicationRoute(params: {
   requestType: CanonicalRouteRequestType
   gridOwnerId?: string | null
   preferredRouteId?: string | null
-}): Promise<CommunicationRouteRow | null> {
+}): Promise<{
+  route: CommunicationRouteRow | null
+  source: 'explicit_route' | 'auto_route'
+}> {
   if (params.preferredRouteId) {
     const explicitRoute = await getCommunicationRouteById(params.preferredRouteId)
-    if (explicitRoute?.is_active) return explicitRoute
+    if (explicitRoute?.is_active) {
+      return {
+        route: explicitRoute,
+        source: 'explicit_route',
+      }
+    }
   }
 
-  return findBestCommunicationRoute({
-    requestType: params.requestType,
-    gridOwnerId: params.gridOwnerId ?? null,
-  })
+  return {
+    route: await findBestCommunicationRoute({
+      requestType: params.requestType,
+      gridOwnerId: params.gridOwnerId ?? null,
+    }),
+    source: 'auto_route',
+  }
 }
 
 export async function resolveCanonicalRouteContext(params: {
@@ -82,11 +96,12 @@ export async function resolveCanonicalRouteContext(params: {
 }): Promise<CanonicalRouteContext> {
   const environment = params.environment ?? 'test'
   const actor = await resolveCanonicalActorContext(environment)
-  const route = await resolveCommunicationRoute({
+  const resolvedRoute = await resolveCommunicationRoute({
     requestType: params.requestType,
     gridOwnerId: params.gridOwner?.id ?? null,
     preferredRouteId: params.preferredRouteId ?? null,
   })
+  const route = resolvedRoute.route
 
   if (!route) {
     throw new Error(
@@ -112,6 +127,33 @@ export async function resolveCanonicalRouteContext(params: {
     )
   }
 
+  const receiverName =
+    trimOrNull(routeRuntime?.receiver_name) ?? trimOrNull(params.gridOwner?.name)
+  const receiverSubAddress = trimOrNull(routeRuntime?.receiver_sub_address) ?? 'EDIEL'
+  const mailbox = trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox
+  const applicationReference =
+    trimOrNull(routeRuntime?.application_reference) ?? actor.defaultApplicationReference
+  const defaultMessageVersion = trimOrNull(routeRuntime?.default_message_version)
+  const ackMode = routeRuntime?.ack_mode ?? 'default'
+  const messageStandard = params.messageStandard ?? routeRuntime?.message_standard ?? 'edifact'
+
+  const routeKey = [
+    params.requestType,
+    route.id,
+    receiverEdielId,
+    receiverSubAddress,
+    messageStandard,
+    environment,
+    defaultMessageVersion ?? 'default-version',
+  ].join('|')
+
+  const routeDecisionReason =
+    resolvedRoute.source === 'explicit_route'
+      ? `Explicit route ${route.route_name} valdes för ${params.requestType}. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverSubAddress}, mailbox ${mailbox ?? '—'} och ack_mode ${ackMode}.`
+      : `Route ${route.route_name} valdes automatiskt för ${params.requestType}${
+          params.gridOwner?.name ? ` mot ${params.gridOwner.name}` : ''
+        }. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverSubAddress}, mailbox ${mailbox ?? '—'} och ack_mode ${ackMode}.`
+
   return {
     actor,
     route,
@@ -120,18 +162,18 @@ export async function resolveCanonicalRouteContext(params: {
     senderName,
     senderSubAddress,
     receiverEdielId,
-    receiverName:
-      trimOrNull(routeRuntime?.receiver_name) ?? trimOrNull(params.gridOwner?.name),
-    receiverSubAddress: trimOrNull(routeRuntime?.receiver_sub_address) ?? 'EDIEL',
+    receiverName,
+    receiverSubAddress,
     receiverEmail: trimOrNull(route.target_email),
-    mailbox: trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox,
-    applicationReference:
-      trimOrNull(routeRuntime?.application_reference) ??
-      actor.defaultApplicationReference,
-    defaultMessageVersion: trimOrNull(routeRuntime?.default_message_version),
-    ackMode: routeRuntime?.ack_mode ?? 'default',
+    mailbox,
+    applicationReference,
+    defaultMessageVersion,
+    ackMode,
     payloadFormat: routeRuntime?.payload_format ?? null,
-    messageStandard: params.messageStandard ?? routeRuntime?.message_standard ?? 'edifact',
+    messageStandard,
     environment,
+    routeKey,
+    routeDecisionReason,
+    routeSelectionSource: resolvedRoute.source,
   }
 }

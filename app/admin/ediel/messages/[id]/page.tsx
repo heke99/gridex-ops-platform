@@ -9,14 +9,12 @@ import {
   listEdielMessageEvents,
   listAckMessagesForSource,
 } from '@/lib/ediel/db'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getCanonicalAckState } from '@/lib/ediel/ack'
 import { createNegativeUtiltsResponseAction, sendEdielMessageAction } from '@/app/admin/ediel/actions'
 
 export const dynamic = 'force-dynamic'
 
-function tone(
-  kind: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
-): string {
+function tone(kind: 'green' | 'yellow' | 'red' | 'blue' | 'slate'): string {
   if (kind === 'green') return 'bg-emerald-100 text-emerald-700'
   if (kind === 'yellow') return 'bg-amber-100 text-amber-700'
   if (kind === 'red') return 'bg-rose-100 text-rose-700'
@@ -26,48 +24,15 @@ function tone(
 
 function badgeTone(status: string | null | undefined): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
   if (!status) return 'slate'
-  if (
-    status === 'acknowledged' ||
-    status === 'received' ||
-    status === 'aperak_received' ||
-    status === 'aperak_received_positive' ||
-    status === 'contrl_completed' ||
-    status === 'contrl_received' ||
-    status === 'utilts_err_received' ||
-    status === 'no_ack_required'
-  ) {
-    return 'green'
-  }
-  if (
-    status === 'queued' ||
-    status === 'prepared' ||
-    status === 'pending' ||
-    status === 'awaiting_contrl' ||
-    status === 'awaiting_aperak' ||
-    status === 'in_progress'
-  ) {
-    return 'yellow'
-  }
-  if (
-    status === 'failed' ||
-    status === 'contrl_failed' ||
-    status === 'ack_overdue' ||
-    status === 'aperak_received_negative'
-  ) {
-    return 'red'
-  }
-  if (status === 'sent' || status === 'validated' || status === 'parsed') {
-    return 'blue'
-  }
+  if (['acknowledged','received','aperak_received','aperak_received_positive','contrl_completed','contrl_received','utilts_err_received','no_ack_required'].includes(status)) return 'green'
+  if (['queued','prepared','pending','awaiting_contrl','awaiting_aperak','in_progress'].includes(status)) return 'yellow'
+  if (['failed','contrl_failed','ack_overdue','aperak_received_negative'].includes(status)) return 'red'
+  if (['sent','validated','parsed'].includes(status)) return 'blue'
   return 'slate'
 }
 
 function Pill({ text }: { text: string }) {
-  return (
-    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone(badgeTone(text))}`}>
-      {text}
-    </span>
-  )
+  return <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone(badgeTone(text))}`}>{text}</span>
 }
 
 function formatDate(value: string | null | undefined) {
@@ -85,14 +50,9 @@ function JsonBlock({ value }: { value: unknown }) {
   )
 }
 
-export default async function AdminEdielMessageDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function AdminEdielMessageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const context = await requireAnyPermissionServer(['communication.read'])
-  const supabase = await createSupabaseServerClient()
 
   const [message, ackState, events] = await Promise.all([
     getEdielMessageById(id),
@@ -103,11 +63,7 @@ export default async function AdminEdielMessageDetailPage({
   if (!message) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <AdminHeader
-          title="Ediel message"
-          subtitle="Meddelandet hittades inte."
-          userEmail={context.email}
-        />
+        <AdminHeader title="Ediel message" subtitle="Meddelandet hittades inte." userEmail={context.email} />
         <div className="p-8">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
             Ingen rad hittades för detta meddelande.
@@ -117,21 +73,18 @@ export default async function AdminEdielMessageDetailPage({
     )
   }
 
-  const relatedAckMessages =
-    message.direction === 'inbound'
-      ? await listAckMessagesForSource({ sourceMessageId: message.id })
-      : []
+  const [relatedAckMessages, linkedMessage] = await Promise.all([
+    message.direction === 'inbound' ? listAckMessagesForSource({ sourceMessageId: message.id }) : Promise.resolve([]),
+    message.related_message_id ? getEdielMessageById(message.related_message_id) : Promise.resolve(null),
+  ])
 
-  const linkedMessage =
-    message.related_message_id
-      ? await getEdielMessageById(message.related_message_id)
-      : null
+  const canonicalAckState = getCanonicalAckState(ackState ?? message)
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title={`Ediel ${message.message_family} ${message.message_code}`}
-        subtitle="Detaljvy för råpayload, parsing, ack state machine och processlänkar."
+        subtitle="Detaljvy för råpayload, canonical ack state och processlänkar."
         userEmail={context.email}
       />
 
@@ -144,9 +97,7 @@ export default async function AdminEdielMessageDetailPage({
                 <Pill text={message.direction} />
                 <Pill text={message.environment} />
                 <Pill text={message.message_standard} />
-                {ackState?.canonical_ack_state ? (
-                  <Pill text={ackState.canonical_ack_state} />
-                ) : null}
+                <Pill text={String(canonicalAckState)} />
               </div>
 
               <h1 className="mt-4 text-2xl font-semibold text-slate-900">
@@ -163,14 +114,10 @@ export default async function AdminEdielMessageDetailPage({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {(message.status === 'queued' || message.status === 'prepared') &&
-              message.direction === 'outbound' ? (
+              {(message.status === 'queued' || message.status === 'prepared') && message.direction === 'outbound' ? (
                 <form action={sendEdielMessageAction}>
                   <input type="hidden" name="edielMessageId" value={message.id} />
-                  <button
-                    type="submit"
-                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                  >
+                  <button type="submit" className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white">
                     Skicka nu
                   </button>
                 </form>
@@ -179,16 +126,8 @@ export default async function AdminEdielMessageDetailPage({
               {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
                 <form action={createNegativeUtiltsResponseAction} className="flex flex-col gap-2">
                   <input type="hidden" name="edielMessageId" value={message.id} />
-                  <input
-                    type="text"
-                    name="messageText"
-                    placeholder="Anledning för UTILTS_ERR"
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
-                  >
+                  <input type="text" name="messageText" placeholder="Anledning för UTILTS_ERR" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+                  <button type="submit" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">
                     Skapa UTILTS_ERR
                   </button>
                 </form>
@@ -203,31 +142,24 @@ export default async function AdminEdielMessageDetailPage({
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-2xl border border-slate-200 p-4">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Canonical ack state</div>
-                <div className="mt-2">
-                  <Pill text={ackState?.canonical_ack_state ?? 'okänd'} />
-                </div>
+                <div className="mt-2"><Pill text={String(canonicalAckState)} /></div>
               </div>
-
               <div className="rounded-2xl border border-slate-200 p-4">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Ack deadline</div>
                 <div className="mt-2 text-sm text-slate-700">{formatDate(message.ack_due_at)}</div>
               </div>
-
               <div className="rounded-2xl border border-slate-200 p-4">
                 <div className="text-xs uppercase tracking-wide text-slate-500">CONTRL</div>
                 <div className="mt-2"><Pill text={message.contrl_status ?? '—'} /></div>
               </div>
-
               <div className="rounded-2xl border border-slate-200 p-4">
                 <div className="text-xs uppercase tracking-wide text-slate-500">APERAK</div>
                 <div className="mt-2"><Pill text={message.aperak_status ?? '—'} /></div>
               </div>
-
               <div className="rounded-2xl border border-slate-200 p-4">
                 <div className="text-xs uppercase tracking-wide text-slate-500">UTILTS_ERR</div>
                 <div className="mt-2"><Pill text={message.utilts_err_status ?? '—'} /></div>
               </div>
-
               <div className="rounded-2xl border border-slate-200 p-4">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Checks</div>
                 <div className="mt-2 space-y-1 text-sm text-slate-700">
@@ -243,72 +175,23 @@ export default async function AdminEdielMessageDetailPage({
             <div className="mt-4 space-y-3 text-sm">
               <div>
                 <div className="text-slate-500">Switch</div>
-                {message.switch_request_id ? (
-                  <Link
-                    href={`/admin/operations/switches`}
-                    className="text-indigo-700 underline-offset-2 hover:underline"
-                  >
-                    {message.switch_request_id}
-                  </Link>
-                ) : (
-                  <div className="text-slate-700">—</div>
-                )}
+                {message.switch_request_id ? <Link href={`/admin/operations/switches/${message.switch_request_id}`} className="text-indigo-700 underline-offset-2 hover:underline">{message.switch_request_id}</Link> : <div className="text-slate-700">—</div>}
               </div>
-
               <div>
                 <div className="text-slate-500">Grid owner request</div>
-                {message.grid_owner_data_request_id ? (
-                  <Link
-                    href={`/admin/operations/grid-owner-requests/${message.grid_owner_data_request_id}`}
-                    className="text-indigo-700 underline-offset-2 hover:underline"
-                  >
-                    {message.grid_owner_data_request_id}
-                  </Link>
-                ) : (
-                  <div className="text-slate-700">—</div>
-                )}
+                {message.grid_owner_data_request_id ? <Link href={`/admin/operations/grid-owner-requests/${message.grid_owner_data_request_id}`} className="text-indigo-700 underline-offset-2 hover:underline">{message.grid_owner_data_request_id}</Link> : <div className="text-slate-700">—</div>}
               </div>
-
               <div>
                 <div className="text-slate-500">Outbound</div>
-                {message.outbound_request_id ? (
-                  <Link
-                    href="/admin/outbound"
-                    className="text-indigo-700 underline-offset-2 hover:underline"
-                  >
-                    {message.outbound_request_id}
-                  </Link>
-                ) : (
-                  <div className="text-slate-700">—</div>
-                )}
+                {message.outbound_request_id ? <Link href="/admin/outbound" className="text-indigo-700 underline-offset-2 hover:underline">{message.outbound_request_id}</Link> : <div className="text-slate-700">—</div>}
               </div>
-
               <div>
                 <div className="text-slate-500">Kund</div>
-                {message.customer_id ? (
-                  <Link
-                    href={`/admin/customers/${message.customer_id}`}
-                    className="text-indigo-700 underline-offset-2 hover:underline"
-                  >
-                    {message.customer_id}
-                  </Link>
-                ) : (
-                  <div className="text-slate-700">—</div>
-                )}
+                {message.customer_id ? <Link href={`/admin/customers/${message.customer_id}`} className="text-indigo-700 underline-offset-2 hover:underline">{message.customer_id}</Link> : <div className="text-slate-700">—</div>}
               </div>
-
               <div>
                 <div className="text-slate-500">Relaterat meddelande</div>
-                {linkedMessage ? (
-                  <Link
-                    href={`/admin/ediel/messages/${linkedMessage.id}`}
-                    className="text-indigo-700 underline-offset-2 hover:underline"
-                  >
-                    {linkedMessage.message_family} {linkedMessage.message_code}
-                  </Link>
-                ) : (
-                  <div className="text-slate-700">—</div>
-                )}
+                {linkedMessage ? <Link href={`/admin/ediel/messages/${linkedMessage.id}`} className="text-indigo-700 underline-offset-2 hover:underline">{linkedMessage.message_family} {linkedMessage.message_code}</Link> : <div className="text-slate-700">—</div>}
               </div>
             </div>
           </article>
@@ -316,14 +199,20 @@ export default async function AdminEdielMessageDetailPage({
 
         {relatedAckMessages.length > 0 ? (
           <section className="rounded-3xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Skapade ack-meddelanden</h2>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Skapade ack-meddelanden</h2>
+                <p className="mt-1 text-sm text-slate-500">Kernelns lookup för relaterade ack-spår på source message.</p>
+              </div>
+              {relatedAckMessages.length > 1 ? <Pill text="multiple_ack_candidates" /> : null}
+            </div>
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="text-left text-slate-500">
                   <tr className="border-b border-slate-200">
                     <th className="px-3 py-3">Tid</th>
                     <th className="px-3 py-3">Meddelande</th>
-                    <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3">Ack state</th>
                     <th className="px-3 py-3">Öppna</th>
                   </tr>
                 </thead>
@@ -331,20 +220,9 @@ export default async function AdminEdielMessageDetailPage({
                   {relatedAckMessages.map((row) => (
                     <tr key={row.id} className="border-b border-slate-100">
                       <td className="px-3 py-3 text-slate-600">{formatDate(row.created_at)}</td>
-                      <td className="px-3 py-3 text-slate-900">
-                        {row.message_family} {row.message_code}
-                      </td>
-                      <td className="px-3 py-3">
-                        <Pill text={row.status} />
-                      </td>
-                      <td className="px-3 py-3">
-                        <Link
-                          href={`/admin/ediel/messages/${row.id}`}
-                          className="text-indigo-700 underline-offset-2 hover:underline"
-                        >
-                          Öppna
-                        </Link>
-                      </td>
+                      <td className="px-3 py-3 text-slate-900">{row.message_family} {row.message_code}</td>
+                      <td className="px-3 py-3"><Pill text={String(getCanonicalAckState(row))} /></td>
+                      <td className="px-3 py-3"><Link href={`/admin/ediel/messages/${row.id}`} className="text-indigo-700 underline-offset-2 hover:underline">Öppna</Link></td>
                     </tr>
                   ))}
                 </tbody>
@@ -356,29 +234,19 @@ export default async function AdminEdielMessageDetailPage({
         <section className="grid gap-6 xl:grid-cols-2">
           <article className="rounded-3xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">Råpayload</h2>
-            <div className="mt-4">
-              <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
-                {message.raw_payload ?? '—'}
-              </pre>
-            </div>
+            <div className="mt-4"><pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{message.raw_payload ?? '—'}</pre></div>
           </article>
-
           <article className="rounded-3xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">Parsed payload</h2>
-            <div className="mt-4">
-              <JsonBlock value={message.parsed_payload ?? {}} />
-            </div>
+            <div className="mt-4"><JsonBlock value={message.parsed_payload ?? {}} /></div>
           </article>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
           <article className="rounded-3xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">Validation report</h2>
-            <div className="mt-4">
-              <JsonBlock value={message.validation_report ?? {}} />
-            </div>
+            <div className="mt-4"><JsonBlock value={message.validation_report ?? {}} /></div>
           </article>
-
           <article className="rounded-3xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">Metadata</h2>
             <div className="mt-4 space-y-2 text-sm text-slate-700">
@@ -412,11 +280,7 @@ export default async function AdminEdielMessageDetailPage({
               </thead>
               <tbody>
                 {events.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-6 text-slate-500">
-                      Inga events ännu.
-                    </td>
-                  </tr>
+                  <tr><td colSpan={4} className="px-3 py-6 text-slate-500">Inga events ännu.</td></tr>
                 ) : (
                   events.map((event) => (
                     <tr key={event.id} className="border-b border-slate-100 align-top">
@@ -425,11 +289,7 @@ export default async function AdminEdielMessageDetailPage({
                       <td className="px-3 py-3"><Pill text={event.event_status} /></td>
                       <td className="px-3 py-3 text-slate-700">
                         <div>{event.message ?? '—'}</div>
-                        {event.payload && Object.keys(event.payload).length > 0 ? (
-                          <div className="mt-2">
-                            <JsonBlock value={event.payload} />
-                          </div>
-                        ) : null}
+                        {event.payload && Object.keys(event.payload).length > 0 ? <div className="mt-2"><JsonBlock value={event.payload} /></div> : null}
                       </td>
                     </tr>
                   ))

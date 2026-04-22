@@ -72,6 +72,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
+    communicationRouteId: routeContext.route.id,
     dataRequest,
     payload: {
       edielCode: 'E73',
@@ -198,6 +199,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
+    communicationRouteId: routeContext.route.id,
     dataRequest,
     payload: {
       edielCode: 'E66',

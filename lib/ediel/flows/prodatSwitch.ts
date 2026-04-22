@@ -52,6 +52,7 @@ export async function prepareAndQueueEdielZ03(params: {
     siteId: switchRequest.site_id,
     meteringPointId: switchRequest.metering_point_id,
     gridOwnerId: switchRequest.grid_owner_id,
+    communicationRouteId: routeContext.route.id,
     externalReference: switchRequest.external_reference ?? `SWITCH-${switchRequest.id}`,
     payload: {
       edielCode: 'Z03',
@@ -277,6 +278,7 @@ export async function prepareAndQueueEdielZ09(params: {
     siteId: switchRequest.site_id,
     meteringPointId: switchRequest.metering_point_id,
     gridOwnerId: switchRequest.grid_owner_id,
+    communicationRouteId: routeContext.route.id,
     externalReference: switchRequest.external_reference ?? `MASTERDATA-${switchRequest.id}`,
     payload: {
       edielCode: 'Z09',

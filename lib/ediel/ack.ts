@@ -22,6 +22,18 @@ import {
 export type AckOutcome = 'positive' | 'negative'
 export type AckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
 
+export type EdielCanonicalAckState =
+  | 'awaiting_contrl'
+  | 'contrl_received'
+  | 'contrl_failed'
+  | 'awaiting_aperak'
+  | 'aperak_received_positive'
+  | 'aperak_received_negative'
+  | 'utilts_err_received'
+  | 'ack_overdue'
+  | 'no_ack_required'
+  | 'in_progress'
+
 export type AckPolicy = {
   shouldSendContrl: boolean
   shouldSendPositiveAperak: boolean
@@ -494,6 +506,39 @@ export function buildUtiltsErrDraft(params: {
   })
 }
 
+
+export function buildAckDraftForSource(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
+  ackFamily: AckFamily
+  outcome?: AckOutcome
+  messageText?: string | null
+}): CreateEdielMessageInput {
+  if (params.ackFamily === 'CONTRL') {
+    return buildContrlDraft({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      outcome: params.outcome,
+      messageText: params.messageText,
+    })
+  }
+
+  if (params.ackFamily === 'APERAK') {
+    return buildAperakDraft({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      outcome: params.outcome,
+      messageText: params.messageText,
+    })
+  }
+
+  return buildUtiltsErrDraft({
+    actorUserId: params.actorUserId,
+    sourceMessage: params.sourceMessage,
+    messageText: params.messageText,
+  })
+}
+
 export async function findExistingAckForSource(params: {
   sourceMessageId: string
   ackFamily: AckFamily
@@ -511,4 +556,25 @@ export async function findExistingAckForSource(params: {
       return payload.ackOutcome === params.outcome
     }) ?? null
   )
+}
+
+export function getCanonicalAckState(sourceMessage: Pick<EdielMessageRow, 'requires_contrl' | 'requires_aperak' | 'contrl_status' | 'aperak_status' | 'utilts_err_status' | 'ack_due_at'>): EdielCanonicalAckState {
+  const contrlStatus = sourceMessage.contrl_status ?? null
+  const aperakStatus = sourceMessage.aperak_status ?? null
+  const utiltsErrStatus = sourceMessage.utilts_err_status ?? null
+  const now = Date.now()
+  const dueAt = sourceMessage.ack_due_at ? new Date(sourceMessage.ack_due_at).getTime() : Number.NaN
+  const overdue = Number.isFinite(dueAt) && dueAt < now
+
+  if (contrlStatus === 'failed') return 'contrl_failed'
+  if (aperakStatus === 'failed') return 'aperak_received_negative'
+  if (utiltsErrStatus === 'acknowledged' || utiltsErrStatus === 'sent') return 'utilts_err_received'
+  if (contrlStatus === 'acknowledged' || contrlStatus === 'sent') return 'contrl_received'
+  if (aperakStatus === 'acknowledged' || aperakStatus === 'sent') return 'aperak_received_positive'
+  if (overdue && (contrlStatus === 'pending' || aperakStatus === 'pending' || utiltsErrStatus === 'pending')) return 'ack_overdue'
+  if (contrlStatus === 'pending') return 'awaiting_contrl'
+  if (aperakStatus === 'pending') return 'awaiting_aperak'
+  if (utiltsErrStatus === 'pending') return 'in_progress'
+  if (sourceMessage.requires_contrl === false && sourceMessage.requires_aperak === false && !utiltsErrStatus) return 'no_ack_required'
+  return 'in_progress'
 }

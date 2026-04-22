@@ -6,6 +6,7 @@ import type {
   CreateEdielMessageEventInput,
   CreateEdielMessageInput,
   CreateEdielTestRunInput,
+  EdielMessageAckStateRow,
   EdielMessageEventRow,
   EdielMessageEventType,
   EdielMessageRow,
@@ -15,27 +16,6 @@ import type {
   LinkEdielMessageInput,
   UpdateEdielMessageStatusInput,
 } from '@/lib/ediel/types'
-
-type EdielMessageAckStateRow = {
-  id: string
-  direction: EdielMessageRow['direction']
-  message_family: EdielMessageRow['message_family']
-  message_code: string
-  message_version: string | null
-  status: EdielMessageRow['status']
-  environment: EdielMessageRow['environment']
-  requires_contrl: boolean
-  requires_aperak: boolean
-  contrl_status: EdielMessageRow['contrl_status']
-  aperak_status: EdielMessageRow['aperak_status']
-  utilts_err_status: EdielMessageRow['utilts_err_status']
-  ack_due_at: string | null
-  message_sent_at: string | null
-  message_received_at: string | null
-  acknowledged_at: string | null
-  failed_at: string | null
-  canonical_ack_state: string
-}
 
 type DuplicateAckCandidateRow = {
   related_message_id: string
@@ -292,28 +272,17 @@ export async function listEdielMessages(params?: {
 
 export async function listOverdueAckMessages(params?: {
   limit?: number
-}): Promise<EdielMessageRow[]> {
+}): Promise<EdielMessageAckStateRow[]> {
   const limit = params?.limit ?? 100
 
   const { data, error } = await supabaseService
     .from('ediel_overdue_message_acks_v')
-    .select('id')
+    .select('*')
     .order('ack_due_at', { ascending: true })
     .limit(limit)
 
   if (error) throw error
-
-  const ids = (data ?? []).map((row: { id: string }) => row.id)
-  if (ids.length === 0) return []
-
-  const { data: messages, error: messagesError } = await supabaseService
-    .from('ediel_messages')
-    .select('*')
-    .in('id', ids)
-    .order('ack_due_at', { ascending: true })
-
-  if (messagesError) throw messagesError
-  return (messages ?? []) as EdielMessageRow[]
+  return (data ?? []) as EdielMessageAckStateRow[]
 }
 
 export async function listDuplicateAckCandidates(): Promise<DuplicateAckCandidateRow[]> {
