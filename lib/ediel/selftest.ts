@@ -3,7 +3,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   attachEdielMessageToTestRun,
-  createEdielMessage,
   createEdielMessageEvent,
   createEdielTestRun,
   linkEdielMessage,
@@ -14,6 +13,10 @@ import {
   buildContrlDraft,
   buildUtiltsErrDraft,
 } from '@/lib/ediel/ack'
+import {
+  createCanonicalAckMessage,
+  registerInboundCanonicalMessage,
+} from '@/lib/ediel/core/kernel'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
 import {
@@ -209,23 +212,31 @@ async function createPositiveAcks(params: {
 }): Promise<string[]> {
   const sourceMessage = await loadSourceMessage(params.sourceMessageId)
 
-  const contrl = await createEdielMessage(
-    buildContrlDraft({
+  const contrl = await createCanonicalAckMessage({
+    actorUserId: params.actorUserId,
+    sourceMessage,
+    ackFamily: 'CONTRL',
+    outcome: 'positive',
+    draft: buildContrlDraft({
       actorUserId: params.actorUserId,
       sourceMessage,
       outcome: 'positive',
       messageText: 'Self-test CONTRL OK',
-    })
-  )
+    }),
+  })
 
-  const aperak = await createEdielMessage(
-    buildAperakDraft({
+  const aperak = await createCanonicalAckMessage({
+    actorUserId: params.actorUserId,
+    sourceMessage,
+    ackFamily: 'APERAK',
+    outcome: 'positive',
+    draft: buildAperakDraft({
       actorUserId: params.actorUserId,
       sourceMessage,
       outcome: 'positive',
       messageText: 'Self-test APERAK OK',
-    })
-  )
+    }),
+  })
 
   return [contrl.id, aperak.id]
 }
@@ -237,13 +248,16 @@ async function createNegativeUtiltsErr(params: {
 }): Promise<string> {
   const sourceMessage = await loadSourceMessage(params.sourceMessageId)
 
-  const utiltsErr = await createEdielMessage(
-    buildUtiltsErrDraft({
+  const utiltsErr = await createCanonicalAckMessage({
+    actorUserId: params.actorUserId,
+    sourceMessage,
+    ackFamily: 'UTILTS_ERR',
+    draft: buildUtiltsErrDraft({
       actorUserId: params.actorUserId,
       sourceMessage,
       messageText: params.messageText,
-    })
-  )
+    }),
+  })
 
   return utiltsErr.id
 }
@@ -319,37 +333,40 @@ async function runProdatInboundScenario(
   const notes: string[] = []
 
   try {
-  const inboundMessage = await createEdielMessage({
-    actorUserId: input.actorUserId,
-    direction: 'inbound',
-    messageStandard: 'edifact',
-    messageFamily: parsed.messageFamily,
-    messageCode: parsed.messageCode ?? code,
-    messageVersion: parsed.messageVersion ?? 'D:03A:UN:1.0',
-    processType: 'selftest',
-    environment: 'test',
-    testFlag: 1,
-    status: 'received',
-    transportType: 'manual_upload',
-    mailbox: input.mailbox ?? null,
-    senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? null,
-    receiverEdielId: input.receiverEdielId ?? null,
-    senderEmail: input.senderEmail ?? null,
-    receiverEmail: input.receiverEmail ?? null,
-    externalReference,
-    transactionReference,
-    rawPayload,
-    parsedPayload: parsed.parsedPayload,
-    validationReport: {},
-    requiresContrl: true,
-    requiresAperak: true,
-    contrlStatus: 'pending',
-    aperakStatus: 'pending',
-    utiltsErrStatus: 'not_required',
-    syntaxCheckStatus: 'pending',
-    functionalCheckStatus: 'pending',
-    messageReceivedAt: new Date().toISOString(),
-  })
+    const inboundMessage = await registerInboundCanonicalMessage({
+      actorUserId: input.actorUserId,
+      input: {
+        actorUserId: input.actorUserId,
+        direction: 'inbound',
+        messageStandard: 'edifact',
+        messageFamily: parsed.messageFamily,
+        messageCode: parsed.messageCode ?? code,
+        messageVersion: parsed.messageVersion ?? 'D:03A:UN:1.0',
+        processType: 'selftest',
+        environment: 'test',
+        testFlag: 1,
+        status: 'received',
+        transportType: 'manual_upload',
+        mailbox: input.mailbox ?? null,
+        senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? null,
+        receiverEdielId: input.receiverEdielId ?? null,
+        senderEmail: input.senderEmail ?? null,
+        receiverEmail: input.receiverEmail ?? null,
+        externalReference,
+        transactionReference,
+        rawPayload,
+        parsedPayload: parsed.parsedPayload,
+        validationReport: {},
+        requiresContrl: true,
+        requiresAperak: true,
+        contrlStatus: 'pending',
+        aperakStatus: 'pending',
+        utiltsErrStatus: 'not_required',
+        syntaxCheckStatus: 'pending',
+        functionalCheckStatus: 'pending',
+        messageReceivedAt: new Date().toISOString(),
+      },
+    })
 
     createdMessageIds.push(inboundMessage.id)
 
@@ -563,7 +580,7 @@ async function runUtiltsInboundScenario(
   const notes: string[] = []
 
   try {
-  const inboundInput = buildInboundUtiltsMessageInput({
+    const inboundInput = buildInboundUtiltsMessageInput({
     actorUserId: input.actorUserId,
     code,
     communicationRouteId: null,
@@ -585,16 +602,19 @@ async function runUtiltsInboundScenario(
     periodEnd: toIsoDate(request.requested_period_end),
     registrationTime: new Date().toISOString(),
     unit: 'KWH',
-  })
-    const inboundMessage = await createEdielMessage({
-      ...inboundInput,
-      rawPayload,
-      processType: 'selftest',
-      testFlag: 1,
-      transportType: 'manual_upload',
-      status: 'received',
-      syntaxCheckStatus: 'pending',
-      functionalCheckStatus: 'pending',
+    })
+    const inboundMessage = await registerInboundCanonicalMessage({
+      actorUserId: input.actorUserId,
+      input: {
+        ...inboundInput,
+        rawPayload,
+        processType: 'selftest',
+        testFlag: 1,
+        transportType: 'manual_upload',
+        status: 'received',
+        syntaxCheckStatus: 'pending',
+        functionalCheckStatus: 'pending',
+      },
     })
 
     if (!isActiveEdielMessageFamily(inboundMessage.message_family)) {

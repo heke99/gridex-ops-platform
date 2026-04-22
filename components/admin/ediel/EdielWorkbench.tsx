@@ -93,20 +93,12 @@ export default function EdielWorkbench({
   }, [preferredRouteId, selectedRouteId])
 
   const selectedRoute = useMemo(
-    () =>
-      getSelectedRoute({
-        routes,
-        selectedRouteId,
-      }),
+    () => getSelectedRoute(routes, selectedRouteId),
     [routes, selectedRouteId]
   )
 
   const selectedPollRoute = useMemo(
-    () =>
-      getSelectedRoute({
-        routes,
-        selectedRouteId: pollRouteId,
-      }),
+    () => getSelectedRoute(routes, pollRouteId),
     [routes, pollRouteId]
   )
 
@@ -156,11 +148,10 @@ export default function EdielWorkbench({
     () =>
       getRecommendedSendableMessages({
         messages: scopedMessages,
-        outboundRequests,
         selectedSwitchId,
         selectedRouteId,
       }),
-    [scopedMessages, outboundRequests, selectedSwitchId, selectedRouteId]
+    [scopedMessages, selectedSwitchId, selectedRouteId]
   )
 
   const inboundUtiltsMessagesToShow = useMemo(

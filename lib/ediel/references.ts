@@ -4,6 +4,10 @@ type BuildReferenceInput = {
   family: string
   code: string
   relatedMessageId?: string | null
+  switchRequestId?: string | null
+  gridOwnerDataRequestId?: string | null
+  outboundRequestId?: string | null
+  partnerExportId?: string | null
 }
 
 function trimOrNull(value?: string | null): string | null {
@@ -29,12 +33,25 @@ function randomToken(length = 8): string {
   return result
 }
 
-function shortRelatedId(value?: string | null): string | null {
-  const clean = trimOrNull(value)
-  if (!clean) return null
+function shortContextId(input: BuildReferenceInput): string | null {
+  const candidates = [
+    input.relatedMessageId,
+    input.switchRequestId,
+    input.gridOwnerDataRequestId,
+    input.outboundRequestId,
+    input.partnerExportId,
+  ]
 
-  const normalized = clean.replace(/-/g, '').toUpperCase()
-  return normalized.slice(0, 10) || null
+  for (const value of candidates) {
+    const clean = trimOrNull(value)
+    if (!clean) continue
+
+    const normalized = clean.replace(/-/g, '').toUpperCase()
+    const shortened = normalized.slice(0, 10)
+    if (shortened) return shortened
+  }
+
+  return null
 }
 
 function utcTimestampToken(date = new Date()): string {
@@ -59,12 +76,12 @@ export function normalizeInterchangeReference(value?: string | null): string | n
 export function buildEdielExternalReference(input: BuildReferenceInput): string {
   const family = compactToken(input.family)
   const code = compactToken(input.code)
-  const related = shortRelatedId(input.relatedMessageId)
+  const contextId = shortContextId(input)
   const timestamp = utcTimestampToken().slice(2)
   const suffix = randomToken(4)
 
-  if (related) {
-    return `${family}-${code}-${related}-${timestamp}-${suffix}`.slice(0, 70)
+  if (contextId) {
+    return `${family}-${code}-${contextId}-${timestamp}-${suffix}`.slice(0, 70)
   }
 
   return `${family}-${code}-${timestamp}-${suffix}`.slice(0, 70)
@@ -73,8 +90,14 @@ export function buildEdielExternalReference(input: BuildReferenceInput): string 
 export function buildEdielTransactionReference(input: BuildReferenceInput): string {
   const family = compactToken(input.family)
   const code = compactToken(input.code)
+  const contextId = shortContextId(input)
   const timestamp = utcTimestampToken()
   const suffix = randomToken(6)
+
+  if (contextId) {
+    return `${family}${code}${contextId}${timestamp}${suffix}`.slice(0, 35)
+  }
+
   return `${family}${code}${timestamp}${suffix}`.slice(0, 35)
 }
 

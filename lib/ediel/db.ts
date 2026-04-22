@@ -200,6 +200,36 @@ export async function getEdielMessageById(
   return (data as EdielMessageRow | null) ?? null
 }
 
+
+export async function listAckMessagesForSource(params: {
+  sourceMessageId: string
+  ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative'
+}): Promise<EdielMessageRow[]> {
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('related_message_id', params.sourceMessageId)
+    .in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR'])
+
+  if (params.ackFamily) {
+    query = query.eq('message_family', params.ackFamily)
+  }
+
+  if (params.outcome === 'positive') {
+    query = query.eq('functional_check_status', 'accepted')
+  }
+
+  if (params.outcome === 'negative') {
+    query = query.in('functional_check_status', ['rejected', 'failed'])
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as EdielMessageRow[]
+}
+
 export async function getEdielMessageAckStateById(
   id: string
 ): Promise<EdielMessageAckStateRow | null> {
@@ -273,7 +303,7 @@ export async function listOverdueAckMessages(params?: {
 
   if (error) throw error
 
-  const ids = (data ?? []).map((row) => row.id as string)
+  const ids = (data ?? []).map((row: { id: string }) => row.id)
   if (ids.length === 0) return []
 
   const { data: messages, error: messagesError } = await supabaseService

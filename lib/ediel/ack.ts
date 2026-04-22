@@ -505,7 +505,7 @@ export async function findExistingAckForSource(params: {
   })
 
   return (
-    rows.find((row) => {
+    rows.find((row: EdielMessageRow) => {
       if (params.outcome === undefined) return true
       const payload = row.parsed_payload ?? {}
       return payload.ackOutcome === params.outcome

@@ -141,7 +141,7 @@ export async function ensureAndPrepareUtiltsFromDataRequest(
   await ensureOutboundForGridOwnerDataRequest({
     actorUserId: input.actorUserId,
     dataRequestId: row.id,
-    requestType: 'meter_values',
+    requestType: input.utiltsCode === 'E73' ? 'meter_values' : 'billing_underlay',
     communicationRouteId: input.communicationRouteId ?? null,
   })
 
@@ -282,7 +282,7 @@ export async function buildDataRequestAutomationSnapshot(dataRequestId: string) 
     requestedPeriodEnd: row.requested_period_end,
     siteName: site?.site_name ?? null,
     meterPointId:
-      meteringPoint?.meter_point_id ?? meteringPoint?.metering_point_id ?? null,
+      meteringPoint?.meter_point_id ?? null,
     gridOwnerName: gridOwner?.name ?? null,
     outboundMeterValuesId: outboundMeterValues?.id ?? null,
     outboundBillingUnderlayId: outboundBillingUnderlay?.id ?? null,

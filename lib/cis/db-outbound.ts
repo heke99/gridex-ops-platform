@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type {
+  CommunicationRouteRow,
   OutboundDispatchEventRow,
   OutboundRequestRow,
   OutboundRequestStatus,
@@ -22,6 +23,21 @@ import {
   mergeJsonObjects,
   normalizeQuery,
 } from './db-shared'
+
+
+async function getCommunicationRouteById(
+  communicationRouteId: string
+): Promise<CommunicationRouteRow | null> {
+  const { data, error } = await supabaseService
+    .from('communication_routes')
+    .select('*')
+    .eq('id', communicationRouteId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as CommunicationRouteRow | null) ?? null
+}
+
 
 export async function createOutboundDispatchEvent(input: {
   actorUserId: string | null
@@ -54,6 +70,7 @@ export async function createOutboundRequest(input: {
   siteId?: string | null
   meteringPointId?: string | null
   gridOwnerId?: string | null
+  communicationRouteId?: string | null
   requestType: OutboundRequestType
   sourceType?:
     | 'supplier_switch_request'
@@ -70,10 +87,12 @@ export async function createOutboundRequest(input: {
   automationOrigin?: string | null
   automationKey?: string | null
 }): Promise<OutboundRequestRow> {
-  const route = await findBestCommunicationRoute({
-    requestType: input.requestType,
-    gridOwnerId: input.gridOwnerId ?? null,
-  })
+  const route = input.communicationRouteId
+    ? await getCommunicationRouteById(input.communicationRouteId)
+    : await findBestCommunicationRoute({
+        requestType: input.requestType,
+        gridOwnerId: input.gridOwnerId ?? null,
+      })
 
   const context = await getCustomerExportContext({
     customerId: input.customerId,
@@ -102,7 +121,7 @@ export async function createOutboundRequest(input: {
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
     grid_owner_id: input.gridOwnerId ?? null,
-    communication_route_id: route?.id ?? null,
+    communication_route_id: route?.id ?? input.communicationRouteId ?? null,
     request_type: input.requestType,
     source_type: input.sourceType ?? 'manual',
     source_id: input.sourceId ?? null,
@@ -142,10 +161,11 @@ export async function createOutboundRequest(input: {
     eventType: 'queued',
     eventStatus: row.status,
     message: route
-      ? 'Outbound request köad med hittad route.'
+      ? 'Outbound request köad med vald route.'
       : 'Outbound request köad utan route. Kräver manuell hantering.',
     payload: {
-      routeId: route?.id ?? null,
+      routeId: route?.id ?? input.communicationRouteId ?? null,
+      routeSelectedExplicitly: Boolean(input.communicationRouteId),
       channelType,
       targetSystem: route?.target_system ?? null,
       targetEmail: route?.target_email ?? null,
@@ -329,7 +349,7 @@ export async function refreshOutboundRequestRouteResolution(input: {
   const { data, error } = await supabaseService
     .from('outbound_requests')
     .update({
-      communication_route_id: route?.id ?? null,
+      communication_route_id: route?.id ?? input.communicationRouteId ?? null,
       channel_type: nextChannelType,
       payload: mergeJsonObjects(current.payload, buildRoutePayload(route)),
       updated_by: input.actorUserId,

@@ -206,12 +206,15 @@ function buildRouteIssues(route: EdielRecommendationRouteRow | null): EdielRoute
   return issues
 }
 
-function filterMessagesForSwitch(
-  messages: EdielRecommendationMessageRow[],
-  selectedSwitchId: string,
+function filterMessages(params: {
+  messages: EdielRecommendationMessageRow[]
+  selectedSwitchId?: string | null
   selectedRouteId?: string | null
-) {
-  return messages.filter((message) => {
+}) {
+  const selectedSwitchId = params.selectedSwitchId ?? ''
+  const selectedRouteId = params.selectedRouteId ?? null
+
+  return params.messages.filter((message) => {
     if (selectedSwitchId && message.switch_request_id !== selectedSwitchId) return false
     if (selectedRouteId && message.communication_route_id !== selectedRouteId) return false
     return true
@@ -259,9 +262,7 @@ export function getRecommendedRoutes(params: {
     return { route, score }
   })
 
-  return scored
-    .sort((a, b) => b.score - a.score)
-    .map((row) => row.route)
+  return scored.sort((a, b) => b.score - a.score).map((row) => row.route)
 }
 
 export function getPreferredRouteId(params: {
@@ -285,41 +286,46 @@ export function getRecommendedSendableMessages(params: {
   selectedSwitchId?: string | null
   selectedRouteId?: string | null
 }): EdielRecommendationMessageRow[] {
-  const rows = filterMessagesForSwitch(
-    params.messages.filter(
-      (message) =>
-        message.direction === 'outbound' &&
-        (message.status === 'draft' ||
-          message.status === 'prepared' ||
-          message.status === 'queued')
-    ),
-    params.selectedSwitchId ?? '',
-    params.selectedRouteId
+  return byNewest(
+    filterMessages({
+      messages: params.messages.filter(
+        (message) =>
+          message.direction === 'outbound' &&
+          (message.status === 'draft' ||
+            message.status === 'prepared' ||
+            message.status === 'queued')
+      ),
+      selectedSwitchId: params.selectedSwitchId,
+      selectedRouteId: params.selectedRouteId,
+    })
   )
-
-  return byNewest(rows)
 }
 
 export function getRecommendedInboundUtiltsMessages(params: {
   messages: EdielRecommendationMessageRow[]
+  selectedSwitchId?: string | null
   selectedRoute?: EdielRecommendationRouteRow | null
   selectedRouteId?: string | null
 }): EdielRecommendationMessageRow[] {
-  return byNewest(
-    params.messages.filter((message) => {
+  const rows = filterMessages({
+    messages: params.messages.filter((message) => {
       if (message.direction !== 'inbound') return false
       if (message.message_family !== 'UTILTS') return false
-      if (params.selectedRouteId && message.communication_route_id !== params.selectedRouteId) {
-        return false
-      }
-
-      if (params.selectedRoute?.grid_owner_id && !message.grid_owner_data_request_id) {
-        return true
-      }
-
       return true
-    })
-  )
+    }),
+    selectedSwitchId: params.selectedSwitchId,
+    selectedRouteId: params.selectedRouteId,
+  })
+
+  const routeFiltered = rows.filter((message) => {
+    if (params.selectedRoute?.grid_owner_id && !message.grid_owner_data_request_id) {
+      return true
+    }
+
+    return true
+  })
+
+  return byNewest(routeFiltered)
 }
 
 export function getRecommendedAckableMessages(params: {
@@ -330,8 +336,8 @@ export function getRecommendedAckableMessages(params: {
 }): EdielRecommendationMessageRow[] {
   const preferredFamily = params.preferredFamily ?? 'PRODAT'
 
-  const filtered = filterMessagesForSwitch(
-    params.messages.filter((message) => {
+  const filtered = filterMessages({
+    messages: params.messages.filter((message) => {
       if (message.direction !== 'inbound') return false
       if (message.message_family === 'CONTRL') return false
       if (message.message_family === 'APERAK') return false
@@ -340,9 +346,9 @@ export function getRecommendedAckableMessages(params: {
       if (preferredFamily === 'UTILTS' && message.message_family !== 'UTILTS') return false
       return true
     }),
-    params.selectedSwitchId ?? '',
-    params.selectedRouteId
-  )
+    selectedSwitchId: params.selectedSwitchId,
+    selectedRouteId: params.selectedRouteId,
+  })
 
   return byNewest(filtered)
 }
@@ -402,6 +408,7 @@ export function getRecommendationSummary(params: {
   const recommendedInboundUtilts =
     getRecommendedInboundUtiltsMessages({
       messages: params.messages,
+      selectedSwitchId,
       selectedRoute: recommendedRoute,
       selectedRouteId: recommendedRoute?.id ?? null,
     })[0] ?? null

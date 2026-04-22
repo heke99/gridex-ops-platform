@@ -6,18 +6,17 @@ import type {
 } from '@/lib/ediel/types'
 import {
   buildDefaultApplicationReference,
-  resolveMessageVersion,
 } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
-import {
-  buildEdielExternalReference,
-  buildEdielTransactionReference,
-  deriveEdielAckDefaults,
-} from '@/lib/ediel/references'
+import { deriveEdielAckDefaults } from '@/lib/ediel/references'
 import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
+import {
+  buildCanonicalReferencesForOutbound,
+  resolveOutboundMessageVersion,
+} from '@/lib/ediel/core/kernel'
 
 export type UtiltsMessageCode =
   | 'S01'
@@ -450,24 +449,20 @@ function renderUtiltsSegments(input: {
 export async function buildUtiltsOutboundDraft(
   input: UtiltsOutboundDraftInput
 ): Promise<CreateEdielMessageInput> {
-  const externalReference =
-    input.externalReference ??
-    buildEdielExternalReference({
-      family: 'UTILTS',
-      code: input.code,
-      gridOwnerDataRequestId: input.gridOwnerDataRequestId,
-      outboundRequestId: input.outboundRequestId,
-    })
+  const refs = buildCanonicalReferencesForOutbound({
+    family: 'UTILTS',
+    code: input.code,
+    relatedMessageId: input.gridOwnerDataRequestId ?? input.outboundRequestId ?? null,
+    preferredExternalReference: input.externalReference ?? null,
+    preferredTransactionReference: input.transactionReference ?? null,
+    correlationReference: input.correlationReference ?? null,
+  })
 
-  const transactionReference =
-    input.transactionReference ??
-    buildEdielTransactionReference({
-      family: 'UTILTS',
-      code: input.code,
-    })
+  const externalReference = refs.externalReference
+  const transactionReference = refs.transactionReference
 
   const messageVersion =
-    (await resolveMessageVersion({
+    (await resolveOutboundMessageVersion({
       family: 'UTILTS',
       code: input.code,
       fallback: 'E5SE5A',

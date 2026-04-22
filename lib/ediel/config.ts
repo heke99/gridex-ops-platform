@@ -59,6 +59,7 @@ export type EdielRouteRuntimeRow = {
   receiver_ediel_id: string | null
   receiver_sub_address: string | null
   receiver_name: string | null
+  mailbox: string | null
   application_reference: string | null
   route_profile_notes: string | null
   is_enabled: boolean

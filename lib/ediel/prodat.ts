@@ -13,18 +13,17 @@ import type {
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import {
   buildDefaultApplicationReference,
-  resolveMessageVersion,
 } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
-import {
-  buildEdielExternalReference,
-  buildEdielTransactionReference,
-  deriveEdielAckDefaults,
-} from '@/lib/ediel/references'
+import { deriveEdielAckDefaults } from '@/lib/ediel/references'
 import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
+import {
+  buildCanonicalReferencesForOutbound,
+  resolveOutboundMessageVersion,
+} from '@/lib/ediel/core/kernel'
 
 export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
 
@@ -265,23 +264,20 @@ function buildProdatSwitchOutboundDraft(
   code: 'Z03' | 'Z05' | 'Z09'
 ): Promise<CreateEdielMessageInput> {
   return (async () => {
-    const externalReference =
-      input.externalReference ??
-      buildEdielExternalReference({
-        family: 'PRODAT',
-        code,
-        switchRequestId: input.switchRequest.id,
-      })
+    const refs = buildCanonicalReferencesForOutbound({
+      family: 'PRODAT',
+      code,
+      relatedMessageId: input.switchRequest.id,
+      preferredExternalReference: input.externalReference ?? null,
+      preferredTransactionReference: input.transactionReference ?? null,
+      correlationReference: input.correlationReference ?? null,
+    })
 
-    const transactionReference =
-      input.transactionReference ??
-      buildEdielTransactionReference({
-        family: 'PRODAT',
-        code,
-      })
+    const externalReference = refs.externalReference
+    const transactionReference = refs.transactionReference
 
     const messageVersion =
-      (await resolveMessageVersion({
+      (await resolveOutboundMessageVersion({
         family: 'PRODAT',
         code,
         fallback: 'E5SE5A',
