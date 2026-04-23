@@ -6,7 +6,11 @@ import type {
   EdielMessageRow,
   EdielMessageStandard,
 } from '@/lib/ediel/types'
-import { createEdielMessage, createEdielMessageEvent } from '@/lib/ediel/db'
+import {
+  createCanonicalAckConflictEvent,
+  createCanonicalDuplicateBlockEvent,
+  createEdielMessage,
+} from '@/lib/ediel/db'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import {
   CanonicalRouteRequestType,
@@ -22,7 +26,10 @@ import {
   findOutboundEdielMessageDuplicate,
   hasCanonicalAckDuplicate,
 } from '@/lib/ediel/core/dedupe'
-import { resolveMessageVersion } from '@/lib/ediel/config'
+import {
+  resolveInboundAcceptedVersionsRuntime,
+  resolveOutboundMessageVersionRuntime,
+} from '@/lib/ediel/config'
 
 function ensureActorUserId(value?: string | null) {
   return value && value.trim() ? value.trim() : 'system'
@@ -62,13 +69,15 @@ export async function resolveOutboundMessageVersion(params: {
     return params.routeDefaultMessageVersion.trim()
   }
 
-  return resolveMessageVersion({
+  const runtime = await resolveOutboundMessageVersionRuntime({
     family: params.family,
     code: params.code,
     standard: params.standard ?? 'edifact',
     fallback: params.fallback ?? null,
     environment: params.environment ?? 'test',
   })
+
+  return runtime.selectedVersion
 }
 
 export async function resolveInboundAcceptedVersions(params: {
@@ -77,13 +86,22 @@ export async function resolveInboundAcceptedVersions(params: {
   standard?: EdielMessageStandard
   date?: string | null
 }) {
-  const { resolveInboundAcceptedMessageRules } = await import('@/lib/ediel/config')
-  return resolveInboundAcceptedMessageRules({
+  const runtime = await resolveInboundAcceptedVersionsRuntime({
     family: params.family,
     code: params.code,
     standard: params.standard ?? 'edifact',
     date: params.date ?? null,
   })
+
+  return runtime.acceptedVersions.map((versionCode, index) => ({
+    id: `accepted-${params.family}-${params.code}-${index}`,
+    version_code: versionCode,
+    valid_from: index === 0 ? params.date ?? null : null,
+    valid_to: null,
+    requires_contrl: false,
+    requires_aperak: false,
+    supports_negative_response: false,
+  }))
 }
 
 export async function registerInboundCanonicalMessage(params: {
@@ -102,11 +120,10 @@ export async function registerInboundCanonicalMessage(params: {
 
   const duplicate = await findInboundDuplicateByCanonicalIdentity(identity)
   if (duplicate) {
-    await createEdielMessageEvent({
+    await createCanonicalDuplicateBlockEvent({
       actorUserId,
       edielMessageId: duplicate.id,
-      eventType: 'manual_note',
-      eventStatus: 'warning',
+      layer: 'canonical_inbound',
       message: 'Inbound dublett blockerad i canonical kernel.',
       payload: {
         mailbox: identity.mailbox,
@@ -132,10 +149,14 @@ export async function createCanonicalOutboundMessage(params: {
   requestType: CanonicalRouteRequestType
   duplicateCheck?: {
     outboundRequestId?: string | null
+    sourceType?: string | null
+    sourceId?: string | null
     receiverEdielId?: string | null
     messageFamily: string
     messageCode: string
     messageVersion?: string | null
+    periodStart?: string | null
+    periodEnd?: string | null
   }
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
@@ -143,6 +164,9 @@ export async function createCanonicalOutboundMessage(params: {
   if (params.duplicateCheck) {
     const duplicate = await findOutboundEdielMessageDuplicate({
       outboundRequestId: params.duplicateCheck.outboundRequestId ?? null,
+      sourceType: params.duplicateCheck.sourceType ?? null,
+      sourceId: params.duplicateCheck.sourceId ?? null,
+      requestType: params.requestType,
       receiverEdielId: params.duplicateCheck.receiverEdielId ?? null,
       messageFamily: params.duplicateCheck.messageFamily,
       messageCode: params.duplicateCheck.messageCode,
@@ -150,13 +174,26 @@ export async function createCanonicalOutboundMessage(params: {
     })
 
     if (duplicate) {
-      await createEdielMessageEvent({
+      await createCanonicalDuplicateBlockEvent({
         actorUserId,
         edielMessageId: duplicate.id,
-        eventType: 'manual_note',
-        eventStatus: 'warning',
+        layer: 'canonical_outbound',
         message: 'Outbound dublett blockerad i canonical kernel.',
-        payload: params.duplicateCheck,
+        payload: {
+          canonicalBusinessKey: [
+            params.duplicateCheck.sourceType ?? 'unknown-source-type',
+            params.duplicateCheck.sourceId ?? 'unknown-source-id',
+            params.requestType,
+            params.duplicateCheck.receiverEdielId ?? 'unknown-receiver',
+            params.duplicateCheck.messageFamily,
+            params.duplicateCheck.messageCode,
+            params.duplicateCheck.messageVersion ?? 'unknown-version',
+            params.duplicateCheck.periodStart ?? 'no-period-start',
+            params.duplicateCheck.periodEnd ?? 'no-period-end',
+          ].join('|'),
+          requestType: params.requestType,
+          ...params.duplicateCheck,
+        },
       })
       return duplicate
     }
@@ -184,18 +221,34 @@ export async function createCanonicalAckMessage(params: {
   })
 
   if (duplicate) {
-    await createEdielMessageEvent({
+    const attemptedOutcome = params.outcome ?? null
+    const parsedPayload = duplicate.parsed_payload ?? {}
+    const existingOutcome =
+      parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
+        ? parsedPayload.ackOutcome
+        : null
+
+    await createCanonicalAckConflictEvent({
       actorUserId,
       edielMessageId: params.sourceMessage.id,
-      eventType: 'manual_note',
-      eventStatus: 'warning',
-      message: `Ack-dublett blockerad i canonical kernel för ${params.ackFamily}.`,
+      ackFamily: params.ackFamily,
+      sourceMessageId: params.sourceMessage.id,
+      attemptedOutcome,
+      existingAckMessageId: duplicate.id,
+      existingOutcome,
+      reason:
+        attemptedOutcome &&
+        existingOutcome &&
+        attemptedOutcome !== existingOutcome
+          ? 'conflicting_outcome'
+          : attemptedOutcome
+            ? 'duplicate_same_outcome'
+            : 'duplicate_same_family',
       payload: {
-        ackFamily: params.ackFamily,
-        outcome: params.outcome ?? null,
-        existingAckMessageId: duplicate.id,
+        duplicateBlockedIn: 'kernel',
       },
     })
+
     return duplicate
   }
 

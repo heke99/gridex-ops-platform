@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import {
+  createAckDraftForMessage,
   createNegativeUtiltsResponse,
   pollAndIngestEdielMailbox,
   prepareAndQueueAiList,
@@ -13,8 +14,8 @@ import {
   prepareAndQueueUtiltsE73,
   sendQueuedEdielMessage,
 } from '@/lib/ediel/orchestrator'
-import { buildAckDraftForSource, type AckFamily, type AckOutcome } from '@/lib/ediel/ack'
-import { createCanonicalAckMessage, registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
+import type { AckFamily, AckOutcome } from '@/lib/ediel/ack'
+import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
 import { createEdielTestRun, getEdielMessageById } from '@/lib/ediel/db'
 import { runEdielSelfTest } from '@/lib/ediel/selftest'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
@@ -38,7 +39,6 @@ function formNumber(value: FormDataEntryValue | null): number | null {
   const parsed = Number(raw.replace(',', '.'))
   return Number.isFinite(parsed) ? parsed : null
 }
-
 
 const EDIEL_TEST_SUITES: readonly EdielTestSuite[] = [
   'PRODAT',
@@ -125,23 +125,12 @@ export async function createAckDraftAction(formData: FormData) {
     throw new Error('Ogiltig ackType')
   }
 
-  const sourceMessage = await getEdielMessageById(sourceMessageId)
-  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
-
-  const draft = buildAckDraftForSource({
+  const ackMessage = await createAckDraftForMessage({
     actorUserId: context.userId,
-    sourceMessage,
-    ackFamily: ackType,
-    outcome,
-    messageText,
-  })
-
-  const ackMessage = await createCanonicalAckMessage({
-    actorUserId: context.userId,
-    sourceMessage,
+    sourceMessageId,
     ackFamily: ackType,
     outcome: ackType === 'UTILTS_ERR' ? undefined : outcome,
-    draft,
+    messageText,
   })
 
   revalidateEdiel(sourceMessageId)
@@ -228,30 +217,13 @@ export async function createProdatDraftAction(formData: FormData) {
     requestType: 'supplier_switch',
     routeContext: {
       ...routeContext,
-      applicationReference:
-        formString(formData.get('applicationReference')) ?? routeContext.applicationReference,
-      senderEdielId: formString(formData.get('senderEdielId')) ?? routeContext.senderEdielId,
-      receiverEdielId: formString(formData.get('receiverEdielId')) ?? routeContext.receiverEdielId,
-      senderSubAddress: formString(formData.get('senderSubAddress')) ?? routeContext.senderSubAddress,
-      receiverSubAddress: formString(formData.get('receiverSubAddress')) ?? routeContext.receiverSubAddress,
-      receiverEmail: formString(formData.get('receiverEmail')) ?? routeContext.receiverEmail,
-      mailbox: formString(formData.get('mailbox')) ?? routeContext.mailbox,
+      receiverEmail:
+        formString(formData.get('receiverEmail')) ?? routeContext.receiverEmail,
     },
-    draft: {
-      ...draft,
-      senderEdielId: formString(formData.get('senderEdielId')) ?? draft.senderEdielId,
-      receiverEdielId: formString(formData.get('receiverEdielId')) ?? draft.receiverEdielId,
-      senderSubAddress: formString(formData.get('senderSubAddress')) ?? draft.senderSubAddress,
-      receiverSubAddress: formString(formData.get('receiverSubAddress')) ?? draft.receiverSubAddress,
-      receiverEmail: formString(formData.get('receiverEmail')) ?? draft.receiverEmail,
-      mailbox: formString(formData.get('mailbox')) ?? draft.mailbox,
-      applicationReference:
-        formString(formData.get('applicationReference')) ?? draft.applicationReference,
-      communicationRouteId: routeContext.route.id,
-    },
+    draft,
+    outboundRequestId: null,
     duplicateCheck: {
-      receiverEdielId:
-        formString(formData.get('receiverEdielId')) ?? routeContext.receiverEdielId,
+      receiverEdielId: routeContext.receiverEdielId,
       messageFamily: draft.messageFamily,
       messageCode: String(draft.messageCode),
       messageVersion: draft.messageVersion ?? null,

@@ -1,6 +1,6 @@
 // lib/ediel/flows/inboundProcessing.ts
 
-import { createEdielMessageEvent, getEdielMessageById } from '@/lib/ediel/db'
+import { createEdielMessageEvent, getEdielMessageById, listAckMessagesForSource } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
   ACTIVE_EDIEL_MESSAGE_FAMILIES,
@@ -41,23 +41,23 @@ async function createAckIfMissing(params: {
   const draft =
     params.ackFamily === 'CONTRL'
       ? buildContrlDraft({
-        actorUserId: params.actorUserId,
-        sourceMessage: params.sourceMessage,
-        outcome: params.outcome ?? 'positive',
-        messageText: params.messageText ?? null,
-      })
-      : params.ackFamily === 'APERAK'
-        ? buildAperakDraft({
           actorUserId: params.actorUserId,
           sourceMessage: params.sourceMessage,
           outcome: params.outcome ?? 'positive',
           messageText: params.messageText ?? null,
         })
+      : params.ackFamily === 'APERAK'
+        ? buildAperakDraft({
+            actorUserId: params.actorUserId,
+            sourceMessage: params.sourceMessage,
+            outcome: params.outcome ?? 'positive',
+            messageText: params.messageText ?? null,
+          })
         : buildUtiltsErrDraft({
-          actorUserId: params.actorUserId,
-          sourceMessage: params.sourceMessage,
-          messageText: params.messageText ?? null,
-        })
+            actorUserId: params.actorUserId,
+            sourceMessage: params.sourceMessage,
+            messageText: params.messageText ?? null,
+          })
 
   return createCanonicalAckMessage({
     actorUserId: params.actorUserId,
@@ -66,6 +66,23 @@ async function createAckIfMissing(params: {
     outcome: params.outcome,
     draft,
   })
+}
+
+async function readCanonicalAckSnapshot(sourceMessageId: string) {
+  const source = await getEdielMessageById(sourceMessageId)
+  const ackMessages = await listAckMessagesForSource({ sourceMessageId })
+
+  return {
+    canonicalAckState: source ? getCanonicalAckState(source) : null,
+    ackMessages: ackMessages.map((row) => ({
+      id: row.id,
+      family: row.message_family,
+      code: row.message_code,
+      status: row.status,
+      functionalCheckStatus: row.functional_check_status,
+      syntaxCheckStatus: row.syntax_check_status,
+    })),
+  }
 }
 
 async function createAutomaticPositiveAcks(params: {
@@ -149,6 +166,7 @@ async function processInboundProdatMessage(params: {
       actorUserId: params.actorUserId,
       sourceMessage: params.message,
     })
+    const ackSnapshot = await readCanonicalAckSnapshot(params.message.id)
 
     await createEdielMessageEvent({
       actorUserId: params.actorUserId,
@@ -159,7 +177,8 @@ async function processInboundProdatMessage(params: {
         'Inbound PRODAT kvitterades automatiskt men saknar ännu stark switch-koppling.',
       payload: {
         createdAckMessageIds: ackIds,
-        canonicalAckState: getCanonicalAckState(params.message),
+        canonicalAckState: ackSnapshot.canonicalAckState,
+        ackMessages: ackSnapshot.ackMessages,
       },
     })
 
@@ -190,6 +209,7 @@ async function processInboundProdatMessage(params: {
     actorUserId: params.actorUserId,
     sourceMessage: params.message,
   })
+  const ackSnapshot = await readCanonicalAckSnapshot(params.message.id)
 
   await createSupplierSwitchEvent(supabase, {
     switchRequestId: canonicalLinks.matchedSwitch.id,
@@ -199,6 +219,8 @@ async function processInboundProdatMessage(params: {
     payload: {
       edielMessageId: params.message.id,
       createdAckMessageIds: ackIds,
+      canonicalAckState: ackSnapshot.canonicalAckState,
+      ackMessages: ackSnapshot.ackMessages,
     },
   })
 
@@ -211,6 +233,8 @@ async function processInboundProdatMessage(params: {
     payload: {
       matchedSwitchRequestId: canonicalLinks.matchedSwitch.id,
       createdAckMessageIds: ackIds,
+      canonicalAckState: ackSnapshot.canonicalAckState,
+      ackMessages: ackSnapshot.ackMessages,
     },
   })
 }
@@ -282,6 +306,7 @@ export async function pollAndIngestEdielMailbox(params: {
       actorUserId,
       sourceMessage: message,
     })
+    const ackSnapshot = await readCanonicalAckSnapshot(message.id)
 
     await createEdielMessageEvent({
       actorUserId,
@@ -292,7 +317,8 @@ export async function pollAndIngestEdielMailbox(params: {
         'Inbound meddelande kvitterades automatiskt men saknar ännu stark processkoppling.',
       payload: {
         createdAckMessageIds: ackIds,
-        canonicalAckState: getCanonicalAckState(params.message),
+        canonicalAckState: ackSnapshot.canonicalAckState,
+        ackMessages: ackSnapshot.ackMessages,
       },
     })
   }
@@ -319,6 +345,8 @@ export async function createNegativeUtiltsResponse(params: {
     messageText: params.messageText,
   })
 
+  const ackSnapshot = await readCanonicalAckSnapshot(source.id)
+
   await createEdielMessageEvent({
     actorUserId,
     edielMessageId: source.id,
@@ -327,6 +355,8 @@ export async function createNegativeUtiltsResponse(params: {
     message: 'UTILTS-ERR-utkast skapat via canonical kernel.',
     payload: {
       utiltsErrMessageId: utiltsErr.id,
+      canonicalAckState: ackSnapshot.canonicalAckState,
+      ackMessages: ackSnapshot.ackMessages,
     },
   })
 

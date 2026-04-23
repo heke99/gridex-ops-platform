@@ -33,6 +33,34 @@ type RuleAmbiguityRow = {
   version_codes: string[]
 }
 
+export type CanonicalDuplicateBlockLayer =
+  | 'canonical_inbound'
+  | 'canonical_outbound'
+  | 'canonical_ack'
+
+export type CanonicalDuplicateBlockInput = {
+  actorUserId?: string | null
+  edielMessageId: string
+  layer: CanonicalDuplicateBlockLayer
+  message: string
+  payload?: Record<string, unknown>
+}
+
+export type CanonicalAckConflictInput = {
+  actorUserId?: string | null
+  edielMessageId: string
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  sourceMessageId: string
+  attemptedOutcome?: 'positive' | 'negative' | null
+  existingAckMessageId?: string | null
+  existingOutcome?: 'positive' | 'negative' | null
+  reason:
+    | 'duplicate_same_outcome'
+    | 'conflicting_outcome'
+    | 'duplicate_same_family'
+  payload?: Record<string, unknown>
+}
+
 function cleanObject<T extends Record<string, unknown>>(value: T): T {
   const entries = Object.entries(value).filter(([, v]) => v !== undefined)
   return Object.fromEntries(entries) as T
@@ -62,6 +90,29 @@ function mapStatusToEventStatus(status: string): 'info' | 'success' | 'warning' 
   if (status === 'failed') return 'error'
   if (status === 'cancelled') return 'warning'
   return 'success'
+}
+
+function inferAckOutcome(row: EdielMessageRow): 'positive' | 'negative' | null {
+  const parsedPayload = row.parsed_payload ?? {}
+  const payloadOutcome =
+    parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
+      ? parsedPayload.ackOutcome
+      : null
+
+  if (payloadOutcome) return payloadOutcome
+
+  if (row.message_family === 'CONTRL') {
+    if (row.syntax_check_status === 'accepted') return 'positive'
+    if (row.syntax_check_status === 'rejected' || row.syntax_check_status === 'failed') return 'negative'
+    return null
+  }
+
+  if (row.message_family === 'APERAK' || row.message_family === 'UTILTS_ERR') {
+    if (row.functional_check_status === 'accepted') return 'positive'
+    if (row.functional_check_status === 'rejected' || row.functional_check_status === 'failed') return 'negative'
+  }
+
+  return null
 }
 
 export async function createEdielMessage(
@@ -180,7 +231,6 @@ export async function getEdielMessageById(
   return (data as EdielMessageRow | null) ?? null
 }
 
-
 export async function listAckMessagesForSource(params: {
   sourceMessageId: string
   ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
@@ -196,18 +246,14 @@ export async function listAckMessagesForSource(params: {
     query = query.eq('message_family', params.ackFamily)
   }
 
-  if (params.outcome === 'positive') {
-    query = query.eq('functional_check_status', 'accepted')
-  }
-
-  if (params.outcome === 'negative') {
-    query = query.in('functional_check_status', ['rejected', 'failed'])
-  }
-
   const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) throw error
-  return (data ?? []) as EdielMessageRow[]
+
+  const rows = (data ?? []) as EdielMessageRow[]
+  if (!params.outcome) return rows
+
+  return rows.filter((row) => inferAckOutcome(row) === params.outcome)
 }
 
 export async function getEdielMessageAckStateById(
@@ -323,6 +369,50 @@ export async function createEdielMessageEvent(
 
   if (error) throw error
   return data as EdielMessageEventRow
+}
+
+export async function createCanonicalDuplicateBlockEvent(
+  input: CanonicalDuplicateBlockInput
+): Promise<EdielMessageEventRow> {
+  return createEdielMessageEvent({
+    actorUserId: input.actorUserId ?? null,
+    edielMessageId: input.edielMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'warning',
+    message: input.message,
+    payload: {
+      dedupeLayer: input.layer,
+      duplicateBlocked: true,
+      ...(input.payload ?? {}),
+    },
+  })
+}
+
+export async function createCanonicalAckConflictEvent(
+  input: CanonicalAckConflictInput
+): Promise<EdielMessageEventRow> {
+  return createEdielMessageEvent({
+    actorUserId: input.actorUserId ?? null,
+    edielMessageId: input.edielMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'warning',
+    message:
+      input.reason === 'conflicting_outcome'
+        ? `Ack-konflikt blockerad för ${input.ackFamily}.`
+        : `Ack-dublett blockerad för ${input.ackFamily}.`,
+    payload: {
+      dedupeLayer: 'canonical_ack',
+      duplicateBlocked: true,
+      ackConflict: true,
+      ackFamily: input.ackFamily,
+      sourceMessageId: input.sourceMessageId,
+      attemptedOutcome: input.attemptedOutcome ?? null,
+      existingAckMessageId: input.existingAckMessageId ?? null,
+      existingOutcome: input.existingOutcome ?? null,
+      reason: input.reason,
+      ...(input.payload ?? {}),
+    },
+  })
 }
 
 export async function listEdielMessageEvents(

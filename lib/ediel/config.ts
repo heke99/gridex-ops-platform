@@ -46,6 +46,16 @@ export type ResolvedInboundEdielMessageRuleRow = Pick<
   | 'supports_negative_response'
 >
 
+export type ResolvedVersionWindow = {
+  selectedVersion: string | null
+  currentVersion: string | null
+  previousVersion: string | null
+  acceptedVersions: string[]
+  selectedRule: ResolvedEdielMessageRuleRow | null
+  currentRule: ResolvedEdielMessageRuleRow | null
+  previousRule: ResolvedInboundEdielMessageRuleRow | null
+}
+
 export type EdielRouteRuntimeRow = {
   route_profile_id: string
   communication_route_id: string
@@ -85,6 +95,10 @@ function sanitize(value?: string | null): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.map((value) => sanitize(value)).filter(Boolean) as string[])]
+}
+
 function isRuleValidForDate(
   rule: Pick<EdielMessageRuleRow, 'valid_from' | 'valid_to'>,
   date: string
@@ -106,6 +120,22 @@ function normalizeResolvedInboundRules(
 ): ResolvedInboundEdielMessageRuleRow[] {
   if (!Array.isArray(value)) return []
   return value.filter(Boolean) as ResolvedInboundEdielMessageRuleRow[]
+}
+
+function sortInboundRulesByPriority(
+  rows: ResolvedInboundEdielMessageRuleRow[]
+): ResolvedInboundEdielMessageRuleRow[] {
+  return [...rows].sort((a, b) => {
+    const aFrom = a.valid_from ?? ''
+    const bFrom = b.valid_from ?? ''
+    if (aFrom !== bFrom) return bFrom.localeCompare(aFrom)
+
+    const aTo = a.valid_to ?? '9999-12-31'
+    const bTo = b.valid_to ?? '9999-12-31'
+    if (aTo !== bTo) return aTo.localeCompare(bTo)
+
+    return String(a.version_code).localeCompare(String(b.version_code))
+  })
 }
 
 export async function getActiveEdielActorSettings(
@@ -206,40 +236,110 @@ export async function resolveInboundAcceptedMessageRules(params: {
   )
 
   if (error) throw error
-  return normalizeResolvedInboundRules(data)
+  return sortInboundRulesByPriority(normalizeResolvedInboundRules(data))
+}
+
+export async function resolveOutboundMessageVersionRuntime(
+  input: ResolveMessageVersionInput
+): Promise<ResolvedVersionWindow> {
+  const standard = input.standard ?? 'edifact'
+  const date = input.date ?? todayIsoDate()
+
+  const currentRule =
+    (await getActiveEdielMessageRule({
+      family: input.family,
+      code: input.code,
+      standard,
+      direction: 'outbound',
+      date,
+    })) ??
+    (await getActiveEdielMessageRule({
+      family: input.family,
+      code: input.code,
+      standard,
+      direction: 'both',
+      date,
+    }))
+
+  const inboundAccepted = await resolveInboundAcceptedMessageRules({
+    family: input.family,
+    code: input.code,
+    standard,
+    date,
+  })
+
+  const previousRule = inboundAccepted[1] ?? null
+  const selectedVersion =
+    sanitize(currentRule?.version_code) ??
+    sanitize(input.fallback) ??
+    sanitize(previousRule?.version_code) ??
+    null
+
+  return {
+    selectedVersion,
+    currentVersion: sanitize(currentRule?.version_code),
+    previousVersion: sanitize(previousRule?.version_code),
+    acceptedVersions: uniqueStrings([
+      currentRule?.version_code,
+      previousRule?.version_code,
+      ...inboundAccepted.map((row) => row.version_code),
+    ]),
+    selectedRule: currentRule,
+    currentRule,
+    previousRule,
+  }
+}
+
+export async function resolveInboundAcceptedVersionsRuntime(params: {
+  family: string
+  code: string
+  standard?: EdielMessageStandard
+  date?: string | null
+}): Promise<ResolvedVersionWindow> {
+  const standard = params.standard ?? 'edifact'
+  const date = params.date ?? todayIsoDate()
+  const inboundAccepted = await resolveInboundAcceptedMessageRules({
+    family: params.family,
+    code: params.code,
+    standard,
+    date,
+  })
+
+  const currentRule =
+    (await getActiveEdielMessageRule({
+      family: params.family,
+      code: params.code,
+      standard,
+      direction: 'inbound',
+      date,
+    })) ??
+    (await getActiveEdielMessageRule({
+      family: params.family,
+      code: params.code,
+      standard,
+      direction: 'both',
+      date,
+    }))
+
+  const selectedRule = currentRule ?? normalizeResolvedRule(inboundAccepted[0] ?? null)
+  const previousRule = inboundAccepted[1] ?? null
+
+  return {
+    selectedVersion: sanitize(selectedRule?.version_code),
+    currentVersion: sanitize(selectedRule?.version_code),
+    previousVersion: sanitize(previousRule?.version_code),
+    acceptedVersions: uniqueStrings(inboundAccepted.map((row) => row.version_code)),
+    selectedRule,
+    currentRule: currentRule ?? selectedRule,
+    previousRule,
+  }
 }
 
 export async function resolveMessageVersion(
   input: ResolveMessageVersionInput
 ): Promise<string | null> {
-  const standard = input.standard ?? 'edifact'
-  const date = input.date ?? todayIsoDate()
-
-  const exact = await getActiveEdielMessageRule({
-    family: input.family,
-    code: input.code,
-    standard,
-    direction: 'outbound',
-    date,
-  })
-
-  if (exact?.version_code) {
-    return exact.version_code
-  }
-
-  const both = await getActiveEdielMessageRule({
-    family: input.family,
-    code: input.code,
-    standard,
-    direction: 'both',
-    date,
-  })
-
-  if (both?.version_code) {
-    return both.version_code
-  }
-
-  return sanitize(input.fallback) ?? null
+  const resolved = await resolveOutboundMessageVersionRuntime(input)
+  return resolved.selectedVersion
 }
 
 export async function getEdielRouteRuntimeByCommunicationRouteId(
