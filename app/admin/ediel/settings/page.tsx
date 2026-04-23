@@ -10,8 +10,19 @@ import type {
   EdielActorSettingsRow,
   EdielMessageRuleRow,
 } from '@/lib/ediel/types'
+import {
+  resolveInboundAcceptedVersionsRuntime,
+  resolveOutboundMessageVersionRuntime,
+} from '@/lib/ediel/config'
 
 export const dynamic = 'force-dynamic'
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('sv-SE')
+}
 
 function Pill({
   text,
@@ -22,16 +33,20 @@ function Pill({
 }) {
   const toneClass =
     tone === 'green'
-      ? 'bg-emerald-100 text-emerald-700'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
       : tone === 'yellow'
-        ? 'bg-amber-100 text-amber-700'
+        ? 'border-amber-200 bg-amber-50 text-amber-700'
         : tone === 'red'
-          ? 'bg-rose-100 text-rose-700'
+          ? 'border-rose-200 bg-rose-50 text-rose-700'
           : tone === 'blue'
-            ? 'bg-blue-100 text-blue-700'
-            : 'bg-slate-100 text-slate-700'
+            ? 'border-blue-200 bg-blue-50 text-blue-700'
+            : 'border-slate-200 bg-slate-50 text-slate-700'
 
-  return <span className={`rounded-full px-2 py-1 text-xs font-medium ${toneClass}`}>{text}</span>
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${toneClass}`}>
+      {text}
+    </span>
+  )
 }
 
 function Input({
@@ -99,11 +114,46 @@ function Checkbox({
   )
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('sv-SE')
+function Field({
+  label,
+  value,
+}: {
+  label: string
+  value: string | number | null | undefined
+}) {
+  const display =
+    value === null || value === undefined || String(value).trim().length === 0
+      ? '—'
+      : String(value)
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 break-all text-sm text-slate-900">{display}</div>
+    </div>
+  )
+}
+
+function groupRules(rows: EdielMessageRuleRow[]) {
+  const map = new Map<string, EdielMessageRuleRow[]>()
+
+  for (const row of rows) {
+    const key = `${row.message_family}__${row.message_code}__${row.message_standard}`
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(row)
+  }
+
+  return [...map.entries()].map(([key, values]) => ({
+    key,
+    rows: values.sort((a, b) => {
+      const aFrom = a.valid_from ?? ''
+      const bFrom = b.valid_from ?? ''
+      if (aFrom !== bFrom) return bFrom.localeCompare(aFrom)
+      return String(b.version_code).localeCompare(String(a.version_code))
+    }),
+  }))
 }
 
 export default async function AdminEdielSettingsPage() {
@@ -111,10 +161,7 @@ export default async function AdminEdielSettingsPage() {
 
   const supabase = await createSupabaseServerClient()
 
-  const [
-    actorSettingsResult,
-    messageRulesResult,
-  ] = await Promise.all([
+  const [actorSettingsResult, messageRulesResult] = await Promise.all([
     supabase
       .from('ediel_actor_settings')
       .select('*')
@@ -142,272 +189,346 @@ export default async function AdminEdielSettingsPage() {
   )
 
   const activeRuleCount = messageRules.filter((row) => row.is_active).length
-  const pendingNegativeSupport = messageRules.filter(
+  const negativeSupportCount = messageRules.filter(
     (row) => row.supports_negative_response
   ).length
 
+  const groupedRules = groupRules(messageRules)
+
+  const runtimeSnapshots = await Promise.all(
+    groupedRules.slice(0, 24).map(async (group) => {
+      const first = group.rows[0]
+      const outbound = await resolveOutboundMessageVersionRuntime({
+        family: first.message_family,
+        code: first.message_code,
+        standard: first.message_standard,
+      })
+      const inbound = await resolveInboundAcceptedVersionsRuntime({
+        family: first.message_family,
+        code: first.message_code,
+        standard: first.message_standard,
+      })
+
+      return {
+        key: group.key,
+        family: first.message_family,
+        code: first.message_code,
+        standard: first.message_standard,
+        outbound,
+        inbound,
+        activeCount: group.rows.filter((row) => row.is_active).length,
+      }
+    })
+  )
+
+  const ambiguousRuntimeCount = runtimeSnapshots.filter((row) => row.activeCount > 1).length
+  const previousValidCount = runtimeSnapshots.filter(
+    (row) => row.inbound.previousVersion
+  ).length
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="space-y-6">
       <AdminHeader
         title="Ediel settings"
-        subtitle="Aktörskort, versionsregler och ack-policy för test och produktion."
+        subtitle="Aktörskort och message rules, nu med faktisk runtime-upplösning för outbound version och inbound accepted versions."
         userEmail={context.email}
       />
 
-      <div className="space-y-8 p-8">
-        <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Aktiv test-aktör</div>
-            <div className="mt-2 text-lg font-semibold text-slate-900">
-              {activeTestActor?.actor_ediel_id ?? 'Saknas'}
-            </div>
+      <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Aktiv test-aktör</div>
+          <div className="mt-2 text-lg font-semibold text-slate-900">
+            {activeTestActor?.actor_ediel_id ?? 'Saknas'}
           </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Aktiv prod-aktör</div>
-            <div className="mt-2 text-lg font-semibold text-slate-900">
-              {activeProdActor?.actor_ediel_id ?? 'Saknas'}
-            </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Aktiv prod-aktör</div>
+          <div className="mt-2 text-lg font-semibold text-slate-900">
+            {activeProdActor?.actor_ediel_id ?? 'Saknas'}
           </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Aktiva regler</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">{activeRuleCount}</div>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div className="text-sm text-amber-700">Regler med negativ respons</div>
+          <div className="mt-2 text-3xl font-semibold text-amber-900">{negativeSupportCount}</div>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div className="text-sm text-amber-700">Runtime-ambiguiteter</div>
+          <div className="mt-2 text-3xl font-semibold text-amber-900">{ambiguousRuntimeCount}</div>
+        </div>
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <div className="text-sm text-blue-700">Previous-valid aktivt</div>
+          <div className="mt-2 text-3xl font-semibold text-blue-900">{previousValidCount}</div>
+        </div>
+      </section>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Aktiva regler</div>
-            <div className="mt-2 text-lg font-semibold text-slate-900">
-              {activeRuleCount}
-            </div>
-          </div>
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <h2 className="text-lg font-semibold text-slate-950">Vad som är nytt här</h2>
+        <p className="mt-1 text-sm text-slate-700">
+          Settings-sidan visar nu inte bara sparade message rules. Den visar också
+          <span className="font-medium"> vilken outbound-version runtime faktiskt väljer</span>,
+          <span className="font-medium"> vilka inbound-versioner som accepteras</span> och
+          om det finns ett previous-valid-spår i runtime.
+        </p>
+      </section>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="text-sm text-slate-500">Regler med negativ respons</div>
-            <div className="mt-2 text-lg font-semibold text-slate-900">
-              {pendingNegativeSupport}
-            </div>
-          </div>
-        </section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-slate-900">Aktörskort</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Ett aktivt aktörskort per miljö. När du markerar en rad som aktiv stängs övriga av i samma miljö.
+          </p>
+        </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <div className="mb-5">
-            <h2 className="text-lg font-semibold text-slate-900">Aktörskort</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Ett aktivt aktörskort per miljö. När du markerar en rad som aktiv
-              stängs övriga av i samma miljö.
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            {actorSettings.map((row) => (
-              <form
-                key={row.id}
-                action={saveEdielActorSettingsAction}
-                className="rounded-2xl border border-slate-200 p-4"
-              >
-                <input type="hidden" name="id" value={row.id} />
-                <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <Pill text={row.environment} tone={row.environment === 'production' ? 'red' : 'blue'} />
-                  <Pill text={row.is_active ? 'Aktiv' : 'Inaktiv'} tone={row.is_active ? 'green' : 'slate'} />
-                  <span className="text-xs text-slate-500">
-                    Uppdaterad {formatDate(row.updated_at)}
-                  </span>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  <Input name="actor_name" defaultValue={row.actor_name} placeholder="Actor name" />
-                  <Input name="actor_ediel_id" defaultValue={row.actor_ediel_id} placeholder="Actor Ediel ID" />
-                  <Input name="actor_role" defaultValue={row.actor_role} placeholder="Actor role" />
-                  <Select name="environment" defaultValue={row.environment}>
-                    <option value="test">test</option>
-                    <option value="production">production</option>
-                  </Select>
-                  <Input name="sender_name" defaultValue={row.sender_name} placeholder="Sender name" />
-                  <Input name="sender_sub_address" defaultValue={row.sender_sub_address} placeholder="Sender sub address" />
-                  <Input
-                    name="default_application_reference"
-                    defaultValue={row.default_application_reference}
-                    placeholder="Application reference"
-                  />
-                  <Input name="default_timezone" defaultValue={row.default_timezone} placeholder="Timezone" type="number" />
-                  <Input name="default_charset" defaultValue={row.default_charset} placeholder="Charset" />
-                  <Select name="default_test_flag" defaultValue={row.default_test_flag}>
-                    <option value="1">1</option>
-                    <option value="0">0</option>
-                  </Select>
-                  <Input name="smtp_from_email" defaultValue={row.smtp_from_email} placeholder="SMTP from email" />
-                  <Input name="smtp_reply_to_email" defaultValue={row.smtp_reply_to_email} placeholder="SMTP reply-to" />
-                  <Input name="mailbox" defaultValue={row.mailbox} placeholder="Mailbox" />
-                  <Input name="notes" defaultValue={row.notes} placeholder="Notes" />
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-4">
-                  <Checkbox name="is_active" defaultChecked={row.is_active} label="Aktiv för miljön" />
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                  >
-                    Spara aktörskort
-                  </button>
-                </div>
-              </form>
-            ))}
-
+        <div className="space-y-6">
+          {actorSettings.map((row) => (
             <form
+              key={row.id}
               action={saveEdielActorSettingsAction}
-              className="rounded-2xl border border-dashed border-slate-300 p-4"
+              className="rounded-2xl border border-slate-200 p-4"
             >
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-slate-900">Skapa nytt aktörskort</h3>
+              <input type="hidden" name="id" value={row.id} />
+
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <Pill text={row.environment} tone={row.environment === 'production' ? 'red' : 'blue'} />
+                <Pill text={row.is_active ? 'Aktiv' : 'Inaktiv'} tone={row.is_active ? 'green' : 'slate'} />
+                <span className="text-xs text-slate-500">
+                  Uppdaterad {formatDate(row.updated_at)}
+                </span>
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
-                <Input name="actor_name" placeholder="Actor name" />
-                <Input name="actor_ediel_id" placeholder="Actor Ediel ID" />
-                <Input name="actor_role" placeholder="Actor role" />
-                <Select name="environment" defaultValue="test">
+                <Input name="actor_name" defaultValue={row.actor_name} placeholder="Actor name" />
+                <Input name="actor_ediel_id" defaultValue={row.actor_ediel_id} placeholder="Actor Ediel ID" />
+                <Input name="actor_role" defaultValue={row.actor_role} placeholder="Actor role" />
+                <Select name="environment" defaultValue={row.environment}>
                   <option value="test">test</option>
                   <option value="production">production</option>
                 </Select>
-                <Input name="sender_name" placeholder="Sender name" />
-                <Input name="sender_sub_address" placeholder="Sender sub address" />
-                <Input name="default_application_reference" placeholder="Application reference" />
-                <Input name="default_timezone" defaultValue={1} type="number" />
-                <Input name="default_charset" defaultValue="UNOC" />
-                <Select name="default_test_flag" defaultValue="1">
+                <Input name="sender_name" defaultValue={row.sender_name} placeholder="Sender name" />
+                <Input name="sender_sub_address" defaultValue={row.sender_sub_address} placeholder="Sender sub address" />
+                <Input name="default_application_reference" defaultValue={row.default_application_reference} placeholder="Application reference" />
+                <Input name="default_timezone" defaultValue={row.default_timezone} placeholder="Timezone" type="number" />
+                <Input name="default_charset" defaultValue={row.default_charset} placeholder="Charset" />
+                <Select name="default_test_flag" defaultValue={row.default_test_flag}>
                   <option value="1">1</option>
                   <option value="0">0</option>
                 </Select>
-                <Input name="smtp_from_email" placeholder="SMTP from email" />
-                <Input name="smtp_reply_to_email" placeholder="SMTP reply-to" />
-                <Input name="mailbox" placeholder="Mailbox" />
-                <Input name="notes" placeholder="Notes" />
+                <Input name="smtp_from_email" defaultValue={row.smtp_from_email} placeholder="SMTP from email" />
+                <Input name="smtp_reply_to_email" defaultValue={row.smtp_reply_to_email} placeholder="SMTP reply-to" />
+                <Input name="mailbox" defaultValue={row.mailbox} placeholder="Mailbox" />
+                <Input name="notes" defaultValue={row.notes} placeholder="Notes" />
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-4">
-                <Checkbox name="is_active" label="Aktivera direkt" />
+                <Checkbox name="is_active" defaultChecked={row.is_active} label="Aktiv för miljön" />
                 <button
                   type="submit"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
                 >
-                  Skapa aktörskort
+                  Spara aktörskort
                 </button>
               </div>
             </form>
-          </div>
-        </section>
+          ))}
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <div className="mb-5">
-            <h2 className="text-lg font-semibold text-slate-900">Meddelanderegler</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Här styr du version, riktning och kvittenskrav per meddelandetyp.
-            </p>
-          </div>
+          <form
+            action={saveEdielActorSettingsAction}
+            className="rounded-2xl border border-dashed border-slate-300 p-4"
+          >
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-slate-900">Skapa nytt aktörskort</h3>
+            </div>
 
-          <div className="space-y-4">
-            {messageRules.map((row) => (
-              <form
-                key={row.id}
-                action={saveEdielMessageRuleAction}
-                className="rounded-2xl border border-slate-200 p-4"
+            <div className="grid gap-3 md:grid-cols-3">
+              <Input name="actor_name" placeholder="Actor name" />
+              <Input name="actor_ediel_id" placeholder="Actor Ediel ID" />
+              <Input name="actor_role" placeholder="Actor role" />
+              <Select name="environment" defaultValue="test">
+                <option value="test">test</option>
+                <option value="production">production</option>
+              </Select>
+              <Input name="sender_name" placeholder="Sender name" />
+              <Input name="sender_sub_address" placeholder="Sender sub address" />
+              <Input name="default_application_reference" placeholder="Application reference" />
+              <Input name="default_timezone" type="number" defaultValue={1} />
+              <Input name="default_charset" defaultValue="UNOC" />
+              <Select name="default_test_flag" defaultValue={1}>
+                <option value="1">1</option>
+                <option value="0">0</option>
+              </Select>
+              <Input name="smtp_from_email" placeholder="SMTP from email" />
+              <Input name="smtp_reply_to_email" placeholder="SMTP reply-to" />
+              <Input name="mailbox" placeholder="Mailbox" />
+              <Input name="notes" placeholder="Notes" />
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <Checkbox name="is_active" defaultChecked={false} label="Aktiv för miljön" />
+              <button
+                type="submit"
+                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
               >
-                <input type="hidden" name="id" value={row.id} />
+                Skapa aktörskort
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
 
-                <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <Pill text={row.message_family} tone="blue" />
-                  <Pill text={row.message_code} tone="slate" />
-                  <Pill text={row.version_code} tone="yellow" />
-                  <Pill text={row.is_active ? 'Aktiv' : 'Inaktiv'} tone={row.is_active ? 'green' : 'slate'} />
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-slate-900">Runtime-upplösning per family/code</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Det här blocket visar samma registrymotor som används i runtime: outbound selected version, current, previous och inbound accepted versions.
+          </p>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          {runtimeSnapshots.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+              Inga runtime snapshots kunde byggas.
+            </div>
+          ) : (
+            runtimeSnapshots.map((row) => (
+              <div key={row.key} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sm font-semibold text-slate-950">
+                    {row.family} {row.code}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Pill text={row.standard} tone="blue" />
+                    <Pill text={`aktiva regler ${row.activeCount}`} tone={row.activeCount > 1 ? 'yellow' : 'green'} />
+                  </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-4">
-                  <Input name="message_family" defaultValue={row.message_family} />
-                  <Input name="message_code" defaultValue={row.message_code} />
-                  <Select name="message_standard" defaultValue={row.message_standard}>
-                    <option value="edifact">edifact</option>
-                    <option value="xml">xml</option>
-                    <option value="ai_list">ai_list</option>
-                  </Select>
-                  <Input name="version_code" defaultValue={row.version_code} />
-                  <Select name="direction" defaultValue={row.direction}>
-                    <option value="both">both</option>
-                    <option value="inbound">inbound</option>
-                    <option value="outbound">outbound</option>
-                  </Select>
-                  <Input name="valid_from" defaultValue={row.valid_from} type="date" />
-                  <Input name="valid_to" defaultValue={row.valid_to} type="date" />
-                  <Input name="notes" defaultValue={row.notes} placeholder="Notes" />
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <Field label="Outbound selected" value={row.outbound.selectedVersion} />
+                  <Field label="Outbound current" value={row.outbound.currentVersion} />
+                  <Field label="Outbound previous" value={row.outbound.previousVersion} />
+                  <Field label="Inbound current" value={row.inbound.currentVersion} />
+                  <Field label="Inbound previous" value={row.inbound.previousVersion} />
+                  <Field label="Accepted versions" value={row.inbound.acceptedVersions.join(', ')} />
                 </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
-                <div className="mt-4 flex flex-wrap items-center gap-4">
-                  <Checkbox
-                    name="requires_contrl"
-                    defaultChecked={row.requires_contrl}
-                    label="Kräver CONTRL"
-                  />
-                  <Checkbox
-                    name="requires_aperak"
-                    defaultChecked={row.requires_aperak}
-                    label="Kräver APERAK"
-                  />
-                  <Checkbox
-                    name="supports_negative_response"
-                    defaultChecked={row.supports_negative_response}
-                    label="Stödjer negativ respons"
-                  />
-                  <Checkbox name="is_active" defaultChecked={row.is_active} label="Aktiv regel" />
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-slate-900">Message rules</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Här sparar du reglerna. Runtime-upplösningen ovan visar sedan vad kerneln faktiskt gör med dem.
+          </p>
+        </div>
 
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                  >
-                    Spara regel
-                  </button>
-                </div>
-              </form>
-            ))}
-
+        <div className="space-y-6">
+          {messageRules.map((row) => (
             <form
+              key={row.id}
               action={saveEdielMessageRuleAction}
-              className="rounded-2xl border border-dashed border-slate-300 p-4"
+              className="rounded-2xl border border-slate-200 p-4"
             >
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-slate-900">Skapa ny regel</h3>
+              <input type="hidden" name="id" value={row.id} />
+
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <Pill text={row.message_family} tone="blue" />
+                <Pill text={row.message_code} tone="blue" />
+                <Pill text={row.message_standard} tone="slate" />
+                <Pill text={row.direction} tone="slate" />
+                <Pill text={row.is_active ? 'Aktiv' : 'Inaktiv'} tone={row.is_active ? 'green' : 'slate'} />
+                <span className="text-xs text-slate-500">
+                  Uppdaterad {formatDate(row.updated_at)}
+                </span>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-4">
-                <Input name="message_family" placeholder="PRODAT / UTILTS / APERAK ..." />
-                <Input name="message_code" placeholder="Z05 / E66 / APERAK ..." />
-                <Select name="message_standard" defaultValue="edifact">
+              <div className="grid gap-3 md:grid-cols-3">
+                <Input name="message_family" defaultValue={row.message_family} />
+                <Input name="message_code" defaultValue={row.message_code} />
+                <Select name="message_standard" defaultValue={row.message_standard}>
                   <option value="edifact">edifact</option>
                   <option value="xml">xml</option>
                   <option value="ai_list">ai_list</option>
                 </Select>
-                <Input name="version_code" placeholder="E5SE5A / csv-2025-10-01 ..." />
-                <Select name="direction" defaultValue="both">
+                <Input name="version_code" defaultValue={row.version_code} />
+                <Select name="direction" defaultValue={row.direction}>
                   <option value="both">both</option>
                   <option value="inbound">inbound</option>
                   <option value="outbound">outbound</option>
                 </Select>
-                <Input name="valid_from" type="date" />
-                <Input name="valid_to" type="date" />
-                <Input name="notes" placeholder="Notes" />
+                <Input name="valid_from" type="date" defaultValue={row.valid_from} />
+                <Input name="valid_to" type="date" defaultValue={row.valid_to} />
+                <Input name="notes" defaultValue={row.notes} />
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-4">
-                <Checkbox name="requires_contrl" label="Kräver CONTRL" />
-                <Checkbox name="requires_aperak" label="Kräver APERAK" />
-                <Checkbox name="supports_negative_response" label="Stödjer negativ respons" />
-                <Checkbox name="is_active" label="Aktiv regel" defaultChecked />
+                <Checkbox name="requires_contrl" defaultChecked={row.requires_contrl} label="requires_contrl" />
+                <Checkbox name="requires_aperak" defaultChecked={row.requires_aperak} label="requires_aperak" />
+                <Checkbox
+                  name="supports_negative_response"
+                  defaultChecked={row.supports_negative_response}
+                  label="supports_negative_response"
+                />
+                <Checkbox name="is_active" defaultChecked={row.is_active} label="Aktiv regel" />
 
                 <button
                   type="submit"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
                 >
-                  Skapa regel
+                  Spara regel
                 </button>
               </div>
             </form>
-          </div>
-        </section>
-      </div>
+          ))}
+
+          <form
+            action={saveEdielMessageRuleAction}
+            className="rounded-2xl border border-dashed border-slate-300 p-4"
+          >
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-slate-900">Skapa ny message rule</h3>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <Input name="message_family" placeholder="PRODAT / UTILTS / APERAK ..." />
+              <Input name="message_code" placeholder="Z03 / E66 / CONTRL ..." />
+              <Select name="message_standard" defaultValue="edifact">
+                <option value="edifact">edifact</option>
+                <option value="xml">xml</option>
+                <option value="ai_list">ai_list</option>
+              </Select>
+              <Input name="version_code" placeholder="E5SE5A / Ver20140401 ..." />
+              <Select name="direction" defaultValue="both">
+                <option value="both">both</option>
+                <option value="inbound">inbound</option>
+                <option value="outbound">outbound</option>
+              </Select>
+              <Input name="valid_from" type="date" />
+              <Input name="valid_to" type="date" />
+              <Input name="notes" placeholder="Notes" />
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <Checkbox name="requires_contrl" defaultChecked={false} label="requires_contrl" />
+              <Checkbox name="requires_aperak" defaultChecked={false} label="requires_aperak" />
+              <Checkbox name="supports_negative_response" defaultChecked={false} label="supports_negative_response" />
+              <Checkbox name="is_active" defaultChecked={true} label="Aktiv regel" />
+
+              <button
+                type="submit"
+                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+              >
+                Skapa regel
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
     </div>
   )
 }

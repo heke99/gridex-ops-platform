@@ -98,6 +98,25 @@ function sortInboundRulesByPriority(
   })
 }
 
+function chooseSelectedVersion(params: {
+  currentRule: ResolvedEdielMessageRuleRow | null
+  previousRule: ResolvedInboundEdielMessageRuleRow | null
+  acceptedVersions: string[]
+  fallback?: string | null
+  routeDefaultMessageVersion?: string | null
+}) {
+  const routeDefault = sanitize(params.routeDefaultMessageVersion)
+  const currentVersion = sanitize(params.currentRule?.version_code)
+  const previousVersion = sanitize(params.previousRule?.version_code)
+  const fallback = sanitize(params.fallback)
+
+  if (routeDefault && params.acceptedVersions.includes(routeDefault)) {
+    return routeDefault
+  }
+
+  return currentVersion ?? routeDefault ?? fallback ?? previousVersion ?? null
+}
+
 export async function getActiveEdielMessageRuleFromRegistry(params: {
   family: string
   code: string
@@ -153,7 +172,7 @@ export async function resolveInboundAcceptedMessageRulesFromRegistry(params: {
 }
 
 export async function resolveOutboundMessageVersionRuntimeFromRegistry(
-  input: ResolveMessageVersionInput
+  input: ResolveMessageVersionInput & { routeDefaultMessageVersion?: string | null }
 ): Promise<ResolvedVersionWindow> {
   const standard = input.standard ?? 'edifact'
   const date = input.date ?? todayIsoDate()
@@ -182,21 +201,27 @@ export async function resolveOutboundMessageVersionRuntimeFromRegistry(
   })
 
   const previousRule = inboundAccepted[1] ?? null
-  const selectedVersion =
-    sanitize(currentRule?.version_code) ??
-    sanitize(input.fallback) ??
-    sanitize(previousRule?.version_code) ??
-    null
+  const acceptedVersions = uniqueStrings([
+    currentRule?.version_code,
+    previousRule?.version_code,
+    ...inboundAccepted.map((row) => row.version_code),
+    input.fallback ?? null,
+    input.routeDefaultMessageVersion ?? null,
+  ])
+
+  const selectedVersion = chooseSelectedVersion({
+    currentRule,
+    previousRule,
+    acceptedVersions,
+    fallback: input.fallback ?? null,
+    routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
+  })
 
   return {
     selectedVersion,
     currentVersion: sanitize(currentRule?.version_code),
     previousVersion: sanitize(previousRule?.version_code),
-    acceptedVersions: uniqueStrings([
-      currentRule?.version_code,
-      previousRule?.version_code,
-      ...inboundAccepted.map((row) => row.version_code),
-    ]),
+    acceptedVersions,
     selectedRule: currentRule,
     currentRule,
     previousRule,
@@ -256,16 +281,13 @@ export async function resolveCanonicalOutboundVersion(params: {
   environment?: EdielEnvironment
   routeDefaultMessageVersion?: string | null
 }) {
-  if (params.routeDefaultMessageVersion?.trim()) {
-    return params.routeDefaultMessageVersion.trim()
-  }
-
   const runtime = await resolveOutboundMessageVersionRuntimeFromRegistry({
     family: params.family,
     code: params.code,
     standard: params.standard ?? 'edifact',
     fallback: params.fallback ?? null,
     environment: params.environment ?? 'test',
+    routeDefaultMessageVersion: params.routeDefaultMessageVersion ?? null,
   })
 
   return runtime.selectedVersion
@@ -277,20 +299,27 @@ export async function resolveCanonicalInboundAcceptedVersions(params: {
   standard?: EdielMessageStandard
   date?: string | null
 }) {
-  const runtime = await resolveInboundAcceptedVersionsRuntimeFromRegistry({
+  await resolveInboundAcceptedVersionsRuntimeFromRegistry({
     family: params.family,
     code: params.code,
     standard: params.standard ?? 'edifact',
     date: params.date ?? null,
   })
 
-  return runtime.acceptedVersions.map((versionCode, index) => ({
-    id: `accepted-${params.family}-${params.code}-${index}`,
-    version_code: versionCode,
-    valid_from: index === 0 ? params.date ?? null : null,
-    valid_to: null,
-    requires_contrl: false,
-    requires_aperak: false,
-    supports_negative_response: false,
-  }))
+  return resolveInboundAcceptedMessageRulesFromRegistry({
+    family: params.family,
+    code: params.code,
+    standard: params.standard ?? 'edifact',
+    date: params.date ?? null,
+  }).then((rules) =>
+    rules.map((rule) => ({
+      id: rule.id,
+      version_code: rule.version_code,
+      valid_from: rule.valid_from,
+      valid_to: rule.valid_to,
+      requires_contrl: rule.requires_contrl,
+      requires_aperak: rule.requires_aperak,
+      supports_negative_response: rule.supports_negative_response,
+    }))
+  )
 }

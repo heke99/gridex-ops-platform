@@ -1,9 +1,6 @@
 // lib/ediel/core/ackPolicy.ts
 
-import type {
-  EdielAckStatus,
-  EdielMessageRow,
-} from '@/lib/ediel/types'
+import type { EdielAckStatus, EdielMessageRow } from '@/lib/ediel/types'
 import {
   getActiveEdielMessageRule,
   getEdielRouteRuntimeByCommunicationRouteId,
@@ -148,6 +145,36 @@ export async function getAutomaticAckPolicy(
   }
 }
 
+function inferAckOutcomeFromRow(row: EdielMessageRow): AckOutcome | null {
+  const payload = row.parsed_payload ?? {}
+  const payloadOutcome =
+    payload.ackOutcome === 'positive' || payload.ackOutcome === 'negative'
+      ? payload.ackOutcome
+      : null
+
+  if (payloadOutcome) return payloadOutcome
+
+  if (row.message_family === 'CONTRL') {
+    if (row.syntax_check_status === 'accepted') return 'positive'
+    if (row.syntax_check_status === 'rejected' || row.syntax_check_status === 'failed') {
+      return 'negative'
+    }
+    return null
+  }
+
+  if (row.message_family === 'APERAK' || row.message_family === 'UTILTS_ERR') {
+    if (row.functional_check_status === 'accepted') return 'positive'
+    if (
+      row.functional_check_status === 'rejected' ||
+      row.functional_check_status === 'failed'
+    ) {
+      return 'negative'
+    }
+  }
+
+  return null
+}
+
 export async function findExistingAckForSource(params: {
   sourceMessageId: string
   ackFamily: AckFamily
@@ -161,29 +188,21 @@ export async function findExistingAckForSource(params: {
   return (
     rows.find((row: EdielMessageRow) => {
       if (params.outcome === undefined) return true
-
-      const payload = row.parsed_payload ?? {}
-      const payloadOutcome =
-        payload.ackOutcome === 'positive' || payload.ackOutcome === 'negative'
-          ? payload.ackOutcome
-          : null
-
-      if (payloadOutcome) {
-        return payloadOutcome === params.outcome
-      }
-
-      if (params.ackFamily === 'CONTRL') {
-        return params.outcome === 'negative'
-          ? row.syntax_check_status === 'rejected' || row.syntax_check_status === 'failed'
-          : row.syntax_check_status === 'accepted'
-      }
-
-      return params.outcome === 'negative'
-        ? row.functional_check_status === 'rejected' ||
-            row.functional_check_status === 'failed'
-        : row.functional_check_status === 'accepted'
+      return inferAckOutcomeFromRow(row) === params.outcome
     }) ?? null
   )
+}
+
+function isPending(status: EdielAckStatus | null | undefined): boolean {
+  return status === 'pending'
+}
+
+function isReceivedOrSent(status: EdielAckStatus | null | undefined): boolean {
+  return status === 'received' || status === 'sent'
+}
+
+function isFailed(status: EdielAckStatus | null | undefined): boolean {
+  return status === 'failed'
 }
 
 export function getCanonicalAckState(
@@ -200,41 +219,61 @@ export function getCanonicalAckState(
   const contrlStatus = sourceMessage.contrl_status ?? null
   const aperakStatus = sourceMessage.aperak_status ?? null
   const utiltsErrStatus = sourceMessage.utilts_err_status ?? null
-  const now = Date.now()
-  const dueAt = sourceMessage.ack_due_at
+
+  const dueAtMs = sourceMessage.ack_due_at
     ? new Date(sourceMessage.ack_due_at).getTime()
     : Number.NaN
-  const overdue = Number.isFinite(dueAt) && dueAt < now
+  const overdue = Number.isFinite(dueAtMs) && dueAtMs < Date.now()
 
-  if (contrlStatus === 'failed') return 'contrl_failed'
-  if (aperakStatus === 'failed') return 'aperak_received_negative'
-  if (utiltsErrStatus === 'received' || utiltsErrStatus === 'sent') {
-    return 'utilts_err_received'
+  if (isFailed(contrlStatus)) return 'contrl_failed'
+  if (isFailed(aperakStatus)) return 'aperak_received_negative'
+  if (isReceivedOrSent(utiltsErrStatus)) return 'utilts_err_received'
+
+  const contrlRequired = sourceMessage.requires_contrl === true
+  const aperakRequired = sourceMessage.requires_aperak === true
+
+  if (contrlRequired) {
+    if (isPending(contrlStatus)) {
+      return overdue ? 'ack_overdue' : 'awaiting_contrl'
+    }
+
+    if (!isReceivedOrSent(contrlStatus)) {
+      return overdue ? 'ack_overdue' : 'in_progress'
+    }
   }
-  if (contrlStatus === 'received' || contrlStatus === 'sent') {
+
+  if (aperakRequired) {
+    if (isPending(aperakStatus)) {
+      return overdue ? 'ack_overdue' : 'awaiting_aperak'
+    }
+
+    if (isReceivedOrSent(aperakStatus)) {
+      return 'aperak_received_positive'
+    }
+
+    if (!contrlRequired && !isReceivedOrSent(aperakStatus)) {
+      return overdue ? 'ack_overdue' : 'in_progress'
+    }
+  }
+
+  if (contrlRequired && isReceivedOrSent(contrlStatus)) {
     return 'contrl_received'
   }
-  if (aperakStatus === 'received' || aperakStatus === 'sent') {
-    return 'aperak_received_positive'
-  }
+
   if (
-    overdue &&
-    (contrlStatus === 'pending' ||
-      aperakStatus === 'pending' ||
-      utiltsErrStatus === 'pending')
-  ) {
-    return 'ack_overdue'
-  }
-  if (contrlStatus === 'pending') return 'awaiting_contrl'
-  if (aperakStatus === 'pending') return 'awaiting_aperak'
-  if (utiltsErrStatus === 'pending') return 'in_progress'
-  if (
-    sourceMessage.requires_contrl === false &&
-    sourceMessage.requires_aperak === false &&
-    !utiltsErrStatus
+    !contrlRequired &&
+    !aperakRequired &&
+    !utiltsErrStatus &&
+    contrlStatus !== 'pending' &&
+    aperakStatus !== 'pending'
   ) {
     return 'no_ack_required'
   }
+
+  if (overdue && (isPending(contrlStatus) || isPending(aperakStatus) || isPending(utiltsErrStatus))) {
+    return 'ack_overdue'
+  }
+
   return 'in_progress'
 }
 

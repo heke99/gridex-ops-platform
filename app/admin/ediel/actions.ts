@@ -85,8 +85,26 @@ function revalidateEdiel(messageId?: string | null) {
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/ediel/ai-list')
   revalidatePath('/admin/ediel/control-tower')
+  revalidatePath('/admin/ediel/routes')
+  revalidatePath('/admin/ediel/settings')
   revalidatePath('/admin/outbound')
   if (messageId) revalidatePath(`/admin/ediel/messages/${messageId}`)
+}
+
+async function revalidateRelatedMessage(messageId?: string | null) {
+  if (!messageId) return
+  const message = await getEdielMessageById(messageId)
+  if (!message) return
+
+  if (message.related_message_id) {
+    revalidatePath(`/admin/ediel/messages/${message.related_message_id}`)
+  }
+
+  if (message.outbound_request_id) {
+    revalidatePath('/admin/outbound')
+  }
+
+  revalidateEdiel(message.id)
 }
 
 export async function sendEdielMessageAction(formData: FormData) {
@@ -100,7 +118,7 @@ export async function sendEdielMessageAction(formData: FormData) {
     edielMessageId,
   })
 
-  revalidateEdiel(edielMessageId)
+  await revalidateRelatedMessage(edielMessageId)
 }
 
 export async function pollMailboxAction(formData: FormData) {
@@ -142,7 +160,7 @@ export async function createAckDraftAction(formData: FormData) {
   })
 
   revalidateEdiel(sourceMessageId)
-  revalidateEdiel(ackMessage.id)
+  await revalidateRelatedMessage(ackMessage.id)
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
@@ -160,7 +178,7 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
   })
 
   revalidateEdiel(edielMessageId)
-  revalidateEdiel(ackMessage.id)
+  await revalidateRelatedMessage(ackMessage.id)
 }
 
 export async function createProdatDraftAction(formData: FormData) {
@@ -240,7 +258,7 @@ export async function createProdatDraftAction(formData: FormData) {
     },
   })
 
-  revalidateEdiel(message.id)
+  await revalidateRelatedMessage(message.id)
 }
 
 export async function prepareSwitchZ03Action(formData: FormData) {
@@ -255,7 +273,7 @@ export async function prepareSwitchZ03Action(formData: FormData) {
     communicationRouteId,
   })
 
-  revalidateEdiel(message.id)
+  await revalidateRelatedMessage(message.id)
 }
 
 export async function prepareSwitchZ05Action(formData: FormData) {
@@ -270,7 +288,7 @@ export async function prepareSwitchZ05Action(formData: FormData) {
     communicationRouteId,
   })
 
-  revalidateEdiel(message.id)
+  await revalidateRelatedMessage(message.id)
 }
 
 export async function prepareSwitchZ09Action(formData: FormData) {
@@ -285,7 +303,7 @@ export async function prepareSwitchZ09Action(formData: FormData) {
     communicationRouteId,
   })
 
-  revalidateEdiel(message.id)
+  await revalidateRelatedMessage(message.id)
 }
 
 export async function prepareUtiltsE73Action(formData: FormData) {
@@ -300,7 +318,7 @@ export async function prepareUtiltsE73Action(formData: FormData) {
     communicationRouteId,
   })
 
-  revalidateEdiel(message.id)
+  await revalidateRelatedMessage(message.id)
 }
 
 export async function prepareUtiltsE66Action(formData: FormData) {
@@ -323,7 +341,7 @@ export async function prepareUtiltsE66Action(formData: FormData) {
     registrationTime,
   })
 
-  revalidateEdiel(message.id)
+  await revalidateRelatedMessage(message.id)
 }
 
 export async function prepareAiListAction(formData: FormData) {
@@ -364,7 +382,7 @@ export async function prepareAiListAction(formData: FormData) {
     communicationRouteId,
   })
 
-  revalidateEdiel(message.id)
+  await revalidateRelatedMessage(message.id)
 }
 
 export async function registerInboundUtiltsAction(formData: FormData) {
@@ -393,7 +411,7 @@ export async function registerInboundUtiltsAction(formData: FormData) {
   const rawPayload =
     [
       `UNB+UNOC:3+${senderEdielId ?? 'SENDER'}:UTILTS+${receiverEdielId ?? 'RECEIVER'}:GRIDEX+250101:1200+${externalReference}`,
-      `UNH+1+UTILTS:D:03A:UN:E5SE5A`,
+      'UNH+1+UTILTS:D:03A:UN:E5SE5A',
       `BGM+${messageCode}+${externalReference}+9`,
       `RFF+TN:${transactionReference}`,
       `QTY+47:${qty}:KWH`,
@@ -426,7 +444,7 @@ export async function registerInboundUtiltsAction(formData: FormData) {
     edielMessageId: message.id,
   })
 
-  revalidateEdiel(message.id)
+  await revalidateRelatedMessage(message.id)
 }
 
 export async function runEdielSelfTestAction(formData: FormData) {

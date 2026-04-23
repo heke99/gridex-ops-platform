@@ -71,6 +71,7 @@ export async function prepareAndQueueAiList(params: {
     toDate: params.toDate,
     details: [detail],
     mailbox: routeContext.mailbox,
+    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
   })
 
   const message = await finalizeOutboundDraft({

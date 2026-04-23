@@ -2,13 +2,20 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { getCanonicalAckState } from '@/lib/ediel/ack'
 import {
   getEdielRouteProfileByCommunicationRouteId,
+  listCanonicalAckConflictEvents,
+  listCanonicalDuplicateBlockEvents,
+  listDuplicateAckCandidates,
   listEdielMessages,
   listEdielTestRuns,
+  listOverdueAckMessages,
+  listRecentInvalidCodeUsageMessages,
+  listRecentVersionMismatchMessages,
+  listRuleAmbiguities,
 } from '@/lib/ediel/db'
 import {
   createEdielTestRunAction,
@@ -25,6 +32,7 @@ import {
   isActiveEdielMessageFamily,
   isActiveEdielTestSuite,
 } from '@/lib/ediel/types'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -206,6 +214,28 @@ function routeLabel(route: EdielRecommendationRouteRow | null): string {
   }`
 }
 
+function ackStateTone(state: string): 'slate' | 'green' | 'yellow' | 'red' | 'blue' {
+  if (
+    state === 'ack_overdue' ||
+    state === 'contrl_failed' ||
+    state === 'aperak_received_negative'
+  ) {
+    return 'red'
+  }
+  if (state === 'awaiting_contrl' || state === 'awaiting_aperak' || state === 'in_progress') {
+    return 'yellow'
+  }
+  if (
+    state === 'contrl_received' ||
+    state === 'aperak_received_positive' ||
+    state === 'utilts_err_received' ||
+    state === 'no_ack_required'
+  ) {
+    return 'green'
+  }
+  return 'slate'
+}
+
 export default async function AdminEdielPage() {
   await requirePermissionServer('communication.read')
 
@@ -222,6 +252,13 @@ export default async function AdminEdielPage() {
     outboundRaw,
     routesRaw,
     gridOwnersRaw,
+    overdueAckMessages,
+    duplicateAckCandidates,
+    duplicateBlockEvents,
+    ackConflictEvents,
+    versionMismatchMessages,
+    invalidCodeMessages,
+    ruleAmbiguities,
   ] = await Promise.all([
     listEdielMessages({ limit: 120 }),
     listEdielTestRuns(),
@@ -253,6 +290,13 @@ export default async function AdminEdielPage() {
       )
       .order('updated_at', { ascending: false }),
     supabase.from('grid_owners').select('id,name,ediel_id').order('name'),
+    listOverdueAckMessages({ limit: 20 }),
+    listDuplicateAckCandidates(),
+    listCanonicalDuplicateBlockEvents({ limit: 20 }),
+    listCanonicalAckConflictEvents({ limit: 20 }),
+    listRecentVersionMismatchMessages({ limit: 20 }),
+    listRecentInvalidCodeUsageMessages({ limit: 20 }),
+    listRuleAmbiguities(),
   ])
 
   if (switchRequestsRaw.error) throw switchRequestsRaw.error
@@ -346,7 +390,7 @@ export default async function AdminEdielPage() {
     <div className="space-y-6">
       <AdminHeader
         title="Ediel"
-        subtitle="Operativ release 1: PRODAT, UTILTS, CONTRL, APERAK, UTILTS_ERR och AI-lista i ett och samma Ediel-system."
+        subtitle="Operativ release 1 med canonical kernel, dedupe-spårning, versionssignaler och kontrollflöden i samma runtime."
         userEmail={user?.email ?? null}
       />
 
@@ -374,6 +418,180 @@ export default async function AdminEdielPage() {
             <Badge tone={hiddenTestRunsCount > 0 ? 'yellow' : 'green'}>
               dolda test runs: {hiddenTestRunsCount}
             </Badge>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Försenade ack</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {overdueAckMessages.length}
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Canonical ack overdue.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Ack-dubletter</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {duplicateAckCandidates.length}
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Faktiska ack-kandidater i historiken.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Duplicate-block</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {duplicateBlockEvents.length}
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Kernel-blockeringar från events.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Ack-konflikter</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {ackConflictEvents.length}
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Dubbel eller konflikt i ack-chain.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Version mismatch</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {versionMismatchMessages.length}
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Runtime-signal från payload/validation.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Kodlist-signaler</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {invalidCodeMessages.length}
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Ogiltig kod eller code list usage.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Regelambiguiteter</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {ruleAmbiguities.length}
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Flera aktiva regler samtidigt.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-sm text-slate-500">Unresolved outbound</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-950">
+            {unresolvedOutboundCount}
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Affärsqueue utan klar route.</div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Runtime-diagnostik från canonical lagret
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Den här startsidan visar nu samma diagnosspår som control tower: overdue ack, duplicate-blocks, ack-konflikter, versionssignaler och kodlistsignaler.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/ediel/control-tower"
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Öppna control tower
+            </Link>
+            <Link
+              href="/admin/ediel/routes"
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Routes
+            </Link>
+            <Link
+              href="/admin/ediel/settings"
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Settings
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-900">
+              Senaste duplicate-blocks / ack-konflikter
+            </div>
+            <div className="space-y-3">
+              {[...duplicateBlockEvents.slice(0, 3), ...ackConflictEvents.slice(0, 3)].length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                  Inga duplicate-blocks eller ack-konflikter just nu.
+                </div>
+              ) : (
+                [...duplicateBlockEvents.slice(0, 3), ...ackConflictEvents.slice(0, 3)].map((row) => (
+                  <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-slate-950">
+                        {row.issue_kind === 'ack_conflict'
+                          ? `Ack-konflikt ${row.ack_family ?? ''}`
+                          : `Duplicate-block ${row.dedupe_layer ?? ''}`}
+                      </div>
+                      <Badge tone={row.issue_kind === 'ack_conflict' ? 'red' : 'yellow'}>
+                        {row.issue_kind}
+                      </Badge>
+                    </div>
+                    <div className="mt-1 text-sm text-slate-600">{row.message ?? '—'}</div>
+                    <div className="mt-2 text-xs text-slate-500">
+                      {formatDateTime(row.created_at)}
+                    </div>
+                    <div className="mt-2">
+                      <Link
+                        href={`/admin/ediel/messages/${row.ediel_message_id}`}
+                        className="text-sm text-indigo-700 underline-offset-2 hover:underline"
+                      >
+                        Öppna meddelande
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-900">
+              Senaste versions- / kodlistsignaler
+            </div>
+            <div className="space-y-3">
+              {[...versionMismatchMessages.slice(0, 3), ...invalidCodeMessages.slice(0, 3)].length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                  Inga versions- eller kodlistsignaler just nu.
+                </div>
+              ) : (
+                [...versionMismatchMessages.slice(0, 3), ...invalidCodeMessages.slice(0, 3)].map((row) => (
+                  <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-slate-950">
+                        {row.message_family} {row.message_code}
+                      </div>
+                      <Badge tone={versionMismatchMessages.some((m) => m.id === row.id) ? 'yellow' : 'red'}>
+                        {versionMismatchMessages.some((m) => m.id === row.id)
+                          ? 'version'
+                          : 'code-list'}
+                      </Badge>
+                    </div>
+                    <div className="mt-1 text-sm text-slate-600">
+                      {row.message_version ?? 'utan version'} · {row.direction}
+                    </div>
+                    <div className="mt-2">
+                      <Link
+                        href={`/admin/ediel/messages/${row.id}`}
+                        className="text-sm text-indigo-700 underline-offset-2 hover:underline"
+                      >
+                        Öppna meddelande
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -981,16 +1199,17 @@ export default async function AdminEdielPage() {
             ) : (
               switchRequests.map((row) => (
                 <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-semibold text-slate-950">{row.id}</div>
                     <Badge tone={getRequestTone(row.status)}>{row.status}</Badge>
                   </div>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <Cell label="Kund" value={row.customer_id} />
+                    <Cell label="Customer" value={row.customer_id} />
                     <Cell label="Site" value={row.site_id} />
-                    <Cell label="Mätpunkt" value={row.metering_point_id} />
-                    <Cell label="Extern ref" value={row.external_reference} />
+                    <Cell label="Metering point" value={row.metering_point_id} />
+                    <Cell label="External ref" value={row.external_reference} />
                   </div>
+                  <div className="mt-3 text-xs text-slate-500">{formatDateTime(row.created_at)}</div>
                 </div>
               ))
             )}
@@ -1007,19 +1226,19 @@ export default async function AdminEdielPage() {
             ) : (
               dataRequests.map((row) => (
                 <div key={row.id} className="rounded-2xl border border-slate-200 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-950">{row.id}</div>
-                      <div className="mt-1 text-xs text-slate-500">{row.request_scope}</div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-slate-950">
+                      {row.id} · {row.request_scope}
                     </div>
                     <Badge tone={getRequestTone(row.status)}>{row.status}</Badge>
                   </div>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <Cell label="Kund" value={row.customer_id} />
+                    <Cell label="Customer" value={row.customer_id} />
                     <Cell label="Site" value={row.site_id} />
-                    <Cell label="Mätpunkt" value={row.metering_point_id} />
-                    <Cell label="Extern ref" value={row.external_reference} />
+                    <Cell label="Metering point" value={row.metering_point_id} />
+                    <Cell label="External ref" value={row.external_reference} />
                   </div>
+                  <div className="mt-3 text-xs text-slate-500">{formatDateTime(row.created_at)}</div>
                 </div>
               ))
             )}
@@ -1030,70 +1249,132 @@ export default async function AdminEdielPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">
-              Senaste Ediel-meddelanden i aktivt scope
-            </h2>
+            <h2 className="text-lg font-semibold text-slate-950">Senaste Ediel-meddelanden</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Bara familjer som ingår i första release visas här.
+              Aktiva familjer med canonical ack-state direkt i översikten.
             </p>
           </div>
-          <Badge tone="blue">visar {messages.length} rader</Badge>
+          <Link
+            href="/admin/ediel/control-tower"
+            className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Se full kontrollvy
+          </Link>
         </div>
 
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-left text-slate-500">
-                <th className="px-3 py-2">Tid</th>
-                <th className="px-3 py-2">ID</th>
+                <th className="px-3 py-2">Skapad</th>
+                <th className="px-3 py-2">Meddelande</th>
                 <th className="px-3 py-2">Riktning</th>
-                <th className="px-3 py-2">Familj</th>
-                <th className="px-3 py-2">Kod</th>
                 <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Ack</th>
-                <th className="px-3 py-2">Länk</th>
+                <th className="px-3 py-2">Ack-state</th>
+                <th className="px-3 py-2">Referenser</th>
+                <th className="px-3 py-2">Öppna</th>
               </tr>
             </thead>
             <tbody>
               {messages.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
-                    Inga Ediel-meddelanden i aktivt scope ännu.
+                  <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
+                    Inga Ediel-meddelanden ännu.
                   </td>
                 </tr>
               ) : (
-                messages.map((row) => (
-                  <tr key={row.id} className="border-b border-slate-100 align-top">
-                    <td className="px-3 py-2 text-xs text-slate-600">
-                      {formatDateTime(row.created_at)}
-                    </td>
-                    <td className="px-3 py-2 break-all font-mono text-xs text-slate-700">
-                      {row.id}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={getMessageTone(row.direction)}>{row.direction}</Badge>
-                    </td>
-                    <td className="px-3 py-2">{row.message_family}</td>
-                    <td className="px-3 py-2">{row.message_code}</td>
-                    <td className="px-3 py-2">
-                      <Badge tone={getOutboundStatusTone(row.status)}>{row.status}</Badge>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-slate-600">
-                      CONTRL {row.contrl_status ?? '—'} / APERAK {row.aperak_status ?? '—'}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Link
-                        href={`/admin/ediel/messages/${row.id}`}
-                        className="text-indigo-700 underline-offset-2 hover:underline"
-                      >
-                        Öppna
-                      </Link>
-                    </td>
-                  </tr>
-                ))
+                messages.slice(0, 20).map((row) => {
+                  const ackState = getCanonicalAckState(row)
+                  return (
+                    <tr key={row.id} className="border-b border-slate-100 align-top">
+                      <td className="px-3 py-2 text-xs text-slate-600">
+                        {formatDateTime(row.created_at)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium text-slate-900">
+                          {row.message_family} {row.message_code}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {row.message_version ?? 'utan version'}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Badge tone={getMessageTone(row.direction)}>{row.direction}</Badge>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Badge tone={getOutboundStatusTone(row.status)}>{row.status}</Badge>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Badge tone={ackStateTone(String(ackState))}>{String(ackState)}</Badge>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-slate-600">
+                        <div>External: {row.external_reference ?? '—'}</div>
+                        <div>Transaction: {row.transaction_reference ?? '—'}</div>
+                        <div>Interchange: {row.interchange_reference ?? '—'}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Link
+                          href={`/admin/ediel/messages/${row.id}`}
+                          className="text-indigo-700 underline-offset-2 hover:underline"
+                        >
+                          Öppna
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">Ediel-routes i runtime</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Visar vad runtime faktiskt kan använda just nu utifrån route + profil.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="blue">routes: {edielRoutes.length}</Badge>
+            <Badge tone={ruleAmbiguities.length > 0 ? 'yellow' : 'green'}>
+              regelambiguiteter: {ruleAmbiguities.length}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          {workbenchRoutes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+              Inga Ediel-routes hittades.
+            </div>
+          ) : (
+            workbenchRoutes.slice(0, 12).map((route) => (
+              <div key={route.id} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-950">{route.route_name}</div>
+                  <Badge tone={route.is_active ? 'green' : 'red'}>
+                    {route.is_active ? 'aktiv' : 'inaktiv'}
+                  </Badge>
+                </div>
+
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <Cell label="Scope" value={route.route_scope} />
+                  <Cell label="Type" value={route.route_type} />
+                  <Cell label="Grid owner" value={route.grid_owner_name} />
+                  <Cell label="Grid owner ediel" value={route.grid_owner_ediel_id} />
+                  <Cell label="Target email" value={route.target_email} />
+                  <Cell label="Target system" value={route.target_system} />
+                  <Cell label="Sender ediel" value={route.profile?.sender_ediel_id ?? null} />
+                  <Cell label="Receiver ediel" value={route.profile?.receiver_ediel_id ?? null} />
+                  <Cell label="Mailbox" value={route.profile?.mailbox ?? null} />
+                  <Cell label="App ref" value={route.profile?.application_reference ?? null} />
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
     </div>

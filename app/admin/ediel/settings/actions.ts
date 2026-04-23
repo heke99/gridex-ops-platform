@@ -26,6 +26,22 @@ function boolValue(formData: FormData, key: string): boolean {
   return normalized === 'true' || normalized === '1' || normalized === 'on'
 }
 
+function uppercaseOrNull(value: string | null): string | null {
+  return value ? value.toUpperCase() : null
+}
+
+function normalizeMessageStandard(
+  value: string | null
+): 'edifact' | 'xml' | 'ai_list' {
+  return value === 'xml' || value === 'ai_list' ? value : 'edifact'
+}
+
+function normalizeDirection(
+  value: string | null
+): 'inbound' | 'outbound' | 'both' {
+  return value === 'inbound' || value === 'outbound' ? value : 'both'
+}
+
 async function getActorContext() {
   const supabase = await createSupabaseServerClient()
   const {
@@ -45,8 +61,9 @@ async function getActorContext() {
 function revalidateEdielPaths() {
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/ediel/settings')
-  revalidatePath('/admin/ediel/control-tower')
   revalidatePath('/admin/ediel/routes')
+  revalidatePath('/admin/ediel/control-tower')
+  revalidatePath('/admin/ediel/ai-list')
 }
 
 export async function saveEdielActorSettingsAction(formData: FormData) {
@@ -61,18 +78,17 @@ export async function saveEdielActorSettingsAction(formData: FormData) {
 
   const payload = {
     actor_name: stringValue(formData, 'actor_name') ?? '',
-    actor_ediel_id: stringValue(formData, 'actor_ediel_id') ?? '',
+    actor_ediel_id: uppercaseOrNull(stringValue(formData, 'actor_ediel_id')) ?? '',
     actor_role: stringValue(formData, 'actor_role') ?? '',
     environment,
     is_active: isActive,
     sender_name: stringValue(formData, 'sender_name'),
-    sender_sub_address: stringValue(formData, 'sender_sub_address'),
-    default_application_reference: stringValue(
-      formData,
-      'default_application_reference'
+    sender_sub_address: uppercaseOrNull(stringValue(formData, 'sender_sub_address')),
+    default_application_reference: uppercaseOrNull(
+      stringValue(formData, 'default_application_reference')
     ),
     default_timezone: intValue(formData, 'default_timezone') ?? 1,
-    default_charset: stringValue(formData, 'default_charset') ?? 'UNOC',
+    default_charset: uppercaseOrNull(stringValue(formData, 'default_charset')) ?? 'UNOC',
     default_test_flag: intValue(formData, 'default_test_flag') === 0 ? 0 : 1,
     smtp_from_email: stringValue(formData, 'smtp_from_email'),
     smtp_reply_to_email: stringValue(formData, 'smtp_reply_to_email'),
@@ -122,35 +138,34 @@ export async function saveEdielMessageRuleAction(formData: FormData) {
   const { supabase, userId } = await getActorContext()
 
   const id = stringValue(formData, 'id')
+  const messageFamily = uppercaseOrNull(stringValue(formData, 'message_family')) ?? ''
+  const messageCode = uppercaseOrNull(stringValue(formData, 'message_code')) ?? ''
+  const versionCode = stringValue(formData, 'version_code') ?? ''
+  const validFrom = stringValue(formData, 'valid_from')
+  const validTo = stringValue(formData, 'valid_to')
+
+  if (!messageFamily || !messageCode || !versionCode) {
+    throw new Error('message_family, message_code och version_code måste fyllas i.')
+  }
+
+  if (validFrom && validTo && validFrom > validTo) {
+    throw new Error('valid_from kan inte vara senare än valid_to.')
+  }
 
   const payload = {
-    message_family: stringValue(formData, 'message_family') ?? '',
-    message_code: stringValue(formData, 'message_code') ?? '',
-    message_standard:
-      (stringValue(formData, 'message_standard') as
-        | 'edifact'
-        | 'xml'
-        | 'ai_list'
-        | null) ?? 'edifact',
-    version_code: stringValue(formData, 'version_code') ?? '',
-    direction:
-      (stringValue(formData, 'direction') as
-        | 'inbound'
-        | 'outbound'
-        | 'both'
-        | null) ?? 'both',
+    message_family: messageFamily,
+    message_code: messageCode,
+    message_standard: normalizeMessageStandard(stringValue(formData, 'message_standard')),
+    version_code: versionCode,
+    direction: normalizeDirection(stringValue(formData, 'direction')),
     requires_contrl: boolValue(formData, 'requires_contrl'),
     requires_aperak: boolValue(formData, 'requires_aperak'),
     supports_negative_response: boolValue(formData, 'supports_negative_response'),
     is_active: boolValue(formData, 'is_active'),
-    valid_from: stringValue(formData, 'valid_from'),
-    valid_to: stringValue(formData, 'valid_to'),
+    valid_from: validFrom,
+    valid_to: validTo,
     notes: stringValue(formData, 'notes'),
     updated_by: userId,
-  }
-
-  if (!payload.message_family || !payload.message_code || !payload.version_code) {
-    throw new Error('message_family, message_code och version_code måste fyllas i.')
   }
 
   if (id) {

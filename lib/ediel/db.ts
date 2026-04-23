@@ -17,14 +17,14 @@ import type {
   UpdateEdielMessageStatusInput,
 } from '@/lib/ediel/types'
 
-type DuplicateAckCandidateRow = {
+export type DuplicateAckCandidateRow = {
   related_message_id: string
   message_family: string
   duplicate_count: number
   message_ids: string[]
 }
 
-type RuleAmbiguityRow = {
+export type RuleAmbiguityRow = {
   message_family: string
   message_code: string
   message_standard: string
@@ -59,6 +59,23 @@ export type CanonicalAckConflictInput = {
     | 'conflicting_outcome'
     | 'duplicate_same_family'
   payload?: Record<string, unknown>
+}
+
+export type CanonicalIssueKind =
+  | 'duplicate_block'
+  | 'ack_conflict'
+  | 'version_mismatch'
+  | 'invalid_code_usage'
+
+export type CanonicalIssueEventRow = EdielMessageEventRow & {
+  issue_kind: CanonicalIssueKind
+  dedupe_layer: CanonicalDuplicateBlockLayer | null
+  ack_family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR' | null
+  source_message_id: string | null
+  existing_ack_message_id: string | null
+  attempted_outcome: 'positive' | 'negative' | null
+  existing_outcome: 'positive' | 'negative' | null
+  reason: string | null
 }
 
 function cleanObject<T extends Record<string, unknown>>(value: T): T {
@@ -96,23 +113,156 @@ function inferAckOutcome(row: EdielMessageRow): 'positive' | 'negative' | null {
   const parsedPayload = row.parsed_payload ?? {}
   const payloadOutcome =
     parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
-      ? parsedPayload.ackOutcome
+      ? payloadOutcomeOrNull(parsedPayload.ackOutcome)
       : null
 
   if (payloadOutcome) return payloadOutcome
 
   if (row.message_family === 'CONTRL') {
     if (row.syntax_check_status === 'accepted') return 'positive'
-    if (row.syntax_check_status === 'rejected' || row.syntax_check_status === 'failed') return 'negative'
+    if (row.syntax_check_status === 'rejected' || row.syntax_check_status === 'failed') {
+      return 'negative'
+    }
     return null
   }
 
   if (row.message_family === 'APERAK' || row.message_family === 'UTILTS_ERR') {
     if (row.functional_check_status === 'accepted') return 'positive'
-    if (row.functional_check_status === 'rejected' || row.functional_check_status === 'failed') return 'negative'
+    if (
+      row.functional_check_status === 'rejected' ||
+      row.functional_check_status === 'failed'
+    ) {
+      return 'negative'
+    }
   }
 
   return null
+}
+
+function payloadOutcomeOrNull(
+  value: unknown
+): 'positive' | 'negative' | null {
+  return value === 'positive' || value === 'negative' ? value : null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function asBoolean(value: unknown): boolean {
+  return value === true
+}
+
+function hasVersionMismatch(row: EdielMessageRow): boolean {
+  const payload = row.parsed_payload ?? {}
+  const report = row.validation_report ?? {}
+
+  if (asBoolean(report.versionMismatch)) return true
+  if (asBoolean(report.invalidVersion)) return true
+  if (Array.isArray(report.versionErrors) && report.versionErrors.length > 0) return true
+  if (Array.isArray(report.acceptedVersions) && row.message_version) {
+    const acceptedVersions = report.acceptedVersions.filter(
+      (item): item is string => typeof item === "string"
+    )
+    if (acceptedVersions.length > 0 && !acceptedVersions.includes(row.message_version)) {
+      return true
+    }
+  }
+
+  if (asBoolean(payload.versionMismatch)) return true
+  if (Array.isArray(payload.versionErrors) && payload.versionErrors.length > 0) return true
+
+  return false
+}
+
+function hasInvalidCodeUsage(row: EdielMessageRow): boolean {
+  const payload = row.parsed_payload ?? {}
+  const report = row.validation_report ?? {}
+
+  if (asBoolean(report.invalidCodeUsage)) return true
+  if (asBoolean(report.codeListViolation)) return true
+  if (asBoolean(report.invalidCodeListUsage)) return true
+  if (Array.isArray(report.codeListErrors) && report.codeListErrors.length > 0) return true
+  if (Array.isArray(report.invalidCodes) && report.invalidCodes.length > 0) return true
+
+  if (asBoolean(payload.invalidCodeUsage)) return true
+  if (Array.isArray(payload.codeListErrors) && payload.codeListErrors.length > 0) return true
+  if (Array.isArray(payload.invalidCodes) && payload.invalidCodes.length > 0) return true
+
+  return false
+}
+
+function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventRow | null {
+  const payload = ensureJson(row.payload)
+
+  const duplicateBlocked = asBoolean(payload.duplicateBlocked)
+  const ackConflict = asBoolean(payload.ackConflict)
+  const versionMismatch = asBoolean(payload.versionMismatch)
+  const invalidCodeUsage =
+    asBoolean(payload.invalidCodeUsage) ||
+    asBoolean(payload.codeListViolation) ||
+    asBoolean(payload.invalidCodeListUsage)
+
+  let issueKind: CanonicalIssueKind | null = null
+
+  if (ackConflict) {
+    issueKind = 'ack_conflict'
+  } else if (duplicateBlocked) {
+    issueKind = 'duplicate_block'
+  } else if (versionMismatch) {
+    issueKind = 'version_mismatch'
+  } else if (invalidCodeUsage) {
+    issueKind = 'invalid_code_usage'
+  }
+
+  if (!issueKind) return null
+
+  const dedupeLayerRaw = payload.dedupeLayer
+  const dedupeLayer: CanonicalDuplicateBlockLayer | null =
+    dedupeLayerRaw === 'canonical_inbound' ||
+    dedupeLayerRaw === 'canonical_outbound' ||
+    dedupeLayerRaw === 'canonical_ack'
+      ? dedupeLayerRaw
+      : null
+
+  const ackFamilyRaw = payload.ackFamily
+  const ackFamily =
+    ackFamilyRaw === 'CONTRL' || ackFamilyRaw === 'APERAK' || ackFamilyRaw === 'UTILTS_ERR'
+      ? ackFamilyRaw
+      : null
+
+  return {
+    ...row,
+    issue_kind: issueKind,
+    dedupe_layer: dedupeLayer,
+    ack_family: ackFamily,
+    source_message_id: asString(payload.sourceMessageId),
+    existing_ack_message_id: asString(payload.existingAckMessageId),
+    attempted_outcome: payloadOutcomeOrNull(payload.attemptedOutcome),
+    existing_outcome: payloadOutcomeOrNull(payload.existingOutcome),
+    reason: asString(payload.reason),
+  }
+}
+
+async function listRecentManualIssueEvents(limit = 200): Promise<CanonicalIssueEventRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_message_events')
+    .select('*')
+    .eq('event_type', 'manual_note')
+    .in('event_status', ['warning', 'error'])
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+
+  const rows = (data ?? []) as EdielMessageEventRow[]
+  return rows
+    .map(mapCanonicalIssueEvent)
+    .filter((row): row is CanonicalIssueEventRow => row !== null)
 }
 
 export async function createEdielMessage(
@@ -413,6 +563,56 @@ export async function createCanonicalAckConflictEvent(
       ...(input.payload ?? {}),
     },
   })
+}
+
+export async function listCanonicalDuplicateBlockEvents(params?: {
+  limit?: number
+  layer?: CanonicalDuplicateBlockLayer
+}): Promise<CanonicalIssueEventRow[]> {
+  const rows = await listRecentManualIssueEvents(Math.max(params?.limit ?? 100, 50))
+
+  return rows
+    .filter(
+      (row) =>
+        row.issue_kind === 'duplicate_block' &&
+        (!params?.layer || row.dedupe_layer === params.layer)
+    )
+    .slice(0, params?.limit ?? 100)
+}
+
+export async function listCanonicalAckConflictEvents(params?: {
+  limit?: number
+  ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+}): Promise<CanonicalIssueEventRow[]> {
+  const rows = await listRecentManualIssueEvents(Math.max(params?.limit ?? 100, 50))
+
+  return rows
+    .filter(
+      (row) =>
+        row.issue_kind === 'ack_conflict' &&
+        (!params?.ackFamily || row.ack_family === params.ackFamily)
+    )
+    .slice(0, params?.limit ?? 100)
+}
+
+export async function listRecentVersionMismatchMessages(params?: {
+  limit?: number
+}): Promise<EdielMessageRow[]> {
+  const recentMessages = await listEdielMessages({
+    limit: Math.max(params?.limit ?? 50, 150),
+  })
+
+  return recentMessages.filter(hasVersionMismatch).slice(0, params?.limit ?? 50)
+}
+
+export async function listRecentInvalidCodeUsageMessages(params?: {
+  limit?: number
+}): Promise<EdielMessageRow[]> {
+  const recentMessages = await listEdielMessages({
+    limit: Math.max(params?.limit ?? 50, 150),
+  })
+
+  return recentMessages.filter(hasInvalidCodeUsage).slice(0, params?.limit ?? 50)
 }
 
 export async function listEdielMessageEvents(

@@ -9,6 +9,8 @@ import {
   listRuleAmbiguities,
 } from '@/lib/ediel/db'
 
+export const dynamic = 'force-dynamic'
+
 function tone(value: 'green' | 'yellow' | 'red' | 'slate' | 'blue'): string {
   if (value === 'green') return 'border-green-200 bg-green-50 text-green-700'
   if (value === 'yellow') return 'border-yellow-200 bg-yellow-50 text-yellow-700'
@@ -219,12 +221,12 @@ export default async function AdminEdielControlTowerPage() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-medium text-slate-900">
-                        {row.message_family} × {row.duplicate_count}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Source message: {row.related_message_id}
-                      </p>
+                      <div className="font-medium text-slate-900">
+                        {row.message_family} för källa {row.related_message_id}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-500">
+                        Antal dubletter: {row.duplicate_count}
+                      </div>
                     </div>
                     <Link
                       href={`/admin/ediel/messages/${row.related_message_id}`}
@@ -232,6 +234,18 @@ export default async function AdminEdielControlTowerPage() {
                     >
                       Öppna källa
                     </Link>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {row.message_ids.map((messageId) => (
+                      <Link
+                        key={messageId}
+                        href={`/admin/ediel/messages/${messageId}`}
+                        className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-600 underline-offset-2 hover:bg-slate-50 hover:underline"
+                      >
+                        {messageId}
+                      </Link>
+                    ))}
                   </div>
                 </li>
               ))}
@@ -241,9 +255,9 @@ export default async function AdminEdielControlTowerPage() {
 
         <article className="rounded-2xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Versions-/regelkonflikter</h2>
+            <h2 className="text-base font-semibold text-slate-900">Regelambiguiteter</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Visar när regelsättet inte ger ett entydigt runtime-beslut.
+              Aktiv message-rule ska vara entydig per family, code, standard och riktning.
             </p>
           </div>
           {ruleAmbiguities.length === 0 ? (
@@ -258,16 +272,117 @@ export default async function AdminEdielControlTowerPage() {
                   className="px-5 py-4"
                 >
                   <div className="font-medium text-slate-900">
-                    {row.message_family} {row.message_code} / {row.direction}
+                    {row.message_family} {row.message_code}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    {row.message_standard} · {row.active_rule_count} aktiva regler
+                  <div className="mt-1 text-sm text-slate-500">
+                    {row.message_standard} · {row.direction} · {row.active_rule_count} aktiva regler
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {row.version_codes.map((version) => (
+                      <span
+                        key={version}
+                        className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-600"
+                      >
+                        {version}
+                      </span>
+                    ))}
                   </div>
                 </li>
               ))}
             </ul>
           )}
         </article>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="text-base font-semibold text-slate-900">Senaste trafik</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Senaste Ediel-meddelanden med canonical ack-state.
+          </p>
+        </div>
+
+        {recentMessages.length === 0 ? (
+          <div className="px-5 py-6 text-sm text-slate-500">
+            Inga Ediel-meddelanden hittades ännu.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Skapad</th>
+                  <th className="px-4 py-3 font-medium">Meddelande</th>
+                  <th className="px-4 py-3 font-medium">Direction</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Ack-state</th>
+                  <th className="px-4 py-3 font-medium">Referenser</th>
+                  <th className="px-4 py-3 font-medium">Öppna</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentMessages.map((row) => {
+                  const canonicalState = getCanonicalAckState(row)
+                  return (
+                    <tr key={row.id}>
+                      <td className="px-4 py-3 align-top text-xs text-slate-500">
+                        {formatDate(row.created_at)}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="font-medium text-slate-900">
+                          {row.message_family} {row.message_code}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {row.message_version || 'utan version'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-slate-700">{row.direction}</td>
+                      <td className="px-4 py-3 align-top">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${tone(
+                            row.status === 'failed'
+                              ? 'red'
+                              : row.status === 'queued' || row.status === 'prepared'
+                                ? 'yellow'
+                                : row.status === 'sent' ||
+                                    row.status === 'parsed' ||
+                                    row.status === 'validated'
+                                  ? 'blue'
+                                  : 'green'
+                          )}`}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${ackTone(
+                            String(canonicalState)
+                          )}`}
+                        >
+                          {String(canonicalState)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs text-slate-500">
+                        <div>External: {row.external_reference ?? '—'}</div>
+                        <div>Transaction: {row.transaction_reference ?? '—'}</div>
+                        <div>Interchange: {row.interchange_reference ?? '—'}</div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs text-slate-500">
+                        <Link
+                          href={`/admin/ediel/messages/${row.id}`}
+                          className="underline-offset-2 hover:underline"
+                        >
+                          Öppna meddelande
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   )

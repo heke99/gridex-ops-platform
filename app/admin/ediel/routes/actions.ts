@@ -34,13 +34,42 @@ function boolValue(formData: FormData, key: string): boolean {
   return normalized === 'true' || normalized === 'on' || normalized === '1'
 }
 
-function revalidateEdielPaths(customerId?: string | null) {
-  revalidatePath('/admin/ediel/routes')
+function normalizeMessageStandard(
+  value: string | null
+): 'edifact' | 'xml' | 'ai_list' {
+  return value === 'xml' || value === 'ai_list' ? value : 'edifact'
+}
+
+function normalizeAckMode(value: string | null): EdielRouteProfileAckMode {
+  return value === 'none' ||
+    value === 'contrl_only' ||
+    value === 'contrl_and_aperak'
+    ? value
+    : 'default'
+}
+
+function normalizePayloadFormat(value: string | null): EdielPayloadFormat {
+  return value === 'xml' || value === 'raw' ? value : 'edifact'
+}
+
+function normalizeEncryptionMode(value: string | null): EdielEncryptionMode | null {
+  return value === 'none' || value === 'smime' || value === 'pgp' ? value : null
+}
+
+function revalidateEdielPaths(customerId?: string | null, routeId?: string | null) {
   revalidatePath('/admin/ediel')
+  revalidatePath('/admin/ediel/routes')
+  revalidatePath('/admin/ediel/settings')
+  revalidatePath('/admin/ediel/control-tower')
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/integrations/routes')
+
   if (customerId) {
     revalidatePath(`/admin/customers/${customerId}`)
+  }
+
+  if (routeId) {
+    revalidatePath('/admin/ediel/routes')
   }
 }
 
@@ -166,40 +195,22 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     environment:
       (stringValue(formData, 'environment') as 'test' | 'production' | null) ??
       'test',
-    messageStandard:
-      (stringValue(formData, 'messageStandard') as
-        | 'edifact'
-        | 'xml'
-        | 'ai_list'
-        | null) ?? 'edifact',
-    ackMode:
-      (stringValue(formData, 'ackMode') as
-        | 'default'
-        | 'none'
-        | 'contrl_only'
-        | 'contrl_and_aperak'
-        | null) ?? 'default',
+    messageStandard: normalizeMessageStandard(stringValue(formData, 'messageStandard')),
+    ackMode: normalizeAckMode(stringValue(formData, 'ackMode')),
     smtpHost: stringValue(formData, 'smtpHost'),
     smtpPort: intValue(formData, 'smtpPort'),
     imapHost: stringValue(formData, 'imapHost'),
     imapPort: intValue(formData, 'imapPort'),
     mailbox: stringValue(formData, 'mailbox'),
-    encryptionMode:
-      (stringValue(formData, 'encryptionMode') as
-        | 'none'
-        | 'smime'
-        | 'pgp'
-        | null) ?? null,
-    payloadFormat:
-      (stringValue(formData, 'payloadFormat') as
-        | 'edifact'
-        | 'xml'
-        | 'raw'
-        | null) ?? 'edifact',
+    encryptionMode: normalizeEncryptionMode(stringValue(formData, 'encryptionMode')),
+    payloadFormat: normalizePayloadFormat(stringValue(formData, 'payloadFormat')),
     notes: stringValue(formData, 'notes'),
   })
 
-  revalidateEdielPaths(stringValue(formData, 'customerId'))
+  revalidateEdielPaths(
+    stringValue(formData, 'customerId'),
+    communicationRouteId
+  )
 }
 
 export async function saveEdielCommunicationRouteAction(formData: FormData) {
@@ -245,7 +256,7 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
     notes: stringValue(formData, 'route_notes'),
   })
 
-  revalidateEdielPaths(stringValue(formData, 'customerId'))
+  revalidateEdielPaths(stringValue(formData, 'customerId'), id)
 }
 
 export async function quickFixEdielTargetEmailAction(formData: FormData) {
@@ -275,7 +286,7 @@ export async function quickFixEdielTargetEmailAction(formData: FormData) {
 
   if (error) throw error
 
-  revalidateEdielPaths(customerId)
+  revalidateEdielPaths(customerId, routeId)
 }
 
 export async function quickFixEdielRouteActivationAction(formData: FormData) {
@@ -337,7 +348,7 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
     notes: existingProfile?.notes ?? null,
   })
 
-  revalidateEdielPaths(customerId)
+  revalidateEdielPaths(customerId, routeId)
 }
 
 export async function quickFixEdielProfileBasicsAction(formData: FormData) {
@@ -388,7 +399,7 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
     notes: existingProfile?.notes ?? null,
   })
 
-  revalidateEdielPaths(customerId)
+  revalidateEdielPaths(customerId, routeId)
 }
 
 export async function quickFixGridOwnerEdielIdAction(formData: FormData) {

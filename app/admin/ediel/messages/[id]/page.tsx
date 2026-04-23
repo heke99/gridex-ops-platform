@@ -53,12 +53,26 @@ function badgeTone(
     return 'green'
   }
   if (
-    ['queued', 'prepared', 'pending', 'awaiting_contrl', 'awaiting_aperak', 'in_progress', 'warning'].includes(status)
+    [
+      'queued',
+      'prepared',
+      'pending',
+      'awaiting_contrl',
+      'awaiting_aperak',
+      'in_progress',
+      'warning',
+    ].includes(status)
   ) {
     return 'yellow'
   }
   if (
-    ['failed', 'contrl_failed', 'ack_overdue', 'aperak_received_negative', 'error'].includes(status)
+    [
+      'failed',
+      'contrl_failed',
+      'ack_overdue',
+      'aperak_received_negative',
+      'error',
+    ].includes(status)
   ) {
     return 'red'
   }
@@ -93,31 +107,110 @@ function JsonBlock({ value }: { value: unknown }) {
 
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
-  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+  return value.filter(
+    (item): item is string => typeof item === 'string' && item.trim().length > 0
+  )
 }
 
 function getDuplicateBlockEvents(events: EdielMessageEventRow[]): EdielMessageEventRow[] {
-  return events.filter((event) => {
-    const dedupeLayer =
-      typeof event.payload?.dedupeLayer === 'string' ? event.payload.dedupeLayer : null
-    if (dedupeLayer) return true
-    return typeof event.message === 'string' && event.message.toLowerCase().includes('blockerad')
-  })
+  return events.filter((event) => event.payload?.duplicateBlocked === true)
+}
+
+function getAckConflictEvents(events: EdielMessageEventRow[]): EdielMessageEventRow[] {
+  return events.filter((event) => event.payload?.ackConflict === true)
+}
+
+function getIssueEvents(events: EdielMessageEventRow[]): EdielMessageEventRow[] {
+  return events.filter(
+    (event) =>
+      event.payload?.duplicateBlocked === true ||
+      event.payload?.ackConflict === true ||
+      event.event_status === 'error'
+  )
 }
 
 function getVersionDiagnostics(validationReport: Record<string, unknown>) {
   const acceptedInboundVersions = asStringArray(validationReport.acceptedInboundVersions)
   const inboundVersionAccepted = validationReport.inboundVersionAccepted === true
+  const inboundVersionRejected = validationReport.inboundVersionAccepted === false
   const inboundVersionCheckDate =
     typeof validationReport.inboundVersionCheckDate === 'string'
       ? validationReport.inboundVersionCheckDate
       : null
+  const versionErrors = asStringArray(validationReport.versionErrors)
 
   return {
     acceptedInboundVersions,
     inboundVersionAccepted,
+    inboundVersionRejected,
     inboundVersionCheckDate,
+    versionErrors,
   }
+}
+
+function getCodeListDiagnostics(validationReport: Record<string, unknown>) {
+  const codeListErrors = asStringArray(validationReport.codeListErrors)
+  const codeValidationErrors = asStringArray(validationReport.codeValidationErrors)
+  const invalidCodes = asStringArray(validationReport.invalidCodes)
+
+  return {
+    codeListErrors,
+    codeValidationErrors,
+    invalidCodes,
+    hasIssues:
+      codeListErrors.length > 0 ||
+      codeValidationErrors.length > 0 ||
+      invalidCodes.length > 0 ||
+      validationReport.invalidCodeListUsage === true ||
+      validationReport.invalidCodeUsage === true,
+  }
+}
+
+function summarizeRouteRuntime(routeRuntime: Record<string, unknown> | null) {
+  if (!routeRuntime) return []
+
+  const routeName =
+    typeof routeRuntime.routeName === 'string'
+      ? routeRuntime.routeName
+      : typeof routeRuntime.route_name === 'string'
+        ? routeRuntime.route_name
+        : null
+
+  const receiverEdielId =
+    typeof routeRuntime.receiverEdielId === 'string'
+      ? routeRuntime.receiverEdielId
+      : typeof routeRuntime.receiver_ediel_id === 'string'
+        ? routeRuntime.receiver_ediel_id
+        : null
+
+  const applicationReference =
+    typeof routeRuntime.applicationReference === 'string'
+      ? routeRuntime.applicationReference
+      : typeof routeRuntime.application_reference === 'string'
+        ? routeRuntime.application_reference
+        : null
+
+  const transportType =
+    typeof routeRuntime.transportType === 'string'
+      ? routeRuntime.transportType
+      : typeof routeRuntime.transport_type === 'string'
+        ? routeRuntime.transport_type
+        : null
+
+  const defaultMessageVersion =
+    typeof routeRuntime.defaultMessageVersion === 'string'
+      ? routeRuntime.defaultMessageVersion
+      : typeof routeRuntime.default_message_version === 'string'
+        ? routeRuntime.default_message_version
+        : null
+
+  return [
+    routeName ? `Route: ${routeName}` : null,
+    receiverEdielId ? `Mottagare: ${receiverEdielId}` : null,
+    applicationReference ? `Application ref: ${applicationReference}` : null,
+    transportType ? `Transport: ${transportType}` : null,
+    defaultMessageVersion ? `Route default version: ${defaultMessageVersion}` : null,
+  ].filter((value): value is string => Boolean(value))
 }
 
 function renderVersionWindow(window: ResolvedVersionWindow | null) {
@@ -191,7 +284,9 @@ export default async function AdminEdielMessageDetailPage({
     message.direction === 'inbound'
       ? listAckMessagesForSource({ sourceMessageId: message.id })
       : Promise.resolve([]),
-    message.related_message_id ? getEdielMessageById(message.related_message_id) : Promise.resolve(null),
+    message.related_message_id
+      ? getEdielMessageById(message.related_message_id)
+      : Promise.resolve(null),
     message.communication_route_id
       ? getEdielRouteRuntimeByCommunicationRouteId(message.communication_route_id)
       : Promise.resolve(null),
@@ -214,7 +309,15 @@ export default async function AdminEdielMessageDetailPage({
 
   const canonicalAckState = getCanonicalAckState(ackState ?? message)
   const duplicateBlockEvents = getDuplicateBlockEvents(events)
+  const ackConflictEvents = getAckConflictEvents(events)
+  const issueEvents = getIssueEvents(events)
   const versionDiagnostics = getVersionDiagnostics(message.validation_report ?? {})
+  const codeListDiagnostics = getCodeListDiagnostics(message.validation_report ?? {})
+  const routeSummary = summarizeRouteRuntime(
+    routeRuntime && typeof routeRuntime === 'object'
+      ? (routeRuntime as Record<string, unknown>)
+      : null
+  )
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -331,7 +434,7 @@ export default async function AdminEdielMessageDetailPage({
           </article>
 
           <article className="rounded-3xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Länkar</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Länkar / relationer</h2>
             <div className="mt-4 space-y-3 text-sm text-slate-600">
               <div>Route ID: {message.communication_route_id ?? '—'}</div>
               <div>Related message: {message.related_message_id ?? '—'}</div>
@@ -350,36 +453,66 @@ export default async function AdminEdielMessageDetailPage({
           </article>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Version runtime</h2>
-          <div className="mt-4">{renderVersionWindow(versionWindow)}</div>
+        <section className="grid gap-6 xl:grid-cols-2">
+          <article className="rounded-3xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Version runtime</h2>
+            <div className="mt-4">{renderVersionWindow(versionWindow)}</div>
 
-          {versionDiagnostics.acceptedInboundVersions.length > 0 ? (
-            <div className="mt-4 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700">
-              <div>Validation report accepted versions:</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {versionDiagnostics.acceptedInboundVersions.map((version) => (
-                  <Pill key={version} text={version} />
+            {(versionDiagnostics.acceptedInboundVersions.length > 0 ||
+              versionDiagnostics.versionErrors.length > 0 ||
+              versionDiagnostics.inboundVersionRejected) ? (
+              <div className="mt-4 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700">
+                {versionDiagnostics.acceptedInboundVersions.length > 0 ? (
+                  <>
+                    <div>Validation report accepted versions:</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {versionDiagnostics.acceptedInboundVersions.map((version) => (
+                        <Pill key={version} text={version} />
+                      ))}
+                    </div>
+                    <div className="mt-2">
+                      Accepted: {versionDiagnostics.inboundVersionAccepted ? 'Ja' : 'Nej'}
+                    </div>
+                    <div>
+                      Check date: {versionDiagnostics.inboundVersionCheckDate ?? '—'}
+                    </div>
+                  </>
+                ) : null}
+
+                {versionDiagnostics.versionErrors.length > 0 ? (
+                  <div className="mt-3 rounded-xl bg-rose-50 p-3 text-rose-700">
+                    <div className="font-medium">Version errors</div>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {versionDiagnostics.versionErrors.map((error) => (
+                        <li key={error}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </article>
+
+          <article className="rounded-3xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Route runtime</h2>
+            {routeSummary.length > 0 ? (
+              <ul className="mt-4 space-y-2 text-sm text-slate-700">
+                {routeSummary.map((line) => (
+                  <li key={line}>{line}</li>
                 ))}
+              </ul>
+            ) : (
+              <div className="mt-4 text-sm text-slate-500">Ingen route runtime hittades.</div>
+            )}
+            {routeRuntime ? (
+              <div className="mt-4">
+                <JsonBlock value={routeRuntime} />
               </div>
-              <div className="mt-2">
-                Accepted: {versionDiagnostics.inboundVersionAccepted ? 'Ja' : 'Nej'}
-              </div>
-              <div>
-                Check date: {versionDiagnostics.inboundVersionCheckDate ?? '—'}
-              </div>
-            </div>
-          ) : null}
+            ) : null}
+          </article>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
-          <article className="rounded-3xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Route runtime</h2>
-            {routeRuntime ? <div className="mt-4"><JsonBlock value={routeRuntime} /></div> : (
-              <div className="mt-4 text-sm text-slate-500">Ingen route runtime hittades.</div>
-            )}
-          </article>
-
           <article className="rounded-3xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">Ack chain</h2>
             {relatedAckMessages.length === 0 ? (
@@ -396,42 +529,123 @@ export default async function AdminEdielMessageDetailPage({
                     </div>
                     <div className="mt-2 space-y-1 text-sm text-slate-700">
                       <div>ID: {ack.id}</div>
+                      <div>Outcome: {String(ack.parsed_payload?.ackOutcome ?? '—')}</div>
                       <div>Syntax: {ack.syntax_check_status ?? '—'}</div>
                       <div>Functional: {ack.functional_check_status ?? '—'}</div>
                       <div>Created: {formatDate(ack.created_at)}</div>
                     </div>
+                    <Link
+                      href={`/admin/ediel/messages/${ack.id}`}
+                      className="mt-3 inline-block text-sm text-slate-700 underline-offset-2 hover:underline"
+                    >
+                      Öppna ack-meddelande
+                    </Link>
                   </li>
                 ))}
               </ul>
             )}
           </article>
+
+          <article className="rounded-3xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Kodlist-/valideringsdiagnostik</h2>
+            {!codeListDiagnostics.hasIssues ? (
+              <div className="mt-4 text-sm text-slate-500">
+                Inga kodlistsignaler hittades i validation report.
+              </div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                {codeListDiagnostics.codeListErrors.length > 0 ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                    <div className="text-sm font-medium text-rose-700">Code list errors</div>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-rose-700">
+                      {codeListDiagnostics.codeListErrors.map((error) => (
+                        <li key={error}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {codeListDiagnostics.codeValidationErrors.length > 0 ? (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <div className="text-sm font-medium text-amber-700">
+                      Code validation errors
+                    </div>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-700">
+                      {codeListDiagnostics.codeValidationErrors.map((error) => (
+                        <li key={error}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {codeListDiagnostics.invalidCodes.length > 0 ? (
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <div className="text-sm font-medium text-slate-700">Invalid codes</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {codeListDiagnostics.invalidCodes.map((code) => (
+                        <Pill key={code} text={code} />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </article>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Dedupe / events</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Issue events / dedupe</h2>
 
-          {duplicateBlockEvents.length > 0 ? (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <div className="text-sm font-medium text-amber-800">
-                Duplicate-block events
-              </div>
-              <ul className="mt-3 space-y-3">
-                {duplicateBlockEvents.map((event) => (
-                  <li key={event.id} className="rounded-xl bg-white p-3 text-sm text-slate-700">
-                    <div className="font-medium text-slate-900">{event.message ?? 'Blockerad'}</div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      {formatDate(event.created_at)}
-                    </div>
-                    <div className="mt-2">
-                      <JsonBlock value={event.payload} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
+          {issueEvents.length === 0 ? (
+            <div className="mt-4 text-sm text-slate-500">
+              Inga duplicate-blocks, ack-konflikter eller error-events hittades för detta meddelande.
             </div>
-          ) : null}
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {issueEvents.map((event) => (
+                <li key={event.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Pill text={event.event_status} />
+                    {typeof event.payload?.dedupeLayer === 'string' ? (
+                      <Pill text={event.payload.dedupeLayer} />
+                    ) : null}
+                    {event.payload?.ackConflict === true ? <Pill text="ack_conflict" /> : null}
+                  </div>
+                  <div className="mt-2 space-y-1 text-sm text-slate-700">
+                    <div>{event.message ?? 'Issue event'}</div>
+                    <div>Skapad: {formatDate(event.created_at)}</div>
+                  </div>
+                  <div className="mt-3">
+                    <JsonBlock value={event.payload} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
 
-          <div className="mt-4">
+          {(duplicateBlockEvents.length > 0 || ackConflictEvents.length > 0) && (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">
+                  Duplicate-block count
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-slate-900">
+                  {duplicateBlockEvents.length}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">
+                  Ack-conflict count
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-slate-900">
+                  {ackConflictEvents.length}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6">
+            <h3 className="mb-2 text-sm font-medium text-slate-700">Alla events</h3>
             <JsonBlock value={events} />
           </div>
         </section>

@@ -1,19 +1,14 @@
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
-import {
-  buildDefaultApplicationReference,
-  resolveMessageVersion,
-} from '@/lib/ediel/config'
-import {
-  buildEdielExternalReference,
-  buildEdielTransactionReference,
-  deriveEdielAckDefaults,
-} from '@/lib/ediel/references'
+import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { inferEdielFileName } from '@/lib/ediel/classify'
 import type {
   CustomerSiteRow,
   GridOwnerRow,
   MeteringPointRow,
 } from '@/lib/masterdata/types'
+import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
+import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
+import { deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy'
 
 export type AiListType = 'AI' | 'BI'
 
@@ -54,7 +49,70 @@ function safe(value?: string | null): string {
   return (value ?? '').replace(/;/g, ',').trim()
 }
 
+function sortKey(row: AiListDetailRow): string {
+  return [
+    safe(row.anlaggningsId),
+    normalizeDate(row.franDatum),
+    normalizeDate(row.tillDatum),
+    safe(row.produktkod),
+    safe(row.matmetod),
+    safe(row.avrakningsmetod),
+    safe(row.rapporteringsfrekvens),
+  ].join('|')
+}
+
+function normalizeDetailRow(row: AiListDetailRow): AiListDetailRow {
+  return {
+    anlaggningsId: safe(row.anlaggningsId),
+    natavrakningsomrade: safe(row.natavrakningsomrade),
+    balansansvarsId: safe(row.balansansvarsId),
+    elhandelsId: safe(row.elhandelsId),
+    natforetagsId: safe(row.natforetagsId),
+    anlaggningsAdress: safe(row.anlaggningsAdress),
+    postnummer: safe(row.postnummer),
+    ort: safe(row.ort),
+    franDatum: normalizeDate(row.franDatum),
+    tillDatum: normalizeDate(row.tillDatum),
+    avrakningsmetod: safe(row.avrakningsmetod),
+    matmetod: safe(row.matmetod),
+    rapporteringsfrekvens: safe(row.rapporteringsfrekvens),
+    produktkod: safe(row.produktkod),
+    matarNummer: safe(row.matarNummer),
+    serieId: safe(row.serieId),
+    elanvandarId: safe(row.elanvandarId),
+  }
+}
+
+function canonicalizeDetails(rows: AiListDetailRow[]): AiListDetailRow[] {
+  const deduped = new Map<string, AiListDetailRow>()
+
+  for (const row of rows) {
+    const normalized = normalizeDetailRow(row)
+    deduped.set(sortKey(normalized), normalized)
+  }
+
+  return [...deduped.values()].sort((a, b) => sortKey(a).localeCompare(sortKey(b), 'sv'))
+}
+
+function buildAiListFileName(params: {
+  listType: AiListType
+  senderEdielId: string
+  receiverEdielId: string
+  fromDate: string
+  toDate: string
+}) {
+  const fromDate = normalizeDate(params.fromDate)
+  const toDate = normalizeDate(params.toDate)
+  const sender = safe(params.senderEdielId).replace(/[^A-Za-z0-9]/g, '')
+  const receiver = safe(params.receiverEdielId).replace(/[^A-Za-z0-9]/g, '')
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '')
+
+  return `${params.listType}_${sender}_${receiver}_${fromDate}_${toDate}_${stamp}.csv`
+}
+
 export function buildAiListCsv(input: BuildAiListCsvInput): string {
+  const canonicalDetails = canonicalizeDetails(input.details)
+
   const header = [
     input.listType,
     'Ver20140401',
@@ -65,7 +123,7 @@ export function buildAiListCsv(input: BuildAiListCsvInput): string {
     normalizeDate(input.toDate),
   ].join(';')
 
-  const rows = input.details.map((row) =>
+  const rows = canonicalDetails.map((row) =>
     [
       safe(row.anlaggningsId),
       safe(row.natavrakningsomrade),
@@ -161,36 +219,35 @@ export async function buildAiListOutboundDraft(input: {
   externalReference?: string | null
   correlationReference?: string | null
   transactionReference?: string | null
+  routeDefaultMessageVersion?: string | null
 }): Promise<CreateEdielMessageInput> {
+  const refs = buildCanonicalOutboundReferences({
+    family: 'AI_LIST',
+    code: input.listType,
+    relatedMessageId: null,
+    preferredExternalReference: input.externalReference ?? null,
+    preferredTransactionReference: input.transactionReference ?? null,
+    correlationReference: input.correlationReference ?? null,
+  })
+
   const version =
-    (await resolveMessageVersion({
+    (await resolveCanonicalOutboundVersion({
       family: 'AI_LIST',
       code: input.listType,
       fallback: 'Ver20140401',
       standard: 'ai_list',
+      routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
+      environment: 'test',
     })) ?? 'Ver20140401'
 
-  const externalReference =
-    input.externalReference ??
-    buildEdielExternalReference({
-      family: 'AI_LIST',
-      code: input.listType,
-    })
-
-  const transactionReference =
-    input.transactionReference ??
-    buildEdielTransactionReference({
-      family: 'AI_LIST',
-      code: input.listType,
-    })
-
+  const canonicalDetails = canonicalizeDetails(input.details)
   const csvPayload = buildAiListCsv({
     listType: input.listType,
     senderEdielId: input.senderEdielId,
     receiverEdielId: input.receiverEdielId,
     fromDate: input.fromDate,
     toDate: input.toDate,
-    details: input.details,
+    details: canonicalDetails,
   })
 
   const ack = deriveEdielAckDefaults({
@@ -199,7 +256,7 @@ export async function buildAiListOutboundDraft(input: {
   })
 
   return {
-   actorUserId: input.actorUserId ?? 'system',
+    actorUserId: input.actorUserId ?? 'system',
     direction: 'outbound',
     messageStandard: 'ai_list',
     messageFamily: 'AI_LIST',
@@ -220,29 +277,39 @@ export async function buildAiListOutboundDraft(input: {
       actorSubAddress: 'GRIDEX',
       process: 'AI_LIST',
     }),
-    externalReference,
-    correlationReference: input.correlationReference ?? null,
-    transactionReference,
+    externalReference: refs.externalReference,
+    correlationReference: refs.correlationReference,
+    transactionReference: refs.transactionReference,
     communicationRouteId: input.communicationRouteId ?? null,
     customerId: input.customerId ?? null,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
     gridOwnerId: input.gridOwnerId ?? null,
-    subject: `${input.listType}-LIST ${externalReference}`,
-    fileName: inferEdielFileName({
-      family: 'AI_LIST',
-      code: input.listType,
-      direction: 'outbound',
-      extension: 'csv',
-    }),
+    subject: `${input.listType}-LIST ${refs.externalReference ?? ''}`.trim(),
+    fileName:
+      buildAiListFileName({
+        listType: input.listType,
+        senderEdielId: input.senderEdielId,
+        receiverEdielId: input.receiverEdielId,
+        fromDate: input.fromDate,
+        toDate: input.toDate,
+      }) ||
+      inferEdielFileName({
+        family: 'AI_LIST',
+        code: input.listType,
+        direction: 'outbound',
+        extension: 'csv',
+      }),
     mimeType: 'text/csv',
     rawPayload: csvPayload,
     parsedPayload: {
       listType: input.listType,
+      version,
       fromDate: input.fromDate,
       toDate: input.toDate,
-      detailCount: input.details.length,
-      details: input.details,
+      detailCount: canonicalDetails.length,
+      rawDetailCount: input.details.length,
+      details: canonicalDetails,
     },
     requiresContrl: ack.requiresContrl,
     requiresAperak: ack.requiresAperak,
