@@ -458,8 +458,12 @@ export async function buildUtiltsOutboundDraft(
     correlationReference: input.correlationReference ?? null,
   })
 
-  const externalReference = refs.externalReference
-  const transactionReference = refs.transactionReference
+ const externalReference = refs.externalReference ?? `UTILTS-${input.code}`
+const transactionReference = refs.transactionReference ?? `UTILTS-${input.code}`
+
+if (!externalReference || !transactionReference) {
+  throw new Error('Canonical UTILTS references could not be resolved')
+}
 
   const messageVersion =
     (await resolveOutboundMessageVersion({

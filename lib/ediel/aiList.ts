@@ -199,7 +199,7 @@ export async function buildAiListOutboundDraft(input: {
   })
 
   return {
-    actorUserId: input.actorUserId ?? null,
+   actorUserId: input.actorUserId ?? 'system',
     direction: 'outbound',
     messageStandard: 'ai_list',
     messageFamily: 'AI_LIST',

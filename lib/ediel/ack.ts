@@ -12,12 +12,8 @@ import {
 } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { inferEdielFileName } from '@/lib/ediel/classify'
-import {
-  buildCanonicalAckReferences,
-} from '@/lib/ediel/core/referenceRegistry'
-import {
-  listAckMessagesForSource,
-} from '@/lib/ediel/db'
+import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
+import { listAckMessagesForSource } from '@/lib/ediel/db'
 
 export type AckOutcome = 'positive' | 'negative'
 export type AckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
@@ -319,48 +315,37 @@ function buildAckDraft(params: {
   const segments =
     params.ackFamily === 'CONTRL'
       ? buildContrlSegments({
-        sourceMessage: params.sourceMessage,
-        externalReference: refs.externalReference ?? params.sourceMessage.id,
-        transactionReference:
-          refs.transactionReference ?? params.sourceMessage.id,
-        outcome,
-        messageText: params.messageText ?? null,
-      })
-      : params.ackFamily === 'APERAK'
-        ? buildAperakSegments({
           sourceMessage: params.sourceMessage,
           externalReference: refs.externalReference ?? params.sourceMessage.id,
-          transactionReference:
-            refs.transactionReference ?? params.sourceMessage.id,
+          transactionReference: refs.transactionReference ?? params.sourceMessage.id,
           outcome,
           messageText: params.messageText ?? null,
         })
+      : params.ackFamily === 'APERAK'
+        ? buildAperakSegments({
+            sourceMessage: params.sourceMessage,
+            externalReference: refs.externalReference ?? params.sourceMessage.id,
+            transactionReference: refs.transactionReference ?? params.sourceMessage.id,
+            outcome,
+            messageText: params.messageText ?? null,
+          })
         : buildUtiltsErrSegments({
-          sourceMessage: params.sourceMessage,
-          externalReference: refs.externalReference ?? params.sourceMessage.id,
-          transactionReference:
-            refs.transactionReference ?? params.sourceMessage.id,
-          messageText: params.messageText ?? null,
-        })
+            sourceMessage: params.sourceMessage,
+            externalReference: refs.externalReference ?? params.sourceMessage.id,
+            transactionReference: refs.transactionReference ?? params.sourceMessage.id,
+            messageText: params.messageText ?? null,
+          })
 
   const envelope = buildEdifactEnvelope({
     senderEdielId: parties.senderEdielId ?? 'UNKNOWN',
     receiverEdielId: parties.receiverEdielId ?? 'UNKNOWN',
-    messageType:
+    messageTypeToken:
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:D:96A:UN:1.0'
         : params.ackFamily === 'APERAK'
           ? 'APERAK:D:96A:UN:2.0'
           : 'UTILTS:D:01B:UN:1.1',
     applicationReference,
-    interchangeReference:
-      refs.originalMessageId ??
-      params.sourceMessage.interchange_reference ??
-      params.sourceMessage.id,
-    transactionReference:
-      refs.transactionReference ??
-      params.sourceMessage.transaction_reference ??
-      params.sourceMessage.id,
     segments,
     senderSubAddress: parties.senderSubAddress ?? undefined,
     receiverSubAddress: parties.receiverSubAddress ?? undefined,
@@ -374,7 +359,7 @@ function buildAckDraft(params: {
         : params.ackFamily === 'APERAK'
           ? 'APERAK'
           : 'UTILTS_ERR',
-    externalReference: refs.externalReference ?? params.sourceMessage.id,
+    direction: 'outbound',
     extension: 'edi',
   })
 
@@ -410,7 +395,7 @@ function buildAckDraft(params: {
     receiverEmail: parties.receiverEmail,
     fileName,
     mimeType: 'application/edifact',
-    rawPayload: envelope,
+    rawPayload: envelope.raw,
     parsedPayload: {
       ackFamily: params.ackFamily,
       ackOutcome: outcome,
@@ -428,8 +413,7 @@ function buildAckDraft(params: {
       params.sourceMessage.interchange_reference ??
       params.sourceMessage.id,
     externalReference: refs.externalReference,
-    correlationReference:
-      refs.correlationReference ?? params.sourceMessage.id,
+    correlationReference: refs.correlationReference ?? params.sourceMessage.id,
     transactionReference: refs.transactionReference,
     originalMessageId: refs.originalMessageId,
     originalTransactionId: refs.originalTransactionId,
@@ -574,29 +558,61 @@ export async function findExistingAckForSource(params: {
       }
 
       return params.outcome === 'negative'
-        ? row.functional_check_status === 'rejected' || row.functional_check_status === 'failed'
+        ? row.functional_check_status === 'rejected' ||
+            row.functional_check_status === 'failed'
         : row.functional_check_status === 'accepted'
     }) ?? null
   )
 }
 
-export function getCanonicalAckState(sourceMessage: Pick<EdielMessageRow, 'requires_contrl' | 'requires_aperak' | 'contrl_status' | 'aperak_status' | 'utilts_err_status' | 'ack_due_at'>): EdielCanonicalAckState {
+export function getCanonicalAckState(
+  sourceMessage: Pick<
+    EdielMessageRow,
+    | 'requires_contrl'
+    | 'requires_aperak'
+    | 'contrl_status'
+    | 'aperak_status'
+    | 'utilts_err_status'
+    | 'ack_due_at'
+  >
+): EdielCanonicalAckState {
   const contrlStatus = sourceMessage.contrl_status ?? null
   const aperakStatus = sourceMessage.aperak_status ?? null
   const utiltsErrStatus = sourceMessage.utilts_err_status ?? null
   const now = Date.now()
-  const dueAt = sourceMessage.ack_due_at ? new Date(sourceMessage.ack_due_at).getTime() : Number.NaN
+  const dueAt = sourceMessage.ack_due_at
+    ? new Date(sourceMessage.ack_due_at).getTime()
+    : Number.NaN
   const overdue = Number.isFinite(dueAt) && dueAt < now
 
   if (contrlStatus === 'failed') return 'contrl_failed'
   if (aperakStatus === 'failed') return 'aperak_received_negative'
-  if (utiltsErrStatus === 'received' || utiltsErrStatus === 'sent') return 'utilts_err_received'
-  if (contrlStatus === 'received' || contrlStatus === 'sent') return 'contrl_received'
-  if (aperakStatus === 'received' || aperakStatus === 'sent') return 'aperak_received_positive'
-  if (overdue && (contrlStatus === 'pending' || aperakStatus === 'pending' || utiltsErrStatus === 'pending')) return 'ack_overdue'
+  if (utiltsErrStatus === 'received' || utiltsErrStatus === 'sent') {
+    return 'utilts_err_received'
+  }
+  if (contrlStatus === 'received' || contrlStatus === 'sent') {
+    return 'contrl_received'
+  }
+  if (aperakStatus === 'received' || aperakStatus === 'sent') {
+    return 'aperak_received_positive'
+  }
+  if (
+    overdue &&
+    (contrlStatus === 'pending' ||
+      aperakStatus === 'pending' ||
+      utiltsErrStatus === 'pending')
+  ) {
+    return 'ack_overdue'
+  }
   if (contrlStatus === 'pending') return 'awaiting_contrl'
   if (aperakStatus === 'pending') return 'awaiting_aperak'
   if (utiltsErrStatus === 'pending') return 'in_progress'
-  if (sourceMessage.requires_contrl === false && sourceMessage.requires_aperak === false && !utiltsErrStatus) return 'no_ack_required'
+  if (
+    sourceMessage.requires_contrl === false &&
+    sourceMessage.requires_aperak === false &&
+    !utiltsErrStatus
+  ) {
+    return 'no_ack_required'
+  }
   return 'in_progress'
 }

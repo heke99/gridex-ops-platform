@@ -293,8 +293,8 @@ function buildProdatSwitchOutboundDraft(
 
     const segments = renderProdatSegments({
       code,
-      bgmReference: externalReference,
-      transactionReference,
+      bgmReference: externalReference ?? input.switchRequest.id,
+      transactionReference: transactionReference ?? input.switchRequest.id,
       switchRequest: input.switchRequest,
       site: input.site,
       meteringPoint: input.meteringPoint,

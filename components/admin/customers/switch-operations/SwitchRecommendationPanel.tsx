@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import type {
-  EdielRecommendationRouteIssue,
+  EdielRouteIssue,
   EdielRecommendationRouteRow,
 } from '@/lib/ediel/recommendations'
 import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
@@ -40,7 +40,7 @@ type Props = {
         }
       | null
     routeSummary: string
-    routeIssues: EdielRecommendationRouteIssue[]
+    routeIssues: EdielRouteIssue[]
     routeHealth: {
       isRouteActive: boolean
       isEdielEnabled: boolean

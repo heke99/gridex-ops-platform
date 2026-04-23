@@ -349,7 +349,7 @@ export async function refreshOutboundRequestRouteResolution(input: {
   const { data, error } = await supabaseService
     .from('outbound_requests')
     .update({
-      communication_route_id: route?.id ?? input.communicationRouteId ?? null,
+      communication_route_id: route?.id ?? null,
       channel_type: nextChannelType,
       payload: mergeJsonObjects(current.payload, buildRoutePayload(route)),
       updated_by: input.actorUserId,

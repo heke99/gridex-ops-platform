@@ -375,7 +375,7 @@ export async function createCanonicalDuplicateBlockEvent(
   input: CanonicalDuplicateBlockInput
 ): Promise<EdielMessageEventRow> {
   return createEdielMessageEvent({
-    actorUserId: input.actorUserId ?? null,
+    actorUserId: input.actorUserId ?? 'system',
     edielMessageId: input.edielMessageId,
     eventType: 'manual_note',
     eventStatus: 'warning',
@@ -392,7 +392,7 @@ export async function createCanonicalAckConflictEvent(
   input: CanonicalAckConflictInput
 ): Promise<EdielMessageEventRow> {
   return createEdielMessageEvent({
-    actorUserId: input.actorUserId ?? null,
+    actorUserId: input.actorUserId ?? 'system',
     edielMessageId: input.edielMessageId,
     eventType: 'manual_note',
     eventStatus: 'warning',

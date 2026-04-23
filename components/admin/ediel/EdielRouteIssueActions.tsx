@@ -7,19 +7,19 @@ import {
   quickFixGridOwnerEdielIdAction,
 } from '@/app/admin/ediel/routes/actions'
 import type {
-  EdielRecommendationRouteIssue,
+  EdielRouteIssue,
   EdielRecommendationRouteRow,
 } from '@/lib/ediel/recommendations'
 
 type Props = {
   route: EdielRecommendationRouteRow | null
-  issues: EdielRecommendationRouteIssue[]
+  issues: EdielRouteIssue[]
   customerId?: string | null
 }
 
 function hasIssue(
-  issues: EdielRecommendationRouteIssue[],
-  key: EdielRecommendationRouteIssue['key']
+  issues: EdielRouteIssue[],
+  key: EdielRouteIssue['key']
 ) {
   return issues.some((issue) => issue.key === key)
 }
@@ -33,12 +33,12 @@ export default function EdielRouteIssueActions({
     return null
   }
 
-  const needsTargetEmail = hasIssue(issues, 'target_email')
-  const needsSender = hasIssue(issues, 'sender_ediel_id')
-  const needsReceiver = hasIssue(issues, 'receiver_ediel_id')
-  const needsMailbox = hasIssue(issues, 'mailbox')
-  const needsActivation = hasIssue(issues, 'inactive_route')
-  const needsEnable = hasIssue(issues, 'ediel_disabled')
+  const needsTargetEmail = hasIssue(issues, 'target_email_missing')
+  const needsSender = hasIssue(issues, 'sender_ediel_missing')
+  const needsReceiver = hasIssue(issues, 'receiver_ediel_missing')
+  const needsMailbox = hasIssue(issues, 'mailbox_missing')
+  const needsActivation = hasIssue(issues, 'route_inactive')
+  const needsEnable = hasIssue(issues, 'profile_disabled')
 
   return (
     <div className="space-y-3">
@@ -85,124 +85,74 @@ export default function EdielRouteIssueActions({
           <input type="hidden" name="routeId" value={route.id} />
           <input type="hidden" name="customerId" value={customerId ?? ''} />
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                target_email
-              </label>
-              <input
-                name="targetEmail"
-                defaultValue={route.target_email ?? ''}
-                placeholder="ediel@motpart.se"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Sparas på communication route och används nästa gång routen väljs.
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                Lägg till target email
+              </div>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Behövs för mailbaserad dispatch om routen går via SMTP.
               </p>
             </div>
 
-            <div className="flex items-end">
-              <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
-                Spara target_email
-              </button>
-            </div>
+            <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
+              Spara fix
+            </button>
           </div>
         </form>
       )}
 
-      {(needsSender || needsMailbox || needsReceiver) && (
+      {(needsSender || needsMailbox) && (
         <form
           action={quickFixEdielProfileBasicsAction}
           className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
         >
           <input type="hidden" name="routeId" value={route.id} />
           <input type="hidden" name="customerId" value={customerId ?? ''} />
-          <input type="hidden" name="enableEdiel" value="true" />
+          <input type="hidden" name="fillSenderEdielId" value={needsSender ? 'true' : 'false'} />
+          <input type="hidden" name="fillMailbox" value={needsMailbox ? 'true' : 'false'} />
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                sender_ediel_id
-              </label>
-              <input
-                name="senderEdielId"
-                defaultValue={route.profile?.sender_ediel_id ?? ''}
-                placeholder="Ert Ediel-id"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                Fyll profilens grundfält
+              </div>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Används för sender Ediel-id och mailbox på vald routeprofil.
+              </p>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                receiver_ediel_id
-              </label>
-              <input
-                name="receiverEdielId"
-                defaultValue={
-                  route.profile?.receiver_ediel_id ?? route.grid_owner_ediel_id ?? ''
-                }
-                placeholder="Motpartens Ediel-id"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                mailbox
-              </label>
-              <input
-                name="mailbox"
-                defaultValue={route.profile?.mailbox ?? ''}
-                placeholder="ediel@gridex.se"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            Sparas på Ediel-profilen för denna route och återanvänds framöver.
-          </p>
-
-          <div className="mt-3">
             <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
-              Spara routeprofil
+              Spara fix
             </button>
           </div>
         </form>
       )}
 
-      {needsReceiver && route.grid_owner_id ? (
+      {needsReceiver && route.grid_owner_id && (
         <form
           action={quickFixGridOwnerEdielIdAction}
-          className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/20"
+          className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
         >
           <input type="hidden" name="gridOwnerId" value={route.grid_owner_id} />
           <input type="hidden" name="customerId" value={customerId ?? ''} />
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                Nätägarens Ediel-id
-              </label>
-              <input
-                name="edielId"
-                defaultValue={route.grid_owner_ediel_id ?? ''}
-                placeholder="Nätägarens Ediel-id"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Sparas i nätägar-masterdata och används som fallback nästa gång.
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                Fyll mottagarens Ediel-id
+              </div>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Hämtas normalt från route profile eller nätägarens masterdata.
               </p>
             </div>
 
-            <div className="flex items-end">
-              <button className="rounded-2xl border border-blue-300 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/30">
-                Spara på nätägare
-              </button>
-            </div>
+            <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
+              Spara fix
+            </button>
           </div>
         </form>
-      ) : null}
+      )}
     </div>
   )
 }

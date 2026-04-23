@@ -114,7 +114,7 @@ function buildInboundProdatMessageInput(params: {
   })
 
   return {
-    actorUserId: null,
+    actorUserId: 'system',
     direction: 'inbound',
     messageStandard: 'edifact',
     messageFamily: 'PRODAT',
@@ -138,7 +138,6 @@ function buildInboundProdatMessageInput(params: {
       extension: 'edi',
     }),
     mimeType: 'application/edifact',
-    interchangeReference: parsed.interchangeReference ?? null,
     externalReference: parsed.externalReference,
     transactionReference: parsed.transactionReference,
     applicationReference: parsed.applicationReference,
@@ -171,7 +170,7 @@ function buildInboundAiListMessageInput(params: {
     params.subject?.match(/[A-Z0-9._-]{6,}/)?.[0] ?? params.mailboxMessageId ?? null
 
   return {
-    actorUserId: null,
+    actorUserId: 'system',
     direction: 'inbound',
     messageStandard: 'ai_list',
     messageFamily: 'AI_LIST',
