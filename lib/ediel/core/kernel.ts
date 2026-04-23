@@ -27,9 +27,9 @@ import {
   hasCanonicalAckDuplicate,
 } from '@/lib/ediel/core/dedupe'
 import {
-  resolveInboundAcceptedVersionsRuntime,
-  resolveOutboundMessageVersionRuntime,
-} from '@/lib/ediel/config'
+  resolveCanonicalInboundAcceptedVersions,
+  resolveCanonicalOutboundVersion,
+} from '@/lib/ediel/core/versionRegistry'
 
 function ensureActorUserId(value?: string | null) {
   return value && value.trim() ? value.trim() : 'system'
@@ -65,19 +65,7 @@ export async function resolveOutboundMessageVersion(params: {
   environment?: EdielEnvironment
   routeDefaultMessageVersion?: string | null
 }) {
-  if (params.routeDefaultMessageVersion?.trim()) {
-    return params.routeDefaultMessageVersion.trim()
-  }
-
-  const runtime = await resolveOutboundMessageVersionRuntime({
-    family: params.family,
-    code: params.code,
-    standard: params.standard ?? 'edifact',
-    fallback: params.fallback ?? null,
-    environment: params.environment ?? 'test',
-  })
-
-  return runtime.selectedVersion
+  return resolveCanonicalOutboundVersion(params)
 }
 
 export async function resolveInboundAcceptedVersions(params: {
@@ -86,22 +74,7 @@ export async function resolveInboundAcceptedVersions(params: {
   standard?: EdielMessageStandard
   date?: string | null
 }) {
-  const runtime = await resolveInboundAcceptedVersionsRuntime({
-    family: params.family,
-    code: params.code,
-    standard: params.standard ?? 'edifact',
-    date: params.date ?? null,
-  })
-
-  return runtime.acceptedVersions.map((versionCode, index) => ({
-    id: `accepted-${params.family}-${params.code}-${index}`,
-    version_code: versionCode,
-    valid_from: index === 0 ? params.date ?? null : null,
-    valid_to: null,
-    requires_contrl: false,
-    requires_aperak: false,
-    supports_negative_response: false,
-  }))
+  return resolveCanonicalInboundAcceptedVersions(params)
 }
 
 export async function registerInboundCanonicalMessage(params: {
@@ -202,6 +175,96 @@ export async function createCanonicalOutboundMessage(params: {
   return createEdielMessage({
     ...params.baseInput,
     actorUserId,
+  })
+}
+
+export async function finalizeCanonicalOutboundDraft(params: {
+  actorUserId?: string | null
+  requestType: CanonicalRouteRequestType
+  routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
+  draft: CreateEdielMessageInput
+  outboundRequestId?: string | null
+  duplicateCheck: {
+    sourceType?: string | null
+    sourceId?: string | null
+    receiverEdielId?: string | null
+    messageFamily: string
+    messageCode: string
+    messageVersion?: string | null
+    periodStart?: string | null
+    periodEnd?: string | null
+  }
+}) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
+  const messageFamily = params.draft.messageFamily
+  const messageCode = String(params.draft.messageCode)
+
+  const resolvedVersion = await resolveCanonicalOutboundVersion({
+    family: messageFamily,
+    code: messageCode,
+    standard: params.draft.messageStandard,
+    fallback: params.draft.messageVersion ?? null,
+    environment: params.draft.environment ?? params.routeContext.environment,
+    routeDefaultMessageVersion: params.routeContext.defaultMessageVersion,
+  })
+
+  const refs = buildCanonicalOutboundReferences({
+    family: messageFamily,
+    code: messageCode,
+    relatedMessageId: null,
+    preferredExternalReference: params.draft.externalReference ?? null,
+    preferredTransactionReference: params.draft.transactionReference ?? null,
+    correlationReference: params.draft.correlationReference ?? null,
+    originalMessageId: params.draft.originalMessageId ?? null,
+    originalTransactionId: params.draft.originalTransactionId ?? null,
+    originalMessageCode: params.draft.originalMessageCode ?? null,
+  })
+
+  return createCanonicalOutboundMessage({
+    actorUserId,
+    requestType: params.requestType,
+    duplicateCheck: {
+      outboundRequestId: params.outboundRequestId ?? null,
+      sourceType: params.duplicateCheck.sourceType ?? null,
+      sourceId: params.duplicateCheck.sourceId ?? null,
+      receiverEdielId: params.duplicateCheck.receiverEdielId ?? null,
+      messageFamily,
+      messageCode,
+      messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
+      periodStart: params.duplicateCheck.periodStart ?? null,
+      periodEnd: params.duplicateCheck.periodEnd ?? null,
+    },
+    baseInput: {
+      ...params.draft,
+      actorUserId,
+      messageVersion: resolvedVersion ?? params.draft.messageVersion ?? null,
+      applicationReference:
+        params.draft.applicationReference ??
+        params.routeContext.applicationReference ??
+        null,
+      externalReference: refs.externalReference,
+      transactionReference: refs.transactionReference,
+      correlationReference: refs.correlationReference,
+      originalMessageId: refs.originalMessageId,
+      originalTransactionId: refs.originalTransactionId,
+      originalMessageCode: refs.originalMessageCode,
+      senderEdielId: params.draft.senderEdielId ?? params.routeContext.senderEdielId,
+      senderName: params.draft.senderName ?? params.routeContext.senderName,
+      senderSubAddress:
+        params.draft.senderSubAddress ?? params.routeContext.senderSubAddress,
+      receiverEdielId: params.draft.receiverEdielId ?? params.routeContext.receiverEdielId,
+      receiverName: params.draft.receiverName ?? params.routeContext.receiverName,
+      receiverSubAddress:
+        params.draft.receiverSubAddress ?? params.routeContext.receiverSubAddress,
+      receiverEmail: params.draft.receiverEmail ?? params.routeContext.receiverEmail,
+      mailbox: params.draft.mailbox ?? params.routeContext.mailbox,
+      communicationRouteId:
+        params.draft.communicationRouteId ?? params.routeContext.route.id,
+      environment: params.draft.environment ?? params.routeContext.environment,
+      messageStandard:
+        params.draft.messageStandard ?? params.routeContext.messageStandard,
+      testFlag: params.draft.testFlag ?? params.routeContext.actor.testFlag,
+    },
   })
 }
 

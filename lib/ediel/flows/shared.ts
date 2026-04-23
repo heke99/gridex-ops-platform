@@ -7,10 +7,8 @@ import {
   isActiveEdielMessageFamily,
 } from '@/lib/ediel/types'
 import {
-  createCanonicalOutboundMessage,
-  buildCanonicalReferencesForOutbound,
+  finalizeCanonicalOutboundDraft,
   resolveCanonicalOutboundContext,
-  resolveOutboundMessageVersion,
 } from '@/lib/ediel/core/kernel'
 import {
   createOutboundRequest,
@@ -129,79 +127,27 @@ export async function finalizeOutboundDraft(params: {
   draft: CreateEdielMessageInput
   outboundRequestId?: string | null
   duplicateCheck: {
+    sourceType?: string | null
+    sourceId?: string | null
     receiverEdielId?: string | null
     messageFamily: string
     messageCode: string
     messageVersion?: string | null
+    periodStart?: string | null
+    periodEnd?: string | null
   }
 }) {
   const messageFamily = params.draft.messageFamily
-  const messageCode = params.draft.messageCode
 
   assertActiveFamily(messageFamily, 'finalizeOutboundDraft')
 
-  const resolvedVersion = await resolveOutboundMessageVersion({
-    family: messageFamily,
-    code: String(messageCode),
-    standard: params.draft.messageStandard,
-    fallback: params.draft.messageVersion ?? null,
-    environment: params.draft.environment ?? params.routeContext.environment,
-    routeDefaultMessageVersion: params.routeContext.defaultMessageVersion,
-  })
-
-  const refs = buildCanonicalReferencesForOutbound({
-    family: messageFamily,
-    code: String(messageCode),
-    relatedMessageId: null,
-    preferredExternalReference: params.draft.externalReference ?? null,
-    preferredTransactionReference: params.draft.transactionReference ?? null,
-    correlationReference: params.draft.correlationReference ?? null,
-    originalMessageId: params.draft.originalMessageId ?? null,
-    originalTransactionId: params.draft.originalTransactionId ?? null,
-    originalMessageCode: params.draft.originalMessageCode ?? null,
-  })
-
-  return createCanonicalOutboundMessage({
+  return finalizeCanonicalOutboundDraft({
     actorUserId: params.actorUserId,
     requestType: params.requestType,
-    duplicateCheck: {
-      outboundRequestId: params.outboundRequestId ?? null,
-      receiverEdielId: params.duplicateCheck.receiverEdielId ?? null,
-      messageFamily,
-      messageCode: String(messageCode),
-      messageVersion: resolvedVersion ?? null,
-    },
-    baseInput: {
-      ...params.draft,
-      actorUserId: params.actorUserId,
-      messageVersion: resolvedVersion ?? params.draft.messageVersion ?? null,
-      applicationReference:
-        params.draft.applicationReference ??
-        params.routeContext.applicationReference ??
-        null,
-      externalReference: refs.externalReference,
-      transactionReference: refs.transactionReference,
-      correlationReference: refs.correlationReference,
-      originalMessageId: refs.originalMessageId,
-      originalTransactionId: refs.originalTransactionId,
-      originalMessageCode: refs.originalMessageCode,
-      senderEdielId: params.draft.senderEdielId ?? params.routeContext.senderEdielId,
-      senderName: params.draft.senderName ?? params.routeContext.senderName,
-      senderSubAddress:
-        params.draft.senderSubAddress ?? params.routeContext.senderSubAddress,
-      receiverEdielId: params.draft.receiverEdielId ?? params.routeContext.receiverEdielId,
-      receiverName: params.draft.receiverName ?? params.routeContext.receiverName,
-      receiverSubAddress:
-        params.draft.receiverSubAddress ?? params.routeContext.receiverSubAddress,
-      receiverEmail: params.draft.receiverEmail ?? params.routeContext.receiverEmail,
-      mailbox: params.draft.mailbox ?? params.routeContext.mailbox,
-      communicationRouteId:
-        params.draft.communicationRouteId ?? params.routeContext.route.id,
-      environment: params.draft.environment ?? params.routeContext.environment,
-      messageStandard:
-        params.draft.messageStandard ?? params.routeContext.messageStandard,
-      testFlag: params.draft.testFlag ?? params.routeContext.actor.testFlag,
-    },
+    routeContext: params.routeContext,
+    draft: params.draft,
+    outboundRequestId: params.outboundRequestId ?? null,
+    duplicateCheck: params.duplicateCheck,
   })
 }
 

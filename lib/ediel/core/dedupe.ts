@@ -2,7 +2,7 @@
 
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { findExistingAckForSource } from '@/lib/ediel/ack'
+import { findExistingAckForSource } from '@/lib/ediel/core/ackPolicy'
 import { normalizeInboundReferenceIdentity } from '@/lib/ediel/core/referenceRegistry'
 
 function trimOrNull(value?: string | null): string | null {

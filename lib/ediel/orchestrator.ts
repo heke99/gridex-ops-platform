@@ -1,276 +1,154 @@
 // lib/ediel/orchestrator.ts
 
+import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
+import {
+  buildAckDraftForSource,
+  buildAperakDraft,
+  buildContrlDraft,
+  buildUtiltsErrDraft,
+} from '@/lib/ediel/ack'
+import {
+  createCanonicalAckMessage,
+  resolveCanonicalOutboundContext,
+} from '@/lib/ediel/core/kernel'
+import type {
+  AckFamily,
+  AckOutcome,
+  AckPolicy,
+  EdielCanonicalAckState,
+} from '@/lib/ediel/core/ackPolicy'
+import {
+  findExistingAckForSource,
+  getAutomaticAckPolicy,
+  getCanonicalAckState,
+} from '@/lib/ediel/core/ackPolicy'
+import {
+  createNegativeUtiltsResponse,
+  pollAndIngestEdielMailbox,
+} from '@/lib/ediel/flows/inboundProcessing'
+import {
+  prepareAndQueueAiList,
+} from '@/lib/ediel/flows/aiListFlow'
 import {
   prepareAndQueueEdielZ03,
   prepareAndQueueEdielZ05,
   prepareAndQueueEdielZ09,
 } from '@/lib/ediel/flows/prodatSwitch'
 import {
-  prepareAndQueueUtiltsE73,
   prepareAndQueueUtiltsE66,
+  prepareAndQueueUtiltsE73,
 } from '@/lib/ediel/flows/utiltsDataRequest'
-import { prepareAndQueueAiList } from '@/lib/ediel/flows/aiListFlow'
-import {
-  pollAndIngestEdielMailbox,
-  createNegativeUtiltsResponse,
-} from '@/lib/ediel/flows/inboundProcessing'
+
+export type {
+  AckFamily,
+  AckOutcome,
+  AckPolicy,
+  EdielCanonicalAckState,
+}
 
 export {
   prepareAndQueueEdielZ03,
   prepareAndQueueEdielZ05,
   prepareAndQueueEdielZ09,
-  prepareAndQueueUtiltsE73,
   prepareAndQueueUtiltsE66,
+  prepareAndQueueUtiltsE73,
   prepareAndQueueAiList,
   pollAndIngestEdielMailbox,
   createNegativeUtiltsResponse,
+  getAutomaticAckPolicy,
+  findExistingAckForSource,
+  getCanonicalAckState,
+  buildContrlDraft,
+  buildAperakDraft,
+  buildUtiltsErrDraft,
+  buildAckDraftForSource,
 }
 
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import {
-  createCanonicalAckConflictEvent,
-  createCanonicalDuplicateBlockEvent,
-  createEdielMessageEvent,
-  getEdielMessageById,
-} from '@/lib/ediel/db'
-import { updateSupplierSwitchRequestStatus } from '@/lib/operations/db'
-import { updateOutboundRequestStatus } from '@/lib/cis/db'
-import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
-import { buildAckDraftForSource, findExistingAckForSource, type AckFamily, type AckOutcome } from '@/lib/ediel/ack'
-import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
-import {
-  ACTIVE_EDIEL_MESSAGE_FAMILIES,
-  isActiveEdielMessageFamily,
-} from '@/lib/ediel/types'
-
-function ensureActorUserId(value?: string | null): string {
-  return value && value.trim() ? value.trim() : 'system'
-}
-
-function assertActiveFamily(
-  family: string | null | undefined,
-  context: string
-): asserts family is typeof ACTIVE_EDIEL_MESSAGE_FAMILIES[number] {
-  if (!isActiveEdielMessageFamily(family)) {
-    throw new Error(
-      `${context}: message family ${family ?? 'null'} ligger utanför aktiv release (${ACTIVE_EDIEL_MESSAGE_FAMILIES.join(', ')})`
-    )
-  }
-}
-
-async function logAckCreateOutcome(params: {
-  actorUserId: string
-  sourceMessageId: string
-  ackMessageId: string
-  ackFamily: AckFamily
-  outcome: AckOutcome | 'negative'
-  dedupeBlocked: boolean
-  conflictReason?: 'duplicate_same_outcome' | 'conflicting_outcome' | 'duplicate_same_family'
-  existingAckMessageId?: string | null
-}) {
-  const eventType =
-    params.ackFamily === 'CONTRL'
-      ? 'contrl_sent'
-      : params.ackFamily === 'APERAK'
-        ? 'aperak_sent'
-        : 'utilts_err_sent'
-
-  if (params.dedupeBlocked) {
-    if (params.conflictReason) {
-      await createCanonicalAckConflictEvent({
-        actorUserId: params.actorUserId,
-        edielMessageId: params.sourceMessageId,
-        ackFamily: params.ackFamily,
-        sourceMessageId: params.sourceMessageId,
-        attemptedOutcome: params.outcome,
-        existingAckMessageId: params.existingAckMessageId ?? null,
-        existingOutcome:
-          params.conflictReason === 'conflicting_outcome'
-            ? params.outcome === 'positive'
-              ? 'negative'
-              : 'positive'
-            : params.outcome,
-        reason: params.conflictReason,
-      })
-      return
-    }
-
-    await createCanonicalDuplicateBlockEvent({
-      actorUserId: params.actorUserId,
-      edielMessageId: params.sourceMessageId,
-      layer: 'canonical_ack',
-      message: `${params.ackFamily}-skapande blockerades som canonical dublett.`,
-      payload: {
-        ackFamily: params.ackFamily,
-        attemptedOutcome: params.outcome,
-        existingAckMessageId: params.existingAckMessageId ?? null,
-      },
-    })
-    return
-  }
-
-  await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.sourceMessageId,
-    eventType,
-    eventStatus: params.ackFamily === 'UTILTS_ERR' ? 'warning' : 'success',
-    message: `${params.ackFamily}-utkast skapat via canonical kernel.`,
-    payload: {
-      ackMessageId: params.ackMessageId,
-      ackFamily: params.ackFamily,
-      outcome: params.outcome,
-      dedupeBlocked: false,
-    },
-  })
-}
-
-export async function sendQueuedEdielMessage(params: {
-  actorUserId: string
-  edielMessageId: string
-}) {
-  const actorUserId = ensureActorUserId(params.actorUserId)
-  const message = await getEdielMessageById(params.edielMessageId)
-  if (!message) throw new Error('Ediel-meddelande hittades inte')
-
-  assertActiveFamily(message.message_family, 'sendQueuedEdielMessage')
-
-  const result = await sendEdielMessageViaSmtp(message)
-
-  if (message.outbound_request_id) {
-    await updateOutboundRequestStatus({
-      actorUserId,
-      outboundRequestId: message.outbound_request_id,
-      status: 'sent',
-      externalReference: message.external_reference,
-      responsePayload: {
-        smtpMessageId: result.messageId,
-        accepted: result.accepted,
-        rejected: result.rejected,
-      },
-    })
-  }
-
-  if (message.switch_request_id) {
-    const supabase = await createSupabaseServerClient()
-    await updateSupplierSwitchRequestStatus(supabase, {
-      requestId: message.switch_request_id,
-      status: 'submitted',
-      externalReference: message.external_reference,
-    })
-  }
-
-  return result
-}
-
-export async function createAckDraftForMessage(params: {
-  actorUserId: string
-  sourceMessageId: string
+export async function createAckForSourceMessage(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
   ackFamily: AckFamily
   outcome?: AckOutcome
   messageText?: string | null
 }) {
-  const actorUserId = ensureActorUserId(params.actorUserId)
-  const sourceMessage = await getEdielMessageById(params.sourceMessageId)
-
-  if (!sourceMessage) {
-    throw new Error('Källmeddelande hittades inte')
-  }
-
-  const effectiveOutcome =
-    params.ackFamily === 'UTILTS_ERR'
-      ? 'negative'
-      : (params.outcome ?? 'positive')
-
-  const sameOutcomeExisting = await findExistingAckForSource({
-    sourceMessageId: sourceMessage.id,
-    ackFamily: params.ackFamily,
-    outcome: effectiveOutcome,
-  })
-
-  if (sameOutcomeExisting) {
-    await logAckCreateOutcome({
-      actorUserId,
-      sourceMessageId: sourceMessage.id,
-      ackMessageId: sameOutcomeExisting.id,
-      ackFamily: params.ackFamily,
-      outcome: effectiveOutcome,
-      dedupeBlocked: true,
-      conflictReason: 'duplicate_same_outcome',
-      existingAckMessageId: sameOutcomeExisting.id,
-    })
-    return sameOutcomeExisting
-  }
-
-  if (params.ackFamily === 'APERAK' || params.ackFamily === 'CONTRL') {
-    const conflictingOutcome = effectiveOutcome === 'positive' ? 'negative' : 'positive'
-    const oppositeExisting = await findExistingAckForSource({
-      sourceMessageId: sourceMessage.id,
-      ackFamily: params.ackFamily,
-      outcome: conflictingOutcome,
-    })
-
-    if (oppositeExisting) {
-      await logAckCreateOutcome({
-        actorUserId,
-        sourceMessageId: sourceMessage.id,
-        ackMessageId: oppositeExisting.id,
-        ackFamily: params.ackFamily,
-        outcome: effectiveOutcome,
-        dedupeBlocked: true,
-        conflictReason: 'conflicting_outcome',
-        existingAckMessageId: oppositeExisting.id,
-      })
-      return oppositeExisting
-    }
-  }
-
-  const familyExisting = await findExistingAckForSource({
-    sourceMessageId: sourceMessage.id,
-    ackFamily: params.ackFamily,
-  })
-
   const draft = buildAckDraftForSource({
-    actorUserId,
-    sourceMessage,
+    actorUserId: params.actorUserId,
+    sourceMessage: params.sourceMessage,
     ackFamily: params.ackFamily,
     outcome: params.outcome,
     messageText: params.messageText ?? null,
   })
 
-  const ackMessage = await createCanonicalAckMessage({
-    actorUserId,
-    sourceMessage,
+  return createCanonicalAckMessage({
+    actorUserId: params.actorUserId,
+    sourceMessage: params.sourceMessage,
     ackFamily: params.ackFamily,
     outcome: params.outcome,
     draft,
   })
+}
 
-  const dedupeBlocked = ackMessage.id === sourceMessage.id || ackMessage.id === familyExisting?.id
+export async function createAutomaticAcksForInboundMessage(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
+  negativeAperakText?: string | null
+  utiltsErrText?: string | null
+}) {
+  const policy = await getAutomaticAckPolicy(params.sourceMessage)
+  const created: EdielMessageRow[] = []
 
-  if (dedupeBlocked) {
-    await logAckCreateOutcome({
-      actorUserId,
-      sourceMessageId: sourceMessage.id,
-      ackMessageId: ackMessage.id,
-      ackFamily: params.ackFamily,
-      outcome: effectiveOutcome,
-      dedupeBlocked: true,
-      conflictReason: familyExisting ? 'duplicate_same_family' : 'duplicate_same_outcome',
-      existingAckMessageId: ackMessage.id,
+  if (policy.shouldSendContrl) {
+    const contrl = await createAckForSourceMessage({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      ackFamily: 'CONTRL',
+      outcome: 'positive',
     })
-    return ackMessage
+    created.push(contrl)
   }
 
-  await logAckCreateOutcome({
-    actorUserId,
-    sourceMessageId: sourceMessage.id,
-    ackMessageId: ackMessage.id,
-    ackFamily: params.ackFamily,
-    outcome: effectiveOutcome,
-    dedupeBlocked: false,
-  })
+  if (policy.shouldSendPositiveAperak) {
+    const aperak = await createAckForSourceMessage({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      ackFamily: 'APERAK',
+      outcome: 'positive',
+    })
+    created.push(aperak)
+  }
 
-  return ackMessage
+  return {
+    policy,
+    created,
+  }
+}
+
+export async function createNegativeApplicationAck(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
+  messageText?: string | null
+}) {
+  return createAckForSourceMessage({
+    actorUserId: params.actorUserId,
+    sourceMessage: params.sourceMessage,
+    ackFamily: 'APERAK',
+    outcome: 'negative',
+    messageText: params.messageText ?? null,
+  })
+}
+
+export async function createUtiltsErrAck(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
+  messageText?: string | null
+}) {
+  return createAckForSourceMessage({
+    actorUserId: params.actorUserId,
+    sourceMessage: params.sourceMessage,
+    ackFamily: 'UTILTS_ERR',
+    outcome: 'negative',
+    messageText: params.messageText ?? null,
+  })
 }
 
 export async function prepareManualProdatMessage(params: {
@@ -300,4 +178,68 @@ export async function prepareManualProdatMessage(params: {
     switchRequestId: params.switchRequestId,
     communicationRouteId: params.communicationRouteId ?? null,
   })
+}
+
+export async function prepareManualUtiltsMessage(params: {
+  actorUserId: string
+  gridOwnerDataRequestId: string
+  messageCode: 'E66' | 'E73'
+  communicationRouteId?: string | null
+}) {
+  if (params.messageCode === 'E66') {
+    return prepareAndQueueUtiltsE66({
+      actorUserId: params.actorUserId,
+      gridOwnerDataRequestId: params.gridOwnerDataRequestId,
+      communicationRouteId: params.communicationRouteId ?? null,
+    })
+  }
+
+  return prepareAndQueueUtiltsE73({
+    actorUserId: params.actorUserId,
+    gridOwnerDataRequestId: params.gridOwnerDataRequestId,
+    communicationRouteId: params.communicationRouteId ?? null,
+  })
+}
+
+export async function inspectManualRouteRuntime(params: {
+  requestType: 'supplier_switch' | 'meter_values' | 'billing_underlay'
+  gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
+  preferredRouteId?: string | null
+}) {
+  return resolveCanonicalOutboundContext({
+    requestType: params.requestType,
+    gridOwner: params.gridOwner ?? null,
+    preferredRouteId: params.preferredRouteId ?? null,
+    environment: 'test',
+    messageStandard: 'edifact',
+  })
+}
+
+/**
+ * Legacy-stabil public helper.
+ * Behåll denna tunn så att admin/actions och UI inte behöver veta
+ * om underliggande ack/create nu går via core/kernel.
+ */
+export async function createAckDraftAndPersist(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
+  ackFamily: AckFamily
+  outcome?: AckOutcome
+  messageText?: string | null
+}) {
+  return createAckForSourceMessage(params)
+}
+
+/**
+ * Tunn samlingspunkt om någon caller fortfarande förväntar sig att
+ * orchestratorn ska kunna skapa generiska draftar.
+ */
+export function buildAckDraft(params: {
+  actorUserId?: string | null
+  sourceMessage: EdielMessageRow
+  ackFamily: AckFamily
+  outcome?: AckOutcome
+  messageText?: string | null
+}): CreateEdielMessageInput {
+  return buildAckDraftForSource(params)
 }
