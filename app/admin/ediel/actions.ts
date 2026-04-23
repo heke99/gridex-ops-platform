@@ -19,11 +19,19 @@ import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
 import { createEdielTestRun, getEdielMessageById } from '@/lib/ediel/db'
 import { runEdielSelfTest } from '@/lib/ediel/selftest'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
-import { buildProdatZ03FromSwitch, buildProdatZ05FromSwitch, buildProdatZ09FromSwitch } from '@/lib/ediel/prodat'
+import {
+  buildProdatZ03FromSwitch,
+  buildProdatZ05FromSwitch,
+  buildProdatZ09FromSwitch,
+} from '@/lib/ediel/prodat'
 import { finalizeOutboundDraft, makeServerClient } from '@/lib/ediel/flows/shared'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { getSupplierSwitchRequestById } from '@/lib/operations/db'
-import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
+import {
+  getCustomerSiteById,
+  getGridOwnerById,
+  getMeteringPointById,
+} from '@/lib/masterdata/db'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
@@ -202,8 +210,10 @@ export async function createProdatDraftAction(formData: FormData) {
     receiverEdielId: routeContext.receiverEdielId,
     receiverName: routeContext.receiverName,
     receiverEmail: formString(formData.get('receiverEmail')) ?? routeContext.receiverEmail,
-    senderSubAddress: formString(formData.get('senderSubAddress')) ?? routeContext.senderSubAddress,
-    receiverSubAddress: formString(formData.get('receiverSubAddress')) ?? routeContext.receiverSubAddress,
+    senderSubAddress:
+      formString(formData.get('senderSubAddress')) ?? routeContext.senderSubAddress,
+    receiverSubAddress:
+      formString(formData.get('receiverSubAddress')) ?? routeContext.receiverSubAddress,
     communicationRouteId: routeContext.route.id,
     mailbox: formString(formData.get('mailbox')) ?? routeContext.mailbox,
     switchRequest,
@@ -331,7 +341,9 @@ export async function prepareAiListAction(formData: FormData) {
   const fromDate = formString(formData.get('fromDate'))
   const toDate = formString(formData.get('toDate'))
 
-  if (!listType || (listType !== 'AI' && listType !== 'BI')) throw new Error('listType saknas')
+  if (!listType || (listType !== 'AI' && listType !== 'BI')) {
+    throw new Error('listType saknas')
+  }
   if (!customerId) throw new Error('customerId saknas')
   if (!siteId) throw new Error('siteId saknas')
   if (!receiverEdielId) throw new Error('receiverEdielId saknas')
@@ -358,7 +370,12 @@ export async function prepareAiListAction(formData: FormData) {
 export async function registerInboundUtiltsAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
 
-  const messageCode = formString(formData.get('messageCode')) as 'E66' | 'S02' | 'S03' | 'E31' | null
+  const messageCode = formString(formData.get('messageCode')) as
+    | 'E66'
+    | 'S02'
+    | 'S03'
+    | 'E31'
+    | null
   const senderEdielId = formString(formData.get('senderEdielId'))
   const receiverEdielId = formString(formData.get('receiverEdielId'))
   const quantity = formNumber(formData.get('quantity'))
@@ -373,17 +390,20 @@ export async function registerInboundUtiltsAction(formData: FormData) {
   const end = periodEnd ? periodEnd.replace(/[-:T]/g, '').slice(0, 8) : ''
   const qty = quantity ?? 0
 
-  const rawPayload = [
-    `UNB+UNOC:3+${senderEdielId ?? 'SENDER'}:UTILTS+${receiverEdielId ?? 'RECEIVER'}:GRIDEX+250101:1200+${externalReference}`,
-    `UNH+1+UTILTS:D:03A:UN:E5SE5A`,
-    `BGM+${messageCode}+${externalReference}+9`,
-    `RFF+TN:${transactionReference}`,
-    `QTY+47:${qty}:KWH`,
-    start ? `DTM+163:${start}:102` : null,
-    end ? `DTM+164:${end}:102` : null,
-    'UNT+6+1',
-    `UNZ+1+${externalReference}`,
-  ].filter(Boolean).join("'") + "'"
+  const rawPayload =
+    [
+      `UNB+UNOC:3+${senderEdielId ?? 'SENDER'}:UTILTS+${receiverEdielId ?? 'RECEIVER'}:GRIDEX+250101:1200+${externalReference}`,
+      `UNH+1+UTILTS:D:03A:UN:E5SE5A`,
+      `BGM+${messageCode}+${externalReference}+9`,
+      `RFF+TN:${transactionReference}`,
+      `QTY+47:${qty}:KWH`,
+      start ? `DTM+163:${start}:102` : null,
+      end ? `DTM+164:${end}:102` : null,
+      'UNT+6+1',
+      `UNZ+1+${externalReference}`,
+    ]
+      .filter(Boolean)
+      .join("'") + "'"
 
   const input = buildInboundUtiltsMessageInput({
     actorUserId: context.userId,
@@ -414,7 +434,10 @@ export async function runEdielSelfTestAction(formData: FormData) {
 
   await runEdielSelfTest({
     actorUserId: context.userId,
-    scenario: (formString(formData.get('scenario')) as Parameters<typeof runEdielSelfTest>[0]['scenario']) ?? 'PRODAT_Z05_IN',
+    scenario:
+      (formString(formData.get('scenario')) as Parameters<
+        typeof runEdielSelfTest
+      >[0]['scenario']) ?? 'PRODAT_Z05_IN',
     switchRequestId: formString(formData.get('switchRequestId')),
     gridOwnerDataRequestId: formString(formData.get('gridOwnerDataRequestId')),
     senderEdielId: formString(formData.get('senderEdielId')),

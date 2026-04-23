@@ -11,19 +11,15 @@ import type {
   MeteringPointRow,
 } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
-import {
-  buildDefaultApplicationReference,
-} from '@/lib/ediel/config'
+import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { deriveEdielAckDefaults } from '@/lib/ediel/references'
 import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
-import {
-  buildCanonicalReferencesForOutbound,
-  resolveOutboundMessageVersion,
-} from '@/lib/ediel/core/kernel'
+import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
+import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 
 export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
 
@@ -62,6 +58,7 @@ type BaseSwitchOutboundInput = {
   externalReference?: string | null
   transactionReference?: string | null
   correlationReference?: string | null
+  routeDefaultMessageVersion?: string | null
 }
 
 function sanitize(value?: string | null): string {
@@ -264,7 +261,7 @@ function buildProdatSwitchOutboundDraft(
   code: 'Z03' | 'Z05' | 'Z09'
 ): Promise<CreateEdielMessageInput> {
   return (async () => {
-    const refs = buildCanonicalReferencesForOutbound({
+    const refs = buildCanonicalOutboundReferences({
       family: 'PRODAT',
       code,
       relatedMessageId: input.switchRequest.id,
@@ -273,15 +270,17 @@ function buildProdatSwitchOutboundDraft(
       correlationReference: input.correlationReference ?? null,
     })
 
-    const externalReference = refs.externalReference
-    const transactionReference = refs.transactionReference
+    const externalReference = refs.externalReference ?? input.switchRequest.id
+    const transactionReference = refs.transactionReference ?? input.switchRequest.id
 
     const messageVersion =
-      (await resolveOutboundMessageVersion({
+      (await resolveCanonicalOutboundVersion({
         family: 'PRODAT',
         code,
         fallback: 'E5SE5A',
         standard: 'edifact',
+        routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
+        environment: 'test',
       })) ?? 'E5SE5A'
 
     const applicationReference =
@@ -293,8 +292,8 @@ function buildProdatSwitchOutboundDraft(
 
     const segments = renderProdatSegments({
       code,
-      bgmReference: externalReference ?? input.switchRequest.id,
-      transactionReference: transactionReference ?? input.switchRequest.id,
+      bgmReference: externalReference,
+      transactionReference,
       switchRequest: input.switchRequest,
       site: input.site,
       meteringPoint: input.meteringPoint,
@@ -355,9 +354,7 @@ function buildProdatSwitchOutboundDraft(
       senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
       receiverSubAddress: input.receiverSubAddress ?? 'PRODAT',
       receiverEmail: input.receiverEmail ?? null,
-      subject:
-        input.subject ??
-        `PRODAT ${code} ${externalReference}`.trim(),
+      subject: input.subject ?? `PRODAT ${code} ${externalReference}`.trim(),
       fileName: inferEdielFileName({
         family: 'PRODAT',
         code,
@@ -368,7 +365,7 @@ function buildProdatSwitchOutboundDraft(
       interchangeReference: envelope.interchangeReference,
       applicationReference,
       externalReference,
-      correlationReference: input.correlationReference ?? null,
+      correlationReference: refs.correlationReference ?? input.correlationReference ?? null,
       transactionReference,
       communicationRouteId: input.communicationRouteId ?? null,
       switchRequestId: input.switchRequest.id,

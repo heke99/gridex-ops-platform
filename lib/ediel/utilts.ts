@@ -4,19 +4,15 @@ import type {
   EdielKnownMessageCode,
   EdielMessageFamily,
 } from '@/lib/ediel/types'
-import {
-  buildDefaultApplicationReference,
-} from '@/lib/ediel/config'
+import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { deriveEdielAckDefaults } from '@/lib/ediel/references'
 import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
-import {
-  buildCanonicalReferencesForOutbound,
-  resolveOutboundMessageVersion,
-} from '@/lib/ediel/core/kernel'
+import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
+import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 
 export type UtiltsMessageCode =
   | 'S01'
@@ -90,6 +86,7 @@ export type UtiltsOutboundDraftInput = {
   externalReference?: string | null
   correlationReference?: string | null
   transactionReference?: string | null
+  routeDefaultMessageVersion?: string | null
 
   payload?: Record<string, unknown>
 }
@@ -308,12 +305,9 @@ export function buildInboundUtiltsMessageInput(
 
   const parsedPayload = {
     ...parsed.parsedPayload,
-    quantity:
-      parsed.parsedPayload.quantity ?? input.quantity ?? null,
-    periodStart:
-      parsed.parsedPayload.periodStart ?? input.periodStart ?? null,
-    periodEnd:
-      parsed.parsedPayload.deliveryPeriod ?? input.periodEnd ?? null,
+    quantity: parsed.parsedPayload.quantity ?? input.quantity ?? null,
+    periodStart: parsed.parsedPayload.periodStart ?? input.periodStart ?? null,
+    periodEnd: parsed.parsedPayload.deliveryPeriod ?? input.periodEnd ?? null,
     registrationTime:
       parsed.parsedPayload.registrationTime ?? input.registrationTime ?? null,
     unit: input.unit ?? 'KWH',
@@ -369,12 +363,8 @@ function renderUtiltsSegments(input: {
   payload: Record<string, unknown>
 }): string[] {
   const payload = input.payload
-  const meterPointId = sanitize(
-    getPayloadString(payload, 'meterPointId', 'meteringPointId')
-  )
-  const gridAreaId = sanitize(
-    getPayloadString(payload, 'gridAreaId', 'gridOwnerEdielId')
-  )
+  const meterPointId = sanitize(getPayloadString(payload, 'meterPointId', 'meteringPointId'))
+  const gridAreaId = sanitize(getPayloadString(payload, 'gridAreaId', 'gridOwnerEdielId'))
   const periodStart = getPayloadString(payload, 'periodStart', 'requestedPeriodStart')
   const periodEnd = getPayloadString(payload, 'periodEnd', 'requestedPeriodEnd')
   const registrationTime =
@@ -449,7 +439,7 @@ function renderUtiltsSegments(input: {
 export async function buildUtiltsOutboundDraft(
   input: UtiltsOutboundDraftInput
 ): Promise<CreateEdielMessageInput> {
-  const refs = buildCanonicalReferencesForOutbound({
+  const refs = buildCanonicalOutboundReferences({
     family: 'UTILTS',
     code: input.code,
     relatedMessageId: input.gridOwnerDataRequestId ?? input.outboundRequestId ?? null,
@@ -458,19 +448,17 @@ export async function buildUtiltsOutboundDraft(
     correlationReference: input.correlationReference ?? null,
   })
 
- const externalReference = refs.externalReference ?? `UTILTS-${input.code}`
-const transactionReference = refs.transactionReference ?? `UTILTS-${input.code}`
-
-if (!externalReference || !transactionReference) {
-  throw new Error('Canonical UTILTS references could not be resolved')
-}
+  const externalReference = refs.externalReference ?? `UTILTS-${input.code}`
+  const transactionReference = refs.transactionReference ?? `UTILTS-${input.code}`
 
   const messageVersion =
-    (await resolveOutboundMessageVersion({
+    (await resolveCanonicalOutboundVersion({
       family: 'UTILTS',
       code: input.code,
       fallback: 'E5SE5A',
       standard: 'edifact',
+      routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
+      environment: 'test',
     })) ?? 'E5SE5A'
 
   const applicationReference =
@@ -540,7 +528,7 @@ if (!externalReference || !transactionReference) {
     interchangeReference: envelope.interchangeReference,
     applicationReference,
     externalReference,
-    correlationReference: input.correlationReference ?? null,
+    correlationReference: refs.correlationReference ?? input.correlationReference ?? null,
     transactionReference,
     communicationRouteId: input.communicationRouteId ?? null,
     outboundRequestId: input.outboundRequestId ?? null,

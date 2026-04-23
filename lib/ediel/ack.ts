@@ -10,9 +10,30 @@ import { inferEdielFileName } from '@/lib/ediel/classify'
 import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
 import {
   defaultAckStatuses,
+  deriveEdielAckDefaults,
+  findExistingAckForSource,
+  getAutomaticAckPolicy,
+  getCanonicalAckState,
   type AckFamily,
   type AckOutcome,
+  type AckPolicy,
+  type EdielCanonicalAckState,
 } from '@/lib/ediel/core/ackPolicy'
+
+export type {
+  AckFamily,
+  AckOutcome,
+  AckPolicy,
+  EdielCanonicalAckState,
+}
+
+export {
+  defaultAckStatuses,
+  deriveEdielAckDefaults,
+  findExistingAckForSource,
+  getAutomaticAckPolicy,
+  getCanonicalAckState,
+}
 
 function trimOrNull(value?: string | null): string | null {
   if (typeof value !== 'string') return null

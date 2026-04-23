@@ -7,6 +7,7 @@ import {
   buildContrlDraft,
   buildUtiltsErrDraft,
 } from '@/lib/ediel/ack'
+import { getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
 import {
   createCanonicalAckMessage,
   resolveCanonicalOutboundContext,
@@ -26,9 +27,7 @@ import {
   createNegativeUtiltsResponse,
   pollAndIngestEdielMailbox,
 } from '@/lib/ediel/flows/inboundProcessing'
-import {
-  prepareAndQueueAiList,
-} from '@/lib/ediel/flows/aiListFlow'
+import { prepareAndQueueAiList } from '@/lib/ediel/flows/aiListFlow'
 import {
   prepareAndQueueEdielZ03,
   prepareAndQueueEdielZ05,
@@ -38,6 +37,7 @@ import {
   prepareAndQueueUtiltsE66,
   prepareAndQueueUtiltsE73,
 } from '@/lib/ediel/flows/utiltsDataRequest'
+import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 
 export type {
   AckFamily,
@@ -64,6 +64,10 @@ export {
   buildAckDraftForSource,
 }
 
+function ensureActorUserId(value?: string | null): string {
+  return value && value.trim() ? value.trim() : 'system'
+}
+
 export async function createAckForSourceMessage(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
@@ -88,11 +92,30 @@ export async function createAckForSourceMessage(params: {
   })
 }
 
+export async function createAckDraftForMessage(params: {
+  actorUserId?: string | null
+  sourceMessageId: string
+  ackFamily: AckFamily
+  outcome?: AckOutcome
+  messageText?: string | null
+}) {
+  const sourceMessage = await getEdielMessageById(params.sourceMessageId)
+  if (!sourceMessage) {
+    throw new Error('Källmeddelande hittades inte')
+  }
+
+  return createAckForSourceMessage({
+    actorUserId: params.actorUserId,
+    sourceMessage,
+    ackFamily: params.ackFamily,
+    outcome: params.outcome,
+    messageText: params.messageText ?? null,
+  })
+}
+
 export async function createAutomaticAcksForInboundMessage(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
-  negativeAperakText?: string | null
-  utiltsErrText?: string | null
 }) {
   const policy = await getAutomaticAckPolicy(params.sourceMessage)
   const created: EdielMessageRow[] = []
@@ -149,6 +172,43 @@ export async function createUtiltsErrAck(params: {
     outcome: 'negative',
     messageText: params.messageText ?? null,
   })
+}
+
+export async function sendQueuedEdielMessage(params: {
+  actorUserId?: string | null
+  edielMessageId: string
+}) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
+  const message = await getEdielMessageById(params.edielMessageId)
+
+  if (!message) {
+    throw new Error('Ediel-meddelandet hittades inte')
+  }
+
+  if (message.direction !== 'outbound') {
+    throw new Error(`Meddelande ${message.id} är inte outbound.`)
+  }
+
+  if (message.status === 'draft') {
+    await updateEdielMessageStatus({
+      actorUserId,
+      edielMessageId: message.id,
+      status: 'queued',
+    })
+  } else if (message.status !== 'queued' && message.status !== 'prepared') {
+    throw new Error(
+      `Meddelande ${message.id} kan inte skickas från status ${message.status}.`
+    )
+  }
+
+  await sendEdielMessageViaSmtp(message)
+
+  const refreshed = await getEdielMessageById(message.id)
+  if (!refreshed) {
+    throw new Error('Kunde inte läsa tillbaka skickat meddelande.')
+  }
+
+  return refreshed
 }
 
 export async function prepareManualProdatMessage(params: {
@@ -215,11 +275,6 @@ export async function inspectManualRouteRuntime(params: {
   })
 }
 
-/**
- * Legacy-stabil public helper.
- * Behåll denna tunn så att admin/actions och UI inte behöver veta
- * om underliggande ack/create nu går via core/kernel.
- */
 export async function createAckDraftAndPersist(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
@@ -230,10 +285,6 @@ export async function createAckDraftAndPersist(params: {
   return createAckForSourceMessage(params)
 }
 
-/**
- * Tunn samlingspunkt om någon caller fortfarande förväntar sig att
- * orchestratorn ska kunna skapa generiska draftar.
- */
 export function buildAckDraft(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow

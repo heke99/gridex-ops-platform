@@ -1,5 +1,3 @@
-// app/admin/ediel/control-tower/page.tsx
-
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
@@ -69,15 +67,9 @@ export default async function AdminEdielControlTowerPage() {
       listRuleAmbiguities(),
     ])
 
-  const inboundCount = recentMessages.filter(
-    (row) => row.direction === 'inbound'
-  ).length
-  const outboundCount = recentMessages.filter(
-    (row) => row.direction === 'outbound'
-  ).length
-  const failedRecentCount = recentMessages.filter(
-    (row) => row.status === 'failed'
-  ).length
+  const inboundCount = recentMessages.filter((row) => row.direction === 'inbound').length
+  const outboundCount = recentMessages.filter((row) => row.direction === 'outbound').length
+  const failedRecentCount = recentMessages.filter((row) => row.status === 'failed').length
 
   return (
     <div className="space-y-6">
@@ -95,15 +87,11 @@ export default async function AdminEdielControlTowerPage() {
         </article>
         <article className="rounded-2xl border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-500">Inbound</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {inboundCount}
-          </p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">{inboundCount}</p>
         </article>
         <article className="rounded-2xl border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-500">Outbound</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {outboundCount}
-          </p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">{outboundCount}</p>
         </article>
         <article className="rounded-2xl border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-500">Försenade kvittenser</p>
@@ -133,13 +121,9 @@ export default async function AdminEdielControlTowerPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-900">
-            Försenade kvittenser
-          </h2>
+          <h2 className="text-base font-semibold text-slate-900">Försenade kvittenser</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Control tower använder canonical ack state från samma logik som
-            meddelandesidan. Det här är rätt ställe att fånga upp Batch
-            3-overdue innan fler manuella försök görs.
+            Control tower använder canonical ack state från samma logik som meddelandesidan.
           </p>
         </div>
 
@@ -173,9 +157,7 @@ export default async function AdminEdielControlTowerPage() {
                           {row.message_version || 'utan version'}
                         </div>
                       </td>
-                      <td className="px-4 py-3 align-top text-slate-700">
-                        {row.direction}
-                      </td>
+                      <td className="px-4 py-3 align-top text-slate-700">{row.direction}</td>
                       <td className="px-4 py-3 align-top">
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${ackTone(
@@ -188,6 +170,8 @@ export default async function AdminEdielControlTowerPage() {
                           <div>CONTRL: {row.contrl_status ?? '—'}</div>
                           <div>APERAK: {row.aperak_status ?? '—'}</div>
                           <div>UTILTS_ERR: {row.utilts_err_status ?? '—'}</div>
+                          <div>Kräver CONTRL: {row.requires_contrl ? 'Ja' : 'Nej'}</div>
+                          <div>Kräver APERAK: {row.requires_aperak ? 'Ja' : 'Nej'}</div>
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top text-xs text-slate-500">
@@ -217,13 +201,9 @@ export default async function AdminEdielControlTowerPage() {
       <section className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-900">
-              Dublettskydd ack
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900">Dublettskydd ack</h2>
             <p className="mt-1 text-sm text-slate-500">
-              DB-vyn visar om det ändå finns mer än en outbound CONTRL, APERAK
-              eller UTILTS_ERR för samma source message. Dessa rader betyder att
-              runtime behöver städas eller historik granskas.
+              Visar om historik eller runtime ändå producerat mer än en outbound-ack för samma källa.
             </p>
           </div>
           {duplicateAckCandidates.length === 0 ? (
@@ -245,17 +225,13 @@ export default async function AdminEdielControlTowerPage() {
                       <p className="mt-1 text-xs text-slate-500">
                         Source message: {row.related_message_id}
                       </p>
-                      <p className="mt-2 text-xs text-slate-500 break-all">
-                        Ack message IDs: {row.message_ids.join(', ')}
-                      </p>
                     </div>
-                    <span
-                      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${tone(
-                        'red'
-                      )}`}
+                    <Link
+                      href={`/admin/ediel/messages/${row.related_message_id}`}
+                      className="text-sm text-slate-700 underline-offset-2 hover:underline"
                     >
-                      måste städas
-                    </span>
+                      Öppna källa
+                    </Link>
                   </div>
                 </li>
               ))}
@@ -265,18 +241,14 @@ export default async function AdminEdielControlTowerPage() {
 
         <article className="rounded-2xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-900">
-              Regelambiguiteter
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900">Versions-/regelkonflikter</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Visar om flera aktiva regler fortfarande tävlar om samma family,
-              code, standard och direction. Det här ska i princip vara tomt när
-              Batch 2 sitter rätt.
+              Visar när regelsättet inte ger ett entydigt runtime-beslut.
             </p>
           </div>
           {ruleAmbiguities.length === 0 ? (
             <div className="px-5 py-6 text-sm text-slate-500">
-              Inga regelambiguiteter hittades.
+              Inga regelkonflikter hittades.
             </div>
           ) : (
             <ul className="divide-y divide-slate-100">
@@ -285,110 +257,17 @@ export default async function AdminEdielControlTowerPage() {
                   key={`${row.message_family}-${row.message_code}-${row.message_standard}-${row.direction}`}
                   className="px-5 py-4"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {row.message_family} {row.message_code}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {row.message_standard} / {row.direction}
-                      </p>
-                      <p className="mt-2 text-xs text-slate-500">
-                        Versioner: {row.version_codes.join(', ')}
-                      </p>
-                    </div>
-                    <span
-                      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${tone(
-                        'red'
-                      )}`}
-                    >
-                      {row.active_rule_count} aktiva
-                    </span>
+                  <div className="font-medium text-slate-900">
+                    {row.message_family} {row.message_code} / {row.direction}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {row.message_standard} · {row.active_rule_count} aktiva regler
                   </div>
                 </li>
               ))}
             </ul>
           )}
         </article>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-900">
-            Senaste Ediel-meddelanden
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Snabbvy där samma canonical ack-state används som på meddelandesidan.
-            Bra för att upptäcka riktning, version och referenser utan att öppna
-            varje rad.
-          </p>
-        </div>
-        {recentMessages.length === 0 ? (
-          <div className="px-5 py-6 text-sm text-slate-500">
-            Inga meddelanden hittades.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Meddelande</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Ack</th>
-                  <th className="px-4 py-3 font-medium">Sender → Receiver</th>
-                  <th className="px-4 py-3 font-medium">Referenser</th>
-                  <th className="px-4 py-3 font-medium">Tid</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {recentMessages.map((row) => {
-                  const ackState = getCanonicalAckState(row)
-                  return (
-                    <tr key={row.id}>
-                      <td className="px-4 py-3 align-top">
-                        <Link
-                          href={`/admin/ediel/messages/${row.id}`}
-                          className="font-medium text-slate-900 underline-offset-2 hover:underline"
-                        >
-                          {row.message_family} {row.message_code}
-                        </Link>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {row.message_version || 'utan version'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 align-top text-slate-700">
-                        <div>{row.status}</div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {row.direction}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 align-top">
-                        <span
-                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${ackTone(
-                            String(ackState)
-                          )}`}
-                        >
-                          {String(ackState)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 align-top text-xs text-slate-500">
-                        {row.sender_ediel_id ?? '—'} →{' '}
-                        {row.receiver_ediel_id ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 align-top text-xs text-slate-500">
-                        <div>Ext: {row.external_reference ?? '—'}</div>
-                        <div>Txn: {row.transaction_reference ?? '—'}</div>
-                      </td>
-                      <td className="px-4 py-3 align-top text-xs text-slate-500">
-                        {formatDate(row.created_at)}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
       </section>
     </div>
   )

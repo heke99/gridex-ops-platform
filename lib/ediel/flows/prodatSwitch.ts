@@ -5,7 +5,11 @@ import {
   createSupplierSwitchEvent,
   getSupplierSwitchRequestById,
 } from '@/lib/operations/db'
-import { buildProdatZ03FromSwitch, buildProdatZ05FromSwitch, buildProdatZ09FromSwitch } from '@/lib/ediel/prodat'
+import {
+  buildProdatZ03FromSwitch,
+  buildProdatZ05FromSwitch,
+  buildProdatZ09FromSwitch,
+} from '@/lib/ediel/prodat'
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import {
@@ -74,6 +78,7 @@ export async function prepareAndQueueEdielZ03(params: {
     receiverSubAddress: routeContext.receiverSubAddress,
     communicationRouteId: routeContext.route.id,
     mailbox: routeContext.mailbox,
+    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     switchRequest,
     site,
     meteringPoint,
@@ -186,6 +191,7 @@ export async function prepareAndQueueEdielZ05(params: {
     receiverSubAddress: routeContext.receiverSubAddress,
     communicationRouteId: routeContext.route.id,
     mailbox: routeContext.mailbox,
+    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     switchRequest,
     site,
     meteringPoint,
@@ -278,8 +284,7 @@ export async function prepareAndQueueEdielZ09(params: {
     siteId: switchRequest.site_id,
     meteringPointId: switchRequest.metering_point_id,
     gridOwnerId: switchRequest.grid_owner_id,
-    communicationRouteId: routeContext.route.id,
-    externalReference: switchRequest.external_reference ?? `MASTERDATA-${switchRequest.id}`,
+    externalReference: switchRequest.external_reference ?? `SWITCH-UPDATE-${switchRequest.id}`,
     payload: {
       edielCode: 'Z09',
       queuedFrom: 'prepare_switch_z09',
@@ -300,6 +305,7 @@ export async function prepareAndQueueEdielZ09(params: {
     receiverSubAddress: routeContext.receiverSubAddress,
     communicationRouteId: routeContext.route.id,
     mailbox: routeContext.mailbox,
+    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     switchRequest,
     site,
     meteringPoint,
@@ -336,8 +342,21 @@ export async function prepareAndQueueEdielZ09(params: {
     actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
-    externalReference: switchRequest.external_reference ?? `MASTERDATA-${switchRequest.id}`,
+    externalReference:
+      switchRequest.external_reference ?? `SWITCH-UPDATE-${switchRequest.id}`,
     payload: { edielCode: 'Z09', routeId: routeContext.route.id },
+  })
+
+  await createSupplierSwitchEvent(supabase, {
+    switchRequestId: switchRequest.id,
+    eventType: 'ediel_prepared',
+    eventStatus: 'queued',
+    message: 'Ediel Z09 förberett från switchärendet via canonical kernel.',
+    payload: {
+      edielMessageId: message.id,
+      outboundRequestId: outbound.id,
+      routeId: routeContext.route.id,
+    },
   })
 
   return message

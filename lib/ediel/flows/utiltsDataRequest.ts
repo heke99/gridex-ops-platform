@@ -84,7 +84,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     },
   })
 
-  const draft = await buildUtiltsOutboundDraft({
+    const draft = await buildUtiltsOutboundDraft({
     actorUserId,
     code: 'E73',
     communicationRouteId: routeContext.route.id,
@@ -102,6 +102,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     receiverSubAddress: routeContext.receiverSubAddress,
     mailbox: routeContext.mailbox,
     receiverEmail: routeContext.receiverEmail,
+    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
       meterPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
@@ -211,7 +212,7 @@ export async function prepareAndQueueUtiltsE66(params: {
     },
   })
 
-  const draft = await buildUtiltsOutboundDraft({
+    const draft = await buildUtiltsOutboundDraft({
     actorUserId,
     code: 'E66',
     communicationRouteId: routeContext.route.id,
@@ -229,6 +230,7 @@ export async function prepareAndQueueUtiltsE66(params: {
     receiverSubAddress: routeContext.receiverSubAddress,
     mailbox: routeContext.mailbox,
     receiverEmail: routeContext.receiverEmail,
+    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
       meterPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
