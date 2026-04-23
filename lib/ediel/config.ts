@@ -42,6 +42,7 @@ export type EdielRouteRuntimeRow = {
   encryption_mode: 'none' | 'smime' | 'pgp' | null
   default_message_version: string | null
   default_test_flag: 0 | 1
+  default_timezone?: number | null
   receiver_ediel_id: string | null
   receiver_sub_address: string | null
   receiver_name: string | null

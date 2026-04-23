@@ -5,6 +5,7 @@ import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import {
   explainEdielRouteRuntime,
   getEdielRouteRuntimeByCommunicationRouteId,
+  type EdielRouteRuntimeExplanation,
   type EdielRouteRuntimeRow,
 } from '@/lib/ediel/config'
 import {
@@ -38,6 +39,16 @@ type GridOwnerRow = {
   name: string
   ediel_id: string | null
   owner_code: string | null
+}
+
+type RouteRuntimeViewRow = {
+  route: CommunicationRouteRow
+  gridOwner: GridOwnerRow | null
+  runtime: EdielRouteRuntimeRow | null
+  explanation: EdielRouteRuntimeExplanation | null
+  ready: boolean
+  issueCount: number
+  errorCount: number
 }
 
 function isEdielCandidateRoute(route: CommunicationRouteRow): boolean {
@@ -109,13 +120,7 @@ function issueTone(value: 'error' | 'warning'): 'red' | 'yellow' {
   return value === 'error' ? 'red' : 'yellow'
 }
 
-function sortRoutesForOps(rows: Array<{
-  route: CommunicationRouteRow
-  runtime: EdielRouteRuntimeRow | null
-  ready: boolean
-  issueCount: number
-  errorCount: number
-}>) {
+function sortRoutesForOps(rows: RouteRuntimeViewRow[]): RouteRuntimeViewRow[] {
   return [...rows].sort((a, b) => {
     if (a.ready !== b.ready) return a.ready ? 1 : -1
     if (a.errorCount !== b.errorCount) return b.errorCount - a.errorCount
@@ -133,20 +138,14 @@ export default async function AdminEdielRoutesPage() {
 
   const supabase = await createSupabaseServerClient()
 
-  const [
-    routesResult,
-    gridOwnersResult,
-  ] = await Promise.all([
+  const [routesResult, gridOwnersResult] = await Promise.all([
     supabase
       .from('communication_routes')
       .select(
         'id,route_name,is_active,route_scope,route_type,grid_owner_id,target_system,endpoint,target_email,supported_payload_version,notes,updated_at'
       )
       .order('updated_at', { ascending: false }),
-    supabase
-      .from('grid_owners')
-      .select('id,name,ediel_id,owner_code')
-      .order('name'),
+    supabase.from('grid_owners').select('id,name,ediel_id,owner_code').order('name'),
   ])
 
   if (routesResult.error) throw routesResult.error
@@ -157,7 +156,7 @@ export default async function AdminEdielRoutesPage() {
   const edielRoutes = allRoutes.filter(isEdielCandidateRoute)
   const gridOwnerById = new Map(gridOwners.map((row) => [row.id, row]))
 
-  const runtimeRows = await Promise.all(
+  const runtimeRows: RouteRuntimeViewRow[] = await Promise.all(
     edielRoutes.map(async (route) => {
       const runtime = await getEdielRouteRuntimeByCommunicationRouteId(route.id)
       const gridOwner = route.grid_owner_id
@@ -196,7 +195,8 @@ export default async function AdminEdielRoutesPage() {
     const effectiveReceiver =
       row.explanation?.effectiveReceiverEdielId ??
       row.runtime?.receiver_ediel_id ??
-      row.gridOwner?.ediel_id
+      row.gridOwner?.ediel_id ??
+      null
     return !effectiveReceiver?.trim()
   }).length
   const missingMailboxCount = sortedRoutes.filter(
@@ -248,9 +248,18 @@ export default async function AdminEdielRoutesPage() {
           <span className="font-medium"> payload/encryption</span> och exakt varför en route är blockerad.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Pill text={`saknar target_email: ${missingTargetEmailCount}`} tone={missingTargetEmailCount > 0 ? 'yellow' : 'green'} />
-          <Pill text={`saknar receiver: ${missingReceiverCount}`} tone={missingReceiverCount > 0 ? 'yellow' : 'green'} />
-          <Pill text={`saknar mailbox: ${missingMailboxCount}`} tone={missingMailboxCount > 0 ? 'yellow' : 'green'} />
+          <Pill
+            text={`saknar target_email: ${missingTargetEmailCount}`}
+            tone={missingTargetEmailCount > 0 ? 'yellow' : 'green'}
+          />
+          <Pill
+            text={`saknar receiver: ${missingReceiverCount}`}
+            tone={missingReceiverCount > 0 ? 'yellow' : 'green'}
+          />
+          <Pill
+            text={`saknar mailbox: ${missingMailboxCount}`}
+            tone={missingMailboxCount > 0 ? 'yellow' : 'green'}
+          />
         </div>
       </section>
 
