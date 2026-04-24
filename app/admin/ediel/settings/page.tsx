@@ -1,4 +1,8 @@
 import AdminHeader from '@/components/admin/AdminHeader'
+import EdielRuleGroups, {
+  type EdielRuleGroup,
+  type EdielRuleListRow,
+} from '@/components/admin/ediel/EdielRuleGroups'
 import EdielRuleTemplateModals from '@/components/admin/ediel/EdielRuleTemplateModals'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
@@ -144,24 +148,48 @@ function Field({
   )
 }
 
-function groupRules(rows: EdielMessageRuleRow[]) {
-  const map = new Map<string, EdielMessageRuleRow[]>()
+function sortRuleRows(rows: EdielMessageRuleRow[]) {
+  return [...rows].sort((a, b) => {
+    const aFrom = a.valid_from ?? ''
+    const bFrom = b.valid_from ?? ''
+    if (aFrom !== bFrom) return bFrom.localeCompare(aFrom)
+    return String(b.version_code).localeCompare(String(a.version_code))
+  })
+}
 
-  for (const row of rows) {
-    const key = `${row.message_family}__${row.message_code}__${row.message_standard}`
-    if (!map.has(key)) map.set(key, [])
-    map.get(key)!.push(row)
+function pickCurrentRule(
+  rows: EdielRuleListRow[],
+  runtimeCurrentVersion: string | null
+): EdielRuleListRow | null {
+  if (runtimeCurrentVersion) {
+    const exact = rows.find((row) => row.version_code === runtimeCurrentVersion)
+    if (exact) return exact
   }
 
-  return [...map.entries()].map(([key, values]) => ({
-    key,
-    rows: values.sort((a, b) => {
-      const aFrom = a.valid_from ?? ''
-      const bFrom = b.valid_from ?? ''
-      if (aFrom !== bFrom) return bFrom.localeCompare(aFrom)
-      return String(b.version_code).localeCompare(String(a.version_code))
-    }),
-  }))
+  return rows.find((row) => row.is_active) ?? rows[0] ?? null
+}
+
+function pickPreviousRule(
+  rows: EdielRuleListRow[],
+  currentRule: EdielRuleListRow | null,
+  runtimePreviousVersion: string | null
+): EdielRuleListRow | null {
+  if (runtimePreviousVersion) {
+    const exact = rows.find(
+      (row) =>
+        row.version_code === runtimePreviousVersion &&
+        row.id !== currentRule?.id
+    )
+    if (exact) return exact
+  }
+
+  return (
+    rows.find(
+      (row) =>
+        row.id !== currentRule?.id &&
+        row.is_active
+    ) ?? rows.find((row) => row.id !== currentRule?.id) ?? null
+  )
 }
 
 export default async function AdminEdielSettingsPage() {
@@ -201,10 +229,20 @@ export default async function AdminEdielSettingsPage() {
     (row) => row.supports_negative_response
   ).length
 
-  const groupedRules = groupRules(messageRules)
+  const groupMap = new Map<string, EdielMessageRuleRow[]>()
+  for (const row of messageRules) {
+    const key = `${row.message_family}__${row.message_code}__${row.message_standard}`
+    if (!groupMap.has(key)) groupMap.set(key, [])
+    groupMap.get(key)!.push(row)
+  }
+
+  const groupedRules = [...groupMap.entries()].map(([key, rows]) => ({
+    key,
+    rows: sortRuleRows(rows),
+  }))
 
   const runtimeSnapshots = await Promise.all(
-    groupedRules.slice(0, 24).map(async (group) => {
+    groupedRules.map(async (group) => {
       const first = group.rows[0]
       const outbound = await resolveOutboundMessageVersionRuntime({
         family: first.message_family,
@@ -229,6 +267,57 @@ export default async function AdminEdielSettingsPage() {
     })
   )
 
+  const runtimeSnapshotByKey = new Map(runtimeSnapshots.map((row) => [row.key, row]))
+
+  const ruleGroups: EdielRuleGroup[] = groupedRules.map((group) => {
+    const first = group.rows[0]
+    const snapshot = runtimeSnapshotByKey.get(group.key)
+
+    const rows: EdielRuleListRow[] = group.rows.map((row) => ({
+      ...row,
+      statusTag: 'history',
+      runtimeCurrentVersion: snapshot?.outbound.currentVersion ?? null,
+      runtimePreviousVersion: snapshot?.inbound.previousVersion ?? null,
+      acceptedVersions: snapshot?.inbound.acceptedVersions ?? [],
+    }))
+
+    const currentRule = pickCurrentRule(
+      rows,
+      snapshot?.outbound.currentVersion ?? null
+    )
+
+    const previousRule = pickPreviousRule(
+      rows,
+      currentRule,
+      snapshot?.inbound.previousVersion ?? null
+    )
+
+    const taggedRows = rows.map((row) => ({
+      ...row,
+      statusTag:
+        row.id === currentRule?.id
+          ? ('current' as const)
+          : row.id === previousRule?.id
+            ? ('previous' as const)
+            : ('history' as const),
+    }))
+
+    return {
+      key: group.key,
+      family: first.message_family,
+      code: first.message_code,
+      standard: first.message_standard,
+      rows: taggedRows,
+      currentRule:
+        taggedRows.find((row) => row.id === currentRule?.id) ?? null,
+      previousRule:
+        taggedRows.find((row) => row.id === previousRule?.id) ?? null,
+      historyRules: taggedRows.filter(
+        (row) => row.id !== currentRule?.id && row.id !== previousRule?.id
+      ),
+    }
+  })
+
   const ambiguousRuntimeCount = runtimeSnapshots.filter((row) => row.activeCount > 1).length
   const previousValidCount = runtimeSnapshots.filter(
     (row) => row.inbound.previousVersion
@@ -240,7 +329,7 @@ export default async function AdminEdielSettingsPage() {
     <div className="space-y-6">
       <AdminHeader
         title="Ediel settings"
-        subtitle="Aktörskort och message rules, nu med modalbaserade processmallar så du slipper leta i en lång rule-lista efter varje klick."
+        subtitle="Aktörskort och message rules, nu med modalbaserade processmallar och en förenklad rule-vy med current / previous / history."
         userEmail={context.email}
       />
 
@@ -405,7 +494,7 @@ export default async function AdminEdielSettingsPage() {
               Inga runtime snapshots kunde byggas.
             </div>
           ) : (
-            runtimeSnapshots.map((row) => (
+            runtimeSnapshots.slice(0, 24).map((row) => (
               <div key={row.key} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-sm font-semibold text-slate-950">
@@ -431,118 +520,53 @@ export default async function AdminEdielSettingsPage() {
         </div>
       </section>
 
+      <EdielRuleGroups groups={ruleGroups} />
+
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Message rules</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Här sparar du reglerna. Håll den här delen för finjustering. Skapa nya paket via mallrutorna ovan.
-            </p>
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-slate-900">Skapa ny message rule manuellt</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Använd detta när du behöver finjustera eller lägga till en enskild rule utanför mallarna.
+          </p>
+        </div>
+
+        <form
+          action={saveEdielMessageRuleAction}
+          className="rounded-2xl border border-dashed border-slate-300 p-4"
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input name="message_family" placeholder="PRODAT / UTILTS / APERAK ..." />
+            <Input name="message_code" placeholder="Z03 / E66 / CONTRL ..." />
+            <Select name="message_standard" defaultValue="edifact">
+              <option value="edifact">edifact</option>
+              <option value="xml">xml</option>
+              <option value="ai_list">ai_list</option>
+            </Select>
+            <Input name="version_code" placeholder="E5SE5A / Ver20140401 ..." />
+            <Select name="direction" defaultValue="both">
+              <option value="both">both</option>
+              <option value="inbound">inbound</option>
+              <option value="outbound">outbound</option>
+            </Select>
+            <Input name="valid_from" type="date" />
+            <Input name="valid_to" type="date" />
+            <Input name="notes" placeholder="Notes" />
           </div>
-          <Pill text={`${groupedRules.length} family/code-grupper`} tone="slate" />
-        </div>
 
-        <div className="space-y-6">
-          {messageRules.map((row) => (
-            <form
-              key={row.id}
-              action={saveEdielMessageRuleAction}
-              className="rounded-2xl border border-slate-200 p-4"
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <Checkbox name="requires_contrl" defaultChecked={false} label="requires_contrl" />
+            <Checkbox name="requires_aperak" defaultChecked={false} label="requires_aperak" />
+            <Checkbox name="supports_negative_response" defaultChecked={false} label="supports_negative_response" />
+            <Checkbox name="is_active" defaultChecked={true} label="Aktiv regel" />
+
+            <button
+              type="submit"
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
             >
-              <input type="hidden" name="id" value={row.id} />
-
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                <Pill text={row.message_family} tone="blue" />
-                <Pill text={row.message_code} tone="blue" />
-                <Pill text={row.message_standard} tone="slate" />
-                <Pill text={row.direction} tone="slate" />
-                <Pill text={row.is_active ? 'Aktiv' : 'Inaktiv'} tone={row.is_active ? 'green' : 'slate'} />
-                <span className="text-xs text-slate-500">
-                  Uppdaterad {formatDate(row.updated_at)}
-                </span>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-3">
-                <Input name="message_family" defaultValue={row.message_family} />
-                <Input name="message_code" defaultValue={row.message_code} />
-                <Select name="message_standard" defaultValue={row.message_standard}>
-                  <option value="edifact">edifact</option>
-                  <option value="xml">xml</option>
-                  <option value="ai_list">ai_list</option>
-                </Select>
-                <Input name="version_code" defaultValue={row.version_code} />
-                <Select name="direction" defaultValue={row.direction}>
-                  <option value="both">both</option>
-                  <option value="inbound">inbound</option>
-                  <option value="outbound">outbound</option>
-                </Select>
-                <Input name="valid_from" type="date" defaultValue={row.valid_from} />
-                <Input name="valid_to" type="date" defaultValue={row.valid_to} />
-                <Input name="notes" defaultValue={row.notes} />
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-4">
-                <Checkbox name="requires_contrl" defaultChecked={row.requires_contrl} label="requires_contrl" />
-                <Checkbox name="requires_aperak" defaultChecked={row.requires_aperak} label="requires_aperak" />
-                <Checkbox
-                  name="supports_negative_response"
-                  defaultChecked={row.supports_negative_response}
-                  label="supports_negative_response"
-                />
-                <Checkbox name="is_active" defaultChecked={row.is_active} label="Aktiv regel" />
-
-                <button
-                  type="submit"
-                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                >
-                  Spara regel
-                </button>
-              </div>
-            </form>
-          ))}
-
-          <form
-            action={saveEdielMessageRuleAction}
-            className="rounded-2xl border border-dashed border-slate-300 p-4"
-          >
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-slate-900">Skapa ny message rule</h3>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <Input name="message_family" placeholder="PRODAT / UTILTS / APERAK ..." />
-              <Input name="message_code" placeholder="Z03 / E66 / CONTRL ..." />
-              <Select name="message_standard" defaultValue="edifact">
-                <option value="edifact">edifact</option>
-                <option value="xml">xml</option>
-                <option value="ai_list">ai_list</option>
-              </Select>
-              <Input name="version_code" placeholder="E5SE5A / Ver20140401 ..." />
-              <Select name="direction" defaultValue="both">
-                <option value="both">both</option>
-                <option value="inbound">inbound</option>
-                <option value="outbound">outbound</option>
-              </Select>
-              <Input name="valid_from" type="date" />
-              <Input name="valid_to" type="date" />
-              <Input name="notes" placeholder="Notes" />
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-4">
-              <Checkbox name="requires_contrl" defaultChecked={false} label="requires_contrl" />
-              <Checkbox name="requires_aperak" defaultChecked={false} label="requires_aperak" />
-              <Checkbox name="supports_negative_response" defaultChecked={false} label="supports_negative_response" />
-              <Checkbox name="is_active" defaultChecked={true} label="Aktiv regel" />
-
-              <button
-                type="submit"
-                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-              >
-                Skapa regel
-              </button>
-            </div>
-          </form>
-        </div>
+              Skapa regel
+            </button>
+          </div>
+        </form>
       </section>
     </div>
   )
