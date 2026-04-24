@@ -1,9 +1,18 @@
 // lib/ediel/flows/utiltsDataRequest.ts
 
-import { getGridOwnerById, getMeteringPointById, getCustomerSiteById } from '@/lib/masterdata/db'
+import {
+  getCustomerSiteById,
+  getGridOwnerById,
+  getMeteringPointById,
+} from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
-import { linkEdielMessage, updateEdielMessageStatus, getEdielMessageById, createEdielMessageEvent } from '@/lib/ediel/db'
-import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
+import {
+  createEdielMessageEvent,
+  getEdielMessageById,
+  linkEdielMessage,
+  updateEdielMessageStatus,
+} from '@/lib/ediel/db'
+import { resolveCanonicalOutboundContext, createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import {
   ensureActorUserId,
   finalizeOutboundDraft,
@@ -13,21 +22,43 @@ import {
   queuePreparedEdielMessage,
 } from '@/lib/ediel/flows/shared'
 import {
+  findOpenOutboundBySource,
+  ingestBillingUnderlay,
+  ingestMeteringValue,
   syncGridOwnerDataRequestFromOutbound,
+  syncGridOwnerDataRequestReceivedFromEdiel,
   updateGridOwnerDataRequestStatus,
   updateOutboundRequestStatus,
-  findOpenOutboundBySource,
-  ingestMeteringValue,
 } from '@/lib/cis/db'
-import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
+import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/types'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
   findMatchingGridOwnerDataRequest,
   matchMeteringPointForEdielMessage,
   matchSiteAndCustomerForMeteringPoint,
 } from '@/lib/ediel/matching'
-import { getAutomaticAckPolicy, buildAperakDraft, buildContrlDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
-import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
+import {
+  buildAperakDraft,
+  buildContrlDraft,
+  buildUtiltsErrDraft,
+  getAutomaticAckPolicy,
+} from '@/lib/ediel/ack'
+
+type UtiltsProcessResult = {
+  message: EdielMessageRow
+  matchedDataRequest: GridOwnerDataRequestRow | null
+  ackIds: string[]
+  outboundRequestId?: string | null
+  ingestedMeterValueId?: string | null
+  billingUnderlayId?: string | null
+}
+
+function ensureJson(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
@@ -40,6 +71,348 @@ function numberOrNull(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null
   }
   return null
+}
+
+function normalizedIso(value: string | null): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return `${trimmed}T00:00:00`
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) return trimmed
+
+  const parsed = new Date(trimmed)
+  if (Number.isNaN(parsed.getTime())) return trimmed
+  return parsed.toISOString()
+}
+
+function monthAndYearFromPeriod(periodStart: string | null, periodEnd: string | null): {
+  month: number | null
+  year: number | null
+} {
+  const value = periodEnd ?? periodStart
+  if (!value) return { month: null, year: null }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return { month: null, year: null }
+
+  return {
+    month: date.getUTCMonth() + 1,
+    year: date.getUTCFullYear(),
+  }
+}
+
+function normalizeMeteringPayload(message: EdielMessageRow): Record<string, unknown> {
+  const parsed = ensureJson(message.parsed_payload)
+  const quantity = numberOrNull(parsed.quantity)
+  const periodStart = normalizedIso(stringOrNull(parsed.periodStart))
+  const periodEnd = normalizedIso(stringOrNull(parsed.periodEnd))
+  const readAt =
+    normalizedIso(stringOrNull(parsed.readAt)) ??
+    normalizedIso(stringOrNull(parsed.registrationTime)) ??
+    periodEnd ??
+    periodStart ??
+    message.message_received_at ??
+    message.created_at
+
+  return {
+    ...parsed,
+    quantity,
+    valueKwh: quantity,
+    periodStart,
+    periodEnd,
+    readAt,
+    meterPointId: stringOrNull(parsed.meterPointId) ?? stringOrNull(parsed.meteringPointId),
+    meteringPointId: stringOrNull(parsed.meteringPointId) ?? stringOrNull(parsed.meterPointId),
+    gridAreaId: stringOrNull(parsed.gridAreaId),
+    readingType: stringOrNull(parsed.readingType) ?? 'consumption',
+    qualityCode: stringOrNull(parsed.qualityCode),
+    unit: stringOrNull(parsed.unit) ?? 'KWH',
+    source: 'ediel_utilts',
+  }
+}
+
+function toMeteringReadingType(
+  value: unknown
+): 'consumption' | 'production' | 'estimated' | 'adjustment' {
+  const normalized = typeof value === 'string' ? value.toLowerCase() : ''
+
+  if (normalized.includes('production')) return 'production'
+  if (normalized.includes('estimated')) return 'estimated'
+  if (normalized.includes('adjust')) return 'adjustment'
+
+  return 'consumption'
+}
+
+function shouldIngestMeteringValue(message: EdielMessageRow): boolean {
+  const code = String(message.message_code).toUpperCase()
+  return code === 'E66' || code === 'E30'
+}
+
+function shouldCreateBillingUnderlay(params: {
+  dataRequest: GridOwnerDataRequestRow
+  billingUnderlayId?: string | null
+  quantity: number | null
+}): boolean {
+  if (params.dataRequest.request_scope !== 'billing_underlay') return false
+  if (params.billingUnderlayId) return false
+  return params.quantity !== null
+}
+
+async function markDataRequestOutboundAcknowledged(params: {
+  actorUserId: string
+  dataRequestId: string
+  externalReference: string | null
+  edielMessageId: string
+  normalizedPayload: Record<string, unknown>
+}): Promise<OutboundRequestRow | null> {
+  const candidates = await Promise.all([
+    findOpenOutboundBySource({
+      sourceType: 'grid_owner_data_request',
+      sourceId: params.dataRequestId,
+      requestType: 'meter_values',
+    }),
+    findOpenOutboundBySource({
+      sourceType: 'grid_owner_data_request',
+      sourceId: params.dataRequestId,
+      requestType: 'billing_underlay',
+    }),
+  ])
+
+  const outbound = candidates.find(Boolean)
+  if (!outbound) return null
+
+  const updatedOutbound = await updateOutboundRequestStatus({
+    actorUserId: params.actorUserId,
+    outboundRequestId: outbound.id,
+    status: 'acknowledged',
+    externalReference: params.externalReference ?? outbound.external_reference ?? null,
+    responsePayload: {
+      ...(ensureJson(outbound.response_payload)),
+      edielMessageId: params.edielMessageId,
+      acknowledgedVia: 'inbound_utilts',
+      normalizedMeteringPayload: params.normalizedPayload,
+    },
+  })
+
+  await syncGridOwnerDataRequestFromOutbound({
+    actorUserId: params.actorUserId,
+    outboundRequest: updatedOutbound,
+    extraResponsePayload: {
+      edielMessageId: params.edielMessageId,
+      acknowledgedVia: 'inbound_utilts',
+      normalizedMeteringPayload: params.normalizedPayload,
+    },
+  })
+
+  return updatedOutbound
+}
+
+async function maybeIngestMeteringValue(params: {
+  actorUserId: string
+  customerId: string | null
+  siteId: string | null
+  meteringPointId: string | null
+  gridOwnerId: string | null
+  dataRequestId: string | null
+  message: EdielMessageRow
+  normalizedPayload: Record<string, unknown>
+}) {
+  const quantity = numberOrNull(params.normalizedPayload.quantity)
+
+  if (!shouldIngestMeteringValue(params.message)) return null
+  if (!params.customerId || !params.meteringPointId || quantity === null) return null
+
+  return ingestMeteringValue({
+    actorUserId: params.actorUserId,
+    customerId: params.customerId,
+    siteId: params.siteId,
+    meteringPointId: params.meteringPointId,
+    sourceRequestId: params.dataRequestId,
+    gridOwnerId: params.gridOwnerId,
+    readingType: toMeteringReadingType(params.normalizedPayload.readingType),
+    valueKwh: quantity,
+    qualityCode: stringOrNull(params.normalizedPayload.qualityCode),
+    readAt:
+      stringOrNull(params.normalizedPayload.readAt) ??
+      params.message.message_received_at ??
+      params.message.created_at,
+    periodStart: stringOrNull(params.normalizedPayload.periodStart),
+    periodEnd: stringOrNull(params.normalizedPayload.periodEnd),
+    sourceSystem: 'ediel_utilts',
+    rawPayload: {
+      edielMessageId: params.message.id,
+      messageCode: params.message.message_code,
+      normalizedPayload: params.normalizedPayload,
+      parsedPayload: params.message.parsed_payload ?? {},
+    },
+  })
+}
+
+async function maybeCreateBillingUnderlay(params: {
+  actorUserId: string
+  dataRequest: GridOwnerDataRequestRow
+  customerId: string | null
+  siteId: string | null
+  meteringPointId: string | null
+  gridOwnerId: string | null
+  message: EdielMessageRow
+  normalizedPayload: Record<string, unknown>
+}) {
+  const currentResponse = ensureJson(params.dataRequest.response_payload)
+  const existingBillingUnderlayId = stringOrNull(currentResponse.billingUnderlayId)
+  const quantity = numberOrNull(params.normalizedPayload.quantity)
+
+  if (
+    !shouldCreateBillingUnderlay({
+      dataRequest: params.dataRequest,
+      billingUnderlayId: existingBillingUnderlayId,
+      quantity,
+    })
+  ) {
+    return null
+  }
+
+  if (!params.customerId) return null
+
+  const { month, year } = monthAndYearFromPeriod(
+    stringOrNull(params.normalizedPayload.periodStart),
+    stringOrNull(params.normalizedPayload.periodEnd)
+  )
+
+  return ingestBillingUnderlay({
+    actorUserId: params.actorUserId,
+    customerId: params.customerId,
+    siteId: params.siteId,
+    meteringPointId: params.meteringPointId,
+    sourceRequestId: params.dataRequest.id,
+    gridOwnerId: params.gridOwnerId,
+    underlayMonth: month,
+    underlayYear: year,
+    status: 'received',
+    totalKwh: quantity,
+    sourceSystem: 'ediel_utilts',
+    payload: {
+      edielMessageId: params.message.id,
+      messageCode: params.message.message_code,
+      normalizedPayload: params.normalizedPayload,
+      parsedPayload: params.message.parsed_payload ?? {},
+    },
+  })
+}
+
+async function createAckIfMissing(params: {
+  actorUserId: string
+  sourceMessage: EdielMessageRow
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative'
+  messageText?: string | null
+}) {
+  const draft =
+    params.ackFamily === 'CONTRL'
+      ? buildContrlDraft({
+          actorUserId: params.actorUserId,
+          sourceMessage: params.sourceMessage,
+          outcome: params.outcome ?? 'positive',
+          messageText: params.messageText ?? null,
+        })
+      : params.ackFamily === 'APERAK'
+        ? buildAperakDraft({
+            actorUserId: params.actorUserId,
+            sourceMessage: params.sourceMessage,
+            outcome: params.outcome ?? 'positive',
+            messageText: params.messageText ?? null,
+          })
+        : buildUtiltsErrDraft({
+            actorUserId: params.actorUserId,
+            sourceMessage: params.sourceMessage,
+            messageText: params.messageText ?? null,
+          })
+
+  const ackMessage = await createCanonicalAckMessage({
+    actorUserId: params.actorUserId,
+    sourceMessage: params.sourceMessage,
+    ackFamily: params.ackFamily,
+    outcome: params.outcome,
+    draft,
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.sourceMessage.id,
+    eventType:
+      params.ackFamily === 'CONTRL'
+        ? 'contrl_sent'
+        : params.ackFamily === 'APERAK'
+          ? 'aperak_sent'
+          : 'utilts_err_sent',
+    eventStatus: 'success',
+    message: `${params.ackFamily} hanterad via canonical kernel.`,
+    payload: {
+      ackMessageId: ackMessage.id,
+      outcome: params.outcome ?? null,
+    },
+  })
+
+  return ackMessage
+}
+
+async function createAutomaticPositiveAcks(params: {
+  actorUserId: string
+  sourceMessage: EdielMessageRow
+}) {
+  const createdIds: string[] = []
+  const policy = await getAutomaticAckPolicy(params.sourceMessage)
+
+  if (policy.shouldSendContrl) {
+    const contrl = await createAckIfMissing({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      ackFamily: 'CONTRL',
+      outcome: 'positive',
+      messageText: 'Automatiskt CONTRL för mottaget UTILTS.',
+    })
+    createdIds.push(contrl.id)
+  }
+
+  if (policy.shouldSendPositiveAperak) {
+    const aperak = await createAckIfMissing({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      ackFamily: 'APERAK',
+      outcome: 'positive',
+      messageText: 'Automatiskt APERAK för mottaget UTILTS.',
+    })
+    createdIds.push(aperak.id)
+  }
+
+  return createdIds
+}
+
+async function linkInboundUtiltsMessageCanonically(params: {
+  actorUserId: string
+  message: EdielMessageRow
+}) {
+  const meteringPointId = await matchMeteringPointForEdielMessage(params.message)
+  const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({ meteringPointId })
+  const matchedDataRequest = await findMatchingGridOwnerDataRequest(params.message)
+
+  await linkEdielMessage({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.message.id,
+    gridOwnerDataRequestId: matchedDataRequest?.id ?? null,
+    customerId: siteAndCustomer?.customerId ?? matchedDataRequest?.customer_id ?? null,
+    siteId: siteAndCustomer?.siteId ?? matchedDataRequest?.site_id ?? null,
+    meteringPointId: meteringPointId ?? matchedDataRequest?.metering_point_id ?? null,
+    gridOwnerId: siteAndCustomer?.gridOwnerId ?? matchedDataRequest?.grid_owner_id ?? null,
+    relatedMessageId: null,
+  })
+
+  return {
+    meteringPointId,
+    siteAndCustomer,
+    matchedDataRequest,
+  }
 }
 
 export async function prepareAndQueueUtiltsE73(params: {
@@ -84,7 +457,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     },
   })
 
-    const draft = await buildUtiltsOutboundDraft({
+  const draft = await buildUtiltsOutboundDraft({
     actorUserId,
     code: 'E73',
     communicationRouteId: routeContext.route.id,
@@ -105,14 +478,16 @@ export async function prepareAndQueueUtiltsE73(params: {
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
       meterPointId: meteringPoint?.meter_point_id ?? null,
+      meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
       requestedPeriodStart: dataRequest.requested_period_start,
       requestedPeriodEnd: dataRequest.requested_period_end,
       periodStart: dataRequest.requested_period_start,
       periodEnd: dataRequest.requested_period_end,
-      transactionReason: 'Request missing validated meter data',
-      quantity: null,
+      transactionReason: 'Begäran om saknade validerade mätvärden',
+      requestScope: dataRequest.request_scope,
       siteType: site?.site_type ?? 'consumption',
+      readingFrequency: meteringPoint?.reading_frequency ?? null,
     },
   })
 
@@ -123,10 +498,14 @@ export async function prepareAndQueueUtiltsE73(params: {
     draft,
     outboundRequestId: outbound.id,
     duplicateCheck: {
+      sourceType: 'grid_owner_data_request',
+      sourceId: dataRequest.id,
       receiverEdielId: routeContext.receiverEdielId,
       messageFamily: draft.messageFamily,
       messageCode: String(draft.messageCode),
       messageVersion: draft.messageVersion ?? null,
+      periodStart: dataRequest.requested_period_start,
+      periodEnd: dataRequest.requested_period_end,
     },
   })
 
@@ -146,8 +525,12 @@ export async function prepareAndQueueUtiltsE73(params: {
     actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
-    externalReference: dataRequest.external_reference,
-    payload: { edielCode: 'E73', routeId: routeContext.route.id },
+    externalReference: message.external_reference ?? dataRequest.external_reference,
+    payload: {
+      edielCode: 'E73',
+      routeId: routeContext.route.id,
+      gridOwnerDataRequestId: dataRequest.id,
+    },
   })
 
   await updateGridOwnerDataRequestStatus({
@@ -156,9 +539,11 @@ export async function prepareAndQueueUtiltsE73(params: {
     status: 'sent',
     externalReference: message.external_reference ?? dataRequest.external_reference,
     responsePayload: {
-      ...(dataRequest.response_payload ?? {}),
+      ...(ensureJson(dataRequest.response_payload)),
       edielMessageId: message.id,
+      outboundRequestId: outbound.id,
       preparedVia: 'prepareAndQueueUtiltsE73',
+      requestedVia: 'UTILTS_E73',
     },
     notes: dataRequest.notes ?? null,
   })
@@ -212,7 +597,7 @@ export async function prepareAndQueueUtiltsE66(params: {
     },
   })
 
-    const draft = await buildUtiltsOutboundDraft({
+  const draft = await buildUtiltsOutboundDraft({
     actorUserId,
     code: 'E66',
     communicationRouteId: routeContext.route.id,
@@ -233,6 +618,7 @@ export async function prepareAndQueueUtiltsE66(params: {
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
       meterPointId: meteringPoint?.meter_point_id ?? null,
+      meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
       periodStart: params.periodStart ?? dataRequest.requested_period_start,
       periodEnd: params.periodEnd ?? dataRequest.requested_period_end,
@@ -256,10 +642,14 @@ export async function prepareAndQueueUtiltsE66(params: {
     draft,
     outboundRequestId: outbound.id,
     duplicateCheck: {
+      sourceType: 'grid_owner_data_request',
+      sourceId: dataRequest.id,
       receiverEdielId: routeContext.receiverEdielId,
       messageFamily: draft.messageFamily,
       messageCode: String(draft.messageCode),
       messageVersion: draft.messageVersion ?? null,
+      periodStart: params.periodStart ?? dataRequest.requested_period_start,
+      periodEnd: params.periodEnd ?? dataRequest.requested_period_end,
     },
   })
 
@@ -279,277 +669,21 @@ export async function prepareAndQueueUtiltsE66(params: {
     actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
-    externalReference: dataRequest.external_reference,
-    payload: { edielCode: 'E66', routeId: routeContext.route.id },
+    externalReference: message.external_reference ?? dataRequest.external_reference,
+    payload: {
+      edielCode: 'E66',
+      routeId: routeContext.route.id,
+      gridOwnerDataRequestId: dataRequest.id,
+    },
   })
 
   return message
 }
 
-async function markDataRequestOutboundAcknowledged(params: {
-  actorUserId: string
-  dataRequestId: string
-  externalReference: string | null
-  edielMessageId: string
-}) {
-  const candidates = await Promise.all([
-    findOpenOutboundBySource({
-      sourceType: 'grid_owner_data_request',
-      sourceId: params.dataRequestId,
-      requestType: 'meter_values',
-    }),
-    findOpenOutboundBySource({
-      sourceType: 'grid_owner_data_request',
-      sourceId: params.dataRequestId,
-      requestType: 'billing_underlay',
-    }),
-  ])
-
-  const outbound = candidates.find(Boolean)
-  if (!outbound) return null
-
-  const updatedOutbound = await updateOutboundRequestStatus({
-    actorUserId: params.actorUserId,
-    outboundRequestId: outbound.id,
-    status: 'acknowledged',
-    externalReference: params.externalReference ?? outbound.external_reference ?? null,
-    responsePayload: {
-      edielMessageId: params.edielMessageId,
-      acknowledgedVia: 'inbound_ediel',
-    },
-  })
-
-  await syncGridOwnerDataRequestFromOutbound({
-    actorUserId: params.actorUserId,
-    outboundRequest: updatedOutbound,
-    extraResponsePayload: {
-      edielMessageId: params.edielMessageId,
-      acknowledgedVia: 'inbound_ediel',
-    },
-  })
-
-  return updatedOutbound
-}
-
-async function autoFillMasterdataFromUtilts(params: {
-  actorUserId: string
-  customerId: string | null
-  siteId: string | null
-  meteringPointId: string | null
-  message: EdielMessageRow
-}) {
-  const parsed = params.message.parsed_payload ?? {}
-
-  const facilityId =
-    stringOrNull(parsed.facilityId) ??
-    stringOrNull(parsed.installationId) ??
-    stringOrNull(parsed.siteFacilityId)
-
-  const meterPointIdentifier =
-    stringOrNull(parsed.meterPointId) ?? stringOrNull(parsed.meteringPointId)
-
-  const edielReference = stringOrNull(parsed.edielReference) ?? meterPointIdentifier
-  const currentSupplierName = stringOrNull(parsed.currentSupplierName)
-
-  if (params.siteId) {
-    const siteUpdate: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    }
-
-    if (facilityId) siteUpdate.facility_id = facilityId
-    if (currentSupplierName) siteUpdate.current_supplier_name = currentSupplierName
-
-    if (Object.keys(siteUpdate).length > 1) {
-      const { error } = await (await import('@/lib/supabase/service')).supabaseService
-        .from('customer_sites')
-        .update(siteUpdate)
-        .eq('id', params.siteId)
-
-      if (error) throw error
-    }
-  }
-
-  if (params.meteringPointId) {
-    const pointUpdate: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    }
-
-    if (meterPointIdentifier) pointUpdate.meter_point_id = meterPointIdentifier
-    if (edielReference) pointUpdate.ediel_reference = edielReference
-    if (facilityId) pointUpdate.site_facility_id = facilityId
-
-    if (Object.keys(pointUpdate).length > 1) {
-      const { error } = await (await import('@/lib/supabase/service')).supabaseService
-        .from('metering_points')
-        .update(pointUpdate)
-        .eq('id', params.meteringPointId)
-
-      if (error) throw error
-    }
-  }
-}
-
-async function autoIngestMeteringValueFromUtilts(params: {
-  actorUserId: string
-  customerId: string | null
-  siteId: string | null
-  meteringPointId: string | null
-  gridOwnerId: string | null
-  dataRequestId: string | null
-  message: EdielMessageRow
-}) {
-  const parsed = params.message.parsed_payload ?? {}
-
-  const quantity = numberOrNull(parsed.quantity)
-  if (!params.customerId || !params.meteringPointId || quantity === null) {
-    return null
-  }
-
-  const readAt =
-    stringOrNull(parsed.periodEnd) ??
-    stringOrNull(parsed.periodStart) ??
-    params.message.message_received_at ??
-    new Date().toISOString()
-
-  return ingestMeteringValue({
-    actorUserId: params.actorUserId,
-    customerId: params.customerId,
-    siteId: params.siteId,
-    meteringPointId: params.meteringPointId,
-    sourceRequestId: params.dataRequestId,
-    gridOwnerId: params.gridOwnerId,
-    readingType: 'consumption',
-    valueKwh: quantity,
-    qualityCode: stringOrNull(parsed.readingType),
-    readAt,
-    periodStart: stringOrNull(parsed.periodStart),
-    periodEnd: stringOrNull(parsed.periodEnd),
-    sourceSystem: 'ediel_utilts',
-    rawPayload: {
-      edielMessageId: params.message.id,
-      parsedPayload: parsed,
-    },
-  })
-}
-
-async function createAckIfMissing(params: {
-  actorUserId: string
-  sourceMessage: EdielMessageRow
-  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
-  outcome?: 'positive' | 'negative'
-  messageText?: string | null
-}) {
-  const draft =
-    params.ackFamily === 'CONTRL'
-      ? buildContrlDraft({
-        actorUserId: params.actorUserId,
-        sourceMessage: params.sourceMessage,
-        outcome: params.outcome ?? 'positive',
-        messageText: params.messageText ?? null,
-      })
-      : params.ackFamily === 'APERAK'
-        ? buildAperakDraft({
-          actorUserId: params.actorUserId,
-          sourceMessage: params.sourceMessage,
-          outcome: params.outcome ?? 'positive',
-          messageText: params.messageText ?? null,
-        })
-        : buildUtiltsErrDraft({
-          actorUserId: params.actorUserId,
-          sourceMessage: params.sourceMessage,
-          messageText: params.messageText ?? null,
-        })
-
-  const ackMessage = await createCanonicalAckMessage({
-    actorUserId: params.actorUserId,
-    sourceMessage: params.sourceMessage,
-    ackFamily: params.ackFamily,
-    outcome: params.outcome,
-    draft,
-  })
-
-  await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.sourceMessage.id,
-    eventType:
-      params.ackFamily === 'CONTRL'
-        ? 'contrl_sent'
-        : params.ackFamily === 'APERAK'
-          ? 'aperak_sent'
-          : 'utilts_err_sent',
-    eventStatus: 'success',
-    message: `${params.ackFamily} hanterad via canonical kernel.`,
-    payload: {
-      ackMessageId: ackMessage.id,
-      outcome: params.outcome ?? null,
-    },
-  })
-
-  return ackMessage
-}
-
-async function createAutomaticPositiveAcks(params: {
-  actorUserId: string
-  sourceMessage: EdielMessageRow
-}) {
-  const createdIds: string[] = []
-  const policy = await getAutomaticAckPolicy(params.sourceMessage)
-
-  if (policy.shouldSendContrl) {
-    const contrl = await createAckIfMissing({
-      actorUserId: params.actorUserId,
-      sourceMessage: params.sourceMessage,
-      ackFamily: 'CONTRL',
-      outcome: 'positive',
-      messageText: 'Automatiskt CONTRL.',
-    })
-    createdIds.push(contrl.id)
-  }
-
-  if (policy.shouldSendPositiveAperak) {
-    const aperak = await createAckIfMissing({
-      actorUserId: params.actorUserId,
-      sourceMessage: params.sourceMessage,
-      ackFamily: 'APERAK',
-      outcome: 'positive',
-      messageText: 'Automatiskt APERAK.',
-    })
-    createdIds.push(aperak.id)
-  }
-
-  return createdIds
-}
-
-async function linkInboundUtiltsMessageCanonically(params: {
-  actorUserId: string
-  message: EdielMessageRow
-}) {
-  const meteringPointId = await matchMeteringPointForEdielMessage(params.message)
-  const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({ meteringPointId })
-  const matchedDataRequest = await findMatchingGridOwnerDataRequest(params.message)
-
-  await linkEdielMessage({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.message.id,
-    gridOwnerDataRequestId: matchedDataRequest?.id ?? null,
-    customerId: siteAndCustomer?.customerId ?? null,
-    siteId: siteAndCustomer?.siteId ?? null,
-    meteringPointId,
-    gridOwnerId: siteAndCustomer?.gridOwnerId ?? null,
-    relatedMessageId: null,
-  })
-
-  return {
-    meteringPointId,
-    siteAndCustomer,
-    matchedDataRequest,
-  }
-}
-
 export async function processInboundUtiltsMessage(params: {
   actorUserId: string
   edielMessageId: string
-}) {
+}): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
 
@@ -558,6 +692,7 @@ export async function processInboundUtiltsMessage(params: {
     throw new Error(`Meddelande ${message.id} är inte UTILTS.`)
   }
 
+  const normalizedPayload = normalizeMeteringPayload(message)
   const canonicalLinks = await linkInboundUtiltsMessageCanonically({
     actorUserId,
     message,
@@ -567,7 +702,10 @@ export async function processInboundUtiltsMessage(params: {
     actorUserId,
     edielMessageId: message.id,
     status: 'parsed',
-    parsedPayload: message.parsed_payload ?? {},
+    parsedPayload: {
+      ...(message.parsed_payload ?? {}),
+      normalizedMeteringPayload: normalizedPayload,
+    },
   })
 
   if (!canonicalLinks.matchedDataRequest) {
@@ -582,9 +720,10 @@ export async function processInboundUtiltsMessage(params: {
       eventType: 'validated',
       eventStatus: 'warning',
       message:
-        'Inbound UTILTS kvitterades automatiskt men saknar ännu stark data request-koppling.',
+        'Inbound UTILTS kvitterades automatiskt men saknar stark data request-koppling.',
       payload: {
         createdAckMessageIds: ackIds,
+        normalizedMeteringPayload: normalizedPayload,
       },
     })
 
@@ -592,101 +731,87 @@ export async function processInboundUtiltsMessage(params: {
       message,
       matchedDataRequest: null,
       ackIds,
+      outboundRequestId: null,
+      ingestedMeterValueId: null,
+      billingUnderlayId: null,
     }
   }
 
-  await updateGridOwnerDataRequestStatus({
-    actorUserId,
-    requestId: canonicalLinks.matchedDataRequest.id,
-    status: 'received',
-    externalReference:
-      message.external_reference ?? canonicalLinks.matchedDataRequest.external_reference ?? null,
-    responsePayload: {
-      edielMessageId: message.id,
-      parsedPayload: message.parsed_payload ?? {},
-    },
-    notes: null,
-  })
+  const dataRequest = canonicalLinks.matchedDataRequest
+  const customerId = canonicalLinks.siteAndCustomer?.customerId ?? dataRequest.customer_id ?? null
+  const siteId = canonicalLinks.siteAndCustomer?.siteId ?? dataRequest.site_id ?? null
+  const meteringPointId = canonicalLinks.meteringPointId ?? dataRequest.metering_point_id ?? null
+  const gridOwnerId = canonicalLinks.siteAndCustomer?.gridOwnerId ?? dataRequest.grid_owner_id ?? null
 
   const acknowledgedOutbound = await markDataRequestOutboundAcknowledged({
     actorUserId,
-    dataRequestId: canonicalLinks.matchedDataRequest.id,
+    dataRequestId: dataRequest.id,
     externalReference: message.external_reference ?? null,
     edielMessageId: message.id,
+    normalizedPayload,
   })
 
-  await autoFillMasterdataFromUtilts({
+  const ingestedMeterValue = await maybeIngestMeteringValue({
     actorUserId,
-    customerId:
-      canonicalLinks.siteAndCustomer?.customerId ??
-      canonicalLinks.matchedDataRequest.customer_id ??
-      null,
-    siteId:
-      canonicalLinks.siteAndCustomer?.siteId ??
-      canonicalLinks.matchedDataRequest.site_id ??
-      null,
-    meteringPointId:
-      canonicalLinks.meteringPointId ??
-      canonicalLinks.matchedDataRequest.metering_point_id ??
-      null,
+    customerId,
+    siteId,
+    meteringPointId,
+    gridOwnerId,
+    dataRequestId: dataRequest.id,
     message,
+    normalizedPayload,
   })
 
-  const ingestedMeterValue = await autoIngestMeteringValueFromUtilts({
+  const billingUnderlay = await maybeCreateBillingUnderlay({
     actorUserId,
-    customerId:
-      canonicalLinks.siteAndCustomer?.customerId ??
-      canonicalLinks.matchedDataRequest.customer_id ??
-      null,
-    siteId:
-      canonicalLinks.siteAndCustomer?.siteId ??
-      canonicalLinks.matchedDataRequest.site_id ??
-      null,
-    meteringPointId:
-      canonicalLinks.meteringPointId ??
-      canonicalLinks.matchedDataRequest.metering_point_id ??
-      null,
-    gridOwnerId:
-      canonicalLinks.siteAndCustomer?.gridOwnerId ??
-      canonicalLinks.matchedDataRequest.grid_owner_id ??
-      null,
-    dataRequestId: canonicalLinks.matchedDataRequest.id,
+    dataRequest,
+    customerId,
+    siteId,
+    meteringPointId,
+    gridOwnerId,
     message,
+    normalizedPayload,
   })
 
-  if (acknowledgedOutbound) {
-    await syncGridOwnerDataRequestFromOutbound({
-      actorUserId,
-      outboundRequest: acknowledgedOutbound,
-      extraResponsePayload: {
-        edielMessageId: message.id,
-        parsedPayload: message.parsed_payload ?? {},
-        ingestedMeterValueId: ingestedMeterValue?.id ?? null,
-      },
-    })
-  } else {
-    await updateGridOwnerDataRequestStatus({
-      actorUserId,
-      requestId: canonicalLinks.matchedDataRequest.id,
-      status: 'received',
-      externalReference:
-        message.external_reference ??
-        canonicalLinks.matchedDataRequest.external_reference ??
-        null,
-      responsePayload: {
-        ...(canonicalLinks.matchedDataRequest.response_payload ?? {}),
-        edielMessageId: message.id,
-        parsedPayload: message.parsed_payload ?? {},
-        ingestedMeterValueId: ingestedMeterValue?.id ?? null,
-        acknowledgedVia: 'inbound_ediel_without_outbound',
-      },
-      notes: canonicalLinks.matchedDataRequest.notes ?? null,
-    })
-  }
+  await syncGridOwnerDataRequestReceivedFromEdiel({
+    actorUserId,
+    requestId: dataRequest.id,
+    edielMessageId: message.id,
+    externalReference: message.external_reference ?? dataRequest.external_reference ?? null,
+    parsedPayload: message.parsed_payload ?? {},
+    ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+    notes: dataRequest.notes ?? null,
+    extraResponsePayload: {
+      normalizedMeteringPayload: normalizedPayload,
+      outboundRequestId: acknowledgedOutbound?.id ?? null,
+      billingUnderlayId: billingUnderlay?.id ?? null,
+      billingUnderlayCandidate:
+        dataRequest.request_scope === 'billing_underlay'
+          ? {
+              status: billingUnderlay ? 'created' : 'not_created',
+              reason: billingUnderlay
+                ? 'billing_underlay_created_from_inbound_utilts'
+                : 'missing_customer_or_quantity_or_existing_underlay',
+            }
+          : null,
+    },
+  })
 
   const ackIds = await createAutomaticPositiveAcks({
     actorUserId,
     sourceMessage: message,
+  })
+
+  await updateEdielMessageStatus({
+    actorUserId,
+    edielMessageId: message.id,
+    status: 'validated',
+    parsedPayload: {
+      ...(message.parsed_payload ?? {}),
+      normalizedMeteringPayload: normalizedPayload,
+      ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+      billingUnderlayId: billingUnderlay?.id ?? null,
+    },
   })
 
   await createEdielMessageEvent({
@@ -695,20 +820,23 @@ export async function processInboundUtiltsMessage(params: {
     eventType: 'validated',
     eventStatus: 'success',
     message:
-      'Inbound UTILTS matchat mot data request, outbound kvitterat och masterdata uppdaterad via canonical motor.',
+      'Inbound UTILTS matchat mot data request, mätvärde/fakturaunderlag hanterat och outbound kvitterat.',
     payload: {
-      matchedGridOwnerDataRequestId: canonicalLinks.matchedDataRequest.id,
+      matchedGridOwnerDataRequestId: dataRequest.id,
       createdAckMessageIds: ackIds,
       outboundRequestId: acknowledgedOutbound?.id ?? null,
       ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+      billingUnderlayId: billingUnderlay?.id ?? null,
+      normalizedMeteringPayload: normalizedPayload,
     },
   })
 
   return {
     message,
-    matchedDataRequest: canonicalLinks.matchedDataRequest,
+    matchedDataRequest: dataRequest,
     ackIds,
     outboundRequestId: acknowledgedOutbound?.id ?? null,
     ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+    billingUnderlayId: billingUnderlay?.id ?? null,
   }
 }
