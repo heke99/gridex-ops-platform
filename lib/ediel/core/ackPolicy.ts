@@ -6,6 +6,10 @@ import {
   getEdielRouteRuntimeByCommunicationRouteId,
 } from '@/lib/ediel/config'
 import { listAckMessagesForSource } from '@/lib/ediel/db'
+import {
+  EDIEL_ACK_DEADLINE_MINUTES,
+  deriveSpecDrivenAckDefaults,
+} from '@/lib/ediel/specRegistry'
 
 export type AckOutcome = 'positive' | 'negative'
 export type AckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
@@ -28,6 +32,20 @@ export type AckPolicy = {
   shouldSendNegativeAperak: boolean
   shouldSendUtiltsErr: boolean
   ackDueAt: string | null
+}
+
+type AckDueBaseInput = Pick<
+  EdielMessageRow,
+  'message_received_at' | 'message_sent_at' | 'created_at'
+>
+
+type OutboundAckDueInput = Partial<AckDueBaseInput> & {
+  baseTime?: string | null
+  requiresContrl?: boolean | null
+  requiresAperak?: boolean | null
+  contrlStatus?: EdielAckStatus | null
+  aperakStatus?: EdielAckStatus | null
+  utiltsErrStatus?: EdielAckStatus | null
 }
 
 function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
@@ -54,16 +72,53 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
   }
 }
 
-function computeAckDueAt(sourceMessage: EdielMessageRow): string | null {
-  const base =
-    sourceMessage.message_received_at ??
-    sourceMessage.created_at ??
-    new Date().toISOString()
-
+function addAckDeadlineMinutes(baseTime?: string | null): string | null {
+  const base = baseTime ?? new Date().toISOString()
   const baseMs = new Date(base).getTime()
+
   if (!Number.isFinite(baseMs)) return null
 
-  return new Date(baseMs + 30 * 60 * 1000).toISOString()
+  return new Date(baseMs + EDIEL_ACK_DEADLINE_MINUTES * 60 * 1000).toISOString()
+}
+
+export function computeCanonicalAckDueAt(
+  sourceMessage?: AckDueBaseInput | string | null
+): string | null {
+  if (typeof sourceMessage === 'string') {
+    return addAckDeadlineMinutes(sourceMessage)
+  }
+
+  const base =
+    sourceMessage?.message_received_at ??
+    sourceMessage?.message_sent_at ??
+    sourceMessage?.created_at ??
+    null
+
+  return addAckDeadlineMinutes(base)
+}
+
+export function computeOutboundAckDueAt(params?: OutboundAckDueInput | string | null): string | null {
+  if (typeof params === 'string') {
+    return addAckDeadlineMinutes(params)
+  }
+
+  const requiresAnyAck =
+    params?.requiresContrl === true ||
+    params?.requiresAperak === true ||
+    params?.contrlStatus === 'pending' ||
+    params?.aperakStatus === 'pending' ||
+    params?.utiltsErrStatus === 'pending'
+
+  if (!requiresAnyAck) return null
+
+  const base =
+    params?.baseTime ??
+    params?.message_sent_at ??
+    params?.message_received_at ??
+    params?.created_at ??
+    null
+
+  return addAckDeadlineMinutes(base)
 }
 
 async function resolveRouteAckMode(sourceMessage: EdielMessageRow) {
@@ -141,7 +196,7 @@ export async function getAutomaticAckPolicy(
     shouldSendPositiveAperak,
     shouldSendNegativeAperak,
     shouldSendUtiltsErr,
-    ackDueAt: computeAckDueAt(sourceMessage),
+    ackDueAt: computeCanonicalAckDueAt(sourceMessage),
   }
 }
 
@@ -305,6 +360,21 @@ export function deriveEdielAckDefaults(params: {
   aperakStatus: 'pending' | 'not_required'
   utiltsErrStatus: 'not_required'
 } {
+  const specDefaults = deriveSpecDrivenAckDefaults({
+    family: params.family,
+    code: params.code,
+  })
+
+  if (specDefaults) {
+    return specDefaults as {
+      requiresContrl: boolean
+      requiresAperak: boolean
+      contrlStatus: 'pending' | 'not_required'
+      aperakStatus: 'pending' | 'not_required'
+      utiltsErrStatus: 'not_required'
+    }
+  }
+
   const family = params.family.toUpperCase()
   const code = params.code.toUpperCase()
 
@@ -329,25 +399,19 @@ export function deriveEdielAckDefaults(params: {
   }
 
   if (family === 'UTILTS') {
+    const requiresAperak =
+      code === 'E66' ||
+      code === 'E73' ||
+      code === 'S01' ||
+      code === 'S02' ||
+      code === 'S03' ||
+      code === 'S04'
+
     return {
       requiresContrl: true,
-      requiresAperak:
-        code === 'E66' ||
-        code === 'E73' ||
-        code === 'S01' ||
-        code === 'S02' ||
-        code === 'S03' ||
-        code === 'S04',
+      requiresAperak,
       contrlStatus: 'pending',
-      aperakStatus:
-        code === 'E66' ||
-        code === 'E73' ||
-        code === 'S01' ||
-        code === 'S02' ||
-        code === 'S03' ||
-        code === 'S04'
-          ? 'pending'
-          : 'not_required',
+      aperakStatus: requiresAperak ? 'pending' : 'not_required',
       utiltsErrStatus: 'not_required',
     }
   }

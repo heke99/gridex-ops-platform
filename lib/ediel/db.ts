@@ -209,7 +209,7 @@ function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventR
 
   let issueKind: CanonicalIssueKind | null = null
 
-  if (ackConflict) {
+    if (ackConflict) {
     issueKind = 'ack_conflict'
   } else if (duplicateBlocked) {
     issueKind = 'duplicate_block'

@@ -10,11 +10,18 @@ import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegi
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy'
 
+export const AI_LIST_VERSION = 'Ver20140401'
+
 export type AiListType = 'AI' | 'BI'
 
 export type AiListDetailRow = {
   anlaggningsId: string
+  kodlista?: '9' | '89' | string | null
   natavrakningsomrade?: string | null
+  nyttNatavrakningsomrade?: string | null
+  nyttAnlaggningsId?: string | null
+  nyKodlista?: '9' | '89' | string | null
+  nyttNatforetagsId?: string | null
   balansansvarsId?: string | null
   elhandelsId?: string | null
   natforetagsId?: string | null
@@ -28,8 +35,12 @@ export type AiListDetailRow = {
   rapporteringsfrekvens?: string | null
   produktkod?: string | null
   matarNummer?: string | null
-  serieId?: string | null
+  arsforbrukningKwh?: string | number | null
   elanvandarId?: string | null
+  elanvandarNamn?: string | null
+
+  /** Legacy field kept only so old callers keep compiling. Not sent in AI-listan 14.A.3. */
+  serieId?: string | null
 }
 
 export type BuildAiListCsvInput = {
@@ -39,18 +50,35 @@ export type BuildAiListCsvInput = {
   fromDate: string
   toDate: string
   details: AiListDetailRow[]
+  senderName?: string | null
+  receiverName?: string | null
+  createdAt?: Date | string | null
+  validityDate?: string | null
 }
 
 function normalizeDate(value?: string | null): string {
-  return (value ?? '').replace(/-/g, '').trim()
+  return (value ?? '').replace(/-/g, '').slice(0, 8).trim()
 }
 
-function safe(value?: string | null): string {
-  return (value ?? '').replace(/;/g, ',').trim()
+function normalizeTimestamp(value?: Date | string | null): string {
+  const date = value instanceof Date ? value : value ? new Date(value) : new Date()
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')
+  }
+  return date.toISOString().slice(0, 16).replace(/[-:T]/g, '')
+}
+
+function safe(value?: string | number | null): string {
+  return String(value ?? '').replace(/[;\r\n]/g, ',').trim()
+}
+
+function onlyAsciiToken(value?: string | null): string {
+  return safe(value).replace(/[^A-Za-z0-9_-]/g, '')
 }
 
 function sortKey(row: AiListDetailRow): string {
   return [
+    safe(row.natavrakningsomrade),
     safe(row.anlaggningsId),
     normalizeDate(row.franDatum),
     normalizeDate(row.tillDatum),
@@ -64,7 +92,12 @@ function sortKey(row: AiListDetailRow): string {
 function normalizeDetailRow(row: AiListDetailRow): AiListDetailRow {
   return {
     anlaggningsId: safe(row.anlaggningsId),
+    kodlista: safe(row.kodlista) || '9',
     natavrakningsomrade: safe(row.natavrakningsomrade),
+    nyttNatavrakningsomrade: safe(row.nyttNatavrakningsomrade),
+    nyttAnlaggningsId: safe(row.nyttAnlaggningsId),
+    nyKodlista: safe(row.nyKodlista),
+    nyttNatforetagsId: safe(row.nyttNatforetagsId),
     balansansvarsId: safe(row.balansansvarsId),
     elhandelsId: safe(row.elhandelsId),
     natforetagsId: safe(row.natforetagsId),
@@ -78,8 +111,10 @@ function normalizeDetailRow(row: AiListDetailRow): AiListDetailRow {
     rapporteringsfrekvens: safe(row.rapporteringsfrekvens),
     produktkod: safe(row.produktkod),
     matarNummer: safe(row.matarNummer),
-    serieId: safe(row.serieId),
+    arsforbrukningKwh: safe(row.arsforbrukningKwh),
     elanvandarId: safe(row.elanvandarId),
+    elanvandarNamn: safe(row.elanvandarNamn),
+    serieId: safe(row.serieId),
   }
 }
 
@@ -100,52 +135,110 @@ function buildAiListFileName(params: {
   receiverEdielId: string
   fromDate: string
   toDate: string
+  createdAt?: Date | string | null
+  validityDate?: string | null
 }) {
-  const fromDate = normalizeDate(params.fromDate)
-  const toDate = normalizeDate(params.toDate)
-  const sender = safe(params.senderEdielId).replace(/[^A-Za-z0-9]/g, '')
-  const receiver = safe(params.receiverEdielId).replace(/[^A-Za-z0-9]/g, '')
-  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '')
+  const sender = onlyAsciiToken(params.senderEdielId)
+  const receiver = onlyAsciiToken(params.receiverEdielId)
+  const stamp = normalizeTimestamp(params.createdAt)
 
-  return `${params.listType}_${sender}_${receiver}_${fromDate}_${toDate}_${stamp}.csv`
+  if (params.listType === 'BI') {
+    return `BI_${sender}_${receiver}_${normalizeDate(params.validityDate ?? params.fromDate)}_${stamp}.csv`
+  }
+
+  return `AI_${sender}_${receiver}_${normalizeDate(params.fromDate)}_${normalizeDate(params.toDate)}_${stamp}.csv`
+}
+
+function buildHeader(input: BuildAiListCsvInput): string {
+  const common = [
+    input.listType,
+    safe(input.senderEdielId),
+    safe(input.senderName),
+    safe(input.receiverEdielId),
+    safe(input.receiverName),
+    normalizeTimestamp(input.createdAt),
+  ]
+
+  if (input.listType === 'BI') {
+    return [
+      ...common,
+      normalizeDate(input.validityDate ?? input.fromDate),
+      '',
+      '',
+      AI_LIST_VERSION,
+    ].join(';')
+  }
+
+  return [
+    ...common,
+    '',
+    normalizeDate(input.fromDate),
+    normalizeDate(input.toDate),
+    AI_LIST_VERSION,
+  ].join(';')
+}
+
+function buildAiDetailRow(row: AiListDetailRow): string {
+  return [
+    safe(row.natavrakningsomrade),
+    safe(row.anlaggningsId),
+    safe(row.kodlista || '9'),
+    '',
+    '',
+    '',
+    '',
+    safe(row.anlaggningsAdress),
+    safe(row.postnummer),
+    safe(row.ort),
+    safe(row.balansansvarsId),
+    safe(row.matarNummer),
+    safe(row.avrakningsmetod),
+    safe(row.arsforbrukningKwh),
+    safe(row.rapporteringsfrekvens),
+    safe(row.matmetod),
+    safe(row.produktkod),
+    safe(row.elanvandarId),
+    safe(row.elanvandarNamn),
+    normalizeDate(row.franDatum),
+    normalizeDate(row.tillDatum),
+    '',
+  ].join(';')
+}
+
+function buildBiDetailRow(row: AiListDetailRow): string {
+  return [
+    safe(row.natavrakningsomrade),
+    safe(row.anlaggningsId),
+    safe(row.kodlista || '9'),
+    safe(row.nyttNatavrakningsomrade),
+    safe(row.nyttAnlaggningsId),
+    safe(row.nyKodlista),
+    safe(row.nyttNatforetagsId),
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+  ].join(';')
 }
 
 export function buildAiListCsv(input: BuildAiListCsvInput): string {
   const canonicalDetails = canonicalizeDetails(input.details)
-
-  const header = [
-    input.listType,
-    'Ver20140401',
-    safe(input.senderEdielId),
-    safe(input.receiverEdielId),
-    new Date().toISOString().slice(0, 19).replace(/[-:T]/g, ''),
-    normalizeDate(input.fromDate),
-    normalizeDate(input.toDate),
-  ].join(';')
-
   const rows = canonicalDetails.map((row) =>
-    [
-      safe(row.anlaggningsId),
-      safe(row.natavrakningsomrade),
-      safe(row.balansansvarsId),
-      safe(row.elhandelsId),
-      safe(row.natforetagsId),
-      safe(row.anlaggningsAdress),
-      safe(row.postnummer),
-      safe(row.ort),
-      normalizeDate(row.franDatum),
-      normalizeDate(row.tillDatum),
-      safe(row.avrakningsmetod),
-      safe(row.matmetod),
-      safe(row.rapporteringsfrekvens),
-      safe(row.produktkod),
-      safe(row.matarNummer),
-      safe(row.serieId),
-      safe(row.elanvandarId),
-    ].join(';')
+    input.listType === 'BI' ? buildBiDetailRow(row) : buildAiDetailRow(row)
   )
 
-  return [header, ...rows].join('\n')
+  return [buildHeader(input), ...rows].join('\n')
 }
 
 export function buildAiListDetailFromSite(params: {
@@ -160,6 +253,7 @@ export function buildAiListDetailFromSite(params: {
       params.meteringPoint?.meter_point_id ??
       params.site.facility_id ??
       params.site.id,
+    kodlista: '9',
     natavrakningsomrade: params.gridOwner?.owner_code ?? null,
     balansansvarsId: params.balanceResponsibleEdielId ?? null,
     elhandelsId: params.supplierEdielId ?? null,
@@ -175,7 +269,7 @@ export function buildAiListDetailFromSite(params: {
         : params.meteringPoint?.reading_frequency === 'daily'
           ? 'Z32'
           : params.meteringPoint?.reading_frequency === 'hourly'
-            ? 'Z33'
+            ? 'Z32'
             : null,
     matmetod:
       params.meteringPoint?.reading_frequency === 'hourly'
@@ -192,10 +286,12 @@ export function buildAiListDetailFromSite(params: {
             ? 'D'
             : null,
     produktkod:
-      params.site.site_type === 'production' ? 'production' : 'consumption',
+      params.site.site_type === 'production' ? '8716867000031' : '8716867000030',
     matarNummer: null,
-    serieId: params.meteringPoint?.ediel_reference ?? null,
+    arsforbrukningKwh: params.site.annual_consumption_kwh ?? null,
     elanvandarId: params.site.customer_id,
+    elanvandarNamn: params.site.site_name ?? null,
+    serieId: null,
   }
 }
 
@@ -220,6 +316,7 @@ export async function buildAiListOutboundDraft(input: {
   correlationReference?: string | null
   transactionReference?: string | null
   routeDefaultMessageVersion?: string | null
+  validityDate?: string | null
 }): Promise<CreateEdielMessageInput> {
   const refs = buildCanonicalOutboundReferences({
     family: 'AI_LIST',
@@ -234,19 +331,24 @@ export async function buildAiListOutboundDraft(input: {
     (await resolveCanonicalOutboundVersion({
       family: 'AI_LIST',
       code: input.listType,
-      fallback: 'Ver20140401',
+      fallback: AI_LIST_VERSION,
       standard: 'ai_list',
       routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
       environment: 'test',
-    })) ?? 'Ver20140401'
+    })) ?? AI_LIST_VERSION
 
+  const createdAt = new Date()
   const canonicalDetails = canonicalizeDetails(input.details)
   const csvPayload = buildAiListCsv({
     listType: input.listType,
     senderEdielId: input.senderEdielId,
+    senderName: input.senderName ?? null,
     receiverEdielId: input.receiverEdielId,
+    receiverName: input.receiverName ?? null,
     fromDate: input.fromDate,
     toDate: input.toDate,
+    validityDate: input.validityDate ?? null,
+    createdAt,
     details: canonicalDetails,
   })
 
@@ -262,7 +364,7 @@ export async function buildAiListOutboundDraft(input: {
     messageFamily: 'AI_LIST',
     messageCode: input.listType,
     messageVersion: version,
-    processType: 'ai_list_export',
+    processType: input.listType === 'BI' ? 'bi_list_export' : 'ai_list_export',
     environment: 'test',
     testFlag: 1,
     status: 'draft',
@@ -293,6 +395,8 @@ export async function buildAiListOutboundDraft(input: {
         receiverEdielId: input.receiverEdielId,
         fromDate: input.fromDate,
         toDate: input.toDate,
+        validityDate: input.validityDate ?? null,
+        createdAt,
       }) ||
       inferEdielFileName({
         family: 'AI_LIST',
@@ -307,6 +411,7 @@ export async function buildAiListOutboundDraft(input: {
       version,
       fromDate: input.fromDate,
       toDate: input.toDate,
+      validityDate: input.validityDate ?? null,
       detailCount: canonicalDetails.length,
       rawDetailCount: input.details.length,
       details: canonicalDetails,

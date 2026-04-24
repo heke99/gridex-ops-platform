@@ -210,6 +210,11 @@ const NAV_GROUPS: NavGroup[] = [
         description: 'Aktörskort, versionsregler och ack-policy',
       },
       {
+        href: '/admin/ediel/anvisningar',
+        label: 'Ediel-anvisningar',
+        description: 'Scope, versioner och runtime-täckning',
+      },
+      {
         href: '/admin/ediel/ai-list',
         label: 'AI-/BI-listor',
         description: 'Import/exportvy och historik för AI-/BI-listor',

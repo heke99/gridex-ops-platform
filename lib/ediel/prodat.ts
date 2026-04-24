@@ -13,7 +13,7 @@ import type {
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
-import { deriveEdielAckDefaults } from '@/lib/ediel/references'
+import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
@@ -380,7 +380,13 @@ function buildProdatSwitchOutboundDraft(
       contrlStatus: ack.contrlStatus,
       aperakStatus: ack.aperakStatus,
       utiltsErrStatus: ack.utiltsErrStatus,
-      ackDueAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      ackDueAt: computeOutboundAckDueAt({
+        requiresContrl: ack.requiresContrl,
+        requiresAperak: ack.requiresAperak,
+        contrlStatus: ack.contrlStatus,
+        aperakStatus: ack.aperakStatus,
+        utiltsErrStatus: ack.utiltsErrStatus,
+      }),
       syntaxCheckStatus: 'not_checked',
       functionalCheckStatus: 'not_checked',
     }

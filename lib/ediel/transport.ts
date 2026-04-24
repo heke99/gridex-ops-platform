@@ -24,7 +24,7 @@ import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
-import { deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy'
+import { computeCanonicalAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy'
 import {
   inferInboundAiListExternalReference,
   normalizeInboundEmail,
@@ -109,6 +109,8 @@ function buildInboundProdatMessageInput(params: {
     code: parsed.messageCode ?? 'Z03',
   })
 
+  const receivedAt = new Date().toISOString()
+
   return {
     actorUserId: 'system',
     direction: 'inbound',
@@ -147,8 +149,8 @@ function buildInboundProdatMessageInput(params: {
     utiltsErrStatus: ack.utiltsErrStatus,
     syntaxCheckStatus: 'pending',
     functionalCheckStatus: 'pending',
-    messageReceivedAt: new Date().toISOString(),
-    ackDueAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    messageReceivedAt: receivedAt,
+    ackDueAt: computeCanonicalAckDueAt(receivedAt),
   }
 }
 

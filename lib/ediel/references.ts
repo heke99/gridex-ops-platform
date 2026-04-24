@@ -14,4 +14,8 @@ export {
   buildEdielInterchangeReference,
 } from '@/lib/ediel/core/referenceRegistry'
 
-export { deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy'
+export {
+  computeCanonicalAckDueAt,
+  computeOutboundAckDueAt,
+  deriveEdielAckDefaults,
+} from '@/lib/ediel/core/ackPolicy'
