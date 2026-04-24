@@ -201,6 +201,17 @@ type TemplateRuleInput = {
   notes: string | null
 }
 
+export type EdielTemplateActionState = {
+  ok: boolean
+  template: string | null
+  message: string
+  createdCount: number
+  skippedCount: number
+  createdRules: string[]
+  skippedRules: string[]
+  error?: string
+}
+
 async function getExistingActiveVersionForFamily(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   family: string
@@ -219,11 +230,20 @@ async function getExistingActiveVersionForFamily(
   return first?.version_code?.trim() || null
 }
 
+function ruleIdentity(
+  rule: Pick<
+    TemplateRuleInput,
+    'message_family' | 'message_code' | 'message_standard' | 'version_code' | 'direction'
+  >
+): string {
+  return `${rule.message_family} ${rule.message_code} · ${rule.version_code} · ${rule.direction} · ${rule.message_standard}`
+}
+
 async function ensureRuleExists(params: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
   userId: string
   rule: TemplateRuleInput
-}) {
+}): Promise<'created' | 'skipped'> {
   const { supabase, userId, rule } = params
 
   const { data, error } = await supabase
@@ -239,7 +259,7 @@ async function ensureRuleExists(params: {
   if (error) throw error
 
   if ((data ?? []).length > 0) {
-    return
+    return 'skipped'
   }
 
   const { error: insertError } = await supabase.from('ediel_message_rules').insert({
@@ -249,24 +269,16 @@ async function ensureRuleExists(params: {
   })
 
   if (insertError) throw insertError
+  return 'created'
 }
 
-export async function createEdielRuleTemplateAction(formData: FormData) {
-  await requireAdminActionAccess(['communication.read', 'communication.send'])
-
-  const { supabase, userId } = await getActorContext()
-  const template = stringValue(formData, 'template')
-
-  if (!template) {
-    throw new Error('Mall saknas.')
-  }
-
-  const validFrom = stringValue(formData, 'valid_from')
-  const validTo = stringValue(formData, 'valid_to')
-
-  if (validFrom && validTo && validFrom > validTo) {
-    throw new Error('valid_from kan inte vara senare än valid_to.')
-  }
+async function buildTemplateRules(params: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  template: string
+  validFrom: string | null
+  validTo: string | null
+}): Promise<TemplateRuleInput[]> {
+  const { supabase, template, validFrom, validTo } = params
 
   const utiltsVersion = 'E5SE5A'
   const aiListVersion = 'Ver20140401'
@@ -389,7 +401,7 @@ export async function createEdielRuleTemplateAction(formData: FormData) {
   if (template === 'supplier_switch') {
     if (!prodatVersion) {
       throw new Error(
-        'Supplier switch-mallen kräver att minst en PRODAT-version redan finns sparad i settings.'
+        'Leverantörsbyte kräver att minst en PRODAT-version redan finns sparad i settings.'
       )
     }
 
@@ -504,13 +516,82 @@ export async function createEdielRuleTemplateAction(formData: FormData) {
     throw new Error('Okänd mall.')
   }
 
-  for (const rule of templateRules) {
-    await ensureRuleExists({
-      supabase,
-      userId,
-      rule,
-    })
-  }
+  return templateRules
+}
 
-  revalidateEdielPaths()
+export async function applyEdielRuleTemplateAction(
+  _previousState: EdielTemplateActionState,
+  formData: FormData
+): Promise<EdielTemplateActionState> {
+  try {
+    await requireAdminActionAccess(['communication.read', 'communication.send'])
+
+    const { supabase, userId } = await getActorContext()
+    const template = stringValue(formData, 'template')
+
+    if (!template) {
+      throw new Error('Mall saknas.')
+    }
+
+    const validFrom = stringValue(formData, 'valid_from')
+    const validTo = stringValue(formData, 'valid_to')
+
+    if (validFrom && validTo && validFrom > validTo) {
+      throw new Error('valid_from kan inte vara senare än valid_to.')
+    }
+
+    const templateRules = await buildTemplateRules({
+      supabase,
+      template,
+      validFrom,
+      validTo,
+    })
+
+    const createdRules: string[] = []
+    const skippedRules: string[] = []
+
+    for (const rule of templateRules) {
+      const outcome = await ensureRuleExists({
+        supabase,
+        userId,
+        rule,
+      })
+
+      if (outcome === 'created') {
+        createdRules.push(ruleIdentity(rule))
+      } else {
+        skippedRules.push(ruleIdentity(rule))
+      }
+    }
+
+    revalidateEdielPaths()
+
+    const createdCount = createdRules.length
+    const skippedCount = skippedRules.length
+    const message =
+      createdCount > 0
+        ? `${createdCount} regler skapades${skippedCount > 0 ? `, ${skippedCount} fanns redan` : ''}.`
+        : `Inga nya regler skapades. ${skippedCount} fanns redan.`
+
+    return {
+      ok: true,
+      template,
+      message,
+      createdCount,
+      skippedCount,
+      createdRules,
+      skippedRules,
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      template: stringValue(formData, 'template'),
+      message: 'Kunde inte skapa mall.',
+      createdCount: 0,
+      skippedCount: 0,
+      createdRules: [],
+      skippedRules: [],
+      error: error instanceof Error ? error.message : 'Okänt fel',
+    }
+  }
 }
