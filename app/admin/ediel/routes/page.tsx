@@ -1,4 +1,3 @@
-// app/admin/ediel/routes/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
@@ -8,7 +7,12 @@ import {
   type EdielRouteRuntimeExplanation,
   type EdielRouteRuntimeRow,
 } from '@/lib/ediel/config'
+import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
+import EdielReceiverPresetPicker, {
+  type EdielReceiverPreset,
+} from '@/components/admin/ediel/EdielReceiverPresetPicker'
 import {
+  createEdielBootstrapRouteAction,
   quickFixEdielProfileBasicsAction,
   quickFixEdielRouteActivationAction,
   quickFixEdielTargetEmailAction,
@@ -112,6 +116,14 @@ function Field({
   )
 }
 
+function textInputClassName() {
+  return 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400'
+}
+
+function selectClassName() {
+  return 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900'
+}
+
 function boolTone(value: boolean): 'green' | 'red' {
   return value ? 'green' : 'red'
 }
@@ -129,6 +141,71 @@ function sortRoutesForOps(rows: RouteRuntimeViewRow[]): RouteRuntimeViewRow[] {
   })
 }
 
+function buildReceiverPresets(params: {
+  routeRows: RouteRuntimeViewRow[]
+  gridOwners: GridOwnerRow[]
+}): EdielReceiverPreset[] {
+  const byKey = new Map<string, EdielReceiverPreset>()
+  const gridOwnerById = new Map(params.gridOwners.map((row) => [row.id, row]))
+
+  for (const row of params.routeRows) {
+    const receiverEdielId =
+      row.runtime?.receiver_ediel_id ?? row.gridOwner?.ediel_id ?? null
+    const receiverName =
+      row.runtime?.receiver_name ?? row.gridOwner?.name ?? null
+    const receiverSubAddress = row.runtime?.receiver_sub_address ?? null
+    const targetEmail = row.route.target_email ?? null
+    const gridOwnerId = row.route.grid_owner_id ?? null
+
+    const key = [
+      receiverEdielId ?? '',
+      receiverName ?? '',
+      receiverSubAddress ?? '',
+      targetEmail ?? '',
+      gridOwnerId ?? '',
+    ].join('|')
+
+    if (!receiverEdielId && !targetEmail && !gridOwnerId) continue
+    if (byKey.has(key)) continue
+
+    const gridOwner = gridOwnerId ? gridOwnerById.get(gridOwnerId) ?? null : null
+    const labelParts = [
+      receiverName ?? gridOwner?.name ?? 'Okänd mottagare',
+      receiverEdielId ? `Ediel ${receiverEdielId}` : null,
+      targetEmail ?? null,
+    ].filter(Boolean)
+
+    byKey.set(key, {
+      key,
+      label: labelParts.join(' · '),
+      receiverEdielId,
+      receiverName,
+      receiverSubAddress,
+      targetEmail,
+      gridOwnerId,
+    })
+  }
+
+  for (const row of params.gridOwners) {
+    if (!row.ediel_id) continue
+
+    const key = [`gridowner:${row.id}`]
+    if (byKey.has(key.join('|'))) continue
+
+    byKey.set(key.join('|'), {
+      key: key.join('|'),
+      label: `${row.name} · Ediel ${row.ediel_id}`,
+      receiverEdielId: row.ediel_id,
+      receiverName: row.name,
+      receiverSubAddress: null,
+      targetEmail: null,
+      gridOwnerId: row.id,
+    })
+  }
+
+  return [...byKey.values()].sort((a, b) => a.label.localeCompare(b.label, 'sv'))
+}
+
 export default async function AdminEdielRoutesPage() {
   const context = await requireAnyPermissionServer([
     'communication.read',
@@ -138,7 +215,7 @@ export default async function AdminEdielRoutesPage() {
 
   const supabase = await createSupabaseServerClient()
 
-  const [routesResult, gridOwnersResult] = await Promise.all([
+  const [routesResult, gridOwnersResult, testActor, prodActor] = await Promise.all([
     supabase
       .from('communication_routes')
       .select(
@@ -146,6 +223,8 @@ export default async function AdminEdielRoutesPage() {
       )
       .order('updated_at', { ascending: false }),
     supabase.from('grid_owners').select('id,name,ediel_id,owner_code').order('name'),
+    resolveCanonicalActorContext('test').catch(() => null),
+    resolveCanonicalActorContext('production').catch(() => null),
   ])
 
   if (routesResult.error) throw routesResult.error
@@ -184,6 +263,10 @@ export default async function AdminEdielRoutesPage() {
   )
 
   const sortedRoutes = sortRoutesForOps(runtimeRows)
+  const receiverPresets = buildReceiverPresets({
+    routeRows: sortedRoutes,
+    gridOwners,
+  })
 
   const readyCount = sortedRoutes.filter((row) => row.ready).length
   const blockedCount = sortedRoutes.length - readyCount
@@ -210,6 +293,37 @@ export default async function AdminEdielRoutesPage() {
         subtitle="Den här sidan visar vad runtime faktiskt använder: effective receiver, mailbox, version override, ack-mode och blockerande route/profilproblem."
         userEmail={context.email}
       />
+
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <h2 className="text-lg font-semibold text-slate-950">Minnesmodell i runtime</h2>
+        <p className="mt-1 text-sm text-slate-700">
+          Route-profile sparar transport/routing. Aktörskortet sparar din identitet per miljö.
+          När du lämnar sender/application reference/mailbox tomt i route-profile använder systemet aktivt aktörskort som default. Tidigare sparade mottagare kan nu återanvändas från listan.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-white/70 bg-white p-4">
+            <div className="text-sm font-semibold text-slate-900">Aktiv test-identitet</div>
+            <div className="mt-2 text-sm text-slate-700">
+              {testActor
+                ? `${testActor.senderEdielId} · ${testActor.senderName ?? 'utan namn'}`
+                : 'Ingen aktiv test-identitet ännu'}
+            </div>
+          </div>
+          <div className="rounded-xl border border-white/70 bg-white p-4">
+            <div className="text-sm font-semibold text-slate-900">Aktiv produktionsidentitet</div>
+            <div className="mt-2 text-sm text-slate-700">
+              {prodActor
+                ? `${prodActor.senderEdielId} · ${prodActor.senderName ?? 'utan namn'}`
+                : 'Ingen aktiv produktionsidentitet ännu'}
+            </div>
+          </div>
+          <div className="rounded-xl border border-white/70 bg-white p-4">
+            <div className="text-sm font-semibold text-slate-900">Kända mottagare</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">{receiverPresets.length}</div>
+            <div className="mt-1 text-xs text-slate-500">Byggs från sparade routes, profiles och grid owners.</div>
+          </div>
+        </div>
+      </section>
 
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -238,187 +352,266 @@ export default async function AdminEdielRoutesPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-        <h2 className="text-lg font-semibold text-slate-950">Vad som är nytt här</h2>
-        <p className="mt-1 text-sm text-slate-700">
-          Tidigare såg sidan främst sparade routefält. Nu visar den i stället
-          <span className="font-medium"> effective receiver Ediel-id</span>,
-          <span className="font-medium"> runtime summary</span>,
-          <span className="font-medium"> ack-mode</span>,
-          <span className="font-medium"> payload/encryption</span> och exakt varför en route är blockerad.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Pill
-            text={`saknar target_email: ${missingTargetEmailCount}`}
-            tone={missingTargetEmailCount > 0 ? 'yellow' : 'green'}
-          />
-          <Pill
-            text={`saknar receiver: ${missingReceiverCount}`}
-            tone={missingReceiverCount > 0 ? 'yellow' : 'green'}
-          />
-          <Pill
-            text={`saknar mailbox: ${missingMailboxCount}`}
-            tone={missingMailboxCount > 0 ? 'yellow' : 'green'}
-          />
-        </div>
-      </section>
+      {sortedRoutes.length === 0 ? (
+        <section data-receiver-scope className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-lg font-semibold text-slate-950">Första Ediel-route saknas</h2>
+          <p className="mt-1 text-sm text-slate-700">
+            Du har aktörskort och rules, men ingen faktisk Ediel-route ännu. Skapa första routen här. Om du lämnar sender/mailbox/application reference tomt kommer profilen att använda aktiv identitet för vald miljö.
+          </p>
+
+          <div className="mt-4">
+            <EdielReceiverPresetPicker presets={receiverPresets} />
+          </div>
+
+          <form action={createEdielBootstrapRouteAction} className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-white/70 bg-white p-4">
+              <div className="mb-3 text-sm font-semibold text-slate-900">Communication route</div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <input
+                  name="route_name"
+                  defaultValue="EDIEL meter_values test"
+                  className={textInputClassName()}
+                  placeholder="Route name"
+                />
+                <select
+                  name="route_scope"
+                  defaultValue="meter_values"
+                  className={selectClassName()}
+                >
+                  <option value="meter_values">meter_values</option>
+                  <option value="supplier_switch">supplier_switch</option>
+                  <option value="billing_underlay">billing_underlay</option>
+                </select>
+                <select
+                  name="environment"
+                  defaultValue="test"
+                  className={selectClassName()}
+                >
+                  <option value="test">test</option>
+                  <option value="production">production</option>
+                </select>
+                <input
+                  name="target_system"
+                  defaultValue="ediel"
+                  className={textInputClassName()}
+                  placeholder="Target system"
+                />
+                <input
+                  name="target_email"
+                  className={textInputClassName()}
+                  placeholder="Target email"
+                />
+                <input
+                  name="endpoint"
+                  className={textInputClassName()}
+                  placeholder="Endpoint"
+                />
+                <select
+                  name="grid_owner_id"
+                  defaultValue=""
+                  className={selectClassName()}
+                >
+                  <option value="">Ingen specifik grid owner</option>
+                  {gridOwners.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  name="supported_payload_version"
+                  className={textInputClassName()}
+                  placeholder="Supported payload version"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/70 bg-white p-4">
+              <div className="mb-3 text-sm font-semibold text-slate-900">Runtime profile</div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <input
+                  name="receiverEdielId"
+                  className={textInputClassName()}
+                  placeholder="Receiver Ediel-id"
+                />
+                <input
+                  name="receiverName"
+                  className={textInputClassName()}
+                  placeholder="Receiver name"
+                />
+                <input
+                  name="receiverSubAddress"
+                  className={textInputClassName()}
+                  placeholder="Receiver subaddress"
+                />
+                <input
+                  name="mailbox"
+                  className={textInputClassName()}
+                  placeholder="Mailbox (blank = use actor default)"
+                />
+                <input
+                  name="applicationReference"
+                  className={textInputClassName()}
+                  placeholder="Application reference (blank = use actor default)"
+                />
+                <input
+                  name="defaultMessageVersion"
+                  className={textInputClassName()}
+                  placeholder="Default message version"
+                />
+                <select
+                  name="ackMode"
+                  defaultValue="default"
+                  className={selectClassName()}
+                >
+                  <option value="default">default</option>
+                  <option value="none">none</option>
+                  <option value="contrl_only">contrl_only</option>
+                  <option value="contrl_and_aperak">contrl_and_aperak</option>
+                </select>
+                <select
+                  name="messageStandard"
+                  defaultValue="edifact"
+                  className={selectClassName()}
+                >
+                  <option value="edifact">edifact</option>
+                  <option value="xml">xml</option>
+                  <option value="ai_list">ai_list</option>
+                </select>
+              </div>
+
+              <button className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+                Skapa första Ediel-route
+              </button>
+            </div>
+          </form>
+        </section>
+      ) : null}
 
       <section className="space-y-5">
-        {sortedRoutes.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-sm text-slate-500">
-            Inga Ediel-routes hittades.
-          </div>
-        ) : (
-          sortedRoutes.map(({ route, gridOwner, runtime, explanation }) => {
-            const effectiveReceiver =
-              explanation?.effectiveReceiverEdielId ??
-              runtime?.receiver_ediel_id ??
-              gridOwner?.ediel_id ??
-              null
+        {sortedRoutes.length === 0
+          ? null
+          : sortedRoutes.map(({ route, gridOwner, runtime, explanation }) => {
+              const effectiveReceiver =
+                explanation?.effectiveReceiverEdielId ??
+                runtime?.receiver_ediel_id ??
+                gridOwner?.ediel_id ??
+                null
 
-            return (
-              <article
-                key={route.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-950">{route.route_name}</h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {route.route_scope} · {route.route_type} · uppdaterad {formatDate(route.updated_at)}
+              return (
+                <article
+                  key={route.id}
+                  data-receiver-scope
+                  className="rounded-2xl border border-slate-200 bg-white p-5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-950">{route.route_name}</h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {route.route_scope} · {route.route_type} · uppdaterad {formatDate(route.updated_at)}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Pill text={route.is_active ? 'route aktiv' : 'route inaktiv'} tone={boolTone(route.is_active)} />
+                      <Pill
+                        text={runtime?.is_enabled ? 'profil aktiv' : 'profil saknas/av'}
+                        tone={runtime?.is_enabled ? 'green' : 'red'}
+                      />
+                      <Pill
+                        text={explanation?.isReadyForOutbound ? 'runtime redo' : 'runtime blockerad'}
+                        tone={explanation?.isReadyForOutbound ? 'green' : 'red'}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <EdielReceiverPresetPicker
+                      presets={receiverPresets}
+                      title="Tidigare mottagare"
+                      description="Välj en tidigare sparad mottagare för att fylla i receiver-fälten för den här routen."
+                    />
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-sm font-semibold text-slate-900">Runtime summary</div>
+                    <p className="mt-2 text-sm text-slate-700">
+                      {explanation?.summary ??
+                        'Ingen runtime-profil hittades för routen ännu. Det betyder att communication route finns, men Ediel-runtime kan inte förklara eller använda den fullt ut.'}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Pill text={route.is_active ? 'route aktiv' : 'route inaktiv'} tone={boolTone(route.is_active)} />
-                    <Pill
-                      text={runtime?.is_enabled ? 'profil aktiv' : 'profil saknas/av'}
-                      tone={runtime?.is_enabled ? 'green' : 'red'}
-                    />
-                    <Pill
-                      text={explanation?.isReadyForOutbound ? 'runtime redo' : 'runtime blockerad'}
-                      tone={explanation?.isReadyForOutbound ? 'green' : 'red'}
-                    />
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <Field label="Grid owner" value={gridOwner?.name ?? null} />
+                    <Field label="Grid owner Ediel-id" value={gridOwner?.ediel_id ?? null} />
+                    <Field label="Effective receiver Ediel-id" value={effectiveReceiver} />
+                    <Field label="Target email" value={route.target_email} />
+                    <Field label="Mailbox" value={runtime?.mailbox ?? null} />
+                    <Field label="Sender Ediel-id" value={runtime?.sender_ediel_id ?? null} />
+                    <Field label="Receiver Ediel-id (profil)" value={runtime?.receiver_ediel_id ?? null} />
+                    <Field label="Application reference" value={runtime?.application_reference ?? null} />
+                    <Field label="Ack-mode" value={runtime?.ack_mode ?? null} />
+                    <Field label="Message standard" value={runtime?.message_standard ?? null} />
+                    <Field label="Payload format" value={runtime?.payload_format ?? null} />
+                    <Field label="Encryption mode" value={runtime?.encryption_mode ?? null} />
+                    <Field label="Version override" value={runtime?.default_message_version ?? null} />
+                    <Field label="Target system" value={route.target_system} />
+                    <Field label="Endpoint" value={route.endpoint} />
+                    <Field label="Supported payload version" value={route.supported_payload_version} />
                   </div>
-                </div>
 
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-sm font-semibold text-slate-900">Runtime summary</div>
-                  <p className="mt-2 text-sm text-slate-700">
-                    {explanation?.summary ??
-                      'Ingen runtime-profil hittades för routen ännu. Det betyder att communication route finns, men Ediel-runtime kan inte förklara eller använda den fullt ut.'}
-                  </p>
-                </div>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <Field label="Grid owner" value={gridOwner?.name ?? null} />
-                  <Field label="Grid owner Ediel-id" value={gridOwner?.ediel_id ?? null} />
-                  <Field label="Effective receiver Ediel-id" value={effectiveReceiver} />
-                  <Field label="Target email" value={route.target_email} />
-                  <Field label="Mailbox" value={runtime?.mailbox ?? null} />
-                  <Field label="Sender Ediel-id" value={runtime?.sender_ediel_id ?? null} />
-                  <Field label="Receiver Ediel-id (profil)" value={runtime?.receiver_ediel_id ?? null} />
-                  <Field label="Application reference" value={runtime?.application_reference ?? null} />
-                  <Field label="Ack-mode" value={runtime?.ack_mode ?? null} />
-                  <Field label="Message standard" value={runtime?.message_standard ?? null} />
-                  <Field label="Payload format" value={runtime?.payload_format ?? null} />
-                  <Field label="Encryption mode" value={runtime?.encryption_mode ?? null} />
-                  <Field label="Version override" value={runtime?.default_message_version ?? null} />
-                  <Field label="Target system" value={route.target_system} />
-                  <Field label="Endpoint" value={route.endpoint} />
-                  <Field label="Supported payload version" value={route.supported_payload_version} />
-                </div>
-
-                <div className="mt-4">
-                  <div className="mb-2 text-sm font-semibold text-slate-900">Runtime issues</div>
-                  {explanation?.issues.length ? (
-                    <div className="space-y-2">
-                      {explanation.issues.map((issue) => (
-                        <div
-                          key={issue.key}
-                          className={`rounded-xl border px-3 py-3 ${
-                            issue.severity === 'error'
-                              ? 'border-rose-200 bg-rose-50'
-                              : 'border-amber-200 bg-amber-50'
-                          }`}
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Pill text={issue.severity} tone={issueTone(issue.severity)} />
-                            <div className="text-sm font-medium text-slate-900">{issue.label}</div>
+                  <div className="mt-4">
+                    <div className="mb-2 text-sm font-semibold text-slate-900">Runtime issues</div>
+                    {explanation?.issues.length ? (
+                      <div className="space-y-2">
+                        {explanation.issues.map((issue) => (
+                          <div
+                            key={issue.key}
+                            className={`rounded-xl border px-3 py-3 ${
+                              issue.severity === 'error'
+                                ? 'border-rose-200 bg-rose-50'
+                                : 'border-amber-200 bg-amber-50'
+                            }`}
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Pill text={issue.severity} tone={issueTone(issue.severity)} />
+                              <div className="text-sm font-medium text-slate-900">{issue.label}</div>
+                            </div>
+                            <div className="mt-1 text-sm text-slate-700">{issue.resolution}</div>
                           </div>
-                          <div className="mt-1 text-sm text-slate-700">{issue.resolution}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800">
-                      Inga blockerande eller varningsnivå-issues just nu.
-                    </div>
-                  )}
-                </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800">
+                        Inga blockerande eller varningsnivå-issues just nu.
+                      </div>
+                    )}
+                  </div>
 
-                <div className="mt-5 grid gap-5 xl:grid-cols-2">
-                  <form
-                    action={saveEdielCommunicationRouteAction}
-                    className="rounded-2xl border border-slate-200 p-4"
-                  >
-                    <input type="hidden" name="id" value={route.id} />
-                    <div className="mb-3 text-sm font-semibold text-slate-900">
-                      Communication route
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Route name
-                        </label>
-                        <input
-                          name="route_name"
-                          defaultValue={route.route_name}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
+                  <div className="mt-5 grid gap-5 xl:grid-cols-2">
+                    <form
+                      action={saveEdielCommunicationRouteAction}
+                      className="rounded-2xl border border-slate-200 p-4"
+                    >
+                      <input type="hidden" name="id" value={route.id} />
+                      <div className="mb-3 text-sm font-semibold text-slate-900">
+                        Communication route
                       </div>
 
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Route scope
-                        </label>
-                        <select
-                          name="route_scope"
-                          defaultValue={route.route_scope}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <input name="route_name" defaultValue={route.route_name} className={textInputClassName()} />
+                        <select name="route_scope" defaultValue={route.route_scope} className={selectClassName()}>
                           <option value="supplier_switch">supplier_switch</option>
                           <option value="meter_values">meter_values</option>
                           <option value="billing_underlay">billing_underlay</option>
                         </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Route type
-                        </label>
-                        <select
-                          name="route_type"
-                          defaultValue={route.route_type}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
+                        <select name="route_type" defaultValue={route.route_type} className={selectClassName()}>
                           <option value="ediel_partner">ediel_partner</option>
                           <option value="partner_api">partner_api</option>
                           <option value="file_export">file_export</option>
                           <option value="email_manual">email_manual</option>
                         </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Grid owner
-                        </label>
-                        <select
-                          name="grid_owner_id"
-                          defaultValue={route.grid_owner_id ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
+                        <select name="grid_owner_id" defaultValue={route.grid_owner_id ?? ''} className={selectClassName()}>
                           <option value="">—</option>
                           {gridOwners.map((row) => (
                             <option key={row.id} value={row.id}>
@@ -426,479 +619,165 @@ export default async function AdminEdielRoutesPage() {
                             </option>
                           ))}
                         </select>
+                        <input name="target_system" defaultValue={route.target_system} className={textInputClassName()} />
+                        <input name="target_email" defaultValue={route.target_email ?? ''} className={textInputClassName()} />
+                        <input name="endpoint" defaultValue={route.endpoint ?? ''} className={textInputClassName()} />
+                        <input name="supported_payload_version" defaultValue={route.supported_payload_version ?? ''} className={textInputClassName()} />
+                        <input name="route_notes" defaultValue={route.notes ?? ''} className={`${textInputClassName()} md:col-span-2`} />
                       </div>
 
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Target system
-                        </label>
-                        <input
-                          name="target_system"
-                          defaultValue={route.target_system}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
+                      <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" name="is_active" value="true" defaultChecked={route.is_active} className="h-4 w-4 rounded border-slate-300" />
+                        Route aktiv
+                      </label>
+
+                      <div className="mt-4">
+                        <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+                          Spara communication route
+                        </button>
                       </div>
+                    </form>
 
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Target email
-                        </label>
-                        <input
-                          name="target_email"
-                          defaultValue={route.target_email ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
+                    <form
+                      action={saveEdielRouteProfileAction}
+                      className="rounded-2xl border border-slate-200 p-4"
+                    >
+                      <input type="hidden" name="communicationRouteId" value={route.id} />
+                      <div className="mb-3 text-sm font-semibold text-slate-900">
+                        Ediel runtime profile
                       </div>
+                      <p className="mb-3 text-xs text-slate-500">
+                        Lämna sender/application reference/mailbox tomt för att använda aktiv aktörsidentitet i vald miljö.
+                      </p>
 
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Endpoint
-                        </label>
-                        <input
-                          name="endpoint"
-                          defaultValue={route.endpoint ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Supported payload version
-                        </label>
-                        <input
-                          name="supported_payload_version"
-                          defaultValue={route.supported_payload_version ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Notes
-                        </label>
-                        <input
-                          name="route_notes"
-                          defaultValue={route.notes ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        name="is_active"
-                        value="true"
-                        defaultChecked={route.is_active}
-                        className="h-4 w-4 rounded border-slate-300"
-                      />
-                      Route aktiv
-                    </label>
-
-                    <div className="mt-4">
-                      <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-                        Spara communication route
-                      </button>
-                    </div>
-                  </form>
-
-                  <form
-                    action={saveEdielRouteProfileAction}
-                    className="rounded-2xl border border-slate-200 p-4"
-                  >
-                    <input type="hidden" name="communicationRouteId" value={route.id} />
-                    <div className="mb-3 text-sm font-semibold text-slate-900">
-                      Ediel runtime profile
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Sender Ediel-id
-                        </label>
-                        <input
-                          name="senderEdielId"
-                          defaultValue={runtime?.sender_ediel_id ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Receiver Ediel-id
-                        </label>
-                        <input
-                          name="receiverEdielId"
-                          defaultValue={runtime?.receiver_ediel_id ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Sender name
-                        </label>
-                        <input
-                          name="senderName"
-                          defaultValue={runtime?.sender_name ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Receiver name
-                        </label>
-                        <input
-                          name="receiverName"
-                          defaultValue={runtime?.receiver_name ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Sender subaddress
-                        </label>
-                        <input
-                          name="senderSubAddress"
-                          defaultValue={runtime?.sender_sub_address ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Receiver subaddress
-                        </label>
-                        <input
-                          name="receiverSubAddress"
-                          defaultValue={runtime?.receiver_sub_address ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Mailbox
-                        </label>
-                        <input
-                          name="mailbox"
-                          defaultValue={runtime?.mailbox ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Application reference
-                        </label>
-                        <input
-                          name="applicationReference"
-                          defaultValue={runtime?.application_reference ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Default message version
-                        </label>
-                        <input
-                          name="defaultMessageVersion"
-                          defaultValue={runtime?.default_message_version ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Ack mode
-                        </label>
-                        <select
-                          name="ackMode"
-                          defaultValue={runtime?.ack_mode ?? 'default'}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <input name="senderEdielId" defaultValue={runtime?.sender_ediel_id ?? ''} placeholder="Sender Ediel-id" className={textInputClassName()} />
+                        <input name="receiverEdielId" defaultValue={runtime?.receiver_ediel_id ?? ''} placeholder="Receiver Ediel-id" className={textInputClassName()} />
+                        <input name="senderName" defaultValue={runtime?.sender_name ?? ''} placeholder="Sender name" className={textInputClassName()} />
+                        <input name="receiverName" defaultValue={runtime?.receiver_name ?? ''} placeholder="Receiver name" className={textInputClassName()} />
+                        <input name="senderSubAddress" defaultValue={runtime?.sender_sub_address ?? ''} placeholder="Sender subaddress" className={textInputClassName()} />
+                        <input name="receiverSubAddress" defaultValue={runtime?.receiver_sub_address ?? ''} placeholder="Receiver subaddress" className={textInputClassName()} />
+                        <input name="mailbox" defaultValue={runtime?.mailbox ?? ''} placeholder="Mailbox" className={textInputClassName()} />
+                        <input name="applicationReference" defaultValue={runtime?.application_reference ?? ''} placeholder="Application reference" className={textInputClassName()} />
+                        <input name="defaultMessageVersion" defaultValue={runtime?.default_message_version ?? ''} placeholder="Default message version" className={textInputClassName()} />
+                        <select name="ackMode" defaultValue={runtime?.ack_mode ?? 'default'} className={selectClassName()}>
                           <option value="default">default</option>
                           <option value="none">none</option>
                           <option value="contrl_only">contrl_only</option>
                           <option value="contrl_and_aperak">contrl_and_aperak</option>
                         </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Message standard
-                        </label>
-                        <select
-                          name="messageStandard"
-                          defaultValue={runtime?.message_standard ?? 'edifact'}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
+                        <select name="messageStandard" defaultValue={runtime?.message_standard ?? 'edifact'} className={selectClassName()}>
                           <option value="edifact">edifact</option>
                           <option value="xml">xml</option>
                           <option value="ai_list">ai_list</option>
                         </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Payload format
-                        </label>
-                        <select
-                          name="payloadFormat"
-                          defaultValue={runtime?.payload_format ?? 'edifact'}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
+                        <select name="payloadFormat" defaultValue={runtime?.payload_format ?? 'edifact'} className={selectClassName()}>
                           <option value="edifact">edifact</option>
                           <option value="xml">xml</option>
                           <option value="raw">raw</option>
                         </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Encryption mode
-                        </label>
-                        <select
-                          name="encryptionMode"
-                          defaultValue={runtime?.encryption_mode ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
+                        <select name="encryptionMode" defaultValue={runtime?.encryption_mode ?? ''} className={selectClassName()}>
                           <option value="">—</option>
                           <option value="none">none</option>
                           <option value="smime">smime</option>
                           <option value="pgp">pgp</option>
                         </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Environment
-                        </label>
-                        <select
-                          name="environment"
-                          defaultValue={runtime?.environment ?? 'test'}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
+                        <select name="environment" defaultValue={runtime?.environment ?? 'test'} className={selectClassName()}>
                           <option value="test">test</option>
                           <option value="production">production</option>
                         </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Default test flag
-                        </label>
-                        <select
-                          name="defaultTestFlag"
-                          defaultValue={runtime?.default_test_flag ?? 1}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
+                        <select name="defaultTestFlag" defaultValue={runtime?.default_test_flag ?? 1} className={selectClassName()}>
                           <option value="1">1</option>
                           <option value="0">0</option>
                         </select>
+                        <input name="defaultTimezone" type="number" defaultValue={runtime?.default_timezone ?? 1} className={textInputClassName()} />
+                        <input name="smtpHost" defaultValue={runtime?.smtp_host ?? ''} placeholder="SMTP host" className={textInputClassName()} />
+                        <input name="smtpPort" type="number" defaultValue={runtime?.smtp_port ?? ''} placeholder="SMTP port" className={textInputClassName()} />
+                        <input name="imapHost" defaultValue={runtime?.imap_host ?? ''} placeholder="IMAP host" className={textInputClassName()} />
+                        <input name="imapPort" type="number" defaultValue={runtime?.imap_port ?? ''} placeholder="IMAP port" className={textInputClassName()} />
+                        <input name="notes" defaultValue={runtime?.route_profile_notes ?? ''} placeholder="Notes" className={`${textInputClassName()} md:col-span-2`} />
                       </div>
 
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Default timezone
-                        </label>
-                        <input
-                          name="defaultTimezone"
-                          type="number"
-                          defaultValue={runtime?.default_timezone ?? 1}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
+                      <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" name="isEnabled" value="true" defaultChecked={runtime?.is_enabled ?? false} className="h-4 w-4 rounded border-slate-300" />
+                        Ediel-profil aktiv
+                      </label>
 
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          SMTP host
-                        </label>
-                        <input
-                          name="smtpHost"
-                          defaultValue={runtime?.smtp_host ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
+                      <div className="mt-4">
+                        <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+                          Spara runtime profile
+                        </button>
                       </div>
+                    </form>
+                  </div>
 
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          SMTP port
-                        </label>
-                        <input
-                          name="smtpPort"
-                          type="number"
-                          defaultValue={runtime?.smtp_port ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          IMAP host
-                        </label>
-                        <input
-                          name="imapHost"
-                          defaultValue={runtime?.imap_host ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          IMAP port
-                        </label>
-                        <input
-                          name="imapPort"
-                          type="number"
-                          defaultValue={runtime?.imap_port ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Notes
-                        </label>
-                        <input
-                          name="notes"
-                          defaultValue={runtime?.route_profile_notes ?? ''}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-700">
+                  <div className="mt-5 grid gap-4 xl:grid-cols-4">
+                    <form action={quickFixEdielTargetEmailAction} className="rounded-2xl border border-slate-200 p-4">
+                      <input type="hidden" name="routeId" value={route.id} />
+                      <div className="mb-2 text-sm font-semibold text-slate-900">Quick fix: target_email</div>
                       <input
-                        type="checkbox"
-                        name="isEnabled"
-                        value="true"
-                        defaultChecked={runtime?.is_enabled ?? false}
-                        className="h-4 w-4 rounded border-slate-300"
+                        name="targetEmail"
+                        defaultValue={route.target_email ?? ''}
+                        placeholder="target_email"
+                        className={textInputClassName()}
                       />
-                      Ediel-profil aktiv
-                    </label>
-
-                    <div className="mt-4">
-                      <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-                        Spara runtime profile
+                      <button className="mt-3 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700">
+                        Spara email
                       </button>
-                    </div>
-                  </form>
-                </div>
+                    </form>
 
-                <div className="mt-5 grid gap-4 xl:grid-cols-4">
-                  <form action={quickFixEdielTargetEmailAction} className="rounded-2xl border border-slate-200 p-4">
-                    <input type="hidden" name="routeId" value={route.id} />
-                    <div className="mb-2 text-sm font-semibold text-slate-900">
-                      Quick fix: target_email
-                    </div>
-                    <input
-                      name="targetEmail"
-                      defaultValue={route.target_email ?? ''}
-                      placeholder="target_email"
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                    />
-                    <button className="mt-3 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700">
-                      Spara email
-                    </button>
-                  </form>
+                    <form action={quickFixEdielProfileBasicsAction} className="rounded-2xl border border-slate-200 p-4">
+                      <input type="hidden" name="routeId" value={route.id} />
+                      <div className="mb-2 text-sm font-semibold text-slate-900">Quick fix: profilbas</div>
+                      <input name="senderEdielId" defaultValue={runtime?.sender_ediel_id ?? ''} placeholder="senderEdielId" className={`${textInputClassName()} mb-2`} />
+                      <input name="receiverEdielId" defaultValue={runtime?.receiver_ediel_id ?? ''} placeholder="receiverEdielId" className={`${textInputClassName()} mb-2`} />
+                      <input name="mailbox" defaultValue={runtime?.mailbox ?? ''} placeholder="mailbox" className={textInputClassName()} />
+                      <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" name="enableEdiel" value="true" defaultChecked={runtime?.is_enabled ?? false} className="h-4 w-4 rounded border-slate-300" />
+                        Aktivera profil
+                      </label>
+                      <button className="mt-3 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700">
+                        Spara profilbas
+                      </button>
+                    </form>
 
-                  <form action={quickFixEdielProfileBasicsAction} className="rounded-2xl border border-slate-200 p-4">
-                    <input type="hidden" name="routeId" value={route.id} />
-                    <div className="mb-2 text-sm font-semibold text-slate-900">
-                      Quick fix: profilbas
-                    </div>
-                    <input
-                      name="senderEdielId"
-                      defaultValue={runtime?.sender_ediel_id ?? ''}
-                      placeholder="senderEdielId"
-                      className="mb-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                    />
-                    <input
-                      name="receiverEdielId"
-                      defaultValue={runtime?.receiver_ediel_id ?? ''}
-                      placeholder="receiverEdielId"
-                      className="mb-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                    />
-                    <input
-                      name="mailbox"
-                      defaultValue={runtime?.mailbox ?? ''}
-                      placeholder="mailbox"
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                    />
-                    <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-700">
+                    <form action={quickFixEdielRouteActivationAction} className="rounded-2xl border border-slate-200 p-4">
+                      <input type="hidden" name="routeId" value={route.id} />
+                      <div className="mb-2 text-sm font-semibold text-slate-900">Quick fix: aktivering</div>
+                      <label className="mb-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" name="activateRoute" value="true" defaultChecked={route.is_active} className="h-4 w-4 rounded border-slate-300" />
+                        Aktivera route
+                      </label>
+                      <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" name="enableEdiel" value="true" defaultChecked={runtime?.is_enabled ?? false} className="h-4 w-4 rounded border-slate-300" />
+                        Aktivera Ediel-profil
+                      </label>
+                      <button className="mt-3 block rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700">
+                        Kör aktivering
+                      </button>
+                    </form>
+
+                    <form action={quickFixGridOwnerEdielIdAction} className="rounded-2xl border border-slate-200 p-4">
+                      <input type="hidden" name="gridOwnerId" value={gridOwner?.id ?? ''} />
+                      <div className="mb-2 text-sm font-semibold text-slate-900">Quick fix: grid owner Ediel-id</div>
                       <input
-                        type="checkbox"
-                        name="enableEdiel"
-                        value="true"
-                        defaultChecked={runtime?.is_enabled ?? false}
-                        className="h-4 w-4 rounded border-slate-300"
+                        name="edielId"
+                        defaultValue={gridOwner?.ediel_id ?? ''}
+                        placeholder="grid owner ediel id"
+                        className={textInputClassName()}
+                        disabled={!gridOwner?.id}
                       />
-                      Aktivera profil
-                    </label>
-                    <button className="mt-3 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700">
-                      Spara profilbas
-                    </button>
-                  </form>
-
-                  <form action={quickFixEdielRouteActivationAction} className="rounded-2xl border border-slate-200 p-4">
-                    <input type="hidden" name="routeId" value={route.id} />
-                    <div className="mb-2 text-sm font-semibold text-slate-900">
-                      Quick fix: aktivering
-                    </div>
-                    <label className="mb-2 inline-flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        name="activateRoute"
-                        value="true"
-                        defaultChecked={route.is_active}
-                        className="h-4 w-4 rounded border-slate-300"
-                      />
-                      Aktivera route
-                    </label>
-                    <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        name="enableEdiel"
-                        value="true"
-                        defaultChecked={runtime?.is_enabled ?? false}
-                        className="h-4 w-4 rounded border-slate-300"
-                      />
-                      Aktivera Ediel-profil
-                    </label>
-                    <button className="mt-3 block rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700">
-                      Kör aktivering
-                    </button>
-                  </form>
-
-                  <form action={quickFixGridOwnerEdielIdAction} className="rounded-2xl border border-slate-200 p-4">
-                    <input type="hidden" name="gridOwnerId" value={gridOwner?.id ?? ''} />
-                    <div className="mb-2 text-sm font-semibold text-slate-900">
-                      Quick fix: grid owner Ediel-id
-                    </div>
-                    <input
-                      name="edielId"
-                      defaultValue={gridOwner?.ediel_id ?? ''}
-                      placeholder="grid owner ediel id"
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                      disabled={!gridOwner?.id}
-                    />
-                    <button
-                      className="mt-3 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={!gridOwner?.id}
-                    >
-                      Spara grid owner-id
-                    </button>
-                  </form>
-                </div>
-              </article>
-            )
-          })
-        )}
+                      <button
+                        className="mt-3 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={!gridOwner?.id}
+                      >
+                        Spara grid owner-id
+                      </button>
+                    </form>
+                  </div>
+                </article>
+              )
+            })}
       </section>
     </div>
   )

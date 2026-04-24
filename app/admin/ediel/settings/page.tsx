@@ -1,8 +1,8 @@
-// app/admin/ediel/settings/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import {
+  createEdielRuleTemplateAction,
   saveEdielActorSettingsAction,
   saveEdielMessageRuleAction,
 } from '@/app/admin/ediel/settings/actions'
@@ -49,6 +49,14 @@ function Pill({
   )
 }
 
+function inputClassName() {
+  return 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400'
+}
+
+function selectClassName() {
+  return 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900'
+}
+
 function Input({
   name,
   defaultValue,
@@ -66,7 +74,7 @@ function Input({
       type={type}
       defaultValue={defaultValue ?? ''}
       placeholder={placeholder}
-      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
+      className={inputClassName()}
     />
   )
 }
@@ -84,7 +92,7 @@ function Select({
     <select
       name={name}
       defaultValue={defaultValue == null ? '' : String(defaultValue)}
-      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
+      className={selectClassName()}
     >
       {children}
     </select>
@@ -226,11 +234,13 @@ export default async function AdminEdielSettingsPage() {
     (row) => row.inbound.previousVersion
   ).length
 
+  const hasProdatRule = messageRules.some((row) => row.message_family === 'PRODAT')
+
   return (
     <div className="space-y-6">
       <AdminHeader
         title="Ediel settings"
-        subtitle="Aktörskort och message rules, nu med faktisk runtime-upplösning för outbound version och inbound accepted versions."
+        subtitle="Aktörskort och message rules, nu med runtime-upplösning och processmallar för att skapa relevanta regler snabbare."
         userEmail={context.email}
       />
 
@@ -266,12 +276,81 @@ export default async function AdminEdielSettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <h2 className="text-lg font-semibold text-slate-950">Processmallar för regler</h2>
+        <p className="mt-1 text-sm text-slate-700">
+          Du kan nu skapa relevanta rules automatiskt per process i stället för att fylla i family, code och ack-regler manuellt varje gång.
+        </p>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-4">
+          <form action={createEdielRuleTemplateAction} className="rounded-2xl border border-white/70 bg-white p-4">
+            <input type="hidden" name="template" value="meter_values_request" />
+            <div className="text-sm font-semibold text-slate-900">Begär mätvärden</div>
+            <p className="mt-1 text-xs text-slate-500">
+              Lägger in UTILTS E66, E73, S02 samt CONTRL och APERAK med version E5SE5A.
+            </p>
+            <div className="mt-3 grid gap-2">
+              <Input name="valid_from" type="date" defaultValue="2025-06-01" />
+              <Input name="valid_to" type="date" />
+            </div>
+            <button className="mt-3 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+              Skapa mall
+            </button>
+          </form>
+
+          <form action={createEdielRuleTemplateAction} className="rounded-2xl border border-white/70 bg-white p-4">
+            <input type="hidden" name="template" value="supplier_switch" />
+            <div className="text-sm font-semibold text-slate-900">Leverantörsbyte</div>
+            <p className="mt-1 text-xs text-slate-500">
+              Lägger in PRODAT Z03, Z05, Z09 samt CONTRL och APERAK. Kräver att minst en PRODAT-version redan finns sparad.
+            </p>
+            <div className="mt-3 grid gap-2">
+              <Input name="valid_from" type="date" />
+              <Input name="valid_to" type="date" />
+            </div>
+            <div className="mt-2">
+              <Pill text={hasProdatRule ? 'PRODAT-version finns' : 'PRODAT-version saknas'} tone={hasProdatRule ? 'green' : 'yellow'} />
+            </div>
+            <button className="mt-3 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+              Skapa mall
+            </button>
+          </form>
+
+          <form action={createEdielRuleTemplateAction} className="rounded-2xl border border-white/70 bg-white p-4">
+            <input type="hidden" name="template" value="ai_list_control" />
+            <div className="text-sm font-semibold text-slate-900">AI-list kontroll</div>
+            <p className="mt-1 text-xs text-slate-500">
+              Lägger in AI och BI för AI_LIST med version Ver20140401 och giltighet från 2025-10-01.
+            </p>
+            <div className="mt-3 grid gap-2">
+              <Input name="valid_from" type="date" defaultValue="2025-10-01" />
+              <Input name="valid_to" type="date" />
+            </div>
+            <button className="mt-3 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+              Skapa mall
+            </button>
+          </form>
+
+          <form action={createEdielRuleTemplateAction} className="rounded-2xl border border-white/70 bg-white p-4">
+            <input type="hidden" name="template" value="ack_core" />
+            <div className="text-sm font-semibold text-slate-900">Kvittenslager</div>
+            <p className="mt-1 text-xs text-slate-500">
+              Lägger in kärnregler för CONTRL och APERAK så kvittensmotorn får ett tydligt grundlager.
+            </p>
+            <div className="mt-3 grid gap-2">
+              <Input name="valid_from" type="date" />
+              <Input name="valid_to" type="date" />
+            </div>
+            <button className="mt-3 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+              Skapa mall
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
         <h2 className="text-lg font-semibold text-slate-950">Vad som är nytt här</h2>
         <p className="mt-1 text-sm text-slate-700">
-          Settings-sidan visar nu inte bara sparade message rules. Den visar också
-          <span className="font-medium"> vilken outbound-version runtime faktiskt väljer</span>,
-          <span className="font-medium"> vilka inbound-versioner som accepteras</span> och
-          om det finns ett previous-valid-spår i runtime.
+          Settings-sidan visar nu inte bara sparade message rules. Den visar också vilken outbound-version runtime faktiskt väljer, vilka inbound-versioner som accepteras, om previous-valid används och låter dig skapa regler utifrån process i stället för att bygga allt manuellt.
         </p>
       </section>
 

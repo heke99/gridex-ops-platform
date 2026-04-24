@@ -5,6 +5,8 @@ import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { saveCommunicationRoute } from '@/lib/cis/db'
+import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
+import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import type {
   EdielEncryptionMode,
   EdielPayloadFormat,
@@ -21,7 +23,6 @@ function stringValue(formData: FormData, key: string): string | null {
 function intValue(formData: FormData, key: string): number | null {
   const raw = stringValue(formData, key)
   if (!raw) return null
-
   const parsed = Number(raw)
   return Number.isFinite(parsed) ? parsed : null
 }
@@ -29,7 +30,6 @@ function intValue(formData: FormData, key: string): number | null {
 function boolValue(formData: FormData, key: string): boolean {
   const raw = formData.get(key)
   if (typeof raw !== 'string') return false
-
   const normalized = raw.trim().toLowerCase()
   return normalized === 'true' || normalized === 'on' || normalized === '1'
 }
@@ -54,6 +54,15 @@ function normalizePayloadFormat(value: string | null): EdielPayloadFormat {
 
 function normalizeEncryptionMode(value: string | null): EdielEncryptionMode | null {
   return value === 'none' || value === 'smime' || value === 'pgp' ? value : null
+}
+
+function coalesceString(...values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim()
+    }
+  }
+  return null
 }
 
 function revalidateEdielPaths(customerId?: string | null, routeId?: string | null) {
@@ -89,6 +98,14 @@ async function getActorContext() {
   }
 }
 
+async function getActorDefaults(environment: 'test' | 'production') {
+  try {
+    return await resolveCanonicalActorContext(environment)
+  } catch {
+    return null
+  }
+}
+
 async function upsertEdielRouteProfileLocal(input: {
   actorUserId: string
   communicationRouteId: string
@@ -117,31 +134,60 @@ async function upsertEdielRouteProfileLocal(input: {
 }) {
   const supabase = await createSupabaseServerClient()
   const existing = await getEdielRouteProfileByCommunicationRouteId(input.communicationRouteId)
+  const actorDefaults = await getActorDefaults(input.environment)
+
+  const senderSubAddress = coalesceString(
+    input.senderSubAddress,
+    existing?.sender_sub_address ?? null,
+    actorDefaults?.senderSubAddress
+  )
 
   const payload = {
     communication_route_id: input.communicationRouteId,
     is_enabled: input.isEnabled,
-    sender_ediel_id: input.senderEdielId,
-    sender_name: input.senderName,
-    sender_sub_address: input.senderSubAddress,
-    receiver_ediel_id: input.receiverEdielId,
-    receiver_name: input.receiverName,
-    receiver_sub_address: input.receiverSubAddress,
-    application_reference: input.applicationReference,
-    default_message_version: input.defaultMessageVersion,
-    default_test_flag: input.defaultTestFlag,
-    default_timezone: input.defaultTimezone ?? 1,
+    sender_ediel_id: coalesceString(
+      input.senderEdielId,
+      existing?.sender_ediel_id ?? null,
+      actorDefaults?.senderEdielId
+    ),
+    sender_name: coalesceString(
+      input.senderName,
+      existing?.sender_name ?? null,
+      actorDefaults?.senderName
+    ),
+    sender_sub_address: senderSubAddress,
+    receiver_ediel_id: coalesceString(input.receiverEdielId, existing?.receiver_ediel_id ?? null),
+    receiver_name: coalesceString(input.receiverName, existing?.receiver_name ?? null),
+    receiver_sub_address: coalesceString(
+      input.receiverSubAddress,
+      existing?.receiver_sub_address ?? null
+    ),
+    application_reference: coalesceString(
+      input.applicationReference,
+      existing?.application_reference ?? null,
+      actorDefaults?.defaultApplicationReference,
+      buildDefaultApplicationReference({
+        actorSubAddress: senderSubAddress,
+        process: 'EDIEL',
+      })
+    ),
+    default_message_version: coalesceString(
+      input.defaultMessageVersion,
+      existing?.default_message_version ?? null
+    ),
+    default_test_flag: input.defaultTestFlag ?? existing?.default_test_flag ?? actorDefaults?.testFlag ?? 1,
+    default_timezone: input.defaultTimezone ?? existing?.default_timezone ?? actorDefaults?.timezone ?? 1,
     environment: input.environment,
     message_standard: input.messageStandard,
     ack_mode: input.ackMode,
-    smtp_host: input.smtpHost,
-    smtp_port: input.smtpPort,
-    imap_host: input.imapHost,
-    imap_port: input.imapPort,
-    mailbox: input.mailbox,
-    encryption_mode: input.encryptionMode,
+    smtp_host: coalesceString(input.smtpHost, existing?.smtp_host ?? null),
+    smtp_port: input.smtpPort ?? existing?.smtp_port ?? null,
+    imap_host: coalesceString(input.imapHost, existing?.imap_host ?? null),
+    imap_port: input.imapPort ?? existing?.imap_port ?? null,
+    mailbox: coalesceString(input.mailbox, existing?.mailbox ?? null, actorDefaults?.mailbox),
+    encryption_mode: input.encryptionMode ?? existing?.encryption_mode ?? null,
     payload_format: input.payloadFormat,
-    notes: input.notes,
+    notes: coalesceString(input.notes, existing?.notes ?? null),
     updated_by: input.actorUserId,
     updated_at: new Date().toISOString(),
   }
@@ -177,6 +223,8 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
   }
 
   const { userId } = await getActorContext()
+  const environment =
+    (stringValue(formData, 'environment') as 'test' | 'production' | null) ?? 'test'
 
   await upsertEdielRouteProfileLocal({
     actorUserId: userId,
@@ -192,9 +240,7 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     defaultMessageVersion: stringValue(formData, 'defaultMessageVersion'),
     defaultTestFlag: intValue(formData, 'defaultTestFlag') === 0 ? 0 : 1,
     defaultTimezone: intValue(formData, 'defaultTimezone'),
-    environment:
-      (stringValue(formData, 'environment') as 'test' | 'production' | null) ??
-      'test',
+    environment,
     messageStandard: normalizeMessageStandard(stringValue(formData, 'messageStandard')),
     ackMode: normalizeAckMode(stringValue(formData, 'ackMode')),
     smtpHost: stringValue(formData, 'smtpHost'),
@@ -237,13 +283,13 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
     | null
   const targetSystem = stringValue(formData, 'target_system')
 
-  if (!id || !routeName || !routeScope || !routeType || !targetSystem) {
+  if (!routeName || !routeScope || !routeType || !targetSystem) {
     throw new Error('Missing communication route fields')
   }
 
-  await saveCommunicationRoute({
+  const saved = await saveCommunicationRoute({
     actorUserId: userId,
-    id,
+    id: id ?? undefined,
     routeName,
     isActive: boolValue(formData, 'is_active'),
     routeScope,
@@ -256,7 +302,72 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
     notes: stringValue(formData, 'route_notes'),
   })
 
-  revalidateEdielPaths(stringValue(formData, 'customerId'), id)
+  revalidateEdielPaths(stringValue(formData, 'customerId'), saved.id)
+}
+
+export async function createEdielBootstrapRouteAction(formData: FormData) {
+  await requireAdminActionAccess([
+    'switching.write',
+    'metering.write',
+    'billing_underlay.write',
+  ])
+
+  const { userId } = await getActorContext()
+  const environment =
+    (stringValue(formData, 'environment') as 'test' | 'production' | null) ?? 'test'
+
+  const routeName =
+    stringValue(formData, 'route_name') ??
+    `EDIEL ${stringValue(formData, 'route_scope') ?? 'meter_values'} ${environment}`
+
+  const routeScope = (stringValue(formData, 'route_scope') as
+    | 'supplier_switch'
+    | 'meter_values'
+    | 'billing_underlay'
+    | null) ?? 'meter_values'
+
+  const saved = await saveCommunicationRoute({
+    actorUserId: userId,
+    routeName,
+    isActive: true,
+    routeScope,
+    routeType: 'ediel_partner',
+    gridOwnerId: stringValue(formData, 'grid_owner_id'),
+    targetSystem: stringValue(formData, 'target_system') ?? 'ediel',
+    endpoint: stringValue(formData, 'endpoint'),
+    targetEmail: stringValue(formData, 'target_email'),
+    supportedPayloadVersion: stringValue(formData, 'supported_payload_version'),
+    notes: stringValue(formData, 'route_notes') ?? 'Bootstrap route created from /admin/ediel/routes',
+  })
+
+  await upsertEdielRouteProfileLocal({
+    actorUserId: userId,
+    communicationRouteId: saved.id,
+    isEnabled: true,
+    senderEdielId: stringValue(formData, 'senderEdielId'),
+    senderName: stringValue(formData, 'senderName'),
+    senderSubAddress: stringValue(formData, 'senderSubAddress'),
+    receiverEdielId: stringValue(formData, 'receiverEdielId'),
+    receiverName: stringValue(formData, 'receiverName'),
+    receiverSubAddress: stringValue(formData, 'receiverSubAddress'),
+    applicationReference: stringValue(formData, 'applicationReference'),
+    defaultMessageVersion: stringValue(formData, 'defaultMessageVersion'),
+    defaultTestFlag: intValue(formData, 'defaultTestFlag') === 0 ? 0 : 1,
+    defaultTimezone: intValue(formData, 'defaultTimezone'),
+    environment,
+    messageStandard: normalizeMessageStandard(stringValue(formData, 'messageStandard')),
+    ackMode: normalizeAckMode(stringValue(formData, 'ackMode')),
+    smtpHost: stringValue(formData, 'smtpHost'),
+    smtpPort: intValue(formData, 'smtpPort'),
+    imapHost: stringValue(formData, 'imapHost'),
+    imapPort: intValue(formData, 'imapPort'),
+    mailbox: stringValue(formData, 'mailbox'),
+    encryptionMode: normalizeEncryptionMode(stringValue(formData, 'encryptionMode')),
+    payloadFormat: normalizePayloadFormat(stringValue(formData, 'payloadFormat')),
+    notes: stringValue(formData, 'profile_notes'),
+  })
+
+  revalidateEdielPaths(null, saved.id)
 }
 
 export async function quickFixEdielTargetEmailAction(formData: FormData) {

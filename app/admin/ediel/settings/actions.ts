@@ -1,4 +1,3 @@
-// app/admin/ediel/settings/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -182,6 +181,335 @@ export async function saveEdielMessageRuleAction(formData: FormData) {
     })
 
     if (error) throw error
+  }
+
+  revalidateEdielPaths()
+}
+
+type TemplateRuleInput = {
+  message_family: string
+  message_code: string
+  message_standard: 'edifact' | 'xml' | 'ai_list'
+  version_code: string
+  direction: 'inbound' | 'outbound' | 'both'
+  requires_contrl: boolean
+  requires_aperak: boolean
+  supports_negative_response: boolean
+  valid_from: string | null
+  valid_to: string | null
+  is_active: boolean
+  notes: string | null
+}
+
+async function getExistingActiveVersionForFamily(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  family: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('ediel_message_rules')
+    .select('version_code,valid_from')
+    .eq('message_family', family)
+    .eq('is_active', true)
+    .order('valid_from', { ascending: false, nullsFirst: false })
+    .limit(1)
+
+  if (error) throw error
+
+  const first = data?.[0] as { version_code?: string | null } | undefined
+  return first?.version_code?.trim() || null
+}
+
+async function ensureRuleExists(params: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  userId: string
+  rule: TemplateRuleInput
+}) {
+  const { supabase, userId, rule } = params
+
+  const { data, error } = await supabase
+    .from('ediel_message_rules')
+    .select('id')
+    .eq('message_family', rule.message_family)
+    .eq('message_code', rule.message_code)
+    .eq('message_standard', rule.message_standard)
+    .eq('version_code', rule.version_code)
+    .eq('direction', rule.direction)
+    .limit(1)
+
+  if (error) throw error
+
+  if ((data ?? []).length > 0) {
+    return
+  }
+
+  const { error: insertError } = await supabase.from('ediel_message_rules').insert({
+    ...rule,
+    created_by: userId,
+    updated_by: userId,
+  })
+
+  if (insertError) throw insertError
+}
+
+export async function createEdielRuleTemplateAction(formData: FormData) {
+  await requireAdminActionAccess(['communication.read', 'communication.send'])
+
+  const { supabase, userId } = await getActorContext()
+  const template = stringValue(formData, 'template')
+
+  if (!template) {
+    throw new Error('Mall saknas.')
+  }
+
+  const validFrom = stringValue(formData, 'valid_from')
+  const validTo = stringValue(formData, 'valid_to')
+
+  if (validFrom && validTo && validFrom > validTo) {
+    throw new Error('valid_from kan inte vara senare än valid_to.')
+  }
+
+  const utiltsVersion = 'E5SE5A'
+  const aiListVersion = 'Ver20140401'
+  const contrlVersion =
+    (await getExistingActiveVersionForFamily(supabase, 'CONTRL')) ?? 'E5SE5A'
+  const aperakVersion =
+    (await getExistingActiveVersionForFamily(supabase, 'APERAK')) ?? 'E5SE5A'
+  const prodatVersion = await getExistingActiveVersionForFamily(supabase, 'PRODAT')
+
+  const templateRules: TemplateRuleInput[] = []
+
+  if (template === 'ack_core') {
+    templateRules.push(
+      {
+        message_family: 'CONTRL',
+        message_code: 'CONTRL',
+        message_standard: 'edifact',
+        version_code: contrlVersion,
+        direction: 'both',
+        requires_contrl: false,
+        requires_aperak: false,
+        supports_negative_response: false,
+        valid_from: validFrom,
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from ACK core template',
+      },
+      {
+        message_family: 'APERAK',
+        message_code: 'APERAK',
+        message_standard: 'edifact',
+        version_code: aperakVersion,
+        direction: 'both',
+        requires_contrl: true,
+        requires_aperak: false,
+        supports_negative_response: true,
+        valid_from: validFrom,
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from ACK core template',
+      }
+    )
+  }
+
+  if (template === 'meter_values_request') {
+    templateRules.push(
+      {
+        message_family: 'UTILTS',
+        message_code: 'E66',
+        message_standard: 'edifact',
+        version_code: utiltsVersion,
+        direction: 'both',
+        requires_contrl: true,
+        requires_aperak: true,
+        supports_negative_response: true,
+        valid_from: validFrom ?? '2025-06-01',
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from meter values request template',
+      },
+      {
+        message_family: 'UTILTS',
+        message_code: 'E73',
+        message_standard: 'edifact',
+        version_code: utiltsVersion,
+        direction: 'both',
+        requires_contrl: true,
+        requires_aperak: true,
+        supports_negative_response: true,
+        valid_from: validFrom ?? '2025-06-01',
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from meter values request template',
+      },
+      {
+        message_family: 'UTILTS',
+        message_code: 'S02',
+        message_standard: 'edifact',
+        version_code: utiltsVersion,
+        direction: 'both',
+        requires_contrl: true,
+        requires_aperak: true,
+        supports_negative_response: true,
+        valid_from: validFrom ?? '2025-06-01',
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from meter values request template',
+      },
+      {
+        message_family: 'CONTRL',
+        message_code: 'CONTRL',
+        message_standard: 'edifact',
+        version_code: contrlVersion,
+        direction: 'both',
+        requires_contrl: false,
+        requires_aperak: false,
+        supports_negative_response: false,
+        valid_from: validFrom ?? '2025-06-01',
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from meter values request template',
+      },
+      {
+        message_family: 'APERAK',
+        message_code: 'APERAK',
+        message_standard: 'edifact',
+        version_code: aperakVersion,
+        direction: 'both',
+        requires_contrl: true,
+        requires_aperak: false,
+        supports_negative_response: true,
+        valid_from: validFrom ?? '2025-06-01',
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from meter values request template',
+      }
+    )
+  }
+
+  if (template === 'supplier_switch') {
+    if (!prodatVersion) {
+      throw new Error(
+        'Supplier switch-mallen kräver att minst en PRODAT-version redan finns sparad i settings.'
+      )
+    }
+
+    templateRules.push(
+      {
+        message_family: 'PRODAT',
+        message_code: 'Z03',
+        message_standard: 'edifact',
+        version_code: prodatVersion,
+        direction: 'both',
+        requires_contrl: true,
+        requires_aperak: true,
+        supports_negative_response: true,
+        valid_from: validFrom,
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from supplier switch template',
+      },
+      {
+        message_family: 'PRODAT',
+        message_code: 'Z05',
+        message_standard: 'edifact',
+        version_code: prodatVersion,
+        direction: 'both',
+        requires_contrl: true,
+        requires_aperak: true,
+        supports_negative_response: true,
+        valid_from: validFrom,
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from supplier switch template',
+      },
+      {
+        message_family: 'PRODAT',
+        message_code: 'Z09',
+        message_standard: 'edifact',
+        version_code: prodatVersion,
+        direction: 'both',
+        requires_contrl: true,
+        requires_aperak: true,
+        supports_negative_response: true,
+        valid_from: validFrom,
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from supplier switch template',
+      },
+      {
+        message_family: 'CONTRL',
+        message_code: 'CONTRL',
+        message_standard: 'edifact',
+        version_code: contrlVersion,
+        direction: 'both',
+        requires_contrl: false,
+        requires_aperak: false,
+        supports_negative_response: false,
+        valid_from: validFrom,
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from supplier switch template',
+      },
+      {
+        message_family: 'APERAK',
+        message_code: 'APERAK',
+        message_standard: 'edifact',
+        version_code: aperakVersion,
+        direction: 'both',
+        requires_contrl: true,
+        requires_aperak: false,
+        supports_negative_response: true,
+        valid_from: validFrom,
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from supplier switch template',
+      }
+    )
+  }
+
+  if (template === 'ai_list_control') {
+    templateRules.push(
+      {
+        message_family: 'AI_LIST',
+        message_code: 'AI',
+        message_standard: 'ai_list',
+        version_code: aiListVersion,
+        direction: 'both',
+        requires_contrl: false,
+        requires_aperak: false,
+        supports_negative_response: false,
+        valid_from: validFrom ?? '2025-10-01',
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from AI list control template',
+      },
+      {
+        message_family: 'AI_LIST',
+        message_code: 'BI',
+        message_standard: 'ai_list',
+        version_code: aiListVersion,
+        direction: 'both',
+        requires_contrl: false,
+        requires_aperak: false,
+        supports_negative_response: false,
+        valid_from: validFrom ?? '2025-10-01',
+        valid_to: validTo,
+        is_active: true,
+        notes: 'Auto-created from AI list control template',
+      }
+    )
+  }
+
+  if (templateRules.length === 0) {
+    throw new Error('Okänd mall.')
+  }
+
+  for (const rule of templateRules) {
+    await ensureRuleExists({
+      supabase,
+      userId,
+      rule,
+    })
   }
 
   revalidateEdielPaths()
