@@ -64,6 +64,11 @@ import {
 } from '@/lib/operations/db'
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 import { getCustomerEdielDataBundle } from '@/lib/ediel/customerData'
+import CustomerPortalAccessCard from '@/components/admin/customers/CustomerPortalAccessCard'
+import {
+  listCustomerPortalAccountsByCustomerId,
+  listCustomerPortalClaimsByCustomerId,
+} from '@/lib/customer-portal/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -926,7 +931,7 @@ export default async function CustomerAdminDetailPage({
   const poaRows = powersOfAttorney as PowerOfAttorneyRow[]
   const documentRows = authorizationDocuments as CustomerAuthorizationDocumentRow[]
 
-  const [meteringPoints, switchEvents, edielData] = await Promise.all([
+  const [meteringPoints, switchEvents, edielData, portalAccounts, portalClaims] = await Promise.all([
     listMeteringPointsBySiteIds(
       supabase,
       sites.map((site) => site.id)
@@ -940,6 +945,8 @@ export default async function CustomerAdminDetailPage({
       customerId: id,
       gridOwners,
     }),
+    listCustomerPortalAccountsByCustomerId(id),
+    listCustomerPortalClaimsByCustomerId(id),
   ])
 
   const selectedSite = editSiteId
@@ -1271,6 +1278,7 @@ export default async function CustomerAdminDetailPage({
 
           <div className="mt-4 flex flex-wrap gap-2">
             <QuickJumpLink href="#profile" label="Profil" />
+            <QuickJumpLink href="#portal-access" label="Kundportal" tone="info" />
             <QuickJumpLink href="#grid-owner-import" label="Grid owner import" />
             <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" />
             <QuickJumpLink href="#switch-operations" label="Leverantörsbyte" />
@@ -1442,6 +1450,18 @@ export default async function CustomerAdminDetailPage({
             offers={contractOffers}
           />
         </section>
+      </SectionAnchor>
+
+      <SectionAnchor
+        id="portal-access"
+        title="Kundportal"
+        description="Koppling mellan kundens login på gridex.se och rätt kundkort. Kräver matchning på personnummer, e-post, namn och anläggnings-ID."
+      >
+        <CustomerPortalAccessCard
+          customerId={id}
+          accounts={portalAccounts}
+          claims={portalClaims}
+        />
       </SectionAnchor>
 
       <SectionAnchor

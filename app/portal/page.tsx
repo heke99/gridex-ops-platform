@@ -17,13 +17,32 @@ function EmptyPortalState() {
       <h2 className="text-xl font-semibold text-amber-950">Ingen kundkoppling hittades</h2>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-amber-900">
         Ditt login är aktivt, men det är ännu inte kopplat till en kund i Gridex.
-        Kontakta kundservice så kopplar vi ditt konto till rätt kundnummer.
+        Koppla kontot säkert med personnummer, e-post, namn och anläggnings-ID.
       </p>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Link
+          href="/portal/koppla-kund"
+          className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black"
+        >
+          Koppla mitt kundkonto
+        </Link>
+        <Link
+          href="/login"
+          className="rounded-2xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+        >
+          Byt inloggning
+        </Link>
+      </div>
     </section>
   )
 }
 
-export default async function CustomerPortalPage() {
+export default async function CustomerPortalPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ kopplad?: string }>
+}) {
+  const params = searchParams ? await searchParams : {}
   const { context, invoices, sites, meteringPoints, consumptionMonths } =
     await getPortalDashboardData()
 
@@ -35,6 +54,12 @@ export default async function CustomerPortalPage() {
 
   return (
     <div className="space-y-8">
+      {params?.kopplad === '1' ? (
+        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
+          Kundkontot är kopplat. Dina fakturor, anläggningar och förbrukning hämtas nu från Gridex-data.
+        </section>
+      ) : null}
+
       <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -145,9 +170,7 @@ export default async function CustomerPortalPage() {
         <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Så fungerar fakturorna</h2>
           <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-            <p>
-              Gridex tar emot mätvärden från nätägaren och skapar fakturaunderlag.
-            </p>
+            <p>Gridex tar emot mätvärden från nätägaren och skapar fakturaunderlag.</p>
             <p>
               Fakturapartnern skapar den faktiska fakturan. När partnern skickar tillbaka
               fakturadata och PDF visas den här i kundportalen.

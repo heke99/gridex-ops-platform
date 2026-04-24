@@ -35,6 +35,9 @@ export default async function PortalLayout({ children }: { children: ReactNode }
               <Link className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" href="/portal/anlaggningar">
                 Anläggningar
               </Link>
+              <Link className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" href="/portal/koppla-kund">
+                Koppla kund
+              </Link>
             </nav>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
