@@ -7,11 +7,22 @@ import {
 } from '@/lib/operations/db'
 import {
   buildProdatZ03FromSwitch,
+  buildProdatZ04FromSwitch,
   buildProdatZ05FromSwitch,
+  buildProdatZ06FromSwitch,
   buildProdatZ09FromSwitch,
+  buildProdatZ10FromSwitch,
+  type ProdatSwitchCode,
 } from '@/lib/ediel/prodat'
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
+import type { CreateEdielMessageInput } from '@/lib/ediel/types'
+import type {
+  CustomerSiteRow,
+  GridOwnerRow,
+  MeteringPointRow,
+} from '@/lib/masterdata/types'
+import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import {
   ensureActorUserId,
   finalizeOutboundDraft,
@@ -20,14 +31,74 @@ import {
   queuePreparedEdielMessage,
 } from '@/lib/ediel/flows/shared'
 
-export async function prepareAndQueueEdielZ03(params: {
+type PrepareProdatSwitchParams = {
   actorUserId: string
   switchRequestId: string
   communicationRouteId?: string | null
-}) {
-  const actorUserId = ensureActorUserId(params.actorUserId)
+}
+
+type RouteContext = Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
+
+type BuildDraftInput = {
+  actorUserId: string
+  routeContext: RouteContext
+  switchRequest: SupplierSwitchRequestRow
+  site: CustomerSiteRow
+  meteringPoint: MeteringPointRow
+  gridOwner: GridOwnerRow | null
+}
+
+function defaultExternalReference(code: ProdatSwitchCode, switchRequestId: string): string {
+  if (code === 'Z03') return `SWITCH-${switchRequestId}`
+  if (code === 'Z04') return `SWITCH-RESP-${switchRequestId}`
+  if (code === 'Z05') return `MOVE-IN-${switchRequestId}`
+  if (code === 'Z06') return `MOVE-IN-RESP-${switchRequestId}`
+  if (code === 'Z09') return `SITE-UPD-${switchRequestId}`
+  return `SITE-UPD-RESP-${switchRequestId}`
+}
+
+function eventMessage(code: ProdatSwitchCode): string {
+  if (code === 'Z03') return 'Ediel PRODAT Z03 förberett från switchärendet via canonical kernel.'
+  if (code === 'Z04') return 'Ediel PRODAT Z04 förberett från switchärendet via canonical kernel.'
+  if (code === 'Z05') return 'Ediel PRODAT Z05 förberett från switchärendet via canonical kernel.'
+  if (code === 'Z06') return 'Ediel PRODAT Z06 förberett från switchärendet via canonical kernel.'
+  if (code === 'Z09') return 'Ediel PRODAT Z09 förberett från switchärendet via canonical kernel.'
+  return 'Ediel PRODAT Z10 förberett från switchärendet via canonical kernel.'
+}
+
+function buildDraftForCode(
+  code: ProdatSwitchCode,
+  input: BuildDraftInput
+): Promise<CreateEdielMessageInput> {
+  const base = {
+    actorUserId: input.actorUserId,
+    senderEdielId: input.routeContext.senderEdielId,
+    senderName: input.routeContext.senderName,
+    receiverEdielId: input.routeContext.receiverEdielId,
+    receiverName: input.routeContext.receiverName,
+    receiverEmail: input.routeContext.receiverEmail,
+    senderSubAddress: input.routeContext.senderSubAddress,
+    receiverSubAddress: input.routeContext.receiverSubAddress,
+    communicationRouteId: input.routeContext.route.id,
+    mailbox: input.routeContext.mailbox,
+    routeDefaultMessageVersion: input.routeContext.defaultMessageVersion,
+    switchRequest: input.switchRequest,
+    site: input.site,
+    meteringPoint: input.meteringPoint,
+    gridOwner: input.gridOwner,
+  }
+
+  if (code === 'Z03') return buildProdatZ03FromSwitch(base)
+  if (code === 'Z04') return buildProdatZ04FromSwitch(base)
+  if (code === 'Z05') return buildProdatZ05FromSwitch(base)
+  if (code === 'Z06') return buildProdatZ06FromSwitch(base)
+  if (code === 'Z09') return buildProdatZ09FromSwitch(base)
+  return buildProdatZ10FromSwitch(base)
+}
+
+async function loadSwitchContext(switchRequestId: string) {
   const supabase = await makeServerClient()
-  const switchRequest = await getSupplierSwitchRequestById(supabase, params.switchRequestId)
+  const switchRequest = await getSupplierSwitchRequestById(supabase, switchRequestId)
 
   if (!switchRequest) throw new Error('Switch request hittades inte')
 
@@ -41,6 +112,23 @@ export async function prepareAndQueueEdielZ03(params: {
     ? await getGridOwnerById(supabase, switchRequest.grid_owner_id)
     : null
 
+  return {
+    supabase,
+    switchRequest,
+    site,
+    meteringPoint,
+    gridOwner,
+  }
+}
+
+export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchParams & {
+  messageCode: ProdatSwitchCode
+}) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
+  const { supabase, switchRequest, site, meteringPoint, gridOwner } = await loadSwitchContext(
+    params.switchRequestId
+  )
+
   const routeContext = await resolveCanonicalOutboundContext({
     requestType: 'supplier_switch',
     gridOwner,
@@ -48,6 +136,9 @@ export async function prepareAndQueueEdielZ03(params: {
     environment: 'test',
     messageStandard: 'edifact',
   })
+
+  const externalReference =
+    switchRequest.external_reference ?? defaultExternalReference(params.messageCode, switchRequest.id)
 
   const outbound = await findOrCreateSwitchOutbound({
     actorUserId,
@@ -57,28 +148,19 @@ export async function prepareAndQueueEdielZ03(params: {
     meteringPointId: switchRequest.metering_point_id,
     gridOwnerId: switchRequest.grid_owner_id,
     communicationRouteId: routeContext.route.id,
-    externalReference: switchRequest.external_reference ?? `SWITCH-${switchRequest.id}`,
+    externalReference,
     payload: {
-      edielCode: 'Z03',
-      queuedFrom: 'prepare_switch_z03',
+      edielCode: params.messageCode,
+      queuedFrom: `prepare_switch_${params.messageCode.toLowerCase()}`,
       requestType: switchRequest.request_type,
       requestedStartDate: switchRequest.requested_start_date,
       communicationRouteId: routeContext.route.id,
     },
   })
 
-  const draft = await buildProdatZ03FromSwitch({
+  const draft = await buildDraftForCode(params.messageCode, {
     actorUserId,
-    senderEdielId: routeContext.senderEdielId,
-    senderName: routeContext.senderName,
-    receiverEdielId: routeContext.receiverEdielId,
-    receiverName: routeContext.receiverName,
-    receiverEmail: routeContext.receiverEmail,
-    senderSubAddress: routeContext.senderSubAddress,
-    receiverSubAddress: routeContext.receiverSubAddress,
-    communicationRouteId: routeContext.route.id,
-    mailbox: routeContext.mailbox,
-    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
+    routeContext,
     switchRequest,
     site,
     meteringPoint,
@@ -92,6 +174,8 @@ export async function prepareAndQueueEdielZ03(params: {
     draft,
     outboundRequestId: outbound.id,
     duplicateCheck: {
+      sourceType: 'supplier_switch_request',
+      sourceId: switchRequest.id,
       receiverEdielId: routeContext.receiverEdielId,
       messageFamily: draft.messageFamily,
       messageCode: String(draft.messageCode),
@@ -115,249 +199,53 @@ export async function prepareAndQueueEdielZ03(params: {
     actorUserId,
     messageId: message.id,
     outboundRequestId: outbound.id,
-    externalReference: switchRequest.external_reference ?? `SWITCH-${switchRequest.id}`,
-    payload: { edielCode: 'Z03', routeId: routeContext.route.id },
+    externalReference,
+    payload: {
+      edielCode: params.messageCode,
+      routeId: routeContext.route.id,
+      messageFamily: draft.messageFamily,
+      messageCode: draft.messageCode,
+      messageVersion: draft.messageVersion ?? null,
+    },
   })
 
   await createSupplierSwitchEvent(supabase, {
     switchRequestId: switchRequest.id,
     eventType: 'ediel_prepared',
     eventStatus: 'queued',
-    message: 'Ediel Z03 förberett från switchärendet via canonical kernel.',
+    message: eventMessage(params.messageCode),
     payload: {
       edielMessageId: message.id,
       outboundRequestId: outbound.id,
       routeId: routeContext.route.id,
+      edielCode: params.messageCode,
+      messageVersion: draft.messageVersion ?? null,
     },
   })
 
   return message
 }
 
-export async function prepareAndQueueEdielZ05(params: {
-  actorUserId: string
-  switchRequestId: string
-  communicationRouteId?: string | null
-}) {
-  const actorUserId = ensureActorUserId(params.actorUserId)
-  const supabase = await makeServerClient()
-  const switchRequest = await getSupplierSwitchRequestById(supabase, params.switchRequestId)
-
-  if (!switchRequest) throw new Error('Switch request hittades inte')
-
-  const site = await getCustomerSiteById(supabase, switchRequest.site_id)
-  if (!site) throw new Error('Anläggning saknas för switchärendet')
-
-  const meteringPoint = await getMeteringPointById(supabase, switchRequest.metering_point_id)
-  if (!meteringPoint) throw new Error('Mätpunkt saknas för switchärendet')
-
-  const gridOwner = switchRequest.grid_owner_id
-    ? await getGridOwnerById(supabase, switchRequest.grid_owner_id)
-    : null
-
-  const routeContext = await resolveCanonicalOutboundContext({
-    requestType: 'supplier_switch',
-    gridOwner,
-    preferredRouteId: params.communicationRouteId ?? null,
-    environment: 'test',
-    messageStandard: 'edifact',
-  })
-
-  const outbound = await findOrCreateSwitchOutbound({
-    actorUserId,
-    switchRequestId: switchRequest.id,
-    customerId: switchRequest.customer_id,
-    siteId: switchRequest.site_id,
-    meteringPointId: switchRequest.metering_point_id,
-    gridOwnerId: switchRequest.grid_owner_id,
-    externalReference: switchRequest.external_reference ?? `SWITCH-DONE-${switchRequest.id}`,
-    payload: {
-      edielCode: 'Z05',
-      queuedFrom: 'prepare_switch_z05',
-      requestType: switchRequest.request_type,
-      requestedStartDate: switchRequest.requested_start_date,
-      communicationRouteId: routeContext.route.id,
-    },
-  })
-
-  const draft = await buildProdatZ05FromSwitch({
-    actorUserId,
-    senderEdielId: routeContext.senderEdielId,
-    senderName: routeContext.senderName,
-    receiverEdielId: routeContext.receiverEdielId,
-    receiverName: routeContext.receiverName,
-    receiverEmail: routeContext.receiverEmail,
-    senderSubAddress: routeContext.senderSubAddress,
-    receiverSubAddress: routeContext.receiverSubAddress,
-    communicationRouteId: routeContext.route.id,
-    mailbox: routeContext.mailbox,
-    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
-    switchRequest,
-    site,
-    meteringPoint,
-    gridOwner,
-  })
-
-  const message = await finalizeOutboundDraft({
-    actorUserId,
-    requestType: 'supplier_switch',
-    routeContext,
-    draft,
-    outboundRequestId: outbound.id,
-    duplicateCheck: {
-      receiverEdielId: routeContext.receiverEdielId,
-      messageFamily: draft.messageFamily,
-      messageCode: String(draft.messageCode),
-      messageVersion: draft.messageVersion ?? null,
-    },
-  })
-
-  await linkEdielMessage({
-    actorUserId,
-    edielMessageId: message.id,
-    outboundRequestId: outbound.id,
-    switchRequestId: switchRequest.id,
-    customerId: switchRequest.customer_id,
-    siteId: switchRequest.site_id,
-    meteringPointId: switchRequest.metering_point_id,
-    gridOwnerId: switchRequest.grid_owner_id,
-    communicationRouteId: routeContext.route.id,
-  })
-
-  await queuePreparedEdielMessage({
-    actorUserId,
-    messageId: message.id,
-    outboundRequestId: outbound.id,
-    externalReference:
-      switchRequest.external_reference ?? `SWITCH-DONE-${switchRequest.id}`,
-    payload: { edielCode: 'Z05', routeId: routeContext.route.id },
-  })
-
-  await createSupplierSwitchEvent(supabase, {
-    switchRequestId: switchRequest.id,
-    eventType: 'ediel_prepared',
-    eventStatus: 'queued',
-    message: 'Ediel Z05 förberett från switchärendet via canonical kernel.',
-    payload: {
-      edielMessageId: message.id,
-      outboundRequestId: outbound.id,
-      routeId: routeContext.route.id,
-    },
-  })
-
-  return message
+export async function prepareAndQueueEdielZ03(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z03' })
 }
 
-export async function prepareAndQueueEdielZ09(params: {
-  actorUserId: string
-  switchRequestId: string
-  communicationRouteId?: string | null
-}) {
-  const actorUserId = ensureActorUserId(params.actorUserId)
-  const supabase = await makeServerClient()
-  const switchRequest = await getSupplierSwitchRequestById(supabase, params.switchRequestId)
+export async function prepareAndQueueEdielZ04(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z04' })
+}
 
-  if (!switchRequest) throw new Error('Switch request hittades inte')
+export async function prepareAndQueueEdielZ05(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z05' })
+}
 
-  const site = await getCustomerSiteById(supabase, switchRequest.site_id)
-  if (!site) throw new Error('Anläggning saknas för switchärendet')
+export async function prepareAndQueueEdielZ06(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z06' })
+}
 
-  const meteringPoint = await getMeteringPointById(supabase, switchRequest.metering_point_id)
-  if (!meteringPoint) throw new Error('Mätpunkt saknas för switchärendet')
+export async function prepareAndQueueEdielZ09(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z09' })
+}
 
-  const gridOwner = switchRequest.grid_owner_id
-    ? await getGridOwnerById(supabase, switchRequest.grid_owner_id)
-    : null
-
-  const routeContext = await resolveCanonicalOutboundContext({
-    requestType: 'supplier_switch',
-    gridOwner,
-    preferredRouteId: params.communicationRouteId ?? null,
-    environment: 'test',
-    messageStandard: 'edifact',
-  })
-
-  const outbound = await findOrCreateSwitchOutbound({
-    actorUserId,
-    switchRequestId: switchRequest.id,
-    customerId: switchRequest.customer_id,
-    siteId: switchRequest.site_id,
-    meteringPointId: switchRequest.metering_point_id,
-    gridOwnerId: switchRequest.grid_owner_id,
-    externalReference: switchRequest.external_reference ?? `SWITCH-UPDATE-${switchRequest.id}`,
-    payload: {
-      edielCode: 'Z09',
-      queuedFrom: 'prepare_switch_z09',
-      requestType: switchRequest.request_type,
-      requestedStartDate: switchRequest.requested_start_date,
-      communicationRouteId: routeContext.route.id,
-    },
-  })
-
-  const draft = await buildProdatZ09FromSwitch({
-    actorUserId,
-    senderEdielId: routeContext.senderEdielId,
-    senderName: routeContext.senderName,
-    receiverEdielId: routeContext.receiverEdielId,
-    receiverName: routeContext.receiverName,
-    receiverEmail: routeContext.receiverEmail,
-    senderSubAddress: routeContext.senderSubAddress,
-    receiverSubAddress: routeContext.receiverSubAddress,
-    communicationRouteId: routeContext.route.id,
-    mailbox: routeContext.mailbox,
-    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
-    switchRequest,
-    site,
-    meteringPoint,
-    gridOwner,
-  })
-
-  const message = await finalizeOutboundDraft({
-    actorUserId,
-    requestType: 'supplier_switch',
-    routeContext,
-    draft,
-    outboundRequestId: outbound.id,
-    duplicateCheck: {
-      receiverEdielId: routeContext.receiverEdielId,
-      messageFamily: draft.messageFamily,
-      messageCode: String(draft.messageCode),
-      messageVersion: draft.messageVersion ?? null,
-    },
-  })
-
-  await linkEdielMessage({
-    actorUserId,
-    edielMessageId: message.id,
-    outboundRequestId: outbound.id,
-    switchRequestId: switchRequest.id,
-    customerId: switchRequest.customer_id,
-    siteId: switchRequest.site_id,
-    meteringPointId: switchRequest.metering_point_id,
-    gridOwnerId: switchRequest.grid_owner_id,
-    communicationRouteId: routeContext.route.id,
-  })
-
-  await queuePreparedEdielMessage({
-    actorUserId,
-    messageId: message.id,
-    outboundRequestId: outbound.id,
-    externalReference:
-      switchRequest.external_reference ?? `SWITCH-UPDATE-${switchRequest.id}`,
-    payload: { edielCode: 'Z09', routeId: routeContext.route.id },
-  })
-
-  await createSupplierSwitchEvent(supabase, {
-    switchRequestId: switchRequest.id,
-    eventType: 'ediel_prepared',
-    eventStatus: 'queued',
-    message: 'Ediel Z09 förberett från switchärendet via canonical kernel.',
-    payload: {
-      edielMessageId: message.id,
-      outboundRequestId: outbound.id,
-      routeId: routeContext.route.id,
-    },
-  })
-
-  return message
+export async function prepareAndQueueEdielZ10(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z10' })
 }

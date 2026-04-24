@@ -5,8 +5,11 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   prepareAiListAction,
   prepareSwitchZ03Action,
+  prepareSwitchZ04Action,
   prepareSwitchZ05Action,
+  prepareSwitchZ06Action,
   prepareSwitchZ09Action,
+  prepareSwitchZ10Action,
   prepareUtiltsE66Action,
   prepareUtiltsE73Action,
 } from '@/app/admin/ediel/actions'
@@ -40,6 +43,59 @@ function canPrepareAiList(params: {
   return true
 }
 
+function ProdatPrepareCard({
+  code,
+  title,
+  description,
+  action,
+  selectedSwitchId,
+  selectedRouteId,
+  linkedMessageId,
+  disabled,
+}: {
+  code: string
+  title: string
+  description: string
+  action: (formData: FormData) => void | Promise<void>
+  selectedSwitchId: string
+  selectedRouteId: string
+  linkedMessageId: string | null
+  disabled: boolean
+}) {
+  return (
+    <form action={action} className="rounded-2xl border border-slate-200 p-4">
+      <input type="hidden" name="switchRequestId" value={selectedSwitchId} />
+      <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
+
+      <div className="text-sm font-semibold text-slate-900">{title}</div>
+
+      <p className="mt-2 text-sm text-slate-600">{description}</p>
+
+      <div className="mt-3 text-xs text-slate-500">
+        Senaste {code}:{' '}
+        {linkedMessageId ? (
+          <Link
+            href={`/admin/ediel/messages/${linkedMessageId}`}
+            className="text-indigo-700 underline-offset-2 hover:underline"
+          >
+            {linkedMessageId}
+          </Link>
+        ) : (
+          'ingen ännu'
+        )}
+      </div>
+
+      <button
+        type="submit"
+        disabled={disabled}
+        className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Förbered {code}
+      </button>
+    </form>
+  )
+}
+
 export default function PrepareSwitchPanels({
   switchRequests,
   selectedSwitchId,
@@ -59,8 +115,11 @@ export default function PrepareSwitchPanels({
   setDispatchMailbox,
   recommendedRouteText,
   z03LinkedMessageId,
+  z04LinkedMessageId,
   z05LinkedMessageId,
+  z06LinkedMessageId,
   z09LinkedMessageId,
+  z10LinkedMessageId,
 }: {
   switchRequests: EdielRecommendationSwitchRow[]
   selectedSwitchId: string
@@ -80,8 +139,11 @@ export default function PrepareSwitchPanels({
   setDispatchMailbox: (value: string) => void
   recommendedRouteText: string
   z03LinkedMessageId: string | null
+  z04LinkedMessageId: string | null
   z05LinkedMessageId: string | null
+  z06LinkedMessageId: string | null
   z09LinkedMessageId: string | null
+  z10LinkedMessageId: string | null
 }) {
   const [selectedDataRequestId, setSelectedDataRequestId] = useState('')
   const [e66Quantity, setE66Quantity] = useState('0')
@@ -153,13 +215,14 @@ export default function PrepareSwitchPanels({
               Förbered-paneler i aktiv release
             </h2>
             <p className="mt-1 text-sm text-slate-700">
-              Den här workbenchen är nu låst till aktivt scope: switch/prodat, data request/utilts och AI-lista.
-              Framtida familjer ska inte förberedas här.
+              Den här workbenchen är låst till aktivt scope: switch/PRODAT,
+              data request/UTILTS och AI-lista. Framtida familjer ska inte förberedas här.
             </p>
           </div>
+
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="rounded-full border border-blue-200 bg-white px-2 py-1 font-medium text-blue-700">
-              PRODAT Z03 / Z05 / Z09
+              PRODAT Z03 / Z04 / Z05 / Z06 / Z09 / Z10
             </span>
             <span className="rounded-full border border-blue-200 bg-white px-2 py-1 font-medium text-blue-700">
               UTILTS E73 / E66
@@ -211,6 +274,7 @@ export default function PrepareSwitchPanels({
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
                 />
               </div>
+
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
                   Mottagarens Ediel-id
@@ -221,6 +285,7 @@ export default function PrepareSwitchPanels({
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
                 />
               </div>
+
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
                   Mottagarens e-post
@@ -231,6 +296,7 @@ export default function PrepareSwitchPanels({
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
                 />
               </div>
+
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
                   Mailbox
@@ -250,7 +316,10 @@ export default function PrepareSwitchPanels({
                 <div>Target system: {formatMaybe(selectedRoute?.target_system)}</div>
                 <div>Grid owner: {formatMaybe(selectedRoute?.grid_owner_name)}</div>
                 <div>Mailbox i profilen: {formatMaybe(selectedRoute?.profile?.mailbox)}</div>
-                <div>Receiver Ediel-id: {formatMaybe(selectedRoute?.profile?.receiver_ediel_id)}</div>
+                <div>
+                  Receiver Ediel-id:{' '}
+                  {formatMaybe(selectedRoute?.profile?.receiver_ediel_id)}
+                </div>
               </div>
             </div>
           </div>
@@ -259,7 +328,7 @@ export default function PrepareSwitchPanels({
         <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2">
           <h2 className="text-lg font-semibold text-slate-950">Switch → PRODAT</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Ett switchärende ska kunna driva flera PRODAT-steg i samma system.
+            Ett switchärende kan driva flera PRODAT-steg i samma system.
           </p>
 
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -299,93 +368,72 @@ export default function PrepareSwitchPanels({
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            <form action={prepareSwitchZ03Action} className="rounded-2xl border border-slate-200 p-4">
-              <input type="hidden" name="switchRequestId" value={selectedSwitchId} />
-              <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
-              <div className="text-sm font-semibold text-slate-900">Förbered Z03</div>
-              <p className="mt-2 text-sm text-slate-600">
-                Starta leverantörsbytesflödet från valt switchärende.
-              </p>
-              <div className="mt-3 text-xs text-slate-500">
-                Senaste Z03:{' '}
-                {z03LinkedMessageId ? (
-                  <Link
-                    href={`/admin/ediel/messages/${z03LinkedMessageId}`}
-                    className="text-indigo-700 underline-offset-2 hover:underline"
-                  >
-                    {z03LinkedMessageId}
-                  </Link>
-                ) : (
-                  'ingen ännu'
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={!canPrepareSwitch}
-                className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Förbered Z03
-              </button>
-            </form>
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <ProdatPrepareCard
+              code="Z03"
+              title="Förbered Z03"
+              description="Starta leverantörsbytesflödet från valt switchärende."
+              action={prepareSwitchZ03Action}
+              selectedSwitchId={selectedSwitchId}
+              selectedRouteId={selectedRouteId}
+              linkedMessageId={z03LinkedMessageId}
+              disabled={!canPrepareSwitch}
+            />
 
-            <form action={prepareSwitchZ05Action} className="rounded-2xl border border-slate-200 p-4">
-              <input type="hidden" name="switchRequestId" value={selectedSwitchId} />
-              <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
-              <div className="text-sm font-semibold text-slate-900">Förbered Z05</div>
-              <p className="mt-2 text-sm text-slate-600">
-                Slut-/statusmeddelande i samma switchkedja.
-              </p>
-              <div className="mt-3 text-xs text-slate-500">
-                Senaste Z05:{' '}
-                {z05LinkedMessageId ? (
-                  <Link
-                    href={`/admin/ediel/messages/${z05LinkedMessageId}`}
-                    className="text-indigo-700 underline-offset-2 hover:underline"
-                  >
-                    {z05LinkedMessageId}
-                  </Link>
-                ) : (
-                  'ingen ännu'
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={!canPrepareSwitch}
-                className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Förbered Z05
-              </button>
-            </form>
+            <ProdatPrepareCard
+              code="Z04"
+              title="Förbered Z04"
+              description="PRODAT-steg för kompletterande/relaterad switchhantering."
+              action={prepareSwitchZ04Action}
+              selectedSwitchId={selectedSwitchId}
+              selectedRouteId={selectedRouteId}
+              linkedMessageId={z04LinkedMessageId}
+              disabled={!canPrepareSwitch}
+            />
 
-            <form action={prepareSwitchZ09Action} className="rounded-2xl border border-slate-200 p-4">
-              <input type="hidden" name="switchRequestId" value={selectedSwitchId} />
-              <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
-              <div className="text-sm font-semibold text-slate-900">Förbered Z09</div>
-              <p className="mt-2 text-sm text-slate-600">
-                Alternativt steg i samma PRODAT-scope.
-              </p>
-              <div className="mt-3 text-xs text-slate-500">
-                Senaste Z09:{' '}
-                {z09LinkedMessageId ? (
-                  <Link
-                    href={`/admin/ediel/messages/${z09LinkedMessageId}`}
-                    className="text-indigo-700 underline-offset-2 hover:underline"
-                  >
-                    {z09LinkedMessageId}
-                  </Link>
-                ) : (
-                  'ingen ännu'
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={!canPrepareSwitch}
-                className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Förbered Z09
-              </button>
-            </form>
+            <ProdatPrepareCard
+              code="Z05"
+              title="Förbered Z05"
+              description="Slut-/statusmeddelande i samma switchkedja."
+              action={prepareSwitchZ05Action}
+              selectedSwitchId={selectedSwitchId}
+              selectedRouteId={selectedRouteId}
+              linkedMessageId={z05LinkedMessageId}
+              disabled={!canPrepareSwitch}
+            />
+
+            <ProdatPrepareCard
+              code="Z06"
+              title="Förbered Z06"
+              description="PRODAT-steg för fel-/avslags- eller kompletterande svarshantering."
+              action={prepareSwitchZ06Action}
+              selectedSwitchId={selectedSwitchId}
+              selectedRouteId={selectedRouteId}
+              linkedMessageId={z06LinkedMessageId}
+              disabled={!canPrepareSwitch}
+            />
+
+            <ProdatPrepareCard
+              code="Z09"
+              title="Förbered Z09"
+              description="Alternativt steg i samma PRODAT-scope."
+              action={prepareSwitchZ09Action}
+              selectedSwitchId={selectedSwitchId}
+              selectedRouteId={selectedRouteId}
+              linkedMessageId={z09LinkedMessageId}
+              disabled={!canPrepareSwitch}
+            />
+
+            <ProdatPrepareCard
+              code="Z10"
+              title="Förbered Z10"
+              description="PRODAT-steg för senare switch-/statushantering i kedjan."
+              action={prepareSwitchZ10Action}
+              selectedSwitchId={selectedSwitchId}
+              selectedRouteId={selectedRouteId}
+              linkedMessageId={z10LinkedMessageId}
+              disabled={!canPrepareSwitch}
+            />
           </div>
         </div>
       </div>
@@ -411,13 +459,26 @@ export default function PrepareSwitchPanels({
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <form action={prepareUtiltsE73Action} className="rounded-2xl border border-slate-200 p-4">
-                <input type="hidden" name="gridOwnerDataRequestId" value={selectedDataRequestId} />
-                <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
+              <form
+                action={prepareUtiltsE73Action}
+                className="rounded-2xl border border-slate-200 p-4"
+              >
+                <input
+                  type="hidden"
+                  name="gridOwnerDataRequestId"
+                  value={selectedDataRequestId}
+                />
+                <input
+                  type="hidden"
+                  name="communicationRouteId"
+                  value={selectedRouteId}
+                />
+
                 <div className="text-sm font-semibold text-slate-900">Förbered E73</div>
                 <p className="mt-2 text-sm text-slate-600">
                   Begär saknade/efterfrågade mätdata från nätägaren.
                 </p>
+
                 <button
                   type="submit"
                   disabled={!canPrepareE73}
@@ -427,12 +488,24 @@ export default function PrepareSwitchPanels({
                 </button>
               </form>
 
-              <form action={prepareUtiltsE66Action} className="rounded-2xl border border-slate-200 p-4">
-                <input type="hidden" name="gridOwnerDataRequestId" value={selectedDataRequestId} />
-                <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
+              <form
+                action={prepareUtiltsE66Action}
+                className="rounded-2xl border border-slate-200 p-4"
+              >
+                <input
+                  type="hidden"
+                  name="gridOwnerDataRequestId"
+                  value={selectedDataRequestId}
+                />
+                <input
+                  type="hidden"
+                  name="communicationRouteId"
+                  value={selectedRouteId}
+                />
+
                 <div className="text-sm font-semibold text-slate-900">Förbered E66</div>
                 <p className="mt-2 text-sm text-slate-600">
-                  Test/registrering av validerade mätvärden i aktivt UTILTS-scope.
+                  Registrering/förberedelse av validerade mätvärden i aktivt UTILTS-scope.
                 </p>
 
                 <div className="mt-4 space-y-3">
@@ -481,7 +554,8 @@ export default function PrepareSwitchPanels({
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-slate-950">AI-lista</h2>
           <p className="mt-1 text-sm text-slate-600">
-            AI-lista ligger kvar i aktiv release men bara som kontroll-/avvikelseflöde, inte auto-update.
+            AI-lista ligger kvar i aktiv release men bara som kontroll-/avvikelseflöde,
+            inte auto-update.
           </p>
 
           <form action={prepareAiListAction} className="mt-4 space-y-4">

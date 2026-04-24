@@ -30,8 +30,11 @@ import {
 import { prepareAndQueueAiList } from '@/lib/ediel/flows/aiListFlow'
 import {
   prepareAndQueueEdielZ03,
+  prepareAndQueueEdielZ04,
   prepareAndQueueEdielZ05,
+  prepareAndQueueEdielZ06,
   prepareAndQueueEdielZ09,
+  prepareAndQueueEdielZ10,
 } from '@/lib/ediel/flows/prodatSwitch'
 import {
   prepareAndQueueUtiltsE66,
@@ -48,8 +51,11 @@ export type {
 
 export {
   prepareAndQueueEdielZ03,
+  prepareAndQueueEdielZ04,
   prepareAndQueueEdielZ05,
+  prepareAndQueueEdielZ06,
   prepareAndQueueEdielZ09,
+  prepareAndQueueEdielZ10,
   prepareAndQueueUtiltsE66,
   prepareAndQueueUtiltsE73,
   prepareAndQueueAiList,
@@ -214,11 +220,19 @@ export async function sendQueuedEdielMessage(params: {
 export async function prepareManualProdatMessage(params: {
   actorUserId: string
   switchRequestId: string
-  messageCode: 'Z03' | 'Z05' | 'Z09'
+  messageCode: 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
   communicationRouteId?: string | null
 }) {
   if (params.messageCode === 'Z03') {
     return prepareAndQueueEdielZ03({
+      actorUserId: params.actorUserId,
+      switchRequestId: params.switchRequestId,
+      communicationRouteId: params.communicationRouteId ?? null,
+    })
+  }
+
+  if (params.messageCode === 'Z04') {
+    return prepareAndQueueEdielZ04({
       actorUserId: params.actorUserId,
       switchRequestId: params.switchRequestId,
       communicationRouteId: params.communicationRouteId ?? null,
@@ -233,7 +247,23 @@ export async function prepareManualProdatMessage(params: {
     })
   }
 
-  return prepareAndQueueEdielZ09({
+  if (params.messageCode === 'Z06') {
+    return prepareAndQueueEdielZ06({
+      actorUserId: params.actorUserId,
+      switchRequestId: params.switchRequestId,
+      communicationRouteId: params.communicationRouteId ?? null,
+    })
+  }
+
+  if (params.messageCode === 'Z09') {
+    return prepareAndQueueEdielZ09({
+      actorUserId: params.actorUserId,
+      switchRequestId: params.switchRequestId,
+      communicationRouteId: params.communicationRouteId ?? null,
+    })
+  }
+
+  return prepareAndQueueEdielZ10({
     actorUserId: params.actorUserId,
     switchRequestId: params.switchRequestId,
     communicationRouteId: params.communicationRouteId ?? null,

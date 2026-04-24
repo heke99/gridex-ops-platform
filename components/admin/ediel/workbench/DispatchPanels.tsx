@@ -15,7 +15,7 @@ import type {
 import { formatMaybe, messageLabel, routeLabel } from './helpers'
 
 type AckDraftType = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
-type SupportedProdatCode = 'Z03' | 'Z05' | 'Z09'
+type SupportedProdatCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
 
 function deriveAckTypeFromSelection(
   selectedAckSource: EdielRecommendationMessageRow | null,
@@ -581,9 +581,12 @@ export default function DispatchPanels({
               onChange={(event) => setProdatCode(event.target.value as SupportedProdatCode)}
               className="w-full rounded-xl border border-slate-300 px-3 py-2"
             >
-              <option value="Z03">Z03</option>
-              <option value="Z05">Z05</option>
-              <option value="Z09">Z09</option>
+              <option value="Z03">Z03 · Leverantörsbyte</option>
+              <option value="Z04">Z04 · Svar på leverantörsbyte</option>
+              <option value="Z05">Z05 · Inflytt/övertagande</option>
+              <option value="Z06">Z06 · Svar på inflytt/övertagande</option>
+              <option value="Z09">Z09 · Anläggningsändring</option>
+              <option value="Z10">Z10 · Svar på anläggningsändring</option>
             </select>
           </div>
 

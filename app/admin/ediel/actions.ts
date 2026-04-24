@@ -8,8 +8,11 @@ import {
   pollAndIngestEdielMailbox,
   prepareAndQueueAiList,
   prepareAndQueueEdielZ03,
+  prepareAndQueueEdielZ04,
   prepareAndQueueEdielZ05,
+  prepareAndQueueEdielZ06,
   prepareAndQueueEdielZ09,
+  prepareAndQueueEdielZ10,
   prepareAndQueueUtiltsE66,
   prepareAndQueueUtiltsE73,
   sendQueuedEdielMessage,
@@ -21,8 +24,13 @@ import { runEdielSelfTest } from '@/lib/ediel/selftest'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
 import {
   buildProdatZ03FromSwitch,
+  buildProdatZ04FromSwitch,
   buildProdatZ05FromSwitch,
+  buildProdatZ06FromSwitch,
   buildProdatZ09FromSwitch,
+  buildProdatZ10FromSwitch,
+  isProdatSwitchCode,
+  type ProdatSwitchCode,
 } from '@/lib/ediel/prodat'
 import { finalizeOutboundDraft, makeServerClient } from '@/lib/ediel/flows/shared'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
@@ -79,6 +87,15 @@ function parseEdielTestSuite(value: FormDataEntryValue | null): EdielTestSuite {
 function parseEdielTestRoleCode(value: FormDataEntryValue | null): EdielTestRoleCode {
   const raw = formString(value)
   return raw && isEdielTestRoleCode(raw) ? raw : 'supplier'
+}
+
+function getProdatDraftBuilder(messageCode: ProdatSwitchCode) {
+  if (messageCode === 'Z03') return buildProdatZ03FromSwitch
+  if (messageCode === 'Z04') return buildProdatZ04FromSwitch
+  if (messageCode === 'Z05') return buildProdatZ05FromSwitch
+  if (messageCode === 'Z06') return buildProdatZ06FromSwitch
+  if (messageCode === 'Z09') return buildProdatZ09FromSwitch
+  return buildProdatZ10FromSwitch
 }
 
 function revalidateEdiel(messageId?: string | null) {
@@ -185,10 +202,11 @@ export async function createProdatDraftAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const switchRequestId = formString(formData.get('switchRequestId'))
   const communicationRouteId = formString(formData.get('communicationRouteId'))
-  const messageCode = formString(formData.get('messageCode')) as 'Z03' | 'Z05' | 'Z09' | null
+  const messageCodeRaw = formString(formData.get('messageCode'))
+  const messageCode = isProdatSwitchCode(messageCodeRaw) ? messageCodeRaw : null
 
   if (!switchRequestId) throw new Error('switchRequestId saknas')
-  if (!messageCode || !['Z03', 'Z05', 'Z09'].includes(messageCode)) {
+  if (!messageCode) {
     throw new Error('Ogiltig messageCode')
   }
 
@@ -214,12 +232,7 @@ export async function createProdatDraftAction(formData: FormData) {
     messageStandard: 'edifact',
   })
 
-  const draftBuilder =
-    messageCode === 'Z03'
-      ? buildProdatZ03FromSwitch
-      : messageCode === 'Z05'
-        ? buildProdatZ05FromSwitch
-        : buildProdatZ09FromSwitch
+  const draftBuilder = getProdatDraftBuilder(messageCode)
 
   const draft = await draftBuilder({
     actorUserId: context.userId,
@@ -234,6 +247,7 @@ export async function createProdatDraftAction(formData: FormData) {
       formString(formData.get('receiverSubAddress')) ?? routeContext.receiverSubAddress,
     communicationRouteId: routeContext.route.id,
     mailbox: formString(formData.get('mailbox')) ?? routeContext.mailbox,
+    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     switchRequest,
     site,
     meteringPoint,
@@ -261,49 +275,56 @@ export async function createProdatDraftAction(formData: FormData) {
   await revalidateRelatedMessage(message.id)
 }
 
-export async function prepareSwitchZ03Action(formData: FormData) {
+async function prepareSwitchProdatAction(formData: FormData, messageCode: ProdatSwitchCode) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const switchRequestId = formString(formData.get('switchRequestId'))
   const communicationRouteId = formString(formData.get('communicationRouteId'))
   if (!switchRequestId) throw new Error('switchRequestId saknas')
 
-  const message = await prepareAndQueueEdielZ03({
+  const params = {
     actorUserId: context.userId,
     switchRequestId,
     communicationRouteId,
-  })
+  }
+
+  const message =
+    messageCode === 'Z03'
+      ? await prepareAndQueueEdielZ03(params)
+      : messageCode === 'Z04'
+        ? await prepareAndQueueEdielZ04(params)
+        : messageCode === 'Z05'
+          ? await prepareAndQueueEdielZ05(params)
+          : messageCode === 'Z06'
+            ? await prepareAndQueueEdielZ06(params)
+            : messageCode === 'Z09'
+              ? await prepareAndQueueEdielZ09(params)
+              : await prepareAndQueueEdielZ10(params)
 
   await revalidateRelatedMessage(message.id)
+}
+
+export async function prepareSwitchZ03Action(formData: FormData) {
+  await prepareSwitchProdatAction(formData, 'Z03')
+}
+
+export async function prepareSwitchZ04Action(formData: FormData) {
+  await prepareSwitchProdatAction(formData, 'Z04')
 }
 
 export async function prepareSwitchZ05Action(formData: FormData) {
-  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const switchRequestId = formString(formData.get('switchRequestId'))
-  const communicationRouteId = formString(formData.get('communicationRouteId'))
-  if (!switchRequestId) throw new Error('switchRequestId saknas')
+  await prepareSwitchProdatAction(formData, 'Z05')
+}
 
-  const message = await prepareAndQueueEdielZ05({
-    actorUserId: context.userId,
-    switchRequestId,
-    communicationRouteId,
-  })
-
-  await revalidateRelatedMessage(message.id)
+export async function prepareSwitchZ06Action(formData: FormData) {
+  await prepareSwitchProdatAction(formData, 'Z06')
 }
 
 export async function prepareSwitchZ09Action(formData: FormData) {
-  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const switchRequestId = formString(formData.get('switchRequestId'))
-  const communicationRouteId = formString(formData.get('communicationRouteId'))
-  if (!switchRequestId) throw new Error('switchRequestId saknas')
+  await prepareSwitchProdatAction(formData, 'Z09')
+}
 
-  const message = await prepareAndQueueEdielZ09({
-    actorUserId: context.userId,
-    switchRequestId,
-    communicationRouteId,
-  })
-
-  await revalidateRelatedMessage(message.id)
+export async function prepareSwitchZ10Action(formData: FormData) {
+  await prepareSwitchProdatAction(formData, 'Z10')
 }
 
 export async function prepareUtiltsE73Action(formData: FormData) {

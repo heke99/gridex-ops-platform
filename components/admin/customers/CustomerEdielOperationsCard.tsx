@@ -915,7 +915,7 @@ aperak_status: normalizeRecommendationAckStatus(
                         </div>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                           Automatiskt prefyllt från vald Ediel-route. Du kan skriva över
-                          manuellt här om self test kräver det.
+                          manuellt här om drift eller route-data kräver det.
                         </p>
 
                         <RoutePrefillNotice

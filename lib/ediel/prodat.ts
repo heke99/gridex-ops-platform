@@ -38,6 +38,21 @@ export type ParsedProdatMessage = {
   parsedPayload: Record<string, unknown>
 }
 
+export type ProdatSwitchValidationSeverity = 'error' | 'warning'
+
+export type ProdatSwitchValidationIssue = {
+  severity: ProdatSwitchValidationSeverity
+  code: string
+  title: string
+  description: string
+}
+
+export type ProdatSwitchValidationResult = {
+  isReady: boolean
+  code: ProdatSwitchCode
+  issues: ProdatSwitchValidationIssue[]
+}
+
 type BaseSwitchOutboundInput = {
   actorUserId?: string | null
   senderEdielId: string
@@ -61,8 +76,17 @@ type BaseSwitchOutboundInput = {
   routeDefaultMessageVersion?: string | null
 }
 
+const PRODAT_CODES: readonly ProdatSwitchCode[] = ['Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10'] as const
+
 function sanitize(value?: string | null): string {
-  return (value ?? '').replace(/['+]/g, ' ').trim()
+  return (value ?? '').replace(/[\r\n'+]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function pushIssue(
+  issues: ProdatSwitchValidationIssue[],
+  issue: ProdatSwitchValidationIssue
+) {
+  issues.push(issue)
 }
 
 function splitEdifactSegments(rawPayload: string): string[] {
@@ -167,21 +191,177 @@ function inferCustomerName(
 }
 
 function inferMeterPointIdentifier(meteringPoint: MeteringPointRow): string {
-  return sanitize(meteringPoint.ediel_reference || meteringPoint.meter_point_id || 'UNKNOWN')
+  return sanitize(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '')
 }
 
 function inferGridArea(gridOwner?: GridOwnerRow | null): string | null {
   return sanitize(gridOwner?.owner_code || gridOwner?.ediel_id || '') || null
 }
 
-function deriveProcessLabel(code: 'Z03' | 'Z05' | 'Z09'): string {
+function prodatCodeLabel(code: ProdatSwitchCode): string {
+  if (code === 'Z03') return 'Leverantörsbyte'
+  if (code === 'Z04') return 'Svar på leverantörsbyte'
+  if (code === 'Z05') return 'Inflytt/övertagande'
+  if (code === 'Z06') return 'Svar på inflytt/övertagande'
+  if (code === 'Z09') return 'Ändring/anläggningsuppdatering'
+  return 'Svar på ändring/anläggningsuppdatering'
+}
+
+function deriveProcessLabel(code: ProdatSwitchCode): string {
   if (code === 'Z03') return 'supplier_switch_request'
-  if (code === 'Z05') return 'supplier_switch_completion'
-  return 'masterdata_update'
+  if (code === 'Z04') return 'supplier_switch_response'
+  if (code === 'Z05') return 'move_in_request'
+  if (code === 'Z06') return 'move_in_response'
+  if (code === 'Z09') return 'masterdata_update'
+  return 'masterdata_update_response'
+}
+
+function isResponseCode(code: ProdatSwitchCode): boolean {
+  return code === 'Z04' || code === 'Z06' || code === 'Z10'
+}
+
+function preferredReferencePrefix(code: ProdatSwitchCode): string {
+  if (code === 'Z03') return 'SWITCH'
+  if (code === 'Z04') return 'SWITCH-RESP'
+  if (code === 'Z05') return 'MOVE-IN'
+  if (code === 'Z06') return 'MOVE-IN-RESP'
+  if (code === 'Z09') return 'SITE-UPD'
+  return 'SITE-UPD-RESP'
+}
+
+function statusSegmentForCode(code: ProdatSwitchCode): string | null {
+  if (code === 'Z04' || code === 'Z06' || code === 'Z10') return 'STS+7++29::260'
+  if (code === 'Z05') return 'STS+7++Z05::260'
+  if (code === 'Z09') return 'STS+7++Z09::260'
+  return null
+}
+
+export function isProdatSwitchCode(value: string | null | undefined): value is ProdatSwitchCode {
+  return Boolean(value && (PRODAT_CODES as readonly string[]).includes(value))
+}
+
+export function validateProdatSwitchContext(params: {
+  code: ProdatSwitchCode
+  switchRequest: SupplierSwitchRequestRow
+  site: CustomerSiteRow
+  meteringPoint: MeteringPointRow
+  gridOwner?: GridOwnerRow | null
+  senderEdielId?: string | null
+  receiverEdielId?: string | null
+}): ProdatSwitchValidationResult {
+  const issues: ProdatSwitchValidationIssue[] = []
+  const isMoveCode = params.code === 'Z05' || params.code === 'Z06'
+  const isSwitchCode = params.code === 'Z03' || params.code === 'Z04'
+
+  if (!sanitize(params.senderEdielId)) {
+    pushIssue(issues, {
+      severity: 'error',
+      code: 'sender_ediel_id_missing',
+      title: 'Avsändarens Ediel-id saknas',
+      description: 'Route/actor profile måste ha ett avsändar-id innan PRODAT kan skickas.',
+    })
+  }
+
+  if (!sanitize(params.receiverEdielId)) {
+    pushIssue(issues, {
+      severity: 'error',
+      code: 'receiver_ediel_id_missing',
+      title: 'Mottagarens Ediel-id saknas',
+      description: 'Nätägaren eller vald route måste ha ett mottagar-id innan PRODAT kan skickas.',
+    })
+  }
+
+  if (!inferMeterPointIdentifier(params.meteringPoint)) {
+    pushIssue(issues, {
+      severity: 'error',
+      code: 'meter_point_id_missing',
+      title: 'Mätpunkt/anläggnings-id saknas',
+      description: 'Meddelandet behöver ett identifierbart LOC+172-värde från mätpunkt eller Ediel-referens.',
+    })
+  }
+
+  if (!params.switchRequest.requested_start_date && !params.site.move_in_date) {
+    pushIssue(issues, {
+      severity: isResponseCode(params.code) ? 'warning' : 'error',
+      code: 'start_date_missing',
+      title: 'Startdatum saknas',
+      description: 'Switch-/flyttdatum saknas. Lägg in requested_start_date eller move_in_date innan outbound skickas.',
+    })
+  }
+
+  if (!params.switchRequest.grid_owner_id && !params.site.grid_owner_id && !params.meteringPoint.grid_owner_id) {
+    pushIssue(issues, {
+      severity: 'error',
+      code: 'grid_owner_missing',
+      title: 'Nätägare saknas',
+      description: 'Switchärendet, anläggningen eller mätpunkten måste vara kopplad till en nätägare.',
+    })
+  }
+
+  if (!params.gridOwner?.ediel_id && !params.gridOwner?.owner_code) {
+    pushIssue(issues, {
+      severity: 'warning',
+      code: 'grid_owner_ediel_identity_missing',
+      title: 'Nätägarens Ediel-identitet saknas eller är svag',
+      description: 'Systemet kan bygga draft, men route/adressering bör kompletteras innan riktig drift.',
+    })
+  }
+
+  if (isSwitchCode && !sanitize(params.switchRequest.current_supplier_name ?? params.site.current_supplier_name)) {
+    pushIssue(issues, {
+      severity: 'warning',
+      code: 'current_supplier_missing',
+      title: 'Nuvarande leverantör saknas',
+      description: 'Nuvarande leverantör saknas i switchärendet/anläggningen. Det kan kräva manuell komplettering.',
+    })
+  }
+
+  if (isMoveCode && params.switchRequest.request_type !== 'move_in') {
+    pushIssue(issues, {
+      severity: 'warning',
+      code: 'message_code_request_type_mismatch',
+      title: 'PRODAT-kod matchar inte request_type',
+      description: `Kod ${params.code} används normalt för flytt/övertagande, men ärendet är ${params.switchRequest.request_type}.`,
+    })
+  }
+
+  if ((params.code === 'Z03' || params.code === 'Z04') && params.switchRequest.request_type === 'move_in') {
+    pushIssue(issues, {
+      severity: 'warning',
+      code: 'message_code_request_type_mismatch',
+      title: 'PRODAT-kod matchar inte request_type',
+      description: `Kod ${params.code} används för leverantörsbyte, men ärendet är markerat som inflytt.`,
+    })
+  }
+
+  if (!params.switchRequest.power_of_attorney_id && !params.switchRequest.authorization_document_id) {
+    pushIssue(issues, {
+      severity: isResponseCode(params.code) ? 'warning' : 'error',
+      code: 'authorization_missing',
+      title: 'Fullmakt/behörighetsdokument saknas',
+      description: 'Koppla fullmakt eller komplett avtal innan meddelandet skickas i drift.',
+    })
+  }
+
+  return {
+    isReady: !issues.some((issue) => issue.severity === 'error'),
+    code: params.code,
+    issues,
+  }
+}
+
+function validationErrorMessage(result: ProdatSwitchValidationResult): string {
+  const errors = result.issues.filter((issue) => issue.severity === 'error')
+  if (errors.length === 0) return ''
+
+  return [
+    `PRODAT ${result.code} kan inte byggas säkert ännu.`,
+    ...errors.map((issue) => `- ${issue.title}: ${issue.description}`),
+  ].join('\n')
 }
 
 function renderProdatSegments(params: {
-  code: 'Z03' | 'Z05' | 'Z09'
+  code: ProdatSwitchCode
   bgmReference: string
   transactionReference: string
   switchRequest: SupplierSwitchRequestRow
@@ -190,7 +370,7 @@ function renderProdatSegments(params: {
   gridOwner?: GridOwnerRow | null
 }): string[] {
   const customerName = inferCustomerName(params.switchRequest, params.site)
-  const meterPointId = inferMeterPointIdentifier(params.meteringPoint)
+  const meterPointId = inferMeterPointIdentifier(params.meteringPoint) || 'UNKNOWN'
   const gridArea = inferGridArea(params.gridOwner)
   const startDate =
     formatDate102(params.switchRequest.requested_start_date) ||
@@ -200,26 +380,42 @@ function renderProdatSegments(params: {
   const postalCode = sanitize(params.site.postal_code)
   const city = sanitize(params.site.city)
   const siteType = sanitize(params.site.site_type)
+  const priceArea = sanitize(params.switchRequest.price_area_code ?? params.site.price_area_code)
   const incomingSupplierName = sanitize(params.switchRequest.incoming_supplier_name)
+  const incomingSupplierOrgNumber = sanitize(params.switchRequest.incoming_supplier_org_number)
   const currentSupplierName = sanitize(
     params.switchRequest.current_supplier_name ||
       params.site.current_supplier_name
   )
+  const currentSupplierOrgNumber = sanitize(
+    params.switchRequest.current_supplier_org_number ||
+      params.site.current_supplier_org_number
+  )
   const externalReference = sanitize(params.bgmReference)
   const transactionReference = sanitize(params.transactionReference)
+  const statusSegment = statusSegmentForCode(params.code)
 
   const segments: string[] = []
-  segments.push(`BGM+${params.code}::260+${externalReference}+9`)
+  segments.push(`BGM+${params.code}::260+${externalReference}+9+AB`)
   segments.push(`DTM+137:${formatDate102(new Date().toISOString())}:102`)
   segments.push(`RFF+TN:${transactionReference}`)
+  segments.push(`RFF+ACE:${sanitize(params.switchRequest.id)}`)
   segments.push(`LOC+172+${meterPointId}::9`)
 
   if (gridArea) {
     segments.push(`LOC+239+${gridArea}:SVK:260`)
   }
 
+  if (priceArea) {
+    segments.push(`LOC+48+${priceArea}:SVK:260`)
+  }
+
   if (startDate) {
     segments.push(`DTM+7:${startDate}:102`)
+  }
+
+  if (statusSegment) {
+    segments.push(statusSegment)
   }
 
   segments.push(`NAD+BY+++${customerName}`)
@@ -229,38 +425,68 @@ function renderProdatSegments(params: {
   }
 
   if (incomingSupplierName) {
-    segments.push(`FTX+AAI+++${incomingSupplierName}`)
+    segments.push(`NAD+DDQ+++${incomingSupplierName}`)
+  }
+
+  if (incomingSupplierOrgNumber) {
+    segments.push(`RFF+GN:${incomingSupplierOrgNumber}`)
   }
 
   if (currentSupplierName) {
-    segments.push(`FTX+AAO+++${currentSupplierName}`)
+    segments.push(`NAD+DDQ+++${currentSupplierName}`)
+  }
+
+  if (currentSupplierOrgNumber) {
+    segments.push(`RFF+GN:${currentSupplierOrgNumber}`)
   }
 
   if (siteType) {
-    segments.push(`FTX+ZZZ+++${siteType}`)
+    segments.push(`CCI+++E12::260`)
+    segments.push(`CAV+${siteType.toUpperCase()}::260`)
   }
 
-  if (params.code === 'Z05') {
-    segments.push(`STS+7++Z05::260`)
+  if (params.site.facility_id) {
+    segments.push(`RFF+AVC:${sanitize(params.site.facility_id)}`)
   }
 
-  if (params.code === 'Z09') {
-    if (params.site.facility_id) {
-      segments.push(`RFF+AVC:${sanitize(params.site.facility_id)}`)
-    }
-    if (params.meteringPoint.ediel_reference) {
-      segments.push(`RFF+Z13:${sanitize(params.meteringPoint.ediel_reference)}`)
-    }
+  if (params.meteringPoint.ediel_reference) {
+    segments.push(`RFF+Z13:${sanitize(params.meteringPoint.ediel_reference)}`)
   }
+
+  segments.push(`FTX+AAI+++${prodatCodeLabel(params.code)}`)
 
   return segments
 }
 
+function buildValidationReport(result: ProdatSwitchValidationResult): Record<string, unknown> {
+  return {
+    isReady: result.isReady,
+    code: result.code,
+    errors: result.issues.filter((issue) => issue.severity === 'error'),
+    warnings: result.issues.filter((issue) => issue.severity === 'warning'),
+    checkedAt: new Date().toISOString(),
+  }
+}
+
 function buildProdatSwitchOutboundDraft(
   input: BaseSwitchOutboundInput,
-  code: 'Z03' | 'Z05' | 'Z09'
+  code: ProdatSwitchCode
 ): Promise<CreateEdielMessageInput> {
   return (async () => {
+    const validation = validateProdatSwitchContext({
+      code,
+      switchRequest: input.switchRequest,
+      site: input.site,
+      meteringPoint: input.meteringPoint,
+      gridOwner: input.gridOwner ?? null,
+      senderEdielId: input.senderEdielId,
+      receiverEdielId: input.receiverEdielId,
+    })
+
+    if (!validation.isReady) {
+      throw new Error(validationErrorMessage(validation))
+    }
+
     const refs = buildCanonicalOutboundReferences({
       family: 'PRODAT',
       code,
@@ -270,18 +496,21 @@ function buildProdatSwitchOutboundDraft(
       correlationReference: input.correlationReference ?? null,
     })
 
-    const externalReference = refs.externalReference ?? input.switchRequest.id
+    const externalReference =
+      refs.externalReference ??
+      input.switchRequest.external_reference ??
+      `${preferredReferencePrefix(code)}-${input.switchRequest.id}`
     const transactionReference = refs.transactionReference ?? input.switchRequest.id
 
     const messageVersion =
       (await resolveCanonicalOutboundVersion({
         family: 'PRODAT',
         code,
-        fallback: 'E5SE5A',
+        fallback: '26A',
         standard: 'edifact',
         routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
         environment: 'test',
-      })) ?? 'E5SE5A'
+      })) ?? '26A'
 
     const applicationReference =
       input.applicationReference ??
@@ -307,7 +536,7 @@ function buildProdatSwitchOutboundDraft(
       receiverSubAddress: input.receiverSubAddress ?? 'PRODAT',
       applicationReference,
       testFlag: 1,
-      messageTypeToken: `PRODAT:D:03A:UN:${messageVersion}`,
+      messageTypeToken: `PRODAT:D:96A:UN:${messageVersion}`,
       segments,
     })
 
@@ -319,6 +548,9 @@ function buildProdatSwitchOutboundDraft(
     const parsedPayload: Record<string, unknown> = {
       draftType: 'prodat_switch_outbound',
       processLabel: deriveProcessLabel(code),
+      prodatCode: code,
+      prodatLabel: prodatCodeLabel(code),
+      isResponseMessage: isResponseCode(code),
       switchRequestId: input.switchRequest.id,
       switchRequestType: input.switchRequest.request_type,
       switchRequestStatus: input.switchRequest.status,
@@ -326,12 +558,18 @@ function buildProdatSwitchOutboundDraft(
       currentSupplierName:
         input.switchRequest.current_supplier_name ?? input.site.current_supplier_name ?? null,
       incomingSupplierName: input.switchRequest.incoming_supplier_name ?? null,
+      incomingSupplierOrgNumber: input.switchRequest.incoming_supplier_org_number ?? null,
+      currentSupplierOrgNumber:
+        input.switchRequest.current_supplier_org_number ??
+        input.site.current_supplier_org_number ??
+        null,
       siteType: input.site.site_type ?? null,
       facilityId: input.site.facility_id ?? null,
       meterPointId: input.meteringPoint.meter_point_id ?? null,
       edielReference: input.meteringPoint.ediel_reference ?? null,
       gridOwnerEdielId: input.gridOwner?.ediel_id ?? null,
       gridOwnerOwnerCode: input.gridOwner?.owner_code ?? null,
+      validation: buildValidationReport(validation),
     }
 
     return {
@@ -375,6 +613,7 @@ function buildProdatSwitchOutboundDraft(
       gridOwnerId: input.switchRequest.grid_owner_id,
       rawPayload: envelope.raw,
       parsedPayload,
+      validationReport: buildValidationReport(validation),
       requiresContrl: ack.requiresContrl,
       requiresAperak: ack.requiresAperak,
       contrlStatus: ack.contrlStatus,
@@ -403,6 +642,7 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const dtm137 = firstSegmentValue(rawSegments, 'DTM+137')
   const loc172 = firstSegmentValue(rawSegments, 'LOC+172')
   const loc239 = firstSegmentValue(rawSegments, 'LOC+239')
+  const loc48 = firstSegmentValue(rawSegments, 'LOC+48')
   const nadBy = firstSegmentValue(rawSegments, 'NAD+BY')
   const adr = firstSegmentValue(rawSegments, 'ADR+')
   const ids = extractUnbIds(unb)
@@ -414,9 +654,10 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
 
   const meterPointId = loc172?.split('+')[2]?.split(':')[0]?.trim() || null
   const gridAreaId = loc239?.split('+')[2]?.split(':')[0]?.trim() || null
+  const priceAreaCode = loc48?.split('+')[2]?.split(':')[0]?.trim() || null
   const customerName = nadBy?.split('+++')[1]?.trim() || null
   const adrParts = adr?.split('+') ?? []
-  const messageVersion = unh?.split('+')[2]?.trim() || null
+  const messageVersion = unh?.split('+')[2]?.split(':')?.[4]?.trim() ?? unh?.split('+')[2]?.trim() ?? null
 
   return {
     messageFamily: 'PRODAT',
@@ -440,6 +681,7 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
       meterPointId,
       meteringPointId: meterPointId,
       gridAreaId,
+      priceAreaCode,
       customerName,
       requestedStartDate: extractDateFromDtm(dtm7),
       createdDate: extractDateFromDtm(dtm137),
@@ -449,6 +691,7 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
       segmentCount: rawSegments.length,
       inferredFamily: inferred.messageFamily,
       inferredCode: inferred.messageCode,
+      processLabel: bgmCode && isProdatSwitchCode(String(bgmCode)) ? deriveProcessLabel(bgmCode as ProdatSwitchCode) : null,
     },
   }
 }
@@ -456,11 +699,11 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
 export async function buildProdatOutboundDraft(params: {
   actorUserId?: string | null
   switchRequestId: string
-  messageCode: 'Z03' | 'Z05' | 'Z09'
+  messageCode: ProdatSwitchCode
   communicationRouteId?: string | null
 }) {
   throw new Error(
-    'buildProdatOutboundDraft är inte längre den primära vägen. Använd buildProdatZ03FromSwitch, buildProdatZ05FromSwitch eller buildProdatZ09FromSwitch.'
+    `buildProdatOutboundDraft kräver full switch/site/metering/route context. Använd buildProdat${params.messageCode}FromSwitch eller prepareAndQueueEdiel${params.messageCode}.`
   )
 }
 
@@ -470,14 +713,32 @@ export async function buildProdatZ03FromSwitch(
   return buildProdatSwitchOutboundDraft(input, 'Z03')
 }
 
+export async function buildProdatZ04FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z04')
+}
+
 export async function buildProdatZ05FromSwitch(
   input: BaseSwitchOutboundInput
 ): Promise<CreateEdielMessageInput> {
   return buildProdatSwitchOutboundDraft(input, 'Z05')
 }
 
+export async function buildProdatZ06FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z06')
+}
+
 export async function buildProdatZ09FromSwitch(
   input: BaseSwitchOutboundInput
 ): Promise<CreateEdielMessageInput> {
   return buildProdatSwitchOutboundDraft(input, 'Z09')
+}
+
+export async function buildProdatZ10FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z10')
 }

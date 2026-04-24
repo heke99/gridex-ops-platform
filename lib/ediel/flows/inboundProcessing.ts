@@ -22,6 +22,7 @@ import { linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
 import { buildContrlDraft, buildAperakDraft, buildUtiltsErrDraft, getAutomaticAckPolicy, getCanonicalAckState } from '@/lib/ediel/ack'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
+import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -282,6 +283,18 @@ export async function pollAndIngestEdielMailbox(params: {
           direction: message.direction,
           standard: message.message_standard,
         },
+      })
+      continue
+    }
+
+    if (
+      message.message_family === 'CONTRL' ||
+      message.message_family === 'APERAK' ||
+      message.message_family === 'UTILTS_ERR'
+    ) {
+      await processInboundAckMessage({
+        actorUserId,
+        message,
       })
       continue
     }

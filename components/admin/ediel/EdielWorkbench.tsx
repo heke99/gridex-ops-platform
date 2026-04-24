@@ -18,6 +18,8 @@ import PrepareSwitchPanels from '@/components/admin/ediel/workbench/PrepareSwitc
 import DispatchPanels from '@/components/admin/ediel/workbench/DispatchPanels'
 import { isActiveEdielMessageFamily } from '@/lib/ediel/types'
 
+type SupportedProdatCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
+
 export default function EdielWorkbench({
   switchRequests,
   outboundRequests,
@@ -50,7 +52,7 @@ export default function EdielWorkbench({
       selectedSwitchId: newestSwitchId,
     })
   )
-  const [prodatCode, setProdatCode] = useState<'Z03' | 'Z05' | 'Z09'>('Z03')
+  const [prodatCode, setProdatCode] = useState<SupportedProdatCode>('Z03')
 
   const [senderEdielId, setSenderEdielId] = useState('')
   const [receiverEdielId, setReceiverEdielId] = useState('')
@@ -216,6 +218,17 @@ export default function EdielWorkbench({
     [scopedMessages, selectedSwitchId]
   )
 
+  const z04LinkedMessage = useMemo(
+    () =>
+      scopedMessages.find(
+        (message) =>
+          message.switch_request_id === selectedSwitchId &&
+          message.direction === 'outbound' &&
+          message.message_code === 'Z04'
+      ) ?? null,
+    [scopedMessages, selectedSwitchId]
+  )
+
   const z05LinkedMessage = useMemo(
     () =>
       scopedMessages.find(
@@ -227,6 +240,17 @@ export default function EdielWorkbench({
     [scopedMessages, selectedSwitchId]
   )
 
+  const z06LinkedMessage = useMemo(
+    () =>
+      scopedMessages.find(
+        (message) =>
+          message.switch_request_id === selectedSwitchId &&
+          message.direction === 'outbound' &&
+          message.message_code === 'Z06'
+      ) ?? null,
+    [scopedMessages, selectedSwitchId]
+  )
+
   const z09LinkedMessage = useMemo(
     () =>
       scopedMessages.find(
@@ -234,6 +258,17 @@ export default function EdielWorkbench({
           message.switch_request_id === selectedSwitchId &&
           message.direction === 'outbound' &&
           message.message_code === 'Z09'
+      ) ?? null,
+    [scopedMessages, selectedSwitchId]
+  )
+
+  const z10LinkedMessage = useMemo(
+    () =>
+      scopedMessages.find(
+        (message) =>
+          message.switch_request_id === selectedSwitchId &&
+          message.direction === 'outbound' &&
+          message.message_code === 'Z10'
       ) ?? null,
     [scopedMessages, selectedSwitchId]
   )
@@ -277,8 +312,11 @@ export default function EdielWorkbench({
         setDispatchMailbox={setDispatchMailbox}
         recommendedRouteText={recommendedRouteText}
         z03LinkedMessageId={z03LinkedMessage?.id ?? null}
+        z04LinkedMessageId={z04LinkedMessage?.id ?? null}
         z05LinkedMessageId={z05LinkedMessage?.id ?? null}
+        z06LinkedMessageId={z06LinkedMessage?.id ?? null}
         z09LinkedMessageId={z09LinkedMessage?.id ?? null}
+        z10LinkedMessageId={z10LinkedMessage?.id ?? null}
       />
 
       <DispatchPanels
