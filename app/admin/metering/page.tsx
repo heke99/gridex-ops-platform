@@ -8,8 +8,9 @@ import {
 } from '@/lib/cis/db'
 import {
   MeteringFilterBar,
-  MeteringRequestsSection,
   MeteringIngestForm,
+  MeteringOperationalSummary,
+  MeteringRequestsSection,
   MeteringValuesTable,
 } from './_components'
 
@@ -47,12 +48,13 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
     <div className="min-h-screen">
       <AdminHeader
         title="Metering"
-        subtitle="Mätvärdesrequests mot nätägare, ingest och översikt över inkomna värden."
+        subtitle="Driftvy för mätvärdesrequests, UTILTS E73-begäran och inkomna E66/E30-värden."
         userEmail={user?.email ?? null}
       />
 
       <div className="space-y-6 p-8">
         <MeteringFilterBar query={query} />
+        <MeteringOperationalSummary requests={requests} values={values} />
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_420px]">
           <MeteringRequestsSection requests={requests} />
