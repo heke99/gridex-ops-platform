@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
 import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
+import EdielFileEnginePanel from '@/components/admin/ediel/EdielFileEnginePanel'
+import EdielTgtWorkbenchPanel from '@/components/admin/ediel/EdielTgtWorkbenchPanel'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getCanonicalAckState } from '@/lib/ediel/ack'
 import {
@@ -421,6 +423,10 @@ export default async function AdminEdielPage() {
           </div>
         </div>
       </section>
+
+      <EdielFileEnginePanel recentMessages={messages} />
+
+      <EdielTgtWorkbenchPanel messages={messages} testRuns={testRuns} />
 
       <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">

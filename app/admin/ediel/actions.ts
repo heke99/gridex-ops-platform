@@ -19,7 +19,11 @@ import {
 } from '@/lib/ediel/orchestrator'
 import type { AckFamily, AckOutcome } from '@/lib/ediel/ack'
 import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
-import { createEdielTestRun, getEdielMessageById } from '@/lib/ediel/db'
+import {
+  attachEdielMessageToTestRun,
+  createEdielTestRun,
+  getEdielMessageById,
+} from '@/lib/ediel/db'
 import { runEdielSelfTest } from '@/lib/ediel/selftest'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
 import {
@@ -41,12 +45,44 @@ import {
   getMeteringPointById,
 } from '@/lib/masterdata/db'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
+import { registerEdielFile, type EdielFileEngineMode } from '@/lib/ediel/fileEngine'
+import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+async function formFileText(value: FormDataEntryValue | null): Promise<{ text: string | null; fileName: string | null }> {
+  if (!value || typeof value === 'string') return { text: null, fileName: null }
+
+  const maybeFile = value as unknown as {
+    arrayBuffer?: () => Promise<ArrayBuffer>
+    name?: string
+    size?: number
+  }
+
+  if (!maybeFile.arrayBuffer || (maybeFile.size ?? 0) <= 0) {
+    return { text: null, fileName: null }
+  }
+
+  const buffer = await maybeFile.arrayBuffer()
+  return {
+    text: new TextDecoder('utf-8').decode(buffer),
+    fileName: typeof maybeFile.name === 'string' ? maybeFile.name : null,
+  }
+}
+
+function parseFileEngineMode(value: FormDataEntryValue | null): EdielFileEngineMode {
+  const raw = formString(value)
+  if (raw === 'internal_test' || raw === 'production_dry_run') return raw
+  return 'tgt'
+}
+
+function parseDirection(value: FormDataEntryValue | null): 'inbound' | 'outbound' {
+  return formString(value) === 'outbound' ? 'outbound' : 'inbound'
 }
 
 function formNumber(value: FormDataEntryValue | null): number | null {
@@ -153,6 +189,88 @@ export async function pollMailboxAction(formData: FormData) {
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
   })
 
+  revalidateEdiel()
+}
+
+export async function registerEdielFileAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(["communication.write", "communication.read"])
+
+  const uploaded = await formFileText(formData.get("edielFile"))
+  const pastedPayload = formString(formData.get("rawPayload"))
+  const rawPayload = uploaded.text ?? pastedPayload
+
+  if (!rawPayload) {
+    throw new Error("Ladda upp en fil eller klistra in EDIFACT/CSV-innehåll.")
+  }
+
+  const message = await registerEdielFile({
+    actorUserId: context.userId,
+    direction: parseDirection(formData.get("direction")),
+    mode: parseFileEngineMode(formData.get("mode")),
+    rawPayload,
+    fileName: uploaded.fileName,
+    mailbox: formString(formData.get("mailbox")) ?? "file-engine",
+    mailboxMessageId: formString(formData.get("mailboxMessageId")),
+    senderEmail: formString(formData.get("senderEmail")),
+    receiverEmail: formString(formData.get("receiverEmail")),
+    subject: formString(formData.get("subject")),
+  })
+
+  await revalidateRelatedMessage(message.id)
+}
+
+export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const testSuite = parseEdielTestSuite(formData.get('testSuite'))
+  const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
+  const testCaseCode = formString(formData.get('testCaseCode')) ?? ''
+  const definition = getEdielTgtTestCaseByCode(testSuite, roleCode, testCaseCode)
+
+  if (!definition) {
+    throw new Error(`Okänt TGT-testfall: ${testSuite}/${roleCode}/${testCaseCode}`)
+  }
+
+  await createEdielTestRun({
+    actorUserId: context.userId,
+    testSuite: definition.suite,
+    roleCode: definition.roleCode,
+    testCaseCode: definition.testCaseCode,
+    title: definition.title,
+    approvalVersion: definition.approvalVersion,
+    notes: [
+      definition.purpose,
+      `Testdata: ${definition.testDataHint}`,
+      ...definition.notes,
+    ].join('\n'),
+    status: 'running',
+    startedAt: new Date().toISOString(),
+  })
+
+  revalidateEdiel()
+}
+
+export async function attachEdielMessageToTestRunAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const testRunId = formString(formData.get('testRunId'))
+  const edielMessageId = formString(formData.get('edielMessageId'))
+  const stepNo = formNumber(formData.get('stepNo'))
+  const expectedDirection = parseDirection(formData.get('expectedDirection'))
+  const expectedFamily = formString(formData.get('expectedFamily'))
+  const expectedCode = formString(formData.get('expectedCode'))
+
+  if (!testRunId) throw new Error('testRunId saknas')
+  if (!edielMessageId) throw new Error('Välj ett Ediel-meddelande att koppla')
+
+  await attachEdielMessageToTestRun({
+    testRunId,
+    edielMessageId,
+    stepNo,
+    expectedDirection,
+    expectedFamily,
+    expectedCode,
+  })
+
+  await revalidateRelatedMessage(edielMessageId)
   revalidateEdiel()
 }
 
