@@ -24,6 +24,7 @@ import {
   createEdielMessage,
   createEdielTestRun,
   getEdielMessageById,
+  updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import { runEdielSelfTest } from '@/lib/ediel/selftest'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
@@ -311,6 +312,30 @@ export async function createEdielTgtDraftAction(formData: FormData) {
   revalidateEdiel(message.id)
 }
 
+
+export async function markEdielTgtRunStatusAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const testRunId = formString(formData.get('testRunId'))
+  const statusRaw = formString(formData.get('status'))
+  const failureReason = formString(formData.get('failureReason'))
+
+  if (!testRunId) throw new Error('testRunId saknas')
+  if (statusRaw !== 'running' && statusRaw !== 'passed' && statusRaw !== 'failed' && statusRaw !== 'cancelled') {
+    throw new Error('Ogiltig TGT-status')
+  }
+
+  await updateEdielTestRunStatus({
+    actorUserId: context.userId,
+    testRunId,
+    status: statusRaw,
+    failureReason,
+    completedAt: statusRaw === 'passed' || statusRaw === 'failed' || statusRaw === 'cancelled'
+      ? new Date().toISOString()
+      : null,
+  })
+
+  revalidateEdiel()
+}
 export async function createAckDraftAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const sourceMessageId = formString(formData.get('sourceMessageId'))

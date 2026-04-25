@@ -585,3 +585,107 @@ export function getFileEngineTestcaseTemplates() {
     focus: testCase.purpose,
   }))
 }
+
+export type EdielTgtNextAction = {
+  kind: 'create_file' | 'import_portal_file' | 'fix_mismatch' | 'complete' | 'not_mapped'
+  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  title: string
+  description: string
+  stepNo: number | null
+  canGenerateDraft: boolean
+}
+
+export type EdielTgtCoverageSummary = {
+  totalRuns: number
+  passedRuns: number
+  failedRuns: number
+  inProgressRuns: number
+  notStartedRuns: number
+  mappedRuns: number
+  totalCoreCases: number
+  coreCasesWithRuns: number
+  coreCasesWithoutRuns: number
+  readyForFinalApproval: boolean
+}
+
+export function getEdielTgtNextAction(evaluation: EdielTgtRunEvaluation): EdielTgtNextAction {
+  if (!evaluation.definition) {
+    return {
+      kind: 'not_mapped',
+      tone: 'red',
+      title: 'Testfallet saknas i registret',
+      description: 'Skapa test run via en mall i workbenchen så att systemet kan guida stegen automatiskt.',
+      stepNo: null,
+      canGenerateDraft: false,
+    }
+  }
+
+  const mismatch = evaluation.matches.find((match) => match.status === 'mismatch')
+  if (mismatch) {
+    return {
+      kind: 'fix_mismatch',
+      tone: 'red',
+      title: `Åtgärda mismatch på steg ${mismatch.step.stepNo}`,
+      description: mismatch.issues.length > 0
+        ? mismatch.issues.join(' · ')
+        : 'Ett meddelande matchar delvis men uppfyller inte förväntad riktning, familj, kod eller outcome.',
+      stepNo: mismatch.step.stepNo,
+      canGenerateDraft: mismatch.step.actor === 'gridex',
+    }
+  }
+
+  const nextMissing = evaluation.matches.find((match) => match.status === 'missing')
+  if (!nextMissing) {
+    return {
+      kind: 'complete',
+      tone: 'green',
+      title: 'Alla obligatoriska steg är klara',
+      description: 'Test run ser komplett ut i Gridex. Kontrollera Edielportalens logg innan du markerar slutgodkännande.',
+      stepNo: null,
+      canGenerateDraft: false,
+    }
+  }
+
+  if (nextMissing.step.actor === 'gridex') {
+    return {
+      kind: 'create_file',
+      tone: 'blue',
+      title: `Skapa fil för steg ${nextMissing.step.stepNo}`,
+      description: `${nextMissing.step.title}. Skapa utkastet, ladda ner/öppna meddelandet och ladda upp filen i Edielportalen enligt testfallet.`,
+      stepNo: nextMissing.step.stepNo,
+      canGenerateDraft: true,
+    }
+  }
+
+  return {
+    kind: 'import_portal_file',
+    tone: 'yellow',
+    title: `Importera portalens fil för steg ${nextMissing.step.stepNo}`,
+    description: `${nextMissing.step.title}. När Edielportalen skickar filen eller kvittensen, importera den i filmotorn och koppla den till detta steg.`,
+    stepNo: nextMissing.step.stepNo,
+    canGenerateDraft: false,
+  }
+}
+
+export function getEdielTgtCoverageSummary(
+  evaluations: readonly EdielTgtRunEvaluation[],
+  definitions: readonly EdielTgtTestCaseDefinition[] = EDIEL_TGT_TEST_CASES
+): EdielTgtCoverageSummary {
+  const coreDefinitions = definitions.filter((definition) => definition.scope === 'core')
+  const coreCaseKeys = new Set(coreDefinitions.map((definition) => `${definition.suite}:${definition.roleCode}:${definition.testCaseCode}`))
+  const runKeys = new Set(evaluations.map((evaluation) => `${evaluation.testRun.test_suite}:${evaluation.testRun.role_code}:${evaluation.testRun.test_case_code}`))
+  const coreCasesWithRuns = [...coreCaseKeys].filter((key) => runKeys.has(key)).length
+
+  return {
+    totalRuns: evaluations.length,
+    passedRuns: evaluations.filter((evaluation) => evaluation.computedStatus === 'passed').length,
+    failedRuns: evaluations.filter((evaluation) => evaluation.computedStatus === 'failed' || evaluation.computedStatus === 'not_mapped').length,
+    inProgressRuns: evaluations.filter((evaluation) => evaluation.computedStatus === 'in_progress').length,
+    notStartedRuns: evaluations.filter((evaluation) => evaluation.computedStatus === 'not_started').length,
+    mappedRuns: evaluations.filter((evaluation) => Boolean(evaluation.definition)).length,
+    totalCoreCases: coreDefinitions.length,
+    coreCasesWithRuns,
+    coreCasesWithoutRuns: Math.max(0, coreDefinitions.length - coreCasesWithRuns),
+    readyForFinalApproval: coreDefinitions.length > 0 && coreCasesWithRuns === coreDefinitions.length && evaluations.length > 0 && evaluations.every((evaluation) => evaluation.computedStatus === 'passed'),
+  }
+}

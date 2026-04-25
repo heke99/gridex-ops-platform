@@ -503,6 +503,14 @@ export type CreateEdielTestRunInput = {
   notes?: string | null
 }
 
+export type UpdateEdielTestRunStatusInput = {
+  actorUserId: string
+  testRunId: string
+  status: EdielTestRunStatus
+  failureReason?: string | null
+  completedAt?: string | null
+}
+
 export type AttachEdielMessageToTestRunInput = {
   testRunId: string
   edielMessageId: string

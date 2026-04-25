@@ -6,9 +6,12 @@ import {
   attachEdielMessageToTestRunAction,
   createEdielTgtRunFromTemplateAction,
   createEdielTgtDraftAction,
+  markEdielTgtRunStatusAction,
 } from '@/app/admin/ediel/actions'
 import {
   evaluateEdielTgtRun,
+  getEdielTgtCoverageSummary,
+  getEdielTgtNextAction,
   getEdielTgtTestCases,
   type EdielTgtRunEvaluation,
   type EdielTgtTestCaseDefinition,
@@ -155,6 +158,118 @@ function TestDataSummary({ data }: { data: EdielTgtCaseTestData | null }) {
         {data.groups.map((group) => (
           <TestDataGroupTable key={`${group.block.sourceSheet}-${group.block.entityLabel}`} group={group} />
         ))}
+      </div>
+    </div>
+  )
+}
+
+function CoverageDashboard({ evaluations, definitions }: { evaluations: EdielTgtRunEvaluation[]; definitions: EdielTgtTestCaseDefinition[] }) {
+  const summary = getEdielTgtCoverageSummary(evaluations, definitions)
+  const cells: Array<[string, string, 'slate' | 'green' | 'yellow' | 'red' | 'blue']> = [
+    ['Körningar', String(summary.totalRuns), 'slate' as const],
+    ['Godkända', String(summary.passedRuns), 'green' as const],
+    ['Fel/mismatch', String(summary.failedRuns), summary.failedRuns > 0 ? 'red' as const : 'slate' as const],
+    ['Pågår', String(summary.inProgressRuns), 'yellow' as const],
+    ['Core-mallar körda', `${summary.coreCasesWithRuns}/${summary.totalCoreCases}`, summary.coreCasesWithoutRuns === 0 ? 'green' as const : 'yellow' as const],
+  ]
+
+  return (
+    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-950">TGT coverage och Batch 5 driftläge</h3>
+          <p className="mt-1 text-xs text-slate-600">
+            Detta är kontrollpanelen för att se om filmotorn är redo för slutgodkännande och praktisk drift. Den ersätter inte Edielportalens facit, men visar vad Gridex själv har verifierat.
+          </p>
+        </div>
+        <Badge tone={summary.readyForFinalApproval ? 'green' : 'yellow'}>
+          {summary.readyForFinalApproval ? 'redo för portal-kontroll' : 'inte komplett ännu'}
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {cells.map(([label, value, tone]) => (
+          <div key={label} className="rounded-xl border border-slate-200 bg-white p-3">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</div>
+            <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950">
+              {value}
+              <Badge tone={tone}>{tone}</Badge>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Batch5RunbookPanel() {
+  return (
+    <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
+      <div className="font-semibold">Batch 5 driftregler för filbaserad motor</div>
+      <div className="mt-2 grid gap-2 md:grid-cols-2">
+        <div className="rounded-xl bg-white/70 p-3">
+          <div className="font-medium">När Gridex skapar en fil</div>
+          <p className="mt-1 text-xs text-blue-900">Skapa utkast, kontrollera validatorn, öppna meddelandesidan, exportera/klistra filen i Edielportalen och markera test run när portalen har svarat.</p>
+        </div>
+        <div className="rounded-xl bg-white/70 p-3">
+          <div className="font-medium">När Edielportalen svarar</div>
+          <p className="mt-1 text-xs text-blue-900">Importera svaret i filmotorn, koppla det mot rätt TGT-steg och följ nästa instruktion i guided mode.</p>
+        </div>
+        <div className="rounded-xl bg-white/70 p-3">
+          <div className="font-medium">Vid negativ kvittens</div>
+          <p className="mt-1 text-xs text-blue-900">Stoppa flödet, öppna meddelandet, läs ERC/FTX eller CONTRL-status och skapa inte nytt svar på samma transaktion innan felet är förstått.</p>
+        </div>
+        <div className="rounded-xl bg-white/70 p-3">
+          <div className="font-medium">Vid slutgodkännande</div>
+          <p className="mt-1 text-xs text-blue-900">Kör bara ett slutgodkännande-test åt gången och kontrollera både Gridex workbench och Edielportalens testlogg innan du markerar run som godkänd.</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluation }) {
+  const nextAction = getEdielTgtNextAction(evaluation)
+  const tone = nextAction.tone
+
+  return (
+    <div className={`mt-4 rounded-2xl border p-4 ${tone === 'green' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'red' ? 'border-rose-200 bg-rose-50 text-rose-950' : tone === 'blue' ? 'border-blue-200 bg-blue-50 text-blue-950' : tone === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-slate-200 bg-slate-50 text-slate-950'}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide">Nästa steg</div>
+          <div className="mt-1 text-sm font-semibold">{nextAction.title}</div>
+          <p className="mt-1 text-xs">{nextAction.description}</p>
+        </div>
+        <Badge tone={tone}>{nextAction.kind}</Badge>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {evaluation.definition && nextAction.canGenerateDraft && nextAction.stepNo ? (
+          <form action={createEdielTgtDraftAction}>
+            <input type="hidden" name="testSuite" value={evaluation.definition.suite} />
+            <input type="hidden" name="roleCode" value={evaluation.definition.roleCode} />
+            <input type="hidden" name="testCaseCode" value={evaluation.definition.testCaseCode} />
+            <input type="hidden" name="stepNo" value={nextAction.stepNo} />
+            <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
+            <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+              Skapa fil för steg {nextAction.stepNo}
+            </button>
+          </form>
+        ) : null}
+
+        <form action={markEdielTgtRunStatusAction} className="flex flex-wrap gap-2">
+          <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
+          <select name="status" className="rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-700">
+            <option value="running">Markera som pågående</option>
+            <option value="passed">Markera som godkänd i Gridex</option>
+            <option value="failed">Markera som felad</option>
+            <option value="cancelled">Avbryt run</option>
+          </select>
+          <input name="failureReason" placeholder="Kommentar vid fel/avbrott" className="min-w-[180px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-700" />
+          <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+            Uppdatera status
+          </button>
+        </form>
       </div>
     </div>
   )
@@ -316,6 +431,8 @@ function RunEvaluationCard({
         </div>
       </div>
 
+      <GuidedNextActionPanel evaluation={evaluation} />
+
       {testData ? (
         <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
           <div className="font-semibold">{testData.title}</div>
@@ -405,9 +522,9 @@ export default function EdielTgtWorkbenchPanel({
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">Batch 4D · TGT filutkast och verifieringsflöde</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Batch 4E–5 · TGT guided mode, generator och driftkontroll</h2>
           <p className="mt-1 max-w-4xl text-sm text-slate-600">
-            Workbenchen visar TGT-steg, importerad testdata och knappar för att skapa användarvänliga EDIFACT-filutkast. Använd detta som arbetsyta innan du laddar upp filer mot Edielportalen.
+            Workbenchen visar nästa steg, testdata, EDIFACT-utkast, portalimport och driftstatus. Använd den som säkert arbetsflöde för filbaserad TGT innan SMTP/ECP byggs.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -419,9 +536,13 @@ export default function EdielTgtWorkbenchPanel({
         </div>
       </div>
 
+      
       <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Kör bara ett slutgodkännande-test åt gången mot Edielportalen. Batch 4C visar importerad testdata, men portalens koppling av inkommande filer kan fortfarande bli fel om flera testfall väntar på samma meddelandetyp samtidigt.
+        Kör bara ett slutgodkännande-test åt gången mot Edielportalen. Om portalen väntar på flera filer av samma typ kan den koppla inkommande fil till fel testfall.
       </div>
+
+      <CoverageDashboard evaluations={evaluations} definitions={coreDefinitions} />
+      <Batch5RunbookPanel />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
         <div>

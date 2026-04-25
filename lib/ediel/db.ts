@@ -15,6 +15,7 @@ import type {
   EdielTestRunRow,
   LinkEdielMessageInput,
   UpdateEdielMessageStatusInput,
+  UpdateEdielTestRunStatusInput,
 } from '@/lib/ediel/types'
 
 export type DuplicateAckCandidateRow = {
@@ -787,6 +788,28 @@ export async function listEdielTestRuns(): Promise<EdielTestRunRow[]> {
 
   if (error) throw error
   return (data ?? []) as EdielTestRunRow[]
+}
+
+export async function updateEdielTestRunStatus(
+  input: UpdateEdielTestRunStatusInput
+): Promise<EdielTestRunRow> {
+  const payload = cleanObject({
+    status: input.status,
+    failure_reason: input.failureReason ?? null,
+    completed_at: input.completedAt ?? (input.status === 'passed' || input.status === 'failed' || input.status === 'cancelled' ? new Date().toISOString() : null),
+    updated_by: input.actorUserId,
+    updated_at: new Date().toISOString(),
+  })
+
+  const { data, error } = await supabaseService
+    .from('ediel_test_runs')
+    .update(payload)
+    .eq('id', input.testRunId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as EdielTestRunRow
 }
 
 export async function attachEdielMessageToTestRun(
