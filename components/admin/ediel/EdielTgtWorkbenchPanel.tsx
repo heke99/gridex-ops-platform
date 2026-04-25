@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import {
   attachEdielMessageToTestRunAction,
   createEdielTgtRunFromTemplateAction,
+  createEdielTgtDraftAction,
 } from '@/app/admin/ediel/actions'
 import {
   evaluateEdielTgtRun,
@@ -12,6 +13,12 @@ import {
   type EdielTgtRunEvaluation,
   type EdielTgtTestCaseDefinition,
 } from '@/lib/ediel/tgtRegistry'
+import {
+  getEdielTgtTestDataForCase,
+  type EdielTgtCaseTestData,
+  type EdielTgtCaseTestDataGroup,
+} from '@/lib/ediel/tgtTestData'
+import { getEdielTgtDraftOptionsForCase } from '@/lib/ediel/tgtEdifact'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 
 function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo' }) {
@@ -56,7 +63,163 @@ function getRecentMessageOptions(messages: EdielMessageRow[]) {
     .slice(0, 80)
 }
 
+function selectedValuesForGroup(group: EdielTgtCaseTestDataGroup, values: Record<string, string>) {
+  return group.columns
+    .map((column) => ({ column, value: values[column.name] }))
+    .filter((entry) => entry.value && entry.value.trim().length > 0)
+}
+
+function TestDataGroupTable({ group }: { group: EdielTgtCaseTestDataGroup }) {
+  const visibleFields = group.fields.slice(0, 16)
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <div className="text-xs font-semibold text-slate-950">{group.block.entityLabel}</div>
+          <div className="mt-1 text-[11px] text-slate-500">
+            {group.block.sourceSheet} · {group.block.sourceWorkbook}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {group.columns.map((column) => (
+            <Badge key={`${group.block.entityLabel}-${column.name}`}>{column.name}</Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3 overflow-x-auto">
+        <table className="min-w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-500">
+              <th className="whitespace-nowrap px-2 py-2 font-semibold">Fält</th>
+              <th className="min-w-[180px] px-2 py-2 font-semibold">Namn</th>
+              <th className="min-w-[260px] px-2 py-2 font-semibold">Testdata</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleFields.map((field) => {
+              const entries = selectedValuesForGroup(group, field.values)
+              return (
+                <tr key={`${group.block.entityLabel}-${field.fieldCode}-${field.fieldName}`} className="border-b border-slate-100 align-top last:border-0">
+                  <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-800">{field.fieldCode}</td>
+                  <td className="px-2 py-2 text-slate-700">{field.fieldName}</td>
+                  <td className="px-2 py-2 text-slate-600">
+                    <div className="space-y-1">
+                      {entries.length === 0 ? (
+                        <span>—</span>
+                      ) : (
+                        entries.map((entry) => (
+                          <div key={`${field.fieldCode}-${entry.column.name}`}>
+                            <span className="font-medium text-slate-800">{entry.column.name}:</span> {entry.value}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {group.fields.length > visibleFields.length ? (
+        <div className="mt-2 text-[11px] text-slate-500">
+          Visar {visibleFields.length} prioriterade fält av {group.fields.length}. Fullständig raddata finns i importregistret.
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function TestDataSummary({ data }: { data: EdielTgtCaseTestData | null }) {
+  if (!data || data.groups.length === 0) {
+    return (
+      <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500">
+        Ingen importerad Excel-testdata är kopplad till detta testfall ännu.
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <div className="text-xs font-semibold text-indigo-950">{data.title}</div>
+          <div className="mt-1 text-xs text-indigo-800">{data.sourceNote}</div>
+        </div>
+        <Badge tone="indigo">Excel-import</Badge>
+      </div>
+      <div className="mt-3 space-y-3">
+        {data.groups.map((group) => (
+          <TestDataGroupTable key={`${group.block.sourceSheet}-${group.block.entityLabel}`} group={group} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DraftOptionPanel({
+  testCase,
+  testRunId,
+  compact = false,
+}: {
+  testCase: EdielTgtTestCaseDefinition
+  testRunId?: string | null
+  compact?: boolean
+}) {
+  const options = getEdielTgtDraftOptionsForCase(
+    testCase.suite,
+    testCase.roleCode,
+    testCase.testCaseCode
+  )
+  const generatable = options.filter((option) => option.canGenerate)
+
+  if (generatable.length === 0) {
+    return compact ? null : (
+      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+        Det finns inga Gridex-steg att generera för detta testfall. Importera filerna från Edielportalen i stället.
+      </div>
+    )
+  }
+
+  return (
+    <div className={compact ? 'mt-2 flex flex-wrap gap-2' : 'mt-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-3'}>
+      {!compact ? (
+        <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <div className="text-xs font-semibold text-emerald-950">Skapa TGT-filutkast</div>
+            <div className="mt-1 text-xs text-emerald-800">
+              Systemet skapar ett filutkast med Gridex Ediel-ID 21660, Edielportalen 91100 och rätt TGT-standardvärden. Edielportalen är fortfarande slutligt facit.
+            </div>
+          </div>
+          <Badge tone="green">Batch 4D</Badge>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        {generatable.map((option) => (
+          <form key={`${testCase.testCaseCode}-${option.stepNo}`} action={createEdielTgtDraftAction}>
+            <input type="hidden" name="testSuite" value={testCase.suite} />
+            <input type="hidden" name="roleCode" value={testCase.roleCode} />
+            <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+            <input type="hidden" name="stepNo" value={option.stepNo} />
+            {testRunId ? <input type="hidden" name="testRunId" value={testRunId} /> : null}
+            <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+              Skapa steg {option.stepNo}: {option.family}/{option.code}
+              {option.outcome ? ` ${option.outcome}` : ''}
+            </button>
+          </form>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function TestCaseCard({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
+  const testData = getEdielTgtTestDataForCase(testCase.suite, testCase.roleCode, testCase.testCaseCode)
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -66,6 +229,7 @@ function TestCaseCard({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
             <Badge tone="blue">{testCase.testCaseCode}</Badge>
             <Badge>{testCase.roleCode}</Badge>
             <Badge tone={definitionTone(testCase.status)}>{testCase.status}</Badge>
+            {testData ? <Badge tone="green">testdata kopplad</Badge> : <Badge tone="yellow">utan testdata</Badge>}
           </div>
           <h3 className="mt-3 text-sm font-semibold text-slate-950">{testCase.title}</h3>
           <p className="mt-1 text-sm text-slate-600">{testCase.purpose}</p>
@@ -84,6 +248,10 @@ function TestCaseCard({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
         <div><span className="font-semibold text-slate-800">Testdata:</span> {testCase.testDataHint}</div>
         <div className="mt-1"><span className="font-semibold text-slate-800">Version:</span> {testCase.approvalVersion}</div>
       </div>
+
+      <TestDataSummary data={testData} />
+
+      <DraftOptionPanel testCase={testCase} />
 
       <div className="mt-3 space-y-2">
         {testCase.expectedSteps.map((step) => (
@@ -117,6 +285,13 @@ function RunEvaluationCard({
   messages: EdielMessageRow[]
 }) {
   const options = getRecentMessageOptions(messages)
+  const testData = evaluation.definition
+    ? getEdielTgtTestDataForCase(
+        evaluation.definition.suite,
+        evaluation.definition.roleCode,
+        evaluation.definition.testCaseCode
+      )
+    : null
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -127,6 +302,7 @@ function RunEvaluationCard({
             <Badge tone="blue">{evaluation.testRun.test_case_code}</Badge>
             <Badge>{evaluation.testRun.role_code}</Badge>
             <Badge tone={statusTone(evaluation.computedStatus)}>{evaluation.computedStatus}</Badge>
+            {testData ? <Badge tone="green">testdata</Badge> : null}
           </div>
           <h3 className="mt-3 text-sm font-semibold text-slate-950">
             {evaluation.definition?.title ?? evaluation.testRun.title ?? 'Ej mappat testfall'}
@@ -139,6 +315,13 @@ function RunEvaluationCard({
           {evaluation.passedSteps}/{evaluation.requiredSteps} obligatoriska steg klara
         </div>
       </div>
+
+      {testData ? (
+        <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
+          <div className="font-semibold">{testData.title}</div>
+          <div className="mt-1">{testData.sourceNote}</div>
+        </div>
+      ) : null}
 
       {evaluation.definition ? (
         <div className="mt-4 space-y-2">
@@ -194,7 +377,7 @@ function RunEvaluationCard({
         </div>
       ) : (
         <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-          Testfallet finns inte i Batch 4B-registret ännu. Skapa det via en av mallarna ovan för automatisk stegutvärdering.
+          Testfallet finns inte i Batch 4C-registret ännu. Skapa det via en av mallarna ovan för automatisk stegutvärdering.
         </div>
       )}
     </div>
@@ -214,27 +397,30 @@ export default function EdielTgtWorkbenchPanel({
     .filter((run) => run.test_suite === 'PRODAT' || run.test_suite === 'UTILTS')
     .slice(0, 10)
     .map((run) => evaluateEdielTgtRun(run, messages))
+  const linkedTestDataCount = coreDefinitions.filter((definition) =>
+    Boolean(getEdielTgtTestDataForCase(definition.suite, definition.roleCode, definition.testCaseCode))
+  ).length
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">Batch 4B · TGT testfall och verifieringsflöde</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Batch 4D · TGT filutkast och verifieringsflöde</h2>
           <p className="mt-1 max-w-4xl text-sm text-slate-600">
-            Här styr vi filmotorn mot Edielportalens TGT-flöden. Börja med ett test run, importera/skapa filer i Batch 4-panelen,
-            och följ sedan pass/fail per förväntat steg.
+            Workbenchen visar TGT-steg, importerad testdata och knappar för att skapa användarvänliga EDIFACT-filutkast. Använd detta som arbetsyta innan du laddar upp filer mot Edielportalen.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge tone="green">PRODAT core</Badge>
-          <Badge tone="green">UTILTS E66 core</Badge>
+          <Badge tone="green">PRODAT testkunder</Badge>
+          <Badge tone="green">UTILTS testanläggningar</Badge>
+          <Badge tone="green">EDIFACT-utkast</Badge>
+          <Badge tone="blue">{linkedTestDataCount}/{coreDefinitions.length} mallar med testdata</Badge>
           <Badge tone="blue">filbaserat</Badge>
         </div>
       </div>
 
       <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Kör bara ett slutgodkännande-test åt gången mot Edielportalen. Filbaserade interna torrkörningar kan du göra flera av,
-        men portalens koppling av inkommande filer kan bli fel om flera testfall väntar på samma meddelandetyp samtidigt.
+        Kör bara ett slutgodkännande-test åt gången mot Edielportalen. Batch 4C visar importerad testdata, men portalens koppling av inkommande filer kan fortfarande bli fel om flera testfall väntar på samma meddelandetyp samtidigt.
       </div>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">

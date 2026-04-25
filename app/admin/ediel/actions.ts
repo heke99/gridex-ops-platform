@@ -21,6 +21,7 @@ import type { AckFamily, AckOutcome } from '@/lib/ediel/ack'
 import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
 import {
   attachEdielMessageToTestRun,
+  createEdielMessage,
   createEdielTestRun,
   getEdielMessageById,
 } from '@/lib/ediel/db'
@@ -47,6 +48,7 @@ import {
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { registerEdielFile, type EdielFileEngineMode } from '@/lib/ediel/fileEngine'
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
+import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
 function formString(value: FormDataEntryValue | null): string | null {
@@ -272,6 +274,41 @@ export async function attachEdielMessageToTestRunAction(formData: FormData) {
 
   await revalidateRelatedMessage(edielMessageId)
   revalidateEdiel()
+}
+
+export async function createEdielTgtDraftAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const testSuite = parseEdielTestSuite(formData.get('testSuite'))
+  const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
+  const testCaseCode = formString(formData.get('testCaseCode')) ?? ''
+  const stepNo = formNumber(formData.get('stepNo'))
+  const testRunId = formString(formData.get('testRunId'))
+
+  if (!stepNo) throw new Error('Välj vilket TGT-steg som ska genereras')
+
+  const draft = buildEdielTgtDraft({
+    actorUserId: context.userId,
+    testSuite,
+    roleCode,
+    testCaseCode,
+    stepNo,
+  })
+
+  const message = await createEdielMessage(draft.messageInput)
+
+  if (testRunId) {
+    await attachEdielMessageToTestRun({
+      testRunId,
+      edielMessageId: message.id,
+      stepNo: draft.step.stepNo,
+      expectedDirection: draft.step.direction,
+      expectedFamily: draft.step.family,
+      expectedCode: draft.step.code,
+    })
+  }
+
+  await revalidateRelatedMessage(message.id)
+  revalidateEdiel(message.id)
 }
 
 export async function createAckDraftAction(formData: FormData) {
