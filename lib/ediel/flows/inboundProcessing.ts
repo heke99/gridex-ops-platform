@@ -240,6 +240,86 @@ async function processInboundProdatMessage(params: {
   })
 }
 
+export async function processInboundEdielMessage(params: {
+  actorUserId: string
+  edielMessageId: string
+}) {
+  const actorUserId = ensureActorUserId(params.actorUserId)
+  const message = await getEdielMessageById(params.edielMessageId)
+
+  if (!message) throw new Error('Ediel-meddelandet hittades inte')
+
+  if (!isActiveEdielMessageFamily(message.message_family)) {
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Batch 6 hoppade över meddelandet eftersom familjen ligger utanför aktiv release.',
+      payload: {
+        messageFamily: message.message_family,
+        activeFamilies: ACTIVE_EDIEL_MESSAGE_FAMILIES,
+      },
+    })
+    return message
+  }
+
+  if (!shouldProcessInboundMessage(message)) {
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Batch 6 hoppade över meddelandet eftersom det inte är inbound EDIFACT i aktivt flöde.',
+      payload: {
+        direction: message.direction,
+        standard: message.message_standard,
+      },
+    })
+    return message
+  }
+
+  if (
+    message.message_family === 'CONTRL' ||
+    message.message_family === 'APERAK' ||
+    message.message_family === 'UTILTS_ERR'
+  ) {
+    await processInboundAckMessage({ actorUserId, message })
+    return message
+  }
+
+  if (message.message_family === 'PRODAT') {
+    await processInboundProdatMessage({ actorUserId, message })
+    return message
+  }
+
+  if (message.message_family === 'UTILTS') {
+    await processInboundUtiltsMessage({ actorUserId, edielMessageId: message.id })
+    return message
+  }
+
+  const ackIds = await createAutomaticPositiveAcks({
+    actorUserId,
+    sourceMessage: message,
+  })
+  const ackSnapshot = await readCanonicalAckSnapshot(message.id)
+
+  await createEdielMessageEvent({
+    actorUserId,
+    edielMessageId: message.id,
+    eventType: 'validated',
+    eventStatus: 'warning',
+    message: 'Inbound meddelande kvitterades automatiskt men saknar ännu stark processkoppling.',
+    payload: {
+      createdAckMessageIds: ackIds,
+      canonicalAckState: ackSnapshot.canonicalAckState,
+      ackMessages: ackSnapshot.ackMessages,
+    },
+  })
+
+  return message
+}
+
 export async function pollAndIngestEdielMailbox(params: {
   actorUserId: string
   mailbox?: string | null

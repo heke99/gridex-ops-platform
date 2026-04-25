@@ -5,6 +5,7 @@ import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
 import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
 import EdielFileEnginePanel from '@/components/admin/ediel/EdielFileEnginePanel'
 import EdielTgtWorkbenchPanel from '@/components/admin/ediel/EdielTgtWorkbenchPanel'
+import EdielOperationalBridgePanel from '@/components/admin/ediel/EdielOperationalBridgePanel'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getCanonicalAckState } from '@/lib/ediel/ack'
 import {
@@ -359,6 +360,11 @@ export default async function AdminEdielPage() {
             sender_sub_address: profile.sender_sub_address,
             receiver_sub_address: profile.receiver_sub_address,
             application_reference: profile.application_reference,
+            smtp_host: profile.smtp_host,
+            smtp_port: profile.smtp_port,
+            imap_host: profile.imap_host,
+            imap_port: profile.imap_port,
+            encryption_mode: profile.encryption_mode,
           }
         : null,
     }
@@ -427,6 +433,14 @@ export default async function AdminEdielPage() {
       <EdielFileEnginePanel recentMessages={messages} />
 
       <EdielTgtWorkbenchPanel messages={messages} testRuns={testRuns} />
+
+      <EdielOperationalBridgePanel
+        messages={messages}
+        switchRequests={switchRequests}
+        dataRequests={dataRequests}
+        outboundRequests={outboundRequests}
+        routes={workbenchRoutes}
+      />
 
       <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
