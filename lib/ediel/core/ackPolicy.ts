@@ -201,6 +201,10 @@ export async function getAutomaticAckPolicy(
 }
 
 function inferAckOutcomeFromRow(row: EdielMessageRow): AckOutcome | null {
+  if (row.ack_outcome === 'positive' || row.ack_outcome === 'negative') {
+    return row.ack_outcome
+  }
+
   const payload = row.parsed_payload ?? {}
   const payloadOutcome =
     payload.ackOutcome === 'positive' || payload.ackOutcome === 'negative'

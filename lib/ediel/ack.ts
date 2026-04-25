@@ -266,8 +266,8 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'D96A'
         : params.ackFamily === 'APERAK'
-          ? 'D96A'
-          : 'D01B',
+           ? 'E2SE3B'
+          : 'E5SE5A',
     processType: 'ack',
     environment: params.sourceMessage.environment,
     testFlag: params.sourceMessage.test_flag,
@@ -321,6 +321,7 @@ function buildAckDraft(params: {
     contrlStatus: ackStatuses.contrlStatus,
     aperakStatus: ackStatuses.aperakStatus,
     utiltsErrStatus: ackStatuses.utiltsErrStatus,
+    ackOutcome: outcome,
     syntaxCheckStatus:
       params.ackFamily === 'CONTRL'
         ? outcome === 'positive'

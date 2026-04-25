@@ -110,6 +110,10 @@ function mapStatusToEventStatus(status: string): 'info' | 'success' | 'warning' 
 }
 
 function inferAckOutcome(row: EdielMessageRow): 'positive' | 'negative' | null {
+  if (row.ack_outcome === 'positive' || row.ack_outcome === 'negative') {
+    return row.ack_outcome
+  }
+
   const parsedPayload = row.parsed_payload ?? {}
   const payloadOutcome =
     parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
@@ -324,6 +328,7 @@ export async function createEdielMessage(
     contrl_status: input.contrlStatus ?? null,
     aperak_status: input.aperakStatus ?? null,
     utilts_err_status: input.utiltsErrStatus ?? null,
+    ack_outcome: input.ackOutcome ?? null,
     syntax_check_status: input.syntaxCheckStatus ?? null,
     functional_check_status: input.functionalCheckStatus ?? null,
     failure_reason: input.failureReason ?? null,
@@ -394,6 +399,10 @@ export async function listAckMessagesForSource(params: {
 
   if (params.ackFamily) {
     query = query.eq('message_family', params.ackFamily)
+  }
+
+  if (params.outcome) {
+    query = query.eq('ack_outcome', params.outcome)
   }
 
   const { data, error } = await query.order('created_at', { ascending: false })

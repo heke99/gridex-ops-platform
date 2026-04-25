@@ -529,7 +529,7 @@ export default async function AdminEdielMessageDetailPage({
                     </div>
                     <div className="mt-2 space-y-1 text-sm text-slate-700">
                       <div>ID: {ack.id}</div>
-                      <div>Outcome: {String(ack.parsed_payload?.ackOutcome ?? '—')}</div>
+                      <div>Outcome: {ack.ack_outcome ?? String(ack.parsed_payload?.ackOutcome ?? '—')}</div>
                       <div>Syntax: {ack.syntax_check_status ?? '—'}</div>
                       <div>Functional: {ack.functional_check_status ?? '—'}</div>
                       <div>Created: {formatDate(ack.created_at)}</div>

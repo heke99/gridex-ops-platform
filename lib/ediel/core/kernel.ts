@@ -287,9 +287,11 @@ export async function createCanonicalAckMessage(params: {
     const attemptedOutcome = params.outcome ?? null
     const parsedPayload = duplicate.parsed_payload ?? {}
     const existingOutcome =
-      parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
-        ? parsedPayload.ackOutcome
-        : null
+      duplicate.ack_outcome === 'positive' || duplicate.ack_outcome === 'negative'
+        ? duplicate.ack_outcome
+        : parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
+          ? parsedPayload.ackOutcome
+          : null
 
     await createCanonicalAckConflictEvent({
       actorUserId,
@@ -330,6 +332,7 @@ export async function createCanonicalAckMessage(params: {
     originalTransactionId: refs.originalTransactionId,
     originalMessageCode: refs.originalMessageCode,
     relatedMessageId: params.sourceMessage.id,
+    ackOutcome: params.outcome ?? params.draft.ackOutcome ?? null,
   })
 }
 

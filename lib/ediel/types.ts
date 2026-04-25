@@ -46,6 +46,8 @@ export type EdielAckStatus =
   | 'received'
   | 'failed'
 
+export type EdielAckOutcome = 'positive' | 'negative'
+
 export type EdielMessageCode =
   | 'Z01'
   | 'Z02'
@@ -210,6 +212,7 @@ export type EdielMessageRow = {
   contrl_status: EdielAckStatus | null
   aperak_status: EdielAckStatus | null
   utilts_err_status: EdielAckStatus | null
+  ack_outcome: EdielAckOutcome | null
   syntax_check_status: string | null
   functional_check_status: string | null
   failure_reason: string | null
@@ -458,6 +461,7 @@ export type CreateEdielMessageInput = {
   contrlStatus?: EdielAckStatus | null
   aperakStatus?: EdielAckStatus | null
   utiltsErrStatus?: EdielAckStatus | null
+  ackOutcome?: EdielAckOutcome | null
   syntaxCheckStatus?: string | null
   functionalCheckStatus?: string | null
   failureReason?: string | null
