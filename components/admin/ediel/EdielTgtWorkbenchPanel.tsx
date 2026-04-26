@@ -7,8 +7,10 @@ import {
   archiveOlderEdielTgtRunsForCaseAction,
   attachEdielMessageToTestRunAction,
   createEdielTgtDraftAction,
+  createMockPortalMessageForNextTgtStepAction,
   createEdielTgtRunFromTemplateAction,
   markEdielTgtRunStatusAction,
+  runEdielTgtAutopilotAction,
 } from '@/app/admin/ediel/actions'
 import {
   evaluateEdielTgtRun,
@@ -284,6 +286,7 @@ function RunArchiveControls({ evaluation }: { evaluation: EdielTgtRunEvaluation 
 function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluation }) {
   const nextAction = getEdielTgtNextAction(evaluation)
   const tone = nextAction.tone
+  const isWaitingForPortal = nextAction.kind === 'import_portal_file'
 
   return (
     <div className={`mt-4 rounded-2xl border p-4 ${tone === 'green' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'red' ? 'border-rose-200 bg-rose-50 text-rose-950' : tone === 'blue' ? 'border-blue-200 bg-blue-50 text-blue-950' : tone === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-slate-200 bg-slate-50 text-slate-950'}`}>
@@ -292,11 +295,23 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
           <div className="text-xs font-semibold uppercase tracking-wide">Nästa steg</div>
           <div className="mt-1 text-sm font-semibold">{nextAction.title}</div>
           <p className="mt-1 text-xs">{nextAction.description}</p>
+          {isWaitingForPortal ? (
+            <p className="mt-2 rounded-xl border border-amber-200 bg-white/70 px-3 py-2 text-xs text-amber-900">
+              Detta steg ägs av Edielportalen. Autopilot kan inte hämta riktig portalfil i filbaserat läge. Importera portalens CONTRL/APERAK/PRODAT-svar, eller skapa ett simulerat portalsvar för intern testkedja.
+            </p>
+          ) : null}
         </div>
         <Badge tone={tone}>{nextAction.kind}</Badge>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
+        <form action={runEdielTgtAutopilotAction}>
+          <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
+          <button className="rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100">
+            Kör autopilot för nästa steg
+          </button>
+        </form>
+
         {evaluation.definition && nextAction.canGenerateDraft && nextAction.stepNo ? (
           <form action={createEdielTgtDraftAction}>
             <input type="hidden" name="testSuite" value={evaluation.definition.suite} />
@@ -310,15 +325,24 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
           </form>
         ) : null}
 
+        {isWaitingForPortal ? (
+          <form action={createMockPortalMessageForNextTgtStepAction}>
+            <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
+            <button className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50">
+              Skapa simulerat portalsvar endast för intern test
+            </button>
+          </form>
+        ) : null}
+
         <form action={markEdielTgtRunStatusAction} className="flex flex-wrap gap-2">
           <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
-          <select name="status" className="rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-700">
+          <select name="status" className="rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950">
             <option value="running">Markera som pågående</option>
             <option value="passed">Markera som godkänd i Gridex</option>
             <option value="failed">Markera som felad</option>
             <option value="cancelled">Arkivera/avbryt run</option>
           </select>
-          <input name="failureReason" placeholder="Kommentar vid fel/arkivering" className="min-w-[180px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-700" />
+          <input name="failureReason" placeholder="Kommentar vid fel/arkivering" className="min-w-[180px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950 placeholder:text-slate-400" />
           <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
             Uppdatera status
           </button>
@@ -327,7 +351,6 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
     </div>
   )
 }
-
 function DraftOptionPanel({
   testCase,
   testRunId,
@@ -557,7 +580,7 @@ function RunEvaluationCard({
                   <input type="hidden" name="expectedDirection" value={match.step.direction} />
                   <input type="hidden" name="expectedFamily" value={match.step.family} />
                   <input type="hidden" name="expectedCode" value={match.step.code} />
-                  <select name="edielMessageId" className="max-w-[260px] rounded-xl border border-slate-300 px-2 py-2 text-xs">
+                  <select name="edielMessageId" className="max-w-[260px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950">
                     <option value="">Koppla meddelande manuellt…</option>
                     {options.map((message) => (
                       <option key={message.id} value={message.id}>

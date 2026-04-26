@@ -830,9 +830,42 @@ export async function attachEdielMessageToTestRun(
     .select('*')
     .single()
 
-  if (error) throw error
-  return data as EdielTestRunMessageRow
+  if (!error) return data as EdielTestRunMessageRow
+
+  // Idempotent TGT-koppling: samma steg/meddelande ska inte krascha UI med 23505.
+  if (error.code === '23505') {
+    let exactQuery = supabaseService
+      .from('ediel_test_run_messages')
+      .select('*')
+      .eq('test_run_id', input.testRunId)
+      .eq('ediel_message_id', input.edielMessageId)
+
+    if (input.stepNo !== undefined && input.stepNo !== null) {
+      exactQuery = exactQuery.eq('step_no', input.stepNo)
+    }
+
+    const exact = await exactQuery.order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (exact.error) throw exact.error
+    if (exact.data) return exact.data as EdielTestRunMessageRow
+
+    if (input.stepNo !== undefined && input.stepNo !== null) {
+      const byStep = await supabaseService
+        .from('ediel_test_run_messages')
+        .select('*')
+        .eq('test_run_id', input.testRunId)
+        .eq('step_no', input.stepNo)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (byStep.error) throw byStep.error
+      if (byStep.data) return byStep.data as EdielTestRunMessageRow
+    }
+  }
+
+  throw error
 }
+
 
 export async function getEdielRouteProfileByCommunicationRouteId(
   communicationRouteId: string

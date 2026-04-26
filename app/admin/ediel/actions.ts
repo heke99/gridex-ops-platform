@@ -52,6 +52,11 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 import { registerEdielFile, type EdielFileEngineMode } from '@/lib/ediel/fileEngine'
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
+import {
+  autoAttachImportedMessageToActiveTgtRun,
+  createMockPortalMessageForNextStep,
+  runTgtAutopilotForRun,
+} from '@/lib/ediel/tgtAutopilot'
 import { processEdielOperationalMessage } from '@/lib/ediel/operationalBridge'
 import { createSafeMasterdataProposalForMessage } from '@/lib/ediel/operationalVerification'
 import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from '@/lib/ediel/safeApplyReview'
@@ -242,7 +247,22 @@ export async function registerEdielFileAction(formData: FormData) {
     subject: formString(formData.get("subject")),
   })
 
+  const createdMessage = await getEdielMessageById(message.id)
+  if (createdMessage) {
+    const autoAttachResult = await autoAttachImportedMessageToActiveTgtRun({
+      edielMessage: createdMessage,
+    })
+
+    if (autoAttachResult) {
+      await runTgtAutopilotForRun({
+        actorUserId: context.userId,
+        testRunId: autoAttachResult.testRunId,
+      })
+    }
+  }
+
   await revalidateRelatedMessage(message.id)
+  revalidateEdiel(message.id)
 }
 
 export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
@@ -256,7 +276,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     throw new Error(`Okänt TGT-testfall: ${testSuite}/${roleCode}/${testCaseCode}`)
   }
 
-  await createEdielTestRun({
+  const testRun = await createEdielTestRun({
     actorUserId: context.userId,
     testSuite: definition.suite,
     roleCode: definition.roleCode,
@@ -267,13 +287,20 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
       definition.purpose,
       `Testdata: ${definition.testDataHint}`,
       ...definition.notes,
+      'Autopilot: första Gridex-fil skapas automatiskt om första steget ägs av Gridex.',
     ].join('\n'),
     status: 'running',
     startedAt: new Date().toISOString(),
   })
 
+  await runTgtAutopilotForRun({
+    actorUserId: context.userId,
+    testRunId: testRun.id,
+  })
+
   revalidateEdiel()
 }
+
 
 export async function attachEdielMessageToTestRunAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
@@ -333,6 +360,35 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   await revalidateRelatedMessage(message.id)
   revalidateEdiel(message.id)
+}
+
+export async function runEdielTgtAutopilotAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const testRunId = formString(formData.get('testRunId'))
+
+  if (!testRunId) throw new Error('testRunId saknas')
+
+  await runTgtAutopilotForRun({
+    actorUserId: context.userId,
+    testRunId,
+  })
+
+  revalidateEdiel()
+}
+
+export async function createMockPortalMessageForNextTgtStepAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const testRunId = formString(formData.get('testRunId'))
+
+  if (!testRunId) throw new Error('testRunId saknas')
+
+  const result = await createMockPortalMessageForNextStep({
+    actorUserId: context.userId,
+    testRunId,
+  })
+
+  await revalidateRelatedMessage(result.messageId)
+  revalidateEdiel(result.messageId)
 }
 
 

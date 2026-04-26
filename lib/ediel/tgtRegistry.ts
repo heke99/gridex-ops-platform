@@ -509,6 +509,7 @@ export function evaluateEdielTgtRun(
 
   const candidates = messages
     .filter((message) => {
+      if (message.status === 'cancelled') return false
       if (message.message_family !== 'PRODAT' && message.message_family !== 'UTILTS' && message.message_family !== 'APERAK' && message.message_family !== 'CONTRL' && message.message_family !== 'UTILTS_ERR') {
         return false
       }
