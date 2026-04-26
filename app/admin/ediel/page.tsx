@@ -242,6 +242,123 @@ function ackStateTone(state: string): 'slate' | 'green' | 'yellow' | 'red' | 'bl
   return 'slate'
 }
 
+function QuickNavItem({
+  href,
+  label,
+  description,
+  tone = 'slate',
+}: {
+  href: string
+  label: string
+  description: string
+  tone?: 'slate' | 'green' | 'yellow' | 'red' | 'blue'
+}) {
+  const borderClass =
+    tone === 'green'
+      ? 'border-emerald-200 hover:bg-emerald-50'
+      : tone === 'yellow'
+        ? 'border-amber-200 hover:bg-amber-50'
+        : tone === 'red'
+          ? 'border-rose-200 hover:bg-rose-50'
+          : tone === 'blue'
+            ? 'border-blue-200 hover:bg-blue-50'
+            : 'border-slate-200 hover:bg-slate-50'
+
+  return (
+    <a
+      href={href}
+      className={`rounded-2xl border bg-white p-3 text-left transition ${borderClass}`}
+    >
+      <div className="text-sm font-semibold text-slate-950">{label}</div>
+      <div className="mt-1 text-xs leading-5 text-slate-600">{description}</div>
+    </a>
+  )
+}
+
+function WorkflowStep({
+  number,
+  title,
+  text,
+  href,
+}: {
+  number: string
+  title: string
+  text: string
+  href: string
+}) {
+  return (
+    <a
+      href={href}
+      className="group rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+          {number}
+        </div>
+        <div>
+          <div className="text-sm font-semibold text-slate-950 group-hover:text-indigo-800">
+            {title}
+          </div>
+          <div className="mt-1 text-xs leading-5 text-slate-600">{text}</div>
+        </div>
+      </div>
+    </a>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  help,
+  tone = 'slate',
+}: {
+  label: string
+  value: number | string
+  help: string
+  tone?: 'slate' | 'green' | 'yellow' | 'red' | 'blue'
+}) {
+  const className =
+    tone === 'green'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+      : tone === 'yellow'
+        ? 'border-amber-200 bg-amber-50 text-amber-900'
+        : tone === 'red'
+          ? 'border-rose-200 bg-rose-50 text-rose-900'
+          : tone === 'blue'
+            ? 'border-blue-200 bg-blue-50 text-blue-900'
+            : 'border-slate-200 bg-white text-slate-950'
+
+  return (
+    <div className={`rounded-2xl border p-4 ${className}`}>
+      <div className="text-sm opacity-80">{label}</div>
+      <div className="mt-2 text-3xl font-semibold">{value}</div>
+      <div className="mt-2 text-xs leading-5 opacity-75">{help}</div>
+    </div>
+  )
+}
+
+function SectionLabel({
+  id,
+  title,
+  description,
+}: {
+  id: string
+  title: string
+  description: string
+}) {
+  return (
+    <div id={id} className="scroll-mt-28 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        Arbetsyta
+      </div>
+      <h2 className="mt-1 text-lg font-semibold text-slate-950">{title}</h2>
+      <p className="mt-1 max-w-4xl text-sm leading-6 text-slate-600">
+        {description}
+      </p>
+    </div>
+  )
+}
+
 export default async function AdminEdielPage() {
   await requirePermissionServer('communication.read')
 
@@ -398,6 +515,21 @@ export default async function AdminEdielPage() {
   const activeTestRunsCount = testRuns.filter((row) =>
     ['draft', 'running'].includes(row.status)
   ).length
+  const inboundCount = messages.filter((row) => row.direction === 'inbound').length
+  const outboundCount = messages.filter((row) => row.direction === 'outbound').length
+  const prodatCount = messages.filter((row) => row.message_family === 'PRODAT').length
+  const utiltsCount = messages.filter((row) => row.message_family === 'UTILTS').length
+  const safeApplyPendingCount = safeApplyReviewItems.filter((row) => row.status === 'pending').length
+  const utiltsReadyCount = utiltsBillingReviewItems.filter((row) => row.status === 'ready').length
+  const warningCount =
+    overdueAckMessages.length +
+    duplicateAckCandidates.length +
+    duplicateBlockEvents.length +
+    ackConflictEvents.length +
+    versionMismatchMessages.length +
+    invalidCodeMessages.length +
+    ruleAmbiguities.length +
+    unresolvedOutboundCount
 
   return (
     <div className="space-y-6">
@@ -406,6 +538,78 @@ export default async function AdminEdielPage() {
         subtitle="Operativ release 1 med canonical kernel, dedupe-spårning, versionssignaler och kontrollflöden i samma runtime."
         userEmail={user?.email ?? null}
       />
+
+      <section id="overview" className="scroll-mt-28 rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+              Starta här
+            </div>
+            <h1 className="mt-1 text-2xl font-semibold text-slate-950">
+              Ediel arbetsyta för filbaserad drift och TGT
+            </h1>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+              Använd sidan uppifrån och ned: skapa eller importera fil, kör TGT-test, koppla mot verksamheten och granska safe apply innan masterdata ändras. SMTP/ECP är fortfarande readiness, inte live.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="blue">Gridex Ediel-ID 21660</Badge>
+            <Badge tone="blue">Edielportalen 91100</Badge>
+            <Badge tone="green">filbaserad motor</Badge>
+            <Badge tone={warningCount > 0 ? 'yellow' : 'green'}>
+              signaler: {warningCount}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <WorkflowStep
+            number="1"
+            title="Skapa eller importera fil"
+            text="Ladda upp Ediel-fil, klistra in EDIFACT eller skapa filutkast."
+            href="#file-engine"
+          />
+          <WorkflowStep
+            number="2"
+            title="Kör TGT-test"
+            text="Välj testfall, skapa test run och följ nästa steg."
+            href="#tgt"
+          />
+          <WorkflowStep
+            number="3"
+            title="Koppla verksamhet"
+            text="Knyt Z03/Z04/ACK/UTILTS mot switch, anläggning och mätpunkt."
+            href="#operations"
+          />
+          <WorkflowStep
+            number="4"
+            title="Granska innan ändring"
+            text="Godkänn eller avvisa Z06/Z10 och processa mätvärdesunderlag."
+            href="#safe-apply"
+          />
+        </div>
+      </section>
+
+      <nav className="sticky top-2 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-7">
+          <QuickNavItem href="#overview" label="Översikt" description="Status och snabbstart" tone="blue" />
+          <QuickNavItem href="#file-engine" label="Filimport" description="Import/export/utkast" tone="green" />
+          <QuickNavItem href="#tgt" label="TGT-test" description="Testfall och steg" tone="blue" />
+          <QuickNavItem href="#operations" label="Verksamhet" description="Switch och UTILTS" tone="yellow" />
+          <QuickNavItem href="#safe-apply" label="Safe apply" description="Granska ändringar" tone="green" />
+          <QuickNavItem href="#diagnostics" label="Diagnostik" description="Fel och varningar" tone="red" />
+          <QuickNavItem href="#runtime" label="Runtime" description="Queue och routes" tone="slate" />
+        </div>
+      </nav>
+
+      <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <MetricCard label="Meddelanden" value={messages.length} help="Aktiva Ediel-meddelanden i release-scope." tone="blue" />
+        <MetricCard label="Aktiva test" value={activeTestRunsCount} help="TGT-runs i draft eller running." tone={activeTestRunsCount > 0 ? 'yellow' : 'slate'} />
+        <MetricCard label="Safe apply" value={safeApplyPendingCount} help="Z06/Z10-förslag som väntar på granskning." tone={safeApplyPendingCount > 0 ? 'yellow' : 'green'} />
+        <MetricCard label="UTILTS redo" value={utiltsReadyCount} help="Mätvärdesunderlag redo för handläggning." tone={utiltsReadyCount > 0 ? 'green' : 'slate'} />
+        <MetricCard label="Unresolved" value={unresolvedOutboundCount} help="Outbound utan löst kanal eller route." tone={unresolvedOutboundCount > 0 ? 'red' : 'green'} />
+        <MetricCard label="Varningar" value={warningCount} help="Diagnostiska signaler som bör kontrolleras." tone={warningCount > 0 ? 'red' : 'green'} />
+      </section>
 
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -435,8 +639,27 @@ export default async function AdminEdielPage() {
         </div>
       </section>
 
+      <SectionLabel
+        id="file-engine"
+        title="1. Filbaserad Ediel-motor"
+        description="Här laddar du upp filer, klistrar in EDIFACT eller skapar filutkast. Börja alltid här när du testar manuellt."
+      />
+
       <EdielFileEnginePanel recentMessages={messages} />
 
+      <SectionLabel
+        id="tgt"
+        title="2. TGT-test och guided mode"
+        description="Skapa test run, se testdata, skapa fil för nästa steg och importera portalens svar."
+      />
+
+      <EdielTgtWorkbenchPanel messages={messages} testRuns={testRuns} />
+
+      <SectionLabel
+        id="operations"
+        title="3. Verksamhetskoppling"
+        description="Koppla Ediel-meddelanden till supplier switch, outbound queue, data requests och mätvärden."
+      />
 
       <EdielOperationalBridgePanel
         messages={messages}
@@ -454,9 +677,21 @@ export default async function AdminEdielPage() {
         outboundRequests={outboundRequests}
       />
 
+      <SectionLabel
+        id="safe-apply"
+        title="4. Safe apply och mätvärdesunderlag"
+        description="Granska Z06/Z10-förslag innan masterdata ändras och processa UTILTS till underlag."
+      />
+
       <EdielSafeApplyReviewPanel
         safeApplyItems={safeApplyReviewItems}
         utiltsItems={utiltsBillingReviewItems}
+      />
+
+      <SectionLabel
+        id="diagnostics"
+        title="Diagnostik och blockerande signaler"
+        description="Här ser du om något stoppar test eller drift: overdue ACK, dubletter, versionsfel och kodlistsignaler."
       />
 
       <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
@@ -633,6 +868,12 @@ export default async function AdminEdielPage() {
         </div>
       </section>
 
+      <SectionLabel
+        id="runtime"
+        title="Runtime, rekommendationer och köer"
+        description="Här ser du route-rekommendation, outbound queue, senaste switch/data requests, meddelanden och routes."
+      />
+
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -772,25 +1013,25 @@ export default async function AdminEdielPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="text-sm text-slate-500">Outbound</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950">
-            {messages.filter((row) => row.direction === 'outbound').length}
+            {outboundCount}
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="text-sm text-slate-500">Inbound</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950">
-            {messages.filter((row) => row.direction === 'inbound').length}
+            {inboundCount}
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="text-sm text-slate-500">PRODAT</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950">
-            {messages.filter((row) => row.message_family === 'PRODAT').length}
+            {prodatCount}
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="text-sm text-slate-500">UTILTS</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950">
-            {messages.filter((row) => row.message_family === 'UTILTS').length}
+            {utiltsCount}
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4">

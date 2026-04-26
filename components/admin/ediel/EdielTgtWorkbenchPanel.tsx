@@ -85,8 +85,10 @@ function TestDataGroupTable({ group }: { group: EdielTgtCaseTestDataGroup }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-1">
-          {group.columns.map((column) => (
-            <Badge key={`${group.block.entityLabel}-${column.name}`}>{column.name}</Badge>
+          {group.columns.map((column, columnIndex) => (
+            <Badge key={`${group.block.sourceWorkbook}-${group.block.sourceSheet}-${group.block.entityLabel}-column-${columnIndex}-${column.name}`}>
+              {column.name}
+            </Badge>
           ))}
         </div>
       </div>
@@ -101,10 +103,10 @@ function TestDataGroupTable({ group }: { group: EdielTgtCaseTestDataGroup }) {
             </tr>
           </thead>
           <tbody>
-            {visibleFields.map((field) => {
+            {visibleFields.map((field, fieldIndex) => {
               const entries = selectedValuesForGroup(group, field.values)
               return (
-                <tr key={`${group.block.entityLabel}-${field.fieldCode}-${field.fieldName}`} className="border-b border-slate-100 align-top last:border-0">
+                <tr key={`${group.block.sourceWorkbook}-${group.block.sourceSheet}-${group.block.entityLabel}-field-${fieldIndex}-${field.fieldCode}-${field.fieldName}`} className="border-b border-slate-100 align-top last:border-0">
                   <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-800">{field.fieldCode}</td>
                   <td className="px-2 py-2 text-slate-700">{field.fieldName}</td>
                   <td className="px-2 py-2 text-slate-600">
@@ -112,8 +114,8 @@ function TestDataGroupTable({ group }: { group: EdielTgtCaseTestDataGroup }) {
                       {entries.length === 0 ? (
                         <span>—</span>
                       ) : (
-                        entries.map((entry) => (
-                          <div key={`${field.fieldCode}-${entry.column.name}`}>
+                        entries.map((entry, entryIndex) => (
+                          <div key={`${group.block.sourceWorkbook}-${group.block.sourceSheet}-${group.block.entityLabel}-${field.fieldCode}-${field.fieldName}-entry-${entryIndex}-${entry.column.name}`}>
                             <span className="font-medium text-slate-800">{entry.column.name}:</span> {entry.value}
                           </div>
                         ))
@@ -155,8 +157,11 @@ function TestDataSummary({ data }: { data: EdielTgtCaseTestData | null }) {
         <Badge tone="indigo">Excel-import</Badge>
       </div>
       <div className="mt-3 space-y-3">
-        {data.groups.map((group) => (
-          <TestDataGroupTable key={`${group.block.sourceSheet}-${group.block.entityLabel}`} group={group} />
+        {data.groups.map((group, groupIndex) => (
+          <TestDataGroupTable
+            key={`${group.block.sourceWorkbook}-${group.block.sourceSheet}-${group.block.entityLabel}-group-${groupIndex}`}
+            group={group}
+          />
         ))}
       </div>
     </div>

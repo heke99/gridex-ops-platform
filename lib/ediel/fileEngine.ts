@@ -105,7 +105,15 @@ function normalizeSubAddress(value: string | null): string | null {
 function normalizeRawPayload(rawPayload: string): string {
   return rawPayload
     .replace(/^\uFEFF/, '')
+    // Some admins copy raw_payload from SQL/JSON views where line breaks are literal \n.
+    // Convert those back before segment parsing, otherwise tags become "\nUNB"/"\nUNH".
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '\n')
     .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
     .trim()
 }
 
@@ -538,6 +546,14 @@ export async function registerEdielFile(params: RegisterFileParams): Promise<Edi
   if (!rawPayload) throw new Error('Filen är tom.')
 
   const parsed = parseEdielFile(rawPayload, params.fileName)
+
+  if (parsed.messageFamily === 'OTHER') {
+    const preview = rawPayload.slice(0, 240).replace(/\s+/g, ' ')
+    throw new Error(
+      `Filen kunde inte identifieras som PRODAT, UTILTS, APERAK, CONTRL eller AI_LIST. Kontrollera att du klistrar in ren EDIFACT-fil från UNA/UNB/UNH utan JSON-citat eller escaped \\n. Förhandsvisning: ${preview}`
+    )
+  }
+
   const version = await withVersionValidation({
     parsed,
     direction: params.direction,
