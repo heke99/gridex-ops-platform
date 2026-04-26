@@ -24,6 +24,7 @@ import {
   createEdielMessage,
   createEdielTestRun,
   getEdielMessageById,
+  listEdielTestRuns,
   updateEdielMessageStatus,
   updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
@@ -358,6 +359,58 @@ export async function markEdielTgtRunStatusAction(formData: FormData) {
 
   revalidateEdiel()
 }
+export async function archiveEdielTgtRunAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const testRunId = formString(formData.get('testRunId'))
+  const reason = formString(formData.get('reason')) ?? 'Arkiverad från TGT workbench.'
+
+  if (!testRunId) throw new Error('testRunId saknas')
+
+  await updateEdielTestRunStatus({
+    actorUserId: context.userId,
+    testRunId,
+    status: 'cancelled',
+    failureReason: reason,
+    completedAt: new Date().toISOString(),
+  })
+
+  revalidateEdiel()
+}
+
+export async function archiveOlderEdielTgtRunsForCaseAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const keepTestRunId = formString(formData.get('keepTestRunId'))
+  const testSuite = parseEdielTestSuite(formData.get('testSuite'))
+  const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
+  const testCaseCode = formString(formData.get('testCaseCode'))
+
+  if (!keepTestRunId) throw new Error('keepTestRunId saknas')
+  if (!testCaseCode) throw new Error('testCaseCode saknas')
+
+  const runs = await listEdielTestRuns()
+  const sameCaseRuns = runs.filter((run) =>
+    run.id !== keepTestRunId &&
+    run.status !== 'cancelled' &&
+    run.test_suite === testSuite &&
+    run.role_code === roleCode &&
+    run.test_case_code === testCaseCode
+  )
+
+  await Promise.all(
+    sameCaseRuns.map((run) =>
+      updateEdielTestRunStatus({
+        actorUserId: context.userId,
+        testRunId: run.id,
+        status: 'cancelled',
+        failureReason: `Arkiverad automatiskt från TGT workbench. Nyare/vald run behölls: ${keepTestRunId}.`,
+        completedAt: new Date().toISOString(),
+      })
+    )
+  )
+
+  revalidateEdiel()
+}
+
 export async function processEdielOperationalMessageAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const edielMessageId = formString(formData.get('edielMessageId'))

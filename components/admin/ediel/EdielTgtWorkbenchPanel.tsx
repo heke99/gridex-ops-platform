@@ -3,9 +3,11 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
+  archiveEdielTgtRunAction,
+  archiveOlderEdielTgtRunsForCaseAction,
   attachEdielMessageToTestRunAction,
-  createEdielTgtRunFromTemplateAction,
   createEdielTgtDraftAction,
+  createEdielTgtRunFromTemplateAction,
   markEdielTgtRunStatusAction,
 } from '@/app/admin/ediel/actions'
 import {
@@ -24,7 +26,9 @@ import {
 import { getEdielTgtDraftOptionsForCase } from '@/lib/ediel/tgtEdifact'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 
-function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo' }) {
+type BadgeTone = 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo'
+
+function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: BadgeTone }) {
   const classes = {
     slate: 'border-slate-200 bg-slate-50 text-slate-700',
     green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -48,12 +52,19 @@ function formatDateTime(value: string | null | undefined): string {
   return date.toLocaleString('sv-SE')
 }
 
-function statusTone(status: EdielTgtRunEvaluation['computedStatus']): 'slate' | 'green' | 'yellow' | 'red' | 'blue' {
+function statusTone(status: EdielTgtRunEvaluation['computedStatus']): BadgeTone {
+  if (status === 'passed') return 'green'
+  if (status === 'failed' || status === 'not_mapped') return 'red'
+  if (status === 'in_progress') return 'yellow'
+  return 'slate'
+}
+
+function dbStatusTone(status: EdielTestRunRow['status']): BadgeTone {
   if (status === 'passed') return 'green'
   if (status === 'failed') return 'red'
-  if (status === 'in_progress') return 'yellow'
-  if (status === 'not_mapped') return 'red'
-  return 'slate'
+  if (status === 'running') return 'yellow'
+  if (status === 'cancelled') return 'slate'
+  return 'blue'
 }
 
 function definitionTone(status: EdielTgtTestCaseDefinition['status']): 'green' | 'yellow' {
@@ -115,7 +126,7 @@ function TestDataGroupTable({ group }: { group: EdielTgtCaseTestDataGroup }) {
                         <span>—</span>
                       ) : (
                         entries.map((entry, entryIndex) => (
-                          <div key={`${group.block.sourceWorkbook}-${group.block.sourceSheet}-${group.block.entityLabel}-${field.fieldCode}-${field.fieldName}-entry-${entryIndex}-${entry.column.name}`}>
+                          <div key={`${group.block.sourceWorkbook}-${group.block.sourceSheet}-${group.block.entityLabel}-${fieldIndex}-entry-${entryIndex}-${entry.column.name}`}>
                             <span className="font-medium text-slate-800">{entry.column.name}:</span> {entry.value}
                           </div>
                         ))
@@ -168,23 +179,32 @@ function TestDataSummary({ data }: { data: EdielTgtCaseTestData | null }) {
   )
 }
 
-function CoverageDashboard({ evaluations, definitions }: { evaluations: EdielTgtRunEvaluation[]; definitions: EdielTgtTestCaseDefinition[] }) {
+function CoverageDashboard({
+  evaluations,
+  definitions,
+  archivedCount,
+}: {
+  evaluations: EdielTgtRunEvaluation[]
+  definitions: EdielTgtTestCaseDefinition[]
+  archivedCount: number
+}) {
   const summary = getEdielTgtCoverageSummary(evaluations, definitions)
-  const cells: Array<[string, string, 'slate' | 'green' | 'yellow' | 'red' | 'blue']> = [
-    ['Körningar', String(summary.totalRuns), 'slate' as const],
-    ['Godkända', String(summary.passedRuns), 'green' as const],
-    ['Fel/mismatch', String(summary.failedRuns), summary.failedRuns > 0 ? 'red' as const : 'slate' as const],
-    ['Pågår', String(summary.inProgressRuns), 'yellow' as const],
-    ['Core-mallar körda', `${summary.coreCasesWithRuns}/${summary.totalCoreCases}`, summary.coreCasesWithoutRuns === 0 ? 'green' as const : 'yellow' as const],
+  const cells: Array<[string, string, BadgeTone]> = [
+    ['Aktiva körningar', String(summary.totalRuns), 'slate'],
+    ['Godkända', String(summary.passedRuns), 'green'],
+    ['Fel/mismatch', String(summary.failedRuns), summary.failedRuns > 0 ? 'red' : 'slate'],
+    ['Pågår', String(summary.inProgressRuns), 'yellow'],
+    ['Core-mallar körda', `${summary.coreCasesWithRuns}/${summary.totalCoreCases}`, summary.coreCasesWithoutRuns === 0 ? 'green' : 'yellow'],
+    ['Arkiverade/dolda', String(archivedCount), archivedCount > 0 ? 'yellow' : 'slate'],
   ]
 
   return (
     <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-950">TGT coverage och Batch 5 driftläge</h3>
+          <h3 className="text-sm font-semibold text-slate-950">TGT coverage och arbetsläge</h3>
           <p className="mt-1 text-xs text-slate-600">
-            Detta är kontrollpanelen för att se om filmotorn är redo för slutgodkännande och praktisk drift. Den ersätter inte Edielportalens facit, men visar vad Gridex själv har verifierat.
+            Huvudvyn visar bara aktiva runs. Arkiverade runs ligger kvar i databasen för spårbarhet men döljs från arbetsflödet.
           </p>
         </div>
         <Badge tone={summary.readyForFinalApproval ? 'green' : 'yellow'}>
@@ -192,7 +212,7 @@ function CoverageDashboard({ evaluations, definitions }: { evaluations: EdielTgt
         </Badge>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         {cells.map(([label, value, tone]) => (
           <div key={label} className="rounded-xl border border-slate-200 bg-white p-3">
             <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</div>
@@ -210,24 +230,52 @@ function CoverageDashboard({ evaluations, definitions }: { evaluations: EdielTgt
 function Batch5RunbookPanel() {
   return (
     <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
-      <div className="font-semibold">Batch 5 driftregler för filbaserad motor</div>
+      <div className="font-semibold">Arbeta rent med TGT-runs</div>
       <div className="mt-2 grid gap-2 md:grid-cols-2">
         <div className="rounded-xl bg-white/70 p-3">
-          <div className="font-medium">När Gridex skapar en fil</div>
-          <p className="mt-1 text-xs text-blue-900">Skapa utkast, kontrollera validatorn, öppna meddelandesidan, exportera/klistra filen i Edielportalen och markera test run när portalen har svarat.</p>
+          <div className="font-medium">En aktiv run per testfall</div>
+          <p className="mt-1 text-xs text-blue-900">Starta helst bara en aktiv PRODAT/UTILTS-run åt gången. Arkivera äldre runs så arbetsvyn blir ren.</p>
         </div>
         <div className="rounded-xl bg-white/70 p-3">
-          <div className="font-medium">När Edielportalen svarar</div>
+          <div className="font-medium">Arkivera, inte hårdradera</div>
+          <p className="mt-1 text-xs text-blue-900">Arkivering sätter status till cancelled. Det håller audit/spårbarhet kvar men döljer run från huvudvyn.</p>
+        </div>
+        <div className="rounded-xl bg-white/70 p-3">
+          <div className="font-medium">När portalen svarar</div>
           <p className="mt-1 text-xs text-blue-900">Importera svaret i filmotorn, koppla det mot rätt TGT-steg och följ nästa instruktion i guided mode.</p>
         </div>
         <div className="rounded-xl bg-white/70 p-3">
           <div className="font-medium">Vid negativ kvittens</div>
           <p className="mt-1 text-xs text-blue-900">Stoppa flödet, öppna meddelandet, läs ERC/FTX eller CONTRL-status och skapa inte nytt svar på samma transaktion innan felet är förstått.</p>
         </div>
-        <div className="rounded-xl bg-white/70 p-3">
-          <div className="font-medium">Vid slutgodkännande</div>
-          <p className="mt-1 text-xs text-blue-900">Kör bara ett slutgodkännande-test åt gången och kontrollera både Gridex workbench och Edielportalens testlogg innan du markerar run som godkänd.</p>
-        </div>
+      </div>
+    </div>
+  )
+}
+
+function RunArchiveControls({ evaluation }: { evaluation: EdielTgtRunEvaluation }) {
+  return (
+    <div className="mt-3 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <form action={archiveEdielTgtRunAction}>
+        <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
+        <input type="hidden" name="reason" value="Arkiverad från TGT workbench för renare arbetsvy." />
+        <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+          Arkivera denna run
+        </button>
+      </form>
+
+      <form action={archiveOlderEdielTgtRunsForCaseAction}>
+        <input type="hidden" name="keepTestRunId" value={evaluation.testRun.id} />
+        <input type="hidden" name="testSuite" value={evaluation.testRun.test_suite} />
+        <input type="hidden" name="roleCode" value={evaluation.testRun.role_code} />
+        <input type="hidden" name="testCaseCode" value={evaluation.testRun.test_case_code} />
+        <button className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+          Rensa äldre runs för samma testfall
+        </button>
+      </form>
+
+      <div className="flex items-center text-xs text-slate-500">
+        Rensning arkiverar äldre dubletter men behåller denna run aktiv.
       </div>
     </div>
   )
@@ -268,9 +316,9 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
             <option value="running">Markera som pågående</option>
             <option value="passed">Markera som godkänd i Gridex</option>
             <option value="failed">Markera som felad</option>
-            <option value="cancelled">Avbryt run</option>
+            <option value="cancelled">Arkivera/avbryt run</option>
           </select>
-          <input name="failureReason" placeholder="Kommentar vid fel/avbrott" className="min-w-[180px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-700" />
+          <input name="failureReason" placeholder="Kommentar vid fel/arkivering" className="min-w-[180px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-700" />
           <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
             Uppdatera status
           </button>
@@ -311,10 +359,10 @@ function DraftOptionPanel({
           <div>
             <div className="text-xs font-semibold text-emerald-950">Skapa TGT-filutkast</div>
             <div className="mt-1 text-xs text-emerald-800">
-              Systemet skapar ett filutkast med Gridex Ediel-ID 21660, Edielportalen 91100 och rätt TGT-standardvärden. Edielportalen är fortfarande slutligt facit.
+              Systemet skapar ett filutkast. Edielportalen är fortfarande slutligt facit.
             </div>
           </div>
-          <Badge tone="green">Batch 4D</Badge>
+          <Badge tone="green">generator</Badge>
         </div>
       ) : null}
 
@@ -327,8 +375,7 @@ function DraftOptionPanel({
             <input type="hidden" name="stepNo" value={option.stepNo} />
             {testRunId ? <input type="hidden" name="testRunId" value={testRunId} /> : null}
             <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
-              Skapa steg {option.stepNo}: {option.family}/{option.code}
-              {option.outcome ? ` ${option.outcome}` : ''}
+              Skapa steg {option.stepNo}: {option.family}/{option.code}{option.outcome ? ` ${option.outcome}` : ''}
             </button>
           </form>
         ))}
@@ -337,7 +384,13 @@ function DraftOptionPanel({
   )
 }
 
-function TestCaseCard({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
+function TestCaseCard({
+  testCase,
+  activeRunsForCase,
+}: {
+  testCase: EdielTgtTestCaseDefinition
+  activeRunsForCase: number
+}) {
   const testData = getEdielTgtTestDataForCase(testCase.suite, testCase.roleCode, testCase.testCaseCode)
 
   return (
@@ -351,6 +404,7 @@ function TestCaseCard({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
               <Badge>{testCase.roleCode}</Badge>
               <Badge tone={definitionTone(testCase.status)}>{testCase.status}</Badge>
               {testData ? <Badge tone="green">testdata kopplad</Badge> : <Badge tone="yellow">utan testdata</Badge>}
+              <Badge tone={activeRunsForCase > 0 ? 'yellow' : 'slate'}>{activeRunsForCase} aktiva runs</Badge>
             </div>
             <h3 className="mt-3 text-sm font-semibold text-slate-950">{testCase.title}</h3>
             <p className="mt-1 text-sm text-slate-600">{testCase.purpose}</p>
@@ -378,7 +432,7 @@ function TestCaseCard({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
               <input type="hidden" name="roleCode" value={testCase.roleCode} />
               <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
               <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
-                Skapa test run
+                Skapa ny test run
               </button>
             </form>
           </div>
@@ -390,7 +444,6 @@ function TestCaseCard({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
         </div>
 
         <TestDataSummary data={testData} />
-
         <DraftOptionPanel testCase={testCase} />
 
         <div className="mt-4 space-y-2">
@@ -443,13 +496,14 @@ function RunEvaluationCard({
             <Badge tone="blue">{evaluation.testRun.test_case_code}</Badge>
             <Badge>{evaluation.testRun.role_code}</Badge>
             <Badge tone={statusTone(evaluation.computedStatus)}>{evaluation.computedStatus}</Badge>
+            <Badge tone={dbStatusTone(evaluation.testRun.status)}>DB: {evaluation.testRun.status}</Badge>
             {testData ? <Badge tone="green">testdata</Badge> : null}
           </div>
           <h3 className="mt-3 text-sm font-semibold text-slate-950">
             {evaluation.definition?.title ?? evaluation.testRun.title ?? 'Ej mappat testfall'}
           </h3>
           <p className="mt-1 text-xs text-slate-500">
-            Skapad {formatDateTime(evaluation.testRun.created_at)} · DB-status {evaluation.testRun.status}
+            Skapad {formatDateTime(evaluation.testRun.created_at)} · ID {evaluation.testRun.id}
           </p>
         </div>
         <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
@@ -458,6 +512,7 @@ function RunEvaluationCard({
       </div>
 
       <GuidedNextActionPanel evaluation={evaluation} />
+      <RunArchiveControls evaluation={evaluation} />
 
       {testData ? (
         <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
@@ -527,6 +582,33 @@ function RunEvaluationCard({
   )
 }
 
+function ArchivedRunsPanel({ archivedRuns }: { archivedRuns: EdielTestRunRow[] }) {
+  if (archivedRuns.length === 0) return null
+
+  return (
+    <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+        Visa arkiverade/dolda TGT-runs ({archivedRuns.length})
+      </summary>
+      <div className="mt-3 max-h-80 space-y-2 overflow-auto pr-2">
+        {archivedRuns.slice(0, 80).map((run) => (
+          <div key={run.id} className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="font-semibold text-slate-900">
+                {run.test_suite} · {run.test_case_code} · {run.role_code}
+              </div>
+              <Badge tone="slate">{run.status}</Badge>
+            </div>
+            <div className="mt-1">{run.title ?? '—'}</div>
+            <div className="mt-1">Skapad {formatDateTime(run.created_at)} · Avslutad {formatDateTime(run.completed_at)}</div>
+            {run.failure_reason ? <div className="mt-1 text-slate-500">{run.failure_reason}</div> : null}
+          </div>
+        ))}
+      </div>
+    </details>
+  )
+}
+
 export default function EdielTgtWorkbenchPanel({
   messages,
   testRuns,
@@ -536,21 +618,31 @@ export default function EdielTgtWorkbenchPanel({
 }) {
   const definitions = getEdielTgtTestCases()
   const coreDefinitions = definitions.filter((definition) => definition.scope === 'core')
-  const evaluations = testRuns
+  const activeRuns = testRuns.filter((run) => run.status !== 'cancelled')
+  const archivedRuns = testRuns.filter((run) => run.status === 'cancelled')
+  const evaluations = activeRuns
     .filter((run) => run.test_suite === 'PRODAT' || run.test_suite === 'UTILTS')
-    .slice(0, 10)
+    .slice(0, 20)
     .map((run) => evaluateEdielTgtRun(run, messages))
   const linkedTestDataCount = coreDefinitions.filter((definition) =>
     Boolean(getEdielTgtTestDataForCase(definition.suite, definition.roleCode, definition.testCaseCode))
   ).length
 
+  function activeRunsForCase(definition: EdielTgtTestCaseDefinition): number {
+    return activeRuns.filter((run) =>
+      run.test_suite === definition.suite &&
+      run.role_code === definition.roleCode &&
+      run.test_case_code === definition.testCaseCode
+    ).length
+  }
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">Batch 4E–5 · TGT guided mode, generator och driftkontroll</h2>
+          <h2 className="text-lg font-semibold text-slate-950">TGT guided mode, generator och run-cleanup</h2>
           <p className="mt-1 max-w-4xl text-sm text-slate-600">
-            Workbenchen visar nästa steg, testdata, EDIFACT-utkast, portalimport och driftstatus. Använd den som säkert arbetsflöde för filbaserad TGT innan SMTP/ECP byggs.
+            Workbenchen visar bara aktiva TGT-runs. Gamla eller felaktiga runs kan arkiveras så du slipper en rörig arbetsvy utan att tappa spårbarhet i databasen.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -558,16 +650,15 @@ export default function EdielTgtWorkbenchPanel({
           <Badge tone="green">UTILTS testanläggningar</Badge>
           <Badge tone="green">EDIFACT-utkast</Badge>
           <Badge tone="blue">{linkedTestDataCount}/{coreDefinitions.length} mallar med testdata</Badge>
-          <Badge tone="blue">filbaserat</Badge>
+          <Badge tone={archivedRuns.length > 0 ? 'yellow' : 'slate'}>{archivedRuns.length} arkiverade</Badge>
         </div>
       </div>
 
-      
       <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Kör bara ett slutgodkännande-test åt gången mot Edielportalen. Om portalen väntar på flera filer av samma typ kan den koppla inkommande fil till fel testfall.
+        Håll bara en aktiv run per Edielportal-test. Arkivera felaktiga eller gamla runs innan du kör vidare, annars blir matchning och felsökning rörig.
       </div>
 
-      <CoverageDashboard evaluations={evaluations} definitions={coreDefinitions} />
+      <CoverageDashboard evaluations={evaluations} definitions={coreDefinitions} archivedCount={archivedRuns.length} />
       <Batch5RunbookPanel />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
@@ -575,17 +666,21 @@ export default function EdielTgtWorkbenchPanel({
           <h3 className="mb-3 text-sm font-semibold text-slate-950">Rekommenderade startmallar</h3>
           <div className="space-y-4">
             {coreDefinitions.map((definition) => (
-              <TestCaseCard key={`${definition.suite}-${definition.roleCode}-${definition.testCaseCode}`} testCase={definition} />
+              <TestCaseCard
+                key={`${definition.suite}-${definition.roleCode}-${definition.testCaseCode}`}
+                testCase={definition}
+                activeRunsForCase={activeRunsForCase(definition)}
+              />
             ))}
           </div>
         </div>
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold text-slate-950">Senaste TGT-runs</h3>
+          <h3 className="mb-3 text-sm font-semibold text-slate-950">Aktiva TGT-runs</h3>
           <div className="space-y-4">
             {evaluations.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
-                Inga TGT-runs ännu. Skapa första via en mall till vänster.
+                Inga aktiva TGT-runs. Skapa första via en mall till vänster.
               </div>
             ) : (
               evaluations.map((evaluation) => (
@@ -593,6 +688,7 @@ export default function EdielTgtWorkbenchPanel({
               ))
             )}
           </div>
+          <ArchivedRunsPanel archivedRuns={archivedRuns} />
         </div>
       </div>
     </section>
