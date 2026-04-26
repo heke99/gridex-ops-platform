@@ -52,6 +52,7 @@ import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
 import { processEdielOperationalMessage } from '@/lib/ediel/operationalBridge'
 import { createSafeMasterdataProposalForMessage } from '@/lib/ediel/operationalVerification'
+import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from '@/lib/ediel/safeApplyReview'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
 function formString(value: FormDataEntryValue | null): string | null {
@@ -715,4 +716,44 @@ export async function createEdielTestRunAction(formData: FormData) {
   })
 
   revalidateEdiel()
+}
+
+export async function approveEdielSafeApplyAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const edielMessageId = formString(formData.get('edielMessageId'))
+  if (!edielMessageId) throw new Error('edielMessageId saknas')
+
+  await approveSafeMasterdataChanges({
+    actorUserId: context.userId,
+    edielMessageId,
+  })
+
+  await revalidateRelatedMessage(edielMessageId)
+}
+
+export async function rejectEdielSafeApplyAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const edielMessageId = formString(formData.get('edielMessageId'))
+  if (!edielMessageId) throw new Error('edielMessageId saknas')
+
+  await rejectSafeMasterdataChanges({
+    actorUserId: context.userId,
+    edielMessageId,
+    reason: formString(formData.get('reason')),
+  })
+
+  await revalidateRelatedMessage(edielMessageId)
+}
+
+export async function processEdielUtiltsBillingAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const edielMessageId = formString(formData.get('edielMessageId'))
+  if (!edielMessageId) throw new Error('edielMessageId saknas')
+
+  await processInboundUtiltsMessage({
+    actorUserId: context.userId,
+    edielMessageId,
+  })
+
+  await revalidateRelatedMessage(edielMessageId)
 }

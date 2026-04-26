@@ -7,6 +7,7 @@ import EdielFileEnginePanel from '@/components/admin/ediel/EdielFileEnginePanel'
 import EdielTgtWorkbenchPanel from '@/components/admin/ediel/EdielTgtWorkbenchPanel'
 import EdielOperationalBridgePanel from '@/components/admin/ediel/EdielOperationalBridgePanel'
 import EdielOperationalVerificationPanel from '@/components/admin/ediel/EdielOperationalVerificationPanel'
+import EdielSafeApplyReviewPanel from '@/components/admin/ediel/EdielSafeApplyReviewPanel'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getCanonicalAckState } from '@/lib/ediel/ack'
 import {
@@ -37,6 +38,7 @@ import {
   isActiveEdielTestSuite,
 } from '@/lib/ediel/types'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { listSafeApplyReviewItems, listUtiltsBillingReviewItems } from '@/lib/ediel/safeApplyReview'
 
 export const dynamic = 'force-dynamic'
 
@@ -320,6 +322,8 @@ export default async function AdminEdielPage() {
 
   const testRuns = testRunsRaw.filter((row) => isActiveEdielTestSuite(row.test_suite))
   const hiddenTestRunsCount = testRunsRaw.length - testRuns.length
+  const safeApplyReviewItems = await listSafeApplyReviewItems(messages)
+  const utiltsBillingReviewItems = listUtiltsBillingReviewItems(messages)
 
   const edielRoutes = allRoutes.filter(isEdielCandidateRoute)
   const routeProfiles = await Promise.all(
@@ -448,6 +452,11 @@ export default async function AdminEdielPage() {
         switchRequests={switchRequests}
         dataRequests={dataRequests}
         outboundRequests={outboundRequests}
+      />
+
+      <EdielSafeApplyReviewPanel
+        safeApplyItems={safeApplyReviewItems}
+        utiltsItems={utiltsBillingReviewItems}
       />
 
       <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
