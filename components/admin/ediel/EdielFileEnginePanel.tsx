@@ -56,8 +56,7 @@ export default function EdielFileEnginePanel({
             Batch 4 · Filbaserad Ediel-motor
           </h2>
           <p className="mt-1 max-w-4xl text-sm text-slate-700">
-            Används för att importera och registrera EDIFACT/CSV-filer utan SMTP/ECP. Motorn parsar UNB/UNH/BGM/RFF,
-            kör canonical dedupe, versionskontroll, ack-status och sparar filen i <span className="font-mono">ediel_messages</span>.
+            Här importerar du svar från Edielportalen, till exempel CONTRL, APERAK eller PRODAT Z04. Klistra in ren EDIFACT från UNA/UNB till UNZ, inte JSON eller SQL-resultat.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -68,10 +67,16 @@ export default function EdielFileEnginePanel({
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <form action={registerEdielFileAction} className="rounded-2xl border border-slate-200 bg-white p-4">
+        <form action={registerEdielFileAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm text-indigo-950">
+            <div className="font-semibold">När använder jag detta?</div>
+            <p className="mt-1 text-xs text-indigo-900">
+              Efter att du skickat en fil i Edielportalen hämtar du portalens svar och importerar det här som inbound/TGT. Systemet försöker koppla svaret till rätt TGT-run automatiskt.
+            </p>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="text-sm font-medium text-slate-700">Riktning</span>
+              <span className="text-sm font-medium text-slate-900">Riktning</span>
               <select
                 name="direction"
                 defaultValue="inbound"
@@ -83,7 +88,7 @@ export default function EdielFileEnginePanel({
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium text-slate-700">Motorläge</span>
+              <span className="text-sm font-medium text-slate-900">Motorläge</span>
               <select
                 name="mode"
                 defaultValue="tgt"
@@ -117,11 +122,11 @@ export default function EdielFileEnginePanel({
           </div>
 
           <label className="mt-4 block">
-            <span className="text-sm font-medium text-slate-700">Eller klistra in EDIFACT/CSV</span>
+            <span className="text-sm font-semibold text-slate-950">Klistra in EDIFACT/CSV från portalen</span>
             <textarea
               name="rawPayload"
               rows={8}
-              placeholder="UNB+UNOC:3+21660:DDQ+91100:PRODAT+..."
+              placeholder={`Exempel: UNA:+.? '\nUNB+UNOC:3+91100...\nUNH+...\n...\nUNZ+...`}
               className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-950 placeholder:text-slate-400"
             />
           </label>

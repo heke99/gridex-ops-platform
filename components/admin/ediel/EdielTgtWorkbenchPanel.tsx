@@ -17,7 +17,9 @@ import {
   getEdielTgtCoverageSummary,
   getEdielTgtNextAction,
   getEdielTgtTestCases,
+  type EdielTgtExpectedStep,
   type EdielTgtRunEvaluation,
+  type EdielTgtStepMatch,
   type EdielTgtTestCaseDefinition,
 } from '@/lib/ediel/tgtRegistry'
 import {
@@ -71,6 +73,122 @@ function dbStatusTone(status: EdielTestRunRow['status']): BadgeTone {
 
 function definitionTone(status: EdielTgtTestCaseDefinition['status']): 'green' | 'yellow' {
   return status === 'ready_for_file_engine' ? 'green' : 'yellow'
+}
+
+function directionLabel(direction: string): string {
+  return direction === 'outbound' ? 'GridCore → Portal' : 'Portal → GridCore'
+}
+
+function actorLabel(actor: EdielTgtExpectedStep['actor']): string {
+  return actor === 'gridex' ? 'GridCore skapar/skickar' : 'Edielportalen svarar'
+}
+
+function nextActionKindLabel(kind: string): string {
+  if (kind === 'generate_gridex_file') return 'Skapa GridCore-fil'
+  if (kind === 'import_portal_file') return 'Väntar på portalfil'
+  if (kind === 'review_failed') return 'Granska fel'
+  if (kind === 'completed') return 'Klart'
+  return kind.replaceAll('_', ' ')
+}
+
+function matchStatusLabel(status: EdielTgtStepMatch['status']): string {
+  if (status === 'passed') return 'Klar'
+  if (status === 'mismatch') return 'Fel/mismatch'
+  return 'Väntar'
+}
+
+function isFirstRecommendedCase(testCase: EdielTgtTestCaseDefinition): boolean {
+  return testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.2.2'
+}
+
+function portalTestName(testCase: EdielTgtTestCaseDefinition): string {
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.2.2') {
+    return 'Leverantör · S1.2 · 1.2.2 Z03LK, minimi information'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.2.1') {
+    return 'Leverantör · S1.2 · 1.2.1 Z03L, extra information'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.3.1') {
+    return 'Leverantör · S1.3 · Negativ APERAK - Z03'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.5') {
+    return 'Leverantör · S1.5 · Syntaxfel - negativ CONTRL'
+  }
+  return testCase.suite + ' · ' + testCase.testCaseCode
+}
+
+const PORTAL_PRODAT_122_STEPS = [
+  ['1', 'PRODAT (97A) / Z03', 'Aktör → Portal', 'Skicka Z03-filen från GridCore till Edielportalen.'],
+  ['2', 'CONTRL (2)', 'Portal → Aktör', 'Ladda ner/kopiera portalens CONTRL-svar och importera i Filimport.'],
+  ['3', 'APERAK (96A)', 'Portal → Aktör', 'Ladda ner/kopiera portalens APERAK-svar och importera i Filimport.'],
+  ['4', 'PRODAT (97A) / Z04', 'Portal → Aktör', 'Ladda ner/kopiera portalens Z04 och importera i Filimport.'],
+  ['5', 'CONTRL (2)', 'Aktör → Portal', 'GridCore skapar CONTRL-utkast efter Z04-import. Skicka det i portalen.'],
+  ['6', 'APERAK (96A)', 'Aktör → Portal', 'GridCore skapar APERAK-utkast efter Z04-import. Skicka det i portalen.'],
+] as const
+
+function PortalTestStepTable() {
+  return (
+    <div className="mt-3 overflow-x-auto rounded-2xl border border-blue-100 bg-white">
+      <table className="min-w-full text-left text-xs">
+        <thead className="bg-blue-50 text-blue-900">
+          <tr>
+            <th className="px-3 py-2 font-semibold">Portalsteg</th>
+            <th className="px-3 py-2 font-semibold">Meddelande</th>
+            <th className="px-3 py-2 font-semibold">Riktning</th>
+            <th className="px-3 py-2 font-semibold">Vad du gör</th>
+          </tr>
+        </thead>
+        <tbody>
+          {PORTAL_PRODAT_122_STEPS.map(([stepNo, message, direction, instruction]) => (
+            <tr key={stepNo} className="border-t border-blue-100 align-top">
+              <td className="whitespace-nowrap px-3 py-2 font-semibold text-slate-900">{stepNo}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-slate-800">{message}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-slate-700">{direction}</td>
+              <td className="min-w-[260px] px-3 py-2 text-slate-600">{instruction}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function PortalScopePanel() {
+  return (
+    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-950">Registrerat scope i Edielportalen</h3>
+          <p className="mt-1 text-xs text-slate-600">
+            Använd detta som kompass när du väljer test i portalen. Börja inte med alla tester samtidigt.
+          </p>
+        </div>
+        <Badge tone="blue">GridCore · APP + EDI</Badge>
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <div className="text-xs font-semibold text-slate-900">Leverantör</div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            <Badge>PRODAT</Badge>
+            <Badge>UTILTS E66 KVART</Badge>
+            <Badge>UTILTS E66 SCH</Badge>
+            <Badge>UTILTS S02</Badge>
+            <Badge>UTILTS S03</Badge>
+          </div>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <div className="text-xs font-semibold text-slate-900">Energitjänsteföretag</div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            <Badge>PRODAT tillstånd</Badge>
+          </div>
+        </div>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <div className="font-semibold">Rekommenderad start</div>
+          <p className="mt-1">Kör först Leverantör → S1.2 → 1.2.2 Z03LK. Det är minsta PRODAT-flödet och passar bäst för första portaltestet.</p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function getRecentMessageOptions(messages: EdielMessageRow[]) {
@@ -297,18 +415,18 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
           <p className="mt-1 text-xs">{nextAction.description}</p>
           {isWaitingForPortal ? (
             <p className="mt-2 rounded-xl border border-amber-200 bg-white/70 px-3 py-2 text-xs text-amber-900">
-              Detta steg ägs av Edielportalen. Autopilot kan inte hämta riktig portalfil i filbaserat läge. Importera portalens CONTRL/APERAK/PRODAT-svar, eller skapa ett simulerat portalsvar för intern testkedja.
+              Detta steg ägs av Edielportalen. Nästa riktiga steg är att hämta/kopiera svaret i portalen och importera det under Filimport som inbound/TGT. Simulerat portalsvar är bara för intern övning och ska aldrig skickas till portalen.
             </p>
           ) : null}
         </div>
-        <Badge tone={tone}>{nextAction.kind}</Badge>
+        <Badge tone={tone}>{nextActionKindLabel(nextAction.kind)}</Badge>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
         <form action={runEdielTgtAutopilotAction}>
           <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
           <button className="rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100">
-            Kör autopilot för nästa steg
+            Försök skapa nästa GridCore-utkast
           </button>
         </form>
 
@@ -329,7 +447,7 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
           <form action={createMockPortalMessageForNextTgtStepAction}>
             <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
             <button className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50">
-              Skapa simulerat portalsvar endast för intern test
+              Simulera portalens svar internt
             </button>
           </form>
         ) : null}
@@ -428,11 +546,15 @@ function TestCaseCard({
               <Badge tone={definitionTone(testCase.status)}>{testCase.status}</Badge>
               {testData ? <Badge tone="green">testdata kopplad</Badge> : <Badge tone="yellow">utan testdata</Badge>}
               <Badge tone={activeRunsForCase > 0 ? 'yellow' : 'slate'}>{activeRunsForCase} aktiva runs</Badge>
+              {isFirstRecommendedCase(testCase) ? <Badge tone="green">börja här</Badge> : null}
             </div>
             <h3 className="mt-3 text-sm font-semibold text-slate-950">{testCase.title}</h3>
             <p className="mt-1 text-sm text-slate-600">{testCase.purpose}</p>
+            <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+              <span className="font-semibold">I Edielportalen:</span> {portalTestName(testCase)}
+            </div>
             <p className="mt-2 text-xs font-medium text-indigo-700 group-open:hidden">
-              Klicka här för att öppna ett steg-för-steg-fönster för detta testfall.
+              Klicka här för att öppna ett fokuserat testfönster. Du behöver inte scrolla hela sidan.
             </p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
@@ -455,7 +577,7 @@ function TestCaseCard({
               <input type="hidden" name="roleCode" value={testCase.roleCode} />
               <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
               <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
-                Skapa ny test run
+                Starta i GridCore
               </button>
             </form>
           </div>
@@ -466,7 +588,20 @@ function TestCaseCard({
           <div className="mt-1"><span className="font-semibold text-slate-800">Version:</span> {testCase.approvalVersion}</div>
         </div>
 
-        <TestDataSummary data={testData} />
+        {isFirstRecommendedCase(testCase) ? (
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+            <div className="text-sm font-semibold text-blue-950">Så matchar GridCore mot Edielportalens S1.2.2-steg</div>
+            <p className="mt-1 text-xs text-blue-900">
+              Börja med steg 1. När portalen ger svar importerar du svaren via Filimport. GridCore skapar sedan svar på steg 5 och 6 som utkast.
+            </p>
+            <PortalTestStepTable />
+          </div>
+        ) : null}
+
+        <details className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3">
+          <summary className="cursor-pointer text-xs font-semibold text-indigo-950">Visa testdata från Excel</summary>
+          <TestDataSummary data={testData} />
+        </details>
         <DraftOptionPanel testCase={testCase} />
 
         <div className="mt-4 space-y-2">
@@ -479,7 +614,8 @@ function TestCaseCard({
                 <div className="font-semibold text-slate-900">{step.title}</div>
                 <div className="mt-1 text-slate-600">{step.description}</div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <Badge>{step.direction}</Badge>
+                  <Badge>{directionLabel(step.direction)}</Badge>
+                  <Badge>{actorLabel(step.actor)}</Badge>
                   <Badge>{step.family}</Badge>
                   <Badge>{step.code}</Badge>
                   {step.outcome ? <Badge tone={step.outcome === 'positive' ? 'green' : 'red'}>{step.outcome}</Badge> : null}
@@ -534,6 +670,21 @@ function RunEvaluationCard({
         </div>
       </div>
 
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+          <div className="font-semibold text-slate-950">1. Jobba här</div>
+          <p className="mt-1">Följ bara nästa steg-kortet nedan. Skapa inte flera parallella runs för samma portaltest.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+          <div className="font-semibold text-slate-950">2. Portalens svar</div>
+          <p className="mt-1">CONTRL, APERAK och Z04 kommer från Edielportalen. Importera varje svar i Filimport.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+          <div className="font-semibold text-slate-950">3. GridCore svarar</div>
+          <p className="mt-1">När Z04 är importerad skapar GridCore CONTRL/APERAK-utkast till portalen.</p>
+        </div>
+      </div>
+
       <GuidedNextActionPanel evaluation={evaluation} />
       <RunArchiveControls evaluation={evaluation} />
 
@@ -552,10 +703,11 @@ function RunEvaluationCard({
                 <div>
                   <div className="flex flex-wrap gap-2">
                     <Badge tone={match.status === 'passed' ? 'green' : match.status === 'mismatch' ? 'red' : 'yellow'}>
-                      {match.status}
+                      {matchStatusLabel(match.status)}
                     </Badge>
                     <Badge>Steg {match.step.stepNo}</Badge>
-                    <Badge>{match.step.direction}</Badge>
+                    <Badge>{directionLabel(match.step.direction)}</Badge>
+                    <Badge>{actorLabel(match.step.actor)}</Badge>
                     <Badge>{match.step.family}</Badge>
                     <Badge>{match.step.code}</Badge>
                     {match.step.outcome ? <Badge>{match.step.outcome}</Badge> : null}
@@ -574,24 +726,27 @@ function RunEvaluationCard({
                     </Link>
                   ) : null}
                 </div>
-                <form action={attachEdielMessageToTestRunAction} className="flex flex-wrap items-center gap-2">
-                  <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
-                  <input type="hidden" name="stepNo" value={match.step.stepNo} />
-                  <input type="hidden" name="expectedDirection" value={match.step.direction} />
-                  <input type="hidden" name="expectedFamily" value={match.step.family} />
-                  <input type="hidden" name="expectedCode" value={match.step.code} />
-                  <select name="edielMessageId" className="max-w-[260px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950">
-                    <option value="">Koppla meddelande manuellt…</option>
-                    {options.map((message) => (
-                      <option key={message.id} value={message.id}>
-                        {message.direction} · {message.message_family}/{String(message.message_code)} · {formatDateTime(message.created_at)}
-                      </option>
-                    ))}
-                  </select>
-                  <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
-                    Koppla
-                  </button>
-                </form>
+                <details className="max-w-full rounded-xl border border-slate-200 bg-white p-2">
+                  <summary className="cursor-pointer text-xs font-semibold text-slate-700">Avancerat: koppla manuellt</summary>
+                  <form action={attachEdielMessageToTestRunAction} className="mt-2 flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
+                    <input type="hidden" name="stepNo" value={match.step.stepNo} />
+                    <input type="hidden" name="expectedDirection" value={match.step.direction} />
+                    <input type="hidden" name="expectedFamily" value={match.step.family} />
+                    <input type="hidden" name="expectedCode" value={match.step.code} />
+                    <select name="edielMessageId" className="max-w-[260px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950">
+                      <option value="">Välj Ediel-meddelande…</option>
+                      {options.map((message) => (
+                        <option key={message.id} value={message.id}>
+                          {message.direction} · {message.message_family}/{String(message.message_code)} · {formatDateTime(message.created_at)}
+                        </option>
+                      ))}
+                    </select>
+                    <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                      Koppla
+                    </button>
+                  </form>
+                </details>
               </div>
             </div>
           ))}
@@ -641,6 +796,8 @@ export default function EdielTgtWorkbenchPanel({
 }) {
   const definitions = getEdielTgtTestCases()
   const coreDefinitions = definitions.filter((definition) => definition.scope === 'core')
+  const recommendedDefinition = coreDefinitions.find(isFirstRecommendedCase) ?? null
+  const otherCoreDefinitions = coreDefinitions.filter((definition) => !isFirstRecommendedCase(definition))
   const activeRuns = testRuns.filter((run) => run.status !== 'cancelled')
   const archivedRuns = testRuns.filter((run) => run.status === 'cancelled')
   const evaluations = activeRuns
@@ -681,21 +838,36 @@ export default function EdielTgtWorkbenchPanel({
         Håll bara en aktiv run per Edielportal-test. Arkivera felaktiga eller gamla runs innan du kör vidare, annars blir matchning och felsökning rörig.
       </div>
 
+      <PortalScopePanel />
+
       <CoverageDashboard evaluations={evaluations} definitions={coreDefinitions} archivedCount={archivedRuns.length} />
       <Batch5RunbookPanel />
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
         <div>
-          <h3 className="mb-3 text-sm font-semibold text-slate-950">Rekommenderade startmallar</h3>
-          <div className="space-y-4">
-            {coreDefinitions.map((definition) => (
-              <TestCaseCard
-                key={`${definition.suite}-${definition.roleCode}-${definition.testCaseCode}`}
-                testCase={definition}
-                activeRunsForCase={activeRunsForCase(definition)}
-              />
-            ))}
-          </div>
+          <h3 className="mb-3 text-sm font-semibold text-slate-950">Börja här</h3>
+          {recommendedDefinition ? (
+            <TestCaseCard
+              key={`${recommendedDefinition.suite}-${recommendedDefinition.roleCode}-${recommendedDefinition.testCaseCode}`}
+              testCase={recommendedDefinition}
+              activeRunsForCase={activeRunsForCase(recommendedDefinition)}
+            />
+          ) : null}
+
+          <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+              Visa övriga testmallar ({otherCoreDefinitions.length})
+            </summary>
+            <div className="mt-4 space-y-4">
+              {otherCoreDefinitions.map((definition) => (
+                <TestCaseCard
+                  key={`${definition.suite}-${definition.roleCode}-${definition.testCaseCode}`}
+                  testCase={definition}
+                  activeRunsForCase={activeRunsForCase(definition)}
+                />
+              ))}
+            </div>
+          </details>
         </div>
 
         <div>
