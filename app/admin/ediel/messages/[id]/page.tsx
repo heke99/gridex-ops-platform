@@ -17,10 +17,12 @@ import {
   type ResolvedVersionWindow,
 } from '@/lib/ediel/config'
 import {
+  cancelEdielMessageAction,
   createNegativeUtiltsResponseAction,
   sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
 import type { EdielMessageEventRow } from '@/lib/ediel/types'
+import { evaluateProdatPortalReadiness } from '@/lib/ediel/prodatPortalReadiness'
 
 export const dynamic = 'force-dynamic'
 
@@ -318,6 +320,7 @@ export default async function AdminEdielMessageDetailPage({
       ? (routeRuntime as Record<string, unknown>)
       : null
   )
+  const prodatPortalReadiness = evaluateProdatPortalReadiness(message)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -366,6 +369,19 @@ export default async function AdminEdielMessageDetailPage({
                 </form>
               ) : null}
 
+              {message.status !== 'cancelled' ? (
+                <form action={cancelEdielMessageAction}>
+                  <input type="hidden" name="edielMessageId" value={message.id} />
+                  <input type="hidden" name="reason" value="Dold/raderad från meddelandedetalj för renare Ediel-testvy." />
+                  <button
+                    type="submit"
+                    className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700"
+                  >
+                    Dölj/radera från arbetsvy
+                  </button>
+                </form>
+              ) : null}
+
               {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
                 <form action={createNegativeUtiltsResponseAction} className="flex flex-col gap-2">
                   <input type="hidden" name="edielMessageId" value={message.id} />
@@ -386,6 +402,57 @@ export default async function AdminEdielMessageDetailPage({
             </div>
           </div>
         </section>
+
+        {prodatPortalReadiness.checked ? (
+          <section className="rounded-3xl border border-slate-200 bg-white p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">PRODAT portal-readiness</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Intern kontroll innan du testar filen i Edielportalen. Portalen är fortfarande facit, men denna panel fångar vanliga fel innan uppladdning.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Pill text={prodatPortalReadiness.readyForInternalFileTest ? 'intern test OK' : 'blockerad internt'} />
+                <Pill text={prodatPortalReadiness.readyForPortalTrial ? 'portal-ready' : 'behöver granskning'} />
+                <Pill text={`${prodatPortalReadiness.segmentCount} segment`} />
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 xl:grid-cols-2">
+              <div className="space-y-3">
+                {prodatPortalReadiness.issues.length === 0 ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                    Inga blockerande eller varningsflaggor hittades i intern portal-check.
+                  </div>
+                ) : (
+                  prodatPortalReadiness.issues.map((issue) => (
+                    <div
+                      key={issue.code}
+                      className={`rounded-2xl border p-4 text-sm ${
+                        issue.severity === 'error'
+                          ? 'border-rose-200 bg-rose-50 text-rose-800'
+                          : issue.severity === 'warning'
+                            ? 'border-amber-200 bg-amber-50 text-amber-800'
+                            : 'border-blue-200 bg-blue-50 text-blue-800'
+                      }`}
+                    >
+                      <div className="font-semibold">{issue.title}</div>
+                      <div className="mt-1 text-xs">{issue.description}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Exportvänlig EDIFACT-visning</div>
+                <pre className="mt-2 max-h-[360px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
+                  {prodatPortalReadiness.formattedPayload ?? 'Saknar raw_payload'}
+                </pre>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="grid gap-6 xl:grid-cols-3">
           <article className="rounded-3xl border border-slate-200 bg-white p-6 xl:col-span-2">

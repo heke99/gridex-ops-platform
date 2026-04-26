@@ -37,6 +37,7 @@ import {
   updateSupplierSwitchValidationSnapshot,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
+import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
 import type {
   CustomerAuthorizationDocumentRow,
   SupplierSwitchRequestType,
@@ -1127,6 +1128,8 @@ export async function uploadCustomerAuthorizationDocumentAction(
   let switchRequestId: string | null = null
   let switchOutboundId: string | null = null
   let switchReadinessIssues: Array<{ code?: unknown; title?: unknown }> | null = null
+  let switchEdielMessageId: string | null = null
+  let switchEdielAutomationError: string | null = null
 
   if (siteId && automationDecision.shouldCreateGridOwnerRequests) {
     const requestResult = await queueGridOwnerRequestsFromDocument({
@@ -1168,6 +1171,25 @@ export async function uploadCustomerAuthorizationDocumentAction(
     switchOutboundId = switchResult.switchOutboundId
     switchReadinessIssues = switchResult.readinessIssues
 
+    if (switchResult.switchRequestId && automationDecision.shouldQueueSwitchOutbound) {
+      try {
+        const edielResult = await ensureInitialSwitchEdielAutomation({
+          actorUserId: actor.id,
+          switchRequestId: switchResult.switchRequestId,
+        })
+
+        switchEdielMessageId = edielResult.message?.id ?? null
+        if (!switchOutboundId && edielResult.outboundRequestId) {
+          switchOutboundId = edielResult.outboundRequestId
+        }
+      } catch (error) {
+        switchEdielAutomationError = error instanceof Error ? error.message : String(error)
+        automationDecision.warnings.push(
+          `Ediel Z03 skapades inte automatiskt efter fullmakt/avtal: ${switchEdielAutomationError}`
+        )
+      }
+    }
+
     if (!switchResult.switchRequestId && switchResult.readinessIssues?.length) {
       automationDecision.blockedReasons.push(
         `Supplier switch skapades inte eftersom readiness blockerade: ${switchResult.readinessIssues
@@ -1201,6 +1223,8 @@ export async function uploadCustomerAuthorizationDocumentAction(
       createdGridOwnerOutboundIds,
       switchRequestId,
       switchOutboundId,
+      switchEdielMessageId,
+      switchEdielAutomationError,
       switchReadinessIssues,
       automationBlockedReasons: automationDecision.blockedReasons,
       automationWarnings: automationDecision.warnings,
@@ -1240,6 +1264,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
       : null,
     switchRequestId ? `Switch request: ${switchRequestId}.` : null,
     switchOutboundId ? `Switch outbound: ${switchOutboundId}.` : null,
+    switchEdielMessageId ? `Ediel Z03 skapades automatiskt: ${switchEdielMessageId}.` : null,
     automationDecision.warnings.length
       ? `Begränsningar: ${automationDecision.warnings.join(' ')}`
       : null,

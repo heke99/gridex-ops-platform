@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { registerEdielFileAction } from '@/app/admin/ediel/actions'
+import { cancelEdielMessageAction, registerEdielFileAction } from '@/app/admin/ediel/actions'
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
@@ -75,7 +75,7 @@ export default function EdielFileEnginePanel({
               <select
                 name="direction"
                 defaultValue="inbound"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400"
               >
                 <option value="inbound">Inbound · fil från portal/motpart</option>
                 <option value="outbound">Outbound · fil från Gridex</option>
@@ -87,7 +87,7 @@ export default function EdielFileEnginePanel({
               <select
                 name="mode"
                 defaultValue="tgt"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400"
               >
                 <option value="tgt">TGT · Edielportalen</option>
                 <option value="internal_test">Intern test</option>
@@ -103,7 +103,7 @@ export default function EdielFileEnginePanel({
                 name="edielFile"
                 type="file"
                 accept=".edi,.edifact,.txt,.csv,.skv"
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 file:text-slate-700"
               />
             </label>
             <label className="block">
@@ -111,7 +111,7 @@ export default function EdielFileEnginePanel({
               <input
                 name="mailboxMessageId"
                 placeholder="Ex: portal-message-id eller filreferens"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400"
               />
             </label>
           </div>
@@ -122,7 +122,7 @@ export default function EdielFileEnginePanel({
               name="rawPayload"
               rows={8}
               placeholder="UNB+UNOC:3+21660:DDQ+91100:PRODAT+..."
-              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 font-mono text-xs"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-950 placeholder:text-slate-400"
             />
           </label>
 
@@ -132,7 +132,7 @@ export default function EdielFileEnginePanel({
               <input
                 name="mailbox"
                 defaultValue="file-engine"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400"
               />
             </label>
             <label className="block">
@@ -140,7 +140,7 @@ export default function EdielFileEnginePanel({
               <input
                 name="senderEmail"
                 placeholder="valfritt"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400"
               />
             </label>
             <label className="block">
@@ -148,7 +148,7 @@ export default function EdielFileEnginePanel({
               <input
                 name="receiverEmail"
                 defaultValue={EDIEL_TGT_TESTSYSTEM_EMAIL}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400"
               />
             </label>
           </div>
@@ -221,7 +221,7 @@ export default function EdielFileEnginePanel({
                 <th className="px-3 py-2">Parter</th>
                 <th className="px-3 py-2">Referenser</th>
                 <th className="px-3 py-2">Validering</th>
-                <th className="px-3 py-2">Öppna</th>
+                <th className="px-3 py-2">Åtgärd</th>
               </tr>
             </thead>
             <tbody>
@@ -265,9 +265,18 @@ export default function EdielFileEnginePanel({
                         )}
                       </td>
                       <td className="px-3 py-2">
-                        <Link href={`/admin/ediel/messages/${row.id}`} className="text-indigo-700 underline-offset-2 hover:underline">
-                          Öppna
-                        </Link>
+                        <div className="flex flex-wrap gap-2">
+                          <Link href={`/admin/ediel/messages/${row.id}`} className="text-indigo-700 underline-offset-2 hover:underline">
+                            Öppna
+                          </Link>
+                          <form action={cancelEdielMessageAction}>
+                            <input type="hidden" name="edielMessageId" value={row.id} />
+                            <input type="hidden" name="reason" value="Dold från filimportlistan via admin cleanup." />
+                            <button className="text-rose-700 underline-offset-2 hover:underline">
+                              Dölj
+                            </button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   )

@@ -23,6 +23,7 @@ import {
   listRuleAmbiguities,
 } from '@/lib/ediel/db'
 import {
+  cancelEdielMessageAction,
   createEdielTestRunAction,
   registerInboundUtiltsAction,
   runEdielSelfTestAction,
@@ -434,7 +435,8 @@ export default async function AdminEdielPage() {
   const allRoutes = (routesRaw.data ?? []) as SimpleCommunicationRouteRow[]
   const gridOwners = (gridOwnersRaw.data ?? []) as SimpleGridOwnerRow[]
 
-  const messages = messagesRaw.filter((row) => isActiveEdielMessageFamily(row.message_family))
+  const messages = messagesRaw.filter((row) => isActiveEdielMessageFamily(row.message_family) && row.status !== 'cancelled')
+  const cancelledMessagesCount = messagesRaw.filter((row) => row.status === 'cancelled').length
   const hiddenMessagesCount = messagesRaw.length - messages.length
 
   const testRuns = testRunsRaw.filter((row) => isActiveEdielTestSuite(row.test_suite))
@@ -630,7 +632,10 @@ export default async function AdminEdielPage() {
               testsviter: {ACTIVE_EDIEL_TEST_SUITES.join(', ')}
             </Badge>
             <Badge tone={hiddenMessagesCount > 0 ? 'yellow' : 'green'}>
-              dolda meddelanden: {hiddenMessagesCount}
+              dolda/arkiverade meddelanden: {hiddenMessagesCount}
+            </Badge>
+            <Badge tone={cancelledMessagesCount > 0 ? 'yellow' : 'green'}>
+              rensade: {cancelledMessagesCount}
             </Badge>
             <Badge tone={hiddenTestRunsCount > 0 ? 'yellow' : 'green'}>
               dolda test runs: {hiddenTestRunsCount}
@@ -1550,7 +1555,7 @@ export default async function AdminEdielPage() {
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Ack-state</th>
                 <th className="px-3 py-2">Referenser</th>
-                <th className="px-3 py-2">Öppna</th>
+                <th className="px-3 py-2">Åtgärd</th>
               </tr>
             </thead>
             <tbody>
@@ -1591,12 +1596,21 @@ export default async function AdminEdielPage() {
                         <div>Interchange: {row.interchange_reference ?? '—'}</div>
                       </td>
                       <td className="px-3 py-2">
-                        <Link
-                          href={`/admin/ediel/messages/${row.id}`}
-                          className="text-indigo-700 underline-offset-2 hover:underline"
-                        >
-                          Öppna
-                        </Link>
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            href={`/admin/ediel/messages/${row.id}`}
+                            className="text-indigo-700 underline-offset-2 hover:underline"
+                          >
+                            Öppna
+                          </Link>
+                          <form action={cancelEdielMessageAction}>
+                            <input type="hidden" name="edielMessageId" value={row.id} />
+                            <input type="hidden" name="reason" value="Dold/raderad från Ediel-admin för renare testvy." />
+                            <button className="text-rose-700 underline-offset-2 hover:underline">
+                              Dölj
+                            </button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   )

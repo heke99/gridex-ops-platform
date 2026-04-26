@@ -160,21 +160,45 @@ export async function ensureInitialSwitchEdielAutomation(
   })
 
   if (existingOutbound) {
+    const { data: existingMessages, error: existingMessageError } = await supabaseService
+      .from('ediel_messages')
+      .select('id')
+      .eq('outbound_request_id', existingOutbound.id)
+      .eq('message_family', 'PRODAT')
+      .eq('message_code', 'Z03')
+      .neq('status', 'cancelled')
+      .limit(1)
+
+    if (existingMessageError) throw existingMessageError
+
+    if ((existingMessages ?? []).length > 0) {
+      await createAutomationEvent({
+        actorUserId: input.actorUserId,
+        switchRequestId: context.switchRequest.id,
+        message: 'Befintlig outbound och PRODAT Z03 hittades för switch request. Ingen ny fil skapades.',
+        payload: {
+          outboundRequestId: existingOutbound.id,
+          edielMessageId: existingMessages?.[0]?.id ?? null,
+          status: existingOutbound.status,
+        },
+      })
+
+      return {
+        alreadyQueued: true,
+        outboundRequestId: existingOutbound.id,
+        message: null,
+      }
+    }
+
     await createAutomationEvent({
       actorUserId: input.actorUserId,
       switchRequestId: context.switchRequest.id,
-      message: 'Befintlig outbound hittad för switch request. Ingen ny initial queue skapad.',
+      message: 'Befintlig outbound hittad, men ingen PRODAT Z03. Skapar Ediel-fil från samma outbound.',
       payload: {
         outboundRequestId: existingOutbound.id,
         status: existingOutbound.status,
       },
     })
-
-    return {
-      alreadyQueued: true,
-      outboundRequestId: existingOutbound.id,
-      message: null,
-    }
   }
 
   const message = await prepareAndQueueEdielZ03({

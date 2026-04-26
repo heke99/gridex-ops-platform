@@ -24,6 +24,7 @@ import {
   createEdielMessage,
   createEdielTestRun,
   getEdielMessageById,
+  updateEdielMessageStatus,
   updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import { runEdielSelfTest } from '@/lib/ediel/selftest'
@@ -164,6 +165,24 @@ async function revalidateRelatedMessage(messageId?: string | null) {
   }
 
   revalidateEdiel(message.id)
+}
+
+export async function cancelEdielMessageAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const edielMessageId = formString(formData.get('edielMessageId'))
+  const reason = formString(formData.get('reason')) ?? 'Dold/raderad från admin av användare.'
+
+  if (!edielMessageId) throw new Error('edielMessageId saknas')
+
+  await updateEdielMessageStatus({
+    actorUserId: context.userId,
+    edielMessageId,
+    status: 'cancelled',
+    failureReason: reason,
+  })
+
+  await revalidateRelatedMessage(edielMessageId)
+  revalidateEdiel(edielMessageId)
 }
 
 export async function sendEdielMessageAction(formData: FormData) {
