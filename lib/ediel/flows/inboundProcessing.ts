@@ -23,6 +23,7 @@ import { buildContrlDraft, buildAperakDraft, buildUtiltsErrDraft, getAutomaticAc
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
+import { buildSafeMasterdataProposal } from '@/lib/ediel/operationalVerification'
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -163,6 +164,27 @@ async function processInboundProdatMessage(params: {
   })
 
   if (!canonicalLinks.matchedSwitch) {
+    const safeApplyProposalChanges = ['Z06', 'Z10'].includes(String(params.message.message_code))
+      ? await buildSafeMasterdataProposal(params.message)
+      : []
+
+    if (safeApplyProposalChanges.length > 0) {
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: params.message.id,
+        eventType: 'manual_note',
+        eventStatus: 'warning',
+        message: 'Safe apply-förslag skapades för Z06/Z10 utan stark switch-koppling. Masterdata skrevs inte över automatiskt.',
+        payload: {
+          batch: '6B',
+          safeApply: true,
+          appliedAutomatically: false,
+          proposedChanges: safeApplyProposalChanges,
+          reviewRequired: true,
+        },
+      })
+    }
+
     const ackIds = await createAutomaticPositiveAcks({
       actorUserId: params.actorUserId,
       sourceMessage: params.message,
@@ -180,6 +202,7 @@ async function processInboundProdatMessage(params: {
         createdAckMessageIds: ackIds,
         canonicalAckState: ackSnapshot.canonicalAckState,
         ackMessages: ackSnapshot.ackMessages,
+        safeApplyProposalChanges,
       },
     })
 
@@ -206,6 +229,27 @@ async function processInboundProdatMessage(params: {
     })
   }
 
+  const safeApplyProposalChanges = ['Z06', 'Z10'].includes(String(params.message.message_code))
+    ? await buildSafeMasterdataProposal(params.message)
+    : []
+
+  if (safeApplyProposalChanges.length > 0) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.message.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Safe apply-förslag skapades för Z06/Z10. Masterdata skrevs inte över automatiskt.',
+      payload: {
+        batch: '6B',
+        safeApply: true,
+        appliedAutomatically: false,
+        proposedChanges: safeApplyProposalChanges,
+        reviewRequired: true,
+      },
+    })
+  }
+
   const ackIds = await createAutomaticPositiveAcks({
     actorUserId: params.actorUserId,
     sourceMessage: params.message,
@@ -222,6 +266,7 @@ async function processInboundProdatMessage(params: {
       createdAckMessageIds: ackIds,
       canonicalAckState: ackSnapshot.canonicalAckState,
       ackMessages: ackSnapshot.ackMessages,
+      safeApplyProposalChanges,
     },
   })
 
@@ -236,9 +281,11 @@ async function processInboundProdatMessage(params: {
       createdAckMessageIds: ackIds,
       canonicalAckState: ackSnapshot.canonicalAckState,
       ackMessages: ackSnapshot.ackMessages,
+      safeApplyProposalChanges,
     },
   })
 }
+
 
 export async function processInboundEdielMessage(params: {
   actorUserId: string

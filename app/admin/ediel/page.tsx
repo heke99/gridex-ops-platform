@@ -6,6 +6,7 @@ import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActi
 import EdielFileEnginePanel from '@/components/admin/ediel/EdielFileEnginePanel'
 import EdielTgtWorkbenchPanel from '@/components/admin/ediel/EdielTgtWorkbenchPanel'
 import EdielOperationalBridgePanel from '@/components/admin/ediel/EdielOperationalBridgePanel'
+import EdielOperationalVerificationPanel from '@/components/admin/ediel/EdielOperationalVerificationPanel'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getCanonicalAckState } from '@/lib/ediel/ack'
 import {
@@ -432,7 +433,6 @@ export default async function AdminEdielPage() {
 
       <EdielFileEnginePanel recentMessages={messages} />
 
-      <EdielTgtWorkbenchPanel messages={messages} testRuns={testRuns} />
 
       <EdielOperationalBridgePanel
         messages={messages}
@@ -440,6 +440,14 @@ export default async function AdminEdielPage() {
         dataRequests={dataRequests}
         outboundRequests={outboundRequests}
         routes={workbenchRoutes}
+      />
+
+
+      <EdielOperationalVerificationPanel
+        messages={messages}
+        switchRequests={switchRequests}
+        dataRequests={dataRequests}
+        outboundRequests={outboundRequests}
       />
 
       <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">

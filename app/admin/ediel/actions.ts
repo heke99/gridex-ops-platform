@@ -51,6 +51,7 @@ import { registerEdielFile, type EdielFileEngineMode } from '@/lib/ediel/fileEng
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
 import { processEdielOperationalMessage } from '@/lib/ediel/operationalBridge'
+import { createSafeMasterdataProposalForMessage } from '@/lib/ediel/operationalVerification'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
 function formString(value: FormDataEntryValue | null): string | null {
@@ -344,6 +345,21 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
   if (!edielMessageId) throw new Error('edielMessageId saknas')
 
   await processEdielOperationalMessage({
+    actorUserId: context.userId,
+    edielMessageId,
+  })
+
+  await revalidateRelatedMessage(edielMessageId)
+  revalidateEdiel(edielMessageId)
+}
+
+export async function createSafeMasterdataProposalAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const edielMessageId = formString(formData.get('edielMessageId'))
+
+  if (!edielMessageId) throw new Error('edielMessageId saknas')
+
+  await createSafeMasterdataProposalForMessage({
     actorUserId: context.userId,
     edielMessageId,
   })
