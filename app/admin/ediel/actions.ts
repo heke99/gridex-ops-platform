@@ -60,7 +60,7 @@ import {
 import { processEdielOperationalMessage } from '@/lib/ediel/operationalBridge'
 import { createSafeMasterdataProposalForMessage } from '@/lib/ediel/operationalVerification'
 import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from '@/lib/ediel/safeApplyReview'
-import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
+import type { EdielEnvironment, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
@@ -620,12 +620,14 @@ async function prepareSwitchProdatAction(formData: FormData, messageCode: Prodat
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const switchRequestId = formString(formData.get('switchRequestId'))
   const communicationRouteId = formString(formData.get('communicationRouteId'))
+  const environment = (formString(formData.get('environment')) === 'production' ? 'production' : 'test') as EdielEnvironment
   if (!switchRequestId) throw new Error('switchRequestId saknas')
 
   const params = {
     actorUserId: context.userId,
     switchRequestId,
     communicationRouteId,
+    environment,
   }
 
   const message =

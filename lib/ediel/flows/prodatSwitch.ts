@@ -17,6 +17,7 @@ import {
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
+import type { EdielEnvironment } from '@/lib/ediel/types'
 import type {
   CustomerSiteRow,
   GridOwnerRow,
@@ -35,6 +36,7 @@ type PrepareProdatSwitchParams = {
   actorUserId: string
   switchRequestId: string
   communicationRouteId?: string | null
+  environment?: EdielEnvironment
 }
 
 type RouteContext = Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
@@ -133,7 +135,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     requestType: 'supplier_switch',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    environment: 'test',
+    environment: params.environment ?? 'test',
     messageStandard: 'edifact',
   })
 

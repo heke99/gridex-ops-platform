@@ -5,6 +5,7 @@ import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
 import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
 import EdielFileEnginePanel from '@/components/admin/ediel/EdielFileEnginePanel'
 import EdielTgtWorkbenchPanel from '@/components/admin/ediel/EdielTgtWorkbenchPanel'
+import EdielProductionProdatPanel from '@/components/admin/ediel/EdielProductionProdatPanel'
 import EdielOperationalBridgePanel from '@/components/admin/ediel/EdielOperationalBridgePanel'
 import EdielOperationalVerificationPanel from '@/components/admin/ediel/EdielOperationalVerificationPanel'
 import EdielSafeApplyReviewPanel from '@/components/admin/ediel/EdielSafeApplyReviewPanel'
@@ -40,6 +41,7 @@ import {
 } from '@/lib/ediel/types'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listSafeApplyReviewItems, listUtiltsBillingReviewItems } from '@/lib/ediel/safeApplyReview'
+import { listEdielProdatProductionCandidates } from '@/lib/ediel/prodatContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -443,6 +445,7 @@ export default async function AdminEdielPage() {
   const hiddenTestRunsCount = testRunsRaw.length - testRuns.length
   const safeApplyReviewItems = await listSafeApplyReviewItems(messages)
   const utiltsBillingReviewItems = listUtiltsBillingReviewItems(messages)
+  const prodatProductionCandidates = await listEdielProdatProductionCandidates(supabase, 30)
 
   const edielRoutes = allRoutes.filter(isEdielCandidateRoute)
   const routeProfiles = await Promise.all(
@@ -573,9 +576,9 @@ export default async function AdminEdielPage() {
           />
           <WorkflowStep
             number="2"
-            title="Kör TGT-test"
-            text="Välj testfall, skapa test run och följ nästa steg."
-            href="#tgt"
+            title="Kundstyrd PRODAT"
+            text="Välj riktigt kundunderlag och skapa Z03/Z04 när allt är komplett."
+            href="#production-prodat"
           />
           <WorkflowStep
             number="3"
@@ -596,6 +599,7 @@ export default async function AdminEdielPage() {
         <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-7">
           <QuickNavItem href="#overview" label="Översikt" description="Status och snabbstart" tone="blue" />
           <QuickNavItem href="#file-engine" label="Filimport" description="Import/export/utkast" tone="green" />
+          <QuickNavItem href="#production-prodat" label="PRODAT" description="Kundstyrd Z03/Z04" tone="green" />
           <QuickNavItem href="#tgt" label="TGT-test" description="Testfall och steg" tone="blue" />
           <QuickNavItem href="#operations" label="Verksamhet" description="Switch och UTILTS" tone="yellow" />
           <QuickNavItem href="#safe-apply" label="Safe apply" description="Granska ändringar" tone="green" />
@@ -653,8 +657,16 @@ export default async function AdminEdielPage() {
       <EdielFileEnginePanel recentMessages={messages} />
 
       <SectionLabel
+        id="production-prodat"
+        title="2. Kundstyrd PRODAT"
+        description="Skapa Z03/Z04 från riktig kund, anläggning, mätpunkt, fullmakt och route. Systemet spärrar ofullständigt underlag."
+      />
+
+      <EdielProductionProdatPanel candidates={prodatProductionCandidates} messages={messages} />
+
+      <SectionLabel
         id="tgt"
-        title="2. TGT-test och guided mode"
+        title="3. TGT-test och guided mode"
         description="Skapa test run, se testdata, skapa fil för nästa steg och importera portalens svar."
       />
 
@@ -662,7 +674,7 @@ export default async function AdminEdielPage() {
 
       <SectionLabel
         id="operations"
-        title="3. Verksamhetskoppling"
+        title="4. Verksamhetskoppling"
         description="Koppla Ediel-meddelanden till supplier switch, outbound queue, data requests och mätvärden."
       />
 

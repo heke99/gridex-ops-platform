@@ -101,7 +101,7 @@ type TgtPortalRegister = {
 }
 
 type TgtPortalCustomerData = {
-  source: 'ediel_portal' | 'embedded_excel'
+  source: 'tgt_test_data_registry' | 'missing_test_data'
   testCustomerLabel: string
   meteringPointId: string
   agreementStartDateTime: string
@@ -135,98 +135,6 @@ type TgtPortalCustomerData = {
   installationStatus?: string | null
   tariffCode?: string | null
   registers: TgtPortalRegister[]
-}
-
-const PORTAL_TEST_DATA: Record<string, TgtPortalCustomerData> = {
-  'PRODAT/supplier/1.2.1': {
-    source: 'ediel_portal',
-    testCustomerLabel: 'Testkund S1 / 1.2.1 Z03L extra information, ombud',
-    meteringPointId: '735999888000000017',
-    agreementStartDateTime: '202605150000',
-    annualEnergyUnit: 'KWH',
-    meteringMethod: 'Z01',
-    customerId: '194507018820',
-    customerName: 'MARGIT PAULSSON',
-    customerAddress: 'STORA VÄGEN 25',
-    customerPostalCode: '62020',
-    customerCity: 'KLINTEHAMN',
-    customerCountry: 'SE',
-    birthDate: '19450501',
-    billingRecipientId: '10011',
-    billingRecipientName: 'CONNY PAULSSON',
-    billingRecipientAddress: 'ÅGATAN 145',
-    billingRecipientPostalCode: '11543',
-    billingRecipientCity: 'STOCKHOLM',
-    billingRecipientCountry: 'SE',
-    siteAddress: 'VÄDERMYREN 1:22',
-    sitePostalCode: '62020',
-    siteCity: 'KLINTEHAMN',
-    siteCountry: 'SE',
-    gridAreaId: 'TES',
-    powerOfAttorneyReference: 'AVTAL01',
-    balanceResponsibleId: '91109',
-    registers: [
-      {
-        label: 'register_1',
-        annualEnergyKwh: '5800',
-        meterConstant: '1',
-        meterDigits: '6',
-        meterTimeInterval: '201',
-      },
-    ],
-  },
-  'PRODAT/supplier/1.2.5': {
-    source: 'ediel_portal',
-    testCustomerLabel: 'Testkund S1 / 1.2.5 Z04D mottagningspliktig mikroproduktion',
-    meteringPointId: '735999888000000017',
-    agreementStartDateTime: '202605150000',
-    annualEnergyUnit: 'KWH',
-    meteringMethod: 'Z01',
-    priority: 'A',
-    reportingFrequency: 'M',
-    meterNumber: 'M12345',
-    customerId: '194507018820',
-    customerName: 'MARGIT PAULSSON',
-    customerAddress: 'STORA VÄGEN 25',
-    customerPostalCode: '62020',
-    customerCity: 'KLINTEHAMN',
-    customerCountry: 'SE',
-    birthDate: '19450501',
-    billingRecipientId: '10011',
-    billingRecipientName: 'CONNY PAULSSON',
-    billingRecipientAddress: 'ÅGATAN 145',
-    billingRecipientPostalCode: '11543',
-    billingRecipientCity: 'STOCKHOLM',
-    billingRecipientCountry: 'SE',
-    siteAddress: 'VÄDERMYREN 1:22',
-    sitePostalCode: '62020',
-    siteCity: 'KLINTEHAMN',
-    siteCountry: 'SE',
-    productCode: 'L917',
-    settlementMethod: 'Z31',
-    gridAreaId: 'TES',
-    balanceResponsibleId: '91109',
-    installationStatus: 'Z12',
-    tariffCode: '25A',
-    registers: [
-      {
-        label: 'register_1',
-        annualEnergyKwh: '5800',
-        meterConstant: '1',
-        meterDigits: '6',
-        meterTimeInterval: '201',
-        resolution: '1',
-      },
-      {
-        label: 'register_2',
-        annualEnergyKwh: '2800',
-        meterConstant: '1',
-        meterDigits: '6',
-        meterTimeInterval: '202',
-        resolution: '1',
-      },
-    ],
-  },
 }
 
 function pad(value: number, length = 2): string {
@@ -297,25 +205,47 @@ function edifactEscape(value: string): string {
     .replace(/:/g, '?:')
 }
 
-function portalKey(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>): string {
-  return `${params.testSuite}/${params.roleCode}/${params.testCaseCode}`
+function normalizeSearch(value: string | null | undefined): string {
+  return String(value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function columnMatches(columnName: string, selectors: readonly string[]): boolean {
+  const haystack = normalizeSearch(columnName)
+  return selectors.some((selector) => haystack.includes(normalizeSearch(selector)))
+}
+
+function preferredColumnSelectorsForStep(step: EdielTgtExpectedStep): string[] {
+  if (step.family !== 'PRODAT') return []
+  if (step.code === 'Z03') return ['z03']
+  if (step.code === 'Z04') return ['z04']
+  return [step.code]
 }
 
 function findTestValue(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
-  selectors: readonly string[]
+  selectors: readonly string[],
+  preferredColumnSelectors: readonly string[] = []
 ): string | null {
   const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
   if (!data) return null
-  const normalizedSelectors = selectors.map((selector) => selector.toLowerCase())
+  const normalizedSelectors = selectors.map(normalizeSearch)
 
   for (const group of data.groups) {
+    const preferredColumns = preferredColumnSelectors.length > 0
+      ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, preferredColumnSelectors))
+      : []
+    const candidateColumns = preferredColumns.length > 0 ? preferredColumns : group.columns
+
     for (const field of group.fields) {
-      const haystack = `${field.fieldCode} ${field.fieldName}`.toLowerCase()
+      const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`)
       if (!normalizedSelectors.some((selector) => haystack.includes(selector))) continue
-      for (const value of Object.values(field.values)) {
-        const trimmed = typeof value === 'string' ? value.trim() : ''
-        if (trimmed.length > 0) return trimmed
+
+      for (const column of candidateColumns) {
+        const trimmed = field.values[column.name]?.trim()
+        if (trimmed) return trimmed
       }
     }
   }
@@ -323,53 +253,147 @@ function findTestValue(
   return null
 }
 
-function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>): TgtPortalCustomerData {
-  const hardcoded = PORTAL_TEST_DATA[portalKey(params)]
-  if (hardcoded) return hardcoded
+function findTestValueForStep(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  selectors: readonly string[]
+): string | null {
+  return findTestValue(params, selectors, preferredColumnSelectorsForStep(step))
+}
 
-  const meteringPointId = sanitizeCode(
-    findTestValue(params, ['209 anläggningsid', '209 anlaggningsid', 'metering point', 'mätpunkt']) ??
-      findTestValue(params, ['anläggningsid', 'anlaggningsid']),
-    '735999100000000001',
-    35
+function findFieldValueForColumn(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  columnName: string,
+  selectors: readonly string[]
+): string | null {
+  const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+  if (!data) return null
+  const normalizedSelectors = selectors.map(normalizeSearch)
+
+  for (const group of data.groups) {
+    for (const field of group.fields) {
+      const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`)
+      if (!normalizedSelectors.some((selector) => haystack.includes(selector))) continue
+      const trimmed = field.values[columnName]?.trim()
+      if (trimmed) return trimmed
+    }
+  }
+
+  return null
+}
+
+function selectedRegisterColumns(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep
+): string[] {
+  const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+  if (!data) return []
+  const selectors = preferredColumnSelectorsForStep(step)
+  const names: string[] = []
+
+  for (const group of data.groups) {
+    const columns = selectors.length > 0
+      ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, selectors))
+      : group.columns
+
+    for (const column of columns) {
+      if (!names.includes(column.name)) names.push(column.name)
+    }
+  }
+
+  return names
+}
+
+function buildRegistersFromTestData(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep
+): TgtPortalRegister[] {
+  const columns = selectedRegisterColumns(params, step)
+  const registers = columns.map((columnName, index) => {
+    const annualEnergyRaw = firstToken(findFieldValueForColumn(params, columnName, ['213 uppskattad årsenergi']))
+    const meterConstantRaw = firstToken(findFieldValueForColumn(params, columnName, ['214 konstant']))
+    const meterDigitsRaw = firstToken(findFieldValueForColumn(params, columnName, ['218 antal siffror']))
+    const intervalRaw = firstToken(findFieldValueForColumn(params, columnName, ['259 mätare, tidsintervall', '259 matare']))
+    const resolutionRaw = firstToken(findFieldValueForColumn(params, columnName, ['508b upplösning', '508 upplösning', '508 tidslängd']))
+
+    return {
+      label: `register_${index + 1}`,
+      annualEnergyKwh: annualEnergyRaw && /^\d+$/.test(annualEnergyRaw) ? annualEnergyRaw : '',
+      meterConstant: meterConstantRaw && /^\d+(?:[.,]\d+)?$/.test(meterConstantRaw) ? meterConstantRaw.replace(',', '.') : '',
+      meterDigits: meterDigitsRaw && /^\d+$/.test(meterDigitsRaw) ? meterDigitsRaw : '',
+      meterTimeInterval: intervalRaw && /^\d+$/.test(intervalRaw) ? intervalRaw : '',
+      resolution: resolutionRaw && /^\d+$/.test(resolutionRaw) ? resolutionRaw : null,
+    }
+  })
+
+  return registers.filter((register) =>
+    register.annualEnergyKwh ||
+    register.meterConstant ||
+    register.meterDigits ||
+    register.meterTimeInterval ||
+    register.resolution
   )
-  const startDateRaw = firstToken(findTestValue(params, ['210 avtal', 'startdatum', 'leveransstart']))
-  const annualEnergyRaw = firstToken(findTestValue(params, ['213 uppskattad årsenergi']))
+}
+
+function cleanOptional(value: string | null | undefined, maxLength = 70): string | null {
+  const cleaned = sanitize(value, '', maxLength)
+  return cleaned.length > 0 ? cleaned : null
+}
+
+function cleanOptionalCode(value: string | null | undefined, maxLength = 35): string | null {
+  const cleaned = sanitizeCode(value, '', maxLength)
+  return cleaned.length > 0 ? cleaned : null
+}
+
+function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>, step: EdielTgtExpectedStep): TgtPortalCustomerData {
+  const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+  const startDateRaw = firstToken(findTestValueForStep(params, step, ['210 avtal', 'startdatum', 'leveransstart']))
+  const registers = buildRegistersFromTestData(params, step)
 
   return {
-    source: 'embedded_excel',
-    testCustomerLabel: `TGT ${params.testSuite} ${params.testCaseCode}`,
-    meteringPointId,
+    source: data ? 'tgt_test_data_registry' : 'missing_test_data',
+    testCustomerLabel: data?.title ?? `TGT ${params.testSuite} ${params.testCaseCode}`,
+    meteringPointId: cleanOptionalCode(
+      findTestValueForStep(params, step, ['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid', 'metering point', 'mätpunkt']),
+      35
+    ) ?? '',
     agreementStartDateTime: startDateRaw && /^\d{8,12}$/.test(startDateRaw) ? startDateRaw : '',
-    annualEnergyUnit: 'KWH',
-    meteringMethod: sanitizeCode(findTestValue(params, ['217 mätmetod', '217 matmetod']), 'Z01', 12),
-    customerId: sanitizeCode(findTestValue(params, ['227 kund-id', 'personnummer', 'kundidentitet']), '197001010000', 35),
-    customerName: sanitize(findTestValue(params, ['228 namn-elanvändare', 'namn', 'kundnamn', 'customer']), 'TEST CUSTOMER'),
-    customerAddress: sanitize(findTestValue(params, ['229 adress-elanvändare']), '', 70) || null,
-    customerPostalCode: sanitizeCode(findTestValue(params, ['231 postnr-elanvändare']), '', 12) || null,
-    customerCity: sanitize(findTestValue(params, ['232 postort-elanvändare']), '', 35) || null,
-    customerCountry: sanitizeCode(findTestValue(params, ['316 land-elanvändare']), 'SE', 3),
-    siteAddress: sanitize(findTestValue(params, ['234 adress-anläggning', '234 address-anläggning']), '', 70) || null,
-    sitePostalCode: sanitizeCode(findTestValue(params, ['235 postnr-anläggning']), '', 12) || null,
-    siteCity: sanitize(findTestValue(params, ['236 postort-anläggning']), '', 35) || null,
-    siteCountry: sanitizeCode(findTestValue(params, ['237 land-anläggning']), 'SE', 3),
-    billingRecipientId: sanitizeCode(findTestValue(params, ['250 fakturamottagare']), '', 35) || null,
-    billingRecipientName: sanitize(findTestValue(params, ['251 namn-fakturamottagare']), '', 70) || null,
-    billingRecipientAddress: sanitize(findTestValue(params, ['252 adress-fakturamottagare', '252 address-fakturamottagare']), '', 70) || null,
-    billingRecipientPostalCode: sanitizeCode(findTestValue(params, ['253 postnr-fakturamottagare', '253 postnr-fakturamottgare']), '', 12) || null,
-    billingRecipientCity: sanitize(findTestValue(params, ['317 postort-fakturamottagare']), '', 35) || null,
-    billingRecipientCountry: sanitizeCode(findTestValue(params, ['318 land-fakturamottagare']), 'SE', 3),
-    birthDate: sanitizeCode(findTestValue(params, ['249 födelsesdatum', '249 födelsedatum']), '', 8) || null,
-    gridAreaId: sanitizeCode(findTestValue(params, ['260 nätområdesid', '260 natomradesid']), 'TES', 12),
-    powerOfAttorneyReference: sanitizeCode(findTestValue(params, ['261 referens']), '', 35) || null,
-    balanceResponsibleId: sanitizeCode(findTestValue(params, ['262 balansansvarig']), '', 35) || null,
-    registers: [
+    annualEnergyUnit: cleanOptionalCode(findTestValueForStep(params, step, ['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
+    meteringMethod: cleanOptionalCode(findTestValueForStep(params, step, ['217 mätmetod', '217 matmetod']), 12) ?? '',
+    priority: cleanOptionalCode(findTestValueForStep(params, step, ['220 prioritet']), 12),
+    reportingFrequency: cleanOptionalCode(findTestValueForStep(params, step, ['222 rapporteringsfrekvens']), 12),
+    meterNumber: cleanOptionalCode(findTestValueForStep(params, step, ['224 mätarnummer', '224 matarnummer']), 35),
+    customerId: cleanOptionalCode(findTestValueForStep(params, step, ['227 kund-id', 'personnummer', 'kundidentitet']), 35) ?? '',
+    customerName: cleanOptional(findTestValueForStep(params, step, ['228 namn-elanvändare', '228 namn-elanvandare', 'kundnamn', 'customer']), 70) ?? '',
+    customerAddress: cleanOptional(findTestValueForStep(params, step, ['229 adress-elanvändare', '229 adress-elanvandare']), 70),
+    customerPostalCode: cleanOptionalCode(findTestValueForStep(params, step, ['231 postnr-elanvändare', '231 postnr-elanvandare']), 12),
+    customerCity: cleanOptional(findTestValueForStep(params, step, ['232 postort-elanvändare', '232 postort-elanvandare']), 35),
+    customerCountry: cleanOptionalCode(findTestValueForStep(params, step, ['316 land-elanvändare', '316 land-elanvandare']), 3),
+    siteAddress: cleanOptional(findTestValueForStep(params, step, ['234 adress-anläggning', '234 address-anläggning', '234 adress-anlaggning', '234 address-anlaggning']), 70),
+    sitePostalCode: cleanOptionalCode(findTestValueForStep(params, step, ['235 postnr-anläggning', '235 postnr-anlaggning']), 12),
+    siteCity: cleanOptional(findTestValueForStep(params, step, ['236 postort-anläggning', '236 postort-anlaggning']), 35),
+    siteCountry: cleanOptionalCode(findTestValueForStep(params, step, ['237 land-anläggning', '237 land-anlaggning']), 3),
+    billingRecipientId: cleanOptionalCode(findTestValueForStep(params, step, ['250 fakturamottagare']), 35),
+    billingRecipientName: cleanOptional(findTestValueForStep(params, step, ['251 namn-fakturamottagare']), 70),
+    billingRecipientAddress: cleanOptional(findTestValueForStep(params, step, ['252 adress-fakturamottagare', '252 address-fakturamottagare']), 70),
+    billingRecipientPostalCode: cleanOptionalCode(findTestValueForStep(params, step, ['253 postnr-fakturamottagare', '253 postnr-fakturamottgare']), 12),
+    billingRecipientCity: cleanOptional(findTestValueForStep(params, step, ['317 postort-fakturamottagare']), 35),
+    billingRecipientCountry: cleanOptionalCode(findTestValueForStep(params, step, ['318 land-fakturamottagare']), 3),
+    birthDate: cleanOptionalCode(findTestValueForStep(params, step, ['249 födelsesdatum', '249 födelsedatum', '249 fodelsesdatum', '249 fodelsedatum']), 8),
+    productCode: cleanOptionalCode(findTestValueForStep(params, step, ['242 produktkod']), 35),
+    settlementMethod: cleanOptionalCode(findTestValueForStep(params, step, ['254 avräkningsmetod', '254 avrackningsmetod', '254 avrakningsmetod']), 12),
+    gridAreaId: cleanOptionalCode(findTestValueForStep(params, step, ['260 nätområdesid', '260 natomradesid']), 12) ?? '',
+    powerOfAttorneyReference: cleanOptionalCode(findTestValueForStep(params, step, ['261 referens']), 35),
+    balanceResponsibleId: cleanOptionalCode(findTestValueForStep(params, step, ['262 balansansvarig']), 35),
+    installationStatus: cleanOptionalCode(findTestValueForStep(params, step, ['306 installationsstatus']), 12),
+    tariffCode: cleanOptionalCode(findTestValueForStep(params, step, ['307 tariffkod']), 20),
+    registers: registers.length > 0 ? registers : [
       {
         label: 'register_1',
-        annualEnergyKwh: annualEnergyRaw && /^\d+$/.test(annualEnergyRaw) ? annualEnergyRaw : '0',
-        meterConstant: sanitizeCode(findTestValue(params, ['214 konstant']), '1', 12),
-        meterDigits: sanitizeCode(findTestValue(params, ['218 antal siffror']), '6', 12),
-        meterTimeInterval: sanitizeCode(findTestValue(params, ['259 mätare, tidsintervall', '259 matare']), '101', 12),
+        annualEnergyKwh: '',
+        meterConstant: '',
+        meterDigits: '',
+        meterTimeInterval: '',
       },
     ],
   }
@@ -461,11 +485,11 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
   bodySegments: string[]
   portalData: TgtPortalCustomerData
 } {
-  const portalData = getPortalData(params)
+  const portalData = getPortalData(params, step)
   const transactionType = buildTgtProdatTransactionType(params, step)
   const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
   const meteringPointId = step.outcome === 'negative' ? '999999999999999999' : sanitizeCode(portalData.meteringPointId, 'UNKNOWN', 35)
-  const customerName = edifactEscape(sanitize(portalData.customerName, 'TEST CUSTOMER'))
+  const customerName = edifactEscape(sanitize(portalData.customerName, 'UNKNOWN'))
   const billingName = portalData.billingRecipientName ? edifactEscape(sanitize(portalData.billingRecipientName)) : null
   const bodySegments: string[] = [
     `BGM+${step.code}::260+${refs.externalRef}+9`,
@@ -482,12 +506,12 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
   pushOptionalSegment(bodySegments, portalData.birthDate, `DTM+329:${sanitizeCode(portalData.birthDate, '19000101', 8)}:102`)
   pushOptionalSegment(bodySegments, portalData.customerAddress, `ADR+${edifactEscape(sanitize(portalData.customerAddress))}+${sanitizeCode(portalData.customerPostalCode, '', 12)}+${edifactEscape(sanitize(portalData.customerCity))}+${sanitizeCode(portalData.customerCountry, 'SE', 3)}`)
   bodySegments.push(`LOC+172+${meteringPointId}::9`)
-  bodySegments.push(`LOC+239+${sanitizeCode(portalData.gridAreaId, 'TES', 12)}:SVK:260`)
+  bodySegments.push(`LOC+239+${sanitizeCode(portalData.gridAreaId, 'UNKNOWN', 12)}:SVK:260`)
   pushOptionalSegment(bodySegments, portalData.siteAddress, `ADR+${edifactEscape(sanitize(portalData.siteAddress))}+${sanitizeCode(portalData.sitePostalCode, '', 12)}+${edifactEscape(sanitize(portalData.siteCity))}+${sanitizeCode(portalData.siteCountry, 'SE', 3)}`)
-  pushOptionalSegment(bodySegments, portalData.powerOfAttorneyReference, `RFF+AHZ:${sanitizeCode(portalData.powerOfAttorneyReference, 'AVTAL01', 35)}`)
+  pushOptionalSegment(bodySegments, portalData.powerOfAttorneyReference, `RFF+AHZ:${sanitizeCode(portalData.powerOfAttorneyReference, 'UNKNOWN', 35)}`)
   pushOptionalSegment(bodySegments, portalData.balanceResponsibleId, `NAD+DDQ+${sanitizeCode(portalData.balanceResponsibleId, '', 35)}::9++BALANCE RESPONSIBLE`)
   pushOptionalSegment(bodySegments, portalData.meteringMethod, `CCI+++217::260`)
-  pushOptionalSegment(bodySegments, portalData.meteringMethod, `CAV+${sanitizeCode(portalData.meteringMethod, 'Z01', 12)}::260`)
+  pushOptionalSegment(bodySegments, portalData.meteringMethod, `CAV+${sanitizeCode(portalData.meteringMethod, 'UNKNOWN', 12)}::260`)
   pushOptionalSegment(bodySegments, portalData.priority, `FTX+AAI+++220=${sanitize(portalData.priority, '', 12)}`)
   pushOptionalSegment(bodySegments, portalData.reportingFrequency, `FTX+AAI+++222=${sanitize(portalData.reportingFrequency, '', 12)}`)
   pushOptionalSegment(bodySegments, portalData.meterNumber, `RFF+MG:${sanitizeCode(portalData.meterNumber, '', 35)}`)
@@ -502,9 +526,9 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
   }
 
   for (const register of portalData.registers) {
-    bodySegments.push(`QTY+213:${sanitizeCode(register.annualEnergyKwh, '0', 18)}:${sanitizeCode(portalData.annualEnergyUnit, 'KWH', 8)}`)
-    bodySegments.push(`MEA+AAE+214+${sanitizeCode(register.meterConstant, '1', 12)}`)
-    bodySegments.push(`FTX+AAI+++218=${sanitizeCode(register.meterDigits, '6', 12)};259=${sanitizeCode(register.meterTimeInterval, '101', 12)}${register.resolution ? `;508B=${sanitizeCode(register.resolution, '1', 12)}` : ''}`)
+    bodySegments.push(`QTY+213:${sanitizeCode(register.annualEnergyKwh, 'UNKNOWN', 18)}:${sanitizeCode(portalData.annualEnergyUnit, 'KWH', 8)}`)
+    bodySegments.push(`MEA+AAE+214+${sanitizeCode(register.meterConstant, 'UNKNOWN', 12)}`)
+    bodySegments.push(`FTX+AAI+++218=${sanitizeCode(register.meterDigits, 'UNKNOWN', 12)};259=${sanitizeCode(register.meterTimeInterval, 'UNKNOWN', 12)}${register.resolution ? `;508B=${sanitizeCode(register.resolution, '1', 12)}` : ''}`)
   }
 
   bodySegments.push(`FTX+AAI+++TGT ${params.testCaseCode} ${transactionType} ${portalData.testCustomerLabel}`)
@@ -651,19 +675,47 @@ function validatePortalDataCoverage(
   const requiredValues = [
     ['metering_point_id', portalData.meteringPointId, 'Anläggnings-id saknas i payload.'],
     ['customer_id', portalData.customerId, 'Kund-id saknas i payload.'],
-    ['customer_name', sanitize(portalData.customerName), 'Kundnamn saknas i payload.'],
+    ['customer_name', portalData.customerName, 'Kundnamn saknas i payload.'],
     ['grid_area_id', portalData.gridAreaId, 'Nätområde saknas i payload.'],
     ['metering_method', portalData.meteringMethod, 'Mätmetod saknas i payload.'],
   ] as const
 
   for (const [code, value, description] of requiredValues) {
-    if (!value || !rawPayload.toUpperCase().includes(sanitizeCode(value, value).toUpperCase())) {
+    const cleanValue = sanitize(value, '', 70)
+    const cleanCodeValue = sanitizeCode(value, '', 70)
+    const normalizedPayload = rawPayload.toUpperCase()
+    const existsInPayload = Boolean(
+      cleanValue && normalizedPayload.includes(cleanValue.toUpperCase()) ||
+      cleanCodeValue && normalizedPayload.includes(cleanCodeValue.toUpperCase())
+    )
+
+    if (!value || !existsInPayload) {
       pushIssue(issues, 'error', `missing_${code}`, 'Portaltestdata saknas', description)
     }
   }
 
+  if (!portalData.agreementStartDateTime) {
+    pushIssue(issues, 'error', 'missing_agreement_start_date', 'Avtalsstart saknas', 'Avtalsstart kunde inte hämtas som datum från testdataregistret. Uppdatera underlaget innan filen skickas.')
+  }
+
+  portalData.registers.forEach((register, index) => {
+    const registerNo = index + 1
+    if (!register.annualEnergyKwh) {
+      pushIssue(issues, 'error', `missing_register_${registerNo}_annual_energy`, 'Registerdata saknas', `Register ${registerNo} saknar uppskattad årsenergi. Uppdatera testdata/underlag innan filen skickas.`)
+    }
+    if (!register.meterConstant) {
+      pushIssue(issues, 'error', `missing_register_${registerNo}_meter_constant`, 'Registerdata saknas', `Register ${registerNo} saknar mätarkonstant.`)
+    }
+    if (!register.meterDigits) {
+      pushIssue(issues, 'error', `missing_register_${registerNo}_meter_digits`, 'Registerdata saknas', `Register ${registerNo} saknar antal siffror för mätare.`)
+    }
+    if (!register.meterTimeInterval) {
+      pushIssue(issues, 'error', `missing_register_${registerNo}_time_interval`, 'Registerdata saknas', `Register ${registerNo} saknar räkneverkskod/tidsintervall.`)
+    }
+  })
+
   if (portalData.registers.length > 1 && !rawPayload.includes(portalData.registers[1]?.meterTimeInterval ?? '')) {
-    pushIssue(issues, 'error', 'missing_second_register', 'Saknar andra registret', 'Z04D-testet kräver två register: 201 och 202.')
+    pushIssue(issues, 'error', 'missing_second_register', 'Saknar andra registret', 'Z04D-testet kräver två register från testdataregistret.')
   }
 }
 

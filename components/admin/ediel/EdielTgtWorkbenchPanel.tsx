@@ -98,7 +98,7 @@ function matchStatusLabel(status: EdielTgtStepMatch['status']): string {
 }
 
 function isFirstRecommendedCase(testCase: EdielTgtTestCaseDefinition): boolean {
-  return testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.2.2'
+  return testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.2.1'
 }
 
 function portalTestName(testCase: EdielTgtTestCaseDefinition): string {
@@ -120,7 +120,7 @@ function portalTestName(testCase: EdielTgtTestCaseDefinition): string {
   return testCase.suite + ' · ' + testCase.testCaseCode
 }
 
-const PORTAL_PRODAT_122_STEPS = [
+const PORTAL_PRODAT_S12_STEPS = [
   ['1', 'PRODAT (97A) / Z03', 'Aktör → Portal', 'Skicka Z03-filen från GridCore till Edielportalen.'],
   ['2', 'CONTRL (2)', 'Portal → Aktör', 'Ladda ner/kopiera portalens CONTRL-svar och importera i Filimport.'],
   ['3', 'APERAK (96A)', 'Portal → Aktör', 'Ladda ner/kopiera portalens APERAK-svar och importera i Filimport.'],
@@ -142,7 +142,7 @@ function PortalTestStepTable() {
           </tr>
         </thead>
         <tbody>
-          {PORTAL_PRODAT_122_STEPS.map(([stepNo, message, direction, instruction]) => (
+          {PORTAL_PRODAT_S12_STEPS.map(([stepNo, message, direction, instruction]) => (
             <tr key={stepNo} className="border-t border-blue-100 align-top">
               <td className="whitespace-nowrap px-3 py-2 font-semibold text-slate-900">{stepNo}</td>
               <td className="whitespace-nowrap px-3 py-2 text-slate-800">{message}</td>
@@ -187,7 +187,7 @@ function PortalScopePanel() {
         </div>
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           <div className="font-semibold">Rekommenderad start</div>
-          <p className="mt-1">Kör först Leverantör → S1.2 → 1.2.2 Z03LK. Det är minsta PRODAT-flödet och passar bäst för första portaltestet.</p>
+          <p className="mt-1">Kör först Leverantör → S1.2 → 1.2.1 Z03L om det är testet som är öppet i portalen. Kör bara ett testfall åt gången.</p>
         </div>
       </div>
     </div>
@@ -593,7 +593,7 @@ function TestCaseCard({
 
         {isFirstRecommendedCase(testCase) ? (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-            <div className="text-sm font-semibold text-blue-950">Så matchar GridCore mot Edielportalens S1.2.2-steg</div>
+            <div className="text-sm font-semibold text-blue-950">Så matchar GridCore mot Edielportalens S1.2-steg</div>
             <p className="mt-1 text-xs text-blue-900">
               Börja med steg 1. När portalen ger svar importerar du svaren via Filimport. GridCore skapar sedan svar på steg 5 och 6 som utkast.
             </p>

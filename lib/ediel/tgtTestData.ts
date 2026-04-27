@@ -2030,6 +2030,17 @@ export function getEdielTgtTestDataForCase(
     }
   }
 
+  if (suite === 'PRODAT' && roleCode === 'supplier' && code === '1.2.5') {
+    return {
+      suite,
+      roleCode,
+      testCaseCode,
+      title: 'Testkund S1 · Z04D mottagningspliktig mikroproduktion',
+      sourceNote: 'Data hämtas från PRODAT-testdataregistret. Om Edielportalen visar avvikande värden ska testdataregistret uppdateras, inte generatorn hårdkodas.',
+      groups: groupFor(blockByEntity(RAW_PRODAT_BLOCKS, '1'), ['Z03L', 'Z04L']),
+    }
+  }
+
   if (suite === 'PRODAT' && roleCode === 'supplier' && code === '1.3.1') {
     return {
       suite,
