@@ -68,18 +68,24 @@ function quoteMimeParam(value: string): string {
 }
 
 function normalizeEdifactForSmtp(rawPayload: string): string {
-  return rawPayload
-    .replace(/^\uFEFF/, '')
+  const withoutBom = rawPayload.replace(/^\uFEFF/, '').trim()
+
+  const segments = withoutBom
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
-    .split('\n')
-    .map((line) => line.trimEnd())
-    .filter((line, index, lines) => {
-      if (index === 0) return line.trim().length > 0
-      if (index === lines.length - 1) return line.trim().length > 0
-      return true
-    })
-    .join('\r\n')
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0)
+
+  if (segments.length === 0) return ''
+
+  return `${segments.join("'")}'`
+}
+
+function buildAsciiMessageId(): string {
+  const stamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)
+  const random = Math.random().toString(36).slice(2, 10)
+  return `<gridex-ediel-${stamp}-${random}@gridex.se>`
 }
 
 function isEdifactMessage(message: EdielMessageRow): boolean {
@@ -100,8 +106,10 @@ function buildSinglePartEdielMime(params: {
     `From: ${sanitizeMimeHeader(params.from)}`,
     `To: ${sanitizeMimeHeader(params.to)}`,
     `Subject: ${sanitizeMimeHeader(params.subject, params.filename)}`,
+    `Date: ${new Date().toUTCString()}`,
+    `Message-ID: ${buildAsciiMessageId()}`,
     'MIME-Version: 1.0',
-    `Content-Type: ${params.contentType}; name="${quoteMimeParam(params.filename)}"`,
+    `Content-Type: ${params.contentType}`,
     'Content-Transfer-Encoding: 8bit',
     `Content-Disposition: attachment; filename="${quoteMimeParam(params.filename)}"`,
   ]
@@ -110,7 +118,7 @@ function buildSinglePartEdielMime(params: {
     headers.splice(2, 0, `Reply-To: ${sanitizeMimeHeader(params.replyTo)}`)
   }
 
-  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${params.rawPayload}`, params.encoding)
+  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${params.rawPayload}\r\n`, params.encoding)
 }
 
 function resolveSmtpPort(value?: number | null): number {
@@ -360,12 +368,12 @@ export async function sendEdielMessageViaSmtp(
     ? normalizeEdifactForSmtp(bodyText)
     : bodyText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\r\n')
   const contentType = isEdifactMessage(message)
-    ? 'application/EDIFACT; charset=iso-8859-1'
+    ? 'application/EDIFACT'
     : message.message_standard === 'xml'
-      ? 'application/xml; charset=utf-8'
+      ? 'application/xml'
       : inferMimeType(message)
   const mimeEncoding: BufferEncoding = isEdifactMessage(message) ? 'latin1' : 'utf8'
-  const smtpSubject = fileName.replace(/[^A-Za-z0-9_.-]/g, '_')
+  const smtpSubject = `EDIEL_${String(message.message_family).toUpperCase()}_${String(message.message_code).toUpperCase()}_${String(message.interchange_reference ?? message.id).replace(/[^A-Za-z0-9]/g, '').slice(0, 24)}`
 
   const rawMime = buildSinglePartEdielMime({
     from,
@@ -403,6 +411,11 @@ export async function sendEdielMessageViaSmtp(
       smtpMessageId: result.messageId ?? null,
       accepted: result.accepted.map(String),
       rejected: result.rejected.map(String),
+      mimeMode: 'singlepart-application-edifact-8bit-compact',
+      contentType,
+      contentTransferEncoding: '8bit',
+      subject: smtpSubject,
+      payloadLength: normalizedPayload.length,
     },
   })
 
