@@ -108,6 +108,9 @@ function portalTestName(testCase: EdielTgtTestCaseDefinition): string {
   if (testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.2.1') {
     return 'Leverantör · S1.2 · 1.2.1 Z03L, extra information'
   }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.2.5') {
+    return 'Leverantör · S1.2 · 1.2.5 Z04D, mottagningspliktig mikroproduktion'
+  }
   if (testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.3.1') {
     return 'Leverantör · S1.3 · Negativ APERAK - Z03'
   }

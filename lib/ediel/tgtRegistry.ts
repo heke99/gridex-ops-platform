@@ -231,6 +231,32 @@ export const EDIEL_TGT_TEST_CASES: readonly EdielTgtTestCaseDefinition[] = [
   {
     suite: 'PRODAT',
     roleCode: 'supplier',
+    testCaseCode: '1.2.5',
+    title: 'Z04D mottagningspliktig mikroproduktion med två register',
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1',
+    market: 'el',
+    source: 'TGT_PRODAT_UTILTS_6_0_5',
+    scope: 'core',
+    status: 'ready_for_file_engine',
+    purpose:
+      'Verifierar att Gridex kan hantera Z04D för mottagningspliktig mikroproduktion, inklusive mätare, två register, avräkningsmetod, produktkod, tariff och positiv kvittens.',
+    testDataHint: 'Testkund S1 enligt Edielportalen. Z04D mikroproduktion med register 201 och 202.',
+    expectedSteps: [
+      { stepNo: 1, direction: 'outbound', actor: 'gridex', family: 'PRODAT', code: 'Z03', required: true, title: 'Skicka PRODAT Z03', description: 'Gridex skickar Z03 med kund-, anläggnings- och avtalsdata till Edielportalen.' },
+      { stepNo: 2, direction: 'inbound', actor: 'portal', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Ta emot positiv CONTRL', description: 'Portalen kvitterar syntax för Z03.' },
+      { stepNo: 3, direction: 'inbound', actor: 'portal', family: 'APERAK', code: 'APERAK', required: true, title: 'Ta emot positiv APERAK', ...PRODAT_POSITIVE_APERAK },
+      { stepNo: 4, direction: 'outbound', actor: 'gridex', family: 'PRODAT', code: 'Z04', required: true, title: 'Skicka PRODAT Z04D mikroproduktion', description: 'Gridex skickar Z04D med två register, mätarnummer, produktkod, avräkningsmetod och mikroproduktionsdata.' },
+      { stepNo: 5, direction: 'inbound', actor: 'portal', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Ta emot positiv CONTRL', description: 'Portalen kvitterar syntax för Z04D.' },
+      { stepNo: 6, direction: 'inbound', actor: 'portal', family: 'APERAK', code: 'APERAK', required: true, title: 'Ta emot positiv APERAK', ...PRODAT_POSITIVE_APERAK },
+    ],
+    notes: [
+      'Detta test kräver mätare/registerdata och ska inte byggas från ofullständig kund/anläggning.',
+      'Register 1: 5800 KWH och tidsintervall 201. Register 2: 2800 KWH och tidsintervall 202.',
+    ],
+  },
+  {
+    suite: 'PRODAT',
+    roleCode: 'supplier',
     testCaseCode: '1.3.1',
     title: 'Negativ APERAK efter Z03: felaktigt anläggnings-id',
     approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1',
