@@ -408,6 +408,8 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
   const nextAction = getEdielTgtNextAction(evaluation)
   const tone = nextAction.tone
   const isWaitingForPortal = nextAction.kind === 'import_portal_file'
+  const nextStep = evaluation.definition?.expectedSteps.find((step) => step.stepNo === nextAction.stepNo) ?? null
+  const shouldUseCustomerProdat = nextAction.kind === 'create_file' && nextStep?.family === 'PRODAT'
 
   return (
     <div className={`mt-4 rounded-2xl border p-4 ${tone === 'green' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'red' ? 'border-rose-200 bg-rose-50 text-rose-950' : tone === 'blue' ? 'border-blue-200 bg-blue-50 text-blue-950' : tone === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-slate-200 bg-slate-50 text-slate-950'}`}>
@@ -421,19 +423,30 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
               Detta steg ägs av Edielportalen. Nästa riktiga steg är att hämta/kopiera svaret i portalen och importera det under Filimport som inbound/TGT. Simulerat portalsvar är bara för intern övning och ska aldrig skickas till portalen.
             </p>
           ) : null}
+          {shouldUseCustomerProdat ? (
+            <p className="mt-2 rounded-xl border border-indigo-200 bg-white/70 px-3 py-2 text-xs text-indigo-900">
+              PRODAT Z03/Z04 ska skapas från riktig kund/testkund i avsnittet Kundstyrd PRODAT ovan. TGT-guiden används här som checklista och för att importera portalens svar.
+            </p>
+          ) : null}
         </div>
         <Badge tone={tone}>{nextActionKindLabel(nextAction.kind)}</Badge>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <form action={runEdielTgtAutopilotAction}>
-          <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
-          <button className="rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100">
-            Försök skapa nästa GridCore-utkast
-          </button>
-        </form>
+        {!shouldUseCustomerProdat ? (
+          <form action={runEdielTgtAutopilotAction}>
+            <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
+            <button className="rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100">
+              Försök skapa nästa GridCore-utkast
+            </button>
+          </form>
+        ) : (
+          <a href="#production-prodat" className="rounded-xl border border-indigo-300 bg-white px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-50">
+            Gå till kundstyrd PRODAT
+          </a>
+        )}
 
-        {evaluation.definition && nextAction.canGenerateDraft && nextAction.stepNo ? (
+        {evaluation.definition && nextAction.canGenerateDraft && nextAction.stepNo && !shouldUseCustomerProdat ? (
           <form action={createEdielTgtDraftAction}>
             <input type="hidden" name="testSuite" value={evaluation.definition.suite} />
             <input type="hidden" name="roleCode" value={evaluation.definition.roleCode} />
@@ -472,6 +485,7 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
     </div>
   )
 }
+
 function DraftOptionPanel({
   testCase,
   testRunId,
@@ -486,9 +500,17 @@ function DraftOptionPanel({
     testCase.roleCode,
     testCase.testCaseCode
   )
-  const generatable = options.filter((option) => option.canGenerate)
+  const prodatOptions = options.filter((option) => option.canGenerate && option.family === 'PRODAT')
+  const generatable = options.filter((option) => option.canGenerate && option.family !== 'PRODAT')
 
   if (generatable.length === 0) {
+    if (prodatOptions.length > 0 && !compact) {
+      return (
+        <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-900">
+          PRODAT Z03/Z04 ska skapas från kundstyrd PRODAT ovan, inte från en separat testgenerator. Skapa först Edielportal-testkund och switchärende, använd sedan Z03/Z04-knapparna i kundstyrda panelen.
+        </div>
+      )
+    }
     return compact ? null : (
       <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
         Det finns inga Gridex-steg att generera för detta testfall. Importera filerna från Edielportalen i stället.

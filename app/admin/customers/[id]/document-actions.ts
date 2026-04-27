@@ -338,14 +338,6 @@ export type UploadCustomerAuthorizationDocumentActionState = {
   duplicateDocumentId: string | null
 }
 
-export const initialUploadCustomerAuthorizationDocumentActionState: UploadCustomerAuthorizationDocumentActionState =
-  {
-    status: 'idle',
-    message: null,
-    documentId: null,
-    duplicateDocumentId: null,
-  }
-
 type UploadAutomationDecision = {
   shouldCreateGridOwnerRequests: boolean
   shouldCreateSwitchRequest: boolean

@@ -58,6 +58,7 @@ import {
   runTgtAutopilotForRun,
 } from '@/lib/ediel/tgtAutopilot'
 import { processEdielOperationalMessage } from '@/lib/ediel/operationalBridge'
+import { createEdielPortalTestCustomerGraph } from '@/lib/ediel/portalTestCustomer'
 import { createSafeMasterdataProposalForMessage } from '@/lib/ediel/operationalVerification'
 import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from '@/lib/ediel/safeApplyReview'
 import type { EdielEnvironment, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
@@ -644,6 +645,83 @@ async function prepareSwitchProdatAction(formData: FormData, messageCode: Prodat
               : await prepareAndQueueEdielZ10(params)
 
   await revalidateRelatedMessage(message.id)
+}
+
+export async function createEdielPortalTestCustomerAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['masterdata.write', 'switching.write', 'communication.write', 'communication.read'])
+  const testSuite = parseEdielTestSuite(formData.get('testSuite'))
+  const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
+  const testCaseCode = formString(formData.get('testCaseCode'))
+  const agreementStartDateTime = formString(formData.get('agreementStartDateTime'))
+  const powerOfAttorneyReference = formString(formData.get('powerOfAttorneyReference'))
+  const balanceResponsibleId = formString(formData.get('balanceResponsibleId'))
+  const priceAreaCode = formString(formData.get('priceAreaCode'))
+
+  if (!testCaseCode) throw new Error('testCaseCode saknas')
+
+  const supabase = await makeServerClient()
+  const result = await createEdielPortalTestCustomerGraph(supabase, {
+    actorUserId: context.userId,
+    testSuite,
+    roleCode,
+    testCaseCode,
+    agreementStartDateTime,
+    powerOfAttorneyReference,
+    powerOfAttorneyStatus: formString(formData.get('powerOfAttorneyStatus')) as 'draft' | 'sent' | 'signed' | 'expired' | 'revoked' | null,
+    balanceResponsibleId,
+    priceAreaCode,
+    customerFirstName: formString(formData.get('customerFirstName')),
+    customerLastName: formString(formData.get('customerLastName')),
+    customerName: formString(formData.get('customerName')),
+    customerPersonalNumber: formString(formData.get('customerPersonalNumber')),
+    customerBirthDate: formString(formData.get('customerBirthDate')),
+    customerEmail: formString(formData.get('customerEmail')),
+    customerPhone: formString(formData.get('customerPhone')),
+    customerAddress: formString(formData.get('customerAddress')),
+    customerPostalCode: formString(formData.get('customerPostalCode')),
+    customerCity: formString(formData.get('customerCity')),
+    customerCountry: formString(formData.get('customerCountry')),
+    billingRecipientId: formString(formData.get('billingRecipientId')),
+    billingRecipientName: formString(formData.get('billingRecipientName')),
+    billingRecipientAddress: formString(formData.get('billingRecipientAddress')),
+    billingRecipientPostalCode: formString(formData.get('billingRecipientPostalCode')),
+    billingRecipientCity: formString(formData.get('billingRecipientCity')),
+    billingRecipientCountry: formString(formData.get('billingRecipientCountry')),
+    billingRecipientEmail: formString(formData.get('billingRecipientEmail')),
+    billingRecipientPhone: formString(formData.get('billingRecipientPhone')),
+    facilityId: formString(formData.get('facilityId')),
+    siteAddress: formString(formData.get('siteAddress')),
+    sitePostalCode: formString(formData.get('sitePostalCode')),
+    siteCity: formString(formData.get('siteCity')),
+    siteCountry: formString(formData.get('siteCountry')),
+    gridAreaId: formString(formData.get('gridAreaId')),
+    annualEnergyKwh: formString(formData.get('annualEnergyKwh')),
+    annualEnergyUnit: formString(formData.get('annualEnergyUnit')),
+    meteringMethod: formString(formData.get('meteringMethod')),
+    reportingFrequency: formString(formData.get('reportingFrequency')),
+    meterNumber: formString(formData.get('meterNumber')),
+    productCode: formString(formData.get('productCode')),
+    settlementMethod: formString(formData.get('settlementMethod')),
+    installationStatus: formString(formData.get('installationStatus')),
+    tariffCode: formString(formData.get('tariffCode')),
+    priority: formString(formData.get('priority')),
+    register1AnnualEnergyKwh: formString(formData.get('register1AnnualEnergyKwh')),
+    register1MeterConstant: formString(formData.get('register1MeterConstant')),
+    register1MeterDigits: formString(formData.get('register1MeterDigits')),
+    register1MeterTimeInterval: formString(formData.get('register1MeterTimeInterval')),
+    register1Resolution: formString(formData.get('register1Resolution')),
+    register2AnnualEnergyKwh: formString(formData.get('register2AnnualEnergyKwh')),
+    register2MeterConstant: formString(formData.get('register2MeterConstant')),
+    register2MeterDigits: formString(formData.get('register2MeterDigits')),
+    register2MeterTimeInterval: formString(formData.get('register2MeterTimeInterval')),
+    register2Resolution: formString(formData.get('register2Resolution')),
+  })
+
+  revalidatePath('/admin/customers')
+  revalidatePath(`/admin/customers/${result.customerId}`)
+  revalidatePath('/admin/operations/switches')
+  revalidatePath(`/admin/operations/switches/${result.switchRequestId}`)
+  revalidateEdiel()
 }
 
 export async function prepareSwitchZ03Action(formData: FormData) {

@@ -21,6 +21,7 @@ export type EdielProdatProductionCandidate = {
   customerLabel: string
   customerIdentifier: string | null
   customerEmail: string | null
+  customerPhone: string | null
   siteId: string | null
   siteLabel: string
   facilityId: string | null
@@ -147,6 +148,7 @@ function validateCandidate(input: {
 
   if (!input.customer) addIssue(issues, 'error', 'customer_missing', 'Kund saknas', 'Switchärendet är inte kopplat till en kund.')
   if (input.customer && !customerIdentifier(input.customer)) addIssue(issues, 'error', 'customer_identifier_missing', 'Personnummer/orgnummer saknas', 'PRODAT får inte skapas utan säker kundidentifiering.')
+  if (input.customer && !asString(input.customer.email) && !asString(input.customer.phone)) addIssue(issues, 'error', 'customer_contact_missing', 'Kontaktuppgift saknas', 'Outbound-valideringen kräver minst e-post eller telefon på kunden innan PRODAT-utkast får skapas.')
   if (!input.site) addIssue(issues, 'error', 'site_missing', 'Anläggning saknas', 'Switchärendet måste vara kopplat till en anläggning.')
   if (!asString(input.site?.facility_id)) addIssue(issues, 'error', 'facility_id_missing', 'Anläggnings-ID saknas', 'Anläggnings-ID krävs för Z03/Z04.')
   if (!input.meteringPoint) addIssue(issues, 'error', 'metering_point_missing', 'Mätpunkt saknas', 'Switchärendet måste vara kopplat till en mätpunkt.')
@@ -186,7 +188,7 @@ export async function listEdielProdatProductionCandidates(
 
   const [customersRaw, sitesRaw, meteringPointsRaw, gridOwnersRaw, poasRaw, routesRaw] = await Promise.all([
     customerIds.length > 0
-      ? supabase.from('customers').select('id,customer_type,status,first_name,last_name,full_name,company_name,personal_number,org_number,email,customer_number').in('id', customerIds)
+      ? supabase.from('customers').select('id,customer_type,status,first_name,last_name,full_name,company_name,personal_number,org_number,email,phone,customer_number').in('id', customerIds)
       : Promise.resolve({ data: [], error: null }),
     siteIds.length > 0
       ? supabase.from('customer_sites').select('*').in('id', siteIds)
@@ -240,6 +242,7 @@ export async function listEdielProdatProductionCandidates(
       customerLabel: customerLabel(customer, customerId),
       customerIdentifier: customerIdentifier(customer),
       customerEmail: asString(customer?.email),
+      customerPhone: asString(customer?.phone),
       siteId,
       siteLabel: siteLabel(site, siteId),
       facilityId: asString(site?.facility_id),

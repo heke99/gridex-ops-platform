@@ -1,14 +1,18 @@
 'use client'
 
 import { useActionState, useMemo, useState } from 'react'
-import {
-  initialUploadCustomerAuthorizationDocumentActionState,
-  uploadCustomerAuthorizationDocumentAction,
-} from '@/app/admin/customers/[id]/document-actions'
+import { uploadCustomerAuthorizationDocumentAction } from '@/app/admin/customers/[id]/document-actions'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type { CustomerAuthorizationDocumentRow } from '@/lib/operations/types'
 import SubmitButton from './SubmitButton'
 import { documentTypeLabel, uploadResultClass } from './helpers'
+
+const initialUploadCustomerAuthorizationDocumentActionState = {
+  status: 'idle' as const,
+  message: null,
+  documentId: null,
+  duplicateDocumentId: null,
+}
 
 export default function UploadForm({
   customerId,

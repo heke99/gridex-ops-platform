@@ -2,10 +2,12 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
   cancelEdielMessageAction,
+  createEdielPortalTestCustomerAction,
   prepareSwitchZ03Action,
   prepareSwitchZ04Action,
 } from '@/app/admin/ediel/actions'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { getEdielTgtTestCases } from '@/lib/ediel/tgtRegistry'
 import type {
   EdielProdatCandidateIssue,
   EdielProdatProductionCandidate,
@@ -65,6 +67,212 @@ function Field({ label, value }: { label: string; value: string | number | null 
   )
 }
 
+function FormInput({
+  name,
+  label,
+  required = false,
+  placeholder,
+  defaultValue,
+  type = 'text',
+}: {
+  name: string
+  label: string
+  required?: boolean
+  placeholder?: string
+  defaultValue?: string
+  type?: string
+}) {
+  return (
+    <label className="block text-xs font-semibold text-slate-700">
+      {label}
+      <input
+        name={name}
+        required={required}
+        placeholder={placeholder}
+        defaultValue={defaultValue}
+        type={type}
+        className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-950 placeholder:text-slate-400"
+      />
+    </label>
+  )
+}
+
+function FormSelect({
+  name,
+  label,
+  children,
+  defaultValue,
+  required = false,
+}: {
+  name: string
+  label: string
+  children: ReactNode
+  defaultValue?: string
+  required?: boolean
+}) {
+  return (
+    <label className="block text-xs font-semibold text-slate-700">
+      {label}
+      <select
+        name={name}
+        defaultValue={defaultValue}
+        required={required}
+        className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-950"
+      >
+        {children}
+      </select>
+    </label>
+  )
+}
+
+function FormSection({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div className="text-xs font-semibold text-slate-950">{title}</div>
+      {description ? <p className="mt-1 text-[11px] text-slate-500">{description}</p> : null}
+      <div className="mt-3 grid gap-2 md:grid-cols-2">{children}</div>
+    </div>
+  )
+}
+
+function EdielPortalTestCustomerOnboardingPanel() {
+  const testCases = getEdielTgtTestCases().filter(
+    (testCase) =>
+      testCase.suite === 'PRODAT' &&
+      testCase.roleCode === 'supplier' &&
+      testCase.scope === 'core' &&
+      ['1.2.1', '1.2.2', '1.2.5'].includes(testCase.testCaseCode)
+  )
+
+  return (
+    <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-indigo-950">Skapa Edielportal-testkund som riktig kund</h3>
+          <p className="mt-1 max-w-4xl text-xs text-indigo-800">
+            Här fyller du in kunduppgifterna från Edielportalen manuellt. Testdataregistret kan hjälpa senare, men formuläret är källan till sanningen. När kunden skapas hamnar kund, fakturamottagare, anläggning, mätpunkt, route, fullmakt och switchärende i era riktiga tabeller.
+          </p>
+        </div>
+        <Badge tone="indigo">formulär → riktig kunddata · testläge</Badge>
+      </div>
+
+      <div className="mt-4 space-y-4">
+        {testCases.map((testCase) => (
+          <details key={`${testCase.suite}-${testCase.roleCode}-${testCase.testCaseCode}`} className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm open:ring-2 open:ring-indigo-100">
+            <summary className="cursor-pointer list-none">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge tone="blue">{testCase.testCaseCode}</Badge>
+                    <Badge>{testCase.suite}</Badge>
+                    <Badge tone="indigo">öppna formulär</Badge>
+                  </div>
+                  <div className="mt-3 text-sm font-semibold text-slate-950">{testCase.title}</div>
+                  <p className="mt-1 text-xs text-slate-600">{testCase.testDataHint}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
+                  Fyll kunddata
+                </div>
+              </div>
+            </summary>
+
+            <form action={createEdielPortalTestCustomerAction} className="mt-4 space-y-4">
+              <input type="hidden" name="testSuite" value={testCase.suite} />
+              <input type="hidden" name="roleCode" value={testCase.roleCode} />
+              <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+
+              <FormSection title="1. Kund" description="Detta blir riktig kund i customers. För Edielportalens test använder du testkundens personnummer/kund-id från portalen.">
+                <FormInput name="customerFirstName" label="Förnamn" required placeholder="Ex. MARGIT" />
+                <FormInput name="customerLastName" label="Efternamn" required placeholder="Ex. PAULSSON" />
+                <FormInput name="customerPersonalNumber" label="Personnummer / kund-id" required placeholder="Ex. 194507018820" />
+                <FormInput name="customerBirthDate" label="Födelsedatum" placeholder="YYYYMMDD, ex. 19450501" />
+                <FormInput name="customerEmail" label="E-post (krävs om telefon saknas)" type="email" placeholder="Ex. testkund.com" />
+                <FormInput name="customerPhone" label="Telefonnummer (krävs om e-post saknas)" placeholder="Ex. 0700000000" />
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 md:col-span-2">Minst en kontaktuppgift krävs eftersom outbound-valideringen stoppar PRODAT om både kundens e-post och telefon saknas.</div>
+                <FormInput name="customerAddress" label="Kundadress" placeholder="Ex. STORA VÄGEN 25" />
+                <FormInput name="customerPostalCode" label="Postnummer kund" placeholder="Ex. 62020" />
+                <FormInput name="customerCity" label="Postort kund" placeholder="Ex. KLINTEHAMN" />
+                <FormInput name="customerCountry" label="Land kund" defaultValue="SE" placeholder="SE" />
+              </FormSection>
+
+              <FormSection title="2. Fakturamottagare / ombud" description="Fyll bara om portalen/testkunden har separat fakturamottagare. Lämna annars tomt.">
+                <FormInput name="billingRecipientId" label="Fakturamottagare-id" placeholder="Ex. 10011" />
+                <FormInput name="billingRecipientName" label="Namn fakturamottagare" placeholder="Ex. CONNY PAULSSON" />
+                <FormInput name="billingRecipientEmail" label="E-post fakturamottagare" type="email" placeholder="Valfritt" />
+                <FormInput name="billingRecipientPhone" label="Telefon fakturamottagare" placeholder="Valfritt" />
+                <FormInput name="billingRecipientAddress" label="Fakturaadress" placeholder="Ex. ÅGATAN 145" />
+                <FormInput name="billingRecipientPostalCode" label="Postnummer faktura" placeholder="Ex. 11543" />
+                <FormInput name="billingRecipientCity" label="Postort faktura" placeholder="Ex. STOCKHOLM" />
+                <FormInput name="billingRecipientCountry" label="Land faktura" defaultValue="SE" placeholder="SE" />
+              </FormSection>
+
+              <FormSection title="3. Anläggning och mätpunkt" description="Detta blir customer_sites och metering_points. Obligatoriskt för att PRODAT ska kunna skapas från riktig kunddata.">
+                <FormInput name="facilityId" label="Anläggnings-ID / mätpunkt-ID" required placeholder="Ex. 735999888000000017" />
+                <FormInput name="gridAreaId" label="Nätområdes-ID" required placeholder="Ex. TES" />
+                <FormInput name="siteAddress" label="Anläggningsadress" placeholder="Ex. VÄDERMYREN 1:22" />
+                <FormInput name="sitePostalCode" label="Postnummer anläggning" placeholder="Ex. 62020" />
+                <FormInput name="siteCity" label="Postort anläggning" placeholder="Ex. KLINTEHAMN" />
+                <FormInput name="siteCountry" label="Land anläggning" defaultValue="SE" placeholder="SE" />
+                <FormInput name="meteringMethod" label="Mätmetod" placeholder="Ex. Z01" />
+                <FormInput name="meterNumber" label="Mätarnummer" placeholder="Ex. M12345" />
+                <FormInput name="annualEnergyKwh" label="Uppskattad årsenergi" placeholder="Ex. 5800" />
+                <FormInput name="annualEnergyUnit" label="Enhet årsenergi" defaultValue="KWH" placeholder="KWH" />
+                <FormInput name="reportingFrequency" label="Rapporteringsfrekvens" placeholder="Ex. M" />
+                <FormInput name="priority" label="Prioritet" placeholder="Ex. A" />
+              </FormSection>
+
+              <FormSection title="4. Avtal, fullmakt och Ediel-styrning" description="Dessa fält krävs för att switchärendet ska bli redo och för att rätt referenser ska hamna i PRODAT.">
+                <FormInput name="agreementStartDateTime" label="Avtalsstart från portalen" required placeholder="YYYYMMDDHHMM, ex. 202605150000" />
+                <FormSelect name="powerOfAttorneyStatus" label="Fullmaktstatus" defaultValue="signed">
+                  <option value="signed">Signerad - får användas för Ediel</option>
+                  <option value="draft">Utkast - spärrar Ediel</option>
+                  <option value="sent">Skickad - spärrar Ediel tills signerad</option>
+                  <option value="expired">Utgången - spärrar Ediel</option>
+                  <option value="revoked">Återkallad - spärrar Ediel</option>
+                </FormSelect>
+                <FormInput name="powerOfAttorneyReference" label="Avtals-/fullmaktsreferens" required placeholder="Ex. AVTAL01" />
+                <FormInput name="balanceResponsibleId" label="Balansansvarig" placeholder="Ex. 91109" />
+                <FormSelect name="priceAreaCode" label="Prisområde">
+                  <option value="">Ej satt</option>
+                  <option value="SE1">SE1</option>
+                  <option value="SE2">SE2</option>
+                  <option value="SE3">SE3</option>
+                  <option value="SE4">SE4</option>
+                </FormSelect>
+                <FormInput name="productCode" label="Produktkod" placeholder="Ex. L917" />
+                <FormInput name="settlementMethod" label="Avräkningsmetod" placeholder="Ex. Z31" />
+                <FormInput name="installationStatus" label="Installationsstatus" placeholder="Ex. Z12" />
+                <FormInput name="tariffCode" label="Tariffkod" placeholder="Ex. 25A" />
+              </FormSection>
+
+              <FormSection title="5. Register och mätarvärden" description="För 1.2.5 Z04D fyller du båda registren. För enklare Z03-test räcker register 1 eller årsenergi ovan.">
+                <FormInput name="register1AnnualEnergyKwh" label="Register 1 · årsenergi" placeholder="Ex. 5800" />
+                <FormInput name="register1MeterConstant" label="Register 1 · mätarkonstant" placeholder="Ex. 1" />
+                <FormInput name="register1MeterDigits" label="Register 1 · antal siffror" placeholder="Ex. 6" />
+                <FormInput name="register1MeterTimeInterval" label="Register 1 · tidsintervall" placeholder="Ex. 201" />
+                <FormInput name="register1Resolution" label="Register 1 · upplösning" placeholder="Ex. 1" />
+                <FormInput name="register2AnnualEnergyKwh" label="Register 2 · årsenergi" placeholder="Ex. 2800" />
+                <FormInput name="register2MeterConstant" label="Register 2 · mätarkonstant" placeholder="Ex. 1" />
+                <FormInput name="register2MeterDigits" label="Register 2 · antal siffror" placeholder="Ex. 6" />
+                <FormInput name="register2MeterTimeInterval" label="Register 2 · tidsintervall" placeholder="Ex. 202" />
+                <FormInput name="register2Resolution" label="Register 2 · upplösning" placeholder="Ex. 1" />
+              </FormSection>
+
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                Kontrollera uppgifterna innan du skapar. Om du har valt fel kund senare ska ej skickade utkast avbrytas/arkiveras, inte hårdraderas. Skickade meddelanden ska alltid ligga kvar för spårbarhet.
+              </div>
+
+              <button className="w-full rounded-xl bg-indigo-700 px-3 py-3 text-xs font-semibold text-white hover:bg-indigo-800">
+                Skapa testkund + switchärende
+              </button>
+            </form>
+          </details>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function ProductionCandidateCard({
   candidate,
   messages,
@@ -108,6 +316,7 @@ function ProductionCandidateCard({
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           <Field label="Kund-ID/person/org" value={candidate.customerIdentifier} />
           <Field label="E-post" value={candidate.customerEmail} />
+          <Field label="Telefon" value={candidate.customerPhone} />
           <Field label="Anläggningsadress" value={candidate.siteAddress} />
           <Field label="Årsförbrukning" value={candidate.annualConsumptionKwh ? `${candidate.annualConsumptionKwh} kWh` : null} />
           <Field label="Nätägare" value={candidate.gridOwnerName} />
@@ -175,7 +384,7 @@ function ProductionCandidateCard({
               Öppna kundkort
             </Link>
           ) : null}
-          <Link href={`/admin/operations/switches`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+          <Link href="/admin/operations/switches" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
             Öppna switchlista
           </Link>
         </div>
@@ -236,6 +445,8 @@ export default function EdielProductionProdatPanel({
         </div>
       </div>
 
+      <EdielPortalTestCustomerOnboardingPanel />
+
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
           <div className="font-semibold">1. Välj kundunderlag</div>
@@ -243,7 +454,7 @@ export default function EdielProductionProdatPanel({
         </div>
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
           <div className="font-semibold">2. Kontrollera spärrar</div>
-          <p className="mt-1">Saknas personnummer, fullmakt, route eller mätpunkt blockeras filskapande direkt.</p>
+          <p className="mt-1">Saknas personnummer, kontaktuppgift, fullmakt, route eller mätpunkt blockeras filskapande direkt.</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
           <div className="font-semibold">3. Skapa utkast</div>
