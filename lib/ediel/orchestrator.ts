@@ -207,7 +207,7 @@ export async function sendQueuedEdielMessage(params: {
     )
   }
 
-  await sendEdielMessageViaSmtp(message)
+  await sendEdielMessageViaSmtp(message, { actorUserId })
 
   const refreshed = await getEdielMessageById(message.id)
   if (!refreshed) {

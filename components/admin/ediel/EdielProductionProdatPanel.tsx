@@ -5,6 +5,7 @@ import {
   createEdielPortalTestCustomerAction,
   prepareSwitchZ03Action,
   prepareSwitchZ04Action,
+  pollMailboxAction,
   sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -382,6 +383,15 @@ function ProductionCandidateCard({
               Skapa Z04-utkast
             </button>
           </form>
+          {candidate.communicationRouteId ? (
+            <form action={pollMailboxAction}>
+              <input type="hidden" name="communicationRouteId" value={candidate.communicationRouteId} />
+              <input type="hidden" name="limit" value="10" />
+              <button className="rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-100">
+                Hämta svar från IMAP
+              </button>
+            </form>
+          ) : null}
           {candidate.customerId ? (
             <Link href={`/admin/customers/${candidate.customerId}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
               Öppna kundkort

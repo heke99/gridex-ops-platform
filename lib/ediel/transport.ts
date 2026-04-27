@@ -21,11 +21,6 @@ import {
 } from '@/lib/ediel/utilts'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
 import {
-  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
-  EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-  EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
-} from '@/lib/ediel/fileEngine'
-import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
@@ -52,6 +47,70 @@ function requireEnv(name: string, fallback?: string | null): string {
 function optionalEnv(name: string, fallback?: string | null): string | null {
   const value = process.env[name] ?? fallback ?? null
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function requireActorUserId(value?: string | null): string {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    throw new Error('Inloggad användare saknas för Ediel-åtgärden. Logga in igen och försök på nytt.')
+  }
+  return trimmed
+}
+
+
+function sanitizeMimeHeader(value: string | null | undefined, fallback = ''): string {
+  const text = String(value ?? fallback).trim()
+  return text.replace(/[\r\n]+/g, ' ').trim() || fallback
+}
+
+function quoteMimeParam(value: string): string {
+  return sanitizeMimeHeader(value, 'ediel-message.edi').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+function normalizeEdifactForSmtp(rawPayload: string): string {
+  return rawPayload
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line, index, lines) => {
+      if (index === 0) return line.trim().length > 0
+      if (index === lines.length - 1) return line.trim().length > 0
+      return true
+    })
+    .join('\r\n')
+}
+
+function isEdifactMessage(message: EdielMessageRow): boolean {
+  return message.message_standard === 'edifact' || message.mime_type?.toLowerCase().includes('edifact') === true
+}
+
+function buildSinglePartEdielMime(params: {
+  from: string
+  to: string
+  replyTo?: string | null
+  subject: string
+  filename: string
+  contentType: string
+  rawPayload: string
+  encoding: BufferEncoding
+}): Buffer {
+  const headers = [
+    `From: ${sanitizeMimeHeader(params.from)}`,
+    `To: ${sanitizeMimeHeader(params.to)}`,
+    `Subject: ${sanitizeMimeHeader(params.subject, params.filename)}`,
+    'MIME-Version: 1.0',
+    `Content-Type: ${params.contentType}; name="${quoteMimeParam(params.filename)}"`,
+    'Content-Transfer-Encoding: 8bit',
+    `Content-Disposition: attachment; filename="${quoteMimeParam(params.filename)}"`,
+  ]
+
+  if (params.replyTo) {
+    headers.splice(2, 0, `Reply-To: ${sanitizeMimeHeader(params.replyTo)}`)
+  }
+
+  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${params.rawPayload}`, params.encoding)
 }
 
 function resolveSmtpPort(value?: number | null): number {
@@ -250,27 +309,19 @@ async function withAcceptedInboundVersions(
   }
 }
 
-export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise<{
+export async function sendEdielMessageViaSmtp(
+  message: EdielMessageRow,
+  params?: { actorUserId?: string | null }
+): Promise<{
   accepted: string[]
   rejected: string[]
   messageId: string | null
 }> {
+  const actorUserId = requireActorUserId(params?.actorUserId)
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
 
   if (!message.receiver_email?.trim()) {
     throw new Error(`Kan inte skicka Ediel-meddelande ${message.id} utan receiver_email.`)
-  }
-
-  if (
-    message.message_family === 'PRODAT' &&
-    message.receiver_ediel_id === EDIEL_TGT_TESTSYSTEM_EDIEL_ID
-  ) {
-    if (message.receiver_sub_address !== EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS) {
-      throw new Error(`TGT PRODAT måste ha receiver_sub_address ${EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS} innan SMTP-skickning.`)
-    }
-    if (message.application_reference !== EDIEL_TGT_PRODAT_APPLICATION_REFERENCE) {
-      throw new Error(`TGT PRODAT måste ha Application Reference ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE} innan SMTP-skickning.`)
-    }
   }
 
   const routeProfile = message.communication_route_id
@@ -297,38 +348,53 @@ export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise
 
   const extension = inferAttachmentExtension(message)
   const bodyText = inferBodyText(message)
+  const fileName =
+    message.file_name ??
+    inferEdielFileName({
+      family: message.message_family,
+      code: String(message.message_code),
+      direction: message.direction,
+      extension,
+    })
+  const normalizedPayload = isEdifactMessage(message)
+    ? normalizeEdifactForSmtp(bodyText)
+    : bodyText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\r\n')
+  const contentType = isEdifactMessage(message)
+    ? 'application/EDIFACT; charset=iso-8859-1'
+    : message.message_standard === 'xml'
+      ? 'application/xml; charset=utf-8'
+      : inferMimeType(message)
+  const mimeEncoding: BufferEncoding = isEdifactMessage(message) ? 'latin1' : 'utf8'
+  const smtpSubject = fileName.replace(/[^A-Za-z0-9_.-]/g, '_')
 
-  const result = await transporter.sendMail({
+  const rawMime = buildSinglePartEdielMime({
     from,
     to: message.receiver_email,
-    replyTo: replyTo ?? undefined,
-    subject: message.subject ?? `${message.message_family} ${message.message_code}`,
-    text: bodyText,
-    attachments: [
-      {
-        filename:
-          message.file_name ??
-          inferEdielFileName({
-            family: message.message_family,
-            code: String(message.message_code),
-            direction: message.direction,
-            extension,
-          }),
-        content: bodyText,
-        contentType: inferMimeType(message),
-      },
-    ],
+    replyTo,
+    subject: smtpSubject,
+    filename: fileName,
+    contentType,
+    rawPayload: normalizedPayload,
+    encoding: mimeEncoding,
+  })
+
+  const result = await transporter.sendMail({
+    envelope: {
+      from,
+      to: [message.receiver_email],
+    },
+    raw: rawMime,
   })
 
   await updateEdielMessageStatus({
-    actorUserId: 'system',
+    actorUserId,
     edielMessageId: message.id,
     status: 'sent',
     messageSentAt: new Date().toISOString(),
   })
 
   await createEdielMessageEvent({
-    actorUserId: 'system',
+    actorUserId,
     edielMessageId: message.id,
     eventType: 'sent',
     eventStatus: 'success',
@@ -353,7 +419,7 @@ export async function pollEdielMailboxViaImap(params?: {
   communicationRouteId?: string | null
   limit?: number
 }): Promise<EdielMessageRow[]> {
-  const actorUserId = params?.actorUserId ?? 'system'
+  const actorUserId = requireActorUserId(params?.actorUserId)
   const routeProfile = params?.communicationRouteId
     ? await getEdielRouteProfileByCommunicationRouteId(params.communicationRouteId)
     : null
