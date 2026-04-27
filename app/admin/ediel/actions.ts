@@ -670,6 +670,7 @@ async function prepareSwitchProdatAction(formData: FormData, messageCode: Prodat
     switchRequestId,
     communicationRouteId,
     environment,
+    forceRegenerate,
   }
 
   const message =

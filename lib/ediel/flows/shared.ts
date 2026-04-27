@@ -64,14 +64,17 @@ export async function findOrCreateSwitchOutbound(params: {
   communicationRouteId?: string | null
   externalReference: string | null
   payload: Record<string, unknown>
+  forceCreateNewAttempt?: boolean
 }) {
-  const existing = await findOpenOutboundBySource({
+  if (!params.forceCreateNewAttempt) {
+    const existing = await findOpenOutboundBySource({
     sourceType: 'supplier_switch_request',
     sourceId: params.switchRequestId,
     requestType: 'supplier_switch',
-  })
+    })
 
-  if (existing) return existing
+    if (existing) return existing
+  }
 
   return createOutboundRequest({
     actorUserId: params.actorUserId,

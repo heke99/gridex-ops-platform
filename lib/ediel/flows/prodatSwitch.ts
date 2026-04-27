@@ -37,6 +37,7 @@ type PrepareProdatSwitchParams = {
   switchRequestId: string
   communicationRouteId?: string | null
   environment?: EdielEnvironment
+  forceRegenerate?: boolean
 }
 
 type RouteContext = Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
@@ -48,6 +49,7 @@ type BuildDraftInput = {
   site: CustomerSiteRow
   meteringPoint: MeteringPointRow
   gridOwner: GridOwnerRow | null
+  externalReference?: string | null
 }
 
 function defaultExternalReference(code: ProdatSwitchCode, switchRequestId: string): string {
@@ -57,6 +59,16 @@ function defaultExternalReference(code: ProdatSwitchCode, switchRequestId: strin
   if (code === 'Z06') return `MOVE-IN-RESP-${switchRequestId}`
   if (code === 'Z09') return `SITE-UPD-${switchRequestId}`
   return `SITE-UPD-RESP-${switchRequestId}`
+}
+
+function makeTgtRetryReference(code: ProdatSwitchCode, switchRequestId: string): string {
+  const now = new Date()
+  const compact = now
+    .toISOString()
+    .replace(/[-:TZ.]/g, '')
+    .slice(0, 14)
+  const random = Math.random().toString(36).slice(2, 7).toUpperCase()
+  return `TGT-${code}-${switchRequestId.slice(0, 8).toUpperCase()}-${compact}-${random}`
 }
 
 function eventMessage(code: ProdatSwitchCode): string {
@@ -89,6 +101,7 @@ function buildDraftForCode(
     site: input.site,
     meteringPoint: input.meteringPoint,
     gridOwner: input.gridOwner,
+    externalReference: input.externalReference ?? null,
   }
 
   if (code === 'Z03') return buildProdatZ03FromSwitch(base)
@@ -140,8 +153,12 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     messageStandard: 'edifact',
   })
 
-  const externalReference =
-    switchRequest.external_reference ?? defaultExternalReference(params.messageCode, switchRequest.id)
+  const forceCreateNewAttempt =
+    Boolean(params.forceRegenerate) && routeContext.receiverEdielId === '91100'
+
+  const externalReference = forceCreateNewAttempt
+    ? makeTgtRetryReference(params.messageCode, switchRequest.id)
+    : switchRequest.external_reference ?? defaultExternalReference(params.messageCode, switchRequest.id)
 
   const outbound = await findOrCreateSwitchOutbound({
     actorUserId,
@@ -152,12 +169,15 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     gridOwnerId: switchRequest.grid_owner_id,
     communicationRouteId: routeContext.route.id,
     externalReference,
+    forceCreateNewAttempt,
     payload: {
       edielCode: params.messageCode,
       queuedFrom: `prepare_switch_${params.messageCode.toLowerCase()}`,
       requestType: switchRequest.request_type,
       requestedStartDate: switchRequest.requested_start_date,
       communicationRouteId: routeContext.route.id,
+      forceRegenerate: Boolean(params.forceRegenerate),
+      forceCreateNewAttempt,
     },
   })
 
@@ -168,6 +188,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     site,
     meteringPoint,
     gridOwner,
+    externalReference,
   })
 
   const message = await finalizeOutboundDraft({
