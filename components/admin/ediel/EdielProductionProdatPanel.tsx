@@ -360,6 +360,7 @@ function ProductionCandidateCard({
           <form action={prepareSwitchZ03Action}>
             <input type="hidden" name="switchRequestId" value={candidate.switchRequestId} />
             <input type="hidden" name="environment" value="test" />
+            <input type="hidden" name="forceRegenerate" value="true" />
             {candidate.communicationRouteId ? <input type="hidden" name="communicationRouteId" value={candidate.communicationRouteId} /> : null}
             <button
               disabled={!candidate.canCreateZ03}
@@ -371,6 +372,7 @@ function ProductionCandidateCard({
           <form action={prepareSwitchZ04Action}>
             <input type="hidden" name="switchRequestId" value={candidate.switchRequestId} />
             <input type="hidden" name="environment" value="test" />
+            <input type="hidden" name="forceRegenerate" value="true" />
             {candidate.communicationRouteId ? <input type="hidden" name="communicationRouteId" value={candidate.communicationRouteId} /> : null}
             <button
               disabled={!candidate.canCreateZ04}

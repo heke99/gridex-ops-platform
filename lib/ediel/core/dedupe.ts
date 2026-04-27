@@ -193,7 +193,7 @@ export async function findOutboundEdielMessageDuplicate(params: {
   const { data, error } = await query
   if (error) throw error
 
-  const rows = (data ?? []) as EdielMessageRow[]
+  const rows = ((data ?? []) as EdielMessageRow[]).filter((row) => row.status !== 'cancelled')
   if (rows.length === 0) return null
 
   return rows[0] ?? null

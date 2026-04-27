@@ -617,12 +617,53 @@ export async function createProdatDraftAction(formData: FormData) {
   await revalidateRelatedMessage(message.id)
 }
 
+
+async function cancelSupersededSwitchProdatDrafts(params: {
+  actorUserId: string
+  switchRequestId: string
+  messageCode: ProdatSwitchCode
+}) {
+  const supabase = await makeServerClient()
+  const { data, error } = await supabase
+    .from('ediel_messages')
+    .select('id,status,message_family,message_code,external_reference,created_at')
+    .eq('switch_request_id', params.switchRequestId)
+    .eq('direction', 'outbound')
+    .eq('message_family', 'PRODAT')
+    .eq('message_code', params.messageCode)
+    .in('status', ['draft', 'prepared', 'queued', 'failed'])
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  const rows = (data ?? []) as Array<{ id: string; status: string | null }>
+
+  for (const row of rows) {
+    await updateEdielMessageStatus({
+      actorUserId: params.actorUserId,
+      edielMessageId: row.id,
+      status: 'cancelled',
+      failureReason:
+        'Automatiskt avbrutet innan nytt PRODAT-utkast skapades. Ej skickat utkast ska inte återanvändas efter ändrat underlag eller generatorfix.',
+    })
+  }
+}
+
 async function prepareSwitchProdatAction(formData: FormData, messageCode: ProdatSwitchCode) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const switchRequestId = formString(formData.get('switchRequestId'))
   const communicationRouteId = formString(formData.get('communicationRouteId'))
   const environment = (formString(formData.get('environment')) === 'production' ? 'production' : 'test') as EdielEnvironment
+  const forceRegenerate = formString(formData.get('forceRegenerate')) === 'true'
   if (!switchRequestId) throw new Error('switchRequestId saknas')
+
+  if (forceRegenerate) {
+    await cancelSupersededSwitchProdatDrafts({
+      actorUserId: context.userId,
+      switchRequestId,
+      messageCode,
+    })
+  }
 
   const params = {
     actorUserId: context.userId,

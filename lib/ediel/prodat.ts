@@ -432,12 +432,7 @@ function renderProdatSegments(params: {
   const siteCountry = portalString(portalData, 'siteCountry')
   const siteType = sanitize(params.site.site_type)
   const priceArea = sanitize(params.switchRequest.price_area_code ?? params.site.price_area_code)
-  const incomingSupplierName = sanitize(params.switchRequest.incoming_supplier_name)
   const incomingSupplierOrgNumber = sanitize(params.switchRequest.incoming_supplier_org_number)
-  const currentSupplierName = sanitize(
-    params.switchRequest.current_supplier_name ||
-      params.site.current_supplier_name
-  )
   const currentSupplierOrgNumber = sanitize(
     params.switchRequest.current_supplier_org_number ||
       params.site.current_supplier_org_number
@@ -499,16 +494,8 @@ function renderProdatSegments(params: {
     segments.push(`ADR+${siteAddress}+${sitePostalCode}+${siteCity}+${siteCountry ?? ''}`)
   }
 
-  if (incomingSupplierName) {
-    segments.push(`NAD+DDQ+++${incomingSupplierName}`)
-  }
-
   if (incomingSupplierOrgNumber) {
     segments.push(`RFF+GN:${incomingSupplierOrgNumber}`)
-  }
-
-  if (currentSupplierName) {
-    segments.push(`NAD+DDQ+++${currentSupplierName}`)
   }
 
   if (currentSupplierOrgNumber) {
@@ -687,7 +674,7 @@ function buildProdatSwitchOutboundDraft(
       receiverSubAddress: input.receiverSubAddress ?? 'PRODAT',
       applicationReference,
       testFlag: 1,
-      messageTypeToken: `PRODAT:D:96A:UN:${messageVersion}`,
+      messageTypeToken: `PRODAT:D:97A:UN:${messageVersion}`,
       segments,
     })
 
