@@ -21,6 +21,11 @@ import {
 } from '@/lib/ediel/utilts'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
 import {
+  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+  EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
+} from '@/lib/ediel/fileEngine'
+import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
@@ -254,6 +259,18 @@ export async function sendEdielMessageViaSmtp(message: EdielMessageRow): Promise
 
   if (!message.receiver_email?.trim()) {
     throw new Error(`Kan inte skicka Ediel-meddelande ${message.id} utan receiver_email.`)
+  }
+
+  if (
+    message.message_family === 'PRODAT' &&
+    message.receiver_ediel_id === EDIEL_TGT_TESTSYSTEM_EDIEL_ID
+  ) {
+    if (message.receiver_sub_address !== EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS) {
+      throw new Error(`TGT PRODAT måste ha receiver_sub_address ${EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS} innan SMTP-skickning.`)
+    }
+    if (message.application_reference !== EDIEL_TGT_PRODAT_APPLICATION_REFERENCE) {
+      throw new Error(`TGT PRODAT måste ha Application Reference ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE} innan SMTP-skickning.`)
+    }
   }
 
   const routeProfile = message.communication_route_id

@@ -16,7 +16,11 @@ import {
 } from '@/lib/ediel/core/kernel'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
 
-export const GRIDEX_EDIEL_ID = '21660'
+export const GRIDEX_TGT_EDIEL_ID = '92825'
+export const DIV3RSA_PRODUCTION_EDIEL_ID = '21660'
+// Backwards-compatible alias used by the TGT/file-engine views.
+// Production actor identity must come from ediel_actor_settings/route profiles.
+export const GRIDEX_EDIEL_ID = GRIDEX_TGT_EDIEL_ID
 export const EDIEL_TGT_TESTSYSTEM_EDIEL_ID = '91100'
 export const EDIEL_TGT_TESTSYSTEM_EMAIL = '91100@ediel.se'
 export const EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS = 'PRODAT'

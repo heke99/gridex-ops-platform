@@ -84,6 +84,7 @@ function buildDraftForCode(
     communicationRouteId: input.routeContext.route.id,
     mailbox: input.routeContext.mailbox,
     routeDefaultMessageVersion: input.routeContext.defaultMessageVersion,
+    applicationReference: input.routeContext.applicationReference,
     switchRequest: input.switchRequest,
     site: input.site,
     meteringPoint: input.meteringPoint,

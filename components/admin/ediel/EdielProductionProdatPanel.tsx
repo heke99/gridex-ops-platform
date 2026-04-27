@@ -5,6 +5,7 @@ import {
   createEdielPortalTestCustomerAction,
   prepareSwitchZ03Action,
   prepareSwitchZ04Action,
+  sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { getEdielTgtTestCases } from '@/lib/ediel/tgtRegistry'
@@ -403,6 +404,12 @@ function ProductionCandidateCard({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/admin/ediel/messages/${message.id}`} className="font-semibold text-indigo-700 hover:underline">Öppna</Link>
+                    {['draft', 'queued', 'prepared', 'failed'].includes(message.status) ? (
+                      <form action={sendEdielMessageAction}>
+                        <input type="hidden" name="edielMessageId" value={message.id} />
+                        <button className="font-semibold text-emerald-700 hover:underline">Skicka SMTP</button>
+                      </form>
+                    ) : null}
                     {['draft', 'queued', 'prepared', 'failed'].includes(message.status) ? (
                       <form action={cancelEdielMessageAction}>
                         <input type="hidden" name="edielMessageId" value={message.id} />

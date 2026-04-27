@@ -113,9 +113,9 @@ export async function resolveCanonicalRouteContext(params: {
 
   const routeRuntime = await getEdielRouteRuntimeByCommunicationRouteId(route.id)
 
-  const senderEdielId = actor.senderEdielId
-  const senderName = actor.senderName
-  const senderSubAddress = actor.senderSubAddress
+  const senderEdielId = trimOrNull(routeRuntime?.sender_ediel_id) ?? actor.senderEdielId
+  const senderName = trimOrNull(routeRuntime?.sender_name) ?? actor.senderName
+  const senderSubAddress = trimOrNull(routeRuntime?.sender_sub_address) ?? actor.senderSubAddress
 
   const receiverEdielId =
     trimOrNull(routeRuntime?.receiver_ediel_id) ??
@@ -129,10 +129,17 @@ export async function resolveCanonicalRouteContext(params: {
 
   const receiverName =
     trimOrNull(routeRuntime?.receiver_name) ?? trimOrNull(params.gridOwner?.name)
-  const receiverSubAddress = trimOrNull(routeRuntime?.receiver_sub_address) ?? 'EDIEL'
+  const receiverSubAddress =
+    trimOrNull(routeRuntime?.receiver_sub_address) ??
+    (route.target_system === 'ediel_portal_tgt' && params.requestType === 'supplier_switch'
+      ? 'PRODAT'
+      : 'EDIEL')
   const mailbox = trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox
   const applicationReference =
-    trimOrNull(routeRuntime?.application_reference) ?? actor.defaultApplicationReference
+    trimOrNull(routeRuntime?.application_reference) ??
+    (route.target_system === 'ediel_portal_tgt' && params.requestType === 'supplier_switch'
+      ? '23-DDQ-PRODAT'
+      : actor.defaultApplicationReference)
   const defaultMessageVersion = trimOrNull(routeRuntime?.default_message_version)
   const ackMode = routeRuntime?.ack_mode ?? 'default'
   const messageStandard = params.messageStandard ?? routeRuntime?.message_standard ?? 'edifact'

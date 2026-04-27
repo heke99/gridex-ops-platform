@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
+  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+  EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
+  EDIEL_TGT_TESTSYSTEM_EMAIL,
+  GRIDEX_TGT_EDIEL_ID,
 } from '@/lib/ediel/fileEngine'
 import { getEdielTgtTestDataForCase } from '@/lib/ediel/tgtTestData'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
@@ -493,6 +497,67 @@ async function ensureGridOwner(
   return inserted as AnyRow
 }
 
+async function ensureTgtRouteProfile(
+  supabase: SupabaseClient,
+  communicationRouteId: string,
+  actorUserId: string
+): Promise<void> {
+  const payload = {
+    communication_route_id: communicationRouteId,
+    is_enabled: true,
+    sender_ediel_id: GRIDEX_TGT_EDIEL_ID,
+    sender_name: 'GridCore',
+    sender_sub_address: 'GRIDEX',
+    receiver_ediel_id: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
+    receiver_name: 'Edielportalen test',
+    receiver_sub_address: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
+    application_reference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+    default_message_version: '26A',
+    default_test_flag: 1,
+    default_timezone: 1,
+    environment: 'test',
+    message_standard: 'edifact',
+    ack_mode: 'contrl_and_aperak',
+    smtp_host: null,
+    smtp_port: null,
+    imap_host: null,
+    imap_port: null,
+    mailbox: 'ediel@gridex.se',
+    encryption_mode: 'none',
+    payload_format: 'edifact',
+    notes: 'TGT SMTP-profil enligt Edielportalens PRODAT/UTILTS-anvisning: 92825 till 91100@ediel.se, receiver subadress PRODAT och Application Reference 23-DDQ-PRODAT.',
+    updated_by: actorUserId,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('ediel_route_profiles')
+    .select('id')
+    .eq('communication_route_id', communicationRouteId)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('ediel_route_profiles')
+      .update(payload)
+      .eq('id', String(existing.id))
+
+    if (error) throw error
+    return
+  }
+
+  const { error } = await supabase
+    .from('ediel_route_profiles')
+    .insert({
+      ...payload,
+      created_by: actorUserId,
+    })
+
+  if (error) throw error
+}
+
 async function ensureRoute(
   supabase: SupabaseClient,
   gridOwner: AnyRow,
@@ -510,58 +575,66 @@ async function ensureRoute(
       .maybeSingle()
   )
 
-  const endpoint = `file://ediel-portal-tgt/${data.testSuite.toLowerCase()}/${data.roleCode}/${data.testCaseCode}/${data.gridAreaId}`
+  const endpoint = `smtp://${EDIEL_TGT_TESTSYSTEM_EMAIL}`
+  let route: AnyRow
 
   if (existing) {
     const needsUpdate =
       existing.is_active !== true ||
       existing.endpoint !== endpoint ||
-      existing.route_type !== 'file_export' ||
-      existing.target_system !== 'ediel_portal_tgt'
+      existing.route_type !== 'ediel_partner' ||
+      existing.target_system !== 'ediel_portal_tgt' ||
+      existing.target_email !== EDIEL_TGT_TESTSYSTEM_EMAIL
 
-    if (!needsUpdate) return existing
+    if (!needsUpdate) {
+      route = existing
+    } else {
+      const { data: updated, error } = await supabase
+        .from('communication_routes')
+        .update({
+          is_active: true,
+          route_type: 'ediel_partner',
+          target_system: 'ediel_portal_tgt',
+          endpoint,
+          target_email: EDIEL_TGT_TESTSYSTEM_EMAIL,
+          supported_payload_version: 'edifact',
+          notes: `SMTP-route för Edielportalen TGT ${data.testSuite}/${data.roleCode}/${data.testCaseCode}.`,
+          updated_by: actorUserId,
+        })
+        .eq('id', String(existing.id))
+        .select('*')
+        .single()
 
-    const { data: updated, error } = await supabase
+      if (error) throw error
+      route = updated as AnyRow
+    }
+  } else {
+    const { data: inserted, error } = await supabase
       .from('communication_routes')
-      .update({
+      .insert({
+        route_name: `Edielportal TGT · ${data.gridAreaId}`,
         is_active: true,
-        route_type: 'file_export',
+        route_scope: 'supplier_switch',
+        route_type: 'ediel_partner',
+        grid_owner_id: String(gridOwner.id),
         target_system: 'ediel_portal_tgt',
         endpoint,
-        target_email: '91100@ediel.se',
+        target_email: EDIEL_TGT_TESTSYSTEM_EMAIL,
+        auth_config: {},
         supported_payload_version: 'edifact',
+        notes: `SMTP-route för Edielportalen TGT ${data.testSuite}/${data.roleCode}/${data.testCaseCode}.`,
+        created_by: actorUserId,
         updated_by: actorUserId,
       })
-      .eq('id', String(existing.id))
       .select('*')
       .single()
 
     if (error) throw error
-    return updated as AnyRow
+    route = inserted as AnyRow
   }
 
-  const { data: inserted, error } = await supabase
-    .from('communication_routes')
-    .insert({
-      route_name: `Edielportal TGT · ${data.gridAreaId}`,
-      is_active: true,
-      route_scope: 'supplier_switch',
-      route_type: 'file_export',
-      grid_owner_id: String(gridOwner.id),
-      target_system: 'ediel_portal_tgt',
-      endpoint,
-      target_email: '91100@ediel.se',
-      auth_config: {},
-      supported_payload_version: 'edifact',
-      notes: `Filbaserad test-route för Edielportalen ${data.testSuite}/${data.roleCode}/${data.testCaseCode}.`,
-      created_by: actorUserId,
-      updated_by: actorUserId,
-    })
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return inserted as AnyRow
+  await ensureTgtRouteProfile(supabase, String(route.id), actorUserId)
+  return route
 }
 
 async function ensureCustomer(

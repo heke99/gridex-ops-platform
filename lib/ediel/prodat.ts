@@ -20,6 +20,11 @@ import {
 } from '@/lib/ediel/classify'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
+import {
+  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+  EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
+} from '@/lib/ediel/fileEngine'
 
 export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
 
@@ -650,12 +655,16 @@ function buildProdatSwitchOutboundDraft(
         environment: 'test',
       })) ?? '26A'
 
+    const isEdielPortalTgt = input.receiverEdielId === EDIEL_TGT_TESTSYSTEM_EDIEL_ID
+
     const applicationReference =
       input.applicationReference ??
-      buildDefaultApplicationReference({
-        actorSubAddress: input.senderSubAddress ?? 'GRIDEX',
-        process: 'PRODAT',
-      })
+      (isEdielPortalTgt
+        ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
+        : buildDefaultApplicationReference({
+            actorSubAddress: input.senderSubAddress ?? 'GRIDEX',
+            process: 'PRODAT',
+          }))
 
     const segments = renderProdatSegments({
       code,
@@ -671,7 +680,7 @@ function buildProdatSwitchOutboundDraft(
       senderEdielId: input.senderEdielId,
       senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
       receiverEdielId: input.receiverEdielId,
-      receiverSubAddress: input.receiverSubAddress ?? 'PRODAT',
+      receiverSubAddress: input.receiverSubAddress ?? (isEdielPortalTgt ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS : 'PRODAT'),
       applicationReference,
       testFlag: 1,
       messageTypeToken: `PRODAT:D:97A:UN:${messageVersion}`,
@@ -728,7 +737,7 @@ function buildProdatSwitchOutboundDraft(
       receiverEdielId: input.receiverEdielId,
       receiverName: input.receiverName ?? null,
       senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
-      receiverSubAddress: input.receiverSubAddress ?? 'PRODAT',
+      receiverSubAddress: input.receiverSubAddress ?? (isEdielPortalTgt ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS : 'PRODAT'),
       receiverEmail: input.receiverEmail ?? null,
       subject: input.subject ?? `PRODAT ${code} ${externalReference}`.trim(),
       fileName: inferEdielFileName({
