@@ -193,10 +193,35 @@ export async function findOutboundEdielMessageDuplicate(params: {
   const { data, error } = await query
   if (error) throw error
 
-  const rows = ((data ?? []) as EdielMessageRow[]).filter((row) => row.status !== 'cancelled')
+  const rows = (data ?? []) as EdielMessageRow[]
   if (rows.length === 0) return null
 
-  return rows[0] ?? null
+  const receiverEdielId = trimOrNull(params.receiverEdielId)
+
+  const blockingDuplicate = rows.find((row) => {
+    const status = String(row.status ?? '').trim().toLowerCase()
+
+    // Cancelled and failed drafts/attempts must never block a new outbound message.
+    // They are kept for audit, but they are not active business duplicates.
+    if (status === 'cancelled' || status === 'failed') return false
+
+    // Edielportalen TGT is a special test receiver. During portal testing we often need
+    // to regenerate and resend the same Z03/Z04 after MIME/transport fixes while the
+    // old attempt remains stored as sent/prepared. Only a fully acknowledged TGT
+    // message should block a new test attempt. Production receivers still use the
+    // stricter branch below.
+    const rowReceiverEdielId = trimOrNull(row.receiver_ediel_id)
+    const isEdielPortalTgtReceiver = receiverEdielId === '91100' || rowReceiverEdielId === '91100'
+    if (isEdielPortalTgtReceiver) {
+      return status === 'acknowledged'
+    }
+
+    // Production/default safety: an existing active outbound message for the same
+    // canonical business key should block duplicates.
+    return ['draft', 'queued', 'prepared', 'sent', 'acknowledged'].includes(status)
+  })
+
+  return blockingDuplicate ?? null
 }
 
 export async function hasCanonicalAckDuplicate(params: {
