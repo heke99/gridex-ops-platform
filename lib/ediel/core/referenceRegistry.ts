@@ -103,16 +103,16 @@ export function buildEdielTransactionReference(input: BuildReferenceInput): stri
   return `${family}${code}${timestamp}${suffix}`.slice(0, 35)
 }
 
-export function buildEdielInterchangeReference(params?: {
+export function buildEdielInterchangeReference(_params?: {
   senderEdielId?: string | null
   receiverEdielId?: string | null
 }) {
-  const sender = compactToken(params?.senderEdielId ?? 'GRIDEX')
-  const receiver = compactToken(params?.receiverEdielId ?? 'EDIEL')
-  const timestamp = utcTimestampToken()
-  const suffix = randomToken(5)
-  return `${sender}${receiver}${timestamp}${suffix}`.slice(0, 35)
+  // Ediel PRODAT validation flags UNB/0020 and UNZ/0020 when the reference is too long.
+  // Keep it compact like the official examples. YYMMDDHHMMSS + two safe random chars = 14.
+  const timestamp = utcTimestampToken().slice(2)
+  return `${timestamp}${randomToken(2)}`.slice(0, 14)
 }
+
 
 export type CanonicalReferenceSet = {
   externalReference: string | null

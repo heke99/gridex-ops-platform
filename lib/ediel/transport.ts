@@ -319,10 +319,9 @@ export function isSupportedSmtpMimeMode(value: string | null | undefined): value
   )
 }
 
-function resolveSmtpMimeMode(override?: string | null): EdielSmtpMimeMode {
-  const requested = override?.trim() || process.env.EDIEL_SMTP_MIME_MODE?.trim()
-  if (isSupportedSmtpMimeMode(requested)) return requested
-
+function resolveSmtpMimeMode(_override?: string | null): EdielSmtpMimeMode {
+  // PRODAT TGT should now only be sent through S/MIME encrypted transport.
+  // Diagnostic/plain modes remain in this file only for historical inspection and are no longer exposed.
   return 'ediel-smime-enveloped'
 }
 
@@ -647,6 +646,12 @@ export async function sendEdielMessageViaSmtp(
       fileName,
       payloadLength: normalizedPayload.length,
       payloadPreview: safePreview(normalizedPayload),
+      interchangeReference: message.interchange_reference,
+      interchangeReferenceLength: String(message.interchange_reference ?? '').length,
+      documentReference: message.external_reference,
+      documentReferenceLength: String(message.external_reference ?? '').length,
+      caseReference: message.transaction_reference,
+      caseReferenceLength: String(message.transaction_reference ?? '').length,
       receiverEdielId: message.receiver_ediel_id,
       receiverSubAddress: message.receiver_sub_address,
       applicationReference: message.application_reference,

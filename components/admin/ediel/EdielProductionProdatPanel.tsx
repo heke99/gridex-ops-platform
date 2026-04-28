@@ -30,23 +30,14 @@ function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: Badge
   return <span className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${classes}`}>{children}</span>
 }
 
-function SmtpModeSelect({ compact = false }: { compact?: boolean }) {
+function SmtpModeNotice({ compact = false }: { compact?: boolean }) {
   return (
-    <label className={compact ? 'flex min-w-[220px] flex-col gap-1 text-[11px] font-medium text-slate-500' : 'block'}>
-      <span className="uppercase tracking-wide">SMTP-läge</span>
-      <select
-        name="smtpMimeMode"
-        defaultValue=""
-        className="rounded-xl border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-800"
-      >
-        <option value="">Standard från .env</option>
-        <option value="ediel-multipart-validation-base64">Diagnostik: multipart base64 attachment</option>
-        <option value="ediel-singlepart-base64">Klartext: singlepart EDIFACT base64</option>
-        <option value="ediel-smime-enveloped">S/MIME krypterat</option>
-      </select>
-    </label>
+    <div className={compact ? 'rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-semibold text-emerald-800' : 'rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800'}>
+      Skickas endast via S/MIME krypterat
+    </div>
   )
 }
+
 
 function issueTone(issue: EdielProdatCandidateIssue): BadgeTone {
   if (issue.severity === 'error') return 'red'
@@ -435,9 +426,9 @@ function ProductionCandidateCard({
                     {['draft', 'queued', 'prepared', 'failed'].includes(message.status) ? (
                       <form action={sendEdielMessageAction} className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2">
                         <input type="hidden" name="edielMessageId" value={message.id} />
-                        <SmtpModeSelect compact />
+                        <SmtpModeNotice compact />
                         <button className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
-                          Skicka SMTP
+                          Skicka S/MIME
                         </button>
                       </form>
                     ) : null}

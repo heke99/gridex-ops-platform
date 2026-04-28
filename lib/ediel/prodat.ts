@@ -292,6 +292,34 @@ function nowDate203(): string {
   return `${y}${m}${d}${hh}${mm}`
 }
 
+function safeProdatReferenceToken(value: string | null | undefined, maxLength: number): string | null {
+  const cleaned = sanitize(value).toUpperCase().replace(/[^A-Z0-9]/g, '')
+  return cleaned ? cleaned.slice(0, maxLength) : null
+}
+
+function prodatShortTimestamp(): string {
+  return nowDate203().slice(2)
+}
+
+function prodatRandomToken(length = 3): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let out = ''
+  for (let i = 0; i < length; i += 1) out += chars[Math.floor(Math.random() * chars.length)]
+  return out
+}
+
+function buildProdatDocumentReference(code: ProdatSwitchCode, contextId: string | null | undefined): string {
+  const context = safeProdatReferenceToken(contextId, 4)
+  // BGM/1004 must stay short. Ediel's examples use compact document numbers, not long UUID/TGT labels.
+  return `${code}${prodatShortTimestamp()}${context ?? ''}${prodatRandomToken(3)}`.slice(0, 20)
+}
+
+function buildProdatCaseReference(code: ProdatSwitchCode, contextId: string | null | undefined): string {
+  const context = safeProdatReferenceToken(contextId, 6)
+  // RFF+LI is the business case reference. Keep it compact so it cannot become the next validator error.
+  return `LI${code}${prodatShortTimestamp()}${context ?? ''}${prodatRandomToken(3)}`.slice(0, 25)
+}
+
 function date203AtStartOfDay(value: string | null): string | null {
   if (!value) return null
   const digits = value.replace(/\D/g, '')
@@ -594,11 +622,14 @@ function buildProdatSwitchOutboundDraft(
       correlationReference: input.correlationReference ?? null,
     })
 
-    const externalReference =
-      refs.externalReference ??
-      input.switchRequest.external_reference ??
-      `${preferredReferencePrefix(code)}-${input.switchRequest.id}`
-    const transactionReference = refs.transactionReference ?? input.switchRequest.id
+    const externalReference = buildProdatDocumentReference(
+      code,
+      refs.externalReference ?? input.switchRequest.external_reference ?? input.switchRequest.id
+    )
+    const transactionReference = buildProdatCaseReference(
+      code,
+      refs.transactionReference ?? input.transactionReference ?? input.switchRequest.id
+    )
 
     const messageVersion =
       (await resolveCanonicalOutboundVersion({
@@ -685,6 +716,10 @@ function buildProdatSwitchOutboundDraft(
       gridOwnerEdielId: input.gridOwner?.ediel_id ?? null,
       gridOwnerOwnerCode: input.gridOwner?.owner_code ?? null,
       validation: buildValidationReport(validation),
+      referenceDiagnostics: {
+        externalReferenceLength: externalReference.length,
+        transactionReferenceLength: transactionReference.length,
+      },
     }
 
     return {

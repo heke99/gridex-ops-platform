@@ -40,7 +40,7 @@ import {
   prepareAndQueueUtiltsE66,
   prepareAndQueueUtiltsE73,
 } from '@/lib/ediel/flows/utiltsDataRequest'
-import { sendEdielMessageViaSmtp, isSupportedSmtpMimeMode, type EdielSmtpMimeMode } from '@/lib/ediel/transport'
+import { sendEdielMessageViaSmtp, type EdielSmtpMimeMode } from '@/lib/ediel/transport'
 
 export type {
   AckFamily,
@@ -208,8 +208,10 @@ export async function sendQueuedEdielMessage(params: {
     )
   }
 
-  const smtpMimeMode = isSupportedSmtpMimeMode(params.smtpMimeMode) ? params.smtpMimeMode : null
-  await sendEdielMessageViaSmtp(message, { actorUserId, smtpMimeMode })
+  await sendEdielMessageViaSmtp(message, {
+    actorUserId,
+    smtpMimeMode: 'ediel-smime-enveloped',
+  })
 
   const refreshed = await getEdielMessageById(message.id)
   if (!refreshed) {
