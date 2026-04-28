@@ -2,6 +2,11 @@
 
 import nodemailer from 'nodemailer'
 import { ImapFlow } from 'imapflow'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import { mkdtemp, readFile, rm, writeFile } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import {
   getEdielMessageById,
   updateEdielMessageStatus,
@@ -36,6 +41,8 @@ import {
 } from '@/lib/ediel/core/kernel'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 
+const execFileAsync = promisify(execFile)
+
 function requireEnv(name: string, fallback?: string | null): string {
   const value = process.env[name] ?? fallback ?? ''
   if (!value) {
@@ -67,7 +74,12 @@ function quoteMimeParam(value: string): string {
   return sanitizeMimeHeader(value, 'ediel-message.edi').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-type EdielSmtpMimeMode = 'ediel-singlepart-lines' | 'ediel-singlepart-compact' | 'nodemailer-attachment'
+type EdielSmtpMimeMode =
+  | 'ediel-singlepart-base64'
+  | 'ediel-smime-enveloped'
+  | 'ediel-singlepart-lines'
+  | 'ediel-singlepart-compact'
+  | 'nodemailer-attachment'
 
 function normalizeEdifactSegments(rawPayload: string): string[] {
   return rawPayload
@@ -80,15 +92,139 @@ function normalizeEdifactSegments(rawPayload: string): string[] {
     .filter((segment) => segment.length > 0)
 }
 
-function normalizeEdifactForSmtp(rawPayload: string, mode: 'lines' | 'compact' = 'lines'): string {
+function normalizeEdifactForSmtp(rawPayload: string, mode: 'lines' | 'compact' = 'compact'): string {
   const segments = normalizeEdifactSegments(rawPayload)
   if (segments.length === 0) return ''
 
-  if (mode === 'compact') {
-    return `${segments.join("'")}'`
+  if (mode === 'lines') {
+    return segments.map((segment) => `${segment}'`).join('\r\n')
   }
 
-  return segments.map((segment) => `${segment}'`).join('\r\n')
+  return `${segments.join("'")}'`
+}
+
+function encodeBase64Mime(buffer: Buffer, lineLength = 76): string {
+  const encoded = buffer.toString('base64')
+  const chunks: string[] = []
+  for (let index = 0; index < encoded.length; index += lineLength) {
+    chunks.push(encoded.slice(index, index + lineLength))
+  }
+  return chunks.join('\r\n')
+}
+
+function sanitizeMimeToken(value: string | null | undefined, fallback = 'edifact'): string {
+  const cleaned = sanitizeMimeHeader(value, fallback).replace(/[^A-Za-z0-9._-]/g, '_')
+  return cleaned.length > 0 ? cleaned : fallback
+}
+
+function buildInnerEdifactMimeForSmime(params: {
+  filename: string
+  decodedPayload: string
+  encoding: BufferEncoding
+}): Buffer {
+  const payloadBuffer = Buffer.from(params.decodedPayload, params.encoding)
+  const payloadBase64 = encodeBase64Mime(payloadBuffer)
+  const headers = [
+    'Content-Type: application/EDIFACT',
+    'Content-Transfer-Encoding: base64',
+    `Content-Disposition: attachment; filename=${sanitizeMimeToken(params.filename, 'edifact')}`,
+  ]
+
+  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${payloadBase64}\r\n`, 'ascii')
+}
+
+function buildSinglePartEdielBase64Mime(params: {
+  from: string
+  to: string
+  replyTo?: string | null
+  subject: string
+  filename: string
+  contentType: string
+  decodedPayload: string
+  encoding: BufferEncoding
+}): Buffer {
+  const payloadBuffer = Buffer.from(params.decodedPayload, params.encoding)
+  const payloadBase64 = encodeBase64Mime(payloadBuffer)
+  const headers = [
+    `From: ${sanitizeMimeHeader(params.from)}`,
+    `To: ${sanitizeMimeHeader(params.to)}`,
+    `Subject: ${sanitizeMimeHeader(params.subject, params.filename)}`,
+    `Date: ${new Date().toUTCString()}`,
+    `Message-ID: ${buildAsciiMessageId()}`,
+    'MIME-Version: 1.0',
+    `Content-Type: ${params.contentType}`,
+    'Content-Transfer-Encoding: base64',
+    `Content-Disposition: attachment; filename=${sanitizeMimeToken(params.filename, 'edifact')}`,
+  ]
+
+  if (params.replyTo) {
+    headers.splice(2, 0, `Reply-To: ${sanitizeMimeHeader(params.replyTo)}`)
+  }
+
+  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${payloadBase64}\r\n`, 'ascii')
+}
+
+function buildOuterSmimeMime(params: {
+  from: string
+  to: string
+  replyTo?: string | null
+  subject: string
+  encryptedDer: Buffer
+}): Buffer {
+  const payloadBase64 = encodeBase64Mime(params.encryptedDer)
+  const headers = [
+    `From: ${sanitizeMimeHeader(params.from)}`,
+    `To: ${sanitizeMimeHeader(params.to)}`,
+    `Subject: ${sanitizeMimeHeader(params.subject, 'EDIEL_SMIME')}`,
+    `Date: ${new Date().toUTCString()}`,
+    `Message-ID: ${buildAsciiMessageId()}`,
+    'MIME-Version: 1.0',
+    'Content-Type: application/pkcs7-mime; smime-type=enveloped-data; name=smime.p7m',
+    'Content-Transfer-Encoding: base64',
+    'Content-Disposition: attachment; filename=smime.p7m',
+  ]
+
+  if (params.replyTo) {
+    headers.splice(2, 0, `Reply-To: ${sanitizeMimeHeader(params.replyTo)}`)
+  }
+
+  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${payloadBase64}\r\n`, 'ascii')
+}
+
+async function encryptSmimeEnvelopedData(params: {
+  innerMime: Buffer
+  recipientCertPath: string
+}): Promise<Buffer> {
+  const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-smime-'))
+  const inputPath = join(tempDir, 'inner.mime')
+  const outputPath = join(tempDir, 'smime.der')
+
+  try {
+    await writeFile(inputPath, params.innerMime)
+
+    try {
+      await execFileAsync('openssl', [
+        'smime',
+        '-encrypt',
+        '-binary',
+        '-des3',
+        '-outform',
+        'DER',
+        '-in',
+        inputPath,
+        '-out',
+        outputPath,
+        params.recipientCertPath,
+      ])
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      throw new Error(`S/MIME-kryptering misslyckades via OpenSSL. Kontrollera EDIEL_SMIME_RECIPIENT_CERT_PATH och att openssl finns installerat. ${detail}`)
+    }
+
+    return await readFile(outputPath)
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
 }
 
 function buildAsciiMessageId(): string {
@@ -100,6 +236,8 @@ function buildAsciiMessageId(): string {
 function resolveSmtpMimeMode(): EdielSmtpMimeMode {
   const configured = process.env.EDIEL_SMTP_MIME_MODE?.trim()
   if (
+    configured === 'ediel-singlepart-base64' ||
+    configured === 'ediel-smime-enveloped' ||
     configured === 'ediel-singlepart-lines' ||
     configured === 'ediel-singlepart-compact' ||
     configured === 'nodemailer-attachment'
@@ -107,7 +245,7 @@ function resolveSmtpMimeMode(): EdielSmtpMimeMode {
     return configured
   }
 
-  return 'ediel-singlepart-lines'
+  return 'ediel-smime-enveloped'
 }
 
 function isEdifactMessage(message: EdielMessageRow): boolean {
@@ -390,7 +528,10 @@ export async function sendEdielMessageViaSmtp(
       extension,
     })
   const mimeMode = resolveSmtpMimeMode()
-  const edifactPayloadMode = mimeMode === 'ediel-singlepart-compact' ? 'compact' : 'lines'
+  const edifactPayloadMode =
+    mimeMode === 'ediel-singlepart-lines' || mimeMode === 'nodemailer-attachment'
+      ? 'lines'
+      : 'compact'
   const normalizedPayload = isEdifactMessage(message)
     ? normalizeEdifactForSmtp(bodyText, edifactPayloadMode)
     : bodyText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\r\n')
@@ -400,6 +541,12 @@ export async function sendEdielMessageViaSmtp(
       ? 'application/xml'
       : inferMimeType(message)
   const mimeEncoding: BufferEncoding = isEdifactMessage(message) ? 'latin1' : 'utf8'
+  const contentTransferEncoding =
+    mimeMode === 'nodemailer-attachment'
+      ? 'nodemailer-managed'
+      : mimeMode === 'ediel-singlepart-lines' || mimeMode === 'ediel-singlepart-compact'
+        ? '8bit'
+        : 'base64'
   const smtpSubject = `EDIEL_${String(message.message_family).toUpperCase()}_${String(message.message_code).toUpperCase()}_${String(message.interchange_reference ?? message.id).replace(/[^A-Za-z0-9]/g, '').slice(0, 24)}`
 
   await createEdielMessageEvent({
@@ -411,7 +558,7 @@ export async function sendEdielMessageViaSmtp(
     payload: {
       mimeMode,
       contentType,
-      contentTransferEncoding: mimeMode === 'nodemailer-attachment' ? 'nodemailer-managed' : '8bit',
+      contentTransferEncoding,
       envelopeFrom: from,
       envelopeTo: message.receiver_email,
       headerFrom: from,
@@ -429,6 +576,10 @@ export async function sendEdielMessageViaSmtp(
 
   let result: any
   let rawMimePreview: string | null = null
+  let decodedPayloadPreview: string | null = null
+  let encodedPayloadPreview: string | null = null
+  let encryptedPayloadLength: number | null = null
+  let innerMimePreview: string | null = null
 
   if (mimeMode === 'nodemailer-attachment') {
     result = await transporter.sendMail({
@@ -449,6 +600,109 @@ export async function sendEdielMessageViaSmtp(
         },
       ],
     })
+  } else if (mimeMode === 'ediel-smime-enveloped') {
+    if (!isEdifactMessage(message)) {
+      throw new Error('S/MIME-läget stöder just nu EDIFACT. Använd ediel-singlepart-base64 för XML/AI-listor tills separat XML-S/MIME är byggt.')
+    }
+
+    const recipientCertPath = requireEnv('EDIEL_SMIME_RECIPIENT_CERT_PATH')
+    const innerMime = buildInnerEdifactMimeForSmime({
+      filename: fileName,
+      decodedPayload: normalizedPayload,
+      encoding: mimeEncoding,
+    })
+    const encryptedDer = await encryptSmimeEnvelopedData({
+      innerMime,
+      recipientCertPath,
+    })
+    const rawMime = buildOuterSmimeMime({
+      from,
+      to: message.receiver_email,
+      replyTo,
+      subject: smtpSubject,
+      encryptedDer,
+    })
+
+    rawMimePreview = safePreview(rawMime.toString('ascii'), 900)
+    innerMimePreview = safePreview(innerMime.toString('ascii'), 900)
+    decodedPayloadPreview = safePreview(normalizedPayload, 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+    encryptedPayloadLength = encryptedDer.length
+
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'manual_note',
+      eventStatus: 'info',
+      message: 'S/MIME envelope byggt enligt Ediel-regler före SMTP-skickning.',
+      payload: {
+        mimeMode,
+        recipientCertPath,
+        outerContentType: 'application/pkcs7-mime; smime-type=enveloped-data; name=smime.p7m',
+        outerContentTransferEncoding: 'base64',
+        outerContentDisposition: 'attachment; filename=smime.p7m',
+        innerContentType: 'application/EDIFACT',
+        innerContentTransferEncoding: 'base64',
+        innerContentDisposition: `attachment; filename=${sanitizeMimeToken(fileName, 'edifact')}`,
+        decodedPayloadLength: normalizedPayload.length,
+        decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
+        decodedPayloadPreview,
+        innerMimePreview,
+        encryptedPayloadLength,
+        rawMimePreview,
+      },
+    })
+
+    result = await transporter.sendMail({
+      envelope: {
+        from,
+        to: [message.receiver_email],
+      },
+      raw: rawMime,
+    })
+  } else if (mimeMode === 'ediel-singlepart-base64') {
+    const rawMime = buildSinglePartEdielBase64Mime({
+      from,
+      to: message.receiver_email,
+      replyTo,
+      subject: smtpSubject,
+      filename: fileName,
+      contentType,
+      decodedPayload: normalizedPayload,
+      encoding: mimeEncoding,
+    })
+
+    rawMimePreview = safePreview(rawMime.toString('ascii'), 900)
+    decodedPayloadPreview = safePreview(normalizedPayload, 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'manual_note',
+      eventStatus: 'info',
+      message: 'SMTP MIME byggt enligt Ediel-regler före skickning.',
+      payload: {
+        mimeMode,
+        contentType,
+        contentTransferEncoding: 'base64',
+        contentDisposition: `attachment; filename=${sanitizeMimeToken(fileName, 'edifact')}`,
+        decodedPayloadLength: normalizedPayload.length,
+        decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
+        decodedPayloadPreview,
+        encodedPayloadLength: Buffer.from(normalizedPayload, mimeEncoding).toString('base64').length,
+        encodedPayloadPreview,
+        rawMimePreview,
+      },
+    })
+
+    result = await transporter.sendMail({
+      envelope: {
+        from,
+        to: [message.receiver_email],
+      },
+      raw: rawMime,
+    })
   } else {
     const rawMime = buildSinglePartEdielMime({
       from,
@@ -462,6 +716,7 @@ export async function sendEdielMessageViaSmtp(
     })
 
     rawMimePreview = safePreview(rawMime.toString('latin1'), 900)
+    decodedPayloadPreview = safePreview(normalizedPayload, 900)
 
     result = await transporter.sendMail({
       envelope: {
@@ -513,12 +768,18 @@ export async function sendEdielMessageViaSmtp(
       rejected,
       mimeMode,
       contentType,
-      contentTransferEncoding: mimeMode === 'nodemailer-attachment' ? 'nodemailer-managed' : '8bit',
+      contentTransferEncoding,
       subject: smtpSubject,
       fileName,
       payloadLength: normalizedPayload.length,
       payloadPreview: safePreview(normalizedPayload),
       rawMimePreview,
+      decodedPayloadLength: normalizedPayload.length,
+      decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
+      decodedPayloadPreview,
+      encodedPayloadPreview,
+      encryptedPayloadLength,
+      innerMimePreview,
     },
   })
 
