@@ -507,7 +507,7 @@ async function ensureTgtRouteProfile(
     is_enabled: true,
     sender_ediel_id: GRIDEX_TGT_EDIEL_ID,
     sender_name: 'GridCore',
-    sender_sub_address: 'GRIDEX',
+    sender_sub_address: null,
     receiver_ediel_id: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
     receiver_name: 'Edielportalen test',
     receiver_sub_address: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,

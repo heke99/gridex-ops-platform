@@ -678,7 +678,7 @@ function buildProdatSwitchOutboundDraft(
 
     const envelope = buildEdifactEnvelope({
       senderEdielId: input.senderEdielId,
-      senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
+      senderSubAddress: input.senderSubAddress ?? (isEdielPortalTgt ? null : 'GRIDEX'),
       receiverEdielId: input.receiverEdielId,
       receiverSubAddress: input.receiverSubAddress ?? (isEdielPortalTgt ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS : 'PRODAT'),
       applicationReference,
@@ -736,7 +736,7 @@ function buildProdatSwitchOutboundDraft(
       senderName: input.senderName ?? null,
       receiverEdielId: input.receiverEdielId,
       receiverName: input.receiverName ?? null,
-      senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
+      senderSubAddress: input.senderSubAddress ?? (isEdielPortalTgt ? null : 'GRIDEX'),
       receiverSubAddress: input.receiverSubAddress ?? (isEdielPortalTgt ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS : 'PRODAT'),
       receiverEmail: input.receiverEmail ?? null,
       subject: input.subject ?? `PRODAT ${code} ${externalReference}`.trim(),

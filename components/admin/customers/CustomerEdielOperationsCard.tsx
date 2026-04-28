@@ -909,6 +909,7 @@ aperak_status: normalizeRecommendationAckStatus(
                       >
                         <input type="hidden" name="actorUserId" value={user?.id ?? ''} />
                         <input type="hidden" name="switchRequestId" value={request.id} />
+                        <input type="hidden" name="forceRegenerate" value="true" />
 
                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
                           Förbered Z03

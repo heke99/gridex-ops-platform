@@ -209,6 +209,7 @@ export default function EdielOperationalBridgePanel({
                   </div>
                   <form action={prepareSwitchZ03Action} className="mt-3">
                     <input type="hidden" name="switchRequestId" value={row.id} />
+                  <input type="hidden" name="forceRegenerate" value="true" />
                     <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
                       Skapa filbaserad PRODAT Z03
                     </button>

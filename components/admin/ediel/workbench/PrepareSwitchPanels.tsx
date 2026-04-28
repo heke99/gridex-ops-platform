@@ -66,6 +66,7 @@ function ProdatPrepareCard({
     <form action={action} className="rounded-2xl border border-slate-200 p-4">
       <input type="hidden" name="switchRequestId" value={selectedSwitchId} />
       <input type="hidden" name="communicationRouteId" value={selectedRouteId} />
+      {code === 'Z03' ? <input type="hidden" name="forceRegenerate" value="true" /> : null}
 
       <div className="text-sm font-semibold text-slate-900">{title}</div>
 
