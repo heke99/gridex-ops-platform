@@ -653,7 +653,7 @@ function buildProdatSwitchOutboundDraft(
           }))
 
     // Ediel's PRODAT 26.A examples for Z03 use UNB sender subaddress PRODAT
-    // and receiver subaddress SCH. This is EDIFACT addressing and is separate
+    // and receiver subaddress PRODAT. This is EDIFACT addressing and is separate
     // from the SMTP mailbox/S/MIME recipient certificate. Force it for TGT so
     // stale route profiles cannot reintroduce 92825:ZZ + 91100:ZZ:PRODAT.
     const senderSubAddress = isEdielPortalTgt

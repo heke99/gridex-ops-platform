@@ -526,7 +526,7 @@ async function ensureTgtRouteProfile(
     mailbox: 'ediel@gridex.se',
     encryption_mode: 'none',
     payload_format: 'edifact',
-    notes: 'TGT SMTP-profil enligt PRODAT 26.A: 92825:ZZ:PRODAT till 91100:ZZ:SCH, SMTP 91100@ediel.se och Application Reference 23-DDQ-PRODAT.',
+    notes: 'TGT SMTP-profil enligt PRODAT 26.A: 92825:ZZ:PRODAT till 91100:ZZ:PRODAT, SMTP 91100@ediel.se och Application Reference 23-DDQ-PRODAT.',
     updated_by: actorUserId,
     updated_at: new Date().toISOString(),
   }
