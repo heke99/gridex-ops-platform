@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { saveCustomerProfileAction } from '@/app/admin/customers/[id]/profile-actions'
+import {
+  deleteCustomerForRecreateAction,
+  saveCustomerProfileAction,
+} from '@/app/admin/customers/[id]/profile-actions'
 
 type CustomerProfile = {
   id: string
@@ -196,6 +199,39 @@ export default function CustomerProfileCard({
           </button>
         </div>
       </form>
+
+      <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900/60 dark:bg-rose-950/30">
+        <h3 className="text-sm font-semibold text-rose-800 dark:text-rose-200">
+          Radera kund och skapa om
+        </h3>
+        <p className="mt-1 text-sm leading-6 text-rose-700 dark:text-rose-200/80">
+          Använd endast för felaktiga testkunder eller kunder som ska läggas upp från början igen. Raderingen tar bort kund, anläggningar, mätpunkter, switchärenden, Ediel-loggar, portalåtkomst och relaterade underlag som är kopplade till kunden.
+        </p>
+        <form
+          action={deleteCustomerForRecreateAction}
+          onSubmit={(event) => {
+            if (!window.confirm('Radera kunden permanent? Detta kan inte ångras.')) {
+              event.preventDefault()
+            }
+          }}
+          className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]"
+        >
+          <input type="hidden" name="customer_id" value={customer.id} />
+          <label className="grid gap-1 text-sm">
+            <span className="text-rose-700 dark:text-rose-200">Skriv RADERA för att bekräfta</span>
+            <input
+              name="confirm_delete"
+              placeholder="RADERA"
+              className="h-11 rounded-2xl border border-rose-300 bg-white px-4 text-rose-950 dark:border-rose-900 dark:bg-slate-950 dark:text-white"
+            />
+          </label>
+          <div className="flex items-end">
+            <button className="inline-flex h-11 items-center rounded-2xl bg-rose-700 px-4 text-sm font-semibold text-white hover:bg-rose-800">
+              Radera kund
+            </button>
+          </div>
+        </form>
+      </div>
     </section>
   )
 }

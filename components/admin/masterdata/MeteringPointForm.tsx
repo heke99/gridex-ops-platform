@@ -186,6 +186,26 @@ export default function MeteringPointForm({
           </select>
         </label>
 
+        <label className="grid gap-2 md:col-span-2">
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            Ediel mätmetod för PRODAT/TGT
+          </span>
+          <select
+            name="ediel_metering_method"
+            defaultValue=""
+            className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+          >
+            <option value="">Behåll befintligt värde i pågående ärende</option>
+            <option value="Z01">Z01 — Profil/månad/årsmätt</option>
+            <option value="Z02">Z02 — Timvis, äldre kod</option>
+            <option value="Z03">Z03 — Nätägaren avgör mätmetod</option>
+            <option value="Z04">Z04 — Kvartsmätt/15 minuter</option>
+          </select>
+          <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+            Detta ändrar Ediel-fält 217 i öppna switch/testärenden för denna mätpunkt. För TGT 1.2.1 och 1.2.2 kräver portalen normalt Z03 även om generell testkundsdata visar annat. Skapa nytt PRODAT-utkast efter att du sparat.
+          </p>
+        </label>
+
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
             Nätägare

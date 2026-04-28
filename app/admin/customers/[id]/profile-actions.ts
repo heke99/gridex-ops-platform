@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
@@ -210,4 +211,115 @@ export async function saveCustomerProfileAction(formData: FormData): Promise<voi
   revalidatePath(`/admin/customers/${customerId}/profile`)
   revalidatePath('/admin/customers')
   revalidatePath('/admin/customers/segments')
+}
+async function selectIds(table: string, column: string, values: string[]): Promise<string[]> {
+  if (values.length === 0) return []
+  const { data, error } = await supabaseService.from(table).select('id').in(column, values)
+  if (error) throw error
+  return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean)
+}
+
+async function deleteByIds(table: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  const { error } = await supabaseService.from(table).delete().in('id', ids)
+  if (error) throw error
+}
+
+async function deleteByColumn(table: string, column: string, values: string[]): Promise<void> {
+  if (values.length === 0) return
+  const { error } = await supabaseService.from(table).delete().in(column, values)
+  if (error) throw error
+}
+
+async function deleteByCustomerId(table: string, customerId: string): Promise<void> {
+  const { error } = await supabaseService.from(table).delete().eq('customer_id', customerId)
+  if (error) throw error
+}
+
+export async function deleteCustomerForRecreateAction(formData: FormData): Promise<void> {
+  const actorUserId = await getActorUserId()
+  const customerId = getString(formData, 'customer_id')
+  const confirmText = getString(formData, 'confirm_delete')
+
+  if (!customerId) throw new Error('customer_id saknas')
+  if (confirmText !== 'RADERA') {
+    throw new Error('Skriv RADERA för att bekräfta radering av kunden.')
+  }
+
+  const { data: customer, error: customerError } = await supabaseService
+    .from('customers')
+    .select('*')
+    .eq('id', customerId)
+    .single()
+
+  if (customerError) throw customerError
+
+  await insertAuditLog({
+    actorUserId,
+    entityType: 'customer',
+    entityId: customerId,
+    action: 'customer_delete_for_recreate_started',
+    oldValues: customer,
+    metadata: { warning: 'Hard delete requested from customer card.' },
+  })
+
+  const { data: siteRows, error: siteError } = await supabaseService
+    .from('customer_sites')
+    .select('id')
+    .eq('customer_id', customerId)
+  if (siteError) throw siteError
+  const siteIds = (siteRows ?? []).map((row: { id: string }) => row.id)
+
+  const meteringPointIds = await selectIds('metering_points', 'site_id', siteIds)
+  const switchRequestIds = await selectIds('supplier_switch_requests', 'customer_id', [customerId])
+  const outboundRequestIds = await selectIds('outbound_requests', 'customer_id', [customerId])
+  const contractIds = await selectIds('customer_contracts', 'customer_id', [customerId])
+  const invoiceIds = await selectIds('customer_invoices', 'customer_id', [customerId])
+
+  await deleteByIds('outbound_dispatch_events', outboundRequestIds)
+  await deleteByIds('supplier_switch_events', switchRequestIds)
+  await deleteByIds('customer_contract_events', contractIds)
+  await deleteByColumn('customer_invoice_lines', 'invoice_id', invoiceIds)
+  await deleteByColumn('customer_invoice_documents', 'invoice_id', invoiceIds)
+  await deleteByCustomerId('customer_portal_events', customerId)
+
+  const { data: edielMessages, error: edielMessageError } = await supabaseService
+    .from('ediel_messages')
+    .select('id')
+    .eq('customer_id', customerId)
+  if (edielMessageError) throw edielMessageError
+  const edielMessageIds = (edielMessages ?? []).map((row: { id: string }) => row.id)
+  await deleteByIds('ediel_message_events', edielMessageIds)
+  await deleteByIds('ediel_messages', edielMessageIds)
+
+  await deleteByCustomerId('metering_values', customerId)
+  await deleteByCustomerId('billing_underlays', customerId)
+  await deleteByCustomerId('partner_exports', customerId)
+  await deleteByCustomerId('grid_owner_data_requests', customerId)
+  await deleteByCustomerId('outbound_requests', customerId)
+  await deleteByCustomerId('supplier_switch_requests', customerId)
+  await deleteByCustomerId('powers_of_attorney', customerId)
+  await deleteByCustomerId('customer_authorization_documents', customerId)
+  await deleteByCustomerId('customer_operation_tasks', customerId)
+  await deleteByCustomerId('customer_internal_notes', customerId)
+  await deleteByCustomerId('customer_addresses', customerId)
+  await deleteByCustomerId('customer_contacts', customerId)
+  await deleteByCustomerId('customer_portal_claims', customerId)
+  await deleteByCustomerId('customer_portal_accounts', customerId)
+  await deleteByCustomerId('customer_invoices', customerId)
+  await deleteByCustomerId('customer_contracts', customerId)
+
+  await deleteByIds('metering_points', meteringPointIds)
+  await deleteByIds('customer_sites', siteIds)
+
+  const { error: deleteCustomerError } = await supabaseService
+    .from('customers')
+    .delete()
+    .eq('id', customerId)
+
+  if (deleteCustomerError) throw deleteCustomerError
+
+  revalidatePath('/admin/customers')
+  revalidatePath('/admin/operations')
+  redirect('/admin/customers')
 }

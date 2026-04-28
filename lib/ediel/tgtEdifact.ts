@@ -346,11 +346,23 @@ function cleanOptionalCode(value: string | null | undefined, maxLength = 35): st
   return cleaned.length > 0 ? cleaned : null
 }
 
+function resolveTgtMeteringMethod(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  importedValue: string | null
+): string {
+  if (params.testSuite === 'PRODAT' && params.roleCode === 'supplier' && step.code === 'Z03') {
+    if (params.testCaseCode === '1.2.1' || params.testCaseCode === '1.2.2') return 'Z03'
+  }
+
+  return importedValue ?? ''
+}
+
 function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>, step: EdielTgtExpectedStep): TgtPortalCustomerData {
   const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
   const startDateRaw = firstToken(findTestValueForStep(params, step, ['210 avtal', 'startdatum', 'leveransstart']))
   const registers = buildRegistersFromTestData(params, step)
-
+  const importedMeteringMethod = cleanOptionalCode(findTestValueForStep(params, step, ['217 mätmetod', '217 matmetod']), 12)
   return {
     source: data ? 'tgt_test_data_registry' : 'missing_test_data',
     testCustomerLabel: data?.title ?? `TGT ${params.testSuite} ${params.testCaseCode}`,
@@ -360,7 +372,7 @@ function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'rol
     ) ?? '',
     agreementStartDateTime: startDateRaw && /^\d{8,12}$/.test(startDateRaw) ? startDateRaw : '',
     annualEnergyUnit: cleanOptionalCode(findTestValueForStep(params, step, ['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
-    meteringMethod: cleanOptionalCode(findTestValueForStep(params, step, ['217 mätmetod', '217 matmetod']), 12) ?? '',
+    meteringMethod: resolveTgtMeteringMethod(params, step, importedMeteringMethod),
     priority: cleanOptionalCode(findTestValueForStep(params, step, ['220 prioritet']), 12),
     reportingFrequency: cleanOptionalCode(findTestValueForStep(params, step, ['222 rapporteringsfrekvens']), 12),
     meterNumber: cleanOptionalCode(findTestValueForStep(params, step, ['224 mätarnummer', '224 matarnummer']), 35),

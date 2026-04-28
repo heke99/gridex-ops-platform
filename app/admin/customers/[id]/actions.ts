@@ -92,6 +92,77 @@ function normalizePartnerExportKind(
   return 'billing_underlay'
 }
 
+type JsonObject = Record<string, unknown>
+
+function objectValue(value: unknown): JsonObject {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as JsonObject) : {}
+}
+
+function normalizeEdielMeteringMethod(value: string | null): 'Z01' | 'Z02' | 'Z03' | 'Z04' | null {
+  if (value === 'Z01' || value === 'Z02' || value === 'Z03' || value === 'Z04') return value
+  return null
+}
+
+async function applyEdielMeteringMethodToSwitchSnapshots(params: {
+  actorUserId: string
+  customerId: string
+  siteId: string
+  meteringPointId: string
+  edielMeteringMethod: 'Z01' | 'Z02' | 'Z03' | 'Z04' | null
+}): Promise<{ updated: number }> {
+  if (!params.edielMeteringMethod) return { updated: 0 }
+
+  const { data: requests, error } = await supabaseService
+    .from('supplier_switch_requests')
+    .select('id,validation_snapshot')
+    .eq('customer_id', params.customerId)
+    .eq('site_id', params.siteId)
+    .eq('metering_point_id', params.meteringPointId)
+    .order('created_at', { ascending: false })
+    .limit(25)
+
+  if (error) throw error
+
+  let updated = 0
+
+  for (const request of requests ?? []) {
+    const snapshot = objectValue((request as JsonObject).validation_snapshot)
+    const portalData = objectValue(snapshot.portalData)
+    const testCaseOverrides = objectValue(portalData.testCaseOverrides)
+    const nextSnapshot = {
+      ...snapshot,
+      portalData: {
+        ...portalData,
+        meteringMethod: params.edielMeteringMethod,
+        testCaseOverrides: {
+          ...testCaseOverrides,
+          meteringMethod: params.edielMeteringMethod,
+        },
+      },
+      edielMeteringMethodOverride: {
+        value: params.edielMeteringMethod,
+        source: 'customer_metering_point_form',
+        updatedAt: new Date().toISOString(),
+        updatedBy: params.actorUserId,
+      },
+    }
+
+    const { error: updateError } = await supabaseService
+      .from('supplier_switch_requests')
+      .update({
+        validation_snapshot: nextSnapshot,
+        updated_by: params.actorUserId,
+      })
+      .eq('id', String((request as JsonObject).id))
+
+    if (updateError) throw updateError
+    updated += 1
+  }
+
+  return { updated }
+}
+
+
 function mapGridOwnerRequestScopeToOutboundType(
   value: 'meter_values' | 'billing_underlay' | 'customer_masterdata'
 ): 'meter_values' | 'billing_underlay' {
@@ -283,9 +354,11 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
     formValue(formData, 'metering_point_id')?.trim() ||
     ''
 
-  const parsed = meteringPointInputSchema.parse({
+  const siteId = formValue(formData, 'site_id') || before?.site_id || ''
+
+  const parsedResult = meteringPointInputSchema.safeParse({
     id: meteringPointRowId,
-    site_id: formValue(formData, 'site_id') ?? '',
+    site_id: siteId,
     meter_point_id: meterPointIdentifier,
     site_facility_id: formValue(formData, 'site_facility_id') || undefined,
     ediel_reference: formValue(formData, 'ediel_reference') || undefined,
@@ -299,12 +372,30 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
     is_settlement_relevant: parseCheckbox(formData.get('is_settlement_relevant')),
   })
 
+  if (!parsedResult.success) {
+    const details = parsedResult.error.issues
+      .map((issue) => `${issue.path.join('.') || 'fält'}: ${issue.message}`)
+      .join('; ')
+    throw new Error(`Kunde inte spara mätpunkten. Kontrollera formuläret. ${details}`)
+  }
+
+  const parsed = parsedResult.data
+
   const savePayload = {
     ...parsed,
     metering_point_id: meterPointIdentifier,
   }
 
   const savedMeteringPoint = await saveMeteringPoint(supabase, savePayload as never)
+
+  const edielMeteringMethod = normalizeEdielMeteringMethod(formValue(formData, 'ediel_metering_method'))
+  const edielMeteringMethodSync = await applyEdielMeteringMethodToSwitchSnapshots({
+    actorUserId: actor.id,
+    customerId,
+    siteId: savedMeteringPoint.site_id,
+    meteringPointId: savedMeteringPoint.id,
+    edielMeteringMethod,
+  })
 
   const readiness = await syncCustomerOperationsForSite(supabase, {
     customerId,
@@ -324,6 +415,8 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
       meteringPointId: savedMeteringPoint.id,
       meterPointIdentifier,
       readiness,
+      edielMeteringMethod,
+      edielMeteringMethodSync,
     },
   })
 

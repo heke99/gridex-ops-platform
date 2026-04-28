@@ -250,12 +250,43 @@ function objectValue(value: unknown): Record<string, unknown> | null {
 
 function portalSnapshot(switchRequest: SupplierSwitchRequestRow): Record<string, unknown> | null {
   const snapshot = objectValue(switchRequest.validation_snapshot)
-  return objectValue(snapshot?.portalData)
+  const portalData = objectValue(snapshot?.portalData)
+
+  if (!snapshot && !portalData) return null
+
+  // Existing TGT switch requests can have testSuite/roleCode/testCaseCode at
+  // validation_snapshot root while the actual Ediel field values sit under
+  // validation_snapshot.portalData. Merge both layers so old reusable requests
+  // still get the correct test-case override when PRODAT is generated.
+  return {
+    ...(snapshot ?? {}),
+    ...(portalData ?? {}),
+    portalData: portalData ?? null,
+  }
 }
 
 function portalString(portalData: Record<string, unknown> | null, key: string): string | null {
   const value = portalData?.[key]
   return typeof value === 'string' && value.trim().length > 0 ? sanitize(value) : null
+}
+
+function portalObject(portalData: Record<string, unknown> | null, key: string): Record<string, unknown> | null {
+  return objectValue(portalData?.[key])
+}
+
+function resolveProdatMeteringMethod(portalData: Record<string, unknown> | null): string | null {
+  const override = portalString(portalObject(portalData, 'testCaseOverrides'), 'meteringMethod')
+  if (override) return override
+
+  const suite = portalString(portalData, 'testSuite')
+  const roleCode = portalString(portalData, 'roleCode')
+  const testCaseCode = portalString(portalData, 'testCaseCode')
+
+  if (suite === 'PRODAT' && roleCode === 'supplier' && (testCaseCode === '1.2.1' || testCaseCode === '1.2.2')) {
+    return 'Z03'
+  }
+
+  return portalString(portalData, 'meteringMethod')
 }
 
 function portalNumberString(portalData: Record<string, unknown> | null, key: string): string | null {
@@ -519,7 +550,7 @@ function renderProdatSegments(params: {
   const transactionReference = sanitize(params.transactionReference || params.bgmReference)
   const powerOfAttorneyReference = portalString(portalData, 'powerOfAttorneyReference')
   const balanceResponsibleId = portalString(portalData, 'balanceResponsibleId')
-  const meteringMethod = portalString(portalData, 'meteringMethod')
+  const meteringMethod = resolveProdatMeteringMethod(portalData)
 
   const segments: string[] = []
 
