@@ -60,11 +60,11 @@ function buildUnbSegment(params: {
   const receiverSub = trimOrNull(params.receiverSubAddress)
 
   const senderComposite = senderSub
-    ? `${params.senderEdielId}:14:${senderSub}`
-    : `${params.senderEdielId}:14`
+    ? `${params.senderEdielId}:ZZ:${senderSub}`
+    : `${params.senderEdielId}:ZZ`
   const receiverComposite = receiverSub
-    ? `${params.receiverEdielId}:14:${receiverSub}`
-    : `${params.receiverEdielId}:14`
+    ? `${params.receiverEdielId}:ZZ:${receiverSub}`
+    : `${params.receiverEdielId}:ZZ`
 
   const applicationReference = trimOrNull(params.applicationReference)
   const testFlag = params.testFlag === 0 ? '0' : '1'
@@ -76,8 +76,8 @@ function buildUnbSegment(params: {
     receiverComposite,
     `${utcDateYYMMDD()}:${utcTimeHHMM()}`,
     params.interchangeReference,
-    applicationReference ?? '',
     '',
+    applicationReference ?? '',
     '',
     testFlag,
   ]

@@ -130,9 +130,9 @@ function extractUnbIds(unb: string | null): {
 
   return {
     senderEdielId: senderParts[0]?.trim() || null,
-    senderSubAddress: senderParts[1]?.trim() || null,
+    senderSubAddress: senderParts[2]?.trim() || null,
     receiverEdielId: receiverParts[0]?.trim() || null,
-    receiverSubAddress: receiverParts[1]?.trim() || null,
+    receiverSubAddress: receiverParts[2]?.trim() || null,
   }
 }
 
@@ -281,6 +281,57 @@ function portalDate102(value: string | null): string | null {
   return digits.length >= 8 ? digits.slice(0, 8) : null
 }
 
+function nowDate203(): string {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  const hh = String(now.getHours()).padStart(2, '0')
+  const mm = String(now.getMinutes()).padStart(2, '0')
+  return `${y}${m}${d}${hh}${mm}`
+}
+
+function date203AtStartOfDay(value: string | null): string | null {
+  if (!value) return null
+  const digits = value.replace(/\D/g, '')
+  return digits.length >= 8 ? `${digits.slice(0, 8)}0000` : null
+}
+
+function partySegment(role: 'FR' | 'DO', edielId: string): string {
+  return `NAD+${role}+${sanitize(edielId)}:160:SVK+++++++SE`
+}
+
+function customerNadSegment(params: {
+  customerId: string | null
+  customerName: string
+  address: string | null
+  city: string | null
+  postalCode: string | null
+  country: string | null
+}): string {
+  const id = params.customerId ? `${sanitize(params.customerId)}:SE2:260` : ''
+  const name = sanitize(params.customerName) || 'KUND'
+  const address = sanitize(params.address)
+  const city = sanitize(params.city)
+  const postalCode = sanitize(params.postalCode)
+  const country = sanitize(params.country) || 'SE'
+  return `NAD+UD+${id}++${name}+${address}+${city}++${postalCode}+${country}`
+}
+
+function installationNadSegment(params: {
+  meterPointId: string
+  address: string | null
+  city: string | null
+  postalCode: string | null
+  country: string | null
+}): string {
+  const address = sanitize(params.address)
+  const city = sanitize(params.city)
+  const postalCode = sanitize(params.postalCode)
+  const country = sanitize(params.country) || 'SE'
+  return `NAD+IT+${sanitize(params.meterPointId)}::9+++${address}+${city}++${postalCode}+${country}`
+}
+
 
 export function isProdatSwitchCode(value: string | null | undefined): value is ProdatSwitchCode {
   return Boolean(value && (PRODAT_CODES as readonly string[]).includes(value))
@@ -414,10 +465,10 @@ function renderProdatSegments(params: {
   site: CustomerSiteRow
   meteringPoint: MeteringPointRow
   gridOwner?: GridOwnerRow | null
+  senderEdielId: string
+  receiverEdielId: string
 }): string[] {
   const portalData = portalSnapshot(params.switchRequest)
-  const billingRecipient = portalBillingRecipient(portalData)
-  const registers = portalRegisters(portalData)
   const customerName = portalString(portalData, 'customerName') ?? inferCustomerName(params.switchRequest, params.site)
   const customerId = portalString(portalData, 'customerId')
   const meterPointId = portalString(portalData, 'facilityId') ?? (inferMeterPointIdentifier(params.meteringPoint) || 'UNKNOWN')
@@ -427,178 +478,81 @@ function renderProdatSegments(params: {
     formatDate102(params.switchRequest.requested_start_date) ||
     formatDate102(params.site.move_in_date)
 
-  const address = portalString(portalData, 'customerAddress') ?? sanitize(params.site.street)
-  const postalCode = portalString(portalData, 'customerPostalCode') ?? sanitize(params.site.postal_code)
-  const city = portalString(portalData, 'customerCity') ?? sanitize(params.site.city)
-  const customerCountry = portalString(portalData, 'customerCountry')
+  const customerAddress = portalString(portalData, 'customerAddress') ?? sanitize(params.site.street)
+  const customerPostalCode = portalString(portalData, 'customerPostalCode') ?? sanitize(params.site.postal_code)
+  const customerCity = portalString(portalData, 'customerCity') ?? sanitize(params.site.city)
+  const customerCountry = portalString(portalData, 'customerCountry') ?? 'SE'
   const siteAddress = portalString(portalData, 'siteAddress') ?? sanitize(params.site.street)
   const sitePostalCode = portalString(portalData, 'sitePostalCode') ?? sanitize(params.site.postal_code)
   const siteCity = portalString(portalData, 'siteCity') ?? sanitize(params.site.city)
-  const siteCountry = portalString(portalData, 'siteCountry')
-  const siteType = sanitize(params.site.site_type)
-  const priceArea = sanitize(params.switchRequest.price_area_code ?? params.site.price_area_code)
-  const incomingSupplierOrgNumber = sanitize(params.switchRequest.incoming_supplier_org_number)
-  const currentSupplierOrgNumber = sanitize(
-    params.switchRequest.current_supplier_org_number ||
-      params.site.current_supplier_org_number
-  )
+  const siteCountry = portalString(portalData, 'siteCountry') ?? 'SE'
   const externalReference = sanitize(params.bgmReference)
-  const transactionReference = sanitize(params.transactionReference)
-  const statusSegment = statusSegmentForCode(params.code)
+  const transactionReference = sanitize(params.transactionReference || params.bgmReference)
   const powerOfAttorneyReference = portalString(portalData, 'powerOfAttorneyReference')
   const balanceResponsibleId = portalString(portalData, 'balanceResponsibleId')
   const meteringMethod = portalString(portalData, 'meteringMethod')
-  const meterNumber = portalString(portalData, 'meterNumber')
-  const productCode = portalString(portalData, 'productCode')
-  const settlementMethod = portalString(portalData, 'settlementMethod')
-  const installationStatus = portalString(portalData, 'installationStatus')
-  const tariffCode = portalString(portalData, 'tariffCode')
-  const priority = portalString(portalData, 'priority')
-  const annualEnergyKwh = portalNumberString(portalData, 'annualEnergyKwh')
-  const annualEnergyUnit = portalString(portalData, 'annualEnergyUnit') ?? 'KWH'
 
   const segments: string[] = []
-  segments.push(`BGM+${params.code}::260+${externalReference}+9+AB`)
-  segments.push(`DTM+137:${formatDate102(new Date().toISOString())}:102`)
-  segments.push(`RFF+TN:${transactionReference}`)
-  segments.push(`RFF+ACE:${sanitize(params.switchRequest.id)}`)
 
-  if (powerOfAttorneyReference) {
-    segments.push(`RFF+AHZ:${powerOfAttorneyReference}`)
+  // PRODAT 26.A uses Ediel's E2SE6A UNH token and the body structure shown in the
+  // official PRODAT/APERAK examples: BGM without ::260, DTM+ZZZ, NAD+FR/NAD+DO,
+  // LIN for installation id, RFF+LI for case reference and NAD+Z02 for balance responsible.
+  segments.push(`BGM+${params.code}+${externalReference}+9+AB`)
+  segments.push(`DTM+137:${nowDate203()}:203`)
+  segments.push('DTM+ZZZ:1:805')
+  segments.push(partySegment('FR', params.senderEdielId))
+  segments.push(partySegment('DO', params.receiverEdielId))
+  segments.push(`LIN+1++${sanitize(meterPointId)}:::9`)
+
+  const startDate203 = date203AtStartOfDay(startDate)
+  if (startDate203) {
+    segments.push(`DTM+92:${startDate203}:203`)
   }
 
-  segments.push(`LOC+172+${meterPointId}::9`)
+  segments.push('CCI++Z13')
+  segments.push('CAV+Z22')
+
+  if (meteringMethod) {
+    segments.push('CCI++Z04')
+    segments.push(`CAV+${sanitize(meteringMethod)}`)
+  }
+
+  segments.push(`RFF+LI:${transactionReference}`)
 
   if (gridArea) {
-    segments.push(`LOC+239+${gridArea}:SVK:260`)
+    segments.push(`RFF+Z05:${sanitize(gridArea)}`)
   }
 
-  if (priceArea) {
-    segments.push(`LOC+48+${priceArea}:SVK:260`)
+  if (powerOfAttorneyReference) {
+    segments.push(`RFF+ANJ:${sanitize(powerOfAttorneyReference)}`)
   }
 
-  if (startDate) {
-    segments.push(`DTM+7:${startDate}:102`)
-  }
+  segments.push(customerNadSegment({
+    customerId,
+    customerName,
+    address: customerAddress,
+    city: customerCity,
+    postalCode: customerPostalCode,
+    country: customerCountry,
+  }))
 
-  if (statusSegment) {
-    segments.push(statusSegment)
-  }
-
-  if (customerId) {
-    segments.push(`NAD+UD+${customerId}::260++${customerName}`)
-  } else {
-    segments.push(`NAD+BY+++${customerName}`)
-  }
-
-  if (address || postalCode || city || customerCountry) {
-    segments.push(`ADR+${address}+${postalCode}+${city}+${customerCountry ?? ''}`)
-  }
-
-  if (siteAddress || sitePostalCode || siteCity || siteCountry) {
-    segments.push(`ADR+${siteAddress}+${sitePostalCode}+${siteCity}+${siteCountry ?? ''}`)
-  }
-
-  if (incomingSupplierOrgNumber) {
-    segments.push(`RFF+GN:${incomingSupplierOrgNumber}`)
-  }
-
-  if (currentSupplierOrgNumber) {
-    segments.push(`RFF+GN:${currentSupplierOrgNumber}`)
+  if (params.code !== 'Z03') {
+    segments.push(installationNadSegment({
+      meterPointId,
+      address: siteAddress,
+      city: siteCity,
+      postalCode: sitePostalCode,
+      country: siteCountry,
+    }))
   }
 
   if (balanceResponsibleId) {
-    segments.push(`NAD+DDQ+${balanceResponsibleId}::9++BALANCE RESPONSIBLE`)
+    segments.push(`NAD+Z02+${sanitize(balanceResponsibleId)}:160:SVK`)
   }
-
-  if (billingRecipient) {
-    const billingId = typeof billingRecipient.id === 'string' ? sanitize(billingRecipient.id) : null
-    const billingName = typeof billingRecipient.name === 'string' ? sanitize(billingRecipient.name) : null
-    const billingAddress = typeof billingRecipient.address === 'string' ? sanitize(billingRecipient.address) : null
-    const billingPostalCode = typeof billingRecipient.postalCode === 'string' ? sanitize(billingRecipient.postalCode) : null
-    const billingCity = typeof billingRecipient.city === 'string' ? sanitize(billingRecipient.city) : null
-    const billingCountry = typeof billingRecipient.country === 'string' ? sanitize(billingRecipient.country) : null
-
-    if (billingId || billingName) {
-      segments.push(`NAD+IV+${billingId ?? 'UNKNOWN'}::260++${billingName ?? 'FAKTURAMOTTAGARE'}`)
-    }
-    if (billingAddress || billingPostalCode || billingCity || billingCountry) {
-      segments.push(`ADR+${billingAddress ?? ''}+${billingPostalCode ?? ''}+${billingCity ?? ''}+${billingCountry ?? ''}`)
-    }
-  }
-
-  if (siteType) {
-    segments.push(`CCI+++E12::260`)
-    segments.push(`CAV+${siteType.toUpperCase()}::260`)
-  }
-
-  if (meteringMethod) {
-    segments.push('CCI+++217::260')
-    segments.push(`CAV+${meteringMethod}::260`)
-  }
-
-  if (meterNumber) {
-    segments.push(`RFF+MG:${meterNumber}`)
-  }
-
-  if (productCode) {
-    segments.push(`PIA+5+${productCode}:SA`)
-  }
-
-  if (settlementMethod) {
-    segments.push(`FTX+AAI+++254=${settlementMethod}`)
-  }
-
-  if (installationStatus) {
-    segments.push(`STS+7++${installationStatus}::260`)
-  }
-
-  if (tariffCode) {
-    segments.push(`FTX+AAI+++307=${tariffCode}`)
-  }
-
-  if (priority) {
-    segments.push(`FTX+AAI+++220=${priority}`)
-  }
-
-  if (annualEnergyKwh) {
-    segments.push(`QTY+213:${annualEnergyKwh}:${annualEnergyUnit}`)
-  }
-
-  for (const register of registers) {
-    const registerAnnualEnergy = typeof register.annualEnergyKwh === 'number'
-      ? String(register.annualEnergyKwh)
-      : typeof register.annualEnergyKwh === 'string'
-        ? sanitize(register.annualEnergyKwh)
-        : null
-    const meterConstant = typeof register.meterConstant === 'string' ? sanitize(register.meterConstant) : null
-    const meterDigits = typeof register.meterDigits === 'string' ? sanitize(register.meterDigits) : null
-    const meterTimeInterval = typeof register.meterTimeInterval === 'string' ? sanitize(register.meterTimeInterval) : null
-    const resolution = typeof register.resolution === 'string' ? sanitize(register.resolution) : null
-
-    if (registerAnnualEnergy) {
-      segments.push(`QTY+213:${registerAnnualEnergy}:${annualEnergyUnit}`)
-    }
-    if (meterConstant) {
-      segments.push(`MEA+AAE+214+${meterConstant}`)
-    }
-    if (meterDigits || meterTimeInterval || resolution) {
-      segments.push(`FTX+AAI+++218=${meterDigits ?? ''};259=${meterTimeInterval ?? ''}${resolution ? `;508B=${resolution}` : ''}`)
-    }
-  }
-
-  if (params.site.facility_id) {
-    segments.push(`RFF+AVC:${sanitize(params.site.facility_id)}`)
-  }
-
-  if (params.meteringPoint.ediel_reference) {
-    segments.push(`RFF+Z13:${sanitize(params.meteringPoint.ediel_reference)}`)
-  }
-
-  segments.push(`FTX+AAI+++${prodatCodeLabel(params.code)}`)
 
   return segments
 }
+
 
 
 function buildValidationReport(result: ProdatSwitchValidationResult): Record<string, unknown> {
@@ -674,6 +628,8 @@ function buildProdatSwitchOutboundDraft(
       site: input.site,
       meteringPoint: input.meteringPoint,
       gridOwner: input.gridOwner ?? null,
+      senderEdielId: input.senderEdielId,
+      receiverEdielId: input.receiverEdielId,
     })
 
     const envelope = buildEdifactEnvelope({
@@ -683,7 +639,7 @@ function buildProdatSwitchOutboundDraft(
       receiverSubAddress: input.receiverSubAddress ?? (isEdielPortalTgt ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS : 'PRODAT'),
       applicationReference,
       testFlag: 1,
-      messageTypeToken: `PRODAT:D:97A:UN:${messageVersion}`,
+      messageTypeToken: `PRODAT:D:97A:UN:${messageVersion === '26A' ? 'E2SE6A' : messageVersion}`,
       segments,
     })
 

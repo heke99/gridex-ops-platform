@@ -92,7 +92,7 @@ function buildUnb(params: {
     ? 'CONTRL'
     : EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
 
-  return `UNB+UNOC:3+${sender}+${receiver}+${params.date}:${params.time}+${params.interchangeRef}+++++${applicationReference}+1`
+  return `UNB+UNOC:3+${sender}+${receiver}+${params.date}:${params.time}+${params.interchangeRef}++${applicationReference}++1`
 }
 
 function buildUnh(messageRef: string, step: EdielTgtExpectedStep) {
@@ -100,7 +100,7 @@ function buildUnh(messageRef: string, step: EdielTgtExpectedStep) {
   if (step.family === 'APERAK') return `UNH+${messageRef}+APERAK:D:96A:UN:E2SE3B`
   if (step.family === 'UTILTS_ERR') return `UNH+${messageRef}+APERAK:D:96A:UN:E5SE5A`
   if (step.family === 'UTILTS') return `UNH+${messageRef}+UTILTS:D:02B:UN:E5SE5A`
-  return `UNH+${messageRef}+PRODAT:D:97A:UN:26A`
+  return `UNH+${messageRef}+PRODAT:D:97A:UN:E2SE6A`
 }
 
 function buildMockBody(step: EdielTgtExpectedStep, refs: { date: string; longDate: string; transactionRef: string; originalInterchangeRef: string }) {

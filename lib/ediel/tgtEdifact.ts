@@ -424,7 +424,7 @@ function buildUnb(params: {
     ? `${params.receiverEdielId}:ZZ:${params.receiverSubAddress}`
     : `${params.receiverEdielId}:ZZ`
 
-  return `UNB+UNOC:3+${sender}+${receiver}+${params.refs.createdDate}:${params.refs.createdTime}+${params.refs.interchangeRef}+++++${params.applicationReference}+1`
+  return `UNB+UNOC:3+${sender}+${receiver}+${params.refs.createdDate}:${params.refs.createdTime}+${params.refs.interchangeRef}++${params.applicationReference}++1`
 }
 
 function buildUnh(refs: DraftReferences, family: EdielMessageFamily, version: string): string {
@@ -432,7 +432,7 @@ function buildUnh(refs: DraftReferences, family: EdielMessageFamily, version: st
   if (family === 'CONTRL') return `UNH+${refs.messageRef}+CONTRL:D:96A:UN:D96A`
   if (family === 'UTILTS_ERR') return `UNH+${refs.messageRef}+APERAK:D:96A:UN:E5SE5A`
   if (family === 'UTILTS') return `UNH+${refs.messageRef}+UTILTS:D:02B:UN:${version}`
-  return `UNH+${refs.messageRef}+PRODAT:D:97A:UN:${version}`
+  return `UNH+${refs.messageRef}+PRODAT:D:97A:UN:${version === '26A' ? 'E2SE6A' : version}`
 }
 
 function buildInterchange(params: EdifactEnvelopeParams): string {
@@ -490,51 +490,54 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
   const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
   const meteringPointId = step.outcome === 'negative' ? '999999999999999999' : sanitizeCode(portalData.meteringPointId, 'UNKNOWN', 35)
   const customerName = edifactEscape(sanitize(portalData.customerName, 'UNKNOWN'))
-  const billingName = portalData.billingRecipientName ? edifactEscape(sanitize(portalData.billingRecipientName)) : null
+  const customerAddress = edifactEscape(sanitize(portalData.customerAddress ?? ''))
+  const customerCity = edifactEscape(sanitize(portalData.customerCity ?? ''))
+  const customerPostalCode = sanitizeCode(portalData.customerPostalCode, '', 12)
+  const customerCountry = sanitizeCode(portalData.customerCountry, 'SE', 3)
+  const siteAddress = edifactEscape(sanitize(portalData.siteAddress ?? ''))
+  const siteCity = edifactEscape(sanitize(portalData.siteCity ?? ''))
+  const sitePostalCode = sanitizeCode(portalData.sitePostalCode, '', 12)
+  const siteCountry = sanitizeCode(portalData.siteCountry, 'SE', 3)
+
   const bodySegments: string[] = [
-    `BGM+${step.code}::260+${refs.externalRef}+9`,
-    `DTM+137:${refs.createdLongDate}:102`,
-    `DTM+7:${startDate}:102`,
-    `RFF+TN:${refs.transactionRef}`,
-    `RFF+ACE:${refs.transactionRef}`,
-    `RFF+Z13:${transactionType}`,
-    `NAD+MS+${GRIDEX_EDIEL_ID}::9++GRIDEX`,
-    `NAD+MR+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}::9++EDIELPORTALEN`,
-    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}::260++${customerName}`,
+    `BGM+${step.code}+${refs.externalRef}+9+AB`,
+    `DTM+137:${refs.createdLongDate}${refs.createdTime}:203`,
+    'DTM+ZZZ:1:805',
+    `NAD+FR+${GRIDEX_EDIEL_ID}:160:SVK+++++++SE`,
+    `NAD+DO+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}:160:SVK+++++++SE`,
+    `LIN+1++${meteringPointId}:::9`,
+    `DTM+92:${startDate}0000:203`,
+    'CCI++Z13',
+    `CAV+${transactionType === 'Z03LK' ? 'Z22' : 'Z22'}`,
   ]
 
-  pushOptionalSegment(bodySegments, portalData.birthDate, `DTM+329:${sanitizeCode(portalData.birthDate, '19000101', 8)}:102`)
-  pushOptionalSegment(bodySegments, portalData.customerAddress, `ADR+${edifactEscape(sanitize(portalData.customerAddress))}+${sanitizeCode(portalData.customerPostalCode, '', 12)}+${edifactEscape(sanitize(portalData.customerCity))}+${sanitizeCode(portalData.customerCountry, 'SE', 3)}`)
-  bodySegments.push(`LOC+172+${meteringPointId}::9`)
-  bodySegments.push(`LOC+239+${sanitizeCode(portalData.gridAreaId, 'UNKNOWN', 12)}:SVK:260`)
-  pushOptionalSegment(bodySegments, portalData.siteAddress, `ADR+${edifactEscape(sanitize(portalData.siteAddress))}+${sanitizeCode(portalData.sitePostalCode, '', 12)}+${edifactEscape(sanitize(portalData.siteCity))}+${sanitizeCode(portalData.siteCountry, 'SE', 3)}`)
-  pushOptionalSegment(bodySegments, portalData.powerOfAttorneyReference, `RFF+AHZ:${sanitizeCode(portalData.powerOfAttorneyReference, 'UNKNOWN', 35)}`)
-  pushOptionalSegment(bodySegments, portalData.balanceResponsibleId, `NAD+DDQ+${sanitizeCode(portalData.balanceResponsibleId, '', 35)}::9++BALANCE RESPONSIBLE`)
-  pushOptionalSegment(bodySegments, portalData.meteringMethod, `CCI+++217::260`)
-  pushOptionalSegment(bodySegments, portalData.meteringMethod, `CAV+${sanitizeCode(portalData.meteringMethod, 'UNKNOWN', 12)}::260`)
-  pushOptionalSegment(bodySegments, portalData.priority, `FTX+AAI+++220=${sanitize(portalData.priority, '', 12)}`)
-  pushOptionalSegment(bodySegments, portalData.reportingFrequency, `FTX+AAI+++222=${sanitize(portalData.reportingFrequency, '', 12)}`)
-  pushOptionalSegment(bodySegments, portalData.meterNumber, `RFF+MG:${sanitizeCode(portalData.meterNumber, '', 35)}`)
-  pushOptionalSegment(bodySegments, portalData.productCode, `PIA+5+${sanitizeCode(portalData.productCode, '', 35)}:SA`)
-  pushOptionalSegment(bodySegments, portalData.settlementMethod, `FTX+AAI+++254=${sanitizeCode(portalData.settlementMethod, '', 12)}`)
-  pushOptionalSegment(bodySegments, portalData.installationStatus, `STS+7++${sanitizeCode(portalData.installationStatus, '', 12)}::260`)
-  pushOptionalSegment(bodySegments, portalData.tariffCode, `FTX+AAI+++307=${sanitizeCode(portalData.tariffCode, '', 20)}`)
-
-  if (billingName) {
-    bodySegments.push(`NAD+IV+${sanitizeCode(portalData.billingRecipientId, 'UNKNOWN', 35)}::260++${billingName}`)
-    pushOptionalSegment(bodySegments, portalData.billingRecipientAddress, `ADR+${edifactEscape(sanitize(portalData.billingRecipientAddress))}+${sanitizeCode(portalData.billingRecipientPostalCode, '', 12)}+${edifactEscape(sanitize(portalData.billingRecipientCity))}+${sanitizeCode(portalData.billingRecipientCountry, 'SE', 3)}`)
+  if (portalData.meteringMethod) {
+    bodySegments.push('CCI++Z04')
+    bodySegments.push(`CAV+${sanitizeCode(portalData.meteringMethod, 'UNKNOWN', 12)}`)
   }
 
-  for (const register of portalData.registers) {
-    bodySegments.push(`QTY+213:${sanitizeCode(register.annualEnergyKwh, 'UNKNOWN', 18)}:${sanitizeCode(portalData.annualEnergyUnit, 'KWH', 8)}`)
-    bodySegments.push(`MEA+AAE+214+${sanitizeCode(register.meterConstant, 'UNKNOWN', 12)}`)
-    bodySegments.push(`FTX+AAI+++218=${sanitizeCode(register.meterDigits, 'UNKNOWN', 12)};259=${sanitizeCode(register.meterTimeInterval, 'UNKNOWN', 12)}${register.resolution ? `;508B=${sanitizeCode(register.resolution, '1', 12)}` : ''}`)
+  bodySegments.push(`RFF+LI:${refs.externalRef}`)
+  bodySegments.push(`RFF+Z05:${sanitizeCode(portalData.gridAreaId, 'UNKNOWN', 12)}`)
+
+  if (portalData.powerOfAttorneyReference) {
+    bodySegments.push(`RFF+ANJ:${sanitizeCode(portalData.powerOfAttorneyReference, 'UNKNOWN', 35)}`)
   }
 
-  bodySegments.push(`FTX+AAI+++TGT ${params.testCaseCode} ${transactionType} ${portalData.testCustomerLabel}`)
+  bodySegments.push(
+    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:SE2:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
+  )
+
+  if (step.code !== 'Z03') {
+    bodySegments.push(`NAD+IT+${meteringPointId}::9+++${siteAddress}+${siteCity}++${sitePostalCode}+${siteCountry}`)
+  }
+
+  if (portalData.balanceResponsibleId) {
+    bodySegments.push(`NAD+Z02+${sanitizeCode(portalData.balanceResponsibleId, '', 35)}:160:SVK`)
+  }
 
   return { bodySegments, portalData }
 }
+
 
 function buildProdatDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep, refs: DraftReferences): string {
   const { bodySegments } = buildPortalProdatSegments(params, step, refs)
