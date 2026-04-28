@@ -546,7 +546,7 @@ async function ensureTgtRouteProfile(
     smtp_port: null,
     imap_host: null,
     imap_port: null,
-    mailbox: 'ediel@gridex.se',
+    mailbox: 'INBOX',
     encryption_mode: 'none',
     payload_format: 'edifact',
     notes: 'TGT SMTP-profil enligt PRODAT 26.A: 92825:ZZ:PRODAT till 91100:ZZ:PRODAT, SMTP 91100@ediel.se och Application Reference 23-DDQ-PRODAT.',

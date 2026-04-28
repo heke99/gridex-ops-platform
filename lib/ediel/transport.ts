@@ -286,6 +286,18 @@ function resolveImapPort(value?: number | null): number {
   return env ? Number(env) : 993
 }
 
+function normalizeImapMailboxFolder(value?: string | null): string {
+  const trimmed = typeof value === 'string' ? value.trim() : ''
+
+  // IMAP login/user can be an email address, but SELECT/LSUB/LIST must use a
+  // mailbox folder name. Strato and most providers use INBOX for the main
+  // mailbox. Older route profiles accidentally stored ediel@gridex.se here;
+  // never pass an email address to mailboxOpen/getMailboxLock.
+  if (!trimmed || trimmed.includes('@')) return 'INBOX'
+
+  return trimmed
+}
+
 function assertTransportFamily(messageFamily: string | null | undefined, context: string) {
   if (!isActiveEdielMessageFamily(messageFamily)) {
     throw new Error(
@@ -784,12 +796,9 @@ export async function pollEdielMailboxViaImap(params?: {
 
   const host = requireEnv('EDIEL_IMAP_HOST', routeProfile?.imap_host ?? null)
   const port = resolveImapPort(routeProfile?.imap_port ?? null)
-  const user = requireEnv(
-    'EDIEL_IMAP_USER',
-    routeProfile?.mailbox ?? params?.mailbox ?? null
-  )
+  const user = requireEnv('EDIEL_IMAP_USER', process.env.EDIEL_SMTP_USER ?? null)
   const pass = requireEnv('EDIEL_IMAP_PASS')
-  const mailbox = params?.mailbox ?? routeProfile?.mailbox ?? 'INBOX'
+  const mailbox = normalizeImapMailboxFolder(params?.mailbox ?? routeProfile?.mailbox ?? null)
   const limit = params?.limit ?? 10
 
   const client = new ImapFlow({
