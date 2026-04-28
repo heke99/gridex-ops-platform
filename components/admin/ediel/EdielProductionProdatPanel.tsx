@@ -30,6 +30,24 @@ function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: Badge
   return <span className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${classes}`}>{children}</span>
 }
 
+function SmtpModeSelect({ compact = false }: { compact?: boolean }) {
+  return (
+    <label className={compact ? 'flex min-w-[220px] flex-col gap-1 text-[11px] font-medium text-slate-500' : 'block'}>
+      <span className="uppercase tracking-wide">SMTP-läge</span>
+      <select
+        name="smtpMimeMode"
+        defaultValue=""
+        className="rounded-xl border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-800"
+      >
+        <option value="">Standard från .env</option>
+        <option value="ediel-multipart-validation-base64">Diagnostik: multipart base64 attachment</option>
+        <option value="ediel-singlepart-base64">Klartext: singlepart EDIFACT base64</option>
+        <option value="ediel-smime-enveloped">S/MIME krypterat</option>
+      </select>
+    </label>
+  )
+}
+
 function issueTone(issue: EdielProdatCandidateIssue): BadgeTone {
   if (issue.severity === 'error') return 'red'
   if (issue.severity === 'warning') return 'yellow'
@@ -415,17 +433,13 @@ function ProductionCandidateCard({
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/admin/ediel/messages/${message.id}`} className="font-semibold text-indigo-700 hover:underline">Öppna</Link>
                     {['draft', 'queued', 'prepared', 'failed'].includes(message.status) ? (
-                      <>
-                      <form action={sendEdielMessageAction}>
+                      <form action={sendEdielMessageAction} className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2">
                         <input type="hidden" name="edielMessageId" value={message.id} />
-                        <button className="font-semibold text-emerald-700 hover:underline">Skicka SMTP</button>
+                        <SmtpModeSelect compact />
+                        <button className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+                          Skicka SMTP
+                        </button>
                       </form>
-                      <form action={sendEdielMessageAction}>
-                        <input type="hidden" name="edielMessageId" value={message.id} />
-                        <input type="hidden" name="smtpMimeMode" value="ediel-multipart-validation-base64" />
-                        <button className="font-semibold text-blue-700 hover:underline">Diagnostik multipart base64</button>
-                      </form>
-                      </>
                     ) : null}
                     {['draft', 'queued', 'prepared', 'failed'].includes(message.status) ? (
                       <form action={cancelEdielMessageAction}>
