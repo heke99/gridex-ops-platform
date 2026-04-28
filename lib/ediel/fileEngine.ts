@@ -386,8 +386,8 @@ export function parseEdielFile(rawPayload: string, fileName?: string | null): Pa
     originalTransactionId,
     originalMessageCode,
     ackOutcome,
-    syntaxCheckStatus: family === 'CONTRL' ? (ackOutcome === 'negative' ? 'rejected' : ackOutcome === 'positive' ? 'accepted' : 'pending') : 'pending',
-    functionalCheckStatus: family === 'APERAK' || family === 'UTILTS_ERR' ? (ackOutcome === 'negative' ? 'rejected' : ackOutcome === 'positive' ? 'accepted' : 'pending') : 'pending',
+    syntaxCheckStatus: family === 'CONTRL' ? (ackOutcome === 'negative' ? 'failed' : ackOutcome === 'positive' ? 'ok' : 'pending') : 'pending',
+    functionalCheckStatus: family === 'APERAK' || family === 'UTILTS_ERR' ? (ackOutcome === 'negative' ? 'failed' : ackOutcome === 'positive' ? 'ok' : 'pending') : 'pending',
     parsedPayload: {
       parser: 'file_engine_v1',
       segmentCount: segments.length,

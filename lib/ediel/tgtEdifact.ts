@@ -896,8 +896,8 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
       aperakStatus: step.family === 'PRODAT' || step.family === 'UTILTS' ? 'pending' : 'not_required',
       utiltsErrStatus: step.family === 'UTILTS' ? 'pending' : 'not_required',
       ackOutcome: step.family === 'APERAK' || step.family === 'CONTRL' || step.family === 'UTILTS_ERR' ? (step.outcome ?? 'positive') : null,
-      syntaxCheckStatus: step.family === 'CONTRL' ? (step.outcome === 'negative' ? 'rejected' : 'accepted') : null,
-      functionalCheckStatus: step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? (step.outcome === 'negative' ? 'rejected' : 'accepted') : null,
+      syntaxCheckStatus: step.family === 'CONTRL' ? (step.outcome === 'negative' ? 'failed' : 'ok') : null,
+      functionalCheckStatus: step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? (step.outcome === 'negative' ? 'failed' : 'ok') : null,
       messageCreatedAt: new Date().toISOString(),
     },
   }

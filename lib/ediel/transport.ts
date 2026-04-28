@@ -20,6 +20,7 @@ import {
   parseInboundUtilts,
 } from '@/lib/ediel/utilts'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
+import { parseEdielFile } from '@/lib/ediel/fileEngine'
 import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
@@ -448,6 +449,133 @@ function buildInboundAiListMessageInput(params: {
   }
 }
 
+function extractEdifactPayloadFromMailSource(rawSource: string, subject?: string | null): string {
+  const source = String(rawSource ?? '')
+  const normalized = source.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const unaIndex = normalized.indexOf('UNA')
+  const unbIndex = normalized.indexOf('UNB+')
+
+  const startCandidates = [unaIndex, unbIndex].filter((value) => value >= 0)
+  if (startCandidates.length > 0) {
+    const start = Math.min(...startCandidates)
+    const sliced = normalized.slice(start)
+    const unzMatch = sliced.match(/UNZ\+[^']+'/i)
+    if (unzMatch?.index !== undefined) {
+      return sliced.slice(0, unzMatch.index + unzMatch[0].length).trim()
+    }
+
+    return sliced
+      .split('\n')
+      .filter((line) => !line.startsWith('--'))
+      .join('\n')
+      .trim()
+  }
+
+  const subjectText = String(subject ?? '')
+  const subjectUnb = subjectText.match(/UNB\+[^'\r\n]+/i)?.[0] ?? null
+  if (subjectUnb) return `UNA:+.? '${subjectUnb}'`
+
+  return source
+}
+
+function inferMailboxSubjectFamily(subject?: string | null): {
+  messageFamily: 'PRODAT' | 'CONTRL' | 'APERAK' | 'UTILTS_ERR' | 'UNKNOWN'
+  messageCode: string | null
+  messageStandard: 'edifact' | 'unknown'
+} {
+  const upper = String(subject ?? '').trim().toUpperCase()
+  if (upper.startsWith('CONTRL ')) {
+    return { messageFamily: 'CONTRL', messageCode: 'CONTRL', messageStandard: 'edifact' }
+  }
+  if (upper.startsWith('APERAK ')) {
+    return { messageFamily: 'APERAK', messageCode: 'APERAK', messageStandard: 'edifact' }
+  }
+  if (upper.startsWith('PRODAT ')) {
+    return { messageFamily: 'PRODAT', messageCode: 'Z04', messageStandard: 'edifact' }
+  }
+  return { messageFamily: 'UNKNOWN', messageCode: null, messageStandard: 'unknown' }
+}
+
+function buildInboundAckMessageInput(params: {
+  rawPayload: string
+  communicationRouteId?: string | null
+  mailbox?: string | null
+  mailboxMessageId?: string | null
+  senderEmail?: string | null
+  receiverEmail?: string | null
+  subject?: string | null
+}): CreateEdielMessageInput | null {
+  const parsed = parseEdielFile(params.rawPayload, params.subject ?? null)
+  if (
+    parsed.messageFamily !== 'CONTRL' &&
+    parsed.messageFamily !== 'APERAK' &&
+    parsed.messageFamily !== 'UTILTS_ERR'
+  ) {
+    return null
+  }
+
+  const receivedAt = new Date().toISOString()
+  const messageCode =
+    parsed.messageFamily === 'CONTRL'
+      ? 'CONTRL'
+      : parsed.messageFamily === 'APERAK'
+        ? 'APERAK'
+        : 'UTILTS_ERR'
+
+  return {
+    actorUserId: 'system',
+    direction: 'inbound',
+    messageStandard: 'edifact',
+    messageFamily: parsed.messageFamily,
+    messageCode,
+    messageVersion: parsed.messageVersion ?? null,
+    processType: 'ack',
+    status: 'received',
+    transportType: 'imap',
+    mailbox: params.mailbox ?? null,
+    mailboxMessageId: params.mailboxMessageId ?? null,
+    senderEdielId: parsed.senderEdielId,
+    receiverEdielId: parsed.receiverEdielId,
+    senderSubAddress: parsed.senderSubAddress,
+    receiverSubAddress: parsed.receiverSubAddress,
+    senderEmail: params.senderEmail ?? null,
+    receiverEmail: params.receiverEmail ?? null,
+    subject: params.subject ?? null,
+    fileName: inferEdielFileName({
+      family: parsed.messageFamily,
+      code: messageCode,
+      direction: 'inbound',
+      extension: 'edi',
+    }),
+    mimeType: 'application/edifact',
+    interchangeReference: parsed.interchangeReference,
+    externalReference: parsed.externalReference,
+    correlationReference: parsed.correlationReference,
+    transactionReference: parsed.transactionReference,
+    applicationReference: parsed.applicationReference,
+    originalMessageId: parsed.originalMessageId,
+    originalTransactionId: parsed.originalTransactionId,
+    originalMessageCode: parsed.originalMessageCode,
+    communicationRouteId: params.communicationRouteId ?? null,
+    rawPayload: params.rawPayload,
+    parsedPayload: {
+      ...parsed.parsedPayload,
+      importedVia: 'imap',
+    },
+    validationReport: parsed.validationReport,
+    requiresContrl: false,
+    requiresAperak: false,
+    contrlStatus: 'not_required',
+    aperakStatus: 'not_required',
+    utiltsErrStatus: 'not_required',
+    ackOutcome: parsed.ackOutcome,
+    syntaxCheckStatus: parsed.syntaxCheckStatus,
+    functionalCheckStatus: parsed.functionalCheckStatus,
+    messageReceivedAt: receivedAt,
+    ackDueAt: null,
+  }
+}
+
 async function withAcceptedInboundVersions(
   input: CreateEdielMessageInput
 ): Promise<CreateEdielMessageInput> {
@@ -841,15 +969,18 @@ export async function pollEdielMailboxViaImap(params?: {
               ? item.source.toString('utf8')
               : ''
 
-        const content = rawSource || ''
-        if (!content.trim()) continue
-
         const senderEmail = normalizeInboundEmail(item.envelope?.from?.[0]?.address)
         const receiverEmail = normalizeInboundEmail(item.envelope?.to?.[0]?.address)
         const subject =
           typeof item.envelope?.subject === 'string' ? item.envelope.subject : null
+        const content = extractEdifactPayloadFromMailSource(rawSource || '', subject)
+        if (!content.trim()) continue
 
-        const inferred = inferEdielFamilyAndCodeFromRawPayload(content)
+        const inferredRaw = inferEdielFamilyAndCodeFromRawPayload(content)
+        const inferred =
+          inferredRaw.messageFamily === 'UNKNOWN'
+            ? inferMailboxSubjectFamily(subject)
+            : inferredRaw
         let input: CreateEdielMessageInput | null = null
 
         if (inferred.messageFamily === 'UTILTS') {
@@ -892,6 +1023,22 @@ export async function pollEdielMailboxViaImap(params?: {
           )
 
           assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/PRODAT')
+        } else if (
+          inferred.messageFamily === 'CONTRL' ||
+          inferred.messageFamily === 'APERAK' ||
+          inferred.messageFamily === 'UTILTS_ERR'
+        ) {
+          const ackInput = buildInboundAckMessageInput({
+            rawPayload: content,
+            communicationRouteId: params?.communicationRouteId ?? null,
+            mailbox,
+            mailboxMessageId,
+            senderEmail,
+            receiverEmail,
+            subject,
+          })
+          if (!ackInput) continue
+          input = await withAcceptedInboundVersions(ackInput)
         } else if (inferred.messageFamily === 'AI_LIST') {
           const listType = inferred.messageCode === 'BI' ? 'BI' : 'AI'
           input = await withAcceptedInboundVersions(

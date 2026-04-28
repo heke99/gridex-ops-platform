@@ -45,6 +45,67 @@ function sanitizeSegmentText(value?: string | null): string {
   return (value ?? '').replace(/['+]/g, ' ').trim()
 }
 
+type ParsedUnbParties = {
+  senderEdielId: string | null
+  senderSubAddress: string | null
+  receiverEdielId: string | null
+  receiverSubAddress: string | null
+}
+
+function firstString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function parseUnbComposite(value?: string | null): { edielId: string | null; subAddress: string | null } {
+  const parts = String(value ?? '').split(':')
+  return {
+    edielId: trimOrNull(parts[0]),
+    subAddress: trimOrNull(parts[2]),
+  }
+}
+
+function parseUnbPartiesFromText(value?: string | null): ParsedUnbParties | null {
+  const text = String(value ?? '')
+  if (!text.includes('UNB+')) return null
+
+  const match = text.match(/UNB\+[^'\r\n]+/i)
+  const unb = match?.[0] ?? null
+  if (!unb) return null
+
+  const parts = unb.split('+')
+  const sender = parseUnbComposite(parts[2])
+  const receiver = parseUnbComposite(parts[3])
+
+  if (!sender.edielId && !receiver.edielId) return null
+
+  return {
+    senderEdielId: sender.edielId,
+    senderSubAddress: sender.subAddress,
+    receiverEdielId: receiver.edielId,
+    receiverSubAddress: receiver.subAddress,
+  }
+}
+
+function parsedPayloadString(sourceMessage: EdielMessageRow, key: string): string | null {
+  const payload = sourceMessage.parsed_payload ?? {}
+  return firstString(payload[key])
+}
+
+function ensureAckParties(params: ReturnType<typeof sourceParties>, sourceMessage: EdielMessageRow) {
+  if (!params.senderEdielId || !params.receiverEdielId) {
+    throw new Error(
+      'Kan inte skapa ack för ' +
+        sourceMessage.id +
+        ': inbound sender/receiver saknas. Kontrollera att inkommande EDIFACT har UNB med avsändare och mottagare.'
+    )
+  }
+
+  return params as ReturnType<typeof sourceParties> & {
+    senderEdielId: string
+    receiverEdielId: string
+  }
+}
+
 function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
   if (sourceMessage.direction !== 'inbound') {
     throw new Error(
@@ -70,13 +131,38 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
 }
 
 function sourceParties(sourceMessage: EdielMessageRow) {
+  const unbFromPayload = parseUnbPartiesFromText(sourceMessage.raw_payload)
+  const unbFromSubject = parseUnbPartiesFromText(sourceMessage.subject)
+  const unb = unbFromPayload ?? unbFromSubject
+
+  const inboundSenderEdielId =
+    trimOrNull(sourceMessage.sender_ediel_id) ??
+    parsedPayloadString(sourceMessage, 'senderEdielId') ??
+    unb?.senderEdielId ??
+    null
+  const inboundReceiverEdielId =
+    trimOrNull(sourceMessage.receiver_ediel_id) ??
+    parsedPayloadString(sourceMessage, 'receiverEdielId') ??
+    unb?.receiverEdielId ??
+    null
+  const inboundSenderSubAddress =
+    trimOrNull(sourceMessage.sender_sub_address) ??
+    parsedPayloadString(sourceMessage, 'senderSubAddress') ??
+    unb?.senderSubAddress ??
+    'PRODAT'
+  const inboundReceiverSubAddress =
+    trimOrNull(sourceMessage.receiver_sub_address) ??
+    parsedPayloadString(sourceMessage, 'receiverSubAddress') ??
+    unb?.receiverSubAddress ??
+    'PRODAT'
+
   return {
-    senderEdielId: trimOrNull(sourceMessage.receiver_ediel_id),
+    senderEdielId: inboundReceiverEdielId,
     senderName: trimOrNull(sourceMessage.receiver_name),
-    senderSubAddress: trimOrNull(sourceMessage.receiver_sub_address) ?? 'GRIDEX',
-    receiverEdielId: trimOrNull(sourceMessage.sender_ediel_id),
+    senderSubAddress: inboundReceiverSubAddress,
+    receiverEdielId: inboundSenderEdielId,
     receiverName: trimOrNull(sourceMessage.sender_name),
-    receiverSubAddress: trimOrNull(sourceMessage.sender_sub_address) ?? 'EDIEL',
+    receiverSubAddress: inboundSenderSubAddress,
     receiverEmail: trimOrNull(sourceMessage.sender_email),
     mailbox: trimOrNull(sourceMessage.mailbox),
   }
@@ -133,7 +219,7 @@ function buildAperakSegments(params: {
   )
 
   return [
-    'UNH+1+APERAK:D:96A:UN:2.0',
+    'UNH+1+APERAK:D:96A:UN:E2SE6B',
     `BGM+APERAK+${sanitizeSegmentText(params.externalReference)}+9`,
     `RFF+TN:${sanitizeSegmentText(params.transactionReference)}`,
     params.sourceMessage.transaction_reference
@@ -189,7 +275,7 @@ function buildAckDraft(params: {
     ackFamily: params.ackFamily,
   })
 
-  const parties = sourceParties(params.sourceMessage)
+  const parties = ensureAckParties(sourceParties(params.sourceMessage), params.sourceMessage)
 
   const applicationReference =
     trimOrNull(params.sourceMessage.application_reference) ??
@@ -225,13 +311,13 @@ function buildAckDraft(params: {
           })
 
   const envelope = buildEdifactEnvelope({
-    senderEdielId: parties.senderEdielId ?? 'UNKNOWN',
-    receiverEdielId: parties.receiverEdielId ?? 'UNKNOWN',
+    senderEdielId: parties.senderEdielId,
+    receiverEdielId: parties.receiverEdielId,
     messageTypeToken:
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:D:96A:UN:1.0'
         : params.ackFamily === 'APERAK'
-          ? 'APERAK:D:96A:UN:2.0'
+          ? 'APERAK:D:96A:UN:E2SE6B'
           : 'UTILTS:D:01B:UN:1.1',
     applicationReference,
     segments,
@@ -266,7 +352,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'D96A'
         : params.ackFamily === 'APERAK'
-           ? 'E2SE3B'
+           ? 'E2SE6B'
           : 'E5SE5A',
     processType: 'ack',
     environment: params.sourceMessage.environment,
@@ -325,16 +411,16 @@ function buildAckDraft(params: {
     syntaxCheckStatus:
       params.ackFamily === 'CONTRL'
         ? outcome === 'positive'
-          ? 'accepted'
-          : 'rejected'
+          ? 'ok'
+          : 'failed'
         : 'not_checked',
     functionalCheckStatus:
       params.ackFamily === 'APERAK'
         ? outcome === 'positive'
-          ? 'accepted'
-          : 'rejected'
+          ? 'ok'
+          : 'failed'
         : params.ackFamily === 'UTILTS_ERR'
-          ? 'rejected'
+          ? 'failed'
           : 'not_checked',
     ackDueAt: ackStatuses.ackDueAt,
     messageCreatedAt: new Date().toISOString(),

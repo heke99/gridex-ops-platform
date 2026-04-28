@@ -132,20 +132,20 @@ function inferInboundAckOutcome(message: EdielMessageRow): InboundAckOutcome {
   }
 
   if (message.message_family === 'CONTRL') {
-    if (message.syntax_check_status === 'rejected' || message.syntax_check_status === 'failed') {
+    if (message.syntax_check_status === 'failed' || message.syntax_check_status === 'rejected') {
       return 'negative'
     }
-    if (message.syntax_check_status === 'accepted') return 'positive'
+    if ((message.syntax_check_status === 'ok' || message.syntax_check_status === 'accepted')) return 'positive'
   }
 
   if (message.message_family === 'APERAK' || message.message_family === 'UTILTS_ERR') {
     if (
-      message.functional_check_status === 'rejected' ||
-      message.functional_check_status === 'failed'
+      message.functional_check_status === 'failed' ||
+      message.functional_check_status === 'rejected'
     ) {
       return 'negative'
     }
-    if (message.functional_check_status === 'accepted') return 'positive'
+    if ((message.functional_check_status === 'ok' || message.functional_check_status === 'accepted')) return 'positive'
   }
 
   return hasPayloadErrorSignal(message) ? 'negative' : 'positive'
