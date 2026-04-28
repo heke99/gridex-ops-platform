@@ -146,6 +146,16 @@ export default function DispatchPanels({
                 )}
               </select>
               <input type="hidden" name="edielMessageId" value={selectedMessageId} />
+
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                SMTP-läge
+              </label>
+              <select name="smtpMimeMode" defaultValue="" className="w-full rounded-xl border border-slate-300 px-3 py-2">
+                <option value="">Standard från .env</option>
+                <option value="ediel-multipart-validation-base64">Diagnostik: multipart base64 attachment</option>
+                <option value="ediel-singlepart-base64">Klartext: singlepart EDIFACT base64</option>
+                <option value="ediel-smime-enveloped">S/MIME krypterat</option>
+              </select>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">

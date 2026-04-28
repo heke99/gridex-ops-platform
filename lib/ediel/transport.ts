@@ -74,9 +74,10 @@ function quoteMimeParam(value: string): string {
   return sanitizeMimeHeader(value, 'ediel-message.edi').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-type EdielSmtpMimeMode =
+export type EdielSmtpMimeMode =
   | 'ediel-singlepart-base64'
   | 'ediel-smime-enveloped'
+  | 'ediel-multipart-validation-base64'
   | 'ediel-singlepart-lines'
   | 'ediel-singlepart-compact'
   | 'nodemailer-attachment'
@@ -164,6 +165,47 @@ function buildSinglePartEdielBase64Mime(params: {
   return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${payloadBase64}\r\n`, 'ascii')
 }
 
+function buildMultipartValidationBase64Mime(params: {
+  from: string
+  to: string
+  replyTo?: string | null
+  subject: string
+  filename: string
+  contentType: string
+  decodedPayload: string
+  encoding: BufferEncoding
+}): Buffer {
+  const boundary = `gridex_ediel_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+  const payloadBase64 = encodeBase64Mime(Buffer.from(params.decodedPayload, params.encoding))
+  const headers = [
+    `From: ${sanitizeMimeHeader(params.from)}`,
+    `To: ${sanitizeMimeHeader(params.to)}`,
+    `Subject: ${sanitizeMimeHeader(params.subject, params.filename)}`,
+    `Date: ${new Date().toUTCString()}`,
+    `Message-ID: ${buildAsciiMessageId()}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+  ]
+
+  if (params.replyTo) {
+    headers.splice(2, 0, `Reply-To: ${sanitizeMimeHeader(params.replyTo)}`)
+  }
+
+  const parts = [
+    `--${boundary}`,
+    `Content-Type: ${params.contentType}`,
+    'Content-Transfer-Encoding: base64',
+    `Content-Disposition: attachment; filename=${sanitizeMimeToken(params.filename, 'edifact')}`,
+    '',
+    payloadBase64,
+    `--${boundary}--`,
+    '',
+  ]
+
+  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${parts.join('\r\n')}`, 'ascii')
+}
+
+
 function buildOuterSmimeMime(params: {
   from: string
   to: string
@@ -233,20 +275,24 @@ function buildAsciiMessageId(): string {
   return `<gridex-ediel-${stamp}-${random}@gridex.se>`
 }
 
-function resolveSmtpMimeMode(): EdielSmtpMimeMode {
-  const configured = process.env.EDIEL_SMTP_MIME_MODE?.trim()
-  if (
-    configured === 'ediel-singlepart-base64' ||
-    configured === 'ediel-smime-enveloped' ||
-    configured === 'ediel-singlepart-lines' ||
-    configured === 'ediel-singlepart-compact' ||
-    configured === 'nodemailer-attachment'
-  ) {
-    return configured
-  }
+export function isSupportedSmtpMimeMode(value: string | null | undefined): value is EdielSmtpMimeMode {
+  return (
+    value === 'ediel-singlepart-base64' ||
+    value === 'ediel-smime-enveloped' ||
+    value === 'ediel-multipart-validation-base64' ||
+    value === 'ediel-singlepart-lines' ||
+    value === 'ediel-singlepart-compact' ||
+    value === 'nodemailer-attachment'
+  )
+}
+
+function resolveSmtpMimeMode(override?: string | null): EdielSmtpMimeMode {
+  const requested = override?.trim() || process.env.EDIEL_SMTP_MIME_MODE?.trim()
+  if (isSupportedSmtpMimeMode(requested)) return requested
 
   return 'ediel-smime-enveloped'
 }
+
 
 function isEdifactMessage(message: EdielMessageRow): boolean {
   return message.message_standard === 'edifact' || message.mime_type?.toLowerCase().includes('edifact') === true
@@ -482,7 +528,7 @@ async function withAcceptedInboundVersions(
 
 export async function sendEdielMessageViaSmtp(
   message: EdielMessageRow,
-  params?: { actorUserId?: string | null }
+  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | null }
 ): Promise<{
   accepted: string[]
   rejected: string[]
@@ -527,7 +573,7 @@ export async function sendEdielMessageViaSmtp(
       direction: message.direction,
       extension,
     })
-  const mimeMode = resolveSmtpMimeMode()
+  const mimeMode = resolveSmtpMimeMode(params?.smtpMimeMode)
   const edifactPayloadMode =
     mimeMode === 'ediel-singlepart-lines' || mimeMode === 'nodemailer-attachment'
       ? 'lines'
@@ -649,6 +695,55 @@ export async function sendEdielMessageViaSmtp(
         decodedPayloadPreview,
         innerMimePreview,
         encryptedPayloadLength,
+        rawMimePreview,
+      },
+    })
+
+    result = await transporter.sendMail({
+      envelope: {
+        from,
+        to: [message.receiver_email],
+      },
+      raw: rawMime,
+    })
+  } else if (mimeMode === 'ediel-multipart-validation-base64') {
+    if (!isEdifactMessage(message)) {
+      throw new Error('Multipart-diagnostikläget är endast avsett för EDIFACT/PRODAT-test.')
+    }
+
+    const rawMime = buildMultipartValidationBase64Mime({
+      from,
+      to: message.receiver_email,
+      replyTo,
+      subject: smtpSubject,
+      filename: fileName,
+      contentType,
+      decodedPayload: normalizedPayload,
+      encoding: mimeEncoding,
+    })
+
+    rawMimePreview = safePreview(rawMime.toString('ascii'), 1200)
+    decodedPayloadPreview = safePreview(normalizedPayload, 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'manual_note',
+      eventStatus: 'info',
+      message: 'SMTP diagnostik-MIME byggt: multipart/mixed med application/EDIFACT attachment base64.',
+      payload: {
+        mimeMode,
+        purpose: 'Diagnostik för att återskapa valideringsrespons från Edielportalen utan 8bit.',
+        outerContentType: 'multipart/mixed',
+        attachmentContentType: contentType,
+        attachmentContentTransferEncoding: 'base64',
+        attachmentContentDisposition: `attachment; filename=${sanitizeMimeToken(fileName, 'edifact')}`,
+        decodedPayloadLength: normalizedPayload.length,
+        decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
+        decodedPayloadPreview,
+        encodedPayloadLength: Buffer.from(normalizedPayload, mimeEncoding).toString('base64').length,
+        encodedPayloadPreview,
         rawMimePreview,
       },
     })

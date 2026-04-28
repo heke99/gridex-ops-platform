@@ -40,7 +40,7 @@ import {
   prepareAndQueueUtiltsE66,
   prepareAndQueueUtiltsE73,
 } from '@/lib/ediel/flows/utiltsDataRequest'
-import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
+import { sendEdielMessageViaSmtp, isSupportedSmtpMimeMode, type EdielSmtpMimeMode } from '@/lib/ediel/transport'
 
 export type {
   AckFamily,
@@ -183,6 +183,7 @@ export async function createUtiltsErrAck(params: {
 export async function sendQueuedEdielMessage(params: {
   actorUserId?: string | null
   edielMessageId: string
+  smtpMimeMode?: EdielSmtpMimeMode | string | null
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -207,7 +208,8 @@ export async function sendQueuedEdielMessage(params: {
     )
   }
 
-  await sendEdielMessageViaSmtp(message, { actorUserId })
+  const smtpMimeMode = isSupportedSmtpMimeMode(params.smtpMimeMode) ? params.smtpMimeMode : null
+  await sendEdielMessageViaSmtp(message, { actorUserId, smtpMimeMode })
 
   const refreshed = await getEdielMessageById(message.id)
   if (!refreshed) {

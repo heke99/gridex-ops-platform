@@ -195,12 +195,14 @@ export async function cancelEdielMessageAction(formData: FormData) {
 export async function sendEdielMessageAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const edielMessageId = formString(formData.get('edielMessageId'))
+  const smtpMimeMode = formString(formData.get('smtpMimeMode'))
 
   if (!edielMessageId) throw new Error('edielMessageId saknas')
 
   await sendQueuedEdielMessage({
     actorUserId: context.userId,
     edielMessageId,
+    smtpMimeMode,
   })
 
   await revalidateRelatedMessage(edielMessageId)

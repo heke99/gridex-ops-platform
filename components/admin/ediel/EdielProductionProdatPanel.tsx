@@ -415,10 +415,17 @@ function ProductionCandidateCard({
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/admin/ediel/messages/${message.id}`} className="font-semibold text-indigo-700 hover:underline">Öppna</Link>
                     {['draft', 'queued', 'prepared', 'failed'].includes(message.status) ? (
+                      <>
                       <form action={sendEdielMessageAction}>
                         <input type="hidden" name="edielMessageId" value={message.id} />
                         <button className="font-semibold text-emerald-700 hover:underline">Skicka SMTP</button>
                       </form>
+                      <form action={sendEdielMessageAction}>
+                        <input type="hidden" name="edielMessageId" value={message.id} />
+                        <input type="hidden" name="smtpMimeMode" value="ediel-multipart-validation-base64" />
+                        <button className="font-semibold text-blue-700 hover:underline">Diagnostik multipart base64</button>
+                      </form>
+                      </>
                     ) : null}
                     {['draft', 'queued', 'prepared', 'failed'].includes(message.status) ? (
                       <form action={cancelEdielMessageAction}>
