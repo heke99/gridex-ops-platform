@@ -33,7 +33,7 @@ function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: Badge
 function SmtpModeNotice({ compact = false }: { compact?: boolean }) {
   return (
     <div className={compact ? 'rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-semibold text-emerald-800' : 'rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800'}>
-      Skickas endast via S/MIME krypterat
+      TGT/systemtest skickas okrypterat som application/EDIFACT base64
     </div>
   )
 }
@@ -428,7 +428,7 @@ function ProductionCandidateCard({
                         <input type="hidden" name="edielMessageId" value={message.id} />
                         <SmtpModeNotice compact />
                         <button className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
-                          Skicka S/MIME
+                          Skicka EDIFACT base64
                         </button>
                       </form>
                     ) : null}

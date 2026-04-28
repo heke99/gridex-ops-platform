@@ -210,7 +210,7 @@ export async function sendQueuedEdielMessage(params: {
 
   await sendEdielMessageViaSmtp(message, {
     actorUserId,
-    smtpMimeMode: 'ediel-smime-enveloped',
+    smtpMimeMode: 'ediel-singlepart-base64',
   })
 
   const refreshed = await getEdielMessageById(message.id)

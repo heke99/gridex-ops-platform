@@ -361,13 +361,13 @@ export default async function AdminEdielMessageDetailPage({
                 <form action={sendEdielMessageAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <input type="hidden" name="edielMessageId" value={message.id} />
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                    Skickas endast via S/MIME krypterat
+                    TGT/systemtest skickas okrypterat som application/EDIFACT base64
                   </div>
                   <button
                     type="submit"
                     className="mt-2 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
                   >
-                    Skicka S/MIME
+                    Skicka EDIFACT base64
                   </button>
                 </form>
               ) : null}

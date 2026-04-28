@@ -200,7 +200,7 @@ export async function sendEdielMessageAction(formData: FormData) {
   await sendQueuedEdielMessage({
     actorUserId: context.userId,
     edielMessageId,
-    smtpMimeMode: 'ediel-smime-enveloped',
+    smtpMimeMode: 'ediel-singlepart-base64',
   })
 
   await revalidateRelatedMessage(edielMessageId)

@@ -148,7 +148,7 @@ export default function DispatchPanels({
               <input type="hidden" name="edielMessageId" value={selectedMessageId} />
 
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                Skickas endast via S/MIME krypterat
+                TGT/systemtest skickas okrypterat som application/EDIFACT base64
               </div>
             </div>
 
