@@ -136,6 +136,28 @@ type PortalTestCustomerData = {
   registers: PortalRegister[]
 }
 
+type PortalTestCaseOverrides = {
+  meteringMethod?: string
+}
+
+const PORTAL_TEST_CASE_OVERRIDES: Record<string, PortalTestCaseOverrides> = {
+  // Edielportalens TGT-validering kan vara mer specifik än den generella
+  // testkundsdatan som visas när testet startas. För Z03L/Z03LK kräver
+  // portalen fält 217 (CCI++Z04/CAV) = Z03 även om en manuellt kopierad
+  // testkundsrad råkar ange Z01. Generatorn ska därför fortfarande vara
+  // datadriven, men testfallsspecifika TGT-regler vinner över formulärdata.
+  'PRODAT:supplier:1.2.1': { meteringMethod: 'Z03' },
+  'PRODAT:supplier:1.2.2': { meteringMethod: 'Z03' },
+}
+
+function portalTestCaseKey(input: Pick<CreateEdielPortalTestCustomerInput, 'testSuite' | 'roleCode' | 'testCaseCode'>): string {
+  return [input.testSuite, input.roleCode, input.testCaseCode].join(':')
+}
+
+function getPortalTestCaseOverrides(input: Pick<CreateEdielPortalTestCustomerInput, 'testSuite' | 'roleCode' | 'testCaseCode'>): PortalTestCaseOverrides {
+  return PORTAL_TEST_CASE_OVERRIDES[portalTestCaseKey(input)] ?? {}
+}
+
 function clean(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
@@ -343,6 +365,7 @@ function normalizeReadingFrequency(value: string | null): 'hourly' | 'daily' | '
 
 function buildPortalTestData(input: CreateEdielPortalTestCustomerInput): PortalTestCustomerData {
   const testData = getEdielTgtTestDataForCase(input.testSuite, input.roleCode, input.testCaseCode)
+  const testCaseOverrides = getPortalTestCaseOverrides(input)
   const agreementStartDateTime = normalizeAgreementDateTime(input.agreementStartDateTime)
   if (!agreementStartDateTime) {
     throw new Error('Avtalsstart måste anges i format YYYYMMDD eller YYYYMMDDHHMM, till exempel 202605150000.')
@@ -414,7 +437,7 @@ function buildPortalTestData(input: CreateEdielPortalTestCustomerInput): PortalT
     agreementStartDateTime,
     annualEnergyKwh,
     annualEnergyUnit: tokenOrTest(input.annualEnergyUnit, getFieldValue(testData, 'Enhet för uppskattad årsenergi')) ?? 'KWH',
-    meteringMethod: tokenOrTest(input.meteringMethod, getFieldValue(testData, '217')),
+    meteringMethod: tokenOrTest(testCaseOverrides.meteringMethod, tokenOrTest(input.meteringMethod, getFieldValue(testData, '217'))),
     reportingFrequency: tokenOrTest(input.reportingFrequency, getFieldValue(testData, '222')),
     meterNumber: tokenOrTest(input.meterNumber, getFieldValue(testData, '224')),
     productCode: tokenOrTest(input.productCode, getFieldValue(testData, '242')),
@@ -985,8 +1008,6 @@ async function ensureSwitchRequest(
       .maybeSingle()
   )
 
-  if (existing) return { row: existing, reused: true }
-
   const validationSnapshot = {
     isReady: true,
     source: 'ediel_portal_test_customer_onboarding',
@@ -1011,6 +1032,7 @@ async function ensureSwitchRequest(
       gridAreaId: params.data.gridAreaId,
       agreementStartDateTime: params.data.agreementStartDateTime,
       meteringMethod: params.data.meteringMethod,
+      testCaseOverrides: getPortalTestCaseOverrides(params.data),
       annualEnergyKwh: params.data.annualEnergyKwh,
       annualEnergyUnit: params.data.annualEnergyUnit,
       meterNumber: params.data.meterNumber,
@@ -1031,6 +1053,34 @@ async function ensureSwitchRequest(
       registers: params.data.registers,
     },
     checkedAt: new Date().toISOString(),
+  }
+
+  if (existing) {
+    const { data: updated, error } = await supabase
+      .from('supplier_switch_requests')
+      .update({
+        requested_start_date: params.data.agreementStartDate,
+        grid_owner_id: params.gridOwnerId,
+        price_area_code: params.data.priceAreaCode,
+        validation_snapshot: validationSnapshot,
+        updated_by: params.actorUserId,
+      })
+      .eq('id', String(existing.id))
+      .select('*')
+      .single()
+
+    if (error) throw error
+
+    await supabase.from('supplier_switch_events').insert({
+      switch_request_id: String(updated.id),
+      event_type: 'ediel_portal_test_customer_updated',
+      event_status: 'success',
+      message: 'Edielportal-testkundens switchärende uppdaterades med aktuell TGT-testdata.',
+      payload: validationSnapshot,
+      created_by: params.actorUserId,
+    })
+
+    return { row: updated as AnyRow, reused: true }
   }
 
   const { data: inserted, error } = await supabase
