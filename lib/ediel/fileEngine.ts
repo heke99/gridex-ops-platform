@@ -23,7 +23,10 @@ export const DIV3RSA_PRODUCTION_EDIEL_ID = '21660'
 export const GRIDEX_EDIEL_ID = GRIDEX_TGT_EDIEL_ID
 export const EDIEL_TGT_TESTSYSTEM_EDIEL_ID = '91100'
 export const EDIEL_TGT_TESTSYSTEM_EMAIL = '91100@ediel.se'
-export const EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS = 'PRODAT'
+export const EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS = 'PRODAT'
+// In the PRODAT 26.A EDIFACT interchange, Edielportalens testsystem uses
+// receiver subaddress SCH. This is separate from SMTP address 91100@ediel.se.
+export const EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS = 'SCH'
 export const EDIEL_TGT_PRODAT_APPLICATION_REFERENCE = '23-DDQ-PRODAT'
 
 export type EdielFileEngineMode = 'tgt' | 'internal_test' | 'production_dry_run'

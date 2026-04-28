@@ -82,26 +82,59 @@ export type EdielSmtpMimeMode =
   | 'ediel-singlepart-compact'
   | 'nodemailer-attachment'
 
-function normalizeEdifactSegments(rawPayload: string): string[] {
-  return rawPayload
+function splitEdifactPayload(rawPayload: string): { hasUna: boolean; una: string; segments: string[] } {
+  const normalized = rawPayload
     .replace(/^\uFEFF/, '')
-    .trim()
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0)
+    .trim()
+
+  if (!normalized) {
+    return { hasUna: false, una: '', segments: [] }
+  }
+
+  if (normalized.toUpperCase().startsWith('UNA')) {
+    // UNA is exactly 9 characters: UNA + six service characters. In Ediel's
+    // default UNA the reserved character is a blank: UNA:+.? '. A normal
+    // split/trim would remove that blank and make UNB disappear in validation.
+    const una = normalized.slice(0, 9)
+    const rest = normalized.slice(9)
+    return {
+      hasUna: true,
+      una,
+      segments: rest
+        .split("'")
+        .map((segment) => segment.trim())
+        .filter((segment) => segment.length > 0),
+    }
+  }
+
+  return {
+    hasUna: false,
+    una: '',
+    segments: normalized
+      .split("'")
+      .map((segment) => segment.trim())
+      .filter((segment) => segment.length > 0),
+  }
+}
+
+function normalizeEdifactSegments(rawPayload: string): string[] {
+  const parsed = splitEdifactPayload(rawPayload)
+  return parsed.hasUna ? [parsed.una, ...parsed.segments] : parsed.segments
 }
 
 function normalizeEdifactForSmtp(rawPayload: string, mode: 'lines' | 'compact' = 'compact'): string {
-  const segments = normalizeEdifactSegments(rawPayload)
-  if (segments.length === 0) return ''
+  const parsed = splitEdifactPayload(rawPayload)
+  if (parsed.segments.length === 0 && !parsed.hasUna) return ''
 
   if (mode === 'lines') {
-    return segments.map((segment) => `${segment}'`).join('\r\n')
+    const body = parsed.segments.map((segment) => `${segment}'`).join('\r\n')
+    return parsed.hasUna ? `${parsed.una}${body ? `\r\n${body}` : ''}` : body
   }
 
-  return `${segments.join("'")}'`
+  const body = parsed.segments.map((segment) => `${segment}'`).join('')
+  return parsed.hasUna ? `${parsed.una}${body}` : body
 }
 
 function encodeBase64Mime(buffer: Buffer, lineLength = 76): string {

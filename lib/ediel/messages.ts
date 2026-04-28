@@ -30,17 +30,28 @@ function sanitizeSegment(value: string): string {
   return value.replace(/[\r\n]+/g, '').trim()
 }
 
-function utcDateYYMMDD(date = new Date()) {
-  const year = String(date.getUTCFullYear()).slice(-2)
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  return `${year}${month}${day}`
+function swedishDateTimeParts(date = new Date()): Record<string, string> {
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Stockholm',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+
+  return Object.fromEntries(parts.map((part) => [part.type, part.value]))
 }
 
-function utcTimeHHMM(date = new Date()) {
-  const hours = String(date.getUTCHours()).padStart(2, '0')
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
-  return `${hours}${minutes}`
+function edielLocalDateYYMMDD(date = new Date()) {
+  const parts = swedishDateTimeParts(date)
+  return `${String(parts.year ?? '').slice(-2)}${parts.month}${parts.day}`
+}
+
+function edielLocalTimeHHMM(date = new Date()) {
+  const parts = swedishDateTimeParts(date)
+  return `${parts.hour}${parts.minute}`
 }
 
 function buildUnaSegment() {
@@ -74,7 +85,7 @@ function buildUnbSegment(params: {
     'UNOC:3',
     senderComposite,
     receiverComposite,
-    `${utcDateYYMMDD()}:${utcTimeHHMM()}`,
+    `${edielLocalDateYYMMDD()}:${edielLocalTimeHHMM()}`,
     params.interchangeReference,
     '',
     applicationReference ?? '',
@@ -118,8 +129,7 @@ export function buildEdifactEnvelope(
     messageReference,
   })
 
-  const segments = [
-    buildUnaSegment(),
+  const interchangeSegments = [
     buildUnbSegment({
       senderEdielId: input.senderEdielId,
       senderSubAddress: input.senderSubAddress,
@@ -137,7 +147,10 @@ export function buildEdifactEnvelope(
     }),
   ]
 
-  const raw = segments.join("'") + "'"
+  // UNA is a fixed nine-character service string. The sixth service character is
+  // the reserved blank before the segment terminator. Do not add an extra
+  // terminator after UNA; it already ends with the terminator character.
+  const raw = `${buildUnaSegment()}${interchangeSegments.map((segment) => `${sanitizeSegment(segment)}'`).join('')}`
 
   return {
     raw,

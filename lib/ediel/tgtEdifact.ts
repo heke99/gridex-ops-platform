@@ -11,6 +11,7 @@ import type {
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
   GRIDEX_EDIEL_ID,
 } from '@/lib/ediel/fileEngine'
@@ -545,6 +546,7 @@ function buildProdatDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpect
   return buildInterchange({
     refs,
     senderEdielId: GRIDEX_EDIEL_ID,
+    senderSubAddress: EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
     receiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
     receiverSubAddress: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
     applicationReference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
@@ -576,6 +578,7 @@ function buildAckDraft(step: EdielTgtExpectedStep, refs: DraftReferences): strin
   return buildInterchange({
     refs,
     senderEdielId: GRIDEX_EDIEL_ID,
+    senderSubAddress: family === 'APERAK' || family === 'UTILTS_ERR' ? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS : null,
     receiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
     receiverSubAddress: family === 'APERAK' || family === 'UTILTS_ERR' ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS : null,
     applicationReference,
@@ -791,6 +794,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
     ? buildInterchange({
         refs,
         senderEdielId: GRIDEX_EDIEL_ID,
+        senderSubAddress: EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
         receiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
         receiverSubAddress: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
         applicationReference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
@@ -834,7 +838,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
       mailbox: 'tgt-file-engine',
       mailboxMessageId: refs.interchangeRef,
       senderEdielId: GRIDEX_EDIEL_ID,
-      senderSubAddress: null,
+      senderSubAddress: step.family === 'PRODAT' || step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS : null,
       receiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
       receiverSubAddress: step.family === 'PRODAT' || step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS : null,
       receiverEmail: '91100@ediel.se',

@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
   EDIEL_TGT_TESTSYSTEM_EMAIL,
   GRIDEX_TGT_EDIEL_ID,
@@ -507,7 +508,7 @@ async function ensureTgtRouteProfile(
     is_enabled: true,
     sender_ediel_id: GRIDEX_TGT_EDIEL_ID,
     sender_name: 'GridCore',
-    sender_sub_address: null,
+    sender_sub_address: EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
     receiver_ediel_id: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
     receiver_name: 'Edielportalen test',
     receiver_sub_address: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
@@ -525,7 +526,7 @@ async function ensureTgtRouteProfile(
     mailbox: 'ediel@gridex.se',
     encryption_mode: 'none',
     payload_format: 'edifact',
-    notes: 'TGT SMTP-profil enligt Edielportalens PRODAT/UTILTS-anvisning: 92825 till 91100@ediel.se, receiver subadress PRODAT och Application Reference 23-DDQ-PRODAT.',
+    notes: 'TGT SMTP-profil enligt PRODAT 26.A: 92825:ZZ:PRODAT till 91100:ZZ:SCH, SMTP 91100@ediel.se och Application Reference 23-DDQ-PRODAT.',
     updated_by: actorUserId,
     updated_at: new Date().toISOString(),
   }

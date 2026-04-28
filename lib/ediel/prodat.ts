@@ -23,6 +23,7 @@ import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistr
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
 } from '@/lib/ediel/fileEngine'
 
@@ -620,6 +621,17 @@ function buildProdatSwitchOutboundDraft(
             process: 'PRODAT',
           }))
 
+    // Ediel's PRODAT 26.A examples for Z03 use UNB sender subaddress PRODAT
+    // and receiver subaddress SCH. This is EDIFACT addressing and is separate
+    // from the SMTP mailbox/S/MIME recipient certificate. Force it for TGT so
+    // stale route profiles cannot reintroduce 92825:ZZ + 91100:ZZ:PRODAT.
+    const senderSubAddress = isEdielPortalTgt
+      ? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS
+      : input.senderSubAddress ?? 'GRIDEX'
+    const receiverSubAddress = isEdielPortalTgt
+      ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS
+      : input.receiverSubAddress ?? 'PRODAT'
+
     const segments = renderProdatSegments({
       code,
       bgmReference: externalReference,
@@ -634,9 +646,9 @@ function buildProdatSwitchOutboundDraft(
 
     const envelope = buildEdifactEnvelope({
       senderEdielId: input.senderEdielId,
-      senderSubAddress: input.senderSubAddress ?? (isEdielPortalTgt ? null : 'GRIDEX'),
+      senderSubAddress,
       receiverEdielId: input.receiverEdielId,
-      receiverSubAddress: input.receiverSubAddress ?? (isEdielPortalTgt ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS : 'PRODAT'),
+      receiverSubAddress,
       applicationReference,
       testFlag: 1,
       messageTypeToken: `PRODAT:D:97A:UN:${messageVersion === '26A' ? 'E2SE6A' : messageVersion}`,
@@ -692,8 +704,8 @@ function buildProdatSwitchOutboundDraft(
       senderName: input.senderName ?? null,
       receiverEdielId: input.receiverEdielId,
       receiverName: input.receiverName ?? null,
-      senderSubAddress: input.senderSubAddress ?? (isEdielPortalTgt ? null : 'GRIDEX'),
-      receiverSubAddress: input.receiverSubAddress ?? (isEdielPortalTgt ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS : 'PRODAT'),
+      senderSubAddress,
+      receiverSubAddress,
       receiverEmail: input.receiverEmail ?? null,
       subject: input.subject ?? `PRODAT ${code} ${externalReference}`.trim(),
       fileName: inferEdielFileName({
