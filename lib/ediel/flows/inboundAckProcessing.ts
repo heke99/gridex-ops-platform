@@ -245,6 +245,31 @@ async function findOutboundSourceByColumn(params: {
   return (data as EdielMessageRow | null) ?? null
 }
 
+async function findLatestOutboundSourceForPortalAck(message: EdielMessageRow): Promise<EdielMessageRow | null> {
+  const senderEdielId = message.receiver_ediel_id ?? '92825'
+  const receiverEdielId = message.sender_ediel_id ?? '91100'
+
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('direction', 'outbound')
+    .not('message_family', 'in', '(' + SOURCE_EXCLUDED_FAMILIES.join(',') + ')')
+    .eq('sender_ediel_id', senderEdielId)
+    .eq('receiver_ediel_id', receiverEdielId)
+    .in('status', ['sent', 'acknowledged'])
+    .order('message_sent_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (message.application_reference) {
+    query = query.eq('application_reference', message.application_reference)
+  }
+
+  const { data, error } = await query.maybeSingle()
+  if (error) throw error
+  return (data as EdielMessageRow | null) ?? null
+}
+
 async function findSourceMessageForInboundAck(message: EdielMessageRow): Promise<EdielMessageRow | null> {
   if (message.related_message_id) {
     const direct = await getEdielMessageById(message.related_message_id)
@@ -272,7 +297,7 @@ async function findSourceMessageForInboundAck(message: EdielMessageRow): Promise
     if (hit) return hit
   }
 
-  return null
+  return findLatestOutboundSourceForPortalAck(message)
 }
 
 async function patchSourceMessageFromAck(params: {

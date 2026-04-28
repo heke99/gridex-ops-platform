@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
 import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
-import EdielFileEnginePanel from '@/components/admin/ediel/EdielFileEnginePanel'
 import EdielTgtWorkbenchPanel from '@/components/admin/ediel/EdielTgtWorkbenchPanel'
 import EdielProductionProdatPanel from '@/components/admin/ediel/EdielProductionProdatPanel'
 import EdielOperationalBridgePanel from '@/components/admin/ediel/EdielOperationalBridgePanel'
@@ -362,6 +361,97 @@ function SectionLabel({
   )
 }
 
+function getInboundMessageKindLabel(row: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
+  if (row.message_family === 'CONTRL') return 'CONTRL · teknisk/syntax-kvittens'
+  if (row.message_family === 'APERAK') return 'APERAK · applikationskvittens'
+  if (row.message_family === 'PRODAT') return 'PRODAT ' + row.message_code + ' · meddelande från portal/motpart'
+  if (row.message_family === 'UTILTS') return 'UTILTS ' + row.message_code
+  return row.message_family + ' ' + row.message_code
+}
+
+function getInboundMessageExplanation(row: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
+  if (row.message_family === 'CONTRL') return 'Registrera och koppla mot ditt skickade PRODAT. Skapa inte CONTRL/APERAK tillbaka på denna.'
+  if (row.message_family === 'APERAK') return 'Registrera och koppla mot ditt skickade PRODAT. Positiv APERAK betyder att portalen accepterade innehållet.'
+  if (row.message_family === 'PRODAT') return 'Detta är ett inkommande affärsmeddelande. Här ska systemet skapa svar: först CONTRL, sedan APERAK.'
+  return 'Inkommet Ediel-meddelande från IMAP.'
+}
+
+function InboundImapMessagesPanel({
+  messages,
+}: {
+  messages: Awaited<ReturnType<typeof listEdielMessages>>
+}) {
+  const inbound = messages
+    .filter((row) => row.direction === 'inbound' && row.transport_type === 'imap')
+    .slice(0, 12)
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-semibold text-slate-950">Senaste hämtade IMAP-meddelanden</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            CONTRL/APERAK är kvittenser på våra skickade meddelanden. Inkommande PRODAT ska besvaras med CONTRL och APERAK.
+          </p>
+        </div>
+        <Badge tone={inbound.length > 0 ? 'green' : 'yellow'}>{inbound.length} inkomna</Badge>
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+              <th className="px-3 py-2">Tid</th>
+              <th className="px-3 py-2">Typ</th>
+              <th className="px-3 py-2">Vad betyder det?</th>
+              <th className="px-3 py-2">Parter</th>
+              <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2">Öppna</th>
+            </tr>
+          </thead>
+          <tbody>
+            {inbound.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
+                  Inga IMAP-meddelanden importerade ännu. Tryck Hämta svar från IMAP i PRODAT-kortet.
+                </td>
+              </tr>
+            ) : (
+              inbound.map((row) => (
+                <tr key={row.id} className="border-b border-slate-100 align-top">
+                  <td className="px-3 py-2 text-xs text-slate-600">{formatDateTime(row.created_at)}</td>
+                  <td className="px-3 py-2">
+                    <div className="font-semibold text-slate-950">{getInboundMessageKindLabel(row)}</div>
+                    <div className="mt-1 max-w-xs truncate text-xs text-slate-500">{row.subject ?? row.file_name ?? '—'}</div>
+                  </td>
+                  <td className="px-3 py-2 max-w-sm text-xs leading-5 text-slate-600">
+                    {getInboundMessageExplanation(row)}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-slate-600">
+                    <div>Från: <span className="font-mono">{row.sender_ediel_id ?? '—'}{row.sender_sub_address ? ':' + row.sender_sub_address : ''}</span></div>
+                    <div>Till: <span className="font-mono">{row.receiver_ediel_id ?? '—'}{row.receiver_sub_address ? ':' + row.receiver_sub_address : ''}</span></div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap gap-1">
+                      <Badge tone={row.status === 'failed' ? 'red' : row.status === 'validated' || row.status === 'parsed' ? 'green' : 'blue'}>{row.status}</Badge>
+                      {row.ack_outcome ? <Badge tone={row.ack_outcome === 'negative' ? 'red' : 'green'}>{row.ack_outcome}</Badge> : null}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Link href={'/admin/ediel/messages/' + row.id} className="text-xs font-semibold text-indigo-700 hover:underline">
+                      Öppna
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
 export default async function AdminEdielPage() {
   await requirePermissionServer('communication.read')
 
@@ -551,16 +641,16 @@ export default async function AdminEdielPage() {
               Starta här
             </div>
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">
-              Ediel arbetsyta för filbaserad drift och TGT
+              Ediel arbetsyta för SMTP/IMAP och TGT
             </h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-              Använd sidan uppifrån och ned: skapa eller importera fil, kör TGT-test, koppla mot verksamheten och granska safe apply innan masterdata ändras. SMTP/ECP är fortfarande readiness, inte live.
+              Använd sidan uppifrån och ned: skicka kundstyrd PRODAT, hämta portalens svar via IMAP, följ inkomna meddelanden och granska kopplingar mot verksamheten.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge tone="blue">Gridex Ediel-ID 21660</Badge>
             <Badge tone="blue">Edielportalen 91100</Badge>
-            <Badge tone="green">filbaserad motor</Badge>
+            <Badge tone="green">SMTP/IMAP aktivt</Badge>
             <Badge tone={warningCount > 0 ? 'yellow' : 'green'}>
               signaler: {warningCount}
             </Badge>
@@ -570,9 +660,9 @@ export default async function AdminEdielPage() {
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <WorkflowStep
             number="1"
-            title="Skapa eller importera fil"
-            text="Ladda upp Ediel-fil, klistra in EDIFACT eller skapa filutkast."
-            href="#file-engine"
+            title="Hämta svar från IMAP"
+            text="Portalens CONTRL, APERAK och PRODAT importeras från INBOX och visas tydligt."
+            href="#imap-inbound"
           />
           <WorkflowStep
             number="2"
@@ -596,9 +686,9 @@ export default async function AdminEdielPage() {
       </section>
 
       <nav className="sticky top-2 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
-        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-7">
+        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-8">
           <QuickNavItem href="#overview" label="Översikt" description="Status och snabbstart" tone="blue" />
-          <QuickNavItem href="#file-engine" label="Filimport" description="Import/export/utkast" tone="green" />
+          <QuickNavItem href="#imap-inbound" label="IMAP-svar" description="Inkomna svar" tone="green" />
           <QuickNavItem href="#production-prodat" label="PRODAT" description="Kundstyrd Z03/Z04" tone="green" />
           <QuickNavItem href="#tgt" label="TGT-test" description="Testfall och steg" tone="blue" />
           <QuickNavItem href="#operations" label="Verksamhet" description="Switch och UTILTS" tone="yellow" />
@@ -649,12 +739,12 @@ export default async function AdminEdielPage() {
       </section>
 
       <SectionLabel
-        id="file-engine"
-        title="1. Filbaserad Ediel-motor"
-        description="Här laddar du upp filer, klistrar in EDIFACT eller skapar filutkast. Börja alltid här när du testar manuellt."
+        id="imap-inbound"
+        title="1. Inkomna svar från Edielportalen"
+        description="Här ser du tydligt vad som hämtats från IMAP: CONTRL, APERAK och inkommande PRODAT. Filbaserad manuell Ediel-motor är borttagen från huvudarbetsytan."
       />
 
-      <EdielFileEnginePanel recentMessages={messages} />
+      <InboundImapMessagesPanel messages={messages} />
 
       <SectionLabel
         id="production-prodat"

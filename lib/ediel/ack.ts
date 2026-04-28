@@ -219,7 +219,7 @@ function buildAperakSegments(params: {
   )
 
   return [
-    'UNH+1+APERAK:D:96A:UN:E2SE6B',
+    'UNH+1+APERAK:D:96A:UN:E2SE6A',
     `BGM+APERAK+${sanitizeSegmentText(params.externalReference)}+9`,
     `RFF+TN:${sanitizeSegmentText(params.transactionReference)}`,
     params.sourceMessage.transaction_reference
@@ -317,7 +317,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:D:96A:UN:1.0'
         : params.ackFamily === 'APERAK'
-          ? 'APERAK:D:96A:UN:E2SE6B'
+          ? 'APERAK:D:96A:UN:E2SE6A'
           : 'UTILTS:D:01B:UN:1.1',
     applicationReference,
     segments,
@@ -352,7 +352,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'D96A'
         : params.ackFamily === 'APERAK'
-           ? 'E2SE6B'
+           ? 'E2SE6A'
           : 'E5SE5A',
     processType: 'ack',
     environment: params.sourceMessage.environment,
