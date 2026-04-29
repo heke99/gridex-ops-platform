@@ -80,6 +80,24 @@ function swedishDateTime(date = new Date()): string {
   return `${map.year}${map.month}${map.day}${map.hour}${map.minute}`
 }
 
+function swedishDateTimeFromEdifactUnb(rawPayload?: string | null): string | null {
+  const segments = segmentsFromRawPayload(rawPayload)
+  const unb = segments.find((segment) => segment.toUpperCase().startsWith('UNB+'))
+  const parts = unb?.split('+') ?? []
+  const date = parts[4]?.trim() ?? ''
+  const time = parts[5]?.trim() ?? ''
+
+  if (!/^\d{6}$/.test(date) || !/^\d{4}$/.test(time)) {
+    return null
+  }
+
+  // UNB stores YYMMDD + HHMM. Ediel TGT uses Swedish local time, so keep the
+  // inbound interchange timestamp instead of our mailbox processing timestamp.
+  // APERAK DTM+178 must describe the referenced PRODAT, not when APERAK was built.
+  const yearPrefix = Number(date.slice(0, 2)) >= 70 ? '19' : '20'
+  return `${yearPrefix}${date}${time}`
+}
+
 type ParsedEdifactRefs = {
   messageReference: string | null
   documentReference: string | null
@@ -182,32 +200,6 @@ function sourceParties(sourceMessage: EdielMessageRow) {
   }
 }
 
-function buildPartyComposite(edielId?: string | null, subAddress?: string | null): string | null {
-  const id = sanitizeEdifactToken(edielId, 35)
-  if (!id) return null
-
-  const sub = sanitizeEdifactToken(subAddress, 35)
-  return sub ? `${id}:ZZ:${sub}` : `${id}:ZZ`
-}
-
-function parseUnbPartiesFromSource(sourceMessage: EdielMessageRow): {
-  originalSender: string | null
-  originalReceiver: string | null
-  originalInterchangeReference: string | null
-} {
-  const segments = segmentsFromRawPayload(sourceMessage.raw_payload)
-  const unb = segments.find((segment) => segment.toUpperCase().startsWith('UNB+')) ?? null
-  const parts = unb?.split('+') ?? []
-
-  return {
-    originalSender: trimOrNull(parts[2]),
-    originalReceiver: trimOrNull(parts[3]),
-    originalInterchangeReference:
-      sanitizeEdifactToken(sourceMessage.interchange_reference) ??
-      sanitizeEdifactToken(parts[5] ?? null),
-  }
-}
-
 function buildContrlSegments(params: {
   sourceMessage: EdielMessageRow
   externalReference: string
@@ -215,32 +207,29 @@ function buildContrlSegments(params: {
   outcome: AckOutcome
   messageText?: string | null
 }) {
-  // Svenska Edielportalens CONTRL-flow använder EDIEL2/UCI-format.
-  // BGM/RFF/ERC/FTX-formatet kan validera tekniskt men matchar inte TGT-steget säkert.
-  const parsedUnb = parseUnbPartiesFromSource(params.sourceMessage)
-  const originalInterchangeReference =
-    parsedUnb.originalInterchangeReference ??
-    sanitizeEdifactToken(params.sourceMessage.interchange_reference) ??
-    sanitizeEdifactToken(params.sourceMessage.external_reference) ??
-    sanitizeEdifactToken(params.sourceMessage.id) ??
-    'UNKNOWN'
+  const resultCode = params.outcome === 'positive' ? '7' : '12'
+  const text =
+    sanitizeSegmentText(params.messageText) ||
+    (params.outcome === 'positive' ? 'Syntax accepted' : 'Syntax error detected')
 
-  const originalSender =
-    parsedUnb.originalSender ??
-    buildPartyComposite(params.sourceMessage.sender_ediel_id, params.sourceMessage.sender_sub_address) ??
-    'UNKNOWN:ZZ'
-
-  const originalReceiver =
-    parsedUnb.originalReceiver ??
-    buildPartyComposite(params.sourceMessage.receiver_ediel_id, params.sourceMessage.receiver_sub_address) ??
-    'UNKNOWN:ZZ'
-
-  const actionCode = params.outcome === 'positive' ? '1' : '4'
+  const originalMessageType = sanitizeSegmentText(
+    `${params.sourceMessage.message_family} ${String(params.sourceMessage.message_code)}`
+  )
 
   return [
-    'UNH+1+CONTRL:2:2:UN:EDIEL2',
-    `UCI+${originalInterchangeReference}+${sanitizeSegmentText(originalSender)}+${sanitizeSegmentText(originalReceiver)}+${actionCode}`,
-  ]
+    'UNH+1+CONTRL:D:96A:UN:1.0',
+    `BGM+CONTRL+${sanitizeSegmentText(params.externalReference)}+9`,
+    `RFF+TN:${sanitizeSegmentText(params.transactionReference)}`,
+    params.sourceMessage.interchange_reference
+      ? `RFF+ACW:${sanitizeSegmentText(params.sourceMessage.interchange_reference)}`
+      : null,
+    params.sourceMessage.transaction_reference
+      ? `RFF+CR:${sanitizeSegmentText(params.sourceMessage.transaction_reference)}`
+      : null,
+    `FTX+AAI+++${originalMessageType}`,
+    `ERC+${resultCode}`,
+    `FTX+AAO+++${text}`,
+  ].filter(Boolean) as string[]
 }
 
 function buildAperakSegments(params: {
@@ -273,12 +262,17 @@ function buildAperakSegments(params: {
     `DTM+137:${swedishDateTime()}:203`,
   ]
 
-  const receivedDate = params.sourceMessage.message_received_at
-    ? new Date(params.sourceMessage.message_received_at)
-    : null
+  const receivedDateTime =
+    swedishDateTimeFromEdifactUnb(params.sourceMessage.raw_payload) ??
+    (params.sourceMessage.message_received_at
+      ? (() => {
+          const receivedDate = new Date(params.sourceMessage.message_received_at)
+          return Number.isFinite(receivedDate.getTime()) ? swedishDateTime(receivedDate) : null
+        })()
+      : null)
 
-  if (receivedDate && Number.isFinite(receivedDate.getTime())) {
-    segments.push(`DTM+178:${swedishDateTime(receivedDate)}:203`)
+  if (receivedDateTime) {
+    segments.push(`DTM+178:${receivedDateTime}:203`)
   }
 
   segments.push(
@@ -389,7 +383,7 @@ function buildAckDraft(params: {
     receiverEdielId: parties.receiverEdielId,
     messageTypeToken:
       params.ackFamily === 'CONTRL'
-        ? 'CONTRL:2:2:UN:EDIEL2'
+        ? 'CONTRL:D:96A:UN:1.0'
         : params.ackFamily === 'APERAK'
           ? 'APERAK:D:96A:UN:E2SE6A'
           : 'UTILTS:D:01B:UN:1.1',
@@ -424,7 +418,7 @@ function buildAckDraft(params: {
           : 'UTILTS_ERR',
     messageVersion:
       params.ackFamily === 'CONTRL'
-        ? 'EDIEL2'
+        ? 'D96A'
         : params.ackFamily === 'APERAK'
            ? 'E2SE6A'
           : 'E5SE5A',

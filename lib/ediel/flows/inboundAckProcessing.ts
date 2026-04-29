@@ -132,19 +132,20 @@ function inferInboundAckOutcome(message: EdielMessageRow): InboundAckOutcome {
   }
 
   if (message.message_family === 'CONTRL') {
-    if (message.syntax_check_status === 'failed') {
+    if (message.syntax_check_status === 'rejected' || message.syntax_check_status === 'failed') {
       return 'negative'
     }
-    if (message.syntax_check_status === 'ok' || message.syntax_check_status === 'warning') return 'positive'
+    if (message.syntax_check_status === 'accepted') return 'positive'
   }
 
   if (message.message_family === 'APERAK' || message.message_family === 'UTILTS_ERR') {
     if (
+      message.functional_check_status === 'rejected' ||
       message.functional_check_status === 'failed'
     ) {
       return 'negative'
     }
-    if (message.functional_check_status === 'ok' || message.functional_check_status === 'warning') return 'positive'
+    if (message.functional_check_status === 'accepted') return 'positive'
   }
 
   return hasPayloadErrorSignal(message) ? 'negative' : 'positive'
@@ -316,15 +317,8 @@ async function patchSourceMessageFromAck(params: {
     updated_at: now,
   }
 
-  if (params.outcome === 'negative') {
-    patch.failed_at = now
-    patch.ack_due_at = null
-  }
-
-  if (params.outcome === 'positive' && finalAckReached) {
-    patch.acknowledged_at = now
-    patch.ack_due_at = null
-  }
+  if (params.outcome === 'negative') patch.failed_at = now
+  if (params.outcome === 'positive' && finalAckReached) patch.acknowledged_at = now
 
   const { data, error } = await supabaseService
     .from('ediel_messages')
@@ -406,6 +400,67 @@ function resolveGridOwnerDataRequestId(params: {
   return null
 }
 
+async function ensureOutboundRequestHasSentTimestamp(params: {
+  actorUserId: string
+  outboundRequest: OutboundRequestRow
+  sourceMessage: EdielMessageRow
+  ackMessage: EdielMessageRow
+}): Promise<OutboundRequestRow> {
+  if (params.outboundRequest.sent_at) return params.outboundRequest
+
+  const sentAt =
+    params.sourceMessage.message_sent_at ??
+    params.sourceMessage.updated_at ??
+    params.sourceMessage.created_at ??
+    new Date().toISOString()
+
+  const nextStatus =
+    params.outboundRequest.status === 'queued' || params.outboundRequest.status === 'prepared'
+      ? 'sent'
+      : params.outboundRequest.status
+
+  const responsePayload = {
+    ...(params.outboundRequest.response_payload ?? {}),
+    sentAtBackfilledFrom: 'ediel_inbound_ack_processing',
+    sentAtBackfilledViaAckMessageId: params.ackMessage.id,
+    sentAtBackfilledSourceMessageId: params.sourceMessage.id,
+  }
+
+  const { data, error } = await supabaseService
+    .from('outbound_requests')
+    .update({
+      status: nextStatus,
+      sent_at: sentAt,
+      response_payload: responsePayload,
+      updated_by: params.actorUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', params.outboundRequest.id)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  const updated = data as OutboundRequestRow
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.sourceMessage.id,
+    eventType: 'manual_note',
+    eventStatus: 'warning',
+    message: 'Outbound request saknade sent_at vid inbound kvittens. sent_at backfillades innan acknowledgment.',
+    payload: {
+      outboundRequestId: updated.id,
+      previousStatus: params.outboundRequest.status,
+      nextStatus: updated.status,
+      sentAt,
+      ackMessageId: params.ackMessage.id,
+    },
+  })
+
+  return updated
+}
+
 async function syncOutboundRequestFromInboundAck(params: {
   actorUserId: string
   sourceMessage: EdielMessageRow
@@ -437,13 +492,20 @@ async function syncOutboundRequestFromInboundAck(params: {
 
   if (!params.finalAckReached) return outbound
 
+  const ackReadyOutbound = await ensureOutboundRequestHasSentTimestamp({
+    actorUserId: params.actorUserId,
+    outboundRequest: outbound,
+    sourceMessage: params.sourceMessage,
+    ackMessage: params.ackMessage,
+  })
+
   return updateOutboundRequestStatus({
     actorUserId: params.actorUserId,
-    outboundRequestId: outbound.id,
+    outboundRequestId: ackReadyOutbound.id,
     status: 'acknowledged',
-    externalReference: params.ackMessage.external_reference ?? outbound.external_reference ?? null,
+    externalReference: params.ackMessage.external_reference ?? ackReadyOutbound.external_reference ?? null,
     responsePayload: {
-      ...(outbound.response_payload ?? {}),
+      ...(ackReadyOutbound.response_payload ?? {}),
       inboundAckMessageId: params.ackMessage.id,
       inboundAckFamily: params.ackMessage.message_family,
       inboundAckOutcome: params.outcome,
