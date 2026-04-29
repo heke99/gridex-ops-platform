@@ -305,7 +305,12 @@ async function patchSourceMessageFromAck(params: {
   })
 
   const now = new Date().toISOString()
-  const nextStatus = params.outcome === 'negative' ? 'failed' : finalAckReached ? 'acknowledged' : params.sourceMessage.status
+  const nextStatus =
+    params.outcome === 'negative'
+      ? 'failed'
+      : finalAckReached
+        ? 'acknowledged'
+        : params.sourceMessage.status
 
   const patch: Record<string, unknown> = {
     contrl_status: nextContrlStatus,
@@ -317,8 +322,15 @@ async function patchSourceMessageFromAck(params: {
     updated_at: now,
   }
 
-  if (params.outcome === 'negative') patch.failed_at = now
-  if (params.outcome === 'positive' && finalAckReached) patch.acknowledged_at = now
+  if (params.outcome === 'negative') {
+    patch.failed_at = now
+    patch.ack_due_at = null
+  }
+
+  if (params.outcome === 'positive' && finalAckReached) {
+    patch.acknowledged_at = now
+    patch.ack_due_at = null
+  }
 
   const { data, error } = await supabaseService
     .from('ediel_messages')
@@ -355,6 +367,7 @@ async function patchSourceMessageFromAck(params: {
       nextContrlStatus,
       nextAperakStatus,
       nextUtiltsErrStatus,
+      clearedAckDueAt: params.outcome === 'negative' || finalAckReached,
     },
   })
 
