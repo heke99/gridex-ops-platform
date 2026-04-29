@@ -67,7 +67,6 @@ function requireActorUserId(value?: string | null): string {
   return trimmed
 }
 
-
 function sanitizeMimeHeader(value: string | null | undefined, fallback = ''): string {
   const text = String(value ?? fallback).trim()
   return text.replace(/[\r\n]+/g, ' ').trim() || fallback
@@ -258,7 +257,6 @@ function buildMultipartValidationBase64Mime(params: {
   return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${parts.join('\r\n')}`, 'ascii')
 }
 
-
 function buildOuterSmimeMime(params: {
   from: string
   to: string
@@ -345,7 +343,6 @@ function resolveSmtpMimeMode(_override?: string | null): EdielSmtpMimeMode {
   return 'ediel-singlepart-base64'
 }
 
-
 function isEdifactMessage(message: EdielMessageRow): boolean {
   return message.message_standard === 'edifact' || message.mime_type?.toLowerCase().includes('edifact') === true
 }
@@ -382,6 +379,7 @@ function buildSinglePartEdielMime(params: {
 function safePreview(value: string, maxLength = 600): string {
   return value.replace(/\r/g, '\\r').replace(/\n/g, '\\n').slice(0, maxLength)
 }
+
 function resolveSmtpPort(value?: number | null): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   const env = process.env.EDIEL_SMTP_PORT
@@ -403,7 +401,6 @@ function normalizeImapMailboxFolder(value?: string | null): string {
   }
   return trimmed
 }
-
 
 type ParsedInboundEnvelope = {
   family: string
@@ -479,6 +476,69 @@ function splitEdifactSegmentsLoose(rawPayload: string): string[] {
     .split("'")
     .map((segment) => segment.trim())
     .filter(Boolean)
+}
+
+function inferAperakOutcomeFromPayload(rawPayload: string): 'positive' | 'negative' {
+  const segments = splitEdifactSegmentsLoose(rawPayload)
+
+  const erc = segments.find((segment) => segment.toUpperCase().startsWith('ERC+')) ?? null
+  const ftxAao = segments.find((segment) => segment.toUpperCase().startsWith('FTX+AAO')) ?? null
+
+  const ercCode = erc?.split('+')[1]?.split(':')[0]?.trim() ?? null
+  const freeText = ftxAao?.toUpperCase() ?? ''
+
+  // Edielportalens positiva APERAK i PRODAT-flödet använder ERC+100::260 och FTX+AAO+++OK.
+  // Viktigt: sök aldrig efter "12" i hela payloaden. UNT+12+1 betyder bara antal segment.
+  if (ercCode === '100' && freeText.includes('OK')) {
+    return 'positive'
+  }
+
+  if (ercCode && ercCode !== '100') {
+    return 'negative'
+  }
+
+  if (/\b(REJECT|REJECTED|ERROR|FAILED|NEGATIVE|AVVISAD|FEL)\b/i.test(rawPayload)) {
+    return 'negative'
+  }
+
+  return 'positive'
+}
+
+function inferContrlOutcomeFromPayload(rawPayload: string): 'positive' | 'negative' {
+  const segments = splitEdifactSegmentsLoose(rawPayload)
+  const uci = segments.find((segment) => segment.toUpperCase().startsWith('UCI+')) ?? null
+
+  if (uci) {
+    const uciParts = uci.split('+')
+    const actionCode = uciParts[4]?.trim()
+    if (actionCode && actionCode !== '1') return 'negative'
+    return 'positive'
+  }
+
+  if (/\b(REJECT|REJECTED|ERROR|FAILED|NEGATIVE|AVVISAD|FEL)\b/i.test(rawPayload)) {
+    return 'negative'
+  }
+
+  return 'positive'
+}
+
+function inferAckOutcomeFromPayload(params: {
+  family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  rawPayload: string
+}): 'positive' | 'negative' {
+  if (params.family === 'APERAK') {
+    return inferAperakOutcomeFromPayload(params.rawPayload)
+  }
+
+  if (params.family === 'CONTRL') {
+    return inferContrlOutcomeFromPayload(params.rawPayload)
+  }
+
+  if (/\b(REJECT|REJECTED|ERROR|FAILED|NEGATIVE|AVVISAD|FEL)\b/i.test(params.rawPayload)) {
+    return 'negative'
+  }
+
+  return 'positive'
 }
 
 function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string, fallbackCode: string): ParsedInboundEnvelope {
@@ -766,7 +826,11 @@ async function buildInboundAckMessageInput(params: {
   const receivedAt = new Date().toISOString()
   const isContrl = params.family === 'CONTRL'
   const isAperak = params.family === 'APERAK'
-  const isNegative = /\b(12|A13|REJECT|REJECTED|ERROR|FAILED|NEGATIVE)\b/i.test(params.rawPayload)
+  const ackOutcome = inferAckOutcomeFromPayload({
+    family: params.family,
+    rawPayload: params.rawPayload,
+  })
+  const isNegative = ackOutcome === 'negative'
 
   return {
     actorUserId: 'system',
@@ -810,7 +874,7 @@ async function buildInboundAckMessageInput(params: {
     parsedPayload: {
       ...parsed.parsedPayload,
       ackFamily: params.family,
-      ackOutcome: isNegative ? 'negative' : 'positive',
+      ackOutcome,
       relatedOutboundMessageId: related.id,
       relatedOutboundFamily: related.message_family,
       relatedOutboundCode: related.message_code,
@@ -821,7 +885,7 @@ async function buildInboundAckMessageInput(params: {
     contrlStatus: 'not_required',
     aperakStatus: 'not_required',
     utiltsErrStatus: 'not_required',
-    ackOutcome: isNegative ? 'negative' : 'positive',
+    ackOutcome,
     syntaxCheckStatus: isContrl ? (isNegative ? 'failed' : 'ok') : 'not_checked',
     functionalCheckStatus: isAperak || params.family === 'UTILTS_ERR' ? (isNegative ? 'failed' : 'ok') : 'not_checked',
     messageReceivedAt: receivedAt,

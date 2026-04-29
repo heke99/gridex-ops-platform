@@ -35,6 +35,22 @@ function ensureActorUserId(value?: string | null) {
   return value && value.trim() ? value.trim() : 'system'
 }
 
+function isCanonicalAckFamily(
+  family: string | null | undefined
+): family is 'CONTRL' | 'APERAK' | 'UTILTS_ERR' {
+  return family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
+}
+
+function isPostgresUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const candidate = error as { code?: unknown; message?: unknown }
+  return (
+    candidate.code === '23505' ||
+    (typeof candidate.message === 'string' &&
+      candidate.message.includes('duplicate key value violates unique constraint'))
+  )
+}
+
 export async function resolveCanonicalOutboundContext(params: {
   requestType: CanonicalRouteRequestType
   gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
@@ -110,11 +126,85 @@ export async function registerInboundCanonicalMessage(params: {
     return duplicate
   }
 
-  return createEdielMessage({
-    ...params.input,
-    actorUserId,
-  })
+  const inboundAckFamily = isCanonicalAckFamily(params.input.messageFamily)
+    ? params.input.messageFamily
+    : null
+
+  if (
+    params.input.direction === 'inbound' &&
+    inboundAckFamily &&
+    params.input.relatedMessageId
+  ) {
+    const duplicateAck = await hasCanonicalAckDuplicate({
+      sourceMessageId: params.input.relatedMessageId,
+      ackFamily: inboundAckFamily,
+    })
+
+    if (duplicateAck) {
+      await createCanonicalDuplicateBlockEvent({
+        actorUserId,
+        edielMessageId: duplicateAck.id,
+        layer: 'canonical_inbound',
+        message: 'Inbound ACK-dublett blockerad i canonical kernel.',
+        payload: {
+          mailbox: identity.mailbox,
+          mailboxMessageId: identity.mailboxMessageId,
+          senderEdielId: identity.senderEdielId,
+          interchangeReference: identity.interchangeReference,
+          transactionReference: identity.transactionReference,
+          externalReference: identity.externalReference,
+          relatedMessageId: params.input.relatedMessageId,
+          ackFamily: inboundAckFamily,
+          existingAckMessageId: duplicateAck.id,
+        },
+      })
+      return duplicateAck
+    }
+  }
+
+  try {
+    return await createEdielMessage({
+      ...params.input,
+      actorUserId,
+    })
+  } catch (error) {
+    if (
+      isPostgresUniqueViolation(error) &&
+      params.input.direction === 'inbound' &&
+      inboundAckFamily &&
+      params.input.relatedMessageId
+    ) {
+      const duplicateAck = await hasCanonicalAckDuplicate({
+        sourceMessageId: params.input.relatedMessageId,
+        ackFamily: inboundAckFamily,
+      })
+
+      if (duplicateAck) {
+        await createCanonicalDuplicateBlockEvent({
+          actorUserId,
+          edielMessageId: duplicateAck.id,
+          layer: 'canonical_inbound',
+          message: 'Inbound ACK-dublett blockerad av databasens unikhetsregel och återanvändes.',
+          payload: {
+            mailbox: identity.mailbox,
+            mailboxMessageId: identity.mailboxMessageId,
+            senderEdielId: identity.senderEdielId,
+            interchangeReference: identity.interchangeReference,
+            transactionReference: identity.transactionReference,
+            externalReference: identity.externalReference,
+            relatedMessageId: params.input.relatedMessageId,
+            ackFamily: inboundAckFamily,
+            existingAckMessageId: duplicateAck.id,
+          },
+        })
+        return duplicateAck
+      }
+    }
+
+    throw error
+  }
 }
+
 
 export async function createCanonicalOutboundMessage(params: {
   actorUserId?: string | null
