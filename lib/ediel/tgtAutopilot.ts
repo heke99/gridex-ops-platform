@@ -96,7 +96,7 @@ function buildUnb(params: {
 }
 
 function buildUnh(messageRef: string, step: EdielTgtExpectedStep) {
-  if (step.family === 'CONTRL') return `UNH+${messageRef}+CONTRL:D:96A:UN:D96A`
+  if (step.family === 'CONTRL') return `UNH+${messageRef}+CONTRL:2:2:UN:EDIEL2`
   if (step.family === 'APERAK') return `UNH+${messageRef}+APERAK:D:96A:UN:E2SE3B`
   if (step.family === 'UTILTS_ERR') return `UNH+${messageRef}+APERAK:D:96A:UN:E5SE5A`
   if (step.family === 'UTILTS') return `UNH+${messageRef}+UTILTS:D:02B:UN:E5SE5A`
@@ -105,8 +105,8 @@ function buildUnh(messageRef: string, step: EdielTgtExpectedStep) {
 
 function buildMockBody(step: EdielTgtExpectedStep, refs: { date: string; longDate: string; transactionRef: string; originalInterchangeRef: string }) {
   if (step.family === 'CONTRL') {
-    const action = step.outcome === 'negative' ? '7' : '4'
-    return [`UCI+7+${refs.originalInterchangeRef}+${GRIDEX_EDIEL_ID}+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}+${action}`]
+    const action = step.outcome === 'negative' ? '4' : '1'
+    return [`UCI+${refs.originalInterchangeRef}+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}:ZZ:PRODAT+${GRIDEX_EDIEL_ID}:ZZ:PRODAT+${action}`]
   }
 
   if (step.family === 'APERAK' || step.family === 'UTILTS_ERR') {

@@ -274,8 +274,9 @@ function buildContrlSegments(params: {
   // Important:
   // - UCI data element 1 must be original UNB/0020, not an action code.
   // - Original sender/receiver should be kept as UNB composites when available.
-  // - Positive syntax acknowledgement uses action code 7.
-  const syntaxActionCode = params.outcome === 'positive' ? '7' : '4'
+  // - Positive syntax acknowledgement uses action code 1.
+  // - Negative syntax rejection uses action code 4.
+  const syntaxActionCode = params.outcome === 'positive' ? '1' : '4'
 
   return [
     `UCI+${originalInterchangeReference}+${originalSenderComposite}+${originalReceiverComposite}+${syntaxActionCode}`,
@@ -434,7 +435,7 @@ function buildAckDraft(params: {
     receiverEdielId: parties.receiverEdielId,
     messageTypeToken:
       params.ackFamily === 'CONTRL'
-        ? 'CONTRL:D:96A:UN:1.0'
+        ? 'CONTRL:2:2:UN:EDIEL2'
         : params.ackFamily === 'APERAK'
           ? 'APERAK:D:96A:UN:E2SE6A'
           : 'UTILTS:D:01B:UN:1.1',
@@ -469,7 +470,7 @@ function buildAckDraft(params: {
           : 'UTILTS_ERR',
     messageVersion:
       params.ackFamily === 'CONTRL'
-        ? 'D96A'
+        ? 'EDIEL2'
         : params.ackFamily === 'APERAK'
           ? 'E2SE6A'
           : 'E5SE5A',

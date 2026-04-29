@@ -442,7 +442,7 @@ function buildUnb(params: {
 
 function buildUnh(refs: DraftReferences, family: EdielMessageFamily, version: string): string {
   if (family === 'APERAK') return `UNH+${refs.messageRef}+APERAK:D:96A:UN:E2SE3B`
-  if (family === 'CONTRL') return `UNH+${refs.messageRef}+CONTRL:D:96A:UN:D96A`
+  if (family === 'CONTRL') return `UNH+${refs.messageRef}+CONTRL:2:2:UN:EDIEL2`
   if (family === 'UTILTS_ERR') return `UNH+${refs.messageRef}+APERAK:D:96A:UN:E5SE5A`
   if (family === 'UTILTS') return `UNH+${refs.messageRef}+UTILTS:D:02B:UN:${version}`
   return `UNH+${refs.messageRef}+PRODAT:D:97A:UN:${version === '26A' ? 'E2SE6A' : version}`
@@ -580,8 +580,8 @@ function buildAckDraft(step: EdielTgtExpectedStep, refs: DraftReferences): strin
   const bodySegments = isContrl
     ? [
         isNegative
-          ? `UCI+7+${refs.originalInterchangeRef}+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}+${GRIDEX_EDIEL_ID}+7`
-          : `UCI+7+${refs.originalInterchangeRef}+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}+${GRIDEX_EDIEL_ID}+4`,
+          ? `UCI+${refs.originalInterchangeRef}+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}:ZZ:PRODAT+${GRIDEX_EDIEL_ID}:ZZ:PRODAT+4`
+          : `UCI+${refs.originalInterchangeRef}+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}:ZZ:PRODAT+${GRIDEX_EDIEL_ID}:ZZ:PRODAT+1`,
       ]
     : isNegative
       ? negativeAperakSegments(refs)
