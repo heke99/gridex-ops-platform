@@ -61,14 +61,12 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
     )
   }
 
-  if (
-    sourceMessage.message_family === 'CONTRL' ||
-    sourceMessage.message_family === 'APERAK' ||
-    sourceMessage.message_family === 'UTILTS_ERR'
-  ) {
-    throw new Error(
-      `Ack får inte genereras på ${sourceMessage.message_family} för ${sourceMessage.id}.`
-    )
+  if (sourceMessage.message_family === 'CONTRL') {
+    throw new Error('CONTRL ska registreras och kopplas, inte kvitteras med nytt ack.')
+  }
+
+  if (sourceMessage.message_family === 'UTILTS_ERR') {
+    throw new Error('UTILTS-ERR ska registreras och kopplas, inte få APERAK-svar.')
   }
 }
 
@@ -171,19 +169,24 @@ export async function getAutomaticAckPolicy(
   const shouldSendContrl =
     routeAckMode !== 'none' &&
     sourceMessage.message_family !== 'CONTRL' &&
-    ruleDefaults.requiresContrl
+    (ruleDefaults.requiresContrl || sourceMessage.message_family === 'APERAK')
+
+  const canSendAperak =
+    sourceMessage.message_family !== 'APERAK' &&
+    sourceMessage.message_family !== 'CONTRL' &&
+    sourceMessage.message_family !== 'UTILTS_ERR'
 
   const shouldSendPositiveAperak =
-    routeAckMode === 'contrl_and_aperak'
+    canSendAperak &&
+    (routeAckMode === 'contrl_and_aperak'
       ? true
       : routeAckMode === 'contrl_only' || routeAckMode === 'none'
         ? false
-        : ruleDefaults.requiresAperak
+        : ruleDefaults.requiresAperak)
 
   const shouldSendNegativeAperak =
+    canSendAperak &&
     routeAckMode !== 'none' &&
-    sourceMessage.message_family !== 'APERAK' &&
-    sourceMessage.message_family !== 'CONTRL' &&
     ruleDefaults.supportsNegativeResponse
 
   const shouldSendUtiltsErr =
@@ -245,6 +248,8 @@ export async function findExistingAckForSource(params: {
 
   return (
     rows.find((row: EdielMessageRow) => {
+      const status = String(row.status ?? '').trim().toLowerCase()
+      if (status === 'cancelled' || status === 'failed') return false
       if (params.outcome === undefined) return true
       return inferAckOutcomeFromRow(row) === params.outcome
     }) ?? null
@@ -391,11 +396,21 @@ export function deriveEdielAckDefaults(params: {
     }
   }
 
-  if (family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR') {
+  if (family === 'CONTRL' || family === 'UTILTS_ERR') {
     return {
       requiresContrl: false,
       requiresAperak: false,
       contrlStatus: 'not_required',
+      aperakStatus: 'not_required',
+      utiltsErrStatus: 'not_required',
+    }
+  }
+
+  if (family === 'APERAK') {
+    return {
+      requiresContrl: true,
+      requiresAperak: false,
+      contrlStatus: 'pending',
       aperakStatus: 'not_required',
       utiltsErrStatus: 'not_required',
     }

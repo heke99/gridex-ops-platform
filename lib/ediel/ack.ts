@@ -45,7 +45,105 @@ function sanitizeSegmentText(value?: string | null): string {
   return (value ?? '').replace(/['+]/g, ' ').trim()
 }
 
-function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
+function sanitizeEdifactToken(value?: string | null, maxLength = 35): string | null {
+  const trimmed = trimOrNull(value)
+  if (!trimmed) return null
+
+  const sanitized = trimmed
+    .replace(/[ÅÄ]/gi, 'A')
+    .replace(/[Ö]/gi, 'O')
+    .replace(/[åä]/g, 'a')
+    .replace(/[ö]/g, 'o')
+    .replace(/[^A-Za-z0-9_.\/-]/g, '')
+    .slice(0, maxLength)
+
+  return sanitized.length > 0 ? sanitized : null
+}
+
+function escapeEdifactText(value?: string | null, maxLength = 70): string {
+  const text = sanitizeSegmentText(value).slice(0, maxLength)
+  return text.replace(/\?/g, '??').replace(/:/g, '?:')
+}
+
+function swedishDateTime(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Stockholm',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${map.year}${map.month}${map.day}${map.hour}${map.minute}`
+}
+
+type ParsedEdifactRefs = {
+  messageReference: string | null
+  documentReference: string | null
+  interchangeReference: string | null
+  lineItemReference: string | null
+  meteringPointId: string | null
+}
+
+function segmentsFromRawPayload(rawPayload?: string | null): string[] {
+  if (!rawPayload) return []
+
+  const normalized = rawPayload
+    .replace(/\r\n/g, '')
+    .replace(/\n/g, '')
+    .replace(/^UNA.{6}'/i, '')
+
+  return normalized
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+}
+
+function parseEdifactRefs(sourceMessage: EdielMessageRow): ParsedEdifactRefs {
+  const parsed = sourceMessage.parsed_payload ?? {}
+  const segments = segmentsFromRawPayload(sourceMessage.raw_payload)
+  const find = (prefix: string) => segments.find((segment) => segment.startsWith(prefix)) ?? null
+  const findAll = (prefix: string) => segments.filter((segment) => segment.startsWith(prefix))
+  const unh = find('UNH+')
+  const unb = find('UNB+')
+  const bgm = find('BGM+')
+  const lin = find('LIN+')
+  const rffs = findAll('RFF+')
+
+  const messageReference =
+    sanitizeEdifactToken(String(parsed.messageReference ?? parsed.message_reference ?? '')) ??
+    sanitizeEdifactToken(unh?.split('+')[1] ?? null)
+
+  const documentReference =
+    sanitizeEdifactToken(String(parsed.documentReference ?? parsed.document_reference ?? '')) ??
+    sanitizeEdifactToken(sourceMessage.external_reference) ??
+    sanitizeEdifactToken(bgm?.split('+')[2] ?? null)
+
+  const unbParts = unb?.split('+') ?? []
+  const interchangeReference =
+    sanitizeEdifactToken(String(parsed.interchangeReference ?? parsed.interchange_reference ?? '')) ??
+    sanitizeEdifactToken(sourceMessage.interchange_reference) ??
+    sanitizeEdifactToken(unbParts[5] ?? null)
+
+  const linParts = lin?.split('+') ?? []
+  const linItem = linParts[3]?.split(':')[0] ?? null
+  const meteringPointId =
+    sanitizeEdifactToken(String(parsed.meteringPointId ?? parsed.metering_point_id ?? '')) ??
+    sanitizeEdifactToken(linItem)
+
+  const liSegment = rffs.find((segment) => segment.startsWith('RFF+LI:'))
+  const lineItemReference =
+    sanitizeEdifactToken(String(parsed.lineItemReference ?? parsed.line_item_reference ?? '')) ??
+    sanitizeEdifactToken(sourceMessage.transaction_reference) ??
+    sanitizeEdifactToken(liSegment?.replace(/^RFF\+LI:/, '') ?? null)
+
+  return { messageReference, documentReference, interchangeReference, lineItemReference, meteringPointId }
+}
+
+function ensureInboundEdifactSource(sourceMessage: EdielMessageRow, ackFamily: AckFamily) {
   if (sourceMessage.direction !== 'inbound') {
     throw new Error(
       `Ack-generatorn kräver inbound source. ${sourceMessage.id} är ${sourceMessage.direction}.`
@@ -58,14 +156,16 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
     )
   }
 
-  if (
-    sourceMessage.message_family === 'CONTRL' ||
-    sourceMessage.message_family === 'APERAK' ||
-    sourceMessage.message_family === 'UTILTS_ERR'
-  ) {
-    throw new Error(
-      `Ack får inte genereras på ${sourceMessage.message_family} för ${sourceMessage.id}.`
-    )
+  if (sourceMessage.message_family === 'CONTRL') {
+    throw new Error('CONTRL ska registreras och kopplas, inte kvitteras med nytt ack.')
+  }
+
+  if (sourceMessage.message_family === 'APERAK' && ackFamily !== 'CONTRL') {
+    throw new Error('Inkommande APERAK får endast besvaras med CONTRL, aldrig med APERAK.')
+  }
+
+  if (sourceMessage.message_family === 'UTILTS_ERR' && ackFamily !== 'CONTRL') {
+    throw new Error('Inkommande UTILTS-ERR får inte besvaras med APERAK.')
   }
 }
 
@@ -121,31 +221,56 @@ function buildAperakSegments(params: {
   outcome: AckOutcome
   messageText?: string | null
 }) {
-  const resultCode = params.outcome === 'positive' ? 'A01' : 'A13'
+  const refs = parseEdifactRefs(params.sourceMessage)
+  const bgmFunction = params.outcome === 'positive' ? '34' : '27'
+  const ercCode = params.outcome === 'positive' ? '100' : '40'
   const text =
-    sanitizeSegmentText(params.messageText) ||
-    (params.outcome === 'positive'
-      ? 'Application accepted'
-      : 'Application rejected')
+    params.outcome === 'positive'
+      ? 'OK'
+      : escapeEdifactText(params.messageText || 'Applikationen kunde inte bearbeta meddelandet')
 
-  const originalMessageType = sanitizeSegmentText(
-    `${params.sourceMessage.message_family} ${String(params.sourceMessage.message_code)}`
+  const previousMessageReference =
+    refs.interchangeReference ??
+    refs.documentReference ??
+    refs.messageReference ??
+    sanitizeEdifactToken(params.sourceMessage.external_reference) ??
+    sanitizeEdifactToken(params.sourceMessage.id) ??
+    sanitizeEdifactToken(params.transactionReference) ??
+    'UNKNOWN'
+
+  const segments = [
+    'UNH+1+APERAK:D:96A:UN:E2SE6A',
+    `BGM+++${bgmFunction}`,
+    `DTM+137:${swedishDateTime()}:203`,
+  ]
+
+  const receivedDate = params.sourceMessage.message_received_at
+    ? new Date(params.sourceMessage.message_received_at)
+    : null
+
+  if (receivedDate && Number.isFinite(receivedDate.getTime())) {
+    segments.push(`DTM+178:${swedishDateTime(receivedDate)}:203`)
+  }
+
+  segments.push(
+    `RFF+ACW:${previousMessageReference}`,
+    `NAD+FR+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`,
+    `NAD+DO+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`,
+    `ERC+${ercCode}::260`,
+    params.outcome === 'positive'
+      ? 'FTX+AAO+++OK'
+      : `FTX+AAO++40::260+${text}`
   )
 
-  return [
-    'UNH+1+APERAK:D:96A:UN:2.0',
-    `BGM+APERAK+${sanitizeSegmentText(params.externalReference)}+9`,
-    `RFF+TN:${sanitizeSegmentText(params.transactionReference)}`,
-    params.sourceMessage.transaction_reference
-      ? `RFF+CR:${sanitizeSegmentText(params.sourceMessage.transaction_reference)}`
-      : null,
-    params.sourceMessage.external_reference
-      ? `RFF+ACE:${sanitizeSegmentText(params.sourceMessage.external_reference)}`
-      : null,
-    `FTX+AAI+++${originalMessageType}`,
-    `ERC+${resultCode}`,
-    `FTX+AAO+++${text}`,
-  ].filter(Boolean) as string[]
+  if (refs.meteringPointId) {
+    segments.push(`RFF+Z07:${refs.meteringPointId}`)
+  }
+
+  if (refs.lineItemReference) {
+    segments.push(`RFF+LI:${refs.lineItemReference}`)
+  }
+
+  return segments
 }
 
 function buildUtiltsErrSegments(params: {
@@ -179,7 +304,7 @@ function buildAckDraft(params: {
   outcome?: AckOutcome
   messageText?: string | null
 }): CreateEdielMessageInput {
-  ensureInboundEdifactSource(params.sourceMessage)
+  ensureInboundEdifactSource(params.sourceMessage, params.ackFamily)
 
   const outcome =
     params.ackFamily === 'UTILTS_ERR' ? 'negative' : params.outcome ?? 'positive'
@@ -237,7 +362,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:D:96A:UN:1.0'
         : params.ackFamily === 'APERAK'
-          ? 'APERAK:D:96A:UN:2.0'
+          ? 'APERAK:D:96A:UN:E2SE6A'
           : 'UTILTS:D:01B:UN:1.1',
     applicationReference,
     segments,

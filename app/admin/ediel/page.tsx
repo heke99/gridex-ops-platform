@@ -407,6 +407,7 @@ function IncomingPortalResponses({
               message.message_family !== 'CONTRL' &&
               message.message_family !== 'APERAK' &&
               message.message_family !== 'UTILTS_ERR'
+            const requiresContrlOnly = message.message_family === 'APERAK'
             const acks = relatedAcks(message.id)
             const hasContrl = acks.some((row) => row.message_family === 'CONTRL')
             const hasAperak = acks.some((row) => row.message_family === 'APERAK')
@@ -437,6 +438,9 @@ function IncomingPortalResponses({
                 {isInboundBusinessMessage ? (
                   <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-3">
                     <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Svar som ska skickas till portalen</div>
+                    <p className="mt-1 text-xs leading-5 text-blue-900">
+                      Inbound PRODAT ska kvitteras med CONTRL först och APERAK därefter. APERAK byggs enligt Ediel-anvisning med DTM, RFF, NAD, ERC, FTX och referenser.
+                    </p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {!hasContrl ? (
                         <form action={createAckDraftAction}>
@@ -461,9 +465,30 @@ function IncomingPortalResponses({
                       {hasContrl && hasAperak ? <Badge tone="green">CONTRL och APERAK finns</Badge> : null}
                     </div>
                   </div>
+                ) : requiresContrlOnly ? (
+                  <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Inkommande APERAK</div>
+                    <p className="mt-1 text-xs leading-5 text-blue-900">
+                      Skicka aldrig APERAK på APERAK. Enligt Ediel-regeln kan däremot CONTRL behöva skickas på inkommande APERAK.
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {!hasContrl ? (
+                        <form action={createAckDraftAction}>
+                          <input type="hidden" name="sourceMessageId" value={message.id} />
+                          <input type="hidden" name="ackType" value="CONTRL" />
+                          <input type="hidden" name="outcome" value="positive" />
+                          <button className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">
+                            Skapa CONTRL på APERAK
+                          </button>
+                        </form>
+                      ) : (
+                        <Badge tone="green">CONTRL finns</Badge>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-800">
-                    Detta är en inkommande kvittens från portalen. Den ska registreras och kopplas, inte besvaras med ny APERAK.
+                    Detta är en inkommande CONTRL/teknisk kvittens från portalen. Den ska registreras och kopplas. Skapa ingen ny kvittens på CONTRL.
                   </div>
                 )}
 
@@ -690,15 +715,15 @@ export default async function AdminEdielPage() {
               Starta här
             </div>
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">
-              Ediel arbetsyta för SMTP/IMAP, PRODAT och TGT
+              Ediel arbetsyta för TGT/systemtest och riktig Ediel-drift
             </h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-              Använd sidan uppifrån och ned: hämta svar från IMAP, hantera PRODAT/CONTRL/APERAK, kör TGT-test och koppla mot verksamheten. Filbaserad Ediel-motor är avvecklad från huvudflödet.
+              Använd sidan uppifrån och ned. TGT/systemtest mot Edielportalen hålls tydligt separerat från riktig kundstyrd Ediel-drift, men använder samma PRODAT-, ACK- och transportmotor. Filbaserad Ediel-motor är avvecklad från huvudflödet.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge tone="blue">Gridex Ediel-ID 21660</Badge>
-            <Badge tone="blue">Edielportalen 91100</Badge>
+            <Badge tone="blue">Edielportalen/TGT 91100</Badge>
             <Badge tone="green">SMTP/IMAP aktivt</Badge>
             <Badge tone={warningCount > 0 ? 'yellow' : 'green'}>
               signaler: {warningCount}
@@ -715,8 +740,8 @@ export default async function AdminEdielPage() {
           />
           <WorkflowStep
             number="2"
-            title="Kundstyrd PRODAT"
-            text="Välj riktigt kundunderlag och skapa Z03/Z04 när allt är komplett."
+            title="Riktig Ediel-drift"
+            text="Kundstyrd PRODAT mot riktiga routes. Inte samma kö som TGT-testkörning."
             href="#production-prodat"
           />
           <WorkflowStep
@@ -756,6 +781,27 @@ export default async function AdminEdielPage() {
         <MetricCard label="Varningar" value={warningCount} help="Diagnostiska signaler som bör kontrolleras." tone={warningCount > 0 ? 'red' : 'green'} />
       </section>
 
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+          <div className="flex items-center gap-2">
+            <Badge tone="blue">TGT / systemtest</Badge>
+            <span className="text-sm font-semibold text-slate-950">Edielportalen 91100</span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-700">
+            Används för typgodkännande mot Edielportalen. Här får du testdata, Z03/Z04-steg, IMAP-svar och portalens CONTRL/APERAK/PRODAT i en styrd testvy.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="flex items-center gap-2">
+            <Badge tone="green">Riktig Ediel-drift</Badge>
+            <span className="text-sm font-semibold text-slate-950">Kund, route och motpart</span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-700">
+            Används för verkliga kunder och nätägare. Samma PRODAT-, ACK- och SMTP/IMAP-motor används, men underlaget måste komma från kundkort, anläggning, mätpunkt och godkänd route.
+          </p>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -790,7 +836,7 @@ export default async function AdminEdielPage() {
       <SectionLabel
         id="inbound-responses"
         title="1. Inkomna svar från Edielportalen"
-        description="Här ser du exakt vad IMAP-importen hittade: CONTRL, APERAK och inkommande PRODAT. Skapa eller skicka kvittenser bara från rätt inbound PRODAT-rad."
+        description="Här ser du exakt vad IMAP-importen hittade: CONTRL, APERAK och inkommande PRODAT. Skapa eller skicka kvittenser från rätt rad: PRODAT ska få CONTRL + APERAK, inbound APERAK ska bara kunna få CONTRL, och CONTRL ska aldrig kvitteras."
       />
 
       <IncomingPortalResponses messages={messages} />
