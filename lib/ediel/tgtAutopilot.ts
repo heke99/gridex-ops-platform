@@ -88,9 +88,7 @@ function buildUnb(params: {
     ? `${GRIDEX_EDIEL_ID}:ZZ:${receiverSub}`
     : `${GRIDEX_EDIEL_ID}:ZZ`
 
-  const applicationReference = params.family === 'CONTRL'
-    ? 'CONTRL'
-    : EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
+  const applicationReference = EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
 
   return `UNB+UNOC:3+${sender}+${receiver}+${params.date}:${params.time}+${params.interchangeRef}++${applicationReference}++1`
 }

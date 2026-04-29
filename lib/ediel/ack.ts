@@ -245,10 +245,10 @@ function buildContrlSegments(params: {
   const sourceUnbParts = sourceUnb?.split('+') ?? []
 
   const originalInterchangeReference =
-    refs.interchangeReference ??
-    sanitizeEdifactToken(params.sourceMessage.interchange_reference) ??
-    sanitizeEdifactToken(params.sourceMessage.external_reference) ??
-    sanitizeEdifactToken(params.sourceMessage.id) ??
+    sanitizeEdifactToken(refs.interchangeReference, 14) ??
+    sanitizeEdifactToken(params.sourceMessage.interchange_reference, 14) ??
+    sanitizeEdifactToken(params.sourceMessage.external_reference, 14) ??
+    sanitizeEdifactToken(params.sourceMessage.id, 14) ??
     'UNKNOWN'
 
   const originalSenderComposite =
@@ -305,9 +305,9 @@ function buildAperakSegments(params: {
   const previousMessageReference =
     refs.documentReference ??
     refs.messageReference ??
-    sanitizeEdifactToken(params.sourceMessage.external_reference) ??
-    refs.interchangeReference ??
-    sanitizeEdifactToken(params.sourceMessage.id) ??
+    sanitizeEdifactToken(params.sourceMessage.external_reference, 14) ??
+    sanitizeEdifactToken(refs.interchangeReference, 14) ??
+    sanitizeEdifactToken(params.sourceMessage.id, 14) ??
     sanitizeEdifactToken(params.transactionReference) ??
     'UNKNOWN'
 

@@ -573,9 +573,7 @@ function buildAckDraft(step: EdielTgtExpectedStep, refs: DraftReferences): strin
   const outcome = step.outcome ?? 'positive'
   const isContrl = family === 'CONTRL'
   const isNegative = outcome === 'negative'
-  const applicationReference = family === 'APERAK' || family === 'UTILTS_ERR'
-    ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
-    : 'CONTRL'
+  const applicationReference = EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
 
   const bodySegments = isContrl
     ? [
@@ -779,8 +777,11 @@ export function validateEdielTgtDraft(rawPayload: string, step: EdielTgtExpected
   if ((step.family === 'APERAK' || step.family === 'UTILTS_ERR') && step.outcome === 'negative' && normalized.includes('ERC+100')) {
     pushIssue(issues, 'error', 'aperak_negative_conflict', 'Negativ kvittens ser positiv ut', 'Negativ APERAK/UTILTS-ERR ska inte använda ERC 100 som positiv kvittens.')
   }
-  if (step.family === 'CONTRL' && step.outcome === 'negative' && !normalized.includes('+7')) {
-    pushIssue(issues, 'warning', 'contrl_negative_check', 'Kontrollera negativ CONTRL', 'Negativ CONTRL ska tydligt markera avvisad syntax i UCI/aktionskod.')
+  if (step.family === 'CONTRL' && step.outcome === 'positive' && !normalized.includes('+1')) {
+    pushIssue(issues, 'warning', 'contrl_positive_check', 'Kontrollera positiv CONTRL', 'Positiv CONTRL ska markera godkänd syntax med UCI/0083 = 1.')
+  }
+  if (step.family === 'CONTRL' && step.outcome === 'negative' && !normalized.includes('+4')) {
+    pushIssue(issues, 'warning', 'contrl_negative_check', 'Kontrollera negativ CONTRL', 'Negativ CONTRL ska markera avvisad syntax med UCI/0083 = 4.')
   }
 
   validatePortalDataCoverage(issues, rawPayload, step, portalData)
