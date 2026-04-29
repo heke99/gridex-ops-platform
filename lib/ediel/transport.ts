@@ -2,11 +2,15 @@
 
 import nodemailer from 'nodemailer'
 import { ImapFlow } from 'imapflow'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import { mkdtemp, readFile, rm, writeFile } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import {
   getEdielMessageById,
   updateEdielMessageStatus,
   createEdielMessageEvent,
-  findEdielMessageByMailboxIdentity,
 } from '@/lib/ediel/db'
 import type {
   CreateEdielMessageInput,
@@ -21,9 +25,7 @@ import {
   parseInboundUtilts,
 } from '@/lib/ediel/utilts'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
-import { supabaseService } from '@/lib/supabase/service'
 import {
-  extractEdifactPayloadFromText,
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
@@ -38,6 +40,8 @@ import {
   resolveInboundAcceptedVersions,
 } from '@/lib/ediel/core/kernel'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
+
+const execFileAsync = promisify(execFile)
 
 function requireEnv(name: string, fallback?: string | null): string {
   const value = process.env[name] ?? fallback ?? ''
@@ -72,6 +76,7 @@ function quoteMimeParam(value: string): string {
 
 export type EdielSmtpMimeMode =
   | 'ediel-singlepart-base64'
+  | 'ediel-smime-enveloped'
   | 'ediel-multipart-validation-base64'
   | 'ediel-singlepart-lines'
   | 'ediel-singlepart-compact'
@@ -132,6 +137,23 @@ function normalizeEdifactForSmtp(rawPayload: string, mode: 'lines' | 'compact' =
   return parsed.hasUna ? `${parsed.una}${body}` : body
 }
 
+function extractEdielSubjectFromPayload(rawPayload: string, fallbackSubject: string): string {
+  const parsed = splitEdifactPayload(rawPayload)
+  const unb = parsed.segments.find((segment) => segment.toUpperCase().startsWith('UNB+'))
+  const unh = parsed.segments.find((segment) => segment.toUpperCase().startsWith('UNH+'))
+
+  if (!unb) return fallbackSubject
+
+  const familyFromUnh = unh?.split('+')[2]?.split(':')[0]?.trim().toUpperCase()
+  const family = familyFromUnh && /^[A-Z0-9_]+$/.test(familyFromUnh)
+    ? familyFromUnh
+    : fallbackSubject.split(/[_\s-]+/)[1]?.toUpperCase() || 'EDIEL'
+
+  // Edielportalen använder subject-formatet "APERAK UNB+..." / "CONTRL UNB+...".
+  // Detta ändrar bara Subject-headern, inte MIME/transporten.
+  return sanitizeMimeHeader(`${family} ${unb}'`, fallbackSubject)
+}
+
 function encodeBase64Mime(buffer: Buffer, lineLength = 76): string {
   const encoded = buffer.toString('base64')
   const chunks: string[] = []
@@ -144,6 +166,22 @@ function encodeBase64Mime(buffer: Buffer, lineLength = 76): string {
 function sanitizeMimeToken(value: string | null | undefined, fallback = 'edifact'): string {
   const cleaned = sanitizeMimeHeader(value, fallback).replace(/[^A-Za-z0-9._-]/g, '_')
   return cleaned.length > 0 ? cleaned : fallback
+}
+
+function buildInnerEdifactMimeForSmime(params: {
+  filename: string
+  decodedPayload: string
+  encoding: BufferEncoding
+}): Buffer {
+  const payloadBuffer = Buffer.from(params.decodedPayload, params.encoding)
+  const payloadBase64 = encodeBase64Mime(payloadBuffer)
+  const headers = [
+    'Content-Type: application/EDIFACT',
+    'Content-Transfer-Encoding: base64',
+    `Content-Disposition: attachment; filename=${sanitizeMimeToken(params.filename, 'edifact')}`,
+  ]
+
+  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${payloadBase64}\r\n`, 'ascii')
 }
 
 function buildSinglePartEdielBase64Mime(params: {
@@ -218,6 +256,69 @@ function buildMultipartValidationBase64Mime(params: {
 }
 
 
+function buildOuterSmimeMime(params: {
+  from: string
+  to: string
+  replyTo?: string | null
+  subject: string
+  encryptedDer: Buffer
+}): Buffer {
+  const payloadBase64 = encodeBase64Mime(params.encryptedDer)
+  const headers = [
+    `From: ${sanitizeMimeHeader(params.from)}`,
+    `To: ${sanitizeMimeHeader(params.to)}`,
+    `Subject: ${sanitizeMimeHeader(params.subject, 'EDIEL_SMIME')}`,
+    `Date: ${new Date().toUTCString()}`,
+    `Message-ID: ${buildAsciiMessageId()}`,
+    'MIME-Version: 1.0',
+    'Content-Type: application/pkcs7-mime; smime-type=enveloped-data; name=smime.p7m',
+    'Content-Transfer-Encoding: base64',
+    'Content-Disposition: attachment; filename=smime.p7m',
+  ]
+
+  if (params.replyTo) {
+    headers.splice(2, 0, `Reply-To: ${sanitizeMimeHeader(params.replyTo)}`)
+  }
+
+  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${payloadBase64}\r\n`, 'ascii')
+}
+
+async function encryptSmimeEnvelopedData(params: {
+  innerMime: Buffer
+  recipientCertPath: string
+}): Promise<Buffer> {
+  const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-smime-'))
+  const inputPath = join(tempDir, 'inner.mime')
+  const outputPath = join(tempDir, 'smime.der')
+
+  try {
+    await writeFile(inputPath, params.innerMime)
+
+    try {
+      await execFileAsync('openssl', [
+        'smime',
+        '-encrypt',
+        '-binary',
+        '-des3',
+        '-outform',
+        'DER',
+        '-in',
+        inputPath,
+        '-out',
+        outputPath,
+        params.recipientCertPath,
+      ])
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      throw new Error(`S/MIME-kryptering misslyckades via OpenSSL. Kontrollera EDIEL_SMIME_RECIPIENT_CERT_PATH och att openssl finns installerat. ${detail}`)
+    }
+
+    return await readFile(outputPath)
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
+}
+
 function buildAsciiMessageId(): string {
   const stamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)
   const random = Math.random().toString(36).slice(2, 10)
@@ -227,6 +328,7 @@ function buildAsciiMessageId(): string {
 export function isSupportedSmtpMimeMode(value: string | null | undefined): value is EdielSmtpMimeMode {
   return (
     value === 'ediel-singlepart-base64' ||
+    value === 'ediel-smime-enveloped' ||
     value === 'ediel-multipart-validation-base64' ||
     value === 'ediel-singlepart-lines' ||
     value === 'ediel-singlepart-compact' ||
@@ -235,8 +337,8 @@ export function isSupportedSmtpMimeMode(value: string | null | undefined): value
 }
 
 function resolveSmtpMimeMode(_override?: string | null): EdielSmtpMimeMode {
-  // TGT/systemtest ska skickas okrypterat: singlepart application/EDIFACT med base64.
-  // Inget krypterat MIME-kuvert används vid SMTP-skick.
+  // PRODAT TGT should now only be sent through S/MIME encrypted transport.
+  // Diagnostic/plain modes remain in this file only for historical inspection and are no longer exposed.
   return 'ediel-singlepart-base64'
 }
 
@@ -289,128 +391,14 @@ function resolveImapPort(value?: number | null): number {
   return env ? Number(env) : 993
 }
 
-
 function normalizeImapMailboxFolder(value?: string | null): string {
   const trimmed = value?.trim()
-  if (!trimmed || trimmed.includes('@')) return 'INBOX'
+  // routeProfile.mailbox kan vara login-adressen ediel@gridex.se.
+  // Hos Strato är det inte en IMAP-mapp; SELECT ska normalt göras mot INBOX.
+  if (!trimmed || trimmed.includes('@') || trimmed.toLowerCase().startsWith('smtp://')) {
+    return 'INBOX'
+  }
   return trimmed
-}
-
-function splitEdifactSegmentsLoose(rawPayload: string): string[] {
-  return rawPayload
-    .replace(/^\uFEFF/, '')
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-}
-
-type ParsedInboundEnvelope = {
-  family: string
-  code: string
-  messageVersion: string | null
-  senderEdielId: string | null
-  senderSubAddress: string | null
-  receiverEdielId: string | null
-  receiverSubAddress: string | null
-  interchangeReference: string | null
-  applicationReference: string | null
-  externalReference: string | null
-  transactionReference: string | null
-  parsedPayload: Record<string, unknown>
-}
-
-function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string, fallbackCode: string): ParsedInboundEnvelope {
-  const segments = splitEdifactSegmentsLoose(rawPayload)
-  const unb = segments.find((segment) => segment.toUpperCase().startsWith('UNB+')) ?? null
-  const unh = segments.find((segment) => segment.toUpperCase().startsWith('UNH+')) ?? null
-  const bgm = segments.find((segment) => segment.toUpperCase().startsWith('BGM+')) ?? null
-  const rffSegments = segments.filter((segment) => segment.toUpperCase().startsWith('RFF+'))
-
-  const unbParts = unb?.split('+') ?? []
-  const senderParts = unbParts[2]?.split(':') ?? []
-  const receiverParts = unbParts[3]?.split(':') ?? []
-  const unhMessage = unh?.split('+')[2] ?? null
-  const unhParts = unhMessage?.split(':') ?? []
-  const bgmParts = bgm?.split('+') ?? []
-
-  function ref(qualifier: string): string | null {
-    const hit = rffSegments.find((segment) => segment.toUpperCase().startsWith(`RFF+${qualifier.toUpperCase()}:`))
-    return hit?.split('+')[1]?.split(':').slice(1).join(':')?.trim() || null
-  }
-
-  return {
-    family: unhParts[0]?.trim() || fallbackFamily,
-    code: bgmParts[1]?.split(':')[0]?.trim() || fallbackCode,
-    messageVersion: unhMessage,
-    senderEdielId: senderParts[0]?.trim() || null,
-    senderSubAddress: senderParts[2]?.trim() || null,
-    receiverEdielId: receiverParts[0]?.trim() || null,
-    receiverSubAddress: receiverParts[2]?.trim() || null,
-    interchangeReference: unbParts[5]?.trim() || null,
-    applicationReference: unbParts[7]?.trim() || null,
-    externalReference: bgmParts[2]?.trim() || ref('ACE') || null,
-    transactionReference: ref('TN') || ref('CR') || ref('LI') || null,
-    parsedPayload: {
-      rawSegments: segments,
-      segmentCount: segments.length,
-      unb,
-      unh,
-      bgm,
-      rff: rffSegments,
-    },
-  }
-}
-
-async function findRelatedOutboundForInboundAck(params: {
-  family: string
-  senderEdielId: string | null
-  receiverEdielId: string | null
-  applicationReference: string | null
-  transactionReference: string | null
-  externalReference: string | null
-}): Promise<EdielMessageRow | null> {
-  const candidateRefs = [
-    params.transactionReference,
-    params.externalReference,
-    params.applicationReference,
-  ].filter((value): value is string => Boolean(value && value.trim()))
-
-  for (const ref of candidateRefs) {
-    const { data, error } = await supabaseService
-      .from('ediel_messages')
-      .select('*')
-      .eq('direction', 'outbound')
-      .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
-      .or(`interchange_reference.eq.${ref},transaction_reference.eq.${ref},external_reference.eq.${ref},correlation_reference.eq.${ref}`)
-      .order('message_sent_at', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (error) throw error
-    if (data) return data as EdielMessageRow
-  }
-
-  let query = supabaseService
-    .from('ediel_messages')
-    .select('*')
-    .eq('direction', 'outbound')
-    .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
-    .in('status', ['sent', 'acknowledged'])
-
-  if (params.receiverEdielId) query = query.eq('sender_ediel_id', params.receiverEdielId)
-  if (params.senderEdielId) query = query.eq('receiver_ediel_id', params.senderEdielId)
-
-  const { data, error } = await query
-    .order('message_sent_at', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as EdielMessageRow | null) ?? null
 }
 
 function assertTransportFamily(messageFamily: string | null | undefined, context: string) {
@@ -456,14 +444,9 @@ function buildInboundProdatMessageInput(params: {
   subject?: string | null
 }): CreateEdielMessageInput {
   const parsed = parseInboundProdat(params.rawPayload)
-  const envelope = parseEdifactEnvelope(params.rawPayload, 'PRODAT', String(parsed.messageCode ?? ''))
-  const inferredMessageCode =
-    parsed.messageCode ??
-    (params.subject?.toUpperCase().startsWith('PRODAT UNB+') ? 'Z04' : null) ??
-    'Z03'
   const ack = deriveEdielAckDefaults({
     family: 'PRODAT',
-    code: inferredMessageCode,
+    code: parsed.messageCode ?? 'Z03',
   })
 
   const receivedAt = new Date().toISOString()
@@ -473,8 +456,8 @@ function buildInboundProdatMessageInput(params: {
     direction: 'inbound',
     messageStandard: 'edifact',
     messageFamily: 'PRODAT',
-    messageCode: inferredMessageCode,
-    messageVersion: parsed.messageVersion ?? envelope.messageVersion ?? 'E2SE6A',
+    messageCode: parsed.messageCode ?? 'Z03',
+    messageVersion: parsed.messageVersion ?? 'D:03A:UN:1.0',
     status: 'received',
     transportType: 'imap',
     mailbox: params.mailbox ?? null,
@@ -488,22 +471,17 @@ function buildInboundProdatMessageInput(params: {
     subject: params.subject ?? null,
     fileName: inferEdielFileName({
       family: 'PRODAT',
-      code: inferredMessageCode,
+      code: parsed.messageCode ?? 'Z03',
       direction: 'inbound',
       extension: 'edi',
     }),
     mimeType: 'application/edifact',
-    interchangeReference: envelope.interchangeReference,
-    externalReference: parsed.externalReference ?? envelope.externalReference,
-    transactionReference: parsed.transactionReference ?? envelope.transactionReference,
-    applicationReference: parsed.applicationReference ?? envelope.applicationReference,
+    externalReference: parsed.externalReference,
+    transactionReference: parsed.transactionReference,
+    applicationReference: parsed.applicationReference,
     communicationRouteId: params.communicationRouteId ?? null,
     rawPayload: params.rawPayload,
-    parsedPayload: {
-      ...parsed.parsedPayload,
-      ...envelope.parsedPayload,
-      importedVia: 'imap',
-    },
+    parsedPayload: parsed.parsedPayload,
     requiresContrl: ack.requiresContrl,
     requiresAperak: ack.requiresAperak,
     contrlStatus: ack.contrlStatus,
@@ -570,111 +548,6 @@ function buildInboundAiListMessageInput(params: {
     syntaxCheckStatus: 'not_checked',
     functionalCheckStatus: 'not_checked',
     messageReceivedAt: new Date().toISOString(),
-  }
-}
-
-
-async function buildInboundAckMessageInput(params: {
-  rawPayload: string
-  family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
-  code?: string | null
-  communicationRouteId?: string | null
-  mailbox?: string | null
-  mailboxMessageId?: string | null
-  senderEmail?: string | null
-  receiverEmail?: string | null
-  subject?: string | null
-}): Promise<CreateEdielMessageInput> {
-  const parsed = parseEdifactEnvelope(
-    params.rawPayload,
-    params.family,
-    params.code ?? params.family
-  )
-
-  const related = await findRelatedOutboundForInboundAck({
-    family: params.family,
-    senderEdielId: parsed.senderEdielId,
-    receiverEdielId: parsed.receiverEdielId,
-    applicationReference: parsed.applicationReference,
-    transactionReference: parsed.transactionReference,
-    externalReference: parsed.externalReference,
-  })
-
-  if (!related) {
-    throw new Error(
-      `Kunde inte koppla inkommande ${params.family} till ett tidigare outbound-meddelande. Stoppar import så ingen okopplad kvittens skapas.`
-    )
-  }
-
-  const receivedAt = new Date().toISOString()
-  const isContrl = params.family === 'CONTRL'
-  const isAperak = params.family === 'APERAK'
-  const isNegative = /\b(12|A13|REJECT|REJECTED|ERROR|FAILED|NEGATIVE)\b/i.test(params.rawPayload)
-
-  return {
-    actorUserId: 'system',
-    direction: 'inbound',
-    messageStandard: 'edifact',
-    messageFamily: params.family,
-    messageCode: params.family,
-    messageVersion:
-      parsed.messageVersion ??
-      (params.family === 'CONTRL' ? 'D96A' : params.family === 'APERAK' ? 'E2SE6A' : 'E5SE5A'),
-    processType: 'ack',
-    status: 'received',
-    transportType: 'imap',
-    mailbox: params.mailbox ?? null,
-    mailboxMessageId: params.mailboxMessageId ?? null,
-    senderEdielId: parsed.senderEdielId,
-    receiverEdielId: parsed.receiverEdielId,
-    senderSubAddress: parsed.senderSubAddress,
-    receiverSubAddress: parsed.receiverSubAddress,
-    senderEmail: params.senderEmail ?? null,
-    receiverEmail: params.receiverEmail ?? null,
-    subject: params.subject ?? null,
-    fileName: inferEdielFileName({
-      family: params.family,
-      code: params.family,
-      direction: 'inbound',
-      extension: 'edi',
-    }),
-    mimeType: 'application/edifact',
-    interchangeReference: parsed.interchangeReference,
-    externalReference: parsed.externalReference,
-    transactionReference: parsed.transactionReference,
-    applicationReference: parsed.applicationReference,
-    originalMessageId: related.interchange_reference ?? related.id,
-    originalTransactionId: related.transaction_reference ?? null,
-    originalMessageCode: String(related.message_code),
-    relatedMessageId: related.id,
-    communicationRouteId: params.communicationRouteId ?? related.communication_route_id ?? null,
-    outboundRequestId: related.outbound_request_id,
-    switchRequestId: related.switch_request_id,
-    gridOwnerDataRequestId: related.grid_owner_data_request_id,
-    partnerExportId: related.partner_export_id,
-    customerId: related.customer_id,
-    siteId: related.site_id,
-    meteringPointId: related.metering_point_id,
-    gridOwnerId: related.grid_owner_id,
-    rawPayload: params.rawPayload,
-    parsedPayload: {
-      ...parsed.parsedPayload,
-      ackFamily: params.family,
-      ackOutcome: isNegative ? 'negative' : 'positive',
-      relatedOutboundMessageId: related.id,
-      relatedOutboundFamily: related.message_family,
-      relatedOutboundCode: related.message_code,
-      importedVia: 'imap',
-    },
-    requiresContrl: false,
-    requiresAperak: false,
-    contrlStatus: 'not_required',
-    aperakStatus: 'not_required',
-    utiltsErrStatus: 'not_required',
-    ackOutcome: isNegative ? 'negative' : 'positive',
-    syntaxCheckStatus: isContrl ? (isNegative ? 'failed' : 'ok') : 'not_checked',
-    functionalCheckStatus: isAperak || params.family === 'UTILTS_ERR' ? (isNegative ? 'failed' : 'ok') : 'not_checked',
-    messageReceivedAt: receivedAt,
   }
 }
 
@@ -779,7 +652,10 @@ export async function sendEdielMessageViaSmtp(
       : mimeMode === 'ediel-singlepart-lines' || mimeMode === 'ediel-singlepart-compact'
         ? '8bit'
         : 'base64'
-  const smtpSubject = `EDIEL_${String(message.message_family).toUpperCase()}_${String(message.message_code).toUpperCase()}_${String(message.interchange_reference ?? message.id).replace(/[^A-Za-z0-9]/g, '').slice(0, 24)}`
+  const fallbackSmtpSubject = `EDIEL_${String(message.message_family).toUpperCase()}_${String(message.message_code).toUpperCase()}_${String(message.interchange_reference ?? message.id).replace(/[^A-Za-z0-9]/g, '').slice(0, 24)}`
+  const smtpSubject = isEdifactMessage(message)
+    ? extractEdielSubjectFromPayload(normalizedPayload, fallbackSmtpSubject)
+    : fallbackSmtpSubject
 
   await createEdielMessageEvent({
     actorUserId,
@@ -816,6 +692,8 @@ export async function sendEdielMessageViaSmtp(
   let rawMimePreview: string | null = null
   let decodedPayloadPreview: string | null = null
   let encodedPayloadPreview: string | null = null
+  let encryptedPayloadLength: number | null = null
+  let innerMimePreview: string | null = null
 
   if (mimeMode === 'nodemailer-attachment') {
     result = await transporter.sendMail({
@@ -835,6 +713,66 @@ export async function sendEdielMessageViaSmtp(
           contentDisposition: 'attachment',
         },
       ],
+    })
+  } else if (mimeMode === 'ediel-smime-enveloped') {
+    if (!isEdifactMessage(message)) {
+      throw new Error('S/MIME-läget stöder just nu EDIFACT. Använd ediel-singlepart-base64 för XML/AI-listor tills separat XML-S/MIME är byggt.')
+    }
+
+    const recipientCertPath = requireEnv('EDIEL_SMIME_RECIPIENT_CERT_PATH')
+    const innerMime = buildInnerEdifactMimeForSmime({
+      filename: fileName,
+      decodedPayload: normalizedPayload,
+      encoding: mimeEncoding,
+    })
+    const encryptedDer = await encryptSmimeEnvelopedData({
+      innerMime,
+      recipientCertPath,
+    })
+    const rawMime = buildOuterSmimeMime({
+      from,
+      to: message.receiver_email,
+      replyTo,
+      subject: smtpSubject,
+      encryptedDer,
+    })
+
+    rawMimePreview = safePreview(rawMime.toString('ascii'), 900)
+    innerMimePreview = safePreview(innerMime.toString('ascii'), 900)
+    decodedPayloadPreview = safePreview(normalizedPayload, 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+    encryptedPayloadLength = encryptedDer.length
+
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'manual_note',
+      eventStatus: 'info',
+      message: 'S/MIME envelope byggt enligt Ediel-regler före SMTP-skickning.',
+      payload: {
+        mimeMode,
+        recipientCertPath,
+        outerContentType: 'application/pkcs7-mime; smime-type=enveloped-data; name=smime.p7m',
+        outerContentTransferEncoding: 'base64',
+        outerContentDisposition: 'attachment; filename=smime.p7m',
+        innerContentType: 'application/EDIFACT',
+        innerContentTransferEncoding: 'base64',
+        innerContentDisposition: `attachment; filename=${sanitizeMimeToken(fileName, 'edifact')}`,
+        decodedPayloadLength: normalizedPayload.length,
+        decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
+        decodedPayloadPreview,
+        innerMimePreview,
+        encryptedPayloadLength,
+        rawMimePreview,
+      },
+    })
+
+    result = await transporter.sendMail({
+      envelope: {
+        from,
+        to: [message.receiver_email],
+      },
+      raw: rawMime,
     })
   } else if (mimeMode === 'ediel-multipart-validation-base64') {
     if (!isEdifactMessage(message)) {
@@ -906,7 +844,7 @@ export async function sendEdielMessageViaSmtp(
       edielMessageId: message.id,
       eventType: 'manual_note',
       eventStatus: 'info',
-      message: 'SMTP MIME byggt för TGT/systemtest: okrypterad singlepart application/EDIFACT base64.',
+      message: 'SMTP MIME byggt enligt Ediel-regler före skickning.',
       payload: {
         mimeMode,
         contentType,
@@ -1003,6 +941,8 @@ export async function sendEdielMessageViaSmtp(
       decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
       decodedPayloadPreview,
       encodedPayloadPreview,
+      encryptedPayloadLength,
+      innerMimePreview,
     },
   })
 
@@ -1026,7 +966,10 @@ export async function pollEdielMailboxViaImap(params?: {
 
   const host = requireEnv('EDIEL_IMAP_HOST', routeProfile?.imap_host ?? null)
   const port = resolveImapPort(routeProfile?.imap_port ?? null)
-  const user = requireEnv('EDIEL_IMAP_USER', process.env.EDIEL_IMAP_USER ?? null)
+  const user = requireEnv(
+    'EDIEL_IMAP_USER',
+    routeProfile?.mailbox ?? params?.mailbox ?? null
+  )
   const pass = requireEnv('EDIEL_IMAP_PASS')
   const mailbox = normalizeImapMailboxFolder(params?.mailbox ?? routeProfile?.mailbox ?? 'INBOX')
   const limit = params?.limit ?? 10
@@ -1064,9 +1007,6 @@ export async function pollEdielMailboxViaImap(params?: {
         const mailboxMessageId = normalizeInboundMailboxIdentity(item.uid)
         if (!mailboxMessageId) continue
 
-        const existing = await findEdielMessageByMailboxIdentity({ mailbox, mailboxMessageId })
-        if (existing) continue
-
         const rawSource =
           typeof item.source === 'string'
             ? item.source
@@ -1081,30 +1021,11 @@ export async function pollEdielMailboxViaImap(params?: {
         const receiverEmail = normalizeInboundEmail(item.envelope?.to?.[0]?.address)
         const subject =
           typeof item.envelope?.subject === 'string' ? item.envelope.subject : null
-        const edifactPayload = extractEdifactPayloadFromText(content, subject)
-        const classificationPayload = `${subject ?? ''}
-${edifactPayload}`
 
-        const inferred = inferEdielFamilyAndCodeFromRawPayload(classificationPayload)
+        const inferred = inferEdielFamilyAndCodeFromRawPayload(content)
         let input: CreateEdielMessageInput | null = null
 
-        if (inferred.messageFamily === 'CONTRL' || inferred.messageFamily === 'APERAK' || inferred.messageFamily === 'UTILTS_ERR') {
-          input = await withAcceptedInboundVersions(
-            await buildInboundAckMessageInput({
-              rawPayload: edifactPayload,
-              family: inferred.messageFamily,
-              code: inferred.messageCode ?? inferred.messageFamily,
-              communicationRouteId: params?.communicationRouteId ?? null,
-              mailbox,
-              mailboxMessageId,
-              senderEmail,
-              receiverEmail,
-              subject,
-            })
-          )
-
-          assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/ACK')
-        } else if (inferred.messageFamily === 'UTILTS') {
+        if (inferred.messageFamily === 'UTILTS') {
           const utiltsCode =
             inferred.messageCode === 'S01' ||
             inferred.messageCode === 'S02' ||
@@ -1116,7 +1037,7 @@ ${edifactPayload}`
               ? inferred.messageCode
               : 'E66'
 
-          const parsed = parseInboundUtilts(edifactPayload)
+          const parsed = parseInboundUtilts(content)
           if (!isActiveEdielMessageFamily(parsed.messageFamily)) continue
 
           input = await withAcceptedInboundVersions(
@@ -1127,13 +1048,13 @@ ${edifactPayload}`
               mailboxMessageId,
               senderEmail,
               receiverEmail,
-              rawPayload: edifactPayload,
+              rawPayload: content,
             })
           )
         } else if (inferred.messageFamily === 'PRODAT') {
           input = await withAcceptedInboundVersions(
             buildInboundProdatMessageInput({
-              rawPayload: edifactPayload,
+              rawPayload: content,
               communicationRouteId: params?.communicationRouteId ?? null,
               mailbox,
               mailboxMessageId,

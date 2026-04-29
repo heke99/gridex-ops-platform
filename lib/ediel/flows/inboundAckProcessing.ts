@@ -316,8 +316,15 @@ async function patchSourceMessageFromAck(params: {
     updated_at: now,
   }
 
-  if (params.outcome === 'negative') patch.failed_at = now
-  if (params.outcome === 'positive' && finalAckReached) patch.acknowledged_at = now
+  if (params.outcome === 'negative') {
+    patch.failed_at = now
+    patch.ack_due_at = null
+  }
+
+  if (params.outcome === 'positive' && finalAckReached) {
+    patch.acknowledged_at = now
+    patch.ack_due_at = null
+  }
 
   const { data, error } = await supabaseService
     .from('ediel_messages')

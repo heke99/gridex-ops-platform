@@ -22,6 +22,7 @@ import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
 import {
   attachEdielMessageToTestRun,
   createEdielMessage,
+  createEdielMessageEvent,
   createEdielTestRun,
   getEdielMessageById,
   listEdielTestRuns,
@@ -67,6 +68,15 @@ function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function isPostgresUniqueViolation(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error as { code?: unknown }).code === '23505'
+  )
 }
 
 async function formFileText(value: FormDataEntryValue | null): Promise<{ text: string | null; fileName: string | null }> {
@@ -510,16 +520,35 @@ export async function createAckDraftAction(formData: FormData) {
     throw new Error('Ogiltig ackType')
   }
 
-  const ackMessage = await createAckDraftForMessage({
-    actorUserId: context.userId,
-    sourceMessageId,
-    ackFamily: ackType,
-    outcome: ackType === 'UTILTS_ERR' ? undefined : outcome,
-    messageText,
-  })
+  try {
+    const ackMessage = await createAckDraftForMessage({
+      actorUserId: context.userId,
+      sourceMessageId,
+      ackFamily: ackType,
+      outcome: ackType === 'UTILTS_ERR' ? undefined : outcome,
+      messageText,
+    })
 
-  revalidateEdiel(sourceMessageId)
-  await revalidateRelatedMessage(ackMessage.id)
+    revalidateEdiel(sourceMessageId)
+    await revalidateRelatedMessage(ackMessage.id)
+  } catch (error) {
+    if (!isPostgresUniqueViolation(error)) throw error
+
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId: sourceMessageId,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: ackType + ' finns redan för detta källmeddelande. Inget nytt utkast skapades.',
+      payload: {
+        reason: 'duplicate_ack_unique_constraint',
+        ackType,
+        outcome,
+      },
+    })
+
+    revalidateEdiel(sourceMessageId)
+  }
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
