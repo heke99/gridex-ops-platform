@@ -11,6 +11,7 @@ import {
   getEdielMessageById,
   updateEdielMessageStatus,
   createEdielMessageEvent,
+  findEdielMessageByMailboxIdentity,
 } from '@/lib/ediel/db'
 import type {
   CreateEdielMessageInput,
@@ -26,6 +27,7 @@ import {
 } from '@/lib/ediel/utilts'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
 import {
+  extractEdifactPayloadFromText,
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
@@ -40,6 +42,7 @@ import {
   resolveInboundAcceptedVersions,
 } from '@/lib/ediel/core/kernel'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
+import { supabaseService } from '@/lib/supabase/service'
 
 const execFileAsync = promisify(execFile)
 
@@ -401,6 +404,184 @@ function normalizeImapMailboxFolder(value?: string | null): string {
   return trimmed
 }
 
+
+type ParsedInboundEnvelope = {
+  family: string
+  code: string
+  messageVersion: string | null
+  senderEdielId: string | null
+  senderSubAddress: string | null
+  receiverEdielId: string | null
+  receiverSubAddress: string | null
+  interchangeReference: string | null
+  applicationReference: string | null
+  externalReference: string | null
+  transactionReference: string | null
+  parsedPayload: Record<string, unknown>
+}
+
+function unfoldMimeHeaders(rawText: string): string {
+  return rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n[ \t]+/g, ' ')
+}
+
+function extractHeaderValue(rawText: string, headerName: string): string | null {
+  const prefix = headerName.toLowerCase() + ':'
+  for (const line of unfoldMimeHeaders(rawText).split('\n')) {
+    if (line.toLowerCase().startsWith(prefix)) {
+      return line.slice(prefix.length).trim() || null
+    }
+  }
+  return null
+}
+
+function decodeBase64Body(rawText: string): string | null {
+  const normalized = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const parts = normalized.split(/\n\n/)
+  if (parts.length < 2) return null
+
+  const headers = parts[0] ?? ''
+  const body = parts.slice(1).join('\n\n')
+  if (!/content-transfer-encoding:\s*base64/i.test(headers)) return null
+
+  const base64 = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => /^[A-Za-z0-9+/=]+$/.test(line))
+    .join('')
+
+  if (!base64) return null
+
+  try {
+    const decoded = Buffer.from(base64, 'base64').toString('latin1')
+    return decoded.includes('UNB+') || decoded.includes('UNA') ? decoded.trim() : null
+  } catch {
+    return null
+  }
+}
+
+function extractInboundEdifactPayload(params: { rawSource: string; subject?: string | null }): string {
+  const decoded = decodeBase64Body(params.rawSource)
+  if (decoded) return extractEdifactPayloadFromText(decoded, params.subject)
+  return extractEdifactPayloadFromText(params.rawSource, params.subject)
+}
+
+function normalizeInboundSubject(rawSource: string, envelopeSubject?: string | null): string | null {
+  const headerSubject = extractHeaderValue(rawSource, 'Subject')
+  const value = envelopeSubject ?? headerSubject ?? null
+  return value?.replace(/\s+/g, ' ').trim() || null
+}
+
+function splitEdifactSegmentsLoose(rawPayload: string): string[] {
+  return rawPayload
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+}
+
+function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string, fallbackCode: string): ParsedInboundEnvelope {
+  const segments = splitEdifactSegmentsLoose(rawPayload)
+  const unb = segments.find((segment) => segment.toUpperCase().startsWith('UNB+')) ?? null
+  const unh = segments.find((segment) => segment.toUpperCase().startsWith('UNH+')) ?? null
+  const bgm = segments.find((segment) => segment.toUpperCase().startsWith('BGM+')) ?? null
+  const uci = segments.find((segment) => segment.toUpperCase().startsWith('UCI+')) ?? null
+  const rffSegments = segments.filter((segment) => segment.toUpperCase().startsWith('RFF+'))
+
+  const unbParts = unb?.split('+') ?? []
+  const senderParts = unbParts[2]?.split(':') ?? []
+  const receiverParts = unbParts[3]?.split(':') ?? []
+  const unhMessage = unh?.split('+')[2] ?? null
+  const unhParts = unhMessage?.split(':') ?? []
+  const bgmParts = bgm?.split('+') ?? []
+  const uciParts = uci?.split('+') ?? []
+
+  function ref(qualifier: string): string | null {
+    const prefix = 'RFF+' + qualifier.toUpperCase() + ':'
+    const hit = rffSegments.find((segment) => segment.toUpperCase().startsWith(prefix))
+    return hit?.split('+')[1]?.split(':').slice(1).join(':')?.trim() || null
+  }
+
+  const family = unhParts[0]?.trim() || fallbackFamily
+  const originalInterchangeReference = uciParts[1]?.trim() || null
+  const bgmReference = bgmParts[2]?.trim() || null
+  const acwReference = ref('ACW')
+
+  return {
+    family,
+    code:
+      family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
+        ? family
+        : bgmParts[1]?.split(':')[0]?.trim() || fallbackCode,
+    messageVersion: unhMessage,
+    senderEdielId: senderParts[0]?.trim() || null,
+    senderSubAddress: senderParts[2]?.trim() || null,
+    receiverEdielId: receiverParts[0]?.trim() || null,
+    receiverSubAddress: receiverParts[2]?.trim() || null,
+    interchangeReference: unbParts[5]?.trim() || null,
+    applicationReference: unbParts[7]?.trim() || null,
+    externalReference: originalInterchangeReference || acwReference || bgmReference || ref('ACE') || null,
+    transactionReference: originalInterchangeReference || acwReference || ref('TN') || ref('CR') || ref('LI') || null,
+    parsedPayload: {
+      rawSegments: segments,
+      segmentCount: segments.length,
+      unb,
+      unh,
+      bgm,
+      uci,
+      rff: rffSegments,
+      originalInterchangeReference,
+    },
+  }
+}
+
+async function findRelatedOutboundForInboundAck(params: {
+  senderEdielId: string | null
+  receiverEdielId: string | null
+  applicationReference: string | null
+  transactionReference: string | null
+  externalReference: string | null
+}): Promise<EdielMessageRow | null> {
+  const candidateRefs = [params.transactionReference, params.externalReference, params.applicationReference]
+    .filter((value): value is string => Boolean(value && value.trim()))
+
+  for (const ref of candidateRefs) {
+    const { data, error } = await supabaseService
+      .from('ediel_messages')
+      .select('*')
+      .eq('direction', 'outbound')
+      .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
+      .or('interchange_reference.eq.' + ref + ',transaction_reference.eq.' + ref + ',external_reference.eq.' + ref + ',correlation_reference.eq.' + ref)
+      .order('message_sent_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    if (data) return data as EdielMessageRow
+  }
+
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('direction', 'outbound')
+    .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
+    .in('status', ['sent', 'acknowledged'])
+
+  if (params.receiverEdielId) query = query.eq('sender_ediel_id', params.receiverEdielId)
+  if (params.senderEdielId) query = query.eq('receiver_ediel_id', params.senderEdielId)
+
+  const { data, error } = await query
+    .order('message_sent_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as EdielMessageRow | null) ?? null
+}
+
 function assertTransportFamily(messageFamily: string | null | undefined, context: string) {
   if (!isActiveEdielMessageFamily(messageFamily)) {
     throw new Error(
@@ -444,9 +625,11 @@ function buildInboundProdatMessageInput(params: {
   subject?: string | null
 }): CreateEdielMessageInput {
   const parsed = parseInboundProdat(params.rawPayload)
+  const envelope = parseEdifactEnvelope(params.rawPayload, 'PRODAT', String(parsed.messageCode ?? ''))
+  const messageCode = parsed.messageCode ?? envelope.code ?? 'Z03'
   const ack = deriveEdielAckDefaults({
     family: 'PRODAT',
-    code: parsed.messageCode ?? 'Z03',
+    code: messageCode,
   })
 
   const receivedAt = new Date().toISOString()
@@ -456,32 +639,37 @@ function buildInboundProdatMessageInput(params: {
     direction: 'inbound',
     messageStandard: 'edifact',
     messageFamily: 'PRODAT',
-    messageCode: parsed.messageCode ?? 'Z03',
-    messageVersion: parsed.messageVersion ?? 'D:03A:UN:1.0',
+    messageCode,
+    messageVersion: parsed.messageVersion ?? envelope.messageVersion ?? 'E2SE6A',
     status: 'received',
     transportType: 'imap',
     mailbox: params.mailbox ?? null,
     mailboxMessageId: params.mailboxMessageId ?? null,
-    senderEdielId: parsed.senderEdielId,
-    receiverEdielId: parsed.receiverEdielId,
-    senderSubAddress: parsed.senderSubAddress,
-    receiverSubAddress: parsed.receiverSubAddress,
+    senderEdielId: parsed.senderEdielId ?? envelope.senderEdielId,
+    receiverEdielId: parsed.receiverEdielId ?? envelope.receiverEdielId,
+    senderSubAddress: parsed.senderSubAddress ?? envelope.senderSubAddress,
+    receiverSubAddress: parsed.receiverSubAddress ?? envelope.receiverSubAddress,
     senderEmail: params.senderEmail ?? null,
     receiverEmail: params.receiverEmail ?? null,
     subject: params.subject ?? null,
     fileName: inferEdielFileName({
       family: 'PRODAT',
-      code: parsed.messageCode ?? 'Z03',
+      code: messageCode,
       direction: 'inbound',
       extension: 'edi',
     }),
     mimeType: 'application/edifact',
-    externalReference: parsed.externalReference,
-    transactionReference: parsed.transactionReference,
-    applicationReference: parsed.applicationReference,
+    interchangeReference: envelope.interchangeReference,
+    externalReference: parsed.externalReference ?? envelope.externalReference,
+    transactionReference: parsed.transactionReference ?? envelope.transactionReference,
+    applicationReference: parsed.applicationReference ?? envelope.applicationReference,
     communicationRouteId: params.communicationRouteId ?? null,
     rawPayload: params.rawPayload,
-    parsedPayload: parsed.parsedPayload,
+    parsedPayload: {
+      ...(parsed.parsedPayload ?? {}),
+      ...envelope.parsedPayload,
+      importedVia: 'imap',
+    },
     requiresContrl: ack.requiresContrl,
     requiresAperak: ack.requiresAperak,
     contrlStatus: ack.contrlStatus,
@@ -548,6 +736,95 @@ function buildInboundAiListMessageInput(params: {
     syntaxCheckStatus: 'not_checked',
     functionalCheckStatus: 'not_checked',
     messageReceivedAt: new Date().toISOString(),
+  }
+}
+
+async function buildInboundAckMessageInput(params: {
+  rawPayload: string
+  family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  code?: string | null
+  communicationRouteId?: string | null
+  mailbox?: string | null
+  mailboxMessageId?: string | null
+  senderEmail?: string | null
+  receiverEmail?: string | null
+  subject?: string | null
+}): Promise<CreateEdielMessageInput> {
+  const parsed = parseEdifactEnvelope(params.rawPayload, params.family, params.code ?? params.family)
+  const related = await findRelatedOutboundForInboundAck({
+    senderEdielId: parsed.senderEdielId,
+    receiverEdielId: parsed.receiverEdielId,
+    applicationReference: parsed.applicationReference,
+    transactionReference: parsed.transactionReference,
+    externalReference: parsed.externalReference,
+  })
+
+  if (!related) {
+    throw new Error('Kunde inte koppla inkommande ' + params.family + ' till ett tidigare outbound-meddelande. Stoppar import så ingen okopplad kvittens skapas.')
+  }
+
+  const receivedAt = new Date().toISOString()
+  const isContrl = params.family === 'CONTRL'
+  const isAperak = params.family === 'APERAK'
+  const isNegative = /\b(12|A13|REJECT|REJECTED|ERROR|FAILED|NEGATIVE)\b/i.test(params.rawPayload)
+
+  return {
+    actorUserId: 'system',
+    direction: 'inbound',
+    messageStandard: 'edifact',
+    messageFamily: params.family,
+    messageCode: params.family,
+    messageVersion: parsed.messageVersion ?? (params.family === 'CONTRL' ? 'D96A' : params.family === 'APERAK' ? 'E2SE6A' : 'E5SE5A'),
+    processType: 'ack',
+    status: 'received',
+    transportType: 'imap',
+    mailbox: params.mailbox ?? null,
+    mailboxMessageId: params.mailboxMessageId ?? null,
+    senderEdielId: parsed.senderEdielId,
+    receiverEdielId: parsed.receiverEdielId,
+    senderSubAddress: parsed.senderSubAddress,
+    receiverSubAddress: parsed.receiverSubAddress,
+    senderEmail: params.senderEmail ?? null,
+    receiverEmail: params.receiverEmail ?? null,
+    subject: params.subject ?? null,
+    fileName: inferEdielFileName({ family: params.family, code: params.family, direction: 'inbound', extension: 'edi' }),
+    mimeType: 'application/edifact',
+    interchangeReference: parsed.interchangeReference,
+    externalReference: parsed.externalReference,
+    transactionReference: parsed.transactionReference,
+    applicationReference: parsed.applicationReference,
+    originalMessageId: related.interchange_reference ?? related.id,
+    originalTransactionId: related.transaction_reference ?? null,
+    originalMessageCode: String(related.message_code),
+    relatedMessageId: related.id,
+    communicationRouteId: params.communicationRouteId ?? related.communication_route_id ?? null,
+    outboundRequestId: related.outbound_request_id,
+    switchRequestId: related.switch_request_id,
+    gridOwnerDataRequestId: related.grid_owner_data_request_id,
+    partnerExportId: related.partner_export_id,
+    customerId: related.customer_id,
+    siteId: related.site_id,
+    meteringPointId: related.metering_point_id,
+    gridOwnerId: related.grid_owner_id,
+    rawPayload: params.rawPayload,
+    parsedPayload: {
+      ...parsed.parsedPayload,
+      ackFamily: params.family,
+      ackOutcome: isNegative ? 'negative' : 'positive',
+      relatedOutboundMessageId: related.id,
+      relatedOutboundFamily: related.message_family,
+      relatedOutboundCode: related.message_code,
+      importedVia: 'imap',
+    },
+    requiresContrl: false,
+    requiresAperak: false,
+    contrlStatus: 'not_required',
+    aperakStatus: 'not_required',
+    utiltsErrStatus: 'not_required',
+    ackOutcome: isNegative ? 'negative' : 'positive',
+    syntaxCheckStatus: isContrl ? (isNegative ? 'failed' : 'ok') : 'not_checked',
+    functionalCheckStatus: isAperak || params.family === 'UTILTS_ERR' ? (isNegative ? 'failed' : 'ok') : 'not_checked',
+    messageReceivedAt: receivedAt,
   }
 }
 
@@ -1007,6 +1284,9 @@ export async function pollEdielMailboxViaImap(params?: {
         const mailboxMessageId = normalizeInboundMailboxIdentity(item.uid)
         if (!mailboxMessageId) continue
 
+        const existing = await findEdielMessageByMailboxIdentity({ mailbox, mailboxMessageId })
+        if (existing) continue
+
         const rawSource =
           typeof item.source === 'string'
             ? item.source
@@ -1019,13 +1299,33 @@ export async function pollEdielMailboxViaImap(params?: {
 
         const senderEmail = normalizeInboundEmail(item.envelope?.from?.[0]?.address)
         const receiverEmail = normalizeInboundEmail(item.envelope?.to?.[0]?.address)
-        const subject =
+        const subject = normalizeInboundSubject(
+          content,
           typeof item.envelope?.subject === 'string' ? item.envelope.subject : null
+        )
+        const edifactPayload = extractInboundEdifactPayload({ rawSource: content, subject })
+        const classificationPayload = (subject ?? '') + '\n' + edifactPayload
 
-        const inferred = inferEdielFamilyAndCodeFromRawPayload(content)
+        const inferred = inferEdielFamilyAndCodeFromRawPayload(classificationPayload)
         let input: CreateEdielMessageInput | null = null
 
-        if (inferred.messageFamily === 'UTILTS') {
+        if (inferred.messageFamily === 'CONTRL' || inferred.messageFamily === 'APERAK' || inferred.messageFamily === 'UTILTS_ERR') {
+          input = await withAcceptedInboundVersions(
+            await buildInboundAckMessageInput({
+              rawPayload: edifactPayload,
+              family: inferred.messageFamily,
+              code: inferred.messageCode ?? inferred.messageFamily,
+              communicationRouteId: params?.communicationRouteId ?? null,
+              mailbox,
+              mailboxMessageId,
+              senderEmail,
+              receiverEmail,
+              subject,
+            })
+          )
+
+          assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/ACK')
+        } else if (inferred.messageFamily === 'UTILTS') {
           const utiltsCode =
             inferred.messageCode === 'S01' ||
             inferred.messageCode === 'S02' ||
@@ -1037,7 +1337,7 @@ export async function pollEdielMailboxViaImap(params?: {
               ? inferred.messageCode
               : 'E66'
 
-          const parsed = parseInboundUtilts(content)
+          const parsed = parseInboundUtilts(edifactPayload)
           if (!isActiveEdielMessageFamily(parsed.messageFamily)) continue
 
           input = await withAcceptedInboundVersions(
@@ -1048,13 +1348,13 @@ export async function pollEdielMailboxViaImap(params?: {
               mailboxMessageId,
               senderEmail,
               receiverEmail,
-              rawPayload: content,
+              rawPayload: edifactPayload,
             })
           )
         } else if (inferred.messageFamily === 'PRODAT') {
           input = await withAcceptedInboundVersions(
             buildInboundProdatMessageInput({
-              rawPayload: content,
+              rawPayload: edifactPayload,
               communicationRouteId: params?.communicationRouteId ?? null,
               mailbox,
               mailboxMessageId,

@@ -29,8 +29,40 @@ function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
     isActiveEdielMessageFamily(message.message_family) &&
     message.direction === 'inbound' &&
-    message.message_standard === 'edifact'
+    message.message_standard === 'edifact' &&
+    message.status !== 'cancelled'
   )
+}
+
+function hasInboundAckParties(message: EdielMessageRow): boolean {
+  return Boolean(message.sender_ediel_id?.trim() && message.receiver_ediel_id?.trim())
+}
+
+async function createAckBlockedEvent(params: {
+  actorUserId: string
+  sourceMessage: EdielMessageRow
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  reason: string
+  details?: Record<string, unknown>
+}) {
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.sourceMessage.id,
+    eventType: 'manual_note',
+    eventStatus: 'warning',
+    message: `${params.ackFamily} skapades inte: ${params.reason}`,
+    payload: {
+      blockedBy: 'canonical_inbound_ack_guard',
+      ackFamily: params.ackFamily,
+      sourceMessageId: params.sourceMessage.id,
+      messageFamily: params.sourceMessage.message_family,
+      messageCode: params.sourceMessage.message_code,
+      status: params.sourceMessage.status,
+      senderEdielId: params.sourceMessage.sender_ediel_id,
+      receiverEdielId: params.sourceMessage.receiver_ediel_id,
+      ...params.details,
+    },
+  })
 }
 
 async function createAckIfMissing(params: {
@@ -94,26 +126,58 @@ async function createAutomaticPositiveAcks(params: {
   const createdIds: string[] = []
   const policy = await getAutomaticAckPolicy(params.sourceMessage)
 
-  if (policy.shouldSendContrl) {
-    const contrl = await createAckIfMissing({
+  if ((policy.shouldSendContrl || policy.shouldSendPositiveAperak) && !hasInboundAckParties(params.sourceMessage)) {
+    await createAckBlockedEvent({
       actorUserId: params.actorUserId,
       sourceMessage: params.sourceMessage,
-      ackFamily: 'CONTRL',
-      outcome: 'positive',
-      messageText: 'Automatiskt CONTRL.',
+      ackFamily: policy.shouldSendContrl ? 'CONTRL' : 'APERAK',
+      reason: 'inbound sender/receiver saknas. Meddelandet kvitteras inte automatiskt.',
+      details: {
+        shouldSendContrl: policy.shouldSendContrl,
+        shouldSendPositiveAperak: policy.shouldSendPositiveAperak,
+      },
     })
-    createdIds.push(contrl.id)
+    return createdIds
+  }
+
+  if (policy.shouldSendContrl) {
+    try {
+      const contrl = await createAckIfMissing({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        ackFamily: 'CONTRL',
+        outcome: 'positive',
+        messageText: 'Automatiskt CONTRL.',
+      })
+      createdIds.push(contrl.id)
+    } catch (error) {
+      await createAckBlockedEvent({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        ackFamily: 'CONTRL',
+        reason: error instanceof Error ? error.message : 'Okänt fel vid CONTRL-skapande.',
+      })
+    }
   }
 
   if (policy.shouldSendPositiveAperak) {
-    const aperak = await createAckIfMissing({
-      actorUserId: params.actorUserId,
-      sourceMessage: params.sourceMessage,
-      ackFamily: 'APERAK',
-      outcome: 'positive',
-      messageText: 'Automatiskt APERAK.',
-    })
-    createdIds.push(aperak.id)
+    try {
+      const aperak = await createAckIfMissing({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        ackFamily: 'APERAK',
+        outcome: 'positive',
+        messageText: 'Automatiskt APERAK.',
+      })
+      createdIds.push(aperak.id)
+    } catch (error) {
+      await createAckBlockedEvent({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        ackFamily: 'APERAK',
+        reason: error instanceof Error ? error.message : 'Okänt fel vid APERAK-skapande.',
+      })
+    }
   }
 
   return createdIds

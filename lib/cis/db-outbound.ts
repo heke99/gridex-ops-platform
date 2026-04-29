@@ -63,6 +63,51 @@ export async function createOutboundDispatchEvent(input: {
   if (error) throw error
   return data as OutboundDispatchEventRow
 }
+async function getOutboundRequestByCanonicalBusinessEvent(input: {
+  sourceType?: string | null
+  sourceId?: string | null
+  requestType: OutboundRequestType
+  periodStart?: string | null
+  periodEnd?: string | null
+  gridOwnerId?: string | null
+}): Promise<OutboundRequestRow | null> {
+  const sourceType = input.sourceType ?? 'manual'
+  const sourceId = input.sourceId ?? null
+
+  if (!sourceId) return null
+
+  let query = supabaseService
+    .from('outbound_requests')
+    .select('*')
+    .eq('source_type', sourceType)
+    .eq('source_id', sourceId)
+    .eq('request_type', input.requestType)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (input.periodStart) {
+    query = query.eq('period_start', input.periodStart)
+  } else {
+    query = query.is('period_start', null)
+  }
+
+  if (input.periodEnd) {
+    query = query.eq('period_end', input.periodEnd)
+  } else {
+    query = query.is('period_end', null)
+  }
+
+  if (input.gridOwnerId) {
+    query = query.eq('grid_owner_id', input.gridOwnerId)
+  } else {
+    query = query.is('grid_owner_id', null)
+  }
+
+  const { data, error } = await query.maybeSingle()
+  if (error) throw error
+  return (data as OutboundRequestRow | null) ?? null
+}
+
 
 export async function createOutboundRequest(input: {
   actorUserId: string
@@ -145,8 +190,23 @@ export async function createOutboundRequest(input: {
     .single()
 
   if (error) {
-    if (findPostgresErrorCode(error) === '23505' && input.automationKey) {
+    const errorCode = findPostgresErrorCode(error)
+
+    if (errorCode === '23505' && input.automationKey) {
       const existing = await getOutboundRequestByAutomationKey(input.automationKey)
+      if (existing) return existing
+    }
+
+    if (errorCode === '23505') {
+      const existing = await getOutboundRequestByCanonicalBusinessEvent({
+        sourceType: input.sourceType ?? 'manual',
+        sourceId: input.sourceId ?? null,
+        requestType: input.requestType,
+        periodStart: input.periodStart ?? null,
+        periodEnd: input.periodEnd ?? null,
+        gridOwnerId: input.gridOwnerId ?? null,
+      })
+
       if (existing) return existing
     }
 
