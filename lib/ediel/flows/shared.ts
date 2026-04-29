@@ -11,6 +11,7 @@ import {
   resolveCanonicalOutboundContext,
 } from '@/lib/ediel/core/kernel'
 import {
+  cancelSupplierSwitchOutboundAttemptsForReplacement,
   createOutboundRequest,
   findOpenOutboundBySource,
   updateOutboundRequestStatus,
@@ -75,20 +76,11 @@ export async function findOrCreateSwitchOutbound(params: {
 
     if (existing) return existing
   } else {
-    const { error } = await supabaseService
-      .from('outbound_requests')
-      .update({
-        status: 'cancelled',
-        failure_reason: 'Avbrutet automatiskt för nytt Edielportal TGT-försök.',
-        updated_by: params.actorUserId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('source_type', 'supplier_switch_request')
-      .eq('source_id', params.switchRequestId)
-      .eq('request_type', 'supplier_switch')
-      .in('status', ['queued', 'prepared', 'sent', 'failed'])
-
-    if (error) throw error
+    await cancelSupplierSwitchOutboundAttemptsForReplacement({
+      actorUserId: params.actorUserId,
+      sourceId: params.switchRequestId,
+      reason: 'Avbrutet automatiskt för nytt Edielportal TGT/IMAP-testförsök.',
+    })
   }
 
   return createOutboundRequest({
@@ -102,6 +94,7 @@ export async function findOrCreateSwitchOutbound(params: {
     sourceType: 'supplier_switch_request',
     sourceId: params.switchRequestId,
     externalReference: params.externalReference,
+    replaceOpenSupplierSwitchAttempt: Boolean(params.forceCreateNewAttempt),
     payload: params.payload,
   })
 }

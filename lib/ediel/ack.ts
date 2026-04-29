@@ -210,36 +210,76 @@ function sourceParties(sourceMessage: EdielMessageRow) {
   }
 }
 
+function edielPartyCompositeFromUnb(value?: string | null): string | null {
+  const trimmed = trimOrNull(value)
+  if (!trimmed) return null
+
+  const parts = trimmed
+    .split(':')
+    .map((part) => sanitizeEdifactToken(part))
+    .filter(Boolean)
+
+  return parts.length > 0 ? parts.join(':') : null
+}
+
+function fallbackPartyComposite(params: {
+  edielId?: string | null
+  subAddress?: string | null
+}): string | null {
+  const edielId = sanitizeEdifactToken(params.edielId)
+  if (!edielId) return null
+
+  const subAddress = sanitizeEdifactToken(params.subAddress)
+  if (!subAddress) return edielId
+
+  return `${edielId}:ZZ:${subAddress}`
+}
+
 function buildContrlSegments(params: {
   sourceMessage: EdielMessageRow
-  externalReference: string
-  transactionReference: string
   outcome: AckOutcome
-  messageText?: string | null
 }) {
-  const resultCode = params.outcome === 'positive' ? '7' : '12'
-  const text =
-    sanitizeSegmentText(params.messageText) ||
-    (params.outcome === 'positive' ? 'Syntax accepted' : 'Syntax error detected')
+  const refs = parseEdifactRefs(params.sourceMessage)
+  const sourceSegments = segmentsFromRawPayload(params.sourceMessage.raw_payload)
+  const sourceUnb = sourceSegments.find((segment) => segment.toUpperCase().startsWith('UNB+'))
+  const sourceUnbParts = sourceUnb?.split('+') ?? []
 
-  const originalMessageType = sanitizeSegmentText(
-    `${params.sourceMessage.message_family} ${String(params.sourceMessage.message_code)}`
-  )
+  const originalInterchangeReference =
+    refs.interchangeReference ??
+    sanitizeEdifactToken(params.sourceMessage.interchange_reference) ??
+    sanitizeEdifactToken(params.sourceMessage.external_reference) ??
+    sanitizeEdifactToken(params.sourceMessage.id) ??
+    'UNKNOWN'
+
+  const originalSenderComposite =
+    edielPartyCompositeFromUnb(sourceUnbParts[2]) ??
+    fallbackPartyComposite({
+      edielId: params.sourceMessage.sender_ediel_id,
+      subAddress: params.sourceMessage.sender_sub_address,
+    }) ??
+    'UNKNOWN'
+
+  const originalReceiverComposite =
+    edielPartyCompositeFromUnb(sourceUnbParts[3]) ??
+    fallbackPartyComposite({
+      edielId: params.sourceMessage.receiver_ediel_id,
+      subAddress: params.sourceMessage.receiver_sub_address,
+    }) ??
+    'UNKNOWN'
+
+  // CONTRL is a technical syntax acknowledgement. Edielportalen should match it
+  // against the original UNB/interchange via UCI. Do not add BGM/RFF/ERC/FTX here;
+  // those segments belong to APERAK only.
+  //
+  // Important:
+  // - UCI data element 1 must be original UNB/0020, not an action code.
+  // - Original sender/receiver should be kept as UNB composites when available.
+  // - Positive syntax acknowledgement uses action code 7.
+  const syntaxActionCode = params.outcome === 'positive' ? '7' : '4'
 
   return [
-    'UNH+1+CONTRL:D:96A:UN:1.0',
-    `BGM+CONTRL+${sanitizeSegmentText(params.externalReference)}+9`,
-    `RFF+TN:${sanitizeSegmentText(params.transactionReference)}`,
-    params.sourceMessage.interchange_reference
-      ? `RFF+ACW:${sanitizeSegmentText(params.sourceMessage.interchange_reference)}`
-      : null,
-    params.sourceMessage.transaction_reference
-      ? `RFF+CR:${sanitizeSegmentText(params.sourceMessage.transaction_reference)}`
-      : null,
-    `FTX+AAI+++${originalMessageType}`,
-    `ERC+${resultCode}`,
-    `FTX+AAO+++${text}`,
-  ].filter(Boolean) as string[]
+    `UCI+${originalInterchangeReference}+${originalSenderComposite}+${originalReceiverComposite}+${syntaxActionCode}`,
+  ]
 }
 
 function buildAperakSegments(params: {
@@ -366,10 +406,7 @@ function buildAckDraft(params: {
     params.ackFamily === 'CONTRL'
       ? buildContrlSegments({
           sourceMessage: params.sourceMessage,
-          externalReference: refs.externalReference ?? params.sourceMessage.id,
-          transactionReference: refs.transactionReference ?? params.sourceMessage.id,
           outcome,
-          messageText: params.messageText ?? null,
         })
       : params.ackFamily === 'APERAK'
         ? buildAperakSegments({
@@ -434,7 +471,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'D96A'
         : params.ackFamily === 'APERAK'
-           ? 'E2SE6A'
+          ? 'E2SE6A'
           : 'E5SE5A',
     processType: 'ack',
     environment: params.sourceMessage.environment,

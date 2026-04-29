@@ -108,6 +108,55 @@ async function getOutboundRequestByCanonicalBusinessEvent(input: {
   return (data as OutboundRequestRow | null) ?? null
 }
 
+export async function cancelSupplierSwitchOutboundAttemptsForReplacement(input: {
+  actorUserId: string
+  sourceId: string
+  reason?: string | null
+}): Promise<OutboundRequestRow[]> {
+  const now = new Date().toISOString()
+  const reason =
+    input.reason ??
+    'Avbrutet automatiskt eftersom ett nytt Edielportal/IMAP-testförsök skapas för samma supplier switch.'
+
+  const { data, error } = await supabaseService
+    .from('outbound_requests')
+    .update({
+      status: 'cancelled',
+      failure_reason: reason,
+      updated_by: input.actorUserId,
+      updated_at: now,
+    })
+    .eq('source_type', 'supplier_switch_request')
+    .eq('source_id', input.sourceId)
+    .eq('request_type', 'supplier_switch')
+    .neq('status', 'cancelled')
+    .select('*')
+
+  if (error) throw error
+
+  const rows = (data ?? []) as OutboundRequestRow[]
+
+  for (const row of rows) {
+    await createOutboundDispatchEvent({
+      actorUserId: input.actorUserId,
+      outboundRequestId: row.id,
+      eventType: 'cancelled',
+      eventStatus: 'cancelled',
+      message: reason,
+      payload: {
+        replacement: true,
+        replacementSource: 'supplier_switch_retest',
+        sourceType: row.source_type,
+        sourceId: row.source_id,
+        requestType: row.request_type,
+        previousStatus: row.status,
+      },
+    })
+  }
+
+  return rows
+}
+
 
 export async function createOutboundRequest(input: {
   actorUserId: string
@@ -131,6 +180,7 @@ export async function createOutboundRequest(input: {
   dispatchBatchKey?: string | null
   automationOrigin?: string | null
   automationKey?: string | null
+  replaceOpenSupplierSwitchAttempt?: boolean
 }): Promise<OutboundRequestRow> {
   const route = input.communicationRouteId
     ? await getCommunicationRouteById(input.communicationRouteId)
@@ -146,6 +196,19 @@ export async function createOutboundRequest(input: {
   })
 
   const channelType = route?.route_type ?? 'unresolved'
+  const shouldReplaceSupplierSwitchAttempt = Boolean(
+    input.replaceOpenSupplierSwitchAttempt &&
+      input.sourceType === 'supplier_switch_request' &&
+      input.sourceId &&
+      input.requestType === 'supplier_switch'
+  )
+
+  if (shouldReplaceSupplierSwitchAttempt && input.sourceId) {
+    await cancelSupplierSwitchOutboundAttemptsForReplacement({
+      actorUserId: input.actorUserId,
+      sourceId: input.sourceId,
+    })
+  }
 
   const enrichedPayload = mergeJsonObjects(input.payload ?? {}, {
     request_type: input.requestType,
@@ -191,6 +254,45 @@ export async function createOutboundRequest(input: {
 
   if (error) {
     const errorCode = findPostgresErrorCode(error)
+
+    if (errorCode === '23505' && shouldReplaceSupplierSwitchAttempt && input.sourceId) {
+      await cancelSupplierSwitchOutboundAttemptsForReplacement({
+        actorUserId: input.actorUserId,
+        sourceId: input.sourceId,
+        reason:
+          'Avbrutet automatiskt efter unik nyckel-krock inför nytt Edielportal/IMAP-testförsök.',
+      })
+
+      const retry = await supabaseService
+        .from('outbound_requests')
+        .insert(insertPayload)
+        .select('*')
+        .single()
+
+      if (retry.error) throw retry.error
+
+      const row = retry.data as OutboundRequestRow
+
+      await createOutboundDispatchEvent({
+        actorUserId: input.actorUserId,
+        outboundRequestId: row.id,
+        eventType: 'queued',
+        eventStatus: row.status,
+        message: route
+          ? 'Outbound request köad med vald route efter automatisk ersättning av tidigare testförsök.'
+          : 'Outbound request köad utan route efter automatisk ersättning av tidigare testförsök.',
+        payload: {
+          routeId: route?.id ?? input.communicationRouteId ?? null,
+          routeSelectedExplicitly: Boolean(input.communicationRouteId),
+          channelType,
+          targetSystem: route?.target_system ?? null,
+          targetEmail: route?.target_email ?? null,
+          replacement: true,
+        },
+      })
+
+      return row
+    }
 
     if (errorCode === '23505' && input.automationKey) {
       const existing = await getOutboundRequestByAutomationKey(input.automationKey)
