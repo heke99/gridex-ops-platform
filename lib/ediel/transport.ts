@@ -567,11 +567,21 @@ function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string, fallba
   const originalInterchangeReference = uciParts[1]?.trim() || null
   const bgmReference = bgmParts[2]?.trim() || null
   const acwReference = ref('ACW')
+  const lineItemReference = ref('LI')
+  const transactionReference = ref('TN') || ref('CR') || ref('AAS')
+
+  const isAckFamily = family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
+  const externalReference = isAckFamily
+    ? originalInterchangeReference || acwReference || bgmReference || ref('ACE') || null
+    : bgmReference || ref('ACE') || acwReference || originalInterchangeReference || null
+  const canonicalTransactionReference = isAckFamily
+    ? originalInterchangeReference || acwReference || transactionReference || lineItemReference || null
+    : lineItemReference || transactionReference || acwReference || originalInterchangeReference || null
 
   return {
     family,
     code:
-      family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
+      isAckFamily
         ? family
         : bgmParts[1]?.split(':')[0]?.trim() || fallbackCode,
     messageVersion: unhMessage,
@@ -581,8 +591,8 @@ function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string, fallba
     receiverSubAddress: receiverParts[2]?.trim() || null,
     interchangeReference: unbParts[5]?.trim() || null,
     applicationReference: unbParts[7]?.trim() || null,
-    externalReference: originalInterchangeReference || acwReference || bgmReference || ref('ACE') || null,
-    transactionReference: originalInterchangeReference || acwReference || ref('TN') || ref('CR') || ref('LI') || null,
+    externalReference,
+    transactionReference: canonicalTransactionReference,
     parsedPayload: {
       rawSegments: segments,
       segmentCount: segments.length,
@@ -591,7 +601,11 @@ function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string, fallba
       bgm,
       uci,
       rff: rffSegments,
+      bgmReference,
+      documentReference: bgmReference,
       originalInterchangeReference,
+      acwReference,
+      lineItemReference,
     },
   }
 }

@@ -135,10 +135,20 @@ function parseEdifactRefs(sourceMessage: EdielMessageRow): ParsedEdifactRefs {
     sanitizeEdifactToken(String(parsed.messageReference ?? parsed.message_reference ?? '')) ??
     sanitizeEdifactToken(unh?.split('+')[1] ?? null)
 
+  const bgmDocumentReference = sanitizeEdifactToken(bgm?.split('+')[2] ?? null)
+
   const documentReference =
-    sanitizeEdifactToken(String(parsed.documentReference ?? parsed.document_reference ?? '')) ??
-    sanitizeEdifactToken(sourceMessage.external_reference) ??
-    sanitizeEdifactToken(bgm?.split('+')[2] ?? null)
+    sanitizeEdifactToken(
+      String(
+        parsed.documentReference ??
+          parsed.document_reference ??
+          parsed.bgmReference ??
+          parsed.bgm_reference ??
+          ''
+      )
+    ) ??
+    bgmDocumentReference ??
+    sanitizeEdifactToken(sourceMessage.external_reference)
 
   const unbParts = unb?.split('+') ?? []
   const interchangeReference =
@@ -247,11 +257,15 @@ function buildAperakSegments(params: {
       ? 'OK'
       : escapeEdifactText(params.messageText || 'Applikationen kunde inte bearbeta meddelandet')
 
+  // For APERAK on inbound PRODAT, Edielportalen matches the acknowledgement
+  // against the referenced PRODAT document number (BGM/1004). Do not prefer
+  // UNB/0020 here; that is only the interchange reference and can validate
+  // syntactically while still failing the portal test-case match.
   const previousMessageReference =
-    refs.interchangeReference ??
     refs.documentReference ??
     refs.messageReference ??
     sanitizeEdifactToken(params.sourceMessage.external_reference) ??
+    refs.interchangeReference ??
     sanitizeEdifactToken(params.sourceMessage.id) ??
     sanitizeEdifactToken(params.transactionReference) ??
     'UNKNOWN'
