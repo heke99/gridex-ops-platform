@@ -45,67 +45,6 @@ function sanitizeSegmentText(value?: string | null): string {
   return (value ?? '').replace(/['+]/g, ' ').trim()
 }
 
-type ParsedUnbParties = {
-  senderEdielId: string | null
-  senderSubAddress: string | null
-  receiverEdielId: string | null
-  receiverSubAddress: string | null
-}
-
-function firstString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
-}
-
-function parseUnbComposite(value?: string | null): { edielId: string | null; subAddress: string | null } {
-  const parts = String(value ?? '').split(':')
-  return {
-    edielId: trimOrNull(parts[0]),
-    subAddress: trimOrNull(parts[2]),
-  }
-}
-
-function parseUnbPartiesFromText(value?: string | null): ParsedUnbParties | null {
-  const text = String(value ?? '')
-  if (!text.includes('UNB+')) return null
-
-  const match = text.match(/UNB\+[^'\r\n]+/i)
-  const unb = match?.[0] ?? null
-  if (!unb) return null
-
-  const parts = unb.split('+')
-  const sender = parseUnbComposite(parts[2])
-  const receiver = parseUnbComposite(parts[3])
-
-  if (!sender.edielId && !receiver.edielId) return null
-
-  return {
-    senderEdielId: sender.edielId,
-    senderSubAddress: sender.subAddress,
-    receiverEdielId: receiver.edielId,
-    receiverSubAddress: receiver.subAddress,
-  }
-}
-
-function parsedPayloadString(sourceMessage: EdielMessageRow, key: string): string | null {
-  const payload = sourceMessage.parsed_payload ?? {}
-  return firstString(payload[key])
-}
-
-function ensureAckParties(params: ReturnType<typeof sourceParties>, sourceMessage: EdielMessageRow) {
-  if (!params.senderEdielId || !params.receiverEdielId) {
-    throw new Error(
-      'Kan inte skapa ack för ' +
-        sourceMessage.id +
-        ': inbound sender/receiver saknas. Kontrollera att inkommande EDIFACT har UNB med avsändare och mottagare.'
-    )
-  }
-
-  return params as ReturnType<typeof sourceParties> & {
-    senderEdielId: string
-    receiverEdielId: string
-  }
-}
-
 function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
   if (sourceMessage.direction !== 'inbound') {
     throw new Error(
@@ -131,38 +70,13 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
 }
 
 function sourceParties(sourceMessage: EdielMessageRow) {
-  const unbFromPayload = parseUnbPartiesFromText(sourceMessage.raw_payload)
-  const unbFromSubject = parseUnbPartiesFromText(sourceMessage.subject)
-  const unb = unbFromPayload ?? unbFromSubject
-
-  const inboundSenderEdielId =
-    trimOrNull(sourceMessage.sender_ediel_id) ??
-    parsedPayloadString(sourceMessage, 'senderEdielId') ??
-    unb?.senderEdielId ??
-    null
-  const inboundReceiverEdielId =
-    trimOrNull(sourceMessage.receiver_ediel_id) ??
-    parsedPayloadString(sourceMessage, 'receiverEdielId') ??
-    unb?.receiverEdielId ??
-    null
-  const inboundSenderSubAddress =
-    trimOrNull(sourceMessage.sender_sub_address) ??
-    parsedPayloadString(sourceMessage, 'senderSubAddress') ??
-    unb?.senderSubAddress ??
-    'PRODAT'
-  const inboundReceiverSubAddress =
-    trimOrNull(sourceMessage.receiver_sub_address) ??
-    parsedPayloadString(sourceMessage, 'receiverSubAddress') ??
-    unb?.receiverSubAddress ??
-    'PRODAT'
-
   return {
-    senderEdielId: inboundReceiverEdielId,
+    senderEdielId: trimOrNull(sourceMessage.receiver_ediel_id),
     senderName: trimOrNull(sourceMessage.receiver_name),
-    senderSubAddress: inboundReceiverSubAddress,
-    receiverEdielId: inboundSenderEdielId,
+    senderSubAddress: trimOrNull(sourceMessage.receiver_sub_address) ?? 'PRODAT',
+    receiverEdielId: trimOrNull(sourceMessage.sender_ediel_id),
     receiverName: trimOrNull(sourceMessage.sender_name),
-    receiverSubAddress: inboundSenderSubAddress,
+    receiverSubAddress: trimOrNull(sourceMessage.sender_sub_address) ?? 'PRODAT',
     receiverEmail: trimOrNull(sourceMessage.sender_email),
     mailbox: trimOrNull(sourceMessage.mailbox),
   }
@@ -219,7 +133,7 @@ function buildAperakSegments(params: {
   )
 
   return [
-    'UNH+1+APERAK:D:96A:UN:E2SE6A',
+    'UNH+1+APERAK:D:96A:UN:2.0',
     `BGM+APERAK+${sanitizeSegmentText(params.externalReference)}+9`,
     `RFF+TN:${sanitizeSegmentText(params.transactionReference)}`,
     params.sourceMessage.transaction_reference
@@ -275,7 +189,7 @@ function buildAckDraft(params: {
     ackFamily: params.ackFamily,
   })
 
-  const parties = ensureAckParties(sourceParties(params.sourceMessage), params.sourceMessage)
+  const parties = sourceParties(params.sourceMessage)
 
   const applicationReference =
     trimOrNull(params.sourceMessage.application_reference) ??
@@ -310,6 +224,12 @@ function buildAckDraft(params: {
             messageText: params.messageText ?? null,
           })
 
+  if (!parties.senderEdielId || !parties.receiverEdielId) {
+    throw new Error(
+      `Kan inte skapa ${params.ackFamily}: inbound sender/receiver saknas för ${params.sourceMessage.id}.`
+    )
+  }
+
   const envelope = buildEdifactEnvelope({
     senderEdielId: parties.senderEdielId,
     receiverEdielId: parties.receiverEdielId,
@@ -317,7 +237,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:D:96A:UN:1.0'
         : params.ackFamily === 'APERAK'
-          ? 'APERAK:D:96A:UN:E2SE6A'
+          ? 'APERAK:D:96A:UN:2.0'
           : 'UTILTS:D:01B:UN:1.1',
     applicationReference,
     segments,

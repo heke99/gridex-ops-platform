@@ -61,6 +61,18 @@ function inferEdifactFamilyAndCode(rawPayload: string): {
 } {
   const upper = upperPayload(rawPayload)
 
+  if (upper.startsWith('CONTRL UNB+') || upper.includes('\nCONTRL UNB+')) {
+    return { family: 'CONTRL', code: 'CONTRL' }
+  }
+
+  if (upper.startsWith('APERAK UNB+') || upper.includes('\nAPERAK UNB+')) {
+    return { family: 'APERAK', code: 'APERAK' }
+  }
+
+  if (upper.startsWith('PRODAT UNB+') || upper.includes('\nPRODAT UNB+')) {
+    return { family: 'PRODAT', code: null }
+  }
+
   if (matchEdifactToken(upper, 'APERAK')) {
     return { family: 'APERAK', code: 'APERAK' }
   }
@@ -132,6 +144,35 @@ function inferXmlFamilyAndCode(rawPayload: string): {
   }
 
   return { family: 'UNKNOWN', code: null }
+}
+
+
+export function extractEdifactPayloadFromText(rawText: string, subject?: string | null): string {
+  const candidates = [rawText, subject ?? ''].filter(Boolean) as string[]
+
+  for (const candidate of candidates) {
+    const normalized = candidate.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+    const unaIndex = normalized.toUpperCase().indexOf('UNA')
+    const unbIndex = normalized.toUpperCase().indexOf('UNB+')
+    const startIndex = unaIndex >= 0 && (unbIndex < 0 || unaIndex < unbIndex) ? unaIndex : unbIndex
+    if (startIndex < 0) continue
+
+    const tail = normalized.slice(startIndex)
+    const unzMatch = tail.match(/UNZ\+[^']*'/i)
+    if (unzMatch?.index !== undefined) {
+      return tail.slice(0, unzMatch.index + unzMatch[0].length).trim()
+    }
+
+    const singleLine = tail.split('\n')[0]?.trim()
+    if (singleLine && /^UNB\+/i.test(singleLine)) {
+      const normalizedSingleLine = singleLine.endsWith("'") ? singleLine : `${singleLine}'`
+      return `UNA:+.? '${normalizedSingleLine}`
+    }
+
+    if (tail.trim()) return tail.trim()
+  }
+
+  return rawText.trim()
 }
 
 export function inferEdielFamilyAndCodeFromRawPayload(

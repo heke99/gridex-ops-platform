@@ -214,18 +214,17 @@ function inferAckOutcomeFromRow(row: EdielMessageRow): AckOutcome | null {
   if (payloadOutcome) return payloadOutcome
 
   if (row.message_family === 'CONTRL') {
-    if ((row.syntax_check_status === 'ok' || row.syntax_check_status === 'accepted')) return 'positive'
-    if (row.syntax_check_status === 'failed' || row.syntax_check_status === 'rejected') {
+    if (row.syntax_check_status === 'ok' || row.syntax_check_status === 'warning') return 'positive'
+    if (row.syntax_check_status === 'failed') {
       return 'negative'
     }
     return null
   }
 
   if (row.message_family === 'APERAK' || row.message_family === 'UTILTS_ERR') {
-    if ((row.functional_check_status === 'ok' || row.functional_check_status === 'accepted')) return 'positive'
+    if (row.functional_check_status === 'ok' || row.functional_check_status === 'warning') return 'positive'
     if (
-      row.functional_check_status === 'failed' ||
-      row.functional_check_status === 'rejected'
+      row.functional_check_status === 'failed'
     ) {
       return 'negative'
     }

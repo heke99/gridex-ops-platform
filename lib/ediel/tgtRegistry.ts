@@ -483,8 +483,8 @@ function messageOutcome(row: EdielMessageRow): 'positive' | 'negative' | null {
   const payloadOutcome = row.parsed_payload?.ackOutcome
   if (payloadOutcome === 'positive' || payloadOutcome === 'negative') return payloadOutcome
 
-  if ((row.syntax_check_status === 'ok' || row.syntax_check_status === 'accepted') || (row.functional_check_status === 'ok' || row.functional_check_status === 'accepted')) return 'positive'
-  if (row.syntax_check_status === 'failed' || row.syntax_check_status === 'rejected' || row.functional_check_status === 'failed' || row.functional_check_status === 'rejected') return 'negative'
+  if (row.syntax_check_status === 'ok' || row.syntax_check_status === 'warning' || row.functional_check_status === 'ok' || row.functional_check_status === 'warning') return 'positive'
+  if (row.syntax_check_status === 'failed' || row.functional_check_status === 'failed') return 'negative'
 
   return null
 }

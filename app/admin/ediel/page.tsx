@@ -24,9 +24,11 @@ import {
 } from '@/lib/ediel/db'
 import {
   cancelEdielMessageAction,
+  createAckDraftAction,
   createEdielTestRunAction,
   registerInboundUtiltsAction,
   runEdielSelfTestAction,
+  sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
 import {
   getRecommendationSummary,
@@ -361,92 +363,139 @@ function SectionLabel({
   )
 }
 
-function getInboundMessageKindLabel(row: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
-  if (row.message_family === 'CONTRL') return 'CONTRL · teknisk/syntax-kvittens'
-  if (row.message_family === 'APERAK') return 'APERAK · applikationskvittens'
-  if (row.message_family === 'PRODAT') return 'PRODAT ' + row.message_code + ' · meddelande från portal/motpart'
-  if (row.message_family === 'UTILTS') return 'UTILTS ' + row.message_code
-  return row.message_family + ' ' + row.message_code
-}
 
-function getInboundMessageExplanation(row: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
-  if (row.message_family === 'CONTRL') return 'Registrera och koppla mot ditt skickade PRODAT. Skapa inte CONTRL/APERAK tillbaka på denna.'
-  if (row.message_family === 'APERAK') return 'Registrera och koppla mot ditt skickade PRODAT. Positiv APERAK betyder att portalen accepterade innehållet.'
-  if (row.message_family === 'PRODAT') return 'Detta är ett inkommande affärsmeddelande. Här ska systemet skapa svar: först CONTRL, sedan APERAK.'
-  return 'Inkommet Ediel-meddelande från IMAP.'
-}
-
-function InboundImapMessagesPanel({
+function IncomingPortalResponses({
   messages,
 }: {
   messages: Awaited<ReturnType<typeof listEdielMessages>>
 }) {
-  const inbound = messages
-    .filter((row) => row.direction === 'inbound' && row.transport_type === 'imap')
+  const inboundMessages = messages
+    .filter((row) => row.direction === 'inbound')
+    .filter((row) => row.status !== 'cancelled')
+    .filter((row) => ['PRODAT', 'CONTRL', 'APERAK', 'UTILTS_ERR'].includes(row.message_family))
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
     .slice(0, 12)
 
+  function relatedAcks(sourceId: string) {
+    return messages
+      .filter((row) => row.direction === 'outbound')
+      .filter((row) => row.related_message_id === sourceId)
+      .filter((row) => ['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(row.message_family))
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+  }
+
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-slate-950">Senaste hämtade IMAP-meddelanden</h3>
-          <p className="mt-1 text-sm text-slate-600">
-            CONTRL/APERAK är kvittenser på våra skickade meddelanden. Inkommande PRODAT ska besvaras med CONTRL och APERAK.
+          <h2 className="text-lg font-semibold text-slate-950">Senaste inbound via IMAP</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
+            CONTRL och APERAK registreras som kvittenser på ditt skickade meddelande. Inbound PRODAT, till exempel Z04 från portalen, är det som ska besvaras med vårt CONTRL och vårt APERAK.
           </p>
         </div>
-        <Badge tone={inbound.length > 0 ? 'green' : 'yellow'}>{inbound.length} inkomna</Badge>
+        <Badge tone="green">{inboundMessages.length} visas</Badge>
       </div>
 
-      <div className="mt-4 overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
-              <th className="px-3 py-2">Tid</th>
-              <th className="px-3 py-2">Typ</th>
-              <th className="px-3 py-2">Vad betyder det?</th>
-              <th className="px-3 py-2">Parter</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Öppna</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inbound.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                  Inga IMAP-meddelanden importerade ännu. Tryck Hämta svar från IMAP i PRODAT-kortet.
-                </td>
-              </tr>
-            ) : (
-              inbound.map((row) => (
-                <tr key={row.id} className="border-b border-slate-100 align-top">
-                  <td className="px-3 py-2 text-xs text-slate-600">{formatDateTime(row.created_at)}</td>
-                  <td className="px-3 py-2">
-                    <div className="font-semibold text-slate-950">{getInboundMessageKindLabel(row)}</div>
-                    <div className="mt-1 max-w-xs truncate text-xs text-slate-500">{row.subject ?? row.file_name ?? '—'}</div>
-                  </td>
-                  <td className="px-3 py-2 max-w-sm text-xs leading-5 text-slate-600">
-                    {getInboundMessageExplanation(row)}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-slate-600">
-                    <div>Från: <span className="font-mono">{row.sender_ediel_id ?? '—'}{row.sender_sub_address ? ':' + row.sender_sub_address : ''}</span></div>
-                    <div>Till: <span className="font-mono">{row.receiver_ediel_id ?? '—'}{row.receiver_sub_address ? ':' + row.receiver_sub_address : ''}</span></div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      <Badge tone={row.status === 'failed' ? 'red' : row.status === 'validated' || row.status === 'parsed' ? 'green' : 'blue'}>{row.status}</Badge>
-                      {row.ack_outcome ? <Badge tone={row.ack_outcome === 'negative' ? 'red' : 'green'}>{row.ack_outcome}</Badge> : null}
+      <div className="mt-4 space-y-3">
+        {inboundMessages.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-emerald-300 bg-white p-4 text-sm text-slate-600">
+            Inga importerade IMAP-svar hittades i aktivt scope.
+          </div>
+        ) : (
+          inboundMessages.map((message) => {
+            const isInboundBusinessMessage =
+              message.message_family !== 'CONTRL' &&
+              message.message_family !== 'APERAK' &&
+              message.message_family !== 'UTILTS_ERR'
+            const acks = relatedAcks(message.id)
+            const hasContrl = acks.some((row) => row.message_family === 'CONTRL')
+            const hasAperak = acks.some((row) => row.message_family === 'APERAK')
+
+            return (
+              <div key={message.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={message.message_family === 'PRODAT' ? 'blue' : 'green'}>
+                        inbound {message.message_family} / {message.message_code}
+                      </Badge>
+                      <Badge tone={getOutboundStatusTone(message.status)}>{message.status}</Badge>
+                      {message.related_message_id ? <Badge tone="green">kopplad</Badge> : <Badge tone="yellow">ej kopplad</Badge>}
                     </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <Link href={'/admin/ediel/messages/' + row.id} className="text-xs font-semibold text-indigo-700 hover:underline">
-                      Öppna
-                    </Link>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    <div className="mt-2 text-sm font-medium text-slate-950">
+                      {message.subject ?? message.file_name ?? message.id}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {message.sender_ediel_id ?? '—'}:{message.sender_sub_address ?? '—'} → {message.receiver_ediel_id ?? '—'}:{message.receiver_sub_address ?? '—'} · {formatDateTime(message.created_at)}
+                    </div>
+                  </div>
+                  <Link href={`/admin/ediel/messages/${message.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    Öppna
+                  </Link>
+                </div>
+
+                {isInboundBusinessMessage ? (
+                  <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Svar som ska skickas till portalen</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {!hasContrl ? (
+                        <form action={createAckDraftAction}>
+                          <input type="hidden" name="sourceMessageId" value={message.id} />
+                          <input type="hidden" name="ackType" value="CONTRL" />
+                          <input type="hidden" name="outcome" value="positive" />
+                          <button className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">
+                            Skapa CONTRL
+                          </button>
+                        </form>
+                      ) : null}
+                      {!hasAperak ? (
+                        <form action={createAckDraftAction}>
+                          <input type="hidden" name="sourceMessageId" value={message.id} />
+                          <input type="hidden" name="ackType" value="APERAK" />
+                          <input type="hidden" name="outcome" value="positive" />
+                          <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+                            Skapa APERAK
+                          </button>
+                        </form>
+                      ) : null}
+                      {hasContrl && hasAperak ? <Badge tone="green">CONTRL och APERAK finns</Badge> : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-800">
+                    Detta är en inkommande kvittens från portalen. Den ska registreras och kopplas, inte besvaras med ny APERAK.
+                  </div>
+                )}
+
+                {acks.length > 0 ? (
+                  <div className="mt-4 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Kvittenser kopplade till denna rad</div>
+                    {acks.map((ack) => (
+                      <div key={ack.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="text-xs text-slate-700">
+                          <span className="font-semibold">{ack.message_family}</span> · {ack.status} · {ack.file_name ?? ack.id}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Link href={`/admin/ediel/messages/${ack.id}`} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                            Öppna
+                          </Link>
+                          {ack.status === 'draft' || ack.status === 'queued' || ack.status === 'prepared' ? (
+                            <form action={sendEdielMessageAction}>
+                              <input type="hidden" name="edielMessageId" value={ack.id} />
+                              <button className="rounded-lg bg-slate-900 px-2 py-1 text-xs font-semibold text-white hover:bg-slate-700">
+                                Skicka
+                              </button>
+                            </form>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            )
+          })
+        )}
       </div>
     </section>
   )
@@ -641,10 +690,10 @@ export default async function AdminEdielPage() {
               Starta här
             </div>
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">
-              Ediel arbetsyta för SMTP/IMAP och TGT
+              Ediel arbetsyta för SMTP/IMAP, PRODAT och TGT
             </h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-              Använd sidan uppifrån och ned: skicka kundstyrd PRODAT, hämta portalens svar via IMAP, följ inkomna meddelanden och granska kopplingar mot verksamheten.
+              Använd sidan uppifrån och ned: hämta svar från IMAP, hantera PRODAT/CONTRL/APERAK, kör TGT-test och koppla mot verksamheten. Filbaserad Ediel-motor är avvecklad från huvudflödet.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -660,9 +709,9 @@ export default async function AdminEdielPage() {
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <WorkflowStep
             number="1"
-            title="Hämta svar från IMAP"
-            text="Portalens CONTRL, APERAK och PRODAT importeras från INBOX och visas tydligt."
-            href="#imap-inbound"
+            title="Hämta IMAP-svar"
+            text="Importera Edielportalens CONTRL, APERAK och PRODAT-svar tydligt."
+            href="#inbound-responses"
           />
           <WorkflowStep
             number="2"
@@ -686,9 +735,9 @@ export default async function AdminEdielPage() {
       </section>
 
       <nav className="sticky top-2 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
-        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-8">
+        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-7">
           <QuickNavItem href="#overview" label="Översikt" description="Status och snabbstart" tone="blue" />
-          <QuickNavItem href="#imap-inbound" label="IMAP-svar" description="Inkomna svar" tone="green" />
+          <QuickNavItem href="#inbound-responses" label="IMAP-svar" description="CONTRL/APERAK/PRODAT" tone="green" />
           <QuickNavItem href="#production-prodat" label="PRODAT" description="Kundstyrd Z03/Z04" tone="green" />
           <QuickNavItem href="#tgt" label="TGT-test" description="Testfall och steg" tone="blue" />
           <QuickNavItem href="#operations" label="Verksamhet" description="Switch och UTILTS" tone="yellow" />
@@ -739,12 +788,12 @@ export default async function AdminEdielPage() {
       </section>
 
       <SectionLabel
-        id="imap-inbound"
+        id="inbound-responses"
         title="1. Inkomna svar från Edielportalen"
-        description="Här ser du tydligt vad som hämtats från IMAP: CONTRL, APERAK och inkommande PRODAT. Filbaserad manuell Ediel-motor är borttagen från huvudarbetsytan."
+        description="Här ser du exakt vad IMAP-importen hittade: CONTRL, APERAK och inkommande PRODAT. Skapa eller skicka kvittenser bara från rätt inbound PRODAT-rad."
       />
 
-      <InboundImapMessagesPanel messages={messages} />
+      <IncomingPortalResponses messages={messages} />
 
       <SectionLabel
         id="production-prodat"
