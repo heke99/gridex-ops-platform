@@ -408,122 +408,6 @@ const RAW_PRODAT_BLOCKS = [
   {
     "kind": "PRODAT",
     "sourceSheet": "Testkund 1 - 20 - elleverantör",
-    "entityLabel": "Testkund 5",
-    "entityNumbers": [
-      "5"
-    ],
-    "columns": [
-      {
-        "index": 2,
-        "name": "Testdata - Z03LK",
-        "testCase": "Testfall 1.3.1"
-      }
-    ],
-    "fields": [
-      {
-        "fieldCode": "209",
-        "fieldName": "Anläggningsid",
-        "values": {
-          "Testdata - Z03LK": "Fel anl.id = 735999888000000055"
-        }
-      },
-      {
-        "fieldCode": "210",
-        "fieldName": "Avtal, startdatum",
-        "values": {
-          "Testdata - Z03LK": "sätts av avsändaren (10:e i nästa månad)"
-        }
-      },
-      {
-        "fieldCode": "217",
-        "fieldName": "Mätmetod",
-        "values": {
-          "Testdata - Z03LK": "Z03 (nätägaren avgör)"
-        }
-      },
-      {
-        "fieldCode": "223",
-        "fieldName": "Transaktionstyp",
-        "values": {
-          "Testdata - Z03LK": "Z23 (Z03LK)"
-        }
-      },
-      {
-        "fieldCode": "260",
-        "fieldName": "Nätområdesid",
-        "values": {
-          "Testdata - Z03LK": "TES"
-        }
-      },
-      {
-        "fieldCode": "261",
-        "fieldName": "Referens till avtal/fullmakt",
-        "values": {
-          "Testdata - Z03LK": "sätts av avsändaren"
-        }
-      },
-      {
-        "fieldCode": "226",
-        "fieldName": "Ärendereferens",
-        "values": {
-          "Testdata - Z03LK": "sätts av avsändaren"
-        }
-      },
-      {
-        "fieldCode": "227",
-        "fieldName": "Kund-id (DE 1131=SE2, 3055=260)",
-        "values": {
-          "Testdata - Z03LK": "194809072251"
-        }
-      },
-      {
-        "fieldCode": "228",
-        "fieldName": "Namn-elanvändare",
-        "values": {
-          "Testdata - Z03LK": "KRUKMAKARE ANDERSSON"
-        }
-      },
-      {
-        "fieldCode": "229",
-        "fieldName": "Adress-elanvändare",
-        "values": {
-          "Testdata - Z03LK": "BOX 55"
-        }
-      },
-      {
-        "fieldCode": "231",
-        "fieldName": "Postnr-elanvändare",
-        "values": {
-          "Testdata - Z03LK": "11820"
-        }
-      },
-      {
-        "fieldCode": "232",
-        "fieldName": "Postort-elanvändare",
-        "values": {
-          "Testdata - Z03LK": "STOCKHOLM"
-        }
-      },
-      {
-        "fieldCode": "316",
-        "fieldName": "Land-elanvändare",
-        "values": {
-          "Testdata - Z03LK": "SE"
-        }
-      },
-      {
-        "fieldCode": "262",
-        "fieldName": "Balansansvarig",
-        "values": {
-          "Testdata - Z03LK": "valfritt, skall finnas som balansansvarig i aktörsregistret"
-        }
-      }
-    ],
-    "sourceWorkbook": "TGT_PRODAT_Bilaga_1-Testdata_per_testkund_version_el_4-0-5.xlsx"
-  },
-  {
-    "kind": "PRODAT",
-    "sourceSheet": "Testkund 1 - 20 - elleverantör",
     "entityLabel": "Testkund 20",
     "entityNumbers": [
       "20"
@@ -2083,16 +1967,6 @@ export function getEdielTgtTestDataForCase(
     }
   }
 
-  if (suite === 'PRODAT' && roleCode === 'supplier' && code === '1.3.1') {
-    return {
-      suite,
-      roleCode,
-      testCaseCode,
-      title: 'Testkund 5 · negativ APERAK vid felaktigt objekt',
-      sourceNote: 'Importerad från PRODAT bilaga 1, elmarknad. Felfallet provoceras enligt TGT 1.3.1.',
-      groups: groupFor(blockByEntity(RAW_PRODAT_BLOCKS, '5'), ['Z03LK']),
-    }
-  }
 
   if (suite === 'UTILTS' && roleCode === 'supplier' && code === 'U2.1') {
     return {

@@ -11,6 +11,7 @@ import {
   createEdielTgtRunFromTemplateAction,
   markEdielTgtRunStatusAction,
   runEdielTgtAutopilotAction,
+  saveEdielTgtPortalTestDataAction,
 } from '@/app/admin/ediel/actions'
 import {
   evaluateEdielTgtRun,
@@ -27,6 +28,7 @@ import {
   type EdielTgtCaseTestData,
   type EdielTgtCaseTestDataGroup,
 } from '@/lib/ediel/tgtTestData'
+import type { EdielTgtDynamicTestDataSummary } from '@/lib/ediel/tgtTestDataStore'
 import { getEdielTgtDraftOptionsForCase } from '@/lib/ediel/tgtEdifact'
 import { edielCodeLabel } from '@/lib/ediel/codeLabels'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
@@ -183,6 +185,21 @@ function compareTestCaseCodes(a: string, b: string): number {
 
 function matchesPrefix(code: string, prefix: string): boolean {
   return code === prefix || code.startsWith(`${prefix}.`)
+}
+
+function testDataKey(suite: string, roleCode: string, testCaseCode: string): string {
+  return `${suite}:${roleCode}:${testCaseCode}`
+}
+
+function buildDynamicTestDataMap(rows: EdielTgtDynamicTestDataSummary[]): Map<string, EdielTgtDynamicTestDataSummary> {
+  return new Map(rows.map((row) => [testDataKey(row.testSuite, row.roleCode, row.testCaseCode), row]))
+}
+
+function dynamicRowForCase(
+  map: Map<string, EdielTgtDynamicTestDataSummary>,
+  testCase: EdielTgtTestCaseDefinition
+): EdielTgtDynamicTestDataSummary | null {
+  return map.get(testDataKey(testCase.suite, testCase.roleCode, testCase.testCaseCode)) ?? null
 }
 
 function getGroupedProdatDefinitions(definitions: EdielTgtTestCaseDefinition[]): TgtWorkbenchGroup[] {
@@ -653,11 +670,14 @@ function DraftOptionPanel({
     testCase.roleCode,
     testCase.testCaseCode
   )
+  const usesCustomerProdat = ['1.2.1', '1.2.2', '1.2.5'].includes(testCase.testCaseCode)
   const prodatOptions = options.filter((option) => option.canGenerate && option.family === 'PRODAT')
-  const generatable = options.filter((option) => option.canGenerate && option.family !== 'PRODAT')
+  const generatable = options.filter((option) =>
+    option.canGenerate && (!usesCustomerProdat || option.family !== 'PRODAT')
+  )
 
   if (generatable.length === 0) {
-    if (prodatOptions.length > 0 && !compact) {
+    if (prodatOptions.length > 0 && usesCustomerProdat && !compact) {
       return (
         <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-900">
           PRODAT Z03/Z04 ska skapas från kundstyrd PRODAT ovan, inte från en separat testgenerator. Skapa först Edielportal-testkund och switchärende, använd sedan Z03/Z04-knapparna i kundstyrda panelen.
@@ -706,11 +726,15 @@ function DraftOptionPanel({
 function TestCaseCard({
   testCase,
   activeRunsForCase,
+  dynamicTestDataRow,
 }: {
   testCase: EdielTgtTestCaseDefinition
   activeRunsForCase: number
+  dynamicTestDataRow: EdielTgtDynamicTestDataSummary | null
 }) {
-  const testData = getEdielTgtTestDataForCase(testCase.suite, testCase.roleCode, testCase.testCaseCode)
+  const staticTestData = getEdielTgtTestDataForCase(testCase.suite, testCase.roleCode, testCase.testCaseCode)
+  const testData = dynamicTestDataRow?.parsedPayload ?? staticTestData
+  const hasDynamicData = Boolean(dynamicTestDataRow?.parsedPayload)
 
   return (
     <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm open:ring-2 open:ring-indigo-100">
@@ -776,8 +800,49 @@ function TestCaseCard({
           </div>
         ) : null}
 
+        <details className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3" open={!hasDynamicData && !staticTestData}>
+          <summary className="cursor-pointer text-xs font-semibold text-emerald-950">
+            Importera/uppdatera testdata från Edielportalen
+          </summary>
+          <form action={saveEdielTgtPortalTestDataAction} className="mt-3 space-y-3">
+            <input type="hidden" name="testSuite" value={testCase.suite} />
+            <input type="hidden" name="roleCode" value={testCase.roleCode} />
+            <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+            <input
+              name="title"
+              defaultValue={dynamicTestDataRow?.title ?? testCase.title}
+              className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs text-slate-950"
+              placeholder="Rubrik, t.ex. 1.3.2 Fel nätområdesid"
+            />
+            <textarea
+              name="rawText"
+              defaultValue={dynamicTestDataRow?.rawText ?? ''}
+              rows={8}
+              className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 font-mono text-xs text-slate-950 placeholder:text-slate-400"
+              placeholder={"Klistra in testdata från Edielportalen, t.ex.\n209 Anläggningsid\t735999888000000079\n210 Avtal, startdatum\t202605100000\n217 Mätmetod\tZ03\n227 Kund-id\t196604072782"}
+            />
+            <div className="rounded-xl border border-emerald-100 bg-white px-3 py-2 text-[11px] leading-5 text-emerald-900">
+              Generatorn läser importerad testdata före statiska bilagor. Scenario-regeln ändrar bara testfelet, t.ex. 1.3.2 skickar RFF+Z05:TEX trots att portalens normaldata säger TES.
+            </div>
+            <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+              Spara testdata för detta testfall
+            </button>
+          </form>
+        </details>
+
         <details className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3">
-          <summary className="cursor-pointer text-xs font-semibold text-indigo-950">Visa testdata från Excel</summary>
+          <summary className="cursor-pointer text-xs font-semibold text-indigo-950">
+            Visa testdata som generatorn använder
+          </summary>
+          {hasDynamicData ? (
+            <div className="mb-3 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs text-emerald-900">
+              Datakälla: importerad från Edielportalen. Ingen hårdkodad testkund används för detta testfall.
+            </div>
+          ) : (
+            <div className="mb-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-900">
+              Datakälla: statisk bilaga/fallback. För nya testfall ska du importera Edielportalens testdata ovan.
+            </div>
+          )}
           <TestDataSummary data={testData} />
         </details>
         <DraftOptionPanel testCase={testCase} />
@@ -811,18 +876,21 @@ function TestCaseCard({
 function RunEvaluationCard({
   evaluation,
   messages,
+  dynamicTestDataMap,
 }: {
   evaluation: EdielTgtRunEvaluation
   messages: EdielMessageRow[]
+  dynamicTestDataMap: Map<string, EdielTgtDynamicTestDataSummary>
 }) {
   const options = getRecentMessageOptions(messages)
-  const testData = evaluation.definition
+  const dynamicTestDataRow = evaluation.definition ? dynamicRowForCase(dynamicTestDataMap, evaluation.definition) : null
+  const testData = dynamicTestDataRow?.parsedPayload ?? (evaluation.definition
     ? getEdielTgtTestDataForCase(
         evaluation.definition.suite,
         evaluation.definition.roleCode,
         evaluation.definition.testCaseCode
       )
-    : null
+    : null)
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -978,10 +1046,12 @@ function GroupedTestCasePanel({
   groups,
   evaluations,
   activeRunsForCase,
+  dynamicTestDataMap,
 }: {
   groups: TgtWorkbenchGroup[]
   evaluations: EdielTgtRunEvaluation[]
   activeRunsForCase: (definition: EdielTgtTestCaseDefinition) => number
+  dynamicTestDataMap: Map<string, EdielTgtDynamicTestDataSummary>
 }) {
   function groupStats(group: TgtWorkbenchGroup) {
     const codes = new Set(group.testCases.map((testCase) => testCase.testCaseCode))
@@ -1029,6 +1099,7 @@ function GroupedTestCasePanel({
                   key={`${definition.suite}-${definition.roleCode}-${definition.testCaseCode}`}
                   testCase={definition}
                   activeRunsForCase={activeRunsForCase(definition)}
+                  dynamicTestDataRow={dynamicRowForCase(dynamicTestDataMap, definition)}
                 />
               ))}
             </div>
@@ -1069,11 +1140,14 @@ function ArchivedRunsPanel({ archivedRuns }: { archivedRuns: EdielTestRunRow[] }
 export default function EdielTgtWorkbenchPanel({
   messages,
   testRuns,
+  dynamicTestDataRows = [],
 }: {
   messages: EdielMessageRow[]
   testRuns: EdielTestRunRow[]
+  dynamicTestDataRows?: EdielTgtDynamicTestDataSummary[]
 }) {
   const definitions = getEdielTgtTestCases()
+  const dynamicTestDataMap = buildDynamicTestDataMap(dynamicTestDataRows)
   const coreDefinitions = definitions.filter((definition) => definition.scope === 'core')
   const groupedProdatDefinitions = getGroupedProdatDefinitions(coreDefinitions)
   const activeRuns = testRuns.filter((run) => run.status !== 'cancelled')
@@ -1083,7 +1157,7 @@ export default function EdielTgtWorkbenchPanel({
     .slice(0, 20)
     .map((run) => evaluateEdielTgtRun(run, messages))
   const linkedTestDataCount = coreDefinitions.filter((definition) =>
-    Boolean(getEdielTgtTestDataForCase(definition.suite, definition.roleCode, definition.testCaseCode))
+    Boolean(dynamicRowForCase(dynamicTestDataMap, definition)?.parsedPayload ?? getEdielTgtTestDataForCase(definition.suite, definition.roleCode, definition.testCaseCode))
   ).length
 
   function activeRunsForCase(definition: EdielTgtTestCaseDefinition): number {
@@ -1134,6 +1208,7 @@ export default function EdielTgtWorkbenchPanel({
             groups={groupedProdatDefinitions}
             evaluations={evaluations}
             activeRunsForCase={activeRunsForCase}
+            dynamicTestDataMap={dynamicTestDataMap}
           />
         </div>
 
@@ -1146,7 +1221,7 @@ export default function EdielTgtWorkbenchPanel({
               </div>
             ) : (
               evaluations.map((evaluation) => (
-                <RunEvaluationCard key={evaluation.testRun.id} evaluation={evaluation} messages={messages} />
+                <RunEvaluationCard key={evaluation.testRun.id} evaluation={evaluation} messages={messages} dynamicTestDataMap={dynamicTestDataMap} />
               ))
             )}
           </div>

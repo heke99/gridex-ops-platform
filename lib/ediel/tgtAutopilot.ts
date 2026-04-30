@@ -14,6 +14,7 @@ import {
   type EdielTgtRunEvaluation,
 } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
+import { getEdielTgtDynamicTestDataForCase } from '@/lib/ediel/tgtTestDataStore'
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
@@ -251,13 +252,29 @@ async function createDraftForStep(params: {
 }): Promise<EdielMessageRow> {
   if (!params.evaluation.definition) throw new Error('TGT-definition saknas')
 
+  const importedTestData = await getEdielTgtDynamicTestDataForCase(
+    params.evaluation.definition.suite,
+    params.evaluation.definition.roleCode,
+    params.evaluation.definition.testCaseCode
+  )
+
   const draft = buildEdielTgtDraft({
     actorUserId: params.actorUserId,
     testSuite: params.evaluation.definition.suite,
     roleCode: params.evaluation.definition.roleCode,
     testCaseCode: params.evaluation.definition.testCaseCode,
     stepNo: params.step.stepNo,
+    importedTestData,
   })
+  const blockingIssues = draft.validationIssues.filter((issue) => issue.severity === 'error')
+  if (blockingIssues.length > 0) {
+    throw new Error(
+      `TGT-utkastet är blockerat: ${blockingIssues
+        .map((issue) => `${issue.title}: ${issue.description}`)
+        .join(' | ')}`
+    )
+  }
+
   const message = await createEdielMessage(draft.messageInput)
   await attachEdielMessageToTestRun({
     testRunId: params.evaluation.testRun.id,

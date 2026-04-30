@@ -46,6 +46,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listSafeApplyReviewItems, listUtiltsBillingReviewItems } from '@/lib/ediel/safeApplyReview'
 import { listEdielInboundCases } from '@/lib/ediel/inboundCases'
 import { listEdielProdatProductionCandidates } from '@/lib/ediel/prodatContext'
+import { listEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
 
 export const dynamic = 'force-dynamic'
 
@@ -606,6 +607,7 @@ export default async function AdminEdielPage() {
     versionMismatchMessages,
     invalidCodeMessages,
     ruleAmbiguities,
+    dynamicTgtTestData,
   ] = await Promise.all([
     listEdielMessages({ limit: 120 }),
     listEdielTestRuns(),
@@ -644,6 +646,7 @@ export default async function AdminEdielPage() {
     listRecentVersionMismatchMessages({ limit: 20 }),
     listRecentInvalidCodeUsageMessages({ limit: 20 }),
     listRuleAmbiguities(),
+    listEdielTgtDynamicTestData(),
   ])
 
   if (switchRequestsRaw.error) throw switchRequestsRaw.error
@@ -923,7 +926,7 @@ export default async function AdminEdielPage() {
         description="Skapa test run, se testdata, skapa fil för nästa steg och importera portalens svar."
       />
 
-      <EdielTgtWorkbenchPanel messages={messages} testRuns={testRuns} />
+      <EdielTgtWorkbenchPanel messages={messages} testRuns={testRuns} dynamicTestDataRows={dynamicTgtTestData} />
 
       <SectionLabel
         id="inbound-cases"

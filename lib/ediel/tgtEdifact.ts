@@ -19,7 +19,7 @@ import {
   getEdielTgtTestCaseByCode,
   type EdielTgtExpectedStep,
 } from '@/lib/ediel/tgtRegistry'
-import { getEdielTgtTestDataForCase } from '@/lib/ediel/tgtTestData'
+import { getEdielTgtTestDataForCase, type EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
 
 export type EdielTgtDraftValidationIssue = {
   severity: 'error' | 'warning' | 'info'
@@ -34,6 +34,7 @@ export type EdielTgtDraftBuildParams = {
   roleCode: EdielTestRoleCode
   testCaseCode: string
   stepNo: number
+  importedTestData?: EdielTgtCaseTestData | null
 }
 
 export type EdielTgtDraftOption = {
@@ -272,12 +273,20 @@ function preferredColumnSelectorsForStep(step: EdielTgtExpectedStep): string[] {
   return [step.code]
 }
 
+type TestDataLookupParams = Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'> & {
+  importedTestData?: EdielTgtCaseTestData | null
+}
+
+function getTgtTestData(params: TestDataLookupParams): EdielTgtCaseTestData | null {
+  return params.importedTestData ?? getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+}
+
 function findTestValue(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   selectors: readonly string[],
   preferredColumnSelectors: readonly string[] = []
 ): string | null {
-  const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+  const data = getTgtTestData(params)
   if (!data) return null
   const normalizedSelectors = selectors.map(normalizeSearch)
 
@@ -321,7 +330,7 @@ function findTestFieldForStep(
   step: EdielTgtExpectedStep,
   selectors: readonly string[]
 ): TgtMatchedField | null {
-  const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+  const data = getTgtTestData(params)
   if (!data) return null
 
   const normalizedSelectors = selectors.map(normalizeSearch)
@@ -370,7 +379,7 @@ function findFieldValueForColumn(
   columnName: string,
   selectors: readonly string[]
 ): string | null {
-  const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+  const data = getTgtTestData(params)
   if (!data) return null
   const normalizedSelectors = selectors.map(normalizeSearch)
 
@@ -390,7 +399,7 @@ function selectedRegisterColumns(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   step: EdielTgtExpectedStep
 ): string[] {
-  const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+  const data = getTgtTestData(params)
   if (!data) return []
   const selectors = preferredColumnSelectorsForStep(step)
   const names: string[] = []
@@ -502,7 +511,7 @@ function resolveTgtMeteringMethod(
 }
 
 function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>, step: EdielTgtExpectedStep): TgtPortalCustomerData {
-  const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+  const data = getTgtTestData(params)
   const startDateRaw = findTestValueForStep(params, step, ['210 avtal', 'startdatum', 'leveransstart'])
   const registers = buildRegistersFromTestData(params, step)
   const importedMeteringMethod = cleanOptionalCode(findTestValueForStep(params, step, ['217 mätmetod', '217 matmetod']), 12)

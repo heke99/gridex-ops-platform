@@ -53,6 +53,7 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 import { registerEdielFile, type EdielFileEngineMode } from '@/lib/ediel/fileEngine'
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
+import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
 import {
   autoAttachImportedMessageToActiveTgtRun,
   createMockPortalMessageForNextStep,
@@ -367,6 +368,30 @@ export async function attachEdielMessageToTestRunAction(formData: FormData) {
   revalidateEdiel()
 }
 
+
+export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const testSuite = parseEdielTestSuite(formData.get('testSuite'))
+  const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
+  const testCaseCode = formString(formData.get('testCaseCode')) ?? ''
+  const title = formString(formData.get('title'))
+  const rawText = formString(formData.get('rawText')) ?? ''
+
+  if (!testCaseCode) throw new Error('testCaseCode saknas')
+  if (!rawText) throw new Error('Klistra in testdata från Edielportalen innan du sparar.')
+
+  await upsertEdielTgtDynamicTestData({
+    suite: testSuite,
+    roleCode,
+    testCaseCode,
+    title,
+    rawText,
+    actorUserId: context.userId,
+  })
+
+  revalidateEdiel()
+}
+
 export async function createEdielTgtDraftAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const testSuite = parseEdielTestSuite(formData.get('testSuite'))
@@ -377,13 +402,25 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   if (!stepNo) throw new Error('Välj vilket TGT-steg som ska genereras')
 
+  const importedTestData = await getEdielTgtDynamicTestDataForCase(testSuite, roleCode, testCaseCode)
+
   const draft = buildEdielTgtDraft({
     actorUserId: context.userId,
     testSuite,
     roleCode,
     testCaseCode,
     stepNo,
+    importedTestData,
   })
+
+  const blockingIssues = draft.validationIssues.filter((issue) => issue.severity === 'error')
+  if (blockingIssues.length > 0) {
+    throw new Error(
+      `TGT-utkastet är blockerat: ${blockingIssues
+        .map((issue) => `${issue.title}: ${issue.description}`)
+        .join(' | ')}`
+    )
+  }
 
   const message = await createEdielMessage(draft.messageInput)
 
