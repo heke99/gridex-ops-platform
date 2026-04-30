@@ -7,6 +7,7 @@ import {
   prepareSwitchZ04Action,
   pollMailboxAction,
   sendEdielMessageAction,
+  updateEdielPortalSwitchTestDataAction,
 } from '@/app/admin/ediel/actions'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { getEdielTgtTestCases } from '@/lib/ediel/tgtRegistry'
@@ -381,6 +382,52 @@ function ProductionCandidateCard({
         ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2">
+
+        <form action={updateEdielPortalSwitchTestDataAction} className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-3">
+          <input type="hidden" name="switchRequestId" value={candidate.switchRequestId} />
+          <div className="text-xs font-semibold text-indigo-950">Justera Edielportal-testdata för detta ärende</div>
+          <p className="mt-1 text-[11px] leading-5 text-indigo-800">
+            Använd detta när portalen säger att testdata inte matchar, utan att behöva skapa om kund/anläggning.
+            När du sparar avbryts gamla oskickade PRODAT-utkast automatiskt. Skapa sedan nytt Z03-utkast.
+          </p>
+          <div className="mt-3 grid gap-2 md:grid-cols-4">
+            <label className="block text-xs font-semibold text-slate-700">
+              Mätmetod / fält 217
+              <select name="meteringMethod" defaultValue={candidate.portalMeteringMethod ?? ''} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-950">
+                <option value="">Behåll</option>
+                <option value="Z01">Z01</option>
+                <option value="Z02">Z02</option>
+                <option value="Z03">Z03</option>
+                <option value="Z04">Z04 — kvart/15 min</option>
+              </select>
+            </label>
+            <label className="block text-xs font-semibold text-slate-700">
+              Transaktionstyp / fält 223
+              <select name="reasonForTransaction" defaultValue={candidate.portalReasonForTransaction ?? ''} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-950">
+                <option value="">Behåll</option>
+                <option value="Z22">L = leverantörsbyte = Z22</option>
+                <option value="Z23">LK = leverantörs- och kundbyte = Z23</option>
+              </select>
+            </label>
+            <label className="block text-xs font-semibold text-slate-700">
+              Kund-id typ / DE 1131
+              <select name="customerIdCodeListQualifier" defaultValue={candidate.portalCustomerIdCodeListQualifier ?? ''} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-950">
+                <option value="">Behåll</option>
+                <option value="SE1">Organisationsnummer = SE1</option>
+                <option value="SE2">Personnummer = SE2</option>
+                <option value="1">Födelsedatum = 1</option>
+              </select>
+            </label>
+            <FormInput name="customerName" label="Namn exakt enligt portalen" defaultValue={candidate.customerLabel} placeholder="Ex. BOLAGET XXX" />
+          </div>
+          <div className="mt-3 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-[11px] leading-5 text-indigo-900">
+            För 1.2.2 Z03LK ska du normalt ha: <strong>Z04</strong>, <strong>Z23</strong> och <strong>SE1</strong>.
+            Raw PRODAT ska då innehålla <code>CCI++Z04&apos; CAV+Z04&apos;</code>, <code>CAV+Z23&apos;</code> och <code>NAD+UD+5560143041:SE1:260</code>.
+          </div>
+          <button className="mt-3 rounded-xl bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800">
+            Spara testdata på ärendet
+          </button>
+        </form>
           <form action={prepareSwitchZ03Action}>
             <input type="hidden" name="switchRequestId" value={candidate.switchRequestId} />
             <input type="hidden" name="environment" value="test" />

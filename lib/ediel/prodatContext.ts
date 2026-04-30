@@ -30,6 +30,9 @@ export type EdielProdatProductionCandidate = {
   meteringPointDbId: string | null
   meteringPointId: string | null
   meteringMethod: string | null
+  portalMeteringMethod: string | null
+  portalReasonForTransaction: string | null
+  portalCustomerIdCodeListQualifier: string | null
   readingFrequency: string | null
   gridOwnerId: string | null
   gridOwnerName: string | null
@@ -52,6 +55,10 @@ function asString(value: unknown): string | null {
 
 function asNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function objectValue(value: unknown): AnyRow {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as AnyRow) : {}
 }
 
 function unique(values: Array<string | null | undefined>): string[] {
@@ -227,6 +234,13 @@ export async function listEdielProdatProductionCandidates(
     const gridOwner = gridOwnerId ? gridOwnersById.get(gridOwnerId) ?? null : null
     const route = routeForGridOwner(routes, gridOwnerId)
     const poa = latestMatchingPoa(poas, switchRow)
+    const validationSnapshot = objectValue(switchRow.validation_snapshot)
+    const portalData = objectValue(validationSnapshot.portalData)
+    const portalOverrides = objectValue(portalData.testCaseOverrides)
+    const portalMeteringMethod = asString(portalOverrides.meteringMethod) ?? asString(portalData.meteringMethod)
+    const portalReasonForTransaction = asString(portalOverrides.reasonForTransaction) ?? asString(portalData.reasonForTransaction)
+    const portalCustomerIdCodeListQualifier =
+      asString(portalOverrides.customerIdCodeListQualifier) ?? asString(portalData.customerIdCodeListQualifier)
     const issues = validateCandidate({ switchRow, customer, site, meteringPoint, gridOwner, route, poa })
     const hasBlockingError = issues.some((issue) => issue.severity === 'error')
     const status = asString(switchRow.status) ?? 'unknown'
@@ -251,6 +265,9 @@ export async function listEdielProdatProductionCandidates(
       meteringPointDbId,
       meteringPointId: asString(meteringPoint?.meter_point_id),
       meteringMethod: asString(meteringPoint?.measurement_type),
+      portalMeteringMethod,
+      portalReasonForTransaction,
+      portalCustomerIdCodeListQualifier,
       readingFrequency: asString(meteringPoint?.reading_frequency),
       gridOwnerId,
       gridOwnerName: asString(gridOwner?.name),

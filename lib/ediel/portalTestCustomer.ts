@@ -147,18 +147,16 @@ type PortalTestCaseOverrides = {
 }
 
 const PORTAL_TEST_CASE_OVERRIDES: Record<string, PortalTestCaseOverrides> = {
-  // Edielportalens TGT-validering kan vara mer specifik än den generella
-  // testkundsdatan som visas när testet startas. För Z03L/Z03LK kräver
-  // portalen fält 217 (CCI++Z04/CAV) = Z03 även om en manuellt kopierad
-  // testkundsrad råkar ange Z01. Generatorn ska därför fortfarande vara
-  // datadriven, men testfallsspecifika TGT-regler vinner över formulärdata.
+  // Bara fält som är bevisat testfallsspecifika ska ligga här. Mätmetod ska
+  // normalt komma från portalens testdata/formuläret. Vi behåller Z03 för
+  // 1.2.1 eftersom det testet redan är verifierat mot portalen, men vi
+  // tvingar inte 1.2.2 till Z03; Z03LK testkund 20 kräver Z04.
   'PRODAT:supplier:1.2.1': {
     meteringMethod: 'Z03',
     reasonForTransaction: 'Z22',
     customerIdCodeListQualifier: 'SE2',
   },
   'PRODAT:supplier:1.2.2': {
-    meteringMethod: 'Z03',
     reasonForTransaction: 'Z23',
     customerIdCodeListQualifier: 'SE1',
   },

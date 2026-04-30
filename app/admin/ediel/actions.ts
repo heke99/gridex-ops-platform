@@ -797,6 +797,110 @@ export async function createEdielPortalTestCustomerAction(formData: FormData) {
   revalidateEdiel()
 }
 
+function actionJsonObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+}
+
+function normalizeEdielMeteringMethod(value: string | null): 'Z01' | 'Z02' | 'Z03' | 'Z04' | null {
+  if (value === 'Z01' || value === 'Z02' || value === 'Z03' || value === 'Z04') return value
+  return null
+}
+
+function normalizeProdatReason(value: string | null): 'Z22' | 'Z23' | null {
+  if (value === 'Z22' || value === 'Z23') return value
+  return null
+}
+
+function normalizeCustomerIdQualifier(value: string | null): 'SE1' | 'SE2' | '1' | null {
+  if (value === 'SE1' || value === 'SE2' || value === '1') return value
+  return null
+}
+
+export async function updateEdielPortalSwitchTestDataAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['masterdata.write', 'switching.write', 'communication.write', 'communication.read'])
+  const switchRequestId = formString(formData.get('switchRequestId'))
+  if (!switchRequestId) throw new Error('switchRequestId saknas')
+
+  const meteringMethod = normalizeEdielMeteringMethod(formString(formData.get('meteringMethod')))
+  const reasonForTransaction = normalizeProdatReason(formString(formData.get('reasonForTransaction')))
+  const customerIdCodeListQualifier = normalizeCustomerIdQualifier(formString(formData.get('customerIdCodeListQualifier')))
+  const customerName = formString(formData.get('customerName'))
+
+  if (!meteringMethod && !reasonForTransaction && !customerIdCodeListQualifier && !customerName) {
+    throw new Error('Inget testdatafält att uppdatera valdes.')
+  }
+
+  const supabase = await makeServerClient()
+  const { data: row, error } = await supabase
+    .from('supplier_switch_requests')
+    .select('id,validation_snapshot')
+    .eq('id', switchRequestId)
+    .single()
+
+  if (error) throw error
+
+  const snapshot = actionJsonObject(row.validation_snapshot)
+  const portalData = actionJsonObject(snapshot.portalData)
+  const testCaseOverrides = actionJsonObject(portalData.testCaseOverrides)
+
+  const nextPortalData = {
+    ...portalData,
+    ...(meteringMethod ? { meteringMethod } : {}),
+    ...(reasonForTransaction ? { reasonForTransaction } : {}),
+    ...(customerIdCodeListQualifier ? { customerIdCodeListQualifier } : {}),
+    ...(customerName ? { customerName } : {}),
+    testCaseOverrides: {
+      ...testCaseOverrides,
+      ...(meteringMethod ? { meteringMethod } : {}),
+      ...(reasonForTransaction ? { reasonForTransaction } : {}),
+      ...(customerIdCodeListQualifier ? { customerIdCodeListQualifier } : {}),
+    },
+  }
+
+  const nextSnapshot = {
+    ...snapshot,
+    portalData: nextPortalData,
+    manualPortalTestDataOverride: {
+      source: 'ediel_production_prodat_panel',
+      updatedAt: new Date().toISOString(),
+      updatedBy: context.userId,
+      fields: {
+        meteringMethod,
+        reasonForTransaction,
+        customerIdCodeListQualifier,
+        customerName,
+      },
+    },
+  }
+
+  const { error: updateError } = await supabase
+    .from('supplier_switch_requests')
+    .update({
+      validation_snapshot: nextSnapshot,
+      updated_by: context.userId,
+    })
+    .eq('id', switchRequestId)
+
+  if (updateError) throw updateError
+
+  await supabase.from('supplier_switch_events').insert({
+    switch_request_id: switchRequestId,
+    event_type: 'ediel_portal_test_data_updated',
+    event_status: 'success',
+    message: 'Edielportal-testdata uppdaterades manuellt. Gamla oskickade PRODAT-utkast avbryts och nytt utkast ska skapas.',
+    payload: nextSnapshot,
+    created_by: context.userId,
+  })
+
+  await cancelSupersededSwitchProdatDrafts({ actorUserId: context.userId, switchRequestId, messageCode: 'Z03' })
+  await cancelSupersededSwitchProdatDrafts({ actorUserId: context.userId, switchRequestId, messageCode: 'Z04' })
+
+  revalidatePath('/admin/ediel')
+  revalidatePath('/admin/operations/switches')
+  revalidatePath(`/admin/operations/switches/${switchRequestId}`)
+  revalidateEdiel()
+}
+
 export async function prepareSwitchZ03Action(formData: FormData) {
   await prepareSwitchProdatAction(formData, 'Z03')
 }

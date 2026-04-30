@@ -275,18 +275,11 @@ function portalObject(portalData: Record<string, unknown> | null, key: string): 
 }
 
 function resolveProdatMeteringMethod(portalData: Record<string, unknown> | null): string | null {
+  // Testdata/formulärdata ska vara källan. Bara explicit override får vinna.
+  // Tidigare låg en hårdkodad fallback till Z03 för 1.2.1/1.2.2 här. Den gjorde
+  // att Z03LK testkund 20 skickade CAV+Z03 trots att portalen krävde Z04.
   const override = portalString(portalObject(portalData, 'testCaseOverrides'), 'meteringMethod')
-  if (override) return override
-
-  const suite = portalString(portalData, 'testSuite')
-  const roleCode = portalString(portalData, 'roleCode')
-  const testCaseCode = portalString(portalData, 'testCaseCode')
-
-  if (suite === 'PRODAT' && roleCode === 'supplier' && (testCaseCode === '1.2.1' || testCaseCode === '1.2.2')) {
-    return 'Z03'
-  }
-
-  return portalString(portalData, 'meteringMethod')
+  return override ?? portalString(portalData, 'meteringMethod')
 }
 
 function portalNumberString(portalData: Record<string, unknown> | null, key: string): string | null {
