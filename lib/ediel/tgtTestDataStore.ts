@@ -454,6 +454,174 @@ function parseBlockOrientedPortalText(rawText: string): BlockParsedPortalText {
   }
 }
 
+
+type LineObjectField = {
+  fieldCode: string
+  fieldName: string
+  value: string
+}
+
+type LineObjectBlock = {
+  label: string
+  fields: Map<string, LineObjectField>
+}
+
+function firstPortalFieldValue(field: EdielTgtExcelField): string | null {
+  for (const value of Object.values(field.values)) {
+    const cleaned = normalizeFieldValue(value)
+    if (cleaned) return cleaned
+  }
+  return null
+}
+
+function fieldObjectKey(fieldCode: string, fieldName: string): string {
+  return `${normalizeCode(fieldCode)}|${normalizeFieldValue(fieldName)}`
+}
+
+function createLineObjectBlock(label: string, index: number): LineObjectBlock {
+  return {
+    label: stablePortalColumnName(label || null, index),
+    fields: new Map<string, LineObjectField>(),
+  }
+}
+
+function blockFieldValue(block: LineObjectBlock, fieldCode: string): string | null {
+  for (const field of block.fields.values()) {
+    if (normalizeCode(field.fieldCode) === normalizeCode(fieldCode)) {
+      const value = normalizeFieldValue(field.value)
+      if (value) return value
+    }
+  }
+  return null
+}
+
+function blockIdentity(block: LineObjectBlock): string {
+  const objectId = blockFieldValue(block, '209') ?? blockFieldValue(block, '233') ?? ''
+  const customerId = blockFieldValue(block, '227') ?? ''
+  const poa = blockFieldValue(block, '261') ?? ''
+  const startDate = blockFieldValue(block, '210') ?? ''
+
+  if (objectId || customerId || poa || startDate) {
+    return [objectId, customerId, poa, startDate].map((value) => normalizeFieldValue(value).toUpperCase()).join('|')
+  }
+
+  return `NO_ID|${block.label}`
+}
+
+function hasUsefulPortalObjectFields(block: LineObjectBlock): boolean {
+  return Boolean(
+    blockFieldValue(block, '209') ||
+    blockFieldValue(block, '233') ||
+    blockFieldValue(block, '227') ||
+    blockFieldValue(block, '228')
+  )
+}
+
+function dedupeLineObjectBlocks(blocks: LineObjectBlock[]): LineObjectBlock[] {
+  const byIdentity = new Map<string, LineObjectBlock>()
+
+  for (const block of blocks.filter(hasUsefulPortalObjectFields)) {
+    const identity = blockIdentity(block)
+    const existing = byIdentity.get(identity)
+
+    if (!existing) {
+      byIdentity.set(identity, block)
+      continue
+    }
+
+    // Duplicate object from another pasted section/file. Keep the first column,
+    // but merge any missing field values from the duplicate so upload of several
+    // files is safe and idempotent.
+    for (const [key, field] of block.fields.entries()) {
+      const existingField = existing.fields.get(key)
+      if (!existingField || !normalizeFieldValue(existingField.value)) {
+        existing.fields.set(key, field)
+      }
+    }
+  }
+
+  return Array.from(byIdentity.values())
+}
+
+function parseLineObjectPortalText(rawText: string): BlockParsedPortalText | null {
+  const objects: LineObjectBlock[] = []
+  let current = createLineObjectBlock('', 1)
+  let objectIndex = 1
+
+  function pushCurrent() {
+    if (hasUsefulPortalObjectFields(current)) objects.push(current)
+  }
+
+  for (const rawLine of rawText.split('\n')) {
+    const cleaned = rawLine.replace(/^[-•*]\s*/, '').trim()
+    if (!cleaned) continue
+
+    const sectionLabel = portalSectionLabelFromLine(cleaned)
+    if (sectionLabel) {
+      pushCurrent()
+      objectIndex += 1
+      current = createLineObjectBlock(sectionLabel, objectIndex)
+      continue
+    }
+
+    const field = parsePortalFieldLine(cleaned)
+    if (!field) continue
+
+    const value = firstPortalFieldValue(field)
+    if (!value) continue
+
+    // If a copied/exported text contains repeated field 209 without a Testkund
+    // header between objects, treat it as the beginning of a new object.
+    if (
+      normalizeCode(field.fieldCode) === '209' &&
+      blockFieldValue(current, '209') &&
+      current.fields.size > 0
+    ) {
+      pushCurrent()
+      objectIndex += 1
+      current = createLineObjectBlock(`Portaltestdata ${objectIndex}`, objectIndex)
+    }
+
+    const key = fieldObjectKey(field.fieldCode, field.fieldName)
+    current.fields.set(key, {
+      fieldCode: normalizeCode(field.fieldCode),
+      fieldName: KNOWN_PORTAL_FIELD_NAMES[normalizeCode(field.fieldCode)] ?? field.fieldName,
+      value,
+    })
+  }
+
+  pushCurrent()
+  const dedupedObjects = dedupeLineObjectBlocks(objects)
+  if (dedupedObjects.length === 0) return null
+
+  const columnNames = dedupedObjects.map((block, index) => stablePortalColumnName(block.label, index + 1))
+  const fieldMap = new Map<string, EdielTgtExcelField>()
+
+  dedupedObjects.forEach((block, index) => {
+    const columnName = columnNames[index] ?? stablePortalColumnName(block.label, index + 1)
+
+    for (const field of block.fields.values()) {
+      const key = fieldObjectKey(field.fieldCode, field.fieldName)
+      const existing = fieldMap.get(key)
+      if (!existing) {
+        fieldMap.set(key, {
+          fieldCode: normalizeCode(field.fieldCode),
+          fieldName: KNOWN_PORTAL_FIELD_NAMES[normalizeCode(field.fieldCode)] ?? field.fieldName,
+          values: { [columnName]: normalizeFieldValue(field.value) },
+        })
+        continue
+      }
+
+      existing.values[columnName] = normalizeFieldValue(field.value)
+    }
+  })
+
+  return {
+    fields: Array.from(fieldMap.values()),
+    columnNames,
+  }
+}
+
 export function parseEdielPortalTestDataText(input: {
   suite: EdielTestSuite
   roleCode: EdielTestRoleCode
@@ -462,7 +630,8 @@ export function parseEdielPortalTestDataText(input: {
   rawText: string
 }): EdielTgtCaseTestData {
   const rawText = normalizeText(input.rawText)
-  const blockParsed = parseBlockOrientedPortalText(rawText)
+  const lineParsed = parseLineObjectPortalText(rawText)
+  const blockParsed = lineParsed ?? parseBlockOrientedPortalText(rawText)
 
   const fields = blockParsed.fields.length > 0
     ? blockParsed.fields

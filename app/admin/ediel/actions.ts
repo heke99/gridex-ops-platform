@@ -107,6 +107,23 @@ async function formFileText(value: FormDataEntryValue | null): Promise<{ text: s
   }
 }
 
+
+async function formFilesText(values: FormDataEntryValue[]): Promise<{ text: string | null; fileNames: string[] }> {
+  const parts: string[] = []
+  const fileNames: string[] = []
+
+  for (const value of values) {
+    const uploaded = await formFileText(value)
+    if (uploaded.text) parts.push(uploaded.text)
+    if (uploaded.fileName) fileNames.push(uploaded.fileName)
+  }
+
+  return {
+    text: parts.length > 0 ? parts.join('\n\n') : null,
+    fileNames,
+  }
+}
+
 function parseFileEngineMode(value: FormDataEntryValue | null): EdielFileEngineMode {
   const raw = formString(value)
   if (raw === 'internal_test' || raw === 'production_dry_run') return raw
@@ -382,8 +399,8 @@ export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
   const testCaseCode = formString(formData.get('testCaseCode')) ?? ''
   const title = formString(formData.get('title'))
   const pastedText = formString(formData.get('rawText')) ?? ''
-  const uploaded = await formFileText(formData.get('testDataFile'))
-  const rawText = uploaded.text ?? pastedText
+  const uploaded = await formFilesText(formData.getAll('testDataFile'))
+  const rawText = [uploaded.text, pastedText].filter(Boolean).join('\n\n')
 
   if (!testCaseCode) throw new Error('testCaseCode saknas')
   if (!rawText) {
@@ -394,7 +411,7 @@ export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
     suite: testSuite,
     roleCode,
     testCaseCode,
-    title: uploaded.fileName ? `${title ?? `TGT ${testCaseCode}`} · ${uploaded.fileName}` : title,
+    title: uploaded.fileNames.length > 0 ? `${title ?? `TGT ${testCaseCode}`} · ${uploaded.fileNames.join(', ')}` : title,
     rawText,
     actorUserId: context.userId,
   })
