@@ -153,6 +153,34 @@ function pad(value: number, length = 2): string {
   return String(value).padStart(length, '0')
 }
 
+function base36Token(value: number, length: number): string {
+  return Math.max(0, value).toString(36).toUpperCase().padStart(length, '0').slice(-length)
+}
+
+function shortCaseToken(testCaseCode: string): string {
+  const hash = Array.from(testCaseCode).reduce(
+    (sum, char) => (sum + char.charCodeAt(0)) % 36,
+    0
+  )
+  return base36Token(hash, 1)
+}
+
+function buildTgtInterchangeReference(params: {
+  createdDate: string
+  createdTime: string
+  seconds: number
+  testCaseCode: string
+  stepNo: number
+}): string {
+  // Edielportalen rejects long UNB/0020 values as "Field content oversized".
+  // Keep TGT interchange references deliberately short and alphanumeric, and reuse
+  // the same value in UNZ/0020. Format: YYMMDDHHMM + step + seconds(base36) + caseHash = max 14 chars.
+  const stepToken = base36Token(params.stepNo, 1)
+  const secondsToken = base36Token(params.seconds, 2)
+  const caseToken = shortCaseToken(params.testCaseCode)
+  return `${params.createdDate}${params.createdTime}${stepToken}${secondsToken}${caseToken}`.slice(0, 14)
+}
+
 function nowRefs(testCaseCode: string, stepNo: number): DraftReferences {
   const now = new Date()
   const y = now.getUTCFullYear()
@@ -163,16 +191,24 @@ function nowRefs(testCaseCode: string, stepNo: number): DraftReferences {
   const ss = pad(now.getUTCSeconds())
   const compact = `${y}${m}${d}${hh}${mm}${ss}`
   const safeCase = testCaseCode.replace(/[^A-Za-z0-9]/g, '')
+  const createdDate = `${String(y).slice(2)}${m}${d}`
+  const createdTime = `${hh}${mm}`
 
   return {
-    interchangeRef: `GX${safeCase}${stepNo}${compact}`.slice(0, 35),
+    interchangeRef: buildTgtInterchangeReference({
+      createdDate,
+      createdTime,
+      seconds: now.getUTCSeconds(),
+      testCaseCode,
+      stepNo,
+    }),
     messageRef: `M${safeCase}${stepNo}${compact}`.slice(0, 14),
     transactionRef: `TGT-${testCaseCode}-S${stepNo}`,
     externalRef: `GRIDEX-${testCaseCode}-S${stepNo}-${compact}`,
-    originalInterchangeRef: `PORTAL-${testCaseCode}-S${Math.max(1, stepNo - 1)}`.slice(0, 35),
+    originalInterchangeRef: `P${safeCase}${Math.max(1, stepNo - 1)}${createdDate}${createdTime}`.slice(0, 14),
     originalMessageRef: `P${safeCase}${Math.max(1, stepNo - 1)}${compact}`.slice(0, 14),
-    createdDate: `${String(y).slice(2)}${m}${d}`,
-    createdTime: `${hh}${mm}`,
+    createdDate,
+    createdTime,
     createdLongDate: `${y}${m}${d}`,
   }
 }
@@ -934,6 +970,14 @@ export function validateEdielTgtDraft(rawPayload: string, step: EdielTgtExpected
 
   if (parsed.unbRef && parsed.unzRef && parsed.unbRef !== parsed.unzRef) {
     pushIssue(issues, 'error', 'unz_reference_mismatch', 'UNZ matchar inte UNB', 'UNZ-referensen måste vara samma som UNB interchange reference.')
+  }
+
+  if (parsed.unbRef && parsed.unbRef.length > 14) {
+    pushIssue(issues, 'error', 'interchange_reference_too_long', 'Utväxlingsreferens är för lång', `UNB/0020 är ${parsed.unbRef.length} tecken. TGT-utkast ska hålla UNB/0020 kort, max 14 tecken.`)
+  }
+
+  if (parsed.unzRef && parsed.unzRef.length > 14) {
+    pushIssue(issues, 'error', 'unz_reference_too_long', 'UNZ-referens är för lång', `UNZ/0020 är ${parsed.unzRef.length} tecken. UNZ ska använda samma korta referens som UNB.`)
   }
 
   if (parsed.unzCount !== null && parsed.unzCount !== 1) {
