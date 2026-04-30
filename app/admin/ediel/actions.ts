@@ -152,7 +152,17 @@ function collectAperakApplicationErrors(formData: FormData): EdielAperakApplicat
   const ercCodes = formStringList(formData, 'aperakErrorErc')
   const fieldCodes = formStringList(formData, 'aperakErrorFieldCode')
   const texts = formStringList(formData, 'aperakErrorText')
-  const max = Math.max(ercCodes.length, fieldCodes.length, texts.length)
+  const referenceQualifiers = formStringList(formData, 'aperakErrorReferenceQualifier')
+  const referenceNumbers = formStringList(formData, 'aperakErrorReferenceNumber')
+  const lineItemReferences = formStringList(formData, 'aperakErrorLineItemReference')
+  const max = Math.max(
+    ercCodes.length,
+    fieldCodes.length,
+    texts.length,
+    referenceQualifiers.length,
+    referenceNumbers.length,
+    lineItemReferences.length
+  )
   const errors: EdielAperakApplicationError[] = []
 
   for (let index = 0; index < max; index += 1) {
@@ -163,6 +173,9 @@ function collectAperakApplicationErrors(formData: FormData): EdielAperakApplicat
       ercCode,
       fieldCode: fieldCodes[index] ?? null,
       text,
+      referenceQualifier: referenceQualifiers[index] ?? null,
+      referenceNumber: referenceNumbers[index] ?? null,
+      lineItemReference: lineItemReferences[index] ?? null,
     })
   }
 

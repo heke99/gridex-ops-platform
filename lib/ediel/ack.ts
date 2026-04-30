@@ -110,6 +110,14 @@ export type EdielAperakApplicationError = {
   ercCode: string
   fieldCode?: string | null
   text: string
+  /**
+   * Optional object/transaction reference for this exact APERAK row.
+   * Multi-object PRODAT TGT responses must repeat ERC/FTX/RFF per object;
+   * otherwise Edielportalen treats all errors as belonging to the first LIN.
+   */
+  referenceQualifier?: string | null
+  referenceNumber?: string | null
+  lineItemReference?: string | null
 }
 
 function normalizeAperakErrors(errors?: readonly EdielAperakApplicationError[] | null, fallbackText?: string | null): EdielAperakApplicationError[] {
@@ -118,11 +126,23 @@ function normalizeAperakErrors(errors?: readonly EdielAperakApplicationError[] |
       ercCode: sanitizeEdifactToken(error.ercCode, 12) ?? '',
       fieldCode: sanitizeEdifactToken(error.fieldCode ?? null, 12),
       text: escapeEdifactText(error.text, 140),
+      referenceQualifier: sanitizeEdifactToken(error.referenceQualifier ?? null, 12),
+      referenceNumber: sanitizeEdifactToken(error.referenceNumber ?? null, 35),
+      lineItemReference: sanitizeEdifactToken(error.lineItemReference ?? null, 35),
     }))
     .filter((error) => error.ercCode.length > 0 && error.text.length > 0)
 
   if (normalized.length > 0) return normalized
-  return [{ ercCode: '40', fieldCode: '40', text: escapeEdifactText(fallbackText || 'Applikationen kunde inte bearbeta meddelandet', 140) }]
+  return [
+    {
+      ercCode: '40',
+      fieldCode: '40',
+      text: escapeEdifactText(fallbackText || 'Applikationen kunde inte bearbeta meddelandet', 140),
+      referenceQualifier: null,
+      referenceNumber: null,
+      lineItemReference: null,
+    },
+  ]
 }
 
 function segmentsFromRawPayload(rawPayload?: string | null): string[] {
@@ -351,20 +371,47 @@ function buildAperakSegments(params: {
     `NAD+DO+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`
   )
 
-  if (params.outcome === 'positive') {
-    segments.push('ERC+100::260', 'FTX+AAO+++OK')
-  } else {
-    for (const error of normalizeAperakErrors(params.applicationErrors, params.messageText ?? null)) {
-      segments.push(`ERC+${error.ercCode}::260`)
-      segments.push(error.fieldCode ? `FTX+AAO++${error.fieldCode}::260+${error.text}` : `FTX+AAO+++${error.text}`)
+  const errors =
+    params.outcome === 'positive'
+      ? [
+          {
+            ercCode: '100',
+            fieldCode: null,
+            text: 'OK',
+            referenceQualifier: null,
+            referenceNumber: null,
+            lineItemReference: null,
+          },
+        ]
+      : normalizeAperakErrors(params.applicationErrors, params.messageText ?? null)
+
+  for (const error of errors) {
+    segments.push(`ERC+${error.ercCode}::260`)
+    segments.push(
+      error.fieldCode
+        ? `FTX+AAO++${error.fieldCode}::260+${error.text}`
+        : `FTX+AAO+++${error.text}`
+    )
+
+    const errorReferenceQualifier = error.referenceQualifier ?? (error.referenceNumber ? 'Z07' : null)
+    if (errorReferenceQualifier && error.referenceNumber) {
+      segments.push(`RFF+${errorReferenceQualifier}:${error.referenceNumber}`)
+    }
+
+    if (error.lineItemReference) {
+      segments.push(`RFF+LI:${error.lineItemReference}`)
     }
   }
 
-  if (refs.meteringPointId) {
+  const hasPerErrorReference = errors.some((error) => error.referenceNumber)
+
+  // Fallback for ordinary one-object APERAKs. Multi-object TGT APERAKs should
+  // carry references inside each error group above, not once at the end.
+  if (!hasPerErrorReference && refs.meteringPointId) {
     segments.push(`RFF+Z07:${refs.meteringPointId}`)
   }
 
-  if (refs.lineItemReference) {
+  if (!hasPerErrorReference && refs.lineItemReference) {
     segments.push(`RFF+LI:${refs.lineItemReference}`)
   }
 

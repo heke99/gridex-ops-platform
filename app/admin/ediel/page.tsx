@@ -434,9 +434,18 @@ function IncomingPortalResponses({
                       {message.sender_ediel_id ?? '—'}:{message.sender_sub_address ?? '—'} → {message.receiver_ediel_id ?? '—'}:{message.receiver_sub_address ?? '—'} · {formatDateTime(message.created_at)}
                     </div>
                   </div>
-                  <Link href={`/admin/ediel/messages/${message.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                    Öppna
-                  </Link>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/admin/ediel/messages/${message.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                      Öppna
+                    </Link>
+                    <form action={cancelEdielMessageAction}>
+                      <input type="hidden" name="edielMessageId" value={message.id} />
+                      <input type="hidden" name="reason" value="Raderad/dold från IMAP-listan via inbound-kort." />
+                      <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100">
+                        Radera
+                      </button>
+                    </form>
+                  </div>
                 </div>
 
                 {isInboundBusinessMessage ? (
@@ -462,7 +471,7 @@ function IncomingPortalResponses({
                           <input type="hidden" name="ackType" value="APERAK" />
                           <input type="hidden" name="outcome" value="positive" />
                           <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
-                            Skapa APERAK
+                            Skapa vanlig APERAK · inte S1.4.2
                           </button>
                         </form>
                       ) : null}
@@ -483,28 +492,38 @@ function IncomingPortalResponses({
                             Negativ APERAK för TGT-feltest
                           </summary>
                           <p className="mt-1 text-xs leading-5 text-rose-800">
-                            Använd bara i S1.4-feltest där portalen skickar felaktig Z04/Z04D och GridCore ska avvisa med applikationsfel. Positiva S1.2-tester påverkas inte.
+                            Använd bara när denna inbound-rad är portalens PRODAT Z04/Z04D i S1.4. För 1.4.2 måste APERAK innehålla flera objekt: S12 avvisas med 210/213, S13 avvisas med 214/226 och S14 godkänns med 100/OK.
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             <form action={createAckDraftAction}>
                               <input type="hidden" name="sourceMessageId" value={message.id} />
                               <input type="hidden" name="ackType" value="APERAK" />
                               <input type="hidden" name="outcome" value="negative" />
-                              <input type="hidden" name="aperakErrorErc" value="100" />
-                              <input type="hidden" name="aperakErrorFieldCode" value="" />
-                              <input type="hidden" name="aperakErrorText" value="OK" />
                               <input type="hidden" name="aperakErrorErc" value="42" />
                               <input type="hidden" name="aperakErrorFieldCode" value="210" />
                               <input type="hidden" name="aperakErrorText" value="Felaktig avtal, startdatum 2040-08-01" />
+                              <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
+                              <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000123" />
                               <input type="hidden" name="aperakErrorErc" value="41" />
                               <input type="hidden" name="aperakErrorFieldCode" value="213" />
                               <input type="hidden" name="aperakErrorText" value="Årsförbrukning saknas" />
+                              <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
+                              <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000123" />
                               <input type="hidden" name="aperakErrorErc" value="41" />
                               <input type="hidden" name="aperakErrorFieldCode" value="214" />
                               <input type="hidden" name="aperakErrorText" value="Konstant saknas" />
+                              <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
+                              <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000130" />
                               <input type="hidden" name="aperakErrorErc" value="41" />
                               <input type="hidden" name="aperakErrorFieldCode" value="226" />
-                              <input type="hidden" name="aperakErrorText" value="Ärendereferens saknas, kundid=196805249288" />
+                              <input type="hidden" name="aperakErrorText" value="Ärendereferens saknas, kundid=196501022773" />
+                              <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
+                              <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000130" />
+                              <input type="hidden" name="aperakErrorErc" value="100" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="" />
+                              <input type="hidden" name="aperakErrorText" value="OK" />
+                              <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
+                              <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000147" />
                               <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
                                 1.4.2 · tre anläggningar
                               </button>
@@ -516,15 +535,23 @@ function IncomingPortalResponses({
                               <input type="hidden" name="aperakErrorErc" value="42" />
                               <input type="hidden" name="aperakErrorFieldCode" value="210" />
                               <input type="hidden" name="aperakErrorText" value="Felaktig avtal, startdatum 2040-08-01" />
+                              <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
+                              <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000123" />
                               <input type="hidden" name="aperakErrorErc" value="41" />
                               <input type="hidden" name="aperakErrorFieldCode" value="213" />
                               <input type="hidden" name="aperakErrorText" value="Årsförbrukning saknas" />
+                              <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
+                              <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000123" />
                               <input type="hidden" name="aperakErrorErc" value="41" />
                               <input type="hidden" name="aperakErrorFieldCode" value="214" />
                               <input type="hidden" name="aperakErrorText" value="Konstant saknas" />
+                              <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
+                              <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000123" />
                               <input type="hidden" name="aperakErrorErc" value="41" />
                               <input type="hidden" name="aperakErrorFieldCode" value="226" />
                               <input type="hidden" name="aperakErrorText" value="Ärendereferens saknas, kundid=196805249288" />
+                              <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
+                              <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000123" />
                               <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
                                 1.4.2B · en anläggning
                               </button>
@@ -593,6 +620,13 @@ function IncomingPortalResponses({
                               </button>
                             </form>
                           ) : null}
+                          <form action={cancelEdielMessageAction}>
+                            <input type="hidden" name="edielMessageId" value={ack.id} />
+                            <input type="hidden" name="reason" value="Raderad/dold från inbound-kortets kopplade kvittenser." />
+                            <button className="rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+                              Radera
+                            </button>
+                          </form>
                         </div>
                       </div>
                     ))}
