@@ -368,9 +368,69 @@ function getManualAttachCandidates(messages: EdielMessageRow[], step: EdielTgtEx
 }
 
 function selectedValuesForGroup(group: EdielTgtCaseTestDataGroup, values: Record<string, string>) {
-  return group.columns
+  return orderedTestDataColumns(group)
     .map((column) => ({ column, value: values[column.name] }))
     .filter((entry) => entry.value && entry.value.trim().length > 0)
+}
+
+type OrderedSummaryColumn = EdielTgtCaseTestDataGroup['columns'][number] & { sourceOrder?: number | null }
+
+function sourceOrderForSummaryColumn(column: OrderedSummaryColumn): number {
+  const value = Number(column.sourceOrder)
+  return Number.isFinite(value) && value > 0 ? value : column.index
+}
+
+function orderedTestDataColumns(group: EdielTgtCaseTestDataGroup): OrderedSummaryColumn[] {
+  return [...group.columns].sort((a, b) => {
+    const orderDiff = sourceOrderForSummaryColumn(a as OrderedSummaryColumn) - sourceOrderForSummaryColumn(b as OrderedSummaryColumn)
+    if (orderDiff !== 0) return orderDiff
+    return a.index - b.index
+  }) as OrderedSummaryColumn[]
+}
+
+function valueForSummaryField(group: EdielTgtCaseTestDataGroup, columnName: string, fieldCodes: string[]): string | null {
+  for (const field of group.fields) {
+    if (!fieldCodes.includes(String(field.fieldCode).toUpperCase())) continue
+    const value = field.values[columnName]?.trim()
+    if (value) return value
+  }
+  return null
+}
+
+function TestDataObjectOrder({ group }: { group: EdielTgtCaseTestDataGroup }) {
+  const columns = orderedTestDataColumns(group).filter((column) =>
+    valueForSummaryField(group, column.name, ['209', '233']) ||
+    valueForSummaryField(group, column.name, ['227']) ||
+    valueForSummaryField(group, column.name, ['228'])
+  )
+
+  if (columns.length === 0) return null
+
+  return (
+    <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-900">
+        Importerad objektordning som används för LIN-block
+      </div>
+      <div className="mt-2 space-y-1 text-xs text-blue-950">
+        {columns.map((column, index) => {
+          const objectId = valueForSummaryField(group, column.name, ['209', '233']) ?? '—'
+          const customerId = valueForSummaryField(group, column.name, ['227']) ?? '—'
+          const customerName = valueForSummaryField(group, column.name, ['228']) ?? column.name
+          const reference = valueForSummaryField(group, column.name, ['261']) ?? '—'
+
+          return (
+            <div key={`${group.block.sourceWorkbook}-${group.block.sourceSheet}-order-${column.name}`} className="rounded-lg bg-white px-2 py-1.5">
+              <span className="font-semibold">{index + 1}.</span>{' '}
+              <span>{objectId}</span>{' · '}
+              <span>{customerName}</span>{' · '}
+              <span>Kund {customerId}</span>{' · '}
+              <span>Ref {reference}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function TestDataGroupTable({ group }: { group: EdielTgtCaseTestDataGroup }) {
@@ -386,13 +446,15 @@ function TestDataGroupTable({ group }: { group: EdielTgtCaseTestDataGroup }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-1">
-          {group.columns.map((column, columnIndex) => (
+          {orderedTestDataColumns(group).map((column, columnIndex) => (
             <Badge key={`${group.block.sourceWorkbook}-${group.block.sourceSheet}-${group.block.entityLabel}-column-${columnIndex}-${column.name}`}>
               {column.name}
             </Badge>
           ))}
         </div>
       </div>
+
+      <TestDataObjectOrder group={group} />
 
       <div className="mt-3 overflow-x-auto">
         <table className="min-w-full text-left text-xs">

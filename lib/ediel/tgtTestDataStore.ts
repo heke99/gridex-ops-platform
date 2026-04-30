@@ -380,6 +380,7 @@ function mergeDuplicateFields(fields: EdielTgtExcelField[]): EdielTgtExcelField[
 type BlockParsedPortalText = {
   fields: EdielTgtExcelField[]
   columnNames: string[]
+  sourceOrders?: Record<string, number>
 }
 
 function parseBlockOrientedPortalText(rawText: string): BlockParsedPortalText {
@@ -451,6 +452,7 @@ function parseBlockOrientedPortalText(rawText: string): BlockParsedPortalText {
   return {
     fields: Array.from(byKey.values()),
     columnNames: columnNames.length > 0 ? columnNames : ['Portaltestdata'],
+    sourceOrders: Object.fromEntries((columnNames.length > 0 ? columnNames : ['Portaltestdata']).map((name, index) => [name, index + 1])),
   }
 }
 
@@ -463,6 +465,7 @@ type LineObjectField = {
 
 type LineObjectBlock = {
   label: string
+  sourceOrder: number
   fields: Map<string, LineObjectField>
 }
 
@@ -481,6 +484,7 @@ function fieldObjectKey(fieldCode: string, fieldName: string): string {
 function createLineObjectBlock(label: string, index: number): LineObjectBlock {
   return {
     label: stablePortalColumnName(label || null, index),
+    sourceOrder: index,
     fields: new Map<string, LineObjectField>(),
   }
 }
@@ -529,9 +533,11 @@ function dedupeLineObjectBlocks(blocks: LineObjectBlock[]): LineObjectBlock[] {
       continue
     }
 
-    // Duplicate object from another pasted section/file. Keep the first column,
-    // but merge any missing field values from the duplicate so upload of several
-    // files is safe and idempotent.
+    // Duplicate object from another pasted section/file. Keep the first sourceOrder
+    // and first column identity, but merge missing field values so upload of
+    // several files is safe and idempotent.
+    existing.sourceOrder = Math.min(existing.sourceOrder, block.sourceOrder)
+
     for (const [key, field] of block.fields.entries()) {
       const existingField = existing.fields.get(key)
       if (!existingField || !normalizeFieldValue(existingField.value)) {
@@ -591,7 +597,7 @@ function parseLineObjectPortalText(rawText: string): BlockParsedPortalText | nul
   }
 
   pushCurrent()
-  const dedupedObjects = dedupeLineObjectBlocks(objects)
+  const dedupedObjects = dedupeLineObjectBlocks(objects).sort((a, b) => a.sourceOrder - b.sourceOrder)
   if (dedupedObjects.length === 0) return null
 
   const columnNames = dedupedObjects.map((block, index) => stablePortalColumnName(block.label, index + 1))
@@ -619,6 +625,7 @@ function parseLineObjectPortalText(rawText: string): BlockParsedPortalText | nul
   return {
     fields: Array.from(fieldMap.values()),
     columnNames,
+    sourceOrders: Object.fromEntries(dedupedObjects.map((block, index) => [columnNames[index] ?? block.label, block.sourceOrder])),
   }
 }
 
@@ -656,6 +663,7 @@ export function parseEdielPortalTestDataText(input: {
       index: index + 1,
       name,
       testCase: input.testCaseCode,
+      sourceOrder: blockParsed.sourceOrders?.[name] ?? index + 1,
     })
   )
 

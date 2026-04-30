@@ -6,6 +6,12 @@ export type EdielTgtExcelColumn = {
   index: number
   name: string
   testCase: string
+  /**
+   * Import order from Edielportalen. This is intentionally separate from the
+   * visible column index so dedupe can merge duplicate objects without changing
+   * the order that PRODAT LIN blocks should be generated in.
+   */
+  sourceOrder?: number
 }
 
 export type EdielTgtExcelField = {

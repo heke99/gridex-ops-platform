@@ -400,9 +400,9 @@ export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
   const title = formString(formData.get('title'))
   const pastedText = formString(formData.get('rawText')) ?? ''
   const uploaded = await formFilesText(formData.getAll('testDataFile'))
-  // Prefer pasted text order when both text and files are supplied. This makes a
-  // corrected portal paste authoritative while still allowing several uploaded
-  // Excel/CSV files to be appended and deduplicated by the parser.
+  // Keep pasted text first when both text and files exist. This preserves the
+  // visible order the admin copied from Edielportalen, while uploaded files can
+  // fill missing fields through dedupe without changing sourceOrder.
   const rawText = [pastedText, uploaded.text].filter(Boolean).join('\n\n')
 
   if (!testCaseCode) throw new Error('testCaseCode saknas')

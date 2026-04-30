@@ -229,21 +229,14 @@ function firstToken(value: string | null | undefined): string | null {
   return clean.split(/\s+/)[0]?.trim() || null
 }
 
-function normalizeSwedishAscii(value: string): string {
-  // Do not use case-insensitive regex here. /[ÅÄ]/gi also matches å/ä and
-  // turns e.g. "vägen" into "vAgen". Keep lower-case Swedish letters
-  // lower-case and upper-case letters upper-case so Ediel testdata remains stable.
-  return value
+function sanitize(value: string | null | undefined, fallback = 'UNKNOWN', maxLength = 70): string {
+  const trimmed = stripDecorations(value)
+  if (!trimmed) return fallback
+  return trimmed
     .replace(/[ÅÄ]/g, 'A')
     .replace(/[Ö]/g, 'O')
     .replace(/[åä]/g, 'a')
     .replace(/[ö]/g, 'o')
-}
-
-function sanitize(value: string | null | undefined, fallback = 'UNKNOWN', maxLength = 70): string {
-  const trimmed = stripDecorations(value)
-  if (!trimmed) return fallback
-  return normalizeSwedishAscii(trimmed)
     .replace(/[^A-Za-z0-9 ._\-/]/g, '')
     .slice(0, maxLength)
 }
@@ -271,6 +264,21 @@ function normalizeSearch(value: string | null | undefined): string {
 function columnMatches(columnName: string, selectors: readonly string[]): boolean {
   const haystack = normalizeSearch(columnName)
   return selectors.some((selector) => haystack.includes(normalizeSearch(selector)))
+}
+
+type OrderedTgtColumn = { name: string; index: number; sourceOrder?: number | null; testCase?: string }
+
+function sourceOrderForColumn(column: OrderedTgtColumn, fallback: number): number {
+  const value = Number(column.sourceOrder)
+  return Number.isFinite(value) && value > 0 ? value : fallback
+}
+
+function sortColumnsBySourceOrder<T extends OrderedTgtColumn>(columns: readonly T[]): T[] {
+  return [...columns].sort((a, b) => {
+    const orderDiff = sourceOrderForColumn(a, a.index) - sourceOrderForColumn(b, b.index)
+    if (orderDiff !== 0) return orderDiff
+    return a.index - b.index
+  })
 }
 
 function preferredColumnSelectorsForStep(step: EdielTgtExpectedStep): string[] {
@@ -301,7 +309,7 @@ function findTestValue(
     const preferredColumns = preferredColumnSelectors.length > 0
       ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, preferredColumnSelectors))
       : []
-    const candidateColumns = preferredColumns.length > 0 ? preferredColumns : group.columns
+    const candidateColumns = sortColumnsBySourceOrder(preferredColumns.length > 0 ? preferredColumns : group.columns)
 
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`)
@@ -347,7 +355,7 @@ function findTestFieldForStep(
     const preferredColumns = preferredColumnSelectors.length > 0
       ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, preferredColumnSelectors))
       : []
-    const candidateColumns = preferredColumns.length > 0 ? preferredColumns : group.columns
+    const candidateColumns = sortColumnsBySourceOrder(preferredColumns.length > 0 ? preferredColumns : group.columns)
 
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`)
@@ -416,7 +424,7 @@ function selectedRegisterColumns(
       ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, selectors))
       : group.columns
 
-    for (const column of columns) {
+    for (const column of sortColumnsBySourceOrder(columns)) {
       if (!names.includes(column.name)) names.push(column.name)
     }
   }
@@ -609,7 +617,7 @@ function getPortalDataColumnNames(
     const columns = selectors.length > 0
       ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, selectors))
       : group.columns
-    const candidateColumns = columns.length > 0 ? columns : group.columns
+    const candidateColumns = sortColumnsBySourceOrder(columns.length > 0 ? columns : group.columns)
 
     for (const column of candidateColumns) {
       const hasObjectId = Boolean(findFieldValueForColumn(params, column.name, ['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid']))
