@@ -114,6 +114,8 @@ type TgtProdatMutation = {
 type TgtPortalCustomerData = {
   source: 'tgt_test_data_registry' | 'missing_test_data'
   testCustomerLabel: string
+  sourceColumnName?: string | null
+  sourceOrder?: number | null
   meteringPointId: string
   agreementStartDateTime: string
   annualEnergyUnit: string
@@ -389,6 +391,21 @@ function inferCustomerIdCodeListQualifier(fieldName: string | null | undefined, 
   return 'SE2'
 }
 
+function findSourceColumn(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  columnName: string
+): OrderedTgtColumn | null {
+  const data = getTgtTestData(params)
+  if (!data) return null
+
+  for (const group of data.groups) {
+    const column = group.columns.find((candidate) => candidate.name === columnName)
+    if (column) return column
+  }
+
+  return null
+}
+
 function findFieldValueForColumn(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   columnName: string,
@@ -416,15 +433,10 @@ function selectedRegisterColumns(
 ): string[] {
   const data = getTgtTestData(params)
   if (!data) return []
-  const selectors = preferredColumnSelectorsForStep(step)
   const names: string[] = []
 
   for (const group of data.groups) {
-    const columns = selectors.length > 0
-      ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, selectors))
-      : group.columns
-
-    for (const column of sortColumnsBySourceOrder(columns)) {
+    for (const column of getPreferredColumnsForStep(params, step, group.columns)) {
       if (!names.includes(column.name)) names.push(column.name)
     }
   }
@@ -559,9 +571,13 @@ function getPortalData(
   const customerIdField = fieldFor(['227 kund-id', 'personnummer', 'kundidentitet'])
   const customerId = cleanOptionalCode(customerIdField?.value, 35) ?? ''
 
+  const sourceColumn = columnName ? findSourceColumn(params, columnName) : null
+
   return {
     source: data ? 'tgt_test_data_registry' : 'missing_test_data',
-    testCustomerLabel: data?.title ?? `TGT ${params.testSuite} ${params.testCaseCode}`,
+    testCustomerLabel: columnName || data?.title || `TGT ${params.testSuite} ${params.testCaseCode}`,
+    sourceColumnName: sourceColumn?.name ?? columnName ?? null,
+    sourceOrder: sourceColumn?.sourceOrder ?? sourceColumn?.index ?? null,
     meteringPointId: cleanOptionalCode(
       valueFor(['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid', 'metering point', 'mätpunkt']),
       35
@@ -603,6 +619,44 @@ function getPortalData(
 }
 
 
+function getColumnStepScore(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  column: OrderedTgtColumn
+): number {
+  const selectors = preferredColumnSelectorsForStep(step)
+  const haystack = `${column.name} ${column.testCase}`
+  let score = selectors.length > 0 && columnMatches(haystack, selectors) ? 100 : 0
+
+  if (step.family === 'PRODAT') {
+    const transactionType = buildTgtProdatTransactionType(params, step)
+    const transactionValue = findFieldValueForColumn(params, column.name, ['223 transaktionstyp', 'reason for transaction'])
+    const normalizedTransaction = normalizeSearch(transactionValue)
+    if (transactionType && normalizedTransaction.includes(normalizeSearch(transactionType))) score += 90
+    if (step.code && normalizedTransaction.includes(normalizeSearch(step.code))) score += 60
+
+    // Field 217 can contain Z03 as the measuring-method value. This is not the
+    // transaction type, but it is a strong safety signal for supplier-switch
+    // Z03 start messages and prevents Z04L columns with Z01 from being selected.
+    const meteringValue = firstToken(findFieldValueForColumn(params, column.name, ['217 mätmetod', '217 matmetod']))
+    if (step.code === 'Z03' && meteringValue === 'Z03') score += 25
+    if (step.code === 'Z03' && meteringValue === 'Z01') score -= 25
+  }
+
+  return score
+}
+
+function getPreferredColumnsForStep(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  columns: readonly OrderedTgtColumn[]
+): OrderedTgtColumn[] {
+  const scored = columns.map((column) => ({ column, score: getColumnStepScore(params, step, column) }))
+  const bestScore = Math.max(0, ...scored.map((entry) => entry.score))
+  const selected = bestScore > 0 ? scored.filter((entry) => entry.score === bestScore).map((entry) => entry.column) : [...columns]
+  return sortColumnsBySourceOrder(selected)
+}
+
 function getPortalDataColumnNames(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   step: EdielTgtExpectedStep
@@ -610,14 +664,10 @@ function getPortalDataColumnNames(
   const data = getTgtTestData(params)
   if (!data) return []
 
-  const selectors = preferredColumnSelectorsForStep(step)
   const names: string[] = []
 
   for (const group of data.groups) {
-    const columns = selectors.length > 0
-      ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, selectors))
-      : group.columns
-    const candidateColumns = sortColumnsBySourceOrder(columns.length > 0 ? columns : group.columns)
+    const candidateColumns = getPreferredColumnsForStep(params, step, group.columns)
 
     for (const column of candidateColumns) {
       const hasObjectId = Boolean(findFieldValueForColumn(params, column.name, ['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid']))
@@ -712,7 +762,7 @@ function negativeAperakSegments(refs: DraftReferences): string[] {
   ]
 }
 
-function buildTgtProdatTransactionType(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep): string {
+function buildTgtProdatTransactionType(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>, step: EdielTgtExpectedStep): string {
   if (params.testCaseCode === '1.2.2') return step.code === 'Z03' ? 'Z03LK' : 'Z04LK'
   if (params.testCaseCode === '1.2.5') return step.code === 'Z04' ? 'Z04D' : `${step.code}D`
 

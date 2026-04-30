@@ -1933,6 +1933,64 @@ function groupsFor(blocks: Array<EdielTgtExcelBlock | null>, columnSelectors: st
   return blocks.flatMap((block) => groupFor(block, columnSelectors))
 }
 
+
+function prodatS14SupplierSwitchData(testCaseCode: '1.4.2' | '1.4.2B'): EdielTgtCaseTestData {
+  const isB = testCaseCode === '1.4.2B'
+  const columns: EdielTgtExcelColumn[] = [
+    { index: 1, name: 'Testkund 12 - Testdata Z03L', testCase: 'Testfall 1.4.2', sourceOrder: 1 },
+    ...(isB ? [] : [
+      { index: 2, name: 'Testkund 13 - Testdata Z03L', testCase: 'Testfall 1.4.2', sourceOrder: 2 },
+      { index: 3, name: 'Testkund 14 - Testdata Z03L', testCase: 'Testfall 1.4.2', sourceOrder: 3 },
+    ] as EdielTgtExcelColumn[]),
+  ]
+
+  const values = (testkund12: string, testkund13?: string, testkund14?: string): Record<string, string> => {
+    const result: Record<string, string> = {
+      [columns[0]?.name ?? 'Testkund 12 - Testdata Z03L']: testkund12,
+    }
+    if (!isB && columns[1]?.name && testkund13 !== undefined) result[columns[1].name] = testkund13
+    if (!isB && columns[2]?.name && testkund14 !== undefined) result[columns[2].name] = testkund14
+    return result
+  }
+
+  const fields: EdielTgtExcelField[] = [
+    { fieldCode: '209', fieldName: 'Anläggningsid', values: values('735999888000000123', '735999888000000130', '735999888000000147') },
+    { fieldCode: '210', fieldName: 'Avtal, startdatum', values: values('sätts av avsändaren (10:e i nästa månad)', 'sätts av avsändaren (10:e i nästa månad)', 'sätts av avsändaren (10:e i nästa månad)') },
+    { fieldCode: '217', fieldName: 'Mätmetod', values: values('Z03 (nätägaren avgör)', 'Z03 (nätägaren avgör)', 'Z03 (nätägaren avgör)') },
+    { fieldCode: '223', fieldName: 'Transaktionstyp', values: values('Z22 (Z03L)', 'Z22 (Z03L)', 'Z22 (Z03L)') },
+    { fieldCode: '260', fieldName: 'Nätområdesid', values: values('TES', 'TES', 'TES') },
+    { fieldCode: '261', fieldName: 'Referens till avtal/fullmakt', values: values('sätts av avsändaren', 'sätts av avsändaren', 'sätts av avsändaren') },
+    { fieldCode: '227', fieldName: 'Kund-id (DE 1131=SE2, 3055=260)', values: values('196805249288', '196501022773', '193001017072') },
+    { fieldCode: '228', fieldName: 'Namn-elanvändare', values: values('Hanna Hållander', 'Patrik Sjöberg', 'Harald Hårfager') },
+    { fieldCode: '229', fieldName: 'Adress-elanvändare', values: values('Öregrundsgatan 99', 'Höjdhoppsslingan 5B', 'Älvsjövägen 44') },
+    { fieldCode: '231', fieldName: 'Postnr-elanvändare', values: values('11820', '11820', '11820') },
+    { fieldCode: '232', fieldName: 'Postort-elanvändare', values: values('STOCKHOLM', 'STOCKHOLM', 'STOCKHOLM') },
+    { fieldCode: '316', fieldName: 'Land-elanvändare', values: values('SE', 'SE', 'SE') },
+    { fieldCode: '262', fieldName: 'Balansansvarig', values: values('valfritt, skall finnas som balansansvarig i aktörsregistret', 'valfritt, skall finnas som balansansvarig i aktörsregistret', '91109') },
+  ]
+
+  const block: EdielTgtExcelBlock = {
+    kind: 'PRODAT',
+    sourceWorkbook: 'TGT_PRODAT_Bilaga_1-Testdata_per_testkund_version_el_4-0-5.xlsx',
+    sourceSheet: 'Testkund 1 - 20 - elleverantör',
+    entityLabel: isB ? 'Testkund 12' : 'Testkund 12, 13 och 14',
+    entityNumbers: isB ? ['12'] : ['12', '13', '14'],
+    columns,
+    fields,
+  }
+
+  return {
+    suite: 'PRODAT',
+    roleCode: 'supplier',
+    testCaseCode,
+    title: isB
+      ? 'Testkund 12 · S1.4.2B Z03L startdata'
+      : 'Testkund 12, 13 och 14 · S1.4.2 Z03L startdata',
+    sourceNote: 'Data hämtad från PRODAT bilaga 1 version el 4.0.5. Endast Z03L-startdata används vid steg 1; CONTRL och APERAK-motorn är oförändrad.',
+    groups: [{ block, columns, fields }],
+  }
+}
+
 export function getEdielTgtTestDataForCase(
   suite: EdielTestSuite,
   roleCode: EdielTestRoleCode,
@@ -1960,6 +2018,14 @@ export function getEdielTgtTestDataForCase(
       sourceNote: 'Importerad från PRODAT bilaga 1, elmarknad. Används för TGT 1.2.2.',
       groups: groupFor(blockByEntity(RAW_PRODAT_BLOCKS, '20'), ['Z03LK', 'Z04LK']),
     }
+  }
+
+  if (suite === 'PRODAT' && roleCode === 'supplier' && code === '1.4.2') {
+    return prodatS14SupplierSwitchData('1.4.2')
+  }
+
+  if (suite === 'PRODAT' && roleCode === 'supplier' && code === '1.4.2B') {
+    return prodatS14SupplierSwitchData('1.4.2B')
   }
 
   if (suite === 'PRODAT' && roleCode === 'supplier' && code === '1.2.5') {
