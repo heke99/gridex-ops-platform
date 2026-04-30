@@ -24,6 +24,7 @@ import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 import { buildSafeMasterdataProposal } from '@/lib/ediel/operationalVerification'
+import { createOrUpdateInboundProdatCase } from '@/lib/ediel/inboundCases'
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -227,6 +228,11 @@ async function processInboundProdatMessage(params: {
     parsedPayload: params.message.parsed_payload ?? {},
   })
 
+  const inboundCase = await createOrUpdateInboundProdatCase({
+    actorUserId: params.actorUserId,
+    message: params.message,
+  })
+
   if (!canonicalLinks.matchedSwitch) {
     const safeApplyProposalChanges = ['Z06', 'Z10'].includes(String(params.message.message_code))
       ? await buildSafeMasterdataProposal(params.message)
@@ -245,6 +251,7 @@ async function processInboundProdatMessage(params: {
           appliedAutomatically: false,
           proposedChanges: safeApplyProposalChanges,
           reviewRequired: true,
+          inboundCaseId: inboundCase?.id ?? null,
         },
       })
     }
@@ -261,12 +268,13 @@ async function processInboundProdatMessage(params: {
       eventType: 'validated',
       eventStatus: 'warning',
       message:
-        'Inbound PRODAT kvitterades automatiskt men saknar ännu stark switch-koppling.',
+        'Inbound PRODAT kvitterades automatiskt och lades i admin-godkännande eftersom stark switch-koppling saknas.',
       payload: {
         createdAckMessageIds: ackIds,
         canonicalAckState: ackSnapshot.canonicalAckState,
         ackMessages: ackSnapshot.ackMessages,
         safeApplyProposalChanges,
+        inboundCaseId: inboundCase?.id ?? null,
       },
     })
 
@@ -310,6 +318,7 @@ async function processInboundProdatMessage(params: {
         appliedAutomatically: false,
         proposedChanges: safeApplyProposalChanges,
         reviewRequired: true,
+        inboundCaseId: inboundCase?.id ?? null,
       },
     })
   }
@@ -324,13 +333,14 @@ async function processInboundProdatMessage(params: {
     switchRequestId: canonicalLinks.matchedSwitch.id,
     eventType: 'ediel_inbound_processed',
     eventStatus: 'success',
-    message: 'Inbound PRODAT behandlad via canonical inbound flow.',
+    message: 'Inbound PRODAT behandlad via canonical inbound flow och staging-case skapades för eventuell admin-granskning.',
     payload: {
       edielMessageId: params.message.id,
       createdAckMessageIds: ackIds,
       canonicalAckState: ackSnapshot.canonicalAckState,
       ackMessages: ackSnapshot.ackMessages,
       safeApplyProposalChanges,
+      inboundCaseId: inboundCase?.id ?? null,
     },
   })
 
@@ -339,17 +349,17 @@ async function processInboundProdatMessage(params: {
     edielMessageId: params.message.id,
     eventType: 'validated',
     eventStatus: 'success',
-    message: 'Inbound PRODAT processad via canonical inbound flow.',
+    message: 'Inbound PRODAT processad via canonical inbound flow och staging-case skapat.',
     payload: {
       matchedSwitchRequestId: canonicalLinks.matchedSwitch.id,
       createdAckMessageIds: ackIds,
       canonicalAckState: ackSnapshot.canonicalAckState,
       ackMessages: ackSnapshot.ackMessages,
       safeApplyProposalChanges,
+      inboundCaseId: inboundCase?.id ?? null,
     },
   })
 }
-
 
 export async function processInboundEdielMessage(params: {
   actorUserId: string

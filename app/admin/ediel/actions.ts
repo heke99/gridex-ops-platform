@@ -63,6 +63,7 @@ import { createEdielPortalTestCustomerGraph } from '@/lib/ediel/portalTestCustom
 import { createSafeMasterdataProposalForMessage } from '@/lib/ediel/operationalVerification'
 import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from '@/lib/ediel/safeApplyReview'
 import type { EdielEnvironment, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
+import { approveEdielInboundCase, rejectEdielInboundCase, type EdielInboundCaseActionMode } from '@/lib/ediel/inboundCases'
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
@@ -1141,4 +1142,43 @@ export async function processEdielUtiltsBillingAction(formData: FormData) {
   })
 
   await revalidateRelatedMessage(edielMessageId)
+}
+
+function parseInboundCaseMode(value: FormDataEntryValue | null): EdielInboundCaseActionMode {
+  if (value === 'create_new_customer') return 'create_new_customer'
+  if (value === 'link_existing_only') return 'link_existing_only'
+  return 'update_existing_customer'
+}
+
+export async function approveEdielInboundCaseAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'masterdata.write'])
+  const caseId = formString(formData.get('caseId'))
+  if (!caseId) throw new Error('caseId saknas')
+
+  await approveEdielInboundCase({
+    actorUserId: context.userId,
+    caseId,
+    mode: parseInboundCaseMode(formData.get('mode')),
+    selectedCustomerId: formString(formData.get('selectedCustomerId')),
+    selectedSiteId: formString(formData.get('selectedSiteId')),
+    selectedMeteringPointId: formString(formData.get('selectedMeteringPointId')),
+    note: formString(formData.get('note')),
+  })
+
+  revalidateEdiel()
+  revalidatePath('/admin/customers')
+}
+
+export async function rejectEdielInboundCaseAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'masterdata.write'])
+  const caseId = formString(formData.get('caseId'))
+  if (!caseId) throw new Error('caseId saknas')
+
+  await rejectEdielInboundCase({
+    actorUserId: context.userId,
+    caseId,
+    note: formString(formData.get('note')),
+  })
+
+  revalidateEdiel()
 }

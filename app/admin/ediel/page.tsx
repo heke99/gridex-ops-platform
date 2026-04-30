@@ -8,6 +8,7 @@ import EdielProductionProdatPanel from '@/components/admin/ediel/EdielProduction
 import EdielOperationalBridgePanel from '@/components/admin/ediel/EdielOperationalBridgePanel'
 import EdielOperationalVerificationPanel from '@/components/admin/ediel/EdielOperationalVerificationPanel'
 import EdielSafeApplyReviewPanel from '@/components/admin/ediel/EdielSafeApplyReviewPanel'
+import EdielInboundCasesPanel from '@/components/admin/ediel/EdielInboundCasesPanel'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getCanonicalAckState } from '@/lib/ediel/ack'
 import {
@@ -42,6 +43,7 @@ import {
 } from '@/lib/ediel/types'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listSafeApplyReviewItems, listUtiltsBillingReviewItems } from '@/lib/ediel/safeApplyReview'
+import { listEdielInboundCases } from '@/lib/ediel/inboundCases'
 import { listEdielProdatProductionCandidates } from '@/lib/ediel/prodatContext'
 
 export const dynamic = 'force-dynamic'
@@ -610,6 +612,7 @@ export default async function AdminEdielPage() {
   const safeApplyReviewItems = await listSafeApplyReviewItems(messages)
   const utiltsBillingReviewItems = listUtiltsBillingReviewItems(messages)
   const prodatProductionCandidates = await listEdielProdatProductionCandidates(supabase, 30)
+  const inboundCases = await listEdielInboundCases({ status: 'all', limit: 40 })
 
   const edielRoutes = allRoutes.filter(isEdielCandidateRoute)
   const routeProfiles = await Promise.all(
@@ -685,6 +688,7 @@ export default async function AdminEdielPage() {
     ['draft', 'running'].includes(row.status)
   ).length
   const inboundCount = messages.filter((row) => row.direction === 'inbound').length
+  const inboundCasePendingCount = inboundCases.filter((row) => row.status === 'pending_review' || row.status === 'failed').length
   const outboundCount = messages.filter((row) => row.direction === 'outbound').length
   const prodatCount = messages.filter((row) => row.message_family === 'PRODAT').length
   const utiltsCount = messages.filter((row) => row.message_family === 'UTILTS').length
@@ -698,6 +702,7 @@ export default async function AdminEdielPage() {
     versionMismatchMessages.length +
     invalidCodeMessages.length +
     ruleAmbiguities.length +
+    inboundCasePendingCount +
     unresolvedOutboundCount
 
   return (
@@ -760,11 +765,12 @@ export default async function AdminEdielPage() {
       </section>
 
       <nav className="sticky top-2 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
-        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-7">
+        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-8">
           <QuickNavItem href="#overview" label="Översikt" description="Status och snabbstart" tone="blue" />
           <QuickNavItem href="#inbound-responses" label="IMAP-svar" description="CONTRL/APERAK/PRODAT" tone="green" />
           <QuickNavItem href="#production-prodat" label="PRODAT" description="Kundstyrd Z03/Z04" tone="green" />
           <QuickNavItem href="#tgt" label="TGT-test" description="Testfall och steg" tone="blue" />
+          <QuickNavItem href="#inbound-cases" label="Inbound-case" description="Admin-godkännande" tone="yellow" />
           <QuickNavItem href="#operations" label="Verksamhet" description="Switch och UTILTS" tone="yellow" />
           <QuickNavItem href="#safe-apply" label="Safe apply" description="Granska ändringar" tone="green" />
           <QuickNavItem href="#diagnostics" label="Diagnostik" description="Fel och varningar" tone="red" />
@@ -775,6 +781,7 @@ export default async function AdminEdielPage() {
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <MetricCard label="Meddelanden" value={messages.length} help="Aktiva Ediel-meddelanden i release-scope." tone="blue" />
         <MetricCard label="Aktiva test" value={activeTestRunsCount} help="TGT-runs i draft eller running." tone={activeTestRunsCount > 0 ? 'yellow' : 'slate'} />
+        <MetricCard label="Inbound-case" value={inboundCasePendingCount} help="PRODAT som väntar på admin-godkännande." tone={inboundCasePendingCount > 0 ? 'yellow' : 'green'} />
         <MetricCard label="Safe apply" value={safeApplyPendingCount} help="Z06/Z10-förslag som väntar på granskning." tone={safeApplyPendingCount > 0 ? 'yellow' : 'green'} />
         <MetricCard label="UTILTS redo" value={utiltsReadyCount} help="Mätvärdesunderlag redo för handläggning." tone={utiltsReadyCount > 0 ? 'green' : 'slate'} />
         <MetricCard label="Unresolved" value={unresolvedOutboundCount} help="Outbound utan löst kanal eller route." tone={unresolvedOutboundCount > 0 ? 'red' : 'green'} />
@@ -858,8 +865,16 @@ export default async function AdminEdielPage() {
       <EdielTgtWorkbenchPanel messages={messages} testRuns={testRuns} />
 
       <SectionLabel
+        id="inbound-cases"
+        title="4. Inbound PRODAT-case och admin-godkännande"
+        description="Inkommande PRODAT skapar ett staging-case. Admin godkänner innan kund, anläggning och mätpunkt skapas eller uppdateras."
+      />
+
+      <EdielInboundCasesPanel cases={inboundCases} />
+
+      <SectionLabel
         id="operations"
-        title="4. Verksamhetskoppling"
+        title="5. Verksamhetskoppling"
         description="Koppla Ediel-meddelanden till supplier switch, outbound queue, data requests och mätvärden."
       />
 
