@@ -318,6 +318,25 @@ function parsePortalFieldLine(line: string): EdielTgtExcelField | null {
   return null
 }
 
+function portalSectionLabelFromLine(line: string): string | null {
+  const cleaned = normalizeFieldValue(line)
+  if (!cleaned) return null
+
+  const testCustomerMatch = cleaned.match(/^(Testkund\s+[^\t;,.]+?)(?:\s*Exportera\s+till\s+Excel.*)?$/i)
+  if (testCustomerMatch?.[1]) return normalizeFieldValue(testCustomerMatch[1])
+
+  const customerMatch = cleaned.match(/^(Kund\s+[^\t;,.]+?)(?:\s*Exportera\s+till\s+Excel.*)?$/i)
+  if (customerMatch?.[1]) return normalizeFieldValue(customerMatch[1])
+
+  return null
+}
+
+function stablePortalColumnName(label: string | null, index: number): string {
+  const cleaned = normalizeFieldValue(label)
+  if (cleaned) return cleaned
+  return index <= 1 ? 'Portaltestdata' : `Portaltestdata ${index}`
+}
+
 function nextPortalColumnName(existingValues: Record<string, string>): string {
   const used = new Set(Object.keys(existingValues))
   if (!used.has('Portaltestdata')) return 'Portaltestdata'
@@ -358,6 +377,83 @@ function mergeDuplicateFields(fields: EdielTgtExcelField[]): EdielTgtExcelField[
   return Array.from(byKey.values())
 }
 
+type BlockParsedPortalText = {
+  fields: EdielTgtExcelField[]
+  columnNames: string[]
+}
+
+function parseBlockOrientedPortalText(rawText: string): BlockParsedPortalText {
+  const byKey = new Map<string, EdielTgtExcelField>()
+  const columnNames: string[] = []
+  let currentColumnName = stablePortalColumnName(null, 1)
+  let currentColumnIndex = 1
+
+  function ensureColumn(name: string) {
+    if (!columnNames.includes(name)) columnNames.push(name)
+  }
+
+  function setFieldValue(field: EdielTgtExcelField, columnName: string, value: string) {
+    const cleanedValue = normalizeFieldValue(value)
+    if (!cleanedValue) return
+
+    ensureColumn(columnName)
+    const key = `${field.fieldCode}|${field.fieldName}`
+    const existing = byKey.get(key)
+    if (!existing) {
+      byKey.set(key, {
+        fieldCode: field.fieldCode,
+        fieldName: field.fieldName,
+        values: { [columnName]: cleanedValue },
+      })
+      return
+    }
+
+    existing.values[columnName] = cleanedValue
+  }
+
+  for (const line of rawText.split('\n')) {
+    const cleaned = line.replace(/^[-•*]\s*/, '').trim()
+    if (!cleaned) continue
+
+    const sectionLabel = portalSectionLabelFromLine(cleaned)
+    if (sectionLabel) {
+      currentColumnIndex += 1
+      currentColumnName = stablePortalColumnName(sectionLabel, currentColumnIndex)
+      ensureColumn(currentColumnName)
+      continue
+    }
+
+    const field = parsePortalFieldLine(cleaned)
+    if (!field) continue
+
+    const entries = Object.entries(field.values)
+      .map(([name, value]) => [name, normalizeFieldValue(value)] as const)
+      .filter(([, value]) => value.length > 0)
+
+    if (entries.length === 0) continue
+
+    // Standard copied text from Edielportalen is one field + one value per row.
+    // Keep that row in the active test-customer section instead of merging repeated
+    // field codes into arbitrary Portaltestdata columns. This is what lets 1.3.4
+    // become three separate LIN blocks when the pasted text contains three testkund blocks.
+    if (entries.length === 1 && entries[0]?.[0].startsWith('Portaltestdata')) {
+      setFieldValue(field, currentColumnName, entries[0][1])
+      continue
+    }
+
+    // Matrix exports can have several value columns on the same row. Preserve those
+    // column names because they already represent separate portal test objects/registers.
+    for (const [columnName, value] of entries) {
+      setFieldValue(field, columnName, value)
+    }
+  }
+
+  return {
+    fields: Array.from(byKey.values()),
+    columnNames: columnNames.length > 0 ? columnNames : ['Portaltestdata'],
+  }
+}
+
 export function parseEdielPortalTestDataText(input: {
   suite: EdielTestSuite
   roleCode: EdielTestRoleCode
@@ -366,19 +462,25 @@ export function parseEdielPortalTestDataText(input: {
   rawText: string
 }): EdielTgtCaseTestData {
   const rawText = normalizeText(input.rawText)
-  const fields = mergeDuplicateFields(
-    rawText
-      .split('\n')
-      .map(parsePortalFieldLine)
-      .filter((field): field is EdielTgtExcelField => Boolean(field))
-  )
+  const blockParsed = parseBlockOrientedPortalText(rawText)
 
-  const columnNames = Array.from(
-    fields.reduce((set, field) => {
-      Object.keys(field.values).forEach((key) => set.add(key))
-      return set
-    }, new Set<string>())
-  )
+  const fields = blockParsed.fields.length > 0
+    ? blockParsed.fields
+    : mergeDuplicateFields(
+        rawText
+          .split('\n')
+          .map(parsePortalFieldLine)
+          .filter((field): field is EdielTgtExcelField => Boolean(field))
+      )
+
+  const columnNames = blockParsed.fields.length > 0
+    ? blockParsed.columnNames
+    : Array.from(
+        fields.reduce((set, field) => {
+          Object.keys(field.values).forEach((key) => set.add(key))
+          return set
+        }, new Set<string>())
+      )
 
   const columns: EdielTgtExcelColumn[] = (columnNames.length > 0 ? columnNames : ['Portaltestdata']).map(
     (name, index) => ({
@@ -416,7 +518,6 @@ export function parseEdielPortalTestDataText(input: {
     ],
   }
 }
-
 
 function decodeXmlEntities(value: string): string {
   return value
