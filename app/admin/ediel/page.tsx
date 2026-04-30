@@ -781,7 +781,13 @@ export default async function AdminEdielPage() {
               Använd sidan uppifrån och ned. TGT/systemtest mot Edielportalen hålls tydligt separerat från riktig kundstyrd Ediel-drift, men använder samma PRODAT-, ACK- och transportmotor. Filbaserad Ediel-motor är avvecklad från huvudflödet.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <form action={pollMailboxAction}>
+              <input type="hidden" name="limit" value="20" />
+              <button className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
+                Hämta IMAP nu
+              </button>
+            </form>
             <Badge tone="blue">Gridex Ediel-ID 21660</Badge>
             <Badge tone="blue">Edielportalen/TGT 91100</Badge>
             <Badge tone="green">SMTP/IMAP aktivt</Badge>

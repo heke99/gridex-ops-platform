@@ -117,10 +117,12 @@ type TgtPortalCustomerData = {
   agreementStartDateTime: string
   annualEnergyUnit: string
   meteringMethod: string
+  reasonForTransaction?: string | null
   priority?: string | null
   reportingFrequency?: string | null
   meterNumber?: string | null
   customerId: string
+  customerIdCodeListQualifier?: string | null
   customerName: string
   customerAddress?: string | null
   customerPostalCode?: string | null
@@ -271,6 +273,62 @@ function findTestValueForStep(
   return findTestValue(params, selectors, preferredColumnSelectorsForStep(step))
 }
 
+
+type TgtMatchedField = {
+  fieldCode: string
+  fieldName: string
+  value: string | null
+}
+
+function findTestFieldForStep(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  selectors: readonly string[]
+): TgtMatchedField | null {
+  const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
+  if (!data) return null
+
+  const normalizedSelectors = selectors.map(normalizeSearch)
+  const preferredColumnSelectors = preferredColumnSelectorsForStep(step)
+
+  for (const group of data.groups) {
+    const preferredColumns = preferredColumnSelectors.length > 0
+      ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, preferredColumnSelectors))
+      : []
+    const candidateColumns = preferredColumns.length > 0 ? preferredColumns : group.columns
+
+    for (const field of group.fields) {
+      const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`)
+      if (!normalizedSelectors.some((selector) => haystack.includes(selector))) continue
+
+      for (const column of candidateColumns) {
+        const trimmed = field.values[column.name]?.trim()
+        if (trimmed) {
+          return {
+            fieldCode: field.fieldCode,
+            fieldName: field.fieldName,
+            value: trimmed,
+          }
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+function inferCustomerIdCodeListQualifier(fieldName: string | null | undefined, customerId: string | null | undefined): string {
+  const normalizedField = normalizeSearch(fieldName)
+  if (normalizedField.includes('se1')) return 'SE1'
+  if (normalizedField.includes('se2')) return 'SE2'
+
+  const normalizedCustomerId = String(customerId ?? '').replace(/\D/g, '')
+  if (/^\d{12}$/.test(normalizedCustomerId)) return 'SE2'
+  if (/^\d{10}$/.test(normalizedCustomerId)) return 'SE1'
+
+  return 'SE2'
+}
+
 function findFieldValueForColumn(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   columnName: string,
@@ -414,6 +472,8 @@ function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'rol
   const importedMeteringMethod = cleanOptionalCode(findTestValueForStep(params, step, ['217 mätmetod', '217 matmetod']), 12)
   const poaRaw = findTestValueForStep(params, step, ['261 referens'])
   const balanceResponsibleRaw = findTestValueForStep(params, step, ['262 balansansvarig'])
+  const customerIdField = findTestFieldForStep(params, step, ['227 kund-id', 'personnummer', 'kundidentitet'])
+  const customerId = cleanOptionalCode(customerIdField?.value, 35) ?? ''
 
   return {
     source: data ? 'tgt_test_data_registry' : 'missing_test_data',
@@ -425,10 +485,12 @@ function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'rol
     agreementStartDateTime: resolvePortalDateTime(startDateRaw),
     annualEnergyUnit: cleanOptionalCode(findTestValueForStep(params, step, ['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
     meteringMethod: resolveTgtMeteringMethod(params, step, importedMeteringMethod),
+    reasonForTransaction: cleanOptionalCode(findTestValueForStep(params, step, ['223 transaktionstyp', 'reason for transaction']), 12),
     priority: cleanOptionalCode(findTestValueForStep(params, step, ['220 prioritet']), 12),
     reportingFrequency: cleanOptionalCode(findTestValueForStep(params, step, ['222 rapporteringsfrekvens']), 12),
     meterNumber: cleanOptionalCode(findTestValueForStep(params, step, ['224 mätarnummer', '224 matarnummer']), 35),
-    customerId: cleanOptionalCode(findTestValueForStep(params, step, ['227 kund-id', 'personnummer', 'kundidentitet']), 35) ?? '',
+    customerId,
+    customerIdCodeListQualifier: inferCustomerIdCodeListQualifier(customerIdField?.fieldName, customerId),
     customerName: cleanOptional(findTestValueForStep(params, step, ['228 namn-elanvändare', '228 namn-elanvandare', 'kundnamn', 'customer']), 70) ?? '',
     customerAddress: cleanOptional(findTestValueForStep(params, step, ['229 adress-elanvändare', '229 adress-elanvandare']), 70),
     customerPostalCode: cleanOptionalCode(findTestValueForStep(params, step, ['231 postnr-elanvändare', '231 postnr-elanvandare']), 12),
@@ -452,15 +514,7 @@ function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'rol
     balanceResponsibleId: resolveSenderControlledCode(balanceResponsibleRaw, '91109', 35),
     installationStatus: cleanOptionalCode(findTestValueForStep(params, step, ['306 installationsstatus']), 12),
     tariffCode: cleanOptionalCode(findTestValueForStep(params, step, ['307 tariffkod']), 20),
-    registers: registers.length > 0 ? registers : [
-      {
-        label: 'register_1',
-        annualEnergyKwh: '',
-        meterConstant: '',
-        meterDigits: '',
-        meterTimeInterval: '',
-      },
-    ],
+    registers,
   }
 }
 
@@ -619,7 +673,7 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
     `LIN+1++${meteringPointId}:::9`,
     `DTM+92:${startDate}0000:203`,
     'CCI++Z13',
-    `CAV+${sanitizeCode(mutation.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)}`,
+    `CAV+${sanitizeCode(mutation.reasonForTransaction ?? portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)}`,
   ]
 
   if (portalData.meteringMethod) {
@@ -637,7 +691,7 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
   }
 
   bodySegments.push(
-    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:${transactionType === 'Z03LK' || mutation.reasonForTransaction === 'Z23' ? 'SE1' : 'SE2'}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
+    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
   )
 
   if (step.code !== 'Z03') {
@@ -800,6 +854,11 @@ function pushIssue(
   issues.push({ severity, code, title, description })
 }
 
+function prodatStepRequiresRegisterCoverage(step: EdielTgtExpectedStep): boolean {
+  if (step.family !== 'PRODAT') return false
+  return ['Z04', 'Z06', 'Z09', 'Z10'].includes(String(step.code))
+}
+
 function validatePortalDataCoverage(
   issues: EdielTgtDraftValidationIssue[],
   rawPayload: string,
@@ -834,24 +893,26 @@ function validatePortalDataCoverage(
     pushIssue(issues, 'error', 'missing_agreement_start_date', 'Avtalsstart saknas', 'Avtalsstart kunde inte hämtas som datum från testdataregistret. Uppdatera underlaget innan filen skickas.')
   }
 
-  portalData.registers.forEach((register, index) => {
-    const registerNo = index + 1
-    if (!register.annualEnergyKwh) {
-      pushIssue(issues, 'error', `missing_register_${registerNo}_annual_energy`, 'Registerdata saknas', `Register ${registerNo} saknar uppskattad årsenergi. Uppdatera testdata/underlag innan filen skickas.`)
-    }
-    if (!register.meterConstant) {
-      pushIssue(issues, 'error', `missing_register_${registerNo}_meter_constant`, 'Registerdata saknas', `Register ${registerNo} saknar mätarkonstant.`)
-    }
-    if (!register.meterDigits) {
-      pushIssue(issues, 'error', `missing_register_${registerNo}_meter_digits`, 'Registerdata saknas', `Register ${registerNo} saknar antal siffror för mätare.`)
-    }
-    if (!register.meterTimeInterval) {
-      pushIssue(issues, 'error', `missing_register_${registerNo}_time_interval`, 'Registerdata saknas', `Register ${registerNo} saknar räkneverkskod/tidsintervall.`)
-    }
-  })
+  if (prodatStepRequiresRegisterCoverage(step)) {
+    portalData.registers.forEach((register, index) => {
+      const registerNo = index + 1
+      if (!register.annualEnergyKwh) {
+        pushIssue(issues, 'error', `missing_register_${registerNo}_annual_energy`, 'Registerdata saknas', `Register ${registerNo} saknar uppskattad årsenergi. Uppdatera testdata/underlag innan filen skickas.`)
+      }
+      if (!register.meterConstant) {
+        pushIssue(issues, 'error', `missing_register_${registerNo}_meter_constant`, 'Registerdata saknas', `Register ${registerNo} saknar mätarkonstant.`)
+      }
+      if (!register.meterDigits) {
+        pushIssue(issues, 'error', `missing_register_${registerNo}_meter_digits`, 'Registerdata saknas', `Register ${registerNo} saknar antal siffror för mätare.`)
+      }
+      if (!register.meterTimeInterval) {
+        pushIssue(issues, 'error', `missing_register_${registerNo}_time_interval`, 'Registerdata saknas', `Register ${registerNo} saknar räkneverkskod/tidsintervall.`)
+      }
+    })
 
-  if (portalData.registers.length > 1 && !rawPayload.includes(portalData.registers[1]?.meterTimeInterval ?? '')) {
-    pushIssue(issues, 'error', 'missing_second_register', 'Saknar andra registret', 'Z04D-testet kräver två register från testdataregistret.')
+    if (portalData.registers.length > 1 && !rawPayload.includes(portalData.registers[1]?.meterTimeInterval ?? '')) {
+      pushIssue(issues, 'error', 'missing_second_register', 'Saknar andra registret', 'Z04D-testet kräver två register från testdataregistret.')
+    }
   }
 }
 
@@ -1017,6 +1078,8 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
               meteringPointId: portalBuild.portalData.meteringPointId,
               customerId: portalBuild.portalData.customerId,
               customerName: portalBuild.portalData.customerName,
+              customerIdCodeListQualifier: portalBuild.portalData.customerIdCodeListQualifier,
+              reasonForTransaction: portalBuild.portalData.reasonForTransaction,
               registerCount: portalBuild.portalData.registers.length,
             }
           : null,
