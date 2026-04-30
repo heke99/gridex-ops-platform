@@ -510,57 +510,119 @@ function resolveTgtMeteringMethod(
   return importedValue ?? ''
 }
 
-function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>, step: EdielTgtExpectedStep): TgtPortalCustomerData {
+function getPortalData(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  columnName?: string | null
+): TgtPortalCustomerData {
   const data = getTgtTestData(params)
-  const startDateRaw = findTestValueForStep(params, step, ['210 avtal', 'startdatum', 'leveransstart'])
-  const registers = buildRegistersFromTestData(params, step)
-  const importedMeteringMethod = cleanOptionalCode(findTestValueForStep(params, step, ['217 mätmetod', '217 matmetod']), 12)
-  const poaRaw = findTestValueForStep(params, step, ['261 referens'])
-  const balanceResponsibleRaw = findTestValueForStep(params, step, ['262 balansansvarig'])
-  const customerIdField = findTestFieldForStep(params, step, ['227 kund-id', 'personnummer', 'kundidentitet'])
+  const valueFor = (selectors: readonly string[]) =>
+    columnName ? findFieldValueForColumn(params, columnName, selectors) : findTestValueForStep(params, step, selectors)
+  const fieldFor = (selectors: readonly string[]): TgtMatchedField | null => {
+    if (!columnName) return findTestFieldForStep(params, step, selectors)
+    const value = findFieldValueForColumn(params, columnName, selectors)
+    if (!value) return null
+
+    const normalizedSelectors = selectors.map(normalizeSearch)
+    for (const group of getTgtTestData(params)?.groups ?? []) {
+      for (const field of group.fields) {
+        const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`)
+        if (normalizedSelectors.some((selector) => haystack.includes(selector))) {
+          return { fieldCode: field.fieldCode, fieldName: field.fieldName, value }
+        }
+      }
+    }
+
+    return { fieldCode: '', fieldName: '', value }
+  }
+
+  const startDateRaw = valueFor(['210 avtal', 'startdatum', 'leveransstart'])
+  const registers = columnName ? [] : buildRegistersFromTestData(params, step)
+  const importedMeteringMethod = cleanOptionalCode(valueFor(['217 mätmetod', '217 matmetod']), 12)
+  const poaRaw = valueFor(['261 referens'])
+  const balanceResponsibleRaw = valueFor(['262 balansansvarig'])
+  const customerIdField = fieldFor(['227 kund-id', 'personnummer', 'kundidentitet'])
   const customerId = cleanOptionalCode(customerIdField?.value, 35) ?? ''
 
   return {
     source: data ? 'tgt_test_data_registry' : 'missing_test_data',
     testCustomerLabel: data?.title ?? `TGT ${params.testSuite} ${params.testCaseCode}`,
     meteringPointId: cleanOptionalCode(
-      findTestValueForStep(params, step, ['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid', 'metering point', 'mätpunkt']),
+      valueFor(['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid', 'metering point', 'mätpunkt']),
       35
     ) ?? '',
     agreementStartDateTime: resolvePortalDateTime(startDateRaw),
-    annualEnergyUnit: cleanOptionalCode(findTestValueForStep(params, step, ['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
+    annualEnergyUnit: cleanOptionalCode(valueFor(['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
     meteringMethod: resolveTgtMeteringMethod(params, step, importedMeteringMethod),
-    reasonForTransaction: cleanOptionalCode(findTestValueForStep(params, step, ['223 transaktionstyp', 'reason for transaction']), 12),
-    priority: cleanOptionalCode(findTestValueForStep(params, step, ['220 prioritet']), 12),
-    reportingFrequency: cleanOptionalCode(findTestValueForStep(params, step, ['222 rapporteringsfrekvens']), 12),
-    meterNumber: cleanOptionalCode(findTestValueForStep(params, step, ['224 mätarnummer', '224 matarnummer']), 35),
+    reasonForTransaction: cleanOptionalCode(valueFor(['223 transaktionstyp', 'reason for transaction']), 12),
+    priority: cleanOptionalCode(valueFor(['220 prioritet']), 12),
+    reportingFrequency: cleanOptionalCode(valueFor(['222 rapporteringsfrekvens']), 12),
+    meterNumber: cleanOptionalCode(valueFor(['224 mätarnummer', '224 matarnummer']), 35),
     customerId,
     customerIdCodeListQualifier: inferCustomerIdCodeListQualifier(customerIdField?.fieldName, customerId),
-    customerName: cleanOptional(findTestValueForStep(params, step, ['228 namn-elanvändare', '228 namn-elanvandare', 'kundnamn', 'customer']), 70) ?? '',
-    customerAddress: cleanOptional(findTestValueForStep(params, step, ['229 adress-elanvändare', '229 adress-elanvandare']), 70),
-    customerPostalCode: cleanOptionalCode(findTestValueForStep(params, step, ['231 postnr-elanvändare', '231 postnr-elanvandare']), 12),
-    customerCity: cleanOptional(findTestValueForStep(params, step, ['232 postort-elanvändare', '232 postort-elanvandare']), 35),
-    customerCountry: cleanOptionalCode(findTestValueForStep(params, step, ['316 land-elanvändare', '316 land-elanvandare']), 3),
-    siteAddress: cleanOptional(findTestValueForStep(params, step, ['234 adress-anläggning', '234 address-anläggning', '234 adress-anlaggning', '234 address-anlaggning']), 70),
-    sitePostalCode: cleanOptionalCode(findTestValueForStep(params, step, ['235 postnr-anläggning', '235 postnr-anlaggning']), 12),
-    siteCity: cleanOptional(findTestValueForStep(params, step, ['236 postort-anläggning', '236 postort-anlaggning']), 35),
-    siteCountry: cleanOptionalCode(findTestValueForStep(params, step, ['237 land-anläggning', '237 land-anlaggning']), 3),
-    billingRecipientId: cleanOptionalCode(findTestValueForStep(params, step, ['250 fakturamottagare']), 35),
-    billingRecipientName: cleanOptional(findTestValueForStep(params, step, ['251 namn-fakturamottagare']), 70),
-    billingRecipientAddress: cleanOptional(findTestValueForStep(params, step, ['252 adress-fakturamottagare', '252 address-fakturamottagare']), 70),
-    billingRecipientPostalCode: cleanOptionalCode(findTestValueForStep(params, step, ['253 postnr-fakturamottagare', '253 postnr-fakturamottgare']), 12),
-    billingRecipientCity: cleanOptional(findTestValueForStep(params, step, ['317 postort-fakturamottagare']), 35),
-    billingRecipientCountry: cleanOptionalCode(findTestValueForStep(params, step, ['318 land-fakturamottagare']), 3),
-    birthDate: cleanOptionalCode(findTestValueForStep(params, step, ['249 födelsesdatum', '249 födelsedatum', '249 fodelsesdatum', '249 fodelsedatum']), 8),
-    productCode: cleanOptionalCode(findTestValueForStep(params, step, ['242 produktkod']), 35),
-    settlementMethod: cleanOptionalCode(findTestValueForStep(params, step, ['254 avräkningsmetod', '254 avrackningsmetod', '254 avrakningsmetod']), 12),
-    gridAreaId: cleanOptionalCode(findTestValueForStep(params, step, ['260 nätområdesid', '260 natomradesid']), 12) ?? '',
+    customerName: cleanOptional(valueFor(['228 namn-elanvändare', '228 namn-elanvandare', 'kundnamn', 'customer']), 70) ?? '',
+    customerAddress: cleanOptional(valueFor(['229 adress-elanvändare', '229 adress-elanvandare']), 70),
+    customerPostalCode: cleanOptionalCode(valueFor(['231 postnr-elanvändare', '231 postnr-elanvandare']), 12),
+    customerCity: cleanOptional(valueFor(['232 postort-elanvändare', '232 postort-elanvandare']), 35),
+    customerCountry: cleanOptionalCode(valueFor(['316 land-elanvändare', '316 land-elanvandare']), 3),
+    siteAddress: cleanOptional(valueFor(['234 adress-anläggning', '234 address-anläggning', '234 adress-anlaggning', '234 address-anlaggning']), 70),
+    sitePostalCode: cleanOptionalCode(valueFor(['235 postnr-anläggning', '235 postnr-anlaggning']), 12),
+    siteCity: cleanOptional(valueFor(['236 postort-anläggning', '236 postort-anlaggning']), 35),
+    siteCountry: cleanOptionalCode(valueFor(['237 land-anläggning', '237 land-anlaggning']), 3),
+    billingRecipientId: cleanOptionalCode(valueFor(['250 fakturamottagare']), 35),
+    billingRecipientName: cleanOptional(valueFor(['251 namn-fakturamottagare']), 70),
+    billingRecipientAddress: cleanOptional(valueFor(['252 adress-fakturamottagare', '252 address-fakturamottagare']), 70),
+    billingRecipientPostalCode: cleanOptionalCode(valueFor(['253 postnr-fakturamottagare', '253 postnr-fakturamottgare']), 12),
+    billingRecipientCity: cleanOptional(valueFor(['317 postort-fakturamottagare']), 35),
+    billingRecipientCountry: cleanOptionalCode(valueFor(['318 land-fakturamottagare']), 3),
+    birthDate: cleanOptionalCode(valueFor(['249 födelsesdatum', '249 födelsedatum', '249 fodelsesdatum', '249 fodelsedatum']), 8),
+    productCode: cleanOptionalCode(valueFor(['242 produktkod']), 35),
+    settlementMethod: cleanOptionalCode(valueFor(['254 avräkningsmetod', '254 avrackningsmetod', '254 avrakningsmetod']), 12),
+    gridAreaId: cleanOptionalCode(valueFor(['260 nätområdesid', '260 natomradesid']), 12) ?? '',
     powerOfAttorneyReference: resolveSenderControlledCode(poaRaw, defaultPowerOfAttorneyReference(params), 35),
     balanceResponsibleId: resolveSenderControlledCode(balanceResponsibleRaw, '91109', 35),
-    installationStatus: cleanOptionalCode(findTestValueForStep(params, step, ['306 installationsstatus']), 12),
-    tariffCode: cleanOptionalCode(findTestValueForStep(params, step, ['307 tariffkod']), 20),
+    installationStatus: cleanOptionalCode(valueFor(['306 installationsstatus']), 12),
+    tariffCode: cleanOptionalCode(valueFor(['307 tariffkod']), 20),
     registers,
   }
+}
+
+
+function getPortalDataColumnNames(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep
+): string[] {
+  const data = getTgtTestData(params)
+  if (!data) return []
+
+  const selectors = preferredColumnSelectorsForStep(step)
+  const names: string[] = []
+
+  for (const group of data.groups) {
+    const columns = selectors.length > 0
+      ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, selectors))
+      : group.columns
+    const candidateColumns = columns.length > 0 ? columns : group.columns
+
+    for (const column of candidateColumns) {
+      const hasObjectId = Boolean(findFieldValueForColumn(params, column.name, ['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid']))
+      const hasCustomer = Boolean(findFieldValueForColumn(params, column.name, ['227 kund-id', 'personnummer', 'kundidentitet']))
+      if ((hasObjectId || hasCustomer) && !names.includes(column.name)) names.push(column.name)
+    }
+  }
+
+  return names
+}
+
+function getPortalDataRows(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep
+): TgtPortalCustomerData[] {
+  const columnNames = getPortalDataColumnNames(params, step)
+
+  if (columnNames.length === 0) return [getPortalData(params, step)]
+
+  return columnNames.map((columnName) => getPortalData(params, step, columnName))
 }
 
 function date102FromPortalDate(value: string | null | undefined, fallback: string): string {
@@ -680,7 +742,10 @@ function getTgtProdatMutation(params: EdielTgtDraftBuildParams, step: EdielTgtEx
   }
 
   if ((params.testCaseCode === '1.3.4' || params.testCaseCode === '1.3.4B') && step.code === 'Z03') {
-    return { agreementStartDateTime: '200308010000' }
+    // 1.3.4 is a multi-object/date test. The portal's imported testdata is
+    // authoritative per object row; do not apply one global date mutation or
+    // the first row will be corrupted while the other expected rows are missing.
+    return {}
   }
 
   return {}
@@ -690,20 +755,11 @@ function pushOptionalSegment(segments: string[], condition: string | null | unde
   if (condition && condition.trim().length > 0) segments.push(segment)
 }
 
-function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep, refs: DraftReferences): {
-  bodySegments: string[]
-  portalData: TgtPortalCustomerData
-} {
-  const sourcePortalData = getPortalData(params, step)
-  const transactionType = buildTgtProdatTransactionType(params, step)
-  const mutation = getTgtProdatMutation(params, step)
-
-  // The portalData returned with the draft must describe the actual outgoing
-  // payload after the scenario mutation has been applied. Otherwise tests like
-  // 1.3.2 (wrong grid-area) generate RFF+Z05:TEX correctly, but validation still
-  // looks at the original imported 260 value and incorrectly reports
-  // "Nätområde saknas i payload" when the imported normal value is absent.
-  const portalData: TgtPortalCustomerData = {
+function applyProdatMutationToPortalData(
+  sourcePortalData: TgtPortalCustomerData,
+  mutation: TgtProdatMutation
+): TgtPortalCustomerData {
+  return {
     ...sourcePortalData,
     agreementStartDateTime:
       mutation.agreementStartDateTime ?? sourcePortalData.agreementStartDateTime,
@@ -714,7 +770,17 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
     balanceResponsibleId:
       mutation.balanceResponsibleId ?? sourcePortalData.balanceResponsibleId,
   }
+}
 
+function buildProdatLineSegments(params: {
+  portalData: TgtPortalCustomerData
+  step: EdielTgtExpectedStep
+  refs: DraftReferences
+  transactionType: string
+  mutation: TgtProdatMutation
+  lineNo: number
+}): string[] {
+  const { portalData, step, refs, transactionType, mutation, lineNo } = params
   const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
   const meteringPointId = sanitizeCode(portalData.meteringPointId, 'UNKNOWN', 35)
   const customerName = edifactEscape(sanitize(portalData.customerName, 'UNKNOWN'))
@@ -726,6 +792,55 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
   const siteCity = edifactEscape(sanitize(portalData.siteCity ?? ''))
   const sitePostalCode = sanitizeCode(portalData.sitePostalCode, '', 12)
   const siteCountry = sanitizeCode(portalData.siteCountry, 'SE', 3)
+  const lineReference = lineNo === 1 ? refs.externalRef : `${refs.externalRef}-${lineNo}`.slice(0, 35)
+
+  const segments: string[] = [
+    `LIN+${lineNo}++${meteringPointId}:::9`,
+    `DTM+92:${startDate}0000:203`,
+    'CCI++Z13',
+    `CAV+${sanitizeCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)}`,
+  ]
+
+  if (portalData.meteringMethod) {
+    segments.push('CCI++Z04')
+    segments.push(`CAV+${sanitizeCode(portalData.meteringMethod, 'UNKNOWN', 12)}`)
+  }
+
+  if (!mutation.omitLineItem) {
+    segments.push(`RFF+LI:${lineReference}`)
+  }
+
+  segments.push(`RFF+Z05:${sanitizeCode(portalData.gridAreaId, 'UNKNOWN', 12)}`)
+
+  if (portalData.powerOfAttorneyReference) {
+    segments.push(`RFF+ANJ:${sanitizeCode(portalData.powerOfAttorneyReference, 'UNKNOWN', 35)}`)
+  }
+
+  segments.push(
+    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
+  )
+
+  if (step.code !== 'Z03') {
+    segments.push(`NAD+IT+${meteringPointId}::9+++${siteAddress}+${siteCity}++${sitePostalCode}+${siteCountry}`)
+  }
+
+  const balanceResponsibleId = portalData.balanceResponsibleId
+  if (balanceResponsibleId) {
+    segments.push(`NAD+Z02+${sanitizeCode(balanceResponsibleId, '', 35)}:160:SVK`)
+  }
+
+  return segments
+}
+
+function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep, refs: DraftReferences): {
+  bodySegments: string[]
+  portalData: TgtPortalCustomerData
+} {
+  const transactionType = buildTgtProdatTransactionType(params, step)
+  const mutation = getTgtProdatMutation(params, step)
+  const sourceRows = step.code === 'Z03' ? getPortalDataRows(params, step) : [getPortalData(params, step)]
+  const portalRows = sourceRows.map((row) => applyProdatMutationToPortalData(row, mutation))
+  const primaryPortalData = portalRows[0] ?? applyProdatMutationToPortalData(getPortalData(params, step), mutation)
 
   const bodySegments: string[] = [
     `BGM+${step.code}+${refs.externalRef}+9+AB`,
@@ -733,59 +848,41 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
     'DTM+ZZZ:1:805',
     `NAD+FR+${GRIDEX_EDIEL_ID}:160:SVK+++++++SE`,
     `NAD+DO+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}:160:SVK+++++++SE`,
-    `LIN+1++${meteringPointId}:::9`,
-    `DTM+92:${startDate}0000:203`,
-    'CCI++Z13',
-    `CAV+${sanitizeCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)}`,
   ]
 
-  if (portalData.meteringMethod) {
-    bodySegments.push('CCI++Z04')
-    bodySegments.push(`CAV+${sanitizeCode(portalData.meteringMethod, 'UNKNOWN', 12)}`)
-  }
-
-  if (!mutation.omitLineItem) {
-    bodySegments.push(`RFF+LI:${refs.externalRef}`)
-  }
-  bodySegments.push(`RFF+Z05:${sanitizeCode(portalData.gridAreaId, 'UNKNOWN', 12)}`)
-
-  if (portalData.powerOfAttorneyReference) {
-    bodySegments.push(`RFF+ANJ:${sanitizeCode(portalData.powerOfAttorneyReference, 'UNKNOWN', 35)}`)
-  }
-
-  bodySegments.push(
-    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
-  )
-
-  if (step.code !== 'Z03') {
-    bodySegments.push(`NAD+IT+${meteringPointId}::9+++${siteAddress}+${siteCity}++${sitePostalCode}+${siteCountry}`)
-  }
-
-  const balanceResponsibleId = portalData.balanceResponsibleId
-  if (balanceResponsibleId) {
-    bodySegments.push(`NAD+Z02+${sanitizeCode(balanceResponsibleId, '', 35)}:160:SVK`)
-  }
+  portalRows.forEach((portalData, index) => {
+    bodySegments.push(
+      ...buildProdatLineSegments({
+        portalData,
+        step,
+        refs,
+        transactionType,
+        mutation,
+        lineNo: index + 1,
+      })
+    )
+  })
 
   if (step.code === 'Z06') {
     if (params.testCaseCode === '2.1.1') {
       bodySegments.push('CCI++Z10')
-      bodySegments.push(`CAV+${sanitizeCode(portalData.settlementMethod ?? 'Z32', 'Z32', 12)}`)
+      bodySegments.push(`CAV+${sanitizeCode(primaryPortalData.settlementMethod ?? 'Z32', 'Z32', 12)}`)
       bodySegments.push('CCI++Z04')
-      bodySegments.push(`CAV+${sanitizeCode(portalData.meteringMethod ?? 'Z04', 'Z04', 12)}`)
+      bodySegments.push(`CAV+${sanitizeCode(primaryPortalData.meteringMethod ?? 'Z04', 'Z04', 12)}`)
       bodySegments.push('CCI++Z12')
-      bodySegments.push(`CAV+${sanitizeCode(portalData.reportingFrequency ?? 'D', 'D', 12)}`)
+      bodySegments.push(`CAV+${sanitizeCode(primaryPortalData.reportingFrequency ?? 'D', 'D', 12)}`)
     }
 
     if (params.testCaseCode === '2.1.2') {
-      const register = portalData.registers[0]
+      const register = primaryPortalData.registers[0]
       bodySegments.push('CCI++Z04')
-      bodySegments.push(`CAV+${sanitizeCode(portalData.meteringMethod ?? 'Z04', 'Z04', 12)}`)
+      bodySegments.push(`CAV+${sanitizeCode(primaryPortalData.meteringMethod ?? 'Z04', 'Z04', 12)}`)
       bodySegments.push('CCI++Z08')
       bodySegments.push(`CAV+${sanitizeCode(register?.meterTimeInterval ?? '901', '901', 12)}`)
     }
   }
 
-  return { bodySegments, portalData }
+  return { bodySegments, portalData: primaryPortalData }
 }
 
 

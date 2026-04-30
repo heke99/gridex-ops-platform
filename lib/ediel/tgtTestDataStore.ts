@@ -153,6 +153,27 @@ function codeForPortalLabel(value: string | null | undefined): string | null {
   return null
 }
 
+function portalValuesFromCells(cells: string[], startValueIndex: number): Record<string, string> {
+  const values: Record<string, string> = {}
+  const valueCells = cells.slice(startValueIndex).map(normalizeFieldValue).filter(Boolean)
+
+  if (valueCells.length <= 1) {
+    const value = valueCells[0] ?? ''
+    if (value) values.Portaltestdata = value
+    return values
+  }
+
+  valueCells.forEach((value, index) => {
+    values[`Portaltestdata ${index + 1}`] = value
+  })
+
+  return values
+}
+
+function hasPortalValues(values: Record<string, string>): boolean {
+  return Object.values(values).some((value) => normalizeFieldValue(value).length > 0)
+}
+
 function parsePortalCellsLine(line: string): EdielTgtExcelField | null {
   const cells = splitPortalCells(line)
   if (cells.length < 2) return null
@@ -167,12 +188,12 @@ function parsePortalCellsLine(line: string): EdielTgtExcelField | null {
       const nameFromSameCell = normalizeFieldValue(directCode?.[2] ?? leadingCode?.[2] ?? '')
       const fieldName = nameFromSameCell || cells[index + 1] || KNOWN_PORTAL_FIELD_NAMES[code]
       const startValueIndex = nameFromSameCell ? index + 1 : index + 2
-      const value = normalizeFieldValue(cells.slice(startValueIndex).join(' '))
-      if (value) {
+      const values = portalValuesFromCells(cells, startValueIndex)
+      if (hasPortalValues(values)) {
         return {
           fieldCode: code,
           fieldName: KNOWN_PORTAL_FIELD_NAMES[code] ?? fieldName,
-          values: { Portaltestdata: value },
+          values,
         }
       }
     }
@@ -180,12 +201,12 @@ function parsePortalCellsLine(line: string): EdielTgtExcelField | null {
 
   const labelCode = codeForPortalLabel(cells[0])
   if (labelCode) {
-    const value = normalizeFieldValue(cells.slice(1).join(' '))
-    if (value) {
+    const values = portalValuesFromCells(cells, 1)
+    if (hasPortalValues(values)) {
       return {
         fieldCode: labelCode,
         fieldName: KNOWN_PORTAL_FIELD_NAMES[labelCode] ?? cells[0] ?? labelCode,
-        values: { Portaltestdata: value },
+        values,
       }
     }
   }
@@ -193,12 +214,12 @@ function parsePortalCellsLine(line: string): EdielTgtExcelField | null {
   if (cells.length >= 3) {
     const codeFromLabel = codeForPortalLabel(cells[1])
     if (codeFromLabel) {
-      const value = normalizeFieldValue(cells.slice(2).join(' '))
-      if (value) {
+      const values = portalValuesFromCells(cells, 2)
+      if (hasPortalValues(values)) {
         return {
           fieldCode: codeFromLabel,
           fieldName: KNOWN_PORTAL_FIELD_NAMES[codeFromLabel] ?? cells[1] ?? codeFromLabel,
-          values: { Portaltestdata: value },
+          values,
         }
       }
     }
@@ -333,19 +354,28 @@ export function parseEdielPortalTestDataText(input: {
       .filter((field): field is EdielTgtExcelField => Boolean(field))
   )
 
-  const column: EdielTgtExcelColumn = {
-    index: 1,
-    name: 'Portaltestdata',
-    testCase: input.testCaseCode,
-  }
+  const columnNames = Array.from(
+    fields.reduce((set, field) => {
+      Object.keys(field.values).forEach((key) => set.add(key))
+      return set
+    }, new Set<string>())
+  )
+
+  const columns: EdielTgtExcelColumn[] = (columnNames.length > 0 ? columnNames : ['Portaltestdata']).map(
+    (name, index) => ({
+      index: index + 1,
+      name,
+      testCase: input.testCaseCode,
+    })
+  )
 
   const block: EdielTgtExcelBlock = {
     kind: input.suite === 'PRODAT' ? 'PRODAT' : 'UTILTS',
-    sourceWorkbook: 'Edielportalen testdata – manuellt importerad',
+    sourceWorkbook: 'Edielportalen testdata – importerad',
     sourceSheet: `TGT ${input.testCaseCode}`,
     entityLabel: input.title?.trim() || `TGT ${input.testCaseCode}`,
     entityNumbers: [input.testCaseCode],
-    columns: [column],
+    columns,
     fields,
   }
 
@@ -354,11 +384,14 @@ export function parseEdielPortalTestDataText(input: {
     roleCode: input.roleCode,
     testCaseCode: input.testCaseCode,
     title: input.title?.trim() || `TGT ${input.testCaseCode} · importerad testdata`,
-    sourceNote: 'Importerad från Edielportalens testdatafält. Generatorn läser denna data före statiska bilagor.',
+    sourceNote:
+      columns.length > 1
+        ? `Importerad från Edielportalens testdata med ${columns.length} testkunder/rader. Generatorn bygger ett LIN-block per importerad testkund där testfallet kräver det.`
+        : 'Importerad från Edielportalens testdatafält. Generatorn läser denna data före statiska bilagor.',
     groups: [
       {
         block,
-        columns: [column],
+        columns,
         fields,
       },
     ],
