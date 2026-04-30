@@ -318,6 +318,15 @@ function parsePortalFieldLine(line: string): EdielTgtExcelField | null {
   return null
 }
 
+function nextPortalColumnName(existingValues: Record<string, string>): string {
+  const used = new Set(Object.keys(existingValues))
+  if (!used.has('Portaltestdata')) return 'Portaltestdata'
+
+  let index = 2
+  while (used.has(`Portaltestdata ${index}`)) index += 1
+  return `Portaltestdata ${index}`
+}
+
 function mergeDuplicateFields(fields: EdielTgtExcelField[]): EdielTgtExcelField[] {
   const byKey = new Map<string, EdielTgtExcelField>()
 
@@ -325,14 +334,24 @@ function mergeDuplicateFields(fields: EdielTgtExcelField[]): EdielTgtExcelField[
     const key = `${field.fieldCode}|${field.fieldName}`
     const existing = byKey.get(key)
     if (!existing) {
-      byKey.set(key, field)
+      byKey.set(key, { ...field, values: { ...field.values } })
       continue
     }
 
-    const existingValue = existing.values.Portaltestdata ?? ''
-    const incomingValue = field.values.Portaltestdata ?? ''
-    if (!existingValue && incomingValue) {
-      existing.values.Portaltestdata = incomingValue
+    for (const [incomingColumnName, incomingRawValue] of Object.entries(field.values)) {
+      const incomingValue = normalizeFieldValue(incomingRawValue)
+      if (!incomingValue) continue
+
+      const existingSameColumnValue = normalizeFieldValue(existing.values[incomingColumnName])
+      if (!existingSameColumnValue) {
+        existing.values[incomingColumnName] = incomingValue
+        continue
+      }
+
+      if (existingSameColumnValue === incomingValue) continue
+
+      const nextColumnName = nextPortalColumnName(existing.values)
+      existing.values[nextColumnName] = incomingValue
     }
   }
 
