@@ -331,7 +331,9 @@ function buildAperakSegments(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
-  const bgmFunction = params.outcome === 'positive' ? '34' : '27'
+  // Edielportalen uses BGM message function 34 for APERAK.
+  // The application result is carried by ERC/FTX, not by BGM/1225.
+  const bgmFunction = '34'
 
   // For APERAK on inbound PRODAT, Edielportalen matches the acknowledgement
   // against the referenced PRODAT document number (BGM/1004). Do not prefer

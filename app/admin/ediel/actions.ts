@@ -25,6 +25,7 @@ import {
   createEdielMessageEvent,
   createEdielTestRun,
   getEdielMessageById,
+  listAckMessagesForSource,
   listEdielTestRuns,
   updateEdielMessageStatus,
   updateEdielTestRunStatus,
@@ -660,6 +661,166 @@ export async function createAckDraftAction(formData: FormData) {
 
     revalidateEdiel(sourceMessageId)
   }
+}
+
+
+const TGT_S142_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
+  {
+    ercCode: '42',
+    fieldCode: '210',
+    text: 'Felaktig avtal, startdatum 2040-08-01',
+    referenceQualifier: 'Z07',
+    referenceNumber: '735999888000000123',
+    lineItemReference: 'GRIDEX-1.4.2-S1',
+  },
+  {
+    ercCode: '41',
+    fieldCode: '213',
+    text: 'Årsförbrukning saknas',
+    referenceQualifier: 'Z07',
+    referenceNumber: '735999888000000123',
+    lineItemReference: 'GRIDEX-1.4.2-S1',
+  },
+  {
+    ercCode: '41',
+    fieldCode: '214',
+    text: 'Konstant saknas',
+    referenceQualifier: 'Z07',
+    referenceNumber: '735999888000000130',
+    lineItemReference: null,
+  },
+  {
+    ercCode: '41',
+    fieldCode: '226',
+    text: 'Ärendereferens saknas, kundid=196501022773',
+    referenceQualifier: 'Z07',
+    referenceNumber: '735999888000000130',
+    lineItemReference: null,
+  },
+  {
+    ercCode: '100',
+    fieldCode: null,
+    text: 'OK',
+    referenceQualifier: 'Z07',
+    referenceNumber: '735999888000000147',
+    lineItemReference: 'GRIDEX-1.4.2-S1-3',
+  },
+]
+
+function deriveS142LineItemReferences(sourcePayload?: string | null): EdielAperakApplicationError[] {
+  const segments = (sourcePayload ?? '')
+    .replace(/\r\n/g, '')
+    .replace(/\n/g, '')
+    .replace(/^UNA.{6}'/i, '')
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+
+  const lineRefsByZ07 = new Map<string, string>()
+  let currentZ07: string | null = null
+
+  for (const segment of segments) {
+    if (segment.startsWith('LIN+')) {
+      const linId = segment.split('+')[3]?.split(':')[0]?.trim() ?? null
+      currentZ07 = linId && linId.length > 0 ? linId : null
+      continue
+    }
+
+    if (currentZ07 && segment.startsWith('RFF+LI:')) {
+      const li = segment.replace(/^RFF\+LI:/, '').trim()
+      if (li) lineRefsByZ07.set(currentZ07, li)
+    }
+  }
+
+  return TGT_S142_APERAK_APPLICATION_ERRORS.map((error) => ({
+    ...error,
+    lineItemReference:
+      error.referenceNumber && lineRefsByZ07.has(error.referenceNumber)
+        ? lineRefsByZ07.get(error.referenceNumber) ?? null
+        : error.lineItemReference,
+  }))
+}
+
+export async function createAndSendTgtS142AperakAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const sourceMessageId = formString(formData.get('sourceMessageId'))
+
+  if (!sourceMessageId) throw new Error('sourceMessageId saknas')
+
+  const sourceMessage = await getEdielMessageById(sourceMessageId)
+  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+
+  if (
+    sourceMessage.direction !== 'inbound' ||
+    sourceMessage.message_family !== 'PRODAT' ||
+    String(sourceMessage.message_code).toUpperCase() !== 'Z04'
+  ) {
+    throw new Error(
+      `1.4.2-APERAK måste skapas från inbound PRODAT/Z04. Vald rad är ${sourceMessage.direction} ${sourceMessage.message_family}/${sourceMessage.message_code}.`
+    )
+  }
+
+  const existingAcks = await listAckMessagesForSource({
+    sourceMessageId,
+    ackFamily: 'APERAK',
+  })
+
+  for (const ack of existingAcks) {
+    if (['draft', 'queued', 'prepared', 'failed'].includes(String(ack.status))) {
+      await updateEdielMessageStatus({
+        actorUserId: context.userId,
+        edielMessageId: ack.id,
+        status: 'cancelled',
+        failureReason: 'Ersatt av korrekt S1.4.2-APERAK med flera objekt.',
+      })
+    }
+  }
+
+  const ackMessage = await createAckDraftForMessage({
+    actorUserId: context.userId,
+    sourceMessageId,
+    ackFamily: 'APERAK',
+    outcome: 'negative',
+    applicationErrors: deriveS142LineItemReferences(sourceMessage.raw_payload),
+  })
+
+  if (ackMessage.status !== 'draft' && ackMessage.status !== 'queued' && ackMessage.status !== 'prepared') {
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId: sourceMessageId,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Kunde inte skapa ny S1.4.2-APERAK eftersom en aktiv APERAK redan finns.',
+      payload: {
+        ackMessageId: ackMessage.id,
+        status: ackMessage.status,
+      },
+    })
+    revalidateEdiel(sourceMessageId)
+    await revalidateRelatedMessage(ackMessage.id)
+    return
+  }
+
+  await sendQueuedEdielMessage({
+    actorUserId: context.userId,
+    edielMessageId: ackMessage.id,
+    smtpMimeMode: 'ediel-singlepart-base64',
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: context.userId,
+    edielMessageId: sourceMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'success',
+    message: 'S1.4.2-APERAK skapades och skickades med fem objekt-/felgrupper.',
+    payload: {
+      ackMessageId: ackMessage.id,
+      preset: 'S1.4.2',
+    },
+  })
+
+  revalidateEdiel(sourceMessageId)
+  await revalidateRelatedMessage(ackMessage.id)
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {

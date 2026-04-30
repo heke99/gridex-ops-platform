@@ -816,7 +816,11 @@ export function evaluateEdielTgtRun(
     const close = candidates.find(
       (message) =>
         !usedIds.has(message.id) &&
-        (message.direction === step.direction || normalizeCode(String(message.message_code)) === normalizeCode(step.code))
+        message.direction === step.direction &&
+        (
+          normalizeCode(message.message_family) === step.family ||
+          normalizeCode(String(message.message_code)) === normalizeCode(step.code)
+        )
     )
 
     if (close) {
