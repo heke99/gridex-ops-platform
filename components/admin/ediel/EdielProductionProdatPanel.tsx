@@ -195,7 +195,14 @@ function EdielPortalTestCustomerOnboardingPanel() {
               <FormSection title="1. Kund" description="Detta blir riktig kund i customers. För Edielportalens test använder du testkundens personnummer/kund-id från portalen.">
                 <FormInput name="customerFirstName" label="Förnamn" required placeholder="Ex. MARGIT" />
                 <FormInput name="customerLastName" label="Efternamn" required placeholder="Ex. PAULSSON" />
-                <FormInput name="customerPersonalNumber" label="Personnummer / kund-id" required placeholder="Ex. 194507018820" />
+                <FormInput name="customerPersonalNumber" label="Personnummer / kund-id" required placeholder="Ex. 194507018820 eller 5560143041" />
+                <FormSelect name="customerIdCodeListQualifier" label="Kund-id typ / DE 1131">
+                  <option value="">Auto från testfall/personnummer</option>
+                  <option value="SE2">Personnummer = SE2</option>
+                  <option value="SE1">Organisationsnummer = SE1</option>
+                  <option value="1">Födelsedatum = 1</option>
+                </FormSelect>
+                <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900 md:col-span-2">För 1.2.1 Z03L med personnummer används normalt SE2. För 1.2.2 Z03LK med organisationsnummer 5560143041 ska kund-id typ vara SE1.</div>
                 <FormInput name="customerBirthDate" label="Födelsedatum" placeholder="YYYYMMDD, ex. 19450501" />
                 <FormInput name="customerEmail" label="E-post (krävs om telefon saknas)" type="email" placeholder="Ex. testkund.com" />
                 <FormInput name="customerPhone" label="Telefonnummer (krävs om e-post saknas)" placeholder="Ex. 0700000000" />
@@ -234,6 +241,12 @@ function EdielPortalTestCustomerOnboardingPanel() {
 
               <FormSection title="4. Avtal, fullmakt och Ediel-styrning" description="Dessa fält krävs för att switchärendet ska bli redo och för att rätt referenser ska hamna i PRODAT.">
                 <FormInput name="agreementStartDateTime" label="Avtalsstart från portalen" required placeholder="YYYYMMDDHHMM, ex. 202605150000" />
+                <FormSelect name="reasonForTransaction" label="Transaktionstyp / fält 223">
+                  <option value="">Auto från testfall</option>
+                  <option value="Z22">L = leverantörsbyte = Z22</option>
+                  <option value="Z23">LK = leverantörs- och kundbyte = Z23</option>
+                </FormSelect>
+                <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900 md:col-span-2">Välj L/Z22 för vanligt leverantörsbyte, t.ex. 1.2.1 Z03L. Välj LK/Z23 för leverantörs- och kundbyte, t.ex. 1.2.2 Z03LK.</div>
                 <FormSelect name="powerOfAttorneyStatus" label="Fullmaktstatus" defaultValue="signed">
                   <option value="signed">Signerad - får användas för Ediel</option>
                   <option value="draft">Utkast - spärrar Ediel</option>

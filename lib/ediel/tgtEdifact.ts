@@ -521,7 +521,7 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
     `LIN+1++${meteringPointId}:::9`,
     `DTM+92:${startDate}0000:203`,
     'CCI++Z13',
-    `CAV+${transactionType === 'Z03LK' ? 'Z22' : 'Z22'}`,
+    `CAV+${transactionType === 'Z03LK' ? 'Z23' : 'Z22'}`,
   ]
 
   if (portalData.meteringMethod) {
@@ -537,7 +537,7 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
   }
 
   bodySegments.push(
-    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:SE2:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
+    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:${transactionType === 'Z03LK' ? 'SE1' : 'SE2'}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
   )
 
   if (step.code !== 'Z03') {

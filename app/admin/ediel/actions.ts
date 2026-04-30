@@ -745,6 +745,8 @@ export async function createEdielPortalTestCustomerAction(formData: FormData) {
     customerLastName: formString(formData.get('customerLastName')),
     customerName: formString(formData.get('customerName')),
     customerPersonalNumber: formString(formData.get('customerPersonalNumber')),
+    customerIdCodeListQualifier: formString(formData.get('customerIdCodeListQualifier')),
+    reasonForTransaction: formString(formData.get('reasonForTransaction')),
     customerBirthDate: formString(formData.get('customerBirthDate')),
     customerEmail: formString(formData.get('customerEmail')),
     customerPhone: formString(formData.get('customerPhone')),

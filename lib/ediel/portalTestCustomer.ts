@@ -35,6 +35,8 @@ export type CreateEdielPortalTestCustomerInput = {
   customerLastName?: string | null
   customerName?: string | null
   customerPersonalNumber?: string | null
+  customerIdCodeListQualifier?: string | null
+  reasonForTransaction?: string | null
   customerBirthDate?: string | null
   customerEmail?: string | null
   customerPhone?: string | null
@@ -95,6 +97,8 @@ type PortalTestCustomerData = {
   roleCode: EdielTestRoleCode
   testCaseCode: string
   customerId: string
+  customerIdCodeListQualifier: string
+  reasonForTransaction: string
   customerName: string
   customerEmail: string | null
   customerPhone: string | null
@@ -138,6 +142,8 @@ type PortalTestCustomerData = {
 
 type PortalTestCaseOverrides = {
   meteringMethod?: string
+  reasonForTransaction?: string
+  customerIdCodeListQualifier?: string
 }
 
 const PORTAL_TEST_CASE_OVERRIDES: Record<string, PortalTestCaseOverrides> = {
@@ -146,8 +152,16 @@ const PORTAL_TEST_CASE_OVERRIDES: Record<string, PortalTestCaseOverrides> = {
   // portalen fält 217 (CCI++Z04/CAV) = Z03 även om en manuellt kopierad
   // testkundsrad råkar ange Z01. Generatorn ska därför fortfarande vara
   // datadriven, men testfallsspecifika TGT-regler vinner över formulärdata.
-  'PRODAT:supplier:1.2.1': { meteringMethod: 'Z03' },
-  'PRODAT:supplier:1.2.2': { meteringMethod: 'Z03' },
+  'PRODAT:supplier:1.2.1': {
+    meteringMethod: 'Z03',
+    reasonForTransaction: 'Z22',
+    customerIdCodeListQualifier: 'SE2',
+  },
+  'PRODAT:supplier:1.2.2': {
+    meteringMethod: 'Z03',
+    reasonForTransaction: 'Z23',
+    customerIdCodeListQualifier: 'SE1',
+  },
 }
 
 function portalTestCaseKey(input: Pick<CreateEdielPortalTestCustomerInput, 'testSuite' | 'roleCode' | 'testCaseCode'>): string {
@@ -243,6 +257,32 @@ function digitsOrTest(inputValue: unknown, testValue: unknown): string | null {
 
 function tokenOrTest(inputValue: unknown, testValue: unknown): string | null {
   return firstToken(inputValue) ?? firstToken(testValue)
+}
+
+function normalizeReasonForTransaction(value: unknown): string | null {
+  const token = firstToken(value)?.toUpperCase()
+  if (!token) return null
+  if (token === 'L') return 'Z22'
+  if (token === 'LK') return 'Z23'
+  if (token === 'Z22' || token === 'Z23') return token
+  return null
+}
+
+function normalizeCustomerIdCodeListQualifier(value: unknown): string | null {
+  const token = firstToken(value)?.toUpperCase()
+  if (!token) return null
+  if (token === 'ORG' || token === 'ORGANISATIONSNUMMER') return 'SE1'
+  if (token === 'PERSON' || token === 'PERSONNUMMER') return 'SE2'
+  if (token === 'BIRTHDATE' || token === 'FODELSEDATUM' || token === 'FÖDELSEDATUM') return '1'
+  if (token === 'SE1' || token === 'SE2' || token === '1') return token
+  return null
+}
+
+function inferCustomerIdCodeListQualifier(customerId: string | null, birthDate: string | null): 'SE1' | 'SE2' | '1' {
+  if (customerId && /^\d{10}$/.test(customerId)) return 'SE1'
+  if (customerId && /^\d{12}$/.test(customerId)) return 'SE2'
+  if (!customerId && birthDate && /^\d{8}$/.test(birthDate)) return '1'
+  return 'SE2'
 }
 
 function normalizePowerOfAttorneyStatus(value: unknown): 'draft' | 'sent' | 'signed' | 'expired' | 'revoked' {
@@ -382,6 +422,16 @@ function buildPortalTestData(input: CreateEdielPortalTestCustomerInput): PortalT
   const customerContactEmail = clean(input.customerEmail)
   const customerContactPhone = clean(input.customerPhone)
   const customerId = digitsOrTest(input.customerPersonalNumber, getFieldValue(testData, '227'))
+  const birthDate = digitsOrTest(input.customerBirthDate, getFieldValue(testData, '249'))
+  const reasonForTransaction =
+    normalizeReasonForTransaction(input.reasonForTransaction) ??
+    normalizeReasonForTransaction(testCaseOverrides.reasonForTransaction) ??
+    normalizeReasonForTransaction(getFieldValue(testData, '223')) ??
+    'Z22'
+  const customerIdCodeListQualifier =
+    normalizeCustomerIdCodeListQualifier(input.customerIdCodeListQualifier) ??
+    normalizeCustomerIdCodeListQualifier(testCaseOverrides.customerIdCodeListQualifier) ??
+    inferCustomerIdCodeListQualifier(customerId, birthDate)
   const facilityId = digitsOrTest(input.facilityId, getFieldValue(testData, '209')) ?? digits(getFieldValue(testData, '233'))
   const gridAreaId = tokenOrTest(input.gridAreaId, getFieldValue(testData, '260'))
 
@@ -411,10 +461,12 @@ function buildPortalTestData(input: CreateEdielPortalTestCustomerInput): PortalT
     roleCode: input.roleCode,
     testCaseCode: input.testCaseCode,
     customerId: customerId!,
+    customerIdCodeListQualifier,
+    reasonForTransaction,
     customerName: customerName!,
     customerEmail: customerContactEmail,
     customerPhone: customerContactPhone,
-    birthDate: digitsOrTest(input.customerBirthDate, getFieldValue(testData, '249')),
+    birthDate,
     customerAddress: valueOrTest(input.customerAddress, getFieldValue(testData, '229')),
     customerPostalCode: digitsOrTest(input.customerPostalCode, getFieldValue(testData, '231')),
     customerCity: valueOrTest(input.customerCity, getFieldValue(testData, '232')),
@@ -1017,6 +1069,8 @@ async function ensureSwitchRequest(
     testLabel: params.data.testLabel,
     portalData: {
       customerId: params.data.customerId,
+      customerIdCodeListQualifier: params.data.customerIdCodeListQualifier,
+      reasonForTransaction: params.data.reasonForTransaction,
       customerName: params.data.customerName,
       birthDate: params.data.birthDate,
       customerAddress: params.data.customerAddress,

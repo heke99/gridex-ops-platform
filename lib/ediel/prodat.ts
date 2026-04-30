@@ -361,15 +361,31 @@ function partySegment(role: 'FR' | 'DO', edielId: string): string {
   return `NAD+${role}+${sanitize(edielId)}:160:SVK+++++++SE`
 }
 
+function normalizeProdatReasonForTransaction(value: string | null): string {
+  const normalized = sanitize(value).toUpperCase()
+  if (normalized === 'LK' || normalized === 'Z23') return 'Z23'
+  return 'Z22'
+}
+
+function normalizeEndUserIdQualifier(value: string | null, customerId: string | null): 'SE1' | 'SE2' | '1' {
+  const normalized = sanitize(value).toUpperCase()
+  if (normalized === 'SE1' || normalized === 'SE2' || normalized === '1') return normalized
+  if (customerId && /^\d{10}$/.test(customerId)) return 'SE1'
+  if (customerId && /^\d{12}$/.test(customerId)) return 'SE2'
+  return 'SE2'
+}
+
 function customerNadSegment(params: {
   customerId: string | null
+  customerIdCodeListQualifier: string | null
   customerName: string
   address: string | null
   city: string | null
   postalCode: string | null
   country: string | null
 }): string {
-  const id = params.customerId ? `${sanitize(params.customerId)}:SE2:260` : ''
+  const qualifier = normalizeEndUserIdQualifier(params.customerIdCodeListQualifier, params.customerId)
+  const id = params.customerId ? `${sanitize(params.customerId)}:${qualifier}:260` : ''
   const name = sanitize(params.customerName) || 'KUND'
   const address = sanitize(params.address)
   const city = sanitize(params.city)
@@ -551,6 +567,8 @@ function renderProdatSegments(params: {
   const powerOfAttorneyReference = portalString(portalData, 'powerOfAttorneyReference')
   const balanceResponsibleId = portalString(portalData, 'balanceResponsibleId')
   const meteringMethod = resolveProdatMeteringMethod(portalData)
+  const reasonForTransaction = normalizeProdatReasonForTransaction(portalString(portalData, 'reasonForTransaction'))
+  const customerIdCodeListQualifier = portalString(portalData, 'customerIdCodeListQualifier')
 
   const segments: string[] = []
 
@@ -570,7 +588,7 @@ function renderProdatSegments(params: {
   }
 
   segments.push('CCI++Z13')
-  segments.push('CAV+Z22')
+  segments.push(`CAV+${reasonForTransaction}`)
 
   if (meteringMethod) {
     segments.push('CCI++Z04')
@@ -589,6 +607,7 @@ function renderProdatSegments(params: {
 
   segments.push(customerNadSegment({
     customerId,
+    customerIdCodeListQualifier,
     customerName,
     address: customerAddress,
     city: customerCity,
