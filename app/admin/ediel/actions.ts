@@ -17,7 +17,7 @@ import {
   prepareAndQueueUtiltsE73,
   sendQueuedEdielMessage,
 } from '@/lib/ediel/orchestrator'
-import type { AckFamily, AckOutcome } from '@/lib/ediel/ack'
+import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
 import {
   attachEdielMessageToTestRun,
@@ -115,6 +115,34 @@ function formNumber(value: FormDataEntryValue | null): number | null {
   if (!raw) return null
   const parsed = Number(raw.replace(',', '.'))
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function formStringList(formData: FormData, name: string): string[] {
+  return formData
+    .getAll(name)
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter((value) => value.length > 0)
+}
+
+function collectAperakApplicationErrors(formData: FormData): EdielAperakApplicationError[] | null {
+  const ercCodes = formStringList(formData, 'aperakErrorErc')
+  const fieldCodes = formStringList(formData, 'aperakErrorFieldCode')
+  const texts = formStringList(formData, 'aperakErrorText')
+  const max = Math.max(ercCodes.length, fieldCodes.length, texts.length)
+  const errors: EdielAperakApplicationError[] = []
+
+  for (let index = 0; index < max; index += 1) {
+    const ercCode = ercCodes[index] ?? ercCodes[0] ?? ''
+    const text = texts[index] ?? ''
+    if (!ercCode || !text) continue
+    errors.push({
+      ercCode,
+      fieldCode: fieldCodes[index] ?? null,
+      text,
+    })
+  }
+
+  return errors.length > 0 ? errors : null
 }
 
 const EDIEL_TEST_SUITES: readonly EdielTestSuite[] = [
@@ -515,6 +543,7 @@ export async function createAckDraftAction(formData: FormData) {
   const ackType = formString(formData.get('ackType')) as AckFamily | null
   const outcome = (formString(formData.get('outcome')) as AckOutcome | null) ?? 'positive'
   const messageText = formString(formData.get('messageText'))
+  const applicationErrors = collectAperakApplicationErrors(formData)
 
   if (!sourceMessageId) throw new Error('sourceMessageId saknas')
   if (!ackType || !['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(ackType)) {
@@ -528,6 +557,7 @@ export async function createAckDraftAction(formData: FormData) {
       ackFamily: ackType,
       outcome: ackType === 'UTILTS_ERR' ? undefined : outcome,
       messageText,
+      applicationErrors: ackType === 'APERAK' ? applicationErrors : null,
     })
 
     revalidateEdiel(sourceMessageId)

@@ -6,6 +6,7 @@ import {
   buildAperakDraft,
   buildContrlDraft,
   buildUtiltsErrDraft,
+  type EdielAperakApplicationError,
 } from '@/lib/ediel/ack'
 import { getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
 import {
@@ -80,6 +81,7 @@ export async function createAckForSourceMessage(params: {
   ackFamily: AckFamily
   outcome?: AckOutcome
   messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
 }) {
   const draft = buildAckDraftForSource({
     actorUserId: params.actorUserId,
@@ -87,6 +89,7 @@ export async function createAckForSourceMessage(params: {
     ackFamily: params.ackFamily,
     outcome: params.outcome,
     messageText: params.messageText ?? null,
+    applicationErrors: params.applicationErrors ?? null,
   })
 
   return createCanonicalAckMessage({
@@ -104,6 +107,7 @@ export async function createAckDraftForMessage(params: {
   ackFamily: AckFamily
   outcome?: AckOutcome
   messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
 }) {
   const sourceMessage = await getEdielMessageById(params.sourceMessageId)
   if (!sourceMessage) {
@@ -116,6 +120,7 @@ export async function createAckDraftForMessage(params: {
     ackFamily: params.ackFamily,
     outcome: params.outcome,
     messageText: params.messageText ?? null,
+    applicationErrors: params.applicationErrors ?? null,
   })
 }
 
@@ -156,6 +161,7 @@ export async function createNegativeApplicationAck(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
   messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
 }) {
   return createAckForSourceMessage({
     actorUserId: params.actorUserId,
@@ -163,6 +169,7 @@ export async function createNegativeApplicationAck(params: {
     ackFamily: 'APERAK',
     outcome: 'negative',
     messageText: params.messageText ?? null,
+    applicationErrors: params.applicationErrors ?? null,
   })
 }
 

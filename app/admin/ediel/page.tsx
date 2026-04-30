@@ -464,6 +464,60 @@ function IncomingPortalResponses({
                           </button>
                         </form>
                       ) : null}
+                      {!hasContrl ? (
+                        <form action={createAckDraftAction}>
+                          <input type="hidden" name="sourceMessageId" value={message.id} />
+                          <input type="hidden" name="ackType" value="CONTRL" />
+                          <input type="hidden" name="outcome" value="negative" />
+                          <input type="hidden" name="messageText" value="Syntaxfel enligt Edielportalens TGT-test" />
+                          <button className="rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100">
+                            Skapa negativ CONTRL · syntaxfel
+                          </button>
+                        </form>
+                      ) : null}
+                      {!hasAperak ? (
+                        <details className="w-full rounded-2xl border border-rose-200 bg-rose-50 p-3">
+                          <summary className="cursor-pointer text-xs font-semibold text-rose-800">
+                            Negativ APERAK för TGT-feltest
+                          </summary>
+                          <p className="mt-1 text-xs leading-5 text-rose-800">
+                            Använd bara i S1.4-feltest där portalen skickar felaktig Z04/Z04D och GridCore ska avvisa med applikationsfel. Positiva S1.2-tester påverkas inte.
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <form action={createAckDraftAction}>
+                              <input type="hidden" name="sourceMessageId" value={message.id} />
+                              <input type="hidden" name="ackType" value="APERAK" />
+                              <input type="hidden" name="outcome" value="negative" />
+                              <input type="hidden" name="aperakErrorErc" value="42" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="210" />
+                              <input type="hidden" name="aperakErrorText" value="Felaktig avtal, startdatum 2040-08-01" />
+                              <input type="hidden" name="aperakErrorErc" value="41" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="213" />
+                              <input type="hidden" name="aperakErrorText" value="Årsförbrukning saknas" />
+                              <input type="hidden" name="aperakErrorErc" value="41" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="214" />
+                              <input type="hidden" name="aperakErrorText" value="Konstant saknas" />
+                              <input type="hidden" name="aperakErrorErc" value="41" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="226" />
+                              <input type="hidden" name="aperakErrorText" value="Ärendereferens saknas, kundid=196805249288" />
+                              <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
+                                1.4.2/1.4.2B · avvisa Z04
+                              </button>
+                            </form>
+                            <form action={createAckDraftAction}>
+                              <input type="hidden" name="sourceMessageId" value={message.id} />
+                              <input type="hidden" name="ackType" value="APERAK" />
+                              <input type="hidden" name="outcome" value="negative" />
+                              <input type="hidden" name="aperakErrorErc" value="41" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="319" />
+                              <input type="hidden" name="aperakErrorText" value="Referens till anläggning saknas" />
+                              <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
+                                1.4.3 · Z04D saknad anläggningsreferens
+                              </button>
+                            </form>
+                          </div>
+                        </details>
+                      ) : null}
                       {hasContrl && hasAperak ? <Badge tone="green">CONTRL och APERAK finns</Badge> : null}
                     </div>
                   </div>

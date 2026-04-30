@@ -357,7 +357,10 @@ function partySegment(role: 'FR' | 'DO', edielId: string): string {
 function normalizeProdatReasonForTransaction(value: string | null): string {
   const normalized = sanitize(value).toUpperCase()
   if (normalized === 'LK' || normalized === 'Z23') return 'Z23'
-  return 'Z22'
+  if (normalized === 'L' || normalized === 'Z22') return 'Z22'
+  if (normalized === 'F' || normalized === 'Z06F' || normalized === 'E64') return 'E64'
+  if (normalized === 'G' || normalized === 'Z06G' || normalized === 'E32') return 'E32'
+  return normalized || 'Z22'
 }
 
 function normalizeEndUserIdQualifier(value: string | null, customerId: string | null): 'SE1' | 'SE2' | '1' {

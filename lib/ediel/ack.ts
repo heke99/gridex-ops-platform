@@ -106,6 +106,25 @@ type ParsedEdifactRefs = {
   meteringPointId: string | null
 }
 
+export type EdielAperakApplicationError = {
+  ercCode: string
+  fieldCode?: string | null
+  text: string
+}
+
+function normalizeAperakErrors(errors?: readonly EdielAperakApplicationError[] | null, fallbackText?: string | null): EdielAperakApplicationError[] {
+  const normalized = (errors ?? [])
+    .map((error) => ({
+      ercCode: sanitizeEdifactToken(error.ercCode, 12) ?? '',
+      fieldCode: sanitizeEdifactToken(error.fieldCode ?? null, 12),
+      text: escapeEdifactText(error.text, 140),
+    }))
+    .filter((error) => error.ercCode.length > 0 && error.text.length > 0)
+
+  if (normalized.length > 0) return normalized
+  return [{ ercCode: '40', fieldCode: '40', text: escapeEdifactText(fallbackText || 'Applikationen kunde inte bearbeta meddelandet', 140) }]
+}
+
 function segmentsFromRawPayload(rawPayload?: string | null): string[] {
   if (!rawPayload) return []
 
@@ -289,14 +308,10 @@ function buildAperakSegments(params: {
   transactionReference: string
   outcome: AckOutcome
   messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
   const bgmFunction = params.outcome === 'positive' ? '34' : '27'
-  const ercCode = params.outcome === 'positive' ? '100' : '40'
-  const text =
-    params.outcome === 'positive'
-      ? 'OK'
-      : escapeEdifactText(params.messageText || 'Applikationen kunde inte bearbeta meddelandet')
 
   // For APERAK on inbound PRODAT, Edielportalen matches the acknowledgement
   // against the referenced PRODAT document number (BGM/1004). Do not prefer
@@ -333,12 +348,17 @@ function buildAperakSegments(params: {
   segments.push(
     `RFF+ACW:${previousMessageReference}`,
     `NAD+FR+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`,
-    `NAD+DO+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`,
-    `ERC+${ercCode}::260`,
-    params.outcome === 'positive'
-      ? 'FTX+AAO+++OK'
-      : `FTX+AAO++40::260+${text}`
+    `NAD+DO+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`
   )
+
+  if (params.outcome === 'positive') {
+    segments.push('ERC+100::260', 'FTX+AAO+++OK')
+  } else {
+    for (const error of normalizeAperakErrors(params.applicationErrors, params.messageText ?? null)) {
+      segments.push(`ERC+${error.ercCode}::260`)
+      segments.push(error.fieldCode ? `FTX+AAO++${error.fieldCode}::260+${error.text}` : `FTX+AAO+++${error.text}`)
+    }
+  }
 
   if (refs.meteringPointId) {
     segments.push(`RFF+Z07:${refs.meteringPointId}`)
@@ -381,6 +401,7 @@ function buildAckDraft(params: {
   ackFamily: AckFamily
   outcome?: AckOutcome
   messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
 }): CreateEdielMessageInput {
   ensureInboundEdifactSource(params.sourceMessage, params.ackFamily)
 
@@ -416,6 +437,7 @@ function buildAckDraft(params: {
             transactionReference: refs.transactionReference ?? params.sourceMessage.id,
             outcome,
             messageText: params.messageText ?? null,
+            applicationErrors: params.applicationErrors ?? null,
           })
         : buildUtiltsErrSegments({
             sourceMessage: params.sourceMessage,
@@ -494,12 +516,14 @@ function buildAckDraft(params: {
       ackFamily: params.ackFamily,
       ackOutcome: outcome,
       sourceMessageId: params.sourceMessage.id,
+      applicationErrors: params.applicationErrors ?? null,
     },
     validationReport: {
       generatedBy: 'buildAckDraft',
       sourceMessageId: params.sourceMessage.id,
       sourceFamily: params.sourceMessage.message_family,
       sourceCode: params.sourceMessage.message_code,
+      applicationErrors: params.applicationErrors ?? null,
     },
     applicationReference,
     interchangeReference:
@@ -567,6 +591,7 @@ export function buildAperakDraft(params: {
   sourceMessage: EdielMessageRow
   outcome?: AckOutcome
   messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
 }): CreateEdielMessageInput {
   return buildAckDraft({
     actorUserId: params.actorUserId,
@@ -574,6 +599,7 @@ export function buildAperakDraft(params: {
     ackFamily: 'APERAK',
     outcome: params.outcome ?? 'positive',
     messageText: params.messageText ?? null,
+    applicationErrors: params.applicationErrors ?? null,
   })
 }
 
@@ -596,6 +622,7 @@ export function buildAckDraftForSource(params: {
   ackFamily: AckFamily
   outcome?: AckOutcome
   messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
 }): CreateEdielMessageInput {
   if (params.ackFamily === 'CONTRL') {
     return buildContrlDraft({
@@ -612,6 +639,7 @@ export function buildAckDraftForSource(params: {
       sourceMessage: params.sourceMessage,
       outcome: params.outcome,
       messageText: params.messageText,
+      applicationErrors: params.applicationErrors ?? null,
     })
   }
 

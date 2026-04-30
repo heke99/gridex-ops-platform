@@ -101,6 +101,15 @@ type TgtPortalRegister = {
   resolution?: string | null
 }
 
+type TgtProdatMutation = {
+  meteringPointId?: string
+  gridAreaId?: string
+  agreementStartDateTime?: string
+  reasonForTransaction?: string
+  balanceResponsibleId?: string
+  omitLineItem?: boolean
+}
+
 type TgtPortalCustomerData = {
   source: 'tgt_test_data_registry' | 'missing_test_data'
   testCustomerLabel: string
@@ -487,7 +496,49 @@ function negativeAperakSegments(refs: DraftReferences): string[] {
 function buildTgtProdatTransactionType(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep): string {
   if (params.testCaseCode === '1.2.2') return step.code === 'Z03' ? 'Z03LK' : 'Z04LK'
   if (params.testCaseCode === '1.2.5') return step.code === 'Z04' ? 'Z04D' : `${step.code}D`
+
+  if (['2.1.1', '2.1.2'].includes(params.testCaseCode)) {
+    return step.code === 'Z06' ? 'Z06F' : `${step.code}F`
+  }
+
+  if (params.testCaseCode === '2.1.3') {
+    return step.code === 'Z06' ? 'Z06G' : `${step.code}G`
+  }
+
   return step.code === 'Z03' ? 'Z03L' : `${step.code}L`
+}
+
+function reasonForProdatSubtype(transactionType: string): string {
+  if (transactionType.endsWith('LK')) return 'Z23'
+  if (transactionType.endsWith('F')) return 'E64'
+  if (transactionType.endsWith('G')) return 'E32'
+  return 'Z22'
+}
+
+function getTgtProdatMutation(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep): TgtProdatMutation {
+  if (step.family !== 'PRODAT') return {}
+
+  if (params.testCaseCode === '1.3.1' && step.code === 'Z03') {
+    return { meteringPointId: '999999999999999999' }
+  }
+
+  if (params.testCaseCode === '1.3.2' && step.code === 'Z03') {
+    return { gridAreaId: 'TEX', reasonForTransaction: 'Z23' }
+  }
+
+  if (params.testCaseCode === '1.3.3' && step.code === 'Z03') {
+    return {
+      reasonForTransaction: 'Z26',
+      balanceResponsibleId: '99999',
+      omitLineItem: true,
+    }
+  }
+
+  if ((params.testCaseCode === '1.3.4' || params.testCaseCode === '1.3.4B') && step.code === 'Z03') {
+    return { agreementStartDateTime: '200308010000' }
+  }
+
+  return {}
 }
 
 function pushOptionalSegment(segments: string[], condition: string | null | undefined, segment: string) {
@@ -500,8 +551,9 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
 } {
   const portalData = getPortalData(params, step)
   const transactionType = buildTgtProdatTransactionType(params, step)
-  const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
-  const meteringPointId = step.outcome === 'negative' ? '999999999999999999' : sanitizeCode(portalData.meteringPointId, 'UNKNOWN', 35)
+  const mutation = getTgtProdatMutation(params, step)
+  const startDate = date102FromPortalDate(mutation.agreementStartDateTime ?? portalData.agreementStartDateTime, refs.createdLongDate)
+  const meteringPointId = sanitizeCode(mutation.meteringPointId ?? portalData.meteringPointId, 'UNKNOWN', 35)
   const customerName = edifactEscape(sanitize(portalData.customerName, 'UNKNOWN'))
   const customerAddress = edifactEscape(sanitize(portalData.customerAddress ?? ''))
   const customerCity = edifactEscape(sanitize(portalData.customerCity ?? ''))
@@ -521,7 +573,7 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
     `LIN+1++${meteringPointId}:::9`,
     `DTM+92:${startDate}0000:203`,
     'CCI++Z13',
-    `CAV+${transactionType === 'Z03LK' ? 'Z23' : 'Z22'}`,
+    `CAV+${sanitizeCode(mutation.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)}`,
   ]
 
   if (portalData.meteringMethod) {
@@ -529,23 +581,45 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
     bodySegments.push(`CAV+${sanitizeCode(portalData.meteringMethod, 'UNKNOWN', 12)}`)
   }
 
-  bodySegments.push(`RFF+LI:${refs.externalRef}`)
-  bodySegments.push(`RFF+Z05:${sanitizeCode(portalData.gridAreaId, 'UNKNOWN', 12)}`)
+  if (!mutation.omitLineItem) {
+    bodySegments.push(`RFF+LI:${refs.externalRef}`)
+  }
+  bodySegments.push(`RFF+Z05:${sanitizeCode(mutation.gridAreaId ?? portalData.gridAreaId, 'UNKNOWN', 12)}`)
 
   if (portalData.powerOfAttorneyReference) {
     bodySegments.push(`RFF+ANJ:${sanitizeCode(portalData.powerOfAttorneyReference, 'UNKNOWN', 35)}`)
   }
 
   bodySegments.push(
-    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:${transactionType === 'Z03LK' ? 'SE1' : 'SE2'}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
+    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:${transactionType === 'Z03LK' || mutation.reasonForTransaction === 'Z23' ? 'SE1' : 'SE2'}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
   )
 
   if (step.code !== 'Z03') {
     bodySegments.push(`NAD+IT+${meteringPointId}::9+++${siteAddress}+${siteCity}++${sitePostalCode}+${siteCountry}`)
   }
 
-  if (portalData.balanceResponsibleId) {
-    bodySegments.push(`NAD+Z02+${sanitizeCode(portalData.balanceResponsibleId, '', 35)}:160:SVK`)
+  const balanceResponsibleId = mutation.balanceResponsibleId ?? portalData.balanceResponsibleId
+  if (balanceResponsibleId) {
+    bodySegments.push(`NAD+Z02+${sanitizeCode(balanceResponsibleId, '', 35)}:160:SVK`)
+  }
+
+  if (step.code === 'Z06') {
+    if (params.testCaseCode === '2.1.1') {
+      bodySegments.push('CCI++Z10')
+      bodySegments.push(`CAV+${sanitizeCode(portalData.settlementMethod ?? 'Z32', 'Z32', 12)}`)
+      bodySegments.push('CCI++Z04')
+      bodySegments.push(`CAV+${sanitizeCode(portalData.meteringMethod ?? 'Z04', 'Z04', 12)}`)
+      bodySegments.push('CCI++Z12')
+      bodySegments.push(`CAV+${sanitizeCode(portalData.reportingFrequency ?? 'D', 'D', 12)}`)
+    }
+
+    if (params.testCaseCode === '2.1.2') {
+      const register = portalData.registers[0]
+      bodySegments.push('CCI++Z04')
+      bodySegments.push(`CAV+${sanitizeCode(portalData.meteringMethod ?? 'Z04', 'Z04', 12)}`)
+      bodySegments.push('CCI++Z08')
+      bodySegments.push(`CAV+${sanitizeCode(register?.meterTimeInterval ?? '901', '901', 12)}`)
+    }
   }
 
   return { bodySegments, portalData }
