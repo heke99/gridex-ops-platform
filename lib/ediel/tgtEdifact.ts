@@ -525,16 +525,41 @@ function resolveSenderControlledCode(
   return cleanOptionalCode(value, maxLength) ?? fallback
 }
 
+function resolveTgtRequiredFieldValue(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  fieldCode: string
+): string | null {
+  if (params.testSuite !== 'PRODAT' || params.roleCode !== 'supplier') return null
+
+  const testCaseCode = params.testCaseCode.trim()
+
+  // Portalens TGT-validering är stegmedveten. Samma testkund kan visas med
+  // ett annat värde i portalen för ett senare PRODAT-steg, men steg 1/Z03 för
+  // leverantörsbyte kräver att fält 217 skickas som Z03.
+  //
+  // Detta är en kanonisk testfallsregel för utgående Z03 och ska vinna över
+  // importerad/påklistrad portalvy som råkar avse Z04-delen av samma testfall.
+  if (step.code === 'Z03' && fieldCode === '217') {
+    if (
+      testCaseCode === '1.2.1' ||
+      testCaseCode === '1.2.2' ||
+      testCaseCode === '1.4.2' ||
+      testCaseCode === '1.4.2B'
+    ) {
+      return 'Z03'
+    }
+  }
+
+  return null
+}
+
 function resolveTgtMeteringMethod(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   step: EdielTgtExpectedStep,
   importedValue: string | null
 ): string {
-  if (params.testSuite === 'PRODAT' && params.roleCode === 'supplier' && step.code === 'Z03') {
-    if (params.testCaseCode === '1.2.1' || params.testCaseCode === '1.2.2') return 'Z03'
-  }
-
-  return importedValue ?? ''
+  return resolveTgtRequiredFieldValue(params, step, '217') ?? importedValue ?? ''
 }
 
 function getPortalData(
