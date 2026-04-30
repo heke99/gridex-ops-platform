@@ -219,6 +219,12 @@ async function selectIds(table: string, column: string, values: string[]): Promi
   return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean)
 }
 
+async function selectIdsByCustomerId(table: string, customerId: string): Promise<string[]> {
+  const { data, error } = await supabaseService.from(table).select('id').eq('customer_id', customerId)
+  if (error) throw error
+  return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean)
+}
+
 async function deleteByIds(table: string, ids: string[]): Promise<void> {
   if (ids.length === 0) return
   const { error } = await supabaseService.from(table).delete().in('id', ids)
@@ -236,16 +242,46 @@ async function deleteByCustomerId(table: string, customerId: string): Promise<vo
   if (error) throw error
 }
 
-export async function deleteCustomerForRecreateAction(formData: FormData): Promise<void> {
-  const actorUserId = await getActorUserId()
-  const customerId = getString(formData, 'customer_id')
-  const confirmText = getString(formData, 'confirm_delete')
+async function deleteStorageObjectsForCustomer(customerId: string): Promise<{ deleted: number; failed: number }> {
+  const { data: documents, error } = await supabaseService
+    .from('customer_authorization_documents')
+    .select('storage_bucket,file_path')
+    .eq('customer_id', customerId)
 
-  if (!customerId) throw new Error('customer_id saknas')
-  if (confirmText !== 'RADERA') {
-    throw new Error('Skriv RADERA för att bekräfta radering av kunden.')
+  if (error) throw error
+
+  const byBucket = new Map<string, string[]>()
+
+  for (const documentRow of documents ?? []) {
+    const bucket = typeof documentRow.storage_bucket === 'string' ? documentRow.storage_bucket.trim() : ''
+    const filePath = typeof documentRow.file_path === 'string' ? documentRow.file_path.trim() : ''
+    if (!bucket || !filePath) continue
+    byBucket.set(bucket, [...(byBucket.get(bucket) ?? []), filePath])
   }
 
+  let deleted = 0
+  let failed = 0
+
+  for (const [bucket, paths] of byBucket.entries()) {
+    const uniquePaths = Array.from(new Set(paths))
+    if (uniquePaths.length === 0) continue
+
+    const { data: removedRows, error: removeError } = await supabaseService.storage
+      .from(bucket)
+      .remove(uniquePaths)
+
+    if (removeError) {
+      failed += uniquePaths.length
+      continue
+    }
+
+    deleted += removedRows?.length ?? uniquePaths.length
+  }
+
+  return { deleted, failed }
+}
+
+async function collectCustomerDeleteGraph(customerId: string) {
   const { data: customer, error: customerError } = await supabaseService
     .from('customers')
     .select('*')
@@ -254,63 +290,151 @@ export async function deleteCustomerForRecreateAction(formData: FormData): Promi
 
   if (customerError) throw customerError
 
-  await insertAuditLog({
-    actorUserId,
-    entityType: 'customer',
-    entityId: customerId,
-    action: 'customer_delete_for_recreate_started',
-    oldValues: customer,
-    metadata: { warning: 'Hard delete requested from customer card.' },
-  })
-
   const { data: siteRows, error: siteError } = await supabaseService
     .from('customer_sites')
     .select('id')
     .eq('customer_id', customerId)
   if (siteError) throw siteError
-  const siteIds = (siteRows ?? []).map((row: { id: string }) => row.id)
+  const siteIds = (siteRows ?? []).map((row: { id: string }) => row.id).filter(Boolean)
 
   const meteringPointIds = await selectIds('metering_points', 'site_id', siteIds)
-  const switchRequestIds = await selectIds('supplier_switch_requests', 'customer_id', [customerId])
-  const outboundRequestIds = await selectIds('outbound_requests', 'customer_id', [customerId])
-  const contractIds = await selectIds('customer_contracts', 'customer_id', [customerId])
-  const invoiceIds = await selectIds('customer_invoices', 'customer_id', [customerId])
+  const switchRequestIds = await selectIdsByCustomerId('supplier_switch_requests', customerId)
+  const gridOwnerDataRequestIds = await selectIdsByCustomerId('grid_owner_data_requests', customerId)
+  const partnerExportIds = await selectIdsByCustomerId('partner_exports', customerId)
+  const contractIds = await selectIdsByCustomerId('customer_contracts', customerId)
+  const invoiceIds = await selectIdsByCustomerId('customer_invoices', customerId)
 
-  await deleteByIds('outbound_dispatch_events', outboundRequestIds)
-  await deleteByIds('supplier_switch_events', switchRequestIds)
-  await deleteByIds('customer_contract_events', contractIds)
-  await deleteByColumn('customer_invoice_lines', 'invoice_id', invoiceIds)
-  await deleteByColumn('customer_invoice_documents', 'invoice_id', invoiceIds)
-  await deleteByCustomerId('customer_portal_events', customerId)
+  const outboundIdsByCustomer = await selectIdsByCustomerId('outbound_requests', customerId)
+  const outboundIdsBySwitch = await selectIds('outbound_requests', 'source_id', switchRequestIds)
+  const outboundIdsByGridOwnerRequest = await selectIds('outbound_requests', 'source_id', gridOwnerDataRequestIds)
+  const outboundIdsByPartnerExport = await selectIds('outbound_requests', 'source_id', partnerExportIds)
+  const outboundRequestIds = Array.from(
+    new Set([
+      ...outboundIdsByCustomer,
+      ...outboundIdsBySwitch,
+      ...outboundIdsByGridOwnerRequest,
+      ...outboundIdsByPartnerExport,
+    ])
+  )
+
+  const edielMessageOrFilters = [
+    `customer_id.eq.${customerId}`,
+    ...siteIds.map((id) => `site_id.eq.${id}`),
+    ...meteringPointIds.map((id) => `metering_point_id.eq.${id}`),
+    ...switchRequestIds.map((id) => `switch_request_id.eq.${id}`),
+    ...gridOwnerDataRequestIds.map((id) => `grid_owner_data_request_id.eq.${id}`),
+    ...outboundRequestIds.map((id) => `outbound_request_id.eq.${id}`),
+    ...partnerExportIds.map((id) => `partner_export_id.eq.${id}`),
+  ]
 
   const { data: edielMessages, error: edielMessageError } = await supabaseService
     .from('ediel_messages')
     .select('id')
-    .eq('customer_id', customerId)
-  if (edielMessageError) throw edielMessageError
-  const edielMessageIds = (edielMessages ?? []).map((row: { id: string }) => row.id)
-  await deleteByIds('ediel_message_events', edielMessageIds)
-  await deleteByIds('ediel_messages', edielMessageIds)
+    .or(edielMessageOrFilters.join(','))
 
+  if (edielMessageError) throw edielMessageError
+  const edielMessageIds = (edielMessages ?? []).map((row: { id: string }) => row.id).filter(Boolean)
+
+  const edielTestRunOrFilters = [
+    `customer_id.eq.${customerId}`,
+    ...siteIds.map((id) => `site_id.eq.${id}`),
+    ...meteringPointIds.map((id) => `metering_point_id.eq.${id}`),
+  ]
+
+  const { data: edielTestRuns, error: edielTestRunError } = await supabaseService
+    .from('ediel_test_runs')
+    .select('id')
+    .or(edielTestRunOrFilters.join(','))
+
+  if (edielTestRunError) throw edielTestRunError
+  const edielTestRunIds = (edielTestRuns ?? []).map((row: { id: string }) => row.id).filter(Boolean)
+
+  return {
+    customer,
+    siteIds,
+    meteringPointIds,
+    switchRequestIds,
+    gridOwnerDataRequestIds,
+    partnerExportIds,
+    outboundRequestIds,
+    contractIds,
+    invoiceIds,
+    edielMessageIds,
+    edielTestRunIds,
+  }
+}
+
+export async function deleteCustomerForRecreateAction(formData: FormData): Promise<void> {
+  const actorUserId = await getActorUserId()
+  const customerId = getString(formData, 'customer_id')
+  const confirmText = getString(formData, 'confirm_delete')
+
+  if (!customerId) throw new Error('customer_id saknas')
+  if (confirmText !== 'RADERA') {
+    throw new Error('Skriv RADERA för att bekräfta permanent radering av kunden.')
+  }
+
+  const graph = await collectCustomerDeleteGraph(customerId)
+  const storageSummary = await deleteStorageObjectsForCustomer(customerId)
+
+  await insertAuditLog({
+    actorUserId,
+    entityType: 'customer',
+    entityId: customerId,
+    action: 'customer_hard_delete_started',
+    oldValues: graph.customer,
+    metadata: {
+      warning: 'Permanent hard delete requested from customer card.',
+      deleteGraph: {
+        sites: graph.siteIds.length,
+        meteringPoints: graph.meteringPointIds.length,
+        switchRequests: graph.switchRequestIds.length,
+        gridOwnerDataRequests: graph.gridOwnerDataRequestIds.length,
+        partnerExports: graph.partnerExportIds.length,
+        outboundRequests: graph.outboundRequestIds.length,
+        customerContracts: graph.contractIds.length,
+        customerInvoices: graph.invoiceIds.length,
+        edielMessages: graph.edielMessageIds.length,
+        edielTestRuns: graph.edielTestRunIds.length,
+      },
+      storageSummary,
+    },
+  })
+
+  await deleteByColumn('ediel_test_run_messages', 'ediel_message_id', graph.edielMessageIds)
+  await deleteByColumn('ediel_test_run_messages', 'test_run_id', graph.edielTestRunIds)
+  await deleteByIds('ediel_test_runs', graph.edielTestRunIds)
+  await deleteByColumn('ediel_message_events', 'ediel_message_id', graph.edielMessageIds)
+  await deleteByIds('ediel_messages', graph.edielMessageIds)
+
+  await deleteByColumn('outbound_dispatch_events', 'outbound_request_id', graph.outboundRequestIds)
+  await deleteByColumn('supplier_switch_events', 'switch_request_id', graph.switchRequestIds)
+  await deleteByColumn('customer_contract_events', 'customer_contract_id', graph.contractIds)
+  await deleteByCustomerId('customer_contract_events', customerId)
+  await deleteByColumn('customer_invoice_lines', 'invoice_id', graph.invoiceIds)
+  await deleteByColumn('customer_invoice_documents', 'invoice_id', graph.invoiceIds)
+
+  await deleteByCustomerId('customer_portal_events', customerId)
   await deleteByCustomerId('metering_values', customerId)
   await deleteByCustomerId('billing_underlays', customerId)
   await deleteByCustomerId('partner_exports', customerId)
   await deleteByCustomerId('grid_owner_data_requests', customerId)
+  await deleteByIds('outbound_requests', graph.outboundRequestIds)
   await deleteByCustomerId('outbound_requests', customerId)
   await deleteByCustomerId('supplier_switch_requests', customerId)
-  await deleteByCustomerId('powers_of_attorney', customerId)
   await deleteByCustomerId('customer_authorization_documents', customerId)
+  await deleteByCustomerId('powers_of_attorney', customerId)
   await deleteByCustomerId('customer_operation_tasks', customerId)
   await deleteByCustomerId('customer_internal_notes', customerId)
-  await deleteByCustomerId('customer_addresses', customerId)
-  await deleteByCustomerId('customer_contacts', customerId)
   await deleteByCustomerId('customer_portal_claims', customerId)
   await deleteByCustomerId('customer_portal_accounts', customerId)
   await deleteByCustomerId('customer_invoices', customerId)
   await deleteByCustomerId('customer_contracts', customerId)
+  await deleteByCustomerId('customer_addresses', customerId)
+  await deleteByCustomerId('customer_contacts', customerId)
 
-  await deleteByIds('metering_points', meteringPointIds)
-  await deleteByIds('customer_sites', siteIds)
+  await deleteByIds('metering_points', graph.meteringPointIds)
+  await deleteByIds('customer_sites', graph.siteIds)
 
   const { error: deleteCustomerError } = await supabaseService
     .from('customers')
@@ -320,6 +444,8 @@ export async function deleteCustomerForRecreateAction(formData: FormData): Promi
   if (deleteCustomerError) throw deleteCustomerError
 
   revalidatePath('/admin/customers')
+  revalidatePath('/admin/customers/segments')
   revalidatePath('/admin/operations')
+  revalidatePath('/admin/outbound')
   redirect('/admin/customers')
 }
