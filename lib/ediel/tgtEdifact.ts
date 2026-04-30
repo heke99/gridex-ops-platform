@@ -355,6 +355,46 @@ function cleanOptionalCode(value: string | null | undefined, maxLength = 35): st
   return cleaned.length > 0 ? cleaned : null
 }
 
+function senderControlledText(value: string | null | undefined): boolean {
+  const normalized = normalizeSearch(value)
+  return (
+    !normalized ||
+    normalized.includes('satts av avsandaren') ||
+    normalized.includes('sätts av avsändaren') ||
+    normalized.includes('valfritt') ||
+    normalized === 'optional'
+  )
+}
+
+function defaultAgreementStartDateTime(): string {
+  const now = new Date()
+  const year = now.getUTCFullYear()
+  const month = now.getUTCMonth()
+  const nextMonth = new Date(Date.UTC(year, month + 1, 10, 0, 0, 0))
+  return `${nextMonth.getUTCFullYear()}${pad(nextMonth.getUTCMonth() + 1)}10${'0000'}`
+}
+
+function resolvePortalDateTime(value: string | null | undefined): string {
+  const token = firstToken(value)
+  if (token && /^\d{8,12}$/.test(token)) return token.length === 8 ? `${token}0000` : token.slice(0, 12)
+  return defaultAgreementStartDateTime()
+}
+
+function defaultPowerOfAttorneyReference(params: Pick<EdielTgtDraftBuildParams, 'testCaseCode'>): string {
+  if (params.testCaseCode === '1.3.1') return 'AVTAL05'
+  const safeCase = params.testCaseCode.replace(/[^0-9A-Za-z]/g, '').slice(0, 8).toUpperCase()
+  return `AVTAL${safeCase || 'TGT'}`.slice(0, 35)
+}
+
+function resolveSenderControlledCode(
+  value: string | null | undefined,
+  fallback: string,
+  maxLength = 35
+): string | null {
+  if (senderControlledText(value)) return fallback
+  return cleanOptionalCode(value, maxLength) ?? fallback
+}
+
 function resolveTgtMeteringMethod(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   step: EdielTgtExpectedStep,
@@ -369,9 +409,12 @@ function resolveTgtMeteringMethod(
 
 function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>, step: EdielTgtExpectedStep): TgtPortalCustomerData {
   const data = getEdielTgtTestDataForCase(params.testSuite, params.roleCode, params.testCaseCode)
-  const startDateRaw = firstToken(findTestValueForStep(params, step, ['210 avtal', 'startdatum', 'leveransstart']))
+  const startDateRaw = findTestValueForStep(params, step, ['210 avtal', 'startdatum', 'leveransstart'])
   const registers = buildRegistersFromTestData(params, step)
   const importedMeteringMethod = cleanOptionalCode(findTestValueForStep(params, step, ['217 mätmetod', '217 matmetod']), 12)
+  const poaRaw = findTestValueForStep(params, step, ['261 referens'])
+  const balanceResponsibleRaw = findTestValueForStep(params, step, ['262 balansansvarig'])
+
   return {
     source: data ? 'tgt_test_data_registry' : 'missing_test_data',
     testCustomerLabel: data?.title ?? `TGT ${params.testSuite} ${params.testCaseCode}`,
@@ -379,7 +422,7 @@ function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'rol
       findTestValueForStep(params, step, ['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid', 'metering point', 'mätpunkt']),
       35
     ) ?? '',
-    agreementStartDateTime: startDateRaw && /^\d{8,12}$/.test(startDateRaw) ? startDateRaw : '',
+    agreementStartDateTime: resolvePortalDateTime(startDateRaw),
     annualEnergyUnit: cleanOptionalCode(findTestValueForStep(params, step, ['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
     meteringMethod: resolveTgtMeteringMethod(params, step, importedMeteringMethod),
     priority: cleanOptionalCode(findTestValueForStep(params, step, ['220 prioritet']), 12),
@@ -405,8 +448,8 @@ function getPortalData(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'rol
     productCode: cleanOptionalCode(findTestValueForStep(params, step, ['242 produktkod']), 35),
     settlementMethod: cleanOptionalCode(findTestValueForStep(params, step, ['254 avräkningsmetod', '254 avrackningsmetod', '254 avrakningsmetod']), 12),
     gridAreaId: cleanOptionalCode(findTestValueForStep(params, step, ['260 nätområdesid', '260 natomradesid']), 12) ?? '',
-    powerOfAttorneyReference: cleanOptionalCode(findTestValueForStep(params, step, ['261 referens']), 35),
-    balanceResponsibleId: cleanOptionalCode(findTestValueForStep(params, step, ['262 balansansvarig']), 35),
+    powerOfAttorneyReference: resolveSenderControlledCode(poaRaw, defaultPowerOfAttorneyReference(params), 35),
+    balanceResponsibleId: resolveSenderControlledCode(balanceResponsibleRaw, '91109', 35),
     installationStatus: cleanOptionalCode(findTestValueForStep(params, step, ['306 installationsstatus']), 12),
     tariffCode: cleanOptionalCode(findTestValueForStep(params, step, ['307 tariffkod']), 20),
     registers: registers.length > 0 ? registers : [
@@ -519,7 +562,10 @@ function getTgtProdatMutation(params: EdielTgtDraftBuildParams, step: EdielTgtEx
   if (step.family !== 'PRODAT') return {}
 
   if (params.testCaseCode === '1.3.1' && step.code === 'Z03') {
-    return { meteringPointId: '999999999999999999' }
+    // 1.3.1 uses the portal's Testkund 5 value from the testdata registry:
+    // field 209 is already marked as "Fel anl.id = ..." in the imported data.
+    // Do not replace it with a dummy value; the portal matches the exact test customer.
+    return {}
   }
 
   if (params.testCaseCode === '1.3.2' && step.code === 'Z03') {
@@ -841,6 +887,16 @@ export function validateEdielTgtDraft(rawPayload: string, step: EdielTgtExpected
   }
   if (step.family === 'PRODAT' && !normalized.includes(EDIEL_TGT_PRODAT_APPLICATION_REFERENCE)) {
     pushIssue(issues, 'error', 'missing_application_reference', 'Saknar Application Reference', `PRODAT TGT ska använda ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}.`)
+  }
+
+  if (step.family === 'PRODAT' && (normalized.includes('UNKNOWN') || normalized.includes('999999999999999999'))) {
+    pushIssue(
+      issues,
+      'error',
+      'dummy_test_data_detected',
+      'Dummydata i PRODAT-utkast',
+      'PRODAT till Edielportalen får inte innehålla UNKNOWN eller 999999999999999999. Utkastet måste byggas från portalens testdataregister.'
+    )
   }
   if ((step.family === 'PRODAT' || step.family === 'APERAK') && !normalized.includes(EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS)) {
     pushIssue(issues, 'warning', 'missing_prodat_subaddress', 'Kontrollera PRODAT-subadress', `PRODAT TGT ska adresseras mot subadress ${EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}.`)

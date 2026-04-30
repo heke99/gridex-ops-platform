@@ -27,6 +27,7 @@ import {
   cancelEdielMessageAction,
   createAckDraftAction,
   createEdielTestRunAction,
+  pollMailboxAction,
   registerInboundUtiltsAction,
   runEdielSelfTestAction,
   sendEdielMessageAction,
@@ -1803,12 +1804,20 @@ export default async function AdminEdielPage() {
               Aktiva familjer med canonical ack-state direkt i översikten.
             </p>
           </div>
-          <Link
-            href="/admin/ediel/control-tower"
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Se full kontrollvy
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <form action={pollMailboxAction}>
+              <input type="hidden" name="limit" value="20" />
+              <button className="rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">
+                Hämta IMAP
+              </button>
+            </form>
+            <Link
+              href="/admin/ediel/control-tower"
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Se full kontrollvy
+            </Link>
+          </div>
         </div>
 
         <div className="mt-4 overflow-x-auto">
@@ -1872,8 +1881,8 @@ export default async function AdminEdielPage() {
                           <form action={cancelEdielMessageAction}>
                             <input type="hidden" name="edielMessageId" value={row.id} />
                             <input type="hidden" name="reason" value="Dold/raderad från Ediel-admin för renare testvy." />
-                            <button className="text-rose-700 underline-offset-2 hover:underline">
-                              Dölj
+                            <button className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100">
+                              Radera/dölj
                             </button>
                           </form>
                         </div>
