@@ -694,11 +694,29 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
   bodySegments: string[]
   portalData: TgtPortalCustomerData
 } {
-  const portalData = getPortalData(params, step)
+  const sourcePortalData = getPortalData(params, step)
   const transactionType = buildTgtProdatTransactionType(params, step)
   const mutation = getTgtProdatMutation(params, step)
-  const startDate = date102FromPortalDate(mutation.agreementStartDateTime ?? portalData.agreementStartDateTime, refs.createdLongDate)
-  const meteringPointId = sanitizeCode(mutation.meteringPointId ?? portalData.meteringPointId, 'UNKNOWN', 35)
+
+  // The portalData returned with the draft must describe the actual outgoing
+  // payload after the scenario mutation has been applied. Otherwise tests like
+  // 1.3.2 (wrong grid-area) generate RFF+Z05:TEX correctly, but validation still
+  // looks at the original imported 260 value and incorrectly reports
+  // "Nätområde saknas i payload" when the imported normal value is absent.
+  const portalData: TgtPortalCustomerData = {
+    ...sourcePortalData,
+    agreementStartDateTime:
+      mutation.agreementStartDateTime ?? sourcePortalData.agreementStartDateTime,
+    meteringPointId: mutation.meteringPointId ?? sourcePortalData.meteringPointId,
+    gridAreaId: mutation.gridAreaId ?? sourcePortalData.gridAreaId,
+    reasonForTransaction:
+      mutation.reasonForTransaction ?? sourcePortalData.reasonForTransaction,
+    balanceResponsibleId:
+      mutation.balanceResponsibleId ?? sourcePortalData.balanceResponsibleId,
+  }
+
+  const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
+  const meteringPointId = sanitizeCode(portalData.meteringPointId, 'UNKNOWN', 35)
   const customerName = edifactEscape(sanitize(portalData.customerName, 'UNKNOWN'))
   const customerAddress = edifactEscape(sanitize(portalData.customerAddress ?? ''))
   const customerCity = edifactEscape(sanitize(portalData.customerCity ?? ''))
@@ -718,7 +736,7 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
     `LIN+1++${meteringPointId}:::9`,
     `DTM+92:${startDate}0000:203`,
     'CCI++Z13',
-    `CAV+${sanitizeCode(mutation.reasonForTransaction ?? portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)}`,
+    `CAV+${sanitizeCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)}`,
   ]
 
   if (portalData.meteringMethod) {
@@ -729,7 +747,7 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
   if (!mutation.omitLineItem) {
     bodySegments.push(`RFF+LI:${refs.externalRef}`)
   }
-  bodySegments.push(`RFF+Z05:${sanitizeCode(mutation.gridAreaId ?? portalData.gridAreaId, 'UNKNOWN', 12)}`)
+  bodySegments.push(`RFF+Z05:${sanitizeCode(portalData.gridAreaId, 'UNKNOWN', 12)}`)
 
   if (portalData.powerOfAttorneyReference) {
     bodySegments.push(`RFF+ANJ:${sanitizeCode(portalData.powerOfAttorneyReference, 'UNKNOWN', 35)}`)
@@ -743,7 +761,7 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
     bodySegments.push(`NAD+IT+${meteringPointId}::9+++${siteAddress}+${siteCity}++${sitePostalCode}+${siteCountry}`)
   }
 
-  const balanceResponsibleId = mutation.balanceResponsibleId ?? portalData.balanceResponsibleId
+  const balanceResponsibleId = portalData.balanceResponsibleId
   if (balanceResponsibleId) {
     bodySegments.push(`NAD+Z02+${sanitizeCode(balanceResponsibleId, '', 35)}:160:SVK`)
   }

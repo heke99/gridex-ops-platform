@@ -1,5 +1,6 @@
 // lib/ediel/tgtTestDataStore.ts
 
+import { inflateRawSync } from 'node:zlib'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 import type {
@@ -100,6 +101,112 @@ const KNOWN_PORTAL_FIELD_ALIASES: Record<string, string[]> = {
   '261': ['Referens till avtal/fullmakt', 'Referens til avtal/fullmakt'],
 }
 
+
+function normalizeLabel(value: string | null | undefined): string {
+  return normalizeFieldValue(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function splitPortalCells(line: string): string[] {
+  const trimmed = line.trim()
+  if (!trimmed) return []
+
+  const separators = ['\t', ';', ',']
+  for (const separator of separators) {
+    const cells = trimmed
+      .split(separator)
+      .map((cell) => normalizeFieldValue(cell.replace(/^"|"$/g, '')))
+      .filter(Boolean)
+    if (cells.length >= 2) return cells
+  }
+
+  return [trimmed]
+}
+
+const PORTAL_FIELD_CODE_BY_LABEL = new Map<string, string>(
+  Object.entries(KNOWN_PORTAL_FIELD_NAMES).flatMap(([code, name]) => {
+    const aliases = KNOWN_PORTAL_FIELD_ALIASES[code] ?? []
+    return [name, ...aliases].map((label) => [normalizeLabel(label), code] as const)
+  })
+)
+
+function codeForPortalLabel(value: string | null | undefined): string | null {
+  const normalized = normalizeLabel(value)
+  if (!normalized) return null
+
+  const direct = PORTAL_FIELD_CODE_BY_LABEL.get(normalized)
+  if (direct) return direct
+
+  for (const [label, code] of PORTAL_FIELD_CODE_BY_LABEL.entries()) {
+    if (normalized === label || normalized.includes(label) || label.includes(normalized)) {
+      return code
+    }
+  }
+
+  if (/reference to metering point/i.test(String(value ?? ''))) return 'REF_MP'
+  if (/enhet.*arsenergi|enhet.*årsenergi/i.test(String(value ?? ''))) return 'UNIT_213'
+
+  return null
+}
+
+function parsePortalCellsLine(line: string): EdielTgtExcelField | null {
+  const cells = splitPortalCells(line)
+  if (cells.length < 2) return null
+
+  for (let index = 0; index < cells.length; index += 1) {
+    const cell = cells[index] ?? ''
+    const directCode = cell.match(/^(\d{3}[A-Za-z]?)(?:\s+(.+))?$/)
+    const leadingCode = cell.match(/^(\d{3}[A-Za-z]?)\s+(.+)$/)
+    const code = normalizeCode((directCode?.[1] ?? leadingCode?.[1] ?? ''))
+
+    if (code && KNOWN_PORTAL_FIELD_NAMES[code]) {
+      const nameFromSameCell = normalizeFieldValue(directCode?.[2] ?? leadingCode?.[2] ?? '')
+      const fieldName = nameFromSameCell || cells[index + 1] || KNOWN_PORTAL_FIELD_NAMES[code]
+      const startValueIndex = nameFromSameCell ? index + 1 : index + 2
+      const value = normalizeFieldValue(cells.slice(startValueIndex).join(' '))
+      if (value) {
+        return {
+          fieldCode: code,
+          fieldName: KNOWN_PORTAL_FIELD_NAMES[code] ?? fieldName,
+          values: { Portaltestdata: value },
+        }
+      }
+    }
+  }
+
+  const labelCode = codeForPortalLabel(cells[0])
+  if (labelCode) {
+    const value = normalizeFieldValue(cells.slice(1).join(' '))
+    if (value) {
+      return {
+        fieldCode: labelCode,
+        fieldName: KNOWN_PORTAL_FIELD_NAMES[labelCode] ?? cells[0] ?? labelCode,
+        values: { Portaltestdata: value },
+      }
+    }
+  }
+
+  if (cells.length >= 3) {
+    const codeFromLabel = codeForPortalLabel(cells[1])
+    if (codeFromLabel) {
+      const value = normalizeFieldValue(cells.slice(2).join(' '))
+      if (value) {
+        return {
+          fieldCode: codeFromLabel,
+          fieldName: KNOWN_PORTAL_FIELD_NAMES[codeFromLabel] ?? cells[1] ?? codeFromLabel,
+          values: { Portaltestdata: value },
+        }
+      }
+    }
+  }
+
+  return null
+}
+
 function parseKnownPortalFieldLine(cleaned: string): EdielTgtExcelField | null {
   const codeMatch = cleaned.match(/^(\d{3}[A-Za-z]?)\s+(.+)$/)
   if (!codeMatch) return null
@@ -129,6 +236,9 @@ function parseKnownPortalFieldLine(cleaned: string): EdielTgtExcelField | null {
 function parsePortalFieldLine(line: string): EdielTgtExcelField | null {
   const cleaned = line.replace(/^[-•*]\s*/, '').trim()
   if (!cleaned) return null
+
+  const cellField = parsePortalCellsLine(cleaned)
+  if (cellField) return cellField
 
   const knownField = parseKnownPortalFieldLine(cleaned)
   if (knownField) return knownField
@@ -253,6 +363,288 @@ export function parseEdielPortalTestDataText(input: {
       },
     ],
   }
+}
+
+
+function decodeXmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+}
+
+function stripXmlTags(value: string): string {
+  return decodeXmlEntities(value.replace(/<[^>]*>/g, ''))
+}
+
+function parseDelimitedRows(text: string, delimiter: ',' | ';' | '\t'): string[][] {
+  const rows: string[][] = []
+  let current = ''
+  let row: string[] = []
+  let inQuotes = false
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index]
+    const next = text[index + 1]
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        current += '"'
+        index += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+
+    if (!inQuotes && char === delimiter) {
+      row.push(current.trim())
+      current = ''
+      continue
+    }
+
+    if (!inQuotes && (char === '\n' || char === '\r')) {
+      row.push(current.trim())
+      current = ''
+      if (row.some(Boolean)) rows.push(row)
+      row = []
+      if (char === '\r' && next === '\n') index += 1
+      continue
+    }
+
+    current += char
+  }
+
+  if (current.length > 0 || row.length > 0) {
+    row.push(current.trim())
+    if (row.some(Boolean)) rows.push(row)
+  }
+
+  return rows
+}
+
+function delimiterScore(text: string, delimiter: ',' | ';' | '\t'): number {
+  return text
+    .split(/\r?\n/)
+    .slice(0, 25)
+    .reduce((sum, line) => sum + line.split(delimiter).length - 1, 0)
+}
+
+function detectDelimiter(text: string): ',' | ';' | '\t' {
+  const candidates: Array<',' | ';' | '\t'> = [',', ';', '\t']
+  return candidates.sort((a, b) => delimiterScore(text, b) - delimiterScore(text, a))[0] ?? ';'
+}
+
+function rowsToPortalText(rows: string[][]): string {
+  return rows
+    .map((row) => row.map((cell) => normalizeFieldValue(cell)).filter(Boolean))
+    .filter((row) => row.length > 0)
+    .map((row) => {
+      const first = row[0] ?? ''
+      const second = row[1] ?? ''
+      const third = row[2] ?? ''
+
+      if (/^\d{3}[A-Za-z]?$/.test(first) && second && third) {
+        return [first, second, ...row.slice(2)].join('\t')
+      }
+
+      if (/^\d{3}[A-Za-z]?\s+/.test(first) && second) {
+        return [first, ...row.slice(1)].join('\t')
+      }
+
+      return row.join('\t')
+    })
+    .join('\n')
+}
+
+function parseDelimitedPortalText(text: string): string {
+  const normalized = normalizeText(text)
+  if (!normalized) return ''
+
+  const delimiter = detectDelimiter(normalized)
+  const rows = parseDelimitedRows(normalized, delimiter)
+  if (rows.length === 0) return normalized
+
+  const converted = rowsToPortalText(rows)
+  return converted || normalized
+}
+
+type ZipEntry = {
+  name: string
+  compressionMethod: number
+  compressedSize: number
+  uncompressedSize: number
+  localHeaderOffset: number
+}
+
+function readUInt16(buffer: Buffer, offset: number): number {
+  return buffer.readUInt16LE(offset)
+}
+
+function readUInt32(buffer: Buffer, offset: number): number {
+  return buffer.readUInt32LE(offset)
+}
+
+function findEndOfCentralDirectory(buffer: Buffer): number {
+  const signature = 0x06054b50
+  const minOffset = Math.max(0, buffer.length - 0xffff - 22)
+  for (let offset = buffer.length - 22; offset >= minOffset; offset -= 1) {
+    if (readUInt32(buffer, offset) === signature) return offset
+  }
+  throw new Error('Kunde inte läsa Excel-filen: ZIP-slut saknas.')
+}
+
+function listZipEntries(buffer: Buffer): ZipEntry[] {
+  const eocdOffset = findEndOfCentralDirectory(buffer)
+  const centralDirectorySize = readUInt32(buffer, eocdOffset + 12)
+  const centralDirectoryOffset = readUInt32(buffer, eocdOffset + 16)
+  const entries: ZipEntry[] = []
+  let offset = centralDirectoryOffset
+  const end = centralDirectoryOffset + centralDirectorySize
+
+  while (offset < end) {
+    if (readUInt32(buffer, offset) !== 0x02014b50) break
+
+    const compressionMethod = readUInt16(buffer, offset + 10)
+    const compressedSize = readUInt32(buffer, offset + 20)
+    const uncompressedSize = readUInt32(buffer, offset + 24)
+    const fileNameLength = readUInt16(buffer, offset + 28)
+    const extraFieldLength = readUInt16(buffer, offset + 30)
+    const fileCommentLength = readUInt16(buffer, offset + 32)
+    const localHeaderOffset = readUInt32(buffer, offset + 42)
+    const name = buffer.subarray(offset + 46, offset + 46 + fileNameLength).toString('utf8')
+
+    entries.push({ name, compressionMethod, compressedSize, uncompressedSize, localHeaderOffset })
+    offset += 46 + fileNameLength + extraFieldLength + fileCommentLength
+  }
+
+  return entries
+}
+
+function readZipEntry(buffer: Buffer, entry: ZipEntry): Buffer {
+  const offset = entry.localHeaderOffset
+  if (readUInt32(buffer, offset) !== 0x04034b50) {
+    throw new Error(`Kunde inte läsa Excel-filen: lokal ZIP-header saknas för ${entry.name}.`)
+  }
+
+  const fileNameLength = readUInt16(buffer, offset + 26)
+  const extraFieldLength = readUInt16(buffer, offset + 28)
+  const dataOffset = offset + 30 + fileNameLength + extraFieldLength
+  const compressed = buffer.subarray(dataOffset, dataOffset + entry.compressedSize)
+
+  if (entry.compressionMethod === 0) return compressed
+  if (entry.compressionMethod === 8) return inflateRawSync(compressed, { finishFlush: 2 })
+
+  throw new Error(`Excel-filen använder ZIP-komprimering som inte stöds (${entry.compressionMethod}).`)
+}
+
+function parseSharedStrings(xml: string): string[] {
+  const strings: string[] = []
+  const siMatches = xml.match(/<si[\s\S]*?<\/si>/g) ?? []
+
+  for (const si of siMatches) {
+    const textParts = Array.from(si.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)).map((match) =>
+      decodeXmlEntities(match[1] ?? '')
+    )
+    strings.push(textParts.join(''))
+  }
+
+  return strings
+}
+
+function columnIndexFromCellRef(cellRef: string): number {
+  const letters = (cellRef.match(/^[A-Z]+/i)?.[0] ?? '').toUpperCase()
+  let index = 0
+  for (const letter of letters) {
+    index = index * 26 + (letter.charCodeAt(0) - 64)
+  }
+  return Math.max(0, index - 1)
+}
+
+function getCellValue(cellXml: string, sharedStrings: string[]): string {
+  const type = cellXml.match(/\st="([^"]+)"/)?.[1] ?? ''
+
+  if (type === 'inlineStr') {
+    return stripXmlTags(cellXml.match(/<is[\s\S]*?<\/is>/)?.[0] ?? '')
+  }
+
+  const rawValue = decodeXmlEntities(cellXml.match(/<v[^>]*>([\s\S]*?)<\/v>/)?.[1] ?? '')
+  if (!rawValue) return ''
+
+  if (type === 's') {
+    const sharedIndex = Number.parseInt(rawValue, 10)
+    return Number.isFinite(sharedIndex) ? sharedStrings[sharedIndex] ?? '' : ''
+  }
+
+  return rawValue
+}
+
+function worksheetXmlToRows(xml: string, sharedStrings: string[]): string[][] {
+  const rows: string[][] = []
+  const rowMatches = xml.match(/<row\b[\s\S]*?<\/row>/g) ?? []
+
+  for (const rowXml of rowMatches) {
+    const cells: string[] = []
+    const cellMatches = rowXml.match(/<c\b[\s\S]*?<\/c>/g) ?? []
+
+    for (const cellXml of cellMatches) {
+      const cellRef = cellXml.match(/\br="([^"]+)"/)?.[1] ?? ''
+      const columnIndex = cellRef ? columnIndexFromCellRef(cellRef) : cells.length
+      cells[columnIndex] = normalizeFieldValue(getCellValue(cellXml, sharedStrings))
+    }
+
+    if (cells.some(Boolean)) rows.push(cells)
+  }
+
+  return rows
+}
+
+function parseXlsxPortalText(buffer: Buffer): string {
+  const entries = listZipEntries(buffer)
+  const entryByName = new Map(entries.map((entry) => [entry.name, entry]))
+  const sharedStringsEntry = entryByName.get('xl/sharedStrings.xml')
+  const sharedStrings = sharedStringsEntry
+    ? parseSharedStrings(readZipEntry(buffer, sharedStringsEntry).toString('utf8'))
+    : []
+
+  const worksheetEntries = entries
+    .filter((entry) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(entry.name))
+    .sort((a, b) => a.name.localeCompare(b.name, 'sv-SE', { numeric: true }))
+
+  if (worksheetEntries.length === 0) {
+    throw new Error('Excel-filen saknar läsbara kalkylblad.')
+  }
+
+  const allRows = worksheetEntries.flatMap((entry) => {
+    const rows = worksheetXmlToRows(readZipEntry(buffer, entry).toString('utf8'), sharedStrings)
+    return rows.length > 0 ? [['Kalkylblad', entry.name], ...rows] : []
+  })
+
+  return rowsToPortalText(allRows)
+}
+
+export async function extractEdielPortalTestDataUploadText(file: File | null): Promise<string | null> {
+  if (!file || file.size === 0) return null
+
+  const fileName = file.name.toLowerCase()
+  const bytes = Buffer.from(await file.arrayBuffer())
+
+  if (fileName.endsWith('.xlsx')) {
+    return parseXlsxPortalText(bytes)
+  }
+
+  if (fileName.endsWith('.xls')) {
+    throw new Error('Äldre .xls stöds inte. Exportera från Edielportalen som .xlsx eller .csv.')
+  }
+
+  const text = bytes.toString('utf8')
+  if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
+    return parseDelimitedPortalText(text)
+  }
+
+  throw new Error('Filtypen stöds inte. Ladda upp .xlsx, .csv, .tsv eller .txt från Edielportalen.')
 }
 
 function isMissingTableError(error: unknown): boolean {

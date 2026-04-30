@@ -814,6 +814,18 @@ function TestCaseCard({
               className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs text-slate-950"
               placeholder="Rubrik, t.ex. 1.3.2 Fel nätområdesid"
             />
+            <label className="block text-xs font-semibold text-emerald-950">
+              Ladda upp Excel/CSV-export från Edielportalen
+              <input
+                name="testDataFile"
+                type="file"
+                accept=".xlsx,.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                className="mt-1 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs text-slate-950 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+              />
+            </label>
+            <div className="text-center text-[11px] font-semibold uppercase tracking-wide text-emerald-800">
+              eller klistra in testdata manuellt
+            </div>
             <textarea
               name="rawText"
               defaultValue={dynamicTestDataRow?.rawText ?? ''}
@@ -822,7 +834,7 @@ function TestCaseCard({
               placeholder={"Klistra in testdata från Edielportalen, t.ex.\n209 Anläggningsid\t735999888000000079\n210 Avtal, startdatum\t202605100000\n217 Mätmetod\tZ03\n227 Kund-id\t196604072782"}
             />
             <div className="rounded-xl border border-emerald-100 bg-white px-3 py-2 text-[11px] leading-5 text-emerald-900">
-              Generatorn läser importerad testdata före statiska bilagor. Scenario-regeln ändrar bara testfelet, t.ex. 1.3.2 skickar RFF+Z05:TEX trots att portalens normaldata säger TES.
+              Generatorn läser importerad testdata före statiska bilagor. Filuppladdning prioriteras över inklistrad text. Scenario-regeln ändrar bara testfelet, t.ex. 1.3.2 skickar RFF+Z05:TEX trots att portalens normaldata säger TES.
             </div>
             <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
               Spara testdata för detta testfall

@@ -54,6 +54,7 @@ import { registerEdielFile, type EdielFileEngineMode } from '@/lib/ediel/fileEng
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
 import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
+import { parseEdielTgtUploadedTestDataFile } from '@/lib/ediel/tgtTestDataFileImport'
 import {
   autoAttachImportedMessageToActiveTgtRun,
   createMockPortalMessageForNextStep,
@@ -94,10 +95,15 @@ async function formFileText(value: FormDataEntryValue | null): Promise<{ text: s
     return { text: null, fileName: null }
   }
 
-  const buffer = await maybeFile.arrayBuffer()
+  const fileName = typeof maybeFile.name === 'string' ? maybeFile.name : null
+  const parsed = parseEdielTgtUploadedTestDataFile({
+    bytes: await maybeFile.arrayBuffer(),
+    fileName,
+  })
+
   return {
-    text: new TextDecoder('utf-8').decode(buffer),
-    fileName: typeof maybeFile.name === 'string' ? maybeFile.name : null,
+    text: parsed.text,
+    fileName: parsed.fileName,
   }
 }
 
@@ -375,16 +381,20 @@ export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
   const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
   const testCaseCode = formString(formData.get('testCaseCode')) ?? ''
   const title = formString(formData.get('title'))
-  const rawText = formString(formData.get('rawText')) ?? ''
+  const pastedText = formString(formData.get('rawText')) ?? ''
+  const uploaded = await formFileText(formData.get('testDataFile'))
+  const rawText = uploaded.text ?? pastedText
 
   if (!testCaseCode) throw new Error('testCaseCode saknas')
-  if (!rawText) throw new Error('Klistra in testdata från Edielportalen innan du sparar.')
+  if (!rawText) {
+    throw new Error('Klistra in testdata från Edielportalen eller ladda upp Excel/CSV innan du sparar.')
+  }
 
   await upsertEdielTgtDynamicTestData({
     suite: testSuite,
     roleCode,
     testCaseCode,
-    title,
+    title: uploaded.fileName ? `${title ?? `TGT ${testCaseCode}`} · ${uploaded.fileName}` : title,
     rawText,
     actorUserId: context.userId,
   })

@@ -328,13 +328,27 @@ export async function runTgtAutopilotForRun(params: {
   if (!step) throw new Error(`Steg ${nextAction.stepNo} saknas i testdefinitionen.`)
 
   if (step.actor === 'gridex') {
-    const message = await createDraftForStep({ actorUserId: params.actorUserId, evaluation, step })
-    return {
-      testRunId: params.testRunId,
-      action: 'created_gridex_draft',
-      messageId: message.id,
-      stepNo: step.stepNo,
-      description: `Skapade Gridex-utkast för steg ${step.stepNo}.`,
+    try {
+      const message = await createDraftForStep({ actorUserId: params.actorUserId, evaluation, step })
+      return {
+        testRunId: params.testRunId,
+        action: 'created_gridex_draft',
+        messageId: message.id,
+        stepNo: step.stepNo,
+        description: `Skapade Gridex-utkast för steg ${step.stepNo}.`,
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.startsWith('TGT-utkastet är blockerat:')) {
+        return {
+          testRunId: params.testRunId,
+          action: 'blocked',
+          messageId: null,
+          stepNo: step.stepNo,
+          description: `${message} Importera eller uppdatera testdata från Edielportalen och tryck sedan på Försök skapa nästa GridCore-utkast.`,
+        }
+      }
+      throw error
     }
   }
 
