@@ -28,9 +28,103 @@ import {
   type EdielTgtCaseTestDataGroup,
 } from '@/lib/ediel/tgtTestData'
 import { getEdielTgtDraftOptionsForCase } from '@/lib/ediel/tgtEdifact'
+import { edielCodeLabel } from '@/lib/ediel/codeLabels'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 
 type BadgeTone = 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo'
+
+type TgtWorkbenchGroupConfig = {
+  id: string
+  title: string
+  description: string
+  tone: BadgeTone
+  prefixes: string[]
+}
+
+type TgtWorkbenchGroup = TgtWorkbenchGroupConfig & {
+  testCases: EdielTgtTestCaseDefinition[]
+}
+
+const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
+  {
+    id: 's1-2',
+    title: 'S1.2 – Korrekt PRODAT Z03/Z04',
+    description: 'Positiva basflöden. Z03/Z04 skapas från riktig kunddata och kvittenser matchas mot portalens svar.',
+    tone: 'green',
+    prefixes: ['1.2'],
+  },
+  {
+    id: 's1-3',
+    title: 'S1.3 – Negativ APERAK Z03',
+    description: 'Fel i affärsinnehåll för Z03, exempelvis anläggnings-id, nätområde, transaktionstyp eller datum.',
+    tone: 'red',
+    prefixes: ['1.3'],
+  },
+  {
+    id: 's1-4',
+    title: 'S1.4 – Negativ APERAK Z04',
+    description: 'Fel i Z04/Z04D, exempelvis saknad anläggningsreferens, ärendereferens eller felaktig årsförbrukning.',
+    tone: 'red',
+    prefixes: ['1.4'],
+  },
+  {
+    id: 's1-5',
+    title: 'S1.5 – Syntaxfel / negativ CONTRL',
+    description: 'Syntaxfel ska ge negativ CONTRL. Detta är inte en APERAK-affärskontroll.',
+    tone: 'yellow',
+    prefixes: ['1.5'],
+  },
+  {
+    id: 's2-1',
+    title: 'S2.1 – Korrekt PRODAT Z06',
+    description: 'Z06F/Z06G för ändrad avräkning, mätmetod, räkneverk eller anläggningsadress.',
+    tone: 'blue',
+    prefixes: ['2.1'],
+  },
+  {
+    id: 's2-2',
+    title: 'S2.2 – Felaktigt PRODAT Z06',
+    description: 'Negativa Z06-testfall, till exempel felaktigt anläggnings-id eller saknade mätaruppgifter.',
+    tone: 'red',
+    prefixes: ['2.2'],
+  },
+  {
+    id: 's2-3',
+    title: 'S2.3 – Korrekt PRODAT Z10',
+    description: 'Korrekt Z10M för mätarbyte och relaterade mätaruppgifter.',
+    tone: 'blue',
+    prefixes: ['2.3'],
+  },
+  {
+    id: 's2-4',
+    title: 'S2.4 – Felaktigt PRODAT Z10',
+    description: 'Negativa Z10M-testfall, till exempel när konstant eller annan mätarinformation saknas.',
+    tone: 'red',
+    prefixes: ['2.4'],
+  },
+  {
+    id: 's2-5',
+    title: 'S2.5 – Korrekt PRODAT Z09',
+    description: 'Korrekt Z09F/Z09G/Z09D, inklusive nytt avtal om mikroproduktion.',
+    tone: 'blue',
+    prefixes: ['2.5'],
+  },
+  {
+    id: 's3-1',
+    title: 'S3.1 – Korrekt PRODAT Z05',
+    description: 'Korrekt Z05L och Z05LK.',
+    tone: 'blue',
+    prefixes: ['3.1'],
+  },
+  {
+    id: 's3-2',
+    title: 'S3.2 – Negativ APERAK Z05',
+    description: 'Negativ APERAK för Z05, exempelvis felaktigt anläggnings-id.',
+    tone: 'red',
+    prefixes: ['3.2'],
+  },
+]
+
 
 function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: BadgeTone }) {
   const classes = {
@@ -82,6 +176,33 @@ function directionLabel(direction: string): string {
 function actorLabel(actor: EdielTgtExpectedStep['actor']): string {
   return actor === 'gridex' ? 'GridCore skapar/skickar' : 'Edielportalen svarar'
 }
+
+function compareTestCaseCodes(a: string, b: string): number {
+  return a.localeCompare(b, 'sv-SE', { numeric: true, sensitivity: 'base' })
+}
+
+function matchesPrefix(code: string, prefix: string): boolean {
+  return code === prefix || code.startsWith(`${prefix}.`)
+}
+
+function getGroupedProdatDefinitions(definitions: EdielTgtTestCaseDefinition[]): TgtWorkbenchGroup[] {
+  const prodatCases = definitions
+    .filter((definition) => definition.suite === 'PRODAT' && definition.roleCode === 'supplier')
+    .sort((a, b) => compareTestCaseCodes(a.testCaseCode, b.testCaseCode))
+
+  return TGT_PRODAT_GROUPS.map((group) => ({
+    ...group,
+    testCases: prodatCases.filter((definition) =>
+      group.prefixes.some((prefix) => matchesPrefix(definition.testCaseCode, prefix))
+    ),
+  })).filter((group) => group.testCases.length > 0)
+}
+
+function prodatStepCodeLabel(step: EdielTgtExpectedStep): string {
+  if (step.family !== 'PRODAT') return step.code
+  return edielCodeLabel('prodat_code', step.code)
+}
+
 
 function nextActionKindLabel(kind: string): string {
   if (kind === 'generate_gridex_file') return 'Skapa GridCore-fil'
@@ -409,7 +530,10 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
   const tone = nextAction.tone
   const isWaitingForPortal = nextAction.kind === 'import_portal_file'
   const nextStep = evaluation.definition?.expectedSteps.find((step) => step.stepNo === nextAction.stepNo) ?? null
-  const shouldUseCustomerProdat = nextAction.kind === 'create_file' && nextStep?.family === 'PRODAT'
+  const shouldUseCustomerProdat =
+    nextAction.kind === 'create_file' &&
+    nextStep?.family === 'PRODAT' &&
+    Boolean(evaluation.definition && ['1.2.1', '1.2.2', '1.2.5'].includes(evaluation.definition.testCaseCode))
 
   return (
     <div className={`mt-4 rounded-2xl border p-4 ${tone === 'green' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'red' ? 'border-rose-200 bg-rose-50 text-rose-950' : tone === 'blue' ? 'border-blue-200 bg-blue-50 text-blue-950' : tone === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-slate-200 bg-slate-50 text-slate-950'}`}>
@@ -642,7 +766,7 @@ function TestCaseCard({
                   <Badge>{directionLabel(step.direction)}</Badge>
                   <Badge>{actorLabel(step.actor)}</Badge>
                   <Badge>{step.family}</Badge>
-                  <Badge>{step.code}</Badge>
+                  <Badge>{prodatStepCodeLabel(step)}</Badge>
                   {step.outcome ? <Badge tone={step.outcome === 'positive' ? 'green' : 'red'}>{step.outcome}</Badge> : null}
                   <Badge tone={step.required ? 'blue' : 'slate'}>{step.required ? 'obligatorisk' : 'alternativ'}</Badge>
                 </div>
@@ -734,7 +858,7 @@ function RunEvaluationCard({
                     <Badge>{directionLabel(match.step.direction)}</Badge>
                     <Badge>{actorLabel(match.step.actor)}</Badge>
                     <Badge>{match.step.family}</Badge>
-                    <Badge>{match.step.code}</Badge>
+                    <Badge>{prodatStepCodeLabel(match.step)}</Badge>
                     {match.step.outcome ? <Badge>{match.step.outcome}</Badge> : null}
                   </div>
                   <div className="mt-2 text-sm font-semibold text-slate-900">{match.step.title}</div>
@@ -785,6 +909,72 @@ function RunEvaluationCard({
   )
 }
 
+
+function GroupedTestCasePanel({
+  groups,
+  evaluations,
+  activeRunsForCase,
+}: {
+  groups: TgtWorkbenchGroup[]
+  evaluations: EdielTgtRunEvaluation[]
+  activeRunsForCase: (definition: EdielTgtTestCaseDefinition) => number
+}) {
+  function groupStats(group: TgtWorkbenchGroup) {
+    const codes = new Set(group.testCases.map((testCase) => testCase.testCaseCode))
+    const groupEvaluations = evaluations.filter((evaluation) =>
+      codes.has(evaluation.definition?.testCaseCode ?? evaluation.testRun.test_case_code)
+    )
+
+    return {
+      active: group.testCases.reduce((sum, testCase) => sum + activeRunsForCase(testCase), 0),
+      passed: groupEvaluations.filter((evaluation) => evaluation.computedStatus === 'passed').length,
+      failed: groupEvaluations.filter((evaluation) => evaluation.computedStatus === 'failed').length,
+      inProgress: groupEvaluations.filter((evaluation) => evaluation.computedStatus === 'in_progress').length,
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {groups.map((group) => {
+        const stats = groupStats(group)
+
+        return (
+          <details key={group.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm open:ring-2 open:ring-indigo-100">
+            <summary className="cursor-pointer list-none">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge tone={group.tone}>{group.title}</Badge>
+                    <Badge tone="slate">{group.testCases.length} testfall</Badge>
+                    <Badge tone={stats.active > 0 ? 'yellow' : 'slate'}>{stats.active} aktiva</Badge>
+                    <Badge tone={stats.passed > 0 ? 'green' : 'slate'}>{stats.passed} klara</Badge>
+                    <Badge tone={stats.failed > 0 ? 'red' : 'slate'}>{stats.failed} fel</Badge>
+                    <Badge tone={stats.inProgress > 0 ? 'yellow' : 'slate'}>{stats.inProgress} pågår</Badge>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-slate-600">{group.description}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
+                  Öppna grupp
+                </div>
+              </div>
+            </summary>
+
+            <div className="mt-4 space-y-4">
+              {group.testCases.map((definition) => (
+                <TestCaseCard
+                  key={`${definition.suite}-${definition.roleCode}-${definition.testCaseCode}`}
+                  testCase={definition}
+                  activeRunsForCase={activeRunsForCase(definition)}
+                />
+              ))}
+            </div>
+          </details>
+        )
+      })}
+    </div>
+  )
+}
+
 function ArchivedRunsPanel({ archivedRuns }: { archivedRuns: EdielTestRunRow[] }) {
   if (archivedRuns.length === 0) return null
 
@@ -821,8 +1011,7 @@ export default function EdielTgtWorkbenchPanel({
 }) {
   const definitions = getEdielTgtTestCases()
   const coreDefinitions = definitions.filter((definition) => definition.scope === 'core')
-  const recommendedDefinition = coreDefinitions.find(isFirstRecommendedCase) ?? null
-  const otherCoreDefinitions = coreDefinitions.filter((definition) => !isFirstRecommendedCase(definition))
+  const groupedProdatDefinitions = getGroupedProdatDefinitions(coreDefinitions)
   const activeRuns = testRuns.filter((run) => run.status !== 'cancelled')
   const archivedRuns = testRuns.filter((run) => run.status === 'cancelled')
   const evaluations = activeRuns
@@ -870,29 +1059,18 @@ export default function EdielTgtWorkbenchPanel({
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
         <div>
-          <h3 className="mb-3 text-sm font-semibold text-slate-950">Börja här</h3>
-          {recommendedDefinition ? (
-            <TestCaseCard
-              key={`${recommendedDefinition.suite}-${recommendedDefinition.roleCode}-${recommendedDefinition.testCaseCode}`}
-              testCase={recommendedDefinition}
-              activeRunsForCase={activeRunsForCase(recommendedDefinition)}
-            />
-          ) : null}
-
-          <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-slate-800">
-              Visa övriga testmallar ({otherCoreDefinitions.length})
-            </summary>
-            <div className="mt-4 space-y-4">
-              {otherCoreDefinitions.map((definition) => (
-                <TestCaseCard
-                  key={`${definition.suite}-${definition.roleCode}-${definition.testCaseCode}`}
-                  testCase={definition}
-                  activeRunsForCase={activeRunsForCase(definition)}
-                />
-              ))}
-            </div>
-          </details>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-slate-950">Testfall i grupper</h3>
+            <Badge tone="indigo">dropdown-läge</Badge>
+          </div>
+          <div className="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 text-xs leading-5 text-indigo-900">
+            Öppna bara gruppen du arbetar med. S1.2-testen använder kundstyrd PRODAT ovan, medan S1.3 och framåt körs via TGT guided mode och generatorn när filsteget ägs av GridCore.
+          </div>
+          <GroupedTestCasePanel
+            groups={groupedProdatDefinitions}
+            evaluations={evaluations}
+            activeRunsForCase={activeRunsForCase}
+          />
         </div>
 
         <div>
