@@ -490,6 +490,9 @@ function IncomingPortalResponses({
                               <input type="hidden" name="sourceMessageId" value={message.id} />
                               <input type="hidden" name="ackType" value="APERAK" />
                               <input type="hidden" name="outcome" value="negative" />
+                              <input type="hidden" name="aperakErrorErc" value="100" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="" />
+                              <input type="hidden" name="aperakErrorText" value="OK" />
                               <input type="hidden" name="aperakErrorErc" value="42" />
                               <input type="hidden" name="aperakErrorFieldCode" value="210" />
                               <input type="hidden" name="aperakErrorText" value="Felaktig avtal, startdatum 2040-08-01" />
@@ -503,7 +506,27 @@ function IncomingPortalResponses({
                               <input type="hidden" name="aperakErrorFieldCode" value="226" />
                               <input type="hidden" name="aperakErrorText" value="Ärendereferens saknas, kundid=196805249288" />
                               <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
-                                1.4.2/1.4.2B · avvisa Z04
+                                1.4.2 · tre anläggningar
+                              </button>
+                            </form>
+                            <form action={createAckDraftAction}>
+                              <input type="hidden" name="sourceMessageId" value={message.id} />
+                              <input type="hidden" name="ackType" value="APERAK" />
+                              <input type="hidden" name="outcome" value="negative" />
+                              <input type="hidden" name="aperakErrorErc" value="42" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="210" />
+                              <input type="hidden" name="aperakErrorText" value="Felaktig avtal, startdatum 2040-08-01" />
+                              <input type="hidden" name="aperakErrorErc" value="41" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="213" />
+                              <input type="hidden" name="aperakErrorText" value="Årsförbrukning saknas" />
+                              <input type="hidden" name="aperakErrorErc" value="41" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="214" />
+                              <input type="hidden" name="aperakErrorText" value="Konstant saknas" />
+                              <input type="hidden" name="aperakErrorErc" value="41" />
+                              <input type="hidden" name="aperakErrorFieldCode" value="226" />
+                              <input type="hidden" name="aperakErrorText" value="Ärendereferens saknas, kundid=196805249288" />
+                              <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
+                                1.4.2B · en anläggning
                               </button>
                             </form>
                             <form action={createAckDraftAction}>
