@@ -400,7 +400,10 @@ export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
   const title = formString(formData.get('title'))
   const pastedText = formString(formData.get('rawText')) ?? ''
   const uploaded = await formFilesText(formData.getAll('testDataFile'))
-  const rawText = [uploaded.text, pastedText].filter(Boolean).join('\n\n')
+  // Prefer pasted text order when both text and files are supplied. This makes a
+  // corrected portal paste authoritative while still allowing several uploaded
+  // Excel/CSV files to be appended and deduplicated by the parser.
+  const rawText = [pastedText, uploaded.text].filter(Boolean).join('\n\n')
 
   if (!testCaseCode) throw new Error('testCaseCode saknas')
   if (!rawText) {

@@ -229,14 +229,21 @@ function firstToken(value: string | null | undefined): string | null {
   return clean.split(/\s+/)[0]?.trim() || null
 }
 
+function normalizeSwedishAscii(value: string): string {
+  // Do not use case-insensitive regex here. /[ÅÄ]/gi also matches å/ä and
+  // turns e.g. "vägen" into "vAgen". Keep lower-case Swedish letters
+  // lower-case and upper-case letters upper-case so Ediel testdata remains stable.
+  return value
+    .replace(/[ÅÄ]/g, 'A')
+    .replace(/[Ö]/g, 'O')
+    .replace(/[åä]/g, 'a')
+    .replace(/[ö]/g, 'o')
+}
+
 function sanitize(value: string | null | undefined, fallback = 'UNKNOWN', maxLength = 70): string {
   const trimmed = stripDecorations(value)
   if (!trimmed) return fallback
-  return trimmed
-    .replace(/[ÅÄ]/gi, 'A')
-    .replace(/[Ö]/gi, 'O')
-    .replace(/[åä]/g, 'a')
-    .replace(/[ö]/g, 'o')
+  return normalizeSwedishAscii(trimmed)
     .replace(/[^A-Za-z0-9 ._\-/]/g, '')
     .slice(0, maxLength)
 }
