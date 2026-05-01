@@ -25,7 +25,7 @@ import {
 } from '@/lib/ediel/db'
 import {
   cancelEdielMessageAction,
-  createAckDraftAction,
+  createAndSendAckAction,
   createAndSendTgtS142AperakAction,
   createAndSendTgtS142BAperakAction,
   createAndSendTgtS143AperakAction,
@@ -542,11 +542,11 @@ function IncomingPortalResponses({
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nästa säkra åtgärd</div>
               <div className="mt-3 space-y-2">
                 {!latestInboundZ04Contrl ? (
-                  <form action={createAckDraftAction}>
+                  <form action={createAndSendAckAction}>
                     <input type="hidden" name="sourceMessageId" value={latestInboundZ04.id} />
                     <input type="hidden" name="ackType" value="CONTRL" />
                     <input type="hidden" name="outcome" value="positive" />
-                    <button className="w-full rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">1. Skapa CONTRL på Z04</button>
+                    <button className="w-full rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">1. Skapa och skicka CONTRL på Z04</button>
                   </form>
                 ) : (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">1. CONTRL finns redan på denna Z04.</div>
@@ -643,11 +643,11 @@ function IncomingPortalResponses({
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {!hasContrl ? (
-                              <form action={createAckDraftAction}>
+                              <form action={createAndSendAckAction}>
                                 <input type="hidden" name="sourceMessageId" value={message.id} />
                                 <input type="hidden" name="ackType" value="CONTRL" />
                                 <input type="hidden" name="outcome" value="positive" />
-                                <button className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">Skapa CONTRL</button>
+                                <button className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">Skapa och skicka CONTRL</button>
                               </form>
                             ) : <Badge tone="green">CONTRL finns</Badge>}
                             {correctS142Aperak ? (
@@ -685,31 +685,31 @@ function IncomingPortalResponses({
 
                     <details className="rounded-2xl border border-slate-200 bg-slate-50 p-3" open={!isInboundProdatZ04}>
                       <summary className="cursor-pointer text-xs font-semibold text-slate-700">{isInboundProdatZ04 ? 'Avancerade svarsknappar' : 'Svar som ska skickas till portalen'}</summary>
-                      <p className="mt-1 text-xs leading-5 text-slate-600">Inbound PRODAT ska kvitteras med CONTRL först och APERAK därefter. Använd vanlig APERAK bara för normala fall, inte för S1.4.2.</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">Inbound PRODAT ska kvitteras med CONTRL först. Vid syntaxfel/S1.5: skicka negativ CONTRL. Vid normalt PRODAT: skicka positiv CONTRL och därefter eventuell APERAK.</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {!hasContrl ? (
-                          <form action={createAckDraftAction}>
-                            <input type="hidden" name="sourceMessageId" value={message.id} />
-                            <input type="hidden" name="ackType" value="CONTRL" />
-                            <input type="hidden" name="outcome" value="positive" />
-                            <button className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">Skapa CONTRL</button>
-                          </form>
-                        ) : null}
-                        {!hasAperak && !isInboundProdatZ04 ? (
-                          <form action={createAckDraftAction}>
-                            <input type="hidden" name="sourceMessageId" value={message.id} />
-                            <input type="hidden" name="ackType" value="APERAK" />
-                            <input type="hidden" name="outcome" value="positive" />
-                            <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">Skapa vanlig APERAK</button>
-                          </form>
-                        ) : null}
-                        {!hasContrl ? (
-                          <form action={createAckDraftAction}>
+                          <form action={createAndSendAckAction}>
                             <input type="hidden" name="sourceMessageId" value={message.id} />
                             <input type="hidden" name="ackType" value="CONTRL" />
                             <input type="hidden" name="outcome" value="negative" />
                             <input type="hidden" name="messageText" value="Syntaxfel enligt Edielportalens TGT-test" />
-                            <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Skapa negativ CONTRL · syntaxfel</button>
+                            <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">S1.5 · Skapa och skicka negativ CONTRL</button>
+                          </form>
+                        ) : null}
+                        {!hasContrl ? (
+                          <form action={createAndSendAckAction}>
+                            <input type="hidden" name="sourceMessageId" value={message.id} />
+                            <input type="hidden" name="ackType" value="CONTRL" />
+                            <input type="hidden" name="outcome" value="positive" />
+                            <button className="rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">Normalflöde · Skapa och skicka positiv CONTRL</button>
+                          </form>
+                        ) : null}
+                        {!hasAperak && !isInboundProdatZ04 ? (
+                          <form action={createAndSendAckAction}>
+                            <input type="hidden" name="sourceMessageId" value={message.id} />
+                            <input type="hidden" name="ackType" value="APERAK" />
+                            <input type="hidden" name="outcome" value="positive" />
+                            <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">Skapa och skicka vanlig APERAK</button>
                           </form>
                         ) : null}
                         {isInboundProdatZ04 ? (
@@ -734,11 +734,11 @@ function IncomingPortalResponses({
                     <p className="mt-1 text-xs leading-5 text-blue-900">Skicka aldrig APERAK på APERAK. Enligt Ediel-regeln kan däremot CONTRL behöva skickas på inkommande APERAK.</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {!hasContrl ? (
-                        <form action={createAckDraftAction}>
+                        <form action={createAndSendAckAction}>
                           <input type="hidden" name="sourceMessageId" value={message.id} />
                           <input type="hidden" name="ackType" value="CONTRL" />
                           <input type="hidden" name="outcome" value="positive" />
-                          <button className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">Skapa CONTRL på APERAK</button>
+                          <button className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">Skapa och skicka CONTRL på APERAK</button>
                         </form>
                       ) : (
                         <Badge tone="green">CONTRL finns</Badge>
