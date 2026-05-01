@@ -127,7 +127,6 @@ const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
   },
 ]
 
-
 function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: BadgeTone }) {
   const classes = {
     slate: 'border-slate-200 bg-slate-50 text-slate-700',
@@ -220,6 +219,10 @@ function prodatStepCodeLabel(step: EdielTgtExpectedStep): string {
   return edielCodeLabel('prodat_code', step.code)
 }
 
+function isAckLikeFamily(family: string | null | undefined): boolean {
+  const normalized = String(family ?? '').toUpperCase()
+  return normalized === 'CONTRL' || normalized === 'APERAK' || normalized === 'UTILTS_ERR'
+}
 
 function nextActionKindLabel(kind: string): string {
   if (kind === 'generate_gridex_file') return 'Skapa GridCore-fil'
@@ -263,8 +266,8 @@ const PORTAL_PRODAT_S12_STEPS = [
   ['2', 'CONTRL (2)', 'Portal → Aktör', 'Ladda ner/kopiera portalens CONTRL-svar och importera i Filimport.'],
   ['3', 'APERAK (96A)', 'Portal → Aktör', 'Ladda ner/kopiera portalens APERAK-svar och importera i Filimport.'],
   ['4', 'PRODAT (97A) / Z04', 'Portal → Aktör', 'Ladda ner/kopiera portalens Z04 och importera i Filimport.'],
-  ['5', 'CONTRL (2)', 'Aktör → Portal', 'GridCore skapar CONTRL-utkast efter Z04-import. Skicka det i portalen.'],
-  ['6', 'APERAK (96A)', 'Aktör → Portal', 'GridCore skapar APERAK-utkast efter Z04-import. Skicka det i portalen.'],
+  ['5', 'CONTRL (2)', 'Aktör → Portal', 'GridCore skapar CONTRL via inbound-kortet efter Z04-import. Skicka inte CONTRL från generiskt TGT-utkast.'],
+  ['6', 'APERAK (96A)', 'Aktör → Portal', 'GridCore skapar APERAK via inbound-kortet efter Z04-import. Skicka inte APERAK från generiskt TGT-utkast.'],
 ] as const
 
 function PortalTestStepTable() {
@@ -337,7 +340,6 @@ function getRecentMessageOptions(messages: EdielMessageRow[]) {
     .filter((message) => ['manual_upload', 'email', 'smtp', 'api'].includes(message.transport_type))
     .slice(0, 80)
 }
-
 
 function messageOptionLabel(message: EdielMessageRow): string {
   const external = message.external_reference ?? message.transaction_reference ?? message.interchange_reference ?? 'utan ref'
@@ -643,6 +645,8 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
     nextStep?.family === 'PRODAT' &&
     Boolean(evaluation.definition && ['1.2.1', '1.2.2', '1.2.5'].includes(evaluation.definition.testCaseCode))
 
+  const isAckLikeNextStep = isAckLikeFamily(nextStep?.family)
+
   return (
     <div className={`mt-4 rounded-2xl border p-4 ${tone === 'green' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'red' ? 'border-rose-200 bg-rose-50 text-rose-950' : tone === 'blue' ? 'border-blue-200 bg-blue-50 text-blue-950' : tone === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-slate-200 bg-slate-50 text-slate-950'}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -660,25 +664,32 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
               PRODAT Z03/Z04 ska skapas från riktig kund/testkund i avsnittet Kundstyrd PRODAT ovan. TGT-guiden används här som checklista och för att importera portalens svar.
             </p>
           ) : null}
+          {isAckLikeNextStep ? (
+            <p className="mt-2 rounded-xl border border-amber-200 bg-white/70 px-3 py-2 text-xs text-amber-900">
+              {nextStep?.family} ska inte skapas från generiskt TGT-utkast här. Använd inbound-meddelandekortet för rätt CONTRL/APERAK-flöde. Detta skyddar mot fel som “Saknar BGM” på CONTRL.
+            </p>
+          ) : null}
         </div>
         <Badge tone={tone}>{nextActionKindLabel(nextAction.kind)}</Badge>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {!shouldUseCustomerProdat ? (
+        {!shouldUseCustomerProdat && !isAckLikeNextStep ? (
           <form action={runEdielTgtAutopilotAction}>
             <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
             <button className="rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100">
               Försök skapa nästa GridCore-utkast
             </button>
           </form>
-        ) : (
+        ) : null}
+
+        {shouldUseCustomerProdat ? (
           <a href="#production-prodat" className="rounded-xl border border-indigo-300 bg-white px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-50">
             Gå till kundstyrd PRODAT
           </a>
-        )}
+        ) : null}
 
-        {evaluation.definition && nextAction.canGenerateDraft && nextAction.stepNo && !shouldUseCustomerProdat ? (
+        {evaluation.definition && nextAction.canGenerateDraft && nextAction.stepNo && !shouldUseCustomerProdat && !isAckLikeNextStep ? (
           <form action={createEdielTgtDraftAction}>
             <input type="hidden" name="testSuite" value={evaluation.definition.suite} />
             <input type="hidden" name="roleCode" value={evaluation.definition.roleCode} />
@@ -689,6 +700,12 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
               Skapa fil för steg {nextAction.stepNo}
             </button>
           </form>
+        ) : null}
+
+        {evaluation.definition && nextAction.canGenerateDraft && nextAction.stepNo && isAckLikeNextStep ? (
+          <div className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900">
+            {nextStep?.family} skapas på inbound-kortet, inte här.
+          </div>
         ) : null}
 
         {isWaitingForPortal ? (
@@ -734,8 +751,11 @@ function DraftOptionPanel({
   )
   const usesCustomerProdat = ['1.2.1', '1.2.2', '1.2.5'].includes(testCase.testCaseCode)
   const prodatOptions = options.filter((option) => option.canGenerate && option.family === 'PRODAT')
+  const ackLikeOptions = options.filter((option) => option.canGenerate && isAckLikeFamily(option.family))
   const generatable = options.filter((option) =>
-    option.canGenerate && (!usesCustomerProdat || option.family !== 'PRODAT')
+    option.canGenerate &&
+    !isAckLikeFamily(option.family) &&
+    (!usesCustomerProdat || option.family !== 'PRODAT')
   )
 
   if (generatable.length === 0) {
@@ -746,9 +766,18 @@ function DraftOptionPanel({
         </div>
       )
     }
+
+    if (ackLikeOptions.length > 0 && !compact) {
+      return (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          CONTRL, APERAK och UTILTS-ERR skapas inte som generiska TGT-utkast här. Importera först portalens meddelande och använd rätt åtgärd på inbound-kortet. Det förhindrar fel som “Saknar BGM” på CONTRL.
+        </div>
+      )
+    }
+
     return compact ? null : (
       <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-        Det finns inga Gridex-steg att generera för detta testfall. Importera filerna från Edielportalen i stället.
+        Det finns inga GridCore-steg att generera för detta testfall. Importera filerna från Edielportalen i stället.
       </div>
     )
   }
@@ -856,7 +885,7 @@ function TestCaseCard({
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
             <div className="text-sm font-semibold text-blue-950">Så matchar GridCore mot Edielportalens S1.2-steg</div>
             <p className="mt-1 text-xs text-blue-900">
-              Börja med steg 1. När portalen ger svar importerar du svaren via Filimport. GridCore skapar sedan svar på steg 5 och 6 som utkast.
+              Börja med steg 1. När portalen ger svar importerar du svaren via Filimport. GridCore skapar sedan svar på steg 5 och 6 via inbound-meddelandekortet.
             </p>
             <PortalTestStepTable />
           </div>
@@ -920,6 +949,7 @@ function TestCaseCard({
           )}
           <TestDataSummary data={testData} />
         </details>
+
         <DraftOptionPanel testCase={testCase} />
 
         <div className="mt-4 space-y-2">
@@ -938,6 +968,7 @@ function TestCaseCard({
                   <Badge>{prodatStepCodeLabel(step)}</Badge>
                   {step.outcome ? <Badge tone={step.outcome === 'positive' ? 'green' : 'red'}>{step.outcome}</Badge> : null}
                   <Badge tone={step.required ? 'blue' : 'slate'}>{step.required ? 'obligatorisk' : 'alternativ'}</Badge>
+                  {isAckLikeFamily(step.family) ? <Badge tone="yellow">skapas på inbound-kort</Badge> : null}
                 </div>
               </div>
             </div>
@@ -1002,7 +1033,7 @@ function RunEvaluationCard({
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
           <div className="font-semibold text-slate-950">3. GridCore svarar</div>
-          <p className="mt-1">När Z04 är importerad skapar GridCore CONTRL/APERAK-utkast till portalen.</p>
+          <p className="mt-1">När Z04 är importerad skapar GridCore CONTRL/APERAK via inbound-kortet, inte via generiskt TGT-utkast.</p>
         </div>
       </div>
 
@@ -1022,88 +1053,94 @@ function RunEvaluationCard({
             const manualCandidates = getManualAttachCandidates(options, match.step)
 
             return (
-            <div key={match.step.stepNo} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge tone={match.status === 'passed' ? 'green' : match.status === 'mismatch' ? 'red' : 'yellow'}>
-                      {matchStatusLabel(match.status)}
-                    </Badge>
-                    <Badge>Steg {match.step.stepNo}</Badge>
-                    <Badge>{directionLabel(match.step.direction)}</Badge>
-                    <Badge>{actorLabel(match.step.actor)}</Badge>
-                    <Badge>{match.step.family}</Badge>
-                    <Badge>{prodatStepCodeLabel(match.step)}</Badge>
-                    {match.step.outcome ? <Badge>{match.step.outcome}</Badge> : null}
-                  </div>
-                  <div className="mt-2 text-sm font-semibold text-slate-900">{match.step.title}</div>
-                  <div className="mt-1 text-xs text-slate-600">{match.step.description}</div>
-                  {match.issues.length > 0 ? (
-                    <div className="mt-2 text-xs text-rose-700">{match.issues.join(' · ')}</div>
-                  ) : null}
-                  {match.message ? (
-                    <Link
-                      href={`/admin/ediel/messages/${match.message.id}`}
-                      className="mt-2 inline-block text-xs font-medium text-indigo-700 underline-offset-2 hover:underline"
-                    >
-                      Öppna matchat meddelande
-                    </Link>
-                  ) : null}
-                </div>
-                <details className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-2">
-                  <summary className="cursor-pointer text-xs font-semibold text-slate-700">Avancerat: koppla manuellt</summary>
-                  <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">
-                    Öppna och kontrollera payloaden innan du kopplar. Koppla inte ett meddelande bara på datum — kontrollera family/code, riktning och referenser först.
-                  </div>
-
-                  <div className="mt-2 space-y-2">
-                    {manualCandidates.map((message) => (
-                      <div key={message.id} className="rounded-xl border border-slate-200 bg-slate-50 p-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap gap-1">
-                            <Badge tone={message.direction === match.step.direction ? 'green' : 'yellow'}>{message.direction}</Badge>
-                            <Badge tone={message.message_family === match.step.family ? 'green' : 'yellow'}>{message.message_family}/{String(message.message_code)}</Badge>
-                            <Badge>{message.status}</Badge>
-                          </div>
-                          <Link
-                            href={`/admin/ediel/messages/${message.id}`}
-                            className="rounded-lg border border-indigo-200 bg-white px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
-                          >
-                            Öppna och läs
-                          </Link>
-                        </div>
-                        <div className="mt-2 grid gap-1 text-[11px] text-slate-600 md:grid-cols-2">
-                          <div>External: {message.external_reference ?? '—'}</div>
-                          <div>Transaction: {message.transaction_reference ?? '—'}</div>
-                          <div>Interchange: {message.interchange_reference ?? '—'}</div>
-                          <div>Skapad: {formatDateTime(message.created_at)}</div>
-                        </div>
-                        <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-2 text-[11px] text-slate-700">{messagePreviewText(message)}</pre>
+              <div key={match.step.stepNo} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge tone={match.status === 'passed' ? 'green' : match.status === 'mismatch' ? 'red' : 'yellow'}>
+                        {matchStatusLabel(match.status)}
+                      </Badge>
+                      <Badge>Steg {match.step.stepNo}</Badge>
+                      <Badge>{directionLabel(match.step.direction)}</Badge>
+                      <Badge>{actorLabel(match.step.actor)}</Badge>
+                      <Badge>{match.step.family}</Badge>
+                      <Badge>{prodatStepCodeLabel(match.step)}</Badge>
+                      {match.step.outcome ? <Badge>{match.step.outcome}</Badge> : null}
+                      {isAckLikeFamily(match.step.family) ? <Badge tone="yellow">använd inbound-kort</Badge> : null}
+                    </div>
+                    <div className="mt-2 text-sm font-semibold text-slate-900">{match.step.title}</div>
+                    <div className="mt-1 text-xs text-slate-600">{match.step.description}</div>
+                    {isAckLikeFamily(match.step.family) ? (
+                      <div className="mt-2 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-900">
+                        Skapa inte {match.step.family} från TGT-workbench. Öppna/importera det inkommande PRODAT-meddelandet och använd kvittensknappen på inbound-kortet.
                       </div>
-                    ))}
+                    ) : null}
+                    {match.issues.length > 0 ? (
+                      <div className="mt-2 text-xs text-rose-700">{match.issues.join(' · ')}</div>
+                    ) : null}
+                    {match.message ? (
+                      <Link
+                        href={`/admin/ediel/messages/${match.message.id}`}
+                        className="mt-2 inline-block text-xs font-medium text-indigo-700 underline-offset-2 hover:underline"
+                      >
+                        Öppna matchat meddelande
+                      </Link>
+                    ) : null}
                   </div>
+                  <details className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-2">
+                    <summary className="cursor-pointer text-xs font-semibold text-slate-700">Avancerat: koppla manuellt</summary>
+                    <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">
+                      Öppna och kontrollera payloaden innan du kopplar. Koppla inte ett meddelande bara på datum — kontrollera family/code, riktning och referenser först.
+                    </div>
 
-                  <form action={attachEdielMessageToTestRunAction} className="mt-2 flex flex-wrap items-center gap-2">
-                    <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
-                    <input type="hidden" name="stepNo" value={match.step.stepNo} />
-                    <input type="hidden" name="expectedDirection" value={match.step.direction} />
-                    <input type="hidden" name="expectedFamily" value={match.step.family} />
-                    <input type="hidden" name="expectedCode" value={match.step.code} />
-                    <select name="edielMessageId" className="max-w-[420px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950">
-                      <option value="">Välj kontrollerat Ediel-meddelande…</option>
+                    <div className="mt-2 space-y-2">
                       {manualCandidates.map((message) => (
-                        <option key={message.id} value={message.id}>
-                          {messageOptionLabel(message)}
-                        </option>
+                        <div key={message.id} className="rounded-xl border border-slate-200 bg-slate-50 p-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap gap-1">
+                              <Badge tone={message.direction === match.step.direction ? 'green' : 'yellow'}>{message.direction}</Badge>
+                              <Badge tone={message.message_family === match.step.family ? 'green' : 'yellow'}>{message.message_family}/{String(message.message_code)}</Badge>
+                              <Badge>{message.status}</Badge>
+                            </div>
+                            <Link
+                              href={`/admin/ediel/messages/${message.id}`}
+                              className="rounded-lg border border-indigo-200 bg-white px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                            >
+                              Öppna och läs
+                            </Link>
+                          </div>
+                          <div className="mt-2 grid gap-1 text-[11px] text-slate-600 md:grid-cols-2">
+                            <div>External: {message.external_reference ?? '—'}</div>
+                            <div>Transaction: {message.transaction_reference ?? '—'}</div>
+                            <div>Interchange: {message.interchange_reference ?? '—'}</div>
+                            <div>Skapad: {formatDateTime(message.created_at)}</div>
+                          </div>
+                          <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-2 text-[11px] text-slate-700">{messagePreviewText(message)}</pre>
+                        </div>
                       ))}
-                    </select>
-                    <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
-                      Koppla valt meddelande
-                    </button>
-                  </form>
-                </details>
+                    </div>
+
+                    <form action={attachEdielMessageToTestRunAction} className="mt-2 flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
+                      <input type="hidden" name="stepNo" value={match.step.stepNo} />
+                      <input type="hidden" name="expectedDirection" value={match.step.direction} />
+                      <input type="hidden" name="expectedFamily" value={match.step.family} />
+                      <input type="hidden" name="expectedCode" value={match.step.code} />
+                      <select name="edielMessageId" className="max-w-[420px] rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950">
+                        <option value="">Välj kontrollerat Ediel-meddelande…</option>
+                        {manualCandidates.map((message) => (
+                          <option key={message.id} value={message.id}>
+                            {messageOptionLabel(message)}
+                          </option>
+                        ))}
+                      </select>
+                      <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                        Koppla valt meddelande
+                      </button>
+                    </form>
+                  </details>
+                </div>
               </div>
-            </div>
             )
           })}
         </div>
@@ -1115,7 +1152,6 @@ function RunEvaluationCard({
     </div>
   )
 }
-
 
 function GroupedTestCasePanel({
   groups,
