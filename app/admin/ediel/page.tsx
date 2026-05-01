@@ -407,6 +407,481 @@ function extractZ04Reference(rawPayload: string | null | undefined): string | nu
   return bgm.replace('BGM+Z04+', '').split('+')[0] || null
 }
 
+type AckRecommendation = {
+  title: string
+  description: string
+  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  actionLabel: string | null
+  ackFamily?: 'CONTRL' | 'APERAK'
+  outcome?: 'positive' | 'negative'
+  preset?: 's142' | 's142b' | 's143'
+  messageText?: string
+  reasonItems: string[]
+}
+
+function messageSearchText(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
+  return [
+    message.raw_payload,
+    message.external_reference,
+    message.transaction_reference,
+    message.interchange_reference,
+    message.original_transaction_id,
+    message.original_message_code,
+    message.failure_reason,
+    JSON.stringify(message.parsed_payload ?? {}),
+    JSON.stringify(message.validation_report ?? {}),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toUpperCase()
+}
+
+function containsAny(value: string, needles: string[]): boolean {
+  return needles.some((needle) => value.includes(needle.toUpperCase()))
+}
+
+function getEdifactSegments(rawPayload: string | null | undefined): string[] {
+  return String(rawPayload ?? '')
+    .replace(/\r\n/g, '')
+    .replace(/\n/g, '')
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+}
+
+function getUntSegmentCountIssue(rawPayload: string | null | undefined): {
+  hasIssue: boolean
+  declaredCount: number | null
+  actualCount: number | null
+  messageReference: string | null
+} {
+  const segments = getEdifactSegments(rawPayload)
+  const unhIndex = segments.findIndex((segment) => segment.startsWith('UNH+'))
+  const untIndex = segments.findIndex((segment) => segment.startsWith('UNT+'))
+
+  if (unhIndex < 0 || untIndex < 0 || untIndex < unhIndex) {
+    return {
+      hasIssue: false,
+      declaredCount: null,
+      actualCount: null,
+      messageReference: null,
+    }
+  }
+
+  const untParts = segments[untIndex].split('+')
+  const declaredCount = Number(untParts[1])
+  const messageReference = untParts[2] || null
+  const actualCount = untIndex - unhIndex + 1
+
+  if (!Number.isFinite(declaredCount)) {
+    return {
+      hasIssue: true,
+      declaredCount: null,
+      actualCount,
+      messageReference,
+    }
+  }
+
+  return {
+    hasIssue: declaredCount !== actualCount,
+    declaredCount,
+    actualCount,
+    messageReference,
+  }
+}
+
+function getSyntaxIssueDescription(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string | null {
+  const untIssue = getUntSegmentCountIssue(message.raw_payload)
+
+  if (untIssue.hasIssue) {
+    return `UNT segmentantal stämmer inte. Deklarerat: ${untIssue.declaredCount ?? 'okänt'}, faktiskt: ${untIssue.actualCount ?? 'okänt'}.`
+  }
+
+  if (message.syntax_check_status === 'failed') {
+    return 'Syntaxkontrollen är markerad som failed.'
+  }
+
+  if (message.status === 'failed') {
+    return message.failure_reason ?? 'Meddelandet är markerat som failed.'
+  }
+
+  return null
+}
+
+function isFinalAckStatus(status: string | null | undefined): boolean {
+  return status === 'sent' || status === 'acknowledged' || status === 'validated'
+}
+
+function isInboundProdatMessage(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): boolean {
+  return message.direction === 'inbound' && message.message_family === 'PRODAT'
+}
+
+function isLikelySyntaxErrorMessage(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): boolean {
+  if (!isInboundProdatMessage(message)) return false
+  return getSyntaxIssueDescription(message) !== null
+}
+
+function inferS14Preset(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): 's142' | 's142b' | 's143' | null {
+  const text = messageSearchText(message)
+  if (containsAny(text, ['1.4.2B', '142B'])) return 's142b'
+  if (containsAny(text, ['1.4.3', 'SAKNAD ANLÄGGNINGSREFERENS', 'SAKNAD ANLAGGNINGSREFERENS', '319'])) return 's143'
+  if (containsAny(text, ['1.4.2', '142'])) return 's142'
+  return null
+}
+
+function hasAckFamily(acks: Awaited<ReturnType<typeof listEdielMessages>>, family: string): boolean {
+  return acks.some((ack) => ack.message_family === family && isFinalAckStatus(ack.status))
+}
+
+function resolveAckRecommendation(params: {
+  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
+  acks: Awaited<ReturnType<typeof listEdielMessages>>
+}): AckRecommendation {
+  const { message, acks } = params
+  const hasContrl = hasAckFamily(acks, 'CONTRL')
+  const hasAperak = hasAckFamily(acks, 'APERAK')
+  const isProdat = isInboundProdatMessage(message)
+  const isSyntaxError = isProdat && isLikelySyntaxErrorMessage(message)
+  const s14Preset = isProdat && String(message.message_code).toUpperCase() === 'Z04' ? inferS14Preset(message) : null
+
+  if (message.direction !== 'inbound') {
+    return {
+      title: 'Ingen inbound-åtgärd',
+      description: 'Detta är inte ett inkommande meddelande från portalen.',
+      tone: 'slate',
+      actionLabel: null,
+      reasonItems: ['Endast inbound-meddelanden får automatiska kvittensförslag.'],
+    }
+  }
+
+  if (message.message_family === 'CONTRL') {
+    return {
+      title: 'Registrera teknisk kvittens',
+      description: 'CONTRL ska bara registreras och kopplas. Skicka aldrig CONTRL på CONTRL.',
+      tone: 'green',
+      actionLabel: null,
+      reasonItems: ['Inkommande CONTRL kräver ingen ny kvittens.'],
+    }
+  }
+
+  if (message.message_family === 'APERAK') {
+    if (!hasContrl) {
+      return {
+        title: 'Skicka CONTRL på inkommande APERAK',
+        description: 'APERAK ska inte få en APERAK tillbaka. Om kvittens krävs är nästa svar en teknisk CONTRL.',
+        tone: 'blue',
+        actionLabel: 'Skapa och skicka rekommenderat svar',
+        ackFamily: 'CONTRL',
+        outcome: 'positive',
+        reasonItems: ['Inkommande APERAK får teknisk CONTRL, inte ny APERAK.'],
+      }
+    }
+
+    return {
+      title: 'CONTRL finns',
+      description: 'Inkommande APERAK är redan tekniskt kvitterad.',
+      tone: 'green',
+      actionLabel: null,
+      reasonItems: ['Ingen ytterligare automatisk kvittens behövs.'],
+    }
+  }
+
+  if (!isProdat && message.message_family !== 'UTILTS') {
+    return {
+      title: 'Ingen rekommenderad automatik',
+      description: 'Meddelandefamiljen saknar generell rekommendation i denna vy.',
+      tone: 'slate',
+      actionLabel: null,
+      reasonItems: ['Använd familjens specifika arbetsyta eller avancerade åtgärder.'],
+    }
+  }
+
+  if (isSyntaxError) {
+    const syntaxIssue = getSyntaxIssueDescription(message)
+
+    if (!hasContrl) {
+      return {
+        title: 'Syntaxfel upptäckt · skicka negativ CONTRL',
+        description: 'GridCore ska svara med negativ CONTRL. APERAK ska inte skickas på syntaxfel.',
+        tone: 'red',
+        actionLabel: 'Skapa och skicka rekommenderat svar',
+        ackFamily: 'CONTRL',
+        outcome: 'negative',
+        messageText: syntaxIssue ?? 'Syntaxfel enligt Edielportalens TGT-test',
+        reasonItems: [
+          syntaxIssue ?? 'Syntaxstatus/felrapport pekar på S1.5 eller syntaxfel.',
+          'Negativ CONTRL ska ge UCI action code 4.',
+          'APERAK är affärskvittens och ska inte användas innan syntaxen är accepterad.',
+        ],
+      }
+    }
+
+    return {
+      title: 'Negativ CONTRL finns',
+      description: 'Vänta på omsändning från portalen. På korrekt omsändning ska vanlig positiv CONTRL skickas.',
+      tone: 'yellow',
+      actionLabel: null,
+      reasonItems: ['Syntaxfelet är redan kvitterat med CONTRL.'],
+    }
+  }
+
+  if (!hasContrl) {
+    return {
+      title: 'Skicka positiv CONTRL',
+      description: 'Syntaxen ser inte blockerad ut. Nästa säkra steg är teknisk CONTRL.',
+      tone: 'blue',
+      actionLabel: 'Skapa och skicka rekommenderat svar',
+      ackFamily: 'CONTRL',
+      outcome: 'positive',
+      reasonItems: ['Inbound PRODAT ska alltid syntaxkvitteras innan APERAK hanteras.'],
+    }
+  }
+
+  if (s14Preset && !hasAperak) {
+    const presetCopy = {
+      s142: {
+        title: 'Skicka teststyrd APERAK för S1.4.2',
+        description: 'GridCore känner igen 1.4.2 och skickar partiell APERAK med tre anläggningar.',
+      },
+      s142b: {
+        title: 'Skicka teststyrd APERAK för S1.4.2B',
+        description: 'GridCore känner igen 1.4.2B och skickar negativ APERAK för en anläggning.',
+      },
+      s143: {
+        title: 'Skicka teststyrd APERAK för S1.4.3',
+        description: 'GridCore känner igen 1.4.3 och skickar negativ APERAK för saknad anläggningsreferens.',
+      },
+    }[s14Preset]
+
+    return {
+      title: presetCopy.title,
+      description: presetCopy.description,
+      tone: 'red',
+      actionLabel: 'Skapa och skicka rekommenderat svar',
+      preset: s14Preset,
+      reasonItems: [
+        'CONTRL finns redan på portalens Z04.',
+        'Aktiv testreferens i payloaden avgör vilken APERAK-preset som ska användas.',
+        'Gamla draft/failed/cancelled kvittenser ersätts av backend innan nytt skick.',
+      ],
+    }
+  }
+
+  if (s14Preset && hasAperak) {
+    return {
+      title: 'APERAK finns',
+      description: 'Portalens Z04 har redan en APERAK kopplad.',
+      tone: 'green',
+      actionLabel: null,
+      reasonItems: ['Ingen ny APERAK skickas automatiskt för att undvika dubbelkvittens.'],
+    }
+  }
+
+  if (!hasAperak) {
+    return {
+      title: 'Skicka vanlig positiv APERAK',
+      description: 'Ingen testpreset eller affärsfelregel hittades. Normalflödet är positiv APERAK efter CONTRL.',
+      tone: 'green',
+      actionLabel: 'Skapa och skicka rekommenderat svar',
+      ackFamily: 'APERAK',
+      outcome: 'positive',
+      reasonItems: ['Syntaxkvittens finns och inga TGT-felpresets matchar meddelandet.'],
+    }
+  }
+
+  return {
+    title: 'Kvittensflöde klart',
+    description: 'CONTRL och APERAK finns redan kopplade till meddelandet.',
+    tone: 'green',
+    actionLabel: null,
+    reasonItems: ['Ingen mer kvittens behövs just nu.'],
+  }
+}
+
+function RecommendedAckActionForm({
+  messageId,
+  recommendation,
+}: {
+  messageId: string
+  recommendation: AckRecommendation
+}) {
+  if (!recommendation.actionLabel) return null
+
+  if (recommendation.preset === 's142') {
+    return (
+      <form action={createAndSendTgtS142AperakAction}>
+        <input type="hidden" name="sourceMessageId" value={messageId} />
+        <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+          {recommendation.actionLabel}
+        </button>
+      </form>
+    )
+  }
+
+  if (recommendation.preset === 's142b') {
+    return (
+      <form action={createAndSendTgtS142BAperakAction}>
+        <input type="hidden" name="sourceMessageId" value={messageId} />
+        <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+          {recommendation.actionLabel}
+        </button>
+      </form>
+    )
+  }
+
+  if (recommendation.preset === 's143') {
+    return (
+      <form action={createAndSendTgtS143AperakAction}>
+        <input type="hidden" name="sourceMessageId" value={messageId} />
+        <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+          {recommendation.actionLabel}
+        </button>
+      </form>
+    )
+  }
+
+  if (recommendation.ackFamily && recommendation.outcome) {
+    return (
+      <form action={createAndSendAckAction}>
+        <input type="hidden" name="sourceMessageId" value={messageId} />
+        <input type="hidden" name="ackType" value={recommendation.ackFamily} />
+        <input type="hidden" name="outcome" value={recommendation.outcome} />
+        {recommendation.messageText ? (
+          <input type="hidden" name="messageText" value={recommendation.messageText} />
+        ) : null}
+        <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+          {recommendation.actionLabel}
+        </button>
+      </form>
+    )
+  }
+
+  return null
+}
+
+function RecommendedAckPanel({
+  message,
+  acks,
+}: {
+  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
+  acks: Awaited<ReturnType<typeof listEdielMessages>>
+}) {
+  const recommendation = resolveAckRecommendation({ message, acks })
+  const panelToneClass =
+    recommendation.tone === 'red'
+      ? 'border-rose-200 bg-rose-50'
+      : recommendation.tone === 'yellow'
+        ? 'border-amber-200 bg-amber-50'
+        : recommendation.tone === 'blue'
+          ? 'border-blue-200 bg-blue-50'
+          : recommendation.tone === 'green'
+            ? 'border-emerald-200 bg-emerald-50'
+            : 'border-slate-200 bg-slate-50'
+
+  return (
+    <div className={`rounded-2xl border p-4 ${panelToneClass}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">Rekommenderat svar</div>
+          <h3 className="mt-1 text-sm font-semibold text-slate-950">{recommendation.title}</h3>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-700">{recommendation.description}</p>
+        </div>
+        <Badge tone={recommendation.tone}>{recommendation.tone}</Badge>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <RecommendedAckActionForm messageId={message.id} recommendation={recommendation} />
+        {recommendation.ackFamily ? <Badge>{recommendation.ackFamily}</Badge> : null}
+        {recommendation.outcome ? <Badge tone={recommendation.outcome === 'negative' ? 'red' : 'green'}>{recommendation.outcome}</Badge> : null}
+        {recommendation.preset ? <Badge tone="red">{recommendation.preset}</Badge> : null}
+      </div>
+
+      {recommendation.reasonItems.length > 0 ? (
+        <ul className="mt-3 space-y-1 text-xs leading-5 text-slate-700">
+          {recommendation.reasonItems.map((item) => (
+            <li key={item}>• {item}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
+function AdvancedAckActions({
+  message,
+  hasContrl,
+  hasAperak,
+}: {
+  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
+  hasContrl: boolean
+  hasAperak: boolean
+}) {
+  const isInboundProdatZ04 = isInboundProdatMessage(message) && String(message.message_code).toUpperCase() === 'Z04'
+
+  return (
+    <details className="rounded-2xl border border-slate-200 bg-white p-3">
+      <summary className="cursor-pointer text-xs font-semibold text-slate-700">Avancerat · manuella kvittenser och testpresets</summary>
+      <p className="mt-2 text-xs leading-5 text-slate-600">
+        Använd normalt rekommenderad åtgärd ovan. Avancerat finns för testfall, felsökning och manuell återställning.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {!hasContrl ? (
+          <form action={createAndSendAckAction}>
+            <input type="hidden" name="sourceMessageId" value={message.id} />
+            <input type="hidden" name="ackType" value="CONTRL" />
+            <input type="hidden" name="outcome" value="positive" />
+            <button className="rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">
+              Positiv CONTRL
+            </button>
+          </form>
+        ) : null}
+
+        {!hasContrl ? (
+          <form action={createAndSendAckAction}>
+            <input type="hidden" name="sourceMessageId" value={message.id} />
+            <input type="hidden" name="ackType" value="CONTRL" />
+            <input type="hidden" name="outcome" value="negative" />
+            <input type="hidden" name="messageText" value="Syntaxfel enligt Edielportalens TGT-test" />
+            <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+              Negativ CONTRL
+            </button>
+          </form>
+        ) : null}
+
+        {!hasAperak ? (
+          <form action={createAndSendAckAction}>
+            <input type="hidden" name="sourceMessageId" value={message.id} />
+            <input type="hidden" name="ackType" value="APERAK" />
+            <input type="hidden" name="outcome" value="positive" />
+            <button className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
+              Positiv APERAK
+            </button>
+          </form>
+        ) : null}
+
+        {isInboundProdatZ04 && !hasAperak ? (
+          <>
+            <form action={createAndSendTgtS142AperakAction}>
+              <input type="hidden" name="sourceMessageId" value={message.id} />
+              <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Testpreset 1.4.2</button>
+            </form>
+            <form action={createAndSendTgtS142BAperakAction}>
+              <input type="hidden" name="sourceMessageId" value={message.id} />
+              <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Testpreset 1.4.2B</button>
+            </form>
+            <form action={createAndSendTgtS143AperakAction}>
+              <input type="hidden" name="sourceMessageId" value={message.id} />
+              <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Testpreset 1.4.3</button>
+            </form>
+          </>
+        ) : null}
+
+        {hasContrl && hasAperak ? <Badge tone="green">CONTRL och APERAK finns</Badge> : null}
+      </div>
+    </details>
+  )
+}
+
 function TgtS142Preview() {
   return (
     <div className="grid gap-2 md:grid-cols-3">
@@ -492,9 +967,6 @@ function IncomingPortalResponses({
   const latestInboundZ04HasCorrectS142Aperak = latestInboundZ04Aperak
     ? isS142AperakPayload(latestInboundZ04Aperak.raw_payload)
     : false
-  const latestInboundZ04BlockingAperak = latestInboundZ04ActiveAcks.find(
-    (ack) => ack.message_family === 'APERAK' && isBlockingDraftStatus(ack.status)
-  )
   const latestInboundZ04Reference = extractZ04Reference(latestInboundZ04?.raw_payload)
 
   return (
@@ -503,7 +975,7 @@ function IncomingPortalResponses({
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Senaste inbound via IMAP</h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
-            Här är portalens inkommande svar. För S1.4 ska du arbeta från inkommande PRODAT/Z04-raden: först CONTRL, sedan rätt APERAK-preset. Vanliga APERAK-knappar ligger under avancerat så att du inte råkar skicka fel igen.
+            Här är portalens inkommande svar. GridCore visar ett rekommenderat svar per meddelande och skickar direkt. Testpresets och manuella kvittenser ligger under Avancerat.
           </p>
         </div>
         <Badge tone="green">{inboundMessages.length} visas</Badge>
@@ -514,14 +986,14 @@ function IncomingPortalResponses({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="red">Åtgärd krävs · inkommande Z04</Badge>
+                <Badge tone="red">Åtgärd krävs · senaste inkommande PRODAT/Z04</Badge>
                 <Badge tone={getOutboundStatusTone(latestInboundZ04.status)}>{latestInboundZ04.status}</Badge>
                 {latestInboundZ04Contrl ? <Badge tone="green">CONTRL finns</Badge> : <Badge tone="yellow">CONTRL saknas</Badge>}
-                {latestInboundZ04HasCorrectS142Aperak ? <Badge tone="green">S1.4.2 APERAK skickad</Badge> : <Badge tone="yellow">S1.4.2 APERAK saknas</Badge>}
+                {latestInboundZ04HasCorrectS142Aperak ? <Badge tone="green">APERAK skickad</Badge> : <Badge tone="yellow">APERAK saknas</Badge>}
               </div>
-              <h3 className="mt-2 text-base font-semibold text-slate-950">S1.4 steg 4–6 · skapa svar på portalens Z04</h3>
+              <h3 className="mt-2 text-base font-semibold text-slate-950">Senaste inkommande PRODAT/Z04 · kontrollera rekommenderat svar</h3>
               <p className="mt-1 text-sm leading-6 text-slate-700">
-                Matchat meddelande: <span className="font-semibold">PRODAT/Z04</span>{latestInboundZ04Reference ? ` · ${latestInboundZ04Reference}` : ''}. Använd den här rutan i stället för att leta bland gamla APERAK- eller Z03-kort.
+                Matchat meddelande: <span className="font-semibold">PRODAT/Z04</span>{latestInboundZ04Reference ? ` · ${latestInboundZ04Reference}` : ''}. Detta är bara en genväg till senaste Z04; den slutliga åtgärden styrs av rekommendationen på inbound-kortet.
               </p>
             </div>
             <Link href={`/admin/ediel/messages/${latestInboundZ04.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
@@ -529,48 +1001,18 @@ function IncomingPortalResponses({
             </Link>
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_320px]">
+          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <RecommendedAckPanel message={latestInboundZ04} acks={latestInboundZ04Acks} />
+
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Preflight för 1.4.2</div>
-              <p className="mt-1 text-xs leading-5 text-slate-600">
-                Den här APERAK:en ska innehålla fem resultatgrupper. Kontrollera detta innan du trycker på skickaknappen.
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">SaaS-säkert arbetssätt</div>
+              <p className="mt-2 text-xs leading-5 text-slate-700">
+                Samma vy fungerar per bolag/tenant: operatören ser rekommenderad åtgärd, medan testpresets och manuella val ligger under Avancerat på själva inbound-kortet.
               </p>
-              <div className="mt-3"><TgtS142Preview /></div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nästa säkra åtgärd</div>
-              <div className="mt-3 space-y-2">
-                {!latestInboundZ04Contrl ? (
-                  <form action={createAndSendAckAction}>
-                    <input type="hidden" name="sourceMessageId" value={latestInboundZ04.id} />
-                    <input type="hidden" name="ackType" value="CONTRL" />
-                    <input type="hidden" name="outcome" value="positive" />
-                    <button className="w-full rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">1. Skapa och skicka CONTRL på Z04</button>
-                  </form>
-                ) : (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">1. CONTRL finns redan på denna Z04.</div>
-                )}
-
-                {latestInboundZ04HasCorrectS142Aperak ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">2. Korrekt S1.4.2-APERAK finns redan.</div>
-                ) : (
-                  <div className="space-y-2">
-                    {latestInboundZ04BlockingAperak ? (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                        Gammal APERAK-draft/failed/cancelled finns. Direktknapparna ersätter den automatiskt innan nytt skick.
-                      </div>
-                    ) : null}
-                    <form action={createAndSendTgtS142AperakAction}>
-                      <input type="hidden" name="sourceMessageId" value={latestInboundZ04.id} />
-                      <button className="w-full rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">2. Skapa och skicka S1.4.2 APERAK</button>
-                    </form>
-                    <form action={createAndSendTgtS142BAperakAction}>
-                      <input type="hidden" name="sourceMessageId" value={latestInboundZ04.id} />
-                      <button className="w-full rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Skapa och skicka S1.4.2B APERAK</button>
-                    </form>
-                  </div>
-                )}
+              <div className="mt-3 space-y-2 text-xs text-slate-700">
+                <div className="rounded-xl bg-white p-2">1. Systemet bedömer syntax före affärskvittens.</div>
+                <div className="rounded-xl bg-white p-2">2. Kvittenser skickas direkt, inte som dolda drafts.</div>
+                <div className="rounded-xl bg-white p-2">3. Manuell override finns men är separerad från normalflödet.</div>
               </div>
             </div>
           </div>
@@ -597,12 +1039,6 @@ function IncomingPortalResponses({
               message.direction === 'inbound' &&
               message.message_family === 'PRODAT' &&
               String(message.message_code).toUpperCase() === 'Z04'
-            const correctS142Aperak = activeAcks.find(
-              (ack) => ack.message_family === 'APERAK' && isS142AperakPayload(ack.raw_payload)
-            )
-            const blockingAperakDraft = activeAcks.find(
-              (ack) => ack.message_family === 'APERAK' && isBlockingDraftStatus(ack.status)
-            )
             const bgClass = isInboundProdatZ04 ? 'border-rose-200 bg-rose-50/40' : 'border-slate-200 bg-white'
 
             return (
@@ -613,7 +1049,7 @@ function IncomingPortalResponses({
                       <Badge tone={message.message_family === 'PRODAT' ? 'blue' : 'green'}>
                         inbound {message.message_family} / {message.message_code}
                       </Badge>
-                      {isInboundProdatZ04 ? <Badge tone="red">S1.4 Z04 · svar krävs</Badge> : null}
+                      {isInboundProdatZ04 ? <Badge tone="red">PRODAT/Z04 · rekommendation styr</Badge> : null}
                       <Badge tone={getOutboundStatusTone(message.status)}>{message.status}</Badge>
                       {message.related_message_id ? <Badge tone="green">kopplad</Badge> : <Badge tone="yellow">ej kopplad</Badge>}
                     </div>
@@ -634,120 +1070,17 @@ function IncomingPortalResponses({
 
                 {isInboundBusinessMessage ? (
                   <div className="mt-4 space-y-3">
-                    {isInboundProdatZ04 ? (
-                      <div className="rounded-2xl border border-rose-200 bg-white p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">S1.4 snabbåtgärd på rätt Z04</div>
-                            <p className="mt-1 text-xs leading-5 text-slate-700">Detta är portalens Z04. Här ska du skapa CONTRL och sedan den teststyrda APERAK:en. Vanlig APERAK ligger under avancerat.</p>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {!hasContrl ? (
-                              <form action={createAndSendAckAction}>
-                                <input type="hidden" name="sourceMessageId" value={message.id} />
-                                <input type="hidden" name="ackType" value="CONTRL" />
-                                <input type="hidden" name="outcome" value="positive" />
-                                <button className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">Skapa och skicka CONTRL</button>
-                              </form>
-                            ) : <Badge tone="green">CONTRL finns</Badge>}
-                            {correctS142Aperak ? (
-                              <Badge tone="green">S1.4.2 APERAK finns</Badge>
-                            ) : (
-                              <>
-                                {blockingAperakDraft ? <Badge tone="yellow">Gammal APERAK ersätts automatiskt</Badge> : null}
-                                <form action={createAndSendTgtS142AperakAction}>
-                                  <input type="hidden" name="sourceMessageId" value={message.id} />
-                                  <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
-                                    Skapa och skicka 1.4.2
-                                  </button>
-                                </form>
-
-                                <form action={createAndSendTgtS142BAperakAction}>
-                                  <input type="hidden" name="sourceMessageId" value={message.id} />
-                                  <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
-                                    Skapa och skicka 1.4.2B
-                                  </button>
-                                </form>
-
-                                <form action={createAndSendTgtS143AperakAction}>
-                                  <input type="hidden" name="sourceMessageId" value={message.id} />
-                                  <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
-                                    Skapa och skicka 1.4.3
-                                  </button>
-                                </form>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <div className="mt-3"><TgtS142Preview /></div>
-                      </div>
-                    ) : null}
-
-                    <details className="rounded-2xl border border-slate-200 bg-slate-50 p-3" open={!isInboundProdatZ04}>
-                      <summary className="cursor-pointer text-xs font-semibold text-slate-700">{isInboundProdatZ04 ? 'Avancerade svarsknappar' : 'Svar som ska skickas till portalen'}</summary>
-                      <p className="mt-1 text-xs leading-5 text-slate-600">Inbound PRODAT ska kvitteras med CONTRL först. Vid syntaxfel/S1.5: skicka negativ CONTRL. Vid normalt PRODAT: skicka positiv CONTRL och därefter eventuell APERAK.</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {!hasContrl ? (
-                          <form action={createAndSendAckAction}>
-                            <input type="hidden" name="sourceMessageId" value={message.id} />
-                            <input type="hidden" name="ackType" value="CONTRL" />
-                            <input type="hidden" name="outcome" value="negative" />
-                            <input type="hidden" name="messageText" value="Syntaxfel enligt Edielportalens TGT-test" />
-                            <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">S1.5 · Skapa och skicka negativ CONTRL</button>
-                          </form>
-                        ) : null}
-                        {!hasContrl ? (
-                          <form action={createAndSendAckAction}>
-                            <input type="hidden" name="sourceMessageId" value={message.id} />
-                            <input type="hidden" name="ackType" value="CONTRL" />
-                            <input type="hidden" name="outcome" value="positive" />
-                            <button className="rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">Normalflöde · Skapa och skicka positiv CONTRL</button>
-                          </form>
-                        ) : null}
-                        {!hasAperak && !isInboundProdatZ04 ? (
-                          <form action={createAndSendAckAction}>
-                            <input type="hidden" name="sourceMessageId" value={message.id} />
-                            <input type="hidden" name="ackType" value="APERAK" />
-                            <input type="hidden" name="outcome" value="positive" />
-                            <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">Skapa och skicka vanlig APERAK</button>
-                          </form>
-                        ) : null}
-                        {isInboundProdatZ04 ? (
-                          <form action={createAndSendTgtS142BAperakAction}>
-                            <input type="hidden" name="sourceMessageId" value={message.id} />
-                            <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">Skapa och skicka 1.4.2B · en anläggning</button>
-                          </form>
-                        ) : null}
-                        {isInboundProdatZ04 ? (
-                          <form action={createAndSendTgtS143AperakAction}>
-                            <input type="hidden" name="sourceMessageId" value={message.id} />
-                            <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">Skapa och skicka 1.4.3 · saknad anläggningsreferens</button>
-                          </form>
-                        ) : null}
-                        {hasContrl && hasAperak ? <Badge tone="green">CONTRL och APERAK finns</Badge> : null}
-                      </div>
-                    </details>
+                    <RecommendedAckPanel message={message} acks={acks} />
+                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} />
                   </div>
                 ) : requiresContrlOnly ? (
-                  <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Inkommande APERAK</div>
-                    <p className="mt-1 text-xs leading-5 text-blue-900">Skicka aldrig APERAK på APERAK. Enligt Ediel-regeln kan däremot CONTRL behöva skickas på inkommande APERAK.</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {!hasContrl ? (
-                        <form action={createAndSendAckAction}>
-                          <input type="hidden" name="sourceMessageId" value={message.id} />
-                          <input type="hidden" name="ackType" value="CONTRL" />
-                          <input type="hidden" name="outcome" value="positive" />
-                          <button className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">Skapa och skicka CONTRL på APERAK</button>
-                        </form>
-                      ) : (
-                        <Badge tone="green">CONTRL finns</Badge>
-                      )}
-                    </div>
+                  <div className="mt-4 space-y-3">
+                    <RecommendedAckPanel message={message} acks={acks} />
+                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} />
                   </div>
                 ) : (
                   <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-800">
-                    Detta är en inkommande CONTRL/teknisk kvittens från portalen. Den ska registreras och kopplas. Skapa ingen ny kvittens på CONTRL.
+                    Detta är en inkommande CONTRL/teknisk kvittens från portalen. Den registreras och kopplas. Skapa ingen ny kvittens på CONTRL.
                   </div>
                 )}
 
