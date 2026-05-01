@@ -27,6 +27,7 @@ import {
   cancelEdielMessageAction,
   createAckDraftAction,
   createAndSendTgtS142AperakAction,
+  createAndSendTgtS143AperakAction,
   createEdielTestRunAction,
   pollMailboxAction,
   registerInboundUtiltsAction,
@@ -647,10 +648,21 @@ function IncomingPortalResponses({
                             ) : blockingAperakDraft ? (
                               <Badge tone="yellow">Radera gammal APERAK först</Badge>
                             ) : (
-                              <form action={createAndSendTgtS142AperakAction}>
-                                <input type="hidden" name="sourceMessageId" value={message.id} />
-                                <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">Skapa och skicka 1.4.2</button>
-                              </form>
+                              <>
+                                <form action={createAndSendTgtS142AperakAction}>
+                                  <input type="hidden" name="sourceMessageId" value={message.id} />
+                                  <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
+                                    Skapa och skicka 1.4.2
+                                  </button>
+                                </form>
+
+                                <form action={createAndSendTgtS143AperakAction}>
+                                  <input type="hidden" name="sourceMessageId" value={message.id} />
+                                  <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+                                    Skapa och skicka 1.4.3
+                                  </button>
+                                </form>
+                              </>
                             )}
                           </div>
                         </div>
@@ -701,14 +713,9 @@ function IncomingPortalResponses({
                           </form>
                         ) : null}
                         {isInboundProdatZ04 ? (
-                          <form action={createAckDraftAction}>
+                          <form action={createAndSendTgtS143AperakAction}>
                             <input type="hidden" name="sourceMessageId" value={message.id} />
-                            <input type="hidden" name="ackType" value="APERAK" />
-                            <input type="hidden" name="outcome" value="negative" />
-                            <input type="hidden" name="aperakErrorErc" value="41" />
-                            <input type="hidden" name="aperakErrorFieldCode" value="319" />
-                            <input type="hidden" name="aperakErrorText" value="Referens till anläggning saknas" />
-                            <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">1.4.3 · Z04D saknad anläggningsreferens</button>
+                            <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">Skapa och skicka 1.4.3 · saknad anläggningsreferens</button>
                           </form>
                         ) : null}
                         {hasContrl && hasAperak ? <Badge tone="green">CONTRL och APERAK finns</Badge> : null}

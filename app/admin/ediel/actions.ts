@@ -823,6 +823,100 @@ export async function createAndSendTgtS142AperakAction(formData: FormData) {
   await revalidateRelatedMessage(ackMessage.id)
 }
 
+
+const TGT_S143_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
+  {
+    ercCode: '41',
+    fieldCode: '319',
+    text: 'Referens till anläggning saknas',
+    referenceQualifier: null,
+    referenceNumber: null,
+    lineItemReference: null,
+  },
+]
+
+export async function createAndSendTgtS143AperakAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const sourceMessageId = formString(formData.get('sourceMessageId'))
+
+  if (!sourceMessageId) throw new Error('sourceMessageId saknas')
+
+  const sourceMessage = await getEdielMessageById(sourceMessageId)
+  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+
+  if (
+    sourceMessage.direction !== 'inbound' ||
+    sourceMessage.message_family !== 'PRODAT' ||
+    String(sourceMessage.message_code).toUpperCase() !== 'Z04'
+  ) {
+    throw new Error(
+      `1.4.3-APERAK måste skapas från inbound PRODAT/Z04. Vald rad är ${sourceMessage.direction} ${sourceMessage.message_family}/${sourceMessage.message_code}.`
+    )
+  }
+
+  const existingAcks = await listAckMessagesForSource({
+    sourceMessageId,
+    ackFamily: 'APERAK',
+  })
+
+  for (const ack of existingAcks) {
+    if (['draft', 'queued', 'prepared', 'failed'].includes(String(ack.status))) {
+      await updateEdielMessageStatus({
+        actorUserId: context.userId,
+        edielMessageId: ack.id,
+        status: 'cancelled',
+        failureReason: 'Ersatt av korrekt S1.4.3-APERAK för saknad anläggningsreferens.',
+      })
+    }
+  }
+
+  const ackMessage = await createAckDraftForMessage({
+    actorUserId: context.userId,
+    sourceMessageId,
+    ackFamily: 'APERAK',
+    outcome: 'negative',
+    applicationErrors: TGT_S143_APERAK_APPLICATION_ERRORS,
+  })
+
+  if (ackMessage.status !== 'draft' && ackMessage.status !== 'queued' && ackMessage.status !== 'prepared') {
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId: sourceMessageId,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Kunde inte skapa ny S1.4.3-APERAK eftersom en aktiv APERAK redan finns.',
+      payload: {
+        ackMessageId: ackMessage.id,
+        status: ackMessage.status,
+      },
+    })
+    revalidateEdiel(sourceMessageId)
+    await revalidateRelatedMessage(ackMessage.id)
+    return
+  }
+
+  await sendQueuedEdielMessage({
+    actorUserId: context.userId,
+    edielMessageId: ackMessage.id,
+    smtpMimeMode: 'ediel-singlepart-base64',
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: context.userId,
+    edielMessageId: sourceMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'success',
+    message: 'S1.4.3-APERAK skapades och skickades för saknad anläggningsreferens.',
+    payload: {
+      ackMessageId: ackMessage.id,
+      preset: 'S1.4.3',
+    },
+  })
+
+  revalidateEdiel(sourceMessageId)
+  await revalidateRelatedMessage(ackMessage.id)
+}
+
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const edielMessageId = formString(formData.get('edielMessageId'))
