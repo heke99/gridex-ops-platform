@@ -525,33 +525,62 @@ function resolveSenderControlledCode(
   return cleanOptionalCode(value, maxLength) ?? fallback
 }
 
+type TgtRequiredFieldRule = {
+  testSuite: EdielTestSuite
+  roleCode: EdielTestRoleCode
+  testCaseCodes: readonly string[]
+  stepFamily: EdielMessageFamily
+  stepCode: string
+  fieldCode: string
+  value: string
+  reason: string
+}
+
+const TGT_REQUIRED_FIELD_RULES: readonly TgtRequiredFieldRule[] = [
+  {
+    testSuite: 'PRODAT',
+    roleCode: 'supplier',
+    testCaseCodes: ['1.2.1', '1.2.2', '1.4.2', '1.4.2B', '1.5.1'],
+    stepFamily: 'PRODAT',
+    stepCode: 'Z03',
+    fieldCode: '217',
+    value: 'Z03',
+    reason:
+      'Edielportalens aktiva TGT-validering kräver Z03 i fält 217 för utgående start-Z03 i dessa leverantörstest. Portalens testdatavy kan samtidigt visa Z01 för senare Z04-/normaldata, men den får inte styra start-Z03.',
+  },
+]
+
+function normalizeTgtCode(value: string | null | undefined): string {
+  return String(value ?? '').trim().toUpperCase()
+}
+
+function resolveTgtRequiredFieldRule(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  fieldCode: string
+): TgtRequiredFieldRule | null {
+  const testCaseCode = params.testCaseCode.trim()
+  const normalizedStepCode = normalizeTgtCode(step.code)
+  const normalizedFieldCode = normalizeTgtCode(fieldCode)
+
+  return (
+    TGT_REQUIRED_FIELD_RULES.find((rule) =>
+      rule.testSuite === params.testSuite &&
+      rule.roleCode === params.roleCode &&
+      rule.testCaseCodes.includes(testCaseCode) &&
+      rule.stepFamily === step.family &&
+      normalizeTgtCode(rule.stepCode) === normalizedStepCode &&
+      normalizeTgtCode(rule.fieldCode) === normalizedFieldCode
+    ) ?? null
+  )
+}
+
 function resolveTgtRequiredFieldValue(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   step: EdielTgtExpectedStep,
   fieldCode: string
 ): string | null {
-  if (params.testSuite !== 'PRODAT' || params.roleCode !== 'supplier') return null
-
-  const testCaseCode = params.testCaseCode.trim()
-
-  // Portalens TGT-validering är stegmedveten. Samma testkund kan visas med
-  // ett annat värde i portalen för ett senare PRODAT-steg, men steg 1/Z03 för
-  // leverantörsbyte kräver att fält 217 skickas som Z03.
-  //
-  // Detta är en kanonisk testfallsregel för utgående Z03 och ska vinna över
-  // importerad/påklistrad portalvy som råkar avse Z04-delen av samma testfall.
-  if (step.code === 'Z03' && fieldCode === '217') {
-    if (
-      testCaseCode === '1.2.1' ||
-      testCaseCode === '1.2.2' ||
-      testCaseCode === '1.4.2' ||
-      testCaseCode === '1.4.2B'
-    ) {
-      return 'Z03'
-    }
-  }
-
-  return null
+  return resolveTgtRequiredFieldRule(params, step, fieldCode)?.value ?? null
 }
 
 function resolveTgtMeteringMethod(
