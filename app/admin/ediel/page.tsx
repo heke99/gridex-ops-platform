@@ -27,6 +27,7 @@ import {
   cancelEdielMessageAction,
   createAckDraftAction,
   createAndSendTgtS142AperakAction,
+  createAndSendTgtS142BAperakAction,
   createAndSendTgtS143AperakAction,
   createEdielTestRunAction,
   pollMailboxAction,
@@ -553,16 +554,22 @@ function IncomingPortalResponses({
 
                 {latestInboundZ04HasCorrectS142Aperak ? (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">2. Korrekt S1.4.2-APERAK finns redan.</div>
-                ) : latestInboundZ04BlockingAperak ? (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                    <div className="text-xs font-semibold text-amber-900">Gammal APERAK-draft blockerar ny APERAK.</div>
-                    <p className="mt-1 text-xs leading-5 text-amber-800">Radera den kopplade APERAK-raden nedan först. Skapa sedan S1.4.2-APERAK igen.</p>
-                  </div>
                 ) : (
-                  <form action={createAndSendTgtS142AperakAction}>
-                    <input type="hidden" name="sourceMessageId" value={latestInboundZ04.id} />
-                    <button className="w-full rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">2. Skapa och skicka S1.4.2 APERAK</button>
-                  </form>
+                  <div className="space-y-2">
+                    {latestInboundZ04BlockingAperak ? (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                        Gammal APERAK-draft/failed/cancelled finns. Direktknapparna ersätter den automatiskt innan nytt skick.
+                      </div>
+                    ) : null}
+                    <form action={createAndSendTgtS142AperakAction}>
+                      <input type="hidden" name="sourceMessageId" value={latestInboundZ04.id} />
+                      <button className="w-full rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">2. Skapa och skicka S1.4.2 APERAK</button>
+                    </form>
+                    <form action={createAndSendTgtS142BAperakAction}>
+                      <input type="hidden" name="sourceMessageId" value={latestInboundZ04.id} />
+                      <button className="w-full rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Skapa och skicka S1.4.2B APERAK</button>
+                    </form>
+                  </div>
                 )}
               </div>
             </div>
@@ -645,14 +652,20 @@ function IncomingPortalResponses({
                             ) : <Badge tone="green">CONTRL finns</Badge>}
                             {correctS142Aperak ? (
                               <Badge tone="green">S1.4.2 APERAK finns</Badge>
-                            ) : blockingAperakDraft ? (
-                              <Badge tone="yellow">Radera gammal APERAK först</Badge>
                             ) : (
                               <>
+                                {blockingAperakDraft ? <Badge tone="yellow">Gammal APERAK ersätts automatiskt</Badge> : null}
                                 <form action={createAndSendTgtS142AperakAction}>
                                   <input type="hidden" name="sourceMessageId" value={message.id} />
                                   <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
                                     Skapa och skicka 1.4.2
+                                  </button>
+                                </form>
+
+                                <form action={createAndSendTgtS142BAperakAction}>
+                                  <input type="hidden" name="sourceMessageId" value={message.id} />
+                                  <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+                                    Skapa och skicka 1.4.2B
                                   </button>
                                 </form>
 
@@ -700,16 +713,9 @@ function IncomingPortalResponses({
                           </form>
                         ) : null}
                         {isInboundProdatZ04 ? (
-                          <form action={createAckDraftAction}>
+                          <form action={createAndSendTgtS142BAperakAction}>
                             <input type="hidden" name="sourceMessageId" value={message.id} />
-                            <input type="hidden" name="ackType" value="APERAK" />
-                            <input type="hidden" name="outcome" value="negative" />
-                            <input type="hidden" name="aperakErrorErc" value="42" />
-                            <input type="hidden" name="aperakErrorFieldCode" value="210" />
-                            <input type="hidden" name="aperakErrorText" value="Felaktig avtal, startdatum 2040-08-01" />
-                            <input type="hidden" name="aperakErrorReferenceQualifier" value="Z07" />
-                            <input type="hidden" name="aperakErrorReferenceNumber" value="735999888000000123" />
-                            <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">1.4.2B · en anläggning</button>
+                            <button className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">Skapa och skicka 1.4.2B · en anläggning</button>
                           </form>
                         ) : null}
                         {isInboundProdatZ04 ? (

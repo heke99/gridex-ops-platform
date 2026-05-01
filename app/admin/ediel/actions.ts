@@ -67,6 +67,7 @@ import { createSafeMasterdataProposalForMessage } from '@/lib/ediel/operationalV
 import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from '@/lib/ediel/safeApplyReview'
 import type { EdielEnvironment, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 import { approveEdielInboundCase, rejectEdielInboundCase, type EdielInboundCaseActionMode } from '@/lib/ediel/inboundCases'
+import { supabaseService } from '@/lib/supabase/service'
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
@@ -664,6 +665,162 @@ export async function createAckDraftAction(formData: FormData) {
 }
 
 
+
+const REPLACEABLE_TGT_ACK_STATUSES = new Set(['draft', 'queued', 'prepared', 'failed', 'cancelled'])
+
+async function removeReplaceableTgtAcksForSource(params: {
+  actorUserId: string
+  sourceMessageId: string
+  ackFamily: 'APERAK'
+  preset: string
+}) {
+  const existingAcks = await listAckMessagesForSource({
+    sourceMessageId: params.sourceMessageId,
+    ackFamily: params.ackFamily,
+  })
+
+  const nonReplaceable = existingAcks.find((ack) => !REPLACEABLE_TGT_ACK_STATUSES.has(String(ack.status)))
+  if (nonReplaceable) {
+    throw new Error(
+      `${params.preset} kan inte skapas eftersom ${params.ackFamily} redan finns med status ${nonReplaceable.status}. Radera inte historik automatiskt efter skick.`
+    )
+  }
+
+  const replaceableIds = existingAcks.map((ack) => ack.id).filter(Boolean)
+  if (replaceableIds.length === 0) return
+
+  const testRunDelete = await supabaseService
+    .from('ediel_test_run_messages')
+    .delete()
+    .in('ediel_message_id', replaceableIds)
+  if (testRunDelete.error) throw testRunDelete.error
+
+  const eventsDelete = await supabaseService
+    .from('ediel_message_events')
+    .delete()
+    .in('ediel_message_id', replaceableIds)
+  if (eventsDelete.error) throw eventsDelete.error
+
+  const messagesDelete = await supabaseService
+    .from('ediel_messages')
+    .delete()
+    .in('id', replaceableIds)
+  if (messagesDelete.error) throw messagesDelete.error
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.sourceMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'warning',
+    message: `${params.preset}: ersatte gammal APERAK-draft/failed/cancelled innan nytt skick.`,
+    payload: {
+      removedAckMessageIds: replaceableIds,
+      ackFamily: params.ackFamily,
+      preset: params.preset,
+    },
+  })
+}
+
+function parseLineItemReferencesByZ07(sourcePayload?: string | null): Map<string, string> {
+  const segments = (sourcePayload ?? '')
+    .replace(/\r\n/g, '')
+    .replace(/\n/g, '')
+    .replace(/^UNA.{6}'/i, '')
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+
+  const lineRefsByZ07 = new Map<string, string>()
+  let currentZ07: string | null = null
+
+  for (const segment of segments) {
+    if (segment.startsWith('LIN+')) {
+      const linId = segment.split('+')[3]?.split(':')[0]?.trim() ?? null
+      currentZ07 = linId && linId.length > 0 ? linId : null
+      continue
+    }
+
+    if (currentZ07 && segment.startsWith('RFF+LI:')) {
+      const li = segment.replace(/^RFF\+LI:/, '').trim()
+      if (li) lineRefsByZ07.set(currentZ07, li)
+    }
+  }
+
+  return lineRefsByZ07
+}
+
+function withLineItemReferences(
+  sourcePayload: string | null | undefined,
+  errors: readonly EdielAperakApplicationError[]
+): EdielAperakApplicationError[] {
+  const lineRefsByZ07 = parseLineItemReferencesByZ07(sourcePayload)
+
+  return errors.map((error) => ({
+    ...error,
+    lineItemReference:
+      error.referenceNumber && lineRefsByZ07.has(error.referenceNumber)
+        ? lineRefsByZ07.get(error.referenceNumber) ?? null
+        : error.lineItemReference ?? null,
+  }))
+}
+
+async function createAndSendTgtAperakPreset(params: {
+  actorUserId: string
+  sourceMessageId: string
+  preset: string
+  errors: readonly EdielAperakApplicationError[]
+  successMessage: string
+}) {
+  const sourceMessage = await getEdielMessageById(params.sourceMessageId)
+  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+
+  if (
+    sourceMessage.direction !== 'inbound' ||
+    sourceMessage.message_family !== 'PRODAT' ||
+    String(sourceMessage.message_code).toUpperCase() !== 'Z04'
+  ) {
+    throw new Error(
+      `${params.preset}-APERAK måste skapas från inbound PRODAT/Z04. Vald rad är ${sourceMessage.direction} ${sourceMessage.message_family}/${sourceMessage.message_code}.`
+    )
+  }
+
+  await removeReplaceableTgtAcksForSource({
+    actorUserId: params.actorUserId,
+    sourceMessageId: params.sourceMessageId,
+    ackFamily: 'APERAK',
+    preset: params.preset,
+  })
+
+  const ackMessage = await createAckDraftForMessage({
+    actorUserId: params.actorUserId,
+    sourceMessageId: params.sourceMessageId,
+    ackFamily: 'APERAK',
+    outcome: 'negative',
+    applicationErrors: withLineItemReferences(sourceMessage.raw_payload, params.errors),
+  })
+
+  await sendQueuedEdielMessage({
+    actorUserId: params.actorUserId,
+    edielMessageId: ackMessage.id,
+    smtpMimeMode: 'ediel-singlepart-base64',
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.sourceMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'success',
+    message: params.successMessage,
+    payload: {
+      ackMessageId: ackMessage.id,
+      preset: params.preset,
+    },
+  })
+
+  revalidateEdiel(params.sourceMessageId)
+  await revalidateRelatedMessage(ackMessage.id)
+}
+
 const TGT_S142_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
   {
     ercCode: '42',
@@ -708,38 +865,9 @@ const TGT_S142_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
 ]
 
 function deriveS142LineItemReferences(sourcePayload?: string | null): EdielAperakApplicationError[] {
-  const segments = (sourcePayload ?? '')
-    .replace(/\r\n/g, '')
-    .replace(/\n/g, '')
-    .replace(/^UNA.{6}'/i, '')
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-
-  const lineRefsByZ07 = new Map<string, string>()
-  let currentZ07: string | null = null
-
-  for (const segment of segments) {
-    if (segment.startsWith('LIN+')) {
-      const linId = segment.split('+')[3]?.split(':')[0]?.trim() ?? null
-      currentZ07 = linId && linId.length > 0 ? linId : null
-      continue
-    }
-
-    if (currentZ07 && segment.startsWith('RFF+LI:')) {
-      const li = segment.replace(/^RFF\+LI:/, '').trim()
-      if (li) lineRefsByZ07.set(currentZ07, li)
-    }
-  }
-
-  return TGT_S142_APERAK_APPLICATION_ERRORS.map((error) => ({
-    ...error,
-    lineItemReference:
-      error.referenceNumber && lineRefsByZ07.has(error.referenceNumber)
-        ? lineRefsByZ07.get(error.referenceNumber) ?? null
-        : error.lineItemReference,
-  }))
+  return withLineItemReferences(sourcePayload, TGT_S142_APERAK_APPLICATION_ERRORS)
 }
+
 
 export async function createAndSendTgtS142AperakAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
@@ -747,82 +875,64 @@ export async function createAndSendTgtS142AperakAction(formData: FormData) {
 
   if (!sourceMessageId) throw new Error('sourceMessageId saknas')
 
-  const sourceMessage = await getEdielMessageById(sourceMessageId)
-  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
-
-  if (
-    sourceMessage.direction !== 'inbound' ||
-    sourceMessage.message_family !== 'PRODAT' ||
-    String(sourceMessage.message_code).toUpperCase() !== 'Z04'
-  ) {
-    throw new Error(
-      `1.4.2-APERAK måste skapas från inbound PRODAT/Z04. Vald rad är ${sourceMessage.direction} ${sourceMessage.message_family}/${sourceMessage.message_code}.`
-    )
-  }
-
-  const existingAcks = await listAckMessagesForSource({
-    sourceMessageId,
-    ackFamily: 'APERAK',
-  })
-
-  for (const ack of existingAcks) {
-    if (['draft', 'queued', 'prepared', 'failed'].includes(String(ack.status))) {
-      await updateEdielMessageStatus({
-        actorUserId: context.userId,
-        edielMessageId: ack.id,
-        status: 'cancelled',
-        failureReason: 'Ersatt av korrekt S1.4.2-APERAK med flera objekt.',
-      })
-    }
-  }
-
-  const ackMessage = await createAckDraftForMessage({
+  await createAndSendTgtAperakPreset({
     actorUserId: context.userId,
     sourceMessageId,
-    ackFamily: 'APERAK',
-    outcome: 'negative',
-    applicationErrors: deriveS142LineItemReferences(sourceMessage.raw_payload),
+    preset: 'S1.4.2',
+    errors: TGT_S142_APERAK_APPLICATION_ERRORS,
+    successMessage: 'S1.4.2-APERAK skapades och skickades med fem objekt-/felgrupper.',
   })
-
-  if (ackMessage.status !== 'draft' && ackMessage.status !== 'queued' && ackMessage.status !== 'prepared') {
-    await createEdielMessageEvent({
-      actorUserId: context.userId,
-      edielMessageId: sourceMessageId,
-      eventType: 'manual_note',
-      eventStatus: 'warning',
-      message: 'Kunde inte skapa ny S1.4.2-APERAK eftersom en aktiv APERAK redan finns.',
-      payload: {
-        ackMessageId: ackMessage.id,
-        status: ackMessage.status,
-      },
-    })
-    revalidateEdiel(sourceMessageId)
-    await revalidateRelatedMessage(ackMessage.id)
-    return
-  }
-
-  await sendQueuedEdielMessage({
-    actorUserId: context.userId,
-    edielMessageId: ackMessage.id,
-    smtpMimeMode: 'ediel-singlepart-base64',
-  })
-
-  await createEdielMessageEvent({
-    actorUserId: context.userId,
-    edielMessageId: sourceMessageId,
-    eventType: 'manual_note',
-    eventStatus: 'success',
-    message: 'S1.4.2-APERAK skapades och skickades med fem objekt-/felgrupper.',
-    payload: {
-      ackMessageId: ackMessage.id,
-      preset: 'S1.4.2',
-    },
-  })
-
-  revalidateEdiel(sourceMessageId)
-  await revalidateRelatedMessage(ackMessage.id)
 }
 
+const TGT_S142B_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
+  {
+    ercCode: '42',
+    fieldCode: '210',
+    text: 'Felaktig avtal, startdatum 2040-08-01',
+    referenceQualifier: 'Z07',
+    referenceNumber: '735999888000000123',
+    lineItemReference: null,
+  },
+  {
+    ercCode: '41',
+    fieldCode: '213',
+    text: 'Årsförbrukning saknas',
+    referenceQualifier: 'Z07',
+    referenceNumber: '735999888000000123',
+    lineItemReference: null,
+  },
+  {
+    ercCode: '41',
+    fieldCode: '214',
+    text: 'Konstant saknas',
+    referenceQualifier: 'Z07',
+    referenceNumber: '735999888000000123',
+    lineItemReference: null,
+  },
+  {
+    ercCode: '41',
+    fieldCode: '226',
+    text: 'Ärendereferens saknas, kundid=196805249288',
+    referenceQualifier: 'Z07',
+    referenceNumber: '735999888000000123',
+    lineItemReference: null,
+  },
+]
+
+export async function createAndSendTgtS142BAperakAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const sourceMessageId = formString(formData.get('sourceMessageId'))
+
+  if (!sourceMessageId) throw new Error('sourceMessageId saknas')
+
+  await createAndSendTgtAperakPreset({
+    actorUserId: context.userId,
+    sourceMessageId,
+    preset: 'S1.4.2B',
+    errors: TGT_S142B_APERAK_APPLICATION_ERRORS,
+    successMessage: 'S1.4.2B-APERAK skapades och skickades med en anläggning och fyra felgrupper.',
+  })
+}
 
 const TGT_S143_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
   {
@@ -841,80 +951,13 @@ export async function createAndSendTgtS143AperakAction(formData: FormData) {
 
   if (!sourceMessageId) throw new Error('sourceMessageId saknas')
 
-  const sourceMessage = await getEdielMessageById(sourceMessageId)
-  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
-
-  if (
-    sourceMessage.direction !== 'inbound' ||
-    sourceMessage.message_family !== 'PRODAT' ||
-    String(sourceMessage.message_code).toUpperCase() !== 'Z04'
-  ) {
-    throw new Error(
-      `1.4.3-APERAK måste skapas från inbound PRODAT/Z04. Vald rad är ${sourceMessage.direction} ${sourceMessage.message_family}/${sourceMessage.message_code}.`
-    )
-  }
-
-  const existingAcks = await listAckMessagesForSource({
-    sourceMessageId,
-    ackFamily: 'APERAK',
-  })
-
-  for (const ack of existingAcks) {
-    if (['draft', 'queued', 'prepared', 'failed'].includes(String(ack.status))) {
-      await updateEdielMessageStatus({
-        actorUserId: context.userId,
-        edielMessageId: ack.id,
-        status: 'cancelled',
-        failureReason: 'Ersatt av korrekt S1.4.3-APERAK för saknad anläggningsreferens.',
-      })
-    }
-  }
-
-  const ackMessage = await createAckDraftForMessage({
+  await createAndSendTgtAperakPreset({
     actorUserId: context.userId,
     sourceMessageId,
-    ackFamily: 'APERAK',
-    outcome: 'negative',
-    applicationErrors: TGT_S143_APERAK_APPLICATION_ERRORS,
+    preset: 'S1.4.3',
+    errors: TGT_S143_APERAK_APPLICATION_ERRORS,
+    successMessage: 'S1.4.3-APERAK skapades och skickades för saknad anläggningsreferens.',
   })
-
-  if (ackMessage.status !== 'draft' && ackMessage.status !== 'queued' && ackMessage.status !== 'prepared') {
-    await createEdielMessageEvent({
-      actorUserId: context.userId,
-      edielMessageId: sourceMessageId,
-      eventType: 'manual_note',
-      eventStatus: 'warning',
-      message: 'Kunde inte skapa ny S1.4.3-APERAK eftersom en aktiv APERAK redan finns.',
-      payload: {
-        ackMessageId: ackMessage.id,
-        status: ackMessage.status,
-      },
-    })
-    revalidateEdiel(sourceMessageId)
-    await revalidateRelatedMessage(ackMessage.id)
-    return
-  }
-
-  await sendQueuedEdielMessage({
-    actorUserId: context.userId,
-    edielMessageId: ackMessage.id,
-    smtpMimeMode: 'ediel-singlepart-base64',
-  })
-
-  await createEdielMessageEvent({
-    actorUserId: context.userId,
-    edielMessageId: sourceMessageId,
-    eventType: 'manual_note',
-    eventStatus: 'success',
-    message: 'S1.4.3-APERAK skapades och skickades för saknad anläggningsreferens.',
-    payload: {
-      ackMessageId: ackMessage.id,
-      preset: 'S1.4.3',
-    },
-  })
-
-  revalidateEdiel(sourceMessageId)
-  await revalidateRelatedMessage(ackMessage.id)
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
