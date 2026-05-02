@@ -54,6 +54,7 @@ import { listEdielInboundCases } from '@/lib/ediel/inboundCases'
 import { listEdielProdatProductionCandidates } from '@/lib/ediel/prodatContext'
 import { listEdielTgtDynamicTestData, type EdielTgtDynamicTestDataSummary } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage, type EdielAckDecision } from '@/lib/ediel/core/ackDecisionEngine'
+import { findBestTgtTestDataForMessage, messageCodePrefixesForTgtAutoMatch, textForTgtAutoMatch } from '@/lib/ediel/core/tgtAutoMatcher'
 
 export const dynamic = 'force-dynamic'
 
@@ -412,39 +413,11 @@ function extractZ04Reference(rawPayload: string | null | undefined): string | nu
 }
 
 function messageCodePrefixesForTgt(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string[] {
-  const family = String(message.message_family ?? '').toUpperCase()
-  const code = String(message.message_code ?? '').toUpperCase()
-
-  if (family === 'PRODAT') {
-    if (code === 'Z03') return ['1.2', '1.3']
-    if (code === 'Z04') return ['1.4', '1.5']
-    if (code === 'Z06') return ['2.1', '2.2']
-    if (code === 'Z10') return ['2.3', '2.4']
-    if (code === 'Z09') return ['2.5']
-    if (code === 'Z05') return ['3.1', '3.2']
-  }
-
-  if (family === 'UTILTS') {
-    if (code === 'S02') return ['U1.1', 'U1.2']
-    if (code === 'S03') return ['U1.3', 'U1.4']
-    if (code === 'E66') return ['U2.1', 'U2.2']
-  }
-
-  return []
+  return messageCodePrefixesForTgtAutoMatch(message)
 }
 
 function textForTgtMatch(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
-  return [
-    message.raw_payload,
-    message.external_reference,
-    message.transaction_reference,
-    message.interchange_reference,
-    JSON.stringify(message.parsed_payload ?? {}),
-    JSON.stringify(message.validation_report ?? {}),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toUpperCase()
+  return textForTgtAutoMatch(message)
 }
 
 function relevantTgtRowsForMessage(
@@ -471,7 +444,7 @@ function selectedTgtRowForMessage(
   message: Awaited<ReturnType<typeof listEdielMessages>>[number],
   rows: EdielTgtDynamicTestDataSummary[]
 ): EdielTgtDynamicTestDataSummary | null {
-  return relevantTgtRowsForMessage(message, rows)[0] ?? null
+  return findBestTgtTestDataForMessage(message, rows) ?? relevantTgtRowsForMessage(message, rows)[0] ?? null
 }
 
 function defaultTestCaseCodeForMessage(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {

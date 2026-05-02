@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type ChangeEvent } from 'react'
+import { useState, type ChangeEvent } from 'react'
 
 type TestCaseOption = {
   value: string
@@ -21,7 +21,7 @@ type Props = {
   roleCode: string
   defaultTestCaseCode?: string | null
   defaultTitle?: string | null
-  options: TestCaseOption[]
+  options?: TestCaseOption[]
 }
 
 function fileToBase64(file: File): Promise<EncodedUploadFile> {
@@ -52,20 +52,12 @@ export default function InboundTestDataUploadForm({
   roleCode,
   defaultTestCaseCode,
   defaultTitle,
-  options,
+  options = [],
 }: Props) {
   const [encodedFilesJson, setEncodedFilesJson] = useState('')
   const [fileStatus, setFileStatus] = useState('Ingen fil vald.')
   const [isReadingFiles, setIsReadingFiles] = useState(false)
-
-  const uniqueOptions = useMemo(() => {
-    const seen = new Set<string>()
-    return options.filter((option) => {
-      if (!option.value || seen.has(option.value)) return false
-      seen.add(option.value)
-      return true
-    })
-  }, [options])
+  const [showManualCase, setShowManualCase] = useState(false)
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
@@ -102,28 +94,16 @@ export default function InboundTestDataUploadForm({
       <input type="hidden" name="roleCode" value={roleCode} />
       <input type="hidden" name="uploadedFilesJson" value={encodedFilesJson} />
 
-      <label className="text-xs font-semibold text-slate-700">
-        Testfall
-        <select
-          name="testCaseCode"
-          defaultValue={defaultTestCaseCode ?? ''}
-          className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950"
-        >
-          <option value="">Välj testfall…</option>
-          {uniqueOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] leading-5 text-emerald-900 md:col-span-2">
+        GridCore väljer testfall automatiskt från inbound-payloaden och uppladdad testdata. Du behöver normalt inte välja 2.2.1/2.2.2 manuellt.
+      </div>
 
-      <label className="text-xs font-semibold text-slate-700">
-        Rubrik
+      <label className="text-xs font-semibold text-slate-700 md:col-span-2">
+        Rubrik, valfritt
         <input
           name="title"
           defaultValue={defaultTitle ?? ''}
-          placeholder="t.ex. 2.2.1 Z06F felaktigt anläggningsid"
+          placeholder="t.ex. Z06 testdata från Edielportalen"
           className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950"
         />
       </label>
@@ -150,16 +130,40 @@ export default function InboundTestDataUploadForm({
         className="md:col-span-2 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 font-mono text-xs text-slate-950"
       />
 
+      <details className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2">
+        <summary
+          className="cursor-pointer text-xs font-semibold text-slate-700"
+          onClick={() => setShowManualCase((value) => !value)}
+        >
+          Avancerat: tvinga testfall om auto väljer fel
+        </summary>
+        <label className="mt-3 block text-xs font-semibold text-slate-700">
+          Testfall, valfritt
+          <select
+            name={showManualCase ? 'testCaseCode' : 'manualTestCaseCodeDisabled'}
+            defaultValue={defaultTestCaseCode ?? ''}
+            className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950"
+          >
+            <option value="">Auto</option>
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </details>
+
       <button
         type="submit"
         disabled={isReadingFiles}
         className="w-fit rounded-xl bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800 disabled:cursor-not-allowed disabled:bg-slate-400"
       >
-        {isReadingFiles ? 'Läser fil…' : 'Spara och jämför med detta inbound'}
+        {isReadingFiles ? 'Läser fil…' : 'Spara, auto-tolka och jämför'}
       </button>
 
       <p className="md:col-span-2 text-[11px] leading-5 text-slate-600">
-        Filen läses först i webbläsaren och skickas som kodad data till backend. Det gör att .xlsx, CSV och TXT fungerar även när Next server action tar emot vanliga filfält som tomma blobbar.
+        .xlsx läses först i webbläsaren och skickas kodad till backend. Backend tolkar sedan testdata och väljer själv positiv/negativ APERAK eller UTILTS-ERR.
       </p>
     </form>
   )

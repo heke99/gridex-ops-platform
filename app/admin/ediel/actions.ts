@@ -54,8 +54,9 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 import { registerEdielFile, type EdielFileEngineMode } from '@/lib/ediel/fileEngine'
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
-import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
+import { getEdielTgtDynamicTestDataForCase, listEdielTgtDynamicTestData, upsertEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage } from '@/lib/ediel/core/ackDecisionEngine'
+import { findBestTgtTestDataForMessage, inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
 import { parseEdielTgtUploadedTestDataFile } from '@/lib/ediel/tgtTestDataFileImport'
 import {
   autoAttachImportedMessageToActiveTgtRun,
@@ -558,7 +559,7 @@ export async function saveEdielInboundMessageTestDataAction(formData: FormData) 
   const sourceMessageId = formString(formData.get('sourceMessageId'))
   const testSuite = parseEdielTestSuite(formData.get('testSuite'))
   const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
-  const testCaseCode = formString(formData.get('testCaseCode')) ?? ''
+  const requestedTestCaseCode = formString(formData.get('testCaseCode'))
   const title = formString(formData.get('title'))
   const pastedText = formString(formData.get('rawText')) ?? ''
   const nativeUploaded = await formFilesText(collectTestDataFileEntries(formData))
@@ -567,7 +568,6 @@ export async function saveEdielInboundMessageTestDataAction(formData: FormData) 
   const rawText = [pastedText, uploaded.text].filter(Boolean).join('\n\n').trim()
 
   if (!sourceMessageId) throw new Error('sourceMessageId saknas')
-  if (!testCaseCode) throw new Error('testCaseCode saknas. Ange t.ex. 2.2.1, 2.2.2, 2.4.2 eller U2.2.1.')
   if (!rawText) {
     throw new Error(
       `Klistra in testdata eller ladda upp Excel/CSV från Edielportalen. Servern tog emot: ${describeReceivedUploadFields(formData)}.`
@@ -577,13 +577,29 @@ export async function saveEdielInboundMessageTestDataAction(formData: FormData) 
   const sourceMessage = await getEdielMessageById(sourceMessageId)
   if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
 
+  const inferredTestCaseCode = inferTgtTestCaseCodeForInboundTestData({
+    message: sourceMessage,
+    rawText,
+    fallback: requestedTestCaseCode,
+  })
+
   const saved = await upsertEdielTgtDynamicTestData({
     suite: testSuite,
     roleCode,
-    testCaseCode,
-    title: uploaded.fileNames.length > 0 ? `${title ?? `TGT ${testCaseCode}`} · ${uploaded.fileNames.join(', ')}` : title,
+    testCaseCode: inferredTestCaseCode,
+    title:
+      uploaded.fileNames.length > 0
+        ? `${title ?? `TGT ${inferredTestCaseCode} · autoimport`} · ${uploaded.fileNames.join(', ')}`
+        : title ?? `TGT ${inferredTestCaseCode} · autoimport`,
     rawText,
     actorUserId: context.userId,
+  })
+
+  const relatedAcks = await listAckMessagesForSource({ sourceMessageId })
+  const freshDecision = resolveRecommendedAckForInboundMessage({
+    message: sourceMessage,
+    relatedAcks,
+    tgtTestData: saved.parsedPayload,
   })
 
   await createEdielMessageEvent({
@@ -591,13 +607,18 @@ export async function saveEdielInboundMessageTestDataAction(formData: FormData) 
     edielMessageId: sourceMessageId,
     eventType: 'manual_note',
     eventStatus: 'success',
-    message: `TGT-testdata ${testCaseCode} sparad och kan användas av backendbeslutet för detta inbound-meddelande.`,
+    message: `TGT-testdata sparad. GridCore valde ${inferredTestCaseCode} automatiskt och nytt backendbeslut är: ${freshDecision.title}.`,
     payload: {
       testSuite,
       roleCode,
-      testCaseCode,
+      requestedTestCaseCode: requestedTestCaseCode ?? null,
+      inferredTestCaseCode,
       testDataId: saved.id,
       fileNames: uploaded.fileNames,
+      decisionKind: freshDecision.kind,
+      matchedRule: freshDecision.matchedRule,
+      action: freshDecision.action,
+      reasonItems: freshDecision.reasonItems,
     },
   })
 
@@ -849,9 +870,11 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
 
   const relatedAcks = await listAckMessagesForSource({ sourceMessageId })
+  const allTgtRows = await listEdielTgtDynamicTestData()
+  const bestTgtRow = findBestTgtTestDataForMessage(sourceMessage, allTgtRows)
   const tgtTestData = testCaseCode
     ? await getEdielTgtDynamicTestDataForCase(testSuite, roleCode, testCaseCode)
-    : null
+    : bestTgtRow?.parsedPayload ?? null
   const recommendation = resolveRecommendedAckForInboundMessage({
     message: sourceMessage,
     relatedAcks,
