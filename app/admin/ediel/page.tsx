@@ -34,6 +34,7 @@ import {
   pollMailboxAction,
   registerInboundUtiltsAction,
   runEdielSelfTestAction,
+  saveEdielInboundMessageTestDataAction,
   sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
 import {
@@ -50,7 +51,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listSafeApplyReviewItems, listUtiltsBillingReviewItems } from '@/lib/ediel/safeApplyReview'
 import { listEdielInboundCases } from '@/lib/ediel/inboundCases'
 import { listEdielProdatProductionCandidates } from '@/lib/ediel/prodatContext'
-import { listEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
+import { listEdielTgtDynamicTestData, type EdielTgtDynamicTestDataSummary } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage, type EdielAckDecision } from '@/lib/ediel/core/ackDecisionEngine'
 
 export const dynamic = 'force-dynamic'
@@ -409,6 +410,74 @@ function extractZ04Reference(rawPayload: string | null | undefined): string | nu
   return bgm.replace('BGM+Z04+', '').split('+')[0] || null
 }
 
+function messageCodePrefixesForTgt(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string[] {
+  const family = String(message.message_family ?? '').toUpperCase()
+  const code = String(message.message_code ?? '').toUpperCase()
+
+  if (family === 'PRODAT') {
+    if (code === 'Z03') return ['1.2', '1.3']
+    if (code === 'Z04') return ['1.4', '1.5']
+    if (code === 'Z06') return ['2.1', '2.2']
+    if (code === 'Z10') return ['2.3', '2.4']
+    if (code === 'Z09') return ['2.5']
+    if (code === 'Z05') return ['3.1', '3.2']
+  }
+
+  if (family === 'UTILTS') {
+    if (code === 'S02') return ['U1.1', 'U1.2']
+    if (code === 'S03') return ['U1.3', 'U1.4']
+    if (code === 'E66') return ['U2.1', 'U2.2']
+  }
+
+  return []
+}
+
+function textForTgtMatch(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
+  return [
+    message.raw_payload,
+    message.external_reference,
+    message.transaction_reference,
+    message.interchange_reference,
+    JSON.stringify(message.parsed_payload ?? {}),
+    JSON.stringify(message.validation_report ?? {}),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toUpperCase()
+}
+
+function relevantTgtRowsForMessage(
+  message: Awaited<ReturnType<typeof listEdielMessages>>[number],
+  rows: EdielTgtDynamicTestDataSummary[]
+): EdielTgtDynamicTestDataSummary[] {
+  const family = String(message.message_family ?? '').toUpperCase()
+  const suite = family === 'UTILTS' ? 'UTILTS' : family === 'PRODAT' ? 'PRODAT' : null
+  if (!suite) return []
+
+  const prefixes = messageCodePrefixesForTgt(message)
+  const text = textForTgtMatch(message)
+
+  return rows
+    .filter((row) => row.testSuite === suite && row.roleCode === 'supplier')
+    .filter((row) => {
+      if (text.includes(String(row.testCaseCode).toUpperCase())) return true
+      return prefixes.some((prefix) => row.testCaseCode === prefix || row.testCaseCode.startsWith(`${prefix}.`) || row.testCaseCode.startsWith(`${prefix}b`))
+    })
+    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+}
+
+function selectedTgtRowForMessage(
+  message: Awaited<ReturnType<typeof listEdielMessages>>[number],
+  rows: EdielTgtDynamicTestDataSummary[]
+): EdielTgtDynamicTestDataSummary | null {
+  return relevantTgtRowsForMessage(message, rows)[0] ?? null
+}
+
+function defaultTestCaseCodeForMessage(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
+  const firstRelevant = messageCodePrefixesForTgt(message)[0]
+  return firstRelevant ? `${firstRelevant}.1` : ''
+}
+
 type AckRecommendation = {
   title: string
   description: string
@@ -424,10 +493,12 @@ type AckRecommendation = {
 function resolveAckRecommendation(params: {
   message: Awaited<ReturnType<typeof listEdielMessages>>[number]
   acks: Awaited<ReturnType<typeof listEdielMessages>>
+  selectedTgtRow?: EdielTgtDynamicTestDataSummary | null
 }): AckRecommendation {
   const decision = resolveRecommendedAckForInboundMessage({
     message: params.message,
     relatedAcks: params.acks,
+    tgtTestData: params.selectedTgtRow?.parsedPayload ?? null,
   })
 
   return {
@@ -440,6 +511,7 @@ function resolveAckRecommendation(params: {
     messageText: decision.action?.messageText ?? undefined,
     reasonItems: [
       `Backendregel: ${decision.matchedRule ?? decision.kind}`,
+      params.selectedTgtRow ? `Jämför mot TGT-testdata: ${params.selectedTgtRow.testCaseCode} · ${params.selectedTgtRow.title}` : 'Ingen importerad TGT-testdata kopplad till detta inbound-beslut.',
       ...decision.reasonItems,
     ],
     decision,
@@ -449,15 +521,24 @@ function resolveAckRecommendation(params: {
 function RecommendedAckActionForm({
   messageId,
   recommendation,
+  selectedTgtRow,
 }: {
   messageId: string
   recommendation: AckRecommendation
+  selectedTgtRow?: EdielTgtDynamicTestDataSummary | null
 }) {
   if (!recommendation.actionLabel) return null
 
   return (
     <form action={createAndSendRecommendedAckAction}>
       <input type="hidden" name="sourceMessageId" value={messageId} />
+      {selectedTgtRow ? (
+        <>
+          <input type="hidden" name="testSuite" value={selectedTgtRow.testSuite} />
+          <input type="hidden" name="roleCode" value={selectedTgtRow.roleCode} />
+          <input type="hidden" name="testCaseCode" value={selectedTgtRow.testCaseCode} />
+        </>
+      ) : null}
       <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
         {recommendation.actionLabel}
       </button>
@@ -468,11 +549,15 @@ function RecommendedAckActionForm({
 function RecommendedAckPanel({
   message,
   acks,
+  selectedTgtRow,
+  relevantTgtRows,
 }: {
   message: Awaited<ReturnType<typeof listEdielMessages>>[number]
   acks: Awaited<ReturnType<typeof listEdielMessages>>
+  selectedTgtRow?: EdielTgtDynamicTestDataSummary | null
+  relevantTgtRows?: EdielTgtDynamicTestDataSummary[]
 }) {
-  const recommendation = resolveAckRecommendation({ message, acks })
+  const recommendation = resolveAckRecommendation({ message, acks, selectedTgtRow })
   const panelToneClass =
     recommendation.tone === 'red'
       ? 'border-rose-200 bg-rose-50'
@@ -496,11 +581,65 @@ function RecommendedAckPanel({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <RecommendedAckActionForm messageId={message.id} recommendation={recommendation} />
+        <RecommendedAckActionForm messageId={message.id} recommendation={recommendation} selectedTgtRow={selectedTgtRow} />
         {recommendation.ackFamily ? <Badge>{recommendation.ackFamily}</Badge> : null}
         {recommendation.outcome ? <Badge tone={recommendation.outcome === 'negative' ? 'red' : 'green'}>{recommendation.outcome}</Badge> : null}
         <Badge tone="blue">{recommendation.decision.kind}</Badge>
       </div>
+
+
+      {message.message_family === 'PRODAT' || message.message_family === 'UTILTS' ? (
+        <details className="mt-3 rounded-xl border border-indigo-100 bg-white/70 p-3">
+          <summary className="cursor-pointer text-xs font-semibold text-indigo-900">
+            Testdata för backend-jämförelse {selectedTgtRow ? `· aktiv: ${selectedTgtRow.testCaseCode}` : '· ingen aktiv importerad data'}
+          </summary>
+         <form action={saveEdielInboundMessageTestDataAction} className="mt-3 grid gap-2 md:grid-cols-2">
+            <input type="hidden" name="sourceMessageId" value={message.id} />
+            <input type="hidden" name="testSuite" value={message.message_family === 'UTILTS' ? 'UTILTS' : 'PRODAT'} />
+            <input type="hidden" name="roleCode" value="supplier" />
+            <label className="text-xs font-semibold text-slate-700">
+              Testfall
+              <select name="testCaseCode" defaultValue={selectedTgtRow?.testCaseCode ?? defaultTestCaseCodeForMessage(message)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950">
+                <option value="">Välj testfall…</option>
+                {(relevantTgtRows && relevantTgtRows.length > 0 ? relevantTgtRows : []).map((row) => (
+                  <option key={row.id} value={row.testCaseCode}>{row.testCaseCode} · {row.title}</option>
+                ))}
+                {message.message_family === 'PRODAT' && String(message.message_code).toUpperCase() === 'Z06' ? (
+                  <>
+                    <option value="2.1.1">2.1.1 · Z06F ändrad avräkningsmetod/mätmetod</option>
+                    <option value="2.1.2">2.1.2 · Z06F ändrad räkneverkstyp</option>
+                    <option value="2.1.3">2.1.3 · Z06G ändring av anläggningsadress</option>
+                    <option value="2.2.1">2.2.1 · Z06F felaktigt anläggningsid</option>
+                    <option value="2.2.2">2.2.2 · Z06F antal siffror saknas</option>
+                  </>
+                ) : null}
+                {message.message_family === 'PRODAT' && String(message.message_code).toUpperCase() === 'Z10' ? (
+                  <>
+                    <option value="2.4.1">2.4.1 · Z10M felaktig</option>
+                    <option value="2.4.2">2.4.2 · Z10M konstant saknas</option>
+                  </>
+                ) : null}
+                {message.message_family === 'PRODAT' && String(message.message_code).toUpperCase() === 'Z05' ? <option value="3.2.1">3.2.1 · Z05LK felaktigt anläggningsid</option> : null}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-slate-700">
+              Rubrik
+              <input name="title" defaultValue={selectedTgtRow?.title ?? ''} placeholder="t.ex. 2.2.1 Z06F felaktigt anläggningsid" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950" />
+            </label>
+            <label className="text-xs font-semibold text-slate-700 md:col-span-2">
+              Ladda upp Excel/CSV från Edielportalen
+              <input name="testDataFile" type="file" multiple accept=".xlsx,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white" />
+            </label>
+            <textarea name="rawText" rows={5} placeholder={'Eller klistra in testdata, t.ex.\n209 Anläggningsid\t735999888000000017\n218 Antal siffror, mätare\t6'} className="md:col-span-2 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 font-mono text-xs text-slate-950" />
+            <button className="w-fit rounded-xl bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800">
+              Spara och jämför med detta inbound
+            </button>
+            <p className="md:col-span-2 text-[11px] leading-5 text-slate-600">
+              När testdata sparas används den av backend-kärnan för nästa rekommenderade svar. Vid TGT jämförs inbound-payloaden mot Edielportalens testdata; i produktion ska samma princip gå mot tenantens masterdata.
+            </p>
+          </form>
+        </details>
+      ) : null}
 
       {recommendation.reasonItems.length > 0 ? (
         <ul className="mt-3 space-y-1 text-xs leading-5 text-slate-700">
@@ -647,8 +786,10 @@ function AckRow({ ack }: { ack: Awaited<ReturnType<typeof listEdielMessages>>[nu
 
 function IncomingPortalResponses({
   messages,
+  dynamicTgtTestDataRows,
 }: {
   messages: Awaited<ReturnType<typeof listEdielMessages>>
+  dynamicTgtTestDataRows: EdielTgtDynamicTestDataSummary[]
 }) {
   const inboundMessages = messages
     .filter((row) => row.direction === 'inbound')
@@ -712,7 +853,12 @@ function IncomingPortalResponses({
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <RecommendedAckPanel message={latestInboundZ04} acks={latestInboundZ04Acks} />
+            <RecommendedAckPanel
+              message={latestInboundZ04}
+              acks={latestInboundZ04Acks}
+              selectedTgtRow={selectedTgtRowForMessage(latestInboundZ04, dynamicTgtTestDataRows)}
+              relevantTgtRows={relevantTgtRowsForMessage(latestInboundZ04, dynamicTgtTestDataRows)}
+            />
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">SaaS-säkert arbetssätt</div>
@@ -780,12 +926,22 @@ function IncomingPortalResponses({
 
                 {isInboundBusinessMessage ? (
                   <div className="mt-4 space-y-3">
-                    <RecommendedAckPanel message={message} acks={acks} />
+                    <RecommendedAckPanel
+                      message={message}
+                      acks={acks}
+                      selectedTgtRow={selectedTgtRowForMessage(message, dynamicTgtTestDataRows)}
+                      relevantTgtRows={relevantTgtRowsForMessage(message, dynamicTgtTestDataRows)}
+                    />
                     <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} />
                   </div>
                 ) : requiresContrlOnly ? (
                   <div className="mt-4 space-y-3">
-                    <RecommendedAckPanel message={message} acks={acks} />
+                    <RecommendedAckPanel
+                      message={message}
+                      acks={acks}
+                      selectedTgtRow={selectedTgtRowForMessage(message, dynamicTgtTestDataRows)}
+                      relevantTgtRows={relevantTgtRowsForMessage(message, dynamicTgtTestDataRows)}
+                    />
                     <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} />
                   </div>
                 ) : (
@@ -1135,7 +1291,7 @@ export default async function AdminEdielPage() {
         description="Här ser du exakt vad IMAP-importen hittade: CONTRL, APERAK och inkommande PRODAT. Skapa eller skicka kvittenser från rätt rad: PRODAT ska få CONTRL + APERAK, inbound APERAK ska bara kunna få CONTRL, och CONTRL ska aldrig kvitteras."
       />
 
-      <IncomingPortalResponses messages={messages} />
+      <IncomingPortalResponses messages={messages} dynamicTgtTestDataRows={dynamicTgtTestData} />
 
       <SectionLabel
         id="production-prodat"

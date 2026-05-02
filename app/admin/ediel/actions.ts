@@ -111,6 +111,17 @@ async function formFileText(value: FormDataEntryValue | null): Promise<{ text: s
 }
 
 
+function isFormFileLike(value: FormDataEntryValue | null): boolean {
+  if (!value || typeof value === 'string') return false
+
+  const maybeFile = value as unknown as {
+    arrayBuffer?: () => Promise<ArrayBuffer>
+    size?: number
+  }
+
+  return typeof maybeFile.arrayBuffer === 'function' && Number(maybeFile.size ?? 0) > 0
+}
+
 async function formFilesText(values: FormDataEntryValue[]): Promise<{ text: string | null; fileNames: string[] }> {
   const parts: string[] = []
   const fileNames: string[] = []
@@ -125,6 +136,48 @@ async function formFilesText(values: FormDataEntryValue[]): Promise<{ text: stri
     text: parts.length > 0 ? parts.join('\n\n') : null,
     fileNames,
   }
+}
+
+function collectTestDataFileEntries(formData: FormData): FormDataEntryValue[] {
+  const explicitNames = [
+    'testDataFile',
+    'testDataFiles',
+    'testDataFile[]',
+    'file',
+    'files',
+    'upload',
+  ]
+
+  const seen = new Set<FormDataEntryValue>()
+  const values: FormDataEntryValue[] = []
+
+  for (const name of explicitNames) {
+    for (const value of formData.getAll(name)) {
+      if (!isFormFileLike(value) || seen.has(value)) continue
+      seen.add(value)
+      values.push(value)
+    }
+  }
+
+  for (const value of Array.from(formData.values())) {
+    if (!isFormFileLike(value) || seen.has(value)) continue
+    seen.add(value)
+    values.push(value)
+  }
+
+  return values
+}
+
+function describeReceivedUploadFields(formData: FormData): string {
+  const fileEntries = Array.from(formData.entries())
+    .map(([name, value]) => {
+      if (typeof value === 'string') return null
+      const maybeFile = value as unknown as { name?: string; size?: number; type?: string }
+      return `${name}: ${maybeFile.name ?? 'namnlös fil'} (${maybeFile.size ?? 0} bytes${maybeFile.type ? `, ${maybeFile.type}` : ''})`
+    })
+    .filter(Boolean) as string[]
+
+  return fileEntries.length > 0 ? fileEntries.join(' | ') : 'inga filfält mottogs av server action'
 }
 
 function parseFileEngineMode(value: FormDataEntryValue | null): EdielFileEngineMode {
@@ -438,6 +491,57 @@ export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
   revalidateEdiel()
 }
 
+
+export async function saveEdielInboundMessageTestDataAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const sourceMessageId = formString(formData.get('sourceMessageId'))
+  const testSuite = parseEdielTestSuite(formData.get('testSuite'))
+  const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
+  const testCaseCode = formString(formData.get('testCaseCode')) ?? ''
+  const title = formString(formData.get('title'))
+  const pastedText = formString(formData.get('rawText')) ?? ''
+  const uploaded = await formFilesText(collectTestDataFileEntries(formData))
+  const rawText = [pastedText, uploaded.text].filter(Boolean).join('\n\n').trim()
+
+  if (!sourceMessageId) throw new Error('sourceMessageId saknas')
+  if (!testCaseCode) throw new Error('testCaseCode saknas. Ange t.ex. 2.2.1, 2.2.2, 2.4.2 eller U2.2.1.')
+  if (!rawText) {
+    throw new Error(
+      `Klistra in testdata eller ladda upp Excel/CSV från Edielportalen. Servern tog emot: ${describeReceivedUploadFields(formData)}.`
+    )
+  }
+
+  const sourceMessage = await getEdielMessageById(sourceMessageId)
+  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+
+  const saved = await upsertEdielTgtDynamicTestData({
+    suite: testSuite,
+    roleCode,
+    testCaseCode,
+    title: uploaded.fileNames.length > 0 ? `${title ?? `TGT ${testCaseCode}`} · ${uploaded.fileNames.join(', ')}` : title,
+    rawText,
+    actorUserId: context.userId,
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: context.userId,
+    edielMessageId: sourceMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'success',
+    message: `TGT-testdata ${testCaseCode} sparad och kan användas av backendbeslutet för detta inbound-meddelande.`,
+    payload: {
+      testSuite,
+      roleCode,
+      testCaseCode,
+      testDataId: saved.id,
+      fileNames: uploaded.fileNames,
+    },
+  })
+
+  revalidateEdiel(sourceMessageId)
+}
+
+
 export async function createEdielTgtDraftAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const testSuite = parseEdielTestSuite(formData.get('testSuite'))
@@ -672,6 +776,9 @@ export async function createAckDraftAction(formData: FormData) {
 export async function createAndSendRecommendedAckAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const sourceMessageId = formString(formData.get('sourceMessageId'))
+  const testSuite = parseEdielTestSuite(formData.get('testSuite'))
+  const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
+  const testCaseCode = formString(formData.get('testCaseCode'))
 
   if (!sourceMessageId) throw new Error('sourceMessageId saknas')
 
@@ -679,9 +786,13 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
 
   const relatedAcks = await listAckMessagesForSource({ sourceMessageId })
+  const tgtTestData = testCaseCode
+    ? await getEdielTgtDynamicTestDataForCase(testSuite, roleCode, testCaseCode)
+    : null
   const recommendation = resolveRecommendedAckForInboundMessage({
     message: sourceMessage,
     relatedAcks,
+    tgtTestData,
   })
 
   if (!recommendation.action) {

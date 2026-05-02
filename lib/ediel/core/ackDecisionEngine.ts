@@ -4,6 +4,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 import { validateEdifactSyntax, type EdielSyntaxIssue } from '@/lib/ediel/core/syntaxValidator'
+import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
 
 export type EdielAckDecisionKind =
   | 'send_positive_contrl'
@@ -40,6 +41,13 @@ export type EdielAckDecision = {
 export type ResolveEdielAckDecisionParams = {
   message: EdielMessageRow
   relatedAcks: readonly EdielMessageRow[]
+  /**
+   * Optional TGT data imported from Edielportalen. In TGT mode this is the
+   * source of truth for whether a syntactically valid inbound message should
+   * get positive APERAK or negative APERAK. Production can pass null and rely
+   * on tenant/masterdata validators.
+   */
+  tgtTestData?: EdielTgtCaseTestData | null
 }
 
 const FINAL_ACK_STATUSES = new Set(['sent', 'acknowledged', 'validated'])
@@ -105,10 +113,95 @@ function deriveLineReferenceError(lineItemId: string | null, fieldCode: string, 
   }
 }
 
-function prodatBusinessErrors(message: EdielMessageRow): EdielAperakApplicationError[] {
+
+function cleanTestDataToken(value: string | null | undefined): string | null {
+  const cleaned = String(value ?? '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/[^0-9A-Za-zÅÄÖåäö_-]/g, ' ')
+    .trim()
+  if (!cleaned) return null
+  return cleaned.split(/\s+/)[0] ?? null
+}
+
+function testDataValuesForField(testData: EdielTgtCaseTestData | null | undefined, fieldCodes: string[]): string[] {
+  if (!testData) return []
+  const wanted = new Set(fieldCodes.map((code) => code.toUpperCase()))
+  const values: string[] = []
+
+  for (const group of testData.groups) {
+    for (const field of group.fields) {
+      if (!wanted.has(String(field.fieldCode).toUpperCase())) continue
+      for (const value of Object.values(field.values)) {
+        const cleaned = cleanTestDataToken(value)
+        if (cleaned) values.push(cleaned)
+      }
+    }
+  }
+
+  return Array.from(new Set(values))
+}
+
+function hasTestDataField(testData: EdielTgtCaseTestData | null | undefined, fieldCode: string): boolean {
+  if (!testData) return false
+  const wanted = fieldCode.toUpperCase()
+  return testData.groups.some((group) =>
+    group.fields.some((field) =>
+      String(field.fieldCode).toUpperCase() === wanted &&
+      Object.values(field.values).some((value) => Boolean(cleanTestDataToken(value)))
+    )
+  )
+}
+
+function deriveFacilityMismatchErrors(lineItemId: string | null): EdielAperakApplicationError[] {
+  return [
+    deriveLineReferenceError(lineItemId, '105', 'Anläggningen kan inte identifieras', '40'),
+    deriveLineReferenceError(lineItemId, '209', 'Anläggningsid avviker från Edielportalens testdata', '42'),
+  ]
+}
+
+function prodatTgtBusinessErrors(message: EdielMessageRow, testData: EdielTgtCaseTestData | null | undefined): EdielAperakApplicationError[] {
+  if (!testData) return []
+
   const facts = parseEdifactMessageFacts(message.raw_payload)
   const code = String(message.message_code ?? facts.messageCode ?? '').toUpperCase()
   const errors: EdielAperakApplicationError[] = []
+  const expectedFacilityIds = testDataValuesForField(testData, ['209', '233']).filter((value) => /^735\d{15}$/.test(value))
+  const expectedFacilities = new Set(expectedFacilityIds)
+
+  for (const line of facts.lineItems) {
+    if (expectedFacilities.size > 0 && line.itemId && !expectedFacilities.has(line.itemId)) {
+      errors.push(...deriveFacilityMismatchErrors(line.itemId))
+      continue
+    }
+
+    if (expectedFacilities.size > 0 && !line.itemId) {
+      errors.push(...deriveFacilityMismatchErrors(null))
+      continue
+    }
+
+    if (['Z04', 'Z06', 'Z10'].includes(code) && hasTestDataField(testData, '214') && !line.hasConstant) {
+      errors.push(deriveLineReferenceError(line.itemId, '214', 'Konstant saknas'))
+    }
+
+    if (code === 'Z06' && hasTestDataField(testData, '218') && !line.hasDigitCount) {
+      errors.push(deriveLineReferenceError(line.itemId, '218', 'Antal siffror saknas'))
+    }
+
+    if (code === 'Z10' && hasTestDataField(testData, '224') && !line.hasMeterNumber) {
+      errors.push(deriveLineReferenceError(line.itemId, '224', 'Mätarnummer saknas'))
+    }
+  }
+
+  return errors
+}
+
+function prodatBusinessErrors(message: EdielMessageRow, testData?: EdielTgtCaseTestData | null): EdielAperakApplicationError[] {
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  const code = String(message.message_code ?? facts.messageCode ?? '').toUpperCase()
+  const errors: EdielAperakApplicationError[] = []
+
+  const tgtErrors = prodatTgtBusinessErrors(message, testData)
+  if (tgtErrors.length > 0) return tgtErrors
 
   // TGT S1.4.3 and the general PRODAT rule: a blank RFF+LI means the application
   // reference to the facility/case is missing. This is an application error, not syntax.
@@ -236,7 +329,7 @@ function utiltsApplicationDecision(message: EdielMessageRow): { family: AckFamil
 }
 
 export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDecisionParams): EdielAckDecision {
-  const { message, relatedAcks } = params
+  const { message, relatedAcks, tgtTestData } = params
   const syntax = validateEdifactSyntax(message)
   const hasContrl = hasFinalAck(relatedAcks, 'CONTRL')
   const hasAperak = hasFinalAck(relatedAcks, 'APERAK')
@@ -417,7 +510,7 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
       })
     }
 
-    const businessErrors = prodatBusinessErrors(message)
+    const businessErrors = prodatBusinessErrors(message, tgtTestData)
     if (businessErrors.length > 0) {
       return decision({
         kind: 'send_negative_aperak',
@@ -446,7 +539,7 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
       action: { ackFamily: 'APERAK', outcome: 'positive' },
       canAutoSend: true,
       requiresManualReview: false,
-      reasonItems: [isTgtS151CorrectedResend(message) ? 'TGT S1.5.1 omsänd Z04 är syntaktiskt korrekt; portalen begär APERAK på omsändningen.' : 'CONTRL/syntaxkedjan är OK eller inte blockerande, och PRODAT-affärskontroll hittade inga fel.'],
+      reasonItems: [isTgtS151CorrectedResend(message) ? 'TGT S1.5.1 omsänd Z04 är syntaktiskt korrekt; portalen begär APERAK på omsändningen.' : tgtTestData ? `TGT-testdata ${tgtTestData.testCaseCode} jämfördes utan affärsfel.` : 'CONTRL/syntaxkedjan är OK eller inte blockerande, och PRODAT-affärskontroll hittade inga fel.'],
       syntaxIssues: syntax.issues,
       matchedRule: 'PRODAT_POSITIVE_APERAK',
     })
