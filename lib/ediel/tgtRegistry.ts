@@ -65,6 +65,124 @@ const PRODAT_POSITIVE_APERAK = {
   description: 'Positiv APERAK med BGM/1225 = 34, ERC = 100 och OK-text.',
 }
 
+function prodatInboundPositiveCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'PRODAT', roleCode: 'supplier', testCaseCode, title,
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose,
+    testDataHint: `Driftstest ${testCaseCode}. Portalen skickar PRODAT ${code}, GridCore kvitterar automatiskt via backend-kärnan.`,
+    expectedSteps: [
+      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'PRODAT', code, required: true, title: `Ta emot PRODAT ${code}`, description: title },
+      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxen är OK.' },
+      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Skicka positiv APERAK', description: 'Affärsinnehållet är OK.' },
+    ],
+    notes: ['Beslut ska komma från backend-kärnan, inte från en testknapp i UI.'],
+  }
+}
+
+function prodatInboundNegativeCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'PRODAT', roleCode: 'supplier', testCaseCode, title,
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose,
+    testDataHint: `Driftstest ${testCaseCode}. Portalen skickar felaktig PRODAT ${code}, GridCore skickar negativ APERAK efter positiv CONTRL.`,
+    expectedSteps: [
+      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'PRODAT', code, required: true, title: `Ta emot felaktig PRODAT ${code}`, description: title },
+      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxen är OK även om affärsinnehåll är fel.' },
+      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'negative', required: true, title: 'Skicka negativ APERAK', description: 'Affärs-/anvisningsfel enligt backend-kärnan.' },
+    ],
+    notes: ['Syntaxfel får negativ CONTRL; detta test gäller affärsfel efter godkänd syntax.'],
+  }
+}
+
+function utiltsPositiveCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'UTILTS', roleCode: 'supplier', testCaseCode, title,
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose,
+    testDataHint: `UTILTS ${code}. Korrekt testfall ska ge positiv CONTRL och positiv APERAK.`,
+    expectedSteps: [
+      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'UTILTS', code, required: true, title: `Ta emot UTILTS ${code}`, description: title },
+      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxkvittens.' },
+      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Skicka positiv APERAK', description: 'BGM 312, ERC 100 och OK.' },
+    ],
+    notes: ['Korrekt UTILTS ska inte gå till UTILTS-ERR.'],
+  }
+}
+
+function utiltsNegativeAperakCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'UTILTS', roleCode: 'supplier', testCaseCode, title,
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose,
+    testDataHint: `UTILTS ${code}. Anvisningsfel ska ge positiv CONTRL och negativ APERAK.`,
+    expectedSteps: [
+      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'UTILTS', code, required: true, title: `Ta emot felaktig UTILTS ${code}`, description: title },
+      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxen är OK.' },
+      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'negative', required: true, title: 'Skicka negativ APERAK', description: 'Anvisnings-/required-fel.' },
+    ],
+    notes: ['Anvisningsfel är APERAK, inte negativ CONTRL.'],
+  }
+}
+
+function utiltsErrCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'UTILTS', roleCode: 'supplier', testCaseCode, title,
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose,
+    testDataHint: `UTILTS ${code}. Funktions-/processfel ska ge UTILTS-ERR.`,
+    expectedSteps: [
+      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'UTILTS', code, required: true, title: `Ta emot felaktig UTILTS ${code}`, description: title },
+      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxen är OK.' },
+      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'UTILTS_ERR', code: 'UTILTS_ERR', outcome: 'negative', required: true, title: 'Skicka UTILTS-ERR', description: 'Process-/funktionsfel enligt anvisning.' },
+      { stepNo: 4, direction: 'inbound', actor: 'portal', family: 'APERAK', code: 'APERAK', required: false, title: 'Ta emot APERAK på UTILTS-ERR', description: 'Portalen kvitterar felresponsen om testfallet kräver.' },
+    ],
+    notes: ['UTILTS-ERR används inte för vanliga anvisningsfel.'],
+  }
+}
+
+function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
+  return [
+    prodatInboundNegativeCase('2.2.1', 'Z06F – felaktigt anläggningsid', 'Z06', 'Verifierar negativ APERAK på Z06F när anläggningen inte kan identifieras.'),
+    prodatInboundNegativeCase('2.2.2', 'Z06F – antal siffror saknas', 'Z06', 'Verifierar negativ APERAK på Z06F när antal siffror saknas.'),
+    prodatInboundPositiveCase('2.3.1', 'Z10M – mätarbyte', 'Z10', 'Verifierar korrekt PRODAT Z10M för mätarbyte.'),
+    prodatInboundPositiveCase('2.3.2', 'Z10M – mätarbyte', 'Z10', 'Verifierar korrekt PRODAT Z10M för mätarbyte med kompletterande mätaruppgifter.'),
+    prodatInboundNegativeCase('2.4.1', 'Z10M – felaktigt mätarbyte', 'Z10', 'Verifierar negativ APERAK på felaktig Z10M.'),
+    prodatInboundNegativeCase('2.4.2', 'Z10M – konstant saknas', 'Z10', 'Verifierar negativ APERAK när konstant saknas i Z10M.'),
+    prodatInboundPositiveCase('2.5.1', 'Z09F', 'Z09', 'Verifierar korrekt PRODAT Z09F.'),
+    prodatInboundPositiveCase('2.5.2', 'Z09G', 'Z09', 'Verifierar korrekt PRODAT Z09G.'),
+    prodatInboundPositiveCase('2.5.3', 'Z09D – nytt avtal om mikroproduktion', 'Z09', 'Verifierar korrekt PRODAT Z09D för mikroproduktion.'),
+    prodatInboundPositiveCase('3.1.1', 'Z05L', 'Z05', 'Verifierar korrekt PRODAT Z05L.'),
+    prodatInboundPositiveCase('3.1.2', 'Z05LK', 'Z05', 'Verifierar korrekt PRODAT Z05LK.'),
+    prodatInboundNegativeCase('3.2.1', 'Z05LK – felaktigt anläggningsid', 'Z05', 'Verifierar negativ APERAK när Z05LK har felaktigt anläggningsid.'),
+    utiltsPositiveCase('U1.1.1', 'Korrekt UTILTS-S02', 'S02', 'Verifierar korrekt planeringsmeddelande S02.'),
+    utiltsNegativeAperakCase('U1.2.1', 'Felaktig UTILTS-S02 – anvisningsfel', 'S02', 'Verifierar negativ APERAK på S02-anvisningsfel.'),
+    utiltsErrCase('U1.2.2', 'Felaktig UTILTS-S02 – funktionsfel', 'S02', 'Verifierar UTILTS-ERR på S02-funktionsfel.'),
+    utiltsPositiveCase('U1.3.1', 'Korrekt UTILTS-S03', 'S03', 'Verifierar korrekt planeringsmeddelande S03.'),
+    utiltsNegativeAperakCase('U1.4.1', 'Felaktig UTILTS-S03 – anvisningsfel', 'S03', 'Verifierar negativ APERAK på S03-anvisningsfel.'),
+    utiltsErrCase('U1.4.2', 'Felaktig UTILTS-S03 – funktionsfel', 'S03', 'Verifierar UTILTS-ERR på S03-funktionsfel.'),
+    utiltsNegativeAperakCase('U1.2.1b', 'Felaktig UTILTS-S02 – anvisningsfel b-testfall', 'S02', 'Verifierar b-testvariant för negativ APERAK på S02.'),
+    utiltsErrCase('U1.2.2b', 'Felaktig UTILTS-S02 – funktionsfel b-testfall', 'S02', 'Verifierar b-testvariant för UTILTS-ERR på S02.'),
+    utiltsPositiveCase('U1.3.1b', 'Korrekt UTILTS-S03 – b-testfall', 'S03', 'Verifierar b-testvariant för korrekt S03.'),
+    utiltsPositiveCase('U2.1.1', 'Korrekt UTILTS-E66, periodisk månadsavläsning SCH', 'E66', 'Verifierar korrekt E66 för månadsavläst schablon.'),
+    utiltsPositiveCase('U2.1.2', 'Korrekt UTILTS-E66, två register SCH', 'E66', 'Verifierar korrekt E66 med två register.'),
+    utiltsPositiveCase('U2.1.4', 'Korrekt UTILTS-E66, saknat värde SCH', 'E66', 'Verifierar korrekt E66 där saknat värde är tillåtet enligt testfall.'),
+    utiltsPositiveCase('U2.1.5', 'Korrekt UTILTS-E66, energi per kvart', 'E66', 'Verifierar korrekt E66 med kvartsvärden för schablonavräkning.'),
+    utiltsPositiveCase('U2.1.6', 'Korrekt UTILTS-E66, dygnsavräknad kvart', 'E66', 'Verifierar korrekt E66 med dygnsavräknade kvartsvärden.'),
+    utiltsPositiveCase('U2.1.7', 'Korrekt UTILTS-E66, dygnsavräknad kvart utan mätarställning', 'E66', 'Verifierar korrekt E66 utan mätarställning där testfallet tillåter det.'),
+    utiltsPositiveCase('U2.1.8', 'Korrekt UTILTS-E66, mätarbyte kvartsmätare', 'E66', 'Verifierar korrekt E66 vid mätarbyte.'),
+    utiltsNegativeAperakCase('U2.2.1', 'Felaktigt UTILTS-E66, anvisningsfel SCH', 'E66', 'Verifierar negativ APERAK på E66-anvisningsfel.'),
+    utiltsNegativeAperakCase('U2.2.2', 'Felaktigt UTILTS-E66, anvisningsfel kvart', 'E66', 'Verifierar negativ APERAK på E66-kvartsanvisningsfel.'),
+    utiltsErrCase('U2.2.3', 'Felaktigt UTILTS-E66, funktionsfel SCH', 'E66', 'Verifierar UTILTS-ERR på E66-funktionsfel SCH.'),
+    utiltsErrCase('U2.2.4', 'Felaktigt UTILTS-E66, funktionsfel kvart', 'E66', 'Verifierar UTILTS-ERR på E66-funktionsfel kvart.'),
+    utiltsPositiveCase('U2.1.4b', 'Korrekt UTILTS-E66, saknat värde SCH – b-testfall', 'E66', 'Verifierar b-testvariant för korrekt E66 saknat värde.'),
+    utiltsPositiveCase('U2.1.8b', 'Korrekt UTILTS-E66, mätarbyte kvartsmätare – b-testfall', 'E66', 'Verifierar b-testvariant för korrekt E66 mätarbyte.'),
+    utiltsNegativeAperakCase('U2.2.1b', 'Felaktigt UTILTS-E66, anvisningsfel SCH – b-testfall', 'E66', 'Verifierar b-testvariant för negativ APERAK på E66.'),
+    utiltsErrCase('U2.2.3b', 'Felaktigt UTILTS-E66, funktionsfel SCH – b-testfall', 'E66', 'Verifierar b-testvariant för UTILTS-ERR på E66 SCH.'),
+    utiltsErrCase('U2.2.4b', 'Felaktigt UTILTS-E66, funktionsfel kvart – b-testfall', 'E66', 'Verifierar b-testvariant för UTILTS-ERR på E66 kvart.'),
+  ]
+}
+
 export const EDIEL_TGT_TEST_CASES: readonly EdielTgtTestCaseDefinition[] = [
   {
     suite: 'PRODAT',
@@ -706,6 +824,7 @@ export const EDIEL_TGT_TEST_CASES: readonly EdielTgtTestCaseDefinition[] = [
     ],
     notes: ['Z06G ska använda transaktionstyp E32.'],
   },
+  ...additionalEdielTgtTestCases(),
 ]
 
 export function getEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {

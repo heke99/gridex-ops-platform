@@ -51,7 +51,7 @@ import { listSafeApplyReviewItems, listUtiltsBillingReviewItems } from '@/lib/ed
 import { listEdielInboundCases } from '@/lib/ediel/inboundCases'
 import { listEdielProdatProductionCandidates } from '@/lib/ediel/prodatContext'
 import { listEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
-import { resolveRecommendedAckForInboundMessage } from '@/lib/ediel/ackDecision'
+import { resolveRecommendedAckForInboundMessage, type EdielAckDecision } from '@/lib/ediel/core/ackDecisionEngine'
 
 export const dynamic = 'force-dynamic'
 
@@ -409,6 +409,189 @@ function extractZ04Reference(rawPayload: string | null | undefined): string | nu
   return bgm.replace('BGM+Z04+', '').split('+')[0] || null
 }
 
+type AckRecommendation = {
+  title: string
+  description: string
+  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  actionLabel: string | null
+  ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative'
+  messageText?: string
+  reasonItems: string[]
+  decision: EdielAckDecision
+}
+
+function resolveAckRecommendation(params: {
+  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
+  acks: Awaited<ReturnType<typeof listEdielMessages>>
+}): AckRecommendation {
+  const decision = resolveRecommendedAckForInboundMessage({
+    message: params.message,
+    relatedAcks: params.acks,
+  })
+
+  return {
+    title: decision.title,
+    description: decision.description,
+    tone: decision.tone,
+    actionLabel: decision.action ? 'Skapa och skicka rekommenderat svar' : null,
+    ackFamily: decision.action?.ackFamily,
+    outcome: decision.action?.outcome,
+    messageText: decision.action?.messageText ?? undefined,
+    reasonItems: [
+      `Backendregel: ${decision.matchedRule ?? decision.kind}`,
+      ...decision.reasonItems,
+    ],
+    decision,
+  }
+}
+
+function RecommendedAckActionForm({
+  messageId,
+  recommendation,
+}: {
+  messageId: string
+  recommendation: AckRecommendation
+}) {
+  if (!recommendation.actionLabel) return null
+
+  return (
+    <form action={createAndSendRecommendedAckAction}>
+      <input type="hidden" name="sourceMessageId" value={messageId} />
+      <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+        {recommendation.actionLabel}
+      </button>
+    </form>
+  )
+}
+
+function RecommendedAckPanel({
+  message,
+  acks,
+}: {
+  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
+  acks: Awaited<ReturnType<typeof listEdielMessages>>
+}) {
+  const recommendation = resolveAckRecommendation({ message, acks })
+  const panelToneClass =
+    recommendation.tone === 'red'
+      ? 'border-rose-200 bg-rose-50'
+      : recommendation.tone === 'yellow'
+        ? 'border-amber-200 bg-amber-50'
+        : recommendation.tone === 'blue'
+          ? 'border-blue-200 bg-blue-50'
+          : recommendation.tone === 'green'
+            ? 'border-emerald-200 bg-emerald-50'
+            : 'border-slate-200 bg-slate-50'
+
+  return (
+    <div className={`rounded-2xl border p-4 ${panelToneClass}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">Rekommenderat svar</div>
+          <h3 className="mt-1 text-sm font-semibold text-slate-950">{recommendation.title}</h3>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-700">{recommendation.description}</p>
+        </div>
+        <Badge tone={recommendation.tone}>{recommendation.tone}</Badge>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <RecommendedAckActionForm messageId={message.id} recommendation={recommendation} />
+        {recommendation.ackFamily ? <Badge>{recommendation.ackFamily}</Badge> : null}
+        {recommendation.outcome ? <Badge tone={recommendation.outcome === 'negative' ? 'red' : 'green'}>{recommendation.outcome}</Badge> : null}
+        <Badge tone="blue">{recommendation.decision.kind}</Badge>
+      </div>
+
+      {recommendation.reasonItems.length > 0 ? (
+        <ul className="mt-3 space-y-1 text-xs leading-5 text-slate-700">
+          {recommendation.reasonItems.map((item) => (
+            <li key={item}>• {item}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
+function isInboundProdatMessage(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): boolean {
+  return message.direction === 'inbound' && message.message_family === 'PRODAT'
+}
+
+function AdvancedAckActions({
+  message,
+  hasContrl,
+  hasAperak,
+}: {
+  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
+  hasContrl: boolean
+  hasAperak: boolean
+}) {
+  const isInboundProdatZ04 = isInboundProdatMessage(message) && String(message.message_code).toUpperCase() === 'Z04'
+
+  return (
+    <details className="rounded-2xl border border-slate-200 bg-white p-3">
+      <summary className="cursor-pointer text-xs font-semibold text-slate-700">Avancerat · manuella kvittenser och testpresets</summary>
+      <p className="mt-2 text-xs leading-5 text-slate-600">
+        Använd normalt rekommenderad åtgärd ovan. Avancerat finns för testfall, felsökning och manuell återställning.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {!hasContrl ? (
+          <form action={createAndSendAckAction}>
+            <input type="hidden" name="sourceMessageId" value={message.id} />
+            <input type="hidden" name="ackType" value="CONTRL" />
+            <input type="hidden" name="outcome" value="positive" />
+            <button className="rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">
+              Positiv CONTRL
+            </button>
+          </form>
+        ) : null}
+
+        {!hasContrl ? (
+          <form action={createAndSendAckAction}>
+            <input type="hidden" name="sourceMessageId" value={message.id} />
+            <input type="hidden" name="ackType" value="CONTRL" />
+            <input type="hidden" name="outcome" value="negative" />
+            <input type="hidden" name="messageText" value="Syntaxfel enligt Edielportalens TGT-test" />
+            <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+              Negativ CONTRL
+            </button>
+          </form>
+        ) : null}
+
+        {!hasAperak ? (
+          <form action={createAndSendAckAction}>
+            <input type="hidden" name="sourceMessageId" value={message.id} />
+            <input type="hidden" name="ackType" value="APERAK" />
+            <input type="hidden" name="outcome" value="positive" />
+            <button className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
+              Positiv APERAK
+            </button>
+          </form>
+        ) : null}
+
+        {isInboundProdatZ04 && !hasAperak ? (
+          <>
+            <form action={createAndSendTgtS142AperakAction}>
+              <input type="hidden" name="sourceMessageId" value={message.id} />
+              <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Testpreset 1.4.2</button>
+            </form>
+            <form action={createAndSendTgtS142BAperakAction}>
+              <input type="hidden" name="sourceMessageId" value={message.id} />
+              <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Testpreset 1.4.2B</button>
+            </form>
+            <form action={createAndSendTgtS143AperakAction}>
+              <input type="hidden" name="sourceMessageId" value={message.id} />
+              <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Testpreset 1.4.3</button>
+            </form>
+          </>
+        ) : null}
+
+        {hasContrl && hasAperak ? <Badge tone="green">CONTRL och APERAK finns</Badge> : null}
+      </div>
+    </details>
+  )
+}
+
 function TgtS142Preview() {
   return (
     <div className="grid gap-2 md:grid-cols-3">
@@ -462,147 +645,6 @@ function AckRow({ ack }: { ack: Awaited<ReturnType<typeof listEdielMessages>>[nu
   )
 }
 
-
-function RecommendedAckPanel({
-  message,
-  acks,
-}: {
-  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
-  acks: Awaited<ReturnType<typeof listEdielMessages>>
-}) {
-  const decision = resolveRecommendedAckForInboundMessage({
-    message,
-    relatedAcks: acks,
-  })
-
-  const panelToneClass =
-    decision.tone === 'red'
-      ? 'border-rose-200 bg-rose-50'
-      : decision.tone === 'yellow'
-        ? 'border-amber-200 bg-amber-50'
-        : decision.tone === 'blue'
-          ? 'border-blue-200 bg-blue-50'
-          : decision.tone === 'green'
-            ? 'border-emerald-200 bg-emerald-50'
-            : 'border-slate-200 bg-slate-50'
-
-  return (
-    <div className={`rounded-2xl border p-4 ${panelToneClass}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-            Rekommenderat svar · backendbeslut
-          </div>
-          <h3 className="mt-1 text-sm font-semibold text-slate-950">{decision.title}</h3>
-          <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-700">
-            {decision.description}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge tone={decision.tone}>{decision.reasonCode}</Badge>
-          {decision.ackFamily ? <Badge>{decision.ackFamily}</Badge> : null}
-          {decision.outcome ? (
-            <Badge tone={decision.outcome === 'negative' ? 'red' : 'green'}>{decision.outcome}</Badge>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {decision.action === 'send_ack' && decision.canAutoSend ? (
-          <form action={createAndSendRecommendedAckAction}>
-            <input type="hidden" name="sourceMessageId" value={message.id} />
-            <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800">
-              Skapa och skicka rekommenderat svar
-            </button>
-          </form>
-        ) : (
-          <Badge tone={decision.tone === 'red' ? 'red' : 'green'}>
-            Ingen automatisk sändning krävs
-          </Badge>
-        )}
-        {decision.diagnostics.syntaxIssue ? (
-          <Badge tone="red">syntax: {decision.diagnostics.syntaxIssue}</Badge>
-        ) : null}
-        {decision.diagnostics.untDeclaredCount !== null ? (
-          <Badge tone={decision.diagnostics.untDeclaredCount === decision.diagnostics.untActualCount ? 'green' : 'red'}>
-            UNT {decision.diagnostics.untDeclaredCount}/{decision.diagnostics.untActualCount ?? '—'}
-          </Badge>
-        ) : null}
-      </div>
-
-      {decision.reasonItems.length > 0 ? (
-        <ul className="mt-3 space-y-1 text-xs leading-5 text-slate-700">
-          {decision.reasonItems.map((item) => (
-            <li key={item}>• {item}</li>
-          ))}
-        </ul>
-      ) : null}
-    </div>
-  )
-}
-
-function AdvancedAckActions({
-  message,
-  acks,
-}: {
-  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
-  acks: Awaited<ReturnType<typeof listEdielMessages>>
-}) {
-  const decision = resolveRecommendedAckForInboundMessage({ message, relatedAcks: acks })
-  const hasFinalContrl = decision.diagnostics.hasFinalContrl
-  const hasFinalAperak = decision.diagnostics.hasFinalAperak
-  const canAperak = message.message_family !== 'APERAK' && message.message_family !== 'CONTRL'
-
-  return (
-    <details className="rounded-2xl border border-slate-200 bg-white p-3">
-      <summary className="cursor-pointer text-xs font-semibold text-slate-700">
-        Avancerat · manuell override
-      </summary>
-      <p className="mt-2 text-xs leading-5 text-slate-600">
-        Använd normalt rekommenderat svar ovan. Manuella knappar finns för felsökning och test, men skickar också direkt via backend och ersätter gamla drafts innan sändning.
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {!hasFinalContrl ? (
-          <form action={createAndSendAckAction}>
-            <input type="hidden" name="sourceMessageId" value={message.id} />
-            <input type="hidden" name="ackType" value="CONTRL" />
-            <input type="hidden" name="outcome" value="positive" />
-            <button className="rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">
-              Skicka positiv CONTRL
-            </button>
-          </form>
-        ) : null}
-
-        {!hasFinalContrl ? (
-          <form action={createAndSendAckAction}>
-            <input type="hidden" name="sourceMessageId" value={message.id} />
-            <input type="hidden" name="ackType" value="CONTRL" />
-            <input type="hidden" name="outcome" value="negative" />
-            <input type="hidden" name="messageText" value={decision.diagnostics.syntaxIssue ?? 'Syntaxfel enligt operatörens manuella val'} />
-            <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
-              Skicka negativ CONTRL
-            </button>
-          </form>
-        ) : null}
-
-        {canAperak && !hasFinalAperak ? (
-          <form action={createAndSendAckAction}>
-            <input type="hidden" name="sourceMessageId" value={message.id} />
-            <input type="hidden" name="ackType" value="APERAK" />
-            <input type="hidden" name="outcome" value="positive" />
-            <button className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
-              Skicka positiv APERAK
-            </button>
-          </form>
-        ) : null}
-
-        {hasFinalContrl ? <Badge tone="green">Slutlig CONTRL finns</Badge> : null}
-        {hasFinalAperak ? <Badge tone="green">Slutlig APERAK finns</Badge> : null}
-      </div>
-    </details>
-  )
-}
-
 function IncomingPortalResponses({
   messages,
 }: {
@@ -611,9 +653,9 @@ function IncomingPortalResponses({
   const inboundMessages = messages
     .filter((row) => row.direction === 'inbound')
     .filter((row) => row.status !== 'cancelled')
-    .filter((row) => ['PRODAT', 'UTILTS', 'CONTRL', 'APERAK', 'UTILTS_ERR'].includes(row.message_family))
+    .filter((row) => ['PRODAT', 'CONTRL', 'APERAK', 'UTILTS_ERR'].includes(row.message_family))
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
-    .slice(0, 16)
+    .slice(0, 12)
 
   function relatedAcks(sourceId: string) {
     return messages
@@ -623,13 +665,19 @@ function IncomingPortalResponses({
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
   }
 
-  const needsActionCount = inboundMessages.filter((message) => {
-    const decision = resolveRecommendedAckForInboundMessage({
-      message,
-      relatedAcks: relatedAcks(message.id),
-    })
-    return decision.action === 'send_ack' && decision.canAutoSend
-  }).length
+  const latestInboundZ04 = inboundMessages.find(
+    (message) =>
+      message.message_family === 'PRODAT' &&
+      String(message.message_code).toUpperCase() === 'Z04'
+  )
+  const latestInboundZ04Acks = latestInboundZ04 ? relatedAcks(latestInboundZ04.id) : []
+  const latestInboundZ04ActiveAcks = latestInboundZ04Acks.filter((ack) => isActiveAckStatus(ack.status))
+  const latestInboundZ04Contrl = latestInboundZ04ActiveAcks.find((ack) => ack.message_family === 'CONTRL')
+  const latestInboundZ04Aperak = latestInboundZ04ActiveAcks.find((ack) => ack.message_family === 'APERAK')
+  const latestInboundZ04HasCorrectS142Aperak = latestInboundZ04Aperak
+    ? isS142AperakPayload(latestInboundZ04Aperak.raw_payload)
+    : false
+  const latestInboundZ04Reference = extractZ04Reference(latestInboundZ04?.raw_payload)
 
   return (
     <section className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-5">
@@ -637,14 +685,49 @@ function IncomingPortalResponses({
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Senaste inbound via IMAP</h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
-            Backend-kärnan avgör rekommenderat svar för varje inbound-meddelande: syntaxfel ger negativ CONTRL, godkänd syntax ger positiv CONTRL och därefter APERAK när affärsregeln kräver det. UI:t skickar inte längre testknappar som huvudflöde.
+            Här är portalens inkommande svar. GridCore visar ett rekommenderat svar per meddelande och skickar direkt. Testpresets och manuella kvittenser ligger under Avancerat.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge tone="green">{inboundMessages.length} visas</Badge>
-          <Badge tone={needsActionCount > 0 ? 'yellow' : 'green'}>{needsActionCount} åtgärder</Badge>
-        </div>
+        <Badge tone="green">{inboundMessages.length} visas</Badge>
       </div>
+
+      {latestInboundZ04 ? (
+        <div className="mt-4 rounded-3xl border border-rose-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone="red">Åtgärd krävs · senaste inkommande PRODAT/Z04</Badge>
+                <Badge tone={getOutboundStatusTone(latestInboundZ04.status)}>{latestInboundZ04.status}</Badge>
+                {latestInboundZ04Contrl ? <Badge tone="green">CONTRL finns</Badge> : <Badge tone="yellow">CONTRL saknas</Badge>}
+                {latestInboundZ04HasCorrectS142Aperak ? <Badge tone="green">APERAK skickad</Badge> : <Badge tone="yellow">APERAK saknas</Badge>}
+              </div>
+              <h3 className="mt-2 text-base font-semibold text-slate-950">Senaste inkommande PRODAT/Z04 · kontrollera rekommenderat svar</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-700">
+                Matchat meddelande: <span className="font-semibold">PRODAT/Z04</span>{latestInboundZ04Reference ? ` · ${latestInboundZ04Reference}` : ''}. Detta är bara en genväg till senaste Z04; den slutliga åtgärden styrs av rekommendationen på inbound-kortet.
+              </p>
+            </div>
+            <Link href={`/admin/ediel/messages/${latestInboundZ04.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              Öppna Z04
+            </Link>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <RecommendedAckPanel message={latestInboundZ04} acks={latestInboundZ04Acks} />
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">SaaS-säkert arbetssätt</div>
+              <p className="mt-2 text-xs leading-5 text-slate-700">
+                Samma vy fungerar per bolag/tenant: operatören ser rekommenderad åtgärd, medan testpresets och manuella val ligger under Avancerat på själva inbound-kortet.
+              </p>
+              <div className="mt-3 space-y-2 text-xs text-slate-700">
+                <div className="rounded-xl bg-white p-2">1. Systemet bedömer syntax före affärskvittens.</div>
+                <div className="rounded-xl bg-white p-2">2. Kvittenser skickas direkt, inte som dolda drafts.</div>
+                <div className="rounded-xl bg-white p-2">3. Manuell override finns men är separerad från normalflödet.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-4 space-y-3">
         {inboundMessages.length === 0 ? (
@@ -653,52 +736,63 @@ function IncomingPortalResponses({
           </div>
         ) : (
           inboundMessages.map((message) => {
+            const isInboundBusinessMessage =
+              message.message_family !== 'CONTRL' &&
+              message.message_family !== 'APERAK' &&
+              message.message_family !== 'UTILTS_ERR'
+            const requiresContrlOnly = message.message_family === 'APERAK'
             const acks = relatedAcks(message.id)
-            const decision = resolveRecommendedAckForInboundMessage({ message, relatedAcks: acks })
-            const cardClass =
-              decision.tone === 'red'
-                ? 'border-rose-200 bg-rose-50/50'
-                : decision.tone === 'yellow'
-                  ? 'border-amber-200 bg-amber-50/50'
-                  : 'border-slate-200 bg-white'
+            const activeAcks = acks.filter((ack) => isActiveAckStatus(ack.status))
+            const hasContrl = activeAcks.some((row) => row.message_family === 'CONTRL')
+            const hasAperak = activeAcks.some((row) => row.message_family === 'APERAK')
+            const isInboundProdatZ04 =
+              message.direction === 'inbound' &&
+              message.message_family === 'PRODAT' &&
+              String(message.message_code).toUpperCase() === 'Z04'
+            const bgClass = isInboundProdatZ04 ? 'border-rose-200 bg-rose-50/40' : 'border-slate-200 bg-white'
 
             return (
-              <div key={message.id} className={`rounded-2xl border p-4 shadow-sm ${cardClass}`}>
+              <div key={message.id} className={`rounded-2xl border p-4 shadow-sm ${bgClass}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={message.message_family === 'PRODAT' || message.message_family === 'UTILTS' ? 'blue' : 'green'}>
+                      <Badge tone={message.message_family === 'PRODAT' ? 'blue' : 'green'}>
                         inbound {message.message_family} / {message.message_code}
                       </Badge>
+                      {isInboundProdatZ04 ? <Badge tone="red">PRODAT/Z04 · rekommendation styr</Badge> : null}
                       <Badge tone={getOutboundStatusTone(message.status)}>{message.status}</Badge>
                       {message.related_message_id ? <Badge tone="green">kopplad</Badge> : <Badge tone="yellow">ej kopplad</Badge>}
-                      {decision.diagnostics.detectedPreset ? <Badge tone="red">{decision.diagnostics.detectedPreset}</Badge> : null}
                     </div>
-                    <div className="mt-2 text-sm font-medium text-slate-950">
-                      {message.subject ?? message.file_name ?? message.id}
-                    </div>
+                    <div className="mt-2 text-sm font-medium text-slate-950">{message.subject ?? message.file_name ?? message.id}</div>
                     <div className="mt-1 text-xs text-slate-500">
                       {message.sender_ediel_id ?? '—'}:{message.sender_sub_address ?? '—'} → {message.receiver_ediel_id ?? '—'}:{message.receiver_sub_address ?? '—'} · {formatDateTime(message.created_at)}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Link href={`/admin/ediel/messages/${message.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                      Öppna
-                    </Link>
+                    <Link href={`/admin/ediel/messages/${message.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Öppna</Link>
                     <form action={cancelEdielMessageAction}>
                       <input type="hidden" name="edielMessageId" value={message.id} />
                       <input type="hidden" name="reason" value="Raderad/dold från IMAP-listan via inbound-kort." />
-                      <button className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
-                        Radera
-                      </button>
+                      <button className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Radera</button>
                     </form>
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-3">
-                  <RecommendedAckPanel message={message} acks={acks} />
-                  <AdvancedAckActions message={message} acks={acks} />
-                </div>
+                {isInboundBusinessMessage ? (
+                  <div className="mt-4 space-y-3">
+                    <RecommendedAckPanel message={message} acks={acks} />
+                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} />
+                  </div>
+                ) : requiresContrlOnly ? (
+                  <div className="mt-4 space-y-3">
+                    <RecommendedAckPanel message={message} acks={acks} />
+                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} />
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-800">
+                    Detta är en inkommande CONTRL/teknisk kvittens från portalen. Den registreras och kopplas. Skapa ingen ny kvittens på CONTRL.
+                  </div>
+                )}
 
                 {acks.length > 0 ? (
                   <div className="mt-4 space-y-2">
