@@ -18,6 +18,11 @@ import {
   sendQueuedEdielMessage,
 } from '@/lib/ediel/orchestrator'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
+import {
+  isFinalAckMessage,
+  isReplaceableAckMessage,
+  resolveRecommendedAckForInboundMessage,
+} from '@/lib/ediel/ackDecision'
 import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
 import {
   attachEdielMessageToTestRun,
@@ -665,7 +670,112 @@ export async function createAckDraftAction(formData: FormData) {
 }
 
 
+async function removeReplaceableAcksForSource(params: {
+  actorUserId: string
+  sourceMessageId: string
+  ackFamily: AckFamily
+  reason: string
+}) {
+  const existingAcks = await listAckMessagesForSource({
+    sourceMessageId: params.sourceMessageId,
+    ackFamily: params.ackFamily,
+  })
 
+  const finalAck = existingAcks.find((ack) => isFinalAckMessage(ack))
+  if (finalAck) {
+    throw new Error(
+      `${params.ackFamily} är redan skickad eller slutligt registrerad för detta meddelande (${finalAck.status}). GridCore skickar inte dubbelkvittens.`
+    )
+  }
+
+  const replaceableIds = existingAcks
+    .filter((ack) => isReplaceableAckMessage(ack))
+    .map((ack) => ack.id)
+
+  if (replaceableIds.length === 0) return
+
+  const testRunDelete = await supabaseService
+    .from('ediel_test_run_messages')
+    .delete()
+    .in('ediel_message_id', replaceableIds)
+  if (testRunDelete.error) throw testRunDelete.error
+
+  const eventsDelete = await supabaseService
+    .from('ediel_message_events')
+    .delete()
+    .in('ediel_message_id', replaceableIds)
+  if (eventsDelete.error) throw eventsDelete.error
+
+  const messagesDelete = await supabaseService
+    .from('ediel_messages')
+    .delete()
+    .in('id', replaceableIds)
+  if (messagesDelete.error) throw messagesDelete.error
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.sourceMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'warning',
+    message: `${params.ackFamily}: ersatte gammal draft/queued/prepared/failed/cancelled innan ny direktkvittens skickades.`,
+    payload: {
+      reason: params.reason,
+      removedAckMessageIds: replaceableIds,
+      ackFamily: params.ackFamily,
+    },
+  })
+}
+
+async function createAndSendAckForSource(params: {
+  actorUserId: string
+  sourceMessageId: string
+  ackFamily: AckFamily
+  outcome?: AckOutcome
+  messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
+  reason: string
+}) {
+  await removeReplaceableAcksForSource({
+    actorUserId: params.actorUserId,
+    sourceMessageId: params.sourceMessageId,
+    ackFamily: params.ackFamily,
+    reason: params.reason,
+  })
+
+  const ackMessage = await createAckDraftForMessage({
+    actorUserId: params.actorUserId,
+    sourceMessageId: params.sourceMessageId,
+    ackFamily: params.ackFamily,
+    outcome: params.ackFamily === 'UTILTS_ERR' ? undefined : params.outcome ?? 'positive',
+    messageText: params.messageText ?? null,
+    applicationErrors: params.ackFamily === 'APERAK' ? params.applicationErrors ?? null : null,
+  })
+
+  await sendQueuedEdielMessage({
+    actorUserId: params.actorUserId,
+    edielMessageId: ackMessage.id,
+    smtpMimeMode: 'ediel-singlepart-base64',
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.sourceMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'success',
+    message: `${params.ackFamily} ${params.outcome ?? 'positive'} skapad och skickad direkt från backendbeslut.`,
+    payload: {
+      ackMessageId: ackMessage.id,
+      ackFamily: params.ackFamily,
+      outcome: params.outcome ?? null,
+      reason: params.reason,
+    },
+  })
+
+  revalidateEdiel(params.sourceMessageId)
+  await revalidateRelatedMessage(ackMessage.id)
+
+  return ackMessage
+}
 
 export async function createAndSendAckAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
@@ -680,51 +790,55 @@ export async function createAndSendAckAction(formData: FormData) {
     throw new Error('Ogiltig ackType')
   }
 
-  await removeReplaceableAckMessagesForSource({
-    actorUserId: context.userId,
-    sourceMessageId,
-    ackFamily: ackType,
-    preset: `${ackType} ${outcome}`,
-  })
-
-  const ackMessage = await createAckDraftForMessage({
+  await createAndSendAckForSource({
     actorUserId: context.userId,
     sourceMessageId,
     ackFamily: ackType,
     outcome: ackType === 'UTILTS_ERR' ? undefined : outcome,
     messageText,
     applicationErrors: ackType === 'APERAK' ? applicationErrors : null,
+    reason: 'manual_direct_ack_action',
   })
-
-  await sendQueuedEdielMessage({
-    actorUserId: context.userId,
-    edielMessageId: ackMessage.id,
-    smtpMimeMode: 'ediel-singlepart-base64',
-  })
-
-  await createEdielMessageEvent({
-    actorUserId: context.userId,
-    edielMessageId: sourceMessageId,
-    eventType: 'manual_note',
-    eventStatus: 'success',
-    message: `${ackType} skapades och skickades direkt från inbound-kortet.`,
-    payload: {
-      ackMessageId: ackMessage.id,
-      ackType,
-      outcome,
-    },
-  })
-
-  revalidateEdiel(sourceMessageId)
-  await revalidateRelatedMessage(ackMessage.id)
 }
+
+export async function createAndSendRecommendedAckAction(formData: FormData) {
+  const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const sourceMessageId = formString(formData.get('sourceMessageId'))
+  if (!sourceMessageId) throw new Error('sourceMessageId saknas')
+
+  const sourceMessage = await getEdielMessageById(sourceMessageId)
+  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+
+  const relatedAcks = await listAckMessagesForSource({ sourceMessageId })
+  const decision = resolveRecommendedAckForInboundMessage({
+    message: sourceMessage,
+    relatedAcks,
+  })
+
+  if (decision.action !== 'send_ack' || !decision.ackFamily || !decision.outcome) {
+    throw new Error(`Inget skickbart rekommenderat svar: ${decision.title}`)
+  }
+
+  await createAndSendAckForSource({
+    actorUserId: context.userId,
+    sourceMessageId,
+    ackFamily: decision.ackFamily,
+    outcome: decision.outcome,
+    messageText: decision.messageText,
+    applicationErrors: decision.applicationErrors,
+    reason: decision.reasonCode,
+  })
+}
+
+
+
 
 const REPLACEABLE_TGT_ACK_STATUSES = new Set(['draft', 'queued', 'prepared', 'failed', 'cancelled'])
 
-async function removeReplaceableAckMessagesForSource(params: {
+async function removeReplaceableTgtAcksForSource(params: {
   actorUserId: string
   sourceMessageId: string
-  ackFamily: AckFamily
+  ackFamily: 'APERAK'
   preset: string
 }) {
   const existingAcks = await listAckMessagesForSource({
@@ -765,7 +879,7 @@ async function removeReplaceableAckMessagesForSource(params: {
     edielMessageId: params.sourceMessageId,
     eventType: 'manual_note',
     eventStatus: 'warning',
-    message: `${params.preset}: ersatte gammal kvittens-draft/failed/cancelled innan nytt skick.`,
+    message: `${params.preset}: ersatte gammal APERAK-draft/failed/cancelled innan nytt skick.`,
     payload: {
       removedAckMessageIds: replaceableIds,
       ackFamily: params.ackFamily,
@@ -837,7 +951,7 @@ async function createAndSendTgtAperakPreset(params: {
     )
   }
 
-  await removeReplaceableAckMessagesForSource({
+  await removeReplaceableTgtAcksForSource({
     actorUserId: params.actorUserId,
     sourceMessageId: params.sourceMessageId,
     ackFamily: 'APERAK',
