@@ -9,6 +9,7 @@ import EdielOperationalBridgePanel from '@/components/admin/ediel/EdielOperation
 import EdielOperationalVerificationPanel from '@/components/admin/ediel/EdielOperationalVerificationPanel'
 import EdielSafeApplyReviewPanel from '@/components/admin/ediel/EdielSafeApplyReviewPanel'
 import EdielInboundCasesPanel from '@/components/admin/ediel/EdielInboundCasesPanel'
+import InboundTestDataUploadForm from '@/components/admin/ediel/InboundTestDataUploadForm'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getCanonicalAckState } from '@/lib/ediel/ack'
 import {
@@ -593,51 +594,37 @@ function RecommendedAckPanel({
           <summary className="cursor-pointer text-xs font-semibold text-indigo-900">
             Testdata för backend-jämförelse {selectedTgtRow ? `· aktiv: ${selectedTgtRow.testCaseCode}` : '· ingen aktiv importerad data'}
           </summary>
-         <form action={saveEdielInboundMessageTestDataAction} className="mt-3 grid gap-2 md:grid-cols-2">
-            <input type="hidden" name="sourceMessageId" value={message.id} />
-            <input type="hidden" name="testSuite" value={message.message_family === 'UTILTS' ? 'UTILTS' : 'PRODAT'} />
-            <input type="hidden" name="roleCode" value="supplier" />
-            <label className="text-xs font-semibold text-slate-700">
-              Testfall
-              <select name="testCaseCode" defaultValue={selectedTgtRow?.testCaseCode ?? defaultTestCaseCodeForMessage(message)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950">
-                <option value="">Välj testfall…</option>
-                {(relevantTgtRows && relevantTgtRows.length > 0 ? relevantTgtRows : []).map((row) => (
-                  <option key={row.id} value={row.testCaseCode}>{row.testCaseCode} · {row.title}</option>
-                ))}
-                {message.message_family === 'PRODAT' && String(message.message_code).toUpperCase() === 'Z06' ? (
-                  <>
-                    <option value="2.1.1">2.1.1 · Z06F ändrad avräkningsmetod/mätmetod</option>
-                    <option value="2.1.2">2.1.2 · Z06F ändrad räkneverkstyp</option>
-                    <option value="2.1.3">2.1.3 · Z06G ändring av anläggningsadress</option>
-                    <option value="2.2.1">2.2.1 · Z06F felaktigt anläggningsid</option>
-                    <option value="2.2.2">2.2.2 · Z06F antal siffror saknas</option>
-                  </>
-                ) : null}
-                {message.message_family === 'PRODAT' && String(message.message_code).toUpperCase() === 'Z10' ? (
-                  <>
-                    <option value="2.4.1">2.4.1 · Z10M felaktig</option>
-                    <option value="2.4.2">2.4.2 · Z10M konstant saknas</option>
-                  </>
-                ) : null}
-                {message.message_family === 'PRODAT' && String(message.message_code).toUpperCase() === 'Z05' ? <option value="3.2.1">3.2.1 · Z05LK felaktigt anläggningsid</option> : null}
-              </select>
-            </label>
-            <label className="text-xs font-semibold text-slate-700">
-              Rubrik
-              <input name="title" defaultValue={selectedTgtRow?.title ?? ''} placeholder="t.ex. 2.2.1 Z06F felaktigt anläggningsid" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950" />
-            </label>
-            <label className="text-xs font-semibold text-slate-700 md:col-span-2">
-              Ladda upp Excel/CSV från Edielportalen
-              <input name="testDataFile" type="file" multiple accept=".xlsx,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white" />
-            </label>
-            <textarea name="rawText" rows={5} placeholder={'Eller klistra in testdata, t.ex.\n209 Anläggningsid\t735999888000000017\n218 Antal siffror, mätare\t6'} className="md:col-span-2 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 font-mono text-xs text-slate-950" />
-            <button className="w-fit rounded-xl bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800">
-              Spara och jämför med detta inbound
-            </button>
-            <p className="md:col-span-2 text-[11px] leading-5 text-slate-600">
-              När testdata sparas används den av backend-kärnan för nästa rekommenderade svar. Vid TGT jämförs inbound-payloaden mot Edielportalens testdata; i produktion ska samma princip gå mot tenantens masterdata.
-            </p>
-          </form>
+          <InboundTestDataUploadForm
+            action={saveEdielInboundMessageTestDataAction}
+            sourceMessageId={message.id}
+            testSuite={message.message_family === 'UTILTS' ? 'UTILTS' : 'PRODAT'}
+            roleCode="supplier"
+            defaultTestCaseCode={selectedTgtRow?.testCaseCode ?? defaultTestCaseCodeForMessage(message)}
+            defaultTitle={selectedTgtRow?.title ?? ''}
+            options={[
+              ...(relevantTgtRows && relevantTgtRows.length > 0
+                ? relevantTgtRows.map((row) => ({ value: row.testCaseCode, label: `${row.testCaseCode} · ${row.title}` }))
+                : []),
+              ...(message.message_family === 'PRODAT' && String(message.message_code).toUpperCase() === 'Z06'
+                ? [
+                    { value: '2.1.1', label: '2.1.1 · Z06F ändrad avräkningsmetod/mätmetod' },
+                    { value: '2.1.2', label: '2.1.2 · Z06F ändrad räkneverkstyp' },
+                    { value: '2.1.3', label: '2.1.3 · Z06G ändring av anläggningsadress' },
+                    { value: '2.2.1', label: '2.2.1 · Z06F felaktigt anläggningsid' },
+                    { value: '2.2.2', label: '2.2.2 · Z06F antal siffror saknas' },
+                  ]
+                : []),
+              ...(message.message_family === 'PRODAT' && String(message.message_code).toUpperCase() === 'Z10'
+                ? [
+                    { value: '2.4.1', label: '2.4.1 · Z10M felaktig' },
+                    { value: '2.4.2', label: '2.4.2 · Z10M konstant saknas' },
+                  ]
+                : []),
+              ...(message.message_family === 'PRODAT' && String(message.message_code).toUpperCase() === 'Z05'
+                ? [{ value: '3.2.1', label: '3.2.1 · Z05LK felaktigt anläggningsid' }]
+                : []),
+            ]}
+          />
         </details>
       ) : null}
 

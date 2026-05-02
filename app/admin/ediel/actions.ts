@@ -180,6 +180,67 @@ function describeReceivedUploadFields(formData: FormData): string {
   return fileEntries.length > 0 ? fileEntries.join(' | ') : 'inga filfält mottogs av server action'
 }
 
+
+type EncodedInboundUploadFile = {
+  fileName?: unknown
+  type?: unknown
+  size?: unknown
+  base64?: unknown
+}
+
+function arrayBufferFromBase64(value: string): ArrayBuffer {
+  const buffer = Buffer.from(value, 'base64')
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer
+}
+
+async function encodedUploadFilesText(value: FormDataEntryValue | null): Promise<{ text: string | null; fileNames: string[] }> {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return { text: null, fileNames: [] }
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    throw new Error('Uppladdad fil kunde inte läsas: encoded upload JSON är ogiltig.')
+  }
+
+  const files = Array.isArray(parsed) ? parsed : []
+  const parts: string[] = []
+  const fileNames: string[] = []
+
+  for (const entry of files as EncodedInboundUploadFile[]) {
+    const base64 = typeof entry.base64 === 'string' ? entry.base64 : ''
+    if (!base64) continue
+
+    const fileName = typeof entry.fileName === 'string' && entry.fileName.trim().length > 0 ? entry.fileName.trim() : null
+    const parsedFile = parseEdielTgtUploadedTestDataFile({
+      bytes: arrayBufferFromBase64(base64),
+      fileName,
+    })
+
+    if (parsedFile.text.trim().length > 0) parts.push(parsedFile.text.trim())
+    if (parsedFile.fileName) fileNames.push(parsedFile.fileName)
+  }
+
+  return {
+    text: parts.length > 0 ? parts.join('\n\n') : null,
+    fileNames,
+  }
+}
+
+function mergeUploadedFileResults(...items: Array<{ text: string | null; fileNames: string[] }>): { text: string | null; fileNames: string[] } {
+  const text = items
+    .map((item) => item.text?.trim() ?? '')
+    .filter(Boolean)
+    .join('\n\n')
+
+  return {
+    text: text.length > 0 ? text : null,
+    fileNames: items.flatMap((item) => item.fileNames),
+  }
+}
+
 function parseFileEngineMode(value: FormDataEntryValue | null): EdielFileEngineMode {
   const raw = formString(value)
   if (raw === 'internal_test' || raw === 'production_dry_run') return raw
@@ -500,7 +561,9 @@ export async function saveEdielInboundMessageTestDataAction(formData: FormData) 
   const testCaseCode = formString(formData.get('testCaseCode')) ?? ''
   const title = formString(formData.get('title'))
   const pastedText = formString(formData.get('rawText')) ?? ''
-  const uploaded = await formFilesText(collectTestDataFileEntries(formData))
+  const nativeUploaded = await formFilesText(collectTestDataFileEntries(formData))
+  const encodedUploaded = await encodedUploadFilesText(formData.get('uploadedFilesJson'))
+  const uploaded = mergeUploadedFileResults(nativeUploaded, encodedUploaded)
   const rawText = [pastedText, uploaded.text].filter(Boolean).join('\n\n').trim()
 
   if (!sourceMessageId) throw new Error('sourceMessageId saknas')
