@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ChangeEvent } from 'react'
+import { useMemo, useState, type ChangeEvent } from 'react'
 
 type TestCaseOption = {
   value: string
@@ -22,6 +22,25 @@ type Props = {
   defaultTestCaseCode?: string | null
   defaultTitle?: string | null
   options?: TestCaseOption[]
+}
+
+
+function normalizeOptionKey(value: string): string {
+  return value.trim().toUpperCase()
+}
+
+function uniqueTestCaseOptions(options: TestCaseOption[]): TestCaseOption[] {
+  const seen = new Set<string>()
+  const unique: TestCaseOption[] = []
+
+  for (const option of options) {
+    const key = normalizeOptionKey(option.value)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    unique.push(option)
+  }
+
+  return unique
 }
 
 function fileToBase64(file: File): Promise<EncodedUploadFile> {
@@ -58,6 +77,7 @@ export default function InboundTestDataUploadForm({
   const [fileStatus, setFileStatus] = useState('Ingen fil vald.')
   const [isReadingFiles, setIsReadingFiles] = useState(false)
   const [showManualCase, setShowManualCase] = useState(false)
+  const uniqueOptions = useMemo(() => uniqueTestCaseOptions(options), [options])
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
@@ -145,8 +165,8 @@ export default function InboundTestDataUploadForm({
             className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950"
           >
             <option value="">Auto</option>
-            {options.map((option) => (
-              <option key={option.value} value={option.value}>
+            {uniqueOptions.map((option) => (
+              <option key={normalizeOptionKey(option.value)} value={option.value}>
                 {option.label}
               </option>
             ))}
