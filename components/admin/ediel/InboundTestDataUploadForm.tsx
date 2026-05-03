@@ -131,6 +131,7 @@ export default function InboundTestDataUploadForm({
       <label className="text-xs font-semibold text-slate-700 md:col-span-2">
         Ladda upp Excel/CSV från Edielportalen
         <input
+          name="testDataFile"
           type="file"
           multiple
           accept=".xlsx,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

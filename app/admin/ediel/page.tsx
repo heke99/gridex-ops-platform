@@ -54,7 +54,7 @@ import { listEdielInboundCases } from '@/lib/ediel/inboundCases'
 import { listEdielProdatProductionCandidates } from '@/lib/ediel/prodatContext'
 import { listEdielTgtDynamicTestData, type EdielTgtDynamicTestDataSummary } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage, type EdielAckDecision } from '@/lib/ediel/core/ackDecisionEngine'
-import { findBestTgtTestDataForMessage, messageCodePrefixesForTgtAutoMatch, textForTgtAutoMatch } from '@/lib/ediel/core/tgtAutoMatcher'
+import { findBestTgtTestDataForMessage, findExactTgtTestDataForMessage, messageCodePrefixesForTgtAutoMatch, textForTgtAutoMatch } from '@/lib/ediel/core/tgtAutoMatcher'
 
 export const dynamic = 'force-dynamic'
 
@@ -444,7 +444,7 @@ function selectedTgtRowForMessage(
   message: Awaited<ReturnType<typeof listEdielMessages>>[number],
   rows: EdielTgtDynamicTestDataSummary[]
 ): EdielTgtDynamicTestDataSummary | null {
-  return findBestTgtTestDataForMessage(message, rows) ?? relevantTgtRowsForMessage(message, rows)[0] ?? null
+  return findExactTgtTestDataForMessage(message, rows) ?? findBestTgtTestDataForMessage(message, rows) ?? relevantTgtRowsForMessage(message, rows)[0] ?? null
 }
 
 function defaultTestCaseCodeForMessage(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {

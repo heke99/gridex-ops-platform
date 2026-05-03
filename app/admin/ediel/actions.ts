@@ -56,7 +56,7 @@ import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
 import { getEdielTgtDynamicTestDataForCase, listEdielTgtDynamicTestData, upsertEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage } from '@/lib/ediel/core/ackDecisionEngine'
-import { findBestTgtTestDataForMessage, inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
+import { findBestTgtTestDataForMessage, findExactTgtTestDataForMessage, inferTgtTestCaseCodeForInboundTestData, sourceMessageMarker } from '@/lib/ediel/core/tgtAutoMatcher'
 import { parseEdielTgtUploadedTestDataFile } from '@/lib/ediel/tgtTestDataFileImport'
 import {
   autoAttachImportedMessageToActiveTgtRun,
@@ -565,7 +565,8 @@ export async function saveEdielInboundMessageTestDataAction(formData: FormData) 
   const nativeUploaded = await formFilesText(collectTestDataFileEntries(formData))
   const encodedUploaded = await encodedUploadFilesText(formData.get('uploadedFilesJson'))
   const uploaded = mergeUploadedFileResults(nativeUploaded, encodedUploaded)
-  const rawText = [pastedText, uploaded.text].filter(Boolean).join('\n\n').trim()
+  const rawTextBody = [pastedText, uploaded.text].filter(Boolean).join('\n\n').trim()
+  const rawText = sourceMessageId ? `${sourceMessageMarker(sourceMessageId)}\n${rawTextBody}`.trim() : rawTextBody
 
   if (!sourceMessageId) throw new Error('sourceMessageId saknas')
   if (!rawText) {
@@ -871,7 +872,8 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
 
   const relatedAcks = await listAckMessagesForSource({ sourceMessageId })
   const allTgtRows = await listEdielTgtDynamicTestData()
-  const bestTgtRow = findBestTgtTestDataForMessage(sourceMessage, allTgtRows)
+  const exactTgtRow = findExactTgtTestDataForMessage(sourceMessage, allTgtRows)
+  const bestTgtRow = exactTgtRow ?? findBestTgtTestDataForMessage(sourceMessage, allTgtRows)
   const tgtTestData = testCaseCode
     ? await getEdielTgtDynamicTestDataForCase(testSuite, roleCode, testCaseCode)
     : bestTgtRow?.parsedPayload ?? null

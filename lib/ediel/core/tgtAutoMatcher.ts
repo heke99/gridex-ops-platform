@@ -221,3 +221,18 @@ export function findBestTgtTestDataForMessage(
 
   return scored[0]?.row ?? null
 }
+
+export function sourceMessageMarker(sourceMessageId: string): string {
+  return `GRIDCORE_SOURCE_MESSAGE_ID:${sourceMessageId}`
+}
+
+export function rawTextHasSourceMessageMarker(rawText: string | null | undefined, sourceMessageId: string): boolean {
+  return String(rawText ?? '').includes(sourceMessageMarker(sourceMessageId))
+}
+
+export function findExactTgtTestDataForMessage(
+  message: EdielMessageRow,
+  rows: readonly EdielTgtDynamicTestDataSummary[]
+): EdielTgtDynamicTestDataSummary | null {
+  return rows.find((row) => rawTextHasSourceMessageMarker(row.rawText, message.id)) ?? null
+}

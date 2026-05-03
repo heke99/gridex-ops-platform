@@ -102,14 +102,20 @@ function meterIdLooksInvalid(value: string | null): boolean {
   return !/^735\d{15}$/.test(value)
 }
 
-function deriveLineReferenceError(lineItemId: string | null, fieldCode: string, text: string, ercCode: string = '41'): EdielAperakApplicationError {
+function deriveLineReferenceError(
+  lineItemId: string | null,
+  fieldCode: string,
+  text: string,
+  ercCode: string = '41',
+  lineItemReference: string | null = null
+): EdielAperakApplicationError {
   return {
     ercCode,
     fieldCode,
     text,
     referenceQualifier: lineItemId ? 'Z07' : null,
     referenceNumber: lineItemId,
-    lineItemReference: null,
+    lineItemReference,
   }
 }
 
@@ -152,10 +158,10 @@ function hasTestDataField(testData: EdielTgtCaseTestData | null | undefined, fie
   )
 }
 
-function deriveFacilityMismatchErrors(lineItemId: string | null): EdielAperakApplicationError[] {
+function deriveFacilityMismatchErrors(lineItemId: string | null, lineItemReference: string | null = null): EdielAperakApplicationError[] {
   return [
-    deriveLineReferenceError(lineItemId, '105', 'Anläggningen kan inte identifieras', '40'),
-    deriveLineReferenceError(lineItemId, '209', 'Anläggningsid avviker från Edielportalens testdata', '42'),
+    deriveLineReferenceError(lineItemId, '105', 'Anläggningen kan inte identifieras', '40', lineItemReference),
+    deriveLineReferenceError(lineItemId, '209', 'Anläggningsid avviker från Edielportalens testdata', '42', lineItemReference),
   ]
 }
 
@@ -170,25 +176,25 @@ function prodatTgtBusinessErrors(message: EdielMessageRow, testData: EdielTgtCas
 
   for (const line of facts.lineItems) {
     if (expectedFacilities.size > 0 && line.itemId && !expectedFacilities.has(line.itemId)) {
-      errors.push(...deriveFacilityMismatchErrors(line.itemId))
+      errors.push(...deriveFacilityMismatchErrors(line.itemId, line.rffLi))
       continue
     }
 
     if (expectedFacilities.size > 0 && !line.itemId) {
-      errors.push(...deriveFacilityMismatchErrors(null))
+      errors.push(...deriveFacilityMismatchErrors(null, line.rffLi))
       continue
     }
 
     if (['Z04', 'Z06', 'Z10'].includes(code) && hasTestDataField(testData, '214') && !line.hasConstant) {
-      errors.push(deriveLineReferenceError(line.itemId, '214', 'Konstant saknas'))
+      errors.push(deriveLineReferenceError(line.itemId, '214', 'Konstant saknas', '41', line.rffLi))
     }
 
     if (code === 'Z06' && hasTestDataField(testData, '218') && !line.hasDigitCount) {
-      errors.push(deriveLineReferenceError(line.itemId, '218', 'Antal siffror saknas'))
+      errors.push(deriveLineReferenceError(line.itemId, '218', 'Antal siffror saknas', '41', line.rffLi))
     }
 
     if (code === 'Z10' && hasTestDataField(testData, '224') && !line.hasMeterNumber) {
-      errors.push(deriveLineReferenceError(line.itemId, '224', 'Mätarnummer saknas'))
+      errors.push(deriveLineReferenceError(line.itemId, '224', 'Mätarnummer saknas', '41', line.rffLi))
     }
   }
 
@@ -248,32 +254,10 @@ function prodatBusinessErrors(message: EdielMessageRow, testData?: EdielTgtCaseT
     ]
   }
 
-  for (const line of facts.lineItems) {
-    if (meterIdLooksInvalid(line.itemId)) {
-      errors.push(deriveLineReferenceError(line.itemId, '105', 'Anläggningen kan inte identifieras', '40'))
-    }
-
-    if (['Z04', 'Z05', 'Z06', 'Z09', 'Z10'].includes(code) && !line.rffLi && !['Z04'].includes(code)) {
-      errors.push(deriveLineReferenceError(line.itemId, '226', 'Ärendereferens saknas'))
-    }
-
-    if (['Z04'].includes(code) && !line.hasQty31) {
-      errors.push(deriveLineReferenceError(line.itemId, '213', 'Årsförbrukning saknas'))
-    }
-
-    if (['Z04', 'Z06', 'Z10'].includes(code) && !line.hasConstant) {
-      errors.push(deriveLineReferenceError(line.itemId, '214', 'Konstant saknas'))
-    }
-
-    if (['Z06'].includes(code) && !line.hasDigitCount) {
-      errors.push(deriveLineReferenceError(line.itemId, '218', 'Antal siffror saknas'))
-    }
-
-    if (['Z10'].includes(code) && !line.hasMeterNumber) {
-      errors.push(deriveLineReferenceError(line.itemId, '224', 'Mätarnummer saknas'))
-    }
-  }
-
+  // Do not invent generic negative APERAK decisions for PRODAT without
+  // active TGT/masterdata validation. Z06/Z10/Z05 negative cases must be
+  // driven by uploaded TGT data or production masterdata, otherwise GridCore
+  // can reject valid portal messages incorrectly.
   return errors
 }
 

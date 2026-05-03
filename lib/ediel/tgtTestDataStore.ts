@@ -1038,6 +1038,7 @@ export async function upsertEdielTgtDynamicTestData(input: {
   title?: string | null
   rawText: string
   actorUserId?: string | null
+  sourceMessageId?: string | null
 }): Promise<EdielTgtDynamicTestDataSummary> {
   const parsedPayload = parseEdielPortalTestDataText({
     suite: input.suite,
@@ -1051,13 +1052,22 @@ export async function upsertEdielTgtDynamicTestData(input: {
     throw new Error('Ingen testdata kunde läsas. Klistra in rader från Edielportalen, t.ex. "209 Anläggningsid 735...".')
   }
 
+  const sourceMessageId = normalizeFieldValue(input.sourceMessageId ?? '')
+  const sourceNote = sourceMessageId
+    ? `${parsedPayload.sourceNote} GridCore source_message_id=${sourceMessageId}.`
+    : parsedPayload.sourceNote
+  const rawText = sourceMessageId
+    ? `# GridCore source_message_id=${sourceMessageId}
+${normalizeText(input.rawText)}`
+    : normalizeText(input.rawText)
+
   const payload = {
     test_suite: input.suite,
     role_code: input.roleCode,
     test_case_code: input.testCaseCode,
     title: input.title?.trim() || parsedPayload.title,
-    source_note: parsedPayload.sourceNote,
-    raw_text: normalizeText(input.rawText),
+    source_note: sourceNote,
+    raw_text: rawText,
     parsed_payload: parsedPayload,
     updated_by: input.actorUserId ?? null,
     created_by: input.actorUserId ?? null,
