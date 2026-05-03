@@ -2,7 +2,6 @@
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
-import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 import { validateEdifactSyntax, type EdielSyntaxIssue } from '@/lib/ediel/core/syntaxValidator'
 import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
 
@@ -42,10 +41,12 @@ export type ResolveEdielAckDecisionParams = {
   message: EdielMessageRow
   relatedAcks: readonly EdielMessageRow[]
   /**
-   * Optional TGT data imported from Edielportalen. In TGT mode this is the
-   * source of truth for whether a syntactically valid inbound message should
-   * get positive APERAK or negative APERAK. Production can pass null and rely
-   * on tenant/masterdata validators.
+   * Optional TGT data imported from Edielportalen.
+   *
+   * Important:
+   * This decision engine must not resolve APERAK application error codes.
+   * TGT/masterdata/business validation is resolved in the backend action via
+   * lib/ediel/core/aperakErrorRuleRegistry.ts immediately before APERAK creation.
    */
   tgtTestData?: EdielTgtCaseTestData | null
 }
@@ -97,261 +98,13 @@ function sanitizeText(value: string): string {
   return value.replace(/['+]/g, ' ').slice(0, 140)
 }
 
-function meterIdLooksInvalid(value: string | null): boolean {
-  if (!value) return true
-  return !/^735\d{15}$/.test(value)
-}
-
-function deriveLineReferenceError(
-  lineItemId: string | null,
-  fieldCode: string,
-  text: string,
-  ercCode: string = '41',
-  lineItemReference?: string | null
-): EdielAperakApplicationError {
-  return {
-    ercCode,
-    fieldCode,
-    text,
-    referenceQualifier: lineItemId ? 'Z07' : null,
-    referenceNumber: lineItemId,
-    lineItemReference: lineItemReference ?? null,
-  }
-}
-
-
-function cleanTestDataToken(value: string | null | undefined): string | null {
-  const cleaned = String(value ?? '')
-    .replace(/\([^)]*\)/g, '')
-    .replace(/[^0-9A-Za-zÅÄÖåäö_-]/g, ' ')
-    .trim()
-  if (!cleaned) return null
-  return cleaned.split(/\s+/)[0] ?? null
-}
-
-function testDataValuesForField(testData: EdielTgtCaseTestData | null | undefined, fieldCodes: string[]): string[] {
-  if (!testData) return []
-  const wanted = new Set(fieldCodes.map((code) => code.toUpperCase()))
-  const values: string[] = []
-
-  for (const group of testData.groups) {
-    for (const field of group.fields) {
-      if (!wanted.has(String(field.fieldCode).toUpperCase())) continue
-      for (const value of Object.values(field.values)) {
-        const cleaned = cleanTestDataToken(value)
-        if (cleaned) values.push(cleaned)
-      }
-    }
-  }
-
-  return Array.from(new Set(values))
-}
-
-function hasTestDataField(testData: EdielTgtCaseTestData | null | undefined, fieldCode: string): boolean {
-  if (!testData) return false
-  const wanted = fieldCode.toUpperCase()
-  return testData.groups.some((group) =>
-    group.fields.some((field) =>
-      String(field.fieldCode).toUpperCase() === wanted &&
-      Object.values(field.values).some((value) => Boolean(cleanTestDataToken(value)))
-    )
-  )
-}
-
-function deriveFacilityMismatchErrors(lineItemId: string | null, lineItemReference: string | null): EdielAperakApplicationError[] {
-  return [
-    deriveLineReferenceError(lineItemId, '105', 'Anläggningen kan inte identifieras', '40', lineItemReference),
-    deriveLineReferenceError(lineItemId, '209', 'Anläggningsid avviker från Edielportalens testdata', '42', lineItemReference),
-  ]
-}
-
-function dedupeAperakErrors(errors: EdielAperakApplicationError[]): EdielAperakApplicationError[] {
-  const seen = new Set<string>()
-  const result: EdielAperakApplicationError[] = []
-
-  for (const error of errors) {
-    const key = [
-      error.ercCode,
-      error.fieldCode ?? '',
-      error.referenceQualifier ?? '',
-      error.referenceNumber ?? '',
-      error.lineItemReference ?? '',
-    ].join('|')
-
-    if (seen.has(key)) continue
-    seen.add(key)
-    result.push(error)
-  }
-
-  return result
-}
-
-function explicitTgtScenarioErrors(
-  testData: EdielTgtCaseTestData,
-  lineItemId: string | null,
-  lineItemReference: string | null
-): EdielAperakApplicationError[] | null {
-  const testCase = String(testData.testCaseCode ?? '').toUpperCase()
-
-  // These are backend TGT contracts from Edielportalen. The validator may
-  // compare many fields internally, but the APERAK must contain the exact
-  // controlled error group for the active portal test case.
-  if (testCase === '2.2.1' || testCase === '3.2.1') {
-    return deriveFacilityMismatchErrors(lineItemId, lineItemReference)
-  }
-
-  if (testCase === '2.2.2') {
-    return [deriveLineReferenceError(lineItemId, '218', 'Antal siffror saknas eller avviker från Edielportalens testdata', '42', lineItemReference)]
-  }
-
-  if (testCase === '2.4.2') {
-    return [deriveLineReferenceError(lineItemId, '214', 'Konstant saknas eller avviker från Edielportalens testdata', '41', lineItemReference)]
-  }
-
-  return null
-}
-
-function prodatTgtBusinessErrors(message: EdielMessageRow, testData: EdielTgtCaseTestData | null | undefined): EdielAperakApplicationError[] {
-  if (!testData) return []
-
-  const facts = parseEdifactMessageFacts(message.raw_payload)
-  const code = String(message.message_code ?? facts.messageCode ?? '').toUpperCase()
-  const errors: EdielAperakApplicationError[] = []
-  const expectedFacilityIds = testDataValuesForField(testData, ['209', '233']).filter((value) => /^735\d{15}$/.test(value))
-  const expectedFacilities = new Set(expectedFacilityIds)
-
-  for (const line of facts.lineItems) {
-    const lineItemReference = line.rffLi ?? null
-
-    const scenarioErrors = explicitTgtScenarioErrors(testData, line.itemId, lineItemReference)
-    if (scenarioErrors) {
-      errors.push(...scenarioErrors)
-      continue
-    }
-
-    // Ediel priority: if the object/metering point itself cannot be identified,
-    // do not also emit lower-level field mismatches. The portal expects 40/105
-    // + 42/209 for that scenario, not every derived field difference.
-    if (expectedFacilities.size > 0 && line.itemId && !expectedFacilities.has(line.itemId)) {
-      errors.push(...deriveFacilityMismatchErrors(line.itemId, lineItemReference))
-      continue
-    }
-
-    if (expectedFacilities.size > 0 && !line.itemId) {
-      errors.push(...deriveFacilityMismatchErrors(null, lineItemReference))
-      continue
-    }
-
-    // From here the object is identifiable. Emit only the highest-priority
-    // application error for the line. Backend can compare more fields for audit,
-    // but APERAK must stay controlled and deterministic.
-    if (['Z05', 'Z06', 'Z09', 'Z10'].includes(code) && hasTestDataField(testData, '261') && !line.rffLi) {
-      errors.push(deriveLineReferenceError(line.itemId, '226', 'Ärendereferens saknas', '41', lineItemReference))
-      continue
-    }
-
-    if (['Z04', 'Z06', 'Z10'].includes(code) && hasTestDataField(testData, '214') && !line.hasConstant) {
-      errors.push(deriveLineReferenceError(line.itemId, '214', 'Konstant saknas eller avviker från Edielportalens testdata', '41', lineItemReference))
-      continue
-    }
-
-    if (code === 'Z06' && hasTestDataField(testData, '218') && !line.hasDigitCount) {
-      errors.push(deriveLineReferenceError(line.itemId, '218', 'Antal siffror saknas eller avviker från Edielportalens testdata', '42', lineItemReference))
-      continue
-    }
-
-    if (code === 'Z10' && hasTestDataField(testData, '224') && !line.hasMeterNumber) {
-      errors.push(deriveLineReferenceError(line.itemId, '224', 'Mätarnummer saknas eller avviker från Edielportalens testdata', '41', lineItemReference))
-      continue
-    }
-  }
-
-  return dedupeAperakErrors(errors)
-}
-
-function prodatBusinessErrors(message: EdielMessageRow, testData?: EdielTgtCaseTestData | null): EdielAperakApplicationError[] {
-  const facts = parseEdifactMessageFacts(message.raw_payload)
-  const code = String(message.message_code ?? facts.messageCode ?? '').toUpperCase()
-  const errors: EdielAperakApplicationError[] = []
-
-  const tgtErrors = prodatTgtBusinessErrors(message, testData)
-  if (tgtErrors.length > 0) return tgtErrors
-
-  // TGT S1.4.3 and the general PRODAT rule: a blank RFF+LI means the application
-  // reference to the facility/case is missing. This is an application error, not syntax.
-  if (facts.rawSegments.some((segment) => segment === 'RFF+LI' || segment === 'RFF+LI:')) {
-    return [
-      {
-        ercCode: '41',
-        fieldCode: '319',
-        text: 'Referens till anläggning saknas',
-        referenceQualifier: null,
-        referenceNumber: null,
-        lineItemReference: null,
-      },
-    ]
-  }
-
-  // TGT S1.4.2/S1.4.2B style Z04 returned by the portal. Keep this in the backend
-  // scenario registry layer, not in the UI, because the portal validates exact APERAK groups.
-  if (code === 'Z04' && facts.rawSegments.some((segment) => segment.startsWith('DTM+92:204008010000'))) {
-    const lineItems = facts.lineItems
-    if (lineItems.length >= 3) {
-      return [
-        deriveLineReferenceError('735999888000000123', '210', 'Felaktig avtal, startdatum 2040-08-01', '42', lineItems[0]?.rffLi ?? null),
-        deriveLineReferenceError('735999888000000123', '213', 'Årsförbrukning saknas', '41', lineItems[0]?.rffLi ?? null),
-        deriveLineReferenceError('735999888000000130', '214', 'Konstant saknas', '41', lineItems[1]?.rffLi ?? null),
-        deriveLineReferenceError('735999888000000130', '226', 'Ärendereferens saknas, kundid=196501022773', '41', lineItems[1]?.rffLi ?? null),
-        {
-          ercCode: '100',
-          fieldCode: null,
-          text: 'OK',
-          referenceQualifier: 'Z07',
-          referenceNumber: '735999888000000147',
-          lineItemReference: null,
-        },
-      ]
-    }
-
-    const firstLineId = lineItems[0]?.itemId ?? '735999888000000123'
-    return [
-      deriveLineReferenceError(firstLineId, '210', 'Felaktig avtal, startdatum 2040-08-01', '42', lineItems[0]?.rffLi ?? null),
-      deriveLineReferenceError(firstLineId, '213', 'Årsförbrukning saknas', '41', lineItems[0]?.rffLi ?? null),
-      deriveLineReferenceError(firstLineId, '214', 'Konstant saknas', '41', lineItems[0]?.rffLi ?? null),
-      deriveLineReferenceError(firstLineId, '226', 'Ärendereferens saknas, kundid=196805249288', '41', lineItems[0]?.rffLi ?? null),
-    ]
-  }
-
-  for (const line of facts.lineItems) {
-    if (meterIdLooksInvalid(line.itemId)) {
-      errors.push(deriveLineReferenceError(line.itemId, '105', 'Anläggningen kan inte identifieras', '40', line.rffLi ?? null))
-    }
-
-    if (['Z04', 'Z05', 'Z06', 'Z09', 'Z10'].includes(code) && !line.rffLi && !['Z04'].includes(code)) {
-      errors.push(deriveLineReferenceError(line.itemId, '226', 'Ärendereferens saknas', '41', line.rffLi ?? null))
-    }
-
-    if (['Z04'].includes(code) && !line.hasQty31) {
-      errors.push(deriveLineReferenceError(line.itemId, '213', 'Årsförbrukning saknas', '41', line.rffLi ?? null))
-    }
-
-    if (['Z04', 'Z06', 'Z10'].includes(code) && !line.hasConstant) {
-      errors.push(deriveLineReferenceError(line.itemId, '214', 'Konstant saknas', '41', line.rffLi ?? null))
-    }
-
-    if (['Z06'].includes(code) && !line.hasDigitCount) {
-      errors.push(deriveLineReferenceError(line.itemId, '218', 'Antal siffror saknas', '42', line.rffLi ?? null))
-    }
-
-    if (['Z10'].includes(code) && !line.hasMeterNumber) {
-      errors.push(deriveLineReferenceError(line.itemId, '224', 'Mätarnummer saknas', '41', line.rffLi ?? null))
-    }
-  }
-
-  return dedupeAperakErrors(errors)
-}
-
-function utiltsApplicationDecision(message: EdielMessageRow): { family: AckFamily; outcome?: AckOutcome; errors?: EdielAperakApplicationError[]; messageText?: string | null; matchedRule: string } {
+function utiltsApplicationDecision(message: EdielMessageRow): {
+  family: AckFamily
+  outcome?: AckOutcome
+  errors?: EdielAperakApplicationError[]
+  messageText?: string | null
+  matchedRule: string
+} {
   const raw = String(message.raw_payload ?? '').toUpperCase()
   const validationText = JSON.stringify(message.validation_report ?? {}).toUpperCase()
   const text = `${raw} ${validationText} ${String(message.failure_reason ?? '').toUpperCase()}`
@@ -548,8 +301,6 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
     })
   }
 
-  // TGT S1.5 omsändning: Edielportalen kräver positiv APERAK på korrigerad Z04.
-  // In production, this is still safe because syntax is OK and APERAK is the application ack.
   if (message.message_family === 'PRODAT') {
     if (hasAperak) {
       return decision({
@@ -584,38 +335,28 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
       })
     }
 
-    const businessErrors = prodatBusinessErrors(message, tgtTestData)
-    if (businessErrors.length > 0) {
-      return decision({
-        kind: 'send_negative_aperak',
-        title: 'Affärsfel · skicka negativ APERAK',
-        description: 'Syntaxen är accepterad men affärs-/anvisningsfel hittades i PRODAT.',
-        tone: 'red',
-        action: {
-          ackFamily: 'APERAK',
-          outcome: 'negative',
-          applicationErrors: businessErrors,
-          messageText: businessErrors.map((error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`).join(' | '),
-        },
-        canAutoSend: true,
-        requiresManualReview: false,
-        reasonItems: businessErrors.map((error) => `${error.ercCode}/${error.fieldCode ?? 'OK'} ${error.text}`),
-        syntaxIssues: syntax.issues,
-        matchedRule: 'PRODAT_BUSINESS_ERROR_NEGATIVE_APERAK',
-      })
-    }
-
     return decision({
       kind: 'send_positive_aperak',
-      title: 'Skicka positiv APERAK',
-      description: 'Syntaxen är OK och inga affärsfel hittades. Skicka APERAK OK.',
-      tone: 'green',
-      action: { ackFamily: 'APERAK', outcome: 'positive' },
+      title: 'Skapa APERAK via backend-regler',
+      description:
+        'Syntaxen är OK. När svaret skapas gör backend en ny regelstyrd affärskontroll och kan då skapa positiv eller negativ APERAK.',
+      tone: 'blue',
+      action: {
+        ackFamily: 'APERAK',
+        outcome: 'positive',
+        applicationErrors: null,
+      },
       canAutoSend: true,
       requiresManualReview: false,
-      reasonItems: [isTgtS151CorrectedResend(message) ? 'TGT S1.5.1 omsänd Z04 är syntaktiskt korrekt; portalen begär APERAK på omsändningen.' : tgtTestData ? `TGT-testdata ${tgtTestData.testCaseCode} jämfördes utan affärsfel.` : 'CONTRL/syntaxkedjan är OK eller inte blockerande, och PRODAT-affärskontroll hittade inga fel.'],
+      reasonItems: [
+        'APERAK-felkoder löses inte i UI-rekommendationen.',
+        'Backend läser ediel_aperak_error_rules precis innan APERAK skapas.',
+        tgtTestData
+          ? `TGT-testdata ${tgtTestData.testCaseCode} skickas vidare till backend-resolution.`
+          : 'Ingen TGT-testdata var kopplad till UI-rekommendationen.',
+      ],
       syntaxIssues: syntax.issues,
-      matchedRule: 'PRODAT_POSITIVE_APERAK',
+      matchedRule: 'PRODAT_APERAK_BACKEND_RULE_RESOLUTION',
     })
   }
 
@@ -636,6 +377,7 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
     }
 
     const utiltsDecision = utiltsApplicationDecision(message)
+
     if (utiltsDecision.family === 'UTILTS_ERR') {
       return decision({
         kind: 'send_utilts_err',

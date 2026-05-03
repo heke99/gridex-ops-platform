@@ -56,6 +56,10 @@ import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
 import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage } from '@/lib/ediel/core/ackDecisionEngine'
+import {
+  attachAperakErrorDetailsToMessage,
+  resolveAndStoreProdatAperakErrors,
+} from '@/lib/ediel/core/aperakErrorRuleRegistry'
 import { parseEdielTgtUploadedTestDataFile } from '@/lib/ediel/tgtTestDataFileImport'
 import {
   autoAttachImportedMessageToActiveTgtRun,
@@ -908,6 +912,43 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     throw new Error(`${recommendation.title}: ${recommendation.description}`)
   }
 
+  let backendResolvedAperakErrors: EdielAperakApplicationError[] | null = null
+  let backendRuleKeys: string[] = []
+  let finalOutcome = recommendation.action.outcome
+
+  if (recommendation.action.ackFamily === 'APERAK' && sourceMessage.message_family === 'PRODAT') {
+    const resolved = await resolveAndStoreProdatAperakErrors({
+      message: sourceMessage,
+      testData: tgtTestData,
+    })
+
+    if (resolved.unmappedIssues.length > 0) {
+      await createEdielMessageEvent({
+        actorUserId: context.userId,
+        edielMessageId: sourceMessageId,
+        eventType: 'manual_note',
+        eventStatus: 'error',
+        message: 'Negativ APERAK stoppad: backend saknar APERAK-regel för ett eller flera valideringsfel.',
+        payload: {
+          unmappedIssues: resolved.unmappedIssues,
+          issueCount: resolved.issueCount,
+        },
+      })
+
+      throw new Error(
+        `Negativ APERAK stoppad: saknar backendregel för ${resolved.unmappedIssues
+          .map((issue) => issue.ruleKey)
+          .join(', ')}.`
+      )
+    }
+
+    if (resolved.errors.length > 0) {
+      backendResolvedAperakErrors = resolved.errors
+      backendRuleKeys = resolved.matchedRuleKeys
+      finalOutcome = 'negative'
+    }
+  }
+
   await removeReplaceableAckMessagesForSource({
     actorUserId: context.userId,
     sourceMessageId,
@@ -915,17 +956,29 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     preset: recommendation.title,
   })
 
+  const finalApplicationErrors =
+    recommendation.action.ackFamily === 'APERAK'
+      ? backendResolvedAperakErrors ?? recommendation.action.applicationErrors ?? null
+      : null
+
   const ackMessage = await createAckDraftForMessage({
     actorUserId: context.userId,
     sourceMessageId,
     ackFamily: recommendation.action.ackFamily,
-    outcome: recommendation.action.ackFamily === 'UTILTS_ERR' ? undefined : recommendation.action.outcome,
-    messageText: recommendation.action.messageText ?? null,
-    applicationErrors:
-      recommendation.action.ackFamily === 'APERAK'
-        ? recommendation.action.applicationErrors ?? null
-        : null,
+    outcome: recommendation.action.ackFamily === 'UTILTS_ERR' ? undefined : finalOutcome,
+    messageText:
+      finalApplicationErrors && finalApplicationErrors.length > 0
+        ? finalApplicationErrors.map((error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`).join(' | ')
+        : recommendation.action.messageText ?? null,
+    applicationErrors: finalApplicationErrors,
   })
+
+  if (recommendation.action.ackFamily === 'APERAK' && backendRuleKeys.length > 0) {
+    await attachAperakErrorDetailsToMessage({
+      sourceMessageId,
+      aperakMessageId: ackMessage.id,
+    })
+  }
 
   await sendQueuedEdielMessage({
     actorUserId: context.userId,
@@ -944,11 +997,12 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
       decisionKind: recommendation.kind,
       matchedRule: recommendation.matchedRule,
       ackFamily: recommendation.action.ackFamily,
-      outcome: recommendation.action.outcome ?? null,
+      outcome: finalOutcome ?? null,
       canAutoSend: recommendation.canAutoSend,
       reasonItems: recommendation.reasonItems,
       syntaxIssues: recommendation.syntaxIssues,
-      applicationErrors: recommendation.action.applicationErrors ?? null,
+      applicationErrors: finalApplicationErrors,
+      backendRuleKeys,
     },
   })
 
