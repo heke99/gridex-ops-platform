@@ -119,6 +119,300 @@ function rawHasField(rawText: string, fieldCode: string): boolean {
   return new RegExp(`(^|\\n|\\t|;|,)\\s*${escaped}(\\s|\\t|;|,)`, 'i').test(rawText)
 }
 
+
+export type EdielTgtPayloadComparisonIssue = {
+  fieldCode: string
+  ercCode: string
+  text: string
+  expected: string | null
+  actual: string | null
+  referenceQualifier: string | null
+  referenceNumber: string | null
+  lineItemReference: string | null
+}
+
+type TgtObjectValues = {
+  columnName: string
+  sourceOrder: number
+  fields: Record<string, string>
+}
+
+function normalizeCompare(value: string | null | undefined): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^0-9A-Za-z]+/g, '')
+    .toUpperCase()
+}
+
+function normalizeExpectedValue(value: string | null | undefined): string | null {
+  const cleaned = String(value ?? '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return cleaned.length > 0 ? cleaned : null
+}
+
+function cavValue(raw: string | null | undefined): string | null {
+  const value = String(raw ?? '').replace(/^CAV\+/i, '').trim()
+  if (!value) return null
+  const parts = value.split(':').map((part) => part.trim()).filter(Boolean)
+  return parts.length > 0 ? parts[parts.length - 1] ?? null : null
+}
+
+function cciCavValue(lineSegments: ReturnType<typeof parseEdifactMessageFacts>['segments'], cciCode: string): string | null {
+  for (let index = 0; index < lineSegments.length; index += 1) {
+    const segment = lineSegments[index]
+    if (segment?.raw !== `CCI++${cciCode}`) continue
+    const next = lineSegments[index + 1]
+    if (!next || next.tag !== 'CAV') return null
+    return cavValue(next.raw)
+  }
+  return null
+}
+
+function segmentFirstValue(segments: ReturnType<typeof parseEdifactMessageFacts>['segments'], prefix: string): string | null {
+  const segment = segments.find((item) => item.raw.startsWith(prefix))
+  if (!segment) return null
+  const value = segment.raw.slice(prefix.length).trim()
+  return value.length > 0 ? value.split(':')[0] ?? value : null
+}
+
+function partyIdFromNad(segments: ReturnType<typeof parseEdifactMessageFacts>['segments'], qualifier: string): string | null {
+  const segment = segments.find((item) => item.raw.startsWith(`NAD+${qualifier}+`))
+  const composite = segment?.elements[2] ?? ''
+  const value = composite.split(':')[0]?.trim() ?? ''
+  return value.length > 0 ? value : null
+}
+
+function lineDateTimeValue(segments: ReturnType<typeof parseEdifactMessageFacts>['segments'], qualifiers: string[]): string | null {
+  for (const qualifier of qualifiers) {
+    const segment = segments.find((item) => item.raw.startsWith(`DTM+${qualifier}:`))
+    const value = segment?.raw.replace(`DTM+${qualifier}:`, '').split(':')[0]?.trim() ?? ''
+    if (value) return value
+  }
+  return null
+}
+
+function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['lineItems'][number], fieldCode: string): string | null {
+  const code = fieldCode.toUpperCase()
+  switch (code) {
+    case '209':
+    case '233':
+      return line.itemId
+    case '210':
+      return lineDateTimeValue(line.segments, ['92', '157'])
+    case '214':
+      return cciCavValue(line.segments, 'Z02')
+    case '217':
+      return cciCavValue(line.segments, 'Z04')
+    case '218':
+      return cciCavValue(line.segments, 'Z16')
+    case '222':
+      return cciCavValue(line.segments, 'Z05')
+    case '223':
+      return cciCavValue(line.segments, 'Z13')
+    case '224':
+      return line.rffMg
+    case '254':
+      return cciCavValue(line.segments, 'Z02')
+    case '260':
+      return line.rffZ05
+    case '261':
+      return line.rffLi ?? segmentFirstValue(line.segments, 'RFF+ANJ:')
+    case '262':
+      return partyIdFromNad(line.segments, 'Z02')
+    case '227':
+      return partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV')
+    case '228':
+    case '229':
+    case '231':
+    case '232':
+    case '234':
+    case '235':
+    case '236':
+    case '237':
+      return line.segments.map((segment) => segment.raw).join(' ')
+    default:
+      return null
+  }
+}
+
+function fieldErrorText(fieldCode: string, expected: string | null, actual: string | null): string {
+  const code = fieldCode.toUpperCase()
+  if (code === '105') return 'Anläggningen kan inte identifieras'
+  if (code === '209') return 'Anläggningsid avviker från Edielportalens testdata'
+  if (code === '218') return 'Antal siffror saknas eller avviker från Edielportalens testdata'
+  if (code === '214') return 'Konstant saknas eller avviker från Edielportalens testdata'
+  if (code === '224') return 'Mätarnummer saknas eller avviker från Edielportalens testdata'
+  if (!actual) return `Fält ${fieldCode} saknas i mottaget meddelande`
+  return `Fält ${fieldCode} avviker från Edielportalens testdata`
+}
+
+function issueForField(params: {
+  fieldCode: string
+  expected: string | null
+  actual: string | null
+  lineItemId: string | null
+  lineItemReference: string | null
+}): EdielTgtPayloadComparisonIssue {
+  const ercCode = params.actual ? '42' : '41'
+  return {
+    fieldCode: params.fieldCode,
+    ercCode,
+    text: fieldErrorText(params.fieldCode, params.expected, params.actual),
+    expected: params.expected,
+    actual: params.actual,
+    referenceQualifier: params.lineItemId ? 'Z07' : null,
+    referenceNumber: params.lineItemId,
+    lineItemReference: params.lineItemReference,
+  }
+}
+
+function comparableFieldCodesForMessage(messageCode: string): Set<string> {
+  const common = ['209', '233', '260', '261', '262']
+  if (messageCode === 'Z06') return new Set([...common, '210', '217', '218', '222', '223', '254'])
+  if (messageCode === 'Z10') return new Set([...common, '210', '214', '217', '218', '223', '224', '254'])
+  if (messageCode === 'Z05') return new Set([...common, '210', '217', '223'])
+  if (messageCode === 'Z09') return new Set([...common, '210', '217', '223', '254'])
+  if (messageCode === 'Z04') return new Set([...common, '210', '213', '214', '217', '223'])
+  if (messageCode === 'Z03') return new Set([...common, '210', '213', '217', '223'])
+  return new Set(common)
+}
+
+function testDataObjects(testData: EdielTgtCaseTestData | null | undefined): TgtObjectValues[] {
+  if (!testData) return []
+  const objects: TgtObjectValues[] = []
+
+  for (const group of testData.groups) {
+    const columns = [...group.columns].sort((a, b) => {
+      const sourceOrderDiff = Number(a.sourceOrder ?? a.index) - Number(b.sourceOrder ?? b.index)
+      return sourceOrderDiff !== 0 ? sourceOrderDiff : a.index - b.index
+    })
+
+    for (const column of columns) {
+      const fields: Record<string, string> = {}
+      for (const field of group.fields) {
+        const rawValue = field.values[column.name]
+        const value = normalizeExpectedValue(rawValue)
+        if (!value) continue
+        fields[String(field.fieldCode).toUpperCase()] = value
+      }
+
+      if (Object.keys(fields).length > 0) {
+        objects.push({
+          columnName: column.name,
+          sourceOrder: Number(column.sourceOrder ?? column.index),
+          fields,
+        })
+      }
+    }
+  }
+
+  return objects.sort((a, b) => a.sourceOrder - b.sourceOrder)
+}
+
+function expectedFacilityIdsForObject(object: TgtObjectValues): string[] {
+  return [object.fields['209'], object.fields['233']].filter((value): value is string => Boolean(value && /^735\d{15}$/.test(value)))
+}
+
+function matchExpectedObjectForLine(objects: TgtObjectValues[], lineItemId: string | null): TgtObjectValues | null {
+  if (objects.length === 0) return null
+  if (lineItemId) {
+    const exact = objects.find((object) => expectedFacilityIdsForObject(object).some((id) => normalizeCompare(id) === normalizeCompare(lineItemId)))
+    if (exact) return exact
+  }
+  return objects[0] ?? null
+}
+
+export function compareInboundPayloadToTgtTestData(params: {
+  message: EdielMessageRow
+  testData: EdielTgtCaseTestData | null | undefined
+}): EdielTgtPayloadComparisonIssue[] {
+  const { message, testData } = params
+  if (!testData) return []
+
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  const messageCode = String(message.message_code ?? facts.messageCode ?? '').toUpperCase()
+  const comparableFields = comparableFieldCodesForMessage(messageCode)
+  const objects = testDataObjects(testData)
+  if (objects.length === 0 || facts.lineItems.length === 0) return []
+
+  const issues: EdielTgtPayloadComparisonIssue[] = []
+
+  for (const line of facts.lineItems) {
+    const object = matchExpectedObjectForLine(objects, line.itemId)
+    if (!object) continue
+
+    const expectedFacilities = expectedFacilityIdsForObject(object)
+    if (expectedFacilities.length > 0 && line.itemId && !expectedFacilities.some((id) => normalizeCompare(id) === normalizeCompare(line.itemId))) {
+      issues.push({
+        fieldCode: '105',
+        ercCode: '40',
+        text: 'Anläggningen kan inte identifieras',
+        expected: expectedFacilities[0] ?? null,
+        actual: line.itemId,
+        referenceQualifier: 'Z07',
+        referenceNumber: line.itemId,
+        lineItemReference: line.rffLi,
+      })
+      issues.push({
+        fieldCode: '209',
+        ercCode: '42',
+        text: 'Anläggningsid avviker från Edielportalens testdata',
+        expected: expectedFacilities[0] ?? null,
+        actual: line.itemId,
+        referenceQualifier: 'Z07',
+        referenceNumber: line.itemId,
+        lineItemReference: line.rffLi,
+      })
+      continue
+    }
+
+    for (const [fieldCode, expected] of Object.entries(object.fields)) {
+      if (!comparableFields.has(fieldCode)) continue
+      const actual = lineActualValue(line, fieldCode)
+      if (!actual) {
+        issues.push(issueForField({ fieldCode, expected, actual: null, lineItemId: line.itemId, lineItemReference: line.rffLi }))
+        continue
+      }
+
+      const expectedComparable = normalizeCompare(expected)
+      const actualComparable = normalizeCompare(actual)
+
+      // Address/name fields are represented by whole NAD segments. Treat them as OK if
+      // the expected value appears anywhere in the relevant line block.
+      if (['228', '229', '231', '232', '234', '235', '236', '237'].includes(fieldCode)) {
+        if (!actualComparable.includes(expectedComparable)) {
+          issues.push(issueForField({ fieldCode, expected, actual, lineItemId: line.itemId, lineItemReference: line.rffLi }))
+        }
+        continue
+      }
+
+      if (expectedComparable !== actualComparable) {
+        issues.push(issueForField({ fieldCode, expected, actual, lineItemId: line.itemId, lineItemReference: line.rffLi }))
+      }
+    }
+  }
+
+  const dedupeKey = (issue: EdielTgtPayloadComparisonIssue) => [
+    issue.ercCode,
+    issue.fieldCode,
+    issue.referenceNumber ?? '',
+    issue.lineItemReference ?? '',
+    normalizeCompare(issue.expected),
+    normalizeCompare(issue.actual),
+  ].join('|')
+
+  const seen = new Set<string>()
+  return issues.filter((issue) => {
+    const key = dedupeKey(issue)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 export function inferTgtTestCaseCodeForInboundTestData(params: {
   message: EdielMessageRow
   rawText: string
@@ -227,12 +521,20 @@ export function sourceMessageMarker(sourceMessageId: string): string {
 }
 
 export function rawTextHasSourceMessageMarker(rawText: string | null | undefined, sourceMessageId: string): boolean {
-  return String(rawText ?? '').includes(sourceMessageMarker(sourceMessageId))
+  const text = String(rawText ?? '')
+  return (
+    text.includes(sourceMessageMarker(sourceMessageId)) ||
+    text.includes(`GridCore source_message_id=${sourceMessageId}`) ||
+    text.includes(`source_message_id=${sourceMessageId}`)
+  )
 }
 
 export function findExactTgtTestDataForMessage(
   message: EdielMessageRow,
   rows: readonly EdielTgtDynamicTestDataSummary[]
 ): EdielTgtDynamicTestDataSummary | null {
-  return rows.find((row) => rawTextHasSourceMessageMarker(row.rawText, message.id)) ?? null
+  return rows.find((row) =>
+    rawTextHasSourceMessageMarker(row.rawText, message.id) ||
+    rawTextHasSourceMessageMarker(row.sourceNote, message.id)
+  ) ?? null
 }

@@ -54,7 +54,6 @@ import { listEdielInboundCases } from '@/lib/ediel/inboundCases'
 import { listEdielProdatProductionCandidates } from '@/lib/ediel/prodatContext'
 import { listEdielTgtDynamicTestData, type EdielTgtDynamicTestDataSummary } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage, type EdielAckDecision } from '@/lib/ediel/core/ackDecisionEngine'
-import { findBestTgtTestDataForMessage, findExactTgtTestDataForMessage, messageCodePrefixesForTgtAutoMatch, textForTgtAutoMatch } from '@/lib/ediel/core/tgtAutoMatcher'
 
 export const dynamic = 'force-dynamic'
 
@@ -413,11 +412,53 @@ function extractZ04Reference(rawPayload: string | null | undefined): string | nu
 }
 
 function messageCodePrefixesForTgt(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string[] {
-  return messageCodePrefixesForTgtAutoMatch(message)
+  const family = String(message.message_family ?? '').toUpperCase()
+  const code = String(message.message_code ?? '').toUpperCase()
+
+  if (family === 'PRODAT') {
+    if (code === 'Z03') return ['1.2', '1.3']
+    if (code === 'Z04') return ['1.4', '1.5']
+    if (code === 'Z06') return ['2.1', '2.2']
+    if (code === 'Z10') return ['2.3', '2.4']
+    if (code === 'Z09') return ['2.5']
+    if (code === 'Z05') return ['3.1', '3.2']
+  }
+
+  if (family === 'UTILTS') {
+    if (code === 'S02') return ['U1.1', 'U1.2']
+    if (code === 'S03') return ['U1.3', 'U1.4']
+    if (code === 'E66') return ['U2.1', 'U2.2']
+  }
+
+  return []
 }
 
 function textForTgtMatch(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
-  return textForTgtAutoMatch(message)
+  return [
+    message.raw_payload,
+    message.external_reference,
+    message.transaction_reference,
+    message.interchange_reference,
+    JSON.stringify(message.parsed_payload ?? {}),
+    JSON.stringify(message.validation_report ?? {}),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toUpperCase()
+}
+
+function tgtRowIsLinkedToMessage(row: EdielTgtDynamicTestDataSummary, messageId: string): boolean {
+  const marker = `GRIDCORE_SOURCE_MESSAGE_ID:${messageId}`.toUpperCase()
+  return [row.rawText, row.sourceNote, row.title]
+    .filter(Boolean)
+    .join(' ')
+    .toUpperCase()
+    .includes(marker)
+}
+
+function prodatRequiresExactInboundTestData(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): boolean {
+  if (String(message.message_family ?? '').toUpperCase() !== 'PRODAT') return false
+  return ['Z05', 'Z06', 'Z09', 'Z10'].includes(String(message.message_code ?? '').toUpperCase())
 }
 
 function relevantTgtRowsForMessage(
@@ -427,6 +468,17 @@ function relevantTgtRowsForMessage(
   const family = String(message.message_family ?? '').toUpperCase()
   const suite = family === 'UTILTS' ? 'UTILTS' : family === 'PRODAT' ? 'PRODAT' : null
   if (!suite) return []
+
+  const exactRows = rows
+    .filter((row) => row.testSuite === suite && row.roleCode === 'supplier')
+    .filter((row) => tgtRowIsLinkedToMessage(row, message.id))
+    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+
+  if (exactRows.length > 0) return exactRows
+
+  // For data-driven PRODAT tests, never let old uploads from another inbound row
+  // decide the APERAK. The operator must upload the portal data on this inbound.
+  if (prodatRequiresExactInboundTestData(message)) return []
 
   const prefixes = messageCodePrefixesForTgt(message)
   const text = textForTgtMatch(message)
@@ -444,7 +496,7 @@ function selectedTgtRowForMessage(
   message: Awaited<ReturnType<typeof listEdielMessages>>[number],
   rows: EdielTgtDynamicTestDataSummary[]
 ): EdielTgtDynamicTestDataSummary | null {
-  return findExactTgtTestDataForMessage(message, rows) ?? findBestTgtTestDataForMessage(message, rows) ?? relevantTgtRowsForMessage(message, rows)[0] ?? null
+  return relevantTgtRowsForMessage(message, rows)[0] ?? null
 }
 
 function defaultTestCaseCodeForMessage(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
@@ -508,6 +560,7 @@ function RecommendedAckActionForm({
       <input type="hidden" name="sourceMessageId" value={messageId} />
       {selectedTgtRow ? (
         <>
+          <input type="hidden" name="testDataId" value={selectedTgtRow.id} />
           <input type="hidden" name="testSuite" value={selectedTgtRow.testSuite} />
           <input type="hidden" name="roleCode" value={selectedTgtRow.roleCode} />
           <input type="hidden" name="testCaseCode" value={selectedTgtRow.testCaseCode} />
@@ -572,7 +625,7 @@ function RecommendedAckPanel({
             sourceMessageId={message.id}
             testSuite={message.message_family === 'UTILTS' ? 'UTILTS' : 'PRODAT'}
             roleCode="supplier"
-            defaultTestCaseCode={selectedTgtRow?.testCaseCode ?? defaultTestCaseCodeForMessage(message)}
+            defaultTestCaseCode={selectedTgtRow?.testCaseCode ?? ''}
             defaultTitle={selectedTgtRow?.title ?? ''}
             options={[
               ...(relevantTgtRows && relevantTgtRows.length > 0
