@@ -375,12 +375,31 @@ async function listActiveRules(params: {
   return (data ?? []) as EdielAperakErrorRuleRow[]
 }
 
-function selectRuleForIssue(rules: EdielAperakErrorRuleRow[], issue: EdielAperakValidationIssue, code: string, environment: string): EdielAperakErrorRuleRow | null {
-  return rules.find((rule) =>
+function selectRuleForIssue(
+  rules: EdielAperakErrorRuleRow[],
+  issue: EdielAperakValidationIssue,
+  code: string,
+  environment: string
+): EdielAperakErrorRuleRow | null {
+  const candidates = rules.filter((rule) =>
     rule.rule_key === issue.ruleKey &&
     (rule.message_code === code || rule.message_code === '*') &&
     (rule.environment === environment || rule.environment === 'all')
-  ) ?? null
+  )
+
+  if (candidates.length === 0) return null
+
+  return candidates.sort((a, b) => {
+    const aCodeRank = a.message_code === code ? 0 : 1
+    const bCodeRank = b.message_code === code ? 0 : 1
+    if (aCodeRank !== bCodeRank) return aCodeRank - bCodeRank
+
+    const aEnvRank = a.environment === environment ? 0 : 1
+    const bEnvRank = b.environment === environment ? 0 : 1
+    if (aEnvRank !== bEnvRank) return aEnvRank - bEnvRank
+
+    return (a.priority ?? 9999) - (b.priority ?? 9999)
+  })[0] ?? null
 }
 
 async function insertResolvedDetail(params: {

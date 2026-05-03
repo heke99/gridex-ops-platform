@@ -513,7 +513,7 @@ function resolveAckRecommendation(params: {
     title: decision.title,
     description: decision.description,
     tone: decision.tone,
-    actionLabel: decision.action ? 'Skapa och skicka rekommenderat svar' : null,
+    actionLabel: decision.actionLabel,
     ackFamily: decision.action?.ackFamily,
     outcome: decision.action?.outcome,
     messageText: decision.action?.messageText ?? undefined,

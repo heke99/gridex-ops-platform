@@ -914,6 +914,8 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
 
   let backendResolvedAperakErrors: EdielAperakApplicationError[] | null = null
   let backendRuleKeys: string[] = []
+  let backendIssueCount = 0
+  let backendUnmappedRuleKeys: string[] = []
   let finalOutcome = recommendation.action.outcome
 
   if (recommendation.action.ackFamily === 'APERAK' && sourceMessage.message_family === 'PRODAT') {
@@ -921,6 +923,9 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
       message: sourceMessage,
       testData: tgtTestData,
     })
+
+    backendIssueCount = resolved.issueCount
+    backendUnmappedRuleKeys = resolved.unmappedIssues.map((issue) => issue.ruleKey)
 
     if (resolved.unmappedIssues.length > 0) {
       await createEdielMessageEvent({
@@ -946,6 +951,10 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
       backendResolvedAperakErrors = resolved.errors
       backendRuleKeys = resolved.matchedRuleKeys
       finalOutcome = 'negative'
+    } else {
+      backendResolvedAperakErrors = []
+      backendRuleKeys = []
+      finalOutcome = 'positive'
     }
   }
 
@@ -1003,6 +1012,8 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
       syntaxIssues: recommendation.syntaxIssues,
       applicationErrors: finalApplicationErrors,
       backendRuleKeys,
+      backendIssueCount,
+      backendUnmappedRuleKeys,
     },
   })
 

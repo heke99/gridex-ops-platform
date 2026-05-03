@@ -336,21 +336,23 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
     }
 
     return decision({
-      kind: 'send_positive_aperak',
-      title: 'Skapa APERAK via backend-regler',
+      kind: 'manual_review',
+      title: 'Kör backend-kontroll för APERAK',
       description:
-        'Syntaxen är OK. När svaret skapas gör backend en ny regelstyrd affärskontroll och kan då skapa positiv eller negativ APERAK.',
+        'Syntaxen är OK. UI bestämmer inte positiv eller negativ APERAK för PRODAT; backend gör regelstyrd affärskontroll precis innan APERAK skapas.',
       tone: 'blue',
       action: {
         ackFamily: 'APERAK',
-        outcome: 'positive',
+        outcome: undefined,
         applicationErrors: null,
       },
+      actionLabel: 'Kör backend-kontroll och skapa APERAK',
       canAutoSend: true,
       requiresManualReview: false,
       reasonItems: [
-        'APERAK-felkoder löses inte i UI-rekommendationen.',
+        'UI ska inte förhandsbestämma positiv eller negativ APERAK för PRODAT.',
         'Backend läser ediel_aperak_error_rules precis innan APERAK skapas.',
+        'Om backend hittar valideringsfel skapas negativ APERAK; annars skapas positiv APERAK.',
         tgtTestData
           ? `TGT-testdata ${tgtTestData.testCaseCode} skickas vidare till backend-resolution.`
           : 'Ingen TGT-testdata var kopplad till UI-rekommendationen.',
