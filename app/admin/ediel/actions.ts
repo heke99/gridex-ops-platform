@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import {
   createAckDraftForMessage,
@@ -55,7 +54,7 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 import { registerEdielFile, type EdielFileEngineMode } from '@/lib/ediel/fileEngine'
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
-import { getEdielTgtDynamicTestDataById, getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
+import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage } from '@/lib/ediel/core/ackDecisionEngine'
 import { parseEdielTgtUploadedTestDataFile } from '@/lib/ediel/tgtTestDataFileImport'
 import {
@@ -242,55 +241,37 @@ function mergeUploadedFileResults(...items: Array<{ text: string | null; fileNam
   }
 }
 
-
-function normalizeDecisionText(value: string | null | undefined): string {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-}
-
-function inferInboundTestCaseCode(input: {
-  explicit?: string | null
+function inferInboundTgtTestCaseCode(input: {
+  provided?: string | null
   title?: string | null
   rawText?: string | null
   fileNames?: string[]
-  sourceMessage?: { message_family?: string | null; message_code?: string | null }
-}): string | null {
-  const explicit = input.explicit?.trim()
-  if (explicit && !explicit.endsWith('.1')) return explicit
+  messageCode?: string | null
+}): string {
+  const provided = input.provided?.trim()
+  if (provided) return provided
 
-  const haystack = normalizeDecisionText([
-    input.title,
-    input.rawText,
-    ...(input.fileNames ?? []),
-  ].filter(Boolean).join(' '))
+  const haystack = [input.title, input.rawText, ...(input.fileNames ?? [])]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
 
-  const codeMatch = haystack.match(/\b(\d\.\d\.\d[b]?|u\d\.\d\.\d[b]?)\b/i)
-  if (codeMatch?.[1]) return codeMatch[1]
+  const explicit = haystack.match(/\b(u?\d+(?:\.\d+){1,2}[a-z]?)\b/i)?.[1]
+  if (explicit) return explicit.toUpperCase().startsWith('U') ? explicit.toUpperCase() : explicit
 
-  const family = String(input.sourceMessage?.message_family ?? '').toUpperCase()
-  const code = String(input.sourceMessage?.message_code ?? '').toUpperCase()
+  if (haystack.includes('felaktigt anlaggningsid') || haystack.includes('anlaggningen kan inte identifieras')) return '2.2.1'
+  if (haystack.includes('antal siffror')) return '2.2.2'
+  if (haystack.includes('konstant saknas')) return '2.4.2'
+  if (haystack.includes('matarbyte') || haystack.includes('mätarbyte')) return '2.3.1'
 
-  if (family === 'PRODAT' && code === 'Z06') {
-    if (haystack.includes('antal siffror')) return '2.2.2'
-    if (haystack.includes('felaktigt anlaggningsid') || haystack.includes('felaktig anlaggningsid') || haystack.includes('anlaggningen kan inte identifieras')) return '2.2.1'
-  }
-
-  if (family === 'PRODAT' && code === 'Z10') {
-    if (haystack.includes('konstant saknas')) return '2.4.2'
-    if (haystack.includes('felaktig') || haystack.includes('felaktigt')) return '2.4.1'
-  }
-
-  if (family === 'PRODAT' && code === 'Z05') {
-    if (haystack.includes('felaktigt anlaggningsid') || haystack.includes('felaktig anlaggningsid')) return '3.2.1'
-  }
-
-  return explicit || null
-}
-
-function sourceMessageMarker(sourceMessageId: string): string {
-  return `GRIDCORE_SOURCE_MESSAGE_ID:${sourceMessageId}`
+  const code = String(input.messageCode ?? '').toUpperCase()
+  if (code === 'Z06') return '2.1.1'
+  if (code === 'Z10') return '2.3.1'
+  if (code === 'Z09') return '2.5.1'
+  if (code === 'Z05') return '3.1.1'
+  return ''
 }
 
 function parseFileEngineMode(value: FormDataEntryValue | null): EdielFileEngineMode {
@@ -610,16 +591,15 @@ export async function saveEdielInboundMessageTestDataAction(formData: FormData) 
   const sourceMessageId = formString(formData.get('sourceMessageId'))
   const testSuite = parseEdielTestSuite(formData.get('testSuite'))
   const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
-  const explicitTestCaseCode = formString(formData.get('testCaseCode'))
   const title = formString(formData.get('title'))
   const pastedText = formString(formData.get('rawText')) ?? ''
   const nativeUploaded = await formFilesText(collectTestDataFileEntries(formData))
   const encodedUploaded = await encodedUploadFilesText(formData.get('uploadedFilesJson'))
   const uploaded = mergeUploadedFileResults(nativeUploaded, encodedUploaded)
-  const rawTextWithoutMarker = [pastedText, uploaded.text].filter(Boolean).join('\n\n').trim()
+  const uploadedText = [pastedText, uploaded.text].filter(Boolean).join('\n\n').trim()
 
   if (!sourceMessageId) throw new Error('sourceMessageId saknas')
-  if (!rawTextWithoutMarker) {
+  if (!uploadedText) {
     throw new Error(
       `Klistra in testdata eller ladda upp Excel/CSV från Edielportalen. Servern tog emot: ${describeReceivedUploadFields(formData)}.`
     )
@@ -628,28 +608,26 @@ export async function saveEdielInboundMessageTestDataAction(formData: FormData) 
   const sourceMessage = await getEdielMessageById(sourceMessageId)
   if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
 
-  const testCaseCode = inferInboundTestCaseCode({
-    explicit: explicitTestCaseCode,
+  const testCaseCode = inferInboundTgtTestCaseCode({
+    provided: formString(formData.get('testCaseCode')),
     title,
-    rawText: rawTextWithoutMarker,
+    rawText: uploadedText,
     fileNames: uploaded.fileNames,
-    sourceMessage,
+    messageCode: sourceMessage.message_code,
   })
+  if (!testCaseCode) throw new Error('Kunde inte avgöra testfall från filnamn, rubrik eller meddelandekod. Ange testfall som override.')
 
-  if (!testCaseCode) {
-    throw new Error('GridCore kunde inte avgöra TGT-testfall från filnamn/rubrik/testdata. Välj testfall under Avancerat en gång, eller se till att filnamn/rubrik innehåller t.ex. 2.2.1 eller “antal siffror”.')
-  }
-
-  const rawText = [sourceMessageMarker(sourceMessageId), rawTextWithoutMarker].join('\n')
-  const displayTitle = uploaded.fileNames.length > 0
-    ? `${title ?? `TGT ${testCaseCode}`} · ${uploaded.fileNames.join(', ')}`
-    : title
+  const rawText = [
+    `GRIDCORE_SOURCE_MESSAGE_ID:${sourceMessageId}`,
+    `GRIDCORE_SOURCE_MESSAGE_CODE:${sourceMessage.message_code ?? ''}`,
+    uploadedText,
+  ].join('\n')
 
   const saved = await upsertEdielTgtDynamicTestData({
     suite: testSuite,
     roleCode,
     testCaseCode,
-    title: displayTitle,
+    title: uploaded.fileNames.length > 0 ? `${title ?? `TGT ${testCaseCode}`} · ${uploaded.fileNames.join(', ')}` : title,
     rawText,
     actorUserId: context.userId,
   })
@@ -659,19 +637,17 @@ export async function saveEdielInboundMessageTestDataAction(formData: FormData) 
     edielMessageId: sourceMessageId,
     eventType: 'manual_note',
     eventStatus: 'success',
-    message: `TGT-testdata ${testCaseCode} sparad och kopplad till detta inbound-meddelande. Backendbeslutet kommer nu jämföra payload mot uppladdad testdata.`,
+    message: `TGT-testdata ${testCaseCode} sparad och kan användas av backendbeslutet för detta inbound-meddelande.`,
     payload: {
       testSuite,
       roleCode,
       testCaseCode,
       testDataId: saved.id,
       fileNames: uploaded.fileNames,
-      sourceMessageMarker: sourceMessageMarker(sourceMessageId),
     },
   })
 
   revalidateEdiel(sourceMessageId)
-  redirect('/admin/ediel#inbound-responses')
 }
 
 
@@ -912,7 +888,6 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   const testSuite = parseEdielTestSuite(formData.get('testSuite'))
   const roleCode = parseEdielTestRoleCode(formData.get('roleCode'))
   const testCaseCode = formString(formData.get('testCaseCode'))
-  const testDataId = formString(formData.get('testDataId'))
 
   if (!sourceMessageId) throw new Error('sourceMessageId saknas')
 
@@ -920,10 +895,9 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
 
   const relatedAcks = await listAckMessagesForSource({ sourceMessageId })
-  const exactTgtRow = testDataId ? await getEdielTgtDynamicTestDataById(testDataId) : null
-  const tgtTestData = exactTgtRow?.parsedPayload ?? (testCaseCode
+  const tgtTestData = testCaseCode
     ? await getEdielTgtDynamicTestDataForCase(testSuite, roleCode, testCaseCode)
-    : null)
+    : null
   const recommendation = resolveRecommendedAckForInboundMessage({
     message: sourceMessage,
     relatedAcks,

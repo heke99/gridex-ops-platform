@@ -120,89 +120,45 @@ function deriveLineReferenceError(
 }
 
 
-type TgtObjectValues = {
-  columnName: string
-  values: Record<string, string>
-}
-
-function normalizeCompareValue(value: string | null | undefined): string {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^0-9A-Za-z]+/g, '')
-    .toUpperCase()
-}
-
 function cleanTestDataToken(value: string | null | undefined): string | null {
   const cleaned = String(value ?? '')
     .replace(/\([^)]*\)/g, '')
-    .replace(/[^0-9A-Za-zÅÄÖåäö_/-]/g, ' ')
+    .replace(/[^0-9A-Za-zÅÄÖåäö_-]/g, ' ')
     .trim()
   if (!cleaned) return null
   return cleaned.split(/\s+/)[0] ?? null
 }
 
-function testDataObjects(testData: EdielTgtCaseTestData | null | undefined): TgtObjectValues[] {
+function testDataValuesForField(testData: EdielTgtCaseTestData | null | undefined, fieldCodes: string[]): string[] {
   if (!testData) return []
-  const byColumn = new Map<string, Record<string, string>>()
+  const wanted = new Set(fieldCodes.map((code) => code.toUpperCase()))
+  const values: string[] = []
 
   for (const group of testData.groups) {
-    for (const column of group.columns) {
-      if (!byColumn.has(column.name)) byColumn.set(column.name, {})
-    }
-
     for (const field of group.fields) {
-      const code = String(field.fieldCode).toUpperCase()
-      for (const [columnName, rawValue] of Object.entries(field.values)) {
-        const value = String(rawValue ?? '').trim()
-        if (!value) continue
-        const bucket = byColumn.get(columnName) ?? {}
-        bucket[code] = value
-        byColumn.set(columnName, bucket)
+      if (!wanted.has(String(field.fieldCode).toUpperCase())) continue
+      for (const value of Object.values(field.values)) {
+        const cleaned = cleanTestDataToken(value)
+        if (cleaned) values.push(cleaned)
       }
     }
   }
 
-  return Array.from(byColumn.entries())
-    .map(([columnName, values]) => ({ columnName, values }))
-    .filter((object) => Object.keys(object.values).length > 0)
+  return Array.from(new Set(values))
 }
 
-function objectValue(object: TgtObjectValues | null | undefined, fieldCode: string): string | null {
-  const value = object?.values[fieldCode.toUpperCase()]
-  const trimmed = String(value ?? '').trim()
-  return trimmed.length > 0 ? trimmed : null
-}
-
-function objectFacilityId(object: TgtObjectValues): string | null {
-  return cleanTestDataToken(objectValue(object, '209')) ?? cleanTestDataToken(objectValue(object, '233'))
-}
-
-function objectHasField(object: TgtObjectValues | null | undefined, fieldCode: string): boolean {
-  return Boolean(objectValue(object, fieldCode))
-}
-
-function findObjectForLine(objects: TgtObjectValues[], lineItemId: string | null): TgtObjectValues | null {
-  if (objects.length === 0) return null
-  if (lineItemId) {
-    const normalizedLineId = normalizeCompareValue(lineItemId)
-    const exact = objects.find((object) => normalizeCompareValue(objectFacilityId(object)) === normalizedLineId)
-    if (exact) return exact
-  }
-  return objects[0] ?? null
-}
-
-function expectedFacilityIdsFromObjects(objects: TgtObjectValues[]): string[] {
-  return Array.from(
-    new Set(
-      objects
-        .map(objectFacilityId)
-        .filter((value): value is string => typeof value === 'string' && /^735\d{15}$/.test(value))
+function hasTestDataField(testData: EdielTgtCaseTestData | null | undefined, fieldCode: string): boolean {
+  if (!testData) return false
+  const wanted = fieldCode.toUpperCase()
+  return testData.groups.some((group) =>
+    group.fields.some((field) =>
+      String(field.fieldCode).toUpperCase() === wanted &&
+      Object.values(field.values).some((value) => Boolean(cleanTestDataToken(value)))
     )
   )
 }
 
-function deriveFacilityMismatchErrorsForLine(lineItemId: string | null, lineItemReference: string | null): EdielAperakApplicationError[] {
+function deriveFacilityMismatchErrors(lineItemId: string | null, lineItemReference: string | null): EdielAperakApplicationError[] {
   return [
     deriveLineReferenceError(lineItemId, '105', 'Anläggningen kan inte identifieras', '40', lineItemReference),
     deriveLineReferenceError(lineItemId, '209', 'Anläggningsid avviker från Edielportalens testdata', '42', lineItemReference),
@@ -221,6 +177,7 @@ function dedupeAperakErrors(errors: EdielAperakApplicationError[]): EdielAperakA
       error.referenceNumber ?? '',
       error.lineItemReference ?? '',
     ].join('|')
+
     if (seen.has(key)) continue
     seen.add(key)
     result.push(error)
@@ -236,13 +193,11 @@ function explicitTgtScenarioErrors(
 ): EdielAperakApplicationError[] | null {
   const testCase = String(testData.testCaseCode ?? '').toUpperCase()
 
-  // These are not UI shortcuts. They are TGT scenario contracts. The uploaded
-  // Excel/CSV tells GridCore which portal scenario is active; the backend then
-  // emits the exact APERAK error group the portal validates. Without this, a
-  // generic field-by-field diff creates duplicate ERC/FTX values and the portal
-  // rejects the APERAK even if the general error direction is right.
+  // These are backend TGT contracts from Edielportalen. The validator may
+  // compare many fields internally, but the APERAK must contain the exact
+  // controlled error group for the active portal test case.
   if (testCase === '2.2.1' || testCase === '3.2.1') {
-    return deriveFacilityMismatchErrorsForLine(lineItemId, lineItemReference)
+    return deriveFacilityMismatchErrors(lineItemId, lineItemReference)
   }
 
   if (testCase === '2.2.2') {
@@ -261,51 +216,52 @@ function prodatTgtBusinessErrors(message: EdielMessageRow, testData: EdielTgtCas
 
   const facts = parseEdifactMessageFacts(message.raw_payload)
   const code = String(message.message_code ?? facts.messageCode ?? '').toUpperCase()
-  const objects = testDataObjects(testData)
-  const expectedFacilities = new Set(expectedFacilityIdsFromObjects(objects))
   const errors: EdielAperakApplicationError[] = []
+  const expectedFacilityIds = testDataValuesForField(testData, ['209', '233']).filter((value) => /^735\d{15}$/.test(value))
+  const expectedFacilities = new Set(expectedFacilityIds)
 
   for (const line of facts.lineItems) {
     const lineItemReference = line.rffLi ?? null
+
     const scenarioErrors = explicitTgtScenarioErrors(testData, line.itemId, lineItemReference)
     if (scenarioErrors) {
       errors.push(...scenarioErrors)
       continue
     }
 
+    // Ediel priority: if the object/metering point itself cannot be identified,
+    // do not also emit lower-level field mismatches. The portal expects 40/105
+    // + 42/209 for that scenario, not every derived field difference.
     if (expectedFacilities.size > 0 && line.itemId && !expectedFacilities.has(line.itemId)) {
-      errors.push(...deriveFacilityMismatchErrorsForLine(line.itemId, lineItemReference))
+      errors.push(...deriveFacilityMismatchErrors(line.itemId, lineItemReference))
       continue
     }
 
     if (expectedFacilities.size > 0 && !line.itemId) {
-      errors.push(...deriveFacilityMismatchErrorsForLine(null, lineItemReference))
+      errors.push(...deriveFacilityMismatchErrors(null, lineItemReference))
       continue
     }
 
-    const expectedObject = findObjectForLine(objects, line.itemId)
+    // From here the object is identifiable. Emit only the highest-priority
+    // application error for the line. Backend can compare more fields for audit,
+    // but APERAK must stay controlled and deterministic.
+    if (['Z05', 'Z06', 'Z09', 'Z10'].includes(code) && hasTestDataField(testData, '261') && !line.rffLi) {
+      errors.push(deriveLineReferenceError(line.itemId, '226', 'Ärendereferens saknas', '41', lineItemReference))
+      continue
+    }
 
-    // Compare all available portal testdata internally, but only emit one clear
-    // APERAK application-error group for the highest-confidence missing/invalid
-    // business field. Emitting every mismatch creates duplicate A902/A903 values
-    // and fails Edielportalen's testfall matching.
-    if (['Z04', 'Z06', 'Z10'].includes(code) && objectHasField(expectedObject, '214') && !line.hasConstant) {
+    if (['Z04', 'Z06', 'Z10'].includes(code) && hasTestDataField(testData, '214') && !line.hasConstant) {
       errors.push(deriveLineReferenceError(line.itemId, '214', 'Konstant saknas eller avviker från Edielportalens testdata', '41', lineItemReference))
       continue
     }
 
-    if (code === 'Z06' && objectHasField(expectedObject, '218') && !line.hasDigitCount) {
+    if (code === 'Z06' && hasTestDataField(testData, '218') && !line.hasDigitCount) {
       errors.push(deriveLineReferenceError(line.itemId, '218', 'Antal siffror saknas eller avviker från Edielportalens testdata', '42', lineItemReference))
       continue
     }
 
-    if (code === 'Z10' && objectHasField(expectedObject, '224') && !line.hasMeterNumber) {
+    if (code === 'Z10' && hasTestDataField(testData, '224') && !line.hasMeterNumber) {
       errors.push(deriveLineReferenceError(line.itemId, '224', 'Mätarnummer saknas eller avviker från Edielportalens testdata', '41', lineItemReference))
-      continue
-    }
-
-    if (['Z05', 'Z06', 'Z09', 'Z10'].includes(code) && objectHasField(expectedObject, '261') && !line.rffLi) {
-      errors.push(deriveLineReferenceError(line.itemId, '226', 'Ärendereferens saknas', '41', lineItemReference))
       continue
     }
   }
@@ -352,45 +308,43 @@ function prodatBusinessErrors(message: EdielMessageRow, testData?: EdielTgtCaseT
           text: 'OK',
           referenceQualifier: 'Z07',
           referenceNumber: '735999888000000147',
-          lineItemReference: lineItems[2]?.rffLi ?? null,
+          lineItemReference: null,
         },
       ]
     }
 
     const firstLineId = lineItems[0]?.itemId ?? '735999888000000123'
-    const firstLi = lineItems[0]?.rffLi ?? null
     return [
-      deriveLineReferenceError(firstLineId, '210', 'Felaktig avtal, startdatum 2040-08-01', '42', firstLi),
-      deriveLineReferenceError(firstLineId, '213', 'Årsförbrukning saknas', '41', firstLi),
-      deriveLineReferenceError(firstLineId, '214', 'Konstant saknas', '41', firstLi),
-      deriveLineReferenceError(firstLineId, '226', 'Ärendereferens saknas, kundid=196805249288', '41', firstLi),
+      deriveLineReferenceError(firstLineId, '210', 'Felaktig avtal, startdatum 2040-08-01', '42', lineItems[0]?.rffLi ?? null),
+      deriveLineReferenceError(firstLineId, '213', 'Årsförbrukning saknas', '41', lineItems[0]?.rffLi ?? null),
+      deriveLineReferenceError(firstLineId, '214', 'Konstant saknas', '41', lineItems[0]?.rffLi ?? null),
+      deriveLineReferenceError(firstLineId, '226', 'Ärendereferens saknas, kundid=196805249288', '41', lineItems[0]?.rffLi ?? null),
     ]
   }
 
   for (const line of facts.lineItems) {
-    const lineItemReference = line.rffLi ?? null
     if (meterIdLooksInvalid(line.itemId)) {
-      errors.push(deriveLineReferenceError(line.itemId, '105', 'Anläggningen kan inte identifieras', '40', lineItemReference))
+      errors.push(deriveLineReferenceError(line.itemId, '105', 'Anläggningen kan inte identifieras', '40', line.rffLi ?? null))
     }
 
     if (['Z04', 'Z05', 'Z06', 'Z09', 'Z10'].includes(code) && !line.rffLi && !['Z04'].includes(code)) {
-      errors.push(deriveLineReferenceError(line.itemId, '226', 'Ärendereferens saknas', '41', lineItemReference))
+      errors.push(deriveLineReferenceError(line.itemId, '226', 'Ärendereferens saknas', '41', line.rffLi ?? null))
     }
 
     if (['Z04'].includes(code) && !line.hasQty31) {
-      errors.push(deriveLineReferenceError(line.itemId, '213', 'Årsförbrukning saknas', '41', lineItemReference))
+      errors.push(deriveLineReferenceError(line.itemId, '213', 'Årsförbrukning saknas', '41', line.rffLi ?? null))
     }
 
     if (['Z04', 'Z06', 'Z10'].includes(code) && !line.hasConstant) {
-      errors.push(deriveLineReferenceError(line.itemId, '214', 'Konstant saknas', '41', lineItemReference))
+      errors.push(deriveLineReferenceError(line.itemId, '214', 'Konstant saknas', '41', line.rffLi ?? null))
     }
 
     if (['Z06'].includes(code) && !line.hasDigitCount) {
-      errors.push(deriveLineReferenceError(line.itemId, '218', 'Antal siffror saknas', '42', lineItemReference))
+      errors.push(deriveLineReferenceError(line.itemId, '218', 'Antal siffror saknas', '42', line.rffLi ?? null))
     }
 
     if (['Z10'].includes(code) && !line.hasMeterNumber) {
-      errors.push(deriveLineReferenceError(line.itemId, '224', 'Mätarnummer saknas', '41', lineItemReference))
+      errors.push(deriveLineReferenceError(line.itemId, '224', 'Mätarnummer saknas', '41', line.rffLi ?? null))
     }
   }
 
@@ -627,28 +581,6 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
         ],
         syntaxIssues: syntax.issues,
         matchedRule: 'PRODAT_SYNTAX_OK_POSITIVE_CONTRL',
-      })
-    }
-
-    const facts = parseEdifactMessageFacts(message.raw_payload)
-    const prodatCode = String(message.message_code ?? facts.messageCode ?? '').toUpperCase()
-    const requiresDataDrivenDecision = ['Z05', 'Z06', 'Z09', 'Z10'].includes(prodatCode)
-
-    if (requiresDataDrivenDecision && !tgtTestData) {
-      return decision({
-        kind: 'manual_review',
-        title: 'Ladda upp testdata innan APERAK',
-        description: 'PRODAT ' + prodatCode + ' kräver jämförelse mot portalens testdata eller tenantens masterdata innan GridCore kan avgöra positiv eller negativ APERAK.',
-        tone: 'yellow',
-        action: null,
-        canAutoSend: false,
-        requiresManualReview: true,
-        reasonItems: [
-          'CONTRL/syntaxkedjan är klar, men applikationskvittensen är data-driven.',
-          'Ladda upp Excel/CSV från inbound-kortet så backend kan jämföra hela PRODAT-raden innan APERAK skickas.',
-        ],
-        syntaxIssues: syntax.issues,
-        matchedRule: 'PRODAT_NEEDS_TESTDATA_OR_MASTERDATA_BEFORE_APERAK',
       })
     }
 

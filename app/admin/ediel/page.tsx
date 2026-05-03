@@ -447,20 +447,6 @@ function textForTgtMatch(message: Awaited<ReturnType<typeof listEdielMessages>>[
     .toUpperCase()
 }
 
-function tgtRowIsLinkedToMessage(row: EdielTgtDynamicTestDataSummary, messageId: string): boolean {
-  const marker = `GRIDCORE_SOURCE_MESSAGE_ID:${messageId}`.toUpperCase()
-  return [row.rawText, row.sourceNote, row.title]
-    .filter(Boolean)
-    .join(' ')
-    .toUpperCase()
-    .includes(marker)
-}
-
-function prodatRequiresExactInboundTestData(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): boolean {
-  if (String(message.message_family ?? '').toUpperCase() !== 'PRODAT') return false
-  return ['Z05', 'Z06', 'Z09', 'Z10'].includes(String(message.message_code ?? '').toUpperCase())
-}
-
 function relevantTgtRowsForMessage(
   message: Awaited<ReturnType<typeof listEdielMessages>>[number],
   rows: EdielTgtDynamicTestDataSummary[]
@@ -469,22 +455,18 @@ function relevantTgtRowsForMessage(
   const suite = family === 'UTILTS' ? 'UTILTS' : family === 'PRODAT' ? 'PRODAT' : null
   if (!suite) return []
 
-  const exactRows = rows
-    .filter((row) => row.testSuite === suite && row.roleCode === 'supplier')
-    .filter((row) => tgtRowIsLinkedToMessage(row, message.id))
-    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
-
-  if (exactRows.length > 0) return exactRows
-
-  // For data-driven PRODAT tests, never let old uploads from another inbound row
-  // decide the APERAK. The operator must upload the portal data on this inbound.
-  if (prodatRequiresExactInboundTestData(message)) return []
-
   const prefixes = messageCodePrefixesForTgt(message)
   const text = textForTgtMatch(message)
 
-  return rows
-    .filter((row) => row.testSuite === suite && row.roleCode === 'supplier')
+  const scopedRows = rows.filter((row) => row.testSuite === suite && row.roleCode === 'supplier')
+  const exactMarker = `GRIDCORE_SOURCE_MESSAGE_ID:${message.id}`
+  const exactRows = scopedRows.filter((row) => String(row.rawText ?? '').includes(exactMarker))
+
+  if (exactRows.length > 0) {
+    return exactRows.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+  }
+
+  return scopedRows
     .filter((row) => {
       if (text.includes(String(row.testCaseCode).toUpperCase())) return true
       return prefixes.some((prefix) => row.testCaseCode === prefix || row.testCaseCode.startsWith(`${prefix}.`) || row.testCaseCode.startsWith(`${prefix}b`))
@@ -560,7 +542,6 @@ function RecommendedAckActionForm({
       <input type="hidden" name="sourceMessageId" value={messageId} />
       {selectedTgtRow ? (
         <>
-          <input type="hidden" name="testDataId" value={selectedTgtRow.id} />
           <input type="hidden" name="testSuite" value={selectedTgtRow.testSuite} />
           <input type="hidden" name="roleCode" value={selectedTgtRow.roleCode} />
           <input type="hidden" name="testCaseCode" value={selectedTgtRow.testCaseCode} />
