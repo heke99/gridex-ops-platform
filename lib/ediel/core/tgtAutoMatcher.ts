@@ -487,24 +487,40 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
   const rowCode = row.testCaseCode.toUpperCase()
   const facilityMismatch = hasFacilityMismatch(message, row.parsedPayload)
 
+  let matchingFacilities = 0
+  let mismatchingFacilities = 0
+
   if (expectedFacilities.length > 0) {
     score += 10
     const expected = new Set(expectedFacilities)
-    const matching = actualFacilities.filter((id) => expected.has(id)).length
-    const mismatching = actualFacilities.filter((id) => !expected.has(id)).length
-    score += matching * 5
-    score += mismatching * 80
+    matchingFacilities = actualFacilities.filter((id) => expected.has(id)).length
+    mismatchingFacilities = actualFacilities.filter((id) => !expected.has(id)).length
+
+    // Correct TGT/masterdata row selection must be identity-first, but not
+    // identity-only. A row whose facility matches the inbound message is a
+    // better masterdata source for detail validation than an unrelated row that
+    // merely produces an object mismatch. This is also the production rule:
+    // validate detail fields only after the object is identified.
+    score += matchingFacilities * 700
+    score += mismatchingFacilities * 20
   }
 
-  // Object identity failures are the highest-priority PRODAT negative APERAK
-  // scenario. Prefer TGT rows whose testdata/masterdata proves the inbound
-  // facility is not identifiable over rows that merely expose lower-level field
-  // differences such as digit count or time-series product.
-  if (facilityMismatch) score += 500
-  if (facilityMismatch && (rowCode === '1.3.1' || rowCode === '2.2.1' || rowCode === '3.2.1')) score += 500
+  const isObjectFailureCase = rowCode === '1.3.1' || rowCode === '2.2.1' || rowCode === '3.2.1'
+  const isDigitCountCase = rowCode === '2.2.2'
+  const isConstantCase = rowCode === '2.4.2'
 
-  // If row contains exact fields that match a negative scenario, prefer it over older positive rows,
-  // but do not let detail-field scenarios outrank proven object-identity failures above.
+  if (facilityMismatch && isObjectFailureCase && matchingFacilities === 0) {
+    score += 500
+  }
+
+  // Detail-error TGT rows should win when the object is identified and the
+  // inbound payload actually contains the matching detail problem. Without this
+  // boost a generic positive row, or an unrelated object-mismatch row, can be
+  // selected and the APERAK becomes false positive (ERC 100/OK).
+  if (isDigitCountCase && payloadHasMissingDigitCount(message)) score += 650
+  if (isConstantCase && payloadHasMissingConstant(message)) score += 650
+
+  // If row contains exact fields that match a negative scenario, prefer it over older positive rows.
   if (rowCode.startsWith('2.2') || rowCode.startsWith('2.4') || rowCode.startsWith('3.2') || rowCode.includes('U2.2') || rowCode.includes('U1.2') || rowCode.includes('U1.4')) {
     score += 15
   }

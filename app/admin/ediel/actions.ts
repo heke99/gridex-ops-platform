@@ -63,7 +63,7 @@ import {
 } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage } from '@/lib/ediel/core/ackDecisionEngine'
 import { validateAckPreflight } from '@/lib/ediel/core/ackPreflight'
-import { findBestTgtTestDataForMessage } from '@/lib/ediel/core/tgtAutoMatcher'
+import { findBestTgtTestDataForMessage, findExactTgtTestDataForMessage, scoreTgtTestDataForMessage } from '@/lib/ediel/core/tgtAutoMatcher'
 import {
   attachAperakErrorDetailsToMessage,
   resolveAndStoreProdatAperakErrors,
@@ -302,14 +302,34 @@ async function resolveTgtTestDataForAckAction(params: {
   }
 
   const rows = (await listEdielTgtDynamicTestData()).filter((row) => row.testSuite === testSuite && row.roleCode === roleCode)
-  const best = findBestTgtTestDataForMessage(message, rows)
+  const exact = findExactTgtTestDataForMessage(message, rows)
+  if (exact) return { testData: exact.parsedPayload, selectedRow: exact, requestedTestData }
 
+  const best = findBestTgtTestDataForMessage(message, rows)
   if (!best) return { testData: requestedTestData, selectedRow: null, requestedTestData }
 
+  const requestedRow = requestedTestCaseCode
+    ? rows.find((row) => row.testCaseCode.toUpperCase() === requestedTestCaseCode.toUpperCase()) ?? null
+    : null
+
+  if (requestedRow) {
+    const requestedScore = scoreTgtTestDataForMessage(message, requestedRow)
+    const bestScore = scoreTgtTestDataForMessage(message, best)
+
+    // Hidden UI/test selection may be stale, but it may also be the strongest
+    // signal when the operator has just attached the active Edielportal testdata.
+    // Use the requested row when it is a valid candidate and not clearly worse
+    // than the auto-selected row. This prevents a positive/general row from
+    // overriding a known negative detail test such as 2.2.2 (digit count missing).
+    if (requestedScore >= 0 && requestedScore + 100 >= bestScore) {
+      return { testData: requestedRow.parsedPayload, selectedRow: requestedRow, requestedTestData }
+    }
+  }
+
   // The backend must not blindly trust a stale hidden UI row. When the actual
-  // inbound payload matches another imported TGT row better, use that row as the
-  // masterdata simulator for validation. This keeps production logic generic:
-  // identity validation first, then detail validation only when identity is OK.
+  // inbound payload matches another imported TGT row clearly better, use that row
+  // as the masterdata simulator for validation. This keeps production logic
+  // generic: identity validation first, then detail validation only when identity is OK.
   return { testData: best.parsedPayload, selectedRow: best, requestedTestData }
 }
 
