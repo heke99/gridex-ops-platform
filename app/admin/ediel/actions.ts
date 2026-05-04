@@ -258,6 +258,40 @@ function mergeUploadedFileResults(...items: Array<{ text: string | null; fileNam
   }
 }
 
+
+function normalizeTgtUploadFieldValue(value: string | null | undefined): string {
+  const tokens = String(value ?? '')
+    .replace(/\([^)]*\)/g, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^0-9A-Za-z_-]+/g, ' ')
+    .trim()
+    .toUpperCase()
+    .split(/\s+/)
+    .filter(Boolean)
+
+  return tokens[tokens.length - 1] ?? ''
+}
+
+function uploadedTextValuesForFieldCode(rawText: string | null | undefined, fieldCode: string): string[] {
+  const text = String(rawText ?? '')
+  const values: string[] = []
+  const escaped = fieldCode.replace(/[.*+?^${}()|\[\]\\]/g, '\\$&')
+  const pattern = new RegExp(String.raw`(?:^|\n|\r|;|,)\s*${escaped}(?:[^0-9A-Za-z\n\r;,]+)([^\n\r;,]+)`, 'gi')
+  for (const match of text.matchAll(pattern)) {
+    const value = normalizeTgtUploadFieldValue(match[1])
+    if (value) values.push(value)
+  }
+  return Array.from(new Set(values))
+}
+
+function uploadedTextHasSameNewAndOldMeterNumber(rawText: string | null | undefined): boolean {
+  const newMeters = uploadedTextValuesForFieldCode(rawText, '224')
+  const oldMeters = uploadedTextValuesForFieldCode(rawText, '225')
+  if (newMeters.length === 0 || oldMeters.length === 0) return false
+  return newMeters.some((value) => oldMeters.includes(value))
+}
+
 function inferInboundTgtTestCaseCode(input: {
   provided?: string | null
   title?: string | null
@@ -266,7 +300,6 @@ function inferInboundTgtTestCaseCode(input: {
   messageCode?: string | null
 }): string {
   const provided = input.provided?.trim()
-  if (provided) return provided
 
   const haystack = [input.title, input.rawText, ...(input.fileNames ?? [])]
     .filter(Boolean)
@@ -292,8 +325,26 @@ function inferInboundTgtTestCaseCode(input: {
   // Semantic Z10 error markers override generic copied case labels. This is not
   // ERC/FTX hardcoding; it only selects the validation path. DB rules still map
   // meter_number_invalid -> 42/224.
-  if (code === 'Z10' && hasMeterNumberWord && hasInvalidMeterNumberWord) return '2.4.1'
+  if (code === 'Z10' && ((hasMeterNumberWord && hasInvalidMeterNumberWord) || uploadedTextHasSameNewAndOldMeterNumber(input.rawText))) return '2.4.1'
   if (code === 'Z10' && haystack.includes('konstant saknas')) return '2.4.2'
+
+  if (provided) {
+    const allowedPrefixes =
+      code === 'Z03' ? ['1.2', '1.3'] :
+      code === 'Z04' ? ['1.4', '1.5'] :
+      code === 'Z06' ? ['2.1', '2.2'] :
+      code === 'Z10' ? ['2.3', '2.4'] :
+      code === 'Z09' ? ['2.5'] :
+      code === 'Z05' ? ['3.1', '3.2'] :
+      code === 'S02' ? ['U1.1', 'U1.2'] :
+      code === 'S03' ? ['U1.3', 'U1.4'] :
+      code === 'E66' ? ['U2.1', 'U2.2'] :
+      []
+    const normalizedProvided = provided.toUpperCase()
+    if (allowedPrefixes.length === 0 || allowedPrefixes.some((prefix) => normalizedProvided === prefix || normalizedProvided.startsWith(`${prefix}.`) || normalizedProvided.startsWith(`${prefix}B`))) {
+      return normalizedProvided
+    }
+  }
 
   const explicit = haystack.match(/\b(u?\d+(?:\.\d+){1,2}[a-z]?)\b/i)?.[1]
   if (explicit) {
@@ -316,7 +367,7 @@ function inferInboundTgtTestCaseCode(input: {
   }
 
   if (haystack.includes('felaktigt anlaggningsid') || haystack.includes('anlaggningen kan inte identifieras')) return '2.2.1'
-  if (hasMeterNumberWord && hasInvalidMeterNumberWord) return '2.4.1'
+  if ((hasMeterNumberWord && hasInvalidMeterNumberWord) || uploadedTextHasSameNewAndOldMeterNumber(input.rawText)) return '2.4.1'
   if (haystack.includes('konstant saknas')) return '2.4.2'
   if (haystack.includes('antal siffror')) return '2.2.2'
   if (haystack.includes('matarbyte') || haystack.includes('mätarbyte')) return '2.3.1'

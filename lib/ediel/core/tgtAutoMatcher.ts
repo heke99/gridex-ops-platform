@@ -143,8 +143,58 @@ function firstMeterNumber(message: EdielMessageRow): string | null {
 }
 
 function rawHasField(rawText: string, fieldCode: string): boolean {
-  const escaped = fieldCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const escaped = fieldCode.replace(/[.*+?^${}()|\[\]\\]/g, '\\$&')
   return new RegExp(`(^|\\n|\\t|;|,)\\s*${escaped}(\\s|\\t|;|,)`, 'i').test(rawText)
+}
+
+
+function normalizeTgtFieldValue(value: string | null | undefined): string {
+  const tokens = String(value ?? '')
+    .replace(/\([^)]*\)/g, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^0-9A-Za-z_-]+/g, ' ')
+    .trim()
+    .toUpperCase()
+    .split(/\s+/)
+    .filter(Boolean)
+
+  return tokens[tokens.length - 1] ?? ''
+}
+
+function valuesByFieldCodeFromRawText(rawText: string, fieldCode: string): string[] {
+  const values: string[] = []
+  const escaped = fieldCode.replace(/[.*+?^${}()|\[\]\\]/g, '\\$&')
+  const pattern = new RegExp(String.raw`(?:^|\n|\r|;|,)\s*${escaped}(?:[^0-9A-Za-z\n\r;,]+)([^\n\r;,]+)`, 'gi')
+  for (const match of rawText.matchAll(pattern)) {
+    const value = normalizeTgtFieldValue(match[1])
+    if (value) values.push(value)
+  }
+  return unique(values)
+}
+
+export function tgtRawTextHasSameNewAndOldMeterNumber(rawText: string | null | undefined): boolean {
+  const text = String(rawText ?? '')
+  const newMeters = valuesByFieldCodeFromRawText(text, '224')
+  const oldMeters = valuesByFieldCodeFromRawText(text, '225')
+  if (newMeters.length === 0 || oldMeters.length === 0) return false
+  return newMeters.some((value) => oldMeters.includes(value))
+}
+
+export function tgtTestDataHasSameNewAndOldMeterNumber(testData: EdielTgtCaseTestData | null | undefined): boolean {
+  if (!testData) return false
+  for (const group of testData.groups) {
+    const newField = group.fields.find((field) => String(field.fieldCode).toUpperCase() === '224')
+    const oldField = group.fields.find((field) => String(field.fieldCode).toUpperCase() === '225')
+    if (!newField || !oldField) continue
+    const columnNames = new Set([...Object.keys(newField.values), ...Object.keys(oldField.values)])
+    for (const columnName of columnNames) {
+      const newValue = normalizeTgtFieldValue(newField.values[columnName])
+      const oldValue = normalizeTgtFieldValue(oldField.values[columnName])
+      if (newValue && oldValue && newValue === oldValue) return true
+    }
+  }
+  return false
 }
 
 
@@ -228,7 +278,7 @@ export function effectiveTgtTestCaseCodeForMessageRow(
   // digit-count/detail comparisons. Keep ERC/FTX in DB; only choose the semantic
   // TGT case/rule-key flow here.
   if (family === 'PRODAT' && code === 'Z10') {
-    if (textLooksLikeZ10MeterNumberInvalid(rawText)) return '2.4.1'
+    if (textLooksLikeZ10MeterNumberInvalid(rawText) || tgtRawTextHasSameNewAndOldMeterNumber(rawText)) return '2.4.1'
     if (textLooksLikeConstantMissing(rawText)) return '2.4.2'
   }
 
@@ -562,15 +612,16 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
   const text = textForTgtAutoMatch(message)
 
   const explicit = String(fallback ?? '').trim()
-  if (explicit && explicit.toLowerCase() !== 'auto') return explicit
 
   // Semantic Z10 negative markers must override generic/older copied case labels.
   // This keeps the rule production-safe: we do not map to ERC/FTX here; we only
   // choose the rule-key path. The DB still resolves meter_number_invalid -> 42/224.
   if (family === 'PRODAT' && code === 'Z10') {
-    if (textLooksLikeZ10MeterNumberInvalid(rawText)) return '2.4.1'
+    if (textLooksLikeZ10MeterNumberInvalid(rawText) || tgtRawTextHasSameNewAndOldMeterNumber(rawText)) return '2.4.1'
     if (textLooksLikeConstantMissing(rawText) || rawHasField(rawText, '214')) return '2.4.2'
   }
+
+  if (explicit && explicit.toLowerCase() !== 'auto' && tgtCaseCodeMatchesMessage(message, explicit)) return explicit.toUpperCase()
 
   // If copied/exported data mentions a test case code, trust it after the
   // semantic Z10 overrides above.
@@ -586,7 +637,7 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
     }
 
     if (code === 'Z10') {
-      if (payloadHasSameMeterNumber(message) || textLooksLikeZ10MeterNumberInvalid(rawText)) return '2.4.1'
+      if (payloadHasSameMeterNumber(message) || textLooksLikeZ10MeterNumberInvalid(rawText) || tgtRawTextHasSameNewAndOldMeterNumber(rawText)) return '2.4.1'
       if (payloadHasMissingConstant(message) || textLooksLikeConstantMissing(rawText) || rawHasField(rawText, '214')) return '2.4.2'
       if (hasRawFacilityMismatch(message, rawText)) return '2.4.1'
       return '2.3.1'
@@ -694,7 +745,7 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
   const rowText = [row.title, row.sourceNote, row.rawText].filter(Boolean).join(' ')
   const isSameMeterNumberCase = rowCode === '2.4.1'
   const isConstantCase = rowCode === '2.4.2'
-  const rowLooksLikeSameMeterNumber = textLooksLikeZ10MeterNumberInvalid(rowText)
+  const rowLooksLikeSameMeterNumber = textLooksLikeZ10MeterNumberInvalid(rowText) || tgtRawTextHasSameNewAndOldMeterNumber(rowText) || tgtTestDataHasSameNewAndOldMeterNumber(row.parsedPayload)
   const rowLooksLikeConstantMissing = textLooksLikeConstantMissing(rowText)
   const isKnownPositiveProdatCase = ['2.3.1', '2.3.2', '2.5.1', '2.5.2', '2.5.3', '3.1.1', '3.1.2'].includes(rowCode)
 

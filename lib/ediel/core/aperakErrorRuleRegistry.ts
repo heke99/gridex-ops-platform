@@ -2,7 +2,11 @@
 
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
-import { compareInboundPayloadToTgtTestData, type EdielTgtPayloadComparisonIssue } from '@/lib/ediel/core/tgtAutoMatcher'
+import {
+  compareInboundPayloadToTgtTestData,
+  tgtTestDataHasSameNewAndOldMeterNumber,
+  type EdielTgtPayloadComparisonIssue,
+} from '@/lib/ediel/core/tgtAutoMatcher'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
 import { supabaseService } from '@/lib/supabase/service'
@@ -280,7 +284,7 @@ function deriveTgtScenarioExpectedIssues(params: {
   const messageFamily = String(message.message_family ?? '').toUpperCase()
   const messageCode = String(message.message_code ?? '').toUpperCase()
 
-  if (messageFamily === 'PRODAT' && messageCode === 'Z10' && (testCaseCode === '2.4.1' || messageLooksLikeSameMeterNumberChange(message))) {
+  if (messageFamily === 'PRODAT' && messageCode === 'Z10' && (testCaseCode === '2.4.1' || messageLooksLikeSameMeterNumberChange(message) || tgtTestDataHasSameNewAndOldMeterNumber(testData))) {
     const meterNumber = firstMeterNumberFromMessage(message)
     return [
       issueForTgtScenario({
