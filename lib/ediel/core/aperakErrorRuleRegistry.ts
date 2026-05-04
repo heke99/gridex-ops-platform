@@ -173,12 +173,242 @@ function issueFromTgtComparison(
   })
 }
 
+type LineReferenceContext = {
+  meteringPointId: string | null
+  transactionReference: string | null
+}
+
+function firstLineReferenceContext(message: EdielMessageRow): LineReferenceContext {
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  const firstLine = facts.lineItems[0]
+
+  return {
+    meteringPointId: firstLine?.itemId ?? null,
+    transactionReference: firstLine?.rffLi ?? asString(message.transaction_reference),
+  }
+}
+
+function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined): string {
+  return String(testData?.testCaseCode ?? '').trim().toUpperCase()
+}
+
+function issueForTgtScenario(params: {
+  ruleKey: string
+  fieldPath: string
+  fieldValue: string | null
+  expectedValue: string | null
+  meteringPointId: string | null
+  transactionReference: string | null
+  sourceOrder: number
+  fallbackText: string
+}): EdielAperakValidationIssue {
+  return issue({
+    ruleKey: params.ruleKey,
+    fieldPath: params.fieldPath,
+    fieldValue: params.fieldValue,
+    expectedValue: params.expectedValue,
+    meteringPointId: params.meteringPointId,
+    transactionReference: params.transactionReference,
+    sourceOrder: params.sourceOrder,
+    fallbackText: params.fallbackText,
+  })
+}
+
+function deriveTgtScenarioExpectedIssues(params: {
+  message: EdielMessageRow
+  testData: EdielTgtCaseTestData
+}): EdielAperakValidationIssue[] {
+  const { message, testData } = params
+  const testCaseCode = normalizedTgtCaseCode(testData)
+  const { meteringPointId, transactionReference } = firstLineReferenceContext(message)
+  const expectedFacilityIds = testDataValuesForField(testData, ['209', '233']).filter((value) => /^735\d{15}$/.test(value))
+  let sourceOrder = 0
+
+  // TGT object identity failures are transaction-blocking. According to the
+  // PRODAT/APERAK TGT cases, once the object/metering point cannot be identified,
+  // the APERAK shall report the object error instead of continuing with lower-level
+  // field comparisons such as digit count or time-series product.
+  if (['1.3.1', '2.2.1', '3.2.1'].includes(testCaseCode)) {
+    return [
+      issueForTgtScenario({
+        ruleKey: 'facility_not_identified',
+        fieldPath: 'TGT/FIELD/105',
+        fieldValue: meteringPointId,
+        expectedValue: expectedFacilityIds.join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'The object could not be identified',
+      }),
+      issueForTgtScenario({
+        ruleKey: 'metering_point_id_mismatch',
+        fieldPath: 'TGT/FIELD/209',
+        fieldValue: meteringPointId,
+        expectedValue: expectedFacilityIds.join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: meteringPointId ? `Felaktigt anläggningsid ${meteringPointId}` : 'Felaktigt anläggningsid',
+      }),
+    ]
+  }
+
+  if (testCaseCode === '1.3.2') {
+    return [
+      issueForTgtScenario({
+        ruleKey: 'grid_area_id_invalid',
+        fieldPath: 'TGT/FIELD/260',
+        fieldValue: null,
+        expectedValue: testDataValuesForField(testData, ['260']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Felaktigt nätområdesid',
+      }),
+    ]
+  }
+
+  if (testCaseCode === '1.3.3') {
+    return [
+      issueForTgtScenario({
+        ruleKey: 'transaction_type_invalid',
+        fieldPath: 'TGT/FIELD/223',
+        fieldValue: null,
+        expectedValue: testDataValuesForField(testData, ['223']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Felaktig transaktionstyp',
+      }),
+      issueForTgtScenario({
+        ruleKey: 'case_reference_missing',
+        fieldPath: 'TGT/FIELD/226',
+        fieldValue: transactionReference,
+        expectedValue: testDataValuesForField(testData, ['226', '261']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Ärendereferens saknas',
+      }),
+      issueForTgtScenario({
+        ruleKey: 'balance_responsible_invalid',
+        fieldPath: 'TGT/FIELD/262',
+        fieldValue: null,
+        expectedValue: testDataValuesForField(testData, ['262']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Felaktig balansansvarig',
+      }),
+    ]
+  }
+
+  if (testCaseCode === '1.3.4') {
+    return [
+      issueForTgtScenario({
+        ruleKey: 'agreement_start_date_invalid',
+        fieldPath: 'TGT/FIELD/210',
+        fieldValue: null,
+        expectedValue: testDataValuesForField(testData, ['210']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Felaktigt startdatum',
+      }),
+    ]
+  }
+
+  if (testCaseCode === '1.4.2' || testCaseCode === '1.4.2B') {
+    return [
+      issueForTgtScenario({
+        ruleKey: 'agreement_start_date_invalid',
+        fieldPath: 'TGT/FIELD/210',
+        fieldValue: null,
+        expectedValue: testDataValuesForField(testData, ['210']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Felaktigt startdatum',
+      }),
+      issueForTgtScenario({
+        ruleKey: 'annual_consumption_missing',
+        fieldPath: 'TGT/FIELD/213',
+        fieldValue: null,
+        expectedValue: testDataValuesForField(testData, ['213']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Årsförbrukning saknas',
+      }),
+      issueForTgtScenario({
+        ruleKey: 'constant_missing',
+        fieldPath: 'TGT/FIELD/214',
+        fieldValue: null,
+        expectedValue: testDataValuesForField(testData, ['214']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Konstant saknas',
+      }),
+      issueForTgtScenario({
+        ruleKey: 'case_reference_missing',
+        fieldPath: 'TGT/FIELD/226',
+        fieldValue: transactionReference,
+        expectedValue: testDataValuesForField(testData, ['226', '261']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Ärendereferens saknas',
+      }),
+    ]
+  }
+
+  if (testCaseCode === '2.2.2') {
+    return [
+      issueForTgtScenario({
+        ruleKey: 'digit_count_missing',
+        fieldPath: 'TGT/FIELD/218',
+        fieldValue: null,
+        expectedValue: testDataValuesForField(testData, ['218']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Antal siffror saknas',
+      }),
+    ]
+  }
+
+  if (testCaseCode === '2.4.2') {
+    return [
+      issueForTgtScenario({
+        ruleKey: 'constant_missing',
+        fieldPath: 'TGT/FIELD/214',
+        fieldValue: null,
+        expectedValue: testDataValuesForField(testData, ['214']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: 'Konstant saknas',
+      }),
+    ]
+  }
+
+  return []
+}
+
+function isObjectBlockingRuleKey(ruleKey: string): boolean {
+  return ruleKey === 'facility_not_identified' || ruleKey === 'metering_point_id_mismatch' || ruleKey === 'facility_id_mismatch'
+}
+
 function deriveTgtAperakValidationIssues(params: {
   message: EdielMessageRow
   testData?: EdielTgtCaseTestData | null
 }): EdielAperakValidationIssue[] {
   const { message, testData } = params
   if (!testData) return []
+
+  const scenarioIssues = deriveTgtScenarioExpectedIssues({ message, testData })
+  if (scenarioIssues.length > 0) return dedupeIssues(scenarioIssues)
 
   const comparisons = compareInboundPayloadToTgtTestData({ message, testData })
   const issues: EdielAperakValidationIssue[] = []
@@ -187,6 +417,9 @@ function deriveTgtAperakValidationIssues(params: {
     const item = issueFromTgtComparison(comparison, issues.length)
     if (item) issues.push(item)
   }
+
+  const objectBlockingIssues = issues.filter((item) => isObjectBlockingRuleKey(item.ruleKey))
+  if (objectBlockingIssues.length > 0) return dedupeIssues(objectBlockingIssues)
 
   return dedupeIssues(issues)
 }
