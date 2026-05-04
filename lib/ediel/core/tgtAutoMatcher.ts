@@ -218,15 +218,23 @@ export function effectiveTgtTestCaseCodeForMessageRow(
   const rawText = [row.title, row.sourceNote, row.rawText]
     .filter(Boolean)
     .join(' ')
-  const explicitCase = rawText.match(/\b(?:U\d\.\d\.\d+b?|\d\.\d\.\d+B?)\b/i)?.[0]
-  if (explicitCase) return explicitCase.toUpperCase().replace(/B$/, 'B')
-
   const family = String(message.message_family ?? '').toUpperCase()
   const code = String(message.message_code ?? '').toUpperCase()
+
+  // Z10M negative testdata can sometimes be exported/copied with a generic
+  // "mätarbyte" title or even an older positive case marker. The production
+  // rule is not the case number itself; it is the semantic issue: same/invalid
+  // meter number is a meter-number validation issue and must win over generic
+  // digit-count/detail comparisons. Keep ERC/FTX in DB; only choose the semantic
+  // TGT case/rule-key flow here.
   if (family === 'PRODAT' && code === 'Z10') {
     if (textLooksLikeZ10MeterNumberInvalid(rawText)) return '2.4.1'
     if (textLooksLikeConstantMissing(rawText)) return '2.4.2'
   }
+
+  const explicitCase = rawText.match(/\b(?:U\d\.\d\.\d+b?|\d\.\d\.\d+B?)\b/i)?.[0]
+  if (explicitCase) return explicitCase.toUpperCase().replace(/B$/, 'B')
+
 
   if (family === 'PRODAT' && code === 'Z09') {
     if (textLooksLikeZ09D(rawText)) return '2.5.3'
@@ -556,7 +564,16 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
   const explicit = String(fallback ?? '').trim()
   if (explicit && explicit.toLowerCase() !== 'auto') return explicit
 
-  // If copied/exported data mentions a test case code, trust it.
+  // Semantic Z10 negative markers must override generic/older copied case labels.
+  // This keeps the rule production-safe: we do not map to ERC/FTX here; we only
+  // choose the rule-key path. The DB still resolves meter_number_invalid -> 42/224.
+  if (family === 'PRODAT' && code === 'Z10') {
+    if (textLooksLikeZ10MeterNumberInvalid(rawText)) return '2.4.1'
+    if (textLooksLikeConstantMissing(rawText) || rawHasField(rawText, '214')) return '2.4.2'
+  }
+
+  // If copied/exported data mentions a test case code, trust it after the
+  // semantic Z10 overrides above.
   const explicitCase = rawText.match(/\b(?:U\d\.\d\.\d+b?|\d\.\d\.\d+B?)\b/i)?.[0]
   if (explicitCase) return explicitCase.toUpperCase().replace(/B$/, 'B')
 
@@ -658,8 +675,11 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
 
   const isObjectFailureCase = rowCode === '1.3.1' || rowCode === '2.2.1' || rowCode === '3.2.1'
   const isDigitCountCase = rowCode === '2.2.2'
+  const rowText = [row.title, row.sourceNote, row.rawText].filter(Boolean).join(' ')
   const isSameMeterNumberCase = rowCode === '2.4.1'
   const isConstantCase = rowCode === '2.4.2'
+  const rowLooksLikeSameMeterNumber = textLooksLikeZ10MeterNumberInvalid(rowText)
+  const rowLooksLikeConstantMissing = textLooksLikeConstantMissing(rowText)
   const isKnownPositiveProdatCase = ['2.3.1', '2.3.2', '2.5.1', '2.5.2', '2.5.3', '3.1.1', '3.1.2'].includes(rowCode)
 
   if (facilityMismatch && isObjectFailureCase && matchingFacilities === 0) {
@@ -675,8 +695,16 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
   // boost a generic positive row, or an unrelated object-mismatch row, can be
   // selected and the APERAK becomes false positive (ERC 100/OK).
   if (isDigitCountCase && payloadHasMissingDigitCount(message)) score += 650
-  if (isSameMeterNumberCase && payloadHasSameMeterNumber(message)) score += 650
-  if (isConstantCase && payloadHasMissingConstant(message)) score += 650
+  if (isSameMeterNumberCase && (payloadHasSameMeterNumber(message) || rowLooksLikeSameMeterNumber)) score += 900
+  if (isConstantCase && (payloadHasMissingConstant(message) || rowLooksLikeConstantMissing)) score += 800
+
+  // 2.4.1 has precedence over generic digit-count noise for Z10M meter-change
+  // tests. If a Z10 row/testdata explicitly describes same/invalid meter number,
+  // do not let a generic 218 comparison win.
+  if (String(message.message_family ?? '').toUpperCase() === 'PRODAT' && String(message.message_code ?? '').toUpperCase() === 'Z10') {
+    if (isDigitCountCase && rowLooksLikeSameMeterNumber) score -= 800
+    if (isKnownPositiveProdatCase && rowLooksLikeSameMeterNumber) score -= 500
+  }
 
   // If row contains exact fields that match a negative scenario, prefer it over older positive rows.
   if (rowCode.startsWith('2.2') || rowCode.startsWith('2.4') || rowCode.startsWith('3.2') || rowCode.includes('U2.2') || rowCode.includes('U1.2') || rowCode.includes('U1.4')) {

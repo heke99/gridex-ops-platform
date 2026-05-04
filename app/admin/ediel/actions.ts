@@ -275,9 +275,6 @@ function inferInboundTgtTestCaseCode(input: {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
 
-  const explicit = haystack.match(/\b(u?\d+(?:\.\d+){1,2}[a-z]?)\b/i)?.[1]
-  if (explicit) return explicit.toUpperCase().startsWith('U') ? explicit.toUpperCase() : explicit
-
   const hasMeterNumberWord =
     haystack.includes('matarnummer') ||
     haystack.includes('matarnr') ||
@@ -290,13 +287,23 @@ function inferInboundTgtTestCaseCode(input: {
     haystack.includes('invalid') ||
     haystack.includes('same')
 
+  const code = String(input.messageCode ?? '').toUpperCase()
+
+  // Semantic Z10 error markers override generic copied case labels. This is not
+  // ERC/FTX hardcoding; it only selects the validation path. DB rules still map
+  // meter_number_invalid -> 42/224.
+  if (code === 'Z10' && hasMeterNumberWord && hasInvalidMeterNumberWord) return '2.4.1'
+  if (code === 'Z10' && haystack.includes('konstant saknas')) return '2.4.2'
+
+  const explicit = haystack.match(/\b(u?\d+(?:\.\d+){1,2}[a-z]?)\b/i)?.[1]
+  if (explicit) return explicit.toUpperCase().startsWith('U') ? explicit.toUpperCase() : explicit
+
   if (haystack.includes('felaktigt anlaggningsid') || haystack.includes('anlaggningen kan inte identifieras')) return '2.2.1'
   if (hasMeterNumberWord && hasInvalidMeterNumberWord) return '2.4.1'
   if (haystack.includes('konstant saknas')) return '2.4.2'
   if (haystack.includes('antal siffror')) return '2.2.2'
   if (haystack.includes('matarbyte') || haystack.includes('mätarbyte')) return '2.3.1'
 
-  const code = String(input.messageCode ?? '').toUpperCase()
   if (code === 'Z06') return '2.1.1'
   if (code === 'Z10') return '2.3.1'
   if (code === 'Z09') return '2.5.1'
