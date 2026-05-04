@@ -292,6 +292,25 @@ function uploadedTextHasSameNewAndOldMeterNumber(rawText: string | null | undefi
   return newMeters.some((value) => oldMeters.includes(value))
 }
 
+function uploadedTextHasFieldCode(rawText: string | null | undefined, fieldCode: string): boolean {
+  const wanted = String(fieldCode).toUpperCase()
+  return String(rawText ?? '')
+    .split(/\r?\n|;|,/)
+    .some((line) => line.trim().toUpperCase().startsWith(wanted))
+}
+
+function uploadedTextLooksLikeZ10MeterChangeContext(rawText: string | null | undefined): boolean {
+  return (
+    uploadedTextHasFieldCode(rawText, '224') ||
+    uploadedTextHasFieldCode(rawText, '225') ||
+    uploadedTextHasFieldCode(rawText, '259')
+  )
+}
+
+function uploadedTextLooksLikeConstantMissing(rawText: string | null | undefined): boolean {
+  return uploadedTextLooksLikeZ10MeterChangeContext(rawText) && !uploadedTextHasFieldCode(rawText, '214')
+}
+
 function inferInboundTgtTestCaseCode(input: {
   provided?: string | null
   title?: string | null
@@ -326,7 +345,7 @@ function inferInboundTgtTestCaseCode(input: {
   // ERC/FTX hardcoding; it only selects the validation path. DB rules still map
   // meter_number_invalid -> 42/224.
   if (code === 'Z10' && ((hasMeterNumberWord && hasInvalidMeterNumberWord) || uploadedTextHasSameNewAndOldMeterNumber(input.rawText))) return '2.4.1'
-  if (code === 'Z10' && haystack.includes('konstant saknas')) return '2.4.2'
+  if (code === 'Z10' && (haystack.includes('konstant saknas') || uploadedTextLooksLikeConstantMissing(input.rawText))) return '2.4.2'
 
   if (provided) {
     const allowedPrefixes =
