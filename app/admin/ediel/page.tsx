@@ -54,6 +54,7 @@ import { listEdielInboundCases } from '@/lib/ediel/inboundCases'
 import { listEdielProdatProductionCandidates } from '@/lib/ediel/prodatContext'
 import { listEdielTgtDynamicTestData, type EdielTgtDynamicTestDataSummary } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage, type EdielAckDecision } from '@/lib/ediel/core/ackDecisionEngine'
+import { findBestTgtTestDataForMessage, rawTextHasSourceMessageMarker, scoreTgtTestDataForMessage } from '@/lib/ediel/core/tgtAutoMatcher'
 
 export const dynamic = 'force-dynamic'
 
@@ -459,26 +460,34 @@ function relevantTgtRowsForMessage(
   const text = textForTgtMatch(message)
 
   const scopedRows = rows.filter((row) => row.testSuite === suite && row.roleCode === 'supplier')
-  const exactMarker = `GRIDCORE_SOURCE_MESSAGE_ID:${message.id}`
-  const exactRows = scopedRows.filter((row) => String(row.rawText ?? '').includes(exactMarker))
+  const exactRows = scopedRows.filter((row) =>
+    rawTextHasSourceMessageMarker(row.rawText, message.id) || rawTextHasSourceMessageMarker(row.sourceNote, message.id)
+  )
 
-  if (exactRows.length > 0) {
-    return exactRows.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
-  }
+  const candidates = exactRows.length > 0
+    ? exactRows
+    : scopedRows.filter((row) => {
+        if (text.includes(String(row.testCaseCode).toUpperCase())) return true
+        return prefixes.some((prefix) => row.testCaseCode === prefix || row.testCaseCode.startsWith(`${prefix}.`) || row.testCaseCode.startsWith(`${prefix}b`))
+      })
 
-  return scopedRows
-    .filter((row) => {
-      if (text.includes(String(row.testCaseCode).toUpperCase())) return true
-      return prefixes.some((prefix) => row.testCaseCode === prefix || row.testCaseCode.startsWith(`${prefix}.`) || row.testCaseCode.startsWith(`${prefix}b`))
+  return candidates
+    .map((row) => ({ row, score: scoreTgtTestDataForMessage(message, row) }))
+    .filter((entry) => entry.score >= 0)
+    .sort((a, b) => {
+      const scoreDiff = b.score - a.score
+      if (scoreDiff !== 0) return scoreDiff
+      return String(b.row.updatedAt).localeCompare(String(a.row.updatedAt))
     })
-    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+    .map((entry) => entry.row)
 }
 
 function selectedTgtRowForMessage(
   message: Awaited<ReturnType<typeof listEdielMessages>>[number],
   rows: EdielTgtDynamicTestDataSummary[]
 ): EdielTgtDynamicTestDataSummary | null {
-  return relevantTgtRowsForMessage(message, rows)[0] ?? null
+  const relevant = relevantTgtRowsForMessage(message, rows)
+  return findBestTgtTestDataForMessage(message, relevant) ?? relevant[0] ?? null
 }
 
 function defaultTestCaseCodeForMessage(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {

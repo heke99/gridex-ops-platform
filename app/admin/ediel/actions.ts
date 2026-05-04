@@ -53,9 +53,16 @@ import {
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { registerEdielFile, type EdielFileEngineMode } from '@/lib/ediel/fileEngine'
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
+import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
 import { buildEdielTgtDraft } from '@/lib/ediel/tgtEdifact'
-import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from '@/lib/ediel/tgtTestDataStore'
+import {
+  getEdielTgtDynamicTestDataForCase,
+  listEdielTgtDynamicTestData,
+  upsertEdielTgtDynamicTestData,
+  type EdielTgtDynamicTestDataSummary,
+} from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage } from '@/lib/ediel/core/ackDecisionEngine'
+import { findBestTgtTestDataForMessage } from '@/lib/ediel/core/tgtAutoMatcher'
 import {
   attachAperakErrorDetailsToMessage,
   resolveAndStoreProdatAperakErrors,
@@ -70,7 +77,7 @@ import { processEdielOperationalMessage } from '@/lib/ediel/operationalBridge'
 import { createEdielPortalTestCustomerGraph } from '@/lib/ediel/portalTestCustomer'
 import { createSafeMasterdataProposalForMessage } from '@/lib/ediel/operationalVerification'
 import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from '@/lib/ediel/safeApplyReview'
-import type { EdielEnvironment, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
+import type { EdielEnvironment, EdielMessageRow, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 import { approveEdielInboundCase, rejectEdielInboundCase, type EdielInboundCaseActionMode } from '@/lib/ediel/inboundCases'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -276,6 +283,33 @@ function inferInboundTgtTestCaseCode(input: {
   if (code === 'Z09') return '2.5.1'
   if (code === 'Z05') return '3.1.1'
   return ''
+}
+
+async function resolveTgtTestDataForAckAction(params: {
+  message: EdielMessageRow
+  testSuite: EdielTestSuite
+  roleCode: EdielTestRoleCode
+  requestedTestCaseCode: string | null
+}): Promise<{ testData: EdielTgtCaseTestData | null; selectedRow: EdielTgtDynamicTestDataSummary | null; requestedTestData: EdielTgtCaseTestData | null }> {
+  const { message, testSuite, roleCode, requestedTestCaseCode } = params
+  const requestedTestData = requestedTestCaseCode
+    ? await getEdielTgtDynamicTestDataForCase(testSuite, roleCode, requestedTestCaseCode)
+    : null
+
+  if (message.message_family !== 'PRODAT' && message.message_family !== 'UTILTS') {
+    return { testData: requestedTestData, selectedRow: null, requestedTestData }
+  }
+
+  const rows = (await listEdielTgtDynamicTestData()).filter((row) => row.testSuite === testSuite && row.roleCode === roleCode)
+  const best = findBestTgtTestDataForMessage(message, rows)
+
+  if (!best) return { testData: requestedTestData, selectedRow: null, requestedTestData }
+
+  // The backend must not blindly trust a stale hidden UI row. When the actual
+  // inbound payload matches another imported TGT row better, use that row as the
+  // masterdata simulator for validation. This keeps production logic generic:
+  // identity validation first, then detail validation only when identity is OK.
+  return { testData: best.parsedPayload, selectedRow: best, requestedTestData }
 }
 
 function parseFileEngineMode(value: FormDataEntryValue | null): EdielFileEngineMode {
@@ -899,9 +933,14 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
 
   const relatedAcks = await listAckMessagesForSource({ sourceMessageId })
-  const tgtTestData = testCaseCode
-    ? await getEdielTgtDynamicTestDataForCase(testSuite, roleCode, testCaseCode)
-    : null
+  const tgtResolution = await resolveTgtTestDataForAckAction({
+    message: sourceMessage,
+    testSuite,
+    roleCode,
+    requestedTestCaseCode: testCaseCode,
+  })
+  const tgtTestData = tgtResolution.testData
+
   const recommendation = resolveRecommendedAckForInboundMessage({
     message: sourceMessage,
     relatedAcks,

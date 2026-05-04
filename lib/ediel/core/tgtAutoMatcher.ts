@@ -484,6 +484,9 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
 
   const expectedFacilities = facilityIdsFromTgtTestData(row.parsedPayload)
   const actualFacilities = messageFacilityIds(message)
+  const rowCode = row.testCaseCode.toUpperCase()
+  const facilityMismatch = hasFacilityMismatch(message, row.parsedPayload)
+
   if (expectedFacilities.length > 0) {
     score += 10
     const expected = new Set(expectedFacilities)
@@ -493,10 +496,15 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
     score += mismatching * 80
   }
 
-  if (hasFacilityMismatch(message, row.parsedPayload)) score += 100
+  // Object identity failures are the highest-priority PRODAT negative APERAK
+  // scenario. Prefer TGT rows whose testdata/masterdata proves the inbound
+  // facility is not identifiable over rows that merely expose lower-level field
+  // differences such as digit count or time-series product.
+  if (facilityMismatch) score += 500
+  if (facilityMismatch && (rowCode === '1.3.1' || rowCode === '2.2.1' || rowCode === '3.2.1')) score += 500
 
-  // If row contains exact fields that match a negative scenario, prefer it over older positive rows.
-  const rowCode = row.testCaseCode.toUpperCase()
+  // If row contains exact fields that match a negative scenario, prefer it over older positive rows,
+  // but do not let detail-field scenarios outrank proven object-identity failures above.
   if (rowCode.startsWith('2.2') || rowCode.startsWith('2.4') || rowCode.startsWith('3.2') || rowCode.includes('U2.2') || rowCode.includes('U1.2') || rowCode.includes('U1.4')) {
     score += 15
   }
