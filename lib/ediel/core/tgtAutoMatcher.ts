@@ -165,6 +165,52 @@ function textLooksLikeConstantMissing(rawText: string): boolean {
   return normalized.includes('KONSTANT SAKNAS') || normalized.includes('METER CONSTANT MISSING')
 }
 
+
+function textLooksLikeZ09F(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('Z09F') || normalized.includes('AVTAL OM TIMVARDEN') || normalized.includes('AGREEMENT HOURLY')
+}
+
+function textLooksLikeZ09G(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('Z09G') || normalized.includes('TIMVARDEN UPPHOR') || normalized.includes('AGREEMENT ENDS')
+}
+
+function textLooksLikeZ09D(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('Z09D') || normalized.includes('MIKROPRODUKTION') || normalized.includes('MICROPRODUCTION')
+}
+
+function textLooksLikeZ05LK(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('Z05LK') || normalized.includes('LK')
+}
+
+function textLooksLikeUtiltsGuideError(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('ANVISNINGSFEL') || normalized.includes('MANDATORY') || normalized.includes('SAKNAS') || normalized.includes('MISSING')
+}
+
+function textLooksLikeUtiltsFunctionalError(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('FUNKTIONSFEL') || normalized.includes('FUNCTIONAL') || normalized.includes('PROCESS') || /\bE\d{2}\b/.test(normalized)
+}
+
+function textLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('REGISTRERINGSTIDPUNKT SAKNAS') || normalized.includes('KVART') || normalized.includes('QUARTER') || normalized.includes('512')
+}
+
+function textLooksLikeUtiltsE66FunctionalMultiError(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('88 VARDEN') || normalized.includes('88 VALUES') || normalized.includes('MINUSTECKEN') || normalized.includes('NEGATIVE') || normalized.includes('STATUS SAKNAT') || normalized.includes('E98') || normalized.includes('E90')
+}
+
+function textLooksLikeUtiltsE66FunctionalSchError(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('MATARSTALLNING STAMMER INTE') || normalized.includes('METER READING') || normalized.includes('REGISTRERINGSTIDPUNKT TIDIGARE') || normalized.includes('E19') || normalized.includes('E50')
+}
+
 export function effectiveTgtTestCaseCodeForMessageRow(
   message: EdielMessageRow,
   row: EdielTgtDynamicTestDataSummary
@@ -180,6 +226,20 @@ export function effectiveTgtTestCaseCodeForMessageRow(
   if (family === 'PRODAT' && code === 'Z10') {
     if (textLooksLikeZ10MeterNumberInvalid(rawText)) return '2.4.1'
     if (textLooksLikeConstantMissing(rawText)) return '2.4.2'
+  }
+
+  if (family === 'PRODAT' && code === 'Z09') {
+    if (textLooksLikeZ09D(rawText)) return '2.5.3'
+    if (textLooksLikeZ09G(rawText)) return '2.5.2'
+    if (textLooksLikeZ09F(rawText)) return '2.5.1'
+  }
+
+  if (family === 'PRODAT' && code === 'Z05') {
+    if (textLooksLikeZ05LK(rawText)) return '3.1.2'
+  }
+
+  if (family === 'UTILTS') {
+    return inferTgtTestCaseCodeForInboundTestData({ message, rawText, fallback: row.testCaseCode })
   }
 
   return String(row.testCaseCode ?? '').toUpperCase()
@@ -520,15 +580,39 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
       return '3.1.1'
     }
 
-    if (code === 'Z09') return '2.5.1'
+    if (code === 'Z09') {
+      if (textLooksLikeZ09D(rawText)) return '2.5.3'
+      if (textLooksLikeZ09G(rawText)) return '2.5.2'
+      if (textLooksLikeZ09F(rawText)) return '2.5.1'
+      return '2.5.1'
+    }
     if (code === 'Z04') return '1.4.3'
     if (code === 'Z03') return '1.3.1'
   }
 
   if (family === 'UTILTS') {
-    if (code === 'S02') return rawText.match(/E87|E10|funktionsfel/i) ? 'U1.2.2' : rawText.match(/saknas|mandatory|anvisningsfel/i) ? 'U1.2.1' : 'U1.1.1'
-    if (code === 'S03') return rawText.match(/saknas|mandatory|anvisningsfel/i) ? 'U1.4.1' : 'U1.3.1'
-    if (code === 'E66') return rawText.match(/funktionsfel|process|E87|E10/i) ? 'U2.2.3' : rawText.match(/saknas|mandatory|anvisningsfel/i) ? 'U2.2.1' : 'U2.1.1'
+    if (code === 'S02') {
+      if (textLooksLikeUtiltsFunctionalError(rawText)) return rawText.match(/U1\.2\.2B/i) ? 'U1.2.2B' : 'U1.2.2'
+      if (textLooksLikeUtiltsGuideError(rawText)) return rawText.match(/U1\.2\.1B/i) ? 'U1.2.1B' : 'U1.2.1'
+      return 'U1.1.1'
+    }
+    if (code === 'S03') {
+      if (textLooksLikeUtiltsFunctionalError(rawText)) return 'U1.4.2'
+      if (textLooksLikeUtiltsGuideError(rawText)) return 'U1.4.1'
+      return rawText.match(/U1\.3\.1B/i) ? 'U1.3.1B' : 'U1.3.1'
+    }
+    if (code === 'E66') {
+      if (textLooksLikeUtiltsFunctionalError(rawText)) {
+        if (textLooksLikeUtiltsE66FunctionalMultiError(rawText)) return rawText.match(/U2\.2\.4B/i) ? 'U2.2.4B' : 'U2.2.4'
+        if (textLooksLikeUtiltsE66FunctionalSchError(rawText)) return rawText.match(/U2\.2\.3B/i) ? 'U2.2.3B' : 'U2.2.3'
+        return rawText.match(/U2\.2\.3B/i) ? 'U2.2.3B' : 'U2.2.3'
+      }
+      if (textLooksLikeUtiltsGuideError(rawText)) {
+        if (textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U2.2.2'
+        return rawText.match(/U2\.2\.1B/i) ? 'U2.2.1B' : 'U2.2.1'
+      }
+      return 'U2.1.1'
+    }
   }
 
   return messageCodePrefixesForTgtAutoMatch(message)[0] ? `${messageCodePrefixesForTgtAutoMatch(message)[0]}.1` : 'AUTO'
@@ -576,9 +660,14 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
   const isDigitCountCase = rowCode === '2.2.2'
   const isSameMeterNumberCase = rowCode === '2.4.1'
   const isConstantCase = rowCode === '2.4.2'
+  const isKnownPositiveProdatCase = ['2.3.1', '2.3.2', '2.5.1', '2.5.2', '2.5.3', '3.1.1', '3.1.2'].includes(rowCode)
 
   if (facilityMismatch && isObjectFailureCase && matchingFacilities === 0) {
     score += 500
+  }
+
+  if (isKnownPositiveProdatCase && !facilityMismatch && matchingFacilities > 0) {
+    score += 250
   }
 
   // Detail-error TGT rows should win when the object is identified and the

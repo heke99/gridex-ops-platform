@@ -278,10 +278,22 @@ function inferInboundTgtTestCaseCode(input: {
   const explicit = haystack.match(/\b(u?\d+(?:\.\d+){1,2}[a-z]?)\b/i)?.[1]
   if (explicit) return explicit.toUpperCase().startsWith('U') ? explicit.toUpperCase() : explicit
 
+  const hasMeterNumberWord =
+    haystack.includes('matarnummer') ||
+    haystack.includes('matarnr') ||
+    haystack.includes('meter number') ||
+    haystack.includes('meter no')
+  const hasInvalidMeterNumberWord =
+    haystack.includes('felaktigt') ||
+    haystack.includes('felaktig') ||
+    haystack.includes('samma') ||
+    haystack.includes('invalid') ||
+    haystack.includes('same')
+
   if (haystack.includes('felaktigt anlaggningsid') || haystack.includes('anlaggningen kan inte identifieras')) return '2.2.1'
-  if (haystack.includes('antal siffror')) return '2.2.2'
-  if (haystack.includes('felaktigt matarnummer') || haystack.includes('felaktig matarnummer') || haystack.includes('samma matarnummer')) return '2.4.1'
+  if (hasMeterNumberWord && hasInvalidMeterNumberWord) return '2.4.1'
   if (haystack.includes('konstant saknas')) return '2.4.2'
+  if (haystack.includes('antal siffror')) return '2.2.2'
   if (haystack.includes('matarbyte') || haystack.includes('mätarbyte')) return '2.3.1'
 
   const code = String(input.messageCode ?? '').toUpperCase()
