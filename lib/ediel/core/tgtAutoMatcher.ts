@@ -635,6 +635,15 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
   return messageCodePrefixesForTgtAutoMatch(message)[0] ? `${messageCodePrefixesForTgtAutoMatch(message)[0]}.1` : 'AUTO'
 }
 
+
+function tgtCaseCodeMatchesMessage(message: EdielMessageRow, testCaseCode: string | null | undefined): boolean {
+  const code = String(testCaseCode ?? '').toUpperCase()
+  if (!code || code === 'AUTO') return true
+  const prefixes = messageCodePrefixesForTgtAutoMatch(message)
+  if (prefixes.length === 0) return true
+  return prefixes.some((prefix) => code === prefix || code.startsWith(`${prefix}.`) || code.startsWith(`${prefix}B`))
+}
+
 export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielTgtDynamicTestDataSummary): number {
   const family = String(message.message_family ?? '').toUpperCase()
   const suite = family === 'UTILTS' ? 'UTILTS' : family === 'PRODAT' ? 'PRODAT' : null
@@ -653,6 +662,13 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
   const expectedFacilities = facilityIdsFromTgtTestData(row.parsedPayload)
   const actualFacilities = messageFacilityIds(message)
   const rowCode = effectiveTgtTestCaseCodeForMessageRow(message, row).toUpperCase()
+
+  // Never let an unrelated TGT case drive APERAK resolution for another
+  // PRODAT/UTILTS message type. The operator does not need to choose a test case,
+  // but the backend must constrain auto-selection to the current inbound message
+  // code. Example: PRODAT Z10 may use 2.3/2.4 rows, never Z06 2.2 rows.
+  if (!tgtCaseCodeMatchesMessage(message, rowCode)) return -1
+
   const facilityMismatch = hasFacilityMismatch(message, row.parsedPayload)
 
   let matchingFacilities = 0
@@ -747,8 +763,12 @@ export function findExactTgtTestDataForMessage(
   message: EdielMessageRow,
   rows: readonly EdielTgtDynamicTestDataSummary[]
 ): EdielTgtDynamicTestDataSummary | null {
-  return rows.find((row) =>
+  const markedRows = rows.filter((row) =>
     rawTextHasSourceMessageMarker(row.rawText, message.id) ||
     rawTextHasSourceMessageMarker(row.sourceNote, message.id)
+  )
+
+  return markedRows.find((row) =>
+    tgtCaseCodeMatchesMessage(message, effectiveTgtTestCaseCodeForMessageRow(message, row))
   ) ?? null
 }

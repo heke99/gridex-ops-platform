@@ -532,6 +532,17 @@ function deriveTgtAperakValidationIssues(params: {
   const objectBlockingIssues = issues.filter((item) => isObjectBlockingRuleKey(item.ruleKey))
   if (objectBlockingIssues.length > 0) return dedupeIssues(objectBlockingIssues)
 
+  // Z10 meter-change validation is identity/detail-priority based. If a meter
+  // number issue is present, it is the decisive APERAK issue for 2.4.1 and must
+  // not be hidden by lower-priority generic digit-count comparisons from the
+  // same uploaded TGT sheet.
+  const family = String(message.message_family ?? '').toUpperCase()
+  const code = String(message.message_code ?? '').toUpperCase()
+  if (family === 'PRODAT' && code === 'Z10') {
+    const meterIssues = issues.filter((item) => item.ruleKey === 'meter_number_invalid' || item.ruleKey === 'meter_number_missing')
+    if (meterIssues.length > 0) return dedupeIssues(meterIssues)
+  }
+
   return dedupeIssues(issues)
 }
 

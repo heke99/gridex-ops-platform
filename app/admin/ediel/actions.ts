@@ -296,7 +296,24 @@ function inferInboundTgtTestCaseCode(input: {
   if (code === 'Z10' && haystack.includes('konstant saknas')) return '2.4.2'
 
   const explicit = haystack.match(/\b(u?\d+(?:\.\d+){1,2}[a-z]?)\b/i)?.[1]
-  if (explicit) return explicit.toUpperCase().startsWith('U') ? explicit.toUpperCase() : explicit
+  if (explicit) {
+    const normalizedExplicit = explicit.toUpperCase().startsWith('U') ? explicit.toUpperCase() : explicit
+    const allowedPrefixes =
+      code === 'Z03' ? ['1.2', '1.3'] :
+      code === 'Z04' ? ['1.4', '1.5'] :
+      code === 'Z06' ? ['2.1', '2.2'] :
+      code === 'Z10' ? ['2.3', '2.4'] :
+      code === 'Z09' ? ['2.5'] :
+      code === 'Z05' ? ['3.1', '3.2'] :
+      code === 'S02' ? ['U1.1', 'U1.2'] :
+      code === 'S03' ? ['U1.3', 'U1.4'] :
+      code === 'E66' ? ['U2.1', 'U2.2'] :
+      []
+
+    if (allowedPrefixes.length === 0 || allowedPrefixes.some((prefix) => normalizedExplicit === prefix || normalizedExplicit.startsWith(`${prefix}.`) || normalizedExplicit.startsWith(`${prefix}B`))) {
+      return normalizedExplicit
+    }
+  }
 
   if (haystack.includes('felaktigt anlaggningsid') || haystack.includes('anlaggningen kan inte identifieras')) return '2.2.1'
   if (hasMeterNumberWord && hasInvalidMeterNumberWord) return '2.4.1'
