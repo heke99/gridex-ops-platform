@@ -557,7 +557,7 @@ function RecommendedAckActionForm({
         </>
       ) : null}
       <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
-        {recommendation.actionLabel}
+        {recommendation.ackFamily ? `Skapa preview för ${recommendation.ackFamily}` : recommendation.actionLabel}
       </button>
     </form>
   )
@@ -683,7 +683,7 @@ function AdvancedAckActions({
             <input type="hidden" name="ackType" value="CONTRL" />
             <input type="hidden" name="outcome" value="positive" />
             <button className="rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">
-              Positiv CONTRL
+              Preview positiv CONTRL
             </button>
           </form>
         ) : null}
@@ -695,7 +695,7 @@ function AdvancedAckActions({
             <input type="hidden" name="outcome" value="negative" />
             <input type="hidden" name="messageText" value="Syntaxfel enligt Edielportalens TGT-test" />
             <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
-              Negativ CONTRL
+              Preview negativ CONTRL
             </button>
           </form>
         ) : null}
@@ -706,7 +706,7 @@ function AdvancedAckActions({
             <input type="hidden" name="ackType" value="APERAK" />
             <input type="hidden" name="outcome" value="positive" />
             <button className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
-              Positiv APERAK
+              Preview positiv APERAK
             </button>
           </form>
         ) : null}
@@ -771,7 +771,7 @@ function AckRow({ ack }: { ack: Awaited<ReturnType<typeof listEdielMessages>>[nu
           <form action={sendEdielMessageAction}>
             <input type="hidden" name="edielMessageId" value={ack.id} />
             <button className="rounded-lg bg-slate-900 px-2 py-1 text-xs font-semibold text-white hover:bg-slate-700">
-              Skicka
+              Preflight + skicka
             </button>
           </form>
         ) : null}
@@ -829,7 +829,7 @@ function IncomingPortalResponses({
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Senaste inbound via IMAP</h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
-            Här är portalens inkommande svar. GridCore visar ett rekommenderat svar per meddelande och skickar direkt. Testpresets och manuella kvittenser ligger under Avancerat.
+            Här är portalens inkommande svar. GridCore visar ett rekommenderat svar per meddelande och skapar först en kontrollerad preview. Skicka först från kvittensraden efter att payloaden är granskad.
           </p>
         </div>
         <Badge tone="green">{inboundMessages.length} visas</Badge>
@@ -870,7 +870,7 @@ function IncomingPortalResponses({
               </p>
               <div className="mt-3 space-y-2 text-xs text-slate-700">
                 <div className="rounded-xl bg-white p-2">1. Systemet bedömer syntax före affärskvittens.</div>
-                <div className="rounded-xl bg-white p-2">2. Kvittenser skickas direkt, inte som dolda drafts.</div>
+                <div className="rounded-xl bg-white p-2">2. Kvittenser skapas som synlig preview/draft och skickas först från kvittensraden.</div>
                 <div className="rounded-xl bg-white p-2">3. Manuell override finns men är separerad från normalflödet.</div>
               </div>
             </div>

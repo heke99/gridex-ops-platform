@@ -62,6 +62,7 @@ import {
   type EdielTgtDynamicTestDataSummary,
 } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage } from '@/lib/ediel/core/ackDecisionEngine'
+import { validateAckPreflight } from '@/lib/ediel/core/ackPreflight'
 import { findBestTgtTestDataForMessage } from '@/lib/ediel/core/tgtAutoMatcher'
 import {
   attachAperakErrorDetailsToMessage,
@@ -460,6 +461,40 @@ export async function sendEdielMessageAction(formData: FormData) {
   const context = await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const edielMessageId = formString(formData.get('edielMessageId'))
   if (!edielMessageId) throw new Error('edielMessageId saknas')
+
+  const message = await getEdielMessageById(edielMessageId)
+  if (!message) throw new Error('Meddelandet hittades inte')
+
+  if (['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(String(message.message_family))) {
+    if (!message.related_message_id) {
+      throw new Error('Kvittensen saknar kopplat källmeddelande och kan inte skickas säkert.')
+    }
+
+    const sourceMessage = await getEdielMessageById(message.related_message_id)
+    if (!sourceMessage) throw new Error('Källmeddelande för kvittensen hittades inte')
+
+    const preflight = validateAckPreflight({
+      ackMessage: message,
+      sourceMessage,
+    })
+
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId,
+      eventType: 'manual_note',
+      eventStatus: preflight.ok ? 'success' : 'error',
+      message: preflight.summary,
+      payload: {
+        phase: 'send_preflight',
+        issues: preflight.issues,
+        sourceMessageId: sourceMessage.id,
+      },
+    })
+
+    if (!preflight.ok) {
+      throw new Error(preflight.summary)
+    }
+  }
 
   await sendQueuedEdielMessage({
     actorUserId: context.userId,
@@ -1028,31 +1063,56 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     })
   }
 
-  await sendQueuedEdielMessage({
+  const preflight = validateAckPreflight({
+    ackMessage,
+    sourceMessage,
+  })
+
+  await createEdielMessageEvent({
     actorUserId: context.userId,
     edielMessageId: ackMessage.id,
-    smtpMimeMode: 'ediel-singlepart-base64',
+    eventType: 'manual_note',
+    eventStatus: preflight.ok ? 'success' : 'error',
+    message: preflight.summary,
+    payload: {
+      phase: 'preview_preflight',
+      sourceMessageId,
+      decisionKind: recommendation.kind,
+      matchedRule: recommendation.matchedRule,
+      ackFamily: recommendation.action.ackFamily,
+      outcome: finalOutcome ?? null,
+      issues: preflight.issues,
+      applicationErrors: finalApplicationErrors,
+      backendRuleKeys,
+      backendIssueCount,
+      backendUnmappedRuleKeys,
+    },
   })
+
+  if (!preflight.ok) {
+    throw new Error(preflight.summary)
+  }
 
   await createEdielMessageEvent({
     actorUserId: context.userId,
     edielMessageId: sourceMessageId,
     eventType: 'manual_note',
     eventStatus: 'success',
-    message: `${recommendation.title}: backend-beslut skapade och skickade ${recommendation.action.ackFamily}.`,
+    message: `${recommendation.title}: backend-beslut skapade ${recommendation.action.ackFamily}-preview. Kontrollera payload och skicka från kvittensraden.`,
     payload: {
       ackMessageId: ackMessage.id,
       decisionKind: recommendation.kind,
       matchedRule: recommendation.matchedRule,
       ackFamily: recommendation.action.ackFamily,
       outcome: finalOutcome ?? null,
-      canAutoSend: recommendation.canAutoSend,
+      canAutoSend: false,
       reasonItems: recommendation.reasonItems,
       syntaxIssues: recommendation.syntaxIssues,
       applicationErrors: finalApplicationErrors,
       backendRuleKeys,
       backendIssueCount,
       backendUnmappedRuleKeys,
+      preflightIssues: preflight.issues,
     },
   })
 
@@ -1089,22 +1149,44 @@ export async function createAndSendAckAction(formData: FormData) {
     applicationErrors: ackType === 'APERAK' ? applicationErrors : null,
   })
 
-  await sendQueuedEdielMessage({
+  const sourceMessage = await getEdielMessageById(sourceMessageId)
+  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+
+  const preflight = validateAckPreflight({
+    ackMessage,
+    sourceMessage,
+  })
+
+  await createEdielMessageEvent({
     actorUserId: context.userId,
     edielMessageId: ackMessage.id,
-    smtpMimeMode: 'ediel-singlepart-base64',
+    eventType: 'manual_note',
+    eventStatus: preflight.ok ? 'success' : 'error',
+    message: preflight.summary,
+    payload: {
+      phase: 'manual_preview_preflight',
+      sourceMessageId,
+      ackType,
+      outcome,
+      issues: preflight.issues,
+    },
   })
+
+  if (!preflight.ok) {
+    throw new Error(preflight.summary)
+  }
 
   await createEdielMessageEvent({
     actorUserId: context.userId,
     edielMessageId: sourceMessageId,
     eventType: 'manual_note',
     eventStatus: 'success',
-    message: `${ackType} skapades och skickades direkt från inbound-kortet.`,
+    message: `${ackType} preview skapades från inbound-kortet. Kontrollera payload och skicka från kvittensraden.`,
     payload: {
       ackMessageId: ackMessage.id,
       ackType,
       outcome,
+      preflightIssues: preflight.issues,
     },
   })
 
