@@ -2,7 +2,7 @@
 
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
-import { compareInboundPayloadToTgtTestData } from '@/lib/ediel/core/tgtAutoMatcher'
+import { compareInboundPayloadToTgtTestData, type EdielTgtPayloadComparisonIssue } from '@/lib/ediel/core/tgtAutoMatcher'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
 import { supabaseService } from '@/lib/supabase/service'
@@ -116,6 +116,81 @@ function issue(input: Omit<EdielAperakValidationIssue, 'severity'> & { severity?
   }
 }
 
+
+const TGT_APERAK_FIELD_RULE_KEYS: Record<string, string> = {
+  '105': 'facility_not_identified',
+  '209': 'metering_point_id_mismatch',
+  '210': 'agreement_start_date_invalid',
+  '213': 'annual_consumption_missing',
+  '214': 'constant_missing',
+  '217': 'measuring_method_invalid',
+  '218': 'digit_count_missing',
+  '222': 'time_series_product_invalid',
+  '223': 'transaction_type_invalid',
+  '224': 'meter_number_missing',
+  '226': 'case_reference_missing',
+  '227': 'invoice_receiver_invalid',
+  '260': 'grid_area_id_invalid',
+  '261': 'case_reference_missing',
+  '262': 'balance_responsible_invalid',
+  '319': 'missing_facility_reference',
+  '322': 'product_code_invalid',
+  '324': 'installation_type_invalid',
+}
+
+const IGNORED_TGT_APERAK_FIELD_CODES = new Set([
+  // 233 is used as an alternative facility identifier when matching test data.
+  // It must not produce a separate negative APERAK issue next to field 209.
+  '233',
+  // 254 is TGT/masterdata context and has repeatedly appeared as comparison
+  // noise. It should not stop APERAK creation unless a specific backend rule is
+  // later introduced deliberately.
+  '254',
+])
+
+function ruleKeyForTgtFieldCode(fieldCode: string): string | null {
+  const code = String(fieldCode ?? '').toUpperCase()
+  if (!code || IGNORED_TGT_APERAK_FIELD_CODES.has(code)) return null
+  return TGT_APERAK_FIELD_RULE_KEYS[code] ?? null
+}
+
+function issueFromTgtComparison(
+  comparison: EdielTgtPayloadComparisonIssue,
+  sourceOrder: number
+): EdielAperakValidationIssue | null {
+  const ruleKey = ruleKeyForTgtFieldCode(comparison.fieldCode)
+  if (!ruleKey) return null
+
+  return issue({
+    ruleKey,
+    fieldPath: `TGT/FIELD/${comparison.fieldCode}`,
+    fieldValue: comparison.actual,
+    expectedValue: comparison.expected,
+    meteringPointId: comparison.referenceNumber,
+    transactionReference: comparison.lineItemReference,
+    sourceOrder,
+    fallbackText: comparison.text,
+  })
+}
+
+function deriveTgtAperakValidationIssues(params: {
+  message: EdielMessageRow
+  testData?: EdielTgtCaseTestData | null
+}): EdielAperakValidationIssue[] {
+  const { message, testData } = params
+  if (!testData) return []
+
+  const comparisons = compareInboundPayloadToTgtTestData({ message, testData })
+  const issues: EdielAperakValidationIssue[] = []
+
+  for (const comparison of comparisons) {
+    const item = issueFromTgtComparison(comparison, issues.length)
+    if (item) issues.push(item)
+  }
+
+  return dedupeIssues(issues)
+}
+
 function dedupeIssues(issues: EdielAperakValidationIssue[]): EdielAperakValidationIssue[] {
   const seen = new Set<string>()
   const result: EdielAperakValidationIssue[] = []
@@ -125,7 +200,6 @@ function dedupeIssues(issues: EdielAperakValidationIssue[]): EdielAperakValidati
       item.ruleKey,
       item.meteringPointId ?? '',
       item.transactionReference ?? '',
-      item.fieldPath ?? '',
       item.fieldValue ?? '',
       item.expectedValue ?? '',
     ].join('|')
@@ -138,222 +212,6 @@ function dedupeIssues(issues: EdielAperakValidationIssue[]): EdielAperakValidati
   return result.sort((a, b) => a.sourceOrder - b.sourceOrder)
 }
 
-type TgtRuleMapping = {
-  ruleKey: string
-  fieldPath: string
-  fallbackText: string
-}
-
-const TGT_FIELD_RULES: Record<string, { missing: TgtRuleMapping; invalid: TgtRuleMapping }> = {
-  // Special APERAK/PRODAT error: object could not be identified.
-  // The APERAK codes are resolved from ediel_aperak_error_rules, not here.
-  '105': {
-    missing: {
-      ruleKey: 'facility_not_identified',
-      fieldPath: 'SG4/RFF/Z07',
-      fallbackText: 'Anläggningen kan inte identifieras',
-    },
-    invalid: {
-      ruleKey: 'facility_not_identified',
-      fieldPath: 'SG4/RFF/Z07',
-      fallbackText: 'Anläggningen kan inte identifieras',
-    },
-  },
-  '209': {
-    missing: {
-      ruleKey: 'metering_point_id_mismatch',
-      fieldPath: 'SG4/RFF/Z07',
-      fallbackText: 'Anläggningsid saknas eller avviker från Edielportalens testdata',
-    },
-    invalid: {
-      ruleKey: 'metering_point_id_mismatch',
-      fieldPath: 'SG4/RFF/Z07',
-      fallbackText: 'Anläggningsid avviker från Edielportalens testdata',
-    },
-  },
-  '210': {
-    missing: {
-      ruleKey: 'agreement_start_date_missing',
-      fieldPath: 'SG5/DTM/92|157',
-      fallbackText: 'Avtal, startdatum saknas',
-    },
-    invalid: {
-      ruleKey: 'agreement_start_date_invalid',
-      fieldPath: 'SG5/DTM/92|157',
-      fallbackText: 'Felaktig avtal, startdatum',
-    },
-  },
-  '213': {
-    missing: {
-      ruleKey: 'annual_consumption_missing',
-      fieldPath: 'SG5/QTY/31',
-      fallbackText: 'Årsförbrukning saknas',
-    },
-    invalid: {
-      ruleKey: 'annual_consumption_invalid',
-      fieldPath: 'SG5/QTY/31',
-      fallbackText: 'Felaktig årsförbrukning',
-    },
-  },
-  '214': {
-    missing: {
-      ruleKey: 'constant_missing',
-      fieldPath: 'SG5/CCI/Z02',
-      fallbackText: 'Konstant saknas',
-    },
-    invalid: {
-      ruleKey: 'constant_invalid',
-      fieldPath: 'SG5/CCI/Z02',
-      fallbackText: 'Felaktig konstant',
-    },
-  },
-  '217': {
-    missing: {
-      ruleKey: 'metering_method_missing',
-      fieldPath: 'SG5/CCI/Z04',
-      fallbackText: 'Mätmetod saknas',
-    },
-    invalid: {
-      ruleKey: 'metering_method_invalid',
-      fieldPath: 'SG5/CCI/Z04',
-      fallbackText: 'Felaktig mätmetod',
-    },
-  },
-  '218': {
-    missing: {
-      ruleKey: 'digit_count_missing',
-      fieldPath: 'SG5/CCI/Z16',
-      fallbackText: 'Antal siffror saknas',
-    },
-    invalid: {
-      ruleKey: 'digit_count_invalid',
-      fieldPath: 'SG5/CCI/Z16',
-      fallbackText: 'Felaktigt antal siffror',
-    },
-  },
-  '222': {
-    missing: {
-      ruleKey: 'settlement_method_missing',
-      fieldPath: 'SG5/CCI/Z05',
-      fallbackText: 'Avräkningsmetod saknas',
-    },
-    invalid: {
-      ruleKey: 'settlement_method_invalid',
-      fieldPath: 'SG5/CCI/Z05',
-      fallbackText: 'Felaktig avräkningsmetod',
-    },
-  },
-  '223': {
-    missing: {
-      ruleKey: 'transaction_type_missing',
-      fieldPath: 'SG5/CCI/Z13',
-      fallbackText: 'Transaktionstyp saknas',
-    },
-    invalid: {
-      ruleKey: 'transaction_type_invalid',
-      fieldPath: 'SG5/CCI/Z13',
-      fallbackText: 'Felaktig transaktionstyp',
-    },
-  },
-  '224': {
-    missing: {
-      ruleKey: 'meter_number_missing',
-      fieldPath: 'SG5/RFF/MG',
-      fallbackText: 'Mätarnummer saknas',
-    },
-    invalid: {
-      ruleKey: 'meter_number_invalid',
-      fieldPath: 'SG5/RFF/MG',
-      fallbackText: 'Felaktigt mätarnummer',
-    },
-  },
-  // TGT spreadsheet uses 261 for line item reference; APERAK FTX code in the test instructions is 226.
-  '261': {
-    missing: {
-      ruleKey: 'case_reference_missing',
-      fieldPath: 'SG4/RFF/LI',
-      fallbackText: 'Ärendereferens saknas',
-    },
-    invalid: {
-      ruleKey: 'case_reference_invalid',
-      fieldPath: 'SG4/RFF/LI',
-      fallbackText: 'Felaktig ärendereferens',
-    },
-  },
-  '226': {
-    missing: {
-      ruleKey: 'case_reference_missing',
-      fieldPath: 'SG4/RFF/LI',
-      fallbackText: 'Ärendereferens saknas',
-    },
-    invalid: {
-      ruleKey: 'case_reference_invalid',
-      fieldPath: 'SG4/RFF/LI',
-      fallbackText: 'Felaktig ärendereferens',
-    },
-  },
-  '260': {
-    missing: {
-      ruleKey: 'grid_area_missing',
-      fieldPath: 'SG4/RFF/Z05',
-      fallbackText: 'Nätområdesid saknas',
-    },
-    invalid: {
-      ruleKey: 'grid_area_invalid',
-      fieldPath: 'SG4/RFF/Z05',
-      fallbackText: 'Felaktigt nätområdesid',
-    },
-  },
-  '262': {
-    missing: {
-      ruleKey: 'balance_responsible_missing',
-      fieldPath: 'SG5/NAD/Z02',
-      fallbackText: 'Balansansvarig saknas',
-    },
-    invalid: {
-      ruleKey: 'balance_responsible_invalid',
-      fieldPath: 'SG5/NAD/Z02',
-      fallbackText: 'Felaktig balansansvarig',
-    },
-  },
-}
-
-function fieldRuleForTgtIssue(fieldCode: string, actual: string | null): TgtRuleMapping {
-  const normalized = fieldCode.toUpperCase()
-  const rule = TGT_FIELD_RULES[normalized]
-  if (rule) return actual ? rule.invalid : rule.missing
-
-  return {
-    ruleKey: actual ? `field_${normalized}_invalid` : `field_${normalized}_missing`,
-    fieldPath: `PRODAT/FIELD/${normalized}`,
-    fallbackText: actual ? `Fält ${normalized} avviker från Edielportalens testdata` : `Fält ${normalized} saknas`,
-  }
-}
-
-function issuesFromTgtComparison(params: {
-  message: EdielMessageRow
-  testData: EdielTgtCaseTestData | null | undefined
-}): EdielAperakValidationIssue[] {
-  const comparisonIssues = compareInboundPayloadToTgtTestData({
-    message: params.message,
-    testData: params.testData,
-  })
-
-  return comparisonIssues.map((item, index) => {
-    const mapping = fieldRuleForTgtIssue(item.fieldCode, item.actual)
-    return issue({
-      ruleKey: mapping.ruleKey,
-      fieldPath: mapping.fieldPath,
-      fieldValue: item.actual,
-      expectedValue: item.expected,
-      meteringPointId: item.referenceNumber,
-      transactionReference: item.lineItemReference,
-      sourceOrder: index,
-      fallbackText: mapping.fallbackText,
-    })
-  })
-}
-
 export function deriveProdatAperakValidationIssues(params: {
   message: EdielMessageRow
   testData?: EdielTgtCaseTestData | null
@@ -361,12 +219,8 @@ export function deriveProdatAperakValidationIssues(params: {
   const { message, testData } = params
   if (message.message_family !== 'PRODAT') return []
 
-  // TGT/testdata mode: detect rule keys by comparing the inbound payload with
-  // imported Edielportal testdata. The APERAK ERC/FTX codes are still resolved
-  // only from ediel_aperak_error_rules in the backend, not hardcoded here.
   if (testData) {
-    const tgtIssues = dedupeIssues(issuesFromTgtComparison({ message, testData }))
-    if (tgtIssues.length > 0) return tgtIssues
+    return deriveTgtAperakValidationIssues({ message, testData })
   }
 
   const facts = parseEdifactMessageFacts(message.raw_payload)
@@ -489,39 +343,39 @@ export function deriveProdatAperakValidationIssues(params: {
     if (['Z04', 'Z06', 'Z10'].includes(code) && !line.hasConstant) {
       issues.push(issue({
         ruleKey: 'constant_missing',
-        fieldPath: 'SG5/CCI/Z02',
+        fieldPath: 'SG5/QTY/40',
         fieldValue: null,
         expectedValue: hasTestDataField(testData, '214') ? testDataValuesForField(testData, ['214']).join(',') : 'Konstant',
         meteringPointId: line.itemId,
         transactionReference: lineReference,
         sourceOrder: sourceOrder++,
-        fallbackText: 'Konstant saknas',
+        fallbackText: 'Konstant saknas eller avviker från Edielportalens testdata',
       }))
     }
 
     if (['Z06'].includes(code) && !line.hasDigitCount) {
       issues.push(issue({
         ruleKey: 'digit_count_missing',
-        fieldPath: 'SG5/CCI/Z16',
+        fieldPath: 'SG5/QTY/218',
         fieldValue: null,
         expectedValue: hasTestDataField(testData, '218') ? testDataValuesForField(testData, ['218']).join(',') : 'Antal siffror',
         meteringPointId: line.itemId,
         transactionReference: lineReference,
         sourceOrder: sourceOrder++,
-        fallbackText: 'Antal siffror saknas',
+        fallbackText: 'Antal siffror saknas eller avviker från Edielportalens testdata',
       }))
     }
 
     if (['Z10'].includes(code) && !line.hasMeterNumber) {
       issues.push(issue({
         ruleKey: 'meter_number_missing',
-        fieldPath: 'SG5/RFF/MG',
+        fieldPath: 'SG5/RFF/Z09',
         fieldValue: null,
         expectedValue: hasTestDataField(testData, '224') ? testDataValuesForField(testData, ['224']).join(',') : 'Mätarnummer',
         meteringPointId: line.itemId,
         transactionReference: lineReference,
         sourceOrder: sourceOrder++,
-        fallbackText: 'Mätarnummer saknas',
+        fallbackText: 'Mätarnummer saknas eller avviker från Edielportalens testdata',
       }))
     }
   }
@@ -629,20 +483,13 @@ function selectRuleForIssue(
 }
 
 
-function formatAperakFreeText(template: string | null | undefined, issue: EdielAperakValidationIssue): string {
-  const fallback = issue.fallbackText
-  const raw = String(template ?? fallback).trim() || fallback
-  const replacements: Record<string, string> = {
-    actual: issue.fieldValue ?? '',
-    fieldValue: issue.fieldValue ?? '',
-    value: issue.fieldValue ?? '',
-    expected: issue.expectedValue ?? '',
-    meteringPointId: issue.meteringPointId ?? '',
-    transactionReference: issue.transactionReference ?? '',
-  }
-
-  const formatted = raw.replace(/\{(actual|fieldValue|value|expected|meteringPointId|transactionReference)\}/g, (_match, key: string) => replacements[key] ?? '')
-  return formatted.replace(/\s+/g, ' ').trim() || fallback
+function formatRuleFreeText(template: string, issue: EdielAperakValidationIssue): string {
+  return template
+    .replaceAll('{actual}', issue.fieldValue ?? '')
+    .replaceAll('{expected}', issue.expectedValue ?? '')
+    .replaceAll('{metering_point_id}', issue.meteringPointId ?? '')
+    .replaceAll('{transaction_reference}', issue.transactionReference ?? '')
+    .trim()
 }
 
 async function insertResolvedDetail(params: {
@@ -725,7 +572,7 @@ export async function resolveAndStoreProdatAperakErrors(params: {
       continue
     }
 
-    const freeText = formatAperakFreeText(rule.free_text, item)
+    const freeText = formatRuleFreeText(rule.free_text ?? item.fallbackText, item)
     const detail: EdielResolvedAperakErrorDetail = {
       validationIssueId,
       errorRuleId: rule.id,

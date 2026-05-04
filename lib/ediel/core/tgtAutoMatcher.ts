@@ -270,11 +270,15 @@ function issueForField(params: {
 }
 
 function comparableFieldCodesForMessage(messageCode: string): Set<string> {
-  const common = ['209', '233', '260', '261', '262']
-  if (messageCode === 'Z06') return new Set([...common, '210', '217', '218', '222', '223', '254'])
-  if (messageCode === 'Z10') return new Set([...common, '210', '214', '217', '218', '223', '224', '254'])
+  // Only fields that are APERAK-relevant should be compared here.
+  // Field 233 is an alternative facility identifier used for matching, not a separate
+  // APERAK error beside 209. Field 254 is TGT/masterdata context and must not
+  // generate a negative APERAK by itself.
+  const common = ['209', '260', '261', '262']
+  if (messageCode === 'Z06') return new Set([...common, '210', '217', '218', '222', '223'])
+  if (messageCode === 'Z10') return new Set([...common, '210', '214', '217', '218', '223', '224'])
   if (messageCode === 'Z05') return new Set([...common, '210', '217', '223'])
-  if (messageCode === 'Z09') return new Set([...common, '210', '217', '223', '254'])
+  if (messageCode === 'Z09') return new Set([...common, '210', '217', '223'])
   if (messageCode === 'Z04') return new Set([...common, '210', '213', '214', '217', '223'])
   if (messageCode === 'Z03') return new Set([...common, '210', '213', '217', '223'])
   return new Set(common)
