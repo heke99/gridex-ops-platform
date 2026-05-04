@@ -148,6 +148,44 @@ function rawHasField(rawText: string, fieldCode: string): boolean {
 }
 
 
+
+function textLooksLikeZ10MeterNumberInvalid(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return (
+    normalized.includes('FELAKTIGT MATARNUMMER') ||
+    normalized.includes('FELAKTIG MATARNUMMER') ||
+    normalized.includes('SAMMA MATARNUMMER') ||
+    normalized.includes('METER NUMBER INVALID') ||
+    normalized.includes('SAME METER NUMBER')
+  )
+}
+
+function textLooksLikeConstantMissing(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return normalized.includes('KONSTANT SAKNAS') || normalized.includes('METER CONSTANT MISSING')
+}
+
+export function effectiveTgtTestCaseCodeForMessageRow(
+  message: EdielMessageRow,
+  row: EdielTgtDynamicTestDataSummary
+): string {
+  const rawText = [row.title, row.sourceNote, row.rawText]
+    .filter(Boolean)
+    .join(' ')
+  const explicitCase = rawText.match(/\b(?:U\d\.\d\.\d+b?|\d\.\d\.\d+B?)\b/i)?.[0]
+  if (explicitCase) return explicitCase.toUpperCase().replace(/B$/, 'B')
+
+  const family = String(message.message_family ?? '').toUpperCase()
+  const code = String(message.message_code ?? '').toUpperCase()
+  if (family === 'PRODAT' && code === 'Z10') {
+    if (textLooksLikeZ10MeterNumberInvalid(rawText)) return '2.4.1'
+    if (textLooksLikeConstantMissing(rawText)) return '2.4.2'
+  }
+
+  return String(row.testCaseCode ?? '').toUpperCase()
+}
+
+
 export type EdielTgtPayloadComparisonIssue = {
   fieldCode: string
   ercCode: string
@@ -471,8 +509,8 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
     }
 
     if (code === 'Z10') {
-      if (payloadHasSameMeterNumber(message) || /SAMMA\s+M[ÄA]TARNUMMER|FELAKTIGT\s+M[ÄA]TARNUMMER/i.test(rawText)) return '2.4.1'
-      if (payloadHasMissingConstant(message) || rawHasField(rawText, '214')) return '2.4.2'
+      if (payloadHasSameMeterNumber(message) || textLooksLikeZ10MeterNumberInvalid(rawText)) return '2.4.1'
+      if (payloadHasMissingConstant(message) || textLooksLikeConstantMissing(rawText) || rawHasField(rawText, '214')) return '2.4.2'
       if (hasRawFacilityMismatch(message, rawText)) return '2.4.1'
       return '2.3.1'
     }
@@ -513,7 +551,7 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
 
   const expectedFacilities = facilityIdsFromTgtTestData(row.parsedPayload)
   const actualFacilities = messageFacilityIds(message)
-  const rowCode = row.testCaseCode.toUpperCase()
+  const rowCode = effectiveTgtTestCaseCodeForMessageRow(message, row).toUpperCase()
   const facilityMismatch = hasFacilityMismatch(message, row.parsedPayload)
 
   let matchingFacilities = 0

@@ -63,7 +63,12 @@ import {
 } from '@/lib/ediel/tgtTestDataStore'
 import { resolveRecommendedAckForInboundMessage } from '@/lib/ediel/core/ackDecisionEngine'
 import { validateAckPreflight } from '@/lib/ediel/core/ackPreflight'
-import { findBestTgtTestDataForMessage, findExactTgtTestDataForMessage, scoreTgtTestDataForMessage } from '@/lib/ediel/core/tgtAutoMatcher'
+import {
+  effectiveTgtTestCaseCodeForMessageRow,
+  findBestTgtTestDataForMessage,
+  findExactTgtTestDataForMessage,
+  scoreTgtTestDataForMessage,
+} from '@/lib/ediel/core/tgtAutoMatcher'
 import {
   attachAperakErrorDetailsToMessage,
   resolveAndStoreProdatAperakErrors,
@@ -275,6 +280,7 @@ function inferInboundTgtTestCaseCode(input: {
 
   if (haystack.includes('felaktigt anlaggningsid') || haystack.includes('anlaggningen kan inte identifieras')) return '2.2.1'
   if (haystack.includes('antal siffror')) return '2.2.2'
+  if (haystack.includes('felaktigt matarnummer') || haystack.includes('felaktig matarnummer') || haystack.includes('samma matarnummer')) return '2.4.1'
   if (haystack.includes('konstant saknas')) return '2.4.2'
   if (haystack.includes('matarbyte') || haystack.includes('mätarbyte')) return '2.3.1'
 
@@ -284,6 +290,21 @@ function inferInboundTgtTestCaseCode(input: {
   if (code === 'Z09') return '2.5.1'
   if (code === 'Z05') return '3.1.1'
   return ''
+}
+
+function effectiveTgtParsedPayloadForMessage(
+  message: EdielMessageRow,
+  row: EdielTgtDynamicTestDataSummary | null
+): EdielTgtCaseTestData | null {
+  if (!row?.parsedPayload) return null
+  const effectiveCaseCode = effectiveTgtTestCaseCodeForMessageRow(message, row)
+  if (!effectiveCaseCode || effectiveCaseCode === row.parsedPayload.testCaseCode) return row.parsedPayload
+  return {
+    ...row.parsedPayload,
+    testCaseCode: effectiveCaseCode,
+    title: row.parsedPayload.title || row.title,
+    sourceNote: row.parsedPayload.sourceNote || row.sourceNote,
+  }
 }
 
 async function resolveTgtTestDataForAckAction(params: {
@@ -303,7 +324,7 @@ async function resolveTgtTestDataForAckAction(params: {
 
   const rows = (await listEdielTgtDynamicTestData()).filter((row) => row.testSuite === testSuite && row.roleCode === roleCode)
   const exact = findExactTgtTestDataForMessage(message, rows)
-  if (exact) return { testData: exact.parsedPayload, selectedRow: exact, requestedTestData }
+  if (exact) return { testData: effectiveTgtParsedPayloadForMessage(message, exact), selectedRow: exact, requestedTestData }
 
   const best = findBestTgtTestDataForMessage(message, rows)
   if (!best) return { testData: requestedTestData, selectedRow: null, requestedTestData }
@@ -322,7 +343,7 @@ async function resolveTgtTestDataForAckAction(params: {
     // than the auto-selected row. This prevents a positive/general row from
     // overriding a known negative detail test such as 2.2.2 (digit count missing).
     if (requestedScore >= 0 && requestedScore + 100 >= bestScore) {
-      return { testData: requestedRow.parsedPayload, selectedRow: requestedRow, requestedTestData }
+      return { testData: effectiveTgtParsedPayloadForMessage(message, requestedRow), selectedRow: requestedRow, requestedTestData }
     }
   }
 
@@ -330,7 +351,7 @@ async function resolveTgtTestDataForAckAction(params: {
   // inbound payload matches another imported TGT row clearly better, use that row
   // as the masterdata simulator for validation. This keeps production logic
   // generic: identity validation first, then detail validation only when identity is OK.
-  return { testData: best.parsedPayload, selectedRow: best, requestedTestData }
+  return { testData: effectiveTgtParsedPayloadForMessage(message, best), selectedRow: best, requestedTestData }
 }
 
 function parseFileEngineMode(value: FormDataEntryValue | null): EdielFileEngineMode {
