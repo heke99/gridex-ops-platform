@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type ChangeEvent } from 'react'
+import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 
 type TestCaseOption = {
   value: string
@@ -55,6 +55,7 @@ export default function InboundTestDataUploadForm({
   options,
 }: Props) {
   const [encodedFilesJson, setEncodedFilesJson] = useState('')
+  const encodedFilesJsonRef = useRef('')
   const [fileStatus, setFileStatus] = useState('Ingen fil vald.')
   const [isReadingFiles, setIsReadingFiles] = useState(false)
 
@@ -67,8 +68,22 @@ export default function InboundTestDataUploadForm({
     })
   }, [options])
 
+
+  async function submitWithEncodedFiles(formData: FormData) {
+    const encodedJson = encodedFilesJsonRef.current || encodedFilesJson
+
+    // Next/server actions can sometimes receive native file inputs as empty
+    // application/octet-stream blobs. The browser-read base64 payload is the
+    // canonical upload path for this form, so force it into the FormData at
+    // submit time instead of relying only on a hidden input state update.
+    formData.set('uploadedFilesJson', encodedJson)
+
+    await action(formData)
+  }
+
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
+    encodedFilesJsonRef.current = ''
     setEncodedFilesJson('')
 
     if (files.length === 0) {
@@ -81,13 +96,16 @@ export default function InboundTestDataUploadForm({
 
     try {
       const encoded = await Promise.all(files.map(fileToBase64))
-      setEncodedFilesJson(JSON.stringify(encoded))
+      const encodedJson = JSON.stringify(encoded)
+      encodedFilesJsonRef.current = encodedJson
+      setEncodedFilesJson(encodedJson)
       setFileStatus(
         `Redo att skicka: ${encoded
           .map((file) => `${file.fileName} (${Math.ceil(file.size / 1024)} kB)`)
           .join(', ')}`
       )
     } catch (error) {
+      encodedFilesJsonRef.current = ''
       setEncodedFilesJson('')
       setFileStatus(error instanceof Error ? error.message : 'Kunde inte läsa vald fil.')
     } finally {
@@ -96,7 +114,7 @@ export default function InboundTestDataUploadForm({
   }
 
   return (
-    <form action={action} className="mt-3 grid gap-2 md:grid-cols-2">
+    <form action={submitWithEncodedFiles} className="mt-3 grid gap-2 md:grid-cols-2">
       <input type="hidden" name="sourceMessageId" value={sourceMessageId} />
       <input type="hidden" name="testSuite" value={testSuite} />
       <input type="hidden" name="roleCode" value={roleCode} />

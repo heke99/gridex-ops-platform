@@ -98,6 +98,126 @@ function sanitizeText(value: string): string {
   return value.replace(/['+]/g, ' ').slice(0, 140)
 }
 
+
+function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined): string {
+  return String(testData?.testCaseCode ?? '').trim().toUpperCase()
+}
+
+function utiltsTgtApplicationDecision(
+  message: EdielMessageRow,
+  testData: EdielTgtCaseTestData | null | undefined
+): {
+  family: AckFamily
+  outcome?: AckOutcome
+  errors?: EdielAperakApplicationError[]
+  messageText?: string | null
+  matchedRule: string
+} | null {
+  const testCase = normalizedTgtCaseCode(testData)
+  if (!testCase) return null
+
+  const makeError = (ercCode: string, fieldCode: string, text: string): EdielAperakApplicationError => ({
+    ercCode,
+    fieldCode,
+    text,
+    referenceQualifier: null,
+    referenceNumber: null,
+    lineItemReference: message.transaction_reference ?? null,
+  })
+
+  // TGT guide/anvisningsfel => negative APERAK. The APERAK error codes are
+  // driven by the TGT/UTILTS specification. This is TGT selection only; the
+  // production path below still uses message content/functional status.
+  if (testCase === 'U1.2.1' || testCase === 'U1.2.1B') {
+    return {
+      family: 'APERAK',
+      outcome: 'negative',
+      matchedRule: `UTILTS_TGT_${testCase}_GUIDE_ERROR`,
+      errors: [
+        makeError('41', '264', 'MANDATORY FIELD MISSING'),
+        makeError('42', '508', 'INCORRECT DATA 60'),
+      ],
+      messageText: 'UTILTS-S02 anvisningsfel',
+    }
+  }
+
+  if (testCase === 'U1.4.1') {
+    return {
+      family: 'APERAK',
+      outcome: 'negative',
+      matchedRule: 'UTILTS_TGT_U1.4.1_GUIDE_ERROR',
+      errors: [makeError('41', '515', 'MANDATORY FIELD MISSING')],
+      messageText: 'UTILTS-S03 anvisningsfel',
+    }
+  }
+
+  if (testCase === 'U2.2.1' || testCase === 'U2.2.1B') {
+    return {
+      family: 'APERAK',
+      outcome: 'negative',
+      matchedRule: `UTILTS_TGT_${testCase}_GUIDE_ERROR`,
+      errors: [
+        makeError('41', '224', 'MANDATORY FIELD MISSING'),
+        makeError('41', '514', 'MANDATORY FIELD MISSING'),
+      ],
+      messageText: 'UTILTS-E66 SCH anvisningsfel',
+    }
+  }
+
+  if (testCase === 'U2.2.2') {
+    return {
+      family: 'APERAK',
+      outcome: 'negative',
+      matchedRule: 'UTILTS_TGT_U2.2.2_GUIDE_ERROR',
+      errors: [makeError('41', '512', 'MANDATORY FIELD MISSING')],
+      messageText: 'UTILTS-E66 kvart anvisningsfel',
+    }
+  }
+
+  // TGT functional/processability errors => UTILTS-ERR.
+  if (testCase === 'U1.2.2' || testCase === 'U1.2.2B') {
+    return {
+      family: 'UTILTS_ERR',
+      matchedRule: `UTILTS_TGT_${testCase}_FUNCTIONAL_ERROR`,
+      messageText: 'E87|E10',
+    }
+  }
+
+  if (testCase === 'U1.4.2') {
+    return {
+      family: 'UTILTS_ERR',
+      matchedRule: 'UTILTS_TGT_U1.4.2_FUNCTIONAL_ERROR',
+      messageText: 'E87',
+    }
+  }
+
+  if (testCase === 'U2.2.3' || testCase === 'U2.2.3B') {
+    return {
+      family: 'UTILTS_ERR',
+      matchedRule: `UTILTS_TGT_${testCase}_FUNCTIONAL_ERROR`,
+      messageText: 'E19|E50',
+    }
+  }
+
+  if (testCase === 'U2.2.4' || testCase === 'U2.2.4B') {
+    return {
+      family: 'UTILTS_ERR',
+      matchedRule: `UTILTS_TGT_${testCase}_FUNCTIONAL_ERROR`,
+      messageText: 'E87|E98|E90',
+    }
+  }
+
+  if (testCase.startsWith('U1.1') || testCase.startsWith('U1.3') || testCase.startsWith('U2.1')) {
+    return {
+      family: 'APERAK',
+      outcome: 'positive',
+      matchedRule: `UTILTS_TGT_${testCase}_POSITIVE`,
+    }
+  }
+
+  return null
+}
+
 function utiltsApplicationDecision(message: EdielMessageRow): {
   family: AckFamily
   outcome?: AckOutcome
@@ -378,7 +498,7 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
       })
     }
 
-    const utiltsDecision = utiltsApplicationDecision(message)
+    const utiltsDecision = utiltsTgtApplicationDecision(message, tgtTestData) ?? utiltsApplicationDecision(message)
 
     if (utiltsDecision.family === 'UTILTS_ERR') {
       return decision({

@@ -331,8 +331,12 @@ function buildAperakSegments(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
-  // Edielportalen uses BGM message function 34 for APERAK.
-  // The application result is carried by ERC/FTX, not by BGM/1225.
+  const isUtiltsSource = params.sourceMessage.message_family === 'UTILTS'
+
+  // UTILTS uses the UTILTS/APERAK guide (APERAK D04A / E5SE5A) where BGM/1001
+  // carries 312 for positive APERAK and 313 for negative APERAK. PRODAT keeps
+  // the older PRODAT/APERAK D96A structure where BGM/1225 is 34.
+  const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
   const bgmFunction = '34'
 
   // For APERAK on inbound PRODAT, Edielportalen matches the acknowledgement
@@ -348,11 +352,22 @@ function buildAperakSegments(params: {
     sanitizeEdifactToken(params.transactionReference) ??
     'UNKNOWN'
 
-  const segments = [
-    'UNH+1+APERAK:D:96A:UN:E2SE6A',
-    `BGM+++${bgmFunction}`,
-    `DTM+137:${swedishDateTime()}:203`,
-  ]
+  const segments = isUtiltsSource
+    ? [
+        'UNH+1+APERAK:D:04A:UN:E5SE5A',
+        `BGM+${utiltsBgmCode}+${sanitizeEdifactToken(params.externalReference) ?? 'APERAK'}+9`,
+        `DTM+137:${swedishDateTime()}:203`,
+        'DTM+735:?+0100:406',
+        `DOC+${sanitizeEdifactToken(params.sourceMessage.message_code) ?? 'UTILTS'}::260+${previousMessageReference}`,
+        `NAD+MS+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
+        `NAD+MR+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
+        'NAD+DDQ',
+      ]
+    : [
+        'UNH+1+APERAK:D:96A:UN:E2SE6A',
+        `BGM+++${bgmFunction}`,
+        `DTM+137:${swedishDateTime()}:203`,
+      ]
 
   const receivedDateTime =
     swedishDateTimeFromEdifactUnb(params.sourceMessage.raw_payload) ??
@@ -363,15 +378,17 @@ function buildAperakSegments(params: {
         })()
       : null)
 
-  if (receivedDateTime) {
+  if (!isUtiltsSource && receivedDateTime) {
     segments.push(`DTM+178:${receivedDateTime}:203`)
   }
 
-  segments.push(
-    `RFF+ACW:${previousMessageReference}`,
-    `NAD+FR+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`,
-    `NAD+DO+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`
-  )
+  if (!isUtiltsSource) {
+    segments.push(
+      `RFF+ACW:${previousMessageReference}`,
+      `NAD+FR+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`,
+      `NAD+DO+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`
+    )
+  }
 
   const errors =
     params.outcome === 'positive'
@@ -395,6 +412,12 @@ function buildAperakSegments(params: {
         : `FTX+AAO+++${error.text}`
     )
 
+    if (isUtiltsSource) {
+      segments.push(`RFF+DM:${sanitizeEdifactToken(params.transactionReference) ?? 'APE'}`)
+      segments.push(`RFF+ACW:${error.lineItemReference ?? refs.lineItemReference ?? previousMessageReference}`)
+      continue
+    }
+
     const errorReferenceQualifier = error.referenceQualifier ?? (error.referenceNumber ? 'Z07' : null)
     if (errorReferenceQualifier && error.referenceNumber) {
       segments.push(`RFF+${errorReferenceQualifier}:${error.referenceNumber}`)
@@ -409,11 +432,11 @@ function buildAperakSegments(params: {
 
   // Fallback for ordinary one-object APERAKs. Multi-object TGT APERAKs should
   // carry references inside each error group above, not once at the end.
-  if (!hasPerErrorReference && refs.meteringPointId) {
+  if (!isUtiltsSource && !hasPerErrorReference && refs.meteringPointId) {
     segments.push(`RFF+Z07:${refs.meteringPointId}`)
   }
 
-  if (!hasPerErrorReference && refs.lineItemReference) {
+  if (!isUtiltsSource && !hasPerErrorReference && refs.lineItemReference) {
     segments.push(`RFF+LI:${refs.lineItemReference}`)
   }
 
@@ -426,22 +449,30 @@ function buildUtiltsErrSegments(params: {
   transactionReference: string
   messageText?: string | null
 }) {
-  const text =
-    sanitizeSegmentText(params.messageText) || 'UTILTS processing failed'
+  const refs = parseEdifactRefs(params.sourceMessage)
+  const rawCodes = sanitizeSegmentText(params.messageText) || 'E14'
+  const codes = rawCodes
+    .split(/[|,;\s]+/)
+    .map((code) => sanitizeEdifactToken(code.toUpperCase(), 8))
+    .filter((code): code is string => Boolean(code && /^E[0-9A-Z]+$/.test(code)))
 
-  return [
+  const uniqueCodes = Array.from(new Set(codes.length > 0 ? codes : ['E14']))
+  const segments: Array<string | null> = [
     'UNH+1+UTILTS:D:01B:UN:1.1',
-    `BGM+Z09+${sanitizeSegmentText(params.externalReference)}+9`,
-    `RFF+TN:${sanitizeSegmentText(params.transactionReference)}`,
-    params.sourceMessage.transaction_reference
-      ? `RFF+CR:${sanitizeSegmentText(params.sourceMessage.transaction_reference)}`
-      : null,
-    params.sourceMessage.external_reference
-      ? `RFF+ACE:${sanitizeSegmentText(params.sourceMessage.external_reference)}`
-      : null,
-    'NAD+MS',
-    `FTX+AAO+++${text}`,
-  ].filter(Boolean) as string[]
+    `BGM+Z09+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9`,
+    `DTM+137:${swedishDateTime()}:203`,
+    `RFF+TN:${sanitizeEdifactToken(params.transactionReference) ?? 'TN'}`,
+    refs.documentReference ? `RFF+ACE:${refs.documentReference}` : null,
+    `NAD+MS+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
+    `NAD+MR+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
+    'NAD+DDQ',
+  ]
+
+  for (const code of uniqueCodes) {
+    segments.push(`STS+E01::260+41+${code}::260`)
+  }
+
+  return segments.filter(Boolean) as string[]
 }
 
 function buildAckDraft(params: {
@@ -508,7 +539,9 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:2:2:UN:EDIEL2'
         : params.ackFamily === 'APERAK'
-          ? 'APERAK:D:96A:UN:E2SE6A'
+          ? params.sourceMessage.message_family === 'UTILTS'
+            ? 'APERAK:D:04A:UN:E5SE5A'
+            : 'APERAK:D:96A:UN:E2SE6A'
           : 'UTILTS:D:01B:UN:1.1',
     applicationReference,
     segments,
@@ -543,7 +576,9 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'EDIEL2'
         : params.ackFamily === 'APERAK'
-          ? 'E2SE6A'
+          ? params.sourceMessage.message_family === 'UTILTS'
+            ? 'E5SE5A'
+            : 'E2SE6A'
           : 'E5SE5A',
     processType: 'ack',
     environment: params.sourceMessage.environment,

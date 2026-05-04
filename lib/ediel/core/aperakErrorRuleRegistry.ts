@@ -148,9 +148,15 @@ const IGNORED_TGT_APERAK_FIELD_CODES = new Set([
   '254',
 ])
 
-function ruleKeyForTgtFieldCode(fieldCode: string): string | null {
-  const code = String(fieldCode ?? '').toUpperCase()
+function ruleKeyForTgtComparison(comparison: EdielTgtPayloadComparisonIssue): string | null {
+  const code = String(comparison.fieldCode ?? '').toUpperCase()
   if (!code || IGNORED_TGT_APERAK_FIELD_CODES.has(code)) return null
+
+  // Field 224 can be either missing meter number (41/224) or invalid meter
+  // number (42/224, e.g. Z10M same old/new meter number). Keep the APERAK
+  // code in backend; TypeScript only selects the semantic rule key.
+  if (code === '224' && comparison.ercCode === '42') return 'meter_number_invalid'
+
   return TGT_APERAK_FIELD_RULE_KEYS[code] ?? null
 }
 
@@ -158,7 +164,7 @@ function issueFromTgtComparison(
   comparison: EdielTgtPayloadComparisonIssue,
   sourceOrder: number
 ): EdielAperakValidationIssue | null {
-  const ruleKey = ruleKeyForTgtFieldCode(comparison.fieldCode)
+  const ruleKey = ruleKeyForTgtComparison(comparison)
   if (!ruleKey) return null
 
   return issue({
@@ -186,6 +192,16 @@ function firstLineReferenceContext(message: EdielMessageRow): LineReferenceConte
     meteringPointId: firstLine?.itemId ?? null,
     transactionReference: firstLine?.rffLi ?? asString(message.transaction_reference),
   }
+}
+
+function firstMeterNumberFromMessage(message: EdielMessageRow): string | null {
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  for (const line of facts.lineItems) {
+    const segment = line.segments.find((item) => item.raw.startsWith('RFF+MG:'))
+    const value = segment?.raw.replace(/^RFF\+MG:/, '').split(':')[0]?.trim() ?? ''
+    if (value) return value
+  }
+  return null
 }
 
 function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined): string {
@@ -374,6 +390,22 @@ function deriveTgtScenarioExpectedIssues(params: {
         transactionReference,
         sourceOrder: sourceOrder++,
         fallbackText: 'Antal siffror saknas',
+      }),
+    ]
+  }
+
+  if (testCaseCode === '2.4.1') {
+    const meterNumber = firstMeterNumberFromMessage(message)
+    return [
+      issueForTgtScenario({
+        ruleKey: 'meter_number_invalid',
+        fieldPath: 'TGT/FIELD/224',
+        fieldValue: meterNumber,
+        expectedValue: testDataValuesForField(testData, ['224']).join(',') || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: meterNumber ? `Felaktigt mätarnummer ${meterNumber}` : 'Felaktigt mätarnummer',
       }),
     ]
   }

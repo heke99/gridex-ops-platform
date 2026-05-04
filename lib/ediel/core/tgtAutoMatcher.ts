@@ -114,6 +114,34 @@ function payloadHasMissingConstant(message: EdielMessageRow): boolean {
   return facts.lineItems.some((line) => !line.hasConstant)
 }
 
+function meterNumbersForLine(line: ReturnType<typeof parseEdifactMessageFacts>['lineItems'][number]): string[] {
+  return unique(
+    line.segments
+      .filter((segment) => segment.raw.startsWith('RFF+MG:'))
+      .map((segment) => segment.raw.replace(/^RFF\+MG:/, '').split(':')[0]?.trim() ?? '')
+  )
+}
+
+function payloadHasSameMeterNumber(message: EdielMessageRow): boolean {
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  return facts.lineItems.some((line) => {
+    const rawMeterNumbers = line.segments
+      .filter((segment) => segment.raw.startsWith('RFF+MG:'))
+      .map((segment) => segment.raw.replace(/^RFF\+MG:/, '').split(':')[0]?.trim() ?? '')
+      .filter(Boolean)
+    return rawMeterNumbers.length >= 2 && new Set(rawMeterNumbers).size < rawMeterNumbers.length
+  })
+}
+
+function firstMeterNumber(message: EdielMessageRow): string | null {
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  for (const line of facts.lineItems) {
+    const value = meterNumbersForLine(line)[0]
+    if (value) return value
+  }
+  return null
+}
+
 function rawHasField(rawText: string, fieldCode: string): boolean {
   const escaped = fieldCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return new RegExp(`(^|\\n|\\t|;|,)\\s*${escaped}(\\s|\\t|;|,)`, 'i').test(rawText)
@@ -443,6 +471,7 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
     }
 
     if (code === 'Z10') {
+      if (payloadHasSameMeterNumber(message) || /SAMMA\s+M[ÄA]TARNUMMER|FELAKTIGT\s+M[ÄA]TARNUMMER/i.test(rawText)) return '2.4.1'
       if (payloadHasMissingConstant(message) || rawHasField(rawText, '214')) return '2.4.2'
       if (hasRawFacilityMismatch(message, rawText)) return '2.4.1'
       return '2.3.1'
@@ -507,6 +536,7 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
 
   const isObjectFailureCase = rowCode === '1.3.1' || rowCode === '2.2.1' || rowCode === '3.2.1'
   const isDigitCountCase = rowCode === '2.2.2'
+  const isSameMeterNumberCase = rowCode === '2.4.1'
   const isConstantCase = rowCode === '2.4.2'
 
   if (facilityMismatch && isObjectFailureCase && matchingFacilities === 0) {
@@ -518,6 +548,7 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
   // boost a generic positive row, or an unrelated object-mismatch row, can be
   // selected and the APERAK becomes false positive (ERC 100/OK).
   if (isDigitCountCase && payloadHasMissingDigitCount(message)) score += 650
+  if (isSameMeterNumberCase && payloadHasSameMeterNumber(message)) score += 650
   if (isConstantCase && payloadHasMissingConstant(message)) score += 650
 
   // If row contains exact fields that match a negative scenario, prefer it over older positive rows.
