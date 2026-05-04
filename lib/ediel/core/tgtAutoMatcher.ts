@@ -273,6 +273,30 @@ export function tgtTestDataHasSameNewAndOldMeterNumber(
   return false;
 }
 
+export function tgtTestDataLooksLikeZ10MeterChangeContext(
+  testData: EdielTgtCaseTestData | null | undefined,
+): boolean {
+  if (!testData) return false;
+  for (const group of testData.groups) {
+    const codes = new Set(group.fields.map((field) => String(field.fieldCode).toUpperCase()));
+    if (codes.has("224") || codes.has("225") || codes.has("259")) return true;
+  }
+  return false;
+}
+
+export function tgtTestDataLooksLikeConstantMissing(
+  testData: EdielTgtCaseTestData | null | undefined,
+): boolean {
+  if (!testData) return false;
+  for (const group of testData.groups) {
+    const codes = new Set(group.fields.map((field) => String(field.fieldCode).toUpperCase()));
+    if ((codes.has("224") || codes.has("225") || codes.has("259")) && !codes.has("214")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function textLooksLikeZ10MeterNumberInvalid(rawText: string): boolean {
   const normalized = normalize(rawText);
   return (
@@ -397,12 +421,14 @@ export function effectiveTgtTestCaseCodeForMessageRow(
   if (family === "PRODAT" && code === "Z10") {
     if (
       textLooksLikeZ10MeterNumberInvalid(rawText) ||
-      tgtRawTextHasSameNewAndOldMeterNumber(rawText)
+      tgtRawTextHasSameNewAndOldMeterNumber(rawText) ||
+      tgtTestDataHasSameNewAndOldMeterNumber(row.parsedPayload)
     )
       return "2.4.1";
     if (
       textLooksLikeConstantMissing(rawText) ||
-      tgtRawTextLooksLikeConstantMissing(rawText)
+      tgtRawTextLooksLikeConstantMissing(rawText) ||
+      tgtTestDataLooksLikeConstantMissing(row.parsedPayload)
     )
       return "2.4.2";
   }
@@ -907,27 +933,27 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
   if (family === "UTILTS") {
     if (code === "S02") {
       if (textLooksLikeUtiltsFunctionalError(rawText))
-        return rawText.match(/U1\.2\.2B/i) ? "U1.2.2B" : "U1.2.2";
+        return rawText.match(/\bU1\.2\.2B\b/i) ? "U1.2.2B" : "U1.2.2";
       if (textLooksLikeUtiltsGuideError(rawText))
-        return rawText.match(/U1\.2\.1B/i) ? "U1.2.1B" : "U1.2.1";
+        return rawText.match(/\bU1\.2\.1B\b/i) ? "U1.2.1B" : "U1.2.1";
       return "U1.1.1";
     }
     if (code === "S03") {
       if (textLooksLikeUtiltsFunctionalError(rawText)) return "U1.4.2";
       if (textLooksLikeUtiltsGuideError(rawText)) return "U1.4.1";
-      return rawText.match(/U1\.3\.1B/i) ? "U1.3.1B" : "U1.3.1";
+      return rawText.match(/\bU1\.3\.1B\b/i) ? "U1.3.1B" : "U1.3.1";
     }
     if (code === "E66") {
       if (textLooksLikeUtiltsFunctionalError(rawText)) {
         if (textLooksLikeUtiltsE66FunctionalMultiError(rawText))
-          return rawText.match(/U2\.2\.4B/i) ? "U2.2.4B" : "U2.2.4";
+          return rawText.match(/\bU2\.2\.4B\b/i) ? "U2.2.4B" : "U2.2.4";
         if (textLooksLikeUtiltsE66FunctionalSchError(rawText))
-          return rawText.match(/U2\.2\.3B/i) ? "U2.2.3B" : "U2.2.3";
-        return rawText.match(/U2\.2\.3B/i) ? "U2.2.3B" : "U2.2.3";
+          return rawText.match(/\bU2\.2\.3B\b/i) ? "U2.2.3B" : "U2.2.3";
+        return rawText.match(/\bU2\.2\.3B\b/i) ? "U2.2.3B" : "U2.2.3";
       }
       if (textLooksLikeUtiltsGuideError(rawText)) {
         if (textLooksLikeUtiltsE66QuarterGuideError(rawText)) return "U2.2.2";
-        return rawText.match(/U2\.2\.1B/i) ? "U2.2.1B" : "U2.2.1";
+        return rawText.match(/\bU2\.2\.1B\b/i) ? "U2.2.1B" : "U2.2.1";
       }
       return "U2.1.1";
     }
@@ -1032,7 +1058,8 @@ export function scoreTgtTestDataForMessage(
     tgtTestDataHasSameNewAndOldMeterNumber(row.parsedPayload);
   const rowLooksLikeConstantMissing =
     textLooksLikeConstantMissing(rowText) ||
-    tgtRawTextLooksLikeConstantMissing(rowText);
+    tgtRawTextLooksLikeConstantMissing(rowText) ||
+    tgtTestDataLooksLikeConstantMissing(row.parsedPayload);
   const isKnownPositiveProdatCase = [
     "2.3.1",
     "2.3.2",
@@ -1064,12 +1091,12 @@ export function scoreTgtTestDataForMessage(
     isSameMeterNumberCase &&
     (payloadHasSameMeterNumber(message) || rowLooksLikeSameMeterNumber)
   )
-    score += 900;
+    score += 1200;
   if (
     isConstantCase &&
     (payloadHasMissingConstant(message) || rowLooksLikeConstantMissing)
   )
-    score += 800;
+    score += 1100;
 
   // 2.4.1 has precedence over generic digit-count noise for Z10M meter-change
   // tests. If a Z10 row/testdata explicitly describes same/invalid meter number,
@@ -1079,7 +1106,7 @@ export function scoreTgtTestDataForMessage(
     String(message.message_code ?? "").toUpperCase() === "Z10"
   ) {
     if (isDigitCountCase && rowLooksLikeSameMeterNumber) score -= 800;
-    if (isKnownPositiveProdatCase && rowLooksLikeSameMeterNumber) score -= 500;
+    if (isKnownPositiveProdatCase && (rowLooksLikeSameMeterNumber || rowLooksLikeConstantMissing)) score -= 900;
   }
 
   // If row contains exact fields that match a negative scenario, prefer it over older positive rows.

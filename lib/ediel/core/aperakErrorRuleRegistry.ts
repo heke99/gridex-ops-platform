@@ -5,6 +5,7 @@ import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 import {
   compareInboundPayloadToTgtTestData,
   tgtTestDataHasSameNewAndOldMeterNumber,
+  tgtTestDataLooksLikeConstantMissing,
   type EdielTgtPayloadComparisonIssue,
 } from '@/lib/ediel/core/tgtAutoMatcher'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -300,7 +301,7 @@ function deriveTgtScenarioExpectedIssues(params: {
     ]
   }
 
-  if (messageFamily === 'PRODAT' && messageCode === 'Z10' && (testCaseCode === '2.4.2' || messageHasMissingConstant(message))) {
+  if (messageFamily === 'PRODAT' && messageCode === 'Z10' && (testCaseCode === '2.4.2' || messageHasMissingConstant(message) || tgtTestDataLooksLikeConstantMissing(testData))) {
     return [
       issueForTgtScenario({
         ruleKey: 'constant_missing',
@@ -524,6 +525,14 @@ function deriveTgtAperakValidationIssues(params: {
 
   const scenarioIssues = deriveTgtScenarioExpectedIssues({ message, testData })
   if (scenarioIssues.length > 0) return dedupeIssues(scenarioIssues)
+
+  // Positive TGT cases are explicit acceptance tests. Once scenario-level checks
+  // found no real semantic issue, do not let generic field-by-field comparison
+  // noise turn them into negative APERAK. This is also the production rule:
+  // detail validation is scoped by process, not by every imported reference field.
+  if (String(message.message_family ?? '').toUpperCase() === 'PRODAT' && knownPositiveProdatTgtCase(normalizedTgtCaseCode(testData))) {
+    return []
+  }
 
   const comparisons = compareInboundPayloadToTgtTestData({ message, testData })
   const issues: EdielAperakValidationIssue[] = []
