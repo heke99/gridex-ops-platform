@@ -908,8 +908,14 @@ function buildProdatLineSegments(params: {
 }): string[] {
   const { portalData, step, refs, transactionType, mutation, lineNo } = params
   const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
-  const meteringPointId = sanitizeCode(portalData.meteringPointId, 'UNKNOWN', 35)
-  const customerName = edifactEscape(sanitize(portalData.customerName, ''))
+
+  // Never put dummy values in outbound PRODAT. Missing portal data should be
+  // caught by validatePortalDataCoverage with a precise error, not hidden as
+  // UNKNOWN in a segment that could accidentally be sent to Edielportalen.
+  const meteringPointId = sanitizeCode(portalData.meteringPointId, '', 35)
+  const customerId = sanitizeCode(portalData.customerId, '', 35)
+  const customerNamePlain = sanitize(portalData.customerName, '', 70)
+  const customerName = edifactEscape(customerNamePlain)
   const customerAddress = edifactEscape(sanitize(portalData.customerAddress ?? ''))
   const customerCity = edifactEscape(sanitize(portalData.customerCity ?? ''))
   const customerPostalCode = sanitizeCode(portalData.customerPostalCode, '', 12)
@@ -919,44 +925,42 @@ function buildProdatLineSegments(params: {
   const sitePostalCode = sanitizeCode(portalData.sitePostalCode, '', 12)
   const siteCountry = sanitizeCode(portalData.siteCountry, 'SE', 3)
   const lineReference = lineNo === 1 ? refs.externalRef : `${refs.externalRef}-${lineNo}`.slice(0, 35)
+  const reasonForTransaction = sanitizeCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)
+  const meteringMethod = sanitizeCode(portalData.meteringMethod, '', 12)
+  const gridAreaId = sanitizeCode(portalData.gridAreaId, '', 12)
+  const powerOfAttorneyReference = sanitizeCode(portalData.powerOfAttorneyReference, '', 35)
 
   const segments: string[] = [
     `LIN+${lineNo}++${meteringPointId}:::9`,
     `DTM+92:${startDate}0000:203`,
     'CCI++Z13',
-    `CAV+${sanitizeCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)}`,
+    `CAV+${reasonForTransaction}`,
   ]
 
-  if (portalData.meteringMethod) {
+  if (meteringMethod) {
     segments.push('CCI++Z04')
-    segments.push(`CAV+${sanitizeCode(portalData.meteringMethod, 'UNKNOWN', 12)}`)
+    segments.push(`CAV+${meteringMethod}`)
   }
 
   if (!mutation.omitLineItem) {
     segments.push(`RFF+LI:${lineReference}`)
   }
 
-  segments.push(`RFF+Z05:${sanitizeCode(portalData.gridAreaId, 'UNKNOWN', 12)}`)
-
-  if (portalData.powerOfAttorneyReference) {
-    segments.push(`RFF+ANJ:${sanitizeCode(portalData.powerOfAttorneyReference, 'UNKNOWN', 35)}`)
+  if (gridAreaId) {
+    segments.push(`RFF+Z05:${gridAreaId}`)
   }
 
-  if (portalData.customerId && portalData.customerName) {
+  if (powerOfAttorneyReference) {
+    segments.push(`RFF+ANJ:${powerOfAttorneyReference}`)
+  }
+
+  if (customerId && customerNamePlain) {
     segments.push(
-      `NAD+UD+${sanitizeCode(portalData.customerId, '', 35)}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
-    )
-  } else if (prodatStepRequiresCustomerData(step)) {
-    // Required customer data should have been caught by validatePortalDataCoverage.
-    // Avoid UNKNOWN placeholders anyway so a draft can never be accidentally sent
-    // with dummy identifiers.
-  } else if (prodatStepAllowsOptionalCustomerData(step) && portalData.customerId) {
-    segments.push(
-      `NAD+UD+${sanitizeCode(portalData.customerId, '', 35)}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
+      `NAD+UD+${customerId}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
     )
   }
 
-  if (step.code !== 'Z03') {
+  if (step.code !== 'Z03' && meteringPointId) {
     segments.push(`NAD+IT+${meteringPointId}::9+++${siteAddress}+${siteCity}++${sitePostalCode}+${siteCountry}`)
   }
 
@@ -1155,18 +1159,15 @@ function prodatStepRequiresRegisterCoverage(step: EdielTgtExpectedStep): boolean
   return ['Z04', 'Z06', 'Z10'].includes(String(step.code))
 }
 
+
 function prodatStepRequiresCustomerData(step: EdielTgtExpectedStep): boolean {
   if (step.family !== 'PRODAT') return false
-  // Z09 is an agreement/settlement communication test where the portal testdata
-  // often contains metering-point/process fields only. Do not force dummy customer
-  // NAD+UD values into Z09. Production validation should still use customer data
-  // when the business process requires it, but TGT Z09 must be built from the
-  // actual register fields instead of UNKNOWN placeholders.
-  return step.code !== 'Z09'
-}
 
-function prodatStepAllowsOptionalCustomerData(step: EdielTgtExpectedStep): boolean {
-  return step.family === 'PRODAT' && step.code === 'Z09'
+  // Z09 TGT outbound tests often only contain process/metering-point fields.
+  // Do not force customer NAD+UD from dummy values. If customer data exists we
+  // include it, otherwise we omit NAD+UD for Z09 and let the portal validate the
+  // actual Z09 business fields.
+  return step.code !== 'Z09'
 }
 
 function validatePortalDataCoverage(
@@ -1273,12 +1274,17 @@ export function validateEdielTgtDraft(rawPayload: string, step: EdielTgtExpected
   }
 
   if (step.family === 'PRODAT' && (normalized.includes('UNKNOWN') || normalized.includes('999999999999999999'))) {
+    const dummySegments = parsed.segments
+      .filter((segment) => segment.toUpperCase().includes('UNKNOWN') || segment.includes('999999999999999999'))
+      .slice(0, 5)
+      .join(' | ')
+
     pushIssue(
       issues,
       'error',
       'dummy_test_data_detected',
       'Dummydata i PRODAT-utkast',
-      'PRODAT till Edielportalen får inte innehålla UNKNOWN eller 999999999999999999. Utkastet måste byggas från portalens testdataregister.'
+      `PRODAT till Edielportalen får inte innehålla UNKNOWN eller 999999999999999999. Utkastet måste byggas från portalens testdataregister.${dummySegments ? ` Segment: ${dummySegments}` : ''}`
     )
   }
   if ((step.family === 'PRODAT' || step.family === 'APERAK') && !normalized.includes(EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS)) {
