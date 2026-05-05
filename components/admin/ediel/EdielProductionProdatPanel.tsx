@@ -5,6 +5,7 @@ import {
   createEdielPortalTestCustomerAction,
   prepareSwitchZ03Action,
   prepareSwitchZ04Action,
+  prepareSwitchZ09Action,
   pollMailboxAction,
   sendEdielMessageAction,
   updateEdielPortalSwitchTestDataAction,
@@ -33,7 +34,7 @@ type ProdatCatalogGroup = ProdatCatalogGroupConfig & {
   testCases: EdielTgtTestCaseDefinition[]
 }
 
-const PORTAL_FORM_CASE_CODES = new Set(['1.2.1', '1.2.2', '1.2.5'])
+const PORTAL_FORM_CASE_CODES = new Set(['1.2.1', '1.2.2', '1.2.5', '2.5.1', '2.5.2', '2.5.3'])
 
 const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
   {
@@ -710,6 +711,12 @@ function EdielPortalTestCustomerOnboardingPanel() {
                   <option value="">Auto från testfall</option>
                   <option value="Z22">L = leverantörsbyte = Z22</option>
                   <option value="Z23">LK = leverantörs- och kundbyte = Z23</option>
+                  <option value="E64">Z09F = E64</option>
+                  <option value="E32">Z09G = E32</option>
+                  <option value="Z70">Z09D = Z70</option>
+                  <option value="E64">Z09F = avtal om 15-minutersvärden = E64</option>
+                  <option value="E32">Z09G = avtal om 15-minutersvärden upphör = E32</option>
+                  <option value="Z70">Z09D = nytt avtal om mikroproduktion = Z70</option>
                 </FormSelect>
                 <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900 md:col-span-2">
                   Välj L/Z22 för vanligt leverantörsbyte, t.ex. 1.2.1 Z03L. Välj LK/Z23 för
@@ -958,7 +965,7 @@ function ProductionCandidateCard({
             <p className="mt-1 text-[11px] leading-5 text-indigo-800">
               Använd detta när portalen säger att testdata inte matchar, utan att behöva skapa om
               kund/anläggning. När du sparar avbryts gamla oskickade PRODAT-utkast automatiskt.
-              Skapa sedan nytt Z03-utkast.
+              Skapa sedan nytt PRODAT-utkast.
             </p>
             <div className="mt-3 grid gap-2 md:grid-cols-4">
               <label className="block text-xs font-semibold text-slate-700">
@@ -1053,6 +1060,25 @@ function ProductionCandidateCard({
               className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
             >
               Skapa Z04-utkast
+            </button>
+          </form>
+
+          <form action={prepareSwitchZ09Action}>
+            <input type="hidden" name="switchRequestId" value={candidate.switchRequestId} />
+            <input type="hidden" name="environment" value="test" />
+            <input type="hidden" name="forceRegenerate" value="true" />
+            {candidate.communicationRouteId ? (
+              <input
+                type="hidden"
+                name="communicationRouteId"
+                value={candidate.communicationRouteId}
+              />
+            ) : null}
+            <button
+              disabled={!candidate.readyForPortalOrProduction}
+              className="rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              Skapa Z09-utkast
             </button>
           </form>
 

@@ -160,6 +160,17 @@ const PORTAL_TEST_CASE_OVERRIDES: Record<string, PortalTestCaseOverrides> = {
     reasonForTransaction: 'Z23',
     customerIdCodeListQualifier: 'SE1',
   },
+  'PRODAT:supplier:2.5.1': {
+    meteringMethod: 'Z04',
+    reasonForTransaction: 'E64',
+  },
+  'PRODAT:supplier:2.5.2': {
+    meteringMethod: 'Z03',
+    reasonForTransaction: 'E32',
+  },
+  'PRODAT:supplier:2.5.3': {
+    reasonForTransaction: 'Z70',
+  },
 }
 
 function portalTestCaseKey(input: Pick<CreateEdielPortalTestCustomerInput, 'testSuite' | 'roleCode' | 'testCaseCode'>): string {
@@ -262,7 +273,10 @@ function normalizeReasonForTransaction(value: unknown): string | null {
   if (!token) return null
   if (token === 'L') return 'Z22'
   if (token === 'LK') return 'Z23'
-  if (token === 'Z22' || token === 'Z23') return token
+  if (token === 'F' || token === 'Z09F') return 'E64'
+  if (token === 'G' || token === 'Z09G') return 'E32'
+  if (token === 'D' || token === 'Z09D') return 'Z70'
+  if (['Z22', 'Z23', 'E64', 'E32', 'Z70'].includes(token)) return token
   return null
 }
 

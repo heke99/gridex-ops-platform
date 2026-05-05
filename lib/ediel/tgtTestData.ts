@@ -2039,6 +2039,39 @@ export function getEdielTgtTestDataForCase(
     }
   }
 
+  if (suite === 'PRODAT' && roleCode === 'supplier' && code === '2.5.1') {
+    return {
+      suite,
+      roleCode,
+      testCaseCode,
+      title: 'Testkund 11 · Z09F avtal om 15-minutersvärden',
+      sourceNote: 'Importerad från PRODAT bilaga 1, elmarknad. Används för TGT 2.5.1 Z09F.',
+      groups: groupFor(blockByEntity(RAW_PRODAT_BLOCKS, '11'), ['Z09F']),
+    }
+  }
+
+  if (suite === 'PRODAT' && roleCode === 'supplier' && code === '2.5.2') {
+    return {
+      suite,
+      roleCode,
+      testCaseCode,
+      title: 'Testkund 18 · Z09G avtal om 15-minutersvärden upphör',
+      sourceNote: 'Importerad från PRODAT bilaga 1, elmarknad. Används för TGT 2.5.2 Z09G.',
+      groups: groupFor(blockByEntity(RAW_PRODAT_BLOCKS, '18'), ['Z09G']),
+    }
+  }
+
+  if (suite === 'PRODAT' && roleCode === 'supplier' && code === '2.5.3') {
+    return {
+      suite,
+      roleCode,
+      testCaseCode,
+      title: 'Testkund 10 · Z09D nytt avtal om mikroproduktion',
+      sourceNote: 'Importerad från PRODAT bilaga 1, elmarknad. Används för TGT 2.5.3 Z09D.',
+      groups: groupFor(blockByEntity(RAW_PRODAT_BLOCKS, '10'), ['Z09D']),
+    }
+  }
+
 
   if (suite === 'UTILTS' && roleCode === 'supplier' && code === 'U2.1') {
     return {

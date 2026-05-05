@@ -358,8 +358,9 @@ function normalizeProdatReasonForTransaction(value: string | null): string {
   const normalized = sanitize(value).toUpperCase()
   if (normalized === 'LK' || normalized === 'Z23') return 'Z23'
   if (normalized === 'L' || normalized === 'Z22') return 'Z22'
-  if (normalized === 'F' || normalized === 'Z06F' || normalized === 'E64') return 'E64'
-  if (normalized === 'G' || normalized === 'Z06G' || normalized === 'E32') return 'E32'
+  if (normalized === 'F' || normalized === 'Z06F' || normalized === 'Z09F' || normalized === 'E64') return 'E64'
+  if (normalized === 'G' || normalized === 'Z06G' || normalized === 'Z09G' || normalized === 'E32') return 'E32'
+  if (normalized === 'D' || normalized === 'Z09D' || normalized === 'Z70') return 'Z70'
   return normalized || 'Z22'
 }
 
