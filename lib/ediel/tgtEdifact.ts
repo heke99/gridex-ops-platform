@@ -118,6 +118,7 @@ type TgtPortalCustomerData = {
   sourceOrder?: number | null
   meteringPointId: string
   agreementStartDateTime: string
+  validityDateTime?: string | null
   annualEnergyUnit: string
   meteringMethod: string
   reasonForTransaction?: string | null
@@ -161,10 +162,7 @@ function base36Token(value: number, length: number): string {
 }
 
 function shortCaseToken(testCaseCode: string): string {
-  const hash = Array.from(testCaseCode).reduce(
-    (sum, char) => (sum + char.charCodeAt(0)) % 36,
-    0
-  )
+  const hash = Array.from(testCaseCode).reduce((sum, char) => (sum + char.charCodeAt(0)) % 36, 0)
   return base36Token(hash, 1)
 }
 
@@ -175,9 +173,6 @@ function buildTgtInterchangeReference(params: {
   testCaseCode: string
   stepNo: number
 }): string {
-  // Edielportalen rejects long UNB/0020 values as "Field content oversized".
-  // Keep TGT interchange references deliberately short and alphanumeric, and reuse
-  // the same value in UNZ/0020. Format: YYMMDDHHMM + step + seconds(base36) + caseHash = max 14 chars.
   const stepToken = base36Token(params.stepNo, 1)
   const secondsToken = base36Token(params.seconds, 2)
   const caseToken = shortCaseToken(params.testCaseCode)
@@ -334,7 +329,6 @@ function findTestValueForStep(
 ): string | null {
   return findTestValue(params, selectors, preferredColumnSelectorsForStep(step))
 }
-
 
 type TgtMatchedField = {
   fieldCode: string
@@ -618,6 +612,7 @@ function getPortalData(
   }
 
   const startDateRaw = valueFor(['210 avtal', 'startdatum', 'leveransstart'])
+  const validityDateRaw = valueFor(['216 giltighetsdatum', '216 validity', '216 valid'])
   const registers = columnName ? [] : buildRegistersFromTestData(params, step)
   const importedMeteringMethod = cleanOptionalCode(valueFor(['217 mätmetod', '217 matmetod']), 12)
   const poaRaw = valueFor(['261 referens'])
@@ -637,6 +632,7 @@ function getPortalData(
       35
     ) ?? '',
     agreementStartDateTime: resolvePortalDateTime(startDateRaw),
+    validityDateTime: validityDateRaw ? resolvePortalDateTime(validityDateRaw) : null,
     annualEnergyUnit: cleanOptionalCode(valueFor(['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
     meteringMethod: resolveTgtMeteringMethod(params, step, importedMeteringMethod),
     reasonForTransaction: cleanOptionalCode(valueFor(['223 transaktionstyp', 'reason for transaction']), 12),
@@ -672,7 +668,6 @@ function getPortalData(
   }
 }
 
-
 function getColumnStepScore(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   step: EdielTgtExpectedStep,
@@ -689,9 +684,6 @@ function getColumnStepScore(
     if (transactionType && normalizedTransaction.includes(normalizeSearch(transactionType))) score += 90
     if (step.code && normalizedTransaction.includes(normalizeSearch(step.code))) score += 60
 
-    // Field 217 can contain Z03 as the measuring-method value. This is not the
-    // transaction type, but it is a strong safety signal for supplier-switch
-    // Z03 start messages and prevents Z04L columns with Z01 from being selected.
     const meteringValue = firstToken(findFieldValueForColumn(params, column.name, ['217 mätmetod', '217 matmetod']))
     if (step.code === 'Z03' && meteringValue === 'Z03') score += 25
     if (step.code === 'Z03' && meteringValue === 'Z01') score -= 25
@@ -748,6 +740,12 @@ function date102FromPortalDate(value: string | null | undefined, fallback: strin
   const token = firstToken(value)
   if (token && /^\d{8,12}$/.test(token)) return token.slice(0, 8)
   return fallback
+}
+
+function date203FromPortalDate(value: string | null | undefined, fallback: string): string {
+  const token = firstToken(value)
+  if (token && /^\d{8,12}$/.test(token)) return token.length === 8 ? `${token}0000` : token.slice(0, 12)
+  return `${fallback}0000`
 }
 
 function serializeEdifactSegments(segments: string[]): string {
@@ -849,9 +847,6 @@ function getTgtProdatMutation(params: EdielTgtDraftBuildParams, step: EdielTgtEx
   if (step.family !== 'PRODAT') return {}
 
   if (params.testCaseCode === '1.3.1' && step.code === 'Z03') {
-    // 1.3.1 uses the portal's Testkund 5 value from the testdata registry:
-    // field 209 is already marked as "Fel anl.id = ..." in the imported data.
-    // Do not replace it with a dummy value; the portal matches the exact test customer.
     return {}
   }
 
@@ -868,17 +863,10 @@ function getTgtProdatMutation(params: EdielTgtDraftBuildParams, step: EdielTgtEx
   }
 
   if ((params.testCaseCode === '1.3.4' || params.testCaseCode === '1.3.4B') && step.code === 'Z03') {
-    // 1.3.4 is a multi-object/date test. The portal's imported testdata is
-    // authoritative per object row; do not apply one global date mutation or
-    // the first row will be corrupted while the other expected rows are missing.
     return {}
   }
 
   return {}
-}
-
-function pushOptionalSegment(segments: string[], condition: string | null | undefined, segment: string) {
-  if (condition && condition.trim().length > 0) segments.push(segment)
 }
 
 function applyProdatMutationToPortalData(
@@ -887,14 +875,11 @@ function applyProdatMutationToPortalData(
 ): TgtPortalCustomerData {
   return {
     ...sourcePortalData,
-    agreementStartDateTime:
-      mutation.agreementStartDateTime ?? sourcePortalData.agreementStartDateTime,
+    agreementStartDateTime: mutation.agreementStartDateTime ?? sourcePortalData.agreementStartDateTime,
     meteringPointId: mutation.meteringPointId ?? sourcePortalData.meteringPointId,
     gridAreaId: mutation.gridAreaId ?? sourcePortalData.gridAreaId,
-    reasonForTransaction:
-      mutation.reasonForTransaction ?? sourcePortalData.reasonForTransaction,
-    balanceResponsibleId:
-      mutation.balanceResponsibleId ?? sourcePortalData.balanceResponsibleId,
+    reasonForTransaction: mutation.reasonForTransaction ?? sourcePortalData.reasonForTransaction,
+    balanceResponsibleId: mutation.balanceResponsibleId ?? sourcePortalData.balanceResponsibleId,
   }
 }
 
@@ -907,21 +892,24 @@ function buildProdatLineSegments(params: {
   lineNo: number
 }): string[] {
   const { portalData, step, refs, transactionType, mutation, lineNo } = params
+  const isZ09 = step.code === 'Z09'
   const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
+  const validityDate = date203FromPortalDate(portalData.validityDateTime ?? portalData.agreementStartDateTime, refs.createdLongDate)
 
-  // Never put dummy values in outbound PRODAT. Missing portal data should be
-  // caught by validatePortalDataCoverage with a precise error, not hidden as
-  // UNKNOWN in a segment that could accidentally be sent to Edielportalen.
   const meteringPointId = sanitizeCode(portalData.meteringPointId, '', 35)
   const customerId = sanitizeCode(portalData.customerId, '', 35)
   const customerNamePlain = sanitize(portalData.customerName, '', 70)
   const customerName = edifactEscape(customerNamePlain)
-  const customerAddress = edifactEscape(sanitize(portalData.customerAddress ?? ''))
-  const customerCity = edifactEscape(sanitize(portalData.customerCity ?? ''))
+  const customerAddressPlain = sanitize(portalData.customerAddress, '', 70)
+  const customerCityPlain = sanitize(portalData.customerCity, '', 35)
+  const customerAddress = edifactEscape(customerAddressPlain)
+  const customerCity = edifactEscape(customerCityPlain)
   const customerPostalCode = sanitizeCode(portalData.customerPostalCode, '', 12)
   const customerCountry = sanitizeCode(portalData.customerCountry, 'SE', 3)
-  const siteAddress = edifactEscape(sanitize(portalData.siteAddress ?? ''))
-  const siteCity = edifactEscape(sanitize(portalData.siteCity ?? ''))
+  const siteAddressPlain = sanitize(portalData.siteAddress, '', 70)
+  const siteCityPlain = sanitize(portalData.siteCity, '', 35)
+  const siteAddress = edifactEscape(siteAddressPlain)
+  const siteCity = edifactEscape(siteCityPlain)
   const sitePostalCode = sanitizeCode(portalData.sitePostalCode, '', 12)
   const siteCountry = sanitizeCode(portalData.siteCountry, 'SE', 3)
   const lineReference = lineNo === 1 ? refs.externalRef : `${refs.externalRef}-${lineNo}`.slice(0, 35)
@@ -932,10 +920,16 @@ function buildProdatLineSegments(params: {
 
   const segments: string[] = [
     `LIN+${lineNo}++${meteringPointId}:::9`,
-    `DTM+92:${startDate}0000:203`,
-    'CCI++Z13',
-    `CAV+${reasonForTransaction}`,
   ]
+
+  if (isZ09) {
+    segments.push(`DTM+157:${validityDate}:203`)
+  } else {
+    segments.push(`DTM+92:${startDate}0000:203`)
+  }
+
+  segments.push('CCI++Z13')
+  segments.push(`CAV+${reasonForTransaction}`)
 
   if (meteringMethod) {
     segments.push('CCI++Z04')
@@ -950,7 +944,7 @@ function buildProdatLineSegments(params: {
     segments.push(`RFF+Z05:${gridAreaId}`)
   }
 
-  if (powerOfAttorneyReference) {
+  if (!isZ09 && powerOfAttorneyReference) {
     segments.push(`RFF+ANJ:${powerOfAttorneyReference}`)
   }
 
@@ -960,8 +954,13 @@ function buildProdatLineSegments(params: {
     )
   }
 
-  if (step.code !== 'Z03' && meteringPointId) {
-    segments.push(`NAD+IT+${meteringPointId}::9+++${siteAddress}+${siteCity}++${sitePostalCode}+${siteCountry}`)
+  if (!isZ09 && step.code !== 'Z03' && meteringPointId) {
+    const hasSitePostalDetails = Boolean(siteAddressPlain || siteCityPlain || sitePostalCode)
+    if (hasSitePostalDetails) {
+      segments.push(`NAD+IT+${meteringPointId}::9+++${siteAddress}+${siteCity}++${sitePostalCode}+${siteCountry}`)
+    } else {
+      segments.push(`NAD+IT+${meteringPointId}::9`)
+    }
   }
 
   const balanceResponsibleId = portalData.balanceResponsibleId
@@ -1024,7 +1023,6 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
 
   return { bodySegments, portalData: primaryPortalData }
 }
-
 
 function buildProdatDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep, refs: DraftReferences): string {
   const { bodySegments } = buildPortalProdatSegments(params, step, refs)
@@ -1159,14 +1157,8 @@ function prodatStepRequiresRegisterCoverage(step: EdielTgtExpectedStep): boolean
   return ['Z04', 'Z06', 'Z10'].includes(String(step.code))
 }
 
-
 function prodatStepRequiresCustomerData(step: EdielTgtExpectedStep): boolean {
   if (step.family !== 'PRODAT') return false
-
-  // Z09 TGT outbound tests often only contain process/metering-point fields.
-  // Do not force customer NAD+UD from dummy values. If customer data exists we
-  // include it, otherwise we omit NAD+UD for Z09 and let the portal validate the
-  // actual Z09 business fields.
   return step.code !== 'Z09'
 }
 
@@ -1195,8 +1187,8 @@ function validatePortalDataCoverage(
     const cleanCodeValue = sanitizeCode(value, '', 70)
     const normalizedPayload = rawPayload.toUpperCase()
     const existsInPayload = Boolean(
-      cleanValue && normalizedPayload.includes(cleanValue.toUpperCase()) ||
-      cleanCodeValue && normalizedPayload.includes(cleanCodeValue.toUpperCase())
+      (cleanValue && normalizedPayload.includes(cleanValue.toUpperCase())) ||
+      (cleanCodeValue && normalizedPayload.includes(cleanCodeValue.toUpperCase()))
     )
 
     if (!value || !existsInPayload) {
@@ -1204,7 +1196,18 @@ function validatePortalDataCoverage(
     }
   }
 
-  if (!portalData.agreementStartDateTime) {
+  if (step.code === 'Z09') {
+    const z09ValidityDate = date203FromPortalDate(portalData.validityDateTime ?? portalData.agreementStartDateTime, '')
+    if (!portalData.validityDateTime || !rawPayload.includes(`DTM+157:${z09ValidityDate}:203`)) {
+      pushIssue(
+        issues,
+        'error',
+        'missing_z09_validity_date',
+        'Z09 giltighetsdatum saknas',
+        'Z09 ska använda fält 216 Giltighetsdatum som DTM+157 i SG8.'
+      )
+    }
+  } else if (!portalData.agreementStartDateTime) {
     pushIssue(issues, 'error', 'missing_agreement_start_date', 'Avtalsstart saknas', 'Avtalsstart kunde inte hämtas som datum från testdataregistret. Uppdatera underlaget innan filen skickas.')
   }
 
@@ -1287,18 +1290,23 @@ export function validateEdielTgtDraft(rawPayload: string, step: EdielTgtExpected
       `PRODAT till Edielportalen får inte innehålla UNKNOWN eller 999999999999999999. Utkastet måste byggas från portalens testdataregister.${dummySegments ? ` Segment: ${dummySegments}` : ''}`
     )
   }
+
   if ((step.family === 'PRODAT' || step.family === 'APERAK') && !normalized.includes(EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS)) {
     pushIssue(issues, 'warning', 'missing_prodat_subaddress', 'Kontrollera PRODAT-subadress', `PRODAT TGT ska adresseras mot subadress ${EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}.`)
   }
+
   if (step.family === 'APERAK' && step.outcome === 'positive' && !normalized.includes('ERC+100')) {
     pushIssue(issues, 'warning', 'aperak_positive_code', 'Kontrollera positiv APERAK', 'Positiv APERAK i TGT brukar använda ERC 100 och OK-text.')
   }
+
   if ((step.family === 'APERAK' || step.family === 'UTILTS_ERR') && step.outcome === 'negative' && normalized.includes('ERC+100')) {
     pushIssue(issues, 'error', 'aperak_negative_conflict', 'Negativ kvittens ser positiv ut', 'Negativ APERAK/UTILTS-ERR ska inte använda ERC 100 som positiv kvittens.')
   }
+
   if (step.family === 'CONTRL' && step.outcome === 'positive' && !normalized.includes('+1')) {
     pushIssue(issues, 'warning', 'contrl_positive_check', 'Kontrollera positiv CONTRL', 'Positiv CONTRL ska markera godkänd syntax med UCI/0083 = 1.')
   }
+
   if (step.family === 'CONTRL' && step.outcome === 'negative' && !normalized.includes('+4')) {
     pushIssue(issues, 'warning', 'contrl_negative_check', 'Kontrollera negativ CONTRL', 'Negativ CONTRL ska markera avvisad syntax med UCI/0083 = 4.')
   }
@@ -1383,7 +1391,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
       applicationReference: step.family === 'PRODAT' || step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE : null,
       rawPayload,
       parsedPayload: {
-        source: 'tgt_draft_generator_portal_ready_v2',
+        source: 'tgt_draft_generator_portal_ready_v3',
         testSuite: params.testSuite,
         roleCode: params.roleCode,
         testCaseCode: params.testCaseCode,
@@ -1397,7 +1405,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
           'Samma struktur ska i produktion fyllas från kund, anläggning, mätpunkt, fullmakt, avtal och routeprofil i stället för låst portaltestdata.',
       },
       validationReport: {
-        source: 'tgt_draft_generator_portal_ready_v2',
+        source: 'tgt_draft_generator_portal_ready_v3',
         readyForEdielPortal: !hasErrors,
         issues: validationIssues,
         portalDataCoverage: portalBuild?.portalData
@@ -1408,6 +1416,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
               customerName: portalBuild.portalData.customerName,
               customerIdCodeListQualifier: portalBuild.portalData.customerIdCodeListQualifier,
               reasonForTransaction: portalBuild.portalData.reasonForTransaction,
+              validityDateTime: portalBuild.portalData.validityDateTime,
               registerCount: portalBuild.portalData.registers.length,
             }
           : null,
