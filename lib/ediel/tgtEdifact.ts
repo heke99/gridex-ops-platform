@@ -811,12 +811,15 @@ function period718FromPortalDates(startValue: string | null | undefined, endValu
 }
 
 function buildZ09LineDateSegment(portalData: TgtPortalCustomerData, refs: DraftReferences): string {
-  const period718 = period718FromPortalDates(
-    portalData.validityDateTime ?? portalData.agreementStartDateTime,
-    portalData.agreementEndDateTime
-  )
-  if (period718) return `DTM+157:${period718}:718`
+  const startSource = portalData.validityDateTime ?? portalData.agreementStartDateTime
+  const endSource = portalData.agreementEndDateTime ?? null
+  const period718 = period718FromPortalDates(startSource, endSource)
 
+  if (period718) {
+    return `DTM+157:${period718}:718`
+  }
+
+  const validityDate = date203FromPortalDate(startSource, refs.createdLongDate)
   return `DTM+157:${validityDate}:203`
 }
 
