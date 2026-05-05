@@ -119,6 +119,7 @@ type TgtPortalCustomerData = {
   meteringPointId: string
   agreementStartDateTime: string
   validityDateTime?: string | null
+  agreementEndDateTime?: string | null
   annualEnergyUnit: string
   meteringMethod: string
   reasonForTransaction?: string | null
@@ -655,6 +656,7 @@ function getPortalData(
 
   const startDateRaw = valueFor(['210 avtal', 'startdatum', 'leveransstart'])
   const validityDateRaw = valueFor(['216 giltighetsdatum', '216 validity', '216 valid'])
+  const endDateRaw = valueFor(['211 avtal, slutdatum', '211 slutdatum', '211 end date', 'slutdatum'])
   const registers = columnName ? [] : buildRegistersFromTestData(params, step)
   const importedMeteringMethod = cleanOptionalCode(valueFor(['217 mätmetod', '217 matmetod']), 12)
   const poaRaw = valueFor(['261 referens'])
@@ -675,6 +677,7 @@ function getPortalData(
     ) ?? '',
     agreementStartDateTime: resolvePortalDateTime(startDateRaw),
     validityDateTime: resolveTgtValidityDateTime(params, step, validityDateRaw),
+    agreementEndDateTime: endDateRaw ? resolvePortalDateTime(endDateRaw) : null,
     annualEnergyUnit: cleanOptionalCode(valueFor(['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
     meteringMethod: resolveTgtMeteringMethod(params, step, importedMeteringMethod),
     reasonForTransaction: cleanOptionalCode(valueFor(['223 transaktionstyp', 'reason for transaction']), 12),
@@ -789,6 +792,34 @@ function date203FromPortalDate(value: string | null | undefined, fallback: strin
   if (token && /^\d{8,12}$/.test(token)) return token.length === 8 ? `${token}0000` : token.slice(0, 12)
   return `${fallback}0000`
 }
+
+function date102FromPortalDateTime(value: string | null | undefined): string | null {
+  const token = firstToken(value)
+  if (token && /^\d{8,12}$/.test(token)) return token.slice(0, 8)
+  return null
+}
+
+function period718FromPortalDates(startValue: string | null | undefined, endValue: string | null | undefined): string | null {
+  const start = date102FromPortalDateTime(startValue)
+  const end = date102FromPortalDateTime(endValue)
+  if (!start || !end) return null
+
+  // UN/EDIFACT 2379 code 718 is CCYYMMDD-CCYYMMDD, represented in the actual
+  // interchange without the hyphen. The Ediel PRODAT validator accepts 718 here;
+  // 719 is part of the generic UNTDID list but not accepted in this PRODAT profile.
+  return `${start}${end}`
+}
+
+function buildZ09LineDateSegment(portalData: TgtPortalCustomerData, refs: DraftReferences): string {
+  const period718 = period718FromPortalDates(
+    portalData.validityDateTime ?? portalData.agreementStartDateTime,
+    portalData.agreementEndDateTime
+  )
+  if (period718) return `DTM+157:${period718}:718`
+
+  return `DTM+157:${validityDate}:203`
+}
+
 
 function serializeEdifactSegments(segments: string[]): string {
   return [`UNA:+.? '`, ...segments.map((segment) => `${segment}'`)].join('\n')
@@ -936,7 +967,6 @@ function buildProdatLineSegments(params: {
   const { portalData, step, refs, transactionType, mutation, lineNo } = params
   const isZ09 = step.code === 'Z09'
   const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
-  const validityDate = date203FromPortalDate(portalData.validityDateTime ?? portalData.agreementStartDateTime, refs.createdLongDate)
 
   const meteringPointId = sanitizeCode(portalData.meteringPointId, '', 35)
   const customerId = sanitizeCode(portalData.customerId, '', 35)
@@ -965,7 +995,7 @@ function buildProdatLineSegments(params: {
   ]
 
   if (isZ09) {
-    segments.push(`DTM+157:${validityDate}:203`)
+    segments.push(buildZ09LineDateSegment(portalData, refs))
   } else {
     segments.push(`DTM+92:${startDate}0000:203`)
   }
@@ -973,7 +1003,9 @@ function buildProdatLineSegments(params: {
   segments.push('CCI++Z13')
   segments.push(`CAV+${reasonForTransaction}`)
 
-  if (meteringMethod) {
+  const z09SuppressesMeteringMethod = isZ09 && transactionType === 'Z09D'
+
+  if (meteringMethod && !z09SuppressesMeteringMethod) {
     segments.push('CCI++Z04')
     segments.push(`CAV+${meteringMethod}`)
   }
@@ -1204,6 +1236,17 @@ function prodatStepRequiresCustomerData(step: EdielTgtExpectedStep): boolean {
   return step.code !== 'Z09'
 }
 
+function prodatStepRequiresMeteringMethod(step: EdielTgtExpectedStep, portalData: TgtPortalCustomerData): boolean {
+  if (step.family !== 'PRODAT') return false
+
+  // Z09D (new microproduction agreement) uses Z70 as transaction reason. In the
+  // Edielportal PRODAT profile, measuring method SG14[Z04] is not used for this
+  // subtype even if field 217 is visible in the exported testdata view.
+  if (step.code === 'Z09' && sanitizeCode(portalData.reasonForTransaction, '', 12) === 'Z70') return false
+
+  return true
+}
+
 function validatePortalDataCoverage(
   issues: EdielTgtDraftValidationIssue[],
   rawPayload: string,
@@ -1221,7 +1264,9 @@ function validatePortalDataCoverage(
         ]
       : []),
     ['grid_area_id', portalData.gridAreaId, 'Nätområde saknas i payload.'],
-    ['metering_method', portalData.meteringMethod, 'Mätmetod saknas i payload.'],
+    ...(prodatStepRequiresMeteringMethod(step, portalData)
+      ? [['metering_method', portalData.meteringMethod, 'Mätmetod saknas i payload.'] as const]
+      : []),
   ] as const
 
   for (const [code, value, description] of requiredValues) {
@@ -1239,19 +1284,27 @@ function validatePortalDataCoverage(
   }
 
   if (step.code === 'Z09') {
-  const resolvedZ09Date = portalData.validityDateTime ?? portalData.agreementStartDateTime
-  const z09ValidityDate = date203FromPortalDate(resolvedZ09Date, '')
+    const expectedLineDateSegment = buildZ09LineDateSegment(portalData, {
+      interchangeRef: '',
+      messageRef: '',
+      transactionRef: '',
+      externalRef: '',
+      originalInterchangeRef: '',
+      originalMessageRef: '',
+      createdDate: '',
+      createdTime: '',
+      createdLongDate: '',
+    })
 
-  if (!resolvedZ09Date || !z09ValidityDate || !rawPayload.includes(`DTM+157:${z09ValidityDate}:203`)) {
-    pushIssue(
-      issues,
-      'error',
-      'missing_z09_validity_date',
-      'Z09 giltighetsdatum saknas',
-      'Z09 ska använda 216 Giltighetsdatum som DTM+157. Om 216 saknas får 210 Avtal/startdatum användas som DTM+157.'
-    )
-  }
-
+    if (!rawPayload.includes(expectedLineDateSegment)) {
+      pushIssue(
+        issues,
+        'error',
+        'missing_z09_validity_date',
+        'Z09 giltighetsdatum saknas',
+        'Z09 ska använda DTM+157 i SG8. Primärt används 216 Giltighetsdatum. Om 216 saknas används 210 Avtal/startdatum. Om 211 Avtal/slutdatum finns skickas start/slut som period med format 718.'
+      )
+    }
   } else if (!portalData.agreementStartDateTime) {
     pushIssue(issues, 'error', 'missing_agreement_start_date', 'Avtalsstart saknas', 'Avtalsstart kunde inte hämtas som datum från testdataregistret. Uppdatera underlaget innan filen skickas.')
   }
@@ -1462,6 +1515,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
               customerIdCodeListQualifier: portalBuild.portalData.customerIdCodeListQualifier,
               reasonForTransaction: portalBuild.portalData.reasonForTransaction,
               validityDateTime: portalBuild.portalData.validityDateTime,
+              agreementEndDateTime: portalBuild.portalData.agreementEndDateTime,
               registerCount: portalBuild.portalData.registers.length,
             }
           : null,
