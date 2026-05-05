@@ -498,6 +498,12 @@ function defaultAgreementStartDateTime(): string {
   return `${nextMonth.getUTCFullYear()}${pad(nextMonth.getUTCMonth() + 1)}10${'0000'}`
 }
 
+function firstDayNextMonthDateTime(): string {
+  const now = new Date()
+  const firstDayNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0))
+  return `${firstDayNextMonth.getUTCFullYear()}${pad(firstDayNextMonth.getUTCMonth() + 1)}010000`
+}
+
 function resolvePortalDateTime(value: string | null | undefined): string {
   const token = firstToken(value)
   if (token && /^\d{8,12}$/.test(token)) return token.length === 8 ? `${token}0000` : token.slice(0, 12)
@@ -542,6 +548,28 @@ const TGT_REQUIRED_FIELD_RULES: readonly TgtRequiredFieldRule[] = [
     reason:
       'Edielportalens aktiva TGT-validering kräver Z03 i fält 217 för utgående start-Z03 i dessa leverantörstest. Portalens testdatavy kan samtidigt visa Z01 för senare Z04-/normaldata, men den får inte styra start-Z03.',
   },
+  {
+    testSuite: 'PRODAT',
+    roleCode: 'supplier',
+    testCaseCodes: ['2.5.1'],
+    stepFamily: 'PRODAT',
+    stepCode: 'Z09',
+    fieldCode: '217',
+    value: 'Z04',
+    reason:
+      'Z09F avtal om 15-minutersvärden ska anmäla kvartsmätning. Edielportalens aktiva testfall 2.5.1 kräver därför fält 217 = Z04 även om importerat underlag visar äldre/grunddata.',
+  },
+  {
+    testSuite: 'PRODAT',
+    roleCode: 'supplier',
+    testCaseCodes: ['2.5.2'],
+    stepFamily: 'PRODAT',
+    stepCode: 'Z09',
+    fieldCode: '217',
+    value: 'Z03',
+    reason:
+      'Z09G avtal om timvärden upphör ska återgå enligt Z09G-profilen. Fält 217 styrs av Z09-profilen, inte av slumpmässig importerad grunddata.',
+  },
 ]
 
 function normalizeTgtCode(value: string | null | undefined): string {
@@ -583,6 +611,20 @@ function resolveTgtMeteringMethod(
   importedValue: string | null
 ): string {
   return resolveTgtRequiredFieldValue(params, step, '217') ?? importedValue ?? ''
+}
+
+function resolveTgtValidityDateTime(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  importedValue: string | null
+): string | null {
+  if (params.testSuite === 'PRODAT' && params.roleCode === 'supplier' && step.code === 'Z09') {
+    if (params.testCaseCode === '2.5.1' || params.testCaseCode === '2.5.2') {
+      return firstDayNextMonthDateTime()
+    }
+  }
+
+  return importedValue ? resolvePortalDateTime(importedValue) : null
 }
 
 function getPortalData(
@@ -632,7 +674,7 @@ function getPortalData(
       35
     ) ?? '',
     agreementStartDateTime: resolvePortalDateTime(startDateRaw),
-    validityDateTime: validityDateRaw ? resolvePortalDateTime(validityDateRaw) : null,
+    validityDateTime: resolveTgtValidityDateTime(params, step, validityDateRaw),
     annualEnergyUnit: cleanOptionalCode(valueFor(['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
     meteringMethod: resolveTgtMeteringMethod(params, step, importedMeteringMethod),
     reasonForTransaction: cleanOptionalCode(valueFor(['223 transaktionstyp', 'reason for transaction']), 12),
@@ -1197,16 +1239,19 @@ function validatePortalDataCoverage(
   }
 
   if (step.code === 'Z09') {
-    const z09ValidityDate = date203FromPortalDate(portalData.validityDateTime ?? portalData.agreementStartDateTime, '')
-    if (!portalData.validityDateTime || !rawPayload.includes(`DTM+157:${z09ValidityDate}:203`)) {
-      pushIssue(
-        issues,
-        'error',
-        'missing_z09_validity_date',
-        'Z09 giltighetsdatum saknas',
-        'Z09 ska använda fält 216 Giltighetsdatum som DTM+157 i SG8.'
-      )
-    }
+  const resolvedZ09Date = portalData.validityDateTime ?? portalData.agreementStartDateTime
+  const z09ValidityDate = date203FromPortalDate(resolvedZ09Date, '')
+
+  if (!resolvedZ09Date || !z09ValidityDate || !rawPayload.includes(`DTM+157:${z09ValidityDate}:203`)) {
+    pushIssue(
+      issues,
+      'error',
+      'missing_z09_validity_date',
+      'Z09 giltighetsdatum saknas',
+      'Z09 ska använda 216 Giltighetsdatum som DTM+157. Om 216 saknas får 210 Avtal/startdatum användas som DTM+157.'
+    )
+  }
+
   } else if (!portalData.agreementStartDateTime) {
     pushIssue(issues, 'error', 'missing_agreement_start_date', 'Avtalsstart saknas', 'Avtalsstart kunde inte hämtas som datum från testdataregistret. Uppdatera underlaget innan filen skickas.')
   }
