@@ -400,11 +400,11 @@ function splitName(fullName: string): { firstName: string | null; lastName: stri
 }
 
 function inferSiteType(testCaseCode: string): 'consumption' | 'mixed' {
-  return testCaseCode === '1.2.5' ? 'mixed' : 'consumption'
+  return testCaseCode === '1.2.5' || testCaseCode === '2.5.3' ? 'mixed' : 'consumption'
 }
 
 function inferMeasurementType(testCaseCode: string): 'consumption' | 'mixed' {
-  return testCaseCode === '1.2.5' ? 'mixed' : 'consumption'
+  return testCaseCode === '1.2.5' || testCaseCode === '2.5.3' ? 'mixed' : 'consumption'
 }
 
 function normalizeReadingFrequency(value: string | null): 'hourly' | 'daily' | 'monthly' | 'manual' {

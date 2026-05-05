@@ -344,9 +344,9 @@ function PortalTestCatalogPanel() {
             </h3>
             <p className="mt-1 max-w-4xl text-xs text-slate-600">
               Här visas alla PRODAT-tester ni bör kunna köra, men i kompakt dropdown-format så
-              sidan inte blir lång. 1.2.x öppnas som riktiga kundformulär här nedan. Övriga
-              testfall visas snyggt grupperade och körs via TGT guided mode när ni arbetar vidare
-              med coverage.
+              sidan inte blir lång. 1.2.x och 2.5.x öppnas som riktiga kundformulär här nedan. Z09-testen är
+              outbound aktör→portal: GridCore skapar och skickar PRODAT Z09, och portalen
+              svarar med CONTRL och APERAK.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -362,8 +362,10 @@ function PortalTestCatalogPanel() {
         <div className="font-semibold">Arbetssätt</div>
         <p className="mt-1">
           <strong>Formulär här nedan</strong> används för verklig kund-/switchuppsättning i era
-          riktiga tabeller. <strong>TGT guided mode</strong> används för övriga testfall som
-          checklista, run-hantering och vidare testcoverage.
+          riktiga tabeller. För Z09 betyder det: skapa testkund/ärende, klicka
+          <strong> Skapa Z09-utkast</strong> och skicka PRODAT från GridCore till portalen.
+          <strong> TGT guided mode</strong> används för övriga testfall som checklista,
+          run-hantering och vidare testcoverage.
         </p>
       </div>
 
@@ -720,7 +722,8 @@ function EdielPortalTestCustomerOnboardingPanel() {
                 </FormSelect>
                 <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900 md:col-span-2">
                   Välj L/Z22 för vanligt leverantörsbyte, t.ex. 1.2.1 Z03L. Välj LK/Z23 för
-                  leverantörs- och kundbyte, t.ex. 1.2.2 Z03LK.
+                  leverantörs- och kundbyte, t.ex. 1.2.2 Z03LK. För Z09-testerna används
+                  E64 = Z09F, E32 = Z09G och Z70 = Z09D.
                 </div>
                 <FormSelect
                   name="powerOfAttorneyStatus"

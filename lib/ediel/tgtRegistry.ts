@@ -95,6 +95,21 @@ function prodatInboundNegativeCase(testCaseCode: string, title: string, code: st
   }
 }
 
+function prodatOutboundPositiveCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'PRODAT', roleCode: 'supplier', testCaseCode, title,
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose,
+    testDataHint: `Driftstest ${testCaseCode}. GridCore är aktören och skickar PRODAT ${code} till Edielportalen. Portalen kvitterar med CONTRL och APERAK.`,
+    expectedSteps: [
+      { stepNo: 1, direction: 'outbound', actor: 'gridex', family: 'PRODAT', code, required: true, title: `Skicka PRODAT ${code}`, description: title },
+      { stepNo: 2, direction: 'inbound', actor: 'portal', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Ta emot positiv CONTRL', description: `Portalen syntaxkvitterar GridCores PRODAT ${code}.` },
+      { stepNo: 3, direction: 'inbound', actor: 'portal', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Ta emot positiv APERAK', description: 'Portalen affärskvitterar med ERC 100 / OK.' },
+    ],
+    notes: ['GridCore ska inte vänta på inbound PRODAT i steg 1. Detta är ett outbound aktör→portal-test.'],
+  }
+}
+
 function utiltsPositiveCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
   return {
     suite: 'UTILTS', roleCode: 'supplier', testCaseCode, title,
@@ -149,9 +164,9 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
     prodatInboundPositiveCase('2.3.2', 'Z10M – mätarbyte', 'Z10', 'Verifierar korrekt PRODAT Z10M för mätarbyte med kompletterande mätaruppgifter.'),
     prodatInboundNegativeCase('2.4.1', 'Z10M – felaktigt mätarbyte', 'Z10', 'Verifierar negativ APERAK på felaktig Z10M.'),
     prodatInboundNegativeCase('2.4.2', 'Z10M – konstant saknas', 'Z10', 'Verifierar negativ APERAK när konstant saknas i Z10M.'),
-    prodatInboundPositiveCase('2.5.1', 'Z09F', 'Z09', 'Verifierar korrekt PRODAT Z09F.'),
-    prodatInboundPositiveCase('2.5.2', 'Z09G', 'Z09', 'Verifierar korrekt PRODAT Z09G.'),
-    prodatInboundPositiveCase('2.5.3', 'Z09D – nytt avtal om mikroproduktion', 'Z09', 'Verifierar korrekt PRODAT Z09D för mikroproduktion.'),
+    prodatOutboundPositiveCase('2.5.1', 'Z09F – avtal om timvärden', 'Z09', 'Verifierar att GridCore som aktör skickar korrekt PRODAT Z09F.'),
+    prodatOutboundPositiveCase('2.5.2', 'Z09G – avtal om timvärden upphör', 'Z09', 'Verifierar att GridCore som aktör skickar korrekt PRODAT Z09G.'),
+    prodatOutboundPositiveCase('2.5.3', 'Z09D – nytt avtal om mikroproduktion', 'Z09', 'Verifierar att GridCore som aktör skickar korrekt PRODAT Z09D för mikroproduktion.'),
     prodatInboundPositiveCase('3.1.1', 'Z05L', 'Z05', 'Verifierar korrekt PRODAT Z05L.'),
     prodatInboundPositiveCase('3.1.2', 'Z05LK', 'Z05', 'Verifierar korrekt PRODAT Z05LK.'),
     prodatInboundNegativeCase('3.2.1', 'Z05LK – felaktigt anläggningsid', 'Z05', 'Verifierar negativ APERAK när Z05LK har felaktigt anläggningsid.'),
