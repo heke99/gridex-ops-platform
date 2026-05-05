@@ -817,6 +817,12 @@ function negativeAperakSegments(refs: DraftReferences): string[] {
 }
 
 function buildTgtProdatTransactionType(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>, step: EdielTgtExpectedStep): string {
+  if (step.code === 'Z09') {
+    if (params.testCaseCode === '2.5.1') return 'Z09F'
+    if (params.testCaseCode === '2.5.2') return 'Z09G'
+    if (params.testCaseCode === '2.5.3') return 'Z09D'
+  }
+
   if (params.testCaseCode === '1.2.2') return step.code === 'Z03' ? 'Z03LK' : 'Z04LK'
   if (params.testCaseCode === '1.2.5') return step.code === 'Z04' ? 'Z04D' : `${step.code}D`
 
@@ -835,6 +841,7 @@ function reasonForProdatSubtype(transactionType: string): string {
   if (transactionType.endsWith('LK')) return 'Z23'
   if (transactionType.endsWith('F')) return 'E64'
   if (transactionType.endsWith('G')) return 'E32'
+  if (transactionType.endsWith('D')) return 'Z70'
   return 'Z22'
 }
 
@@ -902,7 +909,7 @@ function buildProdatLineSegments(params: {
   const { portalData, step, refs, transactionType, mutation, lineNo } = params
   const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
   const meteringPointId = sanitizeCode(portalData.meteringPointId, 'UNKNOWN', 35)
-  const customerName = edifactEscape(sanitize(portalData.customerName, 'UNKNOWN'))
+  const customerName = edifactEscape(sanitize(portalData.customerName, ''))
   const customerAddress = edifactEscape(sanitize(portalData.customerAddress ?? ''))
   const customerCity = edifactEscape(sanitize(portalData.customerCity ?? ''))
   const customerPostalCode = sanitizeCode(portalData.customerPostalCode, '', 12)
@@ -935,9 +942,19 @@ function buildProdatLineSegments(params: {
     segments.push(`RFF+ANJ:${sanitizeCode(portalData.powerOfAttorneyReference, 'UNKNOWN', 35)}`)
   }
 
-  segments.push(
-    `NAD+UD+${sanitizeCode(portalData.customerId, 'UNKNOWN', 35)}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
-  )
+  if (portalData.customerId && portalData.customerName) {
+    segments.push(
+      `NAD+UD+${sanitizeCode(portalData.customerId, '', 35)}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
+    )
+  } else if (prodatStepRequiresCustomerData(step)) {
+    // Required customer data should have been caught by validatePortalDataCoverage.
+    // Avoid UNKNOWN placeholders anyway so a draft can never be accidentally sent
+    // with dummy identifiers.
+  } else if (prodatStepAllowsOptionalCustomerData(step) && portalData.customerId) {
+    segments.push(
+      `NAD+UD+${sanitizeCode(portalData.customerId, '', 35)}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
+    )
+  }
 
   if (step.code !== 'Z03') {
     segments.push(`NAD+IT+${meteringPointId}::9+++${siteAddress}+${siteCity}++${sitePostalCode}+${siteCountry}`)
@@ -1135,7 +1152,21 @@ function pushIssue(
 
 function prodatStepRequiresRegisterCoverage(step: EdielTgtExpectedStep): boolean {
   if (step.family !== 'PRODAT') return false
-  return ['Z04', 'Z06', 'Z09', 'Z10'].includes(String(step.code))
+  return ['Z04', 'Z06', 'Z10'].includes(String(step.code))
+}
+
+function prodatStepRequiresCustomerData(step: EdielTgtExpectedStep): boolean {
+  if (step.family !== 'PRODAT') return false
+  // Z09 is an agreement/settlement communication test where the portal testdata
+  // often contains metering-point/process fields only. Do not force dummy customer
+  // NAD+UD values into Z09. Production validation should still use customer data
+  // when the business process requires it, but TGT Z09 must be built from the
+  // actual register fields instead of UNKNOWN placeholders.
+  return step.code !== 'Z09'
+}
+
+function prodatStepAllowsOptionalCustomerData(step: EdielTgtExpectedStep): boolean {
+  return step.family === 'PRODAT' && step.code === 'Z09'
 }
 
 function validatePortalDataCoverage(
@@ -1148,8 +1179,12 @@ function validatePortalDataCoverage(
 
   const requiredValues = [
     ['metering_point_id', portalData.meteringPointId, 'Anläggnings-id saknas i payload.'],
-    ['customer_id', portalData.customerId, 'Kund-id saknas i payload.'],
-    ['customer_name', portalData.customerName, 'Kundnamn saknas i payload.'],
+    ...(prodatStepRequiresCustomerData(step)
+      ? [
+          ['customer_id', portalData.customerId, 'Kund-id saknas i payload.'] as const,
+          ['customer_name', portalData.customerName, 'Kundnamn saknas i payload.'] as const,
+        ]
+      : []),
     ['grid_area_id', portalData.gridAreaId, 'Nätområde saknas i payload.'],
     ['metering_method', portalData.meteringMethod, 'Mätmetod saknas i payload.'],
   ] as const
