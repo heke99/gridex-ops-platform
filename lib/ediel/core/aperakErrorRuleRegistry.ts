@@ -536,6 +536,42 @@ function deriveTgtScenarioExpectedIssues(params: {
   const messageFamily = String(message.message_family ?? "").toUpperCase();
   const messageCode = String(message.message_code ?? "").toUpperCase();
 
+  const z05SentFacilityIds = testDataValuesForField(testData, ["209"]).filter((value) => /^735\d{15}$/.test(value));
+  const z05ExpectedFacilityIds = testDataValuesForField(testData, ["233"]).filter((value) => /^735\d{15}$/.test(value));
+  const z05HasFacilityMismatch =
+    messageFamily === "PRODAT" &&
+    messageCode === "Z05" &&
+    z05SentFacilityIds.length > 0 &&
+    z05ExpectedFacilityIds.length > 0 &&
+    z05SentFacilityIds.some((id) => !z05ExpectedFacilityIds.includes(id));
+
+  if (testCaseCode === "3.2.1" || z05HasFacilityMismatch) {
+    return [
+      issueForTgtScenario({
+        ruleKey: "facility_not_identified",
+        fieldPath: "TGT/FIELD/105",
+        fieldValue: meteringPointId,
+        expectedValue: z05ExpectedFacilityIds.join(",") || expectedFacilityIds.join(",") || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: "The object could not be identified",
+      }),
+      issueForTgtScenario({
+        ruleKey: "metering_point_id_mismatch",
+        fieldPath: "TGT/FIELD/209",
+        fieldValue: meteringPointId,
+        expectedValue: z05ExpectedFacilityIds.join(",") || expectedFacilityIds.join(",") || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: meteringPointId
+          ? `Felaktigt anläggningsid ${meteringPointId}`
+          : "Felaktigt anläggningsid",
+      }),
+    ];
+  }
+
   if (
     messageFamily === "PRODAT" &&
     messageCode === "Z10" &&

@@ -718,7 +718,7 @@ function AdvancedAckActions({
             <input type="hidden" name="ackType" value="APERAK" />
             <input type="hidden" name="outcome" value="positive" />
             <button className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
-              Preview positiv APERAK
+              Kör backend-kontroll APERAK
             </button>
           </form>
         ) : null}

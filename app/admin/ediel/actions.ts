@@ -75,10 +75,12 @@ import { resolveRecommendedAckForInboundMessage } from "@/lib/ediel/core/ackDeci
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight";
 import {
   effectiveTgtTestCaseCodeForMessageRow,
+  fieldValuesFromTgtTestData,
   findBestTgtTestDataForMessage,
   findExactTgtTestDataForMessage,
   scoreTgtTestDataForMessage,
 } from "@/lib/ediel/core/tgtAutoMatcher";
+import { parseEdifactMessageFacts } from "@/lib/ediel/core/edifactSegments";
 import {
   attachAperakErrorDetailsToMessage,
   resolveAndStoreProdatAperakErrors,
@@ -537,6 +539,88 @@ function effectiveTgtParsedPayloadForMessage(
   };
 }
 
+
+function extractFacilityIdsForTgtFieldFromText(rawText: string | null | undefined, fieldCode: string): string[] {
+  const text = String(rawText ?? "");
+  const escaped = fieldCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const values = new Set<string>();
+  const pattern = new RegExp(`(?:^|\\n|\\r|;|,)\\s*${escaped}[^\\n\\r;,]*?(735\\d{15})`, "gi");
+
+  for (const match of text.matchAll(pattern)) {
+    const value = String(match[1] ?? "").trim();
+    if (/^735\d{15}$/.test(value)) values.add(value);
+  }
+
+  return Array.from(values);
+}
+
+function fieldValuesFromTgtRow(
+  row: EdielTgtDynamicTestDataSummary,
+  fieldCodes: string[],
+): string[] {
+  const values = new Set<string>();
+
+  for (const value of fieldValuesFromTgtTestData(row.parsedPayload, fieldCodes)) {
+    if (value) values.add(value);
+  }
+
+  const rawText = [row.title, row.sourceNote, row.rawText].filter(Boolean).join("\n");
+  for (const fieldCode of fieldCodes) {
+    for (const value of extractFacilityIdsForTgtFieldFromText(rawText, fieldCode)) {
+      values.add(value);
+    }
+  }
+
+  return Array.from(values);
+}
+
+function findZ05FacilityMismatchTgtRowForMessage(
+  message: EdielMessageRow,
+  rows: readonly EdielTgtDynamicTestDataSummary[],
+): EdielTgtDynamicTestDataSummary | null {
+  const family = String(message.message_family ?? "").toUpperCase();
+  const code = String(message.message_code ?? "").toUpperCase();
+  if (family !== "PRODAT" || code !== "Z05") return null;
+
+  const actualFacilityIds = new Set(
+    parseEdifactMessageFacts(message.raw_payload).lineItems
+      .map((line) => String(line.itemId ?? "").trim())
+      .filter((value) => /^735\d{15}$/.test(value)),
+  );
+
+  if (actualFacilityIds.size === 0) return null;
+
+  const candidates = rows
+    .map((row) => {
+      const sentIds = fieldValuesFromTgtRow(row, ["209"]).filter((value) => /^735\d{15}$/.test(value));
+      const expectedIds = fieldValuesFromTgtRow(row, ["233"]).filter((value) => /^735\d{15}$/.test(value));
+      const hasPayloadMismatch =
+        sentIds.length > 0 &&
+        expectedIds.length > 0 &&
+        sentIds.some((id) => actualFacilityIds.has(id) && !expectedIds.includes(id));
+
+      if (!hasPayloadMismatch) return null;
+
+      return {
+        row,
+        score: Math.max(0, scoreTgtTestDataForMessage(message, row)),
+        effectiveCode: effectiveTgtTestCaseCodeForMessageRow(message, row),
+      };
+    })
+    .filter((entry): entry is { row: EdielTgtDynamicTestDataSummary; score: number; effectiveCode: string } => Boolean(entry))
+    .sort((a, b) => {
+      const aIs321 = a.effectiveCode === "3.2.1" ? 1 : 0;
+      const bIs321 = b.effectiveCode === "3.2.1" ? 1 : 0;
+      const caseDiff = bIs321 - aIs321;
+      if (caseDiff !== 0) return caseDiff;
+      const scoreDiff = b.score - a.score;
+      if (scoreDiff !== 0) return scoreDiff;
+      return String(b.row.updatedAt).localeCompare(String(a.row.updatedAt));
+    });
+
+  return candidates[0]?.row ?? null;
+}
+
 async function resolveTgtTestDataForAckAction(params: {
   message: EdielMessageRow;
   testSuite: EdielTestSuite;
@@ -570,6 +654,15 @@ async function resolveTgtTestDataForAckAction(params: {
   const rows = (await listEdielTgtDynamicTestData()).filter(
     (row) => row.testSuite === testSuite && row.roleCode === roleCode,
   );
+  const z05MismatchRow = findZ05FacilityMismatchTgtRowForMessage(message, rows);
+  if (z05MismatchRow) {
+    return {
+      testData: effectiveTgtParsedPayloadForMessage(message, z05MismatchRow),
+      selectedRow: z05MismatchRow,
+      requestedTestData,
+    };
+  }
+
   const exact = findExactTgtTestDataForMessage(message, rows);
   if (exact)
     return {
