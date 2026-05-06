@@ -837,6 +837,7 @@ function revalidateEdiel(messageId?: string | null) {
   revalidatePath("/admin/ediel");
   revalidatePath("/admin/ediel/ai-list");
   revalidatePath("/admin/ediel/control-tower");
+  revalidatePath("/admin/ediel/messages");
   revalidatePath("/admin/ediel/routes");
   revalidatePath("/admin/ediel/settings");
   revalidatePath("/admin/outbound");

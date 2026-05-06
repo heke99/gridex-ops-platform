@@ -223,10 +223,9 @@ export default function EdielOperationalBridgePanel({
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-slate-950">Processa importerad Ediel-fil in i Gridex</h3>
+              <h3 className="text-sm font-semibold text-slate-950">Processa inbound Ediel / skapa UTILTS TGT-svar</h3>
               <p className="mt-1 text-xs text-slate-600">
-                Efter att du importerat svar från Edielportalen/nätägare kan du koppla filen till switch, data request,
-                mätvärden och faktureringsunderlag.
+                Efter IMAP-import kör denna knapp rätt runtime. För inbound UTILTS skapas CONTRL + APERAK/UTILTS-ERR innan verksamhetskoppling.
               </p>
             </div>
             <Badge tone={candidates.length > 0 ? 'yellow' : 'green'}>{candidates.length} att granska</Badge>
@@ -259,7 +258,7 @@ export default function EdielOperationalBridgePanel({
                     <form action={processEdielOperationalMessageAction}>
                       <input type="hidden" name="edielMessageId" value={row.id} />
                       <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
-                        Processa in i Gridex
+                        Kör engine / skapa svar
                       </button>
                     </form>
                     <Link href={`/admin/ediel/messages/${row.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
