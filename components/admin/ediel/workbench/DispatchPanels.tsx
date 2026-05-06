@@ -5,6 +5,7 @@ import {
   createAckDraftAction,
   createNegativeUtiltsResponseAction,
   createProdatDraftAction,
+  processEdielOperationalMessageAction,
   pollMailboxAction,
   sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
@@ -316,16 +317,28 @@ export default function DispatchPanels({
               </div>
             </div>
 
-            <form action={createNegativeUtiltsResponseAction}>
-              <input type="hidden" name="edielMessageId" value={selectedInboundUtiltsId} />
-              <input type="hidden" name="messageText" value="Functional error" />
-              <button
-                disabled={!selectedInboundUtiltsId}
-                className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Skapa negativ UTILTS-respons
-              </button>
-            </form>
+            <div className="flex flex-wrap gap-2">
+              <form action={processEdielOperationalMessageAction}>
+                <input type="hidden" name="edielMessageId" value={selectedInboundUtiltsId} />
+                <button
+                  disabled={!selectedInboundUtiltsId}
+                  className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Kör UTILTS engine / skapa TGT-svar
+                </button>
+              </form>
+
+              <form action={createNegativeUtiltsResponseAction}>
+                <input type="hidden" name="edielMessageId" value={selectedInboundUtiltsId} />
+                <input type="hidden" name="messageText" value="Functional error" />
+                <button
+                  disabled={!selectedInboundUtiltsId}
+                  className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Manuell UTILTS-ERR
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 

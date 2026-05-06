@@ -19,9 +19,10 @@ import {
 import {
   cancelEdielMessageAction,
   createNegativeUtiltsResponseAction,
+  processEdielOperationalMessageAction,
   sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
-import type { EdielMessageEventRow } from '@/lib/ediel/types'
+import type { EdielMessageEventRow, EdielMessageRow } from '@/lib/ediel/types'
 import { evaluateProdatPortalReadiness } from '@/lib/ediel/prodatPortalReadiness'
 
 export const dynamic = 'force-dynamic'
@@ -105,6 +106,75 @@ function JsonBlock({ value }: { value: unknown }) {
       {JSON.stringify(value ?? {}, null, 2)}
     </pre>
   )
+}
+
+function getRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function getNestedRecord(value: unknown, key: string): Record<string, unknown> {
+  return getRecord(getRecord(value)[key])
+}
+
+function getString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function getAckFamilyLabel(family: string): string {
+  if (family === 'CONTRL') return 'CONTRL'
+  if (family === 'APERAK') return 'APERAK'
+  if (family === 'UTILTS_ERR') return 'UTILTS-ERR'
+  return family
+}
+
+function hasAckFamily(messages: EdielMessageRow[], family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'): boolean {
+  return messages.some((message) => message.message_family === family)
+}
+
+function summarizeUtiltsRuntime(message: EdielMessageRow, relatedAckMessages: EdielMessageRow[]) {
+  const parsedPayload = getRecord(message.parsed_payload)
+  const validationReport = getRecord(message.validation_report)
+  const utiltsRuntime = getNestedRecord(validationReport, 'utiltsRuntime')
+  const ackPlan = getNestedRecord(utiltsRuntime, 'ackPlan')
+  const validation = getNestedRecord(utiltsRuntime, 'validation')
+  const runtimeFacts = getRecord(parsedPayload.utiltsRuntimeFacts)
+  const normalizedPayload = getRecord(parsedPayload.normalizedMeteringPayload)
+
+  const isInboundUtilts = message.direction === 'inbound' && message.message_family === 'UTILTS'
+  const shouldSendContrl = ackPlan.shouldSendContrl === true
+  const shouldSendAperak = ackPlan.shouldSendAperak === true
+  const shouldSendUtiltsErr = ackPlan.shouldSendUtiltsErr === true
+
+  return {
+    isInboundUtilts,
+    hasRuntime: Object.keys(utiltsRuntime).length > 0 || Object.keys(runtimeFacts).length > 0,
+    validationOk: validation.ok === true,
+    validationType: getString(validation.issueType),
+    reason: getString(ackPlan.reason),
+    messageCode: getString(runtimeFacts.messageCode) ?? getString(normalizedPayload.messageCode) ?? getString(parsedPayload.inferredCode) ?? String(message.message_code),
+    meterPointId: getString(runtimeFacts.meterPointId) ?? getString(normalizedPayload.meterPointId) ?? getString(parsedPayload.meterPointId) ?? getString(parsedPayload.meteringPointId),
+    gridAreaId: getString(runtimeFacts.gridAreaId) ?? getString(normalizedPayload.gridAreaId) ?? getString(parsedPayload.gridAreaId),
+    documentReference: getString(runtimeFacts.documentReference) ?? getString(normalizedPayload.documentReference) ?? message.external_reference,
+    interchangeReference: getString(runtimeFacts.interchangeReference) ?? getString(normalizedPayload.interchangeReference) ?? message.interchange_reference,
+    transactionReference: getString(runtimeFacts.transactionReference) ?? getString(runtimeFacts.transactionId) ?? getString(normalizedPayload.transactionReference) ?? message.transaction_reference,
+    applicationReference: getString(runtimeFacts.applicationReference) ?? getString(normalizedPayload.applicationReference) ?? message.application_reference,
+    ackPlan: {
+      shouldSendContrl,
+      contrlOutcome: getString(ackPlan.contrlOutcome),
+      shouldSendAperak,
+      aperakOutcome: getString(ackPlan.aperakOutcome),
+      shouldSendUtiltsErr,
+      utiltsErrCodes: Array.isArray(ackPlan.utiltsErrCodes) ? ackPlan.utiltsErrCodes.map(String) : [],
+    },
+    existing: {
+      contrl: hasAckFamily(relatedAckMessages, 'CONTRL'),
+      aperak: hasAckFamily(relatedAckMessages, 'APERAK'),
+      utiltsErr: hasAckFamily(relatedAckMessages, 'UTILTS_ERR'),
+    },
+  }
 }
 
 function asStringArray(value: unknown): string[] {
@@ -321,6 +391,7 @@ export default async function AdminEdielMessageDetailPage({
       : null
   )
   const prodatPortalReadiness = evaluateProdatPortalReadiness(message)
+  const utiltsRuntimeSummary = summarizeUtiltsRuntime(message, relatedAckMessages)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -386,25 +457,119 @@ export default async function AdminEdielMessageDetailPage({
               ) : null}
 
               {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
-                <form action={createNegativeUtiltsResponseAction} className="flex flex-col gap-2">
+                <form action={processEdielOperationalMessageAction} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+                  <input type="hidden" name="edielMessageId" value={message.id} />
+                  <div className="text-xs font-semibold text-emerald-800">
+                    Kör UTILTS engine och skapa CONTRL/APERAK automatiskt
+                  </div>
+                  <button
+                    type="submit"
+                    className="mt-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+                  >
+                    Skapa TGT-svar
+                  </button>
+                </form>
+              ) : null}
+
+              {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
+                <form action={createNegativeUtiltsResponseAction} className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3">
                   <input type="hidden" name="edielMessageId" value={message.id} />
                   <input
                     type="text"
                     name="messageText"
-                    placeholder="Anledning för UTILTS_ERR"
+                    placeholder="Manuell UTILTS_ERR-text"
                     className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
                   />
                   <button
                     type="submit"
                     className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
                   >
-                    Skapa UTILTS_ERR
+                    Manuell UTILTS_ERR
                   </button>
                 </form>
               ) : null}
             </div>
           </div>
         </section>
+
+        {utiltsRuntimeSummary.isInboundUtilts ? (
+          <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-emerald-950">UTILTS TGT / inbound engine</h2>
+                <p className="mt-1 text-sm text-emerald-800">
+                  Detta är ett inkommande UTILTS-meddelande. För U1.1.1 ska GridCore skapa positiv CONTRL och positiv APERAK från samma referenser.
+                </p>
+              </div>
+              <form action={processEdielOperationalMessageAction}>
+                <input type="hidden" name="edielMessageId" value={message.id} />
+                <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+                  Kör/återskapa TGT-svar
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+                <div className="text-xs uppercase tracking-wide text-emerald-700">Meddelande</div>
+                <div className="mt-2 text-sm font-semibold text-slate-900">UTILTS {utiltsRuntimeSummary.messageCode}</div>
+                <div className="mt-1 text-xs text-slate-600">Application ref: {utiltsRuntimeSummary.applicationReference ?? '—'}</div>
+              </div>
+              <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+                <div className="text-xs uppercase tracking-wide text-emerald-700">Objekt</div>
+                <div className="mt-2 text-sm text-slate-700">Anläggning: {utiltsRuntimeSummary.meterPointId ?? '—'}</div>
+                <div className="mt-1 text-xs text-slate-600">Nätområde: {utiltsRuntimeSummary.gridAreaId ?? '—'}</div>
+              </div>
+              <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+                <div className="text-xs uppercase tracking-wide text-emerald-700">Referenser</div>
+                <div className="mt-2 space-y-1 text-xs text-slate-700">
+                  <div>UNB: {utiltsRuntimeSummary.interchangeReference ?? '—'}</div>
+                  <div>BGM: {utiltsRuntimeSummary.documentReference ?? '—'}</div>
+                  <div>IDE: {utiltsRuntimeSummary.transactionReference ?? '—'}</div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+                <div className="text-xs uppercase tracking-wide text-emerald-700">Runtime status</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Pill text={utiltsRuntimeSummary.hasRuntime ? 'engine körd' : 'engine ej körd'} />
+                  <Pill text={utiltsRuntimeSummary.validationOk ? 'accepterad' : (utiltsRuntimeSummary.validationType ?? 'ej validerad')} />
+                </div>
+                {utiltsRuntimeSummary.reason ? (
+                  <div className="mt-2 text-xs text-slate-600">{utiltsRuntimeSummary.reason}</div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4">
+              <div className="text-sm font-semibold text-slate-900">Svar som GridCore ska skapa</div>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl border border-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-slate-900">CONTRL</span>
+                    <Pill text={utiltsRuntimeSummary.existing.contrl ? 'skapad' : utiltsRuntimeSummary.ackPlan.shouldSendContrl ? 'ska skapas' : 'ej planerad'} />
+                  </div>
+                  <div className="mt-1 text-xs text-slate-600">Outcome: {utiltsRuntimeSummary.ackPlan.contrlOutcome ?? '—'}</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-slate-900">APERAK</span>
+                    <Pill text={utiltsRuntimeSummary.existing.aperak ? 'skapad' : utiltsRuntimeSummary.ackPlan.shouldSendAperak ? 'ska skapas' : 'ej planerad'} />
+                  </div>
+                  <div className="mt-1 text-xs text-slate-600">Outcome: {utiltsRuntimeSummary.ackPlan.aperakOutcome ?? '—'}</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-slate-900">UTILTS-ERR</span>
+                    <Pill text={utiltsRuntimeSummary.existing.utiltsErr ? 'skapad' : utiltsRuntimeSummary.ackPlan.shouldSendUtiltsErr ? 'ska skapas' : 'ej planerad'} />
+                  </div>
+                  <div className="mt-1 text-xs text-slate-600">
+                    Koder: {utiltsRuntimeSummary.ackPlan.utiltsErrCodes.length > 0 ? utiltsRuntimeSummary.ackPlan.utiltsErrCodes.join(', ') : '—'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {prodatPortalReadiness.checked ? (
           <section className="rounded-3xl border border-slate-200 bg-white p-6">
@@ -604,12 +769,22 @@ export default async function AdminEdielMessageDetailPage({
                       <div>Functional: {ack.functional_check_status ?? '—'}</div>
                       <div>Created: {formatDate(ack.created_at)}</div>
                     </div>
-                    <Link
-                      href={`/admin/ediel/messages/${ack.id}`}
-                      className="mt-3 inline-block text-sm text-slate-700 underline-offset-2 hover:underline"
-                    >
-                      Öppna ack-meddelande
-                    </Link>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link
+                        href={`/admin/ediel/messages/${ack.id}`}
+                        className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Öppna {getAckFamilyLabel(ack.message_family)}
+                      </Link>
+                      {ack.direction === 'outbound' && (ack.status === 'queued' || ack.status === 'prepared') ? (
+                        <form action={sendEdielMessageAction}>
+                          <input type="hidden" name="edielMessageId" value={ack.id} />
+                          <button className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+                            Skicka till portal
+                          </button>
+                        </form>
+                      ) : null}
+                    </div>
                   </li>
                 ))}
               </ul>
