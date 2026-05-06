@@ -837,9 +837,9 @@ function revalidateEdiel(messageId?: string | null) {
   revalidatePath("/admin/ediel");
   revalidatePath("/admin/ediel/ai-list");
   revalidatePath("/admin/ediel/control-tower");
-  revalidatePath("/admin/ediel/messages");
   revalidatePath("/admin/ediel/routes");
   revalidatePath("/admin/ediel/settings");
+  revalidatePath("/admin/ediel/messages");
   revalidatePath("/admin/outbound");
   if (messageId) revalidatePath(`/admin/ediel/messages/${messageId}`);
 }
@@ -858,111 +858,6 @@ async function revalidateRelatedMessage(messageId?: string | null) {
   }
 
   revalidateEdiel(message.id);
-}
-
-
-function isMissingOptionalEdielTableError(error: unknown): boolean {
-  return Boolean(
-    error &&
-      typeof error === "object" &&
-      "code" in error &&
-      ((error as { code?: unknown }).code === "42P01" ||
-        (error as { code?: unknown }).code === "PGRST205"),
-  );
-}
-
-async function deleteFromOptionalEdielTable(
-  table: "ediel_inbound_cases" | "ediel_test_run_messages" | "ediel_message_events",
-  column: "ediel_message_id",
-  ids: string[],
-) {
-  if (ids.length === 0) return;
-
-  const result = await supabaseService.from(table).delete().in(column, ids);
-  if (result.error && !isMissingOptionalEdielTableError(result.error)) {
-    throw result.error;
-  }
-}
-
-async function resolveEdielMessageIdsForHardDelete(edielMessageId: string): Promise<string[]> {
-  const ids = new Set<string>([edielMessageId]);
-  const queue = [edielMessageId];
-
-  while (queue.length > 0) {
-    const currentId = queue.shift();
-    if (!currentId) continue;
-
-    const { data, error } = await supabaseService
-      .from("ediel_messages")
-      .select("id")
-      .eq("related_message_id", currentId);
-
-    if (error) throw error;
-
-    for (const row of data ?? []) {
-      const id = (row as { id?: unknown }).id;
-      if (typeof id !== "string" || id.length === 0 || ids.has(id)) continue;
-      ids.add(id);
-      queue.push(id);
-    }
-  }
-
-  return Array.from(ids);
-}
-
-async function hardDeleteEdielMessagesByIds(ids: string[]) {
-  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
-  if (uniqueIds.length === 0) return 0;
-
-  await deleteFromOptionalEdielTable("ediel_inbound_cases", "ediel_message_id", uniqueIds);
-  await deleteFromOptionalEdielTable("ediel_test_run_messages", "ediel_message_id", uniqueIds);
-  await deleteFromOptionalEdielTable("ediel_message_events", "ediel_message_id", uniqueIds);
-
-  const { error } = await supabaseService
-    .from("ediel_messages")
-    .delete()
-    .in("id", uniqueIds);
-
-  if (error) throw error;
-  return uniqueIds.length;
-}
-
-export async function deleteEdielMessageAction(formData: FormData) {
-  await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
-
-  const edielMessageId = formString(formData.get("edielMessageId"));
-  if (!edielMessageId) throw new Error("edielMessageId saknas");
-
-  const ids = await resolveEdielMessageIdsForHardDelete(edielMessageId);
-  await hardDeleteEdielMessagesByIds(ids);
-
-  revalidateEdiel();
-  revalidatePath("/admin/ediel/messages");
-}
-
-export async function deleteAllEdielMessagesAction(_formData?: FormData) {
-  await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
-
-  const { data, error } = await supabaseService
-    .from("ediel_messages")
-    .select("id");
-
-  if (error) throw error;
-
-  const ids = (data ?? [])
-    .map((row) => (row as { id?: unknown }).id)
-    .filter((id): id is string => typeof id === "string" && id.length > 0);
-
-  await hardDeleteEdielMessagesByIds(ids);
-
-  revalidateEdiel();
-  revalidatePath("/admin/ediel/messages");
 }
 
 export async function cancelEdielMessageAction(formData: FormData) {
@@ -986,6 +881,86 @@ export async function cancelEdielMessageAction(formData: FormData) {
 
   await revalidateRelatedMessage(edielMessageId);
   revalidateEdiel(edielMessageId);
+}
+
+
+async function safeDeleteFromTable(tableName: string, ids: string[]) {
+  if (ids.length === 0) return;
+
+  const { error } = await supabaseService
+    .from(tableName)
+    .delete()
+    .in("ediel_message_id", ids);
+
+  if (error && error.code !== "42P01" && error.code !== "42703") {
+    throw error;
+  }
+}
+
+async function deleteEdielMessagesByIds(params: {
+  actorUserId: string;
+  messageIds: string[];
+  reason: string;
+}) {
+  const messageIds = Array.from(new Set(params.messageIds.filter(Boolean)));
+  if (messageIds.length === 0) return;
+
+  await safeDeleteFromTable("ediel_test_run_messages", messageIds);
+  await safeDeleteFromTable("ediel_message_events", messageIds);
+  await safeDeleteFromTable("ediel_inbound_cases", messageIds);
+
+  const { error } = await supabaseService
+    .from("ediel_messages")
+    .delete()
+    .in("id", messageIds);
+
+  if (error) throw error;
+}
+
+export async function deleteEdielMessageAction(formData: FormData) {
+  const context = await requireAnyPermissionServer([
+    "communication.write",
+    "communication.read",
+  ]);
+  const edielMessageId = formString(formData.get("edielMessageId"));
+
+  if (!edielMessageId) throw new Error("edielMessageId saknas");
+
+  const { data: relatedRows, error: relatedError } = await supabaseService
+    .from("ediel_messages")
+    .select("id")
+    .or(`id.eq.${edielMessageId},related_message_id.eq.${edielMessageId}`);
+
+  if (relatedError) throw relatedError;
+
+  await deleteEdielMessagesByIds({
+    actorUserId: context.userId,
+    messageIds: (relatedRows ?? []).map((row) => String(row.id)),
+    reason: "Raderad från /admin/ediel/messages.",
+  });
+
+  revalidateEdiel(edielMessageId);
+}
+
+export async function deleteAllEdielMessagesAction(_formData?: FormData) {
+  const context = await requireAnyPermissionServer([
+    "communication.write",
+    "communication.read",
+  ]);
+
+  const { data: rows, error: rowsError } = await supabaseService
+    .from("ediel_messages")
+    .select("id");
+
+  if (rowsError) throw rowsError;
+
+  await deleteEdielMessagesByIds({
+    actorUserId: context.userId,
+    messageIds: (rows ?? []).map((row) => String(row.id)),
+    reason: "Alla Ediel-meddelanden raderades från /admin/ediel/messages.",
+  });
+
+  revalidateEdiel();
 }
 
 export async function sendEdielMessageAction(formData: FormData) {
@@ -1492,6 +1467,27 @@ export async function archiveOlderEdielTgtRunsForCaseAction(
   revalidateEdiel();
 }
 
+function isActiveEdielAckMessage(message: EdielMessageRow): boolean {
+  const status = String(message.status ?? '').toLowerCase();
+  return !['cancelled', 'failed', 'error', 'rejected'].includes(status);
+}
+
+function isUtiltsErrAckMessage(message: EdielMessageRow): boolean {
+  return (
+    String(message.message_family) === 'UTILTS_ERR' ||
+    (String(message.message_family) === 'UTILTS' &&
+      String(message.message_code ?? '').toUpperCase() === 'ERR')
+  );
+}
+
+function isOperationalAckMessage(message: EdielMessageRow): boolean {
+  return (
+    String(message.message_family) === 'CONTRL' ||
+    String(message.message_family) === 'APERAK' ||
+    isUtiltsErrAckMessage(message)
+  );
+}
+
 export async function processEdielOperationalMessageAction(formData: FormData) {
   const context = await requireAnyPermissionServer([
     "communication.write",
@@ -1500,6 +1496,45 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
   const edielMessageId = formString(formData.get("edielMessageId"));
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
+
+  const sourceMessage = await getEdielMessageById(edielMessageId);
+  if (!sourceMessage) throw new Error("Ediel-meddelandet hittades inte");
+
+  if (sourceMessage.direction !== 'inbound') {
+    throw new Error('Engine kan bara skapa TGT-svar från ett inbound-meddelande.');
+  }
+
+  const existingAckMessages = await listAckMessagesForSource({
+    sourceMessageId: edielMessageId,
+  });
+  const activeAckMessages = existingAckMessages.filter(
+    (message) => isActiveEdielAckMessage(message) && isOperationalAckMessage(message),
+  );
+
+  if (activeAckMessages.length > 0) {
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId,
+      eventType: 'manual_note',
+      eventStatus: 'info',
+      message:
+        'Engine kördes inte: det finns redan CONTRL/APERAK/UTILTS-ERR kopplat till detta inbound-meddelande. Skicka befintliga svar eller radera fel testomgång först.',
+      payload: {
+        phase: 'utilts_tgt_duplicate_guard',
+        existingAckMessageIds: activeAckMessages.map((message) => message.id),
+        existingAckFamilies: activeAckMessages.map((message) => ({
+          id: message.id,
+          family: message.message_family,
+          code: message.message_code,
+          status: message.status,
+        })),
+      },
+    });
+
+    await revalidateRelatedMessage(edielMessageId);
+    revalidateEdiel(edielMessageId);
+    return;
+  }
 
   await processEdielOperationalMessage({
     actorUserId: context.userId,

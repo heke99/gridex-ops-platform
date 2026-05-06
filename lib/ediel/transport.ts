@@ -617,16 +617,36 @@ async function findRelatedOutboundForInboundAck(params: {
   transactionReference: string | null
   externalReference: string | null
 }): Promise<EdielMessageRow | null> {
-  const candidateRefs = [params.transactionReference, params.externalReference, params.applicationReference]
+  const exactRefs = [params.transactionReference, params.externalReference]
     .filter((value): value is string => Boolean(value && value.trim()))
 
-  for (const ref of candidateRefs) {
+  for (const ref of exactRefs) {
     const { data, error } = await supabaseService
       .from('ediel_messages')
       .select('*')
       .eq('direction', 'outbound')
-      .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
       .or('interchange_reference.eq.' + ref + ',transaction_reference.eq.' + ref + ',external_reference.eq.' + ref + ',correlation_reference.eq.' + ref)
+      .order('message_sent_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    if (data) return data as EdielMessageRow
+  }
+
+  if (params.applicationReference?.trim()) {
+    let applicationReferenceQuery = supabaseService
+      .from('ediel_messages')
+      .select('*')
+      .eq('direction', 'outbound')
+      .eq('application_reference', params.applicationReference.trim())
+      .in('status', ['draft', 'prepared', 'queued', 'sent', 'acknowledged'])
+
+    if (params.receiverEdielId) applicationReferenceQuery = applicationReferenceQuery.eq('sender_ediel_id', params.receiverEdielId)
+    if (params.senderEdielId) applicationReferenceQuery = applicationReferenceQuery.eq('receiver_ediel_id', params.senderEdielId)
+
+    const { data, error } = await applicationReferenceQuery
       .order('message_sent_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(1)
@@ -640,8 +660,7 @@ async function findRelatedOutboundForInboundAck(params: {
     .from('ediel_messages')
     .select('*')
     .eq('direction', 'outbound')
-    .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
-    .in('status', ['sent', 'acknowledged'])
+    .in('status', ['draft', 'prepared', 'queued', 'sent', 'acknowledged'])
 
   if (params.receiverEdielId) query = query.eq('sender_ediel_id', params.receiverEdielId)
   if (params.senderEdielId) query = query.eq('receiver_ediel_id', params.senderEdielId)
@@ -833,11 +852,8 @@ async function buildInboundAckMessageInput(params: {
     externalReference: parsed.externalReference,
   })
 
-  if (!related) {
-    throw new Error('Kunde inte koppla inkommande ' + params.family + ' till ett tidigare outbound-meddelande. Stoppar import så ingen okopplad kvittens skapas.')
-  }
-
   const receivedAt = new Date().toISOString()
+  const isUnlinkedAck = !related
   const isContrl = params.family === 'CONTRL'
   const isAperak = params.family === 'APERAK'
   const ackOutcome = inferAckOutcomeFromPayload({
@@ -871,29 +887,50 @@ async function buildInboundAckMessageInput(params: {
     externalReference: parsed.externalReference,
     transactionReference: parsed.transactionReference,
     applicationReference: parsed.applicationReference,
-    originalMessageId: related.interchange_reference ?? related.id,
-    originalTransactionId: related.transaction_reference ?? null,
-    originalMessageCode: String(related.message_code),
-    relatedMessageId: related.id,
-    communicationRouteId: params.communicationRouteId ?? related.communication_route_id ?? null,
-    outboundRequestId: related.outbound_request_id,
-    switchRequestId: related.switch_request_id,
-    gridOwnerDataRequestId: related.grid_owner_data_request_id,
-    partnerExportId: related.partner_export_id,
-    customerId: related.customer_id,
-    siteId: related.site_id,
-    meteringPointId: related.metering_point_id,
-    gridOwnerId: related.grid_owner_id,
+    originalMessageId: related?.interchange_reference ?? null,
+    originalTransactionId: related?.transaction_reference ?? null,
+    originalMessageCode: related ? String(related.message_code) : null,
+    relatedMessageId: related?.id ?? null,
+    communicationRouteId: params.communicationRouteId ?? related?.communication_route_id ?? null,
+    outboundRequestId: related?.outbound_request_id ?? null,
+    switchRequestId: related?.switch_request_id ?? null,
+    gridOwnerDataRequestId: related?.grid_owner_data_request_id ?? null,
+    partnerExportId: related?.partner_export_id ?? null,
+    customerId: related?.customer_id ?? null,
+    siteId: related?.site_id ?? null,
+    meteringPointId: related?.metering_point_id ?? null,
+    gridOwnerId: related?.grid_owner_id ?? null,
     rawPayload: params.rawPayload,
     parsedPayload: {
       ...parsed.parsedPayload,
       ackFamily: params.family,
       ackOutcome,
-      relatedOutboundMessageId: related.id,
-      relatedOutboundFamily: related.message_family,
-      relatedOutboundCode: related.message_code,
+      relatedOutboundMessageId: related?.id ?? null,
+      relatedOutboundFamily: related?.message_family ?? null,
+      relatedOutboundCode: related?.message_code ?? null,
       importedVia: 'imap',
+      unlinkedInboundAck: isUnlinkedAck,
+      unlinkedReason: isUnlinkedAck
+        ? 'No matching outbound message was found during IMAP import. The acknowledgement was imported for manual review instead of blocking the mailbox poll.'
+        : null,
     },
+    validationReport: isUnlinkedAck
+      ? {
+          ackLinkStatus: 'unlinked',
+          ackLinkSeverity: 'warning',
+          ackLinkReason:
+            'No matching outbound message was found during IMAP import. Review references and link manually if needed.',
+          parsedReferences: {
+            interchangeReference: parsed.interchangeReference,
+            externalReference: parsed.externalReference,
+            transactionReference: parsed.transactionReference,
+            applicationReference: parsed.applicationReference,
+          },
+        }
+      : undefined,
+    failureReason: isUnlinkedAck
+      ? 'Inkommande kvittens importerades utan automatisk koppling till outbound-meddelande.'
+      : null,
     requiresContrl: false,
     requiresAperak: false,
     contrlStatus: 'not_required',

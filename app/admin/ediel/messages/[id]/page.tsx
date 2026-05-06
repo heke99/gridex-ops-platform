@@ -19,10 +19,11 @@ import {
 import {
   cancelEdielMessageAction,
   createNegativeUtiltsResponseAction,
+  deleteEdielMessageAction,
   processEdielOperationalMessageAction,
   sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
-import type { EdielMessageEventRow } from '@/lib/ediel/types'
+import type { EdielMessageEventRow, EdielMessageRow } from '@/lib/ediel/types'
 import { evaluateProdatPortalReadiness } from '@/lib/ediel/prodatPortalReadiness'
 
 export const dynamic = 'force-dynamic'
@@ -132,6 +133,14 @@ function getIssueEvents(events: EdielMessageEventRow[]): EdielMessageEventRow[] 
   )
 }
 
+function isUtiltsErrAckMessage(message: EdielMessageRow): boolean {
+  return (
+    String(message.message_family) === 'UTILTS_ERR' ||
+    (String(message.message_family) === 'UTILTS' &&
+      String(message.message_code ?? '').toUpperCase() === 'ERR')
+  )
+}
+
 function getVersionDiagnostics(validationReport: Record<string, unknown>) {
   const acceptedInboundVersions = asStringArray(validationReport.acceptedInboundVersions)
   const inboundVersionAccepted = validationReport.inboundVersionAccepted === true
@@ -214,21 +223,6 @@ function summarizeRouteRuntime(routeRuntime: Record<string, unknown> | null) {
     transportType ? `Transport: ${transportType}` : null,
     defaultMessageVersion ? `Route default version: ${defaultMessageVersion}` : null,
   ].filter((value): value is string => Boolean(value))
-}
-
-
-function getObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {}
-}
-
-function getString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
-}
-
-function getBoolean(value: unknown): boolean {
-  return value === true
 }
 
 function renderVersionWindow(window: ResolvedVersionWindow | null) {
@@ -337,112 +331,10 @@ export default async function AdminEdielMessageDetailPage({
       : null
   )
   const prodatPortalReadiness = evaluateProdatPortalReadiness(message)
-
-  const parsedPayload = getObject(message.parsed_payload)
-  const utiltsRuntimeFacts = getObject(parsedPayload.utiltsRuntimeFacts)
-  const normalizedMeteringPayload = getObject(parsedPayload.normalizedMeteringPayload)
-  const runtimeSource =
-    Object.keys(utiltsRuntimeFacts).length > 0 ? utiltsRuntimeFacts : normalizedMeteringPayload
-
-  const existingContrl = relatedAckMessages.some(
-    (ack) => ack.message_family === 'CONTRL'
-  )
-  const existingAperak = relatedAckMessages.some(
-    (ack) => ack.message_family === 'APERAK'
-  )
-  const existingUtiltsErr = relatedAckMessages.some(
-    (ack) => ack.message_family === 'UTILTS' && String(ack.message_code).toUpperCase() === 'ERR'
-  )
-
-  const validationReport = getObject(message.validation_report)
-  const ackPlan = getObject(validationReport.ackPlan)
-
-  const isInboundUtilts =
-    message.direction === 'inbound' && message.message_family === 'UTILTS'
-
-  const hasRuntime =
-    Object.keys(runtimeSource).length > 0 ||
-    parsedPayload.inferredFamily === 'UTILTS' ||
-    parsedPayload.inferredCode === 'S02' ||
-    parsedPayload.inferredCode === 'S03'
-
-  const runtimeMessageCode =
-    getString(runtimeSource.messageCode) ??
-    getString(parsedPayload.inferredCode) ??
-    String(message.message_code)
-
-  const validationType =
-    getString(validationReport.validationType) ??
-    getString(validationReport.errorType) ??
-    getString(validationReport.utiltsErrorType)
-
-  const validationOk =
-    validationReport.accepted === true ||
-    validationReport.isAccepted === true ||
-    validationReport.status === 'accepted' ||
-    validationReport.status === 'ok' ||
-    (!validationType && message.status !== 'failed')
-
-  const shouldSendContrl =
-    getBoolean(ackPlan.shouldSendContrl) ||
-    getBoolean(ackPlan.requiresContrl) ||
-    message.requires_contrl === true ||
-    isInboundUtilts
-
-  const shouldSendUtiltsErr =
-    getBoolean(ackPlan.shouldSendUtiltsErr) ||
-    getBoolean(ackPlan.requiresUtiltsErr) ||
-    getBoolean(parsedPayload.hasUtiltsErrPattern)
-
-  const shouldSendAperak =
-    getBoolean(ackPlan.shouldSendAperak) ||
-    getBoolean(ackPlan.requiresAperak) ||
-    message.requires_aperak === true ||
-    (isInboundUtilts && !shouldSendUtiltsErr)
-
-  const utiltsRuntimeSummary = {
-    isInboundUtilts,
-    hasRuntime,
-    validationOk,
-    validationType,
-    messageCode: runtimeMessageCode,
-    meterPointId:
-      getString(runtimeSource.meterPointId) ??
-      getString(runtimeSource.meteringPointId) ??
-      getString(parsedPayload.meterPointId) ??
-      getString(parsedPayload.meteringPointId),
-    gridAreaId:
-      getString(runtimeSource.gridAreaId) ??
-      getString(parsedPayload.gridAreaId),
-    interchangeReference:
-      getString(runtimeSource.interchangeReference) ??
-      message.interchange_reference,
-    documentReference:
-      getString(runtimeSource.documentReference) ??
-      message.external_reference,
-    transactionReference:
-      getString(runtimeSource.transactionReference) ??
-      getString(runtimeSource.transactionId) ??
-      message.transaction_reference,
-    ackPlan: {
-      shouldSendContrl,
-      shouldSendAperak,
-      shouldSendUtiltsErr,
-      contrlOutcome:
-        getString(ackPlan.contrlOutcome) ??
-        getString(ackPlan.contrlStatus) ??
-        'positive',
-      aperakOutcome:
-        getString(ackPlan.aperakOutcome) ??
-        getString(ackPlan.aperakStatus) ??
-        (shouldSendUtiltsErr ? null : 'positive'),
-    },
-    existing: {
-      contrl: existingContrl,
-      aperak: existingAperak,
-      utiltsErr: existingUtiltsErr,
-    },
-  }
+  const hasContrlDraft = relatedAckMessages.some((ack) => ack.message_family === 'CONTRL')
+  const hasAperakDraft = relatedAckMessages.some((ack) => ack.message_family === 'APERAK')
+  const hasUtiltsErrDraft = relatedAckMessages.some(isUtiltsErrAckMessage)
+  const hasAnyUtiltsTgtResponse = hasContrlDraft || hasAperakDraft || hasUtiltsErrDraft
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -478,7 +370,7 @@ export default async function AdminEdielMessageDetailPage({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {['draft', 'queued', 'prepared'].includes(message.status) &&
+              {(message.status === 'queued' || message.status === 'prepared') &&
               message.direction === 'outbound' ? (
                 <form action={sendEdielMessageAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <input type="hidden" name="edielMessageId" value={message.id} />
@@ -494,107 +386,67 @@ export default async function AdminEdielMessageDetailPage({
                 </form>
               ) : null}
 
+              {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
+                hasAnyUtiltsTgtResponse ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    CONTRL/APERAK/UTILTS-ERR finns redan för detta inbound-meddelande. Engine körs inte igen för att undvika dubbletter. Skicka befintliga svar nedan eller radera fel testomgång först.
+                  </div>
+                ) : (
+                  <form action={processEdielOperationalMessageAction}>
+                    <input type="hidden" name="edielMessageId" value={message.id} />
+                    <button
+                      type="submit"
+                      className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                    >
+                      Kör UTILTS engine / skapa TGT-svar
+                    </button>
+                  </form>
+                )
+              ) : null}
+
               {message.status !== 'cancelled' ? (
                 <form action={cancelEdielMessageAction}>
                   <input type="hidden" name="edielMessageId" value={message.id} />
-                  <input type="hidden" name="reason" value="Dold/raderad från meddelandedetalj för renare Ediel-testvy." />
+                  <input type="hidden" name="reason" value="Dold från meddelandedetalj för renare Ediel-testvy." />
                   <button
                     type="submit"
-                    className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700"
+                    className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700"
                   >
-                    Dölj/radera från arbetsvy
+                    Dölj från arbetsvy
                   </button>
                 </form>
               ) : null}
 
-              {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
-                <form action={processEdielOperationalMessageAction} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
-                  <input type="hidden" name="edielMessageId" value={message.id} />
-                  <div className="text-xs font-semibold text-emerald-800">
-                    UTILTS TGT: skapa rätt svar från inbound-meddelandet
-                  </div>
-                  <button
-                    type="submit"
-                    className="mt-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
-                  >
-                    Kör UTILTS engine / skapa CONTRL + APERAK
-                  </button>
-                </form>
-              ) : null}
+              <form action={deleteEdielMessageAction}>
+                <input type="hidden" name="edielMessageId" value={message.id} />
+                <button
+                  type="submit"
+                  className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100"
+                >
+                  Radera meddelande + svar
+                </button>
+              </form>
 
               {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
-                <form action={createNegativeUtiltsResponseAction} className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3">
+                <form action={createNegativeUtiltsResponseAction} className="flex flex-col gap-2">
                   <input type="hidden" name="edielMessageId" value={message.id} />
                   <input
                     type="text"
                     name="messageText"
-                    placeholder="Anledning för manuell UTILTS-ERR"
+                    placeholder="Anledning för UTILTS_ERR"
                     className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
                   />
                   <button
                     type="submit"
                     className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
                   >
-                    Manuell UTILTS-ERR
+                    Skapa UTILTS_ERR
                   </button>
                 </form>
               ) : null}
             </div>
           </div>
         </section>
-
-
-        {utiltsRuntimeSummary.isInboundUtilts ? (
-          <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-emerald-950">UTILTS TGT-svar</h2>
-                <p className="mt-1 text-sm leading-6 text-emerald-900">
-                  Det här är ett inkommande UTILTS-meddelande. För U1.1.1 ska du köra engine,
-                  få fram positiv CONTRL och positiv APERAK, och sedan skicka dem från Ack chain.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Pill text={utiltsRuntimeSummary.hasRuntime ? 'runtime finns' : 'runtime ej körd'} />
-                <Pill text={utiltsRuntimeSummary.validationOk ? 'validation OK' : utiltsRuntimeSummary.validationType ?? 'ej validerad'} />
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Meddelande</div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">UTILTS {utiltsRuntimeSummary.messageCode}</div>
-              </div>
-              <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Anläggning / nät</div>
-                <div className="mt-1 break-all text-sm text-slate-900">{utiltsRuntimeSummary.meterPointId ?? '—'} · {utiltsRuntimeSummary.gridAreaId ?? '—'}</div>
-              </div>
-              <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Referenser</div>
-                <div className="mt-1 space-y-1 break-all text-xs text-slate-700">
-                  <div>UNB: {utiltsRuntimeSummary.interchangeReference ?? '—'}</div>
-                  <div>BGM: {utiltsRuntimeSummary.documentReference ?? '—'}</div>
-                  <div>IDE: {utiltsRuntimeSummary.transactionReference ?? '—'}</div>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Ska skapas</div>
-                <div className="mt-1 space-y-1 text-xs text-slate-700">
-                  <div>CONTRL: {utiltsRuntimeSummary.ackPlan.shouldSendContrl ? utiltsRuntimeSummary.ackPlan.contrlOutcome ?? 'ja' : 'nej'} · {utiltsRuntimeSummary.existing.contrl ? 'finns' : 'saknas'}</div>
-                  <div>APERAK: {utiltsRuntimeSummary.ackPlan.shouldSendAperak ? utiltsRuntimeSummary.ackPlan.aperakOutcome ?? 'ja' : 'nej'} · {utiltsRuntimeSummary.existing.aperak ? 'finns' : 'saknas'}</div>
-                  <div>UTILTS-ERR: {utiltsRuntimeSummary.ackPlan.shouldSendUtiltsErr ? 'ja' : 'nej'} · {utiltsRuntimeSummary.existing.utiltsErr ? 'finns' : 'saknas'}</div>
-                </div>
-              </div>
-            </div>
-
-            <form action={processEdielOperationalMessageAction} className="mt-4">
-              <input type="hidden" name="edielMessageId" value={message.id} />
-              <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
-                Kör/återskapa TGT-svar nu
-              </button>
-            </form>
-          </section>
-        ) : null}
 
         {prodatPortalReadiness.checked ? (
           <section className="rounded-3xl border border-slate-200 bg-white p-6">
@@ -797,14 +649,17 @@ export default async function AdminEdielMessageDetailPage({
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Link
                         href={`/admin/ediel/messages/${ack.id}`}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="inline-block text-sm text-slate-700 underline-offset-2 hover:underline"
                       >
                         Öppna ack-meddelande
                       </Link>
-                      {ack.direction === 'outbound' && ['draft', 'queued', 'prepared'].includes(ack.status) ? (
+                      {ack.direction === 'outbound' && ['draft', 'queued', 'prepared'].includes(String(ack.status)) ? (
                         <form action={sendEdielMessageAction}>
                           <input type="hidden" name="edielMessageId" value={ack.id} />
-                          <button className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">
+                          <button
+                            type="submit"
+                            className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700"
+                          >
                             Skicka till Edielportalen
                           </button>
                         </form>
