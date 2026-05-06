@@ -2,13 +2,16 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
-import { listEdielMessages } from '@/lib/ediel/db'
-import type { EdielMessageRow } from '@/lib/ediel/types'
+import { getCanonicalAckState } from '@/lib/ediel/ack'
+import { listAckMessagesForSource, listEdielMessages } from '@/lib/ediel/db'
 import {
+  deleteAllEdielMessagesAction,
+  deleteEdielMessageAction,
   pollMailboxAction,
   processEdielOperationalMessageAction,
   sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,337 +21,286 @@ type SearchParams = {
   status?: string
 }
 
-function formatDate(value: string | null | undefined): string {
+type Tone = 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'purple'
+
+function toneClass(tone: Tone): string {
+  if (tone === 'green') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (tone === 'yellow') return 'border-amber-200 bg-amber-50 text-amber-800'
+  if (tone === 'red') return 'border-rose-200 bg-rose-50 text-rose-800'
+  if (tone === 'blue') return 'border-blue-200 bg-blue-50 text-blue-800'
+  if (tone === 'purple') return 'border-purple-200 bg-purple-50 text-purple-800'
+  return 'border-slate-200 bg-slate-50 text-slate-700'
+}
+
+function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: Tone }) {
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClass(tone)}`}>
+      {children}
+    </span>
+  )
+}
+
+function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleString('sv-SE')
 }
 
-function badgeClass(value: string | null | undefined): string {
-  if (!value) return 'border-slate-200 bg-slate-50 text-slate-700'
-  if (['validated', 'acknowledged', 'sent', 'received', 'parsed'].includes(value)) {
-    return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  }
-  if (['draft', 'prepared', 'queued'].includes(value)) {
-    return 'border-amber-200 bg-amber-50 text-amber-700'
-  }
-  if (['failed', 'cancelled'].includes(value)) {
-    return 'border-rose-200 bg-rose-50 text-rose-700'
-  }
-  return 'border-slate-200 bg-slate-50 text-slate-700'
+function directionTone(direction: string): Tone {
+  if (direction === 'inbound') return 'blue'
+  if (direction === 'outbound') return 'purple'
+  return 'slate'
 }
 
-function Badge({ children, value }: { children: ReactNode; value?: string | null }) {
-  return (
-    <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${badgeClass(value ?? String(children))}`}>
-      {children}
-    </span>
+function statusTone(status: string): Tone {
+  if (['sent', 'received', 'acknowledged', 'validated', 'parsed'].includes(status)) return 'green'
+  if (['queued', 'prepared', 'pending', 'draft'].includes(status)) return 'yellow'
+  if (['failed', 'cancelled', 'rejected'].includes(status)) return 'red'
+  return 'slate'
+}
+
+function ackTone(state: string): Tone {
+  if (state.includes('accepted') || state.includes('acknowledged') || state.includes('completed')) return 'green'
+  if (state.includes('awaiting') || state.includes('pending')) return 'yellow'
+  if (state.includes('rejected') || state.includes('failed') || state.includes('overdue')) return 'red'
+  return 'slate'
+}
+
+function isUtiltsInbound(message: EdielMessageRow): boolean {
+  return message.direction === 'inbound' && message.message_family === 'UTILTS'
+}
+
+function isSendable(message: EdielMessageRow): boolean {
+  return message.direction === 'outbound' && ['queued', 'prepared'].includes(String(message.status))
+}
+
+async function getAckMap(messages: EdielMessageRow[]): Promise<Map<string, EdielMessageRow[]>> {
+  const inboundMessages = messages.filter((message) => message.direction === 'inbound')
+  const pairs = await Promise.all(
+    inboundMessages.map(async (message) => {
+      const ackMessages = await listAckMessagesForSource({ sourceMessageId: message.id })
+      return [message.id, ackMessages] as const
+    }),
   )
+
+  return new Map(pairs)
 }
 
-function getRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
-}
-
-function getNestedRecord(value: unknown, key: string): Record<string, unknown> {
-  return getRecord(getRecord(value)[key])
-}
-
-function getString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
-}
-
-function isSendableAck(message: EdielMessageRow): boolean {
-  return (
-    message.direction === 'outbound' &&
-    ['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(message.message_family) &&
-    ['draft', 'queued', 'prepared'].includes(message.status)
-  )
-}
-
-function isInboundUtiltsCandidate(message: EdielMessageRow): boolean {
-  return (
-    message.direction === 'inbound' &&
-    message.message_family === 'UTILTS' &&
-    ['S02', 'S03', 'E66', 'E30', 'E31'].includes(String(message.message_code)) &&
-    ['received', 'parsed', 'validated', 'failed'].includes(message.status)
-  )
-}
-
-function runtimeHint(message: EdielMessageRow): string {
-  const validationReport = getRecord(message.validation_report)
-  const utiltsRuntime = getNestedRecord(validationReport, 'utiltsRuntime')
-  const ackPlan = getNestedRecord(utiltsRuntime, 'ackPlan')
-  const validation = getNestedRecord(utiltsRuntime, 'validation')
-
-  if (Object.keys(utiltsRuntime).length === 0) return 'runtime ej körd'
-
-  const parts = [
-    validation.ok === true ? 'validation OK' : getString(validation.issueType) ?? 'validation ej OK',
-    ackPlan.shouldSendContrl === true ? `CONTRL ${getString(ackPlan.contrlOutcome) ?? ''}`.trim() : null,
-    ackPlan.shouldSendAperak === true ? `APERAK ${getString(ackPlan.aperakOutcome) ?? ''}`.trim() : null,
-    ackPlan.shouldSendUtiltsErr === true ? 'UTILTS-ERR' : null,
-  ].filter(Boolean)
-
-  return parts.join(' · ')
-}
-
-function messageReferences(message: EdielMessageRow): string {
-  const parsed = getRecord(message.parsed_payload)
-  const facts = getRecord(parsed.utiltsRuntimeFacts)
-  const refs = [
-    getString(facts.interchangeReference) ?? message.interchange_reference,
-    getString(facts.documentReference) ?? message.external_reference,
-    getString(facts.transactionReference) ?? getString(facts.transactionId) ?? message.transaction_reference,
-  ].filter(Boolean)
-  return refs.length > 0 ? refs.join(' / ') : '—'
-}
-
-function MessageCard({
-  message,
-  relatedAcks,
-}: {
-  message: EdielMessageRow
-  relatedAcks: EdielMessageRow[]
-}) {
-  const isInboundUtilts = isInboundUtiltsCandidate(message)
-  const sendable = isSendableAck(message)
-  const meterPoint =
-    getString(getRecord(message.parsed_payload).meteringPointId) ??
-    getString(getRecord(message.parsed_payload).meterPointId) ??
-    getString(getRecord(getRecord(message.parsed_payload).utiltsRuntimeFacts).meterPointId) ??
-    '—'
-
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap gap-2">
-            <Badge value={message.direction}>{message.direction}</Badge>
-            <Badge value={message.message_family}>{message.message_family}</Badge>
-            <Badge value={message.status}>{message.status}</Badge>
-          </div>
-          <h2 className="mt-2 text-sm font-semibold text-slate-950">
-            {message.message_family} {message.message_code}
-          </h2>
-          <div className="mt-1 break-all text-xs text-slate-500">{message.id}</div>
-        </div>
-        <Link
-          href={`/admin/ediel/messages/${message.id}`}
-          className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          Öppna detalj
-        </Link>
-      </div>
-
-      <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
-        <div>Skapad: {formatDate(message.created_at)}</div>
-        <div>Mottagen/skickad: {formatDate(message.message_received_at ?? message.message_sent_at)}</div>
-        <div>Sender → receiver: {message.sender_ediel_id ?? '—'} → {message.receiver_ediel_id ?? '—'}</div>
-        <div>App ref: {message.application_reference ?? '—'}</div>
-        <div>Referenser: {messageReferences(message)}</div>
-        <div>Anläggning: {message.metering_point_id ?? meterPoint}</div>
-      </div>
-
-      {isInboundUtilts ? (
-        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
-          <div className="text-xs font-semibold text-emerald-900">UTILTS TGT-kandidat</div>
-          <div className="mt-1 text-xs text-emerald-800">{runtimeHint(message)}</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <form action={processEdielOperationalMessageAction}>
-              <input type="hidden" name="edielMessageId" value={message.id} />
-              <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
-                Kör engine / skapa TGT-svar
-              </button>
-            </form>
-            <Link
-              href={`/admin/ediel/messages/${message.id}`}
-              className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50"
-            >
-              Se ack chain
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
-      {sendable ? (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3">
-          <div className="text-xs font-semibold text-amber-900">Redo att skickas till Edielportalen</div>
-          <form action={sendEdielMessageAction} className="mt-3">
-            <input type="hidden" name="edielMessageId" value={message.id} />
-            <button className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">
-              Preflight + skicka
-            </button>
-          </form>
-        </div>
-      ) : null}
-
-      {relatedAcks.length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <div className="text-xs font-semibold text-slate-900">Relaterade svar</div>
-          <div className="mt-2 space-y-2">
-            {relatedAcks.map((ack) => (
-              <div key={ack.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 text-xs">
-                <div>
-                  <span className="font-semibold text-slate-900">{ack.message_family}</span>{' '}
-                  <span className="text-slate-500">{ack.status} · {ack.ack_outcome ?? '—'}</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link href={`/admin/ediel/messages/${ack.id}`} className="text-indigo-700 underline-offset-2 hover:underline">
-                    Öppna
-                  </Link>
-                  {isSendableAck(ack) ? (
-                    <form action={sendEdielMessageAction}>
-                      <input type="hidden" name="edielMessageId" value={ack.id} />
-                      <button className="font-semibold text-slate-900 underline-offset-2 hover:underline">
-                        Skicka
-                      </button>
-                    </form>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </article>
-  )
+function filterHref(params: Record<string, string | null | undefined>) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) query.set(key, value)
+  })
+  const suffix = query.toString()
+  return suffix ? `/admin/ediel/messages?${suffix}` : '/admin/ediel/messages'
 }
 
 export default async function AdminEdielMessagesPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>
+  searchParams?: Promise<SearchParams> | SearchParams
 }) {
-  const context = await requireAnyPermissionServer(['communication.read'])
-  const params = await searchParams
-  const family = params.family && params.family !== 'ALL' ? params.family : undefined
-  const direction = params.direction === 'inbound' || params.direction === 'outbound' ? params.direction : undefined
-  const status = params.status && params.status !== 'ALL' ? params.status : undefined
+  const context = await requireAnyPermissionServer([
+    'communication.read',
+    'communication.write',
+  ])
+  const resolvedSearchParams = await searchParams
+  const family = typeof resolvedSearchParams?.family === 'string' ? resolvedSearchParams.family : undefined
+  const status = typeof resolvedSearchParams?.status === 'string' ? resolvedSearchParams.status : undefined
+  const directionRaw = typeof resolvedSearchParams?.direction === 'string' ? resolvedSearchParams.direction : undefined
+  const direction = directionRaw === 'inbound' || directionRaw === 'outbound' ? directionRaw : undefined
 
   const messages = await listEdielMessages({
-    family,
+    family: family || undefined,
     direction,
-    status,
-    limit: 200,
+    status: status || undefined,
+    limit: 250,
   })
+  const ackMap = await getAckMap(messages)
 
-  const relatedBySource = new Map<string, EdielMessageRow[]>()
-  for (const row of messages) {
-    if (row.related_message_id && ['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(row.message_family)) {
-      const current = relatedBySource.get(row.related_message_id) ?? []
-      current.push(row)
-      relatedBySource.set(row.related_message_id, current)
-    }
-  }
-
-  const inboundUtiltsCount = messages.filter(isInboundUtiltsCandidate).length
-  const sendableAckCount = messages.filter(isSendableAck).length
+  const inboundUtiltsCount = messages.filter(isUtiltsInbound).length
+  const outboundReadyCount = messages.filter(isSendable).length
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
-        title="Ediel-meddelanden"
-        subtitle="Hitta inkommande UTILTS, skapa TGT-svar och skicka CONTRL/APERAK/UTILTS-ERR från samma vy."
+        title="Ediel meddelanden"
+        subtitle="Enkel lista för inbound, TGT-svar, skick och radering. Använd denna vy när du testar UTILTS/PRODAT mot Edielportalen."
         userEmail={context.email}
       />
 
-      <main className="space-y-6 p-8">
-        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+      <div className="space-y-6 p-8">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-lg font-semibold text-emerald-950">Snabbflöde för U1.1.1 UTILTS-S02</h1>
-              <p className="mt-1 text-sm leading-6 text-emerald-900">
-                1) Starta testet i Edielportalen. 2) Hämta IMAP. 3) Öppna inbound UTILTS S02 här. 4) Kör engine/skapa TGT-svar. 5) Skicka CONTRL och APERAK från relaterade svar.
+              <h1 className="text-xl font-semibold text-slate-900">Meddelanden</h1>
+              <p className="mt-1 max-w-3xl text-sm text-slate-600">
+                Öppna inbound UTILTS, kör engine för att skapa CONTRL/APERAK/UTILTS-ERR och skicka sedan svaren till portalen. Radering här är hård radering från Ediel-testvyn.
               </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Badge tone="blue">{messages.length} visas</Badge>
+                <Badge tone="green">{inboundUtiltsCount} inbound UTILTS</Badge>
+                <Badge tone="yellow">{outboundReadyCount} redo att skickas</Badge>
+              </div>
             </div>
-            <form action={pollMailboxAction}>
-              <input type="hidden" name="limit" value="20" />
-              <button className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
-                Hämta IMAP nu
-              </button>
-            </form>
-          </div>
-        </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="text-sm text-slate-500">Visade meddelanden</div>
-            <div className="mt-2 text-3xl font-semibold text-slate-950">{messages.length}</div>
-          </div>
-          <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-            <div className="text-sm text-slate-500">Inbound UTILTS-kandidater</div>
-            <div className="mt-2 text-3xl font-semibold text-emerald-700">{inboundUtiltsCount}</div>
-          </div>
-          <div className="rounded-2xl border border-amber-200 bg-white p-4">
-            <div className="text-sm text-slate-500">ACK redo att skickas</div>
-            <div className="mt-2 text-3xl font-semibold text-amber-700">{sendableAckCount}</div>
+            <div className="flex flex-wrap gap-2">
+              <form action={pollMailboxAction}>
+                <button className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+                  Hämta IMAP nu
+                </button>
+              </form>
+              <form action={deleteAllEdielMessagesAction}>
+                <button className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-800 hover:bg-rose-100">
+                  Radera alla meddelanden
+                </button>
+              </form>
+            </div>
           </div>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-5">
-          <form className="grid gap-3 md:grid-cols-4">
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Family</label>
-              <select name="family" defaultValue={family ?? 'ALL'} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                <option value="ALL">Alla</option>
-                <option value="UTILTS">UTILTS</option>
-                <option value="CONTRL">CONTRL</option>
-                <option value="APERAK">APERAK</option>
-                <option value="UTILTS_ERR">UTILTS_ERR</option>
-                <option value="PRODAT">PRODAT</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Direction</label>
-              <select name="direction" defaultValue={direction ?? 'ALL'} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                <option value="ALL">Alla</option>
-                <option value="inbound">Inbound</option>
-                <option value="outbound">Outbound</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Status</label>
-              <select name="status" defaultValue={status ?? 'ALL'} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                <option value="ALL">Alla</option>
-                <option value="received">received</option>
-                <option value="parsed">parsed</option>
-                <option value="validated">validated</option>
-                <option value="draft">draft</option>
-                <option value="queued">queued</option>
-                <option value="prepared">prepared</option>
-                <option value="sent">sent</option>
-                <option value="failed">failed</option>
-              </select>
-            </div>
-            <div className="flex items-end gap-2">
-              <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
-                Filtrera
-              </button>
-              <Link href="/admin/ediel/messages?family=UTILTS&direction=inbound" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                UTILTS inbound
-              </Link>
-            </div>
-          </form>
+          <div className="flex flex-wrap gap-2">
+            <Link className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" href="/admin/ediel/messages">
+              Alla
+            </Link>
+            <Link className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100" href={filterHref({ family: 'UTILTS', direction: 'inbound' })}>
+              Inbound UTILTS
+            </Link>
+            <Link className="rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-sm font-semibold text-purple-800 hover:bg-purple-100" href={filterHref({ direction: 'outbound' })}>
+              Outbound
+            </Link>
+            <Link className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100" href={filterHref({ status: 'queued' })}>
+              Queued
+            </Link>
+            <Link className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100" href={filterHref({ status: 'prepared' })}>
+              Prepared
+            </Link>
+          </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-2">
-          {messages.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-sm text-slate-500">
-              Inga meddelanden hittades med valda filter.
-            </div>
-          ) : (
-            messages.map((message) => (
-              <MessageCard
-                key={message.id}
-                message={message}
-                relatedAcks={relatedBySource.get(message.id) ?? []}
-              />
-            ))
-          )}
+        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Tid</th>
+                  <th className="px-4 py-3">Meddelande</th>
+                  <th className="px-4 py-3">Riktning/status</th>
+                  <th className="px-4 py-3">Referenser</th>
+                  <th className="px-4 py-3">Relaterade svar</th>
+                  <th className="px-4 py-3">Knappar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {messages.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                      Inga Ediel-meddelanden hittades.
+                    </td>
+                  </tr>
+                ) : (
+                  messages.map((message) => {
+                    const ackMessages = ackMap.get(message.id) ?? []
+                    const ackState = String(getCanonicalAckState(message))
+                    return (
+                      <tr key={message.id} className="align-top hover:bg-slate-50/70">
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                          {formatDateTime(message.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-slate-900">
+                            {message.message_family} {message.message_code}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {message.message_version ?? 'utan version'} · {message.application_reference ?? 'utan app-ref'}
+                          </div>
+                          {isUtiltsInbound(message) ? (
+                            <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                              Inbound UTILTS: öppna eller kör engine för TGT-svar.
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge tone={directionTone(message.direction)}>{message.direction}</Badge>
+                            <Badge tone={statusTone(message.status)}>{message.status}</Badge>
+                            <Badge tone={ackTone(ackState)}>{ackState}</Badge>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-600">
+                          <div>External: {message.external_reference ?? '—'}</div>
+                          <div>Transaction: {message.transaction_reference ?? '—'}</div>
+                          <div>Interchange: {message.interchange_reference ?? '—'}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {ackMessages.length === 0 ? (
+                            <div className="text-xs text-slate-500">Inga relaterade svar ännu.</div>
+                          ) : (
+                            <div className="space-y-2">
+                              {ackMessages.map((ack) => (
+                                <div key={ack.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge tone="slate">{ack.message_family} {ack.message_code}</Badge>
+                                    <Badge tone={statusTone(ack.status)}>{ack.status}</Badge>
+                                  </div>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <Link href={`/admin/ediel/messages/${ack.id}`} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                                      Öppna
+                                    </Link>
+                                    {isSendable(ack) ? (
+                                      <form action={sendEdielMessageAction}>
+                                        <input type="hidden" name="edielMessageId" value={ack.id} />
+                                        <button className="rounded-lg bg-slate-900 px-2 py-1 text-xs font-semibold text-white hover:bg-slate-700">
+                                          Skicka
+                                        </button>
+                                      </form>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-2">
+                            <Link href={`/admin/ediel/messages/${message.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                              Öppna
+                            </Link>
+                            {isUtiltsInbound(message) ? (
+                              <form action={processEdielOperationalMessageAction}>
+                                <input type="hidden" name="edielMessageId" value={message.id} />
+                                <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+                                  Kör engine / skapa TGT-svar
+                                </button>
+                              </form>
+                            ) : null}
+                            {isSendable(message) ? (
+                              <form action={sendEdielMessageAction}>
+                                <input type="hidden" name="edielMessageId" value={message.id} />
+                                <button className="w-full rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">
+                                  Skicka
+                                </button>
+                              </form>
+                            ) : null}
+                            <form action={deleteEdielMessageAction}>
+                              <input type="hidden" name="edielMessageId" value={message.id} />
+                              <button className="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800 hover:bg-rose-100">
+                                Radera
+                              </button>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
-      </main>
+      </div>
     </div>
   )
 }

@@ -1201,9 +1201,9 @@ export default async function AdminEdielPage() {
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <WorkflowStep
             number="1"
-            title="Meddelanden + UTILTS TGT"
-            text="Hämta IMAP, öppna inbound UTILTS och skapa/skicka CONTRL + APERAK från rätt rad."
-            href="/admin/ediel/messages?family=UTILTS&direction=inbound"
+            title="Hämta IMAP-svar"
+            text="Importera Edielportalens CONTRL, APERAK och PRODAT-svar tydligt."
+            href="#inbound-responses"
           />
           <WorkflowStep
             number="2"
@@ -1229,7 +1229,6 @@ export default async function AdminEdielPage() {
       <nav className="sticky top-2 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
         <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-8">
           <QuickNavItem href="#overview" label="Översikt" description="Status och snabbstart" tone="blue" />
-          <QuickNavItem href="/admin/ediel/messages" label="Meddelanden" description="UTILTS/ACK-skicka" tone="green" />
           <QuickNavItem href="#inbound-responses" label="IMAP-svar" description="CONTRL/APERAK/PRODAT" tone="green" />
           <QuickNavItem href="#production-prodat" label="PRODAT" description="Kundstyrd Z03/Z04" tone="green" />
           <QuickNavItem href="#tgt" label="TGT-test" description="Testfall och steg" tone="blue" />
@@ -1241,12 +1240,20 @@ export default async function AdminEdielPage() {
         </div>
       </nav>
 
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-blue-950">Ediel meddelanden</div>
+            <div className="mt-1 text-sm text-blue-800">Öppna den enkla meddelandevyn för inbound UTILTS, TGT-svar, skick och radering.</div>
+          </div>
+          <Link href="/admin/ediel/messages" className="rounded-2xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+            Öppna meddelanden
+          </Link>
+        </div>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <Link href="/admin/ediel/messages" className="block rounded-2xl border border-blue-200 bg-blue-50 p-4 hover:bg-blue-100">
-          <div className="text-xs font-medium uppercase tracking-wide text-blue-700">Meddelanden</div>
-          <div className="mt-2 text-2xl font-semibold text-blue-950">{messages.length}</div>
-          <div className="mt-1 text-xs leading-5 text-blue-700">Öppna full lista, UTILTS TGT-knappar och ACK-skick.</div>
-        </Link>
+        <MetricCard label="Meddelanden" value={messages.length} help="Aktiva Ediel-meddelanden i release-scope." tone="blue" />
         <MetricCard label="Aktiva test" value={activeTestRunsCount} help="TGT-runs i draft eller running." tone={activeTestRunsCount > 0 ? 'yellow' : 'slate'} />
         <MetricCard label="Inbound-case" value={inboundCasePendingCount} help="PRODAT som väntar på admin-godkännande." tone={inboundCasePendingCount > 0 ? 'yellow' : 'green'} />
         <MetricCard label="Safe apply" value={safeApplyPendingCount} help="Z06/Z10-förslag som väntar på granskning." tone={safeApplyPendingCount > 0 ? 'yellow' : 'green'} />

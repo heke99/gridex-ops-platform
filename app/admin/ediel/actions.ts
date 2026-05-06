@@ -860,6 +860,111 @@ async function revalidateRelatedMessage(messageId?: string | null) {
   revalidateEdiel(message.id);
 }
 
+
+function isMissingOptionalEdielTableError(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      ((error as { code?: unknown }).code === "42P01" ||
+        (error as { code?: unknown }).code === "PGRST205"),
+  );
+}
+
+async function deleteFromOptionalEdielTable(
+  table: "ediel_inbound_cases" | "ediel_test_run_messages" | "ediel_message_events",
+  column: "ediel_message_id",
+  ids: string[],
+) {
+  if (ids.length === 0) return;
+
+  const result = await supabaseService.from(table).delete().in(column, ids);
+  if (result.error && !isMissingOptionalEdielTableError(result.error)) {
+    throw result.error;
+  }
+}
+
+async function resolveEdielMessageIdsForHardDelete(edielMessageId: string): Promise<string[]> {
+  const ids = new Set<string>([edielMessageId]);
+  const queue = [edielMessageId];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift();
+    if (!currentId) continue;
+
+    const { data, error } = await supabaseService
+      .from("ediel_messages")
+      .select("id")
+      .eq("related_message_id", currentId);
+
+    if (error) throw error;
+
+    for (const row of data ?? []) {
+      const id = (row as { id?: unknown }).id;
+      if (typeof id !== "string" || id.length === 0 || ids.has(id)) continue;
+      ids.add(id);
+      queue.push(id);
+    }
+  }
+
+  return Array.from(ids);
+}
+
+async function hardDeleteEdielMessagesByIds(ids: string[]) {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  if (uniqueIds.length === 0) return 0;
+
+  await deleteFromOptionalEdielTable("ediel_inbound_cases", "ediel_message_id", uniqueIds);
+  await deleteFromOptionalEdielTable("ediel_test_run_messages", "ediel_message_id", uniqueIds);
+  await deleteFromOptionalEdielTable("ediel_message_events", "ediel_message_id", uniqueIds);
+
+  const { error } = await supabaseService
+    .from("ediel_messages")
+    .delete()
+    .in("id", uniqueIds);
+
+  if (error) throw error;
+  return uniqueIds.length;
+}
+
+export async function deleteEdielMessageAction(formData: FormData) {
+  await requireAnyPermissionServer([
+    "communication.write",
+    "communication.read",
+  ]);
+
+  const edielMessageId = formString(formData.get("edielMessageId"));
+  if (!edielMessageId) throw new Error("edielMessageId saknas");
+
+  const ids = await resolveEdielMessageIdsForHardDelete(edielMessageId);
+  await hardDeleteEdielMessagesByIds(ids);
+
+  revalidateEdiel();
+  revalidatePath("/admin/ediel/messages");
+}
+
+export async function deleteAllEdielMessagesAction(_formData?: FormData) {
+  await requireAnyPermissionServer([
+    "communication.write",
+    "communication.read",
+  ]);
+
+  const { data, error } = await supabaseService
+    .from("ediel_messages")
+    .select("id");
+
+  if (error) throw error;
+
+  const ids = (data ?? [])
+    .map((row) => (row as { id?: unknown }).id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+  await hardDeleteEdielMessagesByIds(ids);
+
+  revalidateEdiel();
+  revalidatePath("/admin/ediel/messages");
+}
+
 export async function cancelEdielMessageAction(formData: FormData) {
   const context = await requireAnyPermissionServer([
     "communication.write",
