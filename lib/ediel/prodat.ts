@@ -541,7 +541,12 @@ function renderProdatSegments(params: {
   gridOwner?: GridOwnerRow | null
   senderEdielId: string
   receiverEdielId: string
-}): { segments: string[]; diagnostics: Record<string, unknown>; issues: ProdatSwitchValidationIssue[] } {
+}): {
+  segments: string[]
+  diagnostics: Record<string, unknown>
+  issues: ProdatSwitchValidationIssue[]
+  ackExpectation?: ReturnType<typeof renderProdat26A>['ackExpectation']
+} {
   const portalData = portalSnapshot(params.switchRequest)
   const customerName = portalString(portalData, 'customerName') ?? inferCustomerName(params.switchRequest, params.site)
   const meterPointId = portalString(portalData, 'facilityId') ?? (inferMeterPointIdentifier(params.meteringPoint) || 'UNKNOWN')
@@ -589,6 +594,7 @@ function renderProdatSegments(params: {
       title: issue.title,
       description: issue.description,
     })),
+    ackExpectation: rendered.ackExpectation,
   }
 }
 
@@ -732,6 +738,7 @@ function buildProdatSwitchOutboundDraft(
         transactionReferenceLength: transactionReference.length,
       },
       prodatEngine: prodatRendered.diagnostics,
+      prodatAckExpectation: prodatRendered.ackExpectation ?? null,
     }
 
     return {
@@ -778,6 +785,7 @@ function buildProdatSwitchOutboundDraft(
       validationReport: {
         ...buildValidationReport(validation),
         prodatEngine: prodatRendered.diagnostics,
+      prodatAckExpectation: prodatRendered.ackExpectation ?? null,
         engineIssues: prodatRendered.issues,
       },
       requiresContrl: ack.requiresContrl,

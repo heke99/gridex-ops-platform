@@ -7,6 +7,7 @@ import type {
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
+import { renderAperakEdiel } from '@/lib/ediel/aperakEngine'
 import { inferEdielFileName } from '@/lib/ediel/classify'
 import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
 import {
@@ -308,116 +309,26 @@ function buildAperakSegments(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
-  const isUtiltsSource = params.sourceMessage.message_family === 'UTILTS'
+  const rendered = renderAperakEdiel({
+    source: {
+      id: params.sourceMessage.id,
+      rawPayload: params.sourceMessage.raw_payload,
+      messageFamily: params.sourceMessage.message_family,
+      messageCode: String(params.sourceMessage.message_code),
+      senderEdielId: params.sourceMessage.sender_ediel_id,
+      receiverEdielId: params.sourceMessage.receiver_ediel_id,
+      externalReference: params.sourceMessage.external_reference,
+      messageReceivedAt: params.sourceMessage.message_received_at,
+    },
+    refs,
+    externalReference: params.externalReference,
+    transactionReference: params.transactionReference,
+    outcome: params.outcome,
+    messageText: params.messageText ?? null,
+    applicationErrors: params.applicationErrors ?? null,
+  })
 
-  // UTILTS uses the UTILTS/APERAK guide (APERAK D04A / E5SE5A) where BGM/1001
-  // carries 312 for positive APERAK and 313 for negative APERAK. PRODAT keeps
-  // the older PRODAT/APERAK D96A structure where BGM/1225 is 34.
-  const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
-  const bgmFunction = '34'
-
-  // For APERAK on inbound PRODAT, Edielportalen matches the acknowledgement
-  // against the referenced PRODAT document number (BGM/1004). Do not prefer
-  // UNB/0020 here; that is only the interchange reference and can validate
-  // syntactically while still failing the portal test-case match.
-  const previousMessageReference =
-    refs.documentReference ??
-    refs.messageReference ??
-    sanitizeEdifactToken(params.sourceMessage.external_reference, 14) ??
-    sanitizeEdifactToken(refs.interchangeReference, 14) ??
-    sanitizeEdifactToken(params.sourceMessage.id, 14) ??
-    sanitizeEdifactToken(params.transactionReference) ??
-    'UNKNOWN'
-
-  const segments = isUtiltsSource
-    ? [
-        'UNH+1+APERAK:D:04A:UN:E5SE5A',
-        `BGM+${utiltsBgmCode}+${sanitizeEdifactToken(params.externalReference) ?? 'APERAK'}+9`,
-        `DTM+137:${swedishDateTime()}:203`,
-        'DTM+735:?+0100:406',
-        `DOC+${sanitizeEdifactToken(params.sourceMessage.message_code) ?? 'UTILTS'}::260+${previousMessageReference}`,
-        `NAD+MS+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
-        `NAD+MR+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
-        'NAD+DDQ',
-      ]
-    : [
-        'UNH+1+APERAK:D:96A:UN:E2SE6A',
-        `BGM+++${bgmFunction}`,
-        `DTM+137:${swedishDateTime()}:203`,
-      ]
-
-  const receivedDateTime =
-    swedishDateTimeFromEdifactUnb(params.sourceMessage.raw_payload) ??
-    (params.sourceMessage.message_received_at
-      ? (() => {
-          const receivedDate = new Date(params.sourceMessage.message_received_at)
-          return Number.isFinite(receivedDate.getTime()) ? swedishDateTime(receivedDate) : null
-        })()
-      : null)
-
-  if (!isUtiltsSource && receivedDateTime) {
-    segments.push(`DTM+178:${receivedDateTime}:203`)
-  }
-
-  if (!isUtiltsSource) {
-    segments.push(
-      `RFF+ACW:${previousMessageReference}`,
-      `NAD+FR+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`,
-      `NAD+DO+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:160:SVK+++++++SE`
-    )
-  }
-
-  const errors =
-    params.outcome === 'positive'
-      ? [
-          {
-            ercCode: '100',
-            fieldCode: null,
-            text: 'OK',
-            referenceQualifier: null,
-            referenceNumber: null,
-            lineItemReference: null,
-          },
-        ]
-      : normalizeAperakErrors(params.applicationErrors, params.messageText ?? null)
-
-  for (const error of errors) {
-    segments.push(`ERC+${error.ercCode}::260`)
-    segments.push(
-      error.fieldCode
-        ? `FTX+AAO++${error.fieldCode}::260+${error.text}`
-        : `FTX+AAO+++${error.text}`
-    )
-
-    if (isUtiltsSource) {
-      segments.push(`RFF+DM:${sanitizeEdifactToken(params.transactionReference) ?? 'APE'}`)
-      segments.push(`RFF+ACW:${error.lineItemReference ?? refs.lineItemReference ?? previousMessageReference}`)
-      continue
-    }
-
-    const errorReferenceQualifier = error.referenceQualifier ?? (error.referenceNumber ? 'Z07' : null)
-    if (errorReferenceQualifier && error.referenceNumber) {
-      segments.push(`RFF+${errorReferenceQualifier}:${error.referenceNumber}`)
-    }
-
-    if (error.lineItemReference) {
-      segments.push(`RFF+LI:${error.lineItemReference}`)
-    }
-  }
-
-  const hasPerErrorReference = errors.some((error) => error.referenceNumber)
-
-  // Fallback for ordinary one-object APERAKs. Multi-object TGT APERAKs should
-  // carry references inside each error group above, not once at the end.
-  if (!isUtiltsSource && !hasPerErrorReference && refs.meteringPointId) {
-    segments.push(`RFF+Z07:${refs.meteringPointId}`)
-  }
-
-  if (!isUtiltsSource && !hasPerErrorReference && refs.lineItemReference) {
-    segments.push(`RFF+LI:${refs.lineItemReference}`)
-  }
-
-  return segments
+  return rendered.segments
 }
 
 function buildUtiltsErrSegments(params: {

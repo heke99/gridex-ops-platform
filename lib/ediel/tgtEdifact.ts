@@ -903,6 +903,13 @@ function buildTgtProdatTransactionType(
   }
 
   if (params.testCaseCode === '1.2.2') return step.code === 'Z03' ? 'Z03LK' : 'Z04LK'
+
+  // Negativt PRODAT-test 1.3.1 bygger på samma Z03LK-profil i portalens
+  // testdata: fält 223 ska vara Z23 och fält 210 ska vara avtalsstart den
+  // 10:e nästkommande månad. Detta ska styras på testfallsnivå så alla
+  // genererade filer för testfallet får rätt facit, inte bara en enskild fil.
+  if (params.testCaseCode === '1.3.1' && step.code === 'Z03') return 'Z03LK'
+
   if (params.testCaseCode === '1.2.5') return step.code === 'Z04' ? 'Z04D' : `${step.code}D`
 
   if (['2.1.1', '2.1.2'].includes(params.testCaseCode)) {
@@ -927,7 +934,12 @@ function reasonForProdatSubtype(transactionType: string): string {
 function getTgtProdatMutation(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep): TgtProdatMutation {
   if (step.family !== 'PRODAT') return {}
 
-  if (params.testCaseCode === '1.3.1' && step.code === 'Z03') return {}
+  if (params.testCaseCode === '1.3.1' && step.code === 'Z03') {
+    return {
+      agreementStartDateTime: defaultAgreementStartDateTime(),
+      reasonForTransaction: 'Z23',
+    }
+  }
 
   if (params.testCaseCode === '1.3.2' && step.code === 'Z03') {
     return { gridAreaId: 'TEX', reasonForTransaction: 'Z23' }
