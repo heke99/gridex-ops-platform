@@ -516,9 +516,20 @@ function firstDayNextMonthDateTime(): string {
   return `${firstDayNextMonth.getUTCFullYear()}${pad(firstDayNextMonth.getUTCMonth() + 1)}010000`
 }
 
+function fifteenthDayNextMonthDateTime(): string {
+  const now = new Date()
+  const fifteenthDayNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 15, 0, 0, 0))
+  return `${fifteenthDayNextMonth.getUTCFullYear()}${pad(fifteenthDayNextMonth.getUTCMonth() + 1)}150000`
+}
+
 function resolvePortalDateTime(value: string | null | undefined): string {
   const token = firstToken(value)
   if (token && /^\d{8,12}$/.test(token)) return token.length === 8 ? `${token}0000` : token.slice(0, 12)
+
+  const normalized = normalizeSearch(value)
+  if (normalized.includes('15') && normalized.includes('nasta manad')) return fifteenthDayNextMonthDateTime()
+  if (normalized.includes('10') && normalized.includes('nasta manad')) return defaultAgreementStartDateTime()
+
   return defaultAgreementStartDateTime()
 }
 
@@ -904,6 +915,11 @@ function buildTgtProdatTransactionType(
 
   if (params.testCaseCode === '1.2.2') return step.code === 'Z03' ? 'Z03LK' : 'Z04LK'
 
+  if (step.code === 'Z05') {
+    if (['3.1.2', '3.2.1', '6.1.2'].includes(params.testCaseCode)) return 'Z05LK'
+    if (['3.1.1', '6.1.1'].includes(params.testCaseCode)) return 'Z05L'
+  }
+
   // Negativt PRODAT-test 1.3.1 bygger på samma Z03LK-profil i portalens
   // testdata: fält 223 ska vara Z23 och fält 210 ska vara avtalsstart den
   // 10:e nästkommande månad. Detta ska styras på testfallsnivå så alla
@@ -1011,6 +1027,9 @@ function buildProdatLineSegments(params: {
 
   if (isZ09) {
     segments.push(...expectedZ09LineDateSegments({ ...portalData, prodatTransactionType: transactionType }, refs))
+  } else if (step.code === 'Z05') {
+    const endDate = date203FromPortalDate(portalData.agreementEndDateTime ?? fifteenthDayNextMonthDateTime(), refs.createdLongDate)
+    segments.push(`DTM+93:${endDate}:203`)
   } else {
     segments.push(`DTM+92:${startDate}0000:203`)
   }
@@ -1366,6 +1385,17 @@ function validatePortalDataCoverage(
           'Edielportalen markerar SG17[UD] som not in use för Z09D i detta test. Kunddata kan finnas i testdataregistret men ska inte skickas i denna variant.'
         )
       }
+    }
+  } else if (step.code === 'Z05') {
+    const expectedEndDate = date203FromPortalDate(portalData.agreementEndDateTime ?? fifteenthDayNextMonthDateTime(), '')
+    if (!rawPayload.includes(`DTM+93:${expectedEndDate}:203`)) {
+      pushIssue(
+        issues,
+        'error',
+        'missing_z05_end_date',
+        'Z05 slutdatum saknas',
+        'Z05 ska använda DTM+93 från fält 211 Avtal/slutdatum. I TGT används 15:e nästkommande månad när testdata anger att datum sätts av avsändaren.'
+      )
     }
   } else if (!portalData.agreementStartDateTime) {
     pushIssue(issues, 'error', 'missing_agreement_start_date', 'Avtalsstart saknas', 'Avtalsstart kunde inte hämtas som datum från testdataregistret. Uppdatera underlaget innan filen skickas.')
