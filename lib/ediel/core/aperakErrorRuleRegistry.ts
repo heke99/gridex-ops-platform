@@ -2,6 +2,9 @@
 
 import type { EdielAperakApplicationError } from "@/lib/ediel/ack";
 import { parseEdifactMessageFacts } from "@/lib/ediel/core/edifactSegments";
+import { parseProdatMessage } from "@/lib/ediel/prodat/parser";
+import { resolveTgtExpectedProdatContext } from "@/lib/ediel/prodat/expectedContext";
+import { validateParsedProdatAgainstExpected, type ProdatValidationIssue } from "@/lib/ediel/prodat/validators";
 import {
   compareInboundPayloadToTgtTestData,
   tgtTestDataHasSameNewAndOldMeterNumber,
@@ -397,6 +400,64 @@ function issueFromTgtComparison(
     sourceOrder,
     fallbackText: comparison.text,
   });
+}
+
+const CANONICAL_PRODAT_ISSUE_RULE_KEYS: Record<ProdatValidationIssue['type'], string> = {
+  facility_not_identified: 'facility_not_identified',
+  metering_point_id_mismatch: 'metering_point_id_mismatch',
+  grid_area_id_invalid: 'grid_area_id_invalid',
+  agreement_reference_invalid: 'case_reference_missing',
+  customer_id_invalid: 'invoice_receiver_invalid',
+  balance_responsible_invalid: 'balance_responsible_invalid',
+  agreement_start_date_invalid: 'agreement_start_date_invalid',
+  agreement_end_date_invalid: 'agreement_start_date_invalid',
+  transaction_type_invalid: 'transaction_type_invalid',
+  measuring_method_invalid: 'measuring_method_invalid',
+  time_series_product_invalid: 'time_series_product_invalid',
+  meter_number_invalid: 'meter_number_invalid',
+  case_reference_missing: 'case_reference_missing',
+  annual_consumption_missing: 'annual_consumption_missing',
+  constant_missing: 'constant_missing',
+  digit_count_missing: 'digit_count_missing',
+  meter_number_missing: 'meter_number_missing',
+};
+
+function issueFromCanonicalProdatValidationIssue(
+  validationIssue: ProdatValidationIssue,
+): EdielAperakValidationIssue | null {
+  const ruleKey = CANONICAL_PRODAT_ISSUE_RULE_KEYS[validationIssue.type];
+  if (!ruleKey) return null;
+
+  return issue({
+    ruleKey,
+    fieldPath: `PRODAT/FIELD/${validationIssue.fieldCode}`,
+    fieldValue: validationIssue.actual,
+    expectedValue: validationIssue.expected,
+    meteringPointId: validationIssue.meteringPointId,
+    transactionReference: validationIssue.transactionReference,
+    sourceOrder: validationIssue.sourceOrder,
+    fallbackText: validationIssue.message,
+  });
+}
+
+function deriveObjectBlockingIssuesFromExpectedContext(params: {
+  message: EdielMessageRow;
+  testData: EdielTgtCaseTestData;
+}): EdielAperakValidationIssue[] {
+  const parsed = parseProdatMessage(params.message);
+  const expected = resolveTgtExpectedProdatContext({
+    parsed,
+    testData: params.testData,
+  });
+  const canonicalIssues = validateParsedProdatAgainstExpected({ parsed, expected });
+
+  return canonicalIssues
+    .filter((item) =>
+      item.type === 'facility_not_identified' ||
+      item.type === 'metering_point_id_mismatch'
+    )
+    .map(issueFromCanonicalProdatValidationIssue)
+    .filter((item): item is EdielAperakValidationIssue => Boolean(item));
 }
 
 type LineReferenceContext = {
@@ -845,6 +906,18 @@ function deriveTgtAperakValidationIssues(params: {
 }): EdielAperakValidationIssue[] {
   const { message, testData } = params;
   if (!testData) return [];
+
+  // First run the production-style path: parser → expected context → validator.
+  // TGT-specific knowledge stays in resolveTgtExpectedProdatContext; APERAK only
+  // receives semantic validation issues. Keep this object-blocking first so the
+  // proven Z05 3.2.1 payload remains ERC 40/105 + ERC 42/209.
+  const objectBlockingExpectedIssues = deriveObjectBlockingIssuesFromExpectedContext({
+    message,
+    testData,
+  });
+  if (objectBlockingExpectedIssues.length > 0) {
+    return dedupeIssues(objectBlockingExpectedIssues);
+  }
 
   const scenarioIssues = deriveTgtScenarioExpectedIssues({ message, testData });
   if (scenarioIssues.length > 0) return dedupeIssues(scenarioIssues);
