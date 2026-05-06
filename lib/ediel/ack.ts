@@ -6,6 +6,7 @@ import type {
 } from '@/lib/ediel/types'
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
+import { renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
 import { inferEdielFileName } from '@/lib/ediel/classify'
 import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
 import {
@@ -279,48 +280,24 @@ function buildContrlSegments(params: {
   outcome: AckOutcome
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
-  const sourceSegments = segmentsFromRawPayload(params.sourceMessage.raw_payload)
-  const sourceUnb = sourceSegments.find((segment) => segment.toUpperCase().startsWith('UNB+'))
-  const sourceUnbParts = sourceUnb?.split('+') ?? []
+  const rendered = renderContrl2Ediel2({
+    outcome: params.outcome,
+    parsedInterchangeReference: refs.interchangeReference,
+    source: {
+      rawPayload: params.sourceMessage.raw_payload,
+      interchangeReference: params.sourceMessage.interchange_reference,
+      externalReference: params.sourceMessage.external_reference,
+      id: params.sourceMessage.id,
+      senderEdielId: params.sourceMessage.sender_ediel_id,
+      senderSubAddress: params.sourceMessage.sender_sub_address,
+      receiverEdielId: params.sourceMessage.receiver_ediel_id,
+      receiverSubAddress: params.sourceMessage.receiver_sub_address,
+    },
+  })
 
-  const originalInterchangeReference =
-    sanitizeEdifactToken(refs.interchangeReference, 14) ??
-    sanitizeEdifactToken(params.sourceMessage.interchange_reference, 14) ??
-    sanitizeEdifactToken(params.sourceMessage.external_reference, 14) ??
-    sanitizeEdifactToken(params.sourceMessage.id, 14) ??
-    'UNKNOWN'
-
-  const originalSenderComposite =
-    edielPartyCompositeFromUnb(sourceUnbParts[2]) ??
-    fallbackPartyComposite({
-      edielId: params.sourceMessage.sender_ediel_id,
-      subAddress: params.sourceMessage.sender_sub_address,
-    }) ??
-    'UNKNOWN'
-
-  const originalReceiverComposite =
-    edielPartyCompositeFromUnb(sourceUnbParts[3]) ??
-    fallbackPartyComposite({
-      edielId: params.sourceMessage.receiver_ediel_id,
-      subAddress: params.sourceMessage.receiver_sub_address,
-    }) ??
-    'UNKNOWN'
-
-  // CONTRL is a technical syntax acknowledgement. Edielportalen should match it
-  // against the original UNB/interchange via UCI. Do not add BGM/RFF/ERC/FTX here;
-  // those segments belong to APERAK only.
-  //
-  // Important:
-  // - UCI data element 1 must be original UNB/0020, not an action code.
-  // - Original sender/receiver should be kept as UNB composites when available.
-  // - Positive syntax acknowledgement uses action code 1.
-  // - Negative syntax rejection uses action code 4.
-  const syntaxActionCode = params.outcome === 'positive' ? '1' : '4'
-
-  return [
-    `UCI+${originalInterchangeReference}+${originalSenderComposite}+${originalReceiverComposite}+${syntaxActionCode}`,
-  ]
+  return rendered.segments
 }
+
 
 function buildAperakSegments(params: {
   sourceMessage: EdielMessageRow

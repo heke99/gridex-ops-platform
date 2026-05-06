@@ -20,6 +20,7 @@ import {
 } from '@/lib/ediel/classify'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
+import { renderProdat26A } from '@/lib/ediel/prodatEngine'
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
@@ -540,94 +541,57 @@ function renderProdatSegments(params: {
   gridOwner?: GridOwnerRow | null
   senderEdielId: string
   receiverEdielId: string
-}): string[] {
+}): { segments: string[]; diagnostics: Record<string, unknown>; issues: ProdatSwitchValidationIssue[] } {
   const portalData = portalSnapshot(params.switchRequest)
   const customerName = portalString(portalData, 'customerName') ?? inferCustomerName(params.switchRequest, params.site)
-  const customerId = portalString(portalData, 'customerId')
   const meterPointId = portalString(portalData, 'facilityId') ?? (inferMeterPointIdentifier(params.meteringPoint) || 'UNKNOWN')
-  const gridArea = portalString(portalData, 'gridAreaId') ?? inferGridArea(params.gridOwner)
+  const gridAreaId = portalString(portalData, 'gridAreaId') ?? inferGridArea(params.gridOwner)
   const startDate =
     portalDate102(portalString(portalData, 'agreementStartDateTime')) ||
     formatDate102(params.switchRequest.requested_start_date) ||
     formatDate102(params.site.move_in_date)
 
-  const customerAddress = portalString(portalData, 'customerAddress') ?? sanitize(params.site.street)
-  const customerPostalCode = portalString(portalData, 'customerPostalCode') ?? sanitize(params.site.postal_code)
-  const customerCity = portalString(portalData, 'customerCity') ?? sanitize(params.site.city)
-  const customerCountry = portalString(portalData, 'customerCountry') ?? 'SE'
-  const siteAddress = portalString(portalData, 'siteAddress') ?? sanitize(params.site.street)
-  const sitePostalCode = portalString(portalData, 'sitePostalCode') ?? sanitize(params.site.postal_code)
-  const siteCity = portalString(portalData, 'siteCity') ?? sanitize(params.site.city)
-  const siteCountry = portalString(portalData, 'siteCountry') ?? 'SE'
-  const externalReference = sanitize(params.bgmReference)
-  const transactionReference = sanitize(params.transactionReference || params.bgmReference)
-  const powerOfAttorneyReference = portalString(portalData, 'powerOfAttorneyReference')
-  const balanceResponsibleId = portalString(portalData, 'balanceResponsibleId')
-  const meteringMethod = resolveProdatMeteringMethod(portalData)
-  const reasonForTransaction = normalizeProdatReasonForTransaction(portalString(portalData, 'reasonForTransaction'))
-  const customerIdCodeListQualifier = portalString(portalData, 'customerIdCodeListQualifier')
-
-  const segments: string[] = []
-
-  // PRODAT 26.A uses Ediel's E2SE6A UNH token and the body structure shown in the
-  // official PRODAT/APERAK examples: BGM without ::260, DTM+ZZZ, NAD+FR/NAD+DO,
-  // LIN for installation id, RFF+LI for case reference and NAD+Z02 for balance responsible.
-  segments.push(`BGM+${params.code}+${externalReference}+9+AB`)
-  segments.push(`DTM+137:${nowDate203()}:203`)
-  segments.push('DTM+ZZZ:1:805')
-  segments.push(partySegment('FR', params.senderEdielId))
-  segments.push(partySegment('DO', params.receiverEdielId))
-  segments.push(`LIN+1++${sanitize(meterPointId)}:::9`)
-
-  const startDate203 = date203AtStartOfDay(startDate)
-  if (startDate203) {
-    segments.push(`DTM+92:${startDate203}:203`)
-  }
-
-  segments.push('CCI++Z13')
-  segments.push(`CAV+${reasonForTransaction}`)
-
-  if (meteringMethod) {
-    segments.push('CCI++Z04')
-    segments.push(`CAV+${sanitize(meteringMethod)}`)
-  }
-
-  segments.push(`RFF+LI:${transactionReference}`)
-
-  if (gridArea) {
-    segments.push(`RFF+Z05:${sanitize(gridArea)}`)
-  }
-
-  if (powerOfAttorneyReference) {
-    segments.push(`RFF+ANJ:${sanitize(powerOfAttorneyReference)}`)
-  }
-
-  segments.push(customerNadSegment({
-    customerId,
-    customerIdCodeListQualifier,
-    customerName,
-    address: customerAddress,
-    city: customerCity,
-    postalCode: customerPostalCode,
-    country: customerCountry,
-  }))
-
-  if (params.code !== 'Z03') {
-    segments.push(installationNadSegment({
+  const rendered = renderProdat26A({
+    portalSnapshot: portalData,
+    context: {
+      code: params.code,
+      bgmReference: params.bgmReference,
+      transactionReference: params.transactionReference || params.bgmReference,
+      senderEdielId: params.senderEdielId,
+      receiverEdielId: params.receiverEdielId,
+      customerName,
+      customerId: portalString(portalData, 'customerId'),
+      customerIdCodeListQualifier: portalString(portalData, 'customerIdCodeListQualifier'),
       meterPointId,
-      address: siteAddress,
-      city: siteCity,
-      postalCode: sitePostalCode,
-      country: siteCountry,
-    }))
-  }
+      gridAreaId,
+      startDate,
+      customerAddress: portalString(portalData, 'customerAddress') ?? sanitize(params.site.street),
+      customerPostalCode: portalString(portalData, 'customerPostalCode') ?? sanitize(params.site.postal_code),
+      customerCity: portalString(portalData, 'customerCity') ?? sanitize(params.site.city),
+      customerCountry: portalString(portalData, 'customerCountry') ?? 'SE',
+      siteAddress: portalString(portalData, 'siteAddress') ?? sanitize(params.site.street),
+      sitePostalCode: portalString(portalData, 'sitePostalCode') ?? sanitize(params.site.postal_code),
+      siteCity: portalString(portalData, 'siteCity') ?? sanitize(params.site.city),
+      siteCountry: portalString(portalData, 'siteCountry') ?? 'SE',
+      reasonForTransaction: portalString(portalData, 'reasonForTransaction'),
+      meteringMethod: resolveProdatMeteringMethod(portalData),
+      powerOfAttorneyReference: portalString(portalData, 'powerOfAttorneyReference'),
+      balanceResponsibleId: portalString(portalData, 'balanceResponsibleId'),
+    },
+  })
 
-  if (balanceResponsibleId) {
-    segments.push(`NAD+Z02+${sanitize(balanceResponsibleId)}:160:SVK`)
+  return {
+    segments: rendered.segments,
+    diagnostics: rendered.diagnostics,
+    issues: rendered.issues.map((issue) => ({
+      severity: issue.severity,
+      code: issue.code,
+      title: issue.title,
+      description: issue.description,
+    })),
   }
-
-  return segments
 }
+
 
 
 
@@ -710,7 +674,7 @@ function buildProdatSwitchOutboundDraft(
       ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS
       : input.receiverSubAddress ?? 'PRODAT'
 
-    const segments = renderProdatSegments({
+    const prodatRendered = renderProdatSegments({
       code,
       bgmReference: externalReference,
       transactionReference,
@@ -730,7 +694,7 @@ function buildProdatSwitchOutboundDraft(
       applicationReference,
       testFlag: 1,
       messageTypeToken: `PRODAT:D:97A:UN:${messageVersion === '26A' ? 'E2SE6A' : messageVersion}`,
-      segments,
+      segments: prodatRendered.segments,
     })
 
     const ack = deriveEdielAckDefaults({
@@ -767,6 +731,7 @@ function buildProdatSwitchOutboundDraft(
         externalReferenceLength: externalReference.length,
         transactionReferenceLength: transactionReference.length,
       },
+      prodatEngine: prodatRendered.diagnostics,
     }
 
     return {
@@ -810,7 +775,11 @@ function buildProdatSwitchOutboundDraft(
       gridOwnerId: input.switchRequest.grid_owner_id,
       rawPayload: envelope.raw,
       parsedPayload,
-      validationReport: buildValidationReport(validation),
+      validationReport: {
+        ...buildValidationReport(validation),
+        prodatEngine: prodatRendered.diagnostics,
+        engineIssues: prodatRendered.issues,
+      },
       requiresContrl: ack.requiresContrl,
       requiresAperak: ack.requiresAperak,
       contrlStatus: ack.contrlStatus,
