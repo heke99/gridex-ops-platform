@@ -238,16 +238,44 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow, ackFamily: A
   }
 }
 
+function normalizeAckSubAddress(sourceMessage: EdielMessageRow, value?: string | null): string | null {
+  const subAddress = trimOrNull(value)
+  if (!subAddress) return null
+
+  const family = String(sourceMessage.message_family ?? '').toUpperCase()
+
+  // PRODAT uses the PRODAT routing subaddress in TGT. UTILTS/APERAK/CONTRL
+  // responses must not inherit PRODAT from a generic route/profile fallback,
+  // otherwise Edielportalen can validate the EDIFACT content but fail SMTP/routing
+  // mapping for the UTILTS test case.
+  if (family !== 'PRODAT' && subAddress.toUpperCase() === 'PRODAT') {
+    return null
+  }
+
+  return subAddress
+}
+
 function sourceParties(sourceMessage: EdielMessageRow) {
+  const family = String(sourceMessage.message_family ?? '').toUpperCase()
+  const fallbackSubAddress = family === 'PRODAT' ? 'PRODAT' : null
+  const senderSubAddress =
+    normalizeAckSubAddress(sourceMessage, sourceMessage.receiver_sub_address) ?? fallbackSubAddress
+  const receiverSubAddress =
+    normalizeAckSubAddress(sourceMessage, sourceMessage.sender_sub_address) ?? fallbackSubAddress
+
   return {
     senderEdielId: trimOrNull(sourceMessage.receiver_ediel_id),
     senderName: trimOrNull(sourceMessage.receiver_name),
-    senderSubAddress: trimOrNull(sourceMessage.receiver_sub_address) ?? 'PRODAT',
+    senderSubAddress,
     receiverEdielId: trimOrNull(sourceMessage.sender_ediel_id),
     receiverName: trimOrNull(sourceMessage.sender_name),
-    receiverSubAddress: trimOrNull(sourceMessage.sender_sub_address) ?? 'PRODAT',
+    receiverSubAddress,
+    // For outbound ACKs, the SMTP From must be the mailbox where the original
+    // inbound message was received. Edielportalen validates this address against
+    // the registered UTILTS/PRODAT address for the test resource.
+    senderEmail: trimOrNull(sourceMessage.receiver_email),
     receiverEmail: trimOrNull(sourceMessage.sender_email),
-    mailbox: trimOrNull(sourceMessage.mailbox),
+    mailbox: trimOrNull(sourceMessage.receiver_email) ?? trimOrNull(sourceMessage.mailbox),
   }
 }
 
@@ -290,9 +318,9 @@ function buildContrlSegments(params: {
       externalReference: params.sourceMessage.external_reference,
       id: params.sourceMessage.id,
       senderEdielId: params.sourceMessage.sender_ediel_id,
-      senderSubAddress: params.sourceMessage.sender_sub_address,
+      senderSubAddress: normalizeAckSubAddress(params.sourceMessage, params.sourceMessage.sender_sub_address),
       receiverEdielId: params.sourceMessage.receiver_ediel_id,
-      receiverSubAddress: params.sourceMessage.receiver_sub_address,
+      receiverSubAddress: normalizeAckSubAddress(params.sourceMessage, params.sourceMessage.receiver_sub_address),
     },
   })
 
@@ -347,7 +375,7 @@ function buildUtiltsErrSegments(params: {
   const uniqueCodes = Array.from(new Set(codes.length > 0 ? codes : ['E14']))
   const segments: Array<string | null> = [
     'UNH+1+UTILTS:D:02B:UN:E5SE5A',
-    `BGM+ERR::260+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9`,
+    `BGM+ERR:SVK:260+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9`,
     `DTM+137:${swedishDateTime()}:203`,
     `RFF+TN:${sanitizeEdifactToken(params.transactionReference) ?? 'TN'}`,
     refs.documentReference ? `RFF+ACE:${refs.documentReference}` : null,
@@ -477,6 +505,7 @@ function buildAckDraft(params: {
     senderEdielId: parties.senderEdielId,
     senderName: parties.senderName,
     senderSubAddress: parties.senderSubAddress,
+    senderEmail: parties.senderEmail,
     receiverEdielId: parties.receiverEdielId,
     receiverName: parties.receiverName,
     receiverSubAddress: parties.receiverSubAddress,

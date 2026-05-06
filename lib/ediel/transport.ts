@@ -468,6 +468,37 @@ function normalizeInboundSubject(rawSource: string, envelopeSubject?: string | n
   return value?.replace(/\s+/g, ' ').trim() || null
 }
 
+
+function isEdielPortalValidationReport(params: { rawSource: string; subject?: string | null }): boolean {
+  const subject = params.subject?.toLowerCase() ?? ''
+  const raw = params.rawSource.toLowerCase()
+
+  return (
+    subject.includes('valideringsrapport') ||
+    raw.includes('valideringsrapport') ||
+    raw.includes('valideringsfel') ||
+    raw.includes('valideringsrapport för inbäddat meddelande') ||
+    raw.includes('could not find addressing details for sender') ||
+    raw.includes('okänd e-postadress till avsändare')
+  )
+}
+
+function looksLikeCompleteEdifactInterchange(value: string): boolean {
+  const text = value.trim().toUpperCase()
+  return text.includes('UNB+') && text.includes("UNZ+") && /UNZ\+[^']*'/i.test(value)
+}
+
+async function markImapMessageSeen(client: ImapFlow, uid: number | bigint | string | undefined): Promise<void> {
+  if (uid === undefined || uid === null) return
+
+  try {
+    await client.messageFlagsAdd(uid, ['\Seen'], { uid: true })
+  } catch {
+    // Best effort only. We must never fail the mailbox poll because a non-Ediel report
+    // could not be marked as read.
+  }
+}
+
 function splitEdifactSegmentsLoose(rawPayload: string): string[] {
   return rawPayload
     .replace(/^\uFEFF/, '')
@@ -1419,7 +1450,25 @@ export async function pollEdielMailboxViaImap(params?: {
           typeof item.envelope?.subject === 'string' ? item.envelope.subject : null
         )
         const edifactPayload = extractInboundEdifactPayload({ rawSource: content, subject })
-        const classificationPayload = (subject ?? '') + '\n' + edifactPayload
+
+        // Edielportalen skickar valideringsrapporter som vanliga mail efter uppladdning.
+        // De kan innehålla orden APERAK/CONTRL och ibland en renderad kopia av meddelandet,
+        // men de är inte inkommande Ediel-meddelanden. Importera dem inte som ACK.
+        if (isEdielPortalValidationReport({ rawSource: content, subject })) {
+          await markImapMessageSeen(client, item.uid)
+          continue
+        }
+
+        // Importera bara riktiga EDIFACT-interchanges eller AI-listor. Detta stoppar HTML-rapporter
+        // och vanliga statusmail från att bli ediel_messages.
+        const contentInference = inferEdielFamilyAndCodeFromRawPayload(content)
+        const isPotentialAiList = contentInference.messageFamily === 'AI_LIST'
+        if (!isPotentialAiList && !looksLikeCompleteEdifactInterchange(edifactPayload)) {
+          await markImapMessageSeen(client, item.uid)
+          continue
+        }
+
+        const classificationPayload = edifactPayload
 
         const inferred = inferEdielFamilyAndCodeFromRawPayload(classificationPayload)
         let input: CreateEdielMessageInput | null = null
