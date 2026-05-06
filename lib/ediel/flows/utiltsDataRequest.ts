@@ -6,6 +6,7 @@ import {
   getMeteringPointById,
 } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
+import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import {
   createEdielMessageEvent,
   getEdielMessageById,
@@ -389,6 +390,49 @@ async function createAutomaticPositiveAcks(params: {
   return createdIds
 }
 
+async function createUtiltsRuntimeAcks(params: {
+  actorUserId: string
+  sourceMessage: EdielMessageRow
+  ackPlan: ReturnType<typeof runUtiltsRuntimeForMessage>['ackPlan']
+}) {
+  const createdIds: string[] = []
+
+  if (params.ackPlan.shouldSendContrl && params.ackPlan.contrlOutcome) {
+    const contrl = await createAckIfMissing({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      ackFamily: 'CONTRL',
+      outcome: params.ackPlan.contrlOutcome,
+      messageText: params.ackPlan.reason,
+    })
+    createdIds.push(contrl.id)
+  }
+
+  if (params.ackPlan.shouldSendUtiltsErr) {
+    const utiltsErr = await createAckIfMissing({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      ackFamily: 'UTILTS_ERR',
+      outcome: 'negative',
+      messageText: params.ackPlan.utiltsErrCodes.join('|') || 'E14',
+    })
+    createdIds.push(utiltsErr.id)
+  }
+
+  if (params.ackPlan.shouldSendAperak && params.ackPlan.aperakOutcome) {
+    const aperak = await createAckIfMissing({
+      actorUserId: params.actorUserId,
+      sourceMessage: params.sourceMessage,
+      ackFamily: 'APERAK',
+      outcome: params.ackPlan.aperakOutcome,
+      messageText: params.ackPlan.reason,
+    })
+    createdIds.push(aperak.id)
+  }
+
+  return createdIds
+}
+
 async function linkInboundUtiltsMessageCanonically(params: {
   actorUserId: string
   message: EdielMessageRow
@@ -692,7 +736,8 @@ export async function processInboundUtiltsMessage(params: {
     throw new Error(`Meddelande ${message.id} är inte UTILTS.`)
   }
 
-  const normalizedPayload = normalizeMeteringPayload(message)
+  const runtime = runUtiltsRuntimeForMessage(message)
+  const normalizedPayload = runtime.normalizedPayload
   const canonicalLinks = await linkInboundUtiltsMessageCanonically({
     actorUserId,
     message,
@@ -705,13 +750,73 @@ export async function processInboundUtiltsMessage(params: {
     parsedPayload: {
       ...(message.parsed_payload ?? {}),
       normalizedMeteringPayload: normalizedPayload,
+      utiltsRuntimeFacts: runtime.facts,
+    },
+    validationReport: {
+      ...(message.validation_report ?? {}),
+      utiltsRuntime: {
+        validation: runtime.validation,
+        ackPlan: runtime.ackPlan,
+      },
     },
   })
 
-  if (!canonicalLinks.matchedDataRequest) {
-    const ackIds = await createAutomaticPositiveAcks({
+  if (!runtime.validation.ok) {
+    const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
       sourceMessage: message,
+      ackPlan: runtime.ackPlan,
+    })
+
+    await updateEdielMessageStatus({
+      actorUserId,
+      edielMessageId: message.id,
+      status: 'failed',
+      failureReason: runtime.ackPlan.reason,
+      parsedPayload: {
+        ...(message.parsed_payload ?? {}),
+        normalizedMeteringPayload: normalizedPayload,
+        utiltsRuntimeFacts: runtime.facts,
+      },
+      validationReport: {
+        ...(message.validation_report ?? {}),
+        utiltsRuntime: {
+          validation: runtime.validation,
+          ackPlan: runtime.ackPlan,
+          createdAckMessageIds: ackIds,
+        },
+      },
+    })
+
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'validated',
+      eventStatus: 'warning',
+      message: 'Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades.',
+      payload: {
+        createdAckMessageIds: ackIds,
+        normalizedMeteringPayload: normalizedPayload,
+        validation: runtime.validation,
+        ackPlan: runtime.ackPlan,
+      },
+    })
+
+    return {
+      message,
+      matchedDataRequest: canonicalLinks.matchedDataRequest,
+      ackIds,
+      outboundRequestId: null,
+      ingestedMeterValueId: null,
+      billingUnderlayId: null,
+    }
+  }
+
+  if (!canonicalLinks.matchedDataRequest) {
+    const ackIds = await createUtiltsRuntimeAcks({
+      actorUserId,
+      sourceMessage: message,
+      ackPlan: runtime.ackPlan,
     })
 
     await createEdielMessageEvent({
@@ -720,10 +825,12 @@ export async function processInboundUtiltsMessage(params: {
       eventType: 'validated',
       eventStatus: 'warning',
       message:
-        'Inbound UTILTS kvitterades automatiskt men saknar stark data request-koppling.',
+        'Inbound UTILTS accepterades och kvitterades av produktionsruntime men saknar stark data request-koppling.',
       payload: {
         createdAckMessageIds: ackIds,
         normalizedMeteringPayload: normalizedPayload,
+        validation: runtime.validation,
+        ackPlan: runtime.ackPlan,
       },
     })
 
@@ -783,6 +890,10 @@ export async function processInboundUtiltsMessage(params: {
     notes: dataRequest.notes ?? null,
     extraResponsePayload: {
       normalizedMeteringPayload: normalizedPayload,
+      utiltsRuntime: {
+        validation: runtime.validation,
+        ackPlan: runtime.ackPlan,
+      },
       outboundRequestId: acknowledgedOutbound?.id ?? null,
       billingUnderlayId: billingUnderlay?.id ?? null,
       billingUnderlayCandidate:
@@ -797,9 +908,10 @@ export async function processInboundUtiltsMessage(params: {
     },
   })
 
-  const ackIds = await createAutomaticPositiveAcks({
+  const ackIds = await createUtiltsRuntimeAcks({
     actorUserId,
     sourceMessage: message,
+    ackPlan: runtime.ackPlan,
   })
 
   await updateEdielMessageStatus({
@@ -809,8 +921,17 @@ export async function processInboundUtiltsMessage(params: {
     parsedPayload: {
       ...(message.parsed_payload ?? {}),
       normalizedMeteringPayload: normalizedPayload,
+      utiltsRuntimeFacts: runtime.facts,
       ingestedMeterValueId: ingestedMeterValue?.id ?? null,
       billingUnderlayId: billingUnderlay?.id ?? null,
+    },
+    validationReport: {
+      ...(message.validation_report ?? {}),
+      utiltsRuntime: {
+        validation: runtime.validation,
+        ackPlan: runtime.ackPlan,
+        createdAckMessageIds: ackIds,
+      },
     },
   })
 
@@ -820,7 +941,7 @@ export async function processInboundUtiltsMessage(params: {
     eventType: 'validated',
     eventStatus: 'success',
     message:
-      'Inbound UTILTS matchat mot data request, mätvärde/fakturaunderlag hanterat och outbound kvitterat.',
+      'Inbound UTILTS matchat mot data request, mätvärde/fakturaunderlag hanterat och kvitterat av produktionsruntime.',
     payload: {
       matchedGridOwnerDataRequestId: dataRequest.id,
       createdAckMessageIds: ackIds,
@@ -828,6 +949,8 @@ export async function processInboundUtiltsMessage(params: {
       ingestedMeterValueId: ingestedMeterValue?.id ?? null,
       billingUnderlayId: billingUnderlay?.id ?? null,
       normalizedMeteringPayload: normalizedPayload,
+      validation: runtime.validation,
+      ackPlan: runtime.ackPlan,
     },
   })
 

@@ -239,13 +239,15 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow, ackFamily: A
 }
 
 function sourceParties(sourceMessage: EdielMessageRow) {
+  const fallbackSubAddress = sourceMessage.message_family === 'PRODAT' ? 'PRODAT' : null
+
   return {
     senderEdielId: trimOrNull(sourceMessage.receiver_ediel_id),
     senderName: trimOrNull(sourceMessage.receiver_name),
-    senderSubAddress: trimOrNull(sourceMessage.receiver_sub_address) ?? 'PRODAT',
+    senderSubAddress: trimOrNull(sourceMessage.receiver_sub_address) ?? fallbackSubAddress,
     receiverEdielId: trimOrNull(sourceMessage.sender_ediel_id),
     receiverName: trimOrNull(sourceMessage.sender_name),
-    receiverSubAddress: trimOrNull(sourceMessage.sender_sub_address) ?? 'PRODAT',
+    receiverSubAddress: trimOrNull(sourceMessage.sender_sub_address) ?? fallbackSubAddress,
     receiverEmail: trimOrNull(sourceMessage.sender_email),
     mailbox: trimOrNull(sourceMessage.mailbox),
   }
@@ -346,9 +348,9 @@ function buildUtiltsErrSegments(params: {
 
   const uniqueCodes = Array.from(new Set(codes.length > 0 ? codes : ['E14']))
   const segments: Array<string | null> = [
-    'UNH+1+UTILTS:D:01B:UN:1.1',
-    `BGM+Z09+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9`,
+    `BGM+ERR::260+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9+AB`,
     `DTM+137:${swedishDateTime()}:203`,
+    `MKS+23+E02::260`,
     `RFF+TN:${sanitizeEdifactToken(params.transactionReference) ?? 'TN'}`,
     refs.documentReference ? `RFF+ACE:${refs.documentReference}` : null,
     `NAD+MS+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
@@ -357,7 +359,7 @@ function buildUtiltsErrSegments(params: {
   ]
 
   for (const code of uniqueCodes) {
-    segments.push(`STS+E01::260+41+${code}::260`)
+    segments.push(`STS+7++${code}::260`)
   }
 
   return segments.filter(Boolean) as string[]
@@ -430,7 +432,7 @@ function buildAckDraft(params: {
           ? params.sourceMessage.message_family === 'UTILTS'
             ? 'APERAK:D:04A:UN:E5SE5A'
             : 'APERAK:D:96A:UN:E2SE6A'
-          : 'UTILTS:D:01B:UN:1.1',
+          : 'UTILTS:D:02B:UN:E5SE5A',
     applicationReference,
     segments,
     senderSubAddress: parties.senderSubAddress ?? undefined,
