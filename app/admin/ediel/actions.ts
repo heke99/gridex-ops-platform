@@ -484,6 +484,77 @@ function formStringList(formData: FormData, name: string): string[] {
     .filter((value) => value.length > 0)
 }
 
+
+async function resolveProdatAperakBackendForManualAction(params: {
+  sourceMessage: EdielMessageRow
+  outcome: AckOutcome
+  messageText: string | null
+  applicationErrors: EdielAperakApplicationError[] | null
+}): Promise<{
+  outcome: AckOutcome
+  messageText: string | null
+  applicationErrors: EdielAperakApplicationError[] | null
+  backendIssueCount: number
+  backendRuleKeys: string[]
+  backendUnmappedRuleKeys: string[]
+}> {
+  const { sourceMessage } = params
+
+  if (sourceMessage.message_family !== 'PRODAT') {
+    return {
+      outcome: params.outcome,
+      messageText: params.messageText,
+      applicationErrors: params.applicationErrors,
+      backendIssueCount: 0,
+      backendRuleKeys: [],
+      backendUnmappedRuleKeys: [],
+    }
+  }
+
+  // Manual APERAK buttons must still use the same backend engine as the
+  // recommended action. This prevents a positive APERAK from being created when
+  // uploaded TGT data or production validation says that the inbound PRODAT has
+  // application errors, for example Z05LK with wrong metering point id.
+  const tgtResolution = await resolveTgtTestDataForAckAction({
+    message: sourceMessage,
+    testSuite: 'PRODAT',
+    roleCode: 'supplier',
+    requestedTestCaseCode: null,
+  })
+
+  const resolved = await resolveAndStoreProdatAperakErrors({
+    message: sourceMessage,
+    testData: tgtResolution.testData,
+  })
+
+  const backendUnmappedRuleKeys = resolved.unmappedIssues.map((issue) => issue.ruleKey)
+  if (backendUnmappedRuleKeys.length > 0) {
+    throw new Error(
+      `Negativ APERAK stoppad: saknar backendregel för ${backendUnmappedRuleKeys.join(', ')}.`
+    )
+  }
+
+  if (resolved.errors.length > 0) {
+    return {
+      outcome: 'negative',
+      messageText: resolved.errors.map((error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`).join(' | '),
+      applicationErrors: resolved.errors,
+      backendIssueCount: resolved.issueCount,
+      backendRuleKeys: resolved.matchedRuleKeys,
+      backendUnmappedRuleKeys,
+    }
+  }
+
+  return {
+    outcome: 'positive',
+    messageText: params.messageText,
+    applicationErrors: params.applicationErrors,
+    backendIssueCount: resolved.issueCount,
+    backendRuleKeys: resolved.matchedRuleKeys,
+    backendUnmappedRuleKeys,
+  }
+}
+
 function collectAperakApplicationErrors(formData: FormData): EdielAperakApplicationError[] | null {
   const ercCodes = formStringList(formData, 'aperakErrorErc')
   const fieldCodes = formStringList(formData, 'aperakErrorFieldCode')
@@ -1067,13 +1138,59 @@ export async function createAckDraftAction(formData: FormData) {
   }
 
   try {
+    const sourceMessage = await getEdielMessageById(sourceMessageId)
+    if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+
+    const backendAperak =
+      ackType === 'APERAK'
+        ? await resolveProdatAperakBackendForManualAction({
+            sourceMessage,
+            outcome,
+            messageText,
+            applicationErrors,
+          })
+        : {
+            outcome,
+            messageText,
+            applicationErrors: null,
+            backendIssueCount: 0,
+            backendRuleKeys: [],
+            backendUnmappedRuleKeys: [],
+          }
+
     const ackMessage = await createAckDraftForMessage({
       actorUserId: context.userId,
       sourceMessageId,
       ackFamily: ackType,
-      outcome: ackType === 'UTILTS_ERR' ? undefined : outcome,
-      messageText,
-      applicationErrors: ackType === 'APERAK' ? applicationErrors : null,
+      outcome: ackType === 'UTILTS_ERR' ? undefined : backendAperak.outcome,
+      messageText: backendAperak.messageText,
+      applicationErrors: ackType === 'APERAK' ? backendAperak.applicationErrors : null,
+    })
+
+    if (ackType === 'APERAK' && backendAperak.backendRuleKeys.length > 0) {
+      await attachAperakErrorDetailsToMessage({
+        sourceMessageId,
+        aperakMessageId: ackMessage.id,
+      })
+    }
+
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId: ackMessage.id,
+      eventType: 'manual_note',
+      eventStatus: 'success',
+      message: 'APERAK/kvittens skapad via backendmotor.',
+      payload: {
+        phase: 'manual_ack_backend_resolution',
+        sourceMessageId,
+        ackType,
+        requestedOutcome: outcome,
+        finalOutcome: ackType === 'APERAK' ? backendAperak.outcome : outcome,
+        backendIssueCount: backendAperak.backendIssueCount,
+        backendRuleKeys: backendAperak.backendRuleKeys,
+        backendUnmappedRuleKeys: backendAperak.backendUnmappedRuleKeys,
+        applicationErrors: backendAperak.applicationErrors,
+      },
     })
 
     revalidateEdiel(sourceMessageId)
@@ -1280,24 +1397,48 @@ export async function createAndSendAckAction(formData: FormData) {
     throw new Error('Ogiltig ackType')
   }
 
+  const sourceMessage = await getEdielMessageById(sourceMessageId)
+  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+
+  const backendAperak =
+    ackType === 'APERAK'
+      ? await resolveProdatAperakBackendForManualAction({
+          sourceMessage,
+          outcome,
+          messageText,
+          applicationErrors,
+        })
+      : {
+          outcome,
+          messageText,
+          applicationErrors: null,
+          backendIssueCount: 0,
+          backendRuleKeys: [],
+          backendUnmappedRuleKeys: [],
+        }
+
   await removeReplaceableAckMessagesForSource({
     actorUserId: context.userId,
     sourceMessageId,
     ackFamily: ackType,
-    preset: `${ackType} ${outcome}`,
+    preset: `${ackType} ${ackType === 'APERAK' ? backendAperak.outcome : outcome}`,
   })
 
   const ackMessage = await createAckDraftForMessage({
     actorUserId: context.userId,
     sourceMessageId,
     ackFamily: ackType,
-    outcome: ackType === 'UTILTS_ERR' ? undefined : outcome,
-    messageText,
-    applicationErrors: ackType === 'APERAK' ? applicationErrors : null,
+    outcome: ackType === 'UTILTS_ERR' ? undefined : backendAperak.outcome,
+    messageText: backendAperak.messageText,
+    applicationErrors: ackType === 'APERAK' ? backendAperak.applicationErrors : null,
   })
 
-  const sourceMessage = await getEdielMessageById(sourceMessageId)
-  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+  if (ackType === 'APERAK' && backendAperak.backendRuleKeys.length > 0) {
+    await attachAperakErrorDetailsToMessage({
+      sourceMessageId,
+      aperakMessageId: ackMessage.id,
+    })
+  }
 
   const preflight = validateAckPreflight({
     ackMessage,
@@ -1314,7 +1455,12 @@ export async function createAndSendAckAction(formData: FormData) {
       phase: 'manual_preview_preflight',
       sourceMessageId,
       ackType,
-      outcome,
+      requestedOutcome: outcome,
+      finalOutcome: ackType === 'APERAK' ? backendAperak.outcome : outcome,
+      backendIssueCount: backendAperak.backendIssueCount,
+      backendRuleKeys: backendAperak.backendRuleKeys,
+      backendUnmappedRuleKeys: backendAperak.backendUnmappedRuleKeys,
+      applicationErrors: backendAperak.applicationErrors,
       issues: preflight.issues,
     },
   })
@@ -1332,7 +1478,12 @@ export async function createAndSendAckAction(formData: FormData) {
     payload: {
       ackMessageId: ackMessage.id,
       ackType,
-      outcome,
+      requestedOutcome: outcome,
+      finalOutcome: ackType === 'APERAK' ? backendAperak.outcome : outcome,
+      backendIssueCount: backendAperak.backendIssueCount,
+      backendRuleKeys: backendAperak.backendRuleKeys,
+      backendUnmappedRuleKeys: backendAperak.backendUnmappedRuleKeys,
+      applicationErrors: backendAperak.applicationErrors,
       preflightIssues: preflight.issues,
     },
   })

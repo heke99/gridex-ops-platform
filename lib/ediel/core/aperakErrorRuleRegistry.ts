@@ -60,6 +60,279 @@ export type EdielResolvedAperakErrors = {
   unmappedIssues: EdielAperakValidationIssue[]
 }
 
+
+const DEFAULT_APERAK_ERROR_RULES: EdielAperakErrorRuleRow[] = [
+  {
+    id: 'default-facility-not-identified',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'facility_not_identified',
+    rule_description: 'Object/facility could not be identified.',
+    application_error: '40',
+    free_text_code: '105',
+    free_text: 'The object could not be identified',
+    applies_to_field: '105',
+    environment: 'all',
+    priority: 10,
+    is_active: true,
+  },
+  {
+    id: 'default-metering-point-id-mismatch',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'metering_point_id_mismatch',
+    rule_description: 'Metering point id differs from expected object id.',
+    application_error: '42',
+    free_text_code: '209',
+    free_text: 'Felaktigt anläggningsid {actual}',
+    applies_to_field: '209',
+    environment: 'all',
+    priority: 20,
+    is_active: true,
+  },
+  {
+    id: 'default-grid-area-id-invalid',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'grid_area_id_invalid',
+    rule_description: 'Grid area id is invalid.',
+    application_error: '42',
+    free_text_code: '260',
+    free_text: 'Felaktigt nätområdesid {actual}',
+    applies_to_field: '260',
+    environment: 'all',
+    priority: 30,
+    is_active: true,
+  },
+  {
+    id: 'default-transaction-type-invalid',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'transaction_type_invalid',
+    rule_description: 'Reason for transaction/transaction type is invalid.',
+    application_error: '42',
+    free_text_code: '223',
+    free_text: 'Felaktig transaktionstyp {actual}',
+    applies_to_field: '223',
+    environment: 'all',
+    priority: 40,
+    is_active: true,
+  },
+  {
+    id: 'default-case-reference-missing',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'case_reference_missing',
+    rule_description: 'Line item/case reference is missing.',
+    application_error: '41',
+    free_text_code: '226',
+    free_text: 'Ärendereferens saknas',
+    applies_to_field: '226',
+    environment: 'all',
+    priority: 50,
+    is_active: true,
+  },
+  {
+    id: 'default-balance-responsible-invalid',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'balance_responsible_invalid',
+    rule_description: 'Balance responsible party is invalid.',
+    application_error: '42',
+    free_text_code: '262',
+    free_text: 'Felaktig balansansvarig {actual}',
+    applies_to_field: '262',
+    environment: 'all',
+    priority: 60,
+    is_active: true,
+  },
+  {
+    id: 'default-agreement-start-date-invalid',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'agreement_start_date_invalid',
+    rule_description: 'Contract start date is invalid.',
+    application_error: '42',
+    free_text_code: '210',
+    free_text: 'Felaktigt startdatum {actual}',
+    applies_to_field: '210',
+    environment: 'all',
+    priority: 70,
+    is_active: true,
+  },
+  {
+    id: 'default-annual-consumption-missing',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'annual_consumption_missing',
+    rule_description: 'Annual consumption is missing.',
+    application_error: '41',
+    free_text_code: '213',
+    free_text: 'Årsförbrukning saknas',
+    applies_to_field: '213',
+    environment: 'all',
+    priority: 80,
+    is_active: true,
+  },
+  {
+    id: 'default-constant-missing',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'constant_missing',
+    rule_description: 'Meter constant is missing.',
+    application_error: '41',
+    free_text_code: '214',
+    free_text: 'Konstant saknas',
+    applies_to_field: '214',
+    environment: 'all',
+    priority: 90,
+    is_active: true,
+  },
+  {
+    id: 'default-digit-count-missing',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'digit_count_missing',
+    rule_description: 'Digit count is missing.',
+    application_error: '41',
+    free_text_code: '218',
+    free_text: 'Antal siffror saknas',
+    applies_to_field: '218',
+    environment: 'all',
+    priority: 100,
+    is_active: true,
+  },
+  {
+    id: 'default-meter-number-missing',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'meter_number_missing',
+    rule_description: 'Meter number is missing.',
+    application_error: '41',
+    free_text_code: '224',
+    free_text: 'Mätarnummer saknas',
+    applies_to_field: '224',
+    environment: 'all',
+    priority: 110,
+    is_active: true,
+  },
+  {
+    id: 'default-meter-number-invalid',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'meter_number_invalid',
+    rule_description: 'Meter number is invalid.',
+    application_error: '42',
+    free_text_code: '224',
+    free_text: 'Felaktigt mätarnummer {actual}',
+    applies_to_field: '224',
+    environment: 'all',
+    priority: 120,
+    is_active: true,
+  },
+  {
+    id: 'default-missing-facility-reference',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'missing_facility_reference',
+    rule_description: 'Facility reference is missing.',
+    application_error: '42',
+    free_text_code: '319',
+    free_text: 'Anläggningsreferens saknas',
+    applies_to_field: '319',
+    environment: 'all',
+    priority: 130,
+    is_active: true,
+  },
+  {
+    id: 'default-measuring-method-invalid',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'measuring_method_invalid',
+    rule_description: 'Measuring method is invalid.',
+    application_error: '42',
+    free_text_code: '217',
+    free_text: 'Felaktig mätmetod {actual}',
+    applies_to_field: '217',
+    environment: 'all',
+    priority: 140,
+    is_active: true,
+  },
+  {
+    id: 'default-time-series-product-invalid',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'time_series_product_invalid',
+    rule_description: 'Time series product is invalid.',
+    application_error: '42',
+    free_text_code: '222',
+    free_text: 'Felaktig tidsserieprodukt {actual}',
+    applies_to_field: '222',
+    environment: 'all',
+    priority: 150,
+    is_active: true,
+  },
+  {
+    id: 'default-product-code-invalid',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'product_code_invalid',
+    rule_description: 'Product code is invalid.',
+    application_error: '42',
+    free_text_code: '322',
+    free_text: 'Felaktig produktkod {actual}',
+    applies_to_field: '322',
+    environment: 'all',
+    priority: 160,
+    is_active: true,
+  },
+  {
+    id: 'default-installation-type-invalid',
+    message_family: 'PRODAT',
+    message_code: '*',
+    direction: 'inbound',
+    rule_key: 'installation_type_invalid',
+    rule_description: 'Installation type is invalid.',
+    application_error: '42',
+    free_text_code: '324',
+    free_text: 'Felaktig anläggningstyp {actual}',
+    applies_to_field: '324',
+    environment: 'all',
+    priority: 170,
+    is_active: true,
+  },
+]
+
+function defaultRulesFor(params: {
+  family: string
+  code: string
+  environment: string
+}): EdielAperakErrorRuleRow[] {
+  return DEFAULT_APERAK_ERROR_RULES.filter((rule) =>
+    rule.is_active &&
+    rule.message_family === params.family &&
+    (rule.message_code === params.code || rule.message_code === '*') &&
+    (rule.environment === params.environment || rule.environment === 'all') &&
+    (rule.direction === 'inbound' || rule.direction === 'both')
+  )
+}
+
 function asString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
@@ -803,7 +1076,9 @@ async function listActiveRules(params: {
   code: string
   environment: string
 }): Promise<EdielAperakErrorRuleRow[]> {
-  if (!(await tableExistsSafe('ediel_aperak_error_rules'))) return []
+  const defaults = defaultRulesFor(params)
+
+  if (!(await tableExistsSafe('ediel_aperak_error_rules'))) return defaults
 
   const today = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabaseService
@@ -820,7 +1095,17 @@ async function listActiveRules(params: {
     .order('created_at', { ascending: true })
 
   if (error) throw error
-  return (data ?? []) as EdielAperakErrorRuleRow[]
+
+  const dbRules = (data ?? []) as EdielAperakErrorRuleRow[]
+  const dbRuleKeys = new Set(dbRules.map((rule) => `${rule.rule_key}|${rule.message_code ?? '*'}|${rule.environment ?? 'all'}`))
+  const missingDefaults = defaults.filter((rule) =>
+    !dbRuleKeys.has(`${rule.rule_key}|${params.code}|${params.environment}`) &&
+    !dbRuleKeys.has(`${rule.rule_key}|${params.code}|all`) &&
+    !dbRuleKeys.has(`${rule.rule_key}|*|${params.environment}`) &&
+    !dbRuleKeys.has(`${rule.rule_key}|*|all`)
+  )
+
+  return [...dbRules, ...missingDefaults]
 }
 
 function selectRuleForIssue(
