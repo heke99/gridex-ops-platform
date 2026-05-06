@@ -663,12 +663,21 @@ function AdvancedAckActions({
   message,
   hasContrl,
   hasAperak,
+  selectedTgtRow,
 }: {
   message: Awaited<ReturnType<typeof listEdielMessages>>[number]
   hasContrl: boolean
   hasAperak: boolean
+  selectedTgtRow?: EdielTgtDynamicTestDataSummary | null
 }) {
   const isInboundProdatZ04 = isInboundProdatMessage(message) && String(message.message_code).toUpperCase() === 'Z04'
+  const selectedTgtHiddenInputs = selectedTgtRow ? (
+    <>
+      <input type="hidden" name="testSuite" value={selectedTgtRow.testSuite} />
+      <input type="hidden" name="roleCode" value={selectedTgtRow.roleCode} />
+      <input type="hidden" name="testCaseCode" value={selectedTgtRow.testCaseCode} />
+    </>
+  ) : null
 
   return (
     <details className="rounded-2xl border border-slate-200 bg-white p-3">
@@ -680,6 +689,7 @@ function AdvancedAckActions({
         {!hasContrl ? (
           <form action={createAndSendAckAction}>
             <input type="hidden" name="sourceMessageId" value={message.id} />
+            {selectedTgtHiddenInputs}
             <input type="hidden" name="ackType" value="CONTRL" />
             <input type="hidden" name="outcome" value="positive" />
             <button className="rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">
@@ -691,6 +701,7 @@ function AdvancedAckActions({
         {!hasContrl ? (
           <form action={createAndSendAckAction}>
             <input type="hidden" name="sourceMessageId" value={message.id} />
+            {selectedTgtHiddenInputs}
             <input type="hidden" name="ackType" value="CONTRL" />
             <input type="hidden" name="outcome" value="negative" />
             <input type="hidden" name="messageText" value="Syntaxfel enligt Edielportalens TGT-test" />
@@ -703,6 +714,7 @@ function AdvancedAckActions({
         {!hasAperak ? (
           <form action={createAndSendAckAction}>
             <input type="hidden" name="sourceMessageId" value={message.id} />
+            {selectedTgtHiddenInputs}
             <input type="hidden" name="ackType" value="APERAK" />
             <input type="hidden" name="outcome" value="positive" />
             <button className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
@@ -899,6 +911,8 @@ function IncomingPortalResponses({
               message.message_family === 'PRODAT' &&
               String(message.message_code).toUpperCase() === 'Z04'
             const bgClass = isInboundProdatZ04 ? 'border-rose-200 bg-rose-50/40' : 'border-slate-200 bg-white'
+            const selectedTgtRow = selectedTgtRowForMessage(message, dynamicTgtTestDataRows)
+            const relevantTgtRows = relevantTgtRowsForMessage(message, dynamicTgtTestDataRows)
 
             return (
               <div key={message.id} className={`rounded-2xl border p-4 shadow-sm ${bgClass}`}>
@@ -932,20 +946,20 @@ function IncomingPortalResponses({
                     <RecommendedAckPanel
                       message={message}
                       acks={acks}
-                      selectedTgtRow={selectedTgtRowForMessage(message, dynamicTgtTestDataRows)}
-                      relevantTgtRows={relevantTgtRowsForMessage(message, dynamicTgtTestDataRows)}
+                      selectedTgtRow={selectedTgtRow}
+                      relevantTgtRows={relevantTgtRows}
                     />
-                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} />
+                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} selectedTgtRow={selectedTgtRow} />
                   </div>
                 ) : requiresContrlOnly ? (
                   <div className="mt-4 space-y-3">
                     <RecommendedAckPanel
                       message={message}
                       acks={acks}
-                      selectedTgtRow={selectedTgtRowForMessage(message, dynamicTgtTestDataRows)}
-                      relevantTgtRows={relevantTgtRowsForMessage(message, dynamicTgtTestDataRows)}
+                      selectedTgtRow={selectedTgtRow}
+                      relevantTgtRows={relevantTgtRows}
                     />
-                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} />
+                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} selectedTgtRow={selectedTgtRow} />
                   </div>
                 ) : (
                   <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-800">

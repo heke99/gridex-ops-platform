@@ -83,6 +83,37 @@ export function facilityIdsFromTgtTestData(testData: EdielTgtCaseTestData | null
   return fieldValuesFromTgtTestData(testData, ['209', '233']).filter((value) => /^735\d{15}$/.test(value))
 }
 
+function facilityIdsForTgtIdentity(message: EdielMessageRow, testData: EdielTgtCaseTestData | null | undefined): string[] {
+  const code = String(message.message_code ?? '').toUpperCase()
+
+  // In PRODAT Z05 TGT 3.2.1 the portal sends a bad line-item object in field 209,
+  // while field 233 carries the expected/correct installation. Using 209 + 233 as
+  // interchangeable identity makes the backend think the bad Z05 object is valid
+  // and produces a false positive APERAK. For Z05 object validation, field 233 is
+  // the authoritative expected installation when present.
+  if (code === 'Z05') {
+    const z05Expected = fieldValuesFromTgtTestData(testData, ['233']).filter((value) => /^735\d{15}$/.test(value))
+    if (z05Expected.length > 0) return z05Expected
+  }
+
+  return facilityIdsFromTgtTestData(testData)
+}
+
+function tgtTestDataHasZ05FacilityMismatch(testData: EdielTgtCaseTestData | null | undefined): boolean {
+  const sentIds = fieldValuesFromTgtTestData(testData, ['209']).filter((value) => /^735\d{15}$/.test(value))
+  const expectedIds = fieldValuesFromTgtTestData(testData, ['233']).filter((value) => /^735\d{15}$/.test(value))
+
+  return sentIds.length > 0 && expectedIds.length > 0 && sentIds.some((id) => !expectedIds.includes(id))
+}
+
+function rawTextLooksLikeZ05FacilityMismatch(rawText: string | null | undefined): boolean {
+  const text = String(rawText ?? '')
+  const sentIds = valuesByFieldCodeFromRawText(text, '209').filter((value) => /^735\d{15}$/.test(value))
+  const expectedIds = valuesByFieldCodeFromRawText(text, '233').filter((value) => /^735\d{15}$/.test(value))
+
+  return sentIds.length > 0 && expectedIds.length > 0 && sentIds.some((id) => !expectedIds.includes(id))
+}
+
 function rawFacilityIds(rawText: string): string[] {
   return unique(Array.from(rawText.matchAll(/735\d{15}/g)).map((match) => match[0]))
 }
@@ -93,7 +124,7 @@ function messageFacilityIds(message: EdielMessageRow): string[] {
 }
 
 function hasFacilityMismatch(message: EdielMessageRow, testData: EdielTgtCaseTestData | null | undefined): boolean {
-  const expected = new Set(facilityIdsFromTgtTestData(testData))
+  const expected = new Set(facilityIdsForTgtIdentity(message, testData))
   const actual = messageFacilityIds(message)
 
   if (expected.size === 0 || actual.length === 0) return false
@@ -337,6 +368,7 @@ export function effectiveTgtTestCaseCodeForMessageRow(
   }
 
   if (family === 'PRODAT' && code === 'Z05') {
+    if (rawTextLooksLikeZ05FacilityMismatch(rawText) || tgtTestDataHasZ05FacilityMismatch(row.parsedPayload)) return '3.2.1'
     if (textLooksLikeZ05LK(rawText)) return '3.1.2'
   }
 
@@ -561,15 +593,21 @@ function testDataObjects(testData: EdielTgtCaseTestData | null | undefined): Tgt
   return objects.sort((a, b) => a.sourceOrder - b.sourceOrder)
 }
 
-function expectedFacilityIdsForObject(object: TgtObjectValues): string[] {
+function expectedFacilityIdsForObject(object: TgtObjectValues, messageCode?: string | null): string[] {
+  const code = String(messageCode ?? '').toUpperCase()
+
+  if (code === 'Z05' && object.fields['233'] && /^735\d{15}$/.test(object.fields['233'])) {
+    return [object.fields['233']]
+  }
+
   return [object.fields['209'], object.fields['233']].filter((value): value is string => Boolean(value && /^735\d{15}$/.test(value)))
 }
 
-function matchExpectedObjectForLine(objects: TgtObjectValues[], lineItemId: string | null): TgtObjectValues | null {
+function matchExpectedObjectForLine(objects: TgtObjectValues[], lineItemId: string | null, messageCode?: string | null): TgtObjectValues | null {
   if (objects.length === 0) return null
 
   if (lineItemId) {
-    const exact = objects.find((object) => expectedFacilityIdsForObject(object).some((id) => normalizeCompare(id) === normalizeCompare(lineItemId)))
+    const exact = objects.find((object) => expectedFacilityIdsForObject(object, messageCode).some((id) => normalizeCompare(id) === normalizeCompare(lineItemId)))
     if (exact) return exact
   }
 
@@ -594,10 +632,10 @@ export function compareInboundPayloadToTgtTestData(params: {
   const issues: EdielTgtPayloadComparisonIssue[] = []
 
   for (const line of facts.lineItems) {
-    const object = matchExpectedObjectForLine(objects, line.itemId)
+    const object = matchExpectedObjectForLine(objects, line.itemId, messageCode)
     if (!object) continue
 
-    const expectedFacilities = expectedFacilityIdsForObject(object)
+    const expectedFacilities = expectedFacilityIdsForObject(object, messageCode)
 
     if (expectedFacilities.length > 0 && line.itemId && !expectedFacilities.some((id) => normalizeCompare(id) === normalizeCompare(line.itemId))) {
       issues.push({
@@ -789,7 +827,7 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
 
   if (text.includes(String(row.testCaseCode).toUpperCase())) score += 40
 
-  const expectedFacilities = facilityIdsFromTgtTestData(row.parsedPayload)
+  const expectedFacilities = facilityIdsForTgtIdentity(message, row.parsedPayload)
   const actualFacilities = messageFacilityIds(message)
   const rowCode = effectiveTgtTestCaseCodeForMessageRow(message, row).toUpperCase()
 
@@ -829,9 +867,21 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
     tgtTestDataLooksLikeConstantMissing(row.parsedPayload)
 
   const isKnownPositiveProdatCase = ['2.3.1', '2.3.2', '2.5.1', '2.5.2', '2.5.3', '3.1.1', '3.1.2'].includes(rowCode)
+  const rowLooksLikeZ05FacilityMismatch =
+    String(message.message_family ?? '').toUpperCase() === 'PRODAT' &&
+    String(message.message_code ?? '').toUpperCase() === 'Z05' &&
+    (rawTextLooksLikeZ05FacilityMismatch(rowText) || tgtTestDataHasZ05FacilityMismatch(row.parsedPayload))
 
   if (facilityMismatch && isObjectFailureCase && matchingFacilities === 0) {
     score += 500
+  }
+
+  if (rowCode === '3.2.1' && rowLooksLikeZ05FacilityMismatch) {
+    score += 900
+  }
+
+  if (isKnownPositiveProdatCase && rowLooksLikeZ05FacilityMismatch) {
+    score -= 900
   }
 
   if (isKnownPositiveProdatCase && !facilityMismatch && matchingFacilities > 0 && !rowLooksLikeSameMeterNumber && !rowLooksLikeConstantMissing) {
