@@ -38,6 +38,46 @@ function parseAckOutcome(message: EdielMessageRow): string | null {
   return parsedOutcome ?? (typeof message.ack_outcome === 'string' ? message.ack_outcome : null)
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+function nestedRecord(source: Record<string, unknown> | null, key: string): Record<string, unknown> | null {
+  return asRecord(source?.[key])
+}
+
+function utiltsRuntimeSyntaxOk(message: EdielMessageRow): boolean | null {
+  if (message.message_family !== 'UTILTS') return null
+
+  const report = asRecord(message.validation_report)
+  const utiltsRuntime = nestedRecord(report, 'utiltsRuntime')
+  const validation = nestedRecord(utiltsRuntime, 'validation')
+  const ackPlan = nestedRecord(utiltsRuntime, 'ackPlan')
+
+  if (typeof validation?.syntaxOk === 'boolean') {
+    return validation.syntaxOk
+  }
+
+  if (ackPlan?.contrlOutcome === 'positive') {
+    return true
+  }
+
+  if (ackPlan?.contrlOutcome === 'negative') {
+    return false
+  }
+
+  return null
+}
+
+function sourceSyntaxAccepted(message: EdielMessageRow): boolean {
+  const utiltsSyntaxOk = utiltsRuntimeSyntaxOk(message)
+  if (utiltsSyntaxOk !== null) return utiltsSyntaxOk
+
+  return validateEdifactSyntax(message).ok
+}
+
 function issue(severity: EdielAckPreflightIssue['severity'], code: string, message: string): EdielAckPreflightIssue {
   return { severity, code, message }
 }
@@ -75,12 +115,12 @@ function validateContrlPreflight(params: {
     }
   }
 
-  const sourceSyntax = validateEdifactSyntax(sourceMessage)
-  if (outcome === 'positive' && !sourceSyntax.ok) {
+  const sourceSyntaxOk = sourceSyntaxAccepted(sourceMessage)
+  if (outcome === 'positive' && !sourceSyntaxOk) {
     issues.push(issue('error', 'positive_contrl_on_syntax_error', 'Positiv CONTRL får inte skickas när källmeddelandet har syntaxfel.'))
   }
 
-  if (outcome === 'negative' && sourceSyntax.ok) {
+  if (outcome === 'negative' && sourceSyntaxOk) {
     issues.push(issue('warning', 'negative_contrl_on_syntax_ok', 'Källmeddelandet ser syntaktiskt OK ut; kontrollera manuellt innan negativ CONTRL skickas.'))
   }
 
@@ -95,7 +135,7 @@ function validateAperakPreflight(params: {
   const rawUpper = upperPayload(ackMessage)
   const issues: EdielAckPreflightIssue[] = []
   const outcome = parseAckOutcome(ackMessage) ?? 'positive'
-  const sourceSyntax = validateEdifactSyntax(sourceMessage)
+  const sourceSyntaxOk = sourceSyntaxAccepted(sourceMessage)
 
   if (sourceMessage.message_family === 'CONTRL') {
     issues.push(issue('error', 'aperak_on_contrl_blocked', 'APERAK får aldrig skickas som kvittens på inkommande CONTRL.'))
@@ -105,7 +145,7 @@ function validateAperakPreflight(params: {
     issues.push(issue('error', 'aperak_on_aperak_blocked', 'APERAK får aldrig skickas som kvittens på inkommande APERAK. Endast CONTRL kan skickas på APERAK.'))
   }
 
-  if (!sourceSyntax.ok) {
+  if (!sourceSyntaxOk) {
     issues.push(issue('error', 'aperak_blocked_by_syntax_error', 'APERAK får inte skickas innan syntaxen är accepterad. Skicka negativ CONTRL vid syntaxfel.'))
   }
 
@@ -145,13 +185,13 @@ function validateUtiltsErrPreflight(params: {
   const { ackMessage, sourceMessage } = params
   const rawUpper = upperPayload(ackMessage)
   const issues: EdielAckPreflightIssue[] = []
-  const sourceSyntax = validateEdifactSyntax(sourceMessage)
+  const sourceSyntaxOk = sourceSyntaxAccepted(sourceMessage)
 
   if (sourceMessage.message_family === 'CONTRL' || sourceMessage.message_family === 'APERAK') {
     issues.push(issue('error', 'utilts_err_on_ack_blocked', 'UTILTS-ERR får inte skickas på inkommande kvittensmeddelanden.'))
   }
 
-  if (!sourceSyntax.ok) {
+  if (!sourceSyntaxOk) {
     issues.push(issue('error', 'utilts_err_blocked_by_syntax_error', 'UTILTS-ERR får inte skickas när källmeddelandet har syntaxfel; negativ CONTRL ska skickas först.'))
   }
 

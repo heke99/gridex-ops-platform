@@ -238,14 +238,36 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow, ackFamily: A
   }
 }
 
+function isProdatAddressedSource(sourceMessage: EdielMessageRow): boolean {
+  const family = String(sourceMessage.message_family ?? '').toUpperCase()
+  const applicationReference = String(sourceMessage.application_reference ?? '').toUpperCase()
+
+  // PRODAT TGT is the only current portal flow where the technical UNB
+  // routing subaddress PRODAT belongs in outbound acknowledgements. UTILTS
+  // cases such as 23-DDQ-S02-S must not inherit PRODAT from old route rows,
+  // imports, or defaults.
+  return family === 'PRODAT' || applicationReference === '23-DDQ-PRODAT'
+}
+
+function ackSubAddressForSource(sourceMessage: EdielMessageRow, value?: string | null): string | null {
+  const subAddress = trimOrNull(value)
+  if (!subAddress) return null
+
+  if (!isProdatAddressedSource(sourceMessage) && subAddress.toUpperCase() === 'PRODAT') {
+    return null
+  }
+
+  return subAddress
+}
+
 function sourceParties(sourceMessage: EdielMessageRow) {
   return {
     senderEdielId: trimOrNull(sourceMessage.receiver_ediel_id),
     senderName: trimOrNull(sourceMessage.receiver_name),
-    senderSubAddress: trimOrNull(sourceMessage.receiver_sub_address) ?? 'PRODAT',
+    senderSubAddress: ackSubAddressForSource(sourceMessage, sourceMessage.receiver_sub_address),
     receiverEdielId: trimOrNull(sourceMessage.sender_ediel_id),
     receiverName: trimOrNull(sourceMessage.sender_name),
-    receiverSubAddress: trimOrNull(sourceMessage.sender_sub_address) ?? 'PRODAT',
+    receiverSubAddress: ackSubAddressForSource(sourceMessage, sourceMessage.sender_sub_address),
     receiverEmail: trimOrNull(sourceMessage.sender_email),
     mailbox: trimOrNull(sourceMessage.mailbox),
   }
@@ -346,8 +368,8 @@ function buildUtiltsErrSegments(params: {
 
   const uniqueCodes = Array.from(new Set(codes.length > 0 ? codes : ['E14']))
   const segments: Array<string | null> = [
-    'UNH+1+UTILTS:D:01B:UN:1.1',
-    `BGM+Z09+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9`,
+    'UNH+1+UTILTS:D:02B:UN:E5SE5A',
+    `BGM+ERR::260+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9`,
     `DTM+137:${swedishDateTime()}:203`,
     `RFF+TN:${sanitizeEdifactToken(params.transactionReference) ?? 'TN'}`,
     refs.documentReference ? `RFF+ACE:${refs.documentReference}` : null,
@@ -430,7 +452,7 @@ function buildAckDraft(params: {
           ? params.sourceMessage.message_family === 'UTILTS'
             ? 'APERAK:D:04A:UN:E5SE5A'
             : 'APERAK:D:96A:UN:E2SE6A'
-          : 'UTILTS:D:01B:UN:1.1',
+          : 'UTILTS:D:02B:UN:E5SE5A',
     applicationReference,
     segments,
     senderSubAddress: parties.senderSubAddress ?? undefined,
