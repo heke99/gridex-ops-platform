@@ -553,21 +553,27 @@ function buildUtiltsErrSegments(params: {
     segments.push(`IDE+24+${outboundTransactionId}`)
 
     if (sourceCode === 'S03' && group?.segments?.length) {
-      // S03 profile-share UTILTS-ERR has a stricter SG5 structure than S02.
-      // The portal validator expects the original profile-share detail block
-      // (PIA/RFF/CCI/SEQ/PRI/QTY/NAD etc.) in the same order as the inbound
-      // S03 transaction. Do not hand-place NAD+DDK/NAD+DDQ; copying the
-      // original SG5 payload order avoids the parser treating NAD as an early
-      // close of the measurement/detail block.
-      for (const sourceSegment of group.segments) {
-        const upper = sourceSegment.toUpperCase()
-        if (upper.startsWith('IDE+24')) continue
-        if (upper.startsWith('STS+E01')) continue
-        if (upper.startsWith('RFF+TN:')) continue
-        if (upper.startsWith('RFF+S03:')) continue
-        if (upper.startsWith('UNT+') || upper.startsWith('UNZ+')) continue
-        segments.push(sourceSegment)
+      // S03 UTILTS-ERR must keep the S03 transaction identity data, but it
+      // must not copy the whole quantity/detail chain from the rejected S03.
+      // If LIN/MEA/CCI/CAV/SEQ/QTY is copied, the portal validator expects the
+      // complete profile-share detail model and can reject the message before
+      // it reaches the E49 rejection status. Build the minimal S03 rejection
+      // group instead: grid area + required S03 identity/role fields + period
+      // + original reason, then append STS+E01 and RFF below.
+      if (group?.gridAreaId) {
+        segments.push(`LOC+239+${sanitizeEdifactToken(group.gridAreaId) ?? group.gridAreaId}:SVK:260`)
       }
+
+      segments.push(copiedUtiltsSegment(group?.settlementResponsibleSegment ?? null, 'NAD+DDK'))
+      segments.push(copiedUtiltsSegment(group?.supplierSegment ?? null, 'NAD+DDQ'))
+      segments.push(copiedUtiltsSegment(group?.productIdSegment ?? null, 'PIA+'))
+
+      const s03DateSegments = group.segments.filter((sourceSegment) => {
+        const upper = sourceSegment.toUpperCase()
+        return upper.startsWith('DTM+368:') || upper.startsWith('DTM+354:') || upper.startsWith('DTM+324:')
+      })
+      segments.push(...s03DateSegments)
+      segments.push(copiedUtiltsSegment(group?.reasonSegment ?? null, 'STS+7'))
     } else {
       if (group?.meterPointId) {
         const meterPointId = sanitizeEdifactToken(group.meterPointId) ?? group.meterPointId
