@@ -665,6 +665,27 @@ function buildAckDraft(params: {
     ackFamily: params.ackFamily,
   })
 
+  const utiltsErrSequenceToken =
+    params.ackFamily === 'UTILTS_ERR'
+      ? sanitizeEdifactToken(
+          sanitizeSegmentText(params.messageText)
+            .split(/[|,;\s]+/)
+            .find((code) => /^E[0-9A-Z]+$/i.test(code))
+            ?.toUpperCase() ?? null,
+          8
+        )
+      : null
+
+  const ackExternalReference =
+    params.ackFamily === 'UTILTS_ERR' && utiltsErrSequenceToken
+      ? (sanitizeEdifactToken(`${refs.externalReference ?? params.sourceMessage.id}-${utiltsErrSequenceToken}`, 35) ?? refs.externalReference)
+      : refs.externalReference
+
+  const ackTransactionReference =
+    params.ackFamily === 'UTILTS_ERR' && utiltsErrSequenceToken
+      ? (sanitizeEdifactToken(`${refs.transactionReference ?? params.sourceMessage.id}-${utiltsErrSequenceToken}`, 35) ?? refs.transactionReference)
+      : refs.transactionReference
+
   const parties = sourceParties(params.sourceMessage)
 
   const applicationReference =
@@ -685,16 +706,16 @@ function buildAckDraft(params: {
       : params.ackFamily === 'APERAK'
         ? buildAperakSegments({
             sourceMessage: params.sourceMessage,
-            externalReference: refs.externalReference ?? params.sourceMessage.id,
-            transactionReference: refs.transactionReference ?? params.sourceMessage.id,
+            externalReference: ackExternalReference ?? params.sourceMessage.id,
+            transactionReference: ackTransactionReference ?? params.sourceMessage.id,
             outcome,
             messageText: params.messageText ?? null,
             applicationErrors: params.applicationErrors ?? null,
           })
         : buildUtiltsErrSegments({
             sourceMessage: params.sourceMessage,
-            externalReference: refs.externalReference ?? params.sourceMessage.id,
-            transactionReference: refs.transactionReference ?? params.sourceMessage.id,
+            externalReference: ackExternalReference ?? params.sourceMessage.id,
+            transactionReference: ackTransactionReference ?? params.sourceMessage.id,
             messageText: params.messageText ?? null,
           })
 
@@ -779,6 +800,7 @@ function buildAckDraft(params: {
       generatedInterchangeReference: envelope.interchangeReference,
       generatedMessageReference: envelope.messageReference,
       applicationErrors: params.applicationErrors ?? null,
+      utiltsErrSequenceToken,
     },
     validationReport: {
       generatedBy: 'buildAckDraft',
@@ -790,14 +812,15 @@ function buildAckDraft(params: {
       sourceInterchangeReference: params.sourceMessage.interchange_reference,
       generatedInterchangeReference: envelope.interchangeReference,
       applicationErrors: params.applicationErrors ?? null,
+      utiltsErrSequenceToken,
     },
     applicationReference,
     // Store the outbound UNB/0020 on the outbound row. The inbound
     // interchange remains available through originalMessageId/correlation refs.
     interchangeReference: envelope.interchangeReference,
-    externalReference: refs.externalReference,
+    externalReference: ackExternalReference,
     correlationReference: refs.correlationReference ?? params.sourceMessage.id,
-    transactionReference: refs.transactionReference,
+    transactionReference: ackTransactionReference,
     originalMessageId: refs.originalMessageId,
     originalTransactionId: refs.originalTransactionId,
     originalMessageCode: refs.originalMessageCode,

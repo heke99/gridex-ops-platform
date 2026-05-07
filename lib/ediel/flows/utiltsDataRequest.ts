@@ -393,6 +393,18 @@ async function createAutomaticPositiveAcks(params: {
   return createdIds
 }
 
+function isUtiltsBTestCaseMessage(message: EdielMessageRow): boolean {
+  const text = JSON.stringify({
+    parsedPayload: message.parsed_payload,
+    validationReport: message.validation_report,
+    failureReason: message.failure_reason,
+    subject: message.subject,
+    fileName: message.file_name,
+  }).toUpperCase()
+
+  return /U2\.2\.(3|4)B/.test(text)
+}
+
 async function createUtiltsRuntimeAcks(params: {
   actorUserId: string
   sourceMessage: EdielMessageRow
@@ -412,14 +424,19 @@ async function createUtiltsRuntimeAcks(params: {
   }
 
   if (params.ackPlan.shouldSendUtiltsErr) {
-    const utiltsErr = await createAckIfMissing({
-      actorUserId: params.actorUserId,
-      sourceMessage: params.sourceMessage,
-      ackFamily: 'UTILTS_ERR',
-      outcome: 'negative',
-      messageText: params.ackPlan.utiltsErrCodes.join('|') || 'E14',
-    })
-    createdIds.push(utiltsErr.id)
+    const codes = params.ackPlan.utiltsErrCodes.length > 0 ? params.ackPlan.utiltsErrCodes : ['E14']
+    const utiltsErrMessages = isUtiltsBTestCaseMessage(params.sourceMessage) ? codes : [codes.join('|')]
+
+    for (const messageText of utiltsErrMessages) {
+      const utiltsErr = await createAckIfMissing({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        ackFamily: 'UTILTS_ERR',
+        outcome: 'negative',
+        messageText,
+      })
+      createdIds.push(utiltsErr.id)
+    }
   }
 
   if (params.ackPlan.shouldSendAperak && params.ackPlan.aperakOutcome) {

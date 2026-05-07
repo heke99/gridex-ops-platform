@@ -367,11 +367,18 @@ export async function createCanonicalAckMessage(params: {
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
 
-  const duplicate = await hasCanonicalAckDuplicate({
-    sourceMessageId: params.sourceMessage.id,
-    ackFamily: params.ackFamily,
-    outcome: params.outcome,
-  })
+  const allowSequencedUtiltsErr =
+    params.ackFamily === 'UTILTS_ERR' &&
+    typeof params.draft.parsedPayload?.utiltsErrSequenceToken === 'string' &&
+    params.draft.parsedPayload.utiltsErrSequenceToken.trim().length > 0
+
+  const duplicate = allowSequencedUtiltsErr
+    ? null
+    : await hasCanonicalAckDuplicate({
+        sourceMessageId: params.sourceMessage.id,
+        ackFamily: params.ackFamily,
+        outcome: params.outcome,
+      })
 
   if (duplicate) {
     const attemptedOutcome = params.outcome ?? null
@@ -407,10 +414,19 @@ export async function createCanonicalAckMessage(params: {
     return duplicate
   }
 
-  const refs = buildCanonicalAckReferences({
+  const baseRefs = buildCanonicalAckReferences({
     sourceMessage: params.sourceMessage,
     ackFamily: params.ackFamily,
   })
+
+  const refs = allowSequencedUtiltsErr
+    ? {
+        ...baseRefs,
+        externalReference: params.draft.externalReference ?? baseRefs.externalReference,
+        transactionReference: params.draft.transactionReference ?? baseRefs.transactionReference,
+        correlationReference: params.draft.correlationReference ?? baseRefs.correlationReference,
+      }
+    : baseRefs
 
   return createEdielMessage({
     ...params.draft,
