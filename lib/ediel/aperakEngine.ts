@@ -171,7 +171,7 @@ export function renderAperakEdiel(params: {
         `BGM+${utiltsBgmCode}+${sanitizeEdifactToken(params.externalReference) ?? 'APERAK'}+9`,
         `DTM+137:${swedishDateTime()}:203`,
         'DTM+735:?+0100:406',
-        `DOC+${sanitizeEdifactToken(params.source.messageCode) ?? 'UTILTS'}:SVK:260+${previousMessageReference}`,
+        `DOC+${sanitizeEdifactToken(params.source.messageCode) ?? 'UTILTS'}::260+${previousMessageReference}`,
         `NAD+MS+${sanitizeEdifactToken(params.source.receiverEdielId) ?? 'UNKNOWN'}:SVK:260`,
         `NAD+MR+${sanitizeEdifactToken(params.source.senderEdielId) ?? 'UNKNOWN'}:SVK:260`,
         'NAD+DDQ',
@@ -227,7 +227,10 @@ export function renderAperakEdiel(params: {
 
     if (isUtiltsSource) {
       segments.push(`RFF+DM:${sanitizeEdifactToken(params.transactionReference) ?? 'APE'}`)
-      segments.push(`RFF+ACW:${error.lineItemReference ?? params.refs.lineItemReference ?? previousMessageReference}`)
+      const utiltsReference = params.outcome === 'positive'
+        ? previousMessageReference
+        : (error.lineItemReference ?? error.referenceNumber ?? params.refs.lineItemReference ?? previousMessageReference)
+      segments.push(`RFF+ACW:${sanitizeEdifactToken(utiltsReference) ?? previousMessageReference}`)
       continue
     }
 

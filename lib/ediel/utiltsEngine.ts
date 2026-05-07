@@ -31,7 +31,20 @@ export type UtiltsValidationIssue = {
   edielErrorCode?: string | null
   aperakErcCode?: string | null
   aperakFieldCode?: string | null
+  aperakText?: string | null
+  referenceQualifier?: string | null
+  referenceNumber?: string | null
+  lineItemReference?: string | null
   utiltsErrCode?: string | null
+}
+
+export type UtiltsAperakApplicationError = {
+  ercCode: string
+  fieldCode?: string | null
+  text: string
+  referenceQualifier?: string | null
+  referenceNumber?: string | null
+  lineItemReference?: string | null
 }
 
 export type UtiltsRuntimeFacts = ParsedUtiltsMessage & {
@@ -74,6 +87,7 @@ export type UtiltsRuntimeAckPlan = {
   aperakOutcome: EdielAckOutcome | null
   shouldSendUtiltsErr: boolean
   utiltsErrCodes: string[]
+  aperakApplicationErrors: UtiltsAperakApplicationError[]
   reason: string
 }
 
@@ -234,13 +248,99 @@ function parseStsReason(segments: readonly string[]): string | null {
 }
 
 function parseUnit(segments: readonly string[]): string | null {
+  return parseUnitFromSegments(segments)
+}
+
+function buildIssue(input: UtiltsValidationIssue): UtiltsValidationIssue {
+  return input
+}
+
+type UtiltsTransactionGroup = {
+  transactionId: string | null
+  segments: string[]
+}
+
+function splitTransactionGroups(segments: readonly string[]): UtiltsTransactionGroup[] {
+  const groups: UtiltsTransactionGroup[] = []
+  let current: UtiltsTransactionGroup | null = null
+
+  for (const segment of segments) {
+    if (segment.toUpperCase().startsWith('IDE+24')) {
+      if (current) groups.push(current)
+      current = {
+        transactionId: firstComponent(element(segment, 2)),
+        segments: [segment],
+      }
+      continue
+    }
+
+    if (!current) continue
+    if (segment.toUpperCase().startsWith('UNT+') || segment.toUpperCase().startsWith('UNZ+')) {
+      continue
+    }
+    current.segments.push(segment)
+  }
+
+  if (current) groups.push(current)
+  if (groups.length > 0) return groups
+
+  return [{ transactionId: null, segments: [...segments] }]
+}
+
+function groupSegmentValue(group: UtiltsTransactionGroup, prefix: string): string | null {
+  return group.segments.find((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase())) ?? null
+}
+
+function parseUnitFromSegments(segments: readonly string[]): string | null {
   const mea = segmentValue(segments, 'MEA+AAZ')
   const parts = mea?.split('+') ?? []
   return parts[3]?.trim() || null
 }
 
-function buildIssue(input: UtiltsValidationIssue): UtiltsValidationIssue {
-  return input
+function parseUnitFromGroup(group: UtiltsTransactionGroup): string | null {
+  const mea = groupSegmentValue(group, 'MEA+AAZ')
+  const parts = mea?.split('+') ?? []
+  return parts[3]?.trim() || null
+}
+
+function sanitizeRuntimeToken(value?: string | null, maxLength = 35): string | null {
+  const trimmed = value?.trim()
+  if (!trimmed) return null
+
+  const sanitized = trimmed
+    .replace(/[ÅÄ]/gi, 'A')
+    .replace(/[Ö]/gi, 'O')
+    .replace(/[åä]/g, 'a')
+    .replace(/[ö]/g, 'o')
+    .replace(/[^A-Za-z0-9_.\/-]/g, '')
+    .slice(0, maxLength)
+
+  return sanitized.length > 0 ? sanitized : null
+}
+
+function transactionIssueReference(group: UtiltsTransactionGroup, fallback: string | null): string | null {
+  return sanitizeRuntimeToken(group.transactionId ?? fallback, 35)
+}
+
+function aperakErrorsFromIssues(issues: readonly UtiltsValidationIssue[]): UtiltsAperakApplicationError[] {
+  const errors = issues
+    .filter((issue) => issue.severity === 'error' && issue.kind === 'application')
+    .map((issue) => ({
+      ercCode: sanitizeRuntimeToken(issue.aperakErcCode ?? '40', 12) ?? '40',
+      fieldCode: sanitizeRuntimeToken(issue.aperakFieldCode ?? null, 12),
+      text: issue.aperakText ?? issue.description ?? issue.title,
+      referenceQualifier: sanitizeRuntimeToken(issue.referenceQualifier ?? null, 12),
+      referenceNumber: sanitizeRuntimeToken(issue.referenceNumber ?? null, 35),
+      lineItemReference: sanitizeRuntimeToken(issue.lineItemReference ?? issue.referenceNumber ?? null, 35),
+    }))
+
+  const seen = new Set<string>()
+  return errors.filter((error) => {
+    const key = `${error.ercCode}|${error.fieldCode ?? ''}|${error.text}|${error.lineItemReference ?? ''}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function hasSegment(segments: readonly string[], prefix: string): boolean {
@@ -370,6 +470,65 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
     }
   }
 
+  if (code === 'S02') {
+    for (const group of splitTransactionGroups(facts.rawSegments)) {
+      const transactionReference = transactionIssueReference(group, facts.transactionId)
+      const groupUnit = parseUnitFromGroup(group)
+      const deliveryPeriod = parseDtmComposite(groupSegmentValue(group, 'DTM+324'))
+      const resolution = parseDtmComposite(groupSegmentValue(group, 'DTM+354'))
+
+      if (!groupUnit) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'application',
+          code: 'UTILTS_S02_MISSING_UNIT',
+          title: 'Enhet saknas',
+          description: 'MEA+AAZ saknas i UTILTS-S02-transaktionen.',
+          aperakErcCode: '41',
+          aperakFieldCode: '264',
+          aperakText: 'MANDATORY FIELD MISSING',
+          referenceQualifier: 'ACW',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+
+      if (resolution.value && (resolution.value !== '1' || resolution.format !== '802')) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'application',
+          code: 'UTILTS_S02_INVALID_RESOLUTION',
+          title: 'Felaktig upplösning',
+          description: `DTM+354 ska vara 1:802 för månadsupplösning i UTILTS-S02, men var ${resolution.value}:${resolution.format ?? ''}.`,
+          segment: groupSegmentValue(group, 'DTM+354'),
+          aperakErcCode: '42',
+          aperakFieldCode: '508',
+          aperakText: 'INCORRECT DATA',
+          referenceQualifier: 'ACW',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+
+      if (deliveryPeriod.value && (deliveryPeriod.format !== '719' || !/^\d{24}$/.test(deliveryPeriod.value))) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'application',
+          code: 'UTILTS_S02_INVALID_DELIVERY_PERIOD_FORMAT',
+          title: 'Felaktigt tidsformat för observationsperiod',
+          description: `DTM+324 ska vara periodformat 719 med start och slut, men var ${deliveryPeriod.value}:${deliveryPeriod.format ?? ''}.`,
+          segment: groupSegmentValue(group, 'DTM+324'),
+          aperakErcCode: '42',
+          aperakFieldCode: '245',
+          aperakText: 'INCORRECT DATA',
+          referenceQualifier: 'ACW',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+    }
+  }
+
   if (code === 'E66' && facts.quantities.length === 0) {
     issues.push(buildIssue({
       severity: 'error',
@@ -422,6 +581,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       aperakOutcome: null,
       shouldSendUtiltsErr: false,
       utiltsErrCodes: [],
+      aperakApplicationErrors: [],
       reason: 'Meddelandet är inte UTILTS.',
     }
   }
@@ -434,6 +594,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       aperakOutcome: null,
       shouldSendUtiltsErr: false,
       utiltsErrCodes: [],
+      aperakApplicationErrors: [],
       reason: 'Inbound UTILTS-ERR ska endast syntaxkvitteras med CONTRL.',
     }
   }
@@ -446,6 +607,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       aperakOutcome: null,
       shouldSendUtiltsErr: false,
       utiltsErrCodes: [],
+      aperakApplicationErrors: [],
       reason: 'EDIFACT-syntaxen kunde inte accepteras.',
     }
   }
@@ -458,6 +620,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       aperakOutcome: 'negative',
       shouldSendUtiltsErr: false,
       utiltsErrCodes: [],
+      aperakApplicationErrors: aperakErrorsFromIssues(params.validation.issues),
       reason: 'Meddelandet är syntaktiskt läsbart men bryter mot UTILTS-anvisningen.',
     }
   }
@@ -478,6 +641,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       aperakOutcome: null,
       shouldSendUtiltsErr: true,
       utiltsErrCodes: utiltsErrCodes.length > 0 ? utiltsErrCodes : ['E14'],
+      aperakApplicationErrors: [],
       reason: 'Meddelandet är syntaktiskt/anvisningsmässigt läsbart men innehållet kunde inte behandlas.',
     }
   }
@@ -489,6 +653,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
     aperakOutcome: 'positive',
     shouldSendUtiltsErr: false,
     utiltsErrCodes: [],
+    aperakApplicationErrors: [],
     reason: 'UTILTS accepterades.',
   }
 }

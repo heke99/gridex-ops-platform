@@ -43,6 +43,7 @@ import {
   buildContrlDraft,
   buildUtiltsErrDraft,
   getAutomaticAckPolicy,
+  type EdielAperakApplicationError,
 } from '@/lib/ediel/ack'
 
 type UtiltsProcessResult = {
@@ -308,6 +309,7 @@ async function createAckIfMissing(params: {
   ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'
   messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
 }) {
   const draft =
     params.ackFamily === 'CONTRL'
@@ -323,6 +325,7 @@ async function createAckIfMissing(params: {
             sourceMessage: params.sourceMessage,
             outcome: params.outcome ?? 'positive',
             messageText: params.messageText ?? null,
+            applicationErrors: params.applicationErrors ?? null,
           })
         : buildUtiltsErrDraft({
             actorUserId: params.actorUserId,
@@ -426,6 +429,7 @@ async function createUtiltsRuntimeAcks(params: {
       ackFamily: 'APERAK',
       outcome: params.ackPlan.aperakOutcome,
       messageText: params.ackPlan.reason,
+      applicationErrors: params.ackPlan.aperakApplicationErrors,
     })
     createdIds.push(aperak.id)
   }
