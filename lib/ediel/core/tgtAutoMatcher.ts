@@ -306,27 +306,125 @@ function textLooksLikeUtiltsGuideError(rawText: string): boolean {
   )
 }
 
+const UTILTS_TGT_FUNCTIONAL_ERROR_CODES = new Set(['E10', 'E19', 'E49', 'E50', 'E87', 'E90', 'E98'])
+
+function utiltsFunctionalErrorCodesInText(rawText: string): string[] {
+  const normalized = normalize(rawText)
+  const matches = normalized.match(/\bE\d{2}\b/g) ?? []
+  return matches.filter((code) => UTILTS_TGT_FUNCTIONAL_ERROR_CODES.has(code))
+}
+
 function textLooksLikeUtiltsFunctionalError(rawText: string): boolean {
   const normalized = normalize(rawText)
-  const realUtiltsErrorCodes = ['E10', 'E14', 'E19', 'E50', 'E87', 'E90', 'E98']
-  const hasRealUtiltsErrorCode = realUtiltsErrorCodes.some((code) => new RegExp(`\\b${code}\\b`).test(normalized))
-
   return (
     normalized.includes('FUNKTIONSFEL') ||
-    normalized.includes('FUNCTIONAL ERROR') ||
-    normalized.includes('PROCESSABILITY') ||
-    normalized.includes('PROCESS FEL') ||
-    hasRealUtiltsErrorCode
+    normalized.includes('FUNCTIONAL') ||
+    normalized.includes('PROCESS') ||
+    utiltsFunctionalErrorCodesInText(rawText).length > 0
   )
+}
+
+type UtiltsTgtGroup = {
+  segments: string[]
+}
+
+function splitUtiltsTgtGroups(rawText: string): UtiltsTgtGroup[] {
+  const segments = parseEdifactMessageFacts(rawText).rawSegments
+  const groups: UtiltsTgtGroup[] = []
+  let current: UtiltsTgtGroup | null = null
+
+  for (const segment of segments) {
+    const upper = segment.toUpperCase()
+
+    if (upper.startsWith('IDE+24')) {
+      if (current) groups.push(current)
+      current = { segments: [segment] }
+      continue
+    }
+
+    if (!current) continue
+    if (upper.startsWith('UNT+') || upper.startsWith('UNZ+')) continue
+    current.segments.push(segment)
+  }
+
+  if (current) groups.push(current)
+  return groups.length > 0 ? groups : [{ segments }]
+}
+
+function utiltsTgtElement(segment: string | null | undefined, index: number): string | null {
+  const value = String(segment ?? '').split('+')[index]?.trim() ?? ''
+  return value.length > 0 ? value : null
+}
+
+function utiltsTgtFirstComponent(value: string | null | undefined): string | null {
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+  const first = raw.split(':')[0]?.trim() ?? ''
+  return first.length > 0 ? first : null
+}
+
+function utiltsTgtQuantityQualifiers(group: UtiltsTgtGroup): string[] {
+  return group.segments
+    .filter((segment) => segment.toUpperCase().startsWith('QTY+'))
+    .map((segment) => utiltsTgtFirstComponent(utiltsTgtElement(segment, 1)) ?? '')
+    .filter(Boolean)
+    .map((qualifier) => qualifier.toUpperCase())
+}
+
+function utiltsTgtGroupHasMeterNumber(group: UtiltsTgtGroup): boolean {
+  return group.segments.some((segment) => /(^|[+:])M-[A-Z0-9-]+($|[+:])/.test(segment.toUpperCase()))
+}
+
+function utiltsTgtGroupHasMeterReading(group: UtiltsTgtGroup): boolean {
+  const qualifiers = utiltsTgtQuantityQualifiers(group)
+  return qualifiers.some((qualifier) => ['101', '203', '204'].includes(qualifier))
+}
+
+function utiltsTgtGroupHasEnergyQuantity(group: UtiltsTgtGroup): boolean {
+  return utiltsTgtQuantityQualifiers(group).includes('136')
+}
+
+function utiltsTgtGroupResolution(group: UtiltsTgtGroup): string | null {
+  const segment = group.segments.find((item) => item.toUpperCase().startsWith('DTM+354')) ?? null
+  return utiltsTgtFirstComponent(utiltsTgtElement(segment, 1))
+}
+
+function utiltsTgtGroupHasRegistrationTime(group: UtiltsTgtGroup): boolean {
+  return group.segments.some((segment) => segment.toUpperCase().startsWith('DTM+597'))
+}
+
+function utiltsTgtGroupIsIntervalValueGroup(group: UtiltsTgtGroup): boolean {
+  const resolution = utiltsTgtGroupResolution(group)
+  return resolution === '15' || resolution === '60'
+}
+
+function rawLooksLikeUtiltsE66GuideSchError(rawText: string): boolean {
+  const groups = splitUtiltsTgtGroups(rawText)
+  if (groups.length === 0) return false
+
+  return groups.some((group) => {
+    if (utiltsTgtGroupIsIntervalValueGroup(group)) return false
+
+    const hasEnergy = utiltsTgtGroupHasEnergyQuantity(group)
+    const missingMeterNumberForReading = !utiltsTgtGroupHasMeterNumber(group) && utiltsTgtGroupHasMeterReading(group)
+    const missingMeterReadingForEnergy = hasEnergy && !utiltsTgtGroupHasMeterReading(group)
+
+    return missingMeterNumberForReading || missingMeterReadingForEnergy
+  })
+}
+
+function rawLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {
+  const groups = splitUtiltsTgtGroups(rawText)
+  return groups.some((group) => utiltsTgtGroupIsIntervalValueGroup(group) && !utiltsTgtGroupHasRegistrationTime(group))
 }
 
 function textLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {
   const normalized = normalize(rawText)
   return (
     normalized.includes('REGISTRERINGSTIDPUNKT SAKNAS') ||
-    normalized.includes('KVART') ||
-    normalized.includes('QUARTER') ||
-    normalized.includes('512')
+    normalized.includes('REGISTRATION TIME MISSING') ||
+    normalized.includes('512') ||
+    rawLooksLikeUtiltsE66QuarterGuideError(rawText)
   )
 }
 
@@ -796,8 +894,9 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
         return /\bU2\.2\.3B\b/i.test(rawText) ? 'U2.2.3B' : 'U2.2.3'
       }
 
-      if (textLooksLikeUtiltsGuideError(rawText)) {
-        if (textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U2.2.2'
+      if (textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U2.2.2'
+
+      if (rawLooksLikeUtiltsE66GuideSchError(rawText) || textLooksLikeUtiltsGuideError(rawText)) {
         return /\bU2\.2\.1B\b/i.test(rawText) ? 'U2.2.1B' : 'U2.2.1'
       }
 
