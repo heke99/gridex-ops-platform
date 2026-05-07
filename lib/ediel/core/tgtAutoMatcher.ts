@@ -308,7 +308,16 @@ function textLooksLikeUtiltsGuideError(rawText: string): boolean {
 
 function textLooksLikeUtiltsFunctionalError(rawText: string): boolean {
   const normalized = normalize(rawText)
-  return normalized.includes('FUNKTIONSFEL') || normalized.includes('FUNCTIONAL') || normalized.includes('PROCESS') || /\bE\d{2}\b/.test(normalized)
+  const realUtiltsErrorCodes = ['E10', 'E14', 'E19', 'E50', 'E87', 'E90', 'E98']
+  const hasRealUtiltsErrorCode = realUtiltsErrorCodes.some((code) => new RegExp(`\\b${code}\\b`).test(normalized))
+
+  return (
+    normalized.includes('FUNKTIONSFEL') ||
+    normalized.includes('FUNCTIONAL ERROR') ||
+    normalized.includes('PROCESSABILITY') ||
+    normalized.includes('PROCESS FEL') ||
+    hasRealUtiltsErrorCode
+  )
 }
 
 function textLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {

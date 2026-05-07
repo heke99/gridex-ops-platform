@@ -4,6 +4,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { validateEdifactSyntax, type EdielSyntaxIssue } from '@/lib/ediel/core/syntaxValidator'
 import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
+import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
 
 export type EdielAckDecisionKind =
   | 'send_positive_contrl'
@@ -98,6 +99,38 @@ function sanitizeText(value: string): string {
   return value.replace(/['+]/g, ' ').slice(0, 140)
 }
 
+
+function looksLikeEdielPortalUtiltsE66TgtMessage(message: EdielMessageRow): boolean {
+  if (String(message.message_family ?? '').toUpperCase() !== 'UTILTS') return false
+  if (String(message.message_code ?? '').toUpperCase() !== 'E66') return false
+
+  const text = messageContextText(message)
+  const sender = String(message.sender_ediel_id ?? '')
+  const receiver = String(message.receiver_ediel_id ?? '')
+
+  return (
+    text.includes('23-DDQ-E66-S') ||
+    text.includes('TESTKUND') ||
+    text.includes('EDIELPORTAL') ||
+    (sender === '91100' && receiver === '92825') ||
+    (sender === '92825' && receiver === '91100')
+  )
+}
+
+function inferUtiltsTgtTestDataFromMessage(message: EdielMessageRow): EdielTgtCaseTestData | null {
+  if (!looksLikeEdielPortalUtiltsE66TgtMessage(message)) return null
+
+  try {
+    const testCaseCode = inferTgtTestCaseCodeForInboundTestData({
+      message,
+      rawText: messageContextText(message),
+    })
+
+    return testCaseCode ? ({ testCaseCode: testCaseCode.toUpperCase() } as EdielTgtCaseTestData) : null
+  } catch {
+    return null
+  }
+}
 
 function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined): string {
   return String(testData?.testCaseCode ?? '').trim().toUpperCase()
@@ -498,7 +531,8 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
       })
     }
 
-    const utiltsDecision = utiltsTgtApplicationDecision(message, tgtTestData) ?? utiltsApplicationDecision(message)
+    const effectiveTgtTestData = tgtTestData ?? inferUtiltsTgtTestDataFromMessage(message)
+    const utiltsDecision = utiltsTgtApplicationDecision(message, effectiveTgtTestData) ?? utiltsApplicationDecision(message)
 
     if (utiltsDecision.family === 'UTILTS_ERR') {
       return decision({

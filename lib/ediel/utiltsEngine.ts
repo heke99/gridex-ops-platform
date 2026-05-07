@@ -489,6 +489,31 @@ function findTgtCaseCodeInValue(value: unknown): string | null {
   return null
 }
 
+function looksLikeEdielPortalUtiltsE66TgtMessage(message: EdielMessageRow): boolean {
+  if (String(message.message_family ?? '').toUpperCase() !== 'UTILTS') return false
+  if (String(message.message_code ?? '').toUpperCase() !== 'E66') return false
+
+  const raw = String(message.raw_payload ?? '').toUpperCase()
+  const meta = [
+    message.application_reference,
+    message.external_reference,
+    message.transaction_reference,
+    JSON.stringify(message.parsed_payload ?? {}),
+    JSON.stringify(message.validation_report ?? {}),
+  ].filter(Boolean).join(' ').toUpperCase()
+  const sender = String(message.sender_ediel_id ?? '')
+  const receiver = String(message.receiver_ediel_id ?? '')
+
+  return (
+    raw.includes('23-DDQ-E66-S') ||
+    meta.includes('23-DDQ-E66-S') ||
+    meta.includes('TESTKUND') ||
+    meta.includes('EDIELPORTAL') ||
+    (sender === '91100' && receiver === '92825') ||
+    (sender === '92825' && receiver === '91100')
+  )
+}
+
 function extractTgtCaseCodeFromMessage(message?: EdielMessageRow | null): string | null {
   if (!message) return null
 
@@ -504,11 +529,18 @@ function extractTgtCaseCodeFromMessage(message?: EdielMessageRow | null): string
   })
   if (explicit) return explicit.toUpperCase()
 
-  if (String(message.environment ?? '').toLowerCase() === 'test') {
+  if (String(message.environment ?? '').toLowerCase() === 'test' || looksLikeEdielPortalUtiltsE66TgtMessage(message)) {
     try {
       const inferred = inferTgtTestCaseCodeForInboundTestData({
         message,
-        rawText: String(message.raw_payload ?? ''),
+        rawText: [
+          message.raw_payload,
+          message.application_reference,
+          message.external_reference,
+          message.transaction_reference,
+          JSON.stringify(message.parsed_payload ?? {}),
+          JSON.stringify(message.validation_report ?? {}),
+        ].filter(Boolean).join(' '),
       })
       return inferred ? inferred.toUpperCase() : null
     } catch {
