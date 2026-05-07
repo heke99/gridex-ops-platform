@@ -32,6 +32,34 @@ function firstSegment(raw: string, tag: string): string | null {
     .find((segment) => segment.toUpperCase().startsWith(`${upperTag}+`)) ?? null
 }
 
+function isUtiltsContext(ackMessage: EdielMessageRow, sourceMessage: EdielMessageRow): boolean {
+  return (
+    sourceMessage.message_family === 'UTILTS' ||
+    sourceMessage.message_family === 'UTILTS_ERR' ||
+    ackMessage.message_family === 'UTILTS_ERR' ||
+    String(ackMessage.message_version ?? '').toUpperCase() === 'E5SE5A' ||
+    String(sourceMessage.application_reference ?? ackMessage.application_reference ?? '').toUpperCase().startsWith('23-DDQ-S')
+  )
+}
+
+function validateNoProdatSubaddressForUtilts(params: {
+  ackMessage: EdielMessageRow
+  sourceMessage: EdielMessageRow
+}): EdielAckPreflightIssue[] {
+  if (!isUtiltsContext(params.ackMessage, params.sourceMessage)) return []
+
+  const rawUpper = upperPayload(params.ackMessage)
+  if (!rawUpper.includes(':ZZ:PRODAT')) return []
+
+  return [
+    issue(
+      'error',
+      'utilts_prodat_subaddress_blocked',
+      'UTILTS/UTILTS-APERAK/UTILTS-ERR får inte skickas med PRODAT-subadress i UNB.'
+    ),
+  ]
+}
+
 function parseAckOutcome(message: EdielMessageRow): string | null {
   const parsed = message.parsed_payload as { ackOutcome?: unknown } | null
   const parsedOutcome = typeof parsed?.ackOutcome === 'string' ? parsed.ackOutcome : null
@@ -124,6 +152,8 @@ function validateContrlPreflight(params: {
     issues.push(issue('warning', 'negative_contrl_on_syntax_ok', 'Källmeddelandet ser syntaktiskt OK ut; kontrollera manuellt innan negativ CONTRL skickas.'))
   }
 
+  issues.push(...validateNoProdatSubaddressForUtilts({ ackMessage, sourceMessage }))
+
   return issues
 }
 
@@ -175,6 +205,12 @@ function validateAperakPreflight(params: {
     }
   }
 
+  if (sourceMessage.message_family === 'UTILTS' && /'DOC\+S0[1234]::260\+/.test(rawUpper)) {
+    issues.push(issue('error', 'utilts_aperak_doc_missing_svk', 'UTILTS-APERAK DOC måste ha kodlistekvalificerare SVK:260.'))
+  }
+
+  issues.push(...validateNoProdatSubaddressForUtilts({ ackMessage, sourceMessage }))
+
   return issues
 }
 
@@ -198,6 +234,20 @@ function validateUtiltsErrPreflight(params: {
   if (!containsSegment(rawUpper, 'BGM')) {
     issues.push(issue('error', 'utilts_err_missing_bgm', 'UTILTS-ERR-preview saknar BGM-segment.'))
   }
+
+  if (!rawUpper.includes('UNH+1+UTILTS:D:02B:UN:E5SE5A')) {
+    issues.push(issue('error', 'utilts_err_wrong_unh', 'UTILTS-ERR ska använda UNH+1+UTILTS:D:02B:UN:E5SE5A.'))
+  }
+
+  if (!rawUpper.includes('BGM+ERR:SVK:260')) {
+    issues.push(issue('error', 'utilts_err_wrong_bgm', 'UTILTS-ERR ska använda BGM+ERR:SVK:260.'))
+  }
+
+  if (!rawUpper.includes('STS+E01::260+41+')) {
+    issues.push(issue('error', 'utilts_err_missing_sts_e01', 'UTILTS-ERR saknar STS+E01::260+41+<felkod>::260.'))
+  }
+
+  issues.push(...validateNoProdatSubaddressForUtilts({ ackMessage, sourceMessage }))
 
   return issues
 }

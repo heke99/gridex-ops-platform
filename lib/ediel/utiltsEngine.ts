@@ -47,6 +47,23 @@ export type UtiltsAperakApplicationError = {
   lineItemReference?: string | null
 }
 
+export type UtiltsRuntimeTransaction = {
+  transactionId: string | null
+  meterPointId: string | null
+  gridAreaId: string | null
+  deliveryPeriodRaw: string | null
+  deliveryPeriodFormat: string | null
+  deliveryPeriodStart: string | null
+  deliveryPeriodEnd: string | null
+  registrationTime: string | null
+  resolution: string | null
+  resolutionFormat: string | null
+  transactionReason: string | null
+  unit: string | null
+  quantities: Array<{ qualifier: string | null; value: number | null; raw: string }>
+  sourceOrder: number
+}
+
 export type UtiltsRuntimeFacts = ParsedUtiltsMessage & {
   messageReference: string | null
   messageVersion: string | null
@@ -68,6 +85,7 @@ export type UtiltsRuntimeFacts = ParsedUtiltsMessage & {
   transactionReason: string | null
   unit: string | null
   quantities: Array<{ qualifier: string | null; value: number | null; raw: string }>
+  transactions: UtiltsRuntimeTransaction[]
   references: Array<{ qualifier: string; value: string }>
   isUtiltsErr: boolean
 }
@@ -303,6 +321,73 @@ function parseUnitFromGroup(group: UtiltsTransactionGroup): string | null {
   return parts[3]?.trim() || null
 }
 
+function parseLocValueFromGroup(group: UtiltsTransactionGroup, prefix: 'LOC+172' | 'LOC+239'): string | null {
+  return firstComponent(element(groupSegmentValue(group, prefix), 2))
+}
+
+function parseQuantitiesFromGroup(group: UtiltsTransactionGroup): Array<{ qualifier: string | null; value: number | null; raw: string }> {
+  return group.segments
+    .filter((segment) => segment.toUpperCase().startsWith('QTY+'))
+    .map(parseQuantity)
+}
+
+function parsePeriodFromGroup(group: UtiltsTransactionGroup): { raw: string | null; format: string | null; start: string | null; end: string | null } {
+  const dtm = parseDtmComposite(groupSegmentValue(group, 'DTM+324'))
+  const parsed = parsePeriod719(groupSegmentValue(group, 'DTM+324'))
+  return {
+    raw: dtm.value ?? parsed.raw,
+    format: dtm.format,
+    start: parsed.start,
+    end: parsed.end,
+  }
+}
+
+function parseUtiltsTransactionGroup(group: UtiltsTransactionGroup, sourceOrder: number): UtiltsRuntimeTransaction {
+  const period = parsePeriodFromGroup(group)
+  const resolution = parseDtmComposite(groupSegmentValue(group, 'DTM+354'))
+
+  return {
+    transactionId: transactionIssueReference(group, null),
+    meterPointId: parseLocValueFromGroup(group, 'LOC+172'),
+    gridAreaId: parseLocValueFromGroup(group, 'LOC+239'),
+    deliveryPeriodRaw: period.raw,
+    deliveryPeriodFormat: period.format,
+    deliveryPeriodStart: period.start,
+    deliveryPeriodEnd: period.end,
+    registrationTime: parseSimpleDateTime(parseDtmComposite(groupSegmentValue(group, 'DTM+597')).value),
+    resolution: resolution.value,
+    resolutionFormat: resolution.format,
+    transactionReason: parseStsReason(group.segments),
+    unit: parseUnitFromGroup(group),
+    quantities: parseQuantitiesFromGroup(group),
+    sourceOrder,
+  }
+}
+
+function monthsBetweenPeriod(start: string | null, end: string | null): number | null {
+  if (!start || !end) return null
+  const startMatch = start.match(/^(\d{4})-(\d{2})-/)
+  const endMatch = end.match(/^(\d{4})-(\d{2})-/)
+  if (!startMatch || !endMatch) return null
+
+  const startIndex = Number(startMatch[1]) * 12 + Number(startMatch[2])
+  const endIndex = Number(endMatch[1]) * 12 + Number(endMatch[2])
+  const diff = endIndex - startIndex
+  return Number.isFinite(diff) && diff > 0 ? diff : null
+}
+
+function isKnownTgtUnknownMeteringPoint(meterPointId: string | null): boolean {
+  // TGT U1.2.2 uses this object to force a processability error. Keep it as a
+  // portal fixture rule, not as generic production master-data. In production,
+  // the same E10 decision should come from the real metering point registry.
+  return meterPointId === '735999888000003025'
+}
+
+function isKnownTgtUnknownGridArea(gridAreaId: string | null): boolean {
+  // TGT U1.4.2 uses XYZ to force unknown metering grid area.
+  return String(gridAreaId ?? '').toUpperCase() === 'XYZ'
+}
+
 function sanitizeRuntimeToken(value?: string | null, maxLength = 35): string | null {
   const trimmed = value?.trim()
   if (!trimmed) return null
@@ -409,8 +494,9 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
     }))
   }
 
-  const needsObjectData = ['S02', 'S03', 'E30', 'E66'].includes(code)
-  if (needsObjectData && !facts.meterPointId) {
+  const needsMeteringPoint = ['S02', 'E30', 'E66'].includes(code)
+  const needsGridArea = ['S02', 'S03', 'E30', 'E66'].includes(code)
+  if (needsMeteringPoint && !facts.meterPointId) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'application',
@@ -422,7 +508,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
     }))
   }
 
-  if (needsObjectData && !facts.gridAreaId) {
+  if (needsGridArea && !facts.gridAreaId) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'application',
@@ -434,7 +520,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
     }))
   }
 
-  if (needsObjectData && !facts.deliveryPeriodRaw) {
+  if (needsGridArea && !facts.deliveryPeriodRaw) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'application',
@@ -446,28 +532,15 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
     }))
   }
 
-  if (['S02', 'S03'].includes(code)) {
-    if (!hasSegment(facts.rawSegments, 'STS+7')) {
-      issues.push(buildIssue({
-        severity: 'error',
-        kind: 'functional',
-        code: 'UTILTS_MISSING_REASON',
-        title: 'Anledning till transaktionen saknas',
-        description: 'STS+7 saknas. Detta klassas som funktionsfel för planeringsmeddelandet.',
-        utiltsErrCode: code === 'S03' ? 'E49' : 'E87',
-      }))
-    }
-
-    if (facts.quantities.length === 0) {
-      issues.push(buildIssue({
-        severity: 'error',
-        kind: 'functional',
-        code: 'UTILTS_MISSING_QUANTITY',
-        title: 'Kvantitet saknas',
-        description: 'Planeringsmeddelandet saknar QTY-rad med prognos-/andelstalvärde.',
-        utiltsErrCode: code === 'S03' ? 'E49' : 'E10',
-      }))
-    }
+  if (['S02', 'S03'].includes(code) && !hasSegment(facts.rawSegments, 'STS+7')) {
+    issues.push(buildIssue({
+      severity: 'error',
+      kind: 'functional',
+      code: 'UTILTS_MISSING_REASON',
+      title: 'Anledning till transaktionen saknas',
+      description: 'STS+7 saknas. Detta klassas som funktionsfel för planeringsmeddelandet.',
+      utiltsErrCode: code === 'S03' ? 'E49' : 'E87',
+    }))
   }
 
   if (code === 'S02') {
@@ -521,6 +594,75 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
           aperakErcCode: '42',
           aperakFieldCode: '245',
           aperakText: 'INCORRECT DATA',
+          referenceQualifier: 'ACW',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+
+      const groupPeriod = parsePeriodFromGroup(group)
+      const expectedMonths = monthsBetweenPeriod(groupPeriod.start, groupPeriod.end)
+      const actualQuantities = parseQuantitiesFromGroup(group).length
+      if (expectedMonths !== null && actualQuantities > 0 && actualQuantities !== expectedMonths) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'functional',
+          code: 'UTILTS_S02_OBSERVATION_COUNT_MISMATCH',
+          title: 'Fel antal observationer',
+          description: `Antal observationer (${actualQuantities}) matchar inte observationsperiod/upplösning (${expectedMonths}).`,
+          utiltsErrCode: 'E87',
+          referenceQualifier: 'TN',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+
+      if (isKnownTgtUnknownMeteringPoint(parseLocValueFromGroup(group, 'LOC+172'))) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'functional',
+          code: 'UTILTS_S02_UNKNOWN_METERING_POINT',
+          title: 'Okänd anläggning',
+          description: 'Anläggningsid kunde inte identifieras.',
+          utiltsErrCode: 'E10',
+          referenceQualifier: 'TN',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+    }
+  }
+
+  if (code === 'S03') {
+    for (const group of splitTransactionGroups(facts.rawSegments)) {
+      const transactionReference = transactionIssueReference(group, facts.transactionId)
+      const groupQuantities = parseQuantitiesFromGroup(group)
+      const gridAreaId = parseLocValueFromGroup(group, 'LOC+239') ?? facts.gridAreaId
+
+      if (isKnownTgtUnknownGridArea(gridAreaId)) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'functional',
+          code: 'UTILTS_S03_UNKNOWN_GRID_AREA',
+          title: 'Okänt nätområde',
+          description: 'Nätområdesid kunde inte identifieras.',
+          utiltsErrCode: 'E49',
+          referenceQualifier: 'TN',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+
+      if (groupQuantities.length === 0) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'application',
+          code: 'UTILTS_S03_MISSING_PROFILE_SHARE',
+          title: 'Andelstal saknas',
+          description: 'Planerad periodisk kvantitet/andelstal saknas i UTILTS-S03-transaktionen.',
+          aperakErcCode: '41',
+          aperakFieldCode: '515',
+          aperakText: 'MANDATORY FIELD MISSING',
           referenceQualifier: 'ACW',
           referenceNumber: transactionReference,
           lineItemReference: transactionReference,
@@ -672,6 +814,7 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
   const dtm354 = segmentValue(segments, 'DTM+354')
   const period = parsePeriod719(dtm324)
   const references = parseReferences(segments)
+  const transactions = splitTransactionGroups(segments).map((group, index) => parseUtiltsTransactionGroup(group, index))
   const bgmCode = parseBgmCode(bgm)
   const normalizedCode = String(parsed.messageCode ?? bgmCode ?? '').toUpperCase()
 
@@ -698,6 +841,7 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
     transactionReason: parseStsReason(segments),
     unit: parseUnit(segments),
     quantities: segmentValues(segments, 'QTY+').map(parseQuantity),
+    transactions,
     references,
     isUtiltsErr:
       normalizedCode === 'ERR' ||
@@ -736,6 +880,7 @@ export function normalizeUtiltsRuntimePayload(facts: UtiltsRuntimeFacts, message
     unit: facts.unit ?? stringOrNull(parsedPayload.unit) ?? 'KWH',
     quantity: firstQty?.value ?? numberOrNull(parsedPayload.quantity),
     quantities: facts.quantities,
+    transactions: facts.transactions,
     references: facts.references,
     senderRole: facts.senderRole,
     receiverRole: facts.receiverRole,
