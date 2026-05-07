@@ -161,8 +161,23 @@ function segmentsFromRawPayload(rawPayload?: string | null): string[] {
     .filter(Boolean)
 }
 
+function getParsedObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+function getParsedString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim()
+  }
+  return null
+}
+
 function parseEdifactRefs(sourceMessage: EdielMessageRow): ParsedEdifactRefs {
-  const parsed = sourceMessage.parsed_payload ?? {}
+  const parsed = getParsedObject(sourceMessage.parsed_payload)
+  const utiltsRuntimeFacts = getParsedObject(parsed.utiltsRuntimeFacts)
+  const normalizedMeteringPayload = getParsedObject(parsed.normalizedMeteringPayload)
   const segments = segmentsFromRawPayload(sourceMessage.raw_payload)
   const find = (prefix: string) => segments.find((segment) => segment.startsWith(prefix)) ?? null
   const findAll = (prefix: string) => segments.filter((segment) => segment.startsWith(prefix))
@@ -173,39 +188,44 @@ function parseEdifactRefs(sourceMessage: EdielMessageRow): ParsedEdifactRefs {
   const rffs = findAll('RFF+')
 
   const messageReference =
-    sanitizeEdifactToken(String(parsed.messageReference ?? parsed.message_reference ?? '')) ??
+    sanitizeEdifactToken(getParsedString(parsed.messageReference, parsed.message_reference, utiltsRuntimeFacts.messageReference, normalizedMeteringPayload.messageReference)) ??
     sanitizeEdifactToken(unh?.split('+')[1] ?? null)
 
   const bgmDocumentReference = sanitizeEdifactToken(bgm?.split('+')[2] ?? null)
 
   const documentReference =
     sanitizeEdifactToken(
-      String(
-        parsed.documentReference ??
-          parsed.document_reference ??
-          parsed.bgmReference ??
-          parsed.bgm_reference ??
-          ''
+      getParsedString(
+        parsed.documentReference,
+        parsed.document_reference,
+        parsed.bgmReference,
+        parsed.bgm_reference,
+        utiltsRuntimeFacts.documentReference,
+        normalizedMeteringPayload.documentReference
       )
     ) ??
     bgmDocumentReference ??
     sanitizeEdifactToken(sourceMessage.external_reference)
 
   const unbParts = unb?.split('+') ?? []
+  const rawUnbInterchangeReference = unbParts[5] ?? null
   const interchangeReference =
-    sanitizeEdifactToken(String(parsed.interchangeReference ?? parsed.interchange_reference ?? '')) ??
-    sanitizeEdifactToken(sourceMessage.interchange_reference) ??
-    sanitizeEdifactToken(unbParts[5] ?? null)
+    // CONTRL UCI/0020 must point to the original inbound UNB/0020. Prefer the
+    // raw payload because older imports sometimes stored BGM/reference fields in
+    // parsed payload while leaving ediel_messages.interchange_reference empty.
+    sanitizeEdifactToken(rawUnbInterchangeReference) ??
+    sanitizeEdifactToken(getParsedString(parsed.interchangeReference, parsed.interchange_reference, utiltsRuntimeFacts.interchangeReference, normalizedMeteringPayload.interchangeReference)) ??
+    sanitizeEdifactToken(sourceMessage.interchange_reference)
 
   const linParts = lin?.split('+') ?? []
   const linItem = linParts[3]?.split(':')[0] ?? null
   const meteringPointId =
-    sanitizeEdifactToken(String(parsed.meteringPointId ?? parsed.metering_point_id ?? '')) ??
+    sanitizeEdifactToken(getParsedString(parsed.meteringPointId, parsed.metering_point_id, utiltsRuntimeFacts.meterPointId, utiltsRuntimeFacts.meteringPointId, normalizedMeteringPayload.meterPointId, normalizedMeteringPayload.meteringPointId)) ??
     sanitizeEdifactToken(linItem)
 
   const liSegment = rffs.find((segment) => segment.startsWith('RFF+LI:'))
   const lineItemReference =
-    sanitizeEdifactToken(String(parsed.lineItemReference ?? parsed.line_item_reference ?? '')) ??
+    sanitizeEdifactToken(getParsedString(parsed.lineItemReference, parsed.line_item_reference)) ??
     sanitizeEdifactToken(sourceMessage.transaction_reference) ??
     sanitizeEdifactToken(liSegment?.replace(/^RFF\+LI:/, '') ?? null)
 

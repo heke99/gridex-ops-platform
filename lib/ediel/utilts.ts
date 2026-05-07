@@ -26,11 +26,15 @@ export type UtiltsMessageCode =
 export type ParsedUtiltsMessage = {
   messageFamily: Extract<EdielMessageFamily, 'UTILTS'>
   messageCode: UtiltsMessageCode | EdielKnownMessageCode | null
+  messageVersion: string | null
   transactionReference: string | null
   externalReference: string | null
+  interchangeReference: string | null
   applicationReference: string | null
   senderEdielId: string | null
+  senderSubAddress: string | null
   receiverEdielId: string | null
+  receiverSubAddress: string | null
   rawSegments: string[]
   parsedPayload: Record<string, unknown>
 }
@@ -105,20 +109,47 @@ function firstSegmentValue(segments: string[], prefix: string): string | null {
 
 function extractUnbEdielIds(unb: string | null): {
   senderEdielId: string | null
+  senderSubAddress: string | null
   receiverEdielId: string | null
+  receiverSubAddress: string | null
+  interchangeReference: string | null
 } {
   if (!unb) {
-    return { senderEdielId: null, receiverEdielId: null }
+    return {
+      senderEdielId: null,
+      senderSubAddress: null,
+      receiverEdielId: null,
+      receiverSubAddress: null,
+      interchangeReference: null,
+    }
   }
 
   const parts = unb.split('+')
-  const senderRaw = parts[2] ?? ''
-  const receiverRaw = parts[3] ?? ''
+  const senderParts = (parts[2] ?? '').split(':')
+  const receiverParts = (parts[3] ?? '').split(':')
 
   return {
-    senderEdielId: senderRaw.split(':')[0]?.trim() || null,
-    receiverEdielId: receiverRaw.split(':')[0]?.trim() || null,
+    senderEdielId: senderParts[0]?.trim() || null,
+    senderSubAddress: senderParts[2]?.trim() || null,
+    receiverEdielId: receiverParts[0]?.trim() || null,
+    receiverSubAddress: receiverParts[2]?.trim() || null,
+    // UNB/0020 is element 5 in this split. UNB/S004 date+time is one composite
+    // element, e.g. 260506:1434, so the control reference follows at parts[5].
+    interchangeReference: parts[5]?.trim() || null,
   }
+}
+
+
+function extractUnhMessageVersion(unh: string | null): string | null {
+  if (!unh) return null
+  const messageType = unh.split('+')[2]?.trim() ?? ''
+  return messageType || null
+}
+
+function extractUtiltsGuideVersion(unh: string | null): string | null {
+  const messageType = extractUnhMessageVersion(unh)
+  const parts = messageType?.split(':') ?? []
+  return parts[4]?.trim() || messageType || null
 }
 
 function extractApplicationReference(rawPayload: string): string | null {
@@ -255,26 +286,42 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
   const gridAreaId = loc239?.split('+')[2]?.split(':')[0]?.trim() || null
   const quantity = extractQty(qty)
 
+  const transactionReference =
+    extractReference(rawPayload, 'TN') ||
+    extractReference(rawPayload, 'CR') ||
+    extractReference(rawPayload, 'E66') ||
+    null
+  const externalReference =
+    bgmParts[2]?.trim() ||
+    extractReference(rawPayload, 'ON') ||
+    extractReference(rawPayload, 'AAS') ||
+    extractReference(rawPayload, 'ACE') ||
+    null
+  const applicationReference = extractApplicationReference(rawPayload)
+  const messageVersion = extractUtiltsGuideVersion(unh)
+
   return {
     messageFamily: 'UTILTS',
     messageCode: bgmCode,
-    transactionReference:
-      extractReference(rawPayload, 'TN') ||
-      extractReference(rawPayload, 'CR') ||
-      extractReference(rawPayload, 'E66'),
-    externalReference:
-      bgmParts[2]?.trim() ||
-      extractReference(rawPayload, 'ON') ||
-      extractReference(rawPayload, 'AAS') ||
-      extractReference(rawPayload, 'ACE'),
-    applicationReference: extractApplicationReference(rawPayload),
+    messageVersion,
+    transactionReference,
+    externalReference,
+    interchangeReference: ids.interchangeReference,
+    applicationReference,
     senderEdielId: ids.senderEdielId,
+    senderSubAddress: ids.senderSubAddress,
     receiverEdielId: ids.receiverEdielId,
+    receiverSubAddress: ids.receiverSubAddress,
     rawSegments,
     parsedPayload: {
       unb,
       unh,
       bgm,
+      messageVersion,
+      interchangeReference: ids.interchangeReference,
+      applicationReference,
+      transactionReference,
+      documentReference: externalReference,
       meterPointId,
       meteringPointId: meterPointId,
       gridAreaId,
@@ -319,12 +366,15 @@ export function buildInboundUtiltsMessageInput(
     messageStandard: 'edifact',
     messageFamily: 'UTILTS',
     messageCode: parsed.messageCode ?? input.code,
+    messageVersion: parsed.messageVersion ?? null,
     status: 'received',
     transportType: 'imap',
     mailbox: input.mailbox ?? null,
     mailboxMessageId: input.mailboxMessageId ?? null,
     senderEdielId: parsed.senderEdielId ?? input.senderEdielId ?? null,
     receiverEdielId: parsed.receiverEdielId ?? input.receiverEdielId ?? null,
+    senderSubAddress: parsed.senderSubAddress,
+    receiverSubAddress: parsed.receiverSubAddress,
     senderEmail: input.senderEmail ?? null,
     receiverEmail: input.receiverEmail ?? null,
     fileName: inferEdielFileName({
@@ -334,6 +384,7 @@ export function buildInboundUtiltsMessageInput(
       extension: 'edi',
     }),
     mimeType: 'application/edifact',
+    interchangeReference: parsed.interchangeReference,
     externalReference: parsed.externalReference,
     transactionReference: parsed.transactionReference,
     applicationReference: parsed.applicationReference,
