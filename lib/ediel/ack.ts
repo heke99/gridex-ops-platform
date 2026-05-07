@@ -161,23 +161,8 @@ function segmentsFromRawPayload(rawPayload?: string | null): string[] {
     .filter(Boolean)
 }
 
-function getParsedObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {}
-}
-
-function getParsedString(...values: unknown[]): string | null {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim().length > 0) return value.trim()
-  }
-  return null
-}
-
 function parseEdifactRefs(sourceMessage: EdielMessageRow): ParsedEdifactRefs {
-  const parsed = getParsedObject(sourceMessage.parsed_payload)
-  const utiltsRuntimeFacts = getParsedObject(parsed.utiltsRuntimeFacts)
-  const normalizedMeteringPayload = getParsedObject(parsed.normalizedMeteringPayload)
+  const parsed = sourceMessage.parsed_payload ?? {}
   const segments = segmentsFromRawPayload(sourceMessage.raw_payload)
   const find = (prefix: string) => segments.find((segment) => segment.startsWith(prefix)) ?? null
   const findAll = (prefix: string) => segments.filter((segment) => segment.startsWith(prefix))
@@ -188,44 +173,39 @@ function parseEdifactRefs(sourceMessage: EdielMessageRow): ParsedEdifactRefs {
   const rffs = findAll('RFF+')
 
   const messageReference =
-    sanitizeEdifactToken(getParsedString(parsed.messageReference, parsed.message_reference, utiltsRuntimeFacts.messageReference, normalizedMeteringPayload.messageReference)) ??
+    sanitizeEdifactToken(String(parsed.messageReference ?? parsed.message_reference ?? '')) ??
     sanitizeEdifactToken(unh?.split('+')[1] ?? null)
 
   const bgmDocumentReference = sanitizeEdifactToken(bgm?.split('+')[2] ?? null)
 
   const documentReference =
     sanitizeEdifactToken(
-      getParsedString(
-        parsed.documentReference,
-        parsed.document_reference,
-        parsed.bgmReference,
-        parsed.bgm_reference,
-        utiltsRuntimeFacts.documentReference,
-        normalizedMeteringPayload.documentReference
+      String(
+        parsed.documentReference ??
+          parsed.document_reference ??
+          parsed.bgmReference ??
+          parsed.bgm_reference ??
+          ''
       )
     ) ??
     bgmDocumentReference ??
     sanitizeEdifactToken(sourceMessage.external_reference)
 
   const unbParts = unb?.split('+') ?? []
-  const rawUnbInterchangeReference = unbParts[5] ?? null
   const interchangeReference =
-    // CONTRL UCI/0020 must point to the original inbound UNB/0020. Prefer the
-    // raw payload because older imports sometimes stored BGM/reference fields in
-    // parsed payload while leaving ediel_messages.interchange_reference empty.
-    sanitizeEdifactToken(rawUnbInterchangeReference) ??
-    sanitizeEdifactToken(getParsedString(parsed.interchangeReference, parsed.interchange_reference, utiltsRuntimeFacts.interchangeReference, normalizedMeteringPayload.interchangeReference)) ??
-    sanitizeEdifactToken(sourceMessage.interchange_reference)
+    sanitizeEdifactToken(String(parsed.interchangeReference ?? parsed.interchange_reference ?? '')) ??
+    sanitizeEdifactToken(sourceMessage.interchange_reference) ??
+    sanitizeEdifactToken(unbParts[5] ?? null)
 
   const linParts = lin?.split('+') ?? []
   const linItem = linParts[3]?.split(':')[0] ?? null
   const meteringPointId =
-    sanitizeEdifactToken(getParsedString(parsed.meteringPointId, parsed.metering_point_id, utiltsRuntimeFacts.meterPointId, utiltsRuntimeFacts.meteringPointId, normalizedMeteringPayload.meterPointId, normalizedMeteringPayload.meteringPointId)) ??
+    sanitizeEdifactToken(String(parsed.meteringPointId ?? parsed.metering_point_id ?? '')) ??
     sanitizeEdifactToken(linItem)
 
   const liSegment = rffs.find((segment) => segment.startsWith('RFF+LI:'))
   const lineItemReference =
-    sanitizeEdifactToken(getParsedString(parsed.lineItemReference, parsed.line_item_reference)) ??
+    sanitizeEdifactToken(String(parsed.lineItemReference ?? parsed.line_item_reference ?? '')) ??
     sanitizeEdifactToken(sourceMessage.transaction_reference) ??
     sanitizeEdifactToken(liSegment?.replace(/^RFF\+LI:/, '') ?? null)
 
@@ -258,44 +238,16 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow, ackFamily: A
   }
 }
 
-function normalizeAckSubAddress(sourceMessage: EdielMessageRow, value?: string | null): string | null {
-  const subAddress = trimOrNull(value)
-  if (!subAddress) return null
-
-  const family = String(sourceMessage.message_family ?? '').toUpperCase()
-
-  // PRODAT uses the PRODAT routing subaddress in TGT. UTILTS/APERAK/CONTRL
-  // responses must not inherit PRODAT from a generic route/profile fallback,
-  // otherwise Edielportalen can validate the EDIFACT content but fail SMTP/routing
-  // mapping for the UTILTS test case.
-  if (family !== 'PRODAT' && subAddress.toUpperCase() === 'PRODAT') {
-    return null
-  }
-
-  return subAddress
-}
-
 function sourceParties(sourceMessage: EdielMessageRow) {
-  const family = String(sourceMessage.message_family ?? '').toUpperCase()
-  const fallbackSubAddress = family === 'PRODAT' ? 'PRODAT' : null
-  const senderSubAddress =
-    normalizeAckSubAddress(sourceMessage, sourceMessage.receiver_sub_address) ?? fallbackSubAddress
-  const receiverSubAddress =
-    normalizeAckSubAddress(sourceMessage, sourceMessage.sender_sub_address) ?? fallbackSubAddress
-
   return {
     senderEdielId: trimOrNull(sourceMessage.receiver_ediel_id),
     senderName: trimOrNull(sourceMessage.receiver_name),
-    senderSubAddress,
+    senderSubAddress: trimOrNull(sourceMessage.receiver_sub_address) ?? 'PRODAT',
     receiverEdielId: trimOrNull(sourceMessage.sender_ediel_id),
     receiverName: trimOrNull(sourceMessage.sender_name),
-    receiverSubAddress,
-    // For outbound ACKs, the SMTP From must be the mailbox where the original
-    // inbound message was received. Edielportalen validates this address against
-    // the registered UTILTS/PRODAT address for the test resource.
-    senderEmail: trimOrNull(sourceMessage.receiver_email),
+    receiverSubAddress: trimOrNull(sourceMessage.sender_sub_address) ?? 'PRODAT',
     receiverEmail: trimOrNull(sourceMessage.sender_email),
-    mailbox: trimOrNull(sourceMessage.receiver_email) ?? trimOrNull(sourceMessage.mailbox),
+    mailbox: trimOrNull(sourceMessage.mailbox),
   }
 }
 
@@ -338,9 +290,9 @@ function buildContrlSegments(params: {
       externalReference: params.sourceMessage.external_reference,
       id: params.sourceMessage.id,
       senderEdielId: params.sourceMessage.sender_ediel_id,
-      senderSubAddress: normalizeAckSubAddress(params.sourceMessage, params.sourceMessage.sender_sub_address),
+      senderSubAddress: params.sourceMessage.sender_sub_address,
       receiverEdielId: params.sourceMessage.receiver_ediel_id,
-      receiverSubAddress: normalizeAckSubAddress(params.sourceMessage, params.sourceMessage.receiver_sub_address),
+      receiverSubAddress: params.sourceMessage.receiver_sub_address,
     },
   })
 
@@ -394,8 +346,8 @@ function buildUtiltsErrSegments(params: {
 
   const uniqueCodes = Array.from(new Set(codes.length > 0 ? codes : ['E14']))
   const segments: Array<string | null> = [
-    'UNH+1+UTILTS:D:02B:UN:E5SE5A',
-    `BGM+ERR:SVK:260+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9`,
+    'UNH+1+UTILTS:D:01B:UN:1.1',
+    `BGM+Z09+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9`,
     `DTM+137:${swedishDateTime()}:203`,
     `RFF+TN:${sanitizeEdifactToken(params.transactionReference) ?? 'TN'}`,
     refs.documentReference ? `RFF+ACE:${refs.documentReference}` : null,
@@ -478,7 +430,7 @@ function buildAckDraft(params: {
           ? params.sourceMessage.message_family === 'UTILTS'
             ? 'APERAK:D:04A:UN:E5SE5A'
             : 'APERAK:D:96A:UN:E2SE6A'
-          : 'UTILTS:D:02B:UN:E5SE5A',
+          : 'UTILTS:D:01B:UN:1.1',
     applicationReference,
     segments,
     senderSubAddress: parties.senderSubAddress ?? undefined,
@@ -525,7 +477,6 @@ function buildAckDraft(params: {
     senderEdielId: parties.senderEdielId,
     senderName: parties.senderName,
     senderSubAddress: parties.senderSubAddress,
-    senderEmail: parties.senderEmail,
     receiverEdielId: parties.receiverEdielId,
     receiverName: parties.receiverName,
     receiverSubAddress: parties.receiverSubAddress,

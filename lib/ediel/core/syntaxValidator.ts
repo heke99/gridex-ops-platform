@@ -27,6 +27,27 @@ export type EdielSyntaxValidationResult = {
   actualMessageSegmentCount: number | null
 }
 
+
+function runtimeSyntaxAccepted(message: EdielMessageRow): boolean {
+  const report = message.validation_report as {
+    utiltsRuntime?: {
+      validation?: {
+        syntaxOk?: unknown
+        classification?: unknown
+      }
+    }
+  } | null
+
+  const validation = report?.utiltsRuntime?.validation
+  if (!validation) return false
+  if (validation.syntaxOk === true) return true
+  return (
+    validation.classification === 'application_rejected' ||
+    validation.classification === 'functional_rejected' ||
+    validation.classification === 'accepted'
+  )
+}
+
 function shouldRequireBgmReference(message: EdielMessageRow): boolean {
   if (message.message_family !== 'PRODAT') return false
   const code = String(message.message_code ?? '').toUpperCase()
@@ -128,7 +149,7 @@ export function validateEdifactSyntax(message: EdielMessageRow): EdielSyntaxVali
     })
   }
 
-  if (message.syntax_check_status === 'failed') {
+  if (message.syntax_check_status === 'failed' && !runtimeSyntaxAccepted(message)) {
     issues.push({
       code: 'syntax_check_failed',
       severity: 'error',
@@ -137,7 +158,7 @@ export function validateEdifactSyntax(message: EdielMessageRow): EdielSyntaxVali
     })
   }
 
-  if (message.status === 'failed') {
+  if (message.status === 'failed' && !runtimeSyntaxAccepted(message)) {
     issues.push({
       code: 'message_failed',
       severity: 'error',

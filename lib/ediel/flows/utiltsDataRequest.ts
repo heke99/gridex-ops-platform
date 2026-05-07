@@ -775,7 +775,7 @@ export async function processInboundUtiltsMessage(params: {
     await updateEdielMessageStatus({
       actorUserId,
       edielMessageId: message.id,
-      status: 'failed',
+      status: runtime.validation.classification === 'syntax_rejected' ? 'failed' : 'validated',
       failureReason: runtime.ackPlan.reason,
       parsedPayload: {
         ...(message.parsed_payload ?? {}),
