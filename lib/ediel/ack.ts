@@ -421,8 +421,10 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
       productIdSegment: segmentByPrefix(group, 'PIA+'),
       deliveryPeriodSegment: segmentByPrefix(group, 'DTM+324'),
       reasonSegment: segmentByPrefix(group, 'STS+7'),
-      settlementResponsibleSegment: segmentByPrefix(group, 'NAD+DDK'),
-      supplierSegment: segmentByPrefix(group, 'NAD+DDQ'),
+      settlementResponsibleSegment:
+        segmentByPrefixWithValue(group, 'NAD+DDK') ?? segmentByPrefix(group, 'NAD+DDK'),
+      supplierSegment:
+        segmentByPrefixWithValue(group, 'NAD+DDQ') ?? segmentByPrefix(group, 'NAD+DDQ'),
     }
   })
 }
@@ -430,6 +432,16 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
 function copiedUtiltsSegment(segment: string | null, allowedPrefix: string): string | null {
   if (!segment || !segment.toUpperCase().startsWith(allowedPrefix.toUpperCase())) return null
   return segment
+}
+
+function utiltsSegmentHasValue(segment: string | null | undefined, elementIndex = 2): boolean {
+  return Boolean(edifactElement(segment, elementIndex))
+}
+
+function segmentByPrefixWithValue(segments: readonly string[], prefix: string, elementIndex = 2): string | null {
+  return segments.find((segment) =>
+    segment.toUpperCase().startsWith(prefix.toUpperCase()) && utiltsSegmentHasValue(segment, elementIndex)
+  ) ?? null
 }
 
 function utiltsErrTransactionId(params: {
