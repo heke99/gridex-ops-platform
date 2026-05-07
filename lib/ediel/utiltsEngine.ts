@@ -3,6 +3,8 @@
 import type { EdielAckOutcome, EdielMessageRow } from '@/lib/ediel/types'
 import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts'
 
+export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-05-production-utilts-runtime-v1'
+
 export type UtiltsRuntimeMessageCode =
   | 'S01'
   | 'S02'
@@ -857,7 +859,7 @@ export function normalizeUtiltsRuntimePayload(facts: UtiltsRuntimeFacts, message
   return {
     ...parsedPayload,
     engine: 'utilts_runtime',
-    engineVersion: '2026-05-utilts-runtime-v1',
+    engineVersion: UTILTS_RUNTIME_ENGINE_VERSION,
     messageFamily: 'UTILTS',
     messageCode: facts.messageCode,
     messageVersion: facts.messageVersion,

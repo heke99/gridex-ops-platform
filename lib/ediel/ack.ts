@@ -292,6 +292,10 @@ function sourceParties(sourceMessage: EdielMessageRow) {
     senderEdielId: trimOrNull(sourceMessage.receiver_ediel_id),
     senderName: trimOrNull(sourceMessage.receiver_name),
     senderSubAddress: ackSubAddressForSource(sourceMessage, sourceMessage.receiver_sub_address),
+    // For acknowledgements, our outbound SMTP From must be the address the
+    // original message was delivered to. This is critical for both Ediel TGT
+    // and production actors where the counterparty validates sender mailbox.
+    senderEmail: trimOrNull(sourceMessage.receiver_email) ?? trimOrNull(sourceMessage.mailbox),
     receiverEdielId: trimOrNull(sourceMessage.sender_ediel_id),
     receiverName: trimOrNull(sourceMessage.sender_name),
     receiverSubAddress: ackSubAddressForSource(sourceMessage, sourceMessage.sender_sub_address),
@@ -757,6 +761,7 @@ function buildAckDraft(params: {
     senderEdielId: parties.senderEdielId,
     senderName: parties.senderName,
     senderSubAddress: parties.senderSubAddress,
+    senderEmail: parties.senderEmail,
     receiverEdielId: parties.receiverEdielId,
     receiverName: parties.receiverName,
     receiverSubAddress: parties.receiverSubAddress,
@@ -768,20 +773,28 @@ function buildAckDraft(params: {
       ackFamily: params.ackFamily,
       ackOutcome: outcome,
       sourceMessageId: params.sourceMessage.id,
+      sourceInterchangeReference: params.sourceMessage.interchange_reference,
+      sourceExternalReference: params.sourceMessage.external_reference,
+      sourceTransactionReference: params.sourceMessage.transaction_reference,
+      generatedInterchangeReference: envelope.interchangeReference,
+      generatedMessageReference: envelope.messageReference,
       applicationErrors: params.applicationErrors ?? null,
     },
     validationReport: {
       generatedBy: 'buildAckDraft',
+      engine: 'canonical_ediel_ack_engine',
+      engineVersion: '2026-05-production-ack-v1',
       sourceMessageId: params.sourceMessage.id,
       sourceFamily: params.sourceMessage.message_family,
       sourceCode: params.sourceMessage.message_code,
+      sourceInterchangeReference: params.sourceMessage.interchange_reference,
+      generatedInterchangeReference: envelope.interchangeReference,
       applicationErrors: params.applicationErrors ?? null,
     },
     applicationReference,
-    interchangeReference:
-      refs.originalMessageId ??
-      params.sourceMessage.interchange_reference ??
-      params.sourceMessage.id,
+    // Store the outbound UNB/0020 on the outbound row. The inbound
+    // interchange remains available through originalMessageId/correlation refs.
+    interchangeReference: envelope.interchangeReference,
     externalReference: refs.externalReference,
     correlationReference: refs.correlationReference ?? params.sourceMessage.id,
     transactionReference: refs.transactionReference,

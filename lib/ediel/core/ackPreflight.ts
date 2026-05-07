@@ -24,6 +24,29 @@ function containsSegment(rawUpper: string, tag: string): boolean {
   return normalized.startsWith(`${tag}+`) || normalized.includes(`'${tag}+`)
 }
 
+function segmentOccurrences(rawUpper: string, tag: string): number {
+  const normalized = rawUpper.replace(/\r?\n/g, '')
+  const pattern = new RegExp(`(^|')${tag}\\+`, 'g')
+  return Array.from(normalized.matchAll(pattern)).length
+}
+
+function allSegments(raw: string): string[] {
+  return String(raw ?? '')
+    .replace(/\r?\n/g, '')
+    .replace(/^UNA.{6}'/i, '')
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+}
+
+function isUtiltsS03Err(rawUpper: string, sourceMessage: EdielMessageRow): boolean {
+  return (
+    sourceMessage.message_family === 'UTILTS' &&
+    String(sourceMessage.message_code ?? '').toUpperCase() === 'S03' &&
+    rawUpper.includes('BGM+ERR:SVK:260')
+  )
+}
+
 function firstSegment(raw: string, tag: string): string | null {
   const upperTag = tag.toUpperCase()
   return String(raw ?? '')
@@ -245,6 +268,36 @@ function validateUtiltsErrPreflight(params: {
 
   if (!rawUpper.includes('STS+E01::260+41+')) {
     issues.push(issue('error', 'utilts_err_missing_sts_e01', 'UTILTS-ERR saknar STS+E01::260+41+<felkod>::260.'))
+  }
+
+  for (const singleton of ['UNB', 'UNH', 'BGM', 'UNT', 'UNZ']) {
+    if (segmentOccurrences(rawUpper, singleton) !== 1) {
+      issues.push(issue('error', `utilts_err_${singleton.toLowerCase()}_count`, `UTILTS-ERR ska innehålla exakt ett ${singleton}-segment.`))
+    }
+  }
+
+  if (isUtiltsS03Err(rawUpper, sourceMessage)) {
+    const segments = allSegments(String(ackMessage.raw_payload ?? ''))
+    const sg5HasValuedDdk = segments.some((segment) => /^NAD\+DDK\+[^']+/i.test(segment))
+    const sg5HasValuedDdq = segments.some((segment) => /^NAD\+DDQ\+[^']+/i.test(segment))
+    const hasPia = segments.some((segment) => /^PIA\+/i.test(segment))
+    const forbiddenDetail = segments.find((segment) => /^(LIN|MEA|CCI|CAV|SEQ|QTY)\+/i.test(segment))
+
+    if (!sg5HasValuedDdk) {
+      issues.push(issue('error', 'utilts_s03_err_missing_ddk_value', 'S03 UTILTS-ERR måste innehålla SG5/NAD+DDK med aktörs-ID.'))
+    }
+
+    if (!sg5HasValuedDdq) {
+      issues.push(issue('error', 'utilts_s03_err_missing_ddq_value', 'S03 UTILTS-ERR måste innehålla SG5/NAD+DDQ med aktörs-ID.'))
+    }
+
+    if (!hasPia) {
+      issues.push(issue('error', 'utilts_s03_err_missing_pia', 'S03 UTILTS-ERR måste innehålla SG5/PIA.'))
+    }
+
+    if (forbiddenDetail) {
+      issues.push(issue('error', 'utilts_s03_err_forbidden_quantity_detail', `S03 UTILTS-ERR får inte skicka mät-/kvantitetsdetalj ${forbiddenDetail.split('+')[0]} i avvisningssvaret.`))
+    }
   }
 
   issues.push(...validateNoProdatSubaddressForUtilts({ ackMessage, sourceMessage }))
