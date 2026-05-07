@@ -354,11 +354,15 @@ function buildAperakSegments(params: {
 }
 
 type UtiltsErrSourceGroup = {
+  segments: string[]
   transactionId: string | null
   meterPointId: string | null
   gridAreaId: string | null
+  productIdSegment: string | null
   deliveryPeriodSegment: string | null
   reasonSegment: string | null
+  settlementResponsibleSegment: string | null
+  supplierSegment: string | null
 }
 
 function edifactSegmentsFromRaw(rawPayload?: string | null): string[] {
@@ -410,11 +414,15 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
     const loc239 = segmentByPrefix(group, 'LOC+239')
 
     return {
+      segments: group,
       transactionId: firstCompositeComponent(edifactElement(ide, 2)),
       meterPointId: firstCompositeComponent(edifactElement(loc172, 2)),
       gridAreaId: firstCompositeComponent(edifactElement(loc239, 2)),
+      productIdSegment: segmentByPrefix(group, 'PIA+'),
       deliveryPeriodSegment: segmentByPrefix(group, 'DTM+324'),
       reasonSegment: segmentByPrefix(group, 'STS+7'),
+      settlementResponsibleSegment: segmentByPrefix(group, 'NAD+DDK'),
+      supplierSegment: segmentByPrefix(group, 'NAD+DDQ'),
     }
   })
 }
@@ -482,11 +490,15 @@ function resolveUtiltsErrSourceGroup(params: {
     params.usedMeterPointIds.has(group.meterPointId)
 
   return {
+    segments: group?.segments ?? params.groups[0]?.segments ?? [],
     transactionId: group?.transactionId ?? null,
     meterPointId: shouldOverrideMeterPoint ? expectedMeterPointId : group?.meterPointId ?? expectedMeterPointId,
     gridAreaId: group?.gridAreaId ?? 'TES',
+    productIdSegment: group?.productIdSegment ?? params.groups[0]?.productIdSegment ?? null,
     deliveryPeriodSegment: group?.deliveryPeriodSegment ?? params.groups[0]?.deliveryPeriodSegment ?? null,
     reasonSegment: group?.reasonSegment ?? params.groups[0]?.reasonSegment ?? 'STS+7++Z01:SVK:260',
+    settlementResponsibleSegment: group?.settlementResponsibleSegment ?? params.groups[0]?.settlementResponsibleSegment ?? null,
+    supplierSegment: group?.supplierSegment ?? params.groups[0]?.supplierSegment ?? null,
   }
 }
 
@@ -540,18 +552,38 @@ function buildUtiltsErrSegments(params: {
 
     segments.push(`IDE+24+${outboundTransactionId}`)
 
-    if (group?.meterPointId) {
-      const meterPointId = sanitizeEdifactToken(group.meterPointId) ?? group.meterPointId
-      segments.push(`LOC+172+${meterPointId}::9`)
-      usedMeterPointIds.add(meterPointId)
+    if (sourceCode === 'S03' && group?.segments?.length) {
+      // S03 profile-share UTILTS-ERR has a stricter SG5 structure than S02.
+      // The portal validator expects the original profile-share detail block
+      // (PIA/RFF/CCI/SEQ/PRI/QTY/NAD etc.) in the same order as the inbound
+      // S03 transaction. Do not hand-place NAD+DDK/NAD+DDQ; copying the
+      // original SG5 payload order avoids the parser treating NAD as an early
+      // close of the measurement/detail block.
+      for (const sourceSegment of group.segments) {
+        const upper = sourceSegment.toUpperCase()
+        if (upper.startsWith('IDE+24')) continue
+        if (upper.startsWith('STS+E01')) continue
+        if (upper.startsWith('RFF+TN:')) continue
+        if (upper.startsWith('RFF+S03:')) continue
+        if (upper.startsWith('UNT+') || upper.startsWith('UNZ+')) continue
+        segments.push(sourceSegment)
+      }
+    } else {
+      if (group?.meterPointId) {
+        const meterPointId = sanitizeEdifactToken(group.meterPointId) ?? group.meterPointId
+        segments.push(`LOC+172+${meterPointId}::9`)
+        usedMeterPointIds.add(meterPointId)
+      }
+
+      if (group?.gridAreaId) {
+        segments.push(`LOC+239+${sanitizeEdifactToken(group.gridAreaId) ?? group.gridAreaId}:SVK:260`)
+      }
+
+      segments.push(copiedUtiltsSegment(group?.productIdSegment ?? null, 'PIA+'))
+      segments.push(copiedUtiltsSegment(group?.deliveryPeriodSegment ?? null, 'DTM+324'))
+      segments.push(copiedUtiltsSegment(group?.reasonSegment ?? null, 'STS+7'))
     }
 
-    if (group?.gridAreaId) {
-      segments.push(`LOC+239+${sanitizeEdifactToken(group.gridAreaId) ?? group.gridAreaId}:SVK:260`)
-    }
-
-    segments.push(copiedUtiltsSegment(group?.deliveryPeriodSegment ?? null, 'DTM+324'))
-    segments.push(copiedUtiltsSegment(group?.reasonSegment ?? null, 'STS+7'))
     segments.push(`STS+E01::260+41+${code}::260`)
 
     if (group?.transactionId) {
