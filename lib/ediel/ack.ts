@@ -82,6 +82,33 @@ function swedishDateTime(date = new Date()): string {
   return `${map.year}${map.month}${map.day}${map.hour}${map.minute}`
 }
 
+
+function compactUtcTimestampWithSeconds(date = new Date()): string {
+  const year = String(date.getUTCFullYear()).slice(2)
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  const hours = String(date.getUTCHours()).padStart(2, '0')
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0')
+  return `${year}${month}${day}${hours}${minutes}${seconds}`
+}
+
+function randomEdifactToken(length = 6): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let result = ''
+  for (let index = 0; index < length; index += 1) {
+    result += chars[Math.floor(Math.random() * chars.length)]
+  }
+  return result
+}
+
+function buildUtiltsErrDocumentReference(): string {
+  // Edielportalen de-duplicates UTILTS-ERR on BGM/1004, not only UNB/0020.
+  // Keep the varying timestamp/random part inside the first 35 chars; otherwise
+  // sanitize/truncation can turn every retry into the same message id.
+  return sanitizeEdifactToken(`UTILTSERR-${compactUtcTimestampWithSeconds()}-${randomEdifactToken(6)}`, 35) ?? 'UTILTSERR'
+}
+
 function swedishDateTimeFromEdifactUnb(rawPayload?: string | null): string | null {
   const segments = segmentsFromRawPayload(rawPayload)
   const unb = segments.find((segment) => segment.toUpperCase().startsWith('UNB+'))
@@ -535,7 +562,7 @@ function buildUtiltsErrSegments(params: {
 
   const segments: Array<string | null> = [
     'UNH+1+UTILTS:D:02B:UN:E5SE5A',
-    `BGM+ERR:SVK:260+${sanitizeEdifactToken(params.externalReference) ?? 'UTILTSERR'}+9+AB`,
+    `BGM+ERR:SVK:260+${buildUtiltsErrDocumentReference()}+9+AB`,
     `DTM+137:${swedishDateTime()}:203`,
     'DTM+735:?+0100:406',
     copiedUtiltsSegment(sourceMks, 'MKS+'),
