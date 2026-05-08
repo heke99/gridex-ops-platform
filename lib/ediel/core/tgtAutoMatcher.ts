@@ -843,10 +843,39 @@ function looksLikePositiveUtiltsE66QuarterEnergyCase(message: EdielMessageRow, r
 
   // Explicit negative TGT markers must still win. This keeps U2.2.2/U2.2.4
   // available when imported testdata or portal text names the negative case.
-  if (/U2\.2\./i.test(rawText)) return false
+  if (/\bU2\.2\./i.test(rawText)) return false
   if (normalized.includes('ANVISNINGSFEL') || normalized.includes('FUNKTIONSFEL')) return false
   if (normalized.includes('REGISTRERINGSTIDPUNKT SAKNAS') || normalized.includes('REGISTRATION TIME MISSING')) return false
   if (textLooksLikeUtiltsE66FunctionalMultiError(rawText) || textLooksLikeUtiltsE66FunctionalSchError(rawText)) return false
+
+  return true
+}
+
+function shouldPreferPositiveUtiltsE66QuarterTgtCase(message: EdielMessageRow, rawText: string): boolean {
+  if (!looksLikePositiveUtiltsE66QuarterEnergyCase(message, rawText)) return false
+
+  // Do not let GridCore's own saved validation_report/failure_reason turn a
+  // portal-positive E66-T into U2.2.2. In the TGT flow, explicit negative
+  // testdata/case markers decide guide-error tests; a generic local 512
+  // finding is not enough because correct quarter-energy cases can contain the
+  // same local signal.
+  const contextWithoutLocalValidation = [
+    message.raw_payload,
+    message.application_reference,
+    message.external_reference,
+    message.transaction_reference,
+    message.correlation_reference,
+    message.original_transaction_id,
+    message.original_message_code,
+    JSON.stringify(message.parsed_payload ?? {}),
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const normalizedContext = normalize(contextWithoutLocalValidation)
+  if (/\bU2\.2\./i.test(contextWithoutLocalValidation)) return false
+  if (normalizedContext.includes('ANVISNINGSFEL') || normalizedContext.includes('FUNKTIONSFEL')) return false
+  if (normalizedContext.includes('REGISTRERINGSTIDPUNKT SAKNAS') || normalizedContext.includes('REGISTRATION TIME MISSING')) return false
 
   return true
 }
@@ -921,6 +950,8 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
     }
 
     if (code === 'E66') {
+      if (shouldPreferPositiveUtiltsE66QuarterTgtCase(message, rawText)) return 'U2.1.1'
+
       if (textLooksLikeUtiltsFunctionalError(rawText)) {
         if (textLooksLikeUtiltsE66FunctionalMultiError(rawText)) return /\bU2\.2\.4B\b/i.test(rawText) ? 'U2.2.4B' : 'U2.2.4'
         if (textLooksLikeUtiltsE66FunctionalSchError(rawText)) return /\bU2\.2\.3B\b/i.test(rawText) ? 'U2.2.3B' : 'U2.2.3'

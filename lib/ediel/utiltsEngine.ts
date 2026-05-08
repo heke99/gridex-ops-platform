@@ -506,7 +506,9 @@ function looksLikeEdielPortalUtiltsE66TgtMessage(message: EdielMessageRow): bool
 
   return (
     raw.includes('23-DDQ-E66-S') ||
+    raw.includes('23-DDQ-E66-T') ||
     meta.includes('23-DDQ-E66-S') ||
+    meta.includes('23-DDQ-E66-T') ||
     meta.includes('TESTKUND') ||
     meta.includes('EDIELPORTAL') ||
     (sender === '91100' && receiver === '92825') ||
