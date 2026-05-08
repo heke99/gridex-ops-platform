@@ -274,7 +274,7 @@ function utiltsTgtApplicationDecision(
   return null
 }
 
-function utiltsApplicationDecision(message: EdielMessageRow): {
+function utiltsApplicationDecision(message: EdielMessageRow, testData?: EdielTgtCaseTestData | null): {
   family: AckFamily
   outcome?: AckOutcome
   errors?: EdielAperakApplicationError[]
@@ -305,6 +305,22 @@ function utiltsApplicationDecision(message: EdielMessageRow): {
         lineItemReference: error.lineItemReference ?? null,
       })),
       messageText: runtime.ackPlan.reason,
+    }
+  }
+
+  const effectiveTgtTestData = testData ?? inferUtiltsTgtTestDataFromMessage(message)
+  const tgtDecision = utiltsTgtApplicationDecision(message, effectiveTgtTestData)
+
+  // TGT data is only used as a portal/test fallback when the runtime validator
+  // did not already produce a concrete application or functional rejection.
+  // Production decisions above still come from parsed UTILTS content.
+  if (tgtDecision) {
+    return {
+      family: tgtDecision.family,
+      outcome: tgtDecision.outcome,
+      errors: tgtDecision.errors,
+      messageText: tgtDecision.messageText,
+      matchedRule: tgtDecision.matchedRule,
     }
   }
 
@@ -581,8 +597,7 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
       })
     }
 
-    void tgtTestData
-    const utiltsDecision = utiltsApplicationDecision(message)
+    const utiltsDecision = utiltsApplicationDecision(message, tgtTestData)
 
     if (utiltsDecision.family === 'UTILTS_ERR') {
       return decision({

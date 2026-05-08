@@ -1555,6 +1555,45 @@ type BackendProdatAperakDecision = {
   selectedTgtCaseCode: string | null;
 };
 
+type UtiltsErrMessageTextParams = {
+  sourceMessage: EdielMessageRow;
+  messageText?: string | null;
+  relatedAcks?: readonly EdielMessageRow[];
+  testSuite?: EdielTestSuite | null;
+  roleCode?: EdielTestRoleCode | null;
+  testCaseCode?: string | null;
+};
+
+async function resolveUtiltsErrMessageTextForAckAction(params: UtiltsErrMessageTextParams): Promise<string | null> {
+  if (String(params.sourceMessage.message_family) !== 'UTILTS') {
+    return params.messageText ?? null;
+  }
+
+  const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
+  if (runtime.ackPlan.shouldSendUtiltsErr && runtime.ackPlan.utiltsErrCodes.length > 0) {
+    return runtime.ackPlan.utiltsErrCodes.join('|');
+  }
+
+  const tgtResolution = await resolveTgtTestDataForAckAction({
+    message: params.sourceMessage,
+    testSuite: params.testSuite ?? null,
+    roleCode: params.roleCode ?? null,
+    requestedTestCaseCode: params.testCaseCode ?? null,
+  });
+
+  const recommendation = resolveRecommendedAckForInboundMessage({
+    message: params.sourceMessage,
+    relatedAcks: params.relatedAcks ?? [],
+    tgtTestData: tgtResolution.testData,
+  });
+
+  if (recommendation.action?.ackFamily === 'UTILTS_ERR') {
+    return recommendation.action.messageText ?? params.messageText ?? 'UTILTS process- eller funktionsfel';
+  }
+
+  return params.messageText ?? null;
+}
+
 async function resolveBackendAperakDecision(params: {
   actorUserId: string;
   sourceMessage: EdielMessageRow;
@@ -1591,6 +1630,42 @@ async function resolveBackendAperakDecision(params: {
             utiltsErrCode: issue.utiltsErrCode ?? null,
             referenceNumber: issue.referenceNumber ?? null,
           })),
+        },
+      });
+
+      throw new Error(
+        `UTILTS funktions-/processfel ska besvaras med UTILTS-ERR (${codes}), inte APERAK. Använd rekommenderat svar eller välj UTILTS_ERR.`,
+      );
+    }
+
+    const tgtResolution = await resolveTgtTestDataForAckAction({
+      message: params.sourceMessage,
+      testSuite: params.testSuite ?? null,
+      roleCode: params.roleCode ?? null,
+      requestedTestCaseCode: params.testCaseCode ?? null,
+    });
+    const utiltsRecommendation = resolveRecommendedAckForInboundMessage({
+      message: params.sourceMessage,
+      relatedAcks: [],
+      tgtTestData: tgtResolution.testData,
+    });
+
+    if (utiltsRecommendation.action?.ackFamily === "UTILTS_ERR") {
+      const codes = utiltsRecommendation.action.messageText ?? "UTILTS_ERR";
+
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: params.sourceMessage.id,
+        eventType: "manual_note",
+        eventStatus: "warning",
+        message:
+          "APERAK blockerad: UTILTS-beslutet kräver UTILTS-ERR för funktions-/processfel.",
+        payload: {
+          selectedFamily: "UTILTS_ERR",
+          utiltsErrCodes: codes,
+          matchedRule: utiltsRecommendation.matchedRule,
+          selectedTgtCaseCode: tgtResolution.selectedTestCaseCode,
+          runtimeClassification: runtime.validation.classification,
         },
       });
 
@@ -1781,7 +1856,15 @@ export async function createAckDraftAction(formData: FormData) {
                 (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
               )
               .join(" | ")
-          : messageText,
+          : ackType === "UTILTS_ERR"
+            ? await resolveUtiltsErrMessageTextForAckAction({
+                sourceMessage,
+                messageText,
+                testSuite,
+                roleCode,
+                testCaseCode,
+              })
+            : messageText,
       applicationErrors: finalApplicationErrors,
     });
 
@@ -2059,7 +2142,15 @@ export async function createAndSendAckAction(formData: FormData) {
               (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
             )
             .join(" | ")
-        : messageText,
+        : ackType === "UTILTS_ERR"
+          ? await resolveUtiltsErrMessageTextForAckAction({
+              sourceMessage,
+              messageText,
+              testSuite,
+              roleCode,
+              testCaseCode,
+            })
+          : messageText,
     applicationErrors: finalApplicationErrors,
   });
 
