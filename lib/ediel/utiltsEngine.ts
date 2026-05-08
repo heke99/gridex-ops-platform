@@ -971,7 +971,16 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
       if (groupQuantities.some((qty) => qty.value !== null && qty.value < 0)) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_NEGATIVE_CONSUMPTION', title: 'Negativ förbrukning', description: 'E66 innehåller negativ förbrukning/mätvärde.', utiltsErrCode: 'E98', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
-      if (expectedCount !== null && groupQuantities.length > 0 && groupQuantities.length !== expectedCount) {
+      const isIntervalValueSeries =
+        (resolution.value === '15' || resolution.value === '60') &&
+        !groupHasMeterReadingQuantity(group)
+
+      if (
+        isIntervalValueSeries &&
+        expectedCount !== null &&
+        groupQuantities.length > 0 &&
+        groupQuantities.length !== expectedCount
+      ) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_OBSERVATION_COUNT_MISMATCH', title: 'Fel antal observationer', description: `Antal observationer (${groupQuantities.length}) matchar inte period/upplösning (${expectedCount}).`, utiltsErrCode: 'E87', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
       if ((resolution.value === '15' || resolution.value === '60') && !registrationTime) {
@@ -994,15 +1003,16 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
   }
 
   const syntaxOk = !issues.some((issue) => issue.severity === 'error' && issue.kind === 'syntax')
+  const hasFunctionalErrors = issues.some((issue) => issue.severity === 'error' && issue.kind === 'functional')
   const hasApplicationErrors = issues.some((issue) => issue.severity === 'error' && issue.kind === 'application')
-  const functionalOk = !issues.some((issue) => issue.severity === 'error' && issue.kind === 'functional')
+  const functionalOk = !hasFunctionalErrors
 
   const classification = !syntaxOk
     ? 'syntax_rejected'
-    : hasApplicationErrors
-      ? 'application_rejected'
-      : !functionalOk
-        ? 'functional_rejected'
+    : hasFunctionalErrors
+      ? 'functional_rejected'
+      : hasApplicationErrors
+        ? 'application_rejected'
         : 'accepted'
 
   return {

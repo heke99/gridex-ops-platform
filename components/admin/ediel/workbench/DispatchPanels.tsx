@@ -23,7 +23,11 @@ function deriveAckTypeFromSelection(
   prodatCode: SupportedProdatCode
 ): AckDraftType {
   if (selectedAckSource?.message_family === 'UTILTS') {
-    return 'APERAK'
+    // Generic/manual ACK drafting must not default UTILTS to APERAK.
+    // The production runtime decides APERAK vs UTILTS_ERR from validation.
+    // For a manual UTILTS fallback, prefer UTILTS_ERR so functional E66 errors
+    // cannot accidentally be sent as APERAK.
+    return 'UTILTS_ERR'
   }
 
   if (selectedAckSource?.message_family === 'UTILTS_ERR') {

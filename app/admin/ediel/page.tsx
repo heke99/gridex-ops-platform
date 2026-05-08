@@ -663,13 +663,16 @@ function AdvancedAckActions({
   message,
   hasContrl,
   hasAperak,
+  hasUtiltsErr,
   selectedTgtRow,
 }: {
   message: Awaited<ReturnType<typeof listEdielMessages>>[number]
   hasContrl: boolean
   hasAperak: boolean
+  hasUtiltsErr: boolean
   selectedTgtRow?: EdielTgtDynamicTestDataSummary | null
 }) {
+  const isInboundUtilts = message.direction === 'inbound' && message.message_family === 'UTILTS'
   const isInboundProdatZ04 = isInboundProdatMessage(message) && String(message.message_code).toUpperCase() === 'Z04'
   const selectedTgtHiddenInputs = selectedTgtRow ? (
     <>
@@ -711,7 +714,7 @@ function AdvancedAckActions({
           </form>
         ) : null}
 
-        {!hasAperak ? (
+        {!isInboundUtilts && !hasAperak ? (
           <form action={createAndSendAckAction}>
             <input type="hidden" name="sourceMessageId" value={message.id} />
             {selectedTgtHiddenInputs}
@@ -719,6 +722,18 @@ function AdvancedAckActions({
             <input type="hidden" name="outcome" value="positive" />
             <button className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
               Kör backend-kontroll APERAK
+            </button>
+          </form>
+        ) : null}
+
+        {isInboundUtilts && !hasUtiltsErr ? (
+          <form action={createAndSendAckAction}>
+            <input type="hidden" name="sourceMessageId" value={message.id} />
+            {selectedTgtHiddenInputs}
+            <input type="hidden" name="ackType" value="UTILTS_ERR" />
+            <input type="hidden" name="messageText" value="UTILTS process- eller funktionsfel" />
+            <button className="rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+              Preview UTILTS_ERR
             </button>
           </form>
         ) : null}
@@ -740,7 +755,9 @@ function AdvancedAckActions({
           </>
         ) : null}
 
-        {hasContrl && hasAperak ? <Badge tone="green">CONTRL och APERAK finns</Badge> : null}
+        {hasContrl && (hasAperak || hasUtiltsErr) ? (
+          <Badge tone="green">CONTRL och applikationssvar finns</Badge>
+        ) : null}
       </div>
     </details>
   )
@@ -906,6 +923,7 @@ function IncomingPortalResponses({
             const activeAcks = acks.filter((ack) => isActiveAckStatus(ack.status))
             const hasContrl = activeAcks.some((row) => row.message_family === 'CONTRL')
             const hasAperak = activeAcks.some((row) => row.message_family === 'APERAK')
+            const hasUtiltsErr = activeAcks.some((row) => row.message_family === 'UTILTS_ERR')
             const isInboundProdatZ04 =
               message.direction === 'inbound' &&
               message.message_family === 'PRODAT' &&
@@ -949,7 +967,7 @@ function IncomingPortalResponses({
                       selectedTgtRow={selectedTgtRow}
                       relevantTgtRows={relevantTgtRows}
                     />
-                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} selectedTgtRow={selectedTgtRow} />
+                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} hasUtiltsErr={hasUtiltsErr} selectedTgtRow={selectedTgtRow} />
                   </div>
                 ) : requiresContrlOnly ? (
                   <div className="mt-4 space-y-3">
@@ -959,7 +977,7 @@ function IncomingPortalResponses({
                       selectedTgtRow={selectedTgtRow}
                       relevantTgtRows={relevantTgtRows}
                     />
-                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} selectedTgtRow={selectedTgtRow} />
+                    <AdvancedAckActions message={message} hasContrl={hasContrl} hasAperak={hasAperak} hasUtiltsErr={hasUtiltsErr} selectedTgtRow={selectedTgtRow} />
                   </div>
                 ) : (
                   <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-800">
