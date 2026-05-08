@@ -1849,51 +1849,24 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   let backendUnmappedRuleKeys: string[] = [];
   let finalOutcome = recommendation.action.outcome;
 
-  if (
-    recommendation.action.ackFamily === "APERAK" &&
-    sourceMessage.message_family === "PRODAT"
-  ) {
-    const resolved = await resolveAndStoreProdatAperakErrors({
-      message: sourceMessage,
-      testData: tgtTestData,
+  if (recommendation.action.ackFamily === "APERAK") {
+    const backendDecision = await resolveBackendAperakDecision({
+      actorUserId: context.userId,
+      sourceMessage,
+      testSuite,
+      roleCode,
+      testCaseCode,
+      fallbackOutcome: recommendation.action.outcome ?? "positive",
+      fallbackApplicationErrors: recommendation.action.applicationErrors ?? null,
     });
 
-    backendIssueCount = resolved.issueCount;
-    backendUnmappedRuleKeys = resolved.unmappedIssues.map(
-      (issue) => issue.ruleKey,
-    );
-
-    if (resolved.unmappedIssues.length > 0) {
-      await createEdielMessageEvent({
-        actorUserId: context.userId,
-        edielMessageId: sourceMessageId,
-        eventType: "manual_note",
-        eventStatus: "error",
-        message:
-          "Negativ APERAK stoppad: backend saknar APERAK-regel för ett eller flera valideringsfel.",
-        payload: {
-          unmappedIssues: resolved.unmappedIssues,
-          issueCount: resolved.issueCount,
-        },
-      });
-
-      throw new Error(
-        `Negativ APERAK stoppad: saknar backendregel för ${resolved.unmappedIssues
-          .map((issue) => issue.ruleKey)
-          .join(", ")}.`,
-      );
-    }
-
-    if (resolved.errors.length > 0) {
-      backendResolvedAperakErrors = resolved.errors;
-      backendRuleKeys = resolved.matchedRuleKeys;
-      finalOutcome = "negative";
-    } else {
-      backendResolvedAperakErrors = [];
-      backendRuleKeys = [];
-      finalOutcome = "positive";
-    }
+    backendResolvedAperakErrors = backendDecision.applicationErrors ?? [];
+    backendRuleKeys = backendDecision.backendRuleKeys;
+    backendIssueCount = backendDecision.backendIssueCount;
+    backendUnmappedRuleKeys = backendDecision.backendUnmappedRuleKeys;
+    finalOutcome = backendDecision.outcome;
   }
+
 
   await removeReplaceableAckMessagesForSource({
     actorUserId: context.userId,

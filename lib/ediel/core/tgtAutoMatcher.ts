@@ -386,7 +386,14 @@ function utiltsTgtGroupHasEnergyQuantity(group: UtiltsTgtGroup): boolean {
 
 function utiltsTgtGroupResolution(group: UtiltsTgtGroup): string | null {
   const segment = group.segments.find((item) => item.toUpperCase().startsWith('DTM+354')) ?? null
-  return utiltsTgtFirstComponent(utiltsTgtElement(segment, 1))
+  const composite = utiltsTgtElement(segment, 1)
+  const parts = composite?.split(':') ?? []
+
+  // DTM+354 is shaped as DTM+354:<resolution>:<format>. The first component
+  // is the qualifier (354), while the required interval value is the second
+  // component (15/60). Returning the qualifier made quarter/hour E66 groups look
+  // non-interval, so U2.2.2 could slip through as positive APERAK.
+  return parts[1]?.trim() || null
 }
 
 function utiltsTgtSegmentHasRealRegistrationTime(segment: string): boolean {
