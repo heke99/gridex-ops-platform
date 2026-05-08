@@ -36,6 +36,7 @@ import {
 } from "@/lib/ediel/db";
 import { runEdielSelfTest } from "@/lib/ediel/selftest";
 import { buildInboundUtiltsMessageInput } from "@/lib/ediel/utilts";
+import { runUtiltsRuntimeForMessage } from "@/lib/ediel/utiltsEngine";
 import {
   buildProdatZ03FromSwitch,
   buildProdatZ04FromSwitch,
@@ -71,10 +72,7 @@ import {
   upsertEdielTgtDynamicTestData,
   type EdielTgtDynamicTestDataSummary,
 } from "@/lib/ediel/tgtTestDataStore";
-import {
-  resolveRecommendedAckForInboundMessage,
-  resolveUtiltsRuntimeApplicationDecision,
-} from "@/lib/ediel/core/ackDecisionEngine";
+import { resolveRecommendedAckForInboundMessage } from "@/lib/ediel/core/ackDecisionEngine";
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight";
 import {
   effectiveTgtTestCaseCodeForMessageRow,
@@ -1557,7 +1555,7 @@ type BackendProdatAperakDecision = {
   selectedTgtCaseCode: string | null;
 };
 
-async function resolveBackendProdatAperakDecision(params: {
+async function resolveBackendAperakDecision(params: {
   actorUserId: string;
   sourceMessage: EdielMessageRow;
   testSuite?: EdielTestSuite | null;
@@ -1567,6 +1565,50 @@ async function resolveBackendProdatAperakDecision(params: {
   fallbackApplicationErrors?: EdielAperakApplicationError[] | null;
 }): Promise<BackendProdatAperakDecision> {
   const fallbackOutcome = params.fallbackOutcome ?? "positive";
+
+  if (params.sourceMessage.message_family === "UTILTS") {
+    const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
+
+    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === "negative") {
+      return {
+        outcome: "negative",
+        applicationErrors: runtime.ackPlan.aperakApplicationErrors.map((error) => ({
+          ercCode: error.ercCode,
+          fieldCode: error.fieldCode ?? null,
+          text: error.text,
+          referenceQualifier: error.referenceQualifier ?? null,
+          referenceNumber: error.referenceNumber ?? null,
+          lineItemReference: error.lineItemReference ?? null,
+        })),
+        backendRuleKeys: runtime.validation.issues
+          .filter((issue) => issue.severity === "error" && issue.kind === "application")
+          .map((issue) => issue.code),
+        backendIssueCount: runtime.validation.issues.length,
+        backendUnmappedRuleKeys: [],
+        selectedTgtCaseCode: null,
+      };
+    }
+
+    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === "positive") {
+      return {
+        outcome: "positive",
+        applicationErrors: null,
+        backendRuleKeys: [],
+        backendIssueCount: runtime.validation.issues.length,
+        backendUnmappedRuleKeys: [],
+        selectedTgtCaseCode: null,
+      };
+    }
+
+    return {
+      outcome: fallbackOutcome,
+      applicationErrors: params.fallbackApplicationErrors ?? null,
+      backendRuleKeys: [],
+      backendIssueCount: runtime.validation.issues.length,
+      backendUnmappedRuleKeys: [],
+      selectedTgtCaseCode: null,
+    };
+  }
 
   if (params.sourceMessage.message_family !== "PRODAT") {
     return {
@@ -1677,16 +1719,9 @@ export async function createAckDraftAction(formData: FormData) {
   const sourceMessage = await getEdielMessageById(sourceMessageId);
   if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
 
-  const utiltsRuntimeDecisionCandidate =
-    ackType === "APERAK"
-      ? resolveUtiltsRuntimeApplicationDecision(sourceMessage)
-      : null;
-  const utiltsRuntimeDecision =
-    utiltsRuntimeDecisionCandidate?.family === "APERAK" ? utiltsRuntimeDecisionCandidate : null;
-
   const backendDecision =
-    ackType === "APERAK" && !utiltsRuntimeDecision
-      ? await resolveBackendProdatAperakDecision({
+    ackType === "APERAK"
+      ? await resolveBackendAperakDecision({
           actorUserId: context.userId,
           sourceMessage,
           testSuite,
@@ -1697,12 +1732,11 @@ export async function createAckDraftAction(formData: FormData) {
         })
       : null;
 
-  const finalOutcome = utiltsRuntimeDecision?.outcome ?? backendDecision?.outcome ?? outcome;
+  const finalOutcome = backendDecision?.outcome ?? outcome;
   const finalApplicationErrors =
     ackType === "APERAK"
-      ? (utiltsRuntimeDecision?.errors ?? backendDecision?.applicationErrors ?? applicationErrors)
+      ? (backendDecision?.applicationErrors ?? applicationErrors)
       : null;
-  const finalMessageText = utiltsRuntimeDecision?.messageText ?? messageText;
 
   try {
     const ackMessage = await createAckDraftForMessage({
@@ -1717,7 +1751,7 @@ export async function createAckDraftAction(formData: FormData) {
                 (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
               )
               .join(" | ")
-          : finalMessageText,
+          : messageText,
       applicationErrors: finalApplicationErrors,
     });
 
@@ -1815,23 +1849,8 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   let backendUnmappedRuleKeys: string[] = [];
   let finalOutcome = recommendation.action.outcome;
 
-  const utiltsRuntimeDecisionCandidate =
-    recommendation.action.ackFamily === "APERAK"
-      ? resolveUtiltsRuntimeApplicationDecision(sourceMessage)
-      : null;
-  const utiltsRuntimeDecision =
-    utiltsRuntimeDecisionCandidate?.family === "APERAK" ? utiltsRuntimeDecisionCandidate : null;
-
-  if (utiltsRuntimeDecision) {
-    backendResolvedAperakErrors = utiltsRuntimeDecision.errors ?? [];
-    backendRuleKeys = [utiltsRuntimeDecision.matchedRule];
-    backendIssueCount = (utiltsRuntimeDecision.errors ?? []).length;
-    finalOutcome = utiltsRuntimeDecision.outcome ?? finalOutcome;
-  }
-
   if (
     recommendation.action.ackFamily === "APERAK" &&
-    !utiltsRuntimeDecision &&
     sourceMessage.message_family === "PRODAT"
   ) {
     const resolved = await resolveAndStoreProdatAperakErrors({
@@ -1905,7 +1924,7 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
               (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
             )
             .join(" | ")
-        : (utiltsRuntimeDecision?.messageText ?? recommendation.action.messageText ?? null),
+        : (recommendation.action.messageText ?? null),
     applicationErrors: finalApplicationErrors,
   });
 
@@ -1999,16 +2018,9 @@ export async function createAndSendAckAction(formData: FormData) {
   const sourceMessage = await getEdielMessageById(sourceMessageId);
   if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
 
-  const utiltsRuntimeDecisionCandidate =
-    ackType === "APERAK"
-      ? resolveUtiltsRuntimeApplicationDecision(sourceMessage)
-      : null;
-  const utiltsRuntimeDecision =
-    utiltsRuntimeDecisionCandidate?.family === "APERAK" ? utiltsRuntimeDecisionCandidate : null;
-
   const backendDecision =
-    ackType === "APERAK" && !utiltsRuntimeDecision
-      ? await resolveBackendProdatAperakDecision({
+    ackType === "APERAK"
+      ? await resolveBackendAperakDecision({
           actorUserId: context.userId,
           sourceMessage,
           testSuite,
@@ -2019,12 +2031,11 @@ export async function createAndSendAckAction(formData: FormData) {
         })
       : null;
 
-  const finalOutcome = utiltsRuntimeDecision?.outcome ?? backendDecision?.outcome ?? outcome;
+  const finalOutcome = backendDecision?.outcome ?? outcome;
   const finalApplicationErrors =
     ackType === "APERAK"
-      ? (utiltsRuntimeDecision?.errors ?? backendDecision?.applicationErrors ?? applicationErrors)
+      ? (backendDecision?.applicationErrors ?? applicationErrors)
       : null;
-  const finalMessageText = utiltsRuntimeDecision?.messageText ?? messageText;
 
   await removeReplaceableAckMessagesForSource({
     actorUserId: context.userId,
@@ -2045,7 +2056,7 @@ export async function createAndSendAckAction(formData: FormData) {
               (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
             )
             .join(" | ")
-        : finalMessageText,
+        : messageText,
     applicationErrors: finalApplicationErrors,
   });
 

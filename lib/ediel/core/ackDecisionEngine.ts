@@ -159,57 +159,6 @@ function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined
   return String(testData?.testCaseCode ?? '').trim().toUpperCase()
 }
 
-
-export function resolveUtiltsRuntimeApplicationDecision(message: EdielMessageRow): {
-  family: AckFamily
-  outcome?: AckOutcome
-  errors?: EdielAperakApplicationError[]
-  messageText?: string | null
-  matchedRule: string
-} | null {
-  if (String(message.message_family ?? '').toUpperCase() !== 'UTILTS') return null
-
-  try {
-    const runtime = runUtiltsRuntimeForMessage(message)
-    const issueCodes = runtime.validation.issues.map((issue) => issue.code).filter(Boolean)
-    const matchedRule = issueCodes.length > 0
-      ? `UTILTS_RUNTIME_VALIDATION:${issueCodes.join(',')}`
-      : 'UTILTS_RUNTIME_ACCEPTED'
-
-    if (runtime.ackPlan.shouldSendUtiltsErr) {
-      return {
-        family: 'UTILTS_ERR',
-        messageText: runtime.ackPlan.reason,
-        matchedRule,
-      }
-    }
-
-    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'negative') {
-      return {
-        family: 'APERAK',
-        outcome: 'negative',
-        errors: runtime.ackPlan.aperakApplicationErrors,
-        messageText: runtime.ackPlan.reason,
-        matchedRule,
-      }
-    }
-
-    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'positive') {
-      return {
-        family: 'APERAK',
-        outcome: 'positive',
-        errors: [],
-        messageText: runtime.ackPlan.reason,
-        matchedRule,
-      }
-    }
-
-    return null
-  } catch {
-    return null
-  }
-}
-
 function utiltsTgtApplicationDecision(
   message: EdielMessageRow,
   testData: EdielTgtCaseTestData | null | undefined
@@ -332,6 +281,33 @@ function utiltsApplicationDecision(message: EdielMessageRow): {
   messageText?: string | null
   matchedRule: string
 } {
+  const runtime = runUtiltsRuntimeForMessage(message)
+
+  if (runtime.ackPlan.shouldSendUtiltsErr) {
+    return {
+      family: 'UTILTS_ERR',
+      messageText: runtime.ackPlan.utiltsErrCodes.join('|') || 'UTILTS process- eller funktionsfel',
+      matchedRule: `UTILTS_RUNTIME_${runtime.validation.classification.toUpperCase()}`,
+    }
+  }
+
+  if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'negative') {
+    return {
+      family: 'APERAK',
+      outcome: 'negative',
+      matchedRule: `UTILTS_RUNTIME_${runtime.validation.classification.toUpperCase()}`,
+      errors: runtime.ackPlan.aperakApplicationErrors.map((error) => ({
+        ercCode: error.ercCode,
+        fieldCode: error.fieldCode ?? null,
+        text: error.text,
+        referenceQualifier: error.referenceQualifier ?? null,
+        referenceNumber: error.referenceNumber ?? null,
+        lineItemReference: error.lineItemReference ?? null,
+      })),
+      messageText: runtime.ackPlan.reason,
+    }
+  }
+
   const raw = String(message.raw_payload ?? '').toUpperCase()
   const validationText = JSON.stringify(message.validation_report ?? {}).toUpperCase()
   const text = `${raw} ${validationText} ${String(message.failure_reason ?? '').toUpperCase()}`
@@ -606,8 +582,10 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
     }
 
     const effectiveTgtTestData = tgtTestData ?? inferUtiltsTgtTestDataFromMessage(message)
-    const runtimeDecision = resolveUtiltsRuntimeApplicationDecision(message)
-    const utiltsDecision = runtimeDecision ?? utiltsTgtApplicationDecision(message, effectiveTgtTestData) ?? utiltsApplicationDecision(message)
+    const runtimeUtiltsDecision = utiltsApplicationDecision(message)
+    const utiltsDecision = runtimeUtiltsDecision.outcome === 'negative' || runtimeUtiltsDecision.family === 'UTILTS_ERR'
+      ? runtimeUtiltsDecision
+      : (utiltsTgtApplicationDecision(message, effectiveTgtTestData) ?? runtimeUtiltsDecision)
 
     if (utiltsDecision.family === 'UTILTS_ERR') {
       return decision({

@@ -396,8 +396,9 @@ function utiltsTgtSegmentHasRealRegistrationTime(segment: string): boolean {
   const composite = utiltsTgtElement(segment, 1)
   const value = utiltsTgtFirstComponent(composite)
 
-  // DTM+597 without an actual date value, e.g. DTM+597, DTM+597:,
-  // DTM+597:? or DTM+597:?+0100:406, is not a registration timestamp.
+  // DTM+597 by itself, DTM+597:, DTM+597:? or other placeholders do not
+  // contain the mandatory registration timestamp. For U2.2.2 the qualifier
+  // can exist while the actual timestamp is still missing.
   if (!value || value.includes('?')) return false
 
   return /^(\d{8}|\d{10}|\d{12}|\d{14})$/.test(value)
@@ -427,7 +428,7 @@ function rawLooksLikeUtiltsE66GuideSchError(rawText: string): boolean {
   })
 }
 
-export function rawLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {
+function rawLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {
   const groups = splitUtiltsTgtGroups(rawText)
   return groups.some((group) => utiltsTgtGroupIsIntervalValueGroup(group) && !utiltsTgtGroupHasRegistrationTime(group))
 }
