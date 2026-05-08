@@ -114,6 +114,26 @@ function isUtiltsErrAck(ack: EdielMessageRow): boolean {
   )
 }
 
+function isAckLikeMessage(message: EdielMessageRow): boolean {
+  return (
+    String(message.message_family) === 'CONTRL' ||
+    String(message.message_family) === 'APERAK' ||
+    String(message.message_family) === 'UTILTS_ERR' ||
+    (String(message.message_family) === 'UTILTS' && String(message.message_code).toUpperCase() === 'ERR')
+  )
+}
+
+function shouldShowAsOwnMessageCard(message: EdielMessageRow, explicitFamilyFilter: string | undefined): boolean {
+  // In the normal message overview, generated ACK/response messages should be
+  // shown on the source inbound card via related_message_id. This prevents one
+  // inbound UTILTS/PRODAT from appearing as three separate cards after CONTRL
+  // and APERAK are created. Direct ACK filters still show ACK messages for
+  // troubleshooting.
+  if (explicitFamilyFilter) return true
+  if (message.related_message_id && isAckLikeMessage(message)) return false
+  return true
+}
+
 export default async function AdminEdielMessagesPage({
   searchParams,
 }: {
@@ -133,8 +153,10 @@ export default async function AdminEdielMessagesPage({
     limit: 100,
   })
 
+  const topLevelMessages = messages.filter((message) => shouldShowAsOwnMessageCard(message, family))
+
   const rows: RowWithAcks[] = await Promise.all(
-    messages.map(async (message) => ({
+    topLevelMessages.map(async (message) => ({
       message,
       ackMessages:
         message.direction === 'inbound'
@@ -157,7 +179,7 @@ export default async function AdminEdielMessagesPage({
             <div>
               <h1 className="text-xl font-semibold text-slate-900">Meddelandevy</h1>
               <p className="mt-1 max-w-3xl text-sm text-slate-600">
-                För U1.1.1: hämta IMAP, öppna rätt inbound UTILTS S02, kör engine en gång och skicka sedan bara en CONTRL + en APERAK för samma inbound-referens. Om svar redan finns spärras ny engine-körning för att undvika dubbletter.
+                Hämta IMAP, öppna rätt inbound UTILTS/PRODAT och kör engine en gång. CONTRL, APERAK och UTILTS_ERR visas som kopplade svar på samma inbound-kort när de har related_message_id, så normalvyn blir inte tre separata kort för samma test.
               </p>
             </div>
 

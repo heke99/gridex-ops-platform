@@ -420,10 +420,15 @@ function rawLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {
 
 function textLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {
   const normalized = normalize(rawText)
+
+  // Important for U2.1.5: GridCore can receive validation metadata that mentions
+  // field 512 even when Edielportalen expects the positive quarter-energy case.
+  // Do not classify E66-T as U2.2.2 from a bare field number/code-list mention.
+  // Only explicit guide-error wording or the raw inbound EDIFACT structure may
+  // move the message to the negative APERAK path.
   return (
     normalized.includes('REGISTRERINGSTIDPUNKT SAKNAS') ||
     normalized.includes('REGISTRATION TIME MISSING') ||
-    normalized.includes('512') ||
     rawLooksLikeUtiltsE66QuarterGuideError(rawText)
   )
 }
@@ -818,6 +823,34 @@ export function compareInboundPayloadToTgtTestData(params: {
   })
 }
 
+
+function utiltsApplicationReference(message: EdielMessageRow, rawText: string): string {
+  return [
+    message.application_reference,
+    message.raw_payload,
+    rawText,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toUpperCase()
+}
+
+function looksLikePositiveUtiltsE66QuarterEnergyCase(message: EdielMessageRow, rawText: string): boolean {
+  const text = utiltsApplicationReference(message, rawText)
+  const normalized = normalize(rawText)
+
+  if (!text.includes('23-DDQ-E66-T')) return false
+
+  // Explicit negative TGT markers must still win. This keeps U2.2.2/U2.2.4
+  // available when imported testdata or portal text names the negative case.
+  if (/U2\.2\./i.test(rawText)) return false
+  if (normalized.includes('ANVISNINGSFEL') || normalized.includes('FUNKTIONSFEL')) return false
+  if (normalized.includes('REGISTRERINGSTIDPUNKT SAKNAS') || normalized.includes('REGISTRATION TIME MISSING')) return false
+  if (textLooksLikeUtiltsE66FunctionalMultiError(rawText) || textLooksLikeUtiltsE66FunctionalSchError(rawText)) return false
+
+  return true
+}
+
 export function inferTgtTestCaseCodeForInboundTestData(params: {
   message: EdielMessageRow
   rawText: string
@@ -894,7 +927,7 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
         return /\bU2\.2\.3B\b/i.test(rawText) ? 'U2.2.3B' : 'U2.2.3'
       }
 
-      if (textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U2.2.2'
+      if (!looksLikePositiveUtiltsE66QuarterEnergyCase(message, rawText) && textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U2.2.2'
 
       if (rawLooksLikeUtiltsE66GuideSchError(rawText) || textLooksLikeUtiltsGuideError(rawText)) {
         return /\bU2\.2\.1B\b/i.test(rawText) ? 'U2.2.1B' : 'U2.2.1'
