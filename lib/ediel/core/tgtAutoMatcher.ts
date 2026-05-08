@@ -848,6 +848,12 @@ function looksLikePositiveUtiltsE66QuarterEnergyCase(message: EdielMessageRow, r
   if (normalized.includes('REGISTRERINGSTIDPUNKT SAKNAS') || normalized.includes('REGISTRATION TIME MISSING')) return false
   if (textLooksLikeUtiltsE66FunctionalMultiError(rawText) || textLooksLikeUtiltsE66FunctionalSchError(rawText)) return false
 
+  // Quarter/timed E66 can be a positive U2.1 case, but not when the actual
+  // inbound UTILTS structure is missing the required registration timestamp.
+  // This keeps U2.1.5 positive while allowing U2.2.2 to become negative
+  // APERAK based on payload structure rather than hardcoded test ids.
+  if (rawLooksLikeUtiltsE66QuarterGuideError(rawText)) return false
+
   return true
 }
 
@@ -950,6 +956,8 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
     }
 
     if (code === 'E66') {
+      if (textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U2.2.2'
+
       if (shouldPreferPositiveUtiltsE66QuarterTgtCase(message, rawText)) return 'U2.1.1'
 
       if (textLooksLikeUtiltsFunctionalError(rawText)) {
