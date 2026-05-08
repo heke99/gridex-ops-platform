@@ -118,13 +118,34 @@ function looksLikeEdielPortalUtiltsE66TgtMessage(message: EdielMessageRow): bool
   )
 }
 
+function utiltsTgtInferenceText(message: EdielMessageRow): string {
+  // Use only the inbound payload and routing/test metadata for TGT case inference.
+  // Do not include GridCore's own validation_report/failure_reason here: those
+  // values are produced by our local validator and can contain generic field
+  // warnings like 512/MANDATORY for correct E66-T quarter-value test cases.
+  // If those local findings are mixed into the TGT matcher, positive portal
+  // cases can be misclassified as U2.2 guide errors before APERAK creation.
+  return [
+    message.raw_payload,
+    message.application_reference,
+    message.external_reference,
+    message.transaction_reference,
+    message.interchange_reference,
+    message.original_transaction_id,
+    message.original_message_code,
+    JSON.stringify(message.parsed_payload ?? {}),
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
 function inferUtiltsTgtTestDataFromMessage(message: EdielMessageRow): EdielTgtCaseTestData | null {
   if (!looksLikeEdielPortalUtiltsE66TgtMessage(message)) return null
 
   try {
     const testCaseCode = inferTgtTestCaseCodeForInboundTestData({
       message,
-      rawText: messageContextText(message),
+      rawText: utiltsTgtInferenceText(message),
     })
 
     return testCaseCode ? ({ testCaseCode: testCaseCode.toUpperCase() } as EdielTgtCaseTestData) : null
