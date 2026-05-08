@@ -389,23 +389,8 @@ function utiltsTgtGroupResolution(group: UtiltsTgtGroup): string | null {
   return utiltsTgtFirstComponent(utiltsTgtElement(segment, 1))
 }
 
-function utiltsTgtSegmentHasRealRegistrationTime(segment: string): boolean {
-  const upper = segment.toUpperCase().trim()
-  if (!upper.startsWith('DTM+597')) return false
-
-  const composite = utiltsTgtElement(segment, 1)
-  const value = utiltsTgtFirstComponent(composite)
-
-  // Bare DTM+597, DTM+597:, DTM+597:? or other placeholders are not
-  // valid registration timestamps. TGT U2.2.2 must therefore remain an
-  // anvisningsfel even when the qualifier exists without an actual date.
-  if (!value || value.includes('?')) return false
-
-  return /^(\d{8}|\d{10}|\d{12}|\d{14})$/.test(value)
-}
-
 function utiltsTgtGroupHasRegistrationTime(group: UtiltsTgtGroup): boolean {
-  return group.segments.some((segment) => utiltsTgtSegmentHasRealRegistrationTime(segment))
+  return group.segments.some((segment) => segment.toUpperCase().startsWith('DTM+597'))
 }
 
 function utiltsTgtGroupIsIntervalValueGroup(group: UtiltsTgtGroup): boolean {
@@ -428,7 +413,7 @@ function rawLooksLikeUtiltsE66GuideSchError(rawText: string): boolean {
   })
 }
 
-function rawLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {
+export function rawLooksLikeUtiltsE66QuarterGuideError(rawText: string): boolean {
   const groups = splitUtiltsTgtGroups(rawText)
   return groups.some((group) => utiltsTgtGroupIsIntervalValueGroup(group) && !utiltsTgtGroupHasRegistrationTime(group))
 }

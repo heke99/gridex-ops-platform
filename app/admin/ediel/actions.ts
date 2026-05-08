@@ -71,7 +71,10 @@ import {
   upsertEdielTgtDynamicTestData,
   type EdielTgtDynamicTestDataSummary,
 } from "@/lib/ediel/tgtTestDataStore";
-import { resolveRecommendedAckForInboundMessage } from "@/lib/ediel/core/ackDecisionEngine";
+import {
+  resolveRecommendedAckForInboundMessage,
+  resolveUtiltsE66MissingRegistrationTimeAperakOverride,
+} from "@/lib/ediel/core/ackDecisionEngine";
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight";
 import {
   effectiveTgtTestCaseCodeForMessageRow,
@@ -1674,8 +1677,13 @@ export async function createAckDraftAction(formData: FormData) {
   const sourceMessage = await getEdielMessageById(sourceMessageId);
   if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
 
-  const backendDecision =
+  const utiltsBackendGuard =
     ackType === "APERAK"
+      ? resolveUtiltsE66MissingRegistrationTimeAperakOverride(sourceMessage)
+      : null;
+
+  const backendDecision =
+    ackType === "APERAK" && !utiltsBackendGuard
       ? await resolveBackendProdatAperakDecision({
           actorUserId: context.userId,
           sourceMessage,
@@ -1687,11 +1695,12 @@ export async function createAckDraftAction(formData: FormData) {
         })
       : null;
 
-  const finalOutcome = backendDecision?.outcome ?? outcome;
+  const finalOutcome = utiltsBackendGuard?.outcome ?? backendDecision?.outcome ?? outcome;
   const finalApplicationErrors =
     ackType === "APERAK"
-      ? (backendDecision?.applicationErrors ?? applicationErrors)
+      ? (utiltsBackendGuard?.errors ?? backendDecision?.applicationErrors ?? applicationErrors)
       : null;
+  const finalMessageText = utiltsBackendGuard?.messageText ?? messageText;
 
   try {
     const ackMessage = await createAckDraftForMessage({
@@ -1706,7 +1715,7 @@ export async function createAckDraftAction(formData: FormData) {
                 (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
               )
               .join(" | ")
-          : messageText,
+          : finalMessageText,
       applicationErrors: finalApplicationErrors,
     });
 
@@ -1804,8 +1813,21 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   let backendUnmappedRuleKeys: string[] = [];
   let finalOutcome = recommendation.action.outcome;
 
+  const utiltsBackendGuard =
+    recommendation.action.ackFamily === "APERAK"
+      ? resolveUtiltsE66MissingRegistrationTimeAperakOverride(sourceMessage)
+      : null;
+
+  if (utiltsBackendGuard) {
+    backendResolvedAperakErrors = utiltsBackendGuard.errors;
+    backendRuleKeys = [utiltsBackendGuard.matchedRule];
+    backendIssueCount = utiltsBackendGuard.errors.length;
+    finalOutcome = utiltsBackendGuard.outcome;
+  }
+
   if (
     recommendation.action.ackFamily === "APERAK" &&
+    !utiltsBackendGuard &&
     sourceMessage.message_family === "PRODAT"
   ) {
     const resolved = await resolveAndStoreProdatAperakErrors({
@@ -1879,7 +1901,7 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
               (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
             )
             .join(" | ")
-        : (recommendation.action.messageText ?? null),
+        : (utiltsBackendGuard?.messageText ?? recommendation.action.messageText ?? null),
     applicationErrors: finalApplicationErrors,
   });
 
@@ -1973,8 +1995,13 @@ export async function createAndSendAckAction(formData: FormData) {
   const sourceMessage = await getEdielMessageById(sourceMessageId);
   if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
 
-  const backendDecision =
+  const utiltsBackendGuard =
     ackType === "APERAK"
+      ? resolveUtiltsE66MissingRegistrationTimeAperakOverride(sourceMessage)
+      : null;
+
+  const backendDecision =
+    ackType === "APERAK" && !utiltsBackendGuard
       ? await resolveBackendProdatAperakDecision({
           actorUserId: context.userId,
           sourceMessage,
@@ -1986,11 +2013,12 @@ export async function createAndSendAckAction(formData: FormData) {
         })
       : null;
 
-  const finalOutcome = backendDecision?.outcome ?? outcome;
+  const finalOutcome = utiltsBackendGuard?.outcome ?? backendDecision?.outcome ?? outcome;
   const finalApplicationErrors =
     ackType === "APERAK"
-      ? (backendDecision?.applicationErrors ?? applicationErrors)
+      ? (utiltsBackendGuard?.errors ?? backendDecision?.applicationErrors ?? applicationErrors)
       : null;
+  const finalMessageText = utiltsBackendGuard?.messageText ?? messageText;
 
   await removeReplaceableAckMessagesForSource({
     actorUserId: context.userId,
@@ -2011,7 +2039,7 @@ export async function createAndSendAckAction(formData: FormData) {
               (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
             )
             .join(" | ")
-        : messageText,
+        : finalMessageText,
     applicationErrors: finalApplicationErrors,
   });
 

@@ -4,7 +4,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { validateEdifactSyntax, type EdielSyntaxIssue } from '@/lib/ediel/core/syntaxValidator'
 import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
-import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
+import { inferTgtTestCaseCodeForInboundTestData, rawLooksLikeUtiltsE66QuarterGuideError } from '@/lib/ediel/core/tgtAutoMatcher'
 
 export type EdielAckDecisionKind =
   | 'send_positive_contrl'
@@ -156,6 +156,36 @@ function inferUtiltsTgtTestDataFromMessage(message: EdielMessageRow): EdielTgtCa
 
 function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined): string {
   return String(testData?.testCaseCode ?? '').trim().toUpperCase()
+}
+
+
+export function resolveUtiltsE66MissingRegistrationTimeAperakOverride(message: EdielMessageRow): {
+  outcome: AckOutcome
+  errors: EdielAperakApplicationError[]
+  messageText: string
+  matchedRule: string
+} | null {
+  if (String(message.message_family ?? '').toUpperCase() !== 'UTILTS') return null
+  if (String(message.message_code ?? '').toUpperCase() !== 'E66') return null
+
+  const rawText = utiltsTgtInferenceText(message)
+  if (!rawLooksLikeUtiltsE66QuarterGuideError(rawText)) return null
+
+  const error: EdielAperakApplicationError = {
+    ercCode: '41',
+    fieldCode: '512',
+    text: 'MANDATORY FIELD MISSING',
+    referenceQualifier: null,
+    referenceNumber: null,
+    lineItemReference: message.transaction_reference ?? null,
+  }
+
+  return {
+    outcome: 'negative',
+    errors: [error],
+    messageText: 'UTILTS-E66 kvart anvisningsfel',
+    matchedRule: 'UTILTS_E66_MISSING_REAL_DTM597_BACKEND_GUARD',
+  }
 }
 
 function utiltsTgtApplicationDecision(
@@ -554,7 +584,8 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
     }
 
     const effectiveTgtTestData = tgtTestData ?? inferUtiltsTgtTestDataFromMessage(message)
-    const utiltsDecision = utiltsTgtApplicationDecision(message, effectiveTgtTestData) ?? utiltsApplicationDecision(message)
+    const contentOverride = resolveUtiltsE66MissingRegistrationTimeAperakOverride(message)
+    const utiltsDecision = contentOverride ?? utiltsTgtApplicationDecision(message, effectiveTgtTestData) ?? utiltsApplicationDecision(message)
 
     if (utiltsDecision.family === 'UTILTS_ERR') {
       return decision({
