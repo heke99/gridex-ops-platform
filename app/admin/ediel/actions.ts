@@ -1569,6 +1569,36 @@ async function resolveBackendAperakDecision(params: {
   if (params.sourceMessage.message_family === "UTILTS") {
     const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
 
+    if (runtime.ackPlan.shouldSendUtiltsErr) {
+      const codes = runtime.ackPlan.utiltsErrCodes.join("|") || "UTILTS_ERR";
+
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: params.sourceMessage.id,
+        eventType: "manual_note",
+        eventStatus: "warning",
+        message:
+          "APERAK blockerad: UTILTS-runtime kräver UTILTS-ERR för funktions-/processfel.",
+        payload: {
+          selectedFamily: "UTILTS_ERR",
+          utiltsErrCodes: runtime.ackPlan.utiltsErrCodes,
+          runtimeClassification: runtime.validation.classification,
+          validationIssues: runtime.validation.issues.map((issue) => ({
+            code: issue.code,
+            kind: issue.kind,
+            severity: issue.severity,
+            title: issue.title,
+            utiltsErrCode: issue.utiltsErrCode ?? null,
+            referenceNumber: issue.referenceNumber ?? null,
+          })),
+        },
+      });
+
+      throw new Error(
+        `UTILTS funktions-/processfel ska besvaras med UTILTS-ERR (${codes}), inte APERAK. Använd rekommenderat svar eller välj UTILTS_ERR.`,
+      );
+    }
+
     if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === "negative") {
       return {
         outcome: "negative",
