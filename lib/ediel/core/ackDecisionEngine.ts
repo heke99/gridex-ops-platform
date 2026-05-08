@@ -282,12 +282,26 @@ function utiltsApplicationDecision(message: EdielMessageRow, testData?: EdielTgt
   matchedRule: string
 } {
   const runtime = runUtiltsRuntimeForMessage(message)
+  const effectiveTgtTestData = testData ?? inferUtiltsTgtTestDataFromMessage(message)
+  const tgtDecision = utiltsTgtApplicationDecision(message, effectiveTgtTestData)
 
   if (runtime.ackPlan.shouldSendUtiltsErr) {
     return {
       family: 'UTILTS_ERR',
-      messageText: runtime.ackPlan.utiltsErrCodes.join('|') || 'UTILTS process- eller funktionsfel',
+      messageText: runtime.ackPlan.utiltsErrCodes.join('|') || tgtDecision?.messageText || 'UTILTS process- eller funktionsfel',
       matchedRule: `UTILTS_RUNTIME_${runtime.validation.classification.toUpperCase()}`,
+    }
+  }
+
+  // Portal/TGT functional errors must not be downgraded to APERAK just because
+  // the generic UTILTS validator also found guide/mandatory-field issues.
+  // In production the runtime branch above still wins when functional issues are
+  // detected from the EDIFACT content itself.
+  if (tgtDecision?.family === 'UTILTS_ERR') {
+    return {
+      family: 'UTILTS_ERR',
+      messageText: tgtDecision.messageText ?? 'UTILTS process- eller funktionsfel',
+      matchedRule: tgtDecision.matchedRule,
     }
   }
 
@@ -308,12 +322,7 @@ function utiltsApplicationDecision(message: EdielMessageRow, testData?: EdielTgt
     }
   }
 
-  const effectiveTgtTestData = testData ?? inferUtiltsTgtTestDataFromMessage(message)
-  const tgtDecision = utiltsTgtApplicationDecision(message, effectiveTgtTestData)
-
-  // TGT data is only used as a portal/test fallback when the runtime validator
-  // did not already produce a concrete application or functional rejection.
-  // Production decisions above still come from parsed UTILTS content.
+  // TGT guide/anvisningsfel remains APERAK, e.g. U2.2.2.
   if (tgtDecision) {
     return {
       family: tgtDecision.family,

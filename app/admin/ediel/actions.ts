@@ -624,15 +624,21 @@ function findZ05FacilityMismatchTgtRowForMessage(
 
 async function resolveTgtTestDataForAckAction(params: {
   message: EdielMessageRow;
-  testSuite: EdielTestSuite;
-  roleCode: EdielTestRoleCode;
+  testSuite?: EdielTestSuite | null;
+  roleCode?: EdielTestRoleCode | string | null;
   requestedTestCaseCode: string | null;
 }): Promise<{
   testData: EdielTgtCaseTestData | null;
   selectedRow: EdielTgtDynamicTestDataSummary | null;
   requestedTestData: EdielTgtCaseTestData | null;
 }> {
-  const { message, testSuite, roleCode, requestedTestCaseCode } = params;
+  const { message, requestedTestCaseCode } = params;
+  const testSuite: EdielTestSuite = params.testSuite ?? (params.message.message_family === "UTILTS" ? "UTILTS" : "PRODAT");
+  const rawRoleCode = params.roleCode ? String(params.roleCode) : null;
+  const roleCode: EdielTestRoleCode = rawRoleCode && isEdielTestRoleCode(rawRoleCode)
+    ? rawRoleCode
+    : "supplier";
+
   const requestedTestData = requestedTestCaseCode
     ? await getEdielTgtDynamicTestDataForCase(
         testSuite,
@@ -1664,7 +1670,7 @@ async function resolveBackendAperakDecision(params: {
           selectedFamily: "UTILTS_ERR",
           utiltsErrCodes: codes,
           matchedRule: utiltsRecommendation.matchedRule,
-          selectedTgtCaseCode: tgtResolution.selectedTestCaseCode,
+          selectedTgtCaseCode: tgtResolution.selectedRow?.testCaseCode ?? null,
           runtimeClassification: runtime.validation.classification,
         },
       });
