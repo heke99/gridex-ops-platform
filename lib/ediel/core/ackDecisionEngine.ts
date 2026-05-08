@@ -581,11 +581,8 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
       })
     }
 
-    const effectiveTgtTestData = tgtTestData ?? inferUtiltsTgtTestDataFromMessage(message)
-    const runtimeUtiltsDecision = utiltsApplicationDecision(message)
-    const utiltsDecision = runtimeUtiltsDecision.outcome === 'negative' || runtimeUtiltsDecision.family === 'UTILTS_ERR'
-      ? runtimeUtiltsDecision
-      : (utiltsTgtApplicationDecision(message, effectiveTgtTestData) ?? runtimeUtiltsDecision)
+    void tgtTestData
+    const utiltsDecision = utiltsApplicationDecision(message)
 
     if (utiltsDecision.family === 'UTILTS_ERR') {
       return decision({

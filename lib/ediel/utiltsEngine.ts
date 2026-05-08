@@ -503,6 +503,105 @@ function groupHasMeterReadingQuantity(group: UtiltsTransactionGroup): boolean {
   return parseQuantitiesFromGroup(group).some((qty) => ['101', '203', '204'].includes(String(qty.qualifier ?? '').toUpperCase()))
 }
 
+
+const E66_METER_READING_QUALIFIERS = new Set(['101', '203', '204'])
+const E66_ENERGY_QUANTITY_QUALIFIERS = new Set(['136'])
+
+function quantityQualifier(value: string | null | undefined): string {
+  return String(value ?? '').trim().toUpperCase()
+}
+
+function e66MeterReadingQuantities(group: UtiltsTransactionGroup): Array<{ qualifier: string | null; value: number | null; raw: string }> {
+  return parseQuantitiesFromGroup(group).filter((qty) => E66_METER_READING_QUALIFIERS.has(quantityQualifier(qty.qualifier)))
+}
+
+function e66EnergyQuantities(group: UtiltsTransactionGroup): Array<{ qualifier: string | null; value: number | null; raw: string }> {
+  return parseQuantitiesFromGroup(group).filter((qty) => E66_ENERGY_QUANTITY_QUALIFIERS.has(quantityQualifier(qty.qualifier)))
+}
+
+function parseCavNumericValue(segment: string | null | undefined): number | null {
+  const value = String(segment ?? '')
+    .replace(/^CAV\+/i, '')
+    .split(':')[0]
+    ?.trim()
+    .replace(',', '.')
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function groupMeterConstant(group: UtiltsTransactionGroup): number {
+  for (let index = 0; index < group.segments.length; index += 1) {
+    const segment = group.segments[index]
+    if (!segment || !segment.toUpperCase().startsWith('CCI++Z02')) continue
+    const next = group.segments[index + 1]
+    const value = parseCavNumericValue(next)
+    if (value !== null && value > 0) return value
+  }
+
+  // If no meter constant is sent, the functional E66 check uses 1. This is also
+  // the safe production default for comparing meter-reading difference against
+  // reported energy when the register is not scaled by a known constant.
+  return 1
+}
+
+function numbersAreEqual(left: number, right: number, precision = 0.001): boolean {
+  return Math.abs(left - right) <= precision
+}
+
+function groupHasMeterReadingEnergyMismatch(group: UtiltsTransactionGroup): boolean {
+  const readings = e66MeterReadingQuantities(group)
+    .map((qty) => qty.value)
+    .filter((value): value is number => value !== null)
+  const energies = e66EnergyQuantities(group)
+    .map((qty) => qty.value)
+    .filter((value): value is number => value !== null)
+
+  if (readings.length < 2 || energies.length === 0) return false
+
+  const previousReading = readings[0]
+  const latestReading = readings[readings.length - 1]
+  const expectedEnergy = Math.abs(latestReading - previousReading) * groupMeterConstant(group)
+  const reportedEnergy = energies.reduce((sum, value) => sum + value, 0)
+
+  return !numbersAreEqual(reportedEnergy, expectedEnergy)
+}
+
+function dtmDateTimeFromSegment(segment: string | null): string | null {
+  const dtm = parseDtmComposite(segment)
+  const value = dtm.value?.trim() ?? null
+  if (!isRealDateTimeValue(value)) return null
+  return parseSimpleDateTime(value)
+}
+
+function groupMeterReadingDateTimes(group: UtiltsTransactionGroup): string[] {
+  const excludedQualifiers = new Set(['137', '324', '354', '597', '735'])
+
+  return group.segments.flatMap((segment) => {
+    if (!segment.toUpperCase().startsWith('DTM+')) return []
+    const dtm = parseDtmComposite(segment)
+    const qualifier = String(dtm.qualifier ?? '').toUpperCase()
+    if (!qualifier || excludedQualifiers.has(qualifier)) return []
+    const parsed = dtmDateTimeFromSegment(segment)
+    return parsed ? [parsed] : []
+  })
+}
+
+function groupRegistrationIsBeforeLatestMeterReadingDate(group: UtiltsTransactionGroup): boolean {
+  const registrationTime = parseRegistrationDateTime(groupSegmentValue(group, 'DTM+597'))
+  if (!registrationTime || !groupHasMeterReadingQuantity(group)) return false
+
+  const registration = new Date(registrationTime).getTime()
+  if (Number.isNaN(registration)) return false
+
+  const latestMeterReadingTime = groupMeterReadingDateTimes(group)
+    .map((value) => new Date(value).getTime())
+    .filter((value) => !Number.isNaN(value))
+    .reduce((latest, value) => Math.max(latest, value), Number.NEGATIVE_INFINITY)
+
+  return Number.isFinite(latestMeterReadingTime) && registration < latestMeterReadingTime
+}
+
 function findTgtCaseCodeInValue(value: unknown): string | null {
   if (typeof value === 'string') {
     const upper = value.toUpperCase()
@@ -602,23 +701,10 @@ function tgtIssue(input: {
 }
 
 function applyUtiltsTgtU2ValidationOverride(params: { message?: EdielMessageRow | null; validation: UtiltsRuntimeValidation }): UtiltsRuntimeValidation {
-  const testCase = extractTgtCaseCodeFromMessage(params.message)
-  if (!testCase || !testCase.startsWith('U2.')) return params.validation
-  if (testCase.startsWith('U2.1.')) return { ok: true, syntaxOk: true, functionalOk: true, issues: params.validation.issues.filter((issue) => issue.kind === 'syntax'), classification: 'accepted' }
-  if (testCase === 'U2.2.1' || testCase === 'U2.2.1B') return { ok: false, syntaxOk: true, functionalOk: true, classification: 'application_rejected', issues: [
-    tgtIssue({ kind: 'application', code: 'TGT_U221_MISSING_METER_NUMBER', title: 'Mätarnummer saknas', description: 'TGT U2.2.1: transaktion 1 saknar mätarnummer.', aperakErcCode: '41', aperakFieldCode: '224', aperakText: 'MANDATORY FIELD MISSING' }),
-    tgtIssue({ kind: 'application', code: 'TGT_U221_MISSING_METER_READING', title: 'Mätarställning saknas', description: 'TGT U2.2.1: transaktion 2 saknar mätarställning.', aperakErcCode: '41', aperakFieldCode: '514', aperakText: 'MANDATORY FIELD MISSING' }),
-  ] }
-  if (testCase === 'U2.2.2') return { ok: false, syntaxOk: true, functionalOk: true, classification: 'application_rejected', issues: [tgtIssue({ kind: 'application', code: 'TGT_U222_MISSING_REGISTRATION_TIME', title: 'Registreringstidpunkt saknas', description: 'TGT U2.2.2: registreringstidpunkt saknas i kvartsvärdestransaktionen.', aperakErcCode: '41', aperakFieldCode: '512', aperakText: 'MANDATORY FIELD MISSING' })] }
-  if (testCase === 'U2.2.3' || testCase === 'U2.2.3B') return { ok: false, syntaxOk: true, functionalOk: false, classification: 'functional_rejected', issues: [
-    tgtIssue({ kind: 'functional', code: 'TGT_U223_METER_READING_ENERGY_MISMATCH', title: 'Mätarställning stämmer inte med energimängd', description: 'TGT U2.2.3: mätarställning stämmer inte med energimängd när mätarkonstanten är 1.', utiltsErrCode: 'E19' }),
-    tgtIssue({ kind: 'functional', code: 'TGT_U223_REGISTRATION_BEFORE_PREVIOUS_READING', title: 'Registreringstidpunkt tidigare än senaste mätarställning', description: 'TGT U2.2.3: registreringstidpunkten ligger tidigare än datum för senaste mätarställning.', utiltsErrCode: 'E50' }),
-  ] }
-  if (testCase === 'U2.2.4' || testCase === 'U2.2.4B') return { ok: false, syntaxOk: true, functionalOk: false, classification: 'functional_rejected', issues: [
-    tgtIssue({ kind: 'functional', code: 'TGT_U224_COUNT_MISMATCH', title: 'Period stämmer inte med antal värden', description: 'TGT U2.2.4: perioden är ett dygn men endast 88 kvartsvärden skickas.', utiltsErrCode: 'E87' }),
-    tgtIssue({ kind: 'functional', code: 'TGT_U224_NEGATIVE_CONSUMPTION', title: 'Förbrukning har minustecken', description: 'TGT U2.2.4: förbrukning skickas med negativt värde.', utiltsErrCode: 'E98' }),
-    tgtIssue({ kind: 'functional', code: 'TGT_U224_MISSING_STATUS_WITH_VALUE', title: 'Saknat värde har ändå QTY', description: 'TGT U2.2.4: status 46 anger saknat värde men QTY innehåller värde.', utiltsErrCode: 'E90' }),
-  ] }
+  void params.message
+  // Keep TGT detection out of the runtime validator. Portal cases must pass
+  // because the inbound UTILTS content violates the same generic production
+  // rules that real counterparty messages would violate.
   return params.validation
 }
 
@@ -873,6 +959,12 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
       if (groupQuantities.length === 0 && !hasMissingValueStatus) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_MISSING_METER_VALUE', title: 'Mätvärde saknas', description: 'E66-transaktionen saknar QTY-rad och är inte markerad som saknat värde.', utiltsErrCode: 'E10', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
+      if (groupHasMeterReadingEnergyMismatch(group)) {
+        issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_METER_READING_ENERGY_MISMATCH', title: 'Mätarställning stämmer inte med energimängd', description: 'Skillnaden mellan föregående och senaste mätarställning, multiplicerad med mätarkonstanten, stämmer inte med angiven energimängd.', utiltsErrCode: 'E19', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
+      }
+      if (groupRegistrationIsBeforeLatestMeterReadingDate(group)) {
+        issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_REGISTRATION_BEFORE_LATEST_READING', title: 'Registreringstidpunkt tidigare än senaste mätarställning', description: 'Registreringstidpunkten är tidigare än datum för senaste mätarställning i E66-transaktionen.', utiltsErrCode: 'E50', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
+      }
       if (hasMissingValueStatus && groupQuantities.some((qty) => qty.value !== null)) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_MISSING_STATUS_WITH_VALUE', title: 'Saknat värde har ändå QTY', description: 'Status 46 anger saknat värde, men transaktionen innehåller QTY-värde.', utiltsErrCode: 'E90', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
@@ -888,7 +980,14 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
       if (!hasMissingValueStatus && groupQuantities.length > 0 && !groupHasMeterNumber(group) && groupQuantities.some((qty) => ['101', '203', '204'].includes(String(qty.qualifier ?? '').toUpperCase()))) {
         issues.push(buildIssue({ severity: 'error', kind: 'application', code: 'UTILTS_E66_MISSING_METER_NUMBER', title: 'Mätarnummer saknas', description: 'E66-transaktionen innehåller mätarställning men saknar mätarnummer.', aperakErcCode: '41', aperakFieldCode: '224', aperakText: 'MANDATORY FIELD MISSING', referenceQualifier: 'ACW', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
-      if (!hasMissingValueStatus && groupQuantities.length > 0 && !groupHasMeterReadingQuantity(group) && groupQuantities.some((qty) => String(qty.qualifier ?? '').toUpperCase() === '136')) {
+      if (
+        !hasMissingValueStatus &&
+        resolution.value !== '15' &&
+        resolution.value !== '60' &&
+        groupQuantities.length > 0 &&
+        !groupHasMeterReadingQuantity(group) &&
+        groupQuantities.some((qty) => String(qty.qualifier ?? '').toUpperCase() === '136')
+      ) {
         issues.push(buildIssue({ severity: 'error', kind: 'application', code: 'UTILTS_E66_MISSING_METER_READING', title: 'Mätarställning saknas', description: 'E66-transaktionen innehåller endast energimängd men saknar mätarställning.', aperakErcCode: '41', aperakFieldCode: '514', aperakText: 'MANDATORY FIELD MISSING', referenceQualifier: 'ACW', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
     }
