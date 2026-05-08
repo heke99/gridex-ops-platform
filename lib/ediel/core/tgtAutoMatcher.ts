@@ -389,8 +389,22 @@ function utiltsTgtGroupResolution(group: UtiltsTgtGroup): string | null {
   return utiltsTgtFirstComponent(utiltsTgtElement(segment, 1))
 }
 
+function utiltsTgtSegmentHasRealRegistrationTime(segment: string): boolean {
+  const upper = segment.toUpperCase().trim()
+  if (!upper.startsWith('DTM+597')) return false
+
+  const composite = utiltsTgtElement(segment, 1)
+  const value = utiltsTgtFirstComponent(composite)
+
+  // DTM+597 without an actual date value, e.g. DTM+597, DTM+597:,
+  // DTM+597:? or DTM+597:?+0100:406, is not a registration timestamp.
+  if (!value || value.includes('?')) return false
+
+  return /^(\d{8}|\d{10}|\d{12}|\d{14})$/.test(value)
+}
+
 function utiltsTgtGroupHasRegistrationTime(group: UtiltsTgtGroup): boolean {
-  return group.segments.some((segment) => segment.toUpperCase().startsWith('DTM+597'))
+  return group.segments.some((segment) => utiltsTgtSegmentHasRealRegistrationTime(segment))
 }
 
 function utiltsTgtGroupIsIntervalValueGroup(group: UtiltsTgtGroup): boolean {

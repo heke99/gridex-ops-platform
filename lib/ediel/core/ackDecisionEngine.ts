@@ -4,7 +4,8 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { validateEdifactSyntax, type EdielSyntaxIssue } from '@/lib/ediel/core/syntaxValidator'
 import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
-import { inferTgtTestCaseCodeForInboundTestData, rawLooksLikeUtiltsE66QuarterGuideError } from '@/lib/ediel/core/tgtAutoMatcher'
+import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
+import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 
 export type EdielAckDecisionKind =
   | 'send_positive_contrl'
@@ -159,32 +160,53 @@ function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined
 }
 
 
-export function resolveUtiltsE66MissingRegistrationTimeAperakOverride(message: EdielMessageRow): {
-  outcome: AckOutcome
-  errors: EdielAperakApplicationError[]
-  messageText: string
+export function resolveUtiltsRuntimeApplicationDecision(message: EdielMessageRow): {
+  family: AckFamily
+  outcome?: AckOutcome
+  errors?: EdielAperakApplicationError[]
+  messageText?: string | null
   matchedRule: string
 } | null {
   if (String(message.message_family ?? '').toUpperCase() !== 'UTILTS') return null
-  if (String(message.message_code ?? '').toUpperCase() !== 'E66') return null
 
-  const rawText = utiltsTgtInferenceText(message)
-  if (!rawLooksLikeUtiltsE66QuarterGuideError(rawText)) return null
+  try {
+    const runtime = runUtiltsRuntimeForMessage(message)
+    const issueCodes = runtime.validation.issues.map((issue) => issue.code).filter(Boolean)
+    const matchedRule = issueCodes.length > 0
+      ? `UTILTS_RUNTIME_VALIDATION:${issueCodes.join(',')}`
+      : 'UTILTS_RUNTIME_ACCEPTED'
 
-  const error: EdielAperakApplicationError = {
-    ercCode: '41',
-    fieldCode: '512',
-    text: 'MANDATORY FIELD MISSING',
-    referenceQualifier: null,
-    referenceNumber: null,
-    lineItemReference: message.transaction_reference ?? null,
-  }
+    if (runtime.ackPlan.shouldSendUtiltsErr) {
+      return {
+        family: 'UTILTS_ERR',
+        messageText: runtime.ackPlan.reason,
+        matchedRule,
+      }
+    }
 
-  return {
-    outcome: 'negative',
-    errors: [error],
-    messageText: 'UTILTS-E66 kvart anvisningsfel',
-    matchedRule: 'UTILTS_E66_MISSING_REAL_DTM597_BACKEND_GUARD',
+    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'negative') {
+      return {
+        family: 'APERAK',
+        outcome: 'negative',
+        errors: runtime.ackPlan.aperakApplicationErrors,
+        messageText: runtime.ackPlan.reason,
+        matchedRule,
+      }
+    }
+
+    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'positive') {
+      return {
+        family: 'APERAK',
+        outcome: 'positive',
+        errors: [],
+        messageText: runtime.ackPlan.reason,
+        matchedRule,
+      }
+    }
+
+    return null
+  } catch {
+    return null
   }
 }
 
@@ -584,8 +606,8 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
     }
 
     const effectiveTgtTestData = tgtTestData ?? inferUtiltsTgtTestDataFromMessage(message)
-    const contentOverride = resolveUtiltsE66MissingRegistrationTimeAperakOverride(message)
-    const utiltsDecision = contentOverride ?? utiltsTgtApplicationDecision(message, effectiveTgtTestData) ?? utiltsApplicationDecision(message)
+    const runtimeDecision = resolveUtiltsRuntimeApplicationDecision(message)
+    const utiltsDecision = runtimeDecision ?? utiltsTgtApplicationDecision(message, effectiveTgtTestData) ?? utiltsApplicationDecision(message)
 
     if (utiltsDecision.family === 'UTILTS_ERR') {
       return decision({

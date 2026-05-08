@@ -73,7 +73,7 @@ import {
 } from "@/lib/ediel/tgtTestDataStore";
 import {
   resolveRecommendedAckForInboundMessage,
-  resolveUtiltsE66MissingRegistrationTimeAperakOverride,
+  resolveUtiltsRuntimeApplicationDecision,
 } from "@/lib/ediel/core/ackDecisionEngine";
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight";
 import {
@@ -1677,13 +1677,15 @@ export async function createAckDraftAction(formData: FormData) {
   const sourceMessage = await getEdielMessageById(sourceMessageId);
   if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
 
-  const utiltsBackendGuard =
+  const utiltsRuntimeDecisionCandidate =
     ackType === "APERAK"
-      ? resolveUtiltsE66MissingRegistrationTimeAperakOverride(sourceMessage)
+      ? resolveUtiltsRuntimeApplicationDecision(sourceMessage)
       : null;
+  const utiltsRuntimeDecision =
+    utiltsRuntimeDecisionCandidate?.family === "APERAK" ? utiltsRuntimeDecisionCandidate : null;
 
   const backendDecision =
-    ackType === "APERAK" && !utiltsBackendGuard
+    ackType === "APERAK" && !utiltsRuntimeDecision
       ? await resolveBackendProdatAperakDecision({
           actorUserId: context.userId,
           sourceMessage,
@@ -1695,12 +1697,12 @@ export async function createAckDraftAction(formData: FormData) {
         })
       : null;
 
-  const finalOutcome = utiltsBackendGuard?.outcome ?? backendDecision?.outcome ?? outcome;
+  const finalOutcome = utiltsRuntimeDecision?.outcome ?? backendDecision?.outcome ?? outcome;
   const finalApplicationErrors =
     ackType === "APERAK"
-      ? (utiltsBackendGuard?.errors ?? backendDecision?.applicationErrors ?? applicationErrors)
+      ? (utiltsRuntimeDecision?.errors ?? backendDecision?.applicationErrors ?? applicationErrors)
       : null;
-  const finalMessageText = utiltsBackendGuard?.messageText ?? messageText;
+  const finalMessageText = utiltsRuntimeDecision?.messageText ?? messageText;
 
   try {
     const ackMessage = await createAckDraftForMessage({
@@ -1813,21 +1815,23 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   let backendUnmappedRuleKeys: string[] = [];
   let finalOutcome = recommendation.action.outcome;
 
-  const utiltsBackendGuard =
+  const utiltsRuntimeDecisionCandidate =
     recommendation.action.ackFamily === "APERAK"
-      ? resolveUtiltsE66MissingRegistrationTimeAperakOverride(sourceMessage)
+      ? resolveUtiltsRuntimeApplicationDecision(sourceMessage)
       : null;
+  const utiltsRuntimeDecision =
+    utiltsRuntimeDecisionCandidate?.family === "APERAK" ? utiltsRuntimeDecisionCandidate : null;
 
-  if (utiltsBackendGuard) {
-    backendResolvedAperakErrors = utiltsBackendGuard.errors;
-    backendRuleKeys = [utiltsBackendGuard.matchedRule];
-    backendIssueCount = utiltsBackendGuard.errors.length;
-    finalOutcome = utiltsBackendGuard.outcome;
+  if (utiltsRuntimeDecision) {
+    backendResolvedAperakErrors = utiltsRuntimeDecision.errors ?? [];
+    backendRuleKeys = [utiltsRuntimeDecision.matchedRule];
+    backendIssueCount = (utiltsRuntimeDecision.errors ?? []).length;
+    finalOutcome = utiltsRuntimeDecision.outcome ?? finalOutcome;
   }
 
   if (
     recommendation.action.ackFamily === "APERAK" &&
-    !utiltsBackendGuard &&
+    !utiltsRuntimeDecision &&
     sourceMessage.message_family === "PRODAT"
   ) {
     const resolved = await resolveAndStoreProdatAperakErrors({
@@ -1901,7 +1905,7 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
               (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
             )
             .join(" | ")
-        : (utiltsBackendGuard?.messageText ?? recommendation.action.messageText ?? null),
+        : (utiltsRuntimeDecision?.messageText ?? recommendation.action.messageText ?? null),
     applicationErrors: finalApplicationErrors,
   });
 
@@ -1995,13 +1999,15 @@ export async function createAndSendAckAction(formData: FormData) {
   const sourceMessage = await getEdielMessageById(sourceMessageId);
   if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
 
-  const utiltsBackendGuard =
+  const utiltsRuntimeDecisionCandidate =
     ackType === "APERAK"
-      ? resolveUtiltsE66MissingRegistrationTimeAperakOverride(sourceMessage)
+      ? resolveUtiltsRuntimeApplicationDecision(sourceMessage)
       : null;
+  const utiltsRuntimeDecision =
+    utiltsRuntimeDecisionCandidate?.family === "APERAK" ? utiltsRuntimeDecisionCandidate : null;
 
   const backendDecision =
-    ackType === "APERAK" && !utiltsBackendGuard
+    ackType === "APERAK" && !utiltsRuntimeDecision
       ? await resolveBackendProdatAperakDecision({
           actorUserId: context.userId,
           sourceMessage,
@@ -2013,12 +2019,12 @@ export async function createAndSendAckAction(formData: FormData) {
         })
       : null;
 
-  const finalOutcome = utiltsBackendGuard?.outcome ?? backendDecision?.outcome ?? outcome;
+  const finalOutcome = utiltsRuntimeDecision?.outcome ?? backendDecision?.outcome ?? outcome;
   const finalApplicationErrors =
     ackType === "APERAK"
-      ? (utiltsBackendGuard?.errors ?? backendDecision?.applicationErrors ?? applicationErrors)
+      ? (utiltsRuntimeDecision?.errors ?? backendDecision?.applicationErrors ?? applicationErrors)
       : null;
-  const finalMessageText = utiltsBackendGuard?.messageText ?? messageText;
+  const finalMessageText = utiltsRuntimeDecision?.messageText ?? messageText;
 
   await removeReplaceableAckMessagesForSource({
     actorUserId: context.userId,

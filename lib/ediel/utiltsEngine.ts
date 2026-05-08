@@ -210,6 +210,41 @@ function parseSimpleDateTime(raw: string | null): string | null {
   return `${year}-${month}-${day}T${hour}:${minute}:00`
 }
 
+function isRealDateTimeValue(raw: string | null): boolean {
+  if (!raw || raw.includes('?')) return false
+  if (!/^(\d{8}|\d{10}|\d{12}|\d{14})$/.test(raw)) return false
+
+  const year = Number(raw.slice(0, 4))
+  const month = Number(raw.slice(4, 6))
+  const day = Number(raw.slice(6, 8))
+  const hour = raw.length >= 10 ? Number(raw.slice(8, 10)) : 0
+  const minute = raw.length >= 12 ? Number(raw.slice(10, 12)) : 0
+  const second = raw.length >= 14 ? Number(raw.slice(12, 14)) : 0
+
+  if (month < 1 || month > 12) return false
+  if (day < 1 || day > 31) return false
+  if (hour < 0 || hour > 23) return false
+  if (minute < 0 || minute > 59) return false
+  if (second < 0 || second > 59) return false
+
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day &&
+    date.getUTCHours() === hour &&
+    date.getUTCMinutes() === minute &&
+    date.getUTCSeconds() === second
+  )
+}
+
+function parseRegistrationDateTime(segment: string | null): string | null {
+  const dtm = parseDtmComposite(segment)
+  const value = dtm.value?.trim() ?? null
+  if (!isRealDateTimeValue(value)) return null
+  return parseSimpleDateTime(value)
+}
+
 function parseDtmComposite(segment: string | null): { qualifier: string | null; value: string | null; format: string | null } {
   const composite = element(segment, 1)
   const parts = composite?.split(':') ?? []
@@ -357,7 +392,7 @@ function parseUtiltsTransactionGroup(group: UtiltsTransactionGroup, sourceOrder:
     deliveryPeriodFormat: period.format,
     deliveryPeriodStart: period.start,
     deliveryPeriodEnd: period.end,
-    registrationTime: parseSimpleDateTime(parseDtmComposite(groupSegmentValue(group, 'DTM+597')).value),
+    registrationTime: parseRegistrationDateTime(groupSegmentValue(group, 'DTM+597')),
     resolution: resolution.value,
     resolutionFormat: resolution.format,
     transactionReason: parseStsReason(group.segments),
@@ -832,7 +867,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
       const groupQuantities = parseQuantitiesFromGroup(group)
       const hasMissingValueStatus = groupHasStatusCode(group, '46')
       const expectedCount = expectedQuantityCountForGroup(group)
-      const registrationTime = parseSimpleDateTime(parseDtmComposite(groupSegmentValue(group, 'DTM+597')).value)
+      const registrationTime = parseRegistrationDateTime(groupSegmentValue(group, 'DTM+597'))
       const resolution = parseDtmComposite(groupSegmentValue(group, 'DTM+354'))
 
       if (groupQuantities.length === 0 && !hasMissingValueStatus) {
@@ -1013,7 +1048,7 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
     deliveryPeriodRaw: period.raw,
     deliveryPeriodStart: period.start,
     deliveryPeriodEnd: period.end,
-    registrationTime: parseSimpleDateTime(parseDtmComposite(dtm597).value),
+    registrationTime: parseRegistrationDateTime(dtm597),
     resolution: parseDtmComposite(dtm354).value,
     transactionReason: parseStsReason(segments),
     unit: parseUnit(segments),
