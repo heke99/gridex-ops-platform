@@ -105,8 +105,13 @@ function swedishDateTimeFromEdifactUnb(rawPayload?: string | null): string | nul
   const segments = segmentsFromRawPayload(rawPayload)
   const unb = segments.find((segment) => segment.toUpperCase().startsWith('UNB+'))
   const parts = unb?.split('+') ?? []
-  const date = parts[4]?.split(':')[0]?.trim() ?? ''
-  const time = parts[4]?.split(':')[1]?.trim() ?? ''
+  const dateTimeComposite = parts[4]?.trim() ?? ''
+  const date = dateTimeComposite.includes(':')
+    ? dateTimeComposite.split(':')[0]?.trim() ?? ''
+    : dateTimeComposite
+  const time = dateTimeComposite.includes(':')
+    ? dateTimeComposite.split(':')[1]?.trim() ?? ''
+    : parts[5]?.trim() ?? ''
 
   if (!/^\d{6}$/.test(date) || !/^\d{4}$/.test(time)) {
     return null

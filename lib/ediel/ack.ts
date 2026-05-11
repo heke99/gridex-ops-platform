@@ -431,6 +431,37 @@ function firstCompositeComponent(value: string | null | undefined): string | nul
   return trimmed.split(':')[0]?.trim() || null
 }
 
+function compositeComponent(value: string | null | undefined, index: number): string | null {
+  const trimmed = value?.trim()
+  if (!trimmed) return null
+  const part = trimmed.split(':')[index]?.trim() ?? ''
+  return part.length > 0 ? part : null
+}
+
+function referenceValueFromSegment(segment: string | null | undefined, qualifier: string): string | null {
+  const composite = edifactElement(segment, 1)
+  const normalizedQualifier = qualifier.toUpperCase()
+  const parts = composite?.split(':') ?? []
+  const actualQualifier = parts[0]?.trim().toUpperCase() ?? ''
+  if (actualQualifier !== normalizedQualifier) return null
+
+  const value = parts.slice(1).join(':').trim()
+  return value.length > 0 ? value : null
+}
+
+function sequencedAckReference(params: {
+  ackFamily: AckFamily
+  sequenceToken: string
+  fallbackReference?: string | null
+}): string {
+  const family = sanitizeEdifactToken(params.ackFamily, 10) ?? 'ACK'
+  const sequenceToken = sanitizeEdifactToken(params.sequenceToken, 18) ?? randomEdifactToken(6)
+  const timestamp = compactUtcTimestampWithSeconds()
+  const random = randomEdifactToken(3)
+  const candidate = `${family}-${sequenceToken}-${timestamp}-${random}`
+  return sanitizeEdifactToken(candidate, 35) ?? sanitizeEdifactToken(params.fallbackReference, 35) ?? `${family}-${timestamp}`
+}
+
 function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourceGroup[] {
   const segments = edifactSegmentsFromRaw(sourceMessage.raw_payload)
   const groups: string[][] = []
@@ -460,7 +491,10 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
 
     return {
       segments: group,
-      transactionId: firstCompositeComponent(edifactElement(tn, 1)) ?? firstCompositeComponent(edifactElement(ide, 2)),
+      transactionId:
+        referenceValueFromSegment(tn, 'TN') ??
+        compositeComponent(edifactElement(ide, 2), 1) ??
+        firstCompositeComponent(edifactElement(ide, 2)),
       meterPointId: firstCompositeComponent(edifactElement(loc172, 2)),
       gridAreaId: firstCompositeComponent(edifactElement(loc239, 2)),
       productIdSegment: segmentByPrefix(group, 'PIA+'),
@@ -786,15 +820,16 @@ function buildAckDraft(params: {
 
   const sequenceToken = utiltsErrSequenceToken ?? aperakSequenceToken
 
-  const ackExternalReference =
-    sequenceToken
-      ? (sanitizeEdifactToken(`${refs.externalReference ?? params.sourceMessage.id}-${sequenceToken}`, 35) ?? refs.externalReference)
-      : refs.externalReference
+  const sequencedReference = sequenceToken
+    ? sequencedAckReference({
+        ackFamily: params.ackFamily,
+        sequenceToken,
+        fallbackReference: refs.externalReference ?? params.sourceMessage.id,
+      })
+    : null
 
-  const ackTransactionReference =
-    sequenceToken
-      ? (sanitizeEdifactToken(`${refs.transactionReference ?? params.sourceMessage.id}-${sequenceToken}`, 35) ?? refs.transactionReference)
-      : refs.transactionReference
+  const ackExternalReference = sequencedReference ?? refs.externalReference
+  const ackTransactionReference = sequencedReference ?? refs.transactionReference
 
   const parties = sourceParties(params.sourceMessage)
 
