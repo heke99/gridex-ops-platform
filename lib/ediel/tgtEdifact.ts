@@ -121,6 +121,9 @@ type TgtPortalCustomerData = {
   agreementStartDateTime: string
   validityDateTime?: string | null
   agreementEndDateTime?: string | null
+  reportStartDateTime?: string | null
+  reportEndDateTime?: string | null
+  permissionTimestamp?: string | null
   annualEnergyUnit: string
   meteringMethod: string
   reasonForTransaction?: string | null
@@ -150,8 +153,14 @@ type TgtPortalCustomerData = {
   gridAreaId: string
   powerOfAttorneyReference?: string | null
   balanceResponsibleId?: string | null
+  permissionStatus?: string | null
+  permissionPurpose?: string | null
+  permissionEndReason?: string | null
+  permissionId?: string | null
   installationStatus?: string | null
   tariffCode?: string | null
+  energyProductId?: string | null
+  installationDirection?: string | null
   registers: TgtPortalRegister[]
 }
 
@@ -516,6 +525,43 @@ function firstDayNextMonthDateTime(): string {
   return `${firstDayNextMonth.getUTCFullYear()}${pad(firstDayNextMonth.getUTCMonth() + 1)}010000`
 }
 
+function fifteenthDayPreviousMonthDateTime(): string {
+  const now = new Date()
+  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 15, 0, 0, 0))
+  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}150000`
+}
+
+function firstDayPreviousMonthDateTime(): string {
+  const now = new Date()
+  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1, 0, 0, 0))
+  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}010000`
+}
+
+function firstDaySameMonthPreviousYearDateTime(): string {
+  const now = new Date()
+  const date = new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), 1, 0, 0, 0))
+  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}010000`
+}
+
+function refsafePortalDateFallback(): string {
+  const now = new Date()
+  return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`
+}
+
+function resolvePortalPermissionDateTime(value: string | null | undefined, fallback: string): string {
+  const token = firstToken(value)
+  if (token && /^\d{8,12}$/.test(token)) return token.length === 8 ? `${token}0000` : token.slice(0, 12)
+
+  const normalized = normalizeSearch(value)
+  if (normalized.includes('15') && normalized.includes('foregaende manad')) return fifteenthDayPreviousMonthDateTime()
+  if (normalized.includes('1') && normalized.includes('foregaende manad')) return firstDayPreviousMonthDateTime()
+  if (normalized.includes('1') && normalized.includes('samma manad') && normalized.includes('foregaende ar')) return firstDaySameMonthPreviousYearDateTime()
+  if (normalized.includes('aktuell tidpunkt') || normalized.includes('nar tillstandet skapas') || normalized.includes('när tillståndet skapas')) return fallback
+  if (normalized.includes('dagens datum')) return `${fallback.slice(0, 8)}0000`
+
+  return fallback
+}
+
 function fifteenthDayNextMonthDateTime(): string {
   const now = new Date()
   const fifteenthDayNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 15, 0, 0, 0))
@@ -528,6 +574,9 @@ function resolvePortalDateTime(value: string | null | undefined): string {
 
   const normalized = normalizeSearch(value)
   if (normalized.includes('15') && normalized.includes('nasta manad')) return fifteenthDayNextMonthDateTime()
+  if (normalized.includes('15') && normalized.includes('foregaende manad')) return fifteenthDayPreviousMonthDateTime()
+  if (normalized.includes('1') && normalized.includes('foregaende manad')) return firstDayPreviousMonthDateTime()
+  if (normalized.includes('1') && normalized.includes('samma manad') && normalized.includes('foregaende ar')) return firstDaySameMonthPreviousYearDateTime()
   if (normalized.includes('10') && normalized.includes('nasta manad')) return defaultAgreementStartDateTime()
 
   return defaultAgreementStartDateTime()
@@ -673,8 +722,11 @@ function getPortalData(
   }
 
   const startDateRaw = valueFor(['210 avtal', 'startdatum', 'leveransstart'])
+  const reportStartRaw = valueFor(['302 rapportstartdatum', '302 report start', 'rapportstart'])
   const validityDateRaw = valueFor(['216 giltighetsdatum', '216 validity', '216 valid'])
   const endDateRaw = valueFor(['211 avtal, slutdatum', '211 slutdatum', '211 end date', 'slutdatum'])
+  const reportEndRaw = valueFor(['321 rapportslutdatum', '321 report end', 'rapportslut'])
+  const permissionTimestampRaw = valueFor(['326 tillståndets tidstämpel', '326 tillstandets tidstampel', 'permission timestamp'])
   const registers = columnName ? [] : buildRegistersFromTestData(params, step)
   const importedMeteringMethod = cleanOptionalCode(valueFor(['217 mätmetod', '217 matmetod']), 12)
   const poaRaw = valueFor(['261 referens'])
@@ -696,6 +748,9 @@ function getPortalData(
     agreementStartDateTime: resolvePortalDateTime(startDateRaw),
     validityDateTime: resolveTgtValidityDateTime(params, step, validityDateRaw),
     agreementEndDateTime: endDateRaw ? resolvePortalDateTime(endDateRaw) : null,
+    reportStartDateTime: reportStartRaw ? resolvePortalPermissionDateTime(reportStartRaw, refsafePortalDateFallback()) : null,
+    reportEndDateTime: reportEndRaw ? resolvePortalPermissionDateTime(reportEndRaw, refsafePortalDateFallback()) : null,
+    permissionTimestamp: permissionTimestampRaw ? resolvePortalPermissionDateTime(permissionTimestampRaw, refsafePortalDateFallback()) : null,
     annualEnergyUnit: cleanOptionalCode(valueFor(['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
     meteringMethod: resolveTgtMeteringMethod(params, step, importedMeteringMethod),
     reasonForTransaction: cleanOptionalCode(valueFor(['223 transaktionstyp', 'reason for transaction']), 12),
@@ -725,8 +780,14 @@ function getPortalData(
     gridAreaId: cleanOptionalCode(valueFor(['260 nätområdesid', '260 natomradesid']), 12) ?? '',
     powerOfAttorneyReference: resolveSenderControlledCode(poaRaw, defaultPowerOfAttorneyReference(params), 35),
     balanceResponsibleId: resolveSenderControlledCode(balanceResponsibleRaw, '91109', 35),
+    permissionStatus: cleanOptionalCode(valueFor(['322 tillståndets status', '322 tillstandets status', 'permission status']), 12),
+    permissionPurpose: cleanOptionalCode(valueFor(['323 tillståndets syfte', '323 tillstandets syfte', 'permission purpose']), 12),
+    permissionEndReason: cleanOptionalCode(valueFor(['324 orsak till tillståndets upphörande', '324 orsak till tillstandets upphorande', 'permission end reason']), 12),
+    permissionId: resolveSenderControlledCode(valueFor(['325 tillståndets id', '325 tillstandets id', 'permission id']), `TILLST${params.testCaseCode.replace(/[^0-9A-Za-z]/g, '').slice(-8) || 'TGT'}`, 35),
     installationStatus: cleanOptionalCode(valueFor(['306 installationsstatus']), 12),
     tariffCode: cleanOptionalCode(valueFor(['307 tariffkod']), 20),
+    energyProductId: cleanOptionalCode(valueFor(['506 produkt id', '506 energiprodukt', '506 product']), 35),
+    installationDirection: cleanOptionalCode(valueFor(['513 riktning', '513 typ av anläggning', '513 typ av anlaggning', 'direction']), 12),
     registers,
   }
 }
@@ -1014,7 +1075,7 @@ function buildProdatLineSegments(params: {
   const { portalData, step, refs, transactionType, mutation, lineNo } = params
   const isZ09 = step.code === 'Z09'
   const isZ09D = isZ09DTransaction(transactionType)
-  const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
+  const startDate = date102FromPortalDate(portalData.reportStartDateTime ?? portalData.agreementStartDateTime, refs.createdLongDate)
 
   const meteringPointId = sanitizeCode(portalData.meteringPointId, '', 35)
   const customerId = sanitizeCode(portalData.customerId, '', 35)
@@ -1038,7 +1099,7 @@ function buildProdatLineSegments(params: {
   const gridAreaId = sanitizeCode(portalData.gridAreaId, '', 12)
   const powerOfAttorneyReference = sanitizeCode(portalData.powerOfAttorneyReference, '', 35)
 
-  const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`]
+  const segments: string[] = [meteringPointId ? `LIN+${lineNo}++${meteringPointId}:::9` : `LIN+${lineNo}`]
 
   if (isZ09) {
     segments.push(...expectedZ09LineDateSegments({ ...portalData, prodatTransactionType: transactionType }, refs))
@@ -1049,12 +1110,46 @@ function buildProdatLineSegments(params: {
     segments.push(`DTM+92:${startDate}0000:203`)
   }
 
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.reportEndDateTime) {
+    segments.push(`DTM+93:${date203FromPortalDate(portalData.reportEndDateTime, refs.createdLongDate)}:203`)
+  }
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionTimestamp) {
+    segments.push(`DTM+171:${date203FromPortalDate(portalData.permissionTimestamp, refs.createdLongDate)}:203`)
+  }
+
   segments.push('CCI++Z13')
   segments.push(`CAV+${reasonForTransaction}`)
 
   if (meteringMethod && !(isZ09 && isZ09D)) {
     segments.push('CCI++Z04')
     segments.push(`CAV+${meteringMethod}`)
+  }
+
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.reportingFrequency) {
+    segments.push('CCI++Z12')
+    segments.push(`CAV+${sanitizeCode(portalData.reportingFrequency, '', 12)}`)
+  }
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.energyProductId) {
+    segments.push(`PIA+5+${sanitizeCode(portalData.energyProductId, '', 35)}:SRV`)
+  }
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.installationDirection) {
+    segments.push('CCI++Z09')
+    segments.push(`CAV+${sanitizeCode(portalData.installationDirection, '', 12)}`)
+  }
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionStatus) {
+    segments.push('CCI++Z35')
+    segments.push(`CAV+${sanitizeCode(portalData.permissionStatus, '', 12)}`)
+  }
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionPurpose) {
+    segments.push('CCI++Z36')
+    segments.push(`CAV+${sanitizeCode(portalData.permissionPurpose, '', 12)}`)
+  }
+  if ((step.code === 'Z15' || step.code === 'Z18') && portalData.permissionEndReason) {
+    segments.push('CCI++Z37')
+    segments.push(`CAV+${sanitizeCode(portalData.permissionEndReason, '', 12)}`)
+  }
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionId) {
+    segments.push(`RFF+Z13:${sanitizeCode(portalData.permissionId, '', 35)}`)
   }
 
   if (!mutation.omitLineItem) {
@@ -1307,6 +1402,20 @@ function prodatStepRequiresMeteringMethod(step: EdielTgtExpectedStep, portalData
   return true
 }
 
+function prodatStepRequiresObjectCoverage(step: EdielTgtExpectedStep, portalData: TgtPortalCustomerData): boolean {
+  if (step.family !== 'PRODAT') return false
+
+  // Z13 är en tillståndsbegäran från energitjänsteföretag. I S8/S9-portaldatat
+  // kan Z13-kolumnen sakna 209/260, medan efterföljande Z14 pekar ut de
+  // anläggningar som nätägaren godkänner/nekar. Blockera därför inte ett
+  // korrekt Z13-utkast bara för att objekt-/nätområdesfält är tomma i Z13-kolumnen.
+  const transactionType = normalizeTgtCode(portalData.prodatTransactionType ?? portalData.reasonForTransaction)
+  if (step.code === 'Z13' && transactionType.startsWith('Z13')) return false
+
+  return true
+}
+
+
 function validatePortalDataCoverage(
   issues: EdielTgtDraftValidationIssue[],
   rawPayload: string,
@@ -1315,15 +1424,20 @@ function validatePortalDataCoverage(
 ) {
   if (step.family !== 'PRODAT' || !portalData) return
 
+  const requiresObjectCoverage = prodatStepRequiresObjectCoverage(step, portalData)
   const requiredValues = [
-    ['metering_point_id', portalData.meteringPointId, 'Anläggnings-id saknas i payload.'],
+    ...(requiresObjectCoverage
+      ? [['metering_point_id', portalData.meteringPointId, 'Anläggnings-id saknas i payload.'] as const]
+      : []),
     ...(prodatStepRequiresCustomerData(step)
       ? [
           ['customer_id', portalData.customerId, 'Kund-id saknas i payload.'] as const,
           ['customer_name', portalData.customerName, 'Kundnamn saknas i payload.'] as const,
         ]
       : []),
-    ['grid_area_id', portalData.gridAreaId, 'Nätområde saknas i payload.'],
+    ...(requiresObjectCoverage
+      ? [['grid_area_id', portalData.gridAreaId, 'Nätområde saknas i payload.'] as const]
+      : []),
     ...(prodatStepRequiresMeteringMethod(step, portalData)
       ? [['metering_method', portalData.meteringMethod, 'Mätmetod saknas i payload.'] as const]
       : []),

@@ -125,6 +125,38 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
     tone: 'red',
     prefixes: ['3.2'],
   },
+  {
+    id: 's8-1',
+    title: 'S8.1 – Energitjänsteföretag: korrekt Z13/Z14',
+    description:
+      'ESCO-flöden där GridCore skickar Z13 och portalen svarar med Z14.',
+    tone: 'green',
+    prefixes: ['8.1'],
+  },
+  {
+    id: 's8-2',
+    title: 'S8.2 – Energitjänsteföretag: negativ APERAK för Z14V',
+    description:
+      'Verifierar att felaktig Z14V avvisas med negativ APERAK.',
+    tone: 'red',
+    prefixes: ['8.2'],
+  },
+  {
+    id: 's9-1',
+    title: 'S9.1 – Energitjänsteföretag: korrekt Z15/Z18',
+    description:
+      'Avslutsflöden för aktivt tillstånd och rapportering.',
+    tone: 'green',
+    prefixes: ['9.1'],
+  },
+  {
+    id: 's9-2',
+    title: 'S9.2 – Energitjänsteföretag: negativ APERAK för Z15V',
+    description:
+      'Verifierar att felaktig Z15V avvisas med negativ APERAK.',
+    tone: 'red',
+    prefixes: ['9.2'],
+  },
 ]
 
 function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: BadgeTone }) {
@@ -177,6 +209,13 @@ function compareTestCaseCodes(a: string, b: string): number {
   return a.localeCompare(b, 'sv-SE', { numeric: true, sensitivity: 'base' })
 }
 
+function isProdatCoreCase(testCase: EdielTgtTestCaseDefinition): boolean {
+  return (
+    testCase.suite === 'PRODAT' &&
+    testCase.scope === 'core'
+  )
+}
+
 function isProdatSupplierCoreCase(testCase: EdielTgtTestCaseDefinition): boolean {
   return (
     testCase.suite === 'PRODAT' &&
@@ -191,7 +230,7 @@ function matchesPrefix(code: string, prefix: string): boolean {
 
 function getProdatCatalogGroups(): ProdatCatalogGroup[] {
   const allCases = getEdielTgtTestCases()
-    .filter(isProdatSupplierCoreCase)
+    .filter(isProdatCoreCase)
     .sort((a, b) => compareTestCaseCodes(a.testCaseCode, b.testCaseCode))
 
   return PRODAT_PORTAL_GROUPS.map((group) => ({

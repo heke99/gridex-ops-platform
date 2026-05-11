@@ -59,6 +59,7 @@ function normalizeCode(value: string): string {
 const KNOWN_PORTAL_FIELD_NAMES: Record<string, string> = {
   '209': 'Anläggningsid',
   '210': 'Avtal, startdatum',
+  '302': 'Rapportstartdatum',
   '213': 'Uppskattad årsenergi',
   '214': 'Konstant för mätare',
   '217': 'Mätmetod',
@@ -91,7 +92,15 @@ const KNOWN_PORTAL_FIELD_NAMES: Record<string, string> = {
   '316': 'Land-elanvändare',
   '317': 'Postort-fakturamottagare',
   '318': 'Land-fakturamottagare',
+  '321': 'Rapportslutdatum',
+  '322': 'Tillståndets status',
+  '323': 'Tillståndets syfte',
+  '324': 'Orsak till tillståndets upphörande',
+  '325': 'Tillståndets id',
+  '326': 'Tillståndets tidstämpel',
+  '506': 'Produkt id',
   '508B': 'Upplösning',
+  '513': 'Riktning',
 }
 
 
@@ -149,6 +158,15 @@ function codeForPortalLabel(value: string | null | undefined): string | null {
 
   if (/reference to metering point/i.test(String(value ?? ''))) return 'REF_MP'
   if (/enhet.*arsenergi|enhet.*årsenergi/i.test(String(value ?? ''))) return 'UNIT_213'
+  if (/rapportstartdatum|report start/i.test(String(value ?? ''))) return '302'
+  if (/rapportslutdatum|report end/i.test(String(value ?? ''))) return '321'
+  if (/tillstandets status|tillståndets status|permission status/i.test(String(value ?? ''))) return '322'
+  if (/tillstandets syfte|tillståndets syfte|permission purpose/i.test(String(value ?? ''))) return '323'
+  if (/orsak till tillstandets upphorande|orsak till tillståndets upphörande|permission end reason/i.test(String(value ?? ''))) return '324'
+  if (/tillstandets id|tillståndets id|permission id/i.test(String(value ?? ''))) return '325'
+  if (/tillstandets tidstampel|tillståndets tidstämpel|permission.*timestamp/i.test(String(value ?? ''))) return '326'
+  if (/produkt id|energiprodukt|product id/i.test(String(value ?? ''))) return '506'
+  if (/riktning|typ av anlaggning|typ av anläggning|direction/i.test(String(value ?? ''))) return '513'
 
   return null
 }

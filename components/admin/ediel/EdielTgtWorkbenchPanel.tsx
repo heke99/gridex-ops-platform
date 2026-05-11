@@ -125,6 +125,34 @@ const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
     tone: 'red',
     prefixes: ['3.2'],
   },
+  {
+    id: 's8-1',
+    title: 'S8.1 – Energitjänsteföretag: korrekt Z13/Z14',
+    description: 'ESCO-flöden där GridCore skickar Z13 och portalen svarar med Z14.',
+    tone: 'green',
+    prefixes: ['8.1'],
+  },
+  {
+    id: 's8-2',
+    title: 'S8.2 – Energitjänsteföretag: negativ APERAK Z14V',
+    description: 'Felaktig Z14V ska få positiv CONTRL och negativ APERAK.',
+    tone: 'red',
+    prefixes: ['8.2'],
+  },
+  {
+    id: 's9-1',
+    title: 'S9.1 – Energitjänsteföretag: korrekt Z15/Z18',
+    description: 'Avslutsflöden för tillstånd: Z15 och Z18.',
+    tone: 'green',
+    prefixes: ['9.1'],
+  },
+  {
+    id: 's9-2',
+    title: 'S9.2 – Energitjänsteföretag: negativ APERAK Z15V',
+    description: 'Felaktig Z15V ska få positiv CONTRL och negativ APERAK.',
+    tone: 'red',
+    prefixes: ['9.2'],
+  },
 ]
 
 function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: BadgeTone }) {
@@ -203,7 +231,7 @@ function dynamicRowForCase(
 
 function getGroupedProdatDefinitions(definitions: EdielTgtTestCaseDefinition[]): TgtWorkbenchGroup[] {
   const prodatCases = definitions
-    .filter((definition) => definition.suite === 'PRODAT' && definition.roleCode === 'supplier')
+    .filter((definition) => definition.suite === 'PRODAT')
     .sort((a, b) => compareTestCaseCodes(a.testCaseCode, b.testCaseCode))
 
   return TGT_PRODAT_GROUPS.map((group) => ({
@@ -257,6 +285,27 @@ function portalTestName(testCase: EdielTgtTestCaseDefinition): string {
   }
   if (testCase.suite === 'PRODAT' && testCase.roleCode === 'supplier' && testCase.testCaseCode === '1.5') {
     return 'Leverantör · S1.5 · Syntaxfel - negativ CONTRL'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'esco' && testCase.testCaseCode === '8.1.1') {
+    return 'Energitjänsteföretag · S8.1 · 8.1.1 PRODAT Z13V och positivt Z14V'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'esco' && testCase.testCaseCode === '8.1.2') {
+    return 'Energitjänsteföretag · S8.1 · 8.1.2 PRODAT Z13V och Z14N'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'esco' && testCase.testCaseCode === '8.1.3') {
+    return 'Energitjänsteföretag · S8.1 · 8.1.3 PRODAT Z13VH och positivt Z14'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'esco' && testCase.testCaseCode === '8.2.1') {
+    return 'Energitjänsteföretag · S8.2 · 8.2.1 Negativ APERAK - Z14V'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'esco' && testCase.testCaseCode === '9.1.1') {
+    return 'Energitjänsteföretag · S9.1 · 9.1.1 PRODAT Z15V'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'esco' && testCase.testCaseCode === '9.1.2') {
+    return 'Energitjänsteföretag · S9.1 · 9.1.2 PRODAT Z18V och Z15V'
+  }
+  if (testCase.suite === 'PRODAT' && testCase.roleCode === 'esco' && testCase.testCaseCode === '9.2.1') {
+    return 'Energitjänsteföretag · S9.2 · 9.2.1 Negativ APERAK - Z15V'
   }
   return testCase.suite + ' · ' + testCase.testCaseCode
 }
