@@ -499,6 +499,44 @@ export function utiltsTransactionAckReferencesForSource(sourceMessage: EdielMess
   return getUtiltsAckTransactionTargets(sourceMessage).map((target) => target.reference)
 }
 
+function utiltsTgtContextText(message: EdielMessageRow): string {
+  return JSON.stringify({
+    parsedPayload: message.parsed_payload,
+    validationReport: message.validation_report,
+    failureReason: message.failure_reason,
+    subject: message.subject,
+    fileName: message.file_name,
+    applicationReference: message.application_reference,
+    senderEdielId: message.sender_ediel_id,
+    receiverEdielId: message.receiver_ediel_id,
+    senderSubAddress: message.sender_sub_address,
+    receiverSubAddress: message.receiver_sub_address,
+    environment: message.environment,
+    testFlag: message.test_flag,
+    rawPayload: message.raw_payload,
+  }).toUpperCase()
+}
+
+export function isEdielPortalUtiltsE66TgtMessage(message: EdielMessageRow): boolean {
+  if (String(message.message_family ?? '').toUpperCase() !== 'UTILTS') return false
+  if (String(message.message_code ?? '').toUpperCase() !== 'E66') return false
+
+  const context = utiltsTgtContextText(message)
+  const sender = String(message.sender_ediel_id ?? '').trim()
+  const receiver = String(message.receiver_ediel_id ?? '').trim()
+  const hasEdielPortalParty = sender === '91100' || receiver === '91100' || context.includes('91100')
+  const hasTgtApplicationReference =
+    context.includes('23-DDQ-E66-T') ||
+    context.includes('E66-T') ||
+    context.includes('DDQ-E66-T')
+  const isTestRuntime =
+    String(message.environment ?? '').toLowerCase() === 'test' ||
+    message.test_flag === 1 ||
+    hasTgtApplicationReference
+
+  return hasEdielPortalParty && hasTgtApplicationReference && isTestRuntime
+}
+
 export function shouldUseTransactionScopedPositiveAperak(params: {
   sourceMessage: EdielMessageRow
   testCaseCode?: string | null
@@ -511,15 +549,16 @@ export function shouldUseTransactionScopedPositiveAperak(params: {
   const explicitCase = String(params.testCaseCode ?? '').toUpperCase()
   if (/U\d+\.\d+\.\d+B/.test(explicitCase)) return true
 
-  const storedContext = JSON.stringify({
-    parsedPayload: params.sourceMessage.parsed_payload,
-    validationReport: params.sourceMessage.validation_report,
-    failureReason: params.sourceMessage.failure_reason,
-    subject: params.sourceMessage.subject,
-    fileName: params.sourceMessage.file_name,
-    applicationReference: params.sourceMessage.application_reference,
-  }).toUpperCase()
-  return /U\d+\.\d+\.\d+B/.test(storedContext)
+  const storedContext = utiltsTgtContextText(params.sourceMessage)
+  if (/U\d+\.\d+\.\d+B/.test(storedContext)) return true
+
+  // TGT fallback: the Ediel portal does not always include the test case id in
+  // the inbound UTILTS payload. For the portal E66-T flow, multiple UTILTS
+  // transactions are the practical b-test signal and must be answered with one
+  // positive APERAK per transaction. This fallback is deliberately limited to
+  // the Ediel portal/test application reference so production routes keep the
+  // normal one-APERAK-per-message default.
+  return isEdielPortalUtiltsE66TgtMessage(params.sourceMessage)
 }
 
 function copiedUtiltsSegment(segment: string | null, allowedPrefix: string): string | null {

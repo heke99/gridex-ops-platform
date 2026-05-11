@@ -17,7 +17,7 @@ import {
   prepareAndQueueUtiltsE73,
   sendQueuedEdielMessage,
 } from "@/lib/ediel/orchestrator";
-import { getUtiltsAckTransactionTargets } from "@/lib/ediel/ack";
+import { getUtiltsAckTransactionTargets, shouldUseTransactionScopedPositiveAperak } from "@/lib/ediel/ack";
 import type {
   AckFamily,
   AckOutcome,
@@ -1950,20 +1950,11 @@ function shouldCreateTransactionScopedAperakPreview(params: {
   outcome?: AckOutcome | null;
 }): boolean {
   if (params.ackFamily !== "APERAK" || params.outcome !== "positive") return false;
-  if (String(params.sourceMessage.message_family ?? "").toUpperCase() !== "UTILTS") return false;
 
-  const explicitCase = (params.testCaseCode ?? params.selectedTestCaseCode ?? "").toUpperCase();
-  if (/U\d+\.\d+\.\d+B/.test(explicitCase)) return true;
-
-  const storedContext = JSON.stringify({
-    parsedPayload: params.sourceMessage.parsed_payload,
-    validationReport: params.sourceMessage.validation_report,
-    failureReason: params.sourceMessage.failure_reason,
-    subject: params.sourceMessage.subject,
-    fileName: params.sourceMessage.file_name,
-  }).toUpperCase();
-
-  return /U\d+\.\d+\.\d+B/.test(storedContext);
+  return shouldUseTransactionScopedPositiveAperak({
+    sourceMessage: params.sourceMessage,
+    testCaseCode: params.testCaseCode ?? params.selectedTestCaseCode ?? null,
+  });
 }
 
 export async function createAndSendRecommendedAckAction(formData: FormData) {

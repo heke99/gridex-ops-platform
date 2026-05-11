@@ -45,6 +45,7 @@ import {
   buildUtiltsErrDraft,
   getAutomaticAckPolicy,
   getUtiltsAckTransactionTargets,
+  shouldUseTransactionScopedPositiveAperak,
   type EdielAckScope,
   type EdielAperakApplicationError,
 } from '@/lib/ediel/ack'
@@ -474,19 +475,8 @@ async function resolveUtiltsRuntimeTestCaseCode(params: {
   return resolveActiveUtiltsTgtCaseCodeFromRuns()
 }
 
-function utiltsTestContextText(message: EdielMessageRow): string {
-  return JSON.stringify({
-    parsedPayload: message.parsed_payload,
-    validationReport: message.validation_report,
-    failureReason: message.failure_reason,
-    subject: message.subject,
-    fileName: message.file_name,
-    applicationReference: message.application_reference,
-  }).toUpperCase()
-}
-
 function isUtiltsBTestCaseMessage(message: EdielMessageRow): boolean {
-  return /U\d+\.\d+\.\d+B/.test(utiltsTestContextText(message))
+  return shouldUseTransactionScopedPositiveAperak({ sourceMessage: message })
 }
 
 function shouldCreatePositiveAperakPerTransaction(params: {
@@ -496,10 +486,10 @@ function shouldCreatePositiveAperakPerTransaction(params: {
 }): boolean {
   if (params.outcome !== 'positive') return false
 
-  const isBTest = isTgtBCaseCode(params.testCaseCode) || isUtiltsBTestCaseMessage(params.sourceMessage)
-
-  if (!isBTest) return false
-  return getUtiltsAckTransactionTargets(params.sourceMessage).length > 1
+  return shouldUseTransactionScopedPositiveAperak({
+    sourceMessage: params.sourceMessage,
+    testCaseCode: params.testCaseCode ?? null,
+  })
 }
 
 async function createUtiltsRuntimeAcks(params: {
