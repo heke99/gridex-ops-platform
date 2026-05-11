@@ -5,7 +5,7 @@ import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/e
 import { validateEdifactSyntax, type EdielSyntaxIssue } from '@/lib/ediel/core/syntaxValidator'
 import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
 import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from '@/lib/ediel/utiltsEngine'
 
 export type EdielAckDecisionKind =
   | 'send_positive_contrl'
@@ -345,7 +345,7 @@ function utiltsApplicationDecision(message: EdielMessageRow, testData?: EdielTgt
   if (runtime.ackPlan.shouldSendUtiltsErr) {
     return {
       family: 'UTILTS_ERR',
-      messageText: runtime.ackPlan.utiltsErrCodes.join('|') || tgtDecision?.messageText || 'UTILTS process- eller funktionsfel',
+      messageText: serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan) || tgtDecision?.messageText || 'UTILTS process- eller funktionsfel',
       matchedRule: `UTILTS_RUNTIME_${runtime.validation.classification.toUpperCase()}`,
     }
   }

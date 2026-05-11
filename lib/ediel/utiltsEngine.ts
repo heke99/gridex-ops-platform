@@ -101,6 +101,13 @@ export type UtiltsRuntimeValidation = {
   classification: 'accepted' | 'syntax_rejected' | 'application_rejected' | 'functional_rejected'
 }
 
+export type UtiltsRuntimeUtiltsErrDetail = {
+  code: string
+  referenceQualifier?: string | null
+  referenceNumber?: string | null
+  lineItemReference?: string | null
+}
+
 export type UtiltsRuntimeAckPlan = {
   shouldSendContrl: boolean
   contrlOutcome: EdielAckOutcome | null
@@ -108,6 +115,7 @@ export type UtiltsRuntimeAckPlan = {
   aperakOutcome: EdielAckOutcome | null
   shouldSendUtiltsErr: boolean
   utiltsErrCodes: string[]
+  utiltsErrDetails: UtiltsRuntimeUtiltsErrDetail[]
   aperakApplicationErrors: UtiltsAperakApplicationError[]
   reason: string
 }
@@ -485,7 +493,10 @@ function expectedQuantityCountForGroup(group: UtiltsTransactionGroup): number | 
   const resolution = parseDtmComposite(groupSegmentValue(group, 'DTM+354'))
   const resolutionMinutes = numberOrNull(resolution.value)
   const periodMinutes = minutesBetween(period.start, period.end)
-  if (!resolutionMinutes || !periodMinutes || resolution.format !== '802') return null
+  // DTM+354 carries the resolution value (15/60 minutes). The format qualifier
+  // can vary between portal/runtime sources, so do not require one specific
+  // qualifier here. The period itself is already parsed from DTM+324:...:719.
+  if (!resolutionMinutes || !periodMinutes) return null
   const expected = periodMinutes / resolutionMinutes
   return Number.isInteger(expected) && expected > 0 ? expected : null
 }
@@ -1133,6 +1144,81 @@ function shouldPositiveAperakBeSent(message: EdielMessageRow, facts: UtiltsRunti
   return requestAck === 'AB'
 }
 
+
+function functionalUtiltsErrDetailsFromIssues(issues: readonly UtiltsValidationIssue[]): UtiltsRuntimeUtiltsErrDetail[] {
+  const functionalIssues = issues.filter(
+    (issue) => issue.severity === 'error' && issue.kind === 'functional' && Boolean(issue.utiltsErrCode),
+  )
+
+  const codesByReference = new Map<string, Set<string>>()
+  for (const issue of functionalIssues) {
+    const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
+    if (!code) continue
+    const referenceNumber = sanitizeRuntimeToken(issue.referenceNumber ?? issue.lineItemReference ?? null, 35)
+    const lineItemReference = sanitizeRuntimeToken(issue.lineItemReference ?? issue.referenceNumber ?? null, 35)
+    const referenceKey = `${referenceNumber ?? ''}|${lineItemReference ?? ''}`
+    const codes = codesByReference.get(referenceKey) ?? new Set<string>()
+    codes.add(code)
+    codesByReference.set(referenceKey, codes)
+  }
+
+  const details: UtiltsRuntimeUtiltsErrDetail[] = []
+  const seen = new Set<string>()
+
+  for (const issue of functionalIssues) {
+    const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
+    if (!code) continue
+    const referenceNumber = sanitizeRuntimeToken(issue.referenceNumber ?? issue.lineItemReference ?? null, 35)
+    const lineItemReference = sanitizeRuntimeToken(issue.lineItemReference ?? issue.referenceNumber ?? null, 35)
+    const referenceKey = `${referenceNumber ?? ''}|${lineItemReference ?? ''}`
+    const codesForReference = codesByReference.get(referenceKey)
+
+    // E87 is the generic interval/observation-count rejection. If the same
+    // transaction already has a more specific functional rejection, keep the
+    // specific reason and avoid sending an extra SG5 block for the same
+    // timeseries. This matches UTILTS_ERR production behaviour and prevents
+    // portal TGT cases from receiving duplicate reason_for_answer values for
+    // the same test customer.
+    if (code === 'E87' && codesForReference && Array.from(codesForReference).some((otherCode) => otherCode !== 'E87')) {
+      continue
+    }
+
+    const key = `${code}|${referenceNumber ?? ''}|${lineItemReference ?? ''}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    details.push({
+      code,
+      referenceQualifier: sanitizeRuntimeToken(issue.referenceQualifier ?? 'TN', 12) ?? 'TN',
+      referenceNumber,
+      lineItemReference,
+    })
+  }
+
+  return details
+}
+
+function utiltsErrCodesFromDetails(details: readonly UtiltsRuntimeUtiltsErrDetail[]): string[] {
+  return details.map((detail) => detail.code).filter(Boolean)
+}
+
+function serializeUtiltsErrDetails(details: readonly UtiltsRuntimeUtiltsErrDetail[]): string {
+  return details
+    .map((detail) => {
+      const code = sanitizeRuntimeToken(detail.code?.toUpperCase(), 8)
+      if (!code) return null
+      const reference = sanitizeRuntimeToken(detail.referenceNumber ?? detail.lineItemReference ?? null, 35)
+      return reference ? `${code}@${reference}` : code
+    })
+    .filter((value): value is string => Boolean(value))
+    .join('|')
+}
+
+export function serializeUtiltsRuntimeUtiltsErrMessageText(plan: UtiltsRuntimeAckPlan): string {
+  const serializedDetails = serializeUtiltsErrDetails(plan.utiltsErrDetails ?? [])
+  if (serializedDetails) return serializedDetails
+  return (plan.utiltsErrCodes.length > 0 ? plan.utiltsErrCodes : ['E14']).join('|')
+}
+
 export function decideUtiltsRuntimeAckPlan(params: {
   message: EdielMessageRow
   facts: UtiltsRuntimeFacts
@@ -1145,6 +1231,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       shouldSendAperak: false,
       aperakOutcome: null,
       shouldSendUtiltsErr: false,
+      utiltsErrDetails: [],
       utiltsErrCodes: [],
       aperakApplicationErrors: [],
       reason: 'Meddelandet är inte UTILTS.',
@@ -1158,6 +1245,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       shouldSendAperak: false,
       aperakOutcome: null,
       shouldSendUtiltsErr: false,
+      utiltsErrDetails: [],
       utiltsErrCodes: [],
       aperakApplicationErrors: [],
       reason: 'Inbound UTILTS-ERR ska endast syntaxkvitteras med CONTRL.',
@@ -1171,6 +1259,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       shouldSendAperak: false,
       aperakOutcome: null,
       shouldSendUtiltsErr: false,
+      utiltsErrDetails: [],
       utiltsErrCodes: [],
       aperakApplicationErrors: [],
       reason: 'EDIFACT-syntaxen kunde inte accepteras.',
@@ -1184,6 +1273,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       shouldSendAperak: true,
       aperakOutcome: 'negative',
       shouldSendUtiltsErr: false,
+      utiltsErrDetails: [],
       utiltsErrCodes: [],
       aperakApplicationErrors: aperakErrorsFromIssues(params.validation.issues),
       reason: 'Meddelandet är syntaktiskt läsbart men bryter mot UTILTS-anvisningen.',
@@ -1191,13 +1281,8 @@ export function decideUtiltsRuntimeAckPlan(params: {
   }
 
   if (params.validation.classification === 'functional_rejected') {
-    const utiltsErrCodes = Array.from(
-      new Set(
-        params.validation.issues
-          .map((issue) => issue.utiltsErrCode)
-          .filter((code): code is string => Boolean(code))
-      )
-    )
+    const utiltsErrDetails = functionalUtiltsErrDetailsFromIssues(params.validation.issues)
+    const utiltsErrCodes = utiltsErrCodesFromDetails(utiltsErrDetails)
 
     return {
       shouldSendContrl: true,
@@ -1205,6 +1290,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       shouldSendAperak: false,
       aperakOutcome: null,
       shouldSendUtiltsErr: true,
+      utiltsErrDetails,
       utiltsErrCodes: utiltsErrCodes.length > 0 ? utiltsErrCodes : ['E14'],
       aperakApplicationErrors: [],
       reason: 'Meddelandet är syntaktiskt/anvisningsmässigt läsbart men innehållet kunde inte behandlas.',
@@ -1217,6 +1303,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
     shouldSendAperak: shouldPositiveAperakBeSent(params.message, params.facts),
     aperakOutcome: 'positive',
     shouldSendUtiltsErr: false,
+    utiltsErrDetails: [],
     utiltsErrCodes: [],
     aperakApplicationErrors: [],
     reason: 'UTILTS accepterades.',

@@ -456,7 +456,24 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
     current.push(segment)
   }
 
-  const sourceGroups = groups.length > 0 ? groups : [segments]
+  if (current) groups.push(current)
+
+  const ideGroups = groups.length > 0 ? groups : [segments]
+  const sourceGroups = ideGroups.flatMap((group) => {
+    const tnRefs = group
+      .filter((segment) => segment.toUpperCase().startsWith('RFF+TN:'))
+      .map((segment) => firstCompositeComponent(edifactElement(segment, 1)))
+      .filter((value): value is string => Boolean(value))
+
+    // Some UTILTS E66 messages contain several business transactions under the
+    // same IDE+24 repeat. UTILTS_ERR must be emitted per RFF+TN business
+    // reference, otherwise the portal/counterparty maps all reasons to the
+    // first LocationRepeatId. Keep the full group content but assign a separate
+    // synthetic TN marker per logical business transaction.
+    if (tnRefs.length <= 1) return [group]
+
+    return tnRefs.map((tn) => [...group, `__GRIDEX_LOGICAL_RFF_TN+${tn}`])
+  })
 
   return sourceGroups.map((group) => {
     const ide = segmentByPrefix(group, 'IDE+24')
@@ -468,7 +485,7 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
       // UTILTS_ERR must point back to the source transaction reference.
       // In UTILTS, RFF+TN is the transaction reference used by the portal and
       // counterpart systems; IDE+24 is only a repeat/detail identity fallback.
-      transactionId: referenceValueFromSegments(group, 'TN') ?? firstCompositeComponent(edifactElement(ide, 2)),
+      transactionId: firstCompositeComponent(edifactElement(segmentByPrefix(group, '__GRIDEX_LOGICAL_RFF_TN+'), 1)) ?? referenceValueFromSegments(group, 'TN') ?? firstCompositeComponent(edifactElement(ide, 2)),
       meterPointId: firstCompositeComponent(edifactElement(loc172, 2)),
       gridAreaId: firstCompositeComponent(edifactElement(loc239, 2)),
       productIdSegment: segmentByPrefix(group, 'PIA+'),
@@ -529,8 +546,12 @@ function resolveUtiltsErrSourceGroup(params: {
   index: number
   groups: readonly UtiltsErrSourceGroup[]
   usedMeterPointIds: Set<string>
+  preferredTransactionId?: string | null
 }): UtiltsErrSourceGroup | null {
-  const group = params.groups[params.index] ?? params.groups[params.groups.length - 1] ?? null
+  const preferred = sanitizeEdifactToken(params.preferredTransactionId ?? null, 35)
+  const group = (preferred
+    ? params.groups.find((candidate) => sanitizeEdifactToken(candidate.transactionId ?? null, 35) === preferred)
+    : null) ?? params.groups[params.index] ?? params.groups[params.groups.length - 1] ?? null
 
   if (!shouldUseS02FunctionalTgtFallback(params.sourceMessage, params.allCodes)) {
     return group
@@ -567,6 +588,33 @@ function resolveUtiltsErrSourceGroup(params: {
   }
 }
 
+
+type UtiltsErrReasonEntry = {
+  code: string
+  transactionId?: string | null
+}
+
+function parseUtiltsErrReasonEntries(messageText?: string | null): UtiltsErrReasonEntry[] {
+  const raw = sanitizeSegmentText(messageText) || 'E14'
+  const entries: UtiltsErrReasonEntry[] = []
+
+  for (const token of raw.split(/[|,;\s]+/)) {
+    const trimmedToken = token.trim()
+    if (!trimmedToken) continue
+
+    const [codePart, referencePart] = trimmedToken.split('@')
+    const code = sanitizeEdifactToken(codePart.toUpperCase(), 8)
+    if (!code || !/^E[0-9A-Z]+$/.test(code)) continue
+
+    entries.push({
+      code,
+      transactionId: sanitizeEdifactToken(referencePart ?? null, 35),
+    })
+  }
+
+  return entries.length > 0 ? entries : [{ code: 'E14', transactionId: null }]
+}
+
 function buildUtiltsErrSegments(params: {
   sourceMessage: EdielMessageRow
   externalReference: string
@@ -576,13 +624,9 @@ function buildUtiltsErrSegments(params: {
   const refs = parseEdifactRefs(params.sourceMessage)
   const sourceSegments = edifactSegmentsFromRaw(params.sourceMessage.raw_payload)
   const sourceMks = segmentByPrefix(sourceSegments, 'MKS+')
-  const rawCodes = sanitizeSegmentText(params.messageText) || 'E14'
-  const codes = rawCodes
-    .split(/[|,;\s]+/)
-    .map((code) => sanitizeEdifactToken(code.toUpperCase(), 8))
-    .filter((code): code is string => Boolean(code && /^E[0-9A-Z]+$/.test(code)))
-
-  const uniqueCodes = codes.length > 0 ? codes : ['E14']
+  const reasonEntries = parseUtiltsErrReasonEntries(params.messageText)
+  const effectiveReasonEntries = reasonEntries.length > 0 ? reasonEntries : [{ code: 'E14', transactionId: null }]
+  const uniqueCodes = effectiveReasonEntries.map((entry) => entry.code)
   const sourceGroups = parseUtiltsSourceGroups(params.sourceMessage)
   const sourceCode = sanitizeEdifactToken(String(params.sourceMessage.message_code ?? 'UTILTS'), 8) ?? 'UTILTS'
 
@@ -599,7 +643,8 @@ function buildUtiltsErrSegments(params: {
 
   const usedMeterPointIds = new Set<string>()
 
-  uniqueCodes.forEach((code, index) => {
+  effectiveReasonEntries.forEach((entry, index) => {
+    const code = entry.code
     const group = resolveUtiltsErrSourceGroup({
       sourceMessage: params.sourceMessage,
       code,
@@ -607,6 +652,7 @@ function buildUtiltsErrSegments(params: {
       index,
       groups: sourceGroups,
       usedMeterPointIds,
+      preferredTransactionId: entry.transactionId ?? null,
     })
 
     const outboundTransactionId = utiltsErrTransactionId({

@@ -6,7 +6,7 @@ import {
   getMeteringPointById,
 } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from '@/lib/ediel/utiltsEngine'
 import {
   createEdielMessageEvent,
   getEdielMessageById,
@@ -424,8 +424,9 @@ async function createUtiltsRuntimeAcks(params: {
   }
 
   if (params.ackPlan.shouldSendUtiltsErr) {
+    const messageText = serializeUtiltsRuntimeUtiltsErrMessageText(params.ackPlan)
     const codes = params.ackPlan.utiltsErrCodes.length > 0 ? params.ackPlan.utiltsErrCodes : ['E14']
-    const utiltsErrMessages = isUtiltsBTestCaseMessage(params.sourceMessage) ? codes : [codes.join('|')]
+    const utiltsErrMessages = isUtiltsBTestCaseMessage(params.sourceMessage) ? codes : [messageText]
 
     for (const messageText of utiltsErrMessages) {
       const utiltsErr = await createAckIfMissing({

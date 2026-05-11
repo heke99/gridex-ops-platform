@@ -36,7 +36,7 @@ import {
 } from "@/lib/ediel/db";
 import { runEdielSelfTest } from "@/lib/ediel/selftest";
 import { buildInboundUtiltsMessageInput } from "@/lib/ediel/utilts";
-import { runUtiltsRuntimeForMessage } from "@/lib/ediel/utiltsEngine";
+import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from "@/lib/ediel/utiltsEngine";
 import {
   buildProdatZ03FromSwitch,
   buildProdatZ04FromSwitch,
@@ -1595,7 +1595,7 @@ async function resolveUtiltsErrMessageTextForAckAction(params: UtiltsErrMessageT
 
   const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
   if (runtime.ackPlan.shouldSendUtiltsErr && runtime.ackPlan.utiltsErrCodes.length > 0) {
-    return runtime.ackPlan.utiltsErrCodes.join('|');
+    return serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan);
   }
 
   const tgtResolution = await resolveTgtTestDataForAckAction({
@@ -1633,7 +1633,7 @@ async function resolveBackendAperakDecision(params: {
     const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
 
     if (runtime.ackPlan.shouldSendUtiltsErr) {
-      const codes = runtime.ackPlan.utiltsErrCodes.join("|") || "UTILTS_ERR";
+      const codes = serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan) || "UTILTS_ERR";
 
       await createEdielMessageEvent({
         actorUserId: params.actorUserId,
@@ -1645,6 +1645,7 @@ async function resolveBackendAperakDecision(params: {
         payload: {
           selectedFamily: "UTILTS_ERR",
           utiltsErrCodes: runtime.ackPlan.utiltsErrCodes,
+          utiltsErrDetails: runtime.ackPlan.utiltsErrDetails,
           runtimeClassification: runtime.validation.classification,
           validationIssues: runtime.validation.issues.map((issue) => ({
             code: issue.code,
