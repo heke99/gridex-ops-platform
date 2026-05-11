@@ -120,6 +120,7 @@ export function getEdielOperationalBridgeSummary(params: {
 export async function processEdielOperationalMessage(params: {
   actorUserId: string
   edielMessageId: string
+  testCaseCode?: string | null
 }): Promise<EdielOperationalProcessResult> {
   const message = await getEdielMessageById(params.edielMessageId)
   if (!message) throw new Error('Ediel-meddelandet hittades inte')
@@ -163,7 +164,11 @@ export async function processEdielOperationalMessage(params: {
   }
 
   if (message.message_family === 'UTILTS') {
-    await processInboundUtiltsMessage({ actorUserId: params.actorUserId, edielMessageId: message.id })
+    await processInboundUtiltsMessage({
+      actorUserId: params.actorUserId,
+      edielMessageId: message.id,
+      testCaseCode: params.testCaseCode ?? null,
+    })
     return {
       messageId: message.id,
       kind: 'inbound_utilts',

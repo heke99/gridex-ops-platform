@@ -11,7 +11,7 @@ import EdielSafeApplyReviewPanel from '@/components/admin/ediel/EdielSafeApplyRe
 import EdielInboundCasesPanel from '@/components/admin/ediel/EdielInboundCasesPanel'
 import InboundTestDataUploadForm from '@/components/admin/ediel/InboundTestDataUploadForm'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { getCanonicalAckState, utiltsTransactionAckReferencesForSource } from '@/lib/ediel/ack'
+import { getCanonicalAckState } from '@/lib/ediel/ack'
 import {
   getEdielRouteProfileByCommunicationRouteId,
   listCanonicalAckConflictEvents,
@@ -546,13 +546,6 @@ function RecommendedAckActionForm({
 }) {
   if (!recommendation.actionLabel) return null
 
-  const transactionAckRefs =
-    message.message_family === 'UTILTS' &&
-    recommendation.ackFamily === 'APERAK' &&
-    recommendation.outcome === 'positive'
-      ? utiltsTransactionAckReferencesForSource(message)
-      : []
-
   const hiddenTgtFields = selectedTgtRow ? (
     <>
       <input type="hidden" name="testSuite" value={selectedTgtRow.testSuite} />
@@ -570,17 +563,6 @@ function RecommendedAckActionForm({
           {recommendation.ackFamily ? `Skapa preview för ${recommendation.ackFamily}` : recommendation.actionLabel}
         </button>
       </form>
-
-      {transactionAckRefs.length > 1 ? (
-        <form action={createAndSendRecommendedAckAction}>
-          <input type="hidden" name="sourceMessageId" value={message.id} />
-          <input type="hidden" name="ackScope" value="transaction" />
-          {hiddenTgtFields}
-          <button className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100">
-            Skapa APERAK per transaktion ({transactionAckRefs.length})
-          </button>
-        </form>
-      ) : null}
     </div>
   )
 }

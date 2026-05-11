@@ -11,6 +11,7 @@ import {
   createEdielMessageEvent,
   getEdielMessageById,
   linkEdielMessage,
+  listEdielTestRuns,
   updateEdielMessageStatus,
 } from '@/lib/ediel/db'
 import { resolveCanonicalOutboundContext, createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
@@ -401,6 +402,78 @@ async function createAutomaticPositiveAcks(params: {
   return createdIds
 }
 
+
+function normalizeTgtCaseCode(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const code = value.trim().toUpperCase()
+  return code.length > 0 ? code : null
+}
+
+function isTgtBCaseCode(value: unknown): boolean {
+  const code = normalizeTgtCaseCode(value)
+  return Boolean(code && /U\d+\.\d+\.\d+B/.test(code))
+}
+
+function readTgtCaseCodeFromObject(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Record<string, unknown>
+  return (
+    normalizeTgtCaseCode(record.testCaseCode) ??
+    normalizeTgtCaseCode(record.test_case_code) ??
+    normalizeTgtCaseCode(record.requestedTestCaseCode) ??
+    normalizeTgtCaseCode(record.requested_test_case_code) ??
+    normalizeTgtCaseCode(record.selectedTgtCaseCode) ??
+    normalizeTgtCaseCode(record.selected_tgt_case_code) ??
+    normalizeTgtCaseCode(record.tgtTestCaseCode) ??
+    normalizeTgtCaseCode(record.tgt_test_case_code) ??
+    normalizeTgtCaseCode(record.activeTgtCaseCode) ??
+    normalizeTgtCaseCode(record.active_tgt_case_code)
+  )
+}
+
+function readTgtCaseCodeFromMessageContext(message: EdielMessageRow): string | null {
+  return (
+    readTgtCaseCodeFromObject(message.parsed_payload) ??
+    readTgtCaseCodeFromObject(message.validation_report) ??
+    normalizeTgtCaseCode(message.failure_reason)
+  )
+}
+
+async function resolveActiveUtiltsTgtCaseCodeFromRuns(): Promise<string | null> {
+  const runs = await listEdielTestRuns()
+  const active = runs.find((run) => {
+    const suite = String(run.test_suite ?? '').toUpperCase()
+    const code = normalizeTgtCaseCode(run.test_case_code)
+    const status = String(run.status ?? '').toLowerCase()
+    return (
+      suite === 'UTILTS' &&
+      Boolean(code) &&
+      !['completed', 'approved', 'cancelled', 'failed', 'archived'].includes(status)
+    )
+  })
+
+  return normalizeTgtCaseCode(active?.test_case_code ?? null)
+}
+
+async function resolveUtiltsRuntimeTestCaseCode(params: {
+  sourceMessage: EdielMessageRow
+  explicitTestCaseCode?: string | null
+}): Promise<string | null> {
+  const explicit = normalizeTgtCaseCode(params.explicitTestCaseCode)
+  if (explicit) return explicit
+
+  const stored = readTgtCaseCodeFromMessageContext(params.sourceMessage)
+  if (stored) return stored
+
+  if (String(params.sourceMessage.environment ?? '').toLowerCase() !== 'test') return null
+  if (String(params.sourceMessage.message_family ?? '').toUpperCase() !== 'UTILTS') return null
+
+  // In TGT the portal does not put "U2.1.8b" in the EDIFACT payload itself.
+  // Therefore the production-safe resolver can only infer b-test behavior from
+  // the currently active UTILTS test run stored in our own TGT runner context.
+  return resolveActiveUtiltsTgtCaseCodeFromRuns()
+}
+
 function utiltsTestContextText(message: EdielMessageRow): string {
   return JSON.stringify({
     parsedPayload: message.parsed_payload,
@@ -423,8 +496,7 @@ function shouldCreatePositiveAperakPerTransaction(params: {
 }): boolean {
   if (params.outcome !== 'positive') return false
 
-  const explicitCase = String(params.testCaseCode ?? '').toUpperCase()
-  const isBTest = /U\d+\.\d+\.\d+B/.test(explicitCase) || isUtiltsBTestCaseMessage(params.sourceMessage)
+  const isBTest = isTgtBCaseCode(params.testCaseCode) || isUtiltsBTestCaseMessage(params.sourceMessage)
 
   if (!isBTest) return false
   return getUtiltsAckTransactionTargets(params.sourceMessage).length > 1
@@ -806,6 +878,11 @@ export async function processInboundUtiltsMessage(params: {
     throw new Error(`Meddelande ${message.id} är inte UTILTS.`)
   }
 
+  const runtimeTestCaseCode = await resolveUtiltsRuntimeTestCaseCode({
+    sourceMessage: message,
+    explicitTestCaseCode: params.testCaseCode ?? null,
+  })
+
   const runtime = runUtiltsRuntimeForMessage(message)
   const normalizedPayload = runtime.normalizedPayload
   const canonicalLinks = await linkInboundUtiltsMessageCanonically({
@@ -821,13 +898,15 @@ export async function processInboundUtiltsMessage(params: {
       ...(message.parsed_payload ?? {}),
       normalizedMeteringPayload: normalizedPayload,
       utiltsRuntimeFacts: runtime.facts,
+      utiltsRuntimeTestCaseCode: runtimeTestCaseCode,
     },
     validationReport: {
       ...(message.validation_report ?? {}),
       utiltsRuntime: {
         validation: runtime.validation,
         ackPlan: runtime.ackPlan,
-      },
+          testCaseCode: runtimeTestCaseCode,
+        },
     },
   })
 
@@ -836,7 +915,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       sourceMessage: message,
       ackPlan: runtime.ackPlan,
-      testCaseCode: params.testCaseCode ?? null,
+      testCaseCode: runtimeTestCaseCode,
     })
 
     await updateEdielMessageStatus({
@@ -870,7 +949,8 @@ export async function processInboundUtiltsMessage(params: {
         normalizedMeteringPayload: normalizedPayload,
         validation: runtime.validation,
         ackPlan: runtime.ackPlan,
-      },
+          testCaseCode: runtimeTestCaseCode,
+        },
     })
 
     return {
@@ -888,7 +968,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       sourceMessage: message,
       ackPlan: runtime.ackPlan,
-      testCaseCode: params.testCaseCode ?? null,
+      testCaseCode: runtimeTestCaseCode,
     })
 
     await createEdielMessageEvent({
@@ -903,7 +983,8 @@ export async function processInboundUtiltsMessage(params: {
         normalizedMeteringPayload: normalizedPayload,
         validation: runtime.validation,
         ackPlan: runtime.ackPlan,
-      },
+          testCaseCode: runtimeTestCaseCode,
+        },
     })
 
     return {
@@ -965,7 +1046,8 @@ export async function processInboundUtiltsMessage(params: {
       utiltsRuntime: {
         validation: runtime.validation,
         ackPlan: runtime.ackPlan,
-      },
+          testCaseCode: runtimeTestCaseCode,
+        },
       outboundRequestId: acknowledgedOutbound?.id ?? null,
       billingUnderlayId: billingUnderlay?.id ?? null,
       billingUnderlayCandidate:
@@ -984,7 +1066,7 @@ export async function processInboundUtiltsMessage(params: {
     actorUserId,
     sourceMessage: message,
     ackPlan: runtime.ackPlan,
-    testCaseCode: params.testCaseCode ?? null,
+    testCaseCode: runtimeTestCaseCode,
   })
 
   await updateEdielMessageStatus({

@@ -1544,9 +1544,20 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     return;
   }
 
+  const operationalTgtResolution =
+    sourceMessage.message_family === 'UTILTS'
+      ? await resolveTgtTestDataForAckAction({
+          message: sourceMessage,
+          testSuite: 'UTILTS',
+          roleCode: null,
+          requestedTestCaseCode: formString(formData.get('testCaseCode')),
+        })
+      : null;
+
   await processEdielOperationalMessage({
     actorUserId: context.userId,
     edielMessageId,
+    testCaseCode: operationalTgtResolution?.selectedRow?.testCaseCode ?? formString(formData.get('testCaseCode')),
   });
 
   await revalidateRelatedMessage(edielMessageId);
