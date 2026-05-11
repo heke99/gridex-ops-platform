@@ -960,6 +960,16 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
       return '2.5.1'
     }
 
+    if (code === 'Z14') {
+      if (/\b8\.2\.1\b/i.test(rawText)) return '8.2.1'
+      return '8.1.1'
+    }
+
+    if (code === 'Z15') {
+      if (/\b9\.2\.1\b/i.test(rawText) || rawText.includes('Z75') || rawText.includes('Z79')) return '9.2.1'
+      return '9.1.1'
+    }
+
     if (code === 'Z04') return '1.4.3'
     if (code === 'Z03') return '1.3.1'
   }

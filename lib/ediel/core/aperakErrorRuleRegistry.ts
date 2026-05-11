@@ -239,6 +239,36 @@ const BUILT_IN_PRODAT_APERAK_ERROR_RULES: EdielAperakErrorRuleRow[] = [
     priority: 300,
     is_active: true,
   },
+  {
+    id: "builtin-prodat-permission-status-invalid",
+    message_family: "PRODAT",
+    message_code: "Z15",
+    direction: "both",
+    rule_key: "permission_status_invalid",
+    rule_description: "Felaktigt tillståndets status.",
+    application_error: "41",
+    free_text_code: "322",
+    free_text: "Felaktigt tillståndets status {actual}",
+    applies_to_field: "322",
+    environment: "all",
+    priority: 310,
+    is_active: true,
+  },
+  {
+    id: "builtin-prodat-permission-end-reason-invalid",
+    message_family: "PRODAT",
+    message_code: "*",
+    direction: "both",
+    rule_key: "permission_end_reason_invalid",
+    rule_description: "Felaktig orsak till tillståndets upphörande.",
+    application_error: "41",
+    free_text_code: "324",
+    free_text: "Felaktig orsak till tillståndets upphörande {actual}",
+    applies_to_field: "324",
+    environment: "all",
+    priority: 320,
+    is_active: true,
+  },
 ];
 
 export type EdielResolvedAperakErrorDetail = {
@@ -354,8 +384,8 @@ const TGT_APERAK_FIELD_RULE_KEYS: Record<string, string> = {
   "261": "case_reference_missing",
   "262": "balance_responsible_invalid",
   "319": "missing_facility_reference",
-  "322": "product_code_invalid",
-  "324": "installation_type_invalid",
+  "322": "permission_status_invalid",
+  "324": "permission_end_reason_invalid",
 };
 
 const IGNORED_TGT_APERAK_FIELD_CODES = new Set([
@@ -544,6 +574,11 @@ function knownPositiveProdatTgtCase(testCaseCode: string): boolean {
     "2.5.3",
     "3.1.1",
     "3.1.2",
+    "8.1.1",
+    "8.1.2",
+    "8.1.3",
+    "9.1.1",
+    "9.1.2",
   ].includes(testCaseCode);
 }
 
@@ -885,6 +920,40 @@ function deriveTgtScenarioExpectedIssues(params: {
         transactionReference,
         sourceOrder: sourceOrder++,
         fallbackText: "Konstant saknas",
+      }),
+    ];
+  }
+
+  if (testCaseCode === "8.2.1") {
+    return [
+      issueForTgtScenario({
+        ruleKey: "facility_not_identified",
+        fieldPath: "TGT/FIELD/105",
+        fieldValue: meteringPointId,
+        expectedValue: expectedFacilityIds.join(",") || null,
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: "The object could not be identified",
+      }),
+    ];
+  }
+
+  if (testCaseCode === "9.2.1") {
+    const permissionStatus = testDataValuesForField(testData, ["322"]).find((value) => value.startsWith("Z")) ?? null;
+    const permissionEndReason = testDataValuesForField(testData, ["324"]).find((value) => value.startsWith("Z")) ?? null;
+    return [
+      issueForTgtScenario({
+        ruleKey: permissionStatus ? "permission_status_invalid" : "permission_end_reason_invalid",
+        fieldPath: permissionStatus ? "TGT/FIELD/322" : "TGT/FIELD/324",
+        fieldValue: permissionStatus ?? permissionEndReason,
+        expectedValue: permissionStatus ? "A75" : "B79/B80",
+        meteringPointId,
+        transactionReference,
+        sourceOrder: sourceOrder++,
+        fallbackText: permissionStatus
+          ? `Felaktigt tillståndets status ${permissionStatus}`
+          : `Felaktig orsak till tillståndets upphörande ${permissionEndReason ?? ''}`.trim(),
       }),
     ];
   }

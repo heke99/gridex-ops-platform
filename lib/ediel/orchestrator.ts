@@ -6,7 +6,6 @@ import {
   buildAperakDraft,
   buildContrlDraft,
   buildUtiltsErrDraft,
-  type EdielAckScope,
   type EdielAperakApplicationError,
 } from '@/lib/ediel/ack'
 import { getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
@@ -37,13 +36,16 @@ import {
   prepareAndQueueEdielZ06,
   prepareAndQueueEdielZ09,
   prepareAndQueueEdielZ10,
+  prepareAndQueueEdielZ13,
+  prepareAndQueueEdielZ14,
+  prepareAndQueueEdielZ15,
+  prepareAndQueueEdielZ18,
 } from '@/lib/ediel/flows/prodatSwitch'
 import {
   prepareAndQueueUtiltsE66,
   prepareAndQueueUtiltsE73,
 } from '@/lib/ediel/flows/utiltsDataRequest'
 import { sendEdielMessageViaSmtp, type EdielSmtpMimeMode } from '@/lib/ediel/transport'
-import { resolveOutboundRuntimeEnvironment } from '@/lib/ediel/flows/shared'
 
 export type {
   AckFamily,
@@ -59,6 +61,10 @@ export {
   prepareAndQueueEdielZ06,
   prepareAndQueueEdielZ09,
   prepareAndQueueEdielZ10,
+  prepareAndQueueEdielZ13,
+  prepareAndQueueEdielZ14,
+  prepareAndQueueEdielZ15,
+  prepareAndQueueEdielZ18,
   prepareAndQueueUtiltsE66,
   prepareAndQueueUtiltsE73,
   prepareAndQueueAiList,
@@ -84,8 +90,6 @@ export async function createAckForSourceMessage(params: {
   outcome?: AckOutcome
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
-  ackScope?: EdielAckScope | null
-  relatedTransactionReference?: string | null
 }) {
   const draft = buildAckDraftForSource({
     actorUserId: params.actorUserId,
@@ -94,8 +98,6 @@ export async function createAckForSourceMessage(params: {
     outcome: params.outcome,
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
-    ackScope: params.ackScope ?? null,
-    relatedTransactionReference: params.relatedTransactionReference ?? null,
   })
 
   return createCanonicalAckMessage({
@@ -114,8 +116,6 @@ export async function createAckDraftForMessage(params: {
   outcome?: AckOutcome
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
-  ackScope?: EdielAckScope | null
-  relatedTransactionReference?: string | null
 }) {
   const sourceMessage = await getEdielMessageById(params.sourceMessageId)
   if (!sourceMessage) {
@@ -129,8 +129,6 @@ export async function createAckDraftForMessage(params: {
     outcome: params.outcome,
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
-    ackScope: params.ackScope ?? null,
-    relatedTransactionReference: params.relatedTransactionReference ?? null,
   })
 }
 
@@ -317,15 +315,11 @@ export async function inspectManualRouteRuntime(params: {
   gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
   preferredRouteId?: string | null
 }) {
-  const environment = await resolveOutboundRuntimeEnvironment({
-    preferredRouteId: params.preferredRouteId ?? null,
-  })
-
   return resolveCanonicalOutboundContext({
     requestType: params.requestType,
     gridOwner: params.gridOwner ?? null,
     preferredRouteId: params.preferredRouteId ?? null,
-    environment,
+    environment: 'test',
     messageStandard: 'edifact',
   })
 }

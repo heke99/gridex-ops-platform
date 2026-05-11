@@ -110,6 +110,87 @@ function prodatOutboundPositiveCase(testCaseCode: string, title: string, code: s
   }
 }
 
+function prodatEscoS8PositiveCase(testCaseCode: string, title: string, z13Title: string, z14Title: string): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'PRODAT', roleCode: 'esco', testCaseCode, title,
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose: 'Verifierar att energitjänsteföretag kan begära åtkomst till mätvärden med Z13 och kvittera nätägarens Z14.',
+    testDataHint: `ESCO S8.1 ${testCaseCode}. Skicka Z13 enligt testkund och kvittera inkommande Z14 positivt.`,
+    expectedSteps: [
+      { stepNo: 1, direction: 'outbound', actor: 'gridex', family: 'PRODAT', code: 'Z13', required: true, title: `Skicka ${z13Title}`, description: 'Energitjänsteföretaget begär tillgång till mätvärden.' },
+      { stepNo: 2, direction: 'inbound', actor: 'portal', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Ta emot positiv CONTRL', description: 'Portalen syntaxkvitterar Z13.' },
+      { stepNo: 3, direction: 'inbound', actor: 'portal', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Ta emot positiv APERAK', description: 'Portalen applikationskvitterar Z13.' },
+      { stepNo: 4, direction: 'inbound', actor: 'portal', family: 'PRODAT', code: 'Z14', required: true, title: `Ta emot ${z14Title}`, description: 'Portalen/nätägaren svarar på åtkomstbegäran.' },
+      { stepNo: 5, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxkvittens på Z14.' },
+      { stepNo: 6, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Skicka positiv APERAK', description: 'Affärskvittens på Z14.' },
+    ],
+    notes: ['Z13/Z14 tillhör ESCO-rollens åtkomstflöde och ska inte blandas med leverantörsbyte Z03/Z04.'],
+  }
+}
+
+function prodatEscoS8NegativeCase(): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'PRODAT', roleCode: 'esco', testCaseCode: '8.2.1', title: 'Negativ APERAK – Z14V',
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose: 'Verifierar att energitjänsteföretag avvisar felaktig Z14 med negativ APERAK efter positiv CONTRL.',
+    testDataHint: 'ESCO S8.2.1. Portalen skickar felaktig Z14V; Gridex ska skicka negativ APERAK.',
+    expectedSteps: [
+      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'PRODAT', code: 'Z14', required: true, title: 'Ta emot felaktig PRODAT Z14V', description: 'Felaktig Z14V kan ha fel datum, anläggning eller saknad koppling till Z13.' },
+      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxen är OK.' },
+      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'negative', required: true, title: 'Skicka negativ APERAK', description: 'Affärsinnehållet i Z14 avvisas.' },
+    ],
+    notes: ['Negativ APERAK ska komma från backend-regler, inte från UI-val.'],
+  }
+}
+
+function prodatEscoS9PositiveInboundZ15Case(): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'PRODAT', roleCode: 'esco', testCaseCode: '9.1.1', title: 'PRODAT Z15V',
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose: 'Verifierar att energitjänsteföretag kan ta emot Z15V och kvittera positivt.',
+    testDataHint: 'ESCO S9.1.1. Portalen skickar Z15V enligt testkund 74.',
+    expectedSteps: [
+      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'PRODAT', code: 'Z15', required: true, title: 'Ta emot PRODAT Z15V', description: 'Aktivt tillstånd upphör.' },
+      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxkvittens.' },
+      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Skicka positiv APERAK', description: 'Affärsinnehållet är OK.' },
+    ],
+    notes: ['Tillståndet måste vara aktivt enligt portalens testföljd innan testet startas.'],
+  }
+}
+
+function prodatEscoS9PositiveZ18Z15Case(): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'PRODAT', roleCode: 'esco', testCaseCode: '9.1.2', title: 'PRODAT Z18V och Z15V',
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose: 'Verifierar att energitjänsteföretag kan begära avslut av rapportering med Z18 och kvittera efterföljande Z15.',
+    testDataHint: 'ESCO S9.1.2. Skicka Z18V enligt testkund 75 och kvittera inkommande Z15V positivt.',
+    expectedSteps: [
+      { stepNo: 1, direction: 'outbound', actor: 'gridex', family: 'PRODAT', code: 'Z18', required: true, title: 'Skicka PRODAT Z18V', description: 'Begär avslut av rapportering.' },
+      { stepNo: 2, direction: 'inbound', actor: 'portal', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Ta emot positiv CONTRL', description: 'Portalen syntaxkvitterar Z18.' },
+      { stepNo: 3, direction: 'inbound', actor: 'portal', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Ta emot positiv APERAK', description: 'Portalen applikationskvitterar Z18.' },
+      { stepNo: 4, direction: 'inbound', actor: 'portal', family: 'PRODAT', code: 'Z15', required: true, title: 'Ta emot PRODAT Z15V', description: 'Nätägaren bekräftar att tillståndet upphör.' },
+      { stepNo: 5, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxkvittens på Z15.' },
+      { stepNo: 6, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Skicka positiv APERAK', description: 'Affärskvittens på Z15.' },
+    ],
+    notes: ['Z18/Z15 är avslutsflöde för mätvärdesåtkomst, inte supplier-switch.'],
+  }
+}
+
+function prodatEscoS9NegativeCase(): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'PRODAT', roleCode: 'esco', testCaseCode: '9.2.1', title: 'Negativ APERAK – Z15V',
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose: 'Verifierar att energitjänsteföretag avvisar felaktig Z15 med negativ APERAK efter positiv CONTRL.',
+    testDataHint: 'ESCO S9.2.1. Portalen skickar felaktig Z15V med fel statuskod eller orsakskod.',
+    expectedSteps: [
+      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'PRODAT', code: 'Z15', required: true, title: 'Ta emot felaktig PRODAT Z15V', description: 'Felaktig permission status eller permission end reason.' },
+      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxen är OK.' },
+      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'negative', required: true, title: 'Skicka negativ APERAK', description: 'Fält 322 eller 324 avvisas.' },
+    ],
+    notes: ['APERAK-felkoder: ERC 41 med FTX-kod 322 eller 324 enligt portalens förväntan.'],
+  }
+}
+
 function utiltsPositiveCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
   return {
     suite: 'UTILTS', roleCode: 'supplier', testCaseCode, title,
@@ -158,6 +239,13 @@ function utiltsErrCase(testCaseCode: string, title: string, code: string, purpos
 
 function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
   return [
+    prodatEscoS8PositiveCase('8.1.1', 'PRODAT Z13V och positivt Z14V', 'PRODAT Z13V', 'PRODAT Z14V'),
+    prodatEscoS8PositiveCase('8.1.2', 'PRODAT Z13V och Z14N', 'PRODAT Z13V', 'PRODAT Z14N'),
+    prodatEscoS8PositiveCase('8.1.3', 'PRODAT Z13VH och positivt Z14', 'PRODAT Z13VH', 'PRODAT Z14VH'),
+    prodatEscoS8NegativeCase(),
+    prodatEscoS9PositiveInboundZ15Case(),
+    prodatEscoS9PositiveZ18Z15Case(),
+    prodatEscoS9NegativeCase(),
     prodatInboundNegativeCase('2.2.1', 'Z06F – felaktigt anläggningsid', 'Z06', 'Verifierar negativ APERAK på Z06F när anläggningen inte kan identifieras.'),
     prodatInboundNegativeCase('2.2.2', 'Z06F – antal siffror saknas', 'Z06', 'Verifierar negativ APERAK på Z06F när antal siffror saknas.'),
     prodatInboundPositiveCase('2.3.1', 'Z10M – mätarbyte', 'Z10', 'Verifierar korrekt PRODAT Z10M för mätarbyte.'),

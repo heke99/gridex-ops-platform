@@ -28,7 +28,7 @@ import {
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
 } from '@/lib/ediel/fileEngine'
 
-export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
+export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10' | 'Z13' | 'Z14' | 'Z15' | 'Z18'
 
 export type ParsedProdatMessage = {
   messageFamily: Extract<EdielMessageFamily, 'PRODAT'>
@@ -83,7 +83,7 @@ type BaseSwitchOutboundInput = {
   routeDefaultMessageVersion?: string | null
 }
 
-const PRODAT_CODES: readonly ProdatSwitchCode[] = ['Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10'] as const
+const PRODAT_CODES: readonly ProdatSwitchCode[] = ['Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'] as const
 
 function sanitize(value?: string | null): string {
   return (value ?? '').replace(/[\r\n'+]/g, ' ').replace(/\s+/g, ' ').trim()
@@ -211,7 +211,11 @@ function prodatCodeLabel(code: ProdatSwitchCode): string {
   if (code === 'Z05') return 'Inflytt/övertagande'
   if (code === 'Z06') return 'Svar på inflytt/övertagande'
   if (code === 'Z09') return 'Ändring/anläggningsuppdatering'
-  return 'Svar på ändring/anläggningsuppdatering'
+  if (code === 'Z10') return 'Svar på ändring/anläggningsuppdatering'
+  if (code === 'Z13') return 'Begäran om tillgång till mätvärden'
+  if (code === 'Z14') return 'Svar på tillståndsbegäran'
+  if (code === 'Z15') return 'Aktivt tillstånd upphör'
+  return 'Begäran om avslut av rapportering'
 }
 
 function deriveProcessLabel(code: ProdatSwitchCode): string {
@@ -220,11 +224,15 @@ function deriveProcessLabel(code: ProdatSwitchCode): string {
   if (code === 'Z05') return 'move_in_request'
   if (code === 'Z06') return 'move_in_response'
   if (code === 'Z09') return 'masterdata_update'
-  return 'masterdata_update_response'
+  if (code === 'Z10') return 'masterdata_update_response'
+  if (code === 'Z13') return 'metering_access_request'
+  if (code === 'Z14') return 'metering_access_response'
+  if (code === 'Z15') return 'metering_access_ended'
+  return 'metering_access_end_request'
 }
 
 function isResponseCode(code: ProdatSwitchCode): boolean {
-  return code === 'Z04' || code === 'Z06' || code === 'Z10'
+  return code === 'Z04' || code === 'Z06' || code === 'Z10' || code === 'Z14' || code === 'Z15'
 }
 
 function preferredReferencePrefix(code: ProdatSwitchCode): string {
@@ -233,11 +241,16 @@ function preferredReferencePrefix(code: ProdatSwitchCode): string {
   if (code === 'Z05') return 'MOVE-IN'
   if (code === 'Z06') return 'MOVE-IN-RESP'
   if (code === 'Z09') return 'SITE-UPD'
-  return 'SITE-UPD-RESP'
+  if (code === 'Z10') return 'SITE-UPD-RESP'
+  if (code === 'Z13') return 'METERING-ACCESS'
+  if (code === 'Z14') return 'METERING-ACCESS-RESP'
+  if (code === 'Z15') return 'METERING-ACCESS-END'
+  return 'METERING-ACCESS-END-REQ'
 }
 
 function statusSegmentForCode(code: ProdatSwitchCode): string | null {
-  if (code === 'Z04' || code === 'Z06' || code === 'Z10') return 'STS+7++29::260'
+  if (code === 'Z04' || code === 'Z06' || code === 'Z10' || code === 'Z14') return 'STS+7++29::260'
+  if (code === 'Z15') return 'STS+7++A75::260'
   if (code === 'Z05') return 'STS+7++Z05::260'
   if (code === 'Z09') return 'STS+7++Z09::260'
   return null
@@ -423,6 +436,7 @@ export function validateProdatSwitchContext(params: {
   const issues: ProdatSwitchValidationIssue[] = []
   const isMoveCode = params.code === 'Z05' || params.code === 'Z06'
   const isSwitchCode = params.code === 'Z03' || params.code === 'Z04'
+  const isAccessCode = params.code === 'Z13' || params.code === 'Z14' || params.code === 'Z15' || params.code === 'Z18'
 
   if (!sanitize(params.senderEdielId)) {
     pushIssue(issues, {
@@ -915,4 +929,28 @@ export async function buildProdatZ10FromSwitch(
   input: BaseSwitchOutboundInput
 ): Promise<CreateEdielMessageInput> {
   return buildProdatSwitchOutboundDraft(input, 'Z10')
+}
+
+export async function buildProdatZ13FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z13')
+}
+
+export async function buildProdatZ14FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z14')
+}
+
+export async function buildProdatZ15FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z15')
+}
+
+export async function buildProdatZ18FromSwitch(
+  input: BaseSwitchOutboundInput
+): Promise<CreateEdielMessageInput> {
+  return buildProdatSwitchOutboundDraft(input, 'Z18')
 }

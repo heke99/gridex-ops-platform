@@ -13,15 +13,22 @@ import {
   prepareAndQueueEdielZ06,
   prepareAndQueueEdielZ09,
   prepareAndQueueEdielZ10,
+  prepareAndQueueEdielZ13,
+  prepareAndQueueEdielZ14,
+  prepareAndQueueEdielZ15,
+  prepareAndQueueEdielZ18,
   prepareAndQueueUtiltsE66,
   prepareAndQueueUtiltsE73,
   sendQueuedEdielMessage,
 } from "@/lib/ediel/orchestrator";
-import { getUtiltsAckTransactionTargets, shouldUseTransactionScopedPositiveAperak } from "@/lib/ediel/ack";
 import type {
   AckFamily,
   AckOutcome,
   EdielAperakApplicationError,
+} from "@/lib/ediel/ack";
+import {
+  shouldUseTransactionScopedPositiveAperak,
+  utiltsTransactionAckReferencesForSource,
 } from "@/lib/ediel/ack";
 import { registerInboundCanonicalMessage } from "@/lib/ediel/core/kernel";
 import {
@@ -37,7 +44,7 @@ import {
 } from "@/lib/ediel/db";
 import { runEdielSelfTest } from "@/lib/ediel/selftest";
 import { buildInboundUtiltsMessageInput } from "@/lib/ediel/utilts";
-import { runUtiltsRuntimeForMessage } from "@/lib/ediel/utiltsEngine";
+import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from "@/lib/ediel/utiltsEngine";
 import {
   buildProdatZ03FromSwitch,
   buildProdatZ04FromSwitch,
@@ -45,6 +52,10 @@ import {
   buildProdatZ06FromSwitch,
   buildProdatZ09FromSwitch,
   buildProdatZ10FromSwitch,
+  buildProdatZ13FromSwitch,
+  buildProdatZ14FromSwitch,
+  buildProdatZ15FromSwitch,
+  buildProdatZ18FromSwitch,
   isProdatSwitchCode,
   type ProdatSwitchCode,
 } from "@/lib/ediel/prodat";
@@ -662,6 +673,32 @@ async function resolveTgtTestDataForAckAction(params: {
   const rows = (await listEdielTgtDynamicTestData()).filter(
     (row) => row.testSuite === testSuite && row.roleCode === roleCode,
   );
+
+  const requestedRow = requestedTestCaseCode
+    ? (rows.find(
+        (row) =>
+          row.testCaseCode.toUpperCase() ===
+          requestedTestCaseCode.toUpperCase(),
+      ) ?? null)
+    : null;
+
+  if (requestedRow && message.message_family === "UTILTS") {
+    const requestedScore = scoreTgtTestDataForMessage(message, requestedRow);
+
+    // For UTILTS portal tests the operator-selected/imported row is the source
+    // of truth for whether the response is an APERAK guide error or a
+    // UTILTS_ERR functional/process error. Do this before exact/best auto-match,
+    // otherwise a structurally similar E66-S guide-error row can override an
+    // active functional SCH test and incorrectly create APERAK 514.
+    if (requestedScore >= 0) {
+      return {
+        testData: effectiveTgtParsedPayloadForMessage(message, requestedRow),
+        selectedRow: requestedRow,
+        requestedTestData,
+      };
+    }
+  }
+
   const z05MismatchRow = findZ05FacilityMismatchTgtRowForMessage(message, rows);
   if (z05MismatchRow) {
     return {
@@ -686,14 +723,6 @@ async function resolveTgtTestDataForAckAction(params: {
       selectedRow: null,
       requestedTestData,
     };
-
-  const requestedRow = requestedTestCaseCode
-    ? (rows.find(
-        (row) =>
-          row.testCaseCode.toUpperCase() ===
-          requestedTestCaseCode.toUpperCase(),
-      ) ?? null)
-    : null;
 
   if (requestedRow) {
     const requestedScore = scoreTgtTestDataForMessage(message, requestedRow);
@@ -838,7 +867,11 @@ function getProdatDraftBuilder(messageCode: ProdatSwitchCode) {
   if (messageCode === "Z05") return buildProdatZ05FromSwitch;
   if (messageCode === "Z06") return buildProdatZ06FromSwitch;
   if (messageCode === "Z09") return buildProdatZ09FromSwitch;
-  return buildProdatZ10FromSwitch;
+  if (messageCode === "Z10") return buildProdatZ10FromSwitch;
+  if (messageCode === "Z13") return buildProdatZ13FromSwitch;
+  if (messageCode === "Z14") return buildProdatZ14FromSwitch;
+  if (messageCode === "Z15") return buildProdatZ15FromSwitch;
+  return buildProdatZ18FromSwitch;
 }
 
 function revalidateEdiel(messageId?: string | null) {
@@ -1544,20 +1577,9 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     return;
   }
 
-  const operationalTgtResolution =
-    sourceMessage.message_family === 'UTILTS'
-      ? await resolveTgtTestDataForAckAction({
-          message: sourceMessage,
-          testSuite: 'UTILTS',
-          roleCode: null,
-          requestedTestCaseCode: formString(formData.get('testCaseCode')),
-        })
-      : null;
-
   await processEdielOperationalMessage({
     actorUserId: context.userId,
     edielMessageId,
-    testCaseCode: operationalTgtResolution?.selectedRow?.testCaseCode ?? formString(formData.get('testCaseCode')),
   });
 
   await revalidateRelatedMessage(edielMessageId);
@@ -1589,7 +1611,7 @@ async function resolveUtiltsErrMessageTextForAckAction(params: UtiltsErrMessageT
 
   const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
   if (runtime.ackPlan.shouldSendUtiltsErr && runtime.ackPlan.utiltsErrCodes.length > 0) {
-    return runtime.ackPlan.utiltsErrCodes.join('|');
+    return serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan);
   }
 
   const tgtResolution = await resolveTgtTestDataForAckAction({
@@ -1627,7 +1649,7 @@ async function resolveBackendAperakDecision(params: {
     const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
 
     if (runtime.ackPlan.shouldSendUtiltsErr) {
-      const codes = runtime.ackPlan.utiltsErrCodes.join("|") || "UTILTS_ERR";
+      const codes = serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan) || "UTILTS_ERR";
 
       await createEdielMessageEvent({
         actorUserId: params.actorUserId,
@@ -1639,6 +1661,7 @@ async function resolveBackendAperakDecision(params: {
         payload: {
           selectedFamily: "UTILTS_ERR",
           utiltsErrCodes: runtime.ackPlan.utiltsErrCodes,
+          utiltsErrDetails: runtime.ackPlan.utiltsErrDetails,
           runtimeClassification: runtime.validation.classification,
           validationIssues: runtime.validation.issues.map((issue) => ({
             code: issue.code,
@@ -1833,7 +1856,6 @@ export async function createAckDraftAction(formData: FormData) {
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode"));
-  const requestedAckScope = formString(formData.get("ackScope"));
 
   if (!sourceMessageId) throw new Error("sourceMessageId saknas");
   if (!ackType || !["CONTRL", "APERAK", "UTILTS_ERR"].includes(ackType)) {
@@ -1941,22 +1963,6 @@ export async function createAckDraftAction(formData: FormData) {
   }
 }
 
-
-function shouldCreateTransactionScopedAperakPreview(params: {
-  sourceMessage: EdielMessageRow;
-  testCaseCode?: string | null;
-  selectedTestCaseCode?: string | null;
-  ackFamily: AckFamily;
-  outcome?: AckOutcome | null;
-}): boolean {
-  if (params.ackFamily !== "APERAK" || params.outcome !== "positive") return false;
-
-  return shouldUseTransactionScopedPositiveAperak({
-    sourceMessage: params.sourceMessage,
-    testCaseCode: params.testCaseCode ?? params.selectedTestCaseCode ?? null,
-  });
-}
-
 export async function createAndSendRecommendedAckAction(formData: FormData) {
   const context = await requireAnyPermissionServer([
     "communication.write",
@@ -1966,7 +1972,6 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode"));
-  const requestedAckScope = formString(formData.get("ackScope"));
 
   if (!sourceMessageId) throw new Error("sourceMessageId saknas");
 
@@ -2031,86 +2036,128 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
         null)
       : null;
 
-  const messageTextForDraft =
-    finalApplicationErrors && finalApplicationErrors.length > 0
-      ? finalApplicationErrors
-          .map(
-            (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
-          )
-          .join(" | ")
-      : (recommendation.action.messageText ?? null);
-
-  const forceTransactionScopedAperak =
-    requestedAckScope === "transaction" &&
+  const transactionScopedPositiveAperakRefs =
     recommendation.action.ackFamily === "APERAK" &&
     finalOutcome === "positive" &&
-    String(sourceMessage.message_family ?? "").toUpperCase() === "UTILTS";
+    sourceMessage.message_family === "UTILTS" &&
+    shouldUseTransactionScopedPositiveAperak({ sourceMessage, testCaseCode })
+      ? utiltsTransactionAckReferencesForSource(sourceMessage)
+      : [];
 
-  const transactionScopedAperak =
-    forceTransactionScopedAperak ||
-    shouldCreateTransactionScopedAperakPreview({
-      sourceMessage,
-      testCaseCode,
-      selectedTestCaseCode: tgtResolution.selectedRow?.testCaseCode ?? null,
-      ackFamily: recommendation.action.ackFamily,
-      outcome: finalOutcome,
-    });
+  if (transactionScopedPositiveAperakRefs.length > 1) {
+    const ackMessageIds: string[] = [];
+    const preflightIssues: unknown[] = [];
 
-  const ackMessages = [] as EdielMessageRow[];
-
-  if (transactionScopedAperak) {
-    const targets = getUtiltsAckTransactionTargets(sourceMessage);
-    if (targets.length < 2) {
-      throw new Error("Transaktionsbaserad APERAK kräver minst två UTILTS-transaktioner.");
-    }
-
-    for (const target of targets) {
-      ackMessages.push(await createAckDraftForMessage({
+    for (const reference of transactionScopedPositiveAperakRefs) {
+      const scopedMessageText = `ACW@${reference} ${recommendation.action.messageText ?? "Positiv APERAK per UTILTS-transaktion"}`;
+      const ackMessage = await createAckDraftForMessage({
         actorUserId: context.userId,
         sourceMessageId,
-        ackFamily: recommendation.action.ackFamily,
-        outcome:
-          recommendation.action.ackFamily === "UTILTS_ERR"
-            ? undefined
-            : finalOutcome,
-        messageText: messageTextForDraft,
-        applicationErrors: finalApplicationErrors,
-        ackScope: "transaction",
-        relatedTransactionReference: target.reference,
-      }));
+        ackFamily: "APERAK",
+        outcome: "positive",
+        messageText: scopedMessageText,
+        applicationErrors: null,
+      });
+
+      const preflight = validateAckPreflight({
+        ackMessage,
+        sourceMessage,
+      });
+
+      await createEdielMessageEvent({
+        actorUserId: context.userId,
+        edielMessageId: ackMessage.id,
+        eventType: "manual_note",
+        eventStatus: preflight.ok ? "success" : "error",
+        message: preflight.summary,
+        payload: {
+          phase: "preview_preflight",
+          sourceMessageId,
+          decisionKind: recommendation.kind,
+          matchedRule: recommendation.matchedRule,
+          ackFamily: "APERAK",
+          outcome: "positive",
+          ackScope: "transaction",
+          relatedTransactionReference: reference,
+          issues: preflight.issues,
+          applicationErrors: null,
+          backendRuleKeys,
+          backendIssueCount,
+          backendUnmappedRuleKeys,
+        },
+      });
+
+      ackMessageIds.push(ackMessage.id);
+      preflightIssues.push(...preflight.issues);
+
+      if (!preflight.ok) {
+        throw new Error(preflight.summary);
+      }
     }
-  } else {
-    ackMessages.push(await createAckDraftForMessage({
+
+    await createEdielMessageEvent({
       actorUserId: context.userId,
-      sourceMessageId,
-      ackFamily: recommendation.action.ackFamily,
-      outcome:
-        recommendation.action.ackFamily === "UTILTS_ERR"
-          ? undefined
-          : finalOutcome,
-      messageText: messageTextForDraft,
-      applicationErrors: finalApplicationErrors,
-    }));
+      edielMessageId: sourceMessageId,
+      eventType: "manual_note",
+      eventStatus: "success",
+      message: `${recommendation.title}: skapade ${ackMessageIds.length} positiva APERAK-preview per UTILTS-transaktion. Kontrollera payload och skicka varje kvittensrad.`,
+      payload: {
+        ackMessageIds,
+        decisionKind: recommendation.kind,
+        matchedRule: recommendation.matchedRule,
+        ackFamily: "APERAK",
+        outcome: "positive",
+        ackScope: "transaction",
+        transactionReferences: transactionScopedPositiveAperakRefs,
+        canAutoSend: false,
+        reasonItems: recommendation.reasonItems,
+        syntaxIssues: recommendation.syntaxIssues,
+        applicationErrors: null,
+        backendRuleKeys,
+        backendIssueCount,
+        backendUnmappedRuleKeys,
+        preflightIssues,
+      },
+    });
+
+    revalidateEdiel(sourceMessageId);
+    await Promise.all(ackMessageIds.map((ackMessageId) => revalidateRelatedMessage(ackMessageId)));
+    return;
   }
+
+  const ackMessage = await createAckDraftForMessage({
+    actorUserId: context.userId,
+    sourceMessageId,
+    ackFamily: recommendation.action.ackFamily,
+    outcome:
+      recommendation.action.ackFamily === "UTILTS_ERR"
+        ? undefined
+        : finalOutcome,
+    messageText:
+      finalApplicationErrors && finalApplicationErrors.length > 0
+        ? finalApplicationErrors
+            .map(
+              (error) => `${error.fieldCode ?? error.ercCode}: ${error.text}`,
+            )
+            .join(" | ")
+        : (recommendation.action.messageText ?? null),
+    applicationErrors: finalApplicationErrors,
+  });
 
   if (
     recommendation.action.ackFamily === "APERAK" &&
     backendRuleKeys.length > 0
   ) {
-    for (const ackMessage of ackMessages) {
-      await attachAperakErrorDetailsToMessage({
-        sourceMessageId,
-        aperakMessageId: ackMessage.id,
-      });
-    }
+    await attachAperakErrorDetailsToMessage({
+      sourceMessageId,
+      aperakMessageId: ackMessage.id,
+    });
   }
 
-  const preflights = ackMessages.map((ackMessage) => validateAckPreflight({
+  const preflight = validateAckPreflight({
     ackMessage,
     sourceMessage,
-  }));
-  const preflight = preflights.find((item) => !item.ok) ?? preflights[0];
-  const ackMessage = ackMessages[0];
+  });
 
   await createEdielMessageEvent({
     actorUserId: context.userId,
@@ -2126,7 +2173,6 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
       ackFamily: recommendation.action.ackFamily,
       outcome: finalOutcome ?? null,
       issues: preflight.issues,
-      ackMessageIds: ackMessages.map((message) => message.id),
       applicationErrors: finalApplicationErrors,
       backendRuleKeys,
       backendIssueCount,
@@ -2146,7 +2192,6 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     message: `${recommendation.title}: backend-beslut skapade ${recommendation.action.ackFamily}-preview. Kontrollera payload och skicka från kvittensraden.`,
     payload: {
       ackMessageId: ackMessage.id,
-      ackMessageIds: ackMessages.map((message) => message.id),
       decisionKind: recommendation.kind,
       matchedRule: recommendation.matchedRule,
       ackFamily: recommendation.action.ackFamily,
@@ -2180,7 +2225,6 @@ export async function createAndSendAckAction(formData: FormData) {
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode"));
-  const requestedAckScope = formString(formData.get("ackScope"));
 
   if (!sourceMessageId) throw new Error("sourceMessageId saknas");
   if (!ackType || !["CONTRL", "APERAK", "UTILTS_ERR"].includes(ackType)) {
@@ -2819,7 +2863,15 @@ async function prepareSwitchProdatAction(
             ? await prepareAndQueueEdielZ06(params)
             : messageCode === "Z09"
               ? await prepareAndQueueEdielZ09(params)
-              : await prepareAndQueueEdielZ10(params);
+              : messageCode === "Z10"
+                ? await prepareAndQueueEdielZ10(params)
+                : messageCode === "Z13"
+                  ? await prepareAndQueueEdielZ13(params)
+                  : messageCode === "Z14"
+                    ? await prepareAndQueueEdielZ14(params)
+                    : messageCode === "Z15"
+                      ? await prepareAndQueueEdielZ15(params)
+                      : await prepareAndQueueEdielZ18(params);
 
   await revalidateRelatedMessage(message.id);
 }
@@ -3096,6 +3148,22 @@ export async function prepareSwitchZ10Action(formData: FormData) {
   await prepareSwitchProdatAction(formData, "Z10");
 }
 
+export async function prepareSwitchZ13Action(formData: FormData) {
+  await prepareSwitchProdatAction(formData, "Z13");
+}
+
+export async function prepareSwitchZ14Action(formData: FormData) {
+  await prepareSwitchProdatAction(formData, "Z14");
+}
+
+export async function prepareSwitchZ15Action(formData: FormData) {
+  await prepareSwitchProdatAction(formData, "Z15");
+}
+
+export async function prepareSwitchZ18Action(formData: FormData) {
+  await prepareSwitchProdatAction(formData, "Z18");
+}
+
 export async function prepareUtiltsE73Action(formData: FormData) {
   const context = await requireAnyPermissionServer([
     "communication.write",
@@ -3105,14 +3173,12 @@ export async function prepareUtiltsE73Action(formData: FormData) {
     formData.get("gridOwnerDataRequestId"),
   );
   const communicationRouteId = formString(formData.get("communicationRouteId"));
-  const environment = formString(formData.get("environment")) === "test" ? "test" : "production";
   if (!gridOwnerDataRequestId) throw new Error("gridOwnerDataRequestId saknas");
 
   const message = await prepareAndQueueUtiltsE73({
     actorUserId: context.userId,
     gridOwnerDataRequestId,
     communicationRouteId,
-    environment,
   });
 
   await revalidateRelatedMessage(message.id);
@@ -3127,7 +3193,6 @@ export async function prepareUtiltsE66Action(formData: FormData) {
     formData.get("gridOwnerDataRequestId"),
   );
   const communicationRouteId = formString(formData.get("communicationRouteId"));
-  const environment = formString(formData.get("environment")) === "test" ? "test" : "production";
   const quantity = formNumber(formData.get("quantity"));
   const periodStart = formString(formData.get("periodStart"));
   const periodEnd = formString(formData.get("periodEnd"));
@@ -3138,7 +3203,6 @@ export async function prepareUtiltsE66Action(formData: FormData) {
     actorUserId: context.userId,
     gridOwnerDataRequestId,
     communicationRouteId,
-    environment,
     quantity,
     periodStart,
     periodEnd,
@@ -3165,7 +3229,6 @@ export async function prepareAiListAction(formData: FormData) {
     formData.get("balanceResponsibleEdielId"),
   );
   const communicationRouteId = formString(formData.get("communicationRouteId"));
-  const environment = formString(formData.get("environment")) === "test" ? "test" : "production";
   const fromDate = formString(formData.get("fromDate"));
   const toDate = formString(formData.get("toDate"));
 
@@ -3190,7 +3253,6 @@ export async function prepareAiListAction(formData: FormData) {
     fromDate,
     toDate,
     communicationRouteId,
-    environment,
   });
 
   await revalidateRelatedMessage(message.id);
@@ -3350,7 +3412,6 @@ export async function processEdielUtiltsBillingAction(formData: FormData) {
   await processInboundUtiltsMessage({
     actorUserId: context.userId,
     edielMessageId,
-    testCaseCode: formString(formData.get("testCaseCode")),
   });
 
   await revalidateRelatedMessage(edielMessageId);

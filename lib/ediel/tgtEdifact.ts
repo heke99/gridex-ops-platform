@@ -913,6 +913,18 @@ function buildTgtProdatTransactionType(
     if (params.testCaseCode === '2.5.3') return 'Z09D'
   }
 
+  if (params.roleCode === 'esco') {
+    if (params.testCaseCode === '8.1.3') {
+      if (step.code === 'Z13') return 'Z13VH'
+      if (step.code === 'Z14') return 'Z14VH'
+    }
+    if (params.testCaseCode === '8.1.2' && step.code === 'Z14') return 'Z14N'
+    if (step.code === 'Z13') return 'Z13V'
+    if (step.code === 'Z14') return 'Z14V'
+    if (step.code === 'Z15') return 'Z15V'
+    if (step.code === 'Z18') return 'Z18V'
+  }
+
   if (params.testCaseCode === '1.2.2') return step.code === 'Z03' ? 'Z03LK' : 'Z04LK'
 
   if (step.code === 'Z05') {
@@ -944,6 +956,9 @@ function reasonForProdatSubtype(transactionType: string): string {
   if (transactionType.endsWith('F')) return 'E64'
   if (transactionType.endsWith('G')) return 'E32'
   if (transactionType.endsWith('D')) return 'Z70'
+  if (transactionType.endsWith('VH')) return 'S18'
+  if (transactionType.endsWith('V')) return 'S17'
+  if (transactionType.endsWith('N')) return 'Z96'
   return 'Z22'
 }
 

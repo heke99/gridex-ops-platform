@@ -423,6 +423,10 @@ function messageCodePrefixesForTgt(message: Awaited<ReturnType<typeof listEdielM
     if (code === 'Z10') return ['2.3', '2.4']
     if (code === 'Z09') return ['2.5']
     if (code === 'Z05') return ['3.1', '3.2']
+    if (code === 'Z13') return ['8.1']
+    if (code === 'Z14') return ['8.1', '8.2']
+    if (code === 'Z15') return ['9.1', '9.2']
+    if (code === 'Z18') return ['9.1']
   }
 
   if (family === 'UTILTS') {
@@ -453,13 +457,17 @@ function relevantTgtRowsForMessage(
   rows: EdielTgtDynamicTestDataSummary[]
 ): EdielTgtDynamicTestDataSummary[] {
   const family = String(message.message_family ?? '').toUpperCase()
+  const code = String(message.message_code ?? '').toUpperCase()
   const suite = family === 'UTILTS' ? 'UTILTS' : family === 'PRODAT' ? 'PRODAT' : null
   if (!suite) return []
 
   const prefixes = messageCodePrefixesForTgt(message)
   const text = textForTgtMatch(message)
 
-  const scopedRows = rows.filter((row) => row.testSuite === suite && row.roleCode === 'supplier')
+  const expectedRoles = family === 'PRODAT' && ['Z13', 'Z14', 'Z15', 'Z18'].includes(code)
+    ? ['esco']
+    : ['supplier']
+  const scopedRows = rows.filter((row) => row.testSuite === suite && expectedRoles.includes(row.roleCode))
   const exactRows = scopedRows.filter((row) =>
     rawTextHasSourceMessageMarker(row.rawText, message.id) || rawTextHasSourceMessageMarker(row.sourceNote, message.id)
   )
@@ -491,6 +499,13 @@ function selectedTgtRowForMessage(
 }
 
 function defaultTestCaseCodeForMessage(message: Awaited<ReturnType<typeof listEdielMessages>>[number]): string {
+  const family = String(message.message_family ?? '').toUpperCase()
+  const code = String(message.message_code ?? '').toUpperCase()
+  if (family === 'PRODAT') {
+    if (code === 'Z13' || code === 'Z14') return '8.1.1'
+    if (code === 'Z15' || code === 'Z18') return '9.1.1'
+  }
+
   const firstRelevant = messageCodePrefixesForTgt(message)[0]
   return firstRelevant ? `${firstRelevant}.1` : ''
 }
@@ -536,34 +551,30 @@ function resolveAckRecommendation(params: {
 }
 
 function RecommendedAckActionForm({
-  message,
+  messageId,
   recommendation,
   selectedTgtRow,
 }: {
-  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
+  messageId: string
   recommendation: AckRecommendation
   selectedTgtRow?: EdielTgtDynamicTestDataSummary | null
 }) {
   if (!recommendation.actionLabel) return null
 
-  const hiddenTgtFields = selectedTgtRow ? (
-    <>
-      <input type="hidden" name="testSuite" value={selectedTgtRow.testSuite} />
-      <input type="hidden" name="roleCode" value={selectedTgtRow.roleCode} />
-      <input type="hidden" name="testCaseCode" value={selectedTgtRow.testCaseCode} />
-    </>
-  ) : null
-
   return (
-    <div className="flex flex-wrap gap-2">
-      <form action={createAndSendRecommendedAckAction}>
-        <input type="hidden" name="sourceMessageId" value={message.id} />
-        {hiddenTgtFields}
-        <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
-          {recommendation.ackFamily ? `Skapa preview för ${recommendation.ackFamily}` : recommendation.actionLabel}
-        </button>
-      </form>
-    </div>
+    <form action={createAndSendRecommendedAckAction}>
+      <input type="hidden" name="sourceMessageId" value={messageId} />
+      {selectedTgtRow ? (
+        <>
+          <input type="hidden" name="testSuite" value={selectedTgtRow.testSuite} />
+          <input type="hidden" name="roleCode" value={selectedTgtRow.roleCode} />
+          <input type="hidden" name="testCaseCode" value={selectedTgtRow.testCaseCode} />
+        </>
+      ) : null}
+      <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+        {recommendation.ackFamily ? `Skapa preview för ${recommendation.ackFamily}` : recommendation.actionLabel}
+      </button>
+    </form>
   )
 }
 
@@ -602,7 +613,7 @@ function RecommendedAckPanel({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <RecommendedAckActionForm message={message} recommendation={recommendation} selectedTgtRow={selectedTgtRow} />
+        <RecommendedAckActionForm messageId={message.id} recommendation={recommendation} selectedTgtRow={selectedTgtRow} />
         {recommendation.ackFamily ? <Badge>{recommendation.ackFamily}</Badge> : null}
         {recommendation.outcome ? <Badge tone={recommendation.outcome === 'negative' ? 'red' : 'green'}>{recommendation.outcome}</Badge> : null}
         <Badge tone="blue">{recommendation.decision.kind}</Badge>

@@ -12,6 +12,10 @@ import {
   buildProdatZ06FromSwitch,
   buildProdatZ09FromSwitch,
   buildProdatZ10FromSwitch,
+  buildProdatZ13FromSwitch,
+  buildProdatZ14FromSwitch,
+  buildProdatZ15FromSwitch,
+  buildProdatZ18FromSwitch,
   type ProdatSwitchCode,
 } from '@/lib/ediel/prodat'
 import { linkEdielMessage } from '@/lib/ediel/db'
@@ -30,7 +34,6 @@ import {
   findOrCreateSwitchOutbound,
   makeServerClient,
   queuePreparedEdielMessage,
-  resolveOutboundRuntimeEnvironment,
 } from '@/lib/ediel/flows/shared'
 
 type PrepareProdatSwitchParams = {
@@ -59,7 +62,11 @@ function defaultExternalReference(code: ProdatSwitchCode, switchRequestId: strin
   if (code === 'Z05') return `MOVE-IN-${switchRequestId}`
   if (code === 'Z06') return `MOVE-IN-RESP-${switchRequestId}`
   if (code === 'Z09') return `SITE-UPD-${switchRequestId}`
-  return `SITE-UPD-RESP-${switchRequestId}`
+  if (code === 'Z10') return `SITE-UPD-RESP-${switchRequestId}`
+  if (code === 'Z13') return `METERING-ACCESS-${switchRequestId}`
+  if (code === 'Z14') return `METERING-ACCESS-RESP-${switchRequestId}`
+  if (code === 'Z15') return `METERING-ACCESS-END-${switchRequestId}`
+  return `METERING-ACCESS-END-REQ-${switchRequestId}`
 }
 
 function makeTgtRetryReference(code: ProdatSwitchCode, switchRequestId: string): string {
@@ -78,7 +85,11 @@ function eventMessage(code: ProdatSwitchCode): string {
   if (code === 'Z05') return 'Ediel PRODAT Z05 förberett från switchärendet via canonical kernel.'
   if (code === 'Z06') return 'Ediel PRODAT Z06 förberett från switchärendet via canonical kernel.'
   if (code === 'Z09') return 'Ediel PRODAT Z09 förberett från switchärendet via canonical kernel.'
-  return 'Ediel PRODAT Z10 förberett från switchärendet via canonical kernel.'
+  if (code === 'Z10') return 'Ediel PRODAT Z10 förberett från switchärendet via canonical kernel.'
+  if (code === 'Z13') return 'Ediel PRODAT Z13 för mätvärdesåtkomst förberett via canonical kernel.'
+  if (code === 'Z14') return 'Ediel PRODAT Z14 svar på mätvärdesåtkomst förberett via canonical kernel.'
+  if (code === 'Z15') return 'Ediel PRODAT Z15 avslut av tillstånd förberett via canonical kernel.'
+  return 'Ediel PRODAT Z18 begäran om avslut av rapportering förberett via canonical kernel.'
 }
 
 function buildDraftForCode(
@@ -110,7 +121,11 @@ function buildDraftForCode(
   if (code === 'Z05') return buildProdatZ05FromSwitch(base)
   if (code === 'Z06') return buildProdatZ06FromSwitch(base)
   if (code === 'Z09') return buildProdatZ09FromSwitch(base)
-  return buildProdatZ10FromSwitch(base)
+  if (code === 'Z10') return buildProdatZ10FromSwitch(base)
+  if (code === 'Z13') return buildProdatZ13FromSwitch(base)
+  if (code === 'Z14') return buildProdatZ14FromSwitch(base)
+  if (code === 'Z15') return buildProdatZ15FromSwitch(base)
+  return buildProdatZ18FromSwitch(base)
 }
 
 async function loadSwitchContext(switchRequestId: string) {
@@ -146,16 +161,11 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     params.switchRequestId
   )
 
-  const environment = await resolveOutboundRuntimeEnvironment({
-    preferredRouteId: params.communicationRouteId ?? null,
-    explicitEnvironment: params.environment ?? null,
-  })
-
   const routeContext = await resolveCanonicalOutboundContext({
     requestType: 'supplier_switch',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    environment,
+    environment: params.environment ?? 'test',
     messageStandard: 'edifact',
   })
 
@@ -278,4 +288,20 @@ export async function prepareAndQueueEdielZ09(params: PrepareProdatSwitchParams)
 
 export async function prepareAndQueueEdielZ10(params: PrepareProdatSwitchParams) {
   return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z10' })
+}
+
+export async function prepareAndQueueEdielZ13(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z13' })
+}
+
+export async function prepareAndQueueEdielZ14(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z14' })
+}
+
+export async function prepareAndQueueEdielZ15(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z15' })
+}
+
+export async function prepareAndQueueEdielZ18(params: PrepareProdatSwitchParams) {
+  return prepareAndQueueProdatSwitch({ ...params, messageCode: 'Z18' })
 }
