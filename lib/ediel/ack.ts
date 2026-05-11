@@ -715,6 +715,12 @@ function buildUtiltsErrSegments(params: {
   return segments.filter(Boolean) as string[]
 }
 
+
+function parseAperakSequenceToken(messageText?: string | null): string | null {
+  const match = String(messageText ?? '').match(/(?:^|\s)(?:ACW|TN)@([A-Za-z0-9_.\/-]{1,35})(?:\s|$)/i)
+  return sanitizeEdifactToken(match?.[1] ?? null, 35)
+}
+
 function buildAckDraft(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
@@ -744,14 +750,21 @@ function buildAckDraft(params: {
         )
       : null
 
+  const aperakSequenceToken =
+    params.ackFamily === 'APERAK' && outcome === 'positive'
+      ? parseAperakSequenceToken(params.messageText)
+      : null
+
+  const ackSequenceToken = utiltsErrSequenceToken ?? aperakSequenceToken
+
   const ackExternalReference =
-    params.ackFamily === 'UTILTS_ERR' && utiltsErrSequenceToken
-      ? (sanitizeEdifactToken(`${refs.externalReference ?? params.sourceMessage.id}-${utiltsErrSequenceToken}`, 35) ?? refs.externalReference)
+    ackSequenceToken
+      ? (sanitizeEdifactToken(`${refs.externalReference ?? params.sourceMessage.id}-${ackSequenceToken}`, 35) ?? refs.externalReference)
       : refs.externalReference
 
   const ackTransactionReference =
-    params.ackFamily === 'UTILTS_ERR' && utiltsErrSequenceToken
-      ? (sanitizeEdifactToken(`${refs.transactionReference ?? params.sourceMessage.id}-${utiltsErrSequenceToken}`, 35) ?? refs.transactionReference)
+    ackSequenceToken
+      ? (sanitizeEdifactToken(`${refs.transactionReference ?? params.sourceMessage.id}-${ackSequenceToken}`, 35) ?? refs.transactionReference)
       : refs.transactionReference
 
   const parties = sourceParties(params.sourceMessage)
@@ -869,6 +882,7 @@ function buildAckDraft(params: {
       generatedMessageReference: envelope.messageReference,
       applicationErrors: params.applicationErrors ?? null,
       utiltsErrSequenceToken,
+      aperakSequenceToken,
     },
     validationReport: {
       generatedBy: 'buildAckDraft',
@@ -881,6 +895,7 @@ function buildAckDraft(params: {
       generatedInterchangeReference: envelope.interchangeReference,
       applicationErrors: params.applicationErrors ?? null,
       utiltsErrSequenceToken,
+      aperakSequenceToken,
     },
     applicationReference,
     // Store the outbound UNB/0020 on the outbound row. The inbound

@@ -405,6 +405,71 @@ function isUtiltsBTestCaseMessage(message: EdielMessageRow): boolean {
   return /U2\.2\.(3|4)B/.test(text)
 }
 
+function isPositiveAperakPerTransactionTgtMessage(message: EdielMessageRow): boolean {
+  const text = JSON.stringify({
+    parsedPayload: message.parsed_payload,
+    validationReport: message.validation_report,
+    failureReason: message.failure_reason,
+    subject: message.subject,
+    fileName: message.file_name,
+  }).toUpperCase()
+
+  // Keep this in the TGT layer, not in the production UTILTS validator. The
+  // production decision remains “accepted E66 => positive APERAK”; this only
+  // controls how the TGT harness packages the positive APERAK response when a
+  // b-test requires one APERAK per inbound transaction.
+  return /U2\.1\.8B/.test(text)
+}
+
+function edifactSegmentsFromRawPayload(rawPayload?: string | null): string[] {
+  return String(rawPayload ?? '')
+    .replace(/\r?\n/g, '')
+    .replace(/^UNA.{6}'/i, '')
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+}
+
+function firstCompositeComponent(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  if (!trimmed) return null
+  return trimmed.split(':')[0]?.trim() || null
+}
+
+function edifactElement(segment: string | null | undefined, index: number): string | null {
+  const value = segment?.split('+')[index]?.trim() ?? ''
+  return value.length > 0 ? value : null
+}
+
+function sourceTransactionReferencesForAperak(message: EdielMessageRow): string[] {
+  const segments = edifactSegmentsFromRawPayload(message.raw_payload)
+  const refs: string[] = []
+  let currentFallback: string | null = null
+  let currentTn: string | null = null
+
+  const flush = () => {
+    const value = currentTn ?? currentFallback
+    if (value && !refs.includes(value)) refs.push(value)
+    currentFallback = null
+    currentTn = null
+  }
+
+  for (const segment of segments) {
+    const upper = segment.toUpperCase()
+    if (upper.startsWith('IDE+24')) {
+      flush()
+      currentFallback = firstCompositeComponent(edifactElement(segment, 2))
+      continue
+    }
+    if (upper.startsWith('RFF+TN:')) {
+      currentTn = firstCompositeComponent(edifactElement(segment, 1))
+    }
+  }
+  flush()
+
+  return refs
+}
+
 async function createUtiltsRuntimeAcks(params: {
   actorUserId: string
   sourceMessage: EdielMessageRow
@@ -441,15 +506,29 @@ async function createUtiltsRuntimeAcks(params: {
   }
 
   if (params.ackPlan.shouldSendAperak && params.ackPlan.aperakOutcome) {
-    const aperak = await createAckIfMissing({
-      actorUserId: params.actorUserId,
-      sourceMessage: params.sourceMessage,
-      ackFamily: 'APERAK',
-      outcome: params.ackPlan.aperakOutcome,
-      messageText: params.ackPlan.reason,
-      applicationErrors: params.ackPlan.aperakApplicationErrors,
-    })
-    createdIds.push(aperak.id)
+    const shouldSplitPositiveAperak =
+      params.ackPlan.aperakOutcome === 'positive' &&
+      isPositiveAperakPerTransactionTgtMessage(params.sourceMessage)
+
+    const positiveAperakReferences = shouldSplitPositiveAperak
+      ? sourceTransactionReferencesForAperak(params.sourceMessage)
+      : []
+
+    const aperakMessageTexts = positiveAperakReferences.length > 1
+      ? positiveAperakReferences.map((reference) => `ACW@${reference} ${params.ackPlan.reason}`)
+      : [params.ackPlan.reason]
+
+    for (const messageText of aperakMessageTexts) {
+      const aperak = await createAckIfMissing({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        ackFamily: 'APERAK',
+        outcome: params.ackPlan.aperakOutcome,
+        messageText,
+        applicationErrors: params.ackPlan.aperakApplicationErrors,
+      })
+      createdIds.push(aperak.id)
+    }
   }
 
   return createdIds

@@ -372,7 +372,12 @@ export async function createCanonicalAckMessage(params: {
     typeof params.draft.parsedPayload?.utiltsErrSequenceToken === 'string' &&
     params.draft.parsedPayload.utiltsErrSequenceToken.trim().length > 0
 
-  const duplicate = allowSequencedUtiltsErr
+  const allowSequencedAperak =
+    params.ackFamily === 'APERAK' &&
+    typeof params.draft.parsedPayload?.aperakSequenceToken === 'string' &&
+    params.draft.parsedPayload.aperakSequenceToken.trim().length > 0
+
+  const duplicate = allowSequencedUtiltsErr || allowSequencedAperak
     ? null
     : await hasCanonicalAckDuplicate({
         sourceMessageId: params.sourceMessage.id,
@@ -419,7 +424,7 @@ export async function createCanonicalAckMessage(params: {
     ackFamily: params.ackFamily,
   })
 
-  const refs = allowSequencedUtiltsErr
+  const refs = allowSequencedUtiltsErr || allowSequencedAperak
     ? {
         ...baseRefs,
         externalReference: params.draft.externalReference ?? baseRefs.externalReference,

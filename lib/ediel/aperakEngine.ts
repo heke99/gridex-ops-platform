@@ -72,6 +72,13 @@ function escapeEdifactText(value?: string | null, maxLength = 70): string {
   return text.replace(/\?/g, '??').replace(/:/g, '?:')
 }
 
+
+function extractPositiveUtiltsAckReference(messageText?: string | null): string | null {
+  const text = String(messageText ?? '')
+  const match = text.match(/(?:^|\s)(?:ACW|TN)@([A-Za-z0-9_.\/-]{1,35})(?:\s|$)/i)
+  return sanitizeEdifactToken(match?.[1] ?? null, 35)
+}
+
 function segmentsFromRawPayload(rawPayload?: string | null): string[] {
   if (!rawPayload) return []
 
@@ -228,7 +235,7 @@ export function renderAperakEdiel(params: {
     if (isUtiltsSource) {
       segments.push(`RFF+DM:${sanitizeEdifactToken(params.transactionReference) ?? 'APE'}`)
       const utiltsReference = params.outcome === 'positive'
-        ? previousMessageReference
+        ? (extractPositiveUtiltsAckReference(params.messageText) ?? previousMessageReference)
         : (error.lineItemReference ?? error.referenceNumber ?? params.refs.lineItemReference ?? previousMessageReference)
       segments.push(`RFF+ACW:${sanitizeEdifactToken(utiltsReference) ?? previousMessageReference}`)
       continue
