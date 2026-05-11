@@ -386,6 +386,38 @@ export async function getEdielMessageById(
   return (data as EdielMessageRow | null) ?? null
 }
 
+
+export async function findSequencedAckForSource(params: {
+  sourceMessageId: string
+  ackFamily: 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative' | null
+  sequenceField: 'relatedTransactionReference' | 'utiltsErrSequenceToken' | 'aperakSequenceToken'
+  sequenceValue: string
+}): Promise<EdielMessageRow | null> {
+  const sequenceValue = params.sequenceValue.trim()
+  if (!sequenceValue) return null
+
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('direction', 'outbound')
+    .eq('related_message_id', params.sourceMessageId)
+    .eq('message_family', params.ackFamily)
+    .eq(`parsed_payload->>${params.sequenceField}`, sequenceValue)
+    .not('status', 'in', '(cancelled,failed)')
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (params.outcome) {
+    query = query.eq('ack_outcome', params.outcome)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+
+  return ((data ?? [])[0] as EdielMessageRow | undefined) ?? null
+}
+
 export async function listAckMessagesForSource(params: {
   sourceMessageId: string
   ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'

@@ -10,6 +10,7 @@ import {
   createCanonicalAckConflictEvent,
   createCanonicalDuplicateBlockEvent,
   createEdielMessage,
+  findSequencedAckForSource,
 } from '@/lib/ediel/db'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import {
@@ -49,6 +50,23 @@ function isPostgresUniqueViolation(error: unknown): boolean {
     (typeof candidate.message === 'string' &&
       candidate.message.includes('duplicate key value violates unique constraint'))
   )
+}
+
+function postgresErrorMessage(error: unknown): string {
+  if (!error || typeof error !== 'object') return ''
+  const candidate = error as { message?: unknown; details?: unknown }
+  return [candidate.message, candidate.details]
+    .filter((item): item is string => typeof item === 'string')
+    .join(' ')
+}
+
+function isLegacyAckPerSourceConstraint(error: unknown): boolean {
+  const text = postgresErrorMessage(error)
+  return text.includes('uq_ediel_messages_outbound_ack_per_source')
+}
+
+function sequenceString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
 
 export async function resolveCanonicalOutboundContext(params: {
@@ -378,13 +396,38 @@ export async function createCanonicalAckMessage(params: {
     typeof params.draft.parsedPayload?.relatedTransactionReference === 'string' &&
     params.draft.parsedPayload.relatedTransactionReference.trim().length > 0
 
-  const duplicate = allowSequencedUtiltsErr || allowSequencedAperak
+  const sequenceToken = allowSequencedAperak
+    ? sequenceString(params.draft.parsedPayload?.relatedTransactionReference)
+    : allowSequencedUtiltsErr
+      ? sequenceString(params.draft.parsedPayload?.utiltsErrSequenceToken)
+      : null
+
+  const sequencedDuplicate =
+    allowSequencedAperak && sequenceToken
+      ? await findSequencedAckForSource({
+          sourceMessageId: params.sourceMessage.id,
+          ackFamily: 'APERAK',
+          outcome: params.outcome ?? null,
+          sequenceField: 'relatedTransactionReference',
+          sequenceValue: sequenceToken,
+        })
+      : allowSequencedUtiltsErr && sequenceToken
+        ? await findSequencedAckForSource({
+            sourceMessageId: params.sourceMessage.id,
+            ackFamily: 'UTILTS_ERR',
+            outcome: params.outcome ?? null,
+            sequenceField: 'utiltsErrSequenceToken',
+            sequenceValue: sequenceToken,
+          })
+        : null
+
+  const duplicate = sequencedDuplicate ?? (allowSequencedUtiltsErr || allowSequencedAperak
     ? null
     : await hasCanonicalAckDuplicate({
         sourceMessageId: params.sourceMessage.id,
         ackFamily: params.ackFamily,
         outcome: params.outcome,
-      })
+      }))
 
   if (duplicate) {
     const attemptedOutcome = params.outcome ?? null
@@ -434,7 +477,7 @@ export async function createCanonicalAckMessage(params: {
       }
     : baseRefs
 
-  return createEdielMessage({
+  const input = {
     ...params.draft,
     actorUserId,
     externalReference: refs.externalReference,
@@ -445,7 +488,41 @@ export async function createCanonicalAckMessage(params: {
     originalMessageCode: refs.originalMessageCode,
     relatedMessageId: params.sourceMessage.id,
     ackOutcome: params.outcome ?? params.draft.ackOutcome ?? null,
-  })
+  }
+
+  try {
+    return await createEdielMessage(input)
+  } catch (error) {
+    if (isPostgresUniqueViolation(error) && sequenceToken) {
+      const existing = allowSequencedAperak
+        ? await findSequencedAckForSource({
+            sourceMessageId: params.sourceMessage.id,
+            ackFamily: 'APERAK',
+            outcome: params.outcome ?? null,
+            sequenceField: 'relatedTransactionReference',
+            sequenceValue: sequenceToken,
+          })
+        : allowSequencedUtiltsErr
+          ? await findSequencedAckForSource({
+              sourceMessageId: params.sourceMessage.id,
+              ackFamily: 'UTILTS_ERR',
+              outcome: params.outcome ?? null,
+              sequenceField: 'utiltsErrSequenceToken',
+              sequenceValue: sequenceToken,
+            })
+          : null
+
+      if (existing) return existing
+    }
+
+    if (isPostgresUniqueViolation(error) && isLegacyAckPerSourceConstraint(error) && allowSequencedAperak) {
+      throw new Error(
+        'Databasen blockerar fortfarande flera APERAK per källmeddelande via uq_ediel_messages_outbound_ack_per_source. Kör SQL-migrationen ediel_ack_transaction_scope.sql i Supabase och kör sedan engine igen.'
+      )
+    }
+
+    throw error
+  }
 }
 
 export function buildCanonicalReferencesForOutbound(params: {
