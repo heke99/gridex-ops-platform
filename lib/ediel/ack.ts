@@ -499,6 +499,45 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
   })
 }
 
+
+export function utiltsTransactionAckReferencesForSource(sourceMessage: EdielMessageRow): string[] {
+  if (String(sourceMessage.message_family ?? '').toUpperCase() !== 'UTILTS') return []
+
+  const groups = parseUtiltsSourceGroups(sourceMessage)
+  const refs: string[] = []
+
+  for (const group of groups) {
+    const ref = sanitizeEdifactToken(group.transactionId ?? null, 35)
+    if (ref && !refs.includes(ref)) refs.push(ref)
+  }
+
+  return refs
+}
+
+export function shouldUseTransactionScopedPositiveAperak(params: {
+  sourceMessage: EdielMessageRow
+  testCaseCode?: string | null
+}): boolean {
+  if (String(params.sourceMessage.message_family ?? '').toUpperCase() !== 'UTILTS') return false
+
+  const explicitTestCaseCode = String(params.testCaseCode ?? '').trim().toUpperCase()
+  if (/^U2\.1\.8B\b/.test(explicitTestCaseCode)) return true
+
+  const payload = params.sourceMessage.parsed_payload ?? {}
+  const validation = params.sourceMessage.validation_report ?? {}
+  const text = JSON.stringify({
+    payload,
+    validation,
+    failureReason: params.sourceMessage.failure_reason,
+    subject: params.sourceMessage.subject,
+    fileName: params.sourceMessage.file_name,
+  }).toUpperCase()
+
+  // Only the TGT/test profile should trigger transaction-scoped positive APERAK
+  // automatically. Production default remains message-scoped positive APERAK.
+  return /U2\.1\.8B\b/.test(text)
+}
+
 function copiedUtiltsSegment(segment: string | null, allowedPrefix: string): string | null {
   if (!segment || !segment.toUpperCase().startsWith(allowedPrefix.toUpperCase())) return null
   return segment

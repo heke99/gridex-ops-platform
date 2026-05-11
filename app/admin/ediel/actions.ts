@@ -22,6 +22,10 @@ import type {
   AckOutcome,
   EdielAperakApplicationError,
 } from "@/lib/ediel/ack";
+import {
+  shouldUseTransactionScopedPositiveAperak,
+  utiltsTransactionAckReferencesForSource,
+} from "@/lib/ediel/ack";
 import { registerInboundCanonicalMessage } from "@/lib/ediel/core/kernel";
 import {
   attachEdielMessageToTestRun,
@@ -2019,6 +2023,95 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
         recommendation.action.applicationErrors ??
         null)
       : null;
+
+  const transactionScopedPositiveAperakRefs =
+    recommendation.action.ackFamily === "APERAK" &&
+    finalOutcome === "positive" &&
+    sourceMessage.message_family === "UTILTS" &&
+    shouldUseTransactionScopedPositiveAperak({ sourceMessage, testCaseCode })
+      ? utiltsTransactionAckReferencesForSource(sourceMessage)
+      : [];
+
+  if (transactionScopedPositiveAperakRefs.length > 1) {
+    const ackMessageIds: string[] = [];
+    const preflightIssues: unknown[] = [];
+
+    for (const reference of transactionScopedPositiveAperakRefs) {
+      const scopedMessageText = `ACW@${reference} ${recommendation.action.messageText ?? "Positiv APERAK per UTILTS-transaktion"}`;
+      const ackMessage = await createAckDraftForMessage({
+        actorUserId: context.userId,
+        sourceMessageId,
+        ackFamily: "APERAK",
+        outcome: "positive",
+        messageText: scopedMessageText,
+        applicationErrors: null,
+      });
+
+      const preflight = validateAckPreflight({
+        ackMessage,
+        sourceMessage,
+      });
+
+      await createEdielMessageEvent({
+        actorUserId: context.userId,
+        edielMessageId: ackMessage.id,
+        eventType: "manual_note",
+        eventStatus: preflight.ok ? "success" : "error",
+        message: preflight.summary,
+        payload: {
+          phase: "preview_preflight",
+          sourceMessageId,
+          decisionKind: recommendation.kind,
+          matchedRule: recommendation.matchedRule,
+          ackFamily: "APERAK",
+          outcome: "positive",
+          ackScope: "transaction",
+          relatedTransactionReference: reference,
+          issues: preflight.issues,
+          applicationErrors: null,
+          backendRuleKeys,
+          backendIssueCount,
+          backendUnmappedRuleKeys,
+        },
+      });
+
+      ackMessageIds.push(ackMessage.id);
+      preflightIssues.push(...preflight.issues);
+
+      if (!preflight.ok) {
+        throw new Error(preflight.summary);
+      }
+    }
+
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId: sourceMessageId,
+      eventType: "manual_note",
+      eventStatus: "success",
+      message: `${recommendation.title}: skapade ${ackMessageIds.length} positiva APERAK-preview per UTILTS-transaktion. Kontrollera payload och skicka varje kvittensrad.`,
+      payload: {
+        ackMessageIds,
+        decisionKind: recommendation.kind,
+        matchedRule: recommendation.matchedRule,
+        ackFamily: "APERAK",
+        outcome: "positive",
+        ackScope: "transaction",
+        transactionReferences: transactionScopedPositiveAperakRefs,
+        canAutoSend: false,
+        reasonItems: recommendation.reasonItems,
+        syntaxIssues: recommendation.syntaxIssues,
+        applicationErrors: null,
+        backendRuleKeys,
+        backendIssueCount,
+        backendUnmappedRuleKeys,
+        preflightIssues,
+      },
+    });
+
+    revalidateEdiel(sourceMessageId);
+    await Promise.all(ackMessageIds.map((ackMessageId) => revalidateRelatedMessage(ackMessageId)));
+    return;
+  }
 
   const ackMessage = await createAckDraftForMessage({
     actorUserId: context.userId,

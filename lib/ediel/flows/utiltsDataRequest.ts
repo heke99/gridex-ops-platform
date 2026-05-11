@@ -43,7 +43,9 @@ import {
   buildContrlDraft,
   buildUtiltsErrDraft,
   getAutomaticAckPolicy,
+  shouldUseTransactionScopedPositiveAperak,
   type EdielAperakApplicationError,
+  utiltsTransactionAckReferencesForSource,
 } from '@/lib/ediel/ack'
 
 type UtiltsProcessResult = {
@@ -508,10 +510,10 @@ async function createUtiltsRuntimeAcks(params: {
   if (params.ackPlan.shouldSendAperak && params.ackPlan.aperakOutcome) {
     const shouldSplitPositiveAperak =
       params.ackPlan.aperakOutcome === 'positive' &&
-      isPositiveAperakPerTransactionTgtMessage(params.sourceMessage)
+      shouldUseTransactionScopedPositiveAperak({ sourceMessage: params.sourceMessage })
 
     const positiveAperakReferences = shouldSplitPositiveAperak
-      ? sourceTransactionReferencesForAperak(params.sourceMessage)
+      ? utiltsTransactionAckReferencesForSource(params.sourceMessage)
       : []
 
     const aperakMessageTexts = positiveAperakReferences.length > 1
