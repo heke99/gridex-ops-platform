@@ -420,6 +420,25 @@ function firstCompositeComponent(value: string | null | undefined): string | nul
   return trimmed.split(':')[0]?.trim() || null
 }
 
+function referenceValueFromSegments(segments: readonly string[], ...qualifiers: string[]): string | null {
+  const normalized = qualifiers.map((qualifier) => qualifier.toUpperCase())
+
+  for (const segment of segments) {
+    if (!segment.toUpperCase().startsWith('RFF+')) continue
+
+    const composite = edifactElement(segment, 1)
+    const parts = composite?.split(':') ?? []
+    const qualifier = parts[0]?.trim().toUpperCase()
+    const value = parts.slice(1).join(':').trim()
+
+    if (qualifier && value && normalized.includes(qualifier)) {
+      return value
+    }
+  }
+
+  return null
+}
+
 function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourceGroup[] {
   const segments = edifactSegmentsFromRaw(sourceMessage.raw_payload)
   const groups: string[][] = []
@@ -446,7 +465,10 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
 
     return {
       segments: group,
-      transactionId: firstCompositeComponent(edifactElement(ide, 2)),
+      // UTILTS_ERR must point back to the source transaction reference.
+      // In UTILTS, RFF+TN is the transaction reference used by the portal and
+      // counterpart systems; IDE+24 is only a repeat/detail identity fallback.
+      transactionId: referenceValueFromSegments(group, 'TN') ?? firstCompositeComponent(edifactElement(ide, 2)),
       meterPointId: firstCompositeComponent(edifactElement(loc172, 2)),
       gridAreaId: firstCompositeComponent(edifactElement(loc239, 2)),
       productIdSegment: segmentByPrefix(group, 'PIA+'),
