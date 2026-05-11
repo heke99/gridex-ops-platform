@@ -43,6 +43,7 @@ import {
   prepareAndQueueUtiltsE73,
 } from '@/lib/ediel/flows/utiltsDataRequest'
 import { sendEdielMessageViaSmtp, type EdielSmtpMimeMode } from '@/lib/ediel/transport'
+import { resolveOutboundRuntimeEnvironment } from '@/lib/ediel/flows/shared'
 
 export type {
   AckFamily,
@@ -316,11 +317,15 @@ export async function inspectManualRouteRuntime(params: {
   gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
   preferredRouteId?: string | null
 }) {
+  const environment = await resolveOutboundRuntimeEnvironment({
+    preferredRouteId: params.preferredRouteId ?? null,
+  })
+
   return resolveCanonicalOutboundContext({
     requestType: params.requestType,
     gridOwner: params.gridOwner ?? null,
     preferredRouteId: params.preferredRouteId ?? null,
-    environment: 'test',
+    environment,
     messageStandard: 'edifact',
   })
 }

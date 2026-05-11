@@ -22,6 +22,7 @@ import {
   getGridOwnerDataRequestById,
   makeServerClient,
   queuePreparedEdielMessage,
+  resolveOutboundRuntimeEnvironment,
 } from '@/lib/ediel/flows/shared'
 import {
   findOpenOutboundBySource,
@@ -33,7 +34,7 @@ import {
   updateOutboundRequestStatus,
 } from '@/lib/cis/db'
 import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/types'
-import type { EdielMessageRow } from '@/lib/ediel/types'
+import type { EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
 import {
   findMatchingGridOwnerDataRequest,
   matchMeteringPointForEdielMessage,
@@ -594,6 +595,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   actorUserId: string
   gridOwnerDataRequestId: string
   communicationRouteId?: string | null
+  environment?: EdielEnvironment | null
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await makeServerClient()
@@ -609,11 +611,16 @@ export async function prepareAndQueueUtiltsE73(params: {
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
     : null
 
+  const environment = await resolveOutboundRuntimeEnvironment({
+    preferredRouteId: params.communicationRouteId ?? null,
+    explicitEnvironment: params.environment ?? null,
+  })
+
   const routeContext = await resolveCanonicalOutboundContext({
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    environment: 'test',
+    environment,
     messageStandard: 'edifact',
   })
 
@@ -730,6 +737,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   actorUserId: string
   gridOwnerDataRequestId: string
   communicationRouteId?: string | null
+  environment?: EdielEnvironment | null
   quantity?: number | null
   periodStart?: string | null
   periodEnd?: string | null
@@ -749,11 +757,16 @@ export async function prepareAndQueueUtiltsE66(params: {
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
     : null
 
+  const environment = await resolveOutboundRuntimeEnvironment({
+    preferredRouteId: params.communicationRouteId ?? null,
+    explicitEnvironment: params.environment ?? null,
+  })
+
   const routeContext = await resolveCanonicalOutboundContext({
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    environment: 'test',
+    environment,
     messageStandard: 'edifact',
   })
 

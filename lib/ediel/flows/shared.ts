@@ -1,7 +1,7 @@
 // lib/ediel/flows/shared.ts
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import type { CreateEdielMessageInput } from '@/lib/ediel/types'
+import type { CreateEdielMessageInput, EdielEnvironment } from '@/lib/ediel/types'
 import {
   ACTIVE_EDIEL_MESSAGE_FAMILIES,
   isActiveEdielMessageFamily,
@@ -26,6 +26,43 @@ type ActiveReleaseFamily =
   | 'CONTRL'
   | 'UTILTS_ERR'
   | 'AI_LIST'
+
+
+
+function normalizeEdielEnvironment(value?: string | null): EdielEnvironment | null {
+  return value === 'production' || value === 'test' ? value : null
+}
+
+export async function resolveOutboundRuntimeEnvironment(params: {
+  preferredRouteId?: string | null
+  explicitEnvironment?: EdielEnvironment | null
+}): Promise<EdielEnvironment> {
+  const explicit = normalizeEdielEnvironment(params.explicitEnvironment ?? null)
+  if (explicit) return explicit
+
+  if (!params.preferredRouteId) return 'production'
+
+  const { data, error } = await supabaseService
+    .from('communication_routes')
+    .select('target_system,target_email')
+    .eq('id', params.preferredRouteId)
+    .maybeSingle()
+
+  if (error) throw error
+
+  const targetSystem = String((data as { target_system?: string | null } | null)?.target_system ?? '').toLowerCase()
+  const targetEmail = String((data as { target_email?: string | null } | null)?.target_email ?? '').toLowerCase()
+
+  if (
+    targetSystem.includes('tgt') ||
+    targetSystem.includes('test') ||
+    targetEmail.endsWith('@ediel.se')
+  ) {
+    return 'test'
+  }
+
+  return 'production'
+}
 
 export function ensureActorUserId(value?: string | null): string {
   return value && value.trim() ? value.trim() : 'system'

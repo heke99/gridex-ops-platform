@@ -4,10 +4,12 @@ import { getGridOwnerById, getMeteringPointById, getCustomerSiteById } from '@/l
 import { buildAiListDetailFromSite, buildAiListOutboundDraft } from '@/lib/ediel/aiList'
 import { linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
+import type { EdielEnvironment } from '@/lib/ediel/types'
 import {
   ensureActorUserId,
   finalizeOutboundDraft,
   makeServerClient,
+  resolveOutboundRuntimeEnvironment,
 } from '@/lib/ediel/flows/shared'
 
 export async function prepareAndQueueAiList(params: {
@@ -23,6 +25,7 @@ export async function prepareAndQueueAiList(params: {
   fromDate: string
   toDate: string
   communicationRouteId?: string | null
+  environment?: EdielEnvironment | null
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await makeServerClient()
@@ -38,11 +41,16 @@ export async function prepareAndQueueAiList(params: {
     ? await getGridOwnerById(supabase, site.grid_owner_id)
     : null
 
+  const environment = await resolveOutboundRuntimeEnvironment({
+    preferredRouteId: params.communicationRouteId ?? null,
+    explicitEnvironment: params.environment ?? null,
+  })
+
   const routeContext = await resolveCanonicalOutboundContext({
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    environment: 'test',
+    environment,
     messageStandard: 'ai_list',
   })
 

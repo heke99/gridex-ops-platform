@@ -30,6 +30,7 @@ import {
   findOrCreateSwitchOutbound,
   makeServerClient,
   queuePreparedEdielMessage,
+  resolveOutboundRuntimeEnvironment,
 } from '@/lib/ediel/flows/shared'
 
 type PrepareProdatSwitchParams = {
@@ -145,11 +146,16 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     params.switchRequestId
   )
 
+  const environment = await resolveOutboundRuntimeEnvironment({
+    preferredRouteId: params.communicationRouteId ?? null,
+    explicitEnvironment: params.environment ?? null,
+  })
+
   const routeContext = await resolveCanonicalOutboundContext({
     requestType: 'supplier_switch',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    environment: params.environment ?? 'test',
+    environment,
     messageStandard: 'edifact',
   })
 

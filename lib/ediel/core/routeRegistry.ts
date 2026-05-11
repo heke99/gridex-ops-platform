@@ -113,7 +113,8 @@ export async function resolveCanonicalRouteContext(params: {
 
   const routeRuntime = await getEdielRouteRuntimeByCommunicationRouteId(route.id)
 
-  const isEdielPortalTgtRoute = route.target_system === 'ediel_portal_tgt'
+  const targetSystem = String(route.target_system ?? '').toLowerCase()
+  const isEdielPortalTgtRoute = targetSystem.includes('ediel_portal_tgt') || targetSystem.includes('tgt')
   const senderEdielId = trimOrNull(routeRuntime?.sender_ediel_id) ?? actor.senderEdielId
   const senderName = trimOrNull(routeRuntime?.sender_name) ?? actor.senderName
   const senderSubAddress = isEdielPortalTgtRoute
@@ -143,6 +144,24 @@ export async function resolveCanonicalRouteContext(params: {
     (isEdielPortalTgtRoute && params.requestType === 'supplier_switch'
       ? '23-DDQ-PRODAT'
       : actor.defaultApplicationReference)
+
+  if (environment === 'production') {
+    const normalizedApplicationReference = String(applicationReference ?? '').toUpperCase()
+    const normalizedReceiverEmail = String(route.target_email ?? '').toLowerCase()
+
+    if (isEdielPortalTgtRoute || receiverEdielId === '91100' || normalizedReceiverEmail.endsWith('@ediel.se')) {
+      throw new Error(
+        `Produktionsruntime får inte använda Edielportalens TGT-route (${route.route_name}). Välj testmiljö eller en riktig motpartsroute.`
+      )
+    }
+
+    if (normalizedApplicationReference.startsWith('23-DDQ')) {
+      throw new Error(
+        `Produktionsruntime får inte använda TGT application reference ${applicationReference}. Uppdatera route profile/actor settings innan utskick.`
+      )
+    }
+  }
+
   const defaultMessageVersion = trimOrNull(routeRuntime?.default_message_version)
   const ackMode = routeRuntime?.ack_mode ?? 'default'
   const messageStandard = params.messageStandard ?? routeRuntime?.message_standard ?? 'edifact'

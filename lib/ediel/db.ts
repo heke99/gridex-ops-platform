@@ -1,6 +1,7 @@
 // lib/ediel/db.ts
 
 import { supabaseService } from '@/lib/supabase/service'
+import { assertNoTgtLeakageInProductionInput } from '@/lib/ediel/core/productionGuards'
 import type {
   AttachEdielMessageToTestRunInput,
   CreateEdielMessageEventInput,
@@ -272,6 +273,8 @@ async function listRecentManualIssueEvents(limit = 200): Promise<CanonicalIssueE
 export async function createEdielMessage(
   input: CreateEdielMessageInput
 ): Promise<EdielMessageRow> {
+  assertNoTgtLeakageInProductionInput(input)
+
   const payload = cleanObject({
     direction: input.direction,
     message_standard: input.messageStandard,

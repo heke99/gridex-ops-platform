@@ -3105,12 +3105,14 @@ export async function prepareUtiltsE73Action(formData: FormData) {
     formData.get("gridOwnerDataRequestId"),
   );
   const communicationRouteId = formString(formData.get("communicationRouteId"));
+  const environment = formString(formData.get("environment")) === "test" ? "test" : "production";
   if (!gridOwnerDataRequestId) throw new Error("gridOwnerDataRequestId saknas");
 
   const message = await prepareAndQueueUtiltsE73({
     actorUserId: context.userId,
     gridOwnerDataRequestId,
     communicationRouteId,
+    environment,
   });
 
   await revalidateRelatedMessage(message.id);
@@ -3125,6 +3127,7 @@ export async function prepareUtiltsE66Action(formData: FormData) {
     formData.get("gridOwnerDataRequestId"),
   );
   const communicationRouteId = formString(formData.get("communicationRouteId"));
+  const environment = formString(formData.get("environment")) === "test" ? "test" : "production";
   const quantity = formNumber(formData.get("quantity"));
   const periodStart = formString(formData.get("periodStart"));
   const periodEnd = formString(formData.get("periodEnd"));
@@ -3135,6 +3138,7 @@ export async function prepareUtiltsE66Action(formData: FormData) {
     actorUserId: context.userId,
     gridOwnerDataRequestId,
     communicationRouteId,
+    environment,
     quantity,
     periodStart,
     periodEnd,
@@ -3161,6 +3165,7 @@ export async function prepareAiListAction(formData: FormData) {
     formData.get("balanceResponsibleEdielId"),
   );
   const communicationRouteId = formString(formData.get("communicationRouteId"));
+  const environment = formString(formData.get("environment")) === "test" ? "test" : "production";
   const fromDate = formString(formData.get("fromDate"));
   const toDate = formString(formData.get("toDate"));
 
@@ -3185,6 +3190,7 @@ export async function prepareAiListAction(formData: FormData) {
     fromDate,
     toDate,
     communicationRouteId,
+    environment,
   });
 
   await revalidateRelatedMessage(message.id);
