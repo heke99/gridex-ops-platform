@@ -892,6 +892,14 @@ async function buildInboundAckMessageInput(params: {
     rawPayload: params.rawPayload,
   })
   const isNegative = ackOutcome === 'negative'
+  // The database requires acknowledgement outcome rows to be linked to the
+  // outbound/source message they acknowledge. When an old mailbox item is
+  // imported after the original outbound message was deleted or cannot be
+  // matched, keep the inferred outcome in parsed_payload/validation_report for
+  // manual review, but do not persist ack_outcome on the canonical row. This
+  // preserves the production constraint and prevents one unlinked APERAK/CONTRL
+  // from crashing the entire IMAP poll.
+  const persistedAckOutcome = related ? ackOutcome : null
 
   return {
     actorUserId: 'system',
@@ -967,9 +975,9 @@ async function buildInboundAckMessageInput(params: {
     contrlStatus: 'not_required',
     aperakStatus: 'not_required',
     utiltsErrStatus: 'not_required',
-    ackOutcome,
-    syntaxCheckStatus: isContrl ? (isNegative ? 'failed' : 'ok') : 'not_checked',
-    functionalCheckStatus: isAperak || params.family === 'UTILTS_ERR' ? (isNegative ? 'failed' : 'ok') : 'not_checked',
+    ackOutcome: persistedAckOutcome,
+    syntaxCheckStatus: isContrl && related ? (isNegative ? 'failed' : 'ok') : 'not_checked',
+    functionalCheckStatus: (isAperak || params.family === 'UTILTS_ERR') && related ? (isNegative ? 'failed' : 'ok') : 'not_checked',
     messageReceivedAt: receivedAt,
   }
 }
