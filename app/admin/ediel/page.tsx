@@ -11,7 +11,7 @@ import EdielSafeApplyReviewPanel from '@/components/admin/ediel/EdielSafeApplyRe
 import EdielInboundCasesPanel from '@/components/admin/ediel/EdielInboundCasesPanel'
 import InboundTestDataUploadForm from '@/components/admin/ediel/InboundTestDataUploadForm'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { getCanonicalAckState } from '@/lib/ediel/ack'
+import { getCanonicalAckState, utiltsTransactionAckReferencesForSource } from '@/lib/ediel/ack'
 import {
   getEdielRouteProfileByCommunicationRouteId,
   listCanonicalAckConflictEvents,
@@ -536,30 +536,52 @@ function resolveAckRecommendation(params: {
 }
 
 function RecommendedAckActionForm({
-  messageId,
+  message,
   recommendation,
   selectedTgtRow,
 }: {
-  messageId: string
+  message: Awaited<ReturnType<typeof listEdielMessages>>[number]
   recommendation: AckRecommendation
   selectedTgtRow?: EdielTgtDynamicTestDataSummary | null
 }) {
   if (!recommendation.actionLabel) return null
 
+  const transactionAckRefs =
+    message.message_family === 'UTILTS' &&
+    recommendation.ackFamily === 'APERAK' &&
+    recommendation.outcome === 'positive'
+      ? utiltsTransactionAckReferencesForSource(message)
+      : []
+
+  const hiddenTgtFields = selectedTgtRow ? (
+    <>
+      <input type="hidden" name="testSuite" value={selectedTgtRow.testSuite} />
+      <input type="hidden" name="roleCode" value={selectedTgtRow.roleCode} />
+      <input type="hidden" name="testCaseCode" value={selectedTgtRow.testCaseCode} />
+    </>
+  ) : null
+
   return (
-    <form action={createAndSendRecommendedAckAction}>
-      <input type="hidden" name="sourceMessageId" value={messageId} />
-      {selectedTgtRow ? (
-        <>
-          <input type="hidden" name="testSuite" value={selectedTgtRow.testSuite} />
-          <input type="hidden" name="roleCode" value={selectedTgtRow.roleCode} />
-          <input type="hidden" name="testCaseCode" value={selectedTgtRow.testCaseCode} />
-        </>
+    <div className="flex flex-wrap gap-2">
+      <form action={createAndSendRecommendedAckAction}>
+        <input type="hidden" name="sourceMessageId" value={message.id} />
+        {hiddenTgtFields}
+        <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+          {recommendation.ackFamily ? `Skapa preview för ${recommendation.ackFamily}` : recommendation.actionLabel}
+        </button>
+      </form>
+
+      {transactionAckRefs.length > 1 ? (
+        <form action={createAndSendRecommendedAckAction}>
+          <input type="hidden" name="sourceMessageId" value={message.id} />
+          <input type="hidden" name="ackScope" value="transaction" />
+          {hiddenTgtFields}
+          <button className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100">
+            Skapa APERAK per transaktion ({transactionAckRefs.length})
+          </button>
+        </form>
       ) : null}
-      <button className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
-        {recommendation.ackFamily ? `Skapa preview för ${recommendation.ackFamily}` : recommendation.actionLabel}
-      </button>
-    </form>
+    </div>
   )
 }
 
@@ -598,7 +620,7 @@ function RecommendedAckPanel({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <RecommendedAckActionForm messageId={message.id} recommendation={recommendation} selectedTgtRow={selectedTgtRow} />
+        <RecommendedAckActionForm message={message} recommendation={recommendation} selectedTgtRow={selectedTgtRow} />
         {recommendation.ackFamily ? <Badge>{recommendation.ackFamily}</Badge> : null}
         {recommendation.outcome ? <Badge tone={recommendation.outcome === 'negative' ? 'red' : 'green'}>{recommendation.outcome}</Badge> : null}
         <Badge tone="blue">{recommendation.decision.kind}</Badge>

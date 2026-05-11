@@ -6,7 +6,7 @@ import {
   getMeteringPointById,
 } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
-import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import {
   createEdielMessageEvent,
   getEdielMessageById,
@@ -43,9 +43,9 @@ import {
   buildContrlDraft,
   buildUtiltsErrDraft,
   getAutomaticAckPolicy,
-  shouldUseTransactionScopedPositiveAperak,
+  getUtiltsAckTransactionTargets,
+  type EdielAckScope,
   type EdielAperakApplicationError,
-  utiltsTransactionAckReferencesForSource,
 } from '@/lib/ediel/ack'
 
 type UtiltsProcessResult = {
@@ -312,6 +312,8 @@ async function createAckIfMissing(params: {
   outcome?: 'positive' | 'negative'
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
+  ackScope?: EdielAckScope | null
+  relatedTransactionReference?: string | null
 }) {
   const draft =
     params.ackFamily === 'CONTRL'
@@ -328,6 +330,8 @@ async function createAckIfMissing(params: {
             outcome: params.outcome ?? 'positive',
             messageText: params.messageText ?? null,
             applicationErrors: params.applicationErrors ?? null,
+            ackScope: params.ackScope ?? null,
+            relatedTransactionReference: params.relatedTransactionReference ?? null,
           })
         : buildUtiltsErrDraft({
             actorUserId: params.actorUserId,
@@ -357,6 +361,8 @@ async function createAckIfMissing(params: {
     payload: {
       ackMessageId: ackMessage.id,
       outcome: params.outcome ?? null,
+      ackScope: params.ackScope ?? null,
+      relatedTransactionReference: params.relatedTransactionReference ?? null,
     },
   })
 
@@ -395,87 +401,40 @@ async function createAutomaticPositiveAcks(params: {
   return createdIds
 }
 
+function utiltsTestContextText(message: EdielMessageRow): string {
+  return JSON.stringify({
+    parsedPayload: message.parsed_payload,
+    validationReport: message.validation_report,
+    failureReason: message.failure_reason,
+    subject: message.subject,
+    fileName: message.file_name,
+    applicationReference: message.application_reference,
+  }).toUpperCase()
+}
+
 function isUtiltsBTestCaseMessage(message: EdielMessageRow): boolean {
-  const text = JSON.stringify({
-    parsedPayload: message.parsed_payload,
-    validationReport: message.validation_report,
-    failureReason: message.failure_reason,
-    subject: message.subject,
-    fileName: message.file_name,
-  }).toUpperCase()
-
-  return /U2\.2\.(3|4)B/.test(text)
+  return /U\d+\.\d+\.\d+B/.test(utiltsTestContextText(message))
 }
 
-function isPositiveAperakPerTransactionTgtMessage(message: EdielMessageRow): boolean {
-  const text = JSON.stringify({
-    parsedPayload: message.parsed_payload,
-    validationReport: message.validation_report,
-    failureReason: message.failure_reason,
-    subject: message.subject,
-    fileName: message.file_name,
-  }).toUpperCase()
+function shouldCreatePositiveAperakPerTransaction(params: {
+  sourceMessage: EdielMessageRow
+  outcome?: string | null
+  testCaseCode?: string | null
+}): boolean {
+  if (params.outcome !== 'positive') return false
 
-  // Keep this in the TGT layer, not in the production UTILTS validator. The
-  // production decision remains “accepted E66 => positive APERAK”; this only
-  // controls how the TGT harness packages the positive APERAK response when a
-  // b-test requires one APERAK per inbound transaction.
-  return /U2\.1\.8B/.test(text)
-}
+  const explicitCase = String(params.testCaseCode ?? '').toUpperCase()
+  const isBTest = /U\d+\.\d+\.\d+B/.test(explicitCase) || isUtiltsBTestCaseMessage(params.sourceMessage)
 
-function edifactSegmentsFromRawPayload(rawPayload?: string | null): string[] {
-  return String(rawPayload ?? '')
-    .replace(/\r?\n/g, '')
-    .replace(/^UNA.{6}'/i, '')
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-}
-
-function firstCompositeComponent(value: string | null | undefined): string | null {
-  const trimmed = value?.trim()
-  if (!trimmed) return null
-  return trimmed.split(':')[0]?.trim() || null
-}
-
-function edifactElement(segment: string | null | undefined, index: number): string | null {
-  const value = segment?.split('+')[index]?.trim() ?? ''
-  return value.length > 0 ? value : null
-}
-
-function sourceTransactionReferencesForAperak(message: EdielMessageRow): string[] {
-  const segments = edifactSegmentsFromRawPayload(message.raw_payload)
-  const refs: string[] = []
-  let currentFallback: string | null = null
-  let currentTn: string | null = null
-
-  const flush = () => {
-    const value = currentTn ?? currentFallback
-    if (value && !refs.includes(value)) refs.push(value)
-    currentFallback = null
-    currentTn = null
-  }
-
-  for (const segment of segments) {
-    const upper = segment.toUpperCase()
-    if (upper.startsWith('IDE+24')) {
-      flush()
-      currentFallback = firstCompositeComponent(edifactElement(segment, 2))
-      continue
-    }
-    if (upper.startsWith('RFF+TN:')) {
-      currentTn = firstCompositeComponent(edifactElement(segment, 1))
-    }
-  }
-  flush()
-
-  return refs
+  if (!isBTest) return false
+  return getUtiltsAckTransactionTargets(params.sourceMessage).length > 1
 }
 
 async function createUtiltsRuntimeAcks(params: {
   actorUserId: string
   sourceMessage: EdielMessageRow
   ackPlan: ReturnType<typeof runUtiltsRuntimeForMessage>['ackPlan']
+  testCaseCode?: string | null
 }) {
   const createdIds: string[] = []
 
@@ -491,9 +450,8 @@ async function createUtiltsRuntimeAcks(params: {
   }
 
   if (params.ackPlan.shouldSendUtiltsErr) {
-    const messageText = serializeUtiltsRuntimeUtiltsErrMessageText(params.ackPlan)
     const codes = params.ackPlan.utiltsErrCodes.length > 0 ? params.ackPlan.utiltsErrCodes : ['E14']
-    const utiltsErrMessages = isUtiltsBTestCaseMessage(params.sourceMessage) ? codes : [messageText]
+    const utiltsErrMessages = isUtiltsBTestCaseMessage(params.sourceMessage) ? codes : [codes.join('|')]
 
     for (const messageText of utiltsErrMessages) {
       const utiltsErr = await createAckIfMissing({
@@ -508,25 +466,33 @@ async function createUtiltsRuntimeAcks(params: {
   }
 
   if (params.ackPlan.shouldSendAperak && params.ackPlan.aperakOutcome) {
-    const shouldSplitPositiveAperak =
-      params.ackPlan.aperakOutcome === 'positive' &&
-      shouldUseTransactionScopedPositiveAperak({ sourceMessage: params.sourceMessage })
+    const transactionScoped = shouldCreatePositiveAperakPerTransaction({
+      sourceMessage: params.sourceMessage,
+      outcome: params.ackPlan.aperakOutcome,
+      testCaseCode: params.testCaseCode ?? null,
+    })
 
-    const positiveAperakReferences = shouldSplitPositiveAperak
-      ? utiltsTransactionAckReferencesForSource(params.sourceMessage)
-      : []
-
-    const aperakMessageTexts = positiveAperakReferences.length > 1
-      ? positiveAperakReferences.map((reference) => `ACW@${reference} ${params.ackPlan.reason}`)
-      : [params.ackPlan.reason]
-
-    for (const messageText of aperakMessageTexts) {
+    if (transactionScoped) {
+      for (const target of getUtiltsAckTransactionTargets(params.sourceMessage)) {
+        const aperak = await createAckIfMissing({
+          actorUserId: params.actorUserId,
+          sourceMessage: params.sourceMessage,
+          ackFamily: 'APERAK',
+          outcome: params.ackPlan.aperakOutcome,
+          messageText: params.ackPlan.reason,
+          applicationErrors: params.ackPlan.aperakApplicationErrors,
+          ackScope: 'transaction',
+          relatedTransactionReference: target.reference,
+        })
+        createdIds.push(aperak.id)
+      }
+    } else {
       const aperak = await createAckIfMissing({
         actorUserId: params.actorUserId,
         sourceMessage: params.sourceMessage,
         ackFamily: 'APERAK',
         outcome: params.ackPlan.aperakOutcome,
-        messageText,
+        messageText: params.ackPlan.reason,
         applicationErrors: params.ackPlan.aperakApplicationErrors,
       })
       createdIds.push(aperak.id)
@@ -830,6 +796,7 @@ export async function prepareAndQueueUtiltsE66(params: {
 export async function processInboundUtiltsMessage(params: {
   actorUserId: string
   edielMessageId: string
+  testCaseCode?: string | null
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -869,6 +836,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       sourceMessage: message,
       ackPlan: runtime.ackPlan,
+      testCaseCode: params.testCaseCode ?? null,
     })
 
     await updateEdielMessageStatus({
@@ -920,6 +888,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       sourceMessage: message,
       ackPlan: runtime.ackPlan,
+      testCaseCode: params.testCaseCode ?? null,
     })
 
     await createEdielMessageEvent({
@@ -1015,6 +984,7 @@ export async function processInboundUtiltsMessage(params: {
     actorUserId,
     sourceMessage: message,
     ackPlan: runtime.ackPlan,
+    testCaseCode: params.testCaseCode ?? null,
   })
 
   await updateEdielMessageStatus({

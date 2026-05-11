@@ -149,6 +149,15 @@ export type EdielAperakApplicationError = {
   lineItemReference?: string | null
 }
 
+export type EdielAckScope = 'message' | 'transaction'
+
+export type UtiltsAckTransactionTarget = {
+  reference: string
+  transactionId: string | null
+  meterPointId: string | null
+  gridAreaId: string | null
+}
+
 function normalizeAperakErrors(errors?: readonly EdielAperakApplicationError[] | null, fallbackText?: string | null): EdielAperakApplicationError[] {
   const normalized = (errors ?? [])
     .map((error) => ({
@@ -360,6 +369,7 @@ function buildAperakSegments(params: {
   outcome: AckOutcome
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
+  relatedTransactionReference?: string | null
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
   const rendered = renderAperakEdiel({
@@ -379,6 +389,7 @@ function buildAperakSegments(params: {
     outcome: params.outcome,
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
+    utiltsAcknowledgementReference: params.relatedTransactionReference ?? null,
   })
 
   return rendered.segments
@@ -420,25 +431,6 @@ function firstCompositeComponent(value: string | null | undefined): string | nul
   return trimmed.split(':')[0]?.trim() || null
 }
 
-function referenceValueFromSegments(segments: readonly string[], ...qualifiers: string[]): string | null {
-  const normalized = qualifiers.map((qualifier) => qualifier.toUpperCase())
-
-  for (const segment of segments) {
-    if (!segment.toUpperCase().startsWith('RFF+')) continue
-
-    const composite = edifactElement(segment, 1)
-    const parts = composite?.split(':') ?? []
-    const qualifier = parts[0]?.trim().toUpperCase()
-    const value = parts.slice(1).join(':').trim()
-
-    if (qualifier && value && normalized.includes(qualifier)) {
-      return value
-    }
-  }
-
-  return null
-}
-
 function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourceGroup[] {
   const segments = edifactSegmentsFromRaw(sourceMessage.raw_payload)
   const groups: string[][] = []
@@ -458,34 +450,17 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
 
   if (current) groups.push(current)
 
-  const ideGroups = groups.length > 0 ? groups : [segments]
-  const sourceGroups = ideGroups.flatMap((group) => {
-    const tnRefs = group
-      .filter((segment) => segment.toUpperCase().startsWith('RFF+TN:'))
-      .map((segment) => firstCompositeComponent(edifactElement(segment, 1)))
-      .filter((value): value is string => Boolean(value))
-
-    // Some UTILTS E66 messages contain several business transactions under the
-    // same IDE+24 repeat. UTILTS_ERR must be emitted per RFF+TN business
-    // reference, otherwise the portal/counterparty maps all reasons to the
-    // first LocationRepeatId. Keep the full group content but assign a separate
-    // synthetic TN marker per logical business transaction.
-    if (tnRefs.length <= 1) return [group]
-
-    return tnRefs.map((tn) => [...group, `__GRIDEX_LOGICAL_RFF_TN+${tn}`])
-  })
+  const sourceGroups = groups.length > 0 ? groups : [segments]
 
   return sourceGroups.map((group) => {
     const ide = segmentByPrefix(group, 'IDE+24')
+    const tn = segmentByPrefix(group, 'RFF+TN')
     const loc172 = segmentByPrefix(group, 'LOC+172')
     const loc239 = segmentByPrefix(group, 'LOC+239')
 
     return {
       segments: group,
-      // UTILTS_ERR must point back to the source transaction reference.
-      // In UTILTS, RFF+TN is the transaction reference used by the portal and
-      // counterpart systems; IDE+24 is only a repeat/detail identity fallback.
-      transactionId: firstCompositeComponent(edifactElement(segmentByPrefix(group, '__GRIDEX_LOGICAL_RFF_TN+'), 1)) ?? referenceValueFromSegments(group, 'TN') ?? firstCompositeComponent(edifactElement(ide, 2)),
+      transactionId: firstCompositeComponent(edifactElement(tn, 1)) ?? firstCompositeComponent(edifactElement(ide, 2)),
       meterPointId: firstCompositeComponent(edifactElement(loc172, 2)),
       gridAreaId: firstCompositeComponent(edifactElement(loc239, 2)),
       productIdSegment: segmentByPrefix(group, 'PIA+'),
@@ -500,18 +475,28 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
 }
 
 
-export function utiltsTransactionAckReferencesForSource(sourceMessage: EdielMessageRow): string[] {
+export function getUtiltsAckTransactionTargets(sourceMessage: EdielMessageRow): UtiltsAckTransactionTarget[] {
   if (String(sourceMessage.message_family ?? '').toUpperCase() !== 'UTILTS') return []
 
-  const groups = parseUtiltsSourceGroups(sourceMessage)
-  const refs: string[] = []
+  const seen = new Set<string>()
+  return parseUtiltsSourceGroups(sourceMessage)
+    .map((group) => {
+      const reference = sanitizeEdifactToken(group.transactionId) ?? null
+      if (!reference || seen.has(reference)) return null
+      seen.add(reference)
+      return {
+        reference,
+        transactionId: group.transactionId,
+        meterPointId: group.meterPointId,
+        gridAreaId: group.gridAreaId,
+      }
+    })
+    .filter((target): target is UtiltsAckTransactionTarget => Boolean(target))
+}
 
-  for (const group of groups) {
-    const ref = sanitizeEdifactToken(group.transactionId ?? null, 35)
-    if (ref && !refs.includes(ref)) refs.push(ref)
-  }
 
-  return refs
+export function utiltsTransactionAckReferencesForSource(sourceMessage: EdielMessageRow): string[] {
+  return getUtiltsAckTransactionTargets(sourceMessage).map((target) => target.reference)
 }
 
 export function shouldUseTransactionScopedPositiveAperak(params: {
@@ -520,22 +505,21 @@ export function shouldUseTransactionScopedPositiveAperak(params: {
 }): boolean {
   if (String(params.sourceMessage.message_family ?? '').toUpperCase() !== 'UTILTS') return false
 
-  const explicitTestCaseCode = String(params.testCaseCode ?? '').trim().toUpperCase()
-  if (/^U2\.1\.8B\b/.test(explicitTestCaseCode)) return true
+  const hasMultipleTransactions = getUtiltsAckTransactionTargets(params.sourceMessage).length > 1
+  if (!hasMultipleTransactions) return false
 
-  const payload = params.sourceMessage.parsed_payload ?? {}
-  const validation = params.sourceMessage.validation_report ?? {}
-  const text = JSON.stringify({
-    payload,
-    validation,
+  const explicitCase = String(params.testCaseCode ?? '').toUpperCase()
+  if (/U\d+\.\d+\.\d+B/.test(explicitCase)) return true
+
+  const storedContext = JSON.stringify({
+    parsedPayload: params.sourceMessage.parsed_payload,
+    validationReport: params.sourceMessage.validation_report,
     failureReason: params.sourceMessage.failure_reason,
     subject: params.sourceMessage.subject,
     fileName: params.sourceMessage.file_name,
+    applicationReference: params.sourceMessage.application_reference,
   }).toUpperCase()
-
-  // Only the TGT/test profile should trigger transaction-scoped positive APERAK
-  // automatically. Production default remains message-scoped positive APERAK.
-  return /U2\.1\.8B\b/.test(text)
+  return /U\d+\.\d+\.\d+B/.test(storedContext)
 }
 
 function copiedUtiltsSegment(segment: string | null, allowedPrefix: string): string | null {
@@ -585,12 +569,8 @@ function resolveUtiltsErrSourceGroup(params: {
   index: number
   groups: readonly UtiltsErrSourceGroup[]
   usedMeterPointIds: Set<string>
-  preferredTransactionId?: string | null
 }): UtiltsErrSourceGroup | null {
-  const preferred = sanitizeEdifactToken(params.preferredTransactionId ?? null, 35)
-  const group = (preferred
-    ? params.groups.find((candidate) => sanitizeEdifactToken(candidate.transactionId ?? null, 35) === preferred)
-    : null) ?? params.groups[params.index] ?? params.groups[params.groups.length - 1] ?? null
+  const group = params.groups[params.index] ?? params.groups[params.groups.length - 1] ?? null
 
   if (!shouldUseS02FunctionalTgtFallback(params.sourceMessage, params.allCodes)) {
     return group
@@ -627,33 +607,6 @@ function resolveUtiltsErrSourceGroup(params: {
   }
 }
 
-
-type UtiltsErrReasonEntry = {
-  code: string
-  transactionId?: string | null
-}
-
-function parseUtiltsErrReasonEntries(messageText?: string | null): UtiltsErrReasonEntry[] {
-  const raw = sanitizeSegmentText(messageText) || 'E14'
-  const entries: UtiltsErrReasonEntry[] = []
-
-  for (const token of raw.split(/[|,;\s]+/)) {
-    const trimmedToken = token.trim()
-    if (!trimmedToken) continue
-
-    const [codePart, referencePart] = trimmedToken.split('@')
-    const code = sanitizeEdifactToken(codePart.toUpperCase(), 8)
-    if (!code || !/^E[0-9A-Z]+$/.test(code)) continue
-
-    entries.push({
-      code,
-      transactionId: sanitizeEdifactToken(referencePart ?? null, 35),
-    })
-  }
-
-  return entries.length > 0 ? entries : [{ code: 'E14', transactionId: null }]
-}
-
 function buildUtiltsErrSegments(params: {
   sourceMessage: EdielMessageRow
   externalReference: string
@@ -663,9 +616,13 @@ function buildUtiltsErrSegments(params: {
   const refs = parseEdifactRefs(params.sourceMessage)
   const sourceSegments = edifactSegmentsFromRaw(params.sourceMessage.raw_payload)
   const sourceMks = segmentByPrefix(sourceSegments, 'MKS+')
-  const reasonEntries = parseUtiltsErrReasonEntries(params.messageText)
-  const effectiveReasonEntries = reasonEntries.length > 0 ? reasonEntries : [{ code: 'E14', transactionId: null }]
-  const uniqueCodes = effectiveReasonEntries.map((entry) => entry.code)
+  const rawCodes = sanitizeSegmentText(params.messageText) || 'E14'
+  const codes = rawCodes
+    .split(/[|,;\s]+/)
+    .map((code) => sanitizeEdifactToken(code.toUpperCase(), 8))
+    .filter((code): code is string => Boolean(code && /^E[0-9A-Z]+$/.test(code)))
+
+  const uniqueCodes = codes.length > 0 ? codes : ['E14']
   const sourceGroups = parseUtiltsSourceGroups(params.sourceMessage)
   const sourceCode = sanitizeEdifactToken(String(params.sourceMessage.message_code ?? 'UTILTS'), 8) ?? 'UTILTS'
 
@@ -682,8 +639,7 @@ function buildUtiltsErrSegments(params: {
 
   const usedMeterPointIds = new Set<string>()
 
-  effectiveReasonEntries.forEach((entry, index) => {
-    const code = entry.code
+  uniqueCodes.forEach((code, index) => {
     const group = resolveUtiltsErrSourceGroup({
       sourceMessage: params.sourceMessage,
       code,
@@ -691,7 +647,6 @@ function buildUtiltsErrSegments(params: {
       index,
       groups: sourceGroups,
       usedMeterPointIds,
-      preferredTransactionId: entry.transactionId ?? null,
     })
 
     const outboundTransactionId = utiltsErrTransactionId({
@@ -754,12 +709,6 @@ function buildUtiltsErrSegments(params: {
   return segments.filter(Boolean) as string[]
 }
 
-
-function parseAperakSequenceToken(messageText?: string | null): string | null {
-  const match = String(messageText ?? '').match(/(?:^|\s)(?:ACW|TN)@([A-Za-z0-9_.\/-]{1,35})(?:\s|$)/i)
-  return sanitizeEdifactToken(match?.[1] ?? null, 35)
-}
-
 function buildAckDraft(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
@@ -767,6 +716,8 @@ function buildAckDraft(params: {
   outcome?: AckOutcome
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
+  ackScope?: EdielAckScope | null
+  relatedTransactionReference?: string | null
 }): CreateEdielMessageInput {
   ensureInboundEdifactSource(params.sourceMessage, params.ackFamily)
 
@@ -790,20 +741,20 @@ function buildAckDraft(params: {
       : null
 
   const aperakSequenceToken =
-    params.ackFamily === 'APERAK' && outcome === 'positive'
-      ? parseAperakSequenceToken(params.messageText)
+    params.ackFamily === 'APERAK' && params.relatedTransactionReference
+      ? sanitizeEdifactToken(params.relatedTransactionReference, 18)
       : null
 
-  const ackSequenceToken = utiltsErrSequenceToken ?? aperakSequenceToken
+  const sequenceToken = utiltsErrSequenceToken ?? aperakSequenceToken
 
   const ackExternalReference =
-    ackSequenceToken
-      ? (sanitizeEdifactToken(`${refs.externalReference ?? params.sourceMessage.id}-${ackSequenceToken}`, 35) ?? refs.externalReference)
+    sequenceToken
+      ? (sanitizeEdifactToken(`${refs.externalReference ?? params.sourceMessage.id}-${sequenceToken}`, 35) ?? refs.externalReference)
       : refs.externalReference
 
   const ackTransactionReference =
-    ackSequenceToken
-      ? (sanitizeEdifactToken(`${refs.transactionReference ?? params.sourceMessage.id}-${ackSequenceToken}`, 35) ?? refs.transactionReference)
+    sequenceToken
+      ? (sanitizeEdifactToken(`${refs.transactionReference ?? params.sourceMessage.id}-${sequenceToken}`, 35) ?? refs.transactionReference)
       : refs.transactionReference
 
   const parties = sourceParties(params.sourceMessage)
@@ -831,6 +782,7 @@ function buildAckDraft(params: {
             outcome,
             messageText: params.messageText ?? null,
             applicationErrors: params.applicationErrors ?? null,
+            relatedTransactionReference: params.relatedTransactionReference ?? null,
           })
         : buildUtiltsErrSegments({
             sourceMessage: params.sourceMessage,
@@ -922,6 +874,8 @@ function buildAckDraft(params: {
       applicationErrors: params.applicationErrors ?? null,
       utiltsErrSequenceToken,
       aperakSequenceToken,
+      ackScope: params.ackScope ?? (params.relatedTransactionReference ? 'transaction' : 'message'),
+      relatedTransactionReference: params.relatedTransactionReference ?? null,
     },
     validationReport: {
       generatedBy: 'buildAckDraft',
@@ -935,6 +889,8 @@ function buildAckDraft(params: {
       applicationErrors: params.applicationErrors ?? null,
       utiltsErrSequenceToken,
       aperakSequenceToken,
+      ackScope: params.ackScope ?? (params.relatedTransactionReference ? 'transaction' : 'message'),
+      relatedTransactionReference: params.relatedTransactionReference ?? null,
     },
     applicationReference,
     // Store the outbound UNB/0020 on the outbound row. The inbound
@@ -1002,6 +958,8 @@ export function buildAperakDraft(params: {
   outcome?: AckOutcome
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
+  ackScope?: EdielAckScope | null
+  relatedTransactionReference?: string | null
 }): CreateEdielMessageInput {
   return buildAckDraft({
     actorUserId: params.actorUserId,
@@ -1010,6 +968,8 @@ export function buildAperakDraft(params: {
     outcome: params.outcome ?? 'positive',
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
+    ackScope: params.ackScope ?? null,
+    relatedTransactionReference: params.relatedTransactionReference ?? null,
   })
 }
 
@@ -1033,6 +993,8 @@ export function buildAckDraftForSource(params: {
   outcome?: AckOutcome
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
+  ackScope?: EdielAckScope | null
+  relatedTransactionReference?: string | null
 }): CreateEdielMessageInput {
   if (params.ackFamily === 'CONTRL') {
     return buildContrlDraft({
@@ -1050,6 +1012,8 @@ export function buildAckDraftForSource(params: {
       outcome: params.outcome,
       messageText: params.messageText,
       applicationErrors: params.applicationErrors ?? null,
+      ackScope: params.ackScope ?? null,
+      relatedTransactionReference: params.relatedTransactionReference ?? null,
     })
   }
 

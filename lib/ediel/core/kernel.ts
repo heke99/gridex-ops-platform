@@ -374,8 +374,9 @@ export async function createCanonicalAckMessage(params: {
 
   const allowSequencedAperak =
     params.ackFamily === 'APERAK' &&
-    typeof params.draft.parsedPayload?.aperakSequenceToken === 'string' &&
-    params.draft.parsedPayload.aperakSequenceToken.trim().length > 0
+    params.draft.parsedPayload?.ackScope === 'transaction' &&
+    typeof params.draft.parsedPayload?.relatedTransactionReference === 'string' &&
+    params.draft.parsedPayload.relatedTransactionReference.trim().length > 0
 
   const duplicate = allowSequencedUtiltsErr || allowSequencedAperak
     ? null

@@ -72,13 +72,6 @@ function escapeEdifactText(value?: string | null, maxLength = 70): string {
   return text.replace(/\?/g, '??').replace(/:/g, '?:')
 }
 
-
-function extractPositiveUtiltsAckReference(messageText?: string | null): string | null {
-  const text = String(messageText ?? '')
-  const match = text.match(/(?:^|\s)(?:ACW|TN)@([A-Za-z0-9_.\/-]{1,35})(?:\s|$)/i)
-  return sanitizeEdifactToken(match?.[1] ?? null, 35)
-}
-
 function segmentsFromRawPayload(rawPayload?: string | null): string[] {
   if (!rawPayload) return []
 
@@ -159,6 +152,11 @@ export function renderAperakEdiel(params: {
   outcome: AperakEngineOutcome
   messageText?: string | null
   applicationErrors?: readonly AperakEngineApplicationError[] | null
+  /**
+   * For UTILTS b-tests and transaction-scoped acknowledgements, APERAK must
+   * acknowledge the individual inbound transaction instead of only BGM/1004.
+   */
+  utiltsAcknowledgementReference?: string | null
 }): AperakEngineResult {
   const isUtiltsSource = params.source.messageFamily === 'UTILTS'
   const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
@@ -235,7 +233,7 @@ export function renderAperakEdiel(params: {
     if (isUtiltsSource) {
       segments.push(`RFF+DM:${sanitizeEdifactToken(params.transactionReference) ?? 'APE'}`)
       const utiltsReference = params.outcome === 'positive'
-        ? (extractPositiveUtiltsAckReference(params.messageText) ?? previousMessageReference)
+        ? (sanitizeEdifactToken(params.utiltsAcknowledgementReference) ?? previousMessageReference)
         : (error.lineItemReference ?? error.referenceNumber ?? params.refs.lineItemReference ?? previousMessageReference)
       segments.push(`RFF+ACW:${sanitizeEdifactToken(utiltsReference) ?? previousMessageReference}`)
       continue
