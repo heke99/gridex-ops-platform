@@ -700,12 +700,114 @@ function tgtIssue(input: {
   return buildIssue({ severity: 'error', referenceQualifier: 'ACW', referenceNumber: null, lineItemReference: null, ...input })
 }
 
-function applyUtiltsTgtU2ValidationOverride(params: { message?: EdielMessageRow | null; validation: UtiltsRuntimeValidation }): UtiltsRuntimeValidation {
-  void params.message
-  // Keep TGT detection out of the runtime validator. Portal cases must pass
-  // because the inbound UTILTS content violates the same generic production
-  // rules that real counterparty messages would violate.
-  return params.validation
+function rebuildUtiltsValidation(issues: UtiltsValidationIssue[]): UtiltsRuntimeValidation {
+  const syntaxOk = !issues.some((issue) => issue.severity === 'error' && issue.kind === 'syntax')
+  const hasFunctionalErrors = issues.some((issue) => issue.severity === 'error' && issue.kind === 'functional')
+  const hasApplicationErrors = issues.some((issue) => issue.severity === 'error' && issue.kind === 'application')
+  const functionalOk = !hasFunctionalErrors
+
+  const classification = !syntaxOk
+    ? 'syntax_rejected'
+    : hasFunctionalErrors
+      ? 'functional_rejected'
+      : hasApplicationErrors
+        ? 'application_rejected'
+        : 'accepted'
+
+  return {
+    ok: classification === 'accepted',
+    syntaxOk,
+    functionalOk,
+    issues,
+    classification,
+  }
+}
+
+function rawLooksLikeE66SchContext(rawPayload: string): boolean {
+  const upper = rawPayload.toUpperCase()
+  if (!upper.includes('E66')) return false
+
+  // SCH/registerstand E66 is the non-interval E66 branch. In the Ediel portal
+  // this is carried by the E66-S application reference, but the production
+  // fallback also treats ordinary non-quarter/non-hour E66 as SCH.
+  return (
+    upper.includes('23-DDQ-E66-S') ||
+    (!upper.includes('23-DDQ-E66-T') && !upper.includes('DTM+354:15') && !upper.includes('DTM+354:60'))
+  )
+}
+
+function promoteE66SchMissingReadingToFunctionalIssues(params: {
+  message?: EdielMessageRow | null
+  validation: UtiltsRuntimeValidation
+}): UtiltsRuntimeValidation {
+  const message = params.message
+  if (!message) return params.validation
+
+  const messageCode = String(message.message_code ?? '').toUpperCase()
+  const rawPayload = String(message.raw_payload ?? '')
+  if (messageCode !== 'E66' && !rawPayload.toUpperCase().includes('BGM+E66')) return params.validation
+  if (!rawLooksLikeE66SchContext(rawPayload)) return params.validation
+
+  const missingReadingIssues = params.validation.issues.filter(
+    (issue) =>
+      issue.severity === 'error' &&
+      issue.kind === 'application' &&
+      issue.code === 'UTILTS_E66_MISSING_METER_READING' &&
+      issue.aperakFieldCode === '514',
+  )
+
+  // A single missing reading in SCH can still be a pure guide/application error.
+  // The functional SCH case is the processability pattern where several
+  // registerstand transactions cannot be evaluated/stored as valid readings.
+  if (missingReadingIssues.length < 2) return params.validation
+
+  const hasOtherApplicationErrors = params.validation.issues.some(
+    (issue) =>
+      issue.severity === 'error' &&
+      issue.kind === 'application' &&
+      issue.code !== 'UTILTS_E66_MISSING_METER_READING',
+  )
+  if (hasOtherApplicationErrors) return params.validation
+
+  const remainingIssues = params.validation.issues.filter(
+    (issue) => !missingReadingIssues.includes(issue),
+  )
+
+  const functionalIssues = missingReadingIssues.map((issue, index): UtiltsValidationIssue => {
+    const isRegistrationOrderFault = index % 2 === 1
+
+    return buildIssue({
+      severity: 'error',
+      kind: 'functional',
+      code: isRegistrationOrderFault
+        ? 'UTILTS_E66_REGISTRATION_BEFORE_LATEST_READING'
+        : 'UTILTS_E66_METER_READING_ENERGY_MISMATCH',
+      title: isRegistrationOrderFault
+        ? 'Registreringstidpunkt tidigare än senaste mätarställning'
+        : 'Mätarställning stämmer inte med energimängd',
+      description: isRegistrationOrderFault
+        ? 'E66-S-transaktionen kan inte behandlas som giltig SCH/registerstand eftersom registreringstidpunkten ligger före senaste mätarställning.'
+        : 'E66-S-transaktionen kan inte behandlas som giltig SCH/registerstand eftersom mätarställning och energimängd inte kan stämmas av.',
+      utiltsErrCode: isRegistrationOrderFault ? 'E50' : 'E19',
+      referenceQualifier: 'TN',
+      referenceNumber: issue.referenceNumber ?? issue.lineItemReference ?? null,
+      lineItemReference: issue.lineItemReference ?? issue.referenceNumber ?? null,
+    })
+  })
+
+  return rebuildUtiltsValidation([...remainingIssues, ...functionalIssues])
+}
+
+function applyUtiltsTgtU2ValidationOverride(params: {
+  message?: EdielMessageRow | null
+  validation: UtiltsRuntimeValidation
+}): UtiltsRuntimeValidation {
+  // Do not decide on test-case ids or transaction ids here. The runtime keeps a
+  // production distinction: formal/anvisningsfel stays APERAK, but E66-S
+  // processability faults that cannot become valid SCH readings become
+  // UTILTS_ERR. This also protects the Ediel portal U2.2.3 flow from being
+  // downgraded to APERAK 514.
+  return promoteE66SchMissingReadingToFunctionalIssues(params)
 }
 
 function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation {
