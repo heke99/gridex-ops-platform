@@ -661,6 +661,32 @@ async function resolveTgtTestDataForAckAction(params: {
   const rows = (await listEdielTgtDynamicTestData()).filter(
     (row) => row.testSuite === testSuite && row.roleCode === roleCode,
   );
+
+  const requestedRow = requestedTestCaseCode
+    ? (rows.find(
+        (row) =>
+          row.testCaseCode.toUpperCase() ===
+          requestedTestCaseCode.toUpperCase(),
+      ) ?? null)
+    : null;
+
+  if (requestedRow && message.message_family === "UTILTS") {
+    const requestedScore = scoreTgtTestDataForMessage(message, requestedRow);
+
+    // For UTILTS portal tests the operator-selected/imported row is the source
+    // of truth for whether the response is an APERAK guide error or a
+    // UTILTS_ERR functional/process error. Do this before exact/best auto-match,
+    // otherwise a structurally similar E66-S guide-error row can override an
+    // active functional SCH test and incorrectly create APERAK 514.
+    if (requestedScore >= 0) {
+      return {
+        testData: effectiveTgtParsedPayloadForMessage(message, requestedRow),
+        selectedRow: requestedRow,
+        requestedTestData,
+      };
+    }
+  }
+
   const z05MismatchRow = findZ05FacilityMismatchTgtRowForMessage(message, rows);
   if (z05MismatchRow) {
     return {
@@ -685,14 +711,6 @@ async function resolveTgtTestDataForAckAction(params: {
       selectedRow: null,
       requestedTestData,
     };
-
-  const requestedRow = requestedTestCaseCode
-    ? (rows.find(
-        (row) =>
-          row.testCaseCode.toUpperCase() ===
-          requestedTestCaseCode.toUpperCase(),
-      ) ?? null)
-    : null;
 
   if (requestedRow) {
     const requestedScore = scoreTgtTestDataForMessage(message, requestedRow);

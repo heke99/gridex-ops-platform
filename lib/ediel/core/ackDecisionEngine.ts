@@ -155,6 +155,62 @@ function inferUtiltsTgtTestDataFromMessage(message: EdielMessageRow): EdielTgtCa
   }
 }
 
+
+const UTILTS_FUNCTIONAL_ERROR_CODES = new Set(['E10', 'E19', 'E49', 'E50', 'E87', 'E90', 'E98'])
+
+function normalizeDecisionText(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+}
+
+function collectTgtDecisionText(value: unknown, parts: string[] = []): string[] {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    parts.push(String(value))
+    return parts
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectTgtDecisionText(item, parts)
+    return parts
+  }
+
+  if (value && typeof value === 'object') {
+    for (const item of Object.values(value as Record<string, unknown>)) collectTgtDecisionText(item, parts)
+  }
+
+  return parts
+}
+
+function utiltsFunctionalCodesFromTgtData(testData: EdielTgtCaseTestData | null | undefined): string[] {
+  const text = normalizeDecisionText(collectTgtDecisionText(testData).join(' '))
+  if (!text) return []
+
+  const hasFunctionalSignal =
+    text.includes('FUNKTIONSFEL') ||
+    text.includes('FUNCTIONAL') ||
+    text.includes('PROCESS') ||
+    text.includes('KAN INTE BEHANDLAS') ||
+    text.includes('METER READING') ||
+    text.includes('MATARSTALLNING') ||
+    text.includes('REGISTRERINGSTIDPUNKT TIDIGARE')
+
+  const codes = Array.from(text.matchAll(/\bE[0-9A-Z]{2}\b/g))
+    .map((match) => match[0])
+    .filter((code) => UTILTS_FUNCTIONAL_ERROR_CODES.has(code))
+
+  if (codes.length > 0) return Array.from(new Set(codes))
+
+  if (!hasFunctionalSignal) return []
+
+  const inferredCodes: string[] = []
+  if (text.includes('MATARSTALLNING') || text.includes('METER READING')) inferredCodes.push('E19')
+  if (text.includes('REGISTRERINGSTIDPUNKT TIDIGARE') || text.includes('REGISTRATION TIME BEFORE')) inferredCodes.push('E50')
+
+  return Array.from(new Set(inferredCodes))
+}
+
 function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined): string {
   return String(testData?.testCaseCode ?? '').trim().toUpperCase()
 }
@@ -247,11 +303,12 @@ function utiltsTgtApplicationDecision(
     }
   }
 
-  if (testCase === 'U2.2.3' || testCase === 'U2.2.3B') {
+  const functionalCodes = utiltsFunctionalCodesFromTgtData(testData)
+  if (functionalCodes.length > 0) {
     return {
       family: 'UTILTS_ERR',
-      matchedRule: `UTILTS_TGT_${testCase}_FUNCTIONAL_ERROR`,
-      messageText: 'E19|E50',
+      matchedRule: 'UTILTS_TGT_FUNCTIONAL_ERROR_CODES',
+      messageText: functionalCodes.join('|'),
     }
   }
 
