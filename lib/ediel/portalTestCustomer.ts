@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+  EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
@@ -588,8 +589,12 @@ async function ensureGridOwner(
 async function ensureTgtRouteProfile(
   supabase: SupabaseClient,
   communicationRouteId: string,
-  actorUserId: string
+  actorUserId: string,
+  roleCode: EdielTestRoleCode
 ): Promise<void> {
+  const applicationReference = roleCode === 'esco'
+    ? EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE
+    : EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
   const payload = {
     communication_route_id: communicationRouteId,
     is_enabled: true,
@@ -599,7 +604,7 @@ async function ensureTgtRouteProfile(
     receiver_ediel_id: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
     receiver_name: 'Edielportalen test',
     receiver_sub_address: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-    application_reference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+    application_reference: applicationReference,
     default_message_version: '26A',
     default_test_flag: 1,
     default_timezone: 1,
@@ -613,7 +618,7 @@ async function ensureTgtRouteProfile(
     mailbox: 'INBOX',
     encryption_mode: 'none',
     payload_format: 'edifact',
-    notes: 'TGT SMTP-profil enligt PRODAT 26.A: 92825:ZZ:PRODAT till 91100:ZZ:PRODAT, SMTP 91100@ediel.se och Application Reference 23-DDQ-PRODAT.',
+    notes: `TGT SMTP-profil enligt PRODAT 26.A: 92825:ZZ:PRODAT till 91100:ZZ:PRODAT, SMTP 91100@ediel.se och Application Reference ${applicationReference}.`,
     updated_by: actorUserId,
     updated_at: new Date().toISOString(),
   }
@@ -721,7 +726,7 @@ async function ensureRoute(
     route = inserted as AnyRow
   }
 
-  await ensureTgtRouteProfile(supabase, String(route.id), actorUserId)
+  await ensureTgtRouteProfile(supabase, String(route.id), actorUserId, data.roleCode)
   return route
 }
 

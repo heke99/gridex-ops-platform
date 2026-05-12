@@ -10,10 +10,12 @@ import type {
 } from '@/lib/ediel/types'
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+  EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
   GRIDEX_EDIEL_ID,
+  resolveEdielTgtProdatApplicationReference,
 } from '@/lib/ediel/fileEngine'
 import {
   getEdielTgtTestCaseByCode,
@@ -297,6 +299,15 @@ function preferredColumnSelectorsForStep(step: EdielTgtExpectedStep): string[] {
   if (step.code === 'Z03') return ['z03']
   if (step.code === 'Z04') return ['z04']
   return [step.code]
+}
+
+
+function getTgtProdatApplicationReference(params: Pick<EdielTgtDraftBuildParams, 'roleCode' | 'testCaseCode'> & { messageCode?: string | null }): string {
+  return resolveEdielTgtProdatApplicationReference({
+    roleCode: params.roleCode,
+    testCaseCode: params.testCaseCode,
+    messageCode: params.messageCode ?? null,
+  })
 }
 
 type TestDataLookupParams = Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'> & {
@@ -974,18 +985,6 @@ function buildTgtProdatTransactionType(
     if (params.testCaseCode === '2.5.3') return 'Z09D'
   }
 
-  if (params.roleCode === 'esco') {
-    if (params.testCaseCode === '8.1.3') {
-      if (step.code === 'Z13') return 'Z13VH'
-      if (step.code === 'Z14') return 'Z14VH'
-    }
-    if (params.testCaseCode === '8.1.2' && step.code === 'Z14') return 'Z14N'
-    if (step.code === 'Z13') return 'Z13V'
-    if (step.code === 'Z14') return 'Z14V'
-    if (step.code === 'Z15') return 'Z15V'
-    if (step.code === 'Z18') return 'Z18V'
-  }
-
   if (params.testCaseCode === '1.2.2') return step.code === 'Z03' ? 'Z03LK' : 'Z04LK'
 
   if (step.code === 'Z05') {
@@ -1017,9 +1016,6 @@ function reasonForProdatSubtype(transactionType: string): string {
   if (transactionType.endsWith('F')) return 'E64'
   if (transactionType.endsWith('G')) return 'E32'
   if (transactionType.endsWith('D')) return 'Z70'
-  if (transactionType.endsWith('VH')) return 'S18'
-  if (transactionType.endsWith('V')) return 'S17'
-  if (transactionType.endsWith('N')) return 'Z96'
   return 'Z22'
 }
 
@@ -1248,6 +1244,11 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
 
 function buildProdatDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep, refs: DraftReferences): string {
   const { bodySegments } = buildPortalProdatSegments(params, step, refs)
+  const applicationReference = getTgtProdatApplicationReference({
+    roleCode: params.roleCode,
+    testCaseCode: params.testCaseCode,
+    messageCode: step.code,
+  })
 
   return buildInterchange({
     refs,
@@ -1255,19 +1256,23 @@ function buildProdatDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpect
     senderSubAddress: EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
     receiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
     receiverSubAddress: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-    applicationReference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+    applicationReference,
     family: 'PRODAT',
     version: '26A',
     bodySegments,
   })
 }
 
-function buildAckDraft(step: EdielTgtExpectedStep, refs: DraftReferences): string {
+function buildAckDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep, refs: DraftReferences): string {
   const family = step.family === 'UTILTS_ERR' ? 'UTILTS_ERR' : step.family
   const outcome = step.outcome ?? 'positive'
   const isContrl = family === 'CONTRL'
   const isNegative = outcome === 'negative'
-  const applicationReference = EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
+  const applicationReference = getTgtProdatApplicationReference({
+    roleCode: params.roleCode,
+    testCaseCode: params.testCaseCode,
+    messageCode: step.code,
+  })
 
   const bodySegments = isContrl
     ? [
@@ -1591,8 +1596,8 @@ export function validateEdielTgtDraft(rawPayload: string, step: EdielTgtExpected
   if (!normalized.includes(EDIEL_TGT_TESTSYSTEM_EDIEL_ID)) {
     pushIssue(issues, 'error', 'missing_receiver', 'Saknar Edielportalens test-ID', `Utkastet ska innehålla Edielportalens test-ID ${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}.`)
   }
-  if (step.family === 'PRODAT' && !normalized.includes(EDIEL_TGT_PRODAT_APPLICATION_REFERENCE)) {
-    pushIssue(issues, 'error', 'missing_application_reference', 'Saknar Application Reference', `PRODAT TGT ska använda ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}.`)
+  if (step.family === 'PRODAT' && !normalized.includes(EDIEL_TGT_PRODAT_APPLICATION_REFERENCE) && !normalized.includes(EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE)) {
+    pushIssue(issues, 'error', 'missing_application_reference', 'Saknar Application Reference', `PRODAT TGT ska använda ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}; ESCO/tillståndstest använder ${EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE}.`)
   }
 
   if (step.family === 'PRODAT' && (normalized.includes('UNKNOWN') || normalized.includes('999999999999999999'))) {
@@ -1649,6 +1654,11 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
 
   const refs = nowRefs(params.testCaseCode, params.stepNo)
   const portalBuild = step.family === 'PRODAT' ? buildPortalProdatSegments(params, step, refs) : null
+  const prodatApplicationReference = getTgtProdatApplicationReference({
+    roleCode: params.roleCode,
+    testCaseCode: params.testCaseCode,
+    messageCode: step.code,
+  })
   const rawPayload = step.family === 'PRODAT'
     ? buildInterchange({
         refs,
@@ -1656,14 +1666,14 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
         senderSubAddress: EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
         receiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
         receiverSubAddress: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-        applicationReference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+        applicationReference: prodatApplicationReference,
         family: 'PRODAT',
         version: '26A',
         bodySegments: portalBuild?.bodySegments ?? [],
       })
     : step.family === 'UTILTS'
       ? buildUtiltsDraft(params, step, refs)
-      : buildAckDraft(step, refs)
+      : buildAckDraft(params, step, refs)
 
   const validationIssues = validateEdielTgtDraft(rawPayload, step, portalBuild?.portalData ?? null)
   const hasErrors = validationIssues.some((issue) => issue.severity === 'error')
@@ -1707,7 +1717,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
       interchangeReference: refs.interchangeRef,
       externalReference: refs.externalRef,
       transactionReference: refs.transactionRef,
-      applicationReference: step.family === 'PRODAT' || step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE : null,
+      applicationReference: step.family === 'PRODAT' || step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? prodatApplicationReference : null,
       rawPayload,
       parsedPayload: {
         source: 'tgt_draft_generator_portal_ready_v4',
@@ -1717,6 +1727,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
         stepNo: params.stepNo,
         expectedTitle: step.title,
         readyForDownload: !hasErrors,
+        applicationReference: prodatApplicationReference,
         validationIssues,
         references: refs,
         portalData: portalBuild?.portalData ?? null,

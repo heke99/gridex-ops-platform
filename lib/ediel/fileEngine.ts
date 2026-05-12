@@ -28,6 +28,20 @@ export const EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS = 'PRODAT'
 // receiver subaddress PRODAT. This is separate from SMTP address 91100@ediel.se.
 export const EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS = 'PRODAT'
 export const EDIEL_TGT_PRODAT_APPLICATION_REFERENCE = '23-DDQ-PRODAT'
+export const EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE = '23-DGI-PRODAT'
+
+export function resolveEdielTgtProdatApplicationReference(params?: { roleCode?: string | null; testCaseCode?: string | null; messageCode?: string | null }): string {
+  const roleCode = params?.roleCode?.toLowerCase() ?? null
+  const messageCode = params?.messageCode?.toUpperCase() ?? null
+  const testCaseCode = params?.testCaseCode ?? ''
+
+  if (roleCode === 'esco') return EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE
+  if (messageCode === 'Z13' || messageCode === 'Z14' || messageCode === 'Z15' || messageCode === 'Z18') {
+    if (/^(8|9)\./.test(testCaseCode)) return EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE
+  }
+
+  return EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
+}
 
 export type EdielFileEngineMode = 'tgt' | 'internal_test' | 'production_dry_run'
 export type EdielFileEngineRegisterResult = {
@@ -311,8 +325,8 @@ function buildValidation(params: {
     if (params.mode === 'tgt' && params.parsed.receiverSubAddress !== EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS && params.direction === 'outbound') {
       warnings.push(`TGT PRODAT ska ha mottagarens subadress ${EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}.`)
     }
-    if (params.mode === 'tgt' && params.direction === 'outbound' && params.parsed.applicationReference !== EDIEL_TGT_PRODAT_APPLICATION_REFERENCE) {
-      warnings.push(`TGT PRODAT för elmarknad ska normalt ha Application Reference ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}.`)
+    if (params.mode === 'tgt' && params.direction === 'outbound' && ![EDIEL_TGT_PRODAT_APPLICATION_REFERENCE, EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE].includes(params.parsed.applicationReference ?? '')) {
+      warnings.push(`TGT PRODAT för elmarknad ska normalt ha Application Reference ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}; ESCO/tillståndstest använder ${EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE}.`)
     }
   }
 
@@ -338,6 +352,7 @@ function buildValidation(params: {
       tgtReceiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
       tgtProdatReceiverSubAddress: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
       tgtProdatApplicationReference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+      tgtProdatEscoApplicationReference: EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE,
     },
   }
 }

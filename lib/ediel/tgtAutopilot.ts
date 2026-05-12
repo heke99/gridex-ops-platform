@@ -20,6 +20,7 @@ import {
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
   GRIDEX_EDIEL_ID,
+  resolveEdielTgtProdatApplicationReference,
 } from '@/lib/ediel/fileEngine'
 import type {
   CreateEdielMessageInput,
@@ -76,6 +77,9 @@ function buildUnb(params: {
   date: string
   time: string
   family: EdielMessageFamily
+  roleCode?: string | null
+  testCaseCode?: string | null
+  messageCode?: string | null
 }) {
   const senderSub = params.family === 'PRODAT' || params.family === 'APERAK' || params.family === 'UTILTS_ERR'
     ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS
@@ -89,7 +93,13 @@ function buildUnb(params: {
     ? `${GRIDEX_EDIEL_ID}:ZZ:${receiverSub}`
     : `${GRIDEX_EDIEL_ID}:ZZ`
 
-  const applicationReference = EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
+  const applicationReference = params.family === 'CONTRL'
+    ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
+    : resolveEdielTgtProdatApplicationReference({
+        roleCode: params.roleCode,
+        testCaseCode: params.testCaseCode,
+        messageCode: params.messageCode,
+      })
 
   return `UNB+UNOC:3+${sender}+${receiver}+${params.date}:${params.time}+${params.interchangeRef}++${applicationReference}++1`
 }
@@ -172,7 +182,15 @@ function buildMockPortalInput(params: {
   const unh = buildUnh(messageRef, params.step)
   const messageSegments = [unh, ...body]
   const rawPayload = serializeEdifact([
-    buildUnb({ interchangeRef, date: parts.yyMMdd, time: parts.hhmm, family: params.step.family }),
+    buildUnb({
+      interchangeRef,
+      date: parts.yyMMdd,
+      time: parts.hhmm,
+      family: params.step.family,
+      roleCode: params.evaluation.definition?.roleCode ?? params.testRun.role_code,
+      testCaseCode: params.testRun.test_case_code,
+      messageCode: params.step.code,
+    }),
     ...messageSegments,
     `UNT+${messageSegments.length + 1}+${messageRef}`,
     `UNZ+1+${interchangeRef}`,
@@ -209,7 +227,13 @@ function buildMockPortalInput(params: {
     interchangeReference: interchangeRef,
     externalReference: `MOCK-PORTAL-${params.testRun.test_case_code}-S${params.step.stepNo}-${parts.compact}`,
     transactionReference: transactionRef,
-    applicationReference: params.step.family === 'CONTRL' ? 'CONTRL' : EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+    applicationReference: params.step.family === 'CONTRL'
+      ? 'CONTRL'
+      : resolveEdielTgtProdatApplicationReference({
+          roleCode: params.evaluation.definition?.roleCode ?? params.testRun.role_code,
+          testCaseCode: params.testRun.test_case_code,
+          messageCode: params.step.code,
+        }),
     relatedMessageId: original?.id ?? null,
     rawPayload,
     parsedPayload: {

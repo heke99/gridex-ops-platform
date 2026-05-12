@@ -511,19 +511,11 @@ function groupHasMeterNumber(group: UtiltsTransactionGroup): boolean {
 }
 
 function groupHasMeterReadingQuantity(group: UtiltsTransactionGroup): boolean {
-  return e66MeterReadingQuantities(group).length > 0
-}
-
-function e66IntervalEnergyQuantities(group: UtiltsTransactionGroup): Array<{ qualifier: string | null; value: number | null; raw: string }> {
-  return e66EnergyQuantities(group)
+  return parseQuantitiesFromGroup(group).some((qty) => ['101', '203', '204'].includes(String(qty.qualifier ?? '').toUpperCase()))
 }
 
 
-// QTY+220 is the EDIFACT quantity qualifier used for meter stands in
-// UTILTS E66 examples. Keep the older internal qualifiers as aliases so
-// migrated rows/test fixtures still validate, but never count meter stands
-// as interval energy observations.
-const E66_METER_READING_QUALIFIERS = new Set(['220', '101', '203', '204'])
+const E66_METER_READING_QUALIFIERS = new Set(['101', '203', '204'])
 const E66_ENERGY_QUANTITY_QUALIFIERS = new Set(['136'])
 
 function quantityQualifier(value: string | null | undefined): string {
@@ -1072,7 +1064,6 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
     for (const group of splitTransactionGroups(facts.rawSegments)) {
       const transactionReference = transactionIssueReference(group, facts.transactionId)
       const groupQuantities = parseQuantitiesFromGroup(group)
-      const intervalEnergyQuantities = e66IntervalEnergyQuantities(group)
       const hasMissingValueStatus = groupHasStatusCode(group, '46')
       const expectedCount = expectedQuantityCountForGroup(group)
       const registrationTime = parseRegistrationDateTime(groupSegmentValue(group, 'DTM+597'))
@@ -1095,20 +1086,20 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
       }
       const isIntervalValueSeries =
         (resolution.value === '15' || resolution.value === '60') &&
-        intervalEnergyQuantities.length > 0
+        !groupHasMeterReadingQuantity(group)
 
       if (
         isIntervalValueSeries &&
         expectedCount !== null &&
-        intervalEnergyQuantities.length > 0 &&
-        intervalEnergyQuantities.length !== expectedCount
+        groupQuantities.length > 0 &&
+        groupQuantities.length !== expectedCount
       ) {
-        issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_OBSERVATION_COUNT_MISMATCH', title: 'Fel antal observationer', description: `Antal energivärden (${intervalEnergyQuantities.length}) matchar inte period/upplösning (${expectedCount}).`, utiltsErrCode: 'E87', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
+        issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_OBSERVATION_COUNT_MISMATCH', title: 'Fel antal observationer', description: `Antal observationer (${groupQuantities.length}) matchar inte period/upplösning (${expectedCount}).`, utiltsErrCode: 'E87', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
       if ((resolution.value === '15' || resolution.value === '60') && !registrationTime) {
         issues.push(buildIssue({ severity: 'error', kind: 'application', code: 'UTILTS_E66_MISSING_REGISTRATION_TIME', title: 'Registreringstidpunkt saknas', description: 'DTM+597 saknas för E66-transaktion med kvart-/timvärden.', aperakErcCode: '41', aperakFieldCode: '512', aperakText: 'MANDATORY FIELD MISSING', referenceQualifier: 'ACW', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
-      if (!hasMissingValueStatus && groupQuantities.length > 0 && !groupHasMeterNumber(group) && groupHasMeterReadingQuantity(group)) {
+      if (!hasMissingValueStatus && groupQuantities.length > 0 && !groupHasMeterNumber(group) && groupQuantities.some((qty) => ['101', '203', '204'].includes(String(qty.qualifier ?? '').toUpperCase()))) {
         issues.push(buildIssue({ severity: 'error', kind: 'application', code: 'UTILTS_E66_MISSING_METER_NUMBER', title: 'Mätarnummer saknas', description: 'E66-transaktionen innehåller mätarställning men saknar mätarnummer.', aperakErcCode: '41', aperakFieldCode: '224', aperakText: 'MANDATORY FIELD MISSING', referenceQualifier: 'ACW', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
       if (
