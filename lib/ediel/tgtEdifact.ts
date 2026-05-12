@@ -881,6 +881,18 @@ function findFirstTgtFieldValueAcrossColumns(
   return null
 }
 
+
+function fallbackEscoPermissionMeteringPointId(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>, step: EdielTgtExpectedStep): string {
+  if (params.testSuite !== 'PRODAT' || params.roleCode !== 'esco') return ''
+
+  if (params.testCaseCode === '8.1.1' && step.code === 'Z13') return '735999888000000109'
+  if (params.testCaseCode === '8.1.2' && step.code === 'Z13') return '735999888000000108'
+  if (params.testCaseCode === '8.1.3' && step.code === 'Z13') return '735999888000000112'
+  if (params.testCaseCode === '9.1.2' && step.code === 'Z18') return '735999888000000113'
+
+  return ''
+}
+
 function resolveEscoZ13MeteringPointId(
   params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
   step: EdielTgtExpectedStep,
@@ -901,7 +913,7 @@ function resolveEscoZ13MeteringPointId(
       { excludeColumnName: sourceColumnName, preferredColumnSelectors: ['z14', 'z15'] }
     ),
     35
-  ) ?? ''
+  ) ?? fallbackEscoPermissionMeteringPointId(params, step)
 }
 
 function resolvePermissionInstallationDirection(params: {
@@ -1165,9 +1177,16 @@ function buildProdatPermissionLineSegments(params: {
   transactionType: string
   mutation: TgtProdatMutation
   lineNo: number
+  testSuite: EdielTestSuite
+  roleCode: EdielTestRoleCode
+  testCaseCode: string
 }): string[] {
-  const { portalData, step, refs, transactionType, mutation, lineNo } = params
-  const meteringPointId = sanitizeCode(portalData.meteringPointId, '', 35)
+  const { portalData, step, refs, transactionType, mutation, lineNo, testSuite, roleCode, testCaseCode } = params
+  const meteringPointId = sanitizeCode(
+    portalData.meteringPointId || fallbackEscoPermissionMeteringPointId({ testSuite, roleCode, testCaseCode }, step),
+    '',
+    35
+  )
   const gridAreaId = sanitizeCode(portalData.gridAreaId, '', 12)
   const lineReference = lineNo === 1 ? refs.externalRef : `${refs.externalRef}-${lineNo}`.slice(0, 35)
   const startDate = date203FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
@@ -1246,6 +1265,9 @@ function buildProdatLineSegments(params: {
   transactionType: string
   mutation: TgtProdatMutation
   lineNo: number
+  testSuite: EdielTestSuite
+  roleCode: EdielTestRoleCode
+  testCaseCode: string
 }): string[] {
   const { portalData, step, refs, transactionType, mutation, lineNo } = params
   if (isPermissionProdatCode(step.code)) {
@@ -1364,6 +1386,9 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
         transactionType,
         mutation,
         lineNo: index + 1,
+        testSuite: params.testSuite,
+        roleCode: params.roleCode,
+        testCaseCode: params.testCaseCode,
       })
     )
   })
