@@ -2,7 +2,35 @@
 
 import { parseEdifactMessageFacts, type EdifactSegment } from '@/lib/ediel/core/edifactSegments'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
+import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
 import { supabaseService } from '@/lib/supabase/service'
+
+
+export type ProdatPermissionContext = {
+  hasMatchingPriorPermissionFlow: boolean | null
+  matchReason: string | null
+}
+
+export type ProdatPermissionDecisionIssue = {
+  ruleKey: string
+  ercCode: string
+  fieldCode: string
+  text: string
+  lineItemReference: string | null
+  meteringPointId: string | null
+  actualValue: string | null
+  expectedValue: string | null
+}
+
+export type ProdatPermissionValidationResult = {
+  handled: boolean
+  outcome: 'positive' | 'negative'
+  issues: ProdatPermissionDecisionIssue[]
+  applicationErrors: EdielAperakApplicationError[]
+  matchedRuleKeys: string[]
+  selectedTgtCaseCode: string | null
+}
 
 export type ProdatPermissionValidationIssue = {
   ruleKey: string
@@ -347,4 +375,180 @@ export async function resolveProdatPermissionAperakValidationIssues(params: {
   }
 
   return issues
+}
+
+
+function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined): string | null {
+  const code = String(testData?.testCaseCode ?? '').trim().toUpperCase()
+  return code.length > 0 ? code : null
+}
+
+function firstPermissionLine(facts: PermissionMessageFacts): PermissionLineFacts {
+  return facts.lines[0] ?? {
+    meteringPointId: null,
+    lineReference: null,
+    customerId: null,
+    agreementReference: null,
+    permissionStatus: null,
+    permissionEndReason: null,
+    rawSegments: [],
+  }
+}
+
+function permissionDecisionIssue(params: {
+  ruleKey: string
+  ercCode: string
+  fieldCode: string
+  text: string
+  line: PermissionLineFacts
+  actualValue?: string | null
+  expectedValue?: string | null
+}): ProdatPermissionDecisionIssue {
+  return {
+    ruleKey: params.ruleKey,
+    ercCode: params.ercCode,
+    fieldCode: params.fieldCode,
+    text: params.text,
+    lineItemReference: params.line.lineReference,
+    meteringPointId: params.line.meteringPointId,
+    actualValue: params.actualValue ?? null,
+    expectedValue: params.expectedValue ?? null,
+  }
+}
+
+function buildPermissionValidationResult(params: {
+  handled: boolean
+  selectedTgtCaseCode: string | null
+  issues: ProdatPermissionDecisionIssue[]
+}): ProdatPermissionValidationResult {
+  const applicationErrors: EdielAperakApplicationError[] = params.issues.map((item) => ({
+    ercCode: item.ercCode,
+    fieldCode: item.fieldCode,
+    text: item.text,
+    referenceQualifier: item.meteringPointId ? 'Z07' : null,
+    referenceNumber: item.meteringPointId,
+    lineItemReference: item.lineItemReference,
+  }))
+
+  return {
+    handled: params.handled,
+    outcome: applicationErrors.length > 0 ? 'negative' : 'positive',
+    issues: params.issues,
+    applicationErrors,
+    matchedRuleKeys: params.issues.map((item) => item.ruleKey),
+    selectedTgtCaseCode: params.selectedTgtCaseCode,
+  }
+}
+
+function validatePermissionZ14(params: {
+  message: EdielMessageRow
+  testData?: EdielTgtCaseTestData | null
+  context?: ProdatPermissionContext | null
+}): ProdatPermissionValidationResult {
+  const facts = readPermissionMessageFacts(params.message)
+  const line = firstPermissionLine(facts)
+  const testCaseCode = normalizedTgtCaseCode(params.testData)
+  const status = normalize(line.permissionStatus)
+  const issues: ProdatPermissionDecisionIssue[] = []
+
+  if (params.context?.hasMatchingPriorPermissionFlow === false) {
+    issues.push(permissionDecisionIssue({
+      ruleKey: 'permission_flow_not_found',
+      ercCode: '40',
+      fieldCode: '105',
+      text: 'The object could not be identified',
+      line,
+      actualValue: line.meteringPointId ?? line.lineReference,
+      expectedValue: 'matching Z13 permission request',
+    }))
+  }
+
+  if (status && !['A13', 'A74', 'A75', 'Z96'].includes(status)) {
+    issues.push(permissionDecisionIssue({
+      ruleKey: 'permission_status_invalid',
+      ercCode: '41',
+      fieldCode: '322',
+      text: `Felaktigt tillståndets status ${status}`,
+      line,
+      actualValue: status,
+      expectedValue: 'A13/A74/A75/Z96',
+    }))
+  }
+
+  return buildPermissionValidationResult({ handled: true, selectedTgtCaseCode: testCaseCode, issues })
+}
+
+function validatePermissionZ15(params: {
+  message: EdielMessageRow
+  testData?: EdielTgtCaseTestData | null
+  context?: ProdatPermissionContext | null
+}): ProdatPermissionValidationResult {
+  const facts = readPermissionMessageFacts(params.message)
+  const line = firstPermissionLine(facts)
+  const testCaseCode = normalizedTgtCaseCode(params.testData)
+  const status = normalize(line.permissionStatus)
+  const endReason = normalize(line.permissionEndReason)
+  const issues: ProdatPermissionDecisionIssue[] = []
+
+  if (params.context?.hasMatchingPriorPermissionFlow === false) {
+    issues.push(permissionDecisionIssue({
+      ruleKey: 'permission_flow_not_found',
+      ercCode: '40',
+      fieldCode: '105',
+      text: 'The object could not be identified',
+      line,
+      actualValue: line.meteringPointId ?? line.lineReference,
+      expectedValue: 'active permission or matching Z18 request',
+    }))
+  }
+
+  if (status && status !== 'A75') {
+    issues.push(permissionDecisionIssue({
+      ruleKey: 'permission_status_invalid',
+      ercCode: '41',
+      fieldCode: '322',
+      text: `Felaktigt tillståndets status ${status}`,
+      line,
+      actualValue: status,
+      expectedValue: 'A75',
+    }))
+  }
+
+  if (endReason && !['B79', 'B80'].includes(endReason)) {
+    issues.push(permissionDecisionIssue({
+      ruleKey: 'permission_end_reason_invalid',
+      ercCode: '41',
+      fieldCode: '324',
+      text: `Felaktig orsak till tillståndets upphörande ${endReason}`,
+      line,
+      actualValue: endReason,
+      expectedValue: 'B79/B80',
+    }))
+  }
+
+  return buildPermissionValidationResult({ handled: true, selectedTgtCaseCode: testCaseCode, issues })
+}
+
+export function validateProdatPermissionMessage(params: {
+  message: EdielMessageRow
+  testData?: EdielTgtCaseTestData | null
+  context?: ProdatPermissionContext | null
+}): ProdatPermissionValidationResult {
+  const family = String(params.message.message_family ?? '').toUpperCase()
+  const direction = String(params.message.direction ?? '').toLowerCase()
+  const code = String(params.message.message_code ?? '').toUpperCase()
+  const selectedTgtCaseCode = normalizedTgtCaseCode(params.testData)
+
+  if (family !== 'PRODAT' || direction !== 'inbound') {
+    return buildPermissionValidationResult({ handled: false, selectedTgtCaseCode, issues: [] })
+  }
+
+  if (code === 'Z14') return validatePermissionZ14(params)
+  if (code === 'Z15') return validatePermissionZ15(params)
+
+  if (code === 'Z13' || code === 'Z18') {
+    return buildPermissionValidationResult({ handled: true, selectedTgtCaseCode, issues: [] })
+  }
+
+  return buildPermissionValidationResult({ handled: false, selectedTgtCaseCode, issues: [] })
 }

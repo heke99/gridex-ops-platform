@@ -76,7 +76,10 @@ import {
   type EdielFileEngineMode,
 } from "@/lib/ediel/fileEngine";
 import { getEdielTgtTestCaseByCode } from "@/lib/ediel/tgtRegistry";
-import type { EdielTgtCaseTestData } from "@/lib/ediel/tgtTestData";
+import {
+  getEdielTgtTestDataForCase,
+  type EdielTgtCaseTestData,
+} from "@/lib/ediel/tgtTestData";
 import { buildEdielTgtDraft } from "@/lib/ediel/tgtEdifact";
 import {
   getEdielTgtDynamicTestDataForCase,
@@ -94,6 +97,9 @@ import {
   scoreTgtTestDataForMessage,
 } from "@/lib/ediel/core/tgtAutoMatcher";
 import { parseEdifactMessageFacts } from "@/lib/ediel/core/edifactSegments";
+import { parseProdatMessage } from "@/lib/ediel/prodat/parser";
+import { supabaseService } from "@/lib/supabase/service";
+import { validateProdatPermissionMessage, type ProdatPermissionContext } from "@/lib/ediel/prodat/permissionEngine";
 import {
   attachAperakErrorDetailsToMessage,
   resolveAndStoreProdatAperakErrors,
@@ -122,7 +128,6 @@ import {
   rejectEdielInboundCase,
   type EdielInboundCaseActionMode,
 } from "@/lib/ediel/inboundCases";
-import { supabaseService } from "@/lib/supabase/service";
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
@@ -646,21 +651,22 @@ async function resolveTgtTestDataForAckAction(params: {
 }> {
   const { message, requestedTestCaseCode } = params;
   const testSuite: EdielTestSuite = params.testSuite ?? (params.message.message_family === "UTILTS" ? "UTILTS" : "PRODAT");
-  const rawRoleCode = params.roleCode ? String(params.roleCode) : null;
-  const messageCode = String(message.message_code ?? "").toUpperCase();
-  const inferredRoleCode: EdielTestRoleCode =
-    testSuite === "PRODAT" && ["Z13", "Z14", "Z15", "Z18"].includes(messageCode)
-      ? "esco"
-      : "supplier";
-  const roleCode: EdielTestRoleCode = rawRoleCode && isEdielTestRoleCode(rawRoleCode)
-    ? rawRoleCode
-    : inferredRoleCode;
+  const roleCode = inferTgtRoleCodeForAckResolution({
+    message,
+    requestedRoleCode: params.roleCode,
+  });
+  const fallbackStaticCaseCode = requestedTestCaseCode ?? fallbackStaticTgtCaseCodeForPermissionMessage(message);
 
-  const requestedTestData = requestedTestCaseCode
+  const requestedTestData = fallbackStaticCaseCode
     ? await getEdielTgtDynamicTestDataForCase(
         testSuite,
         roleCode,
-        requestedTestCaseCode,
+        fallbackStaticCaseCode,
+      ) ??
+      getEdielTgtTestDataForCase(
+        testSuite,
+        roleCode,
+        fallbackStaticCaseCode,
       )
     : null;
 
@@ -679,11 +685,11 @@ async function resolveTgtTestDataForAckAction(params: {
     (row) => row.testSuite === testSuite && row.roleCode === roleCode,
   );
 
-  const requestedRow = requestedTestCaseCode
+  const requestedRow = fallbackStaticCaseCode
     ? (rows.find(
         (row) =>
           row.testCaseCode.toUpperCase() ===
-          requestedTestCaseCode.toUpperCase(),
+          fallbackStaticCaseCode.toUpperCase(),
       ) ?? null)
     : null;
 
@@ -756,6 +762,53 @@ async function resolveTgtTestDataForAckAction(params: {
     selectedRow: best,
     requestedTestData,
   };
+}
+
+
+function isProdatPermissionMessage(message: EdielMessageRow): boolean {
+  if (String(message.message_family ?? '').toUpperCase() !== 'PRODAT') return false;
+  return ['Z13', 'Z14', 'Z15', 'Z18'].includes(String(message.message_code ?? '').toUpperCase());
+}
+
+function inferTgtRoleCodeForAckResolution(params: {
+  message: EdielMessageRow;
+  requestedRoleCode?: EdielTestRoleCode | string | null;
+}): EdielTestRoleCode {
+  const rawRoleCode = params.requestedRoleCode ? String(params.requestedRoleCode) : null;
+  if (rawRoleCode && isEdielTestRoleCode(rawRoleCode)) return rawRoleCode;
+
+  const applicationReference = String(params.message.application_reference ?? '').toUpperCase();
+
+  // ESCO/permission tests use PRODAT as technical routing but DGI/DDQ in the
+  // application reference and Z13/Z14/Z15/Z18 as business codes. Do not fall
+  // back to supplier here, otherwise negative ESCO tests such as 8.2.1 are
+  // matched against the wrong TGT dataset and can create a false positive APERAK.
+  if (isProdatPermissionMessage(params.message) || applicationReference.includes('-DGI-PRODAT')) {
+    return 'esco';
+  }
+
+  return 'supplier';
+}
+
+function fallbackStaticTgtCaseCodeForPermissionMessage(message: EdielMessageRow): string | null {
+  if (!isProdatPermissionMessage(message)) return null;
+
+  const code = String(message.message_code ?? '').toUpperCase();
+  const raw = String(message.raw_payload ?? '').toUpperCase();
+  const parsed = parseEdifactMessageFacts(message.raw_payload);
+  const facilityIds = parsed.lineItems.map((line) => String(line.itemId ?? '').trim()).filter(Boolean);
+
+  if (code === 'Z14') {
+    // TGT 8.2.1 is portal -> actor only and uses the deliberately bad Z14V
+    // object for test customer 71. This fallback is test-environment only and
+    // exists to protect the backend when no imported TGT row is attached in UI.
+    if (String(message.environment ?? '').toLowerCase() === 'test' && facilityIds.includes('735999888000000710')) return '8.2.1';
+    if (raw.includes('S18') || raw.includes('Z14VH')) return '8.1.3';
+    return '8.1.1';
+  }
+
+  if (code === 'Z15') return '9.1.1';
+  return null;
 }
 
 function parseFileEngineMode(
@@ -1639,6 +1692,88 @@ async function resolveUtiltsErrMessageTextForAckAction(params: UtiltsErrMessageT
   return params.messageText ?? null;
 }
 
+
+function edielIlikeLiteral(value: string): string {
+  return value.replace(/[%_]/g, (match) => `\\${match}`);
+}
+
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.map((value) => String(value ?? '').trim()).filter(Boolean)));
+}
+
+async function resolveProdatPermissionContextForAck(message: EdielMessageRow): Promise<ProdatPermissionContext | null> {
+  if (String(message.message_family ?? '').toUpperCase() !== 'PRODAT') return null;
+
+  const code = String(message.message_code ?? '').toUpperCase();
+  if (code !== 'Z14' && code !== 'Z15') return null;
+
+  const parsed = parseProdatMessage(message);
+  const line = parsed.lineItems[0] ?? null;
+  const identifiers = uniqueNonEmpty([
+    line?.lineItemReference,
+    line?.permissionId,
+    line?.meteringPointId,
+    line?.customerId,
+    message.transaction_reference,
+    message.external_reference,
+    message.correlation_reference,
+    message.original_transaction_id,
+    message.original_message_id,
+  ]);
+
+  if (identifiers.length === 0) {
+    return {
+      hasMatchingPriorPermissionFlow: false,
+      matchReason: 'Z14/Z15 saknar användbar referens för att hitta tidigare permission-flöde.',
+    };
+  }
+
+  const priorCodes = code === 'Z14' ? ['Z13'] : ['Z18', 'Z14', 'Z13'];
+  const currentCreatedAt = message.created_at ?? new Date().toISOString();
+
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('id,message_code,direction,status,external_reference,transaction_reference,correlation_reference,metering_point_id,customer_id,raw_payload,created_at')
+    .eq('message_family', 'PRODAT')
+    .in('message_code', priorCodes)
+    .not('status', 'in', '(cancelled,failed)')
+    .lte('created_at', currentCreatedAt)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (message.environment) query = query.eq('environment', message.environment);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const candidates = (data ?? []) as Array<Record<string, unknown>>;
+  const matching = candidates.find((candidate) => {
+    if (candidate.id === message.id) return false;
+    const haystack = [
+      candidate.external_reference,
+      candidate.transaction_reference,
+      candidate.correlation_reference,
+      candidate.metering_point_id,
+      candidate.customer_id,
+      candidate.raw_payload,
+    ].map((value) => String(value ?? '').toUpperCase()).join('\n');
+
+    return identifiers.some((identifier) => haystack.includes(identifier.toUpperCase()));
+  });
+
+  if (matching) {
+    return {
+      hasMatchingPriorPermissionFlow: true,
+      matchReason: `Matchade tidigare ${String(matching.message_code ?? 'PRODAT')} ${String(matching.id ?? '')}`,
+    };
+  }
+
+  return {
+    hasMatchingPriorPermissionFlow: false,
+    matchReason: `Ingen tidigare ${priorCodes.join('/')} hittades för Z${code.slice(1)} via ${identifiers.join(', ')}.`,
+  };
+}
+
 async function resolveBackendAperakDecision(params: {
   actorUserId: string;
   sourceMessage: EdielMessageRow;
@@ -1778,6 +1913,42 @@ async function resolveBackendAperakDecision(params: {
     roleCode: params.roleCode ?? "supplier",
     requestedTestCaseCode: params.testCaseCode ?? null,
   });
+
+  const permissionContext = await resolveProdatPermissionContextForAck(params.sourceMessage);
+  const permissionDecision = validateProdatPermissionMessage({
+    message: params.sourceMessage,
+    testData: tgtResolution.testData,
+    context: permissionContext,
+  });
+
+  if (permissionDecision.handled) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.sourceMessage.id,
+      eventType: "manual_note",
+      eventStatus: permissionDecision.outcome === "negative" ? "warning" : "success",
+      message:
+        permissionDecision.outcome === "negative"
+          ? "PRODAT permission-engine valde negativ APERAK för Z14/Z15."
+          : "PRODAT permission-engine valde positiv APERAK för tillståndsflödet.",
+      payload: {
+        selectedTgtCaseCode: permissionDecision.selectedTgtCaseCode ?? tgtResolution.selectedRow?.testCaseCode ?? null,
+        outcome: permissionDecision.outcome,
+        issues: permissionDecision.issues,
+        backendRuleKeys: permissionDecision.matchedRuleKeys,
+        permissionContext,
+      },
+    });
+
+    return {
+      outcome: permissionDecision.outcome,
+      applicationErrors: permissionDecision.applicationErrors.length > 0 ? permissionDecision.applicationErrors : null,
+      backendRuleKeys: permissionDecision.matchedRuleKeys,
+      backendIssueCount: permissionDecision.issues.length,
+      backendUnmappedRuleKeys: [],
+      selectedTgtCaseCode: permissionDecision.selectedTgtCaseCode ?? tgtResolution.selectedRow?.testCaseCode ?? null,
+    };
+  }
 
   const resolved = await resolveAndStoreProdatAperakErrors({
     message: params.sourceMessage,

@@ -14,7 +14,6 @@ import {
 import type { EdielMessageRow } from "@/lib/ediel/types";
 import type { EdielTgtCaseTestData } from "@/lib/ediel/tgtTestData";
 import { supabaseService } from "@/lib/supabase/service";
-import { resolveProdatPermissionAperakValidationIssues } from "@/lib/ediel/prodat/permissionEngine";
 
 export type EdielAperakValidationIssue = {
   ruleKey: string;
@@ -58,6 +57,21 @@ const BUILT_IN_PRODAT_APERAK_ERROR_RULES: EdielAperakErrorRuleRow[] = [
     applies_to_field: "105",
     environment: "all",
     priority: 100,
+    is_active: true,
+  },
+  {
+    id: "builtin-prodat-permission-flow-not-found",
+    message_family: "PRODAT",
+    message_code: "*",
+    direction: "both",
+    rule_key: "permission_flow_not_found",
+    rule_description: "Tillstånds-/behörighetsflöde kunde inte kopplas till tidigare begäran eller aktivt tillstånd.",
+    application_error: "40",
+    free_text_code: "105",
+    free_text: "The object could not be identified",
+    applies_to_field: "105",
+    environment: "all",
+    priority: 101,
     is_active: true,
   },
   {
@@ -1471,11 +1485,7 @@ export async function resolveAndStoreProdatAperakErrors(params: {
     message.message_code ?? facts.messageCode ?? "",
   ).toUpperCase();
   const environment = String(message.environment ?? "test").toLowerCase();
-  let issues = deriveProdatAperakValidationIssues({ message, testData });
-
-  if (issues.length === 0) {
-    issues = await resolveProdatPermissionAperakValidationIssues({ message });
-  }
+  const issues = deriveProdatAperakValidationIssues({ message, testData });
 
   if (issues.length === 0) {
     return {
