@@ -3,6 +3,7 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { validateEdifactSyntax, type EdielSyntaxIssue } from '@/lib/ediel/core/syntaxValidator'
+import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
 import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
 import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from '@/lib/ediel/utiltsEngine'
@@ -83,6 +84,14 @@ function isTgtS151CorrectedResend(message: EdielMessageRow): boolean {
   if (message.message_family !== 'PRODAT') return false
   if (String(message.message_code).toUpperCase() !== 'Z04') return false
   return messageContextText(message).includes('1.5.1')
+}
+
+
+function isActualContrlMessage(message: EdielMessageRow): boolean {
+  const storedFamily = String(message.message_family ?? '').toUpperCase()
+  const storedCode = String(message.message_code ?? '').toUpperCase()
+  const parsedType = String(parseEdifactMessageFacts(message.raw_payload).messageType ?? '').toUpperCase()
+  return storedFamily === 'CONTRL' || storedCode === 'CONTRL' || parsedType === 'CONTRL'
 }
 
 function decision(params: Omit<EdielAckDecision, 'actionLabel'> & { actionLabel?: string | null }): EdielAckDecision {
@@ -462,7 +471,7 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
     })
   }
 
-  if (message.message_family === 'CONTRL') {
+  if (isActualContrlMessage(message)) {
     return decision({
       kind: 'no_action',
       title: 'Registrera CONTRL',
@@ -624,7 +633,7 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
       kind: 'manual_review',
       title: 'Kör backend-kontroll för APERAK',
       description:
-        'Syntaxen är OK. UI bestämmer inte positiv eller negativ APERAK för PRODAT; backend gör regelstyrd affärskontroll precis innan APERAK skapas. För Z14/Z15 går beslutet via permission-engine så Z14N/Z15V inte blandas ihop med tekniskt fel.',
+        'Syntaxen är OK. UI bestämmer inte positiv eller negativ APERAK för PRODAT; backend gör regelstyrd affärskontroll precis innan APERAK skapas.',
       tone: 'blue',
       action: {
         ackFamily: 'APERAK',

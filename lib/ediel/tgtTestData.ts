@@ -2098,7 +2098,7 @@ function prodatEscoPermissionData(testCaseCode: '8.1.1' | '8.1.2' | '8.1.3' | '8
         { fieldCode: '322', fieldName: 'Tillståndets status', values: values('', 'A74 (Validated)', 'A74 (Validated)') },
         { fieldCode: '323', fieldName: 'Tillståndets syfte', values: values('B71 (Samtycke)', 'B71 (Samtycke)', 'B71 (Samtycke)') },
         { fieldCode: '260', fieldName: 'Nätområdesid', values: values('', 'TES', 'TES') },
-        { fieldCode: '261', fieldName: 'Referens till avtal/fullmakt', values: values('sätts av avsändaren', '-', '-') },
+        { fieldCode: '261', fieldName: 'Referens till avtal/fullmakt', values: values('AVTALE5', '-', '-') },
         { fieldCode: '226', fieldName: 'Ärendereferens', values: values('sätts av avsändaren', 'Samma som Z13V', 'Samma som Z13V') },
         { fieldCode: '325', fieldName: 'Tillståndets id', values: values('', 'Sätts av avsändaren', 'Sätts av avsändaren') },
         { fieldCode: '227', fieldName: 'Kund-id (DE 1131=SE2, 3055=260)', values: values('195503072026', '195503072026', '195503072026') },

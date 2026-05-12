@@ -48,6 +48,19 @@ function runtimeSyntaxAccepted(message: EdielMessageRow): boolean {
   )
 }
 
+
+function actualEdifactMessageType(message: EdielMessageRow): string | null {
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  return facts.messageType ? String(facts.messageType).toUpperCase() : null
+}
+
+function isActualContrl(message: EdielMessageRow, facts?: ReturnType<typeof parseEdifactMessageFacts>): boolean {
+  const storedFamily = String(message.message_family ?? '').toUpperCase()
+  const storedCode = String(message.message_code ?? '').toUpperCase()
+  const parsedType = String(facts?.messageType ?? actualEdifactMessageType(message) ?? '').toUpperCase()
+  return storedFamily === 'CONTRL' || storedCode === 'CONTRL' || parsedType === 'CONTRL'
+}
+
 function shouldRequireBgmReference(message: EdielMessageRow): boolean {
   if (message.message_family !== 'PRODAT') return false
   const code = String(message.message_code ?? '').toUpperCase()
@@ -76,7 +89,7 @@ export function validateEdifactSyntax(message: EdielMessageRow): EdielSyntaxVali
     })
   }
 
-  if (!facts.bgm && message.message_family !== 'CONTRL') {
+  if (!facts.bgm && !isActualContrl(message, facts)) {
     issues.push({
       code: 'missing_bgm',
       severity: 'error',

@@ -603,6 +603,7 @@ function resolvePortalDateTime(value: string | null | undefined): string {
 
 function defaultPowerOfAttorneyReference(params: Pick<EdielTgtDraftBuildParams, 'testCaseCode'>): string {
   if (params.testCaseCode === '1.3.1') return 'AVTAL05'
+  if (params.testCaseCode === '8.1.1' || params.testCaseCode === '8.2.1') return 'AVTALE5'
   const safeCase = params.testCaseCode.replace(/[^0-9A-Za-z]/g, '').slice(0, 8).toUpperCase()
   return `AVTAL${safeCase || 'TGT'}`.slice(0, 35)
 }
@@ -1205,6 +1206,7 @@ function buildProdatPermissionLineSegments(params: {
   const permissionEndReason = sanitizeCode(portalData.permissionEndReason, step.code === 'Z15' ? 'B79' : step.code === 'Z18' ? 'B80' : '', 12)
   const permissionId = sanitizeCode(portalData.permissionId, '', 35)
   const permissionTimestamp = date203FromPortalDate(portalData.permissionTimestamp, refs.createdLongDate)
+  const powerOfAttorneyReference = sanitizeCode(portalData.powerOfAttorneyReference, '', 35)
 
   const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`]
 
@@ -1225,6 +1227,7 @@ function buildProdatPermissionLineSegments(params: {
   if (permissionEndReason) segments.push('CCI++Z25', `CAV+${permissionEndReason}`)
 
   if (!mutation.omitLineItem) segments.push(`RFF+LI:${lineReference}`)
+  if (powerOfAttorneyReference && step.code === 'Z13') segments.push(`RFF+ANJ:${powerOfAttorneyReference}`)
   if (gridAreaId) segments.push(`RFF+Z05:${gridAreaId}`)
   if (permissionId && step.code !== 'Z13') segments.push(`RFF+Z07:${permissionId}`)
   if (permissionTimestamp && (step.code === 'Z14' || step.code === 'Z15')) segments.push(`DTM+265:${permissionTimestamp}:203`)
