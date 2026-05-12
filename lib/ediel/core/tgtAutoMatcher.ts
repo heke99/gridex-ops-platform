@@ -45,6 +45,13 @@ export function messageCodePrefixesForTgtAutoMatch(message: EdielMessageRow): st
     if (code === 'Z10') return ['2.3', '2.4']
     if (code === 'Z09') return ['2.5']
     if (code === 'Z05') return ['3.1', '3.2']
+    // ESCO permission flows. The technical UNB application reference is still
+    // PRODAT, so TGT matching must use the actual business message code from
+    // UNH/BGM instead of assuming only supplier/grid-owner switch tests.
+    if (code === 'Z13') return ['8.1']
+    if (code === 'Z14') return ['8.1', '8.2']
+    if (code === 'Z15') return ['9.1', '9.2']
+    if (code === 'Z18') return ['9.1']
   }
 
   if (family === 'UTILTS') {
@@ -1027,7 +1034,7 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
   const family = String(message.message_family ?? '').toUpperCase()
   const suite = family === 'UTILTS' ? 'UTILTS' : family === 'PRODAT' ? 'PRODAT' : null
 
-  if (!suite || row.testSuite !== suite || row.roleCode !== 'supplier') return -1
+  if (!suite || row.testSuite !== suite) return -1
 
   const prefixes = messageCodePrefixesForTgtAutoMatch(message)
   const text = textForTgtAutoMatch(message)
