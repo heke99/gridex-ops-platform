@@ -14,6 +14,7 @@ import {
 import type { EdielMessageRow } from "@/lib/ediel/types";
 import type { EdielTgtCaseTestData } from "@/lib/ediel/tgtTestData";
 import { supabaseService } from "@/lib/supabase/service";
+import { resolveProdatPermissionAperakValidationIssues } from "@/lib/ediel/prodat/permissionEngine";
 
 export type EdielAperakValidationIssue = {
   ruleKey: string;
@@ -1470,7 +1471,11 @@ export async function resolveAndStoreProdatAperakErrors(params: {
     message.message_code ?? facts.messageCode ?? "",
   ).toUpperCase();
   const environment = String(message.environment ?? "test").toLowerCase();
-  const issues = deriveProdatAperakValidationIssues({ message, testData });
+  let issues = deriveProdatAperakValidationIssues({ message, testData });
+
+  if (issues.length === 0) {
+    issues = await resolveProdatPermissionAperakValidationIssues({ message });
+  }
 
   if (issues.length === 0) {
     return {

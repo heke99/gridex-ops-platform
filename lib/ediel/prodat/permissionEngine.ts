@@ -1,247 +1,350 @@
 // lib/ediel/prodat/permissionEngine.ts
 
+import { parseEdifactMessageFacts, type EdifactSegment } from '@/lib/ediel/core/edifactSegments'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
-import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
-import { parseProdatMessage, type ParsedProdatLineItem } from '@/lib/ediel/prodat/parser'
+import { supabaseService } from '@/lib/supabase/service'
 
 export type ProdatPermissionValidationIssue = {
   ruleKey: string
-  ercCode: string
-  fieldCode: string
-  text: string
-  lineItemReference: string | null
-  meteringPointId: string | null
-  actualValue: string | null
+  severity: 'error' | 'warning' | 'info'
+  fieldPath: string | null
+  fieldValue: string | null
   expectedValue: string | null
+  meteringPointId: string | null
+  transactionReference: string | null
+  sourceOrder: number
+  fallbackText: string
 }
 
-export type ProdatPermissionValidationResult = {
-  handled: boolean
-  outcome: 'positive' | 'negative'
-  issues: ProdatPermissionValidationIssue[]
-  applicationErrors: EdielAperakApplicationError[]
-  matchedRuleKeys: string[]
-  selectedTgtCaseCode: string | null
+type PermissionLineFacts = {
+  meteringPointId: string | null
+  lineReference: string | null
+  customerId: string | null
+  agreementReference: string | null
+  permissionStatus: string | null
+  permissionEndReason: string | null
+  rawSegments: string[]
 }
 
-const PRODAT_PERMISSION_CODES = new Set(['Z13', 'Z14', 'Z15', 'Z18'])
-const VALID_Z14_PERMISSION_STATUSES = new Set(['A74', 'A75', 'A13', 'Z96'])
-const VALID_Z15_PERMISSION_STATUSES = new Set(['A75'])
-const VALID_Z15_END_REASONS = new Set(['B79', 'B80'])
-
-function normalizeCode(value: unknown): string | null {
-  const token = String(value ?? '')
-    .trim()
-    .toUpperCase()
-    .match(/[A-Z][0-9A-Z]{1,4}|[0-9]{1,4}/)?.[0]
-  return token ?? null
+type PermissionMessageFacts = {
+  messageCode: string
+  messageReference: string | null
+  interchangeReference: string | null
+  globalReferences: Record<string, string[]>
+  lines: PermissionLineFacts[]
 }
 
-function textFromTgtData(testData: EdielTgtCaseTestData | null | undefined): string {
-  if (!testData) return ''
-  return JSON.stringify(testData)
+type PermissionMatchResult = {
+  matched: boolean
+  expectedMessageId: string | null
+  expectedReference: string | null
+  expectedMeteringPointId: string | null
+  expectedCustomerId: string | null
+  expectedAgreementReference: string | null
+  reason: string
+}
+
+function normalize(value: string | null | undefined): string {
+  return String(value ?? '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^0-9A-Za-z]+/g, '')
     .toUpperCase()
 }
 
-function normalizedTgtCase(testData: EdielTgtCaseTestData | null | undefined): string | null {
-  const code = String(testData?.testCaseCode ?? '').trim().toUpperCase()
-  return code || null
+function sameValue(actual: string | null | undefined, expected: string | null | undefined): boolean {
+  const normalizedExpected = normalize(expected)
+  if (!normalizedExpected) return true
+  return normalize(actual) === normalizedExpected
 }
 
-function errorFromIssue(issue: ProdatPermissionValidationIssue): EdielAperakApplicationError {
+function unique(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.map((value) => String(value ?? '').trim()).filter(Boolean)))
+}
+
+function firstComponent(value: string | null | undefined): string | null {
+  const first = String(value ?? '').split(':')[0]?.trim() ?? ''
+  return first.length > 0 ? first : null
+}
+
+function referencesByQualifier(segments: readonly EdifactSegment[]): Record<string, string[]> {
+  const refs: Record<string, string[]> = {}
+
+  for (const segment of segments) {
+    if (segment.tag !== 'RFF') continue
+    const composite = segment.elements[1] ?? ''
+    const qualifier = composite.split(':')[0]?.trim().toUpperCase() ?? ''
+    const value = composite.split(':')[1]?.trim() ?? ''
+    if (!qualifier || !value) continue
+    refs[qualifier] = [...(refs[qualifier] ?? []), value]
+  }
+
+  return refs
+}
+
+function cciCavValue(segments: readonly EdifactSegment[], cciCode: string): string | null {
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index]
+    if (segment?.raw !== `CCI++${cciCode}`) continue
+
+    const next = segments[index + 1]
+    if (!next || next.tag !== 'CAV') return null
+
+    const cleaned = next.raw.replace(/^CAV\+/i, '').trim()
+    if (!cleaned) return null
+    const parts = cleaned.split(':').map((part) => part.trim()).filter(Boolean)
+    return parts[parts.length - 1] ?? null
+  }
+
+  return null
+}
+
+function partyIdFromNad(segments: readonly EdifactSegment[], qualifier: string): string | null {
+  const segment = segments.find((item) => item.raw.startsWith(`NAD+${qualifier}+`))
+  return firstComponent(segment?.elements[2])
+}
+
+function agreementReferenceFromSegments(segments: readonly EdifactSegment[]): string | null {
+  const refs = referencesByQualifier(segments)
+  return refs.ANJ?.[0] ?? refs.ACW?.[0] ?? null
+}
+
+function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessageFacts {
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  const globalSegments = facts.segments.filter((segment) => {
+    if (segment.tag !== 'RFF') return false
+    const firstLine = facts.lineItems[0]
+    return !firstLine || segment.index < firstLine.segments[0]?.index
+  })
+  const globalReferences = referencesByQualifier(globalSegments)
+
   return {
-    ercCode: issue.ercCode,
-    fieldCode: issue.fieldCode,
-    text: issue.text,
-    referenceQualifier: null,
-    referenceNumber: null,
-    lineItemReference: issue.lineItemReference,
+    messageCode: String(message.message_code ?? facts.messageCode ?? '').toUpperCase(),
+    messageReference: facts.documentReference ?? message.external_reference ?? null,
+    interchangeReference: facts.interchangeReference ?? message.interchange_reference ?? null,
+    globalReferences,
+    lines: facts.lineItems.map((line) => ({
+      meteringPointId: line.itemId ?? null,
+      lineReference: line.rffLi ?? null,
+      customerId: partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV'),
+      agreementReference: agreementReferenceFromSegments(line.segments),
+      permissionStatus: cciCavValue(line.segments, 'Z23'),
+      permissionEndReason: cciCavValue(line.segments, 'Z25') ?? cciCavValue(line.segments, 'Z26'),
+      rawSegments: line.segments.map((segment) => segment.raw),
+    })),
   }
 }
 
-function issue(params: {
-  ruleKey: string
-  ercCode: string
-  fieldCode: string
-  text: string
-  line?: ParsedProdatLineItem | null
-  actualValue?: string | null
-  expectedValue?: string | null
-}): ProdatPermissionValidationIssue {
+function candidateReferences(message: EdielMessageRow, facts: PermissionMessageFacts): string[] {
+  return unique([
+    message.external_reference,
+    message.transaction_reference,
+    message.original_transaction_id,
+    message.correlation_reference,
+    message.interchange_reference,
+    facts.messageReference,
+    facts.interchangeReference,
+    ...Object.values(facts.globalReferences).flat(),
+    ...facts.lines.flatMap((line) => [line.lineReference, line.agreementReference]),
+  ])
+}
+
+function issue(input: Omit<ProdatPermissionValidationIssue, 'severity'> & { severity?: ProdatPermissionValidationIssue['severity'] }): ProdatPermissionValidationIssue {
   return {
-    ruleKey: params.ruleKey,
-    ercCode: params.ercCode,
-    fieldCode: params.fieldCode,
-    text: params.text,
-    lineItemReference: params.line?.lineItemReference ?? null,
-    meteringPointId: params.line?.meteringPointId ?? null,
-    actualValue: params.actualValue ?? null,
-    expectedValue: params.expectedValue ?? null,
+    severity: input.severity ?? 'error',
+    ruleKey: input.ruleKey,
+    fieldPath: input.fieldPath,
+    fieldValue: input.fieldValue,
+    expectedValue: input.expectedValue,
+    meteringPointId: input.meteringPointId,
+    transactionReference: input.transactionReference,
+    sourceOrder: input.sourceOrder,
+    fallbackText: input.fallbackText,
   }
 }
 
-function firstLine(message: EdielMessageRow): ParsedProdatLineItem | null {
-  const parsed = parseProdatMessage(message)
-  return parsed.lineItems[0] ?? null
+async function loadOutboundPermissionRequestCandidates(params: {
+  sourceMessage: EdielMessageRow
+  expectedOutboundCode: 'Z13' | 'Z18'
+}): Promise<EdielMessageRow[]> {
+  const query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('direction', 'outbound')
+    .eq('message_family', 'PRODAT')
+    .eq('message_code', params.expectedOutboundCode)
+    .eq('environment', params.sourceMessage.environment)
+    .not('status', 'in', '(cancelled,failed,error,rejected)')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (params.sourceMessage.receiver_ediel_id) {
+    query.eq('sender_ediel_id', params.sourceMessage.receiver_ediel_id)
+  }
+  if (params.sourceMessage.sender_ediel_id) {
+    query.eq('receiver_ediel_id', params.sourceMessage.sender_ediel_id)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return (data ?? []) as EdielMessageRow[]
 }
 
-function buildResult(params: {
-  handled: boolean
-  selectedTgtCaseCode: string | null
-  issues: ProdatPermissionValidationIssue[]
-}): ProdatPermissionValidationResult {
-  const applicationErrors = params.issues.map(errorFromIssue)
-  return {
-    handled: params.handled,
-    outcome: applicationErrors.length > 0 ? 'negative' : 'positive',
-    issues: params.issues,
-    applicationErrors,
-    matchedRuleKeys: params.issues.map((item) => item.ruleKey),
-    selectedTgtCaseCode: params.selectedTgtCaseCode,
-  }
-}
+function scoreCandidate(params: {
+  inbound: PermissionMessageFacts
+  inboundLine: PermissionLineFacts
+  inboundReferences: string[]
+  candidate: EdielMessageRow
+}): PermissionMatchResult {
+  const candidateFacts = readPermissionMessageFacts(params.candidate)
+  const candidateReferencesForMessage = new Set(candidateReferences(params.candidate, candidateFacts).map(normalize))
+  const inboundRefs = params.inboundReferences.map(normalize).filter(Boolean)
+  const referenceMatched = inboundRefs.some((ref) => candidateReferencesForMessage.has(ref))
 
-function validateZ14(message: EdielMessageRow, testData?: EdielTgtCaseTestData | null): ProdatPermissionValidationResult {
-  const testCase = normalizedTgtCase(testData)
-  const line = firstLine(message)
-  const status = normalizeCode(line?.permissionStatus)
-  const tgtText = textFromTgtData(testData)
-  const issues: ProdatPermissionValidationIssue[] = []
+  const candidateLines = candidateFacts.lines.length > 0 ? candidateFacts.lines : [{
+    meteringPointId: params.candidate.metering_point_id,
+    lineReference: params.candidate.transaction_reference,
+    customerId: params.candidate.customer_id,
+    agreementReference: null,
+    permissionStatus: null,
+    permissionEndReason: null,
+    rawSegments: [],
+  }]
 
-  // S8.2.1 är Edielportalens negativa Z14V-test. Det ska alltid landa i
-  // negativ APERAK från backend, även om UI inte lyckas tolka exakt vilket
-  // fält portalen valt att göra fel i just den körningen.
-  if (testCase === '8.2.1') {
-    issues.push(issue({
-      ruleKey: 'facility_not_identified',
-      ercCode: '40',
-      fieldCode: '105',
-      text: 'The object could not be identified',
-      line,
-      actualValue: line?.meteringPointId ?? null,
-      expectedValue: null,
-    }))
-    return buildResult({ handled: true, selectedTgtCaseCode: testCase, issues })
-  }
+  for (const candidateLine of candidateLines) {
+    const objectMatched = sameValue(params.inboundLine.meteringPointId, candidateLine.meteringPointId)
+    const customerMatched = sameValue(params.inboundLine.customerId, candidateLine.customerId)
+    const agreementMatched = sameValue(params.inboundLine.agreementReference, candidateLine.agreementReference)
 
-  // Produktion/SaaS: Z14N är ett giltigt nekande affärssvar. Endast okänd
-  // statuskod eller ofullständig koppling ska ge negativ APERAK.
-  if (status && !VALID_Z14_PERMISSION_STATUSES.has(status)) {
-    issues.push(issue({
-      ruleKey: 'permission_status_invalid',
-      ercCode: '41',
-      fieldCode: '322',
-      text: `Felaktigt tillståndets status ${status}`,
-      line,
-      actualValue: status,
-      expectedValue: Array.from(VALID_Z14_PERMISSION_STATUSES).join('/'),
-    }))
-  }
+    if (referenceMatched || (objectMatched && customerMatched && agreementMatched)) {
+      const missingHardMatch =
+        !sameValue(params.inboundLine.meteringPointId, candidateLine.meteringPointId) ||
+        !sameValue(params.inboundLine.customerId, candidateLine.customerId)
 
-  if (!line?.lineItemReference && !message.transaction_reference && /Z14/.test(String(message.message_code ?? ''))) {
-    issues.push(issue({
-      ruleKey: 'missing_line_item_reference',
-      ercCode: '41',
-      fieldCode: '226',
-      text: 'Ärendereferens saknas',
-      line,
-      actualValue: null,
-      expectedValue: 'RFF+LI',
-    }))
-  }
-
-  if (tgtText.includes('FELAKTIG Z14V') && issues.length === 0) {
-    issues.push(issue({
-      ruleKey: 'facility_not_identified',
-      ercCode: '40',
-      fieldCode: '105',
-      text: 'The object could not be identified',
-      line,
-      actualValue: line?.meteringPointId ?? null,
-      expectedValue: null,
-    }))
-  }
-
-  return buildResult({ handled: true, selectedTgtCaseCode: testCase, issues })
-}
-
-function validateZ15(message: EdielMessageRow, testData?: EdielTgtCaseTestData | null): ProdatPermissionValidationResult {
-  const testCase = normalizedTgtCase(testData)
-  const line = firstLine(message)
-  const status = normalizeCode(line?.permissionStatus)
-  const endReason = normalizeCode(line?.permissionEndReason)
-  const tgtText = textFromTgtData(testData)
-  const issues: ProdatPermissionValidationIssue[] = []
-
-  const forceNegative = testCase === '9.2.1' || tgtText.includes('FELAKTIG Z15V')
-
-  if (status && !VALID_Z15_PERMISSION_STATUSES.has(status)) {
-    issues.push(issue({
-      ruleKey: 'permission_status_invalid',
-      ercCode: '41',
-      fieldCode: '322',
-      text: `Felaktigt tillståndets status ${status}`,
-      line,
-      actualValue: status,
-      expectedValue: Array.from(VALID_Z15_PERMISSION_STATUSES).join('/'),
-    }))
-  }
-
-  if (endReason && !VALID_Z15_END_REASONS.has(endReason)) {
-    issues.push(issue({
-      ruleKey: 'permission_end_reason_invalid',
-      ercCode: '41',
-      fieldCode: '324',
-      text: `Felaktig orsak till tillståndets upphörande ${endReason}`,
-      line,
-      actualValue: endReason,
-      expectedValue: Array.from(VALID_Z15_END_REASONS).join('/'),
-    }))
-  }
-
-  if (forceNegative && issues.length === 0) {
-    const preferredStatus = normalizeCode(tgtText.match(/Z75/)?.[0])
-    const preferredReason = normalizeCode(tgtText.match(/Z79/)?.[0])
-    if (preferredStatus) {
-      issues.push(issue({
-        ruleKey: 'permission_status_invalid',
-        ercCode: '41',
-        fieldCode: '322',
-        text: `Felaktigt tillståndets status ${preferredStatus}`,
-        line,
-        actualValue: preferredStatus,
-        expectedValue: 'A75',
-      }))
-    } else {
-      issues.push(issue({
-        ruleKey: 'permission_end_reason_invalid',
-        ercCode: '41',
-        fieldCode: '324',
-        text: `Felaktig orsak till tillståndets upphörande ${preferredReason ?? 'Z79'}`,
-        line,
-        actualValue: preferredReason ?? 'Z79',
-        expectedValue: 'B79/B80',
-      }))
+      return {
+        matched: !missingHardMatch,
+        expectedMessageId: params.candidate.id,
+        expectedReference: candidateFacts.messageReference ?? params.candidate.external_reference,
+        expectedMeteringPointId: candidateLine.meteringPointId,
+        expectedCustomerId: candidateLine.customerId,
+        expectedAgreementReference: candidateLine.agreementReference,
+        reason: missingHardMatch ? 'reference_found_but_identity_mismatch' : 'matched_pending_permission_request',
+      }
     }
   }
 
-  return buildResult({ handled: true, selectedTgtCaseCode: testCase, issues })
+  return {
+    matched: false,
+    expectedMessageId: null,
+    expectedReference: null,
+    expectedMeteringPointId: null,
+    expectedCustomerId: null,
+    expectedAgreementReference: null,
+    reason: 'no_match',
+  }
 }
 
-export function validateProdatPermissionMessage(params: {
-  message: EdielMessageRow
-  testData?: EdielTgtCaseTestData | null
-}): ProdatPermissionValidationResult {
-  const code = String(params.message.message_code ?? '').toUpperCase()
-  if (String(params.message.message_family ?? '').toUpperCase() !== 'PRODAT' || !PRODAT_PERMISSION_CODES.has(code)) {
-    return buildResult({ handled: false, selectedTgtCaseCode: normalizedTgtCase(params.testData), issues: [] })
+function bestMatch(params: {
+  inbound: PermissionMessageFacts
+  inboundLine: PermissionLineFacts
+  inboundReferences: string[]
+  candidates: EdielMessageRow[]
+}): PermissionMatchResult {
+  let identityMismatch: PermissionMatchResult | null = null
+
+  for (const candidate of params.candidates) {
+    const result = scoreCandidate({ ...params, candidate })
+    if (result.matched) return result
+    if (result.reason === 'reference_found_but_identity_mismatch' && !identityMismatch) {
+      identityMismatch = result
+    }
   }
 
-  if (code === 'Z14') return validateZ14(params.message, params.testData)
-  if (code === 'Z15') return validateZ15(params.message, params.testData)
+  return identityMismatch ?? {
+    matched: false,
+    expectedMessageId: null,
+    expectedReference: null,
+    expectedMeteringPointId: null,
+    expectedCustomerId: null,
+    expectedAgreementReference: null,
+    reason: 'no_active_permission_request_match',
+  }
+}
 
-  return buildResult({ handled: true, selectedTgtCaseCode: normalizedTgtCase(params.testData), issues: [] })
+export async function resolveProdatPermissionAperakValidationIssues(params: {
+  message: EdielMessageRow
+}): Promise<ProdatPermissionValidationIssue[]> {
+  const family = String(params.message.message_family ?? '').toUpperCase()
+  const code = String(params.message.message_code ?? '').toUpperCase()
+  const direction = String(params.message.direction ?? '').toLowerCase()
+
+  if (family !== 'PRODAT' || direction !== 'inbound') return []
+  if (code !== 'Z14' && code !== 'Z15') return []
+
+  const inboundFacts = readPermissionMessageFacts(params.message)
+  const inboundLines = inboundFacts.lines.length > 0 ? inboundFacts.lines : [{
+    meteringPointId: params.message.metering_point_id,
+    lineReference: params.message.transaction_reference,
+    customerId: params.message.customer_id,
+    agreementReference: null,
+    permissionStatus: null,
+    permissionEndReason: null,
+    rawSegments: [],
+  }]
+  const expectedOutboundCode = code === 'Z14' ? 'Z13' : 'Z18'
+  const candidates = await loadOutboundPermissionRequestCandidates({
+    sourceMessage: params.message,
+    expectedOutboundCode,
+  })
+
+  const issues: ProdatPermissionValidationIssue[] = []
+  const inboundReferences = candidateReferences(params.message, inboundFacts)
+  let sourceOrder = 0
+
+  for (const line of inboundLines) {
+    const match = bestMatch({ inbound: inboundFacts, inboundLine: line, inboundReferences, candidates })
+
+    if (match.matched) continue
+
+    if (match.reason === 'reference_found_but_identity_mismatch') {
+      if (match.expectedMeteringPointId && !sameValue(line.meteringPointId, match.expectedMeteringPointId)) {
+        issues.push(issue({
+          ruleKey: 'metering_point_id_mismatch',
+          fieldPath: 'PRODAT/PERMISSION/Z07',
+          fieldValue: line.meteringPointId,
+          expectedValue: match.expectedMeteringPointId,
+          meteringPointId: line.meteringPointId,
+          transactionReference: line.lineReference ?? inboundFacts.messageReference,
+          sourceOrder: sourceOrder++,
+          fallbackText: `Felaktigt anläggningsid ${line.meteringPointId ?? ''}`.trim(),
+        }))
+      }
+      if (match.expectedCustomerId && !sameValue(line.customerId, match.expectedCustomerId)) {
+        issues.push(issue({
+          ruleKey: 'invoice_receiver_invalid',
+          fieldPath: 'PRODAT/PERMISSION/NAD+UD',
+          fieldValue: line.customerId,
+          expectedValue: match.expectedCustomerId,
+          meteringPointId: line.meteringPointId,
+          transactionReference: line.lineReference ?? inboundFacts.messageReference,
+          sourceOrder: sourceOrder++,
+          fallbackText: 'Felaktigt kund-id',
+        }))
+      }
+      continue
+    }
+
+    issues.push(issue({
+      ruleKey: 'facility_not_identified',
+      fieldPath: 'PRODAT/PERMISSION/REQUEST_MATCH',
+      fieldValue: line.meteringPointId ?? inboundFacts.messageReference,
+      expectedValue: expectedOutboundCode,
+      meteringPointId: line.meteringPointId,
+      transactionReference: line.lineReference ?? inboundFacts.messageReference,
+      sourceOrder: sourceOrder++,
+      fallbackText: 'The object could not be identified',
+    }))
+  }
+
+  return issues
 }
