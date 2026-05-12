@@ -255,6 +255,17 @@ function sanitizeCode(value: string | null | undefined, fallback: string, maxLen
   return cleaned.length > 0 ? cleaned : fallback
 }
 
+
+function prodatCav260(value: string | null | undefined, maxLength = 12): string {
+  const code = sanitizeCode(value, '', maxLength)
+  return code ? `CAV+${code}::260` : ''
+}
+
+function prodatEnergyProductCav(value: string | null | undefined): string {
+  const code = sanitizeCode(value, '', 35)
+  return code ? `CAV+${code}::9` : ''
+}
+
 function edifactEscape(value: string): string {
   return value
     .replace(/\?/g, '??')
@@ -1214,39 +1225,39 @@ function buildProdatLineSegments(params: {
 
   if (reasonForTransaction) {
     segments.push('CCI++Z13')
-    segments.push(`CAV+${reasonForTransaction}`)
+    segments.push(isPermissionMessage ? prodatCav260(reasonForTransaction) : `CAV+${reasonForTransaction}`)
   }
 
   if (meteringMethod && !(isZ09 && isZ09D)) {
     segments.push('CCI++Z04')
-    segments.push(`CAV+${meteringMethod}`)
+    segments.push(isPermissionMessage ? prodatCav260(meteringMethod) : `CAV+${meteringMethod}`)
   }
 
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.reportingFrequency) {
     segments.push('CCI++Z12')
-    segments.push(`CAV+${sanitizeCode(portalData.reportingFrequency, '', 12)}`)
+    segments.push(prodatCav260(portalData.reportingFrequency))
   }
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.energyProductId) {
-    // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7110.
-    // Det ska inte renderas som PIA i svenska PRODAT permission-flöden.
+    // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7111,
+    // med GS1 som kodlisteansvarig. Det ska inte renderas som PIA i permission-flöden.
     segments.push('CCI++Z14')
-    segments.push(`CAV+:::${sanitizeCode(portalData.energyProductId, '', 35)}`)
+    segments.push(prodatEnergyProductCav(portalData.energyProductId))
   }
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && installationDirection) {
     segments.push('CCI++Z22')
-    segments.push(`CAV+${sanitizeCode(installationDirection, '', 12)}`)
+    segments.push(prodatCav260(installationDirection))
   }
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionStatus) {
     segments.push('CCI++Z23')
-    segments.push(`CAV+${sanitizeCode(portalData.permissionStatus, '', 12)}`)
+    segments.push(prodatCav260(portalData.permissionStatus))
   }
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && permissionPurpose) {
     segments.push('CCI++Z24')
-    segments.push(`CAV+${sanitizeCode(permissionPurpose, '', 12)}`)
+    segments.push(prodatCav260(permissionPurpose))
   }
   if ((step.code === 'Z15' || step.code === 'Z18') && portalData.permissionEndReason) {
     segments.push('CCI++Z25')
-    segments.push(`CAV+${sanitizeCode(portalData.permissionEndReason, '', 12)}`)
+    segments.push(prodatCav260(portalData.permissionEndReason))
   }
   if ((step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionId) {
     segments.push(`RFF+Z09:${sanitizeCode(portalData.permissionId, '', 35)}`)

@@ -21,6 +21,17 @@ import {
 import { validateProdatContext } from '@/lib/ediel/prodat/render/validate'
 import { deriveProdatAckExpectation } from '@/lib/ediel/prodat/registry'
 
+
+function prodatCav260(value: string | null | undefined, maxLength = 12): string {
+  const code = sanitizeProdatToken(value ?? null, maxLength)
+  return code ? `CAV+${code}::260` : ''
+}
+
+function prodatEnergyProductCav(value: string | null | undefined): string {
+  const code = sanitizeProdatToken(value ?? null, 35)
+  return code ? `CAV+${code}::9` : ''
+}
+
 function objectValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -150,41 +161,41 @@ export function buildGenericProdatSegments(input: {
   }
 
   if (reasonForTransaction) {
-    segments.push('CCI++Z13', `CAV+${reasonForTransaction}`)
+    segments.push('CCI++Z13', isPermissionMessage ? prodatCav260(reasonForTransaction) : `CAV+${reasonForTransaction}`)
   }
 
   if (meteringMethod) {
-    segments.push('CCI++Z04', `CAV+${meteringMethod}`)
+    segments.push('CCI++Z04', isPermissionMessage ? prodatCav260(meteringMethod) : `CAV+${meteringMethod}`)
   }
 
   const reportingFrequency = sanitizeProdatToken(portalString(portalData, 'reportingFrequency') ?? context.reportingFrequency ?? null, 12)
   if (isPermissionMessage && reportingFrequency) {
-    segments.push('CCI++Z12', `CAV+${reportingFrequency}`)
+    segments.push('CCI++Z12', prodatCav260(reportingFrequency))
   }
 
   const energyProductId = sanitizeProdatToken(portalString(portalData, 'energyProductId') ?? context.energyProductId ?? null, 35)
   if (isPermissionMessage && energyProductId) {
-    // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7110,
-    // inte som PIA i permission-flöden.
-    segments.push('CCI++Z14', `CAV+:::${energyProductId}`)
+    // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7111,
+    // med GS1 som kodlisteansvarig. Det ska inte renderas som PIA i permission-flöden.
+    segments.push('CCI++Z14', prodatEnergyProductCav(energyProductId))
   }
 
   if (isPermissionMessage && installationDirection) {
-    segments.push('CCI++Z22', `CAV+${installationDirection}`)
+    segments.push('CCI++Z22', prodatCav260(installationDirection))
   }
 
   const permissionStatus = sanitizeProdatToken(portalString(portalData, 'permissionStatus') ?? context.permissionStatus ?? null, 12)
   if (isPermissionMessage && permissionStatus) {
-    segments.push('CCI++Z23', `CAV+${permissionStatus}`)
+    segments.push('CCI++Z23', prodatCav260(permissionStatus))
   }
 
   if (isPermissionMessage && permissionPurpose) {
-    segments.push('CCI++Z24', `CAV+${permissionPurpose}`)
+    segments.push('CCI++Z24', prodatCav260(permissionPurpose))
   }
 
   const permissionEndReason = sanitizeProdatToken(portalString(portalData, 'permissionEndReason') ?? context.permissionEndReason ?? null, 12)
   if (isPermissionMessage && permissionEndReason) {
-    segments.push('CCI++Z25', `CAV+${permissionEndReason}`)
+    segments.push('CCI++Z25', prodatCav260(permissionEndReason))
   }
 
   segments.push(`RFF+LI:${lineItemReference}`)
