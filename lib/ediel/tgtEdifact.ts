@@ -506,11 +506,13 @@ function buildRegistersFromTestData(
 
 function cleanOptional(value: string | null | undefined, maxLength = 70): string | null {
   const cleaned = sanitize(value, '', maxLength)
+  if (cleaned === '-') return null
   return cleaned.length > 0 ? cleaned : null
 }
 
 function cleanOptionalCode(value: string | null | undefined, maxLength = 35): string | null {
   const cleaned = sanitizeCode(value, '', maxLength)
+  if (cleaned === '-') return null
   return cleaned.length > 0 ? cleaned : null
 }
 
@@ -539,6 +541,39 @@ function firstDayNextMonthDateTime(): string {
   return `${firstDayNextMonth.getUTCFullYear()}${pad(firstDayNextMonth.getUTCMonth() + 1)}010000`
 }
 
+function formatUtcDateTime(date: Date, includeTime = false): string {
+  const y = date.getUTCFullYear()
+  const m = pad(date.getUTCMonth() + 1)
+  const d = pad(date.getUTCDate())
+  const hh = pad(date.getUTCHours())
+  const mm = pad(date.getUTCMinutes())
+  return includeTime ? `${y}${m}${d}${hh}${mm}` : `${y}${m}${d}0000`
+}
+
+function firstDayPreviousMonthDateTime(): string {
+  const now = new Date()
+  return formatUtcDateTime(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1, 0, 0, 0)))
+}
+
+function fifteenthDayPreviousMonthDateTime(): string {
+  const now = new Date()
+  return formatUtcDateTime(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 15, 0, 0, 0)))
+}
+
+function firstDaySameMonthPreviousYearDateTime(): string {
+  const now = new Date()
+  return formatUtcDateTime(new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), 1, 0, 0, 0)))
+}
+
+function currentDayDateTime(): string {
+  const now = new Date()
+  return formatUtcDateTime(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)))
+}
+
+function currentUtcMinuteDateTime(): string {
+  return formatUtcDateTime(new Date(), true)
+}
+
 function fifteenthDayNextMonthDateTime(): string {
   const now = new Date()
   const fifteenthDayNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 15, 0, 0, 0))
@@ -550,6 +585,16 @@ function resolvePortalDateTime(value: string | null | undefined): string {
   if (token && /^\d{8,12}$/.test(token)) return token.length === 8 ? `${token}0000` : token.slice(0, 12)
 
   const normalized = normalizeSearch(value)
+  if (normalized.includes('aktuell tidpunkt') || normalized.includes('tidpunkten nar tillstandet skapas') || normalized.includes('tidpunkten när tillståndet skapas')) {
+    return currentUtcMinuteDateTime()
+  }
+  if (normalized.includes('dagens datum')) return currentDayDateTime()
+  if (normalized.includes('15') && normalized.includes('foregaende manad')) return fifteenthDayPreviousMonthDateTime()
+  if (normalized.includes('15') && normalized.includes('föregående månad')) return fifteenthDayPreviousMonthDateTime()
+  if (normalized.includes('1') && normalized.includes('samma manad') && normalized.includes('foregaende ar')) return firstDaySameMonthPreviousYearDateTime()
+  if (normalized.includes('1') && normalized.includes('samma månad') && normalized.includes('föregående år')) return firstDaySameMonthPreviousYearDateTime()
+  if (normalized.includes('1') && normalized.includes('foregaende manad')) return firstDayPreviousMonthDateTime()
+  if (normalized.includes('1') && normalized.includes('föregående månad')) return firstDayPreviousMonthDateTime()
   if (normalized.includes('15') && normalized.includes('nasta manad')) return fifteenthDayNextMonthDateTime()
   if (normalized.includes('10') && normalized.includes('nasta manad')) return defaultAgreementStartDateTime()
 
@@ -560,6 +605,11 @@ function defaultPowerOfAttorneyReference(params: Pick<EdielTgtDraftBuildParams, 
   if (params.testCaseCode === '1.3.1') return 'AVTAL05'
   const safeCase = params.testCaseCode.replace(/[^0-9A-Za-z]/g, '').slice(0, 8).toUpperCase()
   return `AVTAL${safeCase || 'TGT'}`.slice(0, 35)
+}
+
+function defaultPermissionId(params: Pick<EdielTgtDraftBuildParams, 'testCaseCode'>): string {
+  const safeCase = params.testCaseCode.replace(/[^0-9A-Za-z]/g, '').slice(0, 10).toUpperCase()
+  return `TILLST${safeCase || 'TGT'}`.slice(0, 35)
 }
 
 function resolveSenderControlledCode(
@@ -697,7 +747,7 @@ function getPortalData(
 
   const startDateRaw = valueFor(['210 avtal', 'startdatum', 'leveransstart'])
   const validityDateRaw = valueFor(['216 giltighetsdatum', '216 validity', '216 valid'])
-  const endDateRaw = valueFor(['211 avtal, slutdatum', '211 slutdatum', '211 end date', 'slutdatum'])
+  const endDateRaw = valueFor(['211 avtal, slutdatum', '211 slutdatum', '211 end date', '321 rapportslutdatum', '327 tjänsten/rapporteringen upphör', '327 tjansten/rapporteringen upphor', 'slutdatum'])
   const registers = columnName ? [] : buildRegistersFromTestData(params, step)
   const importedMeteringMethod = cleanOptionalCode(valueFor(['217 mätmetod', '217 matmetod']), 12)
   const poaRaw = valueFor(['261 referens'])
@@ -727,7 +777,7 @@ function getPortalData(
     permissionStatus: cleanOptionalCode(valueFor(['322 tillståndets status', '322 tillstandets status', 'permission status']), 12),
     permissionPurpose: cleanOptionalCode(valueFor(['323 tillståndets syfte', '323 tillstandets syfte', 'permission purpose']), 12),
     permissionEndReason: cleanOptionalCode(valueFor(['324 orsak till tillståndets upphörande', '324 orsak till tillstandets upphorande', 'permission end reason']), 12),
-    permissionId: cleanOptionalCode(valueFor(['325 tillståndets id', '325 tillstandets id', 'permission id']), 35),
+    permissionId: resolveSenderControlledCode(valueFor(['325 tillståndets id', '325 tillstandets id', 'permission id']), defaultPermissionId(params), 35),
     permissionTimestamp: resolvePortalDateTime(valueFor(['326 tillståndets tidstämpel', '326 tillstandets timestampel', 'permission timestamp'])),
     energyProductId: cleanOptionalCode(valueFor(['506 produkt id', '506 energiprodukt', 'energiprodukt', 'energy product']), 35),
     installationDirection: cleanOptionalCode(valueFor(['513 riktning', '513 typ av anläggning', '513 typ av anlaggning', 'typ av anläggning', 'installation direction']), 12),
@@ -1054,10 +1104,12 @@ function buildProdatPermissionLineSegments(params: {
   const endDate = portalData.agreementEndDateTime ? date203FromPortalDate(portalData.agreementEndDateTime, refs.createdLongDate) : null
   const reasonForTransaction = sanitizeCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), reasonForProdatSubtype(transactionType), 12)
   const meteringMethod = sanitizeCode(portalData.meteringMethod, step.code === 'Z13' ? 'Z04' : '', 12)
-  const reportingFrequency = sanitizeCode(portalData.reportingFrequency, step.code === 'Z13' || step.code === 'Z18' ? 'D' : '', 12)
-  const energyProductId = sanitizeCode(portalData.energyProductId ?? portalData.productCode, step.code === 'Z13' || step.code === 'Z18' ? '8716867000030' : '', 35)
-  const installationDirection = sanitizeCode(portalData.installationDirection, transactionType.endsWith('H') ? 'E18' : 'E17', 12)
-  const permissionPurpose = permissionPurposeForTransaction(transactionType, portalData.permissionPurpose)
+  const reportingFrequency = sanitizeCode(portalData.reportingFrequency, step.code === 'Z13' ? 'D' : '', 12)
+  const energyProductId = sanitizeCode(portalData.energyProductId ?? portalData.productCode, step.code === 'Z13' ? '8716867000030' : '', 35)
+  const installationDirection = sanitizeCode(portalData.installationDirection, step.code === 'Z13' || step.code === 'Z14' ? (transactionType.endsWith('H') ? 'E18' : 'E17') : '', 12)
+  const permissionPurpose = step.code === 'Z13' || step.code === 'Z14'
+    ? permissionPurposeForTransaction(transactionType, portalData.permissionPurpose)
+    : sanitizeCode(portalData.permissionPurpose, '', 12)
   const permissionStatus = sanitizeCode(portalData.permissionStatus, step.code === 'Z15' ? 'A75' : '', 12)
   const permissionEndReason = sanitizeCode(portalData.permissionEndReason, step.code === 'Z15' ? 'B79' : step.code === 'Z18' ? 'B80' : '', 12)
   const permissionId = sanitizeCode(portalData.permissionId, '', 35)
@@ -1083,13 +1135,26 @@ function buildProdatPermissionLineSegments(params: {
 
   if (!mutation.omitLineItem) segments.push(`RFF+LI:${lineReference}`)
   if (gridAreaId) segments.push(`RFF+Z05:${gridAreaId}`)
-  if (permissionId) segments.push(`RFF+Z07:${permissionId}`)
+  if (permissionId && step.code !== 'Z13') segments.push(`RFF+Z07:${permissionId}`)
   if (permissionTimestamp && (step.code === 'Z14' || step.code === 'Z15')) segments.push(`DTM+265:${permissionTimestamp}:203`)
 
   const siteAddressPlain = sanitize(portalData.siteAddress, '', 70)
   const siteCityPlain = sanitize(portalData.siteCity, '', 35)
   const sitePostalCode = sanitizeCode(portalData.sitePostalCode, '', 12)
   const siteCountry = sanitizeCode(portalData.siteCountry, 'SE', 3)
+  const customerId = sanitizeCode(portalData.customerId, '', 35)
+  const customerNamePlain = sanitize(portalData.customerName, '', 70)
+  if (customerId && customerNamePlain) {
+    const customerName = edifactEscape(customerNamePlain)
+    const customerAddress = edifactEscape(sanitize(portalData.customerAddress, '', 70))
+    const customerCity = edifactEscape(sanitize(portalData.customerCity, '', 35))
+    const customerPostalCode = sanitizeCode(portalData.customerPostalCode, '', 12)
+    const customerCountry = sanitizeCode(portalData.customerCountry, 'SE', 3)
+    segments.push(
+      `NAD+UD+${customerId}:${sanitizeCode(portalData.customerIdCodeListQualifier, 'SE2', 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`
+    )
+  }
+
   if (meteringPointId && step.code !== 'Z13') {
     const hasSitePostalDetails = Boolean(siteAddressPlain || siteCityPlain || sitePostalCode)
     segments.push(
@@ -1405,6 +1470,10 @@ function prodatStepRequiresCustomerData(step: EdielTgtExpectedStep): boolean {
 
 function prodatStepRequiresMeteringMethod(step: EdielTgtExpectedStep, portalData: TgtPortalCustomerData): boolean {
   if (step.family !== 'PRODAT') return false
+
+  // Z15/Z18 i ESCO-avslutsflödet har ingen mätmetod i portalens testdata.
+  // Mätmetod hör till Z13/Z14-tillståndets rapporteringsdefinition, inte själva avslutet.
+  if (step.code === 'Z15' || step.code === 'Z18') return false
 
   // Z09D ska inte använda SG14[Z04]/fält 217. Z09F/Z09G ska däremot fortfarande
   // ha mätmetod enligt profilreglerna ovan.
