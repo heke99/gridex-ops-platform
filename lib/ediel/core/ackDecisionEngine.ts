@@ -624,7 +624,7 @@ export function resolveRecommendedAckForInboundMessage(params: ResolveEdielAckDe
       kind: 'manual_review',
       title: 'Kör backend-kontroll för APERAK',
       description:
-        'Syntaxen är OK. UI bestämmer inte positiv eller negativ APERAK för PRODAT; backend gör regelstyrd affärskontroll precis innan APERAK skapas.',
+        'Syntaxen är OK. UI bestämmer inte positiv eller negativ APERAK för PRODAT; backend gör regelstyrd affärskontroll precis innan APERAK skapas. För Z14/Z15 går beslutet via permission-engine så Z14N/Z15V inte blandas ihop med tekniskt fel.',
       tone: 'blue',
       action: {
         ackFamily: 'APERAK',

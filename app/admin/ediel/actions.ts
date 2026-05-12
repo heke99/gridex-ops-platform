@@ -94,6 +94,7 @@ import {
   scoreTgtTestDataForMessage,
 } from "@/lib/ediel/core/tgtAutoMatcher";
 import { parseEdifactMessageFacts } from "@/lib/ediel/core/edifactSegments";
+import { validateProdatPermissionMessage } from "@/lib/ediel/prodat/permissionEngine";
 import {
   attachAperakErrorDetailsToMessage,
   resolveAndStoreProdatAperakErrors,
@@ -1773,6 +1774,39 @@ async function resolveBackendAperakDecision(params: {
     roleCode: params.roleCode ?? "supplier",
     requestedTestCaseCode: params.testCaseCode ?? null,
   });
+
+  const permissionDecision = validateProdatPermissionMessage({
+    message: params.sourceMessage,
+    testData: tgtResolution.testData,
+  });
+
+  if (permissionDecision.handled) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.sourceMessage.id,
+      eventType: "manual_note",
+      eventStatus: permissionDecision.outcome === "negative" ? "warning" : "success",
+      message:
+        permissionDecision.outcome === "negative"
+          ? "PRODAT permission-engine valde negativ APERAK för Z14/Z15."
+          : "PRODAT permission-engine valde positiv APERAK för tillståndsflödet.",
+      payload: {
+        selectedTgtCaseCode: permissionDecision.selectedTgtCaseCode ?? tgtResolution.selectedRow?.testCaseCode ?? null,
+        outcome: permissionDecision.outcome,
+        issues: permissionDecision.issues,
+        backendRuleKeys: permissionDecision.matchedRuleKeys,
+      },
+    });
+
+    return {
+      outcome: permissionDecision.outcome,
+      applicationErrors: permissionDecision.applicationErrors.length > 0 ? permissionDecision.applicationErrors : null,
+      backendRuleKeys: permissionDecision.matchedRuleKeys,
+      backendIssueCount: permissionDecision.issues.length,
+      backendUnmappedRuleKeys: [],
+      selectedTgtCaseCode: permissionDecision.selectedTgtCaseCode ?? tgtResolution.selectedRow?.testCaseCode ?? null,
+    };
+  }
 
   const resolved = await resolveAndStoreProdatAperakErrors({
     message: params.sourceMessage,

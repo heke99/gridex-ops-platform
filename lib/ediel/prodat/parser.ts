@@ -11,6 +11,14 @@ export type ParsedProdatLineItem = {
   agreementReference: string | null
   customerId: string | null
   balanceResponsibleId: string | null
+  reportingFrequency: string | null
+  energyProductId: string | null
+  installationDirection: string | null
+  permissionStatus: string | null
+  permissionPurpose: string | null
+  permissionEndReason: string | null
+  permissionId: string | null
+  permissionTimestamp: string | null
   contractStartDate: string | null
   contractEndDate: string | null
   reasonForTransaction: string | null
@@ -99,6 +107,14 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       agreementReference: line.segments.map((segment) => segment.raw).find((raw) => raw.startsWith('RFF+ANJ:'))?.replace(/^RFF\+ANJ:/, '').split(':')[0]?.trim() ?? null,
       customerId: partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV'),
       balanceResponsibleId: partyIdFromNad(line.segments, 'Z02'),
+      reportingFrequency: cciCavValue(line.segments, 'Z12'),
+      energyProductId: cciCavValue(line.segments, 'Z14'),
+      installationDirection: cciCavValue(line.segments, 'Z22'),
+      permissionStatus: cciCavValue(line.segments, 'Z23'),
+      permissionPurpose: cciCavValue(line.segments, 'Z24'),
+      permissionEndReason: cciCavValue(line.segments, 'Z25'),
+      permissionId: line.segments.map((segment) => segment.raw).find((raw) => raw.startsWith('RFF+Z07:'))?.replace(/^RFF\+Z07:/, '').split(':')[0]?.trim() ?? null,
+      permissionTimestamp: lineDateTimeValue(line.segments, ['265', '324', '597']),
       contractStartDate: lineDateTimeValue(line.segments, ['92', '157']),
       contractEndDate: lineDateTimeValue(line.segments, ['93', '157']),
       reasonForTransaction: cciCavValue(line.segments, 'Z13'),

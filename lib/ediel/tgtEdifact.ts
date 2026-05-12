@@ -126,6 +126,13 @@ type TgtPortalCustomerData = {
   reasonForTransaction?: string | null
   priority?: string | null
   reportingFrequency?: string | null
+  permissionStatus?: string | null
+  permissionPurpose?: string | null
+  permissionEndReason?: string | null
+  permissionId?: string | null
+  permissionTimestamp?: string | null
+  energyProductId?: string | null
+  installationDirection?: string | null
   meterNumber?: string | null
   customerId: string
   customerIdCodeListQualifier?: string | null
@@ -717,6 +724,13 @@ function getPortalData(
     reasonForTransaction: cleanOptionalCode(valueFor(['223 transaktionstyp', 'reason for transaction']), 12),
     priority: cleanOptionalCode(valueFor(['220 prioritet']), 12),
     reportingFrequency: cleanOptionalCode(valueFor(['222 rapporteringsfrekvens']), 12),
+    permissionStatus: cleanOptionalCode(valueFor(['322 tillståndets status', '322 tillstandets status', 'permission status']), 12),
+    permissionPurpose: cleanOptionalCode(valueFor(['323 tillståndets syfte', '323 tillstandets syfte', 'permission purpose']), 12),
+    permissionEndReason: cleanOptionalCode(valueFor(['324 orsak till tillståndets upphörande', '324 orsak till tillstandets upphorande', 'permission end reason']), 12),
+    permissionId: cleanOptionalCode(valueFor(['325 tillståndets id', '325 tillstandets id', 'permission id']), 35),
+    permissionTimestamp: resolvePortalDateTime(valueFor(['326 tillståndets tidstämpel', '326 tillstandets timestampel', 'permission timestamp'])),
+    energyProductId: cleanOptionalCode(valueFor(['506 produkt id', '506 energiprodukt', 'energiprodukt', 'energy product']), 35),
+    installationDirection: cleanOptionalCode(valueFor(['513 riktning', '513 typ av anläggning', '513 typ av anlaggning', 'typ av anläggning', 'installation direction']), 12),
     meterNumber: cleanOptionalCode(valueFor(['224 mätarnummer', '224 matarnummer']), 35),
     customerId,
     customerIdCodeListQualifier: inferCustomerIdCodeListQualifier(customerIdField?.fieldName, customerId),
@@ -944,6 +958,13 @@ function buildTgtProdatTransactionType(
 
   if (params.testCaseCode === '1.2.5') return step.code === 'Z04' ? 'Z04D' : `${step.code}D`
 
+  if (params.roleCode === 'esco') {
+    if (step.code === 'Z13') return params.testCaseCode === '8.1.3' ? 'Z13VH' : 'Z13V'
+    if (step.code === 'Z14') return params.testCaseCode === '8.1.2' ? 'Z14N' : params.testCaseCode === '8.1.3' ? 'Z14VH' : 'Z14V'
+    if (step.code === 'Z15') return 'Z15V'
+    if (step.code === 'Z18') return 'Z18V'
+  }
+
   if (['2.1.1', '2.1.2'].includes(params.testCaseCode)) {
     return step.code === 'Z06' ? 'Z06F' : `${step.code}F`
   }
@@ -956,6 +977,8 @@ function buildTgtProdatTransactionType(
 }
 
 function reasonForProdatSubtype(transactionType: string): string {
+  if (transactionType === 'Z13V' || transactionType === 'Z14V' || transactionType === 'Z15V' || transactionType === 'Z18V') return 'S17'
+  if (transactionType === 'Z13VH' || transactionType === 'Z14VH') return 'S18'
   if (transactionType.endsWith('LK')) return 'Z23'
   if (transactionType.endsWith('F')) return 'E64'
   if (transactionType.endsWith('G')) return 'E32'
@@ -1004,6 +1027,81 @@ function applyProdatMutationToPortalData(
   }
 }
 
+
+function isPermissionProdatCode(code: string | null | undefined): boolean {
+  return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
+}
+
+function permissionPurposeForTransaction(transactionType: string, imported?: string | null): string | null {
+  const clean = sanitizeCode(imported, '', 12)
+  if (clean) return clean
+  return transactionType.endsWith('H') ? 'B72' : 'B71'
+}
+
+function buildProdatPermissionLineSegments(params: {
+  portalData: TgtPortalCustomerData
+  step: EdielTgtExpectedStep
+  refs: DraftReferences
+  transactionType: string
+  mutation: TgtProdatMutation
+  lineNo: number
+}): string[] {
+  const { portalData, step, refs, transactionType, mutation, lineNo } = params
+  const meteringPointId = sanitizeCode(portalData.meteringPointId, '', 35)
+  const gridAreaId = sanitizeCode(portalData.gridAreaId, '', 12)
+  const lineReference = lineNo === 1 ? refs.externalRef : `${refs.externalRef}-${lineNo}`.slice(0, 35)
+  const startDate = date203FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
+  const endDate = portalData.agreementEndDateTime ? date203FromPortalDate(portalData.agreementEndDateTime, refs.createdLongDate) : null
+  const reasonForTransaction = sanitizeCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), reasonForProdatSubtype(transactionType), 12)
+  const meteringMethod = sanitizeCode(portalData.meteringMethod, step.code === 'Z13' ? 'Z04' : '', 12)
+  const reportingFrequency = sanitizeCode(portalData.reportingFrequency, step.code === 'Z13' || step.code === 'Z18' ? 'D' : '', 12)
+  const energyProductId = sanitizeCode(portalData.energyProductId ?? portalData.productCode, step.code === 'Z13' || step.code === 'Z18' ? '8716867000030' : '', 35)
+  const installationDirection = sanitizeCode(portalData.installationDirection, transactionType.endsWith('H') ? 'E18' : 'E17', 12)
+  const permissionPurpose = permissionPurposeForTransaction(transactionType, portalData.permissionPurpose)
+  const permissionStatus = sanitizeCode(portalData.permissionStatus, step.code === 'Z15' ? 'A75' : '', 12)
+  const permissionEndReason = sanitizeCode(portalData.permissionEndReason, step.code === 'Z15' ? 'B79' : step.code === 'Z18' ? 'B80' : '', 12)
+  const permissionId = sanitizeCode(portalData.permissionId, '', 35)
+  const permissionTimestamp = date203FromPortalDate(portalData.permissionTimestamp, refs.createdLongDate)
+
+  const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`]
+
+  if (step.code === 'Z15' || step.code === 'Z18') {
+    segments.push(`DTM+93:${endDate ?? startDate}:203`)
+  } else {
+    segments.push(`DTM+92:${startDate}:203`)
+  }
+
+  segments.push('CCI++Z13', `CAV+${reasonForTransaction}`)
+
+  if (meteringMethod) segments.push('CCI++Z04', `CAV+${meteringMethod}`)
+  if (reportingFrequency) segments.push('CCI++Z12', `CAV+:::${reportingFrequency}`)
+  if (energyProductId) segments.push('CCI++Z14', `CAV+:::${energyProductId}`)
+  if (installationDirection) segments.push('CCI++Z22', `CAV+${installationDirection}`)
+  if (permissionStatus) segments.push('CCI++Z23', `CAV+${permissionStatus}`)
+  if (permissionPurpose) segments.push('CCI++Z24', `CAV+${permissionPurpose}`)
+  if (permissionEndReason) segments.push('CCI++Z25', `CAV+${permissionEndReason}`)
+
+  if (!mutation.omitLineItem) segments.push(`RFF+LI:${lineReference}`)
+  if (gridAreaId) segments.push(`RFF+Z05:${gridAreaId}`)
+  if (permissionId) segments.push(`RFF+Z07:${permissionId}`)
+  if (permissionTimestamp && (step.code === 'Z14' || step.code === 'Z15')) segments.push(`DTM+265:${permissionTimestamp}:203`)
+
+  const siteAddressPlain = sanitize(portalData.siteAddress, '', 70)
+  const siteCityPlain = sanitize(portalData.siteCity, '', 35)
+  const sitePostalCode = sanitizeCode(portalData.sitePostalCode, '', 12)
+  const siteCountry = sanitizeCode(portalData.siteCountry, 'SE', 3)
+  if (meteringPointId && step.code !== 'Z13') {
+    const hasSitePostalDetails = Boolean(siteAddressPlain || siteCityPlain || sitePostalCode)
+    segments.push(
+      hasSitePostalDetails
+        ? `NAD+IT+${meteringPointId}::9+++${edifactEscape(siteAddressPlain)}+${edifactEscape(siteCityPlain)}++${sitePostalCode}+${siteCountry}`
+        : `NAD+IT+${meteringPointId}::9`
+    )
+  }
+
+  return segments
+}
+
 function buildProdatLineSegments(params: {
   portalData: TgtPortalCustomerData
   step: EdielTgtExpectedStep
@@ -1013,6 +1111,9 @@ function buildProdatLineSegments(params: {
   lineNo: number
 }): string[] {
   const { portalData, step, refs, transactionType, mutation, lineNo } = params
+  if (isPermissionProdatCode(step.code)) {
+    return buildProdatPermissionLineSegments(params)
+  }
   const isZ09 = step.code === 'Z09'
   const isZ09D = isZ09DTransaction(transactionType)
   const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
@@ -1099,7 +1200,7 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
 } {
   const transactionType = buildTgtProdatTransactionType(params, step)
   const mutation = getTgtProdatMutation(params, step)
-  const sourceRows = step.code === 'Z03' ? getPortalDataRows(params, step) : [getPortalData(params, step)]
+  const sourceRows = step.code === 'Z03' || (params.roleCode === 'esco' && step.code === 'Z13' && params.testCaseCode === '8.1.1') ? getPortalDataRows(params, step) : [getPortalData(params, step)]
   const portalRows = sourceRows.map((row) => ({
     ...applyProdatMutationToPortalData(row, mutation),
     prodatTransactionType: transactionType,
@@ -1168,7 +1269,7 @@ function buildProdatDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpect
   })
 }
 
-function buildAckDraft(step: EdielTgtExpectedStep, refs: DraftReferences): string {
+function buildAckDraft(step: EdielTgtExpectedStep, refs: DraftReferences, params?: Pick<EdielTgtDraftBuildParams, 'roleCode' | 'testCaseCode'>): string {
   const family = step.family === 'UTILTS_ERR' ? 'UTILTS_ERR' : step.family
   const outcome = step.outcome ?? 'positive'
   const isContrl = family === 'CONTRL'
@@ -1292,6 +1393,12 @@ function prodatStepRequiresCustomerData(step: EdielTgtExpectedStep): boolean {
   // markerar SG17[UD] som not in use. Kunddata kan finnas i testdatat, men ska
   // inte styras ut i denna PRODAT-variant.
   if (step.code === 'Z09') return false
+
+  // S8/S9 är tillståndshantering för energitjänsteföretag. I portalens
+  // testdata kan utgående Z13/Z18 sakna fält 227/228 (kund-id/kundnamn), och
+  // testet ska då inte blockeras lokalt. Kopplingen görs via Z13/Z14- eller
+  // Z18/Z15-kedjan, ärendereferens och portalens testkund.
+  if (step.code === 'Z13' || step.code === 'Z18') return false
 
   return true
 }
@@ -1567,7 +1674,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
       })
     : step.family === 'UTILTS'
       ? buildUtiltsDraft(params, step, refs)
-      : buildAckDraft(step, refs)
+      : buildAckDraft(step, refs, params)
 
   const validationIssues = validateEdielTgtDraft(rawPayload, step, portalBuild?.portalData ?? null)
   const hasErrors = validationIssues.some((issue) => issue.severity === 'error')
