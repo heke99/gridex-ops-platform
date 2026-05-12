@@ -1023,6 +1023,25 @@ function isProdatPermissionMessageCode(code: string): boolean {
   return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
 }
 
+function defaultPermissionReasonForProdatCode(code: string): string | null {
+  // Z13 är en begäran om tillgång till mätdata. I TGT S8.1.1 saknas fält 223
+  // i uppladdad testdata, men PRODAT-strukturen kräver ändå CCI++Z13/CAV.
+  // S17 är standardorsaken för korrekt Z13V. Den här regeln är processbunden
+  // till tillstånds-/ESCO-PRODAT och påverkar inte vanliga Z03/Z04/Z05/Z09.
+  if (code === 'Z13') return 'S17'
+
+  // Övriga tillståndsmeddelanden ska inte få en påhittad transaktionstyp här.
+  // De använder explicit fält från testdata/context när det finns.
+  return null
+}
+
+function resolvePermissionReasonForTransaction(params: {
+  code: string
+  explicitReasonForTransaction: string | null
+}): string | null {
+  return params.explicitReasonForTransaction ?? defaultPermissionReasonForProdatCode(params.code)
+}
+
 function explicitPortalCode(value: string | null | undefined, maxLength = 12): string | null {
   const cleaned = sanitizeCode(value, '', maxLength)
   return cleaned.length > 0 ? cleaned : null
@@ -1102,7 +1121,7 @@ function buildProdatLineSegments(params: {
   const isPermissionMessage = isProdatPermissionMessageCode(step.code)
   const explicitReasonForTransaction = explicitPortalCode(portalData.reasonForTransaction, 12)
   const reasonForTransaction = isPermissionMessage
-    ? explicitReasonForTransaction
+    ? resolvePermissionReasonForTransaction({ code: step.code, explicitReasonForTransaction })
     : explicitPortalCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 12) ?? 'Z22'
   const meteringMethod = sanitizeCode(portalData.meteringMethod, '', 12)
   const gridAreaId = sanitizeCode(portalData.gridAreaId, '', 12)

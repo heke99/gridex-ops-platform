@@ -54,6 +54,19 @@ function isPermissionMessageCode(code: string): boolean {
   return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
 }
 
+function defaultPermissionReasonForCode(code: string): string | null {
+  // Production/SaaS-regel: Z13 är en tillståndsbegäran och måste bära
+  // transaktionstyp i CCI++Z13/CAV. Om kundspecifik data inte skickar ett
+  // explicit värde används standarden för korrekt Z13V. Övriga
+  // tillståndsflöden får inte ärva leverantörsbytes-defaulten Z22.
+  if (code === 'Z13') return 'S17'
+  return null
+}
+
+function resolvePermissionReasonForCode(code: string, explicitValue?: string | null): string | null {
+  return normalizeReasonForTransaction(explicitValue, defaultPermissionReasonForCode(code))
+}
+
 function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?: string | null): string | null {
   const override = portalString(portalObject(portalData, 'testCaseOverrides'), 'meteringMethod')
   return sanitizeProdatToken(override ?? portalString(portalData, 'meteringMethod') ?? fallback ?? null, 12)
@@ -77,10 +90,10 @@ export function buildGenericProdatSegments(input: {
   const bgmReference = compactProdatReference(context.bgmReference, 35)
   const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
   const isPermissionMessage = isPermissionMessageCode(context.code)
-  const reasonForTransaction = normalizeReasonForTransaction(
-    portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? null,
-    isPermissionMessage ? null : 'Z22'
-  )
+  const explicitReasonForTransaction = portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? null
+  const reasonForTransaction = isPermissionMessage
+    ? resolvePermissionReasonForCode(context.code, explicitReasonForTransaction)
+    : normalizeReasonForTransaction(explicitReasonForTransaction, 'Z22')
   const meteringMethod = resolveMeteringMethod(portalData, context.meteringMethod)
 
   const meterPointId =
