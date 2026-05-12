@@ -2086,7 +2086,7 @@ function prodatEscoPermissionData(testCaseCode: '8.1.1' | '8.1.2' | '8.1.3' | '8
         { fieldCode: '236', fieldName: 'Postort-anläggning', values: values('STOCKHOLM') },
         { fieldCode: '237', fieldName: 'Land-anläggning', values: values('SE') },
       ] : [
-        { fieldCode: '209', fieldName: 'Anläggningsid', values: values('', '735999888000000109', '735999888000000710') },
+        { fieldCode: '209', fieldName: 'Anläggningsid', values: values('735999888000000109', '735999888000000109', '735999888000000710') },
         { fieldCode: '302', fieldName: 'Rapportstartdatum', values: values('sätts av avsändaren (15:e i föregående månad)', 'Samma som Z13V', 'Samma som Z13V') },
         { fieldCode: '508', fieldName: 'Tidslängd', values: values('', '15 (kvart)', '15 (kvart)') },
         { fieldCode: '326', fieldName: 'Tillståndets tidstämpel', values: values('', 'Tidpunkten när tillståndet skapas', 'Tidpunkten när tillståndet skapas') },

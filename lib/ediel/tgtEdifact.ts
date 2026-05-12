@@ -756,16 +756,18 @@ function getPortalData(
   const customerId = cleanOptionalCode(customerIdField?.value, 35) ?? ''
 
   const sourceColumn = columnName ? findSourceColumn(params, columnName) : null
+  const rawMeteringPointId = cleanOptionalCode(
+    valueFor(['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid', 'metering point', 'mätpunkt']),
+    35
+  )
+  const meteringPointId = resolveEscoZ13MeteringPointId(params, step, rawMeteringPointId, sourceColumn?.name ?? columnName ?? null)
 
   return {
     source: data ? 'tgt_test_data_registry' : 'missing_test_data',
     testCustomerLabel: columnName || data?.title || `TGT ${params.testSuite} ${params.testCaseCode}`,
     sourceColumnName: sourceColumn?.name ?? columnName ?? null,
     sourceOrder: sourceColumn?.sourceOrder ?? sourceColumn?.index ?? null,
-    meteringPointId: cleanOptionalCode(
-      valueFor(['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid', 'metering point', 'mätpunkt']),
-      35
-    ) ?? '',
+    meteringPointId,
     agreementStartDateTime: resolvePortalDateTime(startDateRaw),
     validityDateTime: resolveTgtValidityDateTime(params, step, validityDateRaw),
     agreementEndDateTime: endDateRaw ? resolvePortalDateTime(endDateRaw) : null,
@@ -844,6 +846,74 @@ function getPreferredColumnsForStep(
   const bestScore = Math.max(0, ...scored.map((entry) => entry.score))
   const selected = bestScore > 0 ? scored.filter((entry) => entry.score === bestScore).map((entry) => entry.column) : [...columns]
   return sortColumnsBySourceOrder(selected)
+}
+
+
+function findFirstTgtFieldValueAcrossColumns(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  selectors: readonly string[],
+  options: { excludeColumnName?: string | null; preferredColumnSelectors?: readonly string[] } = {}
+): string | null {
+  const data = getTgtTestData(params)
+  if (!data) return null
+
+  const normalizedSelectors = selectors.map(normalizeSearch)
+  const preferredColumnSelectors = options.preferredColumnSelectors ?? []
+
+  for (const group of data.groups) {
+    const preferredColumns = preferredColumnSelectors.length > 0
+      ? group.columns.filter((column) => columnMatches(`${column.name} ${column.testCase}`, preferredColumnSelectors))
+      : []
+    const candidateColumns = sortColumnsBySourceOrder(preferredColumns.length > 0 ? preferredColumns : group.columns)
+      .filter((column) => column.name !== options.excludeColumnName)
+
+    for (const field of group.fields) {
+      const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`)
+      if (!normalizedSelectors.some((selector) => haystack.includes(selector))) continue
+
+      for (const column of candidateColumns) {
+        const trimmed = field.values[column.name]?.trim()
+        if (trimmed && cleanOptionalCode(trimmed, 35)) return trimmed
+      }
+    }
+  }
+
+  return null
+}
+
+function resolveEscoZ13MeteringPointId(
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  step: EdielTgtExpectedStep,
+  currentMeteringPointId: string | null | undefined,
+  sourceColumnName?: string | null
+): string {
+  const cleanCurrent = cleanOptionalCode(currentMeteringPointId, 35)
+  if (cleanCurrent) return cleanCurrent
+  if (params.testSuite !== 'PRODAT' || params.roleCode !== 'esco' || step.code !== 'Z13') return ''
+
+  // I ESCO-testerna ligger anläggnings-id ibland på portalens svarskolumn (Z14/Z15)
+  // medan det utgående Z13-fältet anges som '-' eller tomt. För att skapa en stabil
+  // TGT-fil använder vi första objekt-id som hör till samma testfall.
+  return cleanOptionalCode(
+    findFirstTgtFieldValueAcrossColumns(
+      params,
+      ['209 anläggningsid', '209 anlaggningsid', '233 anläggningsid', '233 anlaggningsid', 'metering point', 'mätpunkt'],
+      { excludeColumnName: sourceColumnName, preferredColumnSelectors: ['z14', 'z15'] }
+    ),
+    35
+  ) ?? ''
+}
+
+function resolvePermissionInstallationDirection(params: {
+  portalData: TgtPortalCustomerData
+  step: EdielTgtExpectedStep
+  transactionType: string
+}): string {
+  const imported = sanitizeCode(params.portalData.installationDirection, '', 12)
+  if (imported) return imported
+  if (params.step.code === 'Z13') return 'E19'
+  if (params.step.code === 'Z14') return params.transactionType.endsWith('H') ? 'E18' : 'E17'
+  return ''
 }
 
 function getPortalDataColumnNames(
@@ -1106,7 +1176,9 @@ function buildProdatPermissionLineSegments(params: {
   const meteringMethod = sanitizeCode(portalData.meteringMethod, step.code === 'Z13' ? 'Z04' : '', 12)
   const reportingFrequency = sanitizeCode(portalData.reportingFrequency, step.code === 'Z13' ? 'D' : '', 12)
   const energyProductId = sanitizeCode(portalData.energyProductId ?? portalData.productCode, step.code === 'Z13' ? '8716867000030' : '', 35)
-  const installationDirection = sanitizeCode(portalData.installationDirection, step.code === 'Z13' || step.code === 'Z14' ? (transactionType.endsWith('H') ? 'E18' : 'E17') : '', 12)
+  const installationDirection = step.code === 'Z13' || step.code === 'Z14'
+    ? resolvePermissionInstallationDirection({ portalData, step, transactionType })
+    : sanitizeCode(portalData.installationDirection, '', 12)
   const permissionPurpose = step.code === 'Z13' || step.code === 'Z14'
     ? permissionPurposeForTransaction(transactionType, portalData.permissionPurpose)
     : sanitizeCode(portalData.permissionPurpose, '', 12)
