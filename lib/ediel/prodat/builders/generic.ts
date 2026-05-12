@@ -40,14 +40,18 @@ function portalDate102(portalData: ProdatEnginePortalSnapshot, key: string): str
   return prodatDate102(portalString(portalData, key))
 }
 
-function normalizeReasonForTransaction(value?: string | null): string {
+function normalizeReasonForTransaction(value?: string | null, fallback: string | null = 'Z22'): string | null {
   const normalized = sanitizeProdatText(value).toUpperCase()
   if (normalized === 'LK' || normalized === 'Z23') return 'Z23'
   if (normalized === 'L' || normalized === 'Z22') return 'Z22'
   if (normalized === 'F' || normalized === 'Z06F' || normalized === 'Z09F' || normalized === 'E64') return 'E64'
   if (normalized === 'G' || normalized === 'Z06G' || normalized === 'Z09G' || normalized === 'E32') return 'E32'
   if (normalized === 'D' || normalized === 'Z09D' || normalized === 'Z70') return 'Z70'
-  return normalized || 'Z22'
+  return normalized || fallback
+}
+
+function isPermissionMessageCode(code: string): boolean {
+  return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
 }
 
 function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?: string | null): string | null {
@@ -72,8 +76,10 @@ export function buildGenericProdatSegments(input: {
 
   const bgmReference = compactProdatReference(context.bgmReference, 35)
   const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
+  const isPermissionMessage = isPermissionMessageCode(context.code)
   const reasonForTransaction = normalizeReasonForTransaction(
-    portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? null
+    portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? null,
+    isPermissionMessage ? null : 'Z22'
   )
   const meteringMethod = resolveMeteringMethod(portalData, context.meteringMethod)
 
@@ -100,7 +106,9 @@ export function buildGenericProdatSegments(input: {
     segments.push(`DTM+92:${startDate203}:203`)
   }
 
-  segments.push('CCI++Z13', `CAV+${reasonForTransaction}`)
+  if (reasonForTransaction) {
+    segments.push('CCI++Z13', `CAV+${reasonForTransaction}`)
+  }
 
   if (meteringMethod) {
     segments.push('CCI++Z04', `CAV+${meteringMethod}`)

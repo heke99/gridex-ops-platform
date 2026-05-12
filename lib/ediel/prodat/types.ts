@@ -106,7 +106,7 @@ export type ProdatEngineDiagnostics = {
   mode?: ProdatEngineMode
   lineItemReference: string
   bgmReference: string
-  reasonForTransaction: string
+  reasonForTransaction: string | null
   meteringMethod: string | null
   hasPortalSnapshot: boolean
   segmentCountBeforeEnvelope: number

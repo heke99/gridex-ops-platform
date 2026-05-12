@@ -1019,6 +1019,15 @@ function reasonForProdatSubtype(transactionType: string): string {
   return 'Z22'
 }
 
+function isProdatPermissionMessageCode(code: string): boolean {
+  return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
+}
+
+function explicitPortalCode(value: string | null | undefined, maxLength = 12): string | null {
+  const cleaned = sanitizeCode(value, '', maxLength)
+  return cleaned.length > 0 ? cleaned : null
+}
+
 function getTgtProdatMutation(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep): TgtProdatMutation {
   if (step.family !== 'PRODAT') return {}
 
@@ -1090,7 +1099,11 @@ function buildProdatLineSegments(params: {
   const sitePostalCode = sanitizeCode(portalData.sitePostalCode, '', 12)
   const siteCountry = sanitizeCode(portalData.siteCountry, 'SE', 3)
   const lineReference = lineNo === 1 ? refs.externalRef : `${refs.externalRef}-${lineNo}`.slice(0, 35)
-  const reasonForTransaction = sanitizeCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)
+  const isPermissionMessage = isProdatPermissionMessageCode(step.code)
+  const explicitReasonForTransaction = explicitPortalCode(portalData.reasonForTransaction, 12)
+  const reasonForTransaction = isPermissionMessage
+    ? explicitReasonForTransaction
+    : explicitPortalCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 12) ?? 'Z22'
   const meteringMethod = sanitizeCode(portalData.meteringMethod, '', 12)
   const gridAreaId = sanitizeCode(portalData.gridAreaId, '', 12)
   const powerOfAttorneyReference = sanitizeCode(portalData.powerOfAttorneyReference, '', 35)
@@ -1113,8 +1126,10 @@ function buildProdatLineSegments(params: {
     segments.push(`DTM+171:${date203FromPortalDate(portalData.permissionTimestamp, refs.createdLongDate)}:203`)
   }
 
-  segments.push('CCI++Z13')
-  segments.push(`CAV+${reasonForTransaction}`)
+  if (reasonForTransaction) {
+    segments.push('CCI++Z13')
+    segments.push(`CAV+${reasonForTransaction}`)
+  }
 
   if (meteringMethod && !(isZ09 && isZ09D)) {
     segments.push('CCI++Z04')
