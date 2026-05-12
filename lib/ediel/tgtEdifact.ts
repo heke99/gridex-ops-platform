@@ -10,12 +10,10 @@ import type {
 } from '@/lib/ediel/types'
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
-  EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
   GRIDEX_EDIEL_ID,
-  resolveEdielTgtProdatApplicationReference,
 } from '@/lib/ediel/fileEngine'
 import {
   getEdielTgtTestCaseByCode,
@@ -123,9 +121,6 @@ type TgtPortalCustomerData = {
   agreementStartDateTime: string
   validityDateTime?: string | null
   agreementEndDateTime?: string | null
-  reportStartDateTime?: string | null
-  reportEndDateTime?: string | null
-  permissionTimestamp?: string | null
   annualEnergyUnit: string
   meteringMethod: string
   reasonForTransaction?: string | null
@@ -155,20 +150,16 @@ type TgtPortalCustomerData = {
   gridAreaId: string
   powerOfAttorneyReference?: string | null
   balanceResponsibleId?: string | null
-  permissionStatus?: string | null
-  permissionPurpose?: string | null
-  permissionEndReason?: string | null
-  permissionId?: string | null
   installationStatus?: string | null
   tariffCode?: string | null
-  energyProductId?: string | null
-  installationDirection?: string | null
   registers: TgtPortalRegister[]
 }
 
 function pad(value: number, length = 2): string {
   return String(value).padStart(length, '0')
 }
+
+let tgtInterchangeRefSequence = 0
 
 function base36Token(value: number, length: number): string {
   return Math.max(0, value).toString(36).toUpperCase().padStart(length, '0').slice(-length)
@@ -183,13 +174,21 @@ function buildTgtInterchangeReference(params: {
   createdDate: string
   createdTime: string
   seconds: number
+  milliseconds: number
   testCaseCode: string
   stepNo: number
 }): string {
-  const stepToken = base36Token(params.stepNo, 1)
+  // UNB/0020 får vara max 14 tecken i TGT-flödet.
+  // Format: YYMMDD + HHMM + SS(base36) + millisecond-bucket(base36) + sequence(base36).
+  // Det gör referensen kort men unik även vid dubbelklick, server action retry
+  // eller flera starter samma sekund.
   const secondsToken = base36Token(params.seconds, 2)
+  const millisecondBucket = Math.min(35, Math.floor(params.milliseconds / 28))
+  const millisecondToken = base36Token(millisecondBucket, 1)
   const caseToken = shortCaseToken(params.testCaseCode)
-  return `${params.createdDate}${params.createdTime}${stepToken}${secondsToken}${caseToken}`.slice(0, 14)
+  const sequenceToken = base36Token((tgtInterchangeRefSequence++ + params.stepNo + Number.parseInt(caseToken, 36)) % 36, 1)
+
+  return `${params.createdDate}${params.createdTime}${secondsToken}${millisecondToken}${sequenceToken}`.slice(0, 14)
 }
 
 function nowRefs(testCaseCode: string, stepNo: number): DraftReferences {
@@ -199,22 +198,28 @@ function nowRefs(testCaseCode: string, stepNo: number): DraftReferences {
   const d = pad(now.getUTCDate())
   const hh = pad(now.getUTCHours())
   const mm = pad(now.getUTCMinutes())
-  const compact = `${y}${m}${d}${hh}${mm}${pad(now.getUTCSeconds())}`
+  const ss = pad(now.getUTCSeconds())
+  const compact = `${y}${m}${d}${hh}${mm}${ss}`
   const safeCase = testCaseCode.replace(/[^A-Za-z0-9]/g, '')
   const createdDate = `${String(y).slice(2)}${m}${d}`
   const createdTime = `${hh}${mm}`
 
+  const interchangeRef = buildTgtInterchangeReference({
+    createdDate,
+    createdTime,
+    seconds: now.getUTCSeconds(),
+    milliseconds: now.getUTCMilliseconds(),
+    testCaseCode,
+    stepNo,
+  })
+  const uniqueSuffix = interchangeRef.slice(-4)
+  const messageRef = `M${interchangeRef.slice(1)}`.slice(0, 14)
+
   return {
-    interchangeRef: buildTgtInterchangeReference({
-      createdDate,
-      createdTime,
-      seconds: now.getUTCSeconds(),
-      testCaseCode,
-      stepNo,
-    }),
-    messageRef: `M${safeCase}${stepNo}${compact}`.slice(0, 14),
+    interchangeRef,
+    messageRef,
     transactionRef: `TGT-${testCaseCode}-S${stepNo}`,
-    externalRef: `GRIDEX-${testCaseCode}-S${stepNo}-${compact}`,
+    externalRef: `GRIDEX-${testCaseCode}-S${stepNo}-${compact}-${uniqueSuffix}`.slice(0, 35),
     originalInterchangeRef: `P${safeCase}${Math.max(1, stepNo - 1)}${createdDate}${createdTime}`.slice(0, 14),
     originalMessageRef: `P${safeCase}${Math.max(1, stepNo - 1)}${compact}`.slice(0, 14),
     createdDate,
@@ -253,17 +258,6 @@ function sanitize(value: string | null | undefined, fallback = 'UNKNOWN', maxLen
 function sanitizeCode(value: string | null | undefined, fallback: string, maxLength = 35): string {
   const cleaned = sanitize(firstToken(value) ?? value, fallback, maxLength).replace(/\s+/g, '')
   return cleaned.length > 0 ? cleaned : fallback
-}
-
-
-function prodatCav260(value: string | null | undefined, maxLength = 12): string {
-  const code = sanitizeCode(value, '', maxLength)
-  return code ? `CAV+${code}::260` : ''
-}
-
-function prodatEnergyProductCav(value: string | null | undefined): string {
-  const code = sanitizeCode(value, '', 35)
-  return code ? `CAV+${code}::9` : ''
 }
 
 function edifactEscape(value: string): string {
@@ -310,15 +304,6 @@ function preferredColumnSelectorsForStep(step: EdielTgtExpectedStep): string[] {
   if (step.code === 'Z03') return ['z03']
   if (step.code === 'Z04') return ['z04']
   return [step.code]
-}
-
-
-function getTgtProdatApplicationReference(params: Pick<EdielTgtDraftBuildParams, 'roleCode' | 'testCaseCode'> & { messageCode?: string | null }): string {
-  return resolveEdielTgtProdatApplicationReference({
-    roleCode: params.roleCode,
-    testCaseCode: params.testCaseCode,
-    messageCode: params.messageCode ?? null,
-  })
 }
 
 type TestDataLookupParams = Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'> & {
@@ -547,43 +532,6 @@ function firstDayNextMonthDateTime(): string {
   return `${firstDayNextMonth.getUTCFullYear()}${pad(firstDayNextMonth.getUTCMonth() + 1)}010000`
 }
 
-function fifteenthDayPreviousMonthDateTime(): string {
-  const now = new Date()
-  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 15, 0, 0, 0))
-  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}150000`
-}
-
-function firstDayPreviousMonthDateTime(): string {
-  const now = new Date()
-  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1, 0, 0, 0))
-  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}010000`
-}
-
-function firstDaySameMonthPreviousYearDateTime(): string {
-  const now = new Date()
-  const date = new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), 1, 0, 0, 0))
-  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}010000`
-}
-
-function refsafePortalDateFallback(): string {
-  const now = new Date()
-  return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`
-}
-
-function resolvePortalPermissionDateTime(value: string | null | undefined, fallback: string): string {
-  const token = firstToken(value)
-  if (token && /^\d{8,12}$/.test(token)) return token.length === 8 ? `${token}0000` : token.slice(0, 12)
-
-  const normalized = normalizeSearch(value)
-  if (normalized.includes('15') && normalized.includes('foregaende manad')) return fifteenthDayPreviousMonthDateTime()
-  if (normalized.includes('1') && normalized.includes('foregaende manad')) return firstDayPreviousMonthDateTime()
-  if (normalized.includes('1') && normalized.includes('samma manad') && normalized.includes('foregaende ar')) return firstDaySameMonthPreviousYearDateTime()
-  if (normalized.includes('aktuell tidpunkt') || normalized.includes('nar tillstandet skapas') || normalized.includes('när tillståndet skapas')) return fallback
-  if (normalized.includes('dagens datum')) return `${fallback.slice(0, 8)}0000`
-
-  return fallback
-}
-
 function fifteenthDayNextMonthDateTime(): string {
   const now = new Date()
   const fifteenthDayNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 15, 0, 0, 0))
@@ -596,9 +544,6 @@ function resolvePortalDateTime(value: string | null | undefined): string {
 
   const normalized = normalizeSearch(value)
   if (normalized.includes('15') && normalized.includes('nasta manad')) return fifteenthDayNextMonthDateTime()
-  if (normalized.includes('15') && normalized.includes('foregaende manad')) return fifteenthDayPreviousMonthDateTime()
-  if (normalized.includes('1') && normalized.includes('foregaende manad')) return firstDayPreviousMonthDateTime()
-  if (normalized.includes('1') && normalized.includes('samma manad') && normalized.includes('foregaende ar')) return firstDaySameMonthPreviousYearDateTime()
   if (normalized.includes('10') && normalized.includes('nasta manad')) return defaultAgreementStartDateTime()
 
   return defaultAgreementStartDateTime()
@@ -744,11 +689,8 @@ function getPortalData(
   }
 
   const startDateRaw = valueFor(['210 avtal', 'startdatum', 'leveransstart'])
-  const reportStartRaw = valueFor(['302 rapportstartdatum', '302 report start', 'rapportstart'])
   const validityDateRaw = valueFor(['216 giltighetsdatum', '216 validity', '216 valid'])
   const endDateRaw = valueFor(['211 avtal, slutdatum', '211 slutdatum', '211 end date', 'slutdatum'])
-  const reportEndRaw = valueFor(['321 rapportslutdatum', '321 report end', 'rapportslut'])
-  const permissionTimestampRaw = valueFor(['326 tillståndets tidstämpel', '326 tillstandets tidstampel', 'permission timestamp'])
   const registers = columnName ? [] : buildRegistersFromTestData(params, step)
   const importedMeteringMethod = cleanOptionalCode(valueFor(['217 mätmetod', '217 matmetod']), 12)
   const poaRaw = valueFor(['261 referens'])
@@ -770,9 +712,6 @@ function getPortalData(
     agreementStartDateTime: resolvePortalDateTime(startDateRaw),
     validityDateTime: resolveTgtValidityDateTime(params, step, validityDateRaw),
     agreementEndDateTime: endDateRaw ? resolvePortalDateTime(endDateRaw) : null,
-    reportStartDateTime: reportStartRaw ? resolvePortalPermissionDateTime(reportStartRaw, refsafePortalDateFallback()) : null,
-    reportEndDateTime: reportEndRaw ? resolvePortalPermissionDateTime(reportEndRaw, refsafePortalDateFallback()) : null,
-    permissionTimestamp: permissionTimestampRaw ? resolvePortalPermissionDateTime(permissionTimestampRaw, refsafePortalDateFallback()) : null,
     annualEnergyUnit: cleanOptionalCode(valueFor(['enhet för uppskattad årsenergi']), 8) ?? 'KWH',
     meteringMethod: resolveTgtMeteringMethod(params, step, importedMeteringMethod),
     reasonForTransaction: cleanOptionalCode(valueFor(['223 transaktionstyp', 'reason for transaction']), 12),
@@ -802,14 +741,8 @@ function getPortalData(
     gridAreaId: cleanOptionalCode(valueFor(['260 nätområdesid', '260 natomradesid']), 12) ?? '',
     powerOfAttorneyReference: resolveSenderControlledCode(poaRaw, defaultPowerOfAttorneyReference(params), 35),
     balanceResponsibleId: resolveSenderControlledCode(balanceResponsibleRaw, '91109', 35),
-    permissionStatus: cleanOptionalCode(valueFor(['322 tillståndets status', '322 tillstandets status', 'permission status']), 12),
-    permissionPurpose: cleanOptionalCode(valueFor(['323 tillståndets syfte', '323 tillstandets syfte', 'permission purpose']), 12),
-    permissionEndReason: cleanOptionalCode(valueFor(['324 orsak till tillståndets upphörande', '324 orsak till tillstandets upphorande', 'permission end reason']), 12),
-    permissionId: resolveSenderControlledCode(valueFor(['325 tillståndets id', '325 tillstandets id', 'permission id']), `TILLST${params.testCaseCode.replace(/[^0-9A-Za-z]/g, '').slice(-8) || 'TGT'}`, 35),
     installationStatus: cleanOptionalCode(valueFor(['306 installationsstatus']), 12),
     tariffCode: cleanOptionalCode(valueFor(['307 tariffkod']), 20),
-    energyProductId: cleanOptionalCode(valueFor(['506 produkt id', '506 energiprodukt', '506 product']), 35),
-    installationDirection: cleanOptionalCode(valueFor(['513 riktning', '513 typ av anläggning', '513 typ av anlaggning', 'direction']), 12),
     registers,
   }
 }
@@ -1030,82 +963,6 @@ function reasonForProdatSubtype(transactionType: string): string {
   return 'Z22'
 }
 
-function isProdatPermissionMessageCode(code: string): boolean {
-  return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
-}
-
-function defaultPermissionReasonForProdatCode(params: {
-  code: string
-  testCaseCode?: string | null
-}): string | null {
-  // Tillstånds-/ESCO-PRODAT får inte ärva leverantörsbytes-defaulten Z22.
-  // Z13 måste däremot alltid bära undertyp i CCI++Z13/CAV. När importerad
-  // TGT-data saknar fält 223 använder vi processens säkra default:
-  // - Z13V  => S17
-  // - Z13VH => S18
-  if (params.code === 'Z13') {
-    if (params.testCaseCode === '8.1.3') return 'S18'
-    return 'S17'
-  }
-
-  return null
-}
-
-function resolvePermissionReasonForTransaction(params: {
-  code: string
-  testCaseCode?: string | null
-  explicitReasonForTransaction: string | null
-}): string | null {
-  return params.explicitReasonForTransaction ?? defaultPermissionReasonForProdatCode(params)
-}
-
-function defaultPermissionInstallationDirection(params: {
-  code: string
-  reasonForTransaction?: string | null
-}): string | null {
-  // Fält 513 (Riktning / Type of Metering Point) är obligatoriskt i Z13.
-  // Enligt PRODAT v4 ligger detta som SG14/CCI+Z22 med värde i CAV.
-  // TGT-data för 8.1.1 anger E19 (Combined). I produktion ska verklig
-  // anläggningsriktning användas när den finns; fallbacken används bara
-  // när källan saknar explicit värde.
-  if (params.code === 'Z13') return 'E19'
-  return null
-}
-
-function resolvePermissionInstallationDirection(params: {
-  code: string
-  explicitInstallationDirection: string | null
-  reasonForTransaction?: string | null
-}): string | null {
-  return params.explicitInstallationDirection ?? defaultPermissionInstallationDirection(params)
-}
-
-function defaultPermissionPurpose(params: {
-  code: string
-  reasonForTransaction?: string | null
-  customerId?: string | null
-}): string | null {
-  if (params.code !== 'Z13') return null
-  // Fält 323 ska anges för privatkunder i Z13. Z13V använder B71
-  // (samtycke), medan Z13VH/historik använder B72 (avtal).
-  if (params.reasonForTransaction === 'S18') return 'B72'
-  return 'B71'
-}
-
-function resolvePermissionPurpose(params: {
-  code: string
-  explicitPermissionPurpose: string | null
-  reasonForTransaction?: string | null
-  customerId?: string | null
-}): string | null {
-  return params.explicitPermissionPurpose ?? defaultPermissionPurpose(params)
-}
-
-function explicitPortalCode(value: string | null | undefined, maxLength = 12): string | null {
-  const cleaned = sanitizeCode(value, '', maxLength)
-  return cleaned.length > 0 ? cleaned : null
-}
-
 function getTgtProdatMutation(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep): TgtProdatMutation {
   if (step.family !== 'PRODAT') return {}
 
@@ -1158,7 +1015,7 @@ function buildProdatLineSegments(params: {
   const { portalData, step, refs, transactionType, mutation, lineNo } = params
   const isZ09 = step.code === 'Z09'
   const isZ09D = isZ09DTransaction(transactionType)
-  const startDate = date102FromPortalDate(portalData.reportStartDateTime ?? portalData.agreementStartDateTime, refs.createdLongDate)
+  const startDate = date102FromPortalDate(portalData.agreementStartDateTime, refs.createdLongDate)
 
   const meteringPointId = sanitizeCode(portalData.meteringPointId, '', 35)
   const customerId = sanitizeCode(portalData.customerId, '', 35)
@@ -1177,35 +1034,12 @@ function buildProdatLineSegments(params: {
   const sitePostalCode = sanitizeCode(portalData.sitePostalCode, '', 12)
   const siteCountry = sanitizeCode(portalData.siteCountry, 'SE', 3)
   const lineReference = lineNo === 1 ? refs.externalRef : `${refs.externalRef}-${lineNo}`.slice(0, 35)
-  const isPermissionMessage = isProdatPermissionMessageCode(step.code)
-  const explicitReasonForTransaction = explicitPortalCode(portalData.reasonForTransaction, 12)
-  const reasonForTransaction = isPermissionMessage
-    ? resolvePermissionReasonForTransaction({
-        code: step.code,
-        testCaseCode: portalData.testCustomerLabel.includes('8.1.3') ? '8.1.3' : undefined,
-        explicitReasonForTransaction,
-      })
-    : explicitPortalCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 12) ?? 'Z22'
+  const reasonForTransaction = sanitizeCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 'Z22', 12)
   const meteringMethod = sanitizeCode(portalData.meteringMethod, '', 12)
   const gridAreaId = sanitizeCode(portalData.gridAreaId, '', 12)
   const powerOfAttorneyReference = sanitizeCode(portalData.powerOfAttorneyReference, '', 35)
-  const installationDirection = isPermissionMessage
-    ? resolvePermissionInstallationDirection({
-        code: step.code,
-        explicitInstallationDirection: explicitPortalCode(portalData.installationDirection, 12),
-        reasonForTransaction,
-      })
-    : explicitPortalCode(portalData.installationDirection, 12)
-  const permissionPurpose = isPermissionMessage
-    ? resolvePermissionPurpose({
-        code: step.code,
-        explicitPermissionPurpose: explicitPortalCode(portalData.permissionPurpose, 12),
-        reasonForTransaction,
-        customerId,
-      })
-    : explicitPortalCode(portalData.permissionPurpose, 12)
 
-  const segments: string[] = [meteringPointId ? `LIN+${lineNo}++${meteringPointId}:::9` : `LIN+${lineNo}`]
+  const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`]
 
   if (isZ09) {
     segments.push(...expectedZ09LineDateSegments({ ...portalData, prodatTransactionType: transactionType }, refs))
@@ -1216,51 +1050,12 @@ function buildProdatLineSegments(params: {
     segments.push(`DTM+92:${startDate}0000:203`)
   }
 
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.reportEndDateTime) {
-    segments.push(`DTM+93:${date203FromPortalDate(portalData.reportEndDateTime, refs.createdLongDate)}:203`)
-  }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionTimestamp) {
-    segments.push(`DTM+171:${date203FromPortalDate(portalData.permissionTimestamp, refs.createdLongDate)}:203`)
-  }
-
-  if (reasonForTransaction) {
-    segments.push('CCI++Z13')
-    segments.push(isPermissionMessage ? prodatCav260(reasonForTransaction) : `CAV+${reasonForTransaction}`)
-  }
+  segments.push('CCI++Z13')
+  segments.push(`CAV+${reasonForTransaction}`)
 
   if (meteringMethod && !(isZ09 && isZ09D)) {
     segments.push('CCI++Z04')
-    segments.push(isPermissionMessage ? prodatCav260(meteringMethod) : `CAV+${meteringMethod}`)
-  }
-
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.reportingFrequency) {
-    segments.push('CCI++Z12')
-    segments.push(prodatCav260(portalData.reportingFrequency))
-  }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.energyProductId) {
-    // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7111,
-    // med GS1 som kodlisteansvarig. Det ska inte renderas som PIA i permission-flöden.
-    segments.push('CCI++Z14')
-    segments.push(prodatEnergyProductCav(portalData.energyProductId))
-  }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && installationDirection) {
-    segments.push('CCI++Z22')
-    segments.push(prodatCav260(installationDirection))
-  }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionStatus) {
-    segments.push('CCI++Z23')
-    segments.push(prodatCav260(portalData.permissionStatus))
-  }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && permissionPurpose) {
-    segments.push('CCI++Z24')
-    segments.push(prodatCav260(permissionPurpose))
-  }
-  if ((step.code === 'Z15' || step.code === 'Z18') && portalData.permissionEndReason) {
-    segments.push('CCI++Z25')
-    segments.push(prodatCav260(portalData.permissionEndReason))
-  }
-  if ((step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionId) {
-    segments.push(`RFF+Z09:${sanitizeCode(portalData.permissionId, '', 35)}`)
+    segments.push(`CAV+${meteringMethod}`)
   }
 
   if (!mutation.omitLineItem) {
@@ -1359,11 +1154,6 @@ function buildPortalProdatSegments(params: EdielTgtDraftBuildParams, step: Ediel
 
 function buildProdatDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep, refs: DraftReferences): string {
   const { bodySegments } = buildPortalProdatSegments(params, step, refs)
-  const applicationReference = getTgtProdatApplicationReference({
-    roleCode: params.roleCode,
-    testCaseCode: params.testCaseCode,
-    messageCode: step.code,
-  })
 
   return buildInterchange({
     refs,
@@ -1371,23 +1161,19 @@ function buildProdatDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpect
     senderSubAddress: EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
     receiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
     receiverSubAddress: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-    applicationReference,
+    applicationReference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
     family: 'PRODAT',
     version: '26A',
     bodySegments,
   })
 }
 
-function buildAckDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep, refs: DraftReferences): string {
+function buildAckDraft(step: EdielTgtExpectedStep, refs: DraftReferences): string {
   const family = step.family === 'UTILTS_ERR' ? 'UTILTS_ERR' : step.family
   const outcome = step.outcome ?? 'positive'
   const isContrl = family === 'CONTRL'
   const isNegative = outcome === 'negative'
-  const applicationReference = getTgtProdatApplicationReference({
-    roleCode: params.roleCode,
-    testCaseCode: params.testCaseCode,
-    messageCode: step.code,
-  })
+  const applicationReference = EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
 
   const bodySegments = isContrl
     ? [
@@ -1522,19 +1308,17 @@ function prodatStepRequiresMeteringMethod(step: EdielTgtExpectedStep, portalData
   return true
 }
 
-function prodatStepRequiresObjectCoverage(step: EdielTgtExpectedStep, portalData: TgtPortalCustomerData): boolean {
+function prodatStepRequiresObjectCoverage(step: EdielTgtExpectedStep): boolean {
   if (step.family !== 'PRODAT') return false
 
-  // Z13 är en tillståndsbegäran från energitjänsteföretag. I S8/S9-portaldatat
-  // kan Z13-kolumnen sakna 209/260, medan efterföljande Z14 pekar ut de
-  // anläggningar som nätägaren godkänner/nekar. Blockera därför inte ett
-  // korrekt Z13-utkast bara för att objekt-/nätområdesfält är tomma i Z13-kolumnen.
-  const transactionType = normalizeTgtCode(portalData.prodatTransactionType ?? portalData.reasonForTransaction)
-  if (step.code === 'Z13' && transactionType.startsWith('Z13')) return false
+  // Z13 är en tillståndsbegäran från energitjänsteföretag till nätägare.
+  // I S8/S9 saknar portalens Z13-testdata ofta anläggnings-id och nätområde.
+  // GridCore får därför inte blockera Z13 internt på 209/260; Edielportalen
+  // är facit för själva Z13-innehållet. Övriga PRODAT-flöden behåller kravet.
+  if (step.code === 'Z13') return false
 
   return true
 }
-
 
 function validatePortalDataCoverage(
   issues: EdielTgtDraftValidationIssue[],
@@ -1544,7 +1328,7 @@ function validatePortalDataCoverage(
 ) {
   if (step.family !== 'PRODAT' || !portalData) return
 
-  const requiresObjectCoverage = prodatStepRequiresObjectCoverage(step, portalData)
+  const requiresObjectCoverage = prodatStepRequiresObjectCoverage(step)
   const requiredValues = [
     ...(requiresObjectCoverage
       ? [['metering_point_id', portalData.meteringPointId, 'Anläggnings-id saknas i payload.'] as const]
@@ -1711,8 +1495,8 @@ export function validateEdielTgtDraft(rawPayload: string, step: EdielTgtExpected
   if (!normalized.includes(EDIEL_TGT_TESTSYSTEM_EDIEL_ID)) {
     pushIssue(issues, 'error', 'missing_receiver', 'Saknar Edielportalens test-ID', `Utkastet ska innehålla Edielportalens test-ID ${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}.`)
   }
-  if (step.family === 'PRODAT' && !normalized.includes(EDIEL_TGT_PRODAT_APPLICATION_REFERENCE) && !normalized.includes(EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE)) {
-    pushIssue(issues, 'error', 'missing_application_reference', 'Saknar Application Reference', `PRODAT TGT ska använda ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}; ESCO/tillståndstest använder ${EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE}.`)
+  if (step.family === 'PRODAT' && !normalized.includes(EDIEL_TGT_PRODAT_APPLICATION_REFERENCE)) {
+    pushIssue(issues, 'error', 'missing_application_reference', 'Saknar Application Reference', `PRODAT TGT ska använda ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}.`)
   }
 
   if (step.family === 'PRODAT' && (normalized.includes('UNKNOWN') || normalized.includes('999999999999999999'))) {
@@ -1769,11 +1553,6 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
 
   const refs = nowRefs(params.testCaseCode, params.stepNo)
   const portalBuild = step.family === 'PRODAT' ? buildPortalProdatSegments(params, step, refs) : null
-  const prodatApplicationReference = getTgtProdatApplicationReference({
-    roleCode: params.roleCode,
-    testCaseCode: params.testCaseCode,
-    messageCode: step.code,
-  })
   const rawPayload = step.family === 'PRODAT'
     ? buildInterchange({
         refs,
@@ -1781,14 +1560,14 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
         senderSubAddress: EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
         receiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
         receiverSubAddress: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-        applicationReference: prodatApplicationReference,
+        applicationReference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
         family: 'PRODAT',
         version: '26A',
         bodySegments: portalBuild?.bodySegments ?? [],
       })
     : step.family === 'UTILTS'
       ? buildUtiltsDraft(params, step, refs)
-      : buildAckDraft(params, step, refs)
+      : buildAckDraft(step, refs)
 
   const validationIssues = validateEdielTgtDraft(rawPayload, step, portalBuild?.portalData ?? null)
   const hasErrors = validationIssues.some((issue) => issue.severity === 'error')
@@ -1832,7 +1611,7 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
       interchangeReference: refs.interchangeRef,
       externalReference: refs.externalRef,
       transactionReference: refs.transactionRef,
-      applicationReference: step.family === 'PRODAT' || step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? prodatApplicationReference : null,
+      applicationReference: step.family === 'PRODAT' || step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE : null,
       rawPayload,
       parsedPayload: {
         source: 'tgt_draft_generator_portal_ready_v4',
@@ -1842,7 +1621,6 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
         stepNo: params.stepNo,
         expectedTitle: step.title,
         readyForDownload: !hasErrors,
-        applicationReference: prodatApplicationReference,
         validationIssues,
         references: refs,
         portalData: portalBuild?.portalData ?? null,
