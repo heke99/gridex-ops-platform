@@ -137,6 +137,12 @@ function agreementReferenceFromSegments(segments: readonly EdifactSegment[]): st
   return refs.ANJ?.[0] ?? refs.ACW?.[0] ?? null
 }
 
+
+function permissionMessageCode(message: EdielMessageRow): string {
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  return String(facts.messageCode ?? message.message_code ?? '').toUpperCase()
+}
+
 function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessageFacts {
   const facts = parseEdifactMessageFacts(message.raw_payload)
   const globalSegments = facts.segments.filter((segment) => {
@@ -147,7 +153,7 @@ function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessage
   const globalReferences = referencesByQualifier(globalSegments)
 
   return {
-    messageCode: String(message.message_code ?? facts.messageCode ?? '').toUpperCase(),
+    messageCode: String(facts.messageCode ?? message.message_code ?? '').toUpperCase(),
     messageReference: facts.documentReference ?? message.external_reference ?? null,
     interchangeReference: facts.interchangeReference ?? message.interchange_reference ?? null,
     globalReferences,
@@ -303,7 +309,7 @@ export async function resolveProdatPermissionAperakValidationIssues(params: {
   message: EdielMessageRow
 }): Promise<ProdatPermissionValidationIssue[]> {
   const family = String(params.message.message_family ?? '').toUpperCase()
-  const code = String(params.message.message_code ?? '').toUpperCase()
+  const code = permissionMessageCode(params.message)
   const direction = String(params.message.direction ?? '').toLowerCase()
 
   if (family !== 'PRODAT' || direction !== 'inbound') return []
@@ -490,22 +496,10 @@ function validatePermissionZ15(params: {
   const endReason = normalize(line.permissionEndReason)
   const issues: ProdatPermissionDecisionIssue[] = []
 
-  if (params.context?.hasMatchingPriorPermissionFlow === false) {
-    issues.push(permissionDecisionIssue({
-      ruleKey: 'permission_flow_not_found',
-      ercCode: '40',
-      fieldCode: '105',
-      text: 'The object could not be identified',
-      line,
-      actualValue: line.meteringPointId ?? line.lineReference,
-      expectedValue: 'active permission or matching Z18 request',
-    }))
-  }
-
   if (status && status !== 'A75') {
     issues.push(permissionDecisionIssue({
       ruleKey: 'permission_status_invalid',
-      ercCode: '41',
+      ercCode: '42',
       fieldCode: '322',
       text: `Felaktigt tillståndets status ${status}`,
       line,
@@ -517,12 +511,24 @@ function validatePermissionZ15(params: {
   if (endReason && !['B79', 'B80'].includes(endReason)) {
     issues.push(permissionDecisionIssue({
       ruleKey: 'permission_end_reason_invalid',
-      ercCode: '41',
+      ercCode: '42',
       fieldCode: '324',
       text: `Felaktig orsak till tillståndets upphörande ${endReason}`,
       line,
       actualValue: endReason,
       expectedValue: 'B79/B80',
+    }))
+  }
+
+  if (issues.length === 0 && params.context?.hasMatchingPriorPermissionFlow === false) {
+    issues.push(permissionDecisionIssue({
+      ruleKey: 'permission_flow_not_found',
+      ercCode: '40',
+      fieldCode: '105',
+      text: 'The object could not be identified',
+      line,
+      actualValue: line.meteringPointId ?? line.lineReference,
+      expectedValue: 'active permission or matching Z18 request',
     }))
   }
 
@@ -536,7 +542,7 @@ export function validateProdatPermissionMessage(params: {
 }): ProdatPermissionValidationResult {
   const family = String(params.message.message_family ?? '').toUpperCase()
   const direction = String(params.message.direction ?? '').toLowerCase()
-  const code = String(params.message.message_code ?? '').toUpperCase()
+  const code = permissionMessageCode(params.message)
   const selectedTgtCaseCode = normalizedTgtCaseCode(params.testData)
 
   if (family !== 'PRODAT' || direction !== 'inbound') {
