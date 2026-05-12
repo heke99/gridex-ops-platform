@@ -66,6 +66,12 @@ export type ProdatEngineProductionContext = {
   siteCountry?: string | null
   reasonForTransaction?: string | null
   meteringMethod?: string | null
+  reportingFrequency?: string | null
+  installationDirection?: string | null
+  permissionStatus?: string | null
+  permissionPurpose?: string | null
+  permissionEndReason?: string | null
+  energyProductId?: string | null
   powerOfAttorneyReference?: string | null
   balanceResponsibleId?: string | null
 }

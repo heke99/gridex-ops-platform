@@ -67,6 +67,29 @@ function resolvePermissionReasonForCode(code: string, explicitValue?: string | n
   return normalizeReasonForTransaction(explicitValue, defaultPermissionReasonForCode(code))
 }
 
+function defaultPermissionInstallationDirection(code: string): string | null {
+  // Z13 ska innehålla typ av anläggning/flödesriktning. När masterdata saknar
+  // detta i ett SaaS-/TGT-flöde använder vi Combined som säker fallback.
+  if (code === 'Z13') return 'E19'
+  return null
+}
+
+function resolvePermissionInstallationDirection(code: string, explicitValue?: string | null): string | null {
+  const normalized = sanitizeProdatToken(explicitValue ?? null, 12)
+  return normalized || defaultPermissionInstallationDirection(code)
+}
+
+function defaultPermissionPurpose(code: string, reasonForTransaction?: string | null): string | null {
+  if (code !== 'Z13') return null
+  if (reasonForTransaction === 'S18') return 'B72'
+  return 'B71'
+}
+
+function resolvePermissionPurpose(code: string, explicitValue?: string | null, reasonForTransaction?: string | null): string | null {
+  const normalized = sanitizeProdatToken(explicitValue ?? null, 12)
+  return normalized || defaultPermissionPurpose(code, reasonForTransaction)
+}
+
 function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?: string | null): string | null {
   const override = portalString(portalObject(portalData, 'testCaseOverrides'), 'meteringMethod')
   return sanitizeProdatToken(override ?? portalString(portalData, 'meteringMethod') ?? fallback ?? null, 12)
@@ -95,6 +118,12 @@ export function buildGenericProdatSegments(input: {
     ? resolvePermissionReasonForCode(context.code, explicitReasonForTransaction)
     : normalizeReasonForTransaction(explicitReasonForTransaction, 'Z22')
   const meteringMethod = resolveMeteringMethod(portalData, context.meteringMethod)
+  const installationDirection = isPermissionMessage
+    ? resolvePermissionInstallationDirection(context.code, portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null)
+    : sanitizeProdatToken(portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null, 12)
+  const permissionPurpose = isPermissionMessage
+    ? resolvePermissionPurpose(context.code, portalString(portalData, 'permissionPurpose') ?? context.permissionPurpose ?? null, reasonForTransaction)
+    : sanitizeProdatToken(portalString(portalData, 'permissionPurpose') ?? context.permissionPurpose ?? null, 12)
 
   const meterPointId =
     portalString(portalData, 'facilityId') ??
@@ -125,6 +154,34 @@ export function buildGenericProdatSegments(input: {
 
   if (meteringMethod) {
     segments.push('CCI++Z04', `CAV+${meteringMethod}`)
+  }
+
+  const reportingFrequency = sanitizeProdatToken(portalString(portalData, 'reportingFrequency') ?? context.reportingFrequency ?? null, 12)
+  if (isPermissionMessage && reportingFrequency) {
+    segments.push('CCI++Z12', `CAV+${reportingFrequency}`)
+  }
+
+  if (isPermissionMessage && installationDirection) {
+    segments.push('CCI++Z09', `CAV+${installationDirection}`)
+  }
+
+  const permissionStatus = sanitizeProdatToken(portalString(portalData, 'permissionStatus') ?? context.permissionStatus ?? null, 12)
+  if (isPermissionMessage && permissionStatus) {
+    segments.push('CCI++Z35', `CAV+${permissionStatus}`)
+  }
+
+  if (isPermissionMessage && permissionPurpose) {
+    segments.push('CCI++Z36', `CAV+${permissionPurpose}`)
+  }
+
+  const permissionEndReason = sanitizeProdatToken(portalString(portalData, 'permissionEndReason') ?? context.permissionEndReason ?? null, 12)
+  if (isPermissionMessage && permissionEndReason) {
+    segments.push('CCI++Z37', `CAV+${permissionEndReason}`)
+  }
+
+  const energyProductId = sanitizeProdatToken(portalString(portalData, 'energyProductId') ?? context.energyProductId ?? null, 35)
+  if (isPermissionMessage && energyProductId) {
+    segments.push(`PIA+5+${energyProductId}:SRV`)
   }
 
   segments.push(`RFF+LI:${lineItemReference}`)

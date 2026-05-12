@@ -1023,23 +1023,69 @@ function isProdatPermissionMessageCode(code: string): boolean {
   return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
 }
 
-function defaultPermissionReasonForProdatCode(code: string): string | null {
-  // Z13 är en begäran om tillgång till mätdata. I TGT S8.1.1 saknas fält 223
-  // i uppladdad testdata, men PRODAT-strukturen kräver ändå CCI++Z13/CAV.
-  // S17 är standardorsaken för korrekt Z13V. Den här regeln är processbunden
-  // till tillstånds-/ESCO-PRODAT och påverkar inte vanliga Z03/Z04/Z05/Z09.
-  if (code === 'Z13') return 'S17'
+function defaultPermissionReasonForProdatCode(params: {
+  code: string
+  testCaseCode?: string | null
+}): string | null {
+  // Tillstånds-/ESCO-PRODAT får inte ärva leverantörsbytes-defaulten Z22.
+  // Z13 måste däremot alltid bära undertyp i CCI++Z13/CAV. När importerad
+  // TGT-data saknar fält 223 använder vi processens säkra default:
+  // - Z13V  => S17
+  // - Z13VH => S18
+  if (params.code === 'Z13') {
+    if (params.testCaseCode === '8.1.3') return 'S18'
+    return 'S17'
+  }
 
-  // Övriga tillståndsmeddelanden ska inte få en påhittad transaktionstyp här.
-  // De använder explicit fält från testdata/context när det finns.
   return null
 }
 
 function resolvePermissionReasonForTransaction(params: {
   code: string
+  testCaseCode?: string | null
   explicitReasonForTransaction: string | null
 }): string | null {
-  return params.explicitReasonForTransaction ?? defaultPermissionReasonForProdatCode(params.code)
+  return params.explicitReasonForTransaction ?? defaultPermissionReasonForProdatCode(params)
+}
+
+function defaultPermissionInstallationDirection(params: {
+  code: string
+  reasonForTransaction?: string | null
+}): string | null {
+  // Fält 513 är obligatoriskt i Z13. TGT-data för Z13V/Z13VH anger E19
+  // (Combined). I produktion ska riktig anläggningsriktning användas när den
+  // finns; fallbacken används bara när källa saknas.
+  if (params.code === 'Z13') return 'E19'
+  return null
+}
+
+function resolvePermissionInstallationDirection(params: {
+  code: string
+  explicitInstallationDirection: string | null
+  reasonForTransaction?: string | null
+}): string | null {
+  return params.explicitInstallationDirection ?? defaultPermissionInstallationDirection(params)
+}
+
+function defaultPermissionPurpose(params: {
+  code: string
+  reasonForTransaction?: string | null
+  customerId?: string | null
+}): string | null {
+  if (params.code !== 'Z13') return null
+  // Fält 323 ska anges för privatkunder i Z13. Z13V använder B71
+  // (samtycke), medan Z13VH/historik använder B72 (avtal).
+  if (params.reasonForTransaction === 'S18') return 'B72'
+  return 'B71'
+}
+
+function resolvePermissionPurpose(params: {
+  code: string
+  explicitPermissionPurpose: string | null
+  reasonForTransaction?: string | null
+  customerId?: string | null
+}): string | null {
+  return params.explicitPermissionPurpose ?? defaultPermissionPurpose(params)
 }
 
 function explicitPortalCode(value: string | null | undefined, maxLength = 12): string | null {
@@ -1121,11 +1167,30 @@ function buildProdatLineSegments(params: {
   const isPermissionMessage = isProdatPermissionMessageCode(step.code)
   const explicitReasonForTransaction = explicitPortalCode(portalData.reasonForTransaction, 12)
   const reasonForTransaction = isPermissionMessage
-    ? resolvePermissionReasonForTransaction({ code: step.code, explicitReasonForTransaction })
+    ? resolvePermissionReasonForTransaction({
+        code: step.code,
+        testCaseCode: portalData.testCustomerLabel.includes('8.1.3') ? '8.1.3' : undefined,
+        explicitReasonForTransaction,
+      })
     : explicitPortalCode(portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType), 12) ?? 'Z22'
   const meteringMethod = sanitizeCode(portalData.meteringMethod, '', 12)
   const gridAreaId = sanitizeCode(portalData.gridAreaId, '', 12)
   const powerOfAttorneyReference = sanitizeCode(portalData.powerOfAttorneyReference, '', 35)
+  const installationDirection = isPermissionMessage
+    ? resolvePermissionInstallationDirection({
+        code: step.code,
+        explicitInstallationDirection: explicitPortalCode(portalData.installationDirection, 12),
+        reasonForTransaction,
+      })
+    : explicitPortalCode(portalData.installationDirection, 12)
+  const permissionPurpose = isPermissionMessage
+    ? resolvePermissionPurpose({
+        code: step.code,
+        explicitPermissionPurpose: explicitPortalCode(portalData.permissionPurpose, 12),
+        reasonForTransaction,
+        customerId,
+      })
+    : explicitPortalCode(portalData.permissionPurpose, 12)
 
   const segments: string[] = [meteringPointId ? `LIN+${lineNo}++${meteringPointId}:::9` : `LIN+${lineNo}`]
 
@@ -1159,24 +1224,24 @@ function buildProdatLineSegments(params: {
     segments.push('CCI++Z12')
     segments.push(`CAV+${sanitizeCode(portalData.reportingFrequency, '', 12)}`)
   }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.energyProductId) {
-    segments.push(`PIA+5+${sanitizeCode(portalData.energyProductId, '', 35)}:SRV`)
-  }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.installationDirection) {
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && installationDirection) {
     segments.push('CCI++Z09')
-    segments.push(`CAV+${sanitizeCode(portalData.installationDirection, '', 12)}`)
+    segments.push(`CAV+${sanitizeCode(installationDirection, '', 12)}`)
   }
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionStatus) {
     segments.push('CCI++Z35')
     segments.push(`CAV+${sanitizeCode(portalData.permissionStatus, '', 12)}`)
   }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionPurpose) {
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && permissionPurpose) {
     segments.push('CCI++Z36')
-    segments.push(`CAV+${sanitizeCode(portalData.permissionPurpose, '', 12)}`)
+    segments.push(`CAV+${sanitizeCode(permissionPurpose, '', 12)}`)
   }
   if ((step.code === 'Z15' || step.code === 'Z18') && portalData.permissionEndReason) {
     segments.push('CCI++Z37')
     segments.push(`CAV+${sanitizeCode(portalData.permissionEndReason, '', 12)}`)
+  }
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.energyProductId) {
+    segments.push(`PIA+5+${sanitizeCode(portalData.energyProductId, '', 35)}:SRV`)
   }
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionId) {
     segments.push(`RFF+Z13:${sanitizeCode(portalData.permissionId, '', 35)}`)
