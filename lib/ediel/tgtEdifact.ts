@@ -1052,9 +1052,11 @@ function defaultPermissionInstallationDirection(params: {
   code: string
   reasonForTransaction?: string | null
 }): string | null {
-  // Fält 513 är obligatoriskt i Z13. TGT-data för Z13V/Z13VH anger E19
-  // (Combined). I produktion ska riktig anläggningsriktning användas när den
-  // finns; fallbacken används bara när källa saknas.
+  // Fält 513 (Riktning / Type of Metering Point) är obligatoriskt i Z13.
+  // Enligt PRODAT v4 ligger detta som SG14/CCI+Z22 med värde i CAV.
+  // TGT-data för 8.1.1 anger E19 (Combined). I produktion ska verklig
+  // anläggningsriktning användas när den finns; fallbacken används bara
+  // när källan saknar explicit värde.
   if (params.code === 'Z13') return 'E19'
   return null
 }
@@ -1224,27 +1226,30 @@ function buildProdatLineSegments(params: {
     segments.push('CCI++Z12')
     segments.push(`CAV+${sanitizeCode(portalData.reportingFrequency, '', 12)}`)
   }
+  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.energyProductId) {
+    // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7110.
+    // Det ska inte renderas som PIA i svenska PRODAT permission-flöden.
+    segments.push('CCI++Z14')
+    segments.push(`CAV+:::${sanitizeCode(portalData.energyProductId, '', 35)}`)
+  }
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && installationDirection) {
-    segments.push('CCI++Z09')
+    segments.push('CCI++Z22')
     segments.push(`CAV+${sanitizeCode(installationDirection, '', 12)}`)
   }
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionStatus) {
-    segments.push('CCI++Z35')
+    segments.push('CCI++Z23')
     segments.push(`CAV+${sanitizeCode(portalData.permissionStatus, '', 12)}`)
   }
   if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && permissionPurpose) {
-    segments.push('CCI++Z36')
+    segments.push('CCI++Z24')
     segments.push(`CAV+${sanitizeCode(permissionPurpose, '', 12)}`)
   }
   if ((step.code === 'Z15' || step.code === 'Z18') && portalData.permissionEndReason) {
-    segments.push('CCI++Z37')
+    segments.push('CCI++Z25')
     segments.push(`CAV+${sanitizeCode(portalData.permissionEndReason, '', 12)}`)
   }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.energyProductId) {
-    segments.push(`PIA+5+${sanitizeCode(portalData.energyProductId, '', 35)}:SRV`)
-  }
-  if ((step.code === 'Z13' || step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionId) {
-    segments.push(`RFF+Z13:${sanitizeCode(portalData.permissionId, '', 35)}`)
+  if ((step.code === 'Z14' || step.code === 'Z15' || step.code === 'Z18') && portalData.permissionId) {
+    segments.push(`RFF+Z09:${sanitizeCode(portalData.permissionId, '', 35)}`)
   }
 
   if (!mutation.omitLineItem) {

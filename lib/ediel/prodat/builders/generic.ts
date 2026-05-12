@@ -68,8 +68,9 @@ function resolvePermissionReasonForCode(code: string, explicitValue?: string | n
 }
 
 function defaultPermissionInstallationDirection(code: string): string | null {
-  // Z13 ska innehålla typ av anläggning/flödesriktning. När masterdata saknar
-  // detta i ett SaaS-/TGT-flöde använder vi Combined som säker fallback.
+  // Fält 513 (Riktning / Type of Metering Point) skickas som SG14/CCI+Z22.
+  // När masterdata saknar värde i ett SaaS-/TGT-flöde använder vi Combined
+  // som säker fallback för Z13.
   if (code === 'Z13') return 'E19'
   return null
 }
@@ -161,27 +162,29 @@ export function buildGenericProdatSegments(input: {
     segments.push('CCI++Z12', `CAV+${reportingFrequency}`)
   }
 
+  const energyProductId = sanitizeProdatToken(portalString(portalData, 'energyProductId') ?? context.energyProductId ?? null, 35)
+  if (isPermissionMessage && energyProductId) {
+    // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7110,
+    // inte som PIA i permission-flöden.
+    segments.push('CCI++Z14', `CAV+:::${energyProductId}`)
+  }
+
   if (isPermissionMessage && installationDirection) {
-    segments.push('CCI++Z09', `CAV+${installationDirection}`)
+    segments.push('CCI++Z22', `CAV+${installationDirection}`)
   }
 
   const permissionStatus = sanitizeProdatToken(portalString(portalData, 'permissionStatus') ?? context.permissionStatus ?? null, 12)
   if (isPermissionMessage && permissionStatus) {
-    segments.push('CCI++Z35', `CAV+${permissionStatus}`)
+    segments.push('CCI++Z23', `CAV+${permissionStatus}`)
   }
 
   if (isPermissionMessage && permissionPurpose) {
-    segments.push('CCI++Z36', `CAV+${permissionPurpose}`)
+    segments.push('CCI++Z24', `CAV+${permissionPurpose}`)
   }
 
   const permissionEndReason = sanitizeProdatToken(portalString(portalData, 'permissionEndReason') ?? context.permissionEndReason ?? null, 12)
   if (isPermissionMessage && permissionEndReason) {
-    segments.push('CCI++Z37', `CAV+${permissionEndReason}`)
-  }
-
-  const energyProductId = sanitizeProdatToken(portalString(portalData, 'energyProductId') ?? context.energyProductId ?? null, 35)
-  if (isPermissionMessage && energyProductId) {
-    segments.push(`PIA+5+${energyProductId}:SRV`)
+    segments.push('CCI++Z25', `CAV+${permissionEndReason}`)
   }
 
   segments.push(`RFF+LI:${lineItemReference}`)
