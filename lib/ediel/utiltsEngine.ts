@@ -4,7 +4,7 @@ import type { EdielAckOutcome, EdielMessageRow } from '@/lib/ediel/types'
 import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts'
 import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
 
-export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-05-production-utilts-runtime-v2-e31-sch-field511'
+export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-05-production-utilts-runtime-v3-e31-sch-functional-err'
 
 export type UtiltsRuntimeMessageCode =
   | 'S01'
@@ -512,6 +512,39 @@ function groupHasMeterNumber(group: UtiltsTransactionGroup): boolean {
 
 function groupHasMeterReadingQuantity(group: UtiltsTransactionGroup): boolean {
   return parseQuantitiesFromGroup(group).some((qty) => ['101', '203', '204'].includes(String(qty.qualifier ?? '').toUpperCase()))
+}
+
+
+function groupCciCharacteristicValues(group: UtiltsTransactionGroup, cciCode: string): string[] {
+  const normalizedCode = cciCode.toUpperCase()
+  const values: string[] = []
+
+  for (let index = 0; index < group.segments.length; index += 1) {
+    const segment = group.segments[index]
+    const upper = String(segment ?? '').toUpperCase()
+    if (!upper.startsWith('CCI+')) continue
+    if (!upper.includes(`+${normalizedCode}`) && !upper.includes(`:${normalizedCode}`)) continue
+
+    const next = group.segments[index + 1]
+    if (!next || !String(next).toUpperCase().startsWith('CAV+')) {
+      values.push('')
+      continue
+    }
+
+    const rawValue = String(next).replace(/^CAV\+/i, '').trim()
+    values.push(rawValue)
+  }
+
+  return values
+}
+
+function groupHasMultipleSettlementShareDimensions(group: UtiltsTransactionGroup): boolean {
+  // UTILTS E31 SCH is processable as one final profile-share dimension per
+  // transaction. Multiple Z01 characteristic blocks in the same transaction mean
+  // the share cannot be safely matched to one settlement basis / business object.
+  // That is a functional/processability fault and must go to UTILTS_ERR, while a
+  // single negative QTY+136 remains a guide/application APERAK error.
+  return groupCciCharacteristicValues(group, 'Z01').length > 1
 }
 
 
@@ -1081,6 +1114,21 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
             referenceNumber: transactionReference,
             lineItemReference: transactionReference,
           }))
+
+          if (groupHasMultipleSettlementShareDimensions(group)) {
+            issues.push(buildIssue({
+              severity: 'error',
+              kind: 'functional',
+              code: 'UTILTS_E31_MULTIPLE_SETTLEMENT_SHARE_DIMENSIONS',
+              title: 'E31 kan inte processas mot en entydig andelstalsdimension',
+              description: 'UTILTS-E31 SCH innehåller negativt slutligt andelstal i en transaktion med flera Z01-andelstalsdimensioner. Meddelandet är syntaktiskt/anvisningsmässigt läsbart men kan inte behandlas som ett entydigt slutligt andelstal.',
+              segment: negativeFinalShareQuantity.raw,
+              utiltsErrCode: 'E49',
+              referenceQualifier: 'TN',
+              referenceNumber: transactionReference,
+              lineItemReference: transactionReference,
+            }))
+          }
         }
       }
     }

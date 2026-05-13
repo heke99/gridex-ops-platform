@@ -515,9 +515,24 @@ function utiltsTgtGroupGridArea(group: UtiltsTgtGroup): string | null {
   return utiltsTgtFirstComponent(utiltsTgtElement(hit, 2))
 }
 
+function utiltsTgtGroupCciCount(group: UtiltsTgtGroup, cciCode: string): number {
+  const normalizedCode = cciCode.toUpperCase()
+  return group.segments.filter((segment) => {
+    const upper = String(segment ?? '').toUpperCase()
+    return upper.startsWith('CCI+') && (upper.includes(`+${normalizedCode}`) || upper.includes(`:${normalizedCode}`))
+  }).length
+}
+
+function utiltsTgtGroupHasMultipleSettlementShareDimensions(group: UtiltsTgtGroup): boolean {
+  return utiltsTgtGroupCciCount(group, 'Z01') > 1
+}
+
 function rawLooksLikeUtiltsE31SchFunctionalError(rawText: string): boolean {
   const groups = splitUtiltsTgtGroups(rawText)
-  return groups.some((group) => String(utiltsTgtGroupGridArea(group) ?? '').toUpperCase() === 'XYZ')
+  return groups.some((group) => (
+    String(utiltsTgtGroupGridArea(group) ?? '').toUpperCase() === 'XYZ' ||
+    (utiltsTgtGroupHasMultipleSettlementShareDimensions(group) && utiltsTgtGroupHasNegativeFinalShare(group))
+  ))
 }
 
 function textLooksLikeUtiltsE31SchFunctionalError(rawText: string): boolean {
