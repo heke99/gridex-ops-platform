@@ -1123,7 +1123,10 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
               title: 'E31 kan inte processas mot en entydig andelstalsdimension',
               description: 'UTILTS-E31 SCH innehåller negativt slutligt andelstal i en transaktion med flera Z01-andelstalsdimensioner. Meddelandet är syntaktiskt/anvisningsmässigt läsbart men kan inte behandlas som ett entydigt slutligt andelstal.',
               segment: negativeFinalShareQuantity.raw,
-              utiltsErrCode: 'E49',
+              // E31-SCH with multiple Z01 settlement-share dimensions cannot be
+              // matched to one final share. The portal expects this functional
+              // rejection as reason E50, not the generic unknown-grid-area E49.
+              utiltsErrCode: 'E50',
               referenceQualifier: 'TN',
               referenceNumber: transactionReference,
               lineItemReference: transactionReference,

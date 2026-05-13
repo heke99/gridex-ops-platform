@@ -763,6 +763,15 @@ function buildUtiltsErrSegments(params: {
         segments.push(`LOC+239+${sanitizeEdifactToken(group.gridAreaId) ?? group.gridAreaId}:SVK:260`)
       }
 
+      if (sourceCode === 'E31') {
+        // E31 UTILTS-ERR keeps the settlement responsible party and supplier
+        // inside the SG5 transaction group. The Ediel portal validates these
+        // as mandatory for E31-SCH error responses; keeping them scoped to E31
+        // avoids changing earlier passed E66/S02 UTILTS-ERR flows.
+        segments.push(copiedUtiltsSegment(group?.settlementResponsibleSegment ?? null, 'NAD+DDK'))
+        segments.push(copiedUtiltsSegment(group?.supplierSegment ?? null, 'NAD+DDQ'))
+      }
+
       segments.push(copiedUtiltsSegment(group?.productIdSegment ?? null, 'PIA+'))
       segments.push(copiedUtiltsSegment(group?.deliveryPeriodSegment ?? null, 'DTM+324'))
       segments.push(copiedUtiltsSegment(group?.reasonSegment ?? null, 'STS+7'))

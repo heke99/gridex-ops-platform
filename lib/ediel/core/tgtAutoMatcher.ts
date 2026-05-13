@@ -545,6 +545,7 @@ function textLooksLikeUtiltsE31SchFunctionalError(rawText: string): boolean {
     normalized.includes('FEL ANTAL') ||
     normalized.includes('OBSERVATION COUNT') ||
     normalized.includes('E49') ||
+    normalized.includes('E50') ||
     normalized.includes('E87') ||
     rawLooksLikeUtiltsE31SchFunctionalError(rawText)
   )
