@@ -167,7 +167,7 @@ export default function EdielOperationalBridgePanel({
         <div className="flex flex-wrap gap-2">
           <Badge tone="green">filbaserad motor</Badge>
           <Badge tone={summary.smtpEcpEnabled ? 'red' : 'yellow'}>SMTP/ECP ej aktivt</Badge>
-          <Badge tone="blue">Gridex Ediel-ID 21660</Badge>
+          <Badge tone="blue">Ediel-id via route/runtime</Badge>
         </div>
       </div>
 

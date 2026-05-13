@@ -4,7 +4,6 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
 import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
 import EdielTgtWorkbenchPanel from '@/components/admin/ediel/EdielTgtWorkbenchPanel'
-import EdielAgtWorkbenchPanel from '@/components/admin/ediel/EdielAgtWorkbenchPanel'
 import EdielProductionProdatPanel from '@/components/admin/ediel/EdielProductionProdatPanel'
 import EdielOperationalBridgePanel from '@/components/admin/ediel/EdielOperationalBridgePanel'
 import EdielOperationalVerificationPanel from '@/components/admin/ediel/EdielOperationalVerificationPanel'
@@ -1223,8 +1222,10 @@ export default async function AdminEdielPage() {
                 Hämta IMAP nu
               </button>
             </form>
-            <Badge tone="blue">Gridex Ediel-ID 21660</Badge>
-            <Badge tone="blue">Edielportalen/TGT 91100</Badge>
+            <Link href="/admin/ediel/agt" className="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-800">
+              AGT 2026A
+            </Link>
+            <Badge tone="blue">Edielportalen 91100</Badge>
             <Badge tone="green">SMTP/IMAP aktivt</Badge>
             <Badge tone={warningCount > 0 ? 'yellow' : 'green'}>
               signaler: {warningCount}
@@ -1253,16 +1254,17 @@ export default async function AdminEdielPage() {
           />
           <WorkflowStep
             number="4"
-            title="Granska innan ändring"
-            text="Godkänn eller avvisa Z06/Z10 och processa mätvärdesunderlag."
-            href="#safe-apply"
+            title="AGT 2026A"
+            text="Lägg in leverantörens Ediel-id och kontrollera readiness innan aktörstester."
+            href="/admin/ediel/agt"
           />
         </div>
       </section>
 
       <nav className="sticky top-2 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
-        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-8">
+        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-9">
           <QuickNavItem href="#overview" label="Översikt" description="Status och snabbstart" tone="blue" />
+          <QuickNavItem href="/admin/ediel/agt" label="AGT 2026A" description="Leverantörstest" tone="blue" />
           <QuickNavItem href="#inbound-responses" label="IMAP-svar" description="CONTRL/APERAK/PRODAT" tone="green" />
           <QuickNavItem href="#production-prodat" label="PRODAT" description="Kundstyrd Z03/Z04" tone="green" />
           <QuickNavItem href="#tgt" label="TGT-test" description="Testfall och steg" tone="blue" />
@@ -1365,16 +1367,8 @@ export default async function AdminEdielPage() {
       <EdielProductionProdatPanel candidates={prodatProductionCandidates} messages={messages} />
 
       <SectionLabel
-        id="agt"
-        title="3. AGT 2026A för Div3rsa leverantör"
-        description="Aktörstest för Div3rsa AB med Ediel-id 21660. Separat från Gridcore/TGT så att rätt aktörs-id, portaladress och kvittenskrav används."
-      />
-
-      <EdielAgtWorkbenchPanel messages={messages} testRuns={testRuns} />
-
-      <SectionLabel
         id="tgt"
-        title="4. TGT-test och guided mode"
+        title="3. TGT-test och guided mode"
         description="Skapa test run, se testdata, skapa fil för nästa steg och importera portalens svar."
       />
 
@@ -1382,7 +1376,7 @@ export default async function AdminEdielPage() {
 
       <SectionLabel
         id="inbound-cases"
-        title="5. Inbound PRODAT-case och admin-godkännande"
+        title="4. Inbound PRODAT-case och admin-godkännande"
         description="Inkommande PRODAT skapar ett staging-case. Admin godkänner innan kund, anläggning och mätpunkt skapas eller uppdateras."
       />
 
@@ -1390,7 +1384,7 @@ export default async function AdminEdielPage() {
 
       <SectionLabel
         id="operations"
-        title="6. Verksamhetskoppling"
+        title="5. Verksamhetskoppling"
         description="Koppla Ediel-meddelanden till supplier switch, outbound queue, data requests och mätvärden."
       />
 
@@ -1412,7 +1406,7 @@ export default async function AdminEdielPage() {
 
       <SectionLabel
         id="safe-apply"
-        title="7. Safe apply och mätvärdesunderlag"
+        title="4. Safe apply och mätvärdesunderlag"
         description="Granska Z06/Z10-förslag innan masterdata ändras och processa UTILTS till underlag."
       />
 

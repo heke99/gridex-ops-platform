@@ -1,0 +1,324 @@
+import Link from 'next/link'
+import AdminHeader from '@/components/admin/AdminHeader'
+import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { listEdielTestRuns } from '@/lib/ediel/db'
+import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
+import {
+  EDIEL_AGT_PORTAL_EDIEL_ID,
+  EDIEL_AGT_PORTAL_SMTP,
+  EDIEL_AGT_PRODAT_SUB_ADDRESS,
+  EDIEL_AGT_SUPPLIER_2026A_CASES,
+} from '@/lib/ediel/agtRegistry'
+import {
+  createAgtSupplierTestRunAction,
+  createAllAgtSupplierTestRunsAction,
+  saveAgtSupplierRuntimeAction,
+} from '@/app/admin/ediel/agt/actions'
+
+export const dynamic = 'force-dynamic'
+
+function inputClassName() {
+  return 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400'
+}
+
+function Field({
+  label,
+  value,
+}: {
+  label: string
+  value: string | number | boolean | null | undefined
+}) {
+  const display = value === null || value === undefined || String(value).trim() === '' ? '—' : String(value)
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 break-all text-sm text-slate-950">{display}</div>
+    </div>
+  )
+}
+
+function Badge({
+  tone,
+  children,
+}: {
+  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  children: React.ReactNode
+}) {
+  const className =
+    tone === 'green'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+      : tone === 'yellow'
+        ? 'border-amber-200 bg-amber-50 text-amber-700'
+        : tone === 'red'
+          ? 'border-rose-200 bg-rose-50 text-rose-700'
+          : tone === 'blue'
+            ? 'border-blue-200 bg-blue-50 text-blue-700'
+            : 'border-slate-200 bg-slate-50 text-slate-700'
+
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>{children}</span>
+}
+
+function issueTone(severity: 'error' | 'warning' | 'info') {
+  if (severity === 'error') return 'red' as const
+  if (severity === 'warning') return 'yellow' as const
+  return 'blue' as const
+}
+
+function RouteCard({
+  title,
+  family,
+  route,
+  profile,
+}: {
+  title: string
+  family: 'PRODAT' | 'UTILTS'
+  route: Awaited<ReturnType<typeof getEdielAgtSupplierRuntime>>['prodat']['route']
+  profile: Awaited<ReturnType<typeof getEdielAgtSupplierRuntime>>['prodat']['profile']
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-lg font-semibold text-slate-950">{title}</div>
+          <div className="mt-1 text-sm text-slate-500">Runtime route + Ediel profile som AGT använder.</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge tone={route?.is_active ? 'green' : 'red'}>{route?.is_active ? 'route aktiv' : 'route saknas/inaktiv'}</Badge>
+          <Badge tone={profile?.is_enabled ? 'green' : 'red'}>{profile?.is_enabled ? 'profil aktiv' : 'profil saknas/inaktiv'}</Badge>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <Field label="Route name" value={route?.route_name} />
+        <Field label="Target email" value={route?.target_email} />
+        <Field label="Sender Ediel-id" value={profile?.sender_ediel_id} />
+        <Field label="Receiver Ediel-id" value={profile?.receiver_ediel_id} />
+        <Field label="Sender subaddress" value={profile?.sender_sub_address} />
+        <Field label="Receiver subaddress" value={profile?.receiver_sub_address} />
+        <Field label="Ack mode" value={profile?.ack_mode} />
+        <Field label="Encryption" value={profile?.encryption_mode} />
+      </div>
+
+      <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+        {family === 'PRODAT'
+          ? `PRODAT AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID} med subadress ${EDIEL_AGT_PRODAT_SUB_ADDRESS}.`
+          : `UTILTS AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID} utan subadress.`}
+      </div>
+    </div>
+  )
+}
+
+function caseTone(hasRun: boolean) {
+  return hasRun ? 'green' : 'slate'
+}
+
+export default async function EdielAgtPage() {
+  const context = await requireAnyPermissionServer(['communication.read'])
+  const [runtime, testRuns] = await Promise.all([
+    getEdielAgtSupplierRuntime(),
+    listEdielTestRuns(),
+  ])
+
+  const supplierAgtRuns = testRuns.filter(
+    (run) =>
+      run.role_code === 'supplier' &&
+      run.approval_version === '2026A' &&
+      EDIEL_AGT_SUPPLIER_2026A_CASES.some(
+        (testCase) => testCase.suite === run.test_suite && testCase.testCaseCode === run.test_case_code
+      )
+  )
+
+  const runKeySet = new Set(supplierAgtRuns.map((run) => `${run.test_suite}:${run.test_case_code}`))
+  const errorCount = runtime.issues.filter((issue) => issue.severity === 'error').length
+  const warningCount = runtime.issues.filter((issue) => issue.severity === 'warning').length
+
+  return (
+    <div className="space-y-6">
+      <AdminHeader
+        title="AGT 2026A · Leverantör"
+        subtitle="Här fyller du i leverantörens Ediel-id och skapar AGT-routes/testkörningar utan att blanda ihop dem med Gridcore/TGT-id."
+        userEmail={context.email}
+      />
+
+      <section className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Starta inte tester blint</div>
+            <h1 className="mt-1 text-2xl font-semibold text-slate-950">Först ska AGT runtime vara grön</h1>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+              Värdena i formuläret sparas i aktörskort, communication_routes och ediel_route_profiles. Div3rsa-värdena nedan är bara förifyllda defaultvärden i formuläret. Runtime ska läsa från databasen så att samma SaaS-flöde fungerar för andra leverantörer senare.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge tone={runtime.isReady ? 'green' : 'red'}>{runtime.isReady ? 'AGT redo' : 'AGT blockerad'}</Badge>
+            <Badge tone={errorCount > 0 ? 'red' : 'green'}>fel {errorCount}</Badge>
+            <Badge tone={warningCount > 0 ? 'yellow' : 'green'}>varningar {warningCount}</Badge>
+            <Link href="/admin/ediel" className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              Till Ediel
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <Field label="Aktiv aktör" value={runtime.actor?.actor_name} />
+        <Field label="Aktörens Ediel-id" value={runtime.actor?.actor_ediel_id} />
+        <Field label="Aktörsroll" value={runtime.actor?.actor_role} />
+        <Field label="Miljö" value={runtime.actor?.environment} />
+        <Field label="Portal Ediel-id" value={EDIEL_AGT_PORTAL_EDIEL_ID} />
+        <Field label="Portal SMTP" value={EDIEL_AGT_PORTAL_SMTP} />
+      </section>
+
+      {runtime.issues.length > 0 ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-lg font-semibold text-slate-950">Readiness issues</h2>
+          <div className="mt-4 space-y-3">
+            {runtime.issues.map((issue) => (
+              <div key={issue.code} className="rounded-xl border border-white/70 bg-white p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={issueTone(issue.severity)}>{issue.severity}</Badge>
+                  <div className="text-sm font-semibold text-slate-950">{issue.title}</div>
+                </div>
+                <div className="mt-1 text-sm text-slate-700">{issue.description}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
+          Readiness är grön. Du kan starta ett AGT-test i Edielportalen och skapa motsvarande run här som bevislogg.
+        </section>
+      )}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-slate-950">Leverantörens AGT-info</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Det är här du lägger in Div3rsa nu. För framtida SaaS-kunder ändras samma fält till kundens bolagsnamn, Ediel-id och e-post/routing.
+          </p>
+        </div>
+
+        <form action={saveAgtSupplierRuntimeAction} className="grid gap-5 xl:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-900">Aktörskort</div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="text-sm text-slate-700">
+                Bolagsnamn
+                <input name="actor_name" defaultValue={runtime.actor?.actor_name ?? 'Div3rsa AB'} className={inputClassName()} />
+              </label>
+              <label className="text-sm text-slate-700">
+                Leverantörens Ediel-id
+                <input name="actor_ediel_id" defaultValue={runtime.actor?.actor_ediel_id ?? '21660'} className={inputClassName()} />
+              </label>
+              <label className="text-sm text-slate-700">
+                Sender name
+                <input name="sender_name" defaultValue={runtime.actor?.sender_name ?? runtime.actor?.actor_name ?? 'Div3rsa AB'} className={inputClassName()} />
+              </label>
+              <label className="text-sm text-slate-700">
+                Mailbox
+                <input name="mailbox" defaultValue={runtime.actor?.mailbox ?? 'INBOX'} className={inputClassName()} />
+              </label>
+              <label className="text-sm text-slate-700">
+                SMTP from email
+                <input name="smtp_from_email" defaultValue={runtime.actor?.smtp_from_email ?? ''} className={inputClassName()} placeholder="din avsändaradress" />
+              </label>
+              <label className="text-sm text-slate-700">
+                Reply-to
+                <input name="smtp_reply_to_email" defaultValue={runtime.actor?.smtp_reply_to_email ?? ''} className={inputClassName()} placeholder="valfritt" />
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-900">Edielportalen / AGT-routes</div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="text-sm text-slate-700">
+                Mottagare
+                <input name="receiver_name" defaultValue="Edielportalen" className={inputClassName()} />
+              </label>
+              <label className="text-sm text-slate-700">
+                SMTP till portalen
+                <input name="target_email" defaultValue={EDIEL_AGT_PORTAL_SMTP} className={inputClassName()} />
+              </label>
+              <label className="text-sm text-slate-700">
+                PRODAT application reference
+                <input name="prodat_application_reference" defaultValue={runtime.prodat.profile?.application_reference ?? '23-DDQ-PRODAT'} className={inputClassName()} />
+              </label>
+              <label className="text-sm text-slate-700">
+                PRODAT default version
+                <input name="prodat_default_message_version" defaultValue={runtime.prodat.profile?.default_message_version ?? ''} className={inputClassName()} placeholder="valfritt" />
+              </label>
+              <label className="text-sm text-slate-700">
+                UTILTS default version
+                <input name="utilts_default_message_version" defaultValue={runtime.utilts.profile?.default_message_version ?? ''} className={inputClassName()} placeholder="valfritt" />
+              </label>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+              Knappen skapar/uppdaterar ett aktivt test-aktörskort, en PRODAT-route och en UTILTS-route. Den använder inte Gridcore-id 92825 som avsändare.
+            </div>
+          </div>
+
+          <div className="xl:col-span-2">
+            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+              Spara AGT-runtime
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <RouteCard title="PRODAT AGT route" family="PRODAT" route={runtime.prodat.route} profile={runtime.prodat.profile} />
+        <RouteCard title="UTILTS AGT route" family="UTILTS" route={runtime.utilts.route} profile={runtime.utilts.profile} />
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">Testfall 2026A</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Skapa run här när du startar motsvarande test i Edielportalen. Kör ett test åt gången.
+            </p>
+          </div>
+          <form action={createAllAgtSupplierTestRunsAction}>
+            <button className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Skapa alla som draft
+            </button>
+          </form>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          {EDIEL_AGT_SUPPLIER_2026A_CASES.map((testCase) => {
+            const hasRun = runKeySet.has(`${testCase.suite}:${testCase.testCaseCode}`)
+            return (
+              <div key={`${testCase.suite}-${testCase.testCaseCode}`} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-950">{testCase.title}</div>
+                    <div className="mt-1 text-xs text-slate-500">{testCase.suite} · {testCase.messageCode} · {testCase.direction}</div>
+                  </div>
+                  <Badge tone={caseTone(hasRun)}>{hasRun ? 'run finns' : 'ej skapad'}</Badge>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-700">{testCase.notes}</p>
+                <form action={createAgtSupplierTestRunAction} className="mt-4">
+                  <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+                  <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                    Skapa run {testCase.testCaseCode}
+                  </button>
+                </form>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <h2 className="text-lg font-semibold text-slate-950">Praktisk körordning</h2>
+        <p className="mt-2 text-sm leading-6 text-blue-900">
+          Spara AGT-runtime först. När readiness är grön: starta L1 i Edielportalen, skapa L1-run här, skicka/motta meddelanden, hämta IMAP och kontrollera kedjan. Fortsätt sedan L2, L3, L4, L5, L7 och därefter UL1, UL2, UL3, UL4, UL6 om portalen kräver den.
+        </p>
+      </section>
+    </div>
+  )
+}

@@ -56,8 +56,8 @@ export default function EdielWorkbench({
 
   const [senderEdielId, setSenderEdielId] = useState('')
   const [receiverEdielId, setReceiverEdielId] = useState('')
-  const [senderSubAddress, setSenderSubAddress] = useState('GRIDEX')
-  const [receiverSubAddress, setReceiverSubAddress] = useState('EDIEL')
+  const [senderSubAddress, setSenderSubAddress] = useState('')
+  const [receiverSubAddress, setReceiverSubAddress] = useState('')
   const [applicationReference, setApplicationReference] = useState('')
   const [dispatchMailbox, setDispatchMailbox] = useState('INBOX')
   const [receiverEmail, setReceiverEmail] = useState('')
