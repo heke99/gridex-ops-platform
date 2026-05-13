@@ -514,6 +514,26 @@ function groupHasMeterReadingQuantity(group: UtiltsTransactionGroup): boolean {
   return parseQuantitiesFromGroup(group).some((qty) => ['101', '203', '204'].includes(String(qty.qualifier ?? '').toUpperCase()))
 }
 
+const E31_FINAL_SHARE_QUANTITY_QUALIFIERS = new Set(['136'])
+
+function e31FinalShareQuantities(group: UtiltsTransactionGroup): Array<{ qualifier: string | null; value: number | null; raw: string }> {
+  return parseQuantitiesFromGroup(group).filter((qty) => E31_FINAL_SHARE_QUANTITY_QUALIFIERS.has(quantityQualifier(qty.qualifier)))
+}
+
+function groupHasNegativeE31FinalShareQuantity(group: UtiltsTransactionGroup): boolean {
+  return e31FinalShareQuantities(group).some((qty) => qty.value !== null && qty.value < 0)
+}
+
+function groupE31ExpectedMonthlyShareCount(group: UtiltsTransactionGroup): number | null {
+  const period = parsePeriodFromGroup(group)
+  const resolution = parseDtmComposite(groupSegmentValue(group, 'DTM+354'))
+
+  // E31-S final share/andelstal is monthly in the Swedish UTILTS test data: DTM+354:1:802.
+  // Keep this rule based on the EDIFACT structure, not on a portal test case id.
+  if (resolution.value !== '1' || resolution.format !== '802') return null
+  return monthsBetweenPeriod(period.start, period.end)
+}
+
 
 const E66_METER_READING_QUALIFIERS = new Set(['101', '203', '204'])
 const E66_ENERGY_QUANTITY_QUALIFIERS = new Set(['136'])
@@ -1022,18 +1042,17 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
     }
   }
 
-  if (code === 'S03' || code === 'E31') {
+  if (code === 'S03') {
     for (const group of splitTransactionGroups(facts.rawSegments)) {
       const transactionReference = transactionIssueReference(group, facts.transactionId)
       const groupQuantities = parseQuantitiesFromGroup(group)
       const gridAreaId = parseLocValueFromGroup(group, 'LOC+239') ?? facts.gridAreaId
-      const label = code === 'E31' ? 'E31' : 'S03'
 
       if (isKnownTgtUnknownGridArea(gridAreaId)) {
         issues.push(buildIssue({
           severity: 'error',
           kind: 'functional',
-          code: `UTILTS_${label}_UNKNOWN_GRID_AREA`,
+          code: 'UTILTS_S03_UNKNOWN_GRID_AREA',
           title: 'Okänt nätområde',
           description: 'Nätområdesid kunde inte identifieras.',
           utiltsErrCode: 'E49',
@@ -1047,15 +1066,90 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
         issues.push(buildIssue({
           severity: 'error',
           kind: 'application',
-          code: `UTILTS_${label}_MISSING_PROFILE_SHARE`,
+          code: 'UTILTS_S03_MISSING_PROFILE_SHARE',
           title: 'Andelstal saknas',
-          description: code === 'E31'
-            ? 'Slutligt andelstal/kvantitet saknas i UTILTS-E31-transaktionen.'
-            : 'Planerad periodisk kvantitet/andelstal saknas i UTILTS-S03-transaktionen.',
+          description: 'Planerad periodisk kvantitet/andelstal saknas i UTILTS-S03-transaktionen.',
           aperakErcCode: '41',
           aperakFieldCode: '515',
           aperakText: 'MANDATORY FIELD MISSING',
           referenceQualifier: 'ACW',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+    }
+  }
+
+  if (code === 'E31') {
+    for (const group of splitTransactionGroups(facts.rawSegments)) {
+      const transactionReference = transactionIssueReference(group, facts.transactionId)
+      const groupQuantities = parseQuantitiesFromGroup(group)
+      const finalShareQuantities = e31FinalShareQuantities(group)
+      const gridAreaId = parseLocValueFromGroup(group, 'LOC+239') ?? facts.gridAreaId
+      const expectedMonthlyShareCount = groupE31ExpectedMonthlyShareCount(group)
+
+      if (isKnownTgtUnknownGridArea(gridAreaId)) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'functional',
+          code: 'UTILTS_E31_UNKNOWN_GRID_AREA',
+          title: 'Okänt nätområde',
+          description: 'Nätområdesid kunde inte identifieras för E31 slutliga andelstal.',
+          utiltsErrCode: 'E49',
+          referenceQualifier: 'TN',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+
+      if (finalShareQuantities.length === 0 && groupQuantities.length === 0) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'application',
+          code: 'UTILTS_E31_MISSING_FINAL_SHARE',
+          title: 'Slutligt andelstal saknas',
+          description: 'UTILTS-E31 SCH saknar QTY+136 för slutliga andelstal.',
+          aperakErcCode: '41',
+          aperakFieldCode: '515',
+          aperakText: 'MANDATORY FIELD MISSING',
+          referenceQualifier: 'ACW',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
+
+      for (const quantity of finalShareQuantities) {
+        if (quantity.value !== null && quantity.value < 0) {
+          issues.push(buildIssue({
+            severity: 'error',
+            kind: 'application',
+            code: 'UTILTS_E31_NEGATIVE_FINAL_SHARE',
+            title: 'Negativt slutligt andelstal',
+            description: `UTILTS-E31 SCH innehåller negativt slutligt andelstal (${quantity.value}).`,
+            segment: quantity.raw,
+            aperakErcCode: '42',
+            aperakFieldCode: '508',
+            aperakText: `INCORRECT DATA ${quantity.value}`,
+            referenceQualifier: 'ACW',
+            referenceNumber: transactionReference,
+            lineItemReference: transactionReference,
+          }))
+        }
+      }
+
+      if (
+        expectedMonthlyShareCount !== null &&
+        finalShareQuantities.length > 0 &&
+        finalShareQuantities.length !== expectedMonthlyShareCount
+      ) {
+        issues.push(buildIssue({
+          severity: 'error',
+          kind: 'functional',
+          code: 'UTILTS_E31_FINAL_SHARE_COUNT_MISMATCH',
+          title: 'Fel antal slutliga andelstal',
+          description: `Antal slutliga andelstal (${finalShareQuantities.length}) matchar inte E31-S-perioden (${expectedMonthlyShareCount}).`,
+          utiltsErrCode: 'E87',
+          referenceQualifier: 'TN',
           referenceNumber: transactionReference,
           lineItemReference: transactionReference,
         }))

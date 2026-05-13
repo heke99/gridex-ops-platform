@@ -487,6 +487,54 @@ function textLooksLikeUtiltsE66FunctionalSchError(rawText: string): boolean {
   )
 }
 
+function utiltsTgtGroupHasNegativeFinalShare(group: UtiltsTgtGroup): boolean {
+  return group.segments.some((segment) => {
+    if (!segment.toUpperCase().startsWith('QTY+136:')) return false
+    const value = utiltsTgtFirstComponent(utiltsTgtElement(segment, 1))
+    return value !== null && Number(value.replace(',', '.')) < 0
+  })
+}
+
+function rawLooksLikeUtiltsE31SchGuideError(rawText: string): boolean {
+  const groups = splitUtiltsTgtGroups(rawText)
+  return groups.some((group) => utiltsTgtGroupHasNegativeFinalShare(group))
+}
+
+function textLooksLikeUtiltsE31SchGuideError(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return (
+    normalized.includes('NEGATIVT SLUTLIGT ANDELSTAL') ||
+    normalized.includes('NEGATIVT ANDELSTAL') ||
+    normalized.includes('NEGATIVE FINAL SHARE') ||
+    rawLooksLikeUtiltsE31SchGuideError(rawText)
+  )
+}
+
+function utiltsTgtGroupGridArea(group: UtiltsTgtGroup): string | null {
+  const hit = group.segments.find((segment) => segment.toUpperCase().startsWith('LOC+239+')) ?? null
+  return utiltsTgtFirstComponent(utiltsTgtElement(hit, 2))
+}
+
+function rawLooksLikeUtiltsE31SchFunctionalError(rawText: string): boolean {
+  const groups = splitUtiltsTgtGroups(rawText)
+  return groups.some((group) => String(utiltsTgtGroupGridArea(group) ?? '').toUpperCase() === 'XYZ')
+}
+
+function textLooksLikeUtiltsE31SchFunctionalError(rawText: string): boolean {
+  const normalized = normalize(rawText)
+  return (
+    normalized.includes('FUNKTIONSFEL') ||
+    normalized.includes('FUNCTIONAL') ||
+    normalized.includes('OKANT NATOMRADE') ||
+    normalized.includes('UNKNOWN GRID AREA') ||
+    normalized.includes('FEL ANTAL') ||
+    normalized.includes('OBSERVATION COUNT') ||
+    normalized.includes('E49') ||
+    normalized.includes('E87') ||
+    rawLooksLikeUtiltsE31SchFunctionalError(rawText)
+  )
+}
+
 export function effectiveTgtTestCaseCodeForMessageRow(
   message: EdielMessageRow,
   row: EdielTgtDynamicTestDataSummary
@@ -1015,10 +1063,9 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
       return 'U2.1.1'
     }
 
-
     if (code === 'E31') {
-      if (textLooksLikeUtiltsFunctionalError(rawText)) return 'U2.4.3'
-      if (textLooksLikeUtiltsGuideError(rawText)) return 'U2.4.1'
+      if (textLooksLikeUtiltsE31SchFunctionalError(rawText)) return 'U2.4.3'
+      if (textLooksLikeUtiltsE31SchGuideError(rawText) || textLooksLikeUtiltsGuideError(rawText)) return 'U2.4.1'
       return 'U2.3.2'
     }
   }
