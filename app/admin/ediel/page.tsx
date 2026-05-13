@@ -4,6 +4,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import EdielWorkbench from '@/components/admin/ediel/EdielWorkbench'
 import EdielRouteIssueActions from '@/components/admin/ediel/EdielRouteIssueActions'
 import EdielTgtWorkbenchPanel from '@/components/admin/ediel/EdielTgtWorkbenchPanel'
+import EdielAgtWorkbenchPanel from '@/components/admin/ediel/EdielAgtWorkbenchPanel'
 import EdielProductionProdatPanel from '@/components/admin/ediel/EdielProductionProdatPanel'
 import EdielOperationalBridgePanel from '@/components/admin/ediel/EdielOperationalBridgePanel'
 import EdielOperationalVerificationPanel from '@/components/admin/ediel/EdielOperationalVerificationPanel'
@@ -1364,8 +1365,16 @@ export default async function AdminEdielPage() {
       <EdielProductionProdatPanel candidates={prodatProductionCandidates} messages={messages} />
 
       <SectionLabel
+        id="agt"
+        title="3. AGT 2026A för Div3rsa leverantör"
+        description="Aktörstest för Div3rsa AB med Ediel-id 21660. Separat från Gridcore/TGT så att rätt aktörs-id, portaladress och kvittenskrav används."
+      />
+
+      <EdielAgtWorkbenchPanel messages={messages} testRuns={testRuns} />
+
+      <SectionLabel
         id="tgt"
-        title="3. TGT-test och guided mode"
+        title="4. TGT-test och guided mode"
         description="Skapa test run, se testdata, skapa fil för nästa steg och importera portalens svar."
       />
 
@@ -1373,7 +1382,7 @@ export default async function AdminEdielPage() {
 
       <SectionLabel
         id="inbound-cases"
-        title="4. Inbound PRODAT-case och admin-godkännande"
+        title="5. Inbound PRODAT-case och admin-godkännande"
         description="Inkommande PRODAT skapar ett staging-case. Admin godkänner innan kund, anläggning och mätpunkt skapas eller uppdateras."
       />
 
@@ -1381,7 +1390,7 @@ export default async function AdminEdielPage() {
 
       <SectionLabel
         id="operations"
-        title="5. Verksamhetskoppling"
+        title="6. Verksamhetskoppling"
         description="Koppla Ediel-meddelanden till supplier switch, outbound queue, data requests och mätvärden."
       />
 
@@ -1403,7 +1412,7 @@ export default async function AdminEdielPage() {
 
       <SectionLabel
         id="safe-apply"
-        title="4. Safe apply och mätvärdesunderlag"
+        title="7. Safe apply och mätvärdesunderlag"
         description="Granska Z06/Z10-förslag innan masterdata ändras och processa UTILTS till underlag."
       />
 

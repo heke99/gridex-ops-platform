@@ -111,6 +111,12 @@ import {
   runTgtAutopilotForRun,
 } from "@/lib/ediel/tgtAutopilot";
 import { processEdielOperationalMessage } from "@/lib/ediel/operationalBridge";
+import {
+  autoAttachImportedMessageToActiveAgtRun,
+  createEdielSupplierAgtOutboundDraft,
+  createEdielSupplierAgtResponsesForInbound,
+  createEdielSupplierAgtRun,
+} from "@/lib/ediel/agtEngine";
 import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustomer";
 import { createSafeMasterdataProposalForMessage } from "@/lib/ediel/operationalVerification";
 import {
@@ -815,7 +821,7 @@ function parseFileEngineMode(
   value: FormDataEntryValue | null,
 ): EdielFileEngineMode {
   const raw = formString(value);
-  if (raw === "internal_test" || raw === "production_dry_run") return raw;
+  if (raw === "agt" || raw === "internal_test" || raw === "production_dry_run") return raw;
   return "tgt";
 }
 
@@ -1178,10 +1184,90 @@ export async function registerEdielFileAction(formData: FormData) {
         testRunId: autoAttachResult.testRunId,
       });
     }
+
+    await autoAttachImportedMessageToActiveAgtRun({
+      actorUserId: context.userId,
+      edielMessage: createdMessage,
+      explicitTestCaseCode: formString(formData.get("agtTestCaseCode")),
+    });
   }
 
   await revalidateRelatedMessage(message.id);
   revalidateEdiel(message.id);
+}
+
+
+export async function createEdielAgtRunAction(formData: FormData) {
+  const context = await requireAnyPermissionServer([
+    "communication.write",
+    "communication.read",
+  ]);
+
+  const testCaseCode = formString(formData.get("testCaseCode"));
+  const suite = parseEdielTestSuite(formData.get("testSuite"));
+  const actorName = formString(formData.get("actorName"));
+  const actorEdielId = formString(formData.get("actorEdielId"));
+
+  if (!testCaseCode) throw new Error("testCaseCode saknas");
+
+  await createEdielSupplierAgtRun({
+    actorUserId: context.userId,
+    testCaseCode,
+    suite: suite === "PRODAT" || suite === "UTILTS" ? suite : null,
+    actorName,
+    actorEdielId,
+  });
+
+  revalidateEdiel();
+}
+
+export async function createEdielAgtOutboundDraftAction(formData: FormData) {
+  const context = await requireAnyPermissionServer([
+    "communication.write",
+    "communication.read",
+  ]);
+
+  const testRunId = formString(formData.get("testRunId"));
+  const testCaseCode = formString(formData.get("testCaseCode"));
+  const actorName = formString(formData.get("actorName"));
+  const actorEdielId = formString(formData.get("actorEdielId"));
+
+  if (!testCaseCode) throw new Error("testCaseCode saknas");
+
+  const message = await createEdielSupplierAgtOutboundDraft({
+    actorUserId: context.userId,
+    testRunId,
+    testCaseCode,
+    actorName,
+    actorEdielId,
+  });
+
+  await revalidateRelatedMessage(message.id);
+  revalidateEdiel(message.id);
+}
+
+export async function createEdielAgtResponsesForInboundAction(formData: FormData) {
+  const context = await requireAnyPermissionServer([
+    "communication.write",
+    "communication.read",
+  ]);
+
+  const sourceMessageId = formString(formData.get("sourceMessageId"));
+  const testRunId = formString(formData.get("testRunId"));
+  const testCaseCode = formString(formData.get("testCaseCode"));
+
+  if (!sourceMessageId) throw new Error("sourceMessageId saknas");
+
+  const created = await createEdielSupplierAgtResponsesForInbound({
+    actorUserId: context.userId,
+    sourceMessageId,
+    testRunId,
+    testCaseCode,
+  });
+
+  await revalidateRelatedMessage(sourceMessageId);
+  await Promise.all(created.map((message) => revalidateRelatedMessage(message.id)));
+  revalidateEdiel(sourceMessageId);
 }
 
 export async function createEdielTgtRunFromTemplateAction(formData: FormData) {

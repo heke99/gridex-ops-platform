@@ -8,6 +8,7 @@ import {
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
   EDIEL_TGT_TESTSYSTEM_EMAIL,
+  DIV3RSA_PRODUCTION_EDIEL_ID,
   GRIDEX_EDIEL_ID,
   getFileEngineTestcaseTemplates,
 } from '@/lib/ediel/fileEngine'
@@ -60,8 +61,9 @@ export default function EdielFileEnginePanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <MiniBadge>Gridex Ediel-ID: {GRIDEX_EDIEL_ID}</MiniBadge>
-          <MiniBadge>TGT motpart: {EDIEL_TGT_TESTSYSTEM_EDIEL_ID}</MiniBadge>
+          <MiniBadge>TGT Gridcore-ID: {GRIDEX_EDIEL_ID}</MiniBadge>
+          <MiniBadge>AGT Div3rsa-ID: {DIV3RSA_PRODUCTION_EDIEL_ID}</MiniBadge>
+          <MiniBadge>Portal: {EDIEL_TGT_TESTSYSTEM_EDIEL_ID}</MiniBadge>
           <MiniBadge>Transport: file/manual_upload</MiniBadge>
         </div>
       </div>
@@ -95,6 +97,7 @@ export default function EdielFileEnginePanel({
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400"
               >
                 <option value="tgt">TGT · Edielportalen</option>
+                <option value="agt">AGT 2026A · Div3rsa/leverantör</option>
                 <option value="internal_test">Intern test</option>
                 <option value="production_dry_run">Production dry-run</option>
               </select>
@@ -118,6 +121,15 @@ export default function EdielFileEnginePanel({
                 placeholder="Ex: portal-message-id eller filreferens"
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400"
               />
+            </label>
+            <label className="block md:col-span-2">
+              <span className="text-sm font-medium text-slate-700">AGT-testfall, valfritt</span>
+              <input
+                name="agtTestCaseCode"
+                placeholder="Ex: L2, L3, L4, L5, UL1, UL2, UL3, UL4 eller UL6"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400"
+              />
+              <p className="mt-1 text-xs text-slate-500">Används bara i motorläge AGT när flera inbound-meddelanden har samma kod, exempelvis E66 för UL2/UL3.</p>
             </label>
           </div>
 
@@ -168,11 +180,15 @@ export default function EdielFileEnginePanel({
 
         <div className="space-y-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <h3 className="text-sm font-semibold text-slate-950">TGT-standardvärden</h3>
+            <h3 className="text-sm font-semibold text-slate-950">TGT/AGT-standardvärden</h3>
             <dl className="mt-3 grid gap-2 text-sm">
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Gridex Ediel-ID</dt>
+                <dt className="text-slate-500">Gridcore/TGT Ediel-ID</dt>
                 <dd className="font-mono text-slate-900">{GRIDEX_EDIEL_ID}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Div3rsa/AGT Ediel-ID</dt>
+                <dd className="font-mono text-slate-900">{DIV3RSA_PRODUCTION_EDIEL_ID}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-500">Portal Ediel-ID</dt>
