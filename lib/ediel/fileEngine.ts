@@ -20,6 +20,7 @@ export const GRIDEX_TGT_EDIEL_ID = '92825'
 // Backwards-compatible alias used by the TGT/file-engine views only.
 // Actor/AGT identity must come from ediel_actor_settings and route profiles.
 export const GRIDEX_EDIEL_ID = GRIDEX_TGT_EDIEL_ID
+export const DIV3RSA_PRODUCTION_EDIEL_ID = '21660'
 export const EDIEL_TGT_TESTSYSTEM_EDIEL_ID = '91100'
 export const EDIEL_TGT_TESTSYSTEM_EMAIL = '91100@ediel.se'
 export const EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS = 'PRODAT'
@@ -42,7 +43,7 @@ export function resolveEdielTgtProdatApplicationReference(params?: { roleCode?: 
   return EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
 }
 
-export type EdielFileEngineMode = 'tgt' | 'internal_test' | 'production_dry_run'
+export type EdielFileEngineMode = 'tgt' | 'agt' | 'internal_test' | 'production_dry_run'
 export type EdielFileEngineRegisterResult = {
   id: string
   direction: EdielDirection
@@ -315,14 +316,17 @@ function buildValidation(params: {
   }
 
   if (params.parsed.messageFamily === 'PRODAT') {
-    if (params.direction === 'outbound' && params.parsed.senderEdielId !== GRIDEX_EDIEL_ID) {
-      warnings.push(`Outbound PRODAT bör ha Gridex som avsändare (${GRIDEX_EDIEL_ID}).`)
+    if (params.direction === 'outbound' && params.mode === 'tgt' && params.parsed.senderEdielId !== GRIDEX_EDIEL_ID) {
+      warnings.push(`TGT outbound PRODAT bör ha Gridcore/TGT som avsändare (${GRIDEX_EDIEL_ID}).`)
     }
-    if (params.direction === 'outbound' && params.parsed.receiverEdielId !== EDIEL_TGT_TESTSYSTEM_EDIEL_ID && params.mode === 'tgt') {
-      warnings.push(`TGT outbound PRODAT bör ha Edielportalens mottagare ${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}.`)
+    if (params.direction === 'outbound' && params.mode === 'agt' && params.parsed.senderEdielId === GRIDEX_EDIEL_ID) {
+      warnings.push(`AGT outbound PRODAT får inte ha Gridcore/TGT-id ${GRIDEX_EDIEL_ID} som avsändare. Div3rsa ska använda ${DIV3RSA_PRODUCTION_EDIEL_ID}, och SaaS-kund ska använda sitt eget Ediel-id.`)
     }
-    if (params.mode === 'tgt' && params.parsed.receiverSubAddress !== EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS && params.direction === 'outbound') {
-      warnings.push(`TGT PRODAT ska ha mottagarens subadress ${EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}.`)
+    if (params.direction === 'outbound' && params.parsed.receiverEdielId !== EDIEL_TGT_TESTSYSTEM_EDIEL_ID && (params.mode === 'tgt' || params.mode === 'agt')) {
+      warnings.push(`${params.mode.toUpperCase()} outbound PRODAT bör ha Edielportalens mottagare ${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}.`)
+    }
+    if ((params.mode === 'tgt' || params.mode === 'agt') && params.parsed.receiverSubAddress !== EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS && params.direction === 'outbound') {
+      warnings.push(`${params.mode.toUpperCase()} PRODAT ska ha mottagarens subadress ${EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}.`)
     }
     if (params.mode === 'tgt' && params.direction === 'outbound' && ![EDIEL_TGT_PRODAT_APPLICATION_REFERENCE, EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE].includes(params.parsed.applicationReference ?? '')) {
       warnings.push(`TGT PRODAT för elmarknad ska normalt ha Application Reference ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}; ESCO/tillståndstest använder ${EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE}.`)
@@ -348,6 +352,7 @@ function buildValidation(params: {
       fileEngineMode: params.mode,
       fileName: params.fileName ?? null,
       gridexEdielId: GRIDEX_EDIEL_ID,
+      div3rsaEdielId: DIV3RSA_PRODUCTION_EDIEL_ID,
       tgtReceiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
       tgtProdatReceiverSubAddress: EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
       tgtProdatApplicationReference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
@@ -589,13 +594,15 @@ export async function registerEdielFile(params: RegisterFileParams): Promise<Edi
     messageCode: parsed.messageCode,
   })
 
+  const ownActorEdielId = mode === 'agt' ? DIV3RSA_PRODUCTION_EDIEL_ID : GRIDEX_EDIEL_ID
+
   const senderEdielId =
     parsed.senderEdielId ??
-    (params.direction === 'outbound' ? GRIDEX_EDIEL_ID : EDIEL_TGT_TESTSYSTEM_EDIEL_ID)
+    (params.direction === 'outbound' ? ownActorEdielId : EDIEL_TGT_TESTSYSTEM_EDIEL_ID)
 
   const receiverEdielId =
     parsed.receiverEdielId ??
-    (params.direction === 'outbound' ? EDIEL_TGT_TESTSYSTEM_EDIEL_ID : GRIDEX_EDIEL_ID)
+    (params.direction === 'outbound' ? EDIEL_TGT_TESTSYSTEM_EDIEL_ID : ownActorEdielId)
 
   const input: CreateEdielMessageInput = {
     actorUserId: params.actorUserId,
@@ -614,12 +621,12 @@ export async function registerEdielFile(params: RegisterFileParams): Promise<Edi
       params.mailboxMessageId ??
       `${params.direction}-${parsed.interchangeReference ?? parsed.externalReference ?? Date.now()}`,
     senderEdielId,
-    senderName: senderEdielId === GRIDEX_EDIEL_ID ? 'Gridex' : null,
+    senderName: senderEdielId === GRIDEX_EDIEL_ID ? 'Gridex' : senderEdielId === DIV3RSA_PRODUCTION_EDIEL_ID ? 'Div3rsa AB' : null,
     senderSubAddress:
       parsed.senderSubAddress ??
-      (params.direction === 'outbound' && parsed.messageFamily === 'PRODAT' ? 'DDQ' : null),
+      (params.direction === 'outbound' && parsed.messageFamily === 'PRODAT' ? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS : null),
     receiverEdielId,
-    receiverName: receiverEdielId === EDIEL_TGT_TESTSYSTEM_EDIEL_ID ? 'Edielportalen TGT' : null,
+    receiverName: receiverEdielId === EDIEL_TGT_TESTSYSTEM_EDIEL_ID ? (mode === 'agt' ? 'Edielportalen AGT' : 'Edielportalen TGT') : null,
     receiverSubAddress:
       parsed.receiverSubAddress ??
       (params.direction === 'outbound' && parsed.messageFamily === 'PRODAT'
@@ -628,7 +635,7 @@ export async function registerEdielFile(params: RegisterFileParams): Promise<Edi
     senderEmail: params.senderEmail ?? null,
     receiverEmail:
       params.receiverEmail ??
-      (params.direction === 'outbound' && mode === 'tgt' ? EDIEL_TGT_TESTSYSTEM_EMAIL : null),
+      (params.direction === 'outbound' && (mode === 'tgt' || mode === 'agt') ? EDIEL_TGT_TESTSYSTEM_EMAIL : null),
     subject: params.subject ?? null,
     fileName: params.fileName ?? inferFileName(parsed),
     mimeType: parsed.messageStandard === 'ai_list' ? 'text/csv; charset=utf-8' : 'application/edifact',
@@ -638,7 +645,7 @@ export async function registerEdielFile(params: RegisterFileParams): Promise<Edi
     transactionReference: parsed.transactionReference,
     applicationReference:
       parsed.applicationReference ??
-      (parsed.messageFamily === 'PRODAT' && mode === 'tgt'
+      (parsed.messageFamily === 'PRODAT' && (mode === 'tgt' || mode === 'agt')
         ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
         : null),
     originalMessageId: parsed.originalMessageId,

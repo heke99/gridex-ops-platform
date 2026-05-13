@@ -113,6 +113,15 @@ function caseTone(hasRun: boolean) {
   return hasRun ? 'green' : 'slate'
 }
 
+
+function directionLabel(direction: 'actor_to_portal' | 'portal_to_actor') {
+  return direction === 'actor_to_portal' ? 'Div3rsa → Edielportalen' : 'Edielportalen → Div3rsa'
+}
+
+function notesText(notes: string | string[]) {
+  return Array.isArray(notes) ? notes.join(' ') : notes
+}
+
 export default async function EdielAgtPage() {
   const context = await requireAnyPermissionServer(['communication.read'])
   const [runtime, testRuns] = await Promise.all([
@@ -296,11 +305,11 @@ export default async function EdielAgtPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="text-sm font-semibold text-slate-950">{testCase.title}</div>
-                    <div className="mt-1 text-xs text-slate-500">{testCase.suite} · {testCase.messageCode} · {testCase.direction}</div>
+                    <div className="mt-1 text-xs text-slate-500">{testCase.suite} · {testCase.messageCode} · {directionLabel(testCase.direction)}</div>
                   </div>
                   <Badge tone={caseTone(hasRun)}>{hasRun ? 'run finns' : 'ej skapad'}</Badge>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-slate-700">{testCase.notes}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-700">{notesText(testCase.notes)}</p>
                 <form action={createAgtSupplierTestRunAction} className="mt-4">
                   <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
                   <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
