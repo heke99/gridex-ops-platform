@@ -645,6 +645,26 @@ function findZ05FacilityMismatchTgtRowForMessage(
   return candidates[0]?.row ?? null;
 }
 
+
+function minimalRequestedTgtCaseData(params: {
+  testSuite: EdielTestSuite
+  roleCode: EdielTestRoleCode
+  testCaseCode: string | null | undefined
+  title?: string | null
+}): EdielTgtCaseTestData | null {
+  const testCaseCode = String(params.testCaseCode ?? '').trim()
+  if (!testCaseCode) return null
+
+  return {
+    suite: params.testSuite,
+    roleCode: params.roleCode,
+    testCaseCode,
+    title: params.title ?? `TGT ${testCaseCode}`,
+    sourceNote: 'Minimal TGT-case marker from selected Edielportal test. Used when no dynamic testdata row has been imported yet.',
+    groups: [],
+  }
+}
+
 async function resolveTgtTestDataForAckAction(params: {
   message: EdielMessageRow;
   testSuite?: EdielTestSuite | null;
@@ -673,7 +693,12 @@ async function resolveTgtTestDataForAckAction(params: {
         testSuite,
         roleCode,
         fallbackStaticCaseCode,
-      )
+      ) ??
+      minimalRequestedTgtCaseData({
+        testSuite,
+        roleCode,
+        testCaseCode: fallbackStaticCaseCode,
+      })
     : null;
 
   if (

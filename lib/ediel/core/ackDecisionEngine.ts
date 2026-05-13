@@ -110,9 +110,11 @@ function sanitizeText(value: string): string {
 }
 
 
-function looksLikeEdielPortalUtiltsE66TgtMessage(message: EdielMessageRow): boolean {
+function looksLikeEdielPortalUtiltsTgtMessage(message: EdielMessageRow): boolean {
   if (String(message.message_family ?? '').toUpperCase() !== 'UTILTS') return false
-  if (String(message.message_code ?? '').toUpperCase() !== 'E66') return false
+
+  const code = String(message.message_code ?? '').toUpperCase()
+  if (code !== 'E66' && code !== 'E31') return false
 
   const text = messageContextText(message)
   const sender = String(message.sender_ediel_id ?? '')
@@ -121,6 +123,8 @@ function looksLikeEdielPortalUtiltsE66TgtMessage(message: EdielMessageRow): bool
   return (
     text.includes('23-DDQ-E66-S') ||
     text.includes('23-DDQ-E66-T') ||
+    text.includes('23-DDQ-E31-S') ||
+    text.includes('23-DDQ-E31') ||
     text.includes('TESTKUND') ||
     text.includes('EDIELPORTAL') ||
     (sender === '91100' && receiver === '92825') ||
@@ -150,7 +154,7 @@ function utiltsTgtInferenceText(message: EdielMessageRow): string {
 }
 
 function inferUtiltsTgtTestDataFromMessage(message: EdielMessageRow): EdielTgtCaseTestData | null {
-  if (!looksLikeEdielPortalUtiltsE66TgtMessage(message)) return null
+  if (!looksLikeEdielPortalUtiltsTgtMessage(message)) return null
 
   try {
     const testCaseCode = inferTgtTestCaseCodeForInboundTestData({
@@ -295,6 +299,16 @@ function utiltsTgtApplicationDecision(
     }
   }
 
+  if (testCase === 'U2.4.1') {
+    return {
+      family: 'APERAK',
+      outcome: 'negative',
+      matchedRule: 'UTILTS_TGT_U2.4.1_GUIDE_ERROR',
+      errors: [makeError('41', '515', 'MANDATORY FIELD MISSING')],
+      messageText: 'UTILTS-E31 SCH anvisningsfel',
+    }
+  }
+
   // TGT functional/processability errors => UTILTS-ERR.
   if (testCase === 'U1.2.2' || testCase === 'U1.2.2B') {
     return {
@@ -329,7 +343,15 @@ function utiltsTgtApplicationDecision(
     }
   }
 
-  if (testCase.startsWith('U1.1') || testCase.startsWith('U1.3') || testCase.startsWith('U2.1')) {
+  if (testCase === 'U2.4.3') {
+    return {
+      family: 'UTILTS_ERR',
+      matchedRule: 'UTILTS_TGT_U2.4.3_FUNCTIONAL_ERROR',
+      messageText: 'E49',
+    }
+  }
+
+  if (testCase.startsWith('U1.1') || testCase.startsWith('U1.3') || testCase.startsWith('U2.1') || testCase.startsWith('U2.3')) {
     return {
       family: 'APERAK',
       outcome: 'positive',

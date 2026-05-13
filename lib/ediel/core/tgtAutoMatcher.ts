@@ -58,6 +58,7 @@ export function messageCodePrefixesForTgtAutoMatch(message: EdielMessageRow): st
     if (code === 'S02') return ['U1.1', 'U1.2']
     if (code === 'S03') return ['U1.3', 'U1.4']
     if (code === 'E66') return ['U2.1', 'U2.2']
+    if (code === 'E31') return ['U2.3', 'U2.4']
   }
 
   return []
@@ -1012,6 +1013,13 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
       }
 
       return 'U2.1.1'
+    }
+
+
+    if (code === 'E31') {
+      if (textLooksLikeUtiltsFunctionalError(rawText)) return 'U2.4.3'
+      if (textLooksLikeUtiltsGuideError(rawText)) return 'U2.4.1'
+      return 'U2.3.2'
     }
   }
 

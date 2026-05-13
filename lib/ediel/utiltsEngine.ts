@@ -884,7 +884,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
   }
 
   const needsMeteringPoint = ['S02', 'E30', 'E66'].includes(code)
-  const needsGridArea = ['S02', 'S03', 'E30', 'E66'].includes(code)
+  const needsGridArea = ['S02', 'S03', 'E30', 'E31', 'E66'].includes(code)
   if (needsMeteringPoint && !facts.meterPointId) {
     issues.push(buildIssue({
       severity: 'error',
@@ -1022,17 +1022,18 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
     }
   }
 
-  if (code === 'S03') {
+  if (code === 'S03' || code === 'E31') {
     for (const group of splitTransactionGroups(facts.rawSegments)) {
       const transactionReference = transactionIssueReference(group, facts.transactionId)
       const groupQuantities = parseQuantitiesFromGroup(group)
       const gridAreaId = parseLocValueFromGroup(group, 'LOC+239') ?? facts.gridAreaId
+      const label = code === 'E31' ? 'E31' : 'S03'
 
       if (isKnownTgtUnknownGridArea(gridAreaId)) {
         issues.push(buildIssue({
           severity: 'error',
           kind: 'functional',
-          code: 'UTILTS_S03_UNKNOWN_GRID_AREA',
+          code: `UTILTS_${label}_UNKNOWN_GRID_AREA`,
           title: 'Okänt nätområde',
           description: 'Nätområdesid kunde inte identifieras.',
           utiltsErrCode: 'E49',
@@ -1046,9 +1047,11 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
         issues.push(buildIssue({
           severity: 'error',
           kind: 'application',
-          code: 'UTILTS_S03_MISSING_PROFILE_SHARE',
+          code: `UTILTS_${label}_MISSING_PROFILE_SHARE`,
           title: 'Andelstal saknas',
-          description: 'Planerad periodisk kvantitet/andelstal saknas i UTILTS-S03-transaktionen.',
+          description: code === 'E31'
+            ? 'Slutligt andelstal/kvantitet saknas i UTILTS-E31-transaktionen.'
+            : 'Planerad periodisk kvantitet/andelstal saknas i UTILTS-S03-transaktionen.',
           aperakErcCode: '41',
           aperakFieldCode: '515',
           aperakText: 'MANDATORY FIELD MISSING',

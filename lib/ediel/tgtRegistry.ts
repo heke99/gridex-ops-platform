@@ -125,6 +125,22 @@ function utiltsPositiveCase(testCaseCode: string, title: string, code: string, p
   }
 }
 
+
+function utiltsOutboundPositiveCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
+  return {
+    suite: 'UTILTS', roleCode: 'supplier', testCaseCode, title,
+    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
+    purpose,
+    testDataHint: `UTILTS ${code}. GridCore/Aktör skickar korrekt meddelande till Edielportalen och tar emot positiv CONTRL + positiv APERAK.`,
+    expectedSteps: [
+      { stepNo: 1, direction: 'outbound', actor: 'gridex', family: 'UTILTS', code, required: true, title: `Skicka UTILTS ${code}`, description: title },
+      { stepNo: 2, direction: 'inbound', actor: 'portal', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Ta emot positiv CONTRL', description: 'Portalen syntaxkvitterar UTILTS.' },
+      { stepNo: 3, direction: 'inbound', actor: 'portal', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Ta emot positiv APERAK', description: 'Portalen applikationskvitterar UTILTS.' },
+    ],
+    notes: ['Detta är outbound-varianten för korrekt E31-SCH. GridCore ska inte skapa egen APERAK i detta testfall.'],
+  }
+}
+
 function utiltsNegativeAperakCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
   return {
     suite: 'UTILTS', roleCode: 'supplier', testCaseCode, title,
@@ -369,6 +385,9 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
     utiltsPositiveCase('U2.1.6', 'Korrekt UTILTS-E66, dygnsavräknad kvart', 'E66', 'Verifierar korrekt E66 med dygnsavräknade kvartsvärden.'),
     utiltsPositiveCase('U2.1.7', 'Korrekt UTILTS-E66, dygnsavräknad kvart utan mätarställning', 'E66', 'Verifierar korrekt E66 utan mätarställning där testfallet tillåter det.'),
     utiltsPositiveCase('U2.1.8', 'Korrekt UTILTS-E66, mätarbyte kvartsmätare', 'E66', 'Verifierar korrekt E66 vid mätarbyte.'),
+    utiltsOutboundPositiveCase('U2.3.2', 'Korrekt UTILTS-E31, slutliga andelstal SCH', 'E31', 'Verifierar att GridCore kan skicka korrekt E31-SCH med slutliga andelstal och ta emot positiv CONTRL + positiv APERAK.'),
+    utiltsNegativeAperakCase('U2.4.1', 'Felaktigt UTILTS-E31, anvisningsfel SCH', 'E31', 'Verifierar positiv CONTRL och negativ APERAK vid E31-SCH anvisningsfel.'),
+    utiltsErrCase('U2.4.3', 'Felaktigt UTILTS-E31, funktionsfel SCH', 'E31', 'Verifierar positiv CONTRL, UTILTS-ERR och efterföljande APERAK vid E31-SCH funktionsfel.'),
     utiltsNegativeAperakCase('U2.2.1', 'Felaktigt UTILTS-E66, anvisningsfel SCH', 'E66', 'Verifierar negativ APERAK på E66-anvisningsfel.'),
     utiltsNegativeAperakCase('U2.2.2', 'Felaktigt UTILTS-E66, anvisningsfel kvart', 'E66', 'Verifierar negativ APERAK på E66-kvartsanvisningsfel.'),
     utiltsErrCase('U2.2.3', 'Felaktigt UTILTS-E66, funktionsfel SCH', 'E66', 'Verifierar UTILTS-ERR på E66-funktionsfel SCH.'),

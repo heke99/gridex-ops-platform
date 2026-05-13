@@ -313,7 +313,7 @@ function preferredColumnSelectorsForStep(step: EdielTgtExpectedStep): string[] {
   return [step.code]
 }
 
-type TestDataLookupParams = Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'> & {
+type TestDataLookupParams = Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'> & {
   importedTestData?: EdielTgtCaseTestData | null
 }
 
@@ -329,7 +329,7 @@ function getTgtTestData(params: TestDataLookupParams): EdielTgtCaseTestData | nu
 }
 
 function findTestValue(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   selectors: readonly string[],
   preferredColumnSelectors: readonly string[] = []
 ): string | null {
@@ -358,7 +358,7 @@ function findTestValue(
 }
 
 function findTestValueForStep(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   selectors: readonly string[]
 ): string | null {
@@ -372,7 +372,7 @@ type TgtMatchedField = {
 }
 
 function findTestFieldForStep(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   selectors: readonly string[]
 ): TgtMatchedField | null {
@@ -421,7 +421,7 @@ function inferCustomerIdCodeListQualifier(fieldName: string | null | undefined, 
 }
 
 function findSourceColumn(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   columnName: string
 ): OrderedTgtColumn | null {
   const data = getTgtTestData(params)
@@ -436,7 +436,7 @@ function findSourceColumn(
 }
 
 function findFieldValueForColumn(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   columnName: string,
   selectors: readonly string[]
 ): string | null {
@@ -457,7 +457,7 @@ function findFieldValueForColumn(
 }
 
 function selectedRegisterColumns(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep
 ): string[] {
   const data = getTgtTestData(params)
@@ -474,7 +474,7 @@ function selectedRegisterColumns(
 }
 
 function buildRegistersFromTestData(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep
 ): TgtPortalRegister[] {
   const columns = selectedRegisterColumns(params, step)
@@ -670,7 +670,7 @@ const TGT_REQUIRED_FIELD_RULES: readonly TgtRequiredFieldRule[] = [
 ]
 
 function resolveTgtRequiredFieldRule(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   fieldCode: string
 ): TgtRequiredFieldRule | null {
@@ -691,7 +691,7 @@ function resolveTgtRequiredFieldRule(
 }
 
 function resolveTgtRequiredFieldValue(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   fieldCode: string
 ): string | null {
@@ -699,7 +699,7 @@ function resolveTgtRequiredFieldValue(
 }
 
 function resolveTgtMeteringMethod(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   importedValue: string | null
 ): string {
@@ -707,7 +707,7 @@ function resolveTgtMeteringMethod(
 }
 
 function resolveTgtValidityDateTime(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   importedValue: string | null
 ): string | null {
@@ -721,7 +721,7 @@ function resolveTgtValidityDateTime(
 }
 
 function getPortalData(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   columnName?: string | null
 ): TgtPortalCustomerData {
@@ -815,7 +815,7 @@ function getPortalData(
 }
 
 function getColumnStepScore(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   column: OrderedTgtColumn
 ): number {
@@ -839,7 +839,7 @@ function getColumnStepScore(
 }
 
 function getPreferredColumnsForStep(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   columns: readonly OrderedTgtColumn[]
 ): OrderedTgtColumn[] {
@@ -851,7 +851,7 @@ function getPreferredColumnsForStep(
 
 
 function findFirstTgtFieldValueAcrossColumns(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   selectors: readonly string[],
   options: { excludeColumnName?: string | null; preferredColumnSelectors?: readonly string[] } = {}
 ): string | null {
@@ -883,7 +883,7 @@ function findFirstTgtFieldValueAcrossColumns(
 }
 
 
-function fallbackEscoPermissionMeteringPointId(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>, step: EdielTgtExpectedStep): string {
+function fallbackEscoPermissionMeteringPointId(params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>, step: EdielTgtExpectedStep): string {
   if (params.testSuite !== 'PRODAT' || params.roleCode !== 'esco') return ''
 
   if (params.testCaseCode === '8.1.1' && step.code === 'Z13') return '735999888000000109'
@@ -895,7 +895,7 @@ function fallbackEscoPermissionMeteringPointId(params: Pick<EdielTgtDraftBuildPa
 }
 
 function resolveEscoZ13MeteringPointId(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep,
   currentMeteringPointId: string | null | undefined,
   sourceColumnName?: string | null
@@ -930,7 +930,7 @@ function resolvePermissionInstallationDirection(params: {
 }
 
 function getPortalDataColumnNames(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep
 ): string[] {
   const data = getTgtTestData(params)
@@ -952,7 +952,7 @@ function getPortalDataColumnNames(
 }
 
 function getPortalDataRows(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep
 ): TgtPortalCustomerData[] {
   const columnNames = getPortalDataColumnNames(params, step)
@@ -1067,7 +1067,7 @@ function negativeAperakSegments(refs: DraftReferences): string[] {
 }
 
 function buildTgtProdatTransactionType(
-  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode'>,
+  params: Pick<EdielTgtDraftBuildParams, 'testSuite' | 'roleCode' | 'testCaseCode' | 'importedTestData'>,
   step: EdielTgtExpectedStep
 ): string {
   if (step.code === 'Z09') {
@@ -1464,24 +1464,82 @@ function buildAckDraft(step: EdielTgtExpectedStep, refs: DraftReferences, params
   })
 }
 
+function parseTgtNumber(value: string | null | undefined, fallback: string): string {
+  const token = firstToken(value)
+  if (!token) return fallback
+  const normalized = token.replace(',', '.').replace(/[^0-9.\-]/g, '')
+  return normalized && /^-?\d+(?:\.\d+)?$/.test(normalized) ? normalized : fallback
+}
+
+function buildUtiltsE31SchDraftBody(params: EdielTgtDraftBuildParams, refs: DraftReferences): string[] {
+  const gridAreaId = sanitizeCode(
+    findTestValue(params, ['nätområdesid', 'natomradesid', 'nätavräkningsområde', 'network area', 'grid area', 'field 239', '239']),
+    'SE1',
+    35,
+  )
+  const supplierId = sanitizeCode(
+    findTestValue(params, ['leverantör', 'supplier', 'elleverantör', 'balance supplier', 'field 260', '260']),
+    GRIDEX_EDIEL_ID,
+    35,
+  )
+  const balanceResponsibleId = sanitizeCode(
+    findTestValue(params, ['balansansvarig', 'balance responsible', 'brp', 'field 261', '261']),
+    GRIDEX_EDIEL_ID,
+    35,
+  )
+  const shareValue = parseTgtNumber(
+    findTestValue(params, ['andelstal', 'slutligt andelstal', 'final share', 'energi', 'energy', 'quantity', 'kwh']),
+    '1000',
+  )
+  const unit = sanitizeCode(findTestValue(params, ['enhet', 'unit', 'kwh']), 'KWH', 8)
+  const period = firstToken(findTestValue(params, ['leveransperiod', 'period', 'observationsperiod', 'field 245', '245']))
+  const period719 = period && /^\d{24}$/.test(period)
+    ? period
+    : `${refs.createdLongDate}0000${refs.createdLongDate}2359`
+
+  return [
+    `BGM+E31::260+${refs.externalRef}+9+AB`,
+    `DTM+137:${refs.createdLongDate}${refs.createdTime}:203`,
+    'DTM+735:?+0100:406',
+    'MKS+23+E02::260',
+    `RFF+TN:${refs.transactionRef}`,
+    `NAD+MS+${GRIDEX_EDIEL_ID}:SVK:260`,
+    `NAD+MR+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}:SVK:260`,
+    'NAD+DDQ',
+    `IDE+24+${refs.transactionRef}`,
+    `LOC+239+${gridAreaId}:SVK:260`,
+    `NAD+DDQ+${supplierId}:SVK:260`,
+    `NAD+DDK+${balanceResponsibleId}:SVK:260`,
+    `DTM+324:${period719}:719`,
+    'DTM+354:1:802',
+    'STS+7++E31::260',
+    `MEA+AAZ++${unit}`,
+    `QTY+136:${shareValue}`,
+  ]
+}
+
 function buildUtiltsDraft(params: EdielTgtDraftBuildParams, step: EdielTgtExpectedStep, refs: DraftReferences): string {
   const meteringPointId = sanitizeCode(findTestValue(params, ['anläggningsid', 'metering point', 'mätpunkt', 'anlaggningsid']), '735999100000000001', 35)
+  const isE31Sch = step.code === 'E31'
+
   return buildInterchange({
     refs,
     senderEdielId: GRIDEX_EDIEL_ID,
     receiverEdielId: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
-    applicationReference: '23-DDQ-UTILTS',
+    applicationReference: isE31Sch ? '23-DDQ-E31-S' : '23-DDQ-UTILTS',
     family: 'UTILTS',
     version: 'E5SE5A',
-    bodySegments: [
-      `BGM+${step.code}+${refs.externalRef}+9`,
-      `DTM+137:${refs.createdLongDate}:102`,
-      `RFF+ACE:${refs.transactionRef}`,
-      `NAD+MS+${GRIDEX_EDIEL_ID}::9++GRIDEX`,
-      `NAD+MR+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}::9++EDIELPORTALEN`,
-      `LOC+172+${meteringPointId}`,
-      'QTY+220:1:KWH',
-    ],
+    bodySegments: isE31Sch
+      ? buildUtiltsE31SchDraftBody(params, refs)
+      : [
+          `BGM+${step.code}+${refs.externalRef}+9`,
+          `DTM+137:${refs.createdLongDate}:102`,
+          `RFF+ACE:${refs.transactionRef}`,
+          `NAD+MS+${GRIDEX_EDIEL_ID}::9++GRIDEX`,
+          `NAD+MR+${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}::9++EDIELPORTALEN`,
+          `LOC+172+${meteringPointId}`,
+          'QTY+220:1:KWH',
+        ],
   })
 }
 
@@ -1887,7 +1945,13 @@ export function buildEdielTgtDraft(params: EdielTgtDraftBuildParams): EdielTgtDr
       interchangeReference: refs.interchangeRef,
       externalReference: refs.externalRef,
       transactionReference: refs.transactionRef,
-      applicationReference: step.family === 'PRODAT' || step.family === 'APERAK' || step.family === 'UTILTS_ERR' ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE : null,
+      applicationReference: step.family === 'PRODAT' || step.family === 'APERAK' || step.family === 'UTILTS_ERR'
+        ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
+        : step.family === 'UTILTS' && step.code === 'E31'
+          ? '23-DDQ-E31-S'
+          : step.family === 'UTILTS'
+            ? '23-DDQ-UTILTS'
+            : null,
       rawPayload,
       parsedPayload: {
         source: 'tgt_draft_generator_portal_ready_v4',
