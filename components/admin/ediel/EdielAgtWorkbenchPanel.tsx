@@ -11,7 +11,6 @@ import {
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
   EDIEL_TGT_TESTSYSTEM_EMAIL,
-  DIV3RSA_PRODUCTION_EDIEL_ID,
 } from '@/lib/ediel/fileEngine'
 import {
   isEdielAgtRunApprovalVersion,
@@ -128,7 +127,7 @@ function CaseCard({
         {definition.expectedSteps.map((step) => (
           <div key={`${definition.testCaseCode}-${step.stepNo}`} className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 px-3 py-2 text-xs text-slate-700">
             <Badge tone={step.actor === 'actor' ? 'blue' : 'green'}>Steg {step.stepNo}</Badge>
-            <span className="font-medium">{step.actor === 'actor' ? 'Div3rsa/systemet' : 'Edielportalen'}</span>
+            <span className="font-medium">{step.actor === 'actor' ? 'Leverantören/systemet' : 'Edielportalen'}</span>
             <span>{step.direction}</span>
             <span>{step.family} {step.code}</span>
             <span className="text-slate-500">{step.title}</span>
@@ -140,8 +139,6 @@ function CaseCard({
         <form action={createEdielAgtRunAction} className="rounded-2xl border border-slate-200 p-3">
           <input type="hidden" name="testSuite" value={definition.suite} />
           <input type="hidden" name="testCaseCode" value={definition.testCaseCode} />
-          <input type="hidden" name="actorName" value="Div3rsa AB" />
-          <input type="hidden" name="actorEdielId" value={DIV3RSA_PRODUCTION_EDIEL_ID} />
           <button type="submit" className="w-full rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
             Starta AGT-run i systemet
           </button>
@@ -154,8 +151,6 @@ function CaseCard({
           <form action={createEdielAgtOutboundDraftAction} className="rounded-2xl border border-blue-200 bg-blue-50 p-3">
             <input type="hidden" name="testRunId" value={activeRun?.id ?? ''} />
             <input type="hidden" name="testCaseCode" value={definition.testCaseCode} />
-            <input type="hidden" name="actorName" value="Div3rsa AB" />
-            <input type="hidden" name="actorEdielId" value={DIV3RSA_PRODUCTION_EDIEL_ID} />
             <button type="submit" className="w-full rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">
               Skapa outbound AGT-draft
             </button>
@@ -230,12 +225,12 @@ export default function EdielAgtWorkbenchPanel({
       <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="indigo">AGT 2026A</Badge>
-          <Badge tone="blue">Div3rsa AB {DIV3RSA_PRODUCTION_EDIEL_ID}</Badge>
+          <Badge tone="blue">Aktiv leverantör från AGT-runtime</Badge>
           <Badge tone="green">Portal {EDIEL_TGT_TESTSYSTEM_EDIEL_ID}</Badge>
         </div>
         <h2 className="mt-3 text-lg font-semibold text-slate-950">Leverantörstest mot Edielportalen</h2>
         <p className="mt-2 text-sm leading-6 text-slate-700">
-          Denna vy är separat från Gridcore/TGT. Div3rsa skickar och kvitterar med eget Ediel-id {DIV3RSA_PRODUCTION_EDIEL_ID}. Motparten är Edielportalen {EDIEL_TGT_TESTSYSTEM_EDIEL_ID} / {EDIEL_TGT_TESTSYSTEM_EMAIL}. PRODAT använder subadress {EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}; UTILTS använder ingen subadress.
+          Denna vy är separat från Gridcore/TGT. Leverantören skickar och kvitterar med aktivt Ediel-id från AGT-runtime. Motparten är Edielportalen {EDIEL_TGT_TESTSYSTEM_EDIEL_ID} / {EDIEL_TGT_TESTSYSTEM_EMAIL}. PRODAT använder tom sender-subadress och receiver-subadress {EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}; UTILTS använder ingen subadress.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl bg-white p-3">

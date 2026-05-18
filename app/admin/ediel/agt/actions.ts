@@ -1,17 +1,19 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { saveCommunicationRoute } from '@/lib/cis/db'
 import { createEdielTestRun } from '@/lib/ediel/db'
+import { createEdielSupplierAgtOutboundDraft } from '@/lib/ediel/agtEngine'
 import type { EdielRouteProfileAckMode } from '@/lib/ediel/types'
 import {
   EDIEL_AGT_APPROVAL_VERSION_2026A,
   EDIEL_AGT_PORTAL_EDIEL_ID,
   EDIEL_AGT_PORTAL_SMTP,
-  EDIEL_AGT_PRODAT_SUB_ADDRESS,
+  EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_AGT_SUPPLIER_2026A_CASES,
   EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID,
   getEdielAgtRouteName,
@@ -36,6 +38,16 @@ function nullableUpper(value: string | null): string | null {
 
 function emptyToNull(input: string | null): string | null {
   return input && input.trim().length > 0 ? input.trim() : null
+}
+
+function agtActorNotes(input: {
+  balanceResponsibleEdielId: string | null
+}): string {
+  return JSON.stringify({
+    purpose: 'AGT 2026A supplier runtime',
+    balanceResponsibleEdielId: input.balanceResponsibleEdielId,
+    updatedAt: new Date().toISOString(),
+  })
 }
 
 function revalidateAgt() {
@@ -63,6 +75,7 @@ async function saveActiveSupplierActor(input: {
   smtpFromEmail: string | null
   smtpReplyToEmail: string | null
   mailbox: string | null
+  balanceResponsibleEdielId: string | null
   notes: string | null
 }) {
   if (!input.actorName || !input.actorEdielId) {
@@ -161,10 +174,10 @@ async function upsertRouteProfile(input: {
     is_enabled: true,
     sender_ediel_id: input.senderEdielId,
     sender_name: input.senderName,
-    sender_sub_address: isProdat ? EDIEL_AGT_PRODAT_SUB_ADDRESS : null,
+    sender_sub_address: null,
     receiver_ediel_id: EDIEL_AGT_PORTAL_EDIEL_ID,
     receiver_name: input.receiverName,
-    receiver_sub_address: isProdat ? EDIEL_AGT_PRODAT_SUB_ADDRESS : null,
+    receiver_sub_address: isProdat ? EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS : null,
     application_reference: input.applicationReference,
     default_message_version: input.defaultMessageVersion,
     default_test_flag: 1,
@@ -263,6 +276,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
   const smtpFromEmail = value(formData, 'smtp_from_email')
   const smtpReplyToEmail = value(formData, 'smtp_reply_to_email')
   const mailbox = value(formData, 'mailbox')
+  const balanceResponsibleEdielId = upper(formData, 'balance_responsible_ediel_id')
   const targetEmail = value(formData, 'target_email') ?? EDIEL_AGT_PORTAL_SMTP
   const receiverName = value(formData, 'receiver_name') ?? 'Edielportalen'
   const prodatApplicationReference = nullableUpper(value(formData, 'prodat_application_reference'))
@@ -281,9 +295,8 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
     smtpFromEmail,
     smtpReplyToEmail,
     mailbox,
-    notes: emptyToNull(
-      `AGT 2026A supplier actor. Konfigurerad från AGT-sidan ${new Date().toISOString()}.`
-    ),
+    balanceResponsibleEdielId,
+    notes: emptyToNull(agtActorNotes({ balanceResponsibleEdielId })),
   })
 
   await upsertAgtRoute({
@@ -335,6 +348,25 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
   })
 
   revalidateAgt()
+}
+
+
+export async function createAgtSupplierOutboundDraftAction(formData: FormData) {
+  await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const actorUserId = await getCurrentUserId()
+  const testCaseCode = upper(formData, 'test_case_code') ?? ''
+  const testRunId = value(formData, 'test_run_id')
+
+  if (!testCaseCode) throw new Error('test_case_code saknas')
+
+  const message = await createEdielSupplierAgtOutboundDraft({
+    actorUserId,
+    testRunId,
+    testCaseCode,
+  })
+
+  revalidateAgt()
+  redirect(`/admin/ediel/messages/${message.id}`)
 }
 
 export async function createAllAgtSupplierTestRunsAction(_formData: FormData) {

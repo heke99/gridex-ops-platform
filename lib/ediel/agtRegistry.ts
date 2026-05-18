@@ -41,7 +41,10 @@ export const EDIEL_AGT_APPROVAL_VERSION_2026A = '2026A'
 export const EDIEL_AGT_APPROVAL_VERSION_LABEL_2026A = 'AGT 2026A'
 export const EDIEL_AGT_PORTAL_EDIEL_ID = '91100'
 export const EDIEL_AGT_PORTAL_SMTP = '91100@ediel.se'
-export const EDIEL_AGT_PRODAT_SUB_ADDRESS = 'PRODAT'
+export const EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS = 'PRODAT'
+export const EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS: string | null = null
+// Backwards-compatible alias. In supplier AGT PRODAT this means the portal/receiver subaddress.
+export const EDIEL_AGT_PRODAT_SUB_ADDRESS = EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS
 export const EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID = '92825'
 export const DIV3RSA_AGT_EDIEL_ID = '21660'
 
@@ -132,10 +135,10 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
     title: 'PRODAT L1 · Z03',
     portalTitle: 'L1 – PRODAT Z03',
     purpose: 'Verifierar att leverantören kan skicka PRODAT Z03 till Edielportalen och ta emot positiv CONTRL samt negativ APERAK.',
-    agtInstruction: 'Starta L1 i Edielportalen. Skapa därefter ett outbound Z03-draft i systemet, kontrollera att avsändare är 21660 och mottagare 91100, skicka filen och invänta CONTRL + APERAK från portalen.',
+    agtInstruction: 'Starta L1 i Edielportalen. Skapa därefter ett outbound Z03-draft i systemet, kontrollera att leverantörens Ediel-id är avsändare, att avsändarens UNB-subadress är tom, att mottagare är 91100:ZZ:PRODAT, skicka filen och invänta CONTRL + APERAK från portalen.',
     notes: [
       'Leverantören skickar Z03 till Edielportalen.',
-      'Nätägaren och mottagaren i Z03 ska vara Ediel-id 91100.',
+      'Nätägaren och mottagaren i Z03 ska vara Ediel-id 91100. UNB avsändar-subadress ska vara tom i leverantörens AGT, medan mottagaren har subadress PRODAT.',
       'Portalen svarar med positiv CONTRL om CONTRL är begärd och därefter negativ APERAK.',
     ],
     messageFamily: 'PRODAT',
@@ -186,10 +189,10 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
     title: 'PRODAT L7 · Z09',
     portalTitle: 'L7 – PRODAT Z09',
     purpose: 'Verifierar att leverantören kan skicka PRODAT Z09F/Z09G till Edielportalen och ta emot positiv CONTRL samt negativ APERAK.',
-    agtInstruction: 'Starta L7 i Edielportalen. Skapa därefter outbound Z09-draft i systemet, kontrollera att avsändare är 21660 och mottagare 91100, skicka filen och invänta CONTRL + APERAK från portalen.',
+    agtInstruction: 'Starta L7 i Edielportalen. Skapa därefter outbound Z09-draft i systemet, kontrollera att leverantörens Ediel-id är avsändare, att avsändarens UNB-subadress är tom, att mottagare är 91100:ZZ:PRODAT, skicka filen och invänta CONTRL + APERAK från portalen.',
     notes: [
       'Leverantören skickar Z09F eller Z09G till Edielportalen.',
-      'Nätägaren och mottagaren i Z09 ska vara Ediel-id 91100.',
+      'Nätägaren och mottagaren i Z09 ska vara Ediel-id 91100. UNB avsändar-subadress ska vara tom i leverantörens AGT, medan mottagaren har subadress PRODAT.',
       'Portalen svarar med positiv CONTRL om CONTRL är begärd och därefter negativ APERAK.',
     ],
     messageFamily: 'PRODAT',

@@ -10,6 +10,7 @@ import {
 } from '@/lib/ediel/ack'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
+import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
 import {
   attachEdielMessageToTestRun,
   createEdielMessage,
@@ -19,24 +20,19 @@ import {
   listAckMessagesForSource,
   listEdielTestRuns,
 } from '@/lib/ediel/db'
-import {
-  DIV3RSA_PRODUCTION_EDIEL_ID,
-  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
-  EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-  EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
-  EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
-  EDIEL_TGT_TESTSYSTEM_EMAIL,
-} from '@/lib/ediel/fileEngine'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { renderProdat26A, type ProdatEngineCode } from '@/lib/ediel/prodatEngine'
 import {
+  EDIEL_AGT_PORTAL_EDIEL_ID,
+  EDIEL_AGT_PORTAL_SMTP,
+  EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS,
   getEdielAgtTestCaseByCode,
   inferEdielAgtCaseForInboundMessage,
   isEdielAgtRunApprovalVersion,
   type EdielAgtExpectedStep,
   type EdielAgtTestCaseDefinition,
 } from '@/lib/ediel/agtRegistry'
-import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import type {
   CreateEdielMessageInput,
@@ -48,8 +44,13 @@ export type EdielAgtActorRuntime = {
   actorName: string
   actorEdielId: string
   senderSubAddress: string | null
+  receiverSubAddress: string | null
+  receiverEdielId: string
+  receiverEmail: string
+  applicationReference: string | null
   mailbox: string | null
   smtpFromEmail: string | null
+  balanceResponsibleEdielId: string | null
 }
 
 export type EdielAgtReadinessIssue = {
@@ -81,6 +82,43 @@ function trimOrNull(value?: string | null): string | null {
 
 function upper(value?: string | null): string {
   return String(value ?? '').trim().toUpperCase()
+}
+
+function parseAgtActorNotes(notes?: string | null): { balanceResponsibleEdielId: string | null } {
+  const text = trimOrNull(notes)
+  if (!text) return { balanceResponsibleEdielId: null }
+
+  try {
+    const parsed = JSON.parse(text) as { balanceResponsibleEdielId?: unknown }
+    return {
+      balanceResponsibleEdielId:
+        typeof parsed.balanceResponsibleEdielId === 'string' && parsed.balanceResponsibleEdielId.trim().length > 0
+          ? parsed.balanceResponsibleEdielId.trim().toUpperCase()
+          : null,
+    }
+  } catch {
+    const match = text.match(/balanceResponsibleEdielId\s*[:=]\s*([A-Za-z0-9_-]+)/i)
+    return { balanceResponsibleEdielId: match?.[1]?.toUpperCase() ?? null }
+  }
+}
+
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, '')
+}
+
+function buildAgtSyntheticMeteringPointId(actorEdielId: string, definition: EdielAgtTestCaseDefinition): string {
+  const numeric = digitsOnly(`${actorEdielId}${definition.testCaseCode === 'L7' ? '9' : '3'}`)
+  return `735999${numeric.padStart(12, '0').slice(-12)}`
+}
+
+function buildAgtSyntheticCustomerId(actorEdielId: string): string {
+  const numeric = digitsOnly(actorEdielId).padStart(4, '0').slice(-4)
+  return `19700101${numeric}`
+}
+
+function buildAgtSyntheticCustomerName(actorEdielId: string): string {
+  const suffix = sanitizeToken(actorEdielId, 8) || 'AKTOR'
+  return `TESTKUND ${suffix}`
 }
 
 function agtStamp(date = new Date()): string {
@@ -120,25 +158,27 @@ async function resolveAgtActorRuntime(params?: {
 }): Promise<EdielAgtActorRuntime> {
   const explicitActorEdielId = trimOrNull(params?.actorEdielId)
   const explicitActorName = trimOrNull(params?.actorName)
+  const [actor, agtRuntime] = await Promise.all([
+    resolveCanonicalActorContext('test').catch(() => null),
+    getEdielAgtSupplierRuntime().catch(() => null),
+  ])
+  const activeActor = agtRuntime?.actor ?? actor?.actor ?? null
+  const agtNotes = parseAgtActorNotes(activeActor?.notes ?? null)
 
-  if (explicitActorEdielId) {
-    return {
-      actorEdielId: explicitActorEdielId,
-      actorName: explicitActorName ?? 'Div3rsa AB',
-      senderSubAddress: EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
-      mailbox: 'agt-file-engine',
-      smtpFromEmail: null,
-    }
-  }
-
-  const actor = await resolveCanonicalActorContext('test').catch(() => null)
+  const actorEdielId = explicitActorEdielId ?? actor?.senderEdielId ?? activeActor?.actor_ediel_id ?? ''
+  const actorName = explicitActorName ?? actor?.senderName ?? activeActor?.sender_name ?? activeActor?.actor_name ?? 'Leverantör'
 
   return {
-    actorEdielId: actor?.senderEdielId ?? DIV3RSA_PRODUCTION_EDIEL_ID,
-    actorName: explicitActorName ?? actor?.senderName ?? actor?.actor.actor_name ?? 'Div3rsa AB',
-    senderSubAddress: actor?.senderSubAddress ?? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
-    mailbox: actor?.mailbox ?? 'agt-file-engine',
-    smtpFromEmail: actor?.smtpFromEmail ?? null,
+    actorEdielId,
+    actorName,
+    senderSubAddress: EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS,
+    receiverSubAddress: EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
+    receiverEdielId: agtRuntime?.prodat.profile?.receiver_ediel_id ?? EDIEL_AGT_PORTAL_EDIEL_ID,
+    receiverEmail: agtRuntime?.prodat.route?.target_email ?? EDIEL_AGT_PORTAL_SMTP,
+    applicationReference: agtRuntime?.prodat.profile?.application_reference ?? '23-DDQ-PRODAT',
+    mailbox: actor?.mailbox ?? activeActor?.mailbox ?? 'agt-file-engine',
+    smtpFromEmail: actor?.smtpFromEmail ?? activeActor?.smtp_from_email ?? null,
+    balanceResponsibleEdielId: agtNotes.balanceResponsibleEdielId,
   }
 }
 
@@ -154,7 +194,7 @@ export async function getEdielAgtReadiness(params?: {
       severity: 'error',
       code: 'actor_ediel_id_missing',
       title: 'Aktörens Ediel-id saknas',
-      description: 'AGT kan inte köras utan leverantörens Ediel-id. För Div3rsa AB ska värdet vara 21660.',
+      description: 'AGT kan inte köras utan leverantörens Ediel-id. Värdet ska komma från aktiv SaaS-tenant/aktörskort, inte från Gridcore/TGT.',
     })
   }
 
@@ -162,17 +202,17 @@ export async function getEdielAgtReadiness(params?: {
     issues.push({
       severity: 'error',
       code: 'gridcore_sender_in_actor_test',
-      title: 'Gridcore/TGT-id får inte användas som Div3rsa-aktör',
-      description: '92825 hör till Gridcore/Systemtest. Div3rsa AGT ska skickas med aktörens Ediel-id 21660 eller respektive SaaS-kunds eget Ediel-id.',
+      title: 'Gridcore/TGT-id får inte användas som leverantörsaktör',
+      description: '92825 hör till Gridcore/Systemtest. Leverantörens AGT ska skickas med aktiv tenant/aktörs eget Ediel-id.',
     })
   }
 
-  if (actor.actorEdielId !== DIV3RSA_PRODUCTION_EDIEL_ID) {
+  if (!trimOrNull(actor.balanceResponsibleEdielId)) {
     issues.push({
-      severity: 'warning',
-      code: 'non_div3rsa_actor',
-      title: 'Annat Ediel-id än Div3rsa',
-      description: `AGT-runtime använder ${actor.actorEdielId}. Det är korrekt för SaaS-kund men inte för Div3rsa AB om du testar Div3rsa nu.`,
+      severity: 'error',
+      code: 'agt_balance_responsible_missing',
+      title: 'Balansansvarig Ediel-id saknas',
+      description: 'L1/L7 PRODAT kräver NAD+Z02. Fyll i balansansvarig Ediel-id i AGT-runtime innan outbound-draft skapas.',
     })
   }
 
@@ -232,7 +272,7 @@ export async function createEdielSupplierAgtRun(params: {
       definition.agtInstruction,
       `AGT-aktör: ${readiness.actor.actorName} (${readiness.actor.actorEdielId})`,
       'Motpart: Edielportalen 91100 / 91100@ediel.se.',
-      'PRODAT använder subadress PRODAT. UTILTS använder ingen subadress.',
+      'PRODAT använder tom UNB sender-subadress och receiver-subadress PRODAT. UTILTS använder ingen subadress.',
       ...definition.notes,
     ].join('\n'),
   })
@@ -321,57 +361,10 @@ export async function autoAttachImportedMessageToActiveAgtRun(params: {
   return { testRunId: activeRun.id, stepNo: attached.step_no }
 }
 
-type EdielAgtOutboundRuntimeContext = {
-  communicationRouteId: string | null
-  senderEdielId: string
-  senderName: string | null
-  senderSubAddress: string | null
-  senderEmail: string | null
-  receiverEdielId: string
-  receiverName: string | null
-  receiverSubAddress: string | null
-  receiverEmail: string
-  applicationReference: string
-  mailbox: string | null
-}
-
-async function resolveAgtProdatOutboundRuntime(actor: EdielAgtActorRuntime): Promise<EdielAgtOutboundRuntimeContext> {
-  const runtime = await getEdielAgtSupplierRuntime()
-  const blockingIssues = runtime.issues.filter((issue) =>
-    issue.severity === 'error' &&
-    (issue.code.startsWith('agt_actor') || issue.code.startsWith('agt_prodat'))
-  )
-
-  if (blockingIssues.length > 0) {
-    throw new Error(
-      blockingIssues
-        .map((issue) => `${issue.title}: ${issue.description}`)
-        .join(' | ')
-    )
-  }
-
-  const profile = runtime.prodat.profile
-  const route = runtime.prodat.route
-
-  return {
-    communicationRouteId: route?.id ?? null,
-    senderEdielId: actor.actorEdielId,
-    senderName: actor.actorName ?? trimOrNull(runtime.actor?.sender_name) ?? trimOrNull(runtime.actor?.actor_name),
-    senderSubAddress: trimOrNull(profile?.sender_sub_address) ?? actor.senderSubAddress ?? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
-    senderEmail: actor.smtpFromEmail ?? trimOrNull(runtime.actor?.smtp_from_email),
-    receiverEdielId: trimOrNull(profile?.receiver_ediel_id) ?? EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
-    receiverName: trimOrNull(profile?.receiver_name) ?? 'Edielportalen AGT',
-    receiverSubAddress: trimOrNull(profile?.receiver_sub_address) ?? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-    receiverEmail: trimOrNull(route?.target_email) ?? EDIEL_TGT_TESTSYSTEM_EMAIL,
-    applicationReference: trimOrNull(profile?.application_reference) ?? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
-    mailbox: trimOrNull(profile?.mailbox) ?? actor.mailbox,
-  }
-}
-
 function buildAgtProdatDraftInput(params: {
   actorUserId: string
   definition: EdielAgtTestCaseDefinition
-  runtime: EdielAgtOutboundRuntimeContext
+  actor: EdielAgtActorRuntime
 }): CreateEdielMessageInput {
   const definition = params.definition
   const code = definition.messageCode as ProdatEngineCode
@@ -385,45 +378,47 @@ function buildAgtProdatDraftInput(params: {
       code,
       bgmReference: externalReference,
       transactionReference,
-      senderEdielId: params.runtime.senderEdielId,
-      receiverEdielId: params.runtime.receiverEdielId,
-      customerName: 'AGT TESTKUND',
-      customerId: '197001010000',
+      senderEdielId: params.actor.actorEdielId,
+      receiverEdielId: params.actor.receiverEdielId,
+      customerName: buildAgtSyntheticCustomerName(params.actor.actorEdielId),
+      customerId: buildAgtSyntheticCustomerId(params.actor.actorEdielId),
       customerIdCodeListQualifier: 'SE2',
-      meterPointId: '735999216600000001',
+      meterPointId: buildAgtSyntheticMeteringPointId(params.actor.actorEdielId, definition),
       gridAreaId: 'TES',
       startDate,
-      customerAddress: 'AGTGATAN 1',
+      customerAddress: 'TESTGATAN 1',
       customerPostalCode: '11111',
       customerCity: 'STOCKHOLM',
       customerCountry: 'SE',
-      siteAddress: 'AGTGATAN 1',
+      siteAddress: 'TESTGATAN 1',
       sitePostalCode: '11111',
       siteCity: 'STOCKHOLM',
       siteCountry: 'SE',
       reasonForTransaction,
       meteringMethod: 'Z03',
       powerOfAttorneyReference: `AGT-${externalReference}`,
+      balanceResponsibleId: params.actor.balanceResponsibleEdielId,
     },
     portalSnapshot: {
       reasonForTransaction,
       meteringMethod: 'Z03',
-      customerName: 'AGT TESTKUND',
-      customerId: '197001010000',
+      customerName: buildAgtSyntheticCustomerName(params.actor.actorEdielId),
+      customerId: buildAgtSyntheticCustomerId(params.actor.actorEdielId),
       customerIdCodeListQualifier: 'SE2',
-      facilityId: '735999216600000001',
+      facilityId: buildAgtSyntheticMeteringPointId(params.actor.actorEdielId, definition),
       gridAreaId: 'TES',
       agreementStartDateTime: `${startDate}0000`,
       powerOfAttorneyReference: `AGT-${externalReference}`,
+      balanceResponsibleId: params.actor.balanceResponsibleEdielId,
     },
   })
 
   const envelope = buildEdifactEnvelope({
-    senderEdielId: params.runtime.senderEdielId,
-    senderSubAddress: params.runtime.senderSubAddress ?? undefined,
-    receiverEdielId: params.runtime.receiverEdielId,
-    receiverSubAddress: params.runtime.receiverSubAddress ?? undefined,
-    applicationReference: params.runtime.applicationReference,
+    senderEdielId: params.actor.actorEdielId,
+    senderSubAddress: params.actor.senderSubAddress,
+    receiverEdielId: params.actor.receiverEdielId,
+    receiverSubAddress: params.actor.receiverSubAddress,
+    applicationReference: params.actor.applicationReference ?? '23-DDQ-PRODAT',
     testFlag: 1,
     messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A',
     segments: rendered.segments,
@@ -443,15 +438,15 @@ function buildAgtProdatDraftInput(params: {
     testFlag: 1,
     status: 'draft',
     transportType: 'smtp',
-    mailbox: params.runtime.mailbox,
-    senderEdielId: params.runtime.senderEdielId,
-    senderName: params.runtime.senderName,
-    senderSubAddress: params.runtime.senderSubAddress,
-    receiverEdielId: params.runtime.receiverEdielId,
-    receiverName: params.runtime.receiverName,
-    receiverSubAddress: params.runtime.receiverSubAddress,
-    senderEmail: params.runtime.senderEmail,
-    receiverEmail: params.runtime.receiverEmail,
+    mailbox: params.actor.mailbox,
+    senderEdielId: params.actor.actorEdielId,
+    senderName: params.actor.actorName,
+    senderSubAddress: params.actor.senderSubAddress,
+    receiverEdielId: params.actor.receiverEdielId,
+    receiverName: 'Edielportalen AGT',
+    receiverSubAddress: params.actor.receiverSubAddress,
+    senderEmail: params.actor.smtpFromEmail,
+    receiverEmail: params.actor.receiverEmail,
     subject: `AGT ${definition.testCaseCode} PRODAT ${code} ${externalReference}`,
     fileName: `AGT_${definition.testCaseCode}_${code}_${externalReference}.edi`,
     mimeType: 'application/edifact',
@@ -459,8 +454,7 @@ function buildAgtProdatDraftInput(params: {
     externalReference,
     correlationReference: transactionReference,
     transactionReference,
-    applicationReference: params.runtime.applicationReference,
-    communicationRouteId: params.runtime.communicationRouteId,
+    applicationReference: params.actor.applicationReference ?? '23-DDQ-PRODAT',
     rawPayload: envelope.raw,
     parsedPayload: {
       agt: true,
@@ -469,9 +463,8 @@ function buildAgtProdatDraftInput(params: {
       agtPortalTitle: definition.portalTitle,
       agtScenario: definition.scenario,
       generator: 'ediel.agtEngine.buildAgtProdatDraftInput',
-      actorEdielId: params.runtime.senderEdielId,
-      portalEdielId: params.runtime.receiverEdielId,
-      communicationRouteId: params.runtime.communicationRouteId,
+      actorEdielId: params.actor.actorEdielId,
+      portalEdielId: params.actor.receiverEdielId,
       prodatEngine: rendered.diagnostics,
     },
     validationReport: {
@@ -524,12 +517,10 @@ export async function createEdielSupplierAgtOutboundDraft(params: {
     throw new Error(readiness.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.description).join(' | '))
   }
 
-  const runtime = await resolveAgtProdatOutboundRuntime(readiness.actor)
-
   const message = await createEdielMessage(buildAgtProdatDraftInput({
     actorUserId: params.actorUserId,
     definition,
-    runtime,
+    actor: readiness.actor,
   }))
 
   const run = params.testRunId
@@ -565,10 +556,7 @@ export async function createEdielSupplierAgtOutboundDraft(params: {
       testCaseCode: definition.testCaseCode,
       testRunId: run?.id ?? null,
       actorEdielId: readiness.actor.actorEdielId,
-      portalEdielId: runtime.receiverEdielId,
-      communicationRouteId: runtime.communicationRouteId,
-      receiverEmail: runtime.receiverEmail,
-      applicationReference: runtime.applicationReference,
+      portalEdielId: readiness.actor.receiverEdielId,
     },
   })
 
@@ -751,7 +739,12 @@ export async function createEdielSupplierAgtResponsesForInbound(params: {
     await createEdielMessageEvent({
       actorUserId: params.actorUserId,
       edielMessageId: ackMessage.id,
-      eventType: 'prepared',
+      eventType:
+        item.ackFamily === 'CONTRL'
+          ? 'contrl_sent'
+          : item.ackFamily === 'APERAK'
+            ? 'aperak_sent'
+            : 'utilts_err_sent',
       eventStatus: 'success',
       message: `AGT-preview skapad: ${item.ackFamily} ${item.ackFamily === 'UTILTS_ERR' ? 'negative' : item.outcome}. Kontrollera payload och skicka från kvittensraden.`,
       payload: {

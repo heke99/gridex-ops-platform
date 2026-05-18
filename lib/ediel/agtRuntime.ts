@@ -3,7 +3,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import {
   EDIEL_AGT_PORTAL_EDIEL_ID,
   EDIEL_AGT_PORTAL_SMTP,
-  EDIEL_AGT_PRODAT_SUB_ADDRESS,
+  EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID,
   getEdielAgtRouteName,
 } from '@/lib/ediel/agtRegistry'
@@ -49,6 +49,23 @@ function blank(value?: string | null): boolean {
 
 function normalized(value?: string | null): string {
   return value?.trim().toUpperCase() ?? ''
+}
+
+function parseAgtActorNotes(notes?: string | null): { balanceResponsibleEdielId: string | null } {
+  const text = notes?.trim()
+  if (!text) return { balanceResponsibleEdielId: null }
+  try {
+    const parsed = JSON.parse(text) as { balanceResponsibleEdielId?: unknown }
+    return {
+      balanceResponsibleEdielId:
+        typeof parsed.balanceResponsibleEdielId === 'string' && parsed.balanceResponsibleEdielId.trim().length > 0
+          ? parsed.balanceResponsibleEdielId.trim().toUpperCase()
+          : null,
+    }
+  } catch {
+    const match = text.match(/balanceResponsibleEdielId\s*[:=]\s*([A-Za-z0-9_-]+)/i)
+    return { balanceResponsibleEdielId: match?.[1]?.toUpperCase() ?? null }
+  }
 }
 
 async function getActiveTestSupplierActor(): Promise<EdielActorSettingsRow | null> {
@@ -129,7 +146,7 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
       severity: 'warning',
       code: 'agt_actor_role_not_supplier',
       title: 'Aktörsrollen är inte leverantör',
-      description: 'För Div3rsa/leverantörs-AGT ska aktörskortet ha rollen supplier.',
+      description: 'För leverantörs-AGT ska aktörskortet ha rollen supplier.',
     })
   }
 
@@ -139,6 +156,16 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
       code: 'agt_actor_environment_not_test',
       title: 'AGT ska köras i testmiljön i systemet',
       description: 'Edielportalens AGT går mot produktionsadresser, men i systemet ska körningen hållas i testmiljön så att 91100 inte blandas med riktig drift.',
+    })
+  }
+
+  const agtNotes = parseAgtActorNotes(actor.notes)
+  if (blank(agtNotes.balanceResponsibleEdielId)) {
+    issues.push({
+      severity: 'error',
+      code: 'agt_balance_responsible_missing',
+      title: 'Balansansvarig Ediel-id saknas',
+      description: 'L1/L7 PRODAT kräver NAD+Z02. Fyll i balansansvarig Ediel-id i AGT-runtime och spara igen.',
     })
   }
 
@@ -227,21 +254,21 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
   }
 
   if (family === 'PRODAT') {
-    if (normalized(runtime.profile.sender_sub_address) !== EDIEL_AGT_PRODAT_SUB_ADDRESS) {
+    if (!blank(runtime.profile.sender_sub_address)) {
       issues.push({
         severity: 'error',
-        code: 'agt_prodat_sender_subaddress_wrong',
-        title: 'PRODAT sender subaddress saknas/fel',
-        description: `PRODAT AGT ska använda subadress ${EDIEL_AGT_PRODAT_SUB_ADDRESS}.`,
+        code: 'agt_prodat_sender_subaddress_must_be_blank',
+        title: 'PRODAT sender subaddress ska vara tom',
+        description: 'Edielportalen för leverantörs-AGT förväntar sig tom UNB sender subaddress. Spara om AGT-runtime så sender_sub_address blir tom.',
       })
     }
 
-    if (normalized(runtime.profile.receiver_sub_address) !== EDIEL_AGT_PRODAT_SUB_ADDRESS) {
+    if (normalized(runtime.profile.receiver_sub_address) !== EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS) {
       issues.push({
         severity: 'error',
         code: 'agt_prodat_receiver_subaddress_wrong',
         title: 'PRODAT receiver subaddress saknas/fel',
-        description: `PRODAT AGT ska skicka till 91100 med subadress ${EDIEL_AGT_PRODAT_SUB_ADDRESS}.`,
+        description: `PRODAT AGT ska skicka till 91100 med mottagarsubadress ${EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}.`,
       })
     }
   }
