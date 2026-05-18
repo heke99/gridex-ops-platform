@@ -209,10 +209,10 @@ export async function getEdielAgtReadiness(params?: {
 
   if (!trimOrNull(actor.balanceResponsibleEdielId)) {
     issues.push({
-      severity: 'error',
+      severity: 'warning',
       code: 'agt_balance_responsible_missing',
       title: 'Balansansvarig Ediel-id saknas',
-      description: 'L1/L7 PRODAT kräver NAD+Z02. Fyll i balansansvarig Ediel-id i AGT-runtime innan outbound-draft skapas.',
+      description: 'L1 PRODAT Z03 kräver NAD+Z02 enligt portalens validering. Fyll i balansansvarig Ediel-id innan outbound-draft skapas för L1/L7. L2-L5 är inbound-tester och ska inte blockeras av detta.',
     })
   }
 
@@ -515,6 +515,10 @@ export async function createEdielSupplierAgtOutboundDraft(params: {
   })
   if (!readiness.isReadyForAgt) {
     throw new Error(readiness.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.description).join(' | '))
+  }
+
+  if (!trimOrNull(readiness.actor.balanceResponsibleEdielId)) {
+    throw new Error('Outbound AGT PRODAT kräver NAD+Z02. Fyll i balansansvarig/BRP Ediel-id i AGT-runtime innan du skapar L1/L7-draft. Detta stoppar bara felaktig outbound-payload, inte L2-L5 inbound-testerna.')
   }
 
   const message = await createEdielMessage(buildAgtProdatDraftInput({

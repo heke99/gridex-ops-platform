@@ -162,10 +162,10 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
   const agtNotes = parseAgtActorNotes(actor.notes)
   if (blank(agtNotes.balanceResponsibleEdielId)) {
     issues.push({
-      severity: 'error',
+      severity: 'warning',
       code: 'agt_balance_responsible_missing',
       title: 'Balansansvarig Ediel-id saknas',
-      description: 'L1/L7 PRODAT kräver NAD+Z02. Fyll i balansansvarig Ediel-id i AGT-runtime och spara igen.',
+      description: 'L1 PRODAT Z03 kräver NAD+Z02 enligt portalens validering. Fyll i balansansvarig Ediel-id innan du skapar outbound-draft för L1/L7. L2-L5 får inte blockeras av detta eftersom de är Portal → Aktör.',
     })
   }
 

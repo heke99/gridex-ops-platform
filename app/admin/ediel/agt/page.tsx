@@ -340,7 +340,7 @@ export default async function EdielAgtPage() {
                     <div className="font-semibold">Kontroll innan skick</div>
                     <div>UNB sender: leverantörens Ediel-id utan sender-subadress.</div>
                     <div>UNB receiver: {EDIEL_AGT_PORTAL_EDIEL_ID}:ZZ:{EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}</div>
-                    <div>Payload måste innehålla NAD+Z02 från Balansansvarig Ediel-id.</div>
+                    <div>L1 måste innehålla NAD+Z02 enligt portalens validering. Fyll i balansansvarig/BRP Ediel-id innan du skapar outbound-draft.</div>
                   </div>
                 ) : (
                   <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
@@ -362,7 +362,7 @@ export default async function EdielAgtPage() {
                       <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
                       <input type="hidden" name="test_run_id" value={activeRun?.id ?? ''} />
                       <button
-                        disabled={!runtime.isReady}
+                        disabled={runtime.issues.some((issue) => issue.severity === 'error')}
                         className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
                         Skapa draft och öppna payload
@@ -379,7 +379,7 @@ export default async function EdielAgtPage() {
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
         <h2 className="text-lg font-semibold text-slate-950">Praktisk körordning</h2>
         <p className="mt-2 text-sm leading-6 text-blue-900">
-          Spara AGT-runtime först och fyll i Balansansvarig Ediel-id. När readiness är grön: starta L1 i Edielportalen, skapa L1-run här, skapa draft, kontrollera payload, skicka/motta meddelanden, hämta IMAP och kontrollera kedjan. Fortsätt sedan L2, L3, L4, L5, L7 och därefter UL1, UL2, UL3, UL4, UL6 om portalen kräver den.
+          Spara AGT-runtime först. Starta L1 i Edielportalen, skapa L1-run här, fyll i balansansvarig/BRP Ediel-id, skapa draft, kontrollera payload och skicka. L2-L5 är Portal → Aktör: starta testet i portalen, importera inbound PRODAT och skapa CONTRL + APERAK från inbound-raden. Kör L7 sist som outbound Z09.
         </p>
       </section>
     </div>
