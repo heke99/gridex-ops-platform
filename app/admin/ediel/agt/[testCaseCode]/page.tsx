@@ -20,6 +20,7 @@ import {
 import type { EdielMessageRow, EdielTestRunMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 import {
   attachAgtInboundAndCreateResponsesAction,
+  cleanupAgtCaseDraftMessagesAction,
   createAgtSupplierOutboundDraftAction,
   createAgtSupplierTestRunAction,
   importAgtRawInboundForCaseAction,
@@ -64,17 +65,34 @@ function directionText(testCase: EdielAgtTestCaseDefinition) {
   return testCase.direction === 'actor_to_portal' ? 'Leverantör → Edielportalen' : 'Edielportalen → Leverantör'
 }
 
+
+function isAckLikeStep(step: EdielAgtTestCaseDefinition['expectedSteps'][number]): boolean {
+  const family = String(step.family ?? '').toUpperCase()
+  const code = String(step.code ?? '').toUpperCase()
+  return family === 'CONTRL' || code === 'CONTRL' || family === 'APERAK' || code === 'APERAK' || family === 'UTILTS_ERR' || code === 'UTILTS_ERR'
+}
+
+function messageMatchesExpectedStep(step: EdielAgtTestCaseDefinition['expectedSteps'][number], message: EdielMessageRow): boolean {
+  const family = String(message.message_family ?? '').toUpperCase()
+  const code = String(message.message_code ?? '').toUpperCase()
+  const expectedFamily = String(step.family ?? '').toUpperCase()
+  const expectedCode = String(step.code ?? '').toUpperCase()
+
+  if (isAckLikeStep(step)) {
+    return family === expectedFamily || code === expectedCode || family === expectedCode
+  }
+
+  return family === expectedFamily && code === expectedCode
+}
+
 function canAttachToCase(testCase: EdielAgtTestCaseDefinition, message: EdielMessageRow) {
   if (message.direction !== 'inbound') return false
-  const family = String(message.message_family).toUpperCase()
-  const code = String(message.message_code).toUpperCase()
   return testCase.expectedSteps.some((step) => {
     if (step.actor !== 'portal' || step.direction !== 'inbound') return false
-    if (String(step.family).toUpperCase() !== family) return false
-    const expectedCode = String(step.code).toUpperCase()
-    return expectedCode === family || expectedCode === code || expectedCode === String(testCase.messageCode).toUpperCase()
+    return messageMatchesExpectedStep(step, message)
   })
 }
+
 
 function isPrimaryInbound(testCase: EdielAgtTestCaseDefinition, message: EdielMessageRow) {
   return (
@@ -141,7 +159,13 @@ function LinkedTimeline({
 
       <div className="mt-4 space-y-3">
         {testCase.expectedSteps.map((step) => {
-          const linked = links.filter((link) => link.step_no === step.stepNo)
+          const validLinked = links
+            .map((link) => ({ link, message: messagesById.get(link.ediel_message_id) }))
+            .filter((item): item is { link: EdielTestRunMessageRow; message: EdielMessageRow } => Boolean(item.message) && item.link.step_no === step.stepNo && messageMatchesExpectedStep(step, item.message))
+            .filter((item) => item.message.status !== 'cancelled')
+            .sort((a, b) => Date.parse(b.message.created_at ?? '') - Date.parse(a.message.created_at ?? ''))
+          const visibleLinked = validLinked.slice(0, 1)
+          const hiddenCount = Math.max(validLinked.length - visibleLinked.length, 0)
           return (
             <div key={step.stepNo} className="rounded-2xl border border-slate-200 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -149,15 +173,12 @@ function LinkedTimeline({
                   <div className="text-sm font-semibold text-slate-950">Steg {step.stepNo}: {step.title}</div>
                   <div className="mt-1 text-xs text-slate-500">{step.actor} · {step.direction} · {step.family} {step.code}</div>
                 </div>
-                <Badge tone={linked.length > 0 ? 'green' : 'slate'}>{linked.length > 0 ? 'kopplad' : 'väntar'}</Badge>
+                <Badge tone={visibleLinked.length > 0 ? 'green' : 'slate'}>{visibleLinked.length > 0 ? 'kopplad' : 'väntar'}</Badge>
               </div>
 
-              {linked.length > 0 ? (
+              {visibleLinked.length > 0 ? (
                 <div className="mt-3 space-y-2">
-                  {linked.map((link) => {
-                    const message = messagesById.get(link.ediel_message_id)
-                    if (!message) return null
-                    return (
+                  {visibleLinked.map(({ link, message }) => (
                       <div key={link.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <MessageSummary message={message} />
@@ -169,8 +190,12 @@ function LinkedTimeline({
                           </div>
                         </div>
                       </div>
-                    )
-                  })}
+                  ))}
+                  {hiddenCount > 0 ? (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+                      {hiddenCount} äldre/duplicerade kopplingar är dolda. Använd rensningsknappen om du vill makulera gamla drafts för detta test.
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -221,8 +246,9 @@ export default async function AgtCasePage({
   const messagesById = new Map(linkedMessages.map((message) => [message.id, message]))
 
   const candidateInbound = recentInbound
-    .filter((message) => canAttachToCase(testCase, message))
-    .slice(0, 15)
+    .filter((message) => testCase.direction === 'portal_to_actor' ? isPrimaryInbound(testCase, message) : canAttachToCase(testCase, message))
+    .filter((message) => message.status !== 'cancelled')
+    .slice(0, 10)
 
   const candidateAckPairs = await Promise.all(
     candidateInbound.map(async (message) => ({
@@ -231,7 +257,7 @@ export default async function AgtCasePage({
     }))
   )
 
-  const linkedSourceIds = Array.from(new Set(linkedMessages.filter((message) => message.direction === 'inbound').map((message) => message.id)))
+  const linkedSourceIds = Array.from(new Set(linkedMessages.filter((message) => isPrimaryInbound(testCase, message)).map((message) => message.id)))
   const linkedAckPairs = await Promise.all(
     linkedSourceIds.map(async (id) => ({
       sourceId: id,
@@ -331,8 +357,18 @@ export default async function AgtCasePage({
             )}
           </div>
 
+          {run ? (
+            <form action={cleanupAgtCaseDraftMessagesAction} className="mt-3">
+              <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+              <input type="hidden" name="test_run_id" value={run.id} />
+              <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100">
+                Rensa gamla test-drafts
+              </button>
+            </form>
+          ) : null}
+
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
-            Motorn skapar svarsdraft, inte autoskick. Du granskar payload och skickar från raden. Produktion/live-flöden ska inte gå via den här testvyn.
+            Motorn skapar svarsdraft, inte autoskick. Du granskar payload och skickar från raden. Produktion/live-flöden ska inte gå via den här testvyn. Gamla test-drafts makuleras via rensning, de hårdraderas inte eftersom Ediel-historik ska kunna spåras.
           </div>
         </div>
 
@@ -341,7 +377,7 @@ export default async function AgtCasePage({
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Använd detta om IMAP inte hunnit hämta meddelandet eller om du vill klistra in EDIFACT från portalen. Motorn försöker koppla mot rätt steg och skapar AGT-svar om det är portalens affärsmeddelande.
           </p>
-          <form action={importAgtRawInboundForCaseAction} encType="multipart/form-data" className="mt-4 space-y-3">
+          <form action={importAgtRawInboundForCaseAction} className="mt-4 space-y-3">
             <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
             <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
             <label className="block text-sm font-medium text-slate-700">
@@ -416,7 +452,7 @@ export default async function AgtCasePage({
                     {isPrimaryInbound(testCase, message) ? (
                       <div className="mt-2 text-xs font-semibold text-emerald-700">Detta är portalens affärsmeddelande för testet. Motorn skapar rätt svarsdraft.</div>
                     ) : (
-                      <div className="mt-2 text-xs font-semibold text-blue-700">Detta är portalens kvittens/svarsmeddelande och kan kopplas till testkedjan.</div>
+                      <div className="mt-2 text-xs font-semibold text-blue-700">Detta är portalens kvittens/svarsmeddelande för ett outbound-test och kan kopplas till testkedjan.</div>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">

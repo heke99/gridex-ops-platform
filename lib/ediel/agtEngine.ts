@@ -701,6 +701,18 @@ export async function createEdielSupplierAgtResponsesForInbound(params: {
     explicitTestCaseCode: params.testCaseCode ?? null,
   })
 
+  if (
+    definition?.direction === 'portal_to_actor' &&
+    (
+      upper(sourceMessage.message_family) !== upper(definition.messageFamily) ||
+      upper(String(sourceMessage.message_code ?? '')) !== upper(definition.messageCode)
+    )
+  ) {
+    throw new Error(
+      `AGT ${definition.testCaseCode} ska bara skapa svar från portalens affärsmeddelande ${definition.messageFamily}/${definition.messageCode}. Kvittenser eller gamla testmeddelanden ska bara visas/länkas, inte generera nya svar.`
+    )
+  }
+
   const plan = planForInboundSource(sourceMessage, definition)
   if (plan.length === 0) {
     throw new Error('Det finns inget AGT-svar att skapa för detta meddelande. CONTRL ska inte kvitteras, och okänd familj saknar AGT-regel.')

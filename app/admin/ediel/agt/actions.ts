@@ -11,7 +11,11 @@ import {
   createEdielMessageEvent,
   createEdielTestRun,
   getEdielMessageById,
+  listEdielMessagesByIds,
+  listEdielTestRunMessages,
   listEdielTestRuns,
+  updateEdielMessageStatus,
+  updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import {
   createEdielSupplierAgtOutboundDraft,
@@ -69,20 +73,56 @@ async function uploadedFileText(value: FormDataEntryValue | null): Promise<{ tex
   }
 }
 
+
+function isAckLikeStep(step: EdielAgtExpectedStep): boolean {
+  const family = String(step.family ?? '').toUpperCase()
+  const code = String(step.code ?? '').toUpperCase()
+  return family === 'CONTRL' || code === 'CONTRL' || family === 'APERAK' || code === 'APERAK' || family === 'UTILTS_ERR' || code === 'UTILTS_ERR'
+}
+
+function messageMatchesAgtStep(step: EdielAgtExpectedStep, message: EdielMessageRow): boolean {
+  const family = String(message.message_family ?? '').toUpperCase()
+  const code = String(message.message_code ?? '').toUpperCase()
+  const expectedFamily = String(step.family ?? '').toUpperCase()
+  const expectedCode = String(step.code ?? '').toUpperCase()
+
+  if (isAckLikeStep(step)) {
+    // Portalen kan lagra t.ex. CONTRL som family=PRODAT/code=CONTRL beroende på parserkälla.
+    // För kvittenser är koden därför säkrare än family ensam.
+    return family === expectedFamily || code === expectedCode || family === expectedCode
+  }
+
+  // Affärsmeddelanden måste matcha exakt. L2/Z04 får inte fånga gamla PRODAT CONTRL från L1.
+  return family === expectedFamily && code === expectedCode
+}
+
 function expectedInboundStepForMessage(
   testCase: EdielAgtTestCaseDefinition,
   message: EdielMessageRow
 ): EdielAgtExpectedStep | null {
-  const family = String(message.message_family ?? '').toUpperCase()
-  const code = String(message.message_code ?? '').toUpperCase()
+  if (message.direction !== 'inbound') return null
 
   return testCase.expectedSteps.find((step) => {
     if (step.actor !== 'portal' || step.direction !== 'inbound') return false
-    if (String(step.family).toUpperCase() !== family) return false
-    const expectedCode = String(step.code ?? '').toUpperCase()
-    return expectedCode === family || expectedCode === code || expectedCode === String(testCase.messageCode).toUpperCase()
+    return messageMatchesAgtStep(step, message)
   }) ?? null
 }
+
+function isPrimaryBusinessInboundForCase(testCase: EdielAgtTestCaseDefinition, message: EdielMessageRow): boolean {
+  return (
+    testCase.direction === 'portal_to_actor' &&
+    message.direction === 'inbound' &&
+    String(message.message_family ?? '').toUpperCase() === String(testCase.messageFamily).toUpperCase() &&
+    String(message.message_code ?? '').toUpperCase() === String(testCase.messageCode).toUpperCase()
+  )
+}
+
+function messageTime(message: EdielMessageRow): number {
+  const raw = message.message_received_at ?? message.created_at ?? message.updated_at
+  const time = raw ? Date.parse(raw) : 0
+  return Number.isFinite(time) ? time : 0
+}
+
 
 async function ensureAgtRunForCase(params: {
   actorUserId: string
@@ -158,16 +198,14 @@ async function attachExpectedAgtMessage(params: {
   return step
 }
 
+
 async function createAgtResponsesIfBusinessInbound(params: {
   actorUserId: string
   testRunId: string
   testCase: EdielAgtTestCaseDefinition
   message: EdielMessageRow
 }): Promise<EdielMessageRow[]> {
-  const matchedExpectedStep = expectedInboundStepForMessage(params.testCase, params.message)
-  if (!matchedExpectedStep) return []
-  if (params.message.direction !== 'inbound') return []
-  if (String(params.message.message_family).toUpperCase() === 'CONTRL') return []
+  if (!isPrimaryBusinessInboundForCase(params.testCase, params.message)) return []
 
   return createEdielSupplierAgtResponsesForInbound({
     actorUserId: params.actorUserId,
@@ -176,6 +214,7 @@ async function createAgtResponsesIfBusinessInbound(params: {
     testCaseCode: params.testCase.testCaseCode,
   })
 }
+
 
 async function getAgtCaseOrThrow(testCaseCode: string | null): Promise<EdielAgtTestCaseDefinition> {
   const testCase = getEdielAgtSupplier2026ACase(String(testCaseCode ?? '').toUpperCase())
@@ -556,7 +595,12 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
   })
 
   let matched = 0
-  for (const message of imported) {
+  const sortedImported = [...imported].sort((a, b) => messageTime(b) - messageTime(a))
+  const messagesToAttach = testCase.direction === 'portal_to_actor'
+    ? sortedImported.filter((message) => isPrimaryBusinessInboundForCase(testCase, message)).slice(0, 1)
+    : sortedImported.filter((message) => Boolean(expectedInboundStepForMessage(testCase, message)))
+
+  for (const message of messagesToAttach) {
     const step = await attachExpectedAgtMessage({
       actorUserId,
       testRunId: testRun.id,
@@ -567,7 +611,7 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
     if (!step) continue
     matched += 1
 
-    const responses = await createAgtResponsesIfBusinessInbound({
+    await createAgtResponsesIfBusinessInbound({
       actorUserId,
       testRunId: testRun.id,
       testCase,
@@ -684,3 +728,62 @@ export async function attachAgtInboundAndCreateResponsesAction(formData: FormDat
   redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
 }
 
+
+
+export async function cleanupAgtCaseDraftMessagesAction(formData: FormData) {
+  await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const actorUserId = await getCurrentUserId()
+  const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
+  const keepRunId = value(formData, 'test_run_id')
+
+  const runs = await listEdielTestRuns()
+  const sameCaseRuns = runs.filter((run) =>
+    run.role_code === testCase.roleCode &&
+    run.test_suite === testCase.suite &&
+    run.test_case_code === testCase.testCaseCode &&
+    run.approval_version === testCase.approvalVersion &&
+    run.status !== 'cancelled'
+  )
+
+  for (const run of sameCaseRuns) {
+    const links = await listEdielTestRunMessages({ testRunId: run.id })
+    const messages = await listEdielMessagesByIds(links.map((link) => link.ediel_message_id))
+
+    for (const message of messages) {
+      const canCancel =
+        message.direction === 'outbound' &&
+        (message.status === 'draft' || message.status === 'prepared' || message.status === 'queued')
+
+      if (!canCancel) continue
+
+      await updateEdielMessageStatus({
+        actorUserId,
+        edielMessageId: message.id,
+        status: 'cancelled',
+        failureReason: `Rensad från AGT ${testCase.testCaseCode}. Historik behålls men draften ska inte skickas.`,
+      })
+
+      await createEdielMessageEvent({
+        actorUserId,
+        edielMessageId: message.id,
+        eventType: 'manual_note',
+        eventStatus: 'warning',
+        message: `AGT ${testCase.testCaseCode}: gammal draft rensades från testfönstret.`,
+        payload: { agt: true, testCaseCode: testCase.testCaseCode, testRunId: run.id, cleanup: true },
+      })
+    }
+
+    if (keepRunId && run.id !== keepRunId && (run.status === 'draft' || run.status === 'running')) {
+      await updateEdielTestRunStatus({
+        actorUserId,
+        testRunId: run.id,
+        status: 'cancelled',
+        failureReason: `Rensad från AGT ${testCase.testCaseCode}; aktuell run behölls: ${keepRunId}.`,
+        completedAt: new Date().toISOString(),
+      })
+    }
+  }
+
+  revalidateAgt()
+  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
+}
