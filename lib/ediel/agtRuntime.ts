@@ -256,10 +256,10 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
   if (family === 'PRODAT') {
     if (!blank(runtime.profile.sender_sub_address)) {
       issues.push({
-        severity: 'error',
-        code: 'agt_prodat_sender_subaddress_must_be_blank',
-        title: 'PRODAT sender subaddress ska vara tom',
-        description: 'Edielportalen för leverantörs-AGT förväntar sig tom UNB sender subaddress. Spara om AGT-runtime så sender_sub_address blir tom.',
+        severity: 'warning',
+        code: 'agt_prodat_sender_subaddress_must_match_tenant',
+        title: 'Kontrollera PRODAT sender subaddress',
+        description: 'Sender subaddress får bara skickas om den faktiskt finns under Edielmeddelanden i Edielportalen för den aktiva leverantören. För Div3rsa ska den vara tom; andra SaaS-tenants ska följa sin egen Edielregisterprofil.',
       })
     }
 

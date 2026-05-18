@@ -103,7 +103,7 @@ function RouteCard({
 
       <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
         {family === 'PRODAT'
-          ? `PRODAT AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID} med tom sender-subadress och receiver-subadress ${EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}.`
+          ? `PRODAT AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID}. Sender-subadress ska matcha aktiv tenant i Edielportalen; receiver-subadress är ${EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}.`
           : `UTILTS AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID} utan subadress.`}
       </div>
     </div>
@@ -251,6 +251,10 @@ export default async function EdielAgtPage() {
                 <input name="sender_name" defaultValue={runtime.actor?.sender_name ?? runtime.actor?.actor_name ?? ''} className={inputClassName()} placeholder="Namn som ska visas på avsändarprofilen" />
               </label>
               <label className="text-sm text-slate-700">
+                PRODAT sender subaddress
+                <input name="prodat_sender_sub_address" defaultValue={runtime.prodat.profile?.sender_sub_address ?? runtime.actor?.sender_sub_address ?? ''} className={inputClassName()} placeholder="Lämna tom om Edielportalen visar tom subaddress" />
+              </label>
+              <label className="text-sm text-slate-700">
                 Mailbox
                 <input name="mailbox" defaultValue={runtime.actor?.mailbox ?? 'INBOX'} className={inputClassName()} />
               </label>
@@ -270,11 +274,11 @@ export default async function EdielAgtPage() {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm text-slate-700">
                 Mottagare
-                <input name="receiver_name" defaultValue="Edielportalen" className={inputClassName()} />
+                <input name="receiver_name" defaultValue={runtime.prodat.profile?.receiver_name ?? 'Edielportalen'} className={inputClassName()} />
               </label>
               <label className="text-sm text-slate-700">
                 SMTP till portalen
-                <input name="target_email" defaultValue={EDIEL_AGT_PORTAL_SMTP} className={inputClassName()} />
+                <input name="target_email" defaultValue={runtime.prodat.route?.target_email ?? EDIEL_AGT_PORTAL_SMTP} className={inputClassName()} />
               </label>
               <label className="text-sm text-slate-700">
                 PRODAT application reference
@@ -291,7 +295,7 @@ export default async function EdielAgtPage() {
             </div>
 
             <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-              Knappen skapar/uppdaterar ett aktivt test-aktörskort, en PRODAT-route och en UTILTS-route. PRODAT AGT sparas med tom UNB sender-subadress, receiver-subadress PRODAT och okrypterad SMTP. Balansansvarig Ediel-id sparas i aktörens AGT-notes och används som NAD+Z02 i L1/L7.
+              Knappen skapar/uppdaterar ett aktivt test-aktörskort, en PRODAT-route och en UTILTS-route. Uppgifterna sparas i databasen och används framåt tills någon ändrar dem. PRODAT sender-subadress ska matcha Edielportalen per tenant; för Div3rsa lämnas den tom. Receiver-subadress mot portalen är PRODAT. Balansansvarig Ediel-id sparas i aktörens AGT-notes och används som NAD+Z02 i L1/L7.
             </div>
           </div>
 
@@ -345,9 +349,9 @@ export default async function EdielAgtPage() {
                 {actorToPortal ? (
                   <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-900">
                     <div className="font-semibold">Kontroll innan skick</div>
-                    <div>UNB sender: leverantörens Ediel-id utan sender-subadress.</div>
+                    <div>UNB sender: leverantörens Ediel-id + den sender-subadress som är sparad på tenantprofilen. För Div3rsa ska den vara tom.</div>
                     <div>UNB receiver: {EDIEL_AGT_PORTAL_EDIEL_ID}:ZZ:{EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}</div>
-                    <div>L1 måste innehålla NAD+Z02 enligt portalens validering. Fyll i balansansvarig/BRP Ediel-id innan du skapar outbound-draft.</div>
+                    <div>L1/L7 måste innehålla NAD+Z02 enligt portalens validering. Fyll i balansansvarig/BRP Ediel-id innan du skapar outbound-draft.</div>
                   </div>
                 ) : (
                   <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">

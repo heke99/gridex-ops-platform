@@ -26,7 +26,6 @@ import {
   EDIEL_AGT_PORTAL_EDIEL_ID,
   EDIEL_AGT_PORTAL_SMTP,
   EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
-  EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS,
   getEdielAgtTestCaseByCode,
   inferEdielAgtCaseForInboundMessage,
   isEdielAgtRunApprovalVersion,
@@ -171,7 +170,7 @@ async function resolveAgtActorRuntime(params?: {
   return {
     actorEdielId,
     actorName,
-    senderSubAddress: EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS,
+    senderSubAddress: agtRuntime?.prodat.profile?.sender_sub_address ?? activeActor?.sender_sub_address ?? null,
     receiverSubAddress: EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
     receiverEdielId: agtRuntime?.prodat.profile?.receiver_ediel_id ?? EDIEL_AGT_PORTAL_EDIEL_ID,
     receiverEmail: agtRuntime?.prodat.route?.target_email ?? EDIEL_AGT_PORTAL_SMTP,
@@ -272,7 +271,7 @@ export async function createEdielSupplierAgtRun(params: {
       definition.agtInstruction,
       `AGT-aktör: ${readiness.actor.actorName} (${readiness.actor.actorEdielId})`,
       'Motpart: Edielportalen 91100 / 91100@ediel.se.',
-      'PRODAT använder tom UNB sender-subadress och receiver-subadress PRODAT. UTILTS använder ingen subadress.',
+      'PRODAT använder tenantens sparade UNB sender-subadress och receiver-subadress PRODAT. För Div3rsa är sender-subadress tom. UTILTS använder ingen subadress.',
       ...definition.notes,
     ].join('\n'),
   })

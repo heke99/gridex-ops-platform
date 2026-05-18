@@ -230,7 +230,7 @@ export default function EdielAgtWorkbenchPanel({
         </div>
         <h2 className="mt-3 text-lg font-semibold text-slate-950">Leverantörstest mot Edielportalen</h2>
         <p className="mt-2 text-sm leading-6 text-slate-700">
-          Denna vy är separat från Gridcore/TGT. Leverantören skickar och kvitterar med aktivt Ediel-id från AGT-runtime. Motparten är Edielportalen {EDIEL_TGT_TESTSYSTEM_EDIEL_ID} / {EDIEL_TGT_TESTSYSTEM_EMAIL}. PRODAT använder tom sender-subadress och receiver-subadress {EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}; UTILTS använder ingen subadress.
+          Denna vy är separat från Gridcore/TGT. Leverantören skickar och kvitterar med aktivt Ediel-id från AGT-runtime. Motparten är Edielportalen {EDIEL_TGT_TESTSYSTEM_EDIEL_ID} / {EDIEL_TGT_TESTSYSTEM_EMAIL}. PRODAT använder den sender-subadress som är sparad på aktiv tenantprofil och receiver-subadress {EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}; UTILTS använder ingen subadress.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl bg-white p-3">

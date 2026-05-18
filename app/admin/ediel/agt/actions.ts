@@ -254,6 +254,7 @@ async function saveActiveSupplierActor(input: {
   actorName: string
   actorEdielId: string
   senderName: string | null
+  senderSubAddress: string | null
   smtpFromEmail: string | null
   smtpReplyToEmail: string | null
   mailbox: string | null
@@ -298,7 +299,7 @@ async function saveActiveSupplierActor(input: {
     environment: 'test',
     is_active: true,
     sender_name: input.senderName,
-    sender_sub_address: null,
+    sender_sub_address: input.senderSubAddress,
     default_application_reference: null,
     default_timezone: 1,
     default_charset: 'UNOC',
@@ -334,6 +335,7 @@ async function upsertRouteProfile(input: {
   family: 'PRODAT' | 'UTILTS'
   senderEdielId: string
   senderName: string | null
+  senderSubAddress: string | null
   receiverName: string
   applicationReference: string | null
   defaultMessageVersion: string | null
@@ -356,7 +358,7 @@ async function upsertRouteProfile(input: {
     is_enabled: true,
     sender_ediel_id: input.senderEdielId,
     sender_name: input.senderName,
-    sender_sub_address: null,
+    sender_sub_address: input.senderSubAddress,
     receiver_ediel_id: EDIEL_AGT_PORTAL_EDIEL_ID,
     receiver_name: input.receiverName,
     receiver_sub_address: isProdat ? EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS : null,
@@ -402,6 +404,7 @@ async function upsertAgtRoute(input: {
   family: 'PRODAT' | 'UTILTS'
   actorEdielId: string
   senderName: string | null
+  senderSubAddress: string | null
   receiverName: string
   targetEmail: string
   applicationReference: string | null
@@ -440,6 +443,7 @@ async function upsertAgtRoute(input: {
     family: input.family,
     senderEdielId: input.actorEdielId,
     senderName: input.senderName,
+    senderSubAddress: input.senderSubAddress,
     receiverName: input.receiverName,
     applicationReference: input.applicationReference,
     defaultMessageVersion: input.defaultMessageVersion,
@@ -455,6 +459,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
   const actorName = value(formData, 'actor_name') ?? ''
   const actorEdielId = upper(formData, 'actor_ediel_id') ?? ''
   const senderName = value(formData, 'sender_name')
+  const prodatSenderSubAddress = nullableUpper(value(formData, 'prodat_sender_sub_address'))
   const smtpFromEmail = value(formData, 'smtp_from_email')
   const smtpReplyToEmail = value(formData, 'smtp_reply_to_email')
   const mailbox = value(formData, 'mailbox')
@@ -474,6 +479,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
     actorName,
     actorEdielId,
     senderName,
+    senderSubAddress: prodatSenderSubAddress,
     smtpFromEmail,
     smtpReplyToEmail,
     mailbox,
@@ -486,6 +492,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
     family: 'PRODAT',
     actorEdielId,
     senderName,
+    senderSubAddress: prodatSenderSubAddress,
     receiverName,
     targetEmail,
     applicationReference: prodatApplicationReference,
@@ -498,6 +505,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
     family: 'UTILTS',
     actorEdielId,
     senderName,
+    senderSubAddress: null,
     receiverName,
     targetEmail,
     applicationReference: null,
