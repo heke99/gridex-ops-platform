@@ -199,7 +199,7 @@ export default async function EdielPage() {
           <AreaCard
             eyebrow="Test"
             title="Leverantörs-AGT"
-            text="Egen testyta för Div3rsa/kommande tenants. L1/L7 skickas ut, L2–L5 tas emot från portalen och kvitteras."
+            text="Egen testyta för aktiv leverantör/tenant. L1/L7 skickas ut, L2–L5 tas emot från portalen och kvitteras."
             href="/admin/ediel/agt"
             cta="Öppna AGT"
             tone="test"
@@ -212,6 +212,32 @@ export default async function EdielPage() {
             cta="Öppna routes"
             tone="settings"
           />
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Aktiv tenant/aktörsprofil</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">{agtRuntime?.actor?.actor_name ?? 'Ingen aktiv leverantör vald'}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                AGT och Ediel-routes ska alltid utgå från den aktiva aktörsprofilen. Byter du leverantör i SaaS-läget ska Ediel-id, mailbox, sender-namn och route-profiler bytas här – inte i kod.
+              </p>
+            </div>
+            <div className="grid gap-2 text-sm md:min-w-72">
+              <div className="flex justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-3 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Ediel-id</span>
+                <span className="font-mono font-semibold text-slate-950 dark:text-white">{agtRuntime?.actor?.actor_ediel_id ?? '—'}</span>
+              </div>
+              <div className="flex justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-3 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Mailbox</span>
+                <span className="font-mono font-semibold text-slate-950 dark:text-white">{agtRuntime?.actor?.mailbox ?? '—'}</span>
+              </div>
+              <div className="flex justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-3 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">AGT readiness</span>
+                <span className="font-semibold text-slate-950 dark:text-white">{agtRuntime?.isReady ? 'redo' : `${agtErrors} fel / ${agtWarnings} varningar`}</span>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">

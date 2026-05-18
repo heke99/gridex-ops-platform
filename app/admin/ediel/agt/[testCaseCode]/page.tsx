@@ -502,7 +502,7 @@ export default async function AgtCasePage({
       <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-sm leading-6 text-indigo-900">
         <div className="font-semibold text-indigo-950">SaaS-regel för detta fönster</div>
         <p className="mt-1">
-          Testfallet styrs av AGT-registret och aktiv tenant-runtime. Inga Div3rsa-namn eller testvärden ska ligga som specialfall i motorn. För andra leverantörer byts Ediel-id, mailbox, routes och eventuell BRP i runtime.
+          Testfallet styrs av AGT-registret och aktiv tenant-runtime. Inga leverantörsnamn eller testvärden ska ligga som specialfall i motorn. För andra leverantörer byts Ediel-id, mailbox, routes och eventuell BRP i runtime.
         </p>
         {testCase.suite === 'PRODAT' ? (
           <p className="mt-2">PRODAT AGT mot portalen använder receiver {EDIEL_AGT_PORTAL_EDIEL_ID}:ZZ:{EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}. Sender-subadress ska följa Edielregistret per tenant.</p>

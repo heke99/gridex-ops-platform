@@ -655,6 +655,8 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
   const rawPayload = uploaded.text ?? pasted
   if (!rawPayload) throw new Error('Ladda upp EDIFACT-fil eller klistra in inbound-payload från Edielportalen.')
 
+  const runtime = await getEdielAgtSupplierRuntime()
+
   const result = await registerEdielFile({
     actorUserId,
     direction: 'inbound',
@@ -664,6 +666,8 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
     mailbox: value(formData, 'mailbox') ?? 'agt-manual-import',
     mailboxMessageId: value(formData, 'mailbox_message_id') ?? `agt-${testCase.testCaseCode}-${Date.now()}`,
     subject: `AGT ${testCase.testCaseCode} manual import`,
+    ownActorEdielId: runtime.actor?.actor_ediel_id ?? null,
+    ownActorName: runtime.actor?.actor_name ?? runtime.actor?.sender_name ?? null,
   })
 
   const message = await getEdielMessageById(result.id)

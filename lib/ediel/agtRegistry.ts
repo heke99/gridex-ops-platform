@@ -46,7 +46,6 @@ export const EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS: string | null = null
 // Backwards-compatible alias. In supplier AGT PRODAT this means the portal/receiver subaddress.
 export const EDIEL_AGT_PRODAT_SUB_ADDRESS = EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS
 export const EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID = '92825'
-export const DIV3RSA_AGT_EDIEL_ID = '21660'
 
 function actorOutbound(stepNo: number, family: EdielMessageFamily, code: string, title: string): EdielAgtExpectedStep {
   return { stepNo, actor: 'actor', direction: 'outbound', family, code, title }

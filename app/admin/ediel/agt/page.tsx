@@ -171,7 +171,7 @@ export default async function EdielAgtPage() {
             <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Starta inte tester blint</div>
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">Först ska AGT runtime vara grön</h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-              Värdena i formuläret sparas i aktörskort, communication_routes och ediel_route_profiles. Nuvarande värden är bara förifyllda defaultvärden i formuläret. Runtime ska läsa från databasen så att samma SaaS-flöde fungerar för varje leverantör/tenant senare.
+              Värdena i formuläret sparas i aktörskort, communication_routes och ediel_route_profiles. Fälten förifylls bara från aktiv aktörsprofil i databasen. Om ingen aktiv tenant finns visas tomma fält – inga leverantörs-/kundvärden ska ligga som UI-default.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -193,6 +193,13 @@ export default async function EdielAgtPage() {
         <Field label="Portal Ediel-id" value={EDIEL_AGT_PORTAL_EDIEL_ID} />
         <Field label="Portal SMTP" value={EDIEL_AGT_PORTAL_SMTP} />
       </section>
+
+      {!runtime.actor ? (
+        <section className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm leading-6 text-rose-800">
+          <div className="font-semibold text-rose-950">Ingen aktiv AGT-tenant är vald</div>
+          <p className="mt-1">Skapa/spara aktörsprofilen nedan innan du startar L3 eller andra tester. Systemet ska läsa Ediel-id, mailbox och routes från aktiv aktörsprofil, inte från hårdkodade fallback-värden.</p>
+        </section>
+      ) : null}
 
       {runtime.issues.length > 0 ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
@@ -229,11 +236,11 @@ export default async function EdielAgtPage() {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm text-slate-700">
                 Bolagsnamn
-                <input name="actor_name" defaultValue={runtime.actor?.actor_name ?? 'Div3rsa AB'} className={inputClassName()} />
+                <input name="actor_name" defaultValue={runtime.actor?.actor_name ?? ''} className={inputClassName()} placeholder="Aktiv leverantör/tenant" />
               </label>
               <label className="text-sm text-slate-700">
                 Leverantörens Ediel-id
-                <input name="actor_ediel_id" defaultValue={runtime.actor?.actor_ediel_id ?? '21660'} className={inputClassName()} />
+                <input name="actor_ediel_id" defaultValue={runtime.actor?.actor_ediel_id ?? ''} className={inputClassName()} placeholder="Leverantörens Ediel-id" />
               </label>
               <label className="text-sm text-slate-700">
                 Balansansvarig Ediel-id
@@ -241,7 +248,7 @@ export default async function EdielAgtPage() {
               </label>
               <label className="text-sm text-slate-700">
                 Sender name
-                <input name="sender_name" defaultValue={runtime.actor?.sender_name ?? runtime.actor?.actor_name ?? 'Div3rsa AB'} className={inputClassName()} />
+                <input name="sender_name" defaultValue={runtime.actor?.sender_name ?? runtime.actor?.actor_name ?? ''} className={inputClassName()} placeholder="Namn som ska visas på avsändarprofilen" />
               </label>
               <label className="text-sm text-slate-700">
                 Mailbox

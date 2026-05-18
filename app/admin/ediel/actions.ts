@@ -118,6 +118,7 @@ import {
   createEdielSupplierAgtRun,
 } from "@/lib/ediel/agtEngine";
 import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustomer";
+import { getEdielAgtSupplierRuntime } from "@/lib/ediel/agtRuntime";
 import { createSafeMasterdataProposalForMessage } from "@/lib/ediel/operationalVerification";
 import {
   approveSafeMasterdataChanges,
@@ -1185,10 +1186,13 @@ export async function registerEdielFileAction(formData: FormData) {
     throw new Error("Ladda upp en fil eller klistra in EDIFACT/CSV-innehåll.");
   }
 
+  const mode = parseFileEngineMode(formData.get("mode"));
+  const agtRuntime = mode === "agt" ? await getEdielAgtSupplierRuntime().catch(() => null) : null;
+
   const message = await registerEdielFile({
     actorUserId: context.userId,
     direction: parseDirection(formData.get("direction")),
-    mode: parseFileEngineMode(formData.get("mode")),
+    mode,
     rawPayload,
     fileName: uploaded.fileName,
     mailbox: formString(formData.get("mailbox")) ?? "file-engine",
@@ -1196,6 +1200,8 @@ export async function registerEdielFileAction(formData: FormData) {
     senderEmail: formString(formData.get("senderEmail")),
     receiverEmail: formString(formData.get("receiverEmail")),
     subject: formString(formData.get("subject")),
+    ownActorEdielId: agtRuntime?.actor?.actor_ediel_id ?? null,
+    ownActorName: agtRuntime?.actor?.actor_name ?? agtRuntime?.actor?.sender_name ?? null,
   });
 
   const createdMessage = await getEdielMessageById(message.id);
