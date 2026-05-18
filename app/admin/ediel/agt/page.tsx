@@ -224,9 +224,9 @@ export default async function EdielAgtPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="mb-5">
-          <h2 className="text-lg font-semibold text-slate-950">Leverantörens AGT-info</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Onboarding: leverantörens Ediel-uppgifter</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Det är här du lägger in aktiv leverantör/tenant. För framtida SaaS-kunder ändras samma fält till kundens bolagsnamn, Ediel-id och e-post/routing.
+            Det är här onboarding-värdena för aktiv leverantör/tenant sparas. Uppgifterna ligger kvar i databasen och används av AGT/Ediel-motorn tills du ändrar dem.
           </p>
         </div>
 

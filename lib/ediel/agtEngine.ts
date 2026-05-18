@@ -151,6 +151,30 @@ function agtTransactionReference(definition: EdielAgtTestCaseDefinition): string
   return sanitizeToken(`LIAGT${definition.testCaseCode}${definition.messageCode}${agtStamp()}`, 25)
 }
 
+function getAgtOutboundProdatDefaults(definition: EdielAgtTestCaseDefinition): {
+  reasonForTransaction: string
+  meteringMethod: string
+  includePowerOfAttorneyReference: boolean
+} {
+  // AGT-testregel, inte tenant-/referenshårdkodning:
+  // L7 i leverantörs-AGT valideras som Z09G-lik ändring där portalen förväntar
+  // 223 = E32 och 217 = Z04. Tidigare E64/Z03 passerade EDIFACT-validering
+  // men föll på testdata-matchningen i Edielportalen.
+  if (definition.testCaseCode === 'L7' && definition.messageCode === 'Z09') {
+    return {
+      reasonForTransaction: 'E32',
+      meteringMethod: 'Z04',
+      includePowerOfAttorneyReference: false,
+    }
+  }
+
+  return {
+    reasonForTransaction: 'Z22',
+    meteringMethod: 'Z03',
+    includePowerOfAttorneyReference: true,
+  }
+}
+
 async function resolveAgtActorRuntime(params?: {
   actorName?: string | null
   actorEdielId?: string | null
@@ -370,7 +394,7 @@ function buildAgtProdatDraftInput(params: {
   const externalReference = agtDocumentReference(definition)
   const transactionReference = agtTransactionReference(definition)
   const startDate = datePlusDays102(30)
-  const reasonForTransaction = code === 'Z09' ? 'E64' : 'Z22'
+  const agtProdatDefaults = getAgtOutboundProdatDefaults(definition)
 
   const rendered = renderProdat26A({
     context: {
@@ -393,21 +417,21 @@ function buildAgtProdatDraftInput(params: {
       sitePostalCode: '11111',
       siteCity: 'STOCKHOLM',
       siteCountry: 'SE',
-      reasonForTransaction,
-      meteringMethod: 'Z03',
-      powerOfAttorneyReference: `AGT-${externalReference}`,
+      reasonForTransaction: agtProdatDefaults.reasonForTransaction,
+      meteringMethod: agtProdatDefaults.meteringMethod,
+      powerOfAttorneyReference: agtProdatDefaults.includePowerOfAttorneyReference ? `AGT-${externalReference}` : null,
       balanceResponsibleId: params.actor.balanceResponsibleEdielId,
     },
     portalSnapshot: {
-      reasonForTransaction,
-      meteringMethod: 'Z03',
+      reasonForTransaction: agtProdatDefaults.reasonForTransaction,
+      meteringMethod: agtProdatDefaults.meteringMethod,
       customerName: buildAgtSyntheticCustomerName(params.actor.actorEdielId),
       customerId: buildAgtSyntheticCustomerId(params.actor.actorEdielId),
       customerIdCodeListQualifier: 'SE2',
       facilityId: buildAgtSyntheticMeteringPointId(params.actor.actorEdielId, definition),
       gridAreaId: 'TES',
       agreementStartDateTime: `${startDate}0000`,
-      powerOfAttorneyReference: `AGT-${externalReference}`,
+      powerOfAttorneyReference: agtProdatDefaults.includePowerOfAttorneyReference ? `AGT-${externalReference}` : null,
       balanceResponsibleId: params.actor.balanceResponsibleEdielId,
     },
   })
