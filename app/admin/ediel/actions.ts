@@ -114,7 +114,7 @@ import {
 import { processEdielOperationalMessage } from "@/lib/ediel/operationalBridge";
 import {
   autoAttachImportedMessageToActiveAgtRun,
-  createEdielSupplierAgtOutboundDraft,
+  createEdielSupplierAgtOutboundCommand,
   createEdielSupplierAgtResponsesForInbound,
   createEdielSupplierAgtRun,
 } from "@/lib/ediel/agtEngine";
@@ -1296,7 +1296,7 @@ export async function createEdielAgtRunAction(formData: FormData) {
   revalidateEdiel();
 }
 
-export async function createEdielAgtOutboundDraftAction(formData: FormData) {
+export async function createEdielAgtOutboundCommandAction(formData: FormData) {
   const context = await requireAnyPermissionServer([
     "communication.write",
     "communication.read",
@@ -1309,7 +1309,7 @@ export async function createEdielAgtOutboundDraftAction(formData: FormData) {
 
   if (!testCaseCode) throw new Error("testCaseCode saknas");
 
-  const message = await createEdielSupplierAgtOutboundDraft({
+  const message = await createEdielSupplierAgtOutboundCommand({
     actorUserId: context.userId,
     testRunId,
     testCaseCode,
@@ -1317,9 +1317,18 @@ export async function createEdielAgtOutboundDraftAction(formData: FormData) {
     actorEdielId,
   });
 
-  await revalidateRelatedMessage(message.id);
-  revalidateEdiel(message.id);
+  const sent = await sendQueuedEdielMessage({
+    actorUserId: context.userId,
+    edielMessageId: message.id,
+    smtpMimeMode: "ediel-singlepart-base64",
+  });
+
+  await revalidateRelatedMessage(sent.id);
+  revalidateEdiel(sent.id);
 }
+
+// Backwards-compatible action name. It sends immediately; it does not create a long-lived draft.
+export const createEdielAgtOutboundDraftAction = createEdielAgtOutboundCommandAction;
 
 export async function createEdielAgtResponsesForInboundAction(formData: FormData) {
   const context = await requireAnyPermissionServer([

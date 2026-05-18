@@ -371,8 +371,13 @@ function buildAgtProdatOutboundInput(params: {
   const externalReference = agtDocumentReference(definition)
   const transactionReference = agtTransactionReference(definition)
   const startDate = datePlusDays102(30)
-  const reasonForTransaction = code === 'Z09' ? 'E32' : 'Z22'
-  const meteringMethod = code === 'Z09' ? 'Z04' : 'Z03'
+  // Supplier AGT L7/Z09 is Actor → Portal and must be rendered from the
+  // versioned AGT template used for this approval run. The current PRODAT AGT
+  // L7 test data expects Z09F-style values: 223/E64 and 217/Z03. Do not derive
+  // these from validation reports or long-lived drafts; this command renders at
+  // send-time and stores the sent payload only as audit/log history.
+  const reasonForTransaction = code === 'Z09' ? 'E64' : 'Z22'
+  const meteringMethod = code === 'Z09' ? 'Z03' : 'Z03'
 
   const rendered = renderProdat26A({
     context: {
@@ -555,7 +560,7 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     edielMessageId: message.id,
     eventType: 'prepared',
     eventStatus: 'success',
-    message: `AGT ${definition.testCaseCode} ${definition.messageCode} outbound-kommando skapades. Det ska skickas direkt från AGT-vyn när motsvarande test är startat i Edielportalen.`,
+    message: `AGT ${definition.testCaseCode} ${definition.messageCode} outbound-kommando renderades för direkt skick. Meddelandet sparas endast som audit/logg efter kommandot, inte som långlivad testdraft.`,
     payload: {
       agt: true,
       testCaseCode: definition.testCaseCode,
@@ -829,5 +834,5 @@ export async function createEdielSupplierAgtResponsesForInbound(params: {
 }
 
 
-// Backwards-compatible alias for older server actions/components. Actor→Portal AGT no longer creates long-lived drafts; it creates a prepared outbound command that the server action sends immediately.
+// Backwards-compatible alias for older imports. Actor→Portal AGT no longer creates long-lived drafts; the server action sends this command immediately and stores the sent payload as audit/logg.
 export const createEdielSupplierAgtOutboundDraft = createEdielSupplierAgtOutboundCommand

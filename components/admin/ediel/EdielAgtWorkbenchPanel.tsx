@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
-  createEdielAgtOutboundDraftAction,
+  createEdielAgtOutboundCommandAction,
   createEdielAgtResponsesForInboundAction,
   createEdielAgtRunAction,
 } from '@/app/admin/ediel/actions'
@@ -148,14 +148,14 @@ function CaseCard({
         </form>
 
         {actorSendsFirst ? (
-          <form action={createEdielAgtOutboundDraftAction} className="rounded-2xl border border-blue-200 bg-blue-50 p-3">
+          <form action={createEdielAgtOutboundCommandAction} className="rounded-2xl border border-blue-200 bg-blue-50 p-3">
             <input type="hidden" name="testRunId" value={activeRun?.id ?? ''} />
             <input type="hidden" name="testCaseCode" value={definition.testCaseCode} />
             <button type="submit" className="w-full rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">
-              Skapa outbound AGT-draft
+              Generera + skicka outbound AGT
             </button>
             <p className="mt-2 text-xs leading-5 text-blue-800">
-              Gäller {definition.messageFamily} {definition.messageCode}. Kontrollera payload innan skick.
+              Gäller {definition.messageFamily} {definition.messageCode}. Payload renderas vid skick och sparas därefter som audit/logg.
             </p>
           </form>
         ) : (
@@ -251,7 +251,7 @@ export default function EdielAgtWorkbenchPanel({
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Badge tone="blue">PRODAT leverantör</Badge>
-          <span className="text-sm text-slate-600">L1 och L7 skapas som outbound-draft. L2-L5 besvarar portalens inbound.</span>
+          <span className="text-sm text-slate-600">L1 och L7 genereras och skickas direkt. L2-L5 besvarar portalens inbound.</span>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
           {prodatCases.map((definition) => (

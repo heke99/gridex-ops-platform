@@ -20,8 +20,8 @@ import {
 import type { EdielMessageRow, EdielTestRunMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 import {
   attachAgtInboundAndCreateResponsesAction,
-  cleanupAgtCaseDraftMessagesAction,
-  createAgtSupplierOutboundDraftAction,
+  cleanupAgtCaseUnsentMessagesAction,
+  createAgtSupplierOutboundCommandAction,
   createAgtSupplierTestRunAction,
   importAgtRawInboundForCaseAction,
   pollAgtMailboxForCaseAction,
@@ -340,7 +340,7 @@ export default async function AgtCasePage({
             </form>
 
             {actorToPortal ? (
-              <form action={createAgtSupplierOutboundDraftAction}>
+              <form action={createAgtSupplierOutboundCommandAction}>
                 <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
                 <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
                 <button disabled={!run} className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">
@@ -361,11 +361,11 @@ export default async function AgtCasePage({
           </div>
 
           {run ? (
-            <form action={cleanupAgtCaseDraftMessagesAction} className="mt-3">
+            <form action={cleanupAgtCaseUnsentMessagesAction} className="mt-3">
               <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
               <input type="hidden" name="test_run_id" value={run.id} />
               <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100">
-                Makulera gamla oskickade testmeddelanden
+                Makulera gamla oskickade testkommandon
               </button>
             </form>
           ) : null}

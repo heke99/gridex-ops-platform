@@ -18,7 +18,7 @@ import {
   updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import {
-  createEdielSupplierAgtOutboundDraft,
+  createEdielSupplierAgtOutboundCommand,
   createEdielSupplierAgtResponsesForInbound,
 } from '@/lib/ediel/agtEngine'
 import type { EdielMessageRow, EdielRouteProfileAckMode, EdielTestRunRow } from '@/lib/ediel/types'
@@ -561,7 +561,7 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
 }
 
 
-export async function createAgtSupplierOutboundDraftAction(formData: FormData) {
+export async function createAgtSupplierOutboundCommandAction(formData: FormData) {
   await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const actorUserId = await getCurrentUserId()
   const testCaseCode = upper(formData, 'test_case_code') ?? ''
@@ -569,7 +569,7 @@ export async function createAgtSupplierOutboundDraftAction(formData: FormData) {
 
   if (!testCaseCode) throw new Error('test_case_code saknas')
 
-  const message = await createEdielSupplierAgtOutboundDraft({
+  const message = await createEdielSupplierAgtOutboundCommand({
     actorUserId,
     testRunId,
     testCaseCode,
@@ -584,6 +584,9 @@ export async function createAgtSupplierOutboundDraftAction(formData: FormData) {
   revalidateAgt()
   redirect(`/admin/ediel/messages/${sent.id}`)
 }
+
+// Backwards-compatible server action name for older imports. It does not create a long-lived draft.
+export const createAgtSupplierOutboundDraftAction = createAgtSupplierOutboundCommandAction
 
 export async function createAllAgtSupplierTestRunsAction(_formData: FormData) {
   await requireAnyPermissionServer(['communication.write', 'communication.read'])
@@ -764,7 +767,7 @@ export async function attachAgtInboundAndCreateResponsesAction(formData: FormDat
 
 
 
-export async function cleanupAgtCaseDraftMessagesAction(formData: FormData) {
+export async function cleanupAgtCaseUnsentMessagesAction(formData: FormData) {
   await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const actorUserId = await getCurrentUserId()
   const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
@@ -821,3 +824,6 @@ export async function cleanupAgtCaseDraftMessagesAction(formData: FormData) {
   revalidateAgt()
   redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
 }
+
+// Backwards-compatible server action name for older imports. It cleans only unsent queued/prepared test commands.
+export const cleanupAgtCaseDraftMessagesAction = cleanupAgtCaseUnsentMessagesAction

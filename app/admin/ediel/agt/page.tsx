@@ -12,7 +12,7 @@ import {
 } from '@/lib/ediel/agtRegistry'
 import {
   createAgtSupplierTestRunAction,
-  createAgtSupplierOutboundDraftAction,
+  createAgtSupplierOutboundCommandAction,
   saveAgtSupplierRuntimeAction,
 } from '@/app/admin/ediel/agt/actions'
 
@@ -369,7 +369,7 @@ export default async function EdielAgtPage() {
                   </form>
 
                   {actorToPortal ? (
-                    <form action={createAgtSupplierOutboundDraftAction}>
+                    <form action={createAgtSupplierOutboundCommandAction}>
                       <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
                       <input type="hidden" name="test_run_id" value={activeRun?.id ?? ''} />
                       <button
