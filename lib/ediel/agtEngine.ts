@@ -263,6 +263,39 @@ async function findActiveAgtRunForDefinition(definition: EdielAgtTestCaseDefinit
   ) ?? null
 }
 
+function stringFromPayload(payload: Record<string, unknown> | null | undefined, key: string): string | null {
+  const value = payload?.[key]
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+async function inferAgtCaseFromRelatedOutboundAck(message: EdielMessageRow): Promise<EdielAgtTestCaseDefinition | null> {
+  if (message.message_family !== 'CONTRL' && message.message_family !== 'APERAK' && message.message_family !== 'UTILTS_ERR') return null
+  if (!message.related_message_id) return null
+
+  const related = await getEdielMessageById(message.related_message_id)
+  if (!related) return null
+
+  const payloadCaseCode = stringFromPayload(related.parsed_payload, 'agtTestCaseCode')
+  if (payloadCaseCode) {
+    return getEdielAgtTestCaseByCode({
+      suite: related.message_family,
+      roleCode: 'supplier',
+      testCaseCode: payloadCaseCode,
+    })
+  }
+
+  const processMatch = String(related.process_type ?? '').match(/^agt_supplier_([a-z0-9]+)$/i)
+  if (processMatch?.[1]) {
+    return getEdielAgtTestCaseByCode({
+      suite: related.message_family,
+      roleCode: 'supplier',
+      testCaseCode: processMatch[1].toUpperCase(),
+    })
+  }
+
+  return null
+}
+
 export async function autoAttachImportedMessageToActiveAgtRun(params: {
   actorUserId?: string | null
   edielMessage: EdielMessageRow
@@ -276,7 +309,7 @@ export async function autoAttachImportedMessageToActiveAgtRun(params: {
     rawPayload: params.edielMessage.raw_payload,
     applicationReference: params.edielMessage.application_reference,
     explicitTestCaseCode: params.explicitTestCaseCode ?? null,
-  })
+  }) ?? await inferAgtCaseFromRelatedOutboundAck(params.edielMessage)
 
   if (!definition) return null
 
