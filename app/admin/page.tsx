@@ -2,86 +2,160 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminAccess } from '@/lib/admin/guards'
-import { getEdielSummary } from '@/lib/ediel/summary'
+import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
 
 export const dynamic = 'force-dynamic'
 
-function OverviewCard({
-  eyebrow,
-  title,
-  text,
-  href,
-  cta,
-}: {
-  eyebrow: string
-  title: string
-  text: string
-  href: string
-  cta: string
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-        {eyebrow}
-      </p>
-      <h2 className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">
-        {title}
-      </h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
-        {text}
-      </p>
-      <div className="mt-5">
-        <Link
-          href={href}
-          className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-        >
-          {cta}
-        </Link>
-      </div>
-    </div>
-  )
+type CountFilter = {
+  column: string
+  op?: 'eq' | 'in'
+  value: string | number | boolean | Array<string | number | boolean>
 }
 
-function KpiCard({
+const EMPTY_EDIEL_SUMMARY: EdielSummary = {
+  totalMessages: 0,
+  inboundMessages: 0,
+  outboundMessages: 0,
+  draftMessages: 0,
+  failedMessages: 0,
+  queuedMessages: 0,
+  preparedMessages: 0,
+  sentMessages: 0,
+  ackPendingMessages: 0,
+  ackOverdueMessages: 0,
+  activeRoutes: 0,
+  configuredProfiles: 0,
+  activeTestRuns: 0,
+  runningTests: 0,
+}
+
+async function safeCount(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  table: string,
+  filters: CountFilter[] = []
+): Promise<number> {
+  try {
+    let query = supabase.from(table).select('id', { count: 'exact', head: true })
+
+    for (const filter of filters) {
+      if (filter.op === 'in' && Array.isArray(filter.value)) {
+        query = query.in(filter.column, filter.value)
+      } else {
+        query = query.eq(filter.column, filter.value as string | number | boolean)
+      }
+    }
+
+    const { count, error } = await query
+    if (error) return 0
+    return count ?? 0
+  } catch {
+    return 0
+  }
+}
+
+function NumberCard({
   label,
   value,
-  tone = 'slate',
+  hint,
   href,
-  sublabel,
+  tone = 'slate',
 }: {
   label: string
   value: number | string
-  tone?: 'slate' | 'emerald' | 'amber' | 'rose' | 'blue'
+  hint: string
   href?: string
-  sublabel?: string
+  tone?: 'slate' | 'blue' | 'emerald' | 'amber' | 'rose'
 }) {
-  const toneClasses: Record<typeof tone, string> = {
-    slate:
-      'border-slate-200 bg-white text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white',
-    emerald:
-      'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100',
-    amber:
-      'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100',
-    rose:
-      'border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-100',
-    blue:
-      'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100',
+  const classes: Record<typeof tone, string> = {
+    slate: 'border-slate-200 bg-white text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white',
+    blue: 'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-100',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-100',
+    amber: 'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-100',
+    rose: 'border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900 dark:bg-rose-950/20 dark:text-rose-100',
   }
 
   const content = (
-    <div className={`rounded-3xl border p-5 shadow-sm ${toneClasses[tone]}`}>
-      <div className="text-sm font-medium opacity-80">{label}</div>
-      <div className="mt-2 text-3xl font-semibold">{value}</div>
-      {sublabel ? <div className="mt-2 text-xs opacity-75">{sublabel}</div> : null}
+    <div className={`rounded-3xl border p-5 shadow-sm ${classes[tone]}`}>
+      <div className="text-sm font-medium opacity-75">{label}</div>
+      <div className="mt-3 text-3xl font-semibold tracking-tight">{value}</div>
+      <div className="mt-2 text-xs leading-5 opacity-75">{hint}</div>
     </div>
   )
 
   if (!href) return content
 
   return (
-    <Link href={href} className="block transition hover:scale-[1.01]">
+    <Link href={href} className="block transition hover:-translate-y-0.5 hover:shadow-sm">
       {content}
     </Link>
+  )
+}
+
+function WorkCard({
+  eyebrow,
+  title,
+  text,
+  href,
+  cta,
+  tone = 'default',
+}: {
+  eyebrow: string
+  title: string
+  text: string
+  href: string
+  cta: string
+  tone?: 'default' | 'primary' | 'test' | 'danger'
+}) {
+  const styles: Record<typeof tone, string> = {
+    default: 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
+    primary: 'border-slate-900 bg-slate-950 text-white dark:border-white dark:bg-white dark:text-slate-950',
+    test: 'border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/20',
+    danger: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20',
+  }
+  const muted = tone === 'primary' ? 'text-white/70 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'
+  const button =
+    tone === 'primary'
+      ? 'border-white/20 bg-white text-slate-950 dark:border-slate-200 dark:bg-slate-950 dark:text-white'
+      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+
+  return (
+    <div className={`rounded-3xl border p-6 shadow-sm ${styles[tone]}`}>
+      <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${muted}`}>{eyebrow}</p>
+      <h2 className="mt-3 text-lg font-semibold">{title}</h2>
+      <p className={`mt-2 text-sm leading-6 ${muted}`}>{text}</p>
+      <Link href={href} className={`mt-5 inline-flex rounded-2xl border px-4 py-2.5 text-sm font-semibold ${button}`}>
+        {cta}
+      </Link>
+    </div>
+  )
+}
+
+function ModeRow({
+  label,
+  value,
+  description,
+  tone,
+}: {
+  label: string
+  value: string
+  description: string
+  tone: 'green' | 'blue' | 'amber'
+}) {
+  const color =
+    tone === 'green'
+      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200'
+      : tone === 'blue'
+        ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-200'
+        : 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200'
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-semibold text-slate-950 dark:text-white">{label}</div>
+        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${color}`}>{value}</span>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
+    </div>
   )
 }
 
@@ -89,251 +163,157 @@ export default async function AdminPage() {
   const admin = await requireAdminAccess()
   const supabase = await createSupabaseServerClient()
 
-  const [
-    {
-      data: { user },
-    },
-    ediel,
-  ] = await Promise.all([supabase.auth.getUser(), getEdielSummary(supabase)])
+  const [{ data: user }, ediel, customers, activeCustomers, sites, meteringPoints, switchRequests, unresolvedOutbound] = await Promise.all([
+    supabase.auth.getUser(),
+    getEdielSummary(supabase).catch(() => EMPTY_EDIEL_SUMMARY),
+    safeCount(supabase, 'customers'),
+    safeCount(supabase, 'customers', [{ column: 'status', value: 'active' }]),
+    safeCount(supabase, 'customer_sites'),
+    safeCount(supabase, 'metering_points'),
+    safeCount(supabase, 'supplier_switch_requests'),
+    safeCount(supabase, 'outbound_requests', [
+      { column: 'status', op: 'in', value: ['failed', 'blocked', 'unresolved'] },
+    ]),
+  ])
 
-  const hasEdielAttention =
-    ediel.queuedMessages > 0 ||
-    ediel.failedMessages > 0 ||
-    ediel.ackPendingMessages > 0
+  const edielNeedsAttention = ediel.failedMessages + ediel.queuedMessages + ediel.ackPendingMessages + ediel.ackOverdueMessages
 
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Översikt"
-        subtitle="Startpunkt för administration, CIS-flöden, dispatch, Ediel och operativ kontroll."
-        userEmail={user?.email ?? admin.email ?? null}
+        title="GridCore dashboard"
+        subtitle="SaaS-redo översikt för kunddrift, Ediel, switching och externa handoffs. Tester och verklig körning är separerade."
+        userEmail={user.user?.email ?? admin.email ?? null}
       />
 
       <div className="space-y-8 p-8">
-        <section className="grid gap-5 xl:grid-cols-4">
-          <OverviewCard
-            eyebrow="Admin"
-            title="Roller och behörigheter"
-            text="Hantera användare, tilläggsroller och individuella overrides för systemåtkomst."
-            href="/admin/users"
-            cta="Öppna användare"
-          />
-
-          <OverviewCard
-            eyebrow="Operations"
-            title="Switching och tasks"
-            text="Följ leverantörsbyten, readiness, tasks och operativa avvikelser."
-            href="/admin/operations"
-            cta="Öppna operations"
-          />
-
-          <OverviewCard
-            eyebrow="CIS"
-            title="Metering, billing och exports"
-            text="Arbeta med mätvärden, billing-underlag, partnerexporter och kundkort."
-            href="/admin/metering"
-            cta="Öppna CIS-moduler"
-          />
-
-          <OverviewCard
-            eyebrow="Dispatch"
-            title="Outbound queue"
-            text="Routa extern kommunikation via partner_api, ediel_partner, file_export eller email_manual."
-            href="/admin/outbound"
-            cta="Öppna outbound"
-          />
-        </section>
-
-        <section
-          className={`rounded-3xl border p-6 shadow-sm ${
-            hasEdielAttention
-              ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20'
-              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
-          }`}
-        >
-          <div className="flex flex-wrap items-start justify-between gap-4">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                Ediel / Svenska kraftnät
-              </div>
-              <h3 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">
-                Ediel-läget just nu
-              </h3>
-              <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-                Den här rutan måste vara tydlig på dashboarden, eftersom Ediel är en
-                kritisk extern kanal. Du ska direkt se om något väntar, har felat
-                eller kräver kvittens.
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Control desk</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
+                Fokusera på det som driver ett elhandelsbolag
+              </h1>
+              <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600 dark:text-slate-400">
+                Dashboarden visar bara kärnflödena: kund, avtal, anläggning, leverantörsbyte, Ediel och export till faktureringspartner. TGT/AGT-testytor ligger separat så de inte blandas med produktion.
               </p>
             </div>
-
             <div className="flex flex-wrap gap-2">
-              <Link
-                href="/admin/ediel"
-                className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950"
-              >
-                Öppna Ediel-center
+              <Link href="/admin/customers/intake" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
+                Lägg till kund
               </Link>
-              <Link
-                href="/admin/ediel/routes"
-                className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-              >
-                Ediel-routes
+              <Link href="/admin/ediel" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                Öppna Ediel-center
               </Link>
             </div>
           </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <KpiCard
-              label="Totala Ediel-meddelanden"
-              value={ediel.totalMessages}
-              tone="blue"
-              href="/admin/ediel"
-              sublabel="All inbound och outbound historik"
-            />
-            <KpiCard
-              label="Köade / förberedda"
-              value={ediel.queuedMessages}
-              tone={ediel.queuedMessages > 0 ? 'amber' : 'slate'}
-              href="/admin/ediel"
-              sublabel="Behöver skickas eller hanteras"
-            />
-            <KpiCard
-              label="Felade"
-              value={ediel.failedMessages}
-              tone={ediel.failedMessages > 0 ? 'rose' : 'slate'}
-              href="/admin/ediel"
-              sublabel="Kräver manuell uppföljning"
-            />
-            <KpiCard
-              label="Aktiva Ediel-routes"
-              value={ediel.activeRoutes}
-              tone={ediel.activeRoutes > 0 ? 'emerald' : 'amber'}
-              href="/admin/ediel/routes"
-              sublabel={`${ediel.configuredProfiles} profiler totalt`}
-            />
-            <KpiCard
-              label="Aktiva testruns"
-              value={ediel.activeTestRuns}
-              tone={ediel.activeTestRuns > 0 ? 'amber' : 'slate'}
-              href="/admin/ediel"
-              sublabel="TGT / testspår under arbete"
-            />
-          </div>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-4">
-            <KpiCard
-              label="Inbound"
-              value={ediel.inboundMessages}
-              tone="slate"
-              href="/admin/ediel"
-              sublabel="Från nätägare / Edieltrafik in"
-            />
-            <KpiCard
-              label="Outbound"
-              value={ediel.outboundMessages}
-              tone="slate"
-              href="/admin/ediel"
-              sublabel="Z03, Z09, kvittenser och annan trafik ut"
-            />
-            <KpiCard
-              label="Drafts"
-              value={ediel.draftMessages}
-              tone={ediel.draftMessages > 0 ? 'amber' : 'slate'}
-              href="/admin/ediel"
-              sublabel="Klara att granskas eller skickas"
-            />
-            <KpiCard
-              label="Väntande kvittenser"
-              value={ediel.ackPendingMessages}
-              tone={ediel.ackPendingMessages > 0 ? 'amber' : 'slate'}
-              href="/admin/ediel"
-              sublabel="APERAK / CONTRL som väntar"
-            />
-          </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
-            Vad som är aktivt nu
-          </h3>
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-7">
-            {[
-              'RBAC och access',
-              'Kundregister',
-              'Anläggningar',
-              'Mätpunkter',
-              'Switching',
-              'Outbound dispatch',
-              'Ediel operations',
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
+        <section className="grid gap-4 xl:grid-cols-4">
+          <NumberCard label="Kunder" value={customers} hint={`${activeCustomers} aktiva kunder`} href="/admin/customers" tone="blue" />
+          <NumberCard label="Anläggningar" value={sites} hint={`${meteringPoints} mätpunkter i systemet`} href="/admin/customers" tone="slate" />
+          <NumberCard label="Switchärenden" value={switchRequests} hint="Leverantörsbyte och onboardingflöden" href="/admin/operations/switches" tone="emerald" />
+          <NumberCard
+            label="Kräver åtgärd"
+            value={edielNeedsAttention + unresolvedOutbound}
+            hint={`${edielNeedsAttention} Ediel + ${unresolvedOutbound} outbound`}
+            href={edielNeedsAttention > 0 ? '/admin/ediel/control-tower' : '/admin/outbound/unresolved'}
+            tone={edielNeedsAttention + unresolvedOutbound > 0 ? 'amber' : 'emerald'}
+          />
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-4">
-          <OverviewCard
-            eyebrow="Routes"
-            title="Kommunikationsroutes"
-            text="Definiera hur varje scope routas per nätägare eller global default."
-            href="/admin/integrations/routes"
-            cta="Hantera routes"
+        <section className="grid gap-4 lg:grid-cols-3">
+          <ModeRow
+            label="Verklig körning"
+            value="Produktion"
+            tone="green"
+            description="Kundkort, switchar, mätvärden, billing-underlag, partnerexporter och live Ediel-meddelanden."
           />
-
-          <OverviewCard
-            eyebrow="Ediel"
-            title="Ediel-center"
-            text="Arbeta med PRODAT, UTILTS, mailbox polling, SMTP-sändning, kvittenser och testspår."
-            href="/admin/ediel"
-            cta="Öppna Ediel"
+          <ModeRow
+            label="Tester"
+            value="AGT/TGT separat"
+            tone="blue"
+            description="Edielportalen, leverantörstester och testkörningar ska inte blandas med kunddrift eller produktionsköer."
           />
-
-          <OverviewCard
-            eyebrow="Ediel"
-            title="Ediel-routes"
-            text="Ställ in Gridex Ediel-id, mottagare, subadresser, mailbox och Strato SMTP/IMAP per route."
-            href="/admin/ediel/routes"
-            cta="Konfigurera Ediel"
-          />
-
-          <OverviewCard
-            eyebrow="Bulk"
-            title="Redo för byte"
-            text="Köa externa leverantörsbytesrequests i bulk för ärenden som är klara att skickas vidare."
-            href="/admin/outbound/ready-switches"
-            cta="Öppna bulk switch"
+          <ModeRow
+            label="SaaS"
+            value="Tenant-first"
+            tone="amber"
+            description="Alla aktörs-id, routes och Ediel-profiler ska komma från tenant/bolagets konfiguration, inte från hårdkodade värden."
           />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-3">
-          <OverviewCard
-            eyebrow="Bulk"
-            title="Saknade mätvärden"
-            text="Identifiera mätpunkter utan importerade värden och köa extern förfrågan i bulk."
-            href="/admin/outbound/missing-meter-values"
-            cta="Öppna bulk mätvärden"
+          <WorkCard
+            eyebrow="Daglig drift"
+            title="Kunder och kundkort"
+            text="Sök kund, se avtal, anläggningar, mätpunkter, fullmakter, intern historik och status för byten."
+            href="/admin/customers"
+            cta="Öppna kunder"
+            tone="primary"
           />
+          <WorkCard
+            eyebrow="Operations"
+            title="Switchar och outbound"
+            text="Följ vad som är redo, vad som väntar på svar och vad som fastnat i extern kommunikation."
+            href="/admin/operations"
+            cta="Öppna operations"
+          />
+          <WorkCard
+            eyebrow="Ediel live"
+            title="Meddelanden och kvittenser"
+            text="Liveflödet för PRODAT, UTILTS, CONTRL och APERAK. Här ska produktionskedjan följas."
+            href="/admin/ediel/messages"
+            cta="Öppna meddelanden"
+            tone={edielNeedsAttention > 0 ? 'danger' : 'default'}
+          />
+        </section>
 
-          <OverviewCard
-            eyebrow="Outbound"
-            title="Unresolved requests"
-            text="Hantera ärenden där route, payload eller mottagare ännu inte är tillräckligt tydliga."
-            href="/admin/outbound/unresolved"
-            cta="Öppna unresolved"
+        <section className="grid gap-5 xl:grid-cols-3">
+          <WorkCard
+            eyebrow="Ediel test"
+            title="Leverantörs-AGT"
+            text="L1/L7 outbound och L2–L5 inbound hålls i en egen testyta så testdata inte blandas med verkliga kundflöden."
+            href="/admin/ediel/agt"
+            cta="Öppna AGT"
+            tone="test"
           />
+          <WorkCard
+            eyebrow="Konfiguration"
+            title="Routes och tenant-inställningar"
+            text="Styr Ediel-id, subadresser, mailbox, SMTP, ack-policy och motparter per tenant/bolag."
+            href="/admin/ediel/routes"
+            cta="Hantera routes"
+          />
+          <WorkCard
+            eyebrow="Fakturering"
+            title="Mätvärden och billing-underlag"
+            text="Kontrollera underlag och exportkedjan som senare lämnas vidare till faktureringspartner."
+            href="/admin/billing"
+            cta="Öppna billing"
+          />
+        </section>
 
-          <OverviewCard
-            eyebrow="Partner"
-            title="Partner exports"
-            text="Följ billing-underlag, exports och vad som lämnas vidare till extern partner."
-            href="/admin/partner-exports"
-            cta="Öppna partner exports"
-          />
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Ediel-status</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Snabb kontroll av liveflödet. Testkörningar ska följas i AGT-ytan, inte här.
+              </p>
+            </div>
+            <Link href="/admin/ediel/control-tower" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              Control tower
+            </Link>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <NumberCard label="Totalt" value={ediel.totalMessages} hint="Alla Ediel-meddelanden" href="/admin/ediel/messages" tone="blue" />
+            <NumberCard label="Drafts" value={ediel.draftMessages} hint="Ska granskas innan skick" href="/admin/ediel/messages" tone={ediel.draftMessages > 0 ? 'amber' : 'slate'} />
+            <NumberCard label="Köade" value={ediel.queuedMessages + ediel.preparedMessages} hint="Väntar på dispatch" href="/admin/ediel/messages" tone={ediel.queuedMessages + ediel.preparedMessages > 0 ? 'amber' : 'slate'} />
+            <NumberCard label="Felade" value={ediel.failedMessages} hint="Kräver manuell kontroll" href="/admin/ediel/control-tower" tone={ediel.failedMessages > 0 ? 'rose' : 'slate'} />
+            <NumberCard label="Kvittenser" value={ediel.ackPendingMessages} hint={`${ediel.ackOverdueMessages} overdue`} href="/admin/ediel/control-tower" tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
+          </div>
         </section>
       </div>
     </div>

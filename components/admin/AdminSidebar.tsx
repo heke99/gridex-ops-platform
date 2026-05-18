@@ -1,3 +1,4 @@
+// components/admin/AdminSidebar.tsx
 'use client'
 
 import Link from 'next/link'
@@ -8,19 +9,16 @@ import {
   type AdminPageKey,
 } from '@/lib/admin/accessModel'
 
-type NavTone = 'default' | 'primary' | 'warning'
-
 type NavItem = {
   href: string
   label: string
   description?: string
   pageKey?: AdminPageKey
-  tone?: NavTone
 }
 
 type NavGroup = {
   title: string
-  description?: string
+  description: string
   items: NavItem[]
 }
 
@@ -31,180 +29,155 @@ type AdminSidebarProps = {
 const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Start',
-    description: 'Daglig överblick och nästa åtgärd.',
+    description: 'Överblick och daglig prioritering',
     items: [
       {
         href: '/admin',
         label: 'Dashboard',
-        description: 'Status för kunder, operations och Ediel',
+        description: 'Kunddrift, Ediel-status och åtgärder',
         pageKey: 'dashboard',
-        tone: 'primary',
       },
       {
         href: '/admin/operations',
         label: 'Operations',
-        description: 'Switchar, tasks och blockerare',
+        description: 'Switchar, tasks och readiness',
         pageKey: 'operations.control_tower',
       },
     ],
   },
   {
     title: 'Kunder',
-    description: 'Det operativa kundarbetet.',
+    description: 'Allt som rör kund, avtal och anläggning',
     items: [
       {
         href: '/admin/customers',
-        label: 'Kundlista',
-        description: 'Sök kund och öppna kundkort',
+        label: 'Kundregister',
+        description: 'Sök kunder och öppna kundkort',
         pageKey: 'customers.list',
-        tone: 'primary',
       },
       {
         href: '/admin/customers/intake',
-        label: 'Ny kund',
-        description: 'Skapa eller importera kund',
+        label: 'Nytt kundintag',
+        description: 'Skapa kund, anläggning och mätpunkt',
         pageKey: 'customers.intake',
       },
       {
         href: '/admin/contracts',
-        label: 'Avtal',
-        description: 'Avtalskatalog och kampanjer',
+        label: 'Avtal och kampanjer',
+        description: 'Avtalskatalog och prissättning',
         pageKey: 'contracts.catalog',
-      },
-      {
-        href: '/admin/customers/segments',
-        label: 'Segment',
-        description: 'Kundgrupper och uppföljning',
-        pageKey: 'customers.segments',
       },
     ],
   },
   {
     title: 'Ediel',
-    description: 'AGT, meddelanden och drift. Inga manuella filgeneratorer i huvudflödet.',
+    description: 'Live och test hålls åtskilda',
     items: [
       {
-        href: '/admin/ediel/agt',
-        label: 'AGT leverantör',
-        description: 'L1/L7 outbound, L2-L5 inbound',
+        href: '/admin/ediel',
+        label: 'Ediel-center',
+        description: 'Välj live, AGT eller konfiguration',
         pageKey: 'ediel.workspace',
-        tone: 'primary',
       },
       {
         href: '/admin/ediel/messages',
-        label: 'Meddelanden',
-        description: 'Inbox, outbox, payload och ACK-kedjor',
+        label: 'Live meddelanden',
+        description: 'PRODAT, UTILTS, CONTRL och APERAK',
         pageKey: 'ediel.workspace',
       },
       {
         href: '/admin/ediel/control-tower',
         label: 'Control tower',
-        description: 'Fel, väntande kvittenser och länkningsproblem',
+        description: 'Fel, overdue ACK och driftkontroll',
+      },
+      {
+        href: '/admin/ediel/agt',
+        label: 'AGT tester',
+        description: 'Leverantörstester separat från produktion',
         pageKey: 'ediel.workspace',
-        tone: 'warning',
       },
       {
         href: '/admin/ediel/routes',
         label: 'Routes',
-        description: 'Ediel-id, SMTP och runtime-profiler',
+        description: 'Tenant, mailbox, SMTP och profiler',
         pageKey: 'ediel.routes',
       },
       {
         href: '/admin/ediel/settings',
         label: 'Settings',
         description: 'Aktörskort, versioner och ack-policy',
-        pageKey: 'ediel.routes',
       },
     ],
   },
   {
-    title: 'Outbound',
-    description: 'Extern kommunikation och undantag.',
+    title: 'Data och handoff',
+    description: 'Mätvärden, billing och externa exporter',
     items: [
+      {
+        href: '/admin/metering',
+        label: 'Mätvärden',
+        description: 'Mätvärdesrequests och inkomna värden',
+        pageKey: 'metering.workspace',
+      },
+      {
+        href: '/admin/billing',
+        label: 'Billing-underlag',
+        description: 'Underlag till faktureringspartner',
+        pageKey: 'billing.workspace',
+      },
       {
         href: '/admin/outbound',
         label: 'Outbound queue',
-        description: 'Dispatch, retry och ack-status',
+        description: 'Extern dispatch och retry',
         pageKey: 'outbound.queue',
       },
       {
         href: '/admin/outbound/unresolved',
         label: 'Unresolved',
-        description: 'Saknar route eller kanal',
+        description: 'Saknad route, kanal eller payload',
         pageKey: 'outbound.unresolved',
-        tone: 'warning',
       },
       {
-        href: '/admin/outbound/ready-switches',
-        label: 'Bulk switch',
-        description: 'Köa redo leverantörsbyten',
-        pageKey: 'outbound.ready_switches',
-      },
-      {
-        href: '/admin/outbound/missing-meter-values',
-        label: 'Saknade mätvärden',
-        description: 'Bulkbegäran för mätvärden',
-        pageKey: 'outbound.missing_meter_values',
-      },
-      {
-        href: '/admin/outbound/missing-billing-underlays',
-        label: 'Saknat billingunderlag',
-        description: 'Bulkbegäran för fakturaunderlag',
-        pageKey: 'outbound.missing_billing_underlays',
+        href: '/admin/partner-exports',
+        label: 'Partner exports',
+        description: 'Handoff till extern partner',
+        pageKey: 'partner_exports.workspace',
       },
     ],
   },
   {
-    title: 'Data',
-    description: 'Masterdata och interna register.',
+    title: 'Register',
+    description: 'Grunddata som driver automationen',
     items: [
       {
         href: '/admin/network-owners',
         label: 'Nätägare',
-        description: 'Elnät, Ediel-id och områden',
+        description: 'Elnätsägare och tekniska uppgifter',
         pageKey: 'masterdata.network_owners',
       },
       {
         href: '/admin/electricity-suppliers',
         label: 'Elleverantörer',
-        description: 'Leverantörsregister',
+        description: 'Leverantörsregister och motparter',
         pageKey: 'masterdata.electricity_suppliers',
       },
       {
         href: '/admin/price-area-localities',
         label: 'Elområden',
-        description: 'SE1-SE4 och orter',
+        description: 'Orter och SE1–SE4',
         pageKey: 'masterdata.price_area_localities',
       },
       {
-        href: '/admin/metering',
-        label: 'Mätvärden',
-        description: 'Requests och inkomna värden',
-        pageKey: 'metering.workspace',
-      },
-      {
-        href: '/admin/billing',
-        label: 'Billing',
-        description: 'Underlag till fakturering',
-        pageKey: 'billing.workspace',
-      },
-      {
-        href: '/admin/partner-exports',
-        label: 'Partnerexporter',
-        description: 'Handoff till extern fakturering',
-        pageKey: 'partner_exports.workspace',
-      },
-      {
         href: '/admin/integrations/routes',
-        label: 'Integration routes',
-        description: 'Kommunikation utanför Ediel',
+        label: 'Communication routes',
+        description: 'Generell routing utanför Ediel',
         pageKey: 'integrations.routes',
       },
     ],
   },
   {
     title: 'Admin',
-    description: 'Behörighet och spårbarhet.',
+    description: 'SaaS access, roller och spårbarhet',
     items: [
       {
         href: '/admin/users',
@@ -215,22 +188,24 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/admin/roles',
         label: 'Roller',
-        description: 'RBAC och behörigheter',
+        description: 'Behörigheter och rollmodell',
         pageKey: 'roles.catalog',
       },
       {
         href: '/admin/audit',
-        label: 'Audit',
-        description: 'Loggar och ändringshistorik',
+        label: 'Audit log',
+        description: 'Historik och spårbarhet',
         pageKey: 'audit.log',
       },
     ],
   },
 ]
 
+const EXACT_MATCH_ITEMS = new Set(['/admin', '/admin/ediel'])
+
 function isActive(pathname: string, href: string) {
-  if (href === '/admin') return pathname === '/admin'
-  return pathname === href || pathname.startsWith(`${href}/`)
+  if (EXACT_MATCH_ITEMS.has(href)) return pathname === href
+  return pathname.startsWith(href)
 }
 
 function canAccessNavItem(currentPermissions: string[], item: NavItem) {
@@ -239,20 +214,6 @@ function canAccessNavItem(currentPermissions: string[], item: NavItem) {
     currentPermissions,
     getAdminPageRequirement(item.pageKey)
   )
-}
-
-function itemToneClass(active: boolean, tone: NavTone = 'default') {
-  if (active) return 'border-slate-500 bg-slate-800 text-white shadow-sm'
-
-  if (tone === 'primary') {
-    return 'border-slate-700/70 bg-slate-900/70 text-white hover:border-slate-600 hover:bg-slate-800'
-  }
-
-  if (tone === 'warning') {
-    return 'border-amber-500/30 bg-amber-500/10 text-amber-100 hover:border-amber-400/50 hover:bg-amber-500/20'
-  }
-
-  return 'border-transparent text-slate-200 hover:border-slate-800 hover:bg-slate-900'
 }
 
 export default function AdminSidebar({ permissions }: AdminSidebarProps) {
@@ -265,42 +226,34 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
 
   return (
     <aside className="flex h-screen w-full flex-col border-r border-slate-800 bg-slate-950 text-slate-100">
-      <div className="border-b border-slate-800 px-5 py-5">
-        <Link href="/admin" className="block rounded-3xl border border-slate-800 bg-slate-900/70 p-4 transition hover:bg-slate-900">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Gridex Ops
-              </div>
-              <h1 className="mt-1 text-lg font-semibold tracking-tight text-white">
-                Admin Console
-              </h1>
-            </div>
-            <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">
-              SaaS-ready
-            </span>
-          </div>
-          <p className="mt-3 text-sm leading-5 text-slate-400">
-            Kund, switching, Ediel och billing i ett tydligt operationsflöde.
+      <div className="border-b border-slate-800 px-6 py-6">
+        <div className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-300">
+          GridCore SaaS
+        </div>
+
+        <div className="mt-4">
+          <h1 className="text-xl font-semibold tracking-tight text-white">
+            Control Center
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Kunder, Ediel, switching och partnerhandoff. Tester ligger separat från produktion.
           </p>
-        </Link>
+        </div>
       </div>
 
-      <nav className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5">
+      <nav className="min-h-0 flex-1 space-y-7 overflow-y-auto px-4 py-6">
         {visibleGroups.map((group) => (
           <section key={group.title}>
-            <div className="mb-2 px-2">
+            <div className="px-2">
               <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                 {group.title}
               </h2>
-              {group.description ? (
-                <p className="mt-1 text-xs leading-5 text-slate-500">
-                  {group.description}
-                </p>
-              ) : null}
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                {group.description}
+              </p>
             </div>
 
-            <div className="space-y-1">
+            <div className="mt-3 space-y-1">
               {group.items.map((item) => {
                 const active = isActive(pathname, item.href)
 
@@ -308,16 +261,19 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`block rounded-2xl border px-3 py-3 transition ${itemToneClass(active, item.tone)}`}
+                    className={`block rounded-2xl border px-3 py-3 transition ${
+                      active
+                        ? 'border-slate-600 bg-slate-800 text-white'
+                        : 'border-transparent text-slate-200 hover:border-slate-800 hover:bg-slate-900'
+                    }`}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-semibold">{item.label}</div>
-                      {active ? (
-                        <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                      ) : null}
-                    </div>
+                    <div className="text-sm font-medium">{item.label}</div>
                     {item.description ? (
-                      <div className={`mt-1 text-xs leading-5 ${active ? 'text-slate-300' : 'text-slate-500'}`}>
+                      <div
+                        className={`mt-1 text-xs leading-5 ${
+                          active ? 'text-slate-300' : 'text-slate-500'
+                        }`}
+                      >
                         {item.description}
                       </div>
                     ) : null}
