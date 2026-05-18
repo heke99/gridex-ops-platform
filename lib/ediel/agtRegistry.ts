@@ -15,6 +15,17 @@ export type EdielAgtExpectedStep = {
   title: string
 }
 
+export type EdielAgtProdatOutboundTemplate = {
+  /** PRODAT field 223, rendered as CCI++Z13 / CAV+... */
+  reasonForTransaction: string
+  /** PRODAT field 217, rendered as CCI++Z04 / CAV+... */
+  meteringMethod: string
+  /** PRODAT field 216, rendered as SG8/DTM qualifier 157 for supplier Z09. */
+  dateQualifier?: '92' | '157'
+  /** Prevent legacy Z09F-only content such as RFF+ANJ/NAD+UD/NAD+IT in L7. */
+  suppressCustomerAndPowerOfAttorneyGroups?: boolean
+}
+
 export type EdielAgtTestCaseDefinition = {
   suite: Extract<EdielTestSuite, 'PRODAT' | 'UTILTS'>
   roleCode: Extract<EdielTestRoleCode, 'supplier'>
@@ -28,6 +39,7 @@ export type EdielAgtTestCaseDefinition = {
   messageFamily: Extract<EdielMessageFamily, 'PRODAT' | 'UTILTS'>
   messageCode: string
   messageVariant: string | null
+  prodatOutboundTemplate?: EdielAgtProdatOutboundTemplate | null
   scenario: EdielAgtScenario
   direction: EdielAgtCaseDirection
   expectedResponses: EdielAgtExpectedResponse[]
@@ -47,6 +59,20 @@ export const EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS: string | null = null
 export const EDIEL_AGT_PRODAT_SUB_ADDRESS = EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS
 export const EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID = '92825'
 export const DIV3RSA_AGT_EDIEL_ID = '21660'
+
+const EDIEL_AGT_L1_Z03_2026A_TEMPLATE: EdielAgtProdatOutboundTemplate = {
+  reasonForTransaction: 'Z22',
+  meteringMethod: 'Z03',
+}
+
+const EDIEL_AGT_L7_Z09_2026A_TEMPLATE: EdielAgtProdatOutboundTemplate = {
+  // Facit från Edielportalens 2026A-validering för Div3rsa/leverantör L7:
+  // field 223 must be E32 and field 217 must be Z04.
+  reasonForTransaction: 'E32',
+  meteringMethod: 'Z04',
+  dateQualifier: '157',
+  suppressCustomerAndPowerOfAttorneyGroups: true,
+}
 
 function actorOutbound(stepNo: number, family: EdielMessageFamily, code: string, title: string): EdielAgtExpectedStep {
   return { stepNo, actor: 'actor', direction: 'outbound', family, code, title }
@@ -144,6 +170,7 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
     messageFamily: 'PRODAT',
     messageCode: 'Z03',
     messageVariant: null,
+    prodatOutboundTemplate: EDIEL_AGT_L1_Z03_2026A_TEMPLATE,
     scenario: 'actor_sends_and_receives_ack',
     direction: 'actor_to_portal',
     expectedResponses: ['positive_contrl', 'negative_aperak'],
@@ -191,13 +218,15 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
     purpose: 'Verifierar att leverantören kan skicka PRODAT Z09F/Z09G till Edielportalen och ta emot positiv CONTRL samt negativ APERAK.',
     agtInstruction: 'Starta L7 i Edielportalen. Skicka därefter outbound Z09 direkt från GridCore. Leverantörens Ediel-id och eventuell sender-subadress ska komma från aktiv tenant/Edielregistret, mottagare är 91100:ZZ:PRODAT. Efter skick inväntas CONTRL + APERAK från portalen.',
     notes: [
-      'Leverantören skickar Z09F eller Z09G till Edielportalen.',
+      'Leverantören skickar Z09 till Edielportalen enligt vald AGT-godkännandeversion.',
+      'För 2026A ska L7 Z09 skickas som 223/E32 och 217/Z04. Skicka inte både E32/Z04 och E64/Z03 i samma eller separata meddelanden.',
       'Nätägaren och mottagaren i Z09 ska vara Ediel-id 91100. UNB sender-subadress ska följa leverantörens registrerade tekniska adress i Edielregistret; saknas den i Edielregistret ska den vara tom. Mottagaren har subadress PRODAT.',
       'Portalen svarar med positiv CONTRL om CONTRL är begärd och därefter negativ APERAK.',
     ],
     messageFamily: 'PRODAT',
     messageCode: 'Z09',
-    messageVariant: 'F/G',
+    messageVariant: '2026A G',
+    prodatOutboundTemplate: EDIEL_AGT_L7_Z09_2026A_TEMPLATE,
     scenario: 'actor_sends_and_receives_ack',
     direction: 'actor_to_portal',
     expectedResponses: ['positive_contrl', 'negative_aperak'],

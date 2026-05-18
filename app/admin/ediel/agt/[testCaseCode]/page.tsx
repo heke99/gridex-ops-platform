@@ -331,6 +331,17 @@ export default async function AgtCasePage({
           <h2 className="text-lg font-semibold text-slate-950">Kör detta test</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">{testCase.agtInstruction}</p>
 
+          {testCase.prodatOutboundTemplate ? (
+            <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm leading-6 text-blue-900">
+              <div className="font-semibold text-blue-950">2026A outbound-template</div>
+              <div className="mt-1">
+                GridCore skickar bara om payloaden matchar vald AGT-template. För detta test: 223/Z13 ={' '}
+                <span className="font-mono font-semibold">{testCase.prodatOutboundTemplate.reasonForTransaction}</span> och 217/Z04 ={' '}
+                <span className="font-mono font-semibold">{testCase.prodatOutboundTemplate.meteringMethod}</span>.
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-4 flex flex-wrap gap-2">
             <form action={createAgtSupplierTestRunAction}>
               <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />

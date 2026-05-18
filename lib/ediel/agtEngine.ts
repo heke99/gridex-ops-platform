@@ -371,13 +371,17 @@ function buildAgtProdatOutboundInput(params: {
   const externalReference = agtDocumentReference(definition)
   const transactionReference = agtTransactionReference(definition)
   const startDate = datePlusDays102(30)
-  // Supplier AGT L7/Z09 is Actor → Portal and must be rendered from the
-  // versioned AGT template used for this approval run. The current PRODAT AGT
-  // L7 test data expects Z09F-style values: 223/E64 and 217/Z03. Do not derive
-  // these from validation reports or long-lived drafts; this command renders at
-  // send-time and stores the sent payload only as audit/log history.
-  const reasonForTransaction = code === 'Z09' ? 'E64' : 'Z22'
-  const meteringMethod = code === 'Z09' ? 'Z03' : 'Z03'
+  // Actor → Portal AGT is a send-time command, not a long-lived draft.
+  // Values that Edielportalen validates as testdata must come from the
+  // versioned AGT template registry, so we do not flip E32/Z04 ↔ E64/Z03
+  // after each validation report. Reports are diagnostics; the selected
+  // approvalVersion template is the source of truth for outbound AGT.
+  const template = definition.prodatOutboundTemplate ?? {
+    reasonForTransaction: code === 'Z09' ? 'E32' : 'Z22',
+    meteringMethod: code === 'Z09' ? 'Z04' : 'Z03',
+  }
+  const reasonForTransaction = template.reasonForTransaction
+  const meteringMethod = template.meteringMethod
 
   const rendered = renderProdat26A({
     context: {
@@ -472,12 +476,26 @@ function buildAgtProdatOutboundInput(params: {
       actorEdielId: params.actor.actorEdielId,
       portalEdielId: params.actor.receiverEdielId,
       prodatEngine: rendered.diagnostics,
+      agtOutboundTemplate: {
+        approvalVersion: definition.approvalVersion,
+        reasonForTransaction,
+        meteringMethod,
+        dateQualifier: template.dateQualifier ?? null,
+      },
     },
     validationReport: {
       ok: true,
       agt: true,
       errors: [],
       warnings: rendered.issues.map((issue) => `${issue.title}: ${issue.description}`),
+      expectedAgtTemplate: {
+        reasonForTransaction,
+        meteringMethod,
+        requiredSegments: [
+          `CCI++Z13'CAV+${reasonForTransaction}`,
+          `CCI++Z04'CAV+${meteringMethod}`,
+        ],
+      },
       expectedPortalResponse: 'positive CONTRL + negative APERAK',
       instruction: definition.agtInstruction,
     },
@@ -527,11 +545,20 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     throw new Error('Outbound AGT PRODAT kräver NAD+Z02. Fyll i balansansvarig/BRP Ediel-id i AGT-runtime innan du skickar L1/L7. Detta stoppar bara felaktig outbound-payload, inte L2-L5 inbound-testerna.')
   }
 
-  const message = await createEdielMessage(buildAgtProdatOutboundInput({
+  const input = buildAgtProdatOutboundInput({
     actorUserId: params.actorUserId,
     definition,
     actor: readiness.actor,
-  }))
+  })
+
+  if (definition.testCaseCode === 'L7' && definition.approvalVersion === '2026A') {
+    const raw = input.rawPayload ?? ''
+    if (!raw.includes("CCI++Z13'CAV+E32'") || !raw.includes("CCI++Z04'CAV+Z04'")) {
+      throw new Error('L7 2026A preflight stoppade skick: payload måste innehålla CCI++Z13/CAV+E32 och CCI++Z04/CAV+Z04. Skickar inte E64/Z03 mot 2026A.')
+    }
+  }
+
+  const message = await createEdielMessage(input)
 
   const run = params.testRunId
     ? await getActiveRunById(params.testRunId)
