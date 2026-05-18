@@ -165,7 +165,7 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
       severity: 'warning',
       code: 'agt_balance_responsible_missing',
       title: 'Balansansvarig Ediel-id saknas',
-      description: 'L1 PRODAT Z03 kräver NAD+Z02 enligt portalens validering. Fyll i balansansvarig Ediel-id innan du skapar outbound-draft för L1/L7. L2-L5 får inte blockeras av detta eftersom de är Portal → Aktör.',
+      description: 'L1/L7 PRODAT behöver NAD+Z02 i AGT-mallen. Fyll i balansansvarig Ediel-id innan du skickar outbound mot Edielportalen. L2-L5 får inte blockeras av detta eftersom de är Portal → Aktör.',
     })
   }
 
@@ -254,15 +254,7 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
   }
 
   if (family === 'PRODAT') {
-    if (!blank(runtime.profile.sender_sub_address)) {
-      issues.push({
-        severity: 'warning',
-        code: 'agt_prodat_sender_subaddress_must_match_tenant',
-        title: 'Kontrollera PRODAT sender subaddress',
-        description: 'Sender subaddress får bara skickas om den faktiskt finns under Edielmeddelanden i Edielportalen för den aktiva leverantören. För Div3rsa ska den vara tom; andra SaaS-tenants ska följa sin egen Edielregisterprofil.',
-      })
-    }
-
+    // Sender subaddress is tenant specific; leave it blank only when Edielregistret has no subaddress for that actor.
     if (normalized(runtime.profile.receiver_sub_address) !== EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS) {
       issues.push({
         severity: 'error',

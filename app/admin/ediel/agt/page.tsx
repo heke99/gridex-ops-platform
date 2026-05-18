@@ -9,14 +9,12 @@ import {
   EDIEL_AGT_PORTAL_SMTP,
   EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_AGT_SUPPLIER_2026A_CASES,
-  isEdielAgtRunApprovalVersion,
 } from '@/lib/ediel/agtRegistry'
 import {
   createAgtSupplierTestRunAction,
   createAgtSupplierOutboundDraftAction,
   saveAgtSupplierRuntimeAction,
 } from '@/app/admin/ediel/agt/actions'
-import { getL7AgtExpectedValues, isL7DynamicTestDataRequired } from '@/lib/ediel/agtRunMetadata'
 
 export const dynamic = 'force-dynamic'
 
@@ -105,7 +103,7 @@ function RouteCard({
 
       <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
         {family === 'PRODAT'
-          ? `PRODAT AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID}. Sender-subadress ska matcha aktiv tenant i Edielportalen; receiver-subadress är ${EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}.`
+          ? `PRODAT AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID}. Sender-subadress ska följa tenantens Edielregisteruppgift; receiver-subadress är ${EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}.`
           : `UTILTS AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID} utan subadress.`}
       </div>
     </div>
@@ -149,7 +147,7 @@ export default async function EdielAgtPage() {
   const supplierAgtRuns = testRuns.filter(
     (run) =>
       run.role_code === 'supplier' &&
-      isEdielAgtRunApprovalVersion(run.approval_version) &&
+      run.approval_version === '2026A' &&
       EDIEL_AGT_SUPPLIER_2026A_CASES.some(
         (testCase) => testCase.suite === run.test_suite && testCase.testCaseCode === run.test_case_code
       )
@@ -173,7 +171,7 @@ export default async function EdielAgtPage() {
             <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Starta inte tester blint</div>
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">Först ska AGT runtime vara grön</h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-              Värdena i formuläret sparas i aktörskort, communication_routes och ediel_route_profiles. Fälten förifylls bara från aktiv aktörsprofil i databasen. Om ingen aktiv tenant finns visas tomma fält – inga leverantörs-/kundvärden ska ligga som UI-default.
+              Värdena i formuläret sparas i aktörskort, communication_routes och ediel_route_profiles. Nuvarande värden är bara förifyllda defaultvärden i formuläret. Runtime ska läsa från databasen så att samma SaaS-flöde fungerar för varje leverantör/tenant senare.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -195,13 +193,6 @@ export default async function EdielAgtPage() {
         <Field label="Portal Ediel-id" value={EDIEL_AGT_PORTAL_EDIEL_ID} />
         <Field label="Portal SMTP" value={EDIEL_AGT_PORTAL_SMTP} />
       </section>
-
-      {!runtime.actor ? (
-        <section className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm leading-6 text-rose-800">
-          <div className="font-semibold text-rose-950">Ingen aktiv AGT-tenant är vald</div>
-          <p className="mt-1">Skapa/spara aktörsprofilen nedan innan du startar L3 eller andra tester. Systemet ska läsa Ediel-id, mailbox och routes från aktiv aktörsprofil, inte från hårdkodade fallback-värden.</p>
-        </section>
-      ) : null}
 
       {runtime.issues.length > 0 ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
@@ -226,9 +217,9 @@ export default async function EdielAgtPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="mb-5">
-          <h2 className="text-lg font-semibold text-slate-950">Onboarding: leverantörens Ediel-uppgifter</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Leverantörens AGT-info</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Det är här onboarding-värdena för aktiv leverantör/tenant sparas. Uppgifterna ligger kvar i databasen och används av AGT/Ediel-motorn tills du ändrar dem.
+            Det är här du lägger in aktiv leverantör/tenant. För framtida SaaS-kunder ändras samma fält till kundens bolagsnamn, Ediel-id och e-post/routing.
           </p>
         </div>
 
@@ -238,23 +229,23 @@ export default async function EdielAgtPage() {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm text-slate-700">
                 Bolagsnamn
-                <input name="actor_name" defaultValue={runtime.actor?.actor_name ?? ''} className={inputClassName()} placeholder="Aktiv leverantör/tenant" />
+                <input name="actor_name" defaultValue={runtime.actor?.actor_name ?? ''} className={inputClassName()} />
               </label>
               <label className="text-sm text-slate-700">
                 Leverantörens Ediel-id
-                <input name="actor_ediel_id" defaultValue={runtime.actor?.actor_ediel_id ?? ''} className={inputClassName()} placeholder="Leverantörens Ediel-id" />
+                <input name="actor_ediel_id" defaultValue={runtime.actor?.actor_ediel_id ?? ''} className={inputClassName()} />
               </label>
               <label className="text-sm text-slate-700">
                 Balansansvarig Ediel-id
                 <input name="balance_responsible_ediel_id" defaultValue={agtActorNotes.balanceResponsibleEdielId ?? ''} className={inputClassName()} placeholder="BRP-id krävs för L1/L7 Z03/Z09" />
               </label>
               <label className="text-sm text-slate-700">
-                Sender name
-                <input name="sender_name" defaultValue={runtime.actor?.sender_name ?? runtime.actor?.actor_name ?? ''} className={inputClassName()} placeholder="Namn som ska visas på avsändarprofilen" />
+                PRODAT sender subaddress
+                <input name="prodat_sender_sub_address" defaultValue={runtime.prodat.profile?.sender_sub_address ?? runtime.actor?.sender_sub_address ?? ''} className={inputClassName()} placeholder="Lämna tom om Edielregistret saknar subadress" />
               </label>
               <label className="text-sm text-slate-700">
-                PRODAT sender subaddress
-                <input name="prodat_sender_sub_address" defaultValue={runtime.prodat.profile?.sender_sub_address ?? runtime.actor?.sender_sub_address ?? ''} className={inputClassName()} placeholder="Lämna tom om Edielportalen visar tom subaddress" />
+                Sender name
+                <input name="sender_name" defaultValue={runtime.actor?.sender_name ?? runtime.actor?.actor_name ?? ''} className={inputClassName()} />
               </label>
               <label className="text-sm text-slate-700">
                 Mailbox
@@ -276,11 +267,11 @@ export default async function EdielAgtPage() {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm text-slate-700">
                 Mottagare
-                <input name="receiver_name" defaultValue={runtime.prodat.profile?.receiver_name ?? 'Edielportalen'} className={inputClassName()} />
+                <input name="receiver_name" defaultValue="Edielportalen" className={inputClassName()} />
               </label>
               <label className="text-sm text-slate-700">
                 SMTP till portalen
-                <input name="target_email" defaultValue={runtime.prodat.route?.target_email ?? EDIEL_AGT_PORTAL_SMTP} className={inputClassName()} />
+                <input name="target_email" defaultValue={EDIEL_AGT_PORTAL_SMTP} className={inputClassName()} />
               </label>
               <label className="text-sm text-slate-700">
                 PRODAT application reference
@@ -297,7 +288,7 @@ export default async function EdielAgtPage() {
             </div>
 
             <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-              Knappen skapar/uppdaterar ett aktivt test-aktörskort, en PRODAT-route och en UTILTS-route. Uppgifterna sparas i databasen och används framåt tills någon ändrar dem. PRODAT sender-subadress ska matcha Edielportalen per tenant; för Div3rsa lämnas den tom. Receiver-subadress mot portalen är PRODAT. Balansansvarig Ediel-id sparas i aktörens AGT-notes och används som NAD+Z02 i L1/L7.
+              Knappen skapar/uppdaterar ett aktivt test-aktörskort, en PRODAT-route och en UTILTS-route. PRODAT AGT sparas med tenantens registrerade sender-subadress om sådan finns, receiver-subadress PRODAT och okrypterad SMTP. Balansansvarig Ediel-id sparas i aktörens AGT-notes och används som NAD+Z02 i L1/L7.
             </div>
           </div>
 
@@ -320,7 +311,7 @@ export default async function EdielAgtPage() {
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Testfall 2026A</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Kör ett test åt gången. L1/L7 får outbound-draft här, men L2–L5 ska vänta på inbound från Edielportalen.
+                Kör ett test åt gången. L1/L7 skickas som outbound-kommandon direkt till portalen. L2–L5 ska vänta på inbound från Edielportalen.
               </p>
             </div>
             <Badge tone="blue">testläge separat från produktion</Badge>
@@ -337,10 +328,6 @@ export default async function EdielAgtPage() {
             )
             const hasRun = Boolean(activeRun)
             const actorToPortal = testCase.direction === 'actor_to_portal'
-            const requiresL7Data = isL7DynamicTestDataRequired(testCase)
-            const l7Expected = getL7AgtExpectedValues(activeRun)
-            const missingL7Data = requiresL7Data && (!l7Expected.reasonForTransaction || !l7Expected.meteringMethod)
-            const draftDisabled = !hasRun || runtime.issues.some((issue) => issue.severity === 'error') || missingL7Data
             return (
               <div key={`${testCase.suite}-${testCase.testCaseCode}`} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -355,9 +342,9 @@ export default async function EdielAgtPage() {
                 {actorToPortal ? (
                   <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-900">
                     <div className="font-semibold">Kontroll innan skick</div>
-                    <div>UNB sender: leverantörens Ediel-id + den sender-subadress som är sparad på tenantprofilen. För Div3rsa ska den vara tom.</div>
+                    <div>UNB sender: leverantörens Ediel-id + registrerad sender-subadress om den finns.</div>
                     <div>UNB receiver: {EDIEL_AGT_PORTAL_EDIEL_ID}:ZZ:{EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}</div>
-                    <div>L1/L7 måste innehålla NAD+Z02 enligt portalens validering. Fyll i balansansvarig/BRP Ediel-id innan du skapar outbound-draft.</div>
+                    <div>L1/L7 ska innehålla NAD+Z02 enligt portalens validering. Fyll i balansansvarig/BRP Ediel-id innan du skickar outbound.</div>
                   </div>
                 ) : (
                   <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
@@ -386,12 +373,11 @@ export default async function EdielAgtPage() {
                       <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
                       <input type="hidden" name="test_run_id" value={activeRun?.id ?? ''} />
                       <button
-                        disabled={draftDisabled}
+                        disabled={!hasRun || runtime.issues.some((issue) => issue.severity === 'error')}
                         className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
-                        {!hasRun ? 'Skapa run först' : missingL7Data ? 'Spara L7-testdata först' : 'Skapa draft och öppna payload'}
+                        {hasRun ? 'Generera + skicka' : 'Skapa run först'}
                       </button>
-                      {missingL7Data ? <div className="mt-2 text-xs font-semibold text-amber-700">Öppna L7-testmotorn och klistra in portalens 217/223-rapport innan draft skapas.</div> : null}
                     </form>
                   ) : (
                     <Link
@@ -411,7 +397,7 @@ export default async function EdielAgtPage() {
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
         <h2 className="text-lg font-semibold text-slate-950">Praktisk körordning</h2>
         <p className="mt-2 text-sm leading-6 text-blue-900">
-          Spara AGT-runtime först. Starta L1 i Edielportalen, skapa L1-run här, fyll i balansansvarig/BRP Ediel-id, skapa draft, kontrollera payload och skicka. L2-L5 är Portal → Aktör: starta testet i portalen, importera inbound PRODAT och skapa CONTRL + APERAK från inbound-raden. Kör L7 sist som outbound Z09.
+          Spara AGT-runtime först. Starta L1 i Edielportalen, skapa L1-run här, fyll i balansansvarig/BRP Ediel-id och skicka L1 direkt från GridCore. L2-L5 är Portal → Aktör: starta testet i portalen, importera inbound PRODAT och skapa CONTRL + APERAK från inbound-raden. Kör L7 sist som outbound Z09-kommandot.
         </p>
       </section>
     </div>

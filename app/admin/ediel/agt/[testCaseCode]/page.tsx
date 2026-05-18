@@ -15,7 +15,6 @@ import {
   EDIEL_AGT_PORTAL_SMTP,
   EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
   getEdielAgtSupplier2026ACase,
-  isEdielAgtRunApprovalVersion,
   type EdielAgtTestCaseDefinition,
 } from '@/lib/ediel/agtRegistry'
 import type { EdielMessageRow, EdielTestRunMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
@@ -26,14 +25,8 @@ import {
   createAgtSupplierTestRunAction,
   importAgtRawInboundForCaseAction,
   pollAgtMailboxForCaseAction,
-  updateAgtRunPortalReportAction,
 } from '@/app/admin/ediel/agt/actions'
 import { sendEdielMessageAction } from '@/app/admin/ediel/actions'
-import {
-  getL7AgtExpectedValues,
-  isL7DynamicTestDataRequired,
-  parseEdielAgtRunMetadata,
-} from '@/lib/ediel/agtRunMetadata'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,16 +63,6 @@ function formatDate(value: string | null | undefined) {
 
 function directionText(testCase: EdielAgtTestCaseDefinition) {
   return testCase.direction === 'actor_to_portal' ? 'Leverantör → Edielportalen' : 'Edielportalen → Leverantör'
-}
-
-function metadataValue(value: string | null | undefined) {
-  return value && value.trim().length > 0 ? value : '—'
-}
-
-function l7DataMissing(testCase: EdielAgtTestCaseDefinition, run: EdielTestRunRow | null) {
-  if (!isL7DynamicTestDataRequired(testCase)) return false
-  const expected = getL7AgtExpectedValues(run)
-  return !expected.reasonForTransaction || !expected.meteringMethod
 }
 
 
@@ -181,10 +164,8 @@ function LinkedTimeline({
             .filter((item): item is { link: EdielTestRunMessageRow; message: EdielMessageRow } => {
               const message = item.message
               if (!message) return false
-              if (item.link.step_no !== step.stepNo) return false
-              return messageMatchesExpectedStep(step, message)
+              return item.link.step_no === step.stepNo && message.status !== 'cancelled' && messageMatchesExpectedStep(step, message)
             })
-            .filter((item) => item.message.status !== 'cancelled')
             .sort((a, b) => Date.parse(b.message.created_at ?? '') - Date.parse(a.message.created_at ?? ''))
           const visibleLinked = validLinked.slice(0, 1)
           const hiddenCount = Math.max(validLinked.length - visibleLinked.length, 0)
@@ -215,7 +196,7 @@ function LinkedTimeline({
                   ))}
                   {hiddenCount > 0 ? (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
-                      {hiddenCount} äldre/duplicerade kopplingar är dolda. Använd rensningsknappen om du vill makulera gamla drafts för detta test.
+                      {hiddenCount} äldre/duplicerade kopplingar är dolda. Använd rensningsknappen om du vill makulera gamla oskickade meddelanden för detta test.
                     </div>
                   ) : null}
                 </div>
@@ -258,7 +239,7 @@ export default async function AgtCasePage({
     item.role_code === testCase.roleCode &&
     item.test_suite === testCase.suite &&
     item.test_case_code === testCase.testCaseCode &&
-    isEdielAgtRunApprovalVersion(item.approval_version) &&
+    item.approval_version === testCase.approvalVersion &&
     (item.status === 'draft' || item.status === 'running')
   ) ?? null
 
@@ -290,16 +271,12 @@ export default async function AgtCasePage({
   const actorToPortal = testCase.direction === 'actor_to_portal'
   const route = testCase.suite === 'PRODAT' ? runtime.prodat.route : runtime.utilts.route
   const profile = testCase.suite === 'PRODAT' ? runtime.prodat.profile : runtime.utilts.profile
-  const runMetadata = parseEdielAgtRunMetadata(run?.notes ?? null)
-  const l7Expected = getL7AgtExpectedValues(run)
-  const requiresL7RuntimeData = isL7DynamicTestDataRequired(testCase)
-  const missingL7Data = l7DataMissing(testCase, run)
 
   return (
     <div className="space-y-6">
       <AdminHeader
         title={`${testCase.testCaseCode} · ${testCase.title}`}
-        subtitle="AGT-testmotor: importera, koppla, skapa svarsdraft och skicka efter kontroll. Separat från verklig produktion."
+        subtitle="AGT-testmotor: outbound skickas direkt för Aktör → Portal; Portal → Aktör kopplas från inbound och får kvittensförslag. Separat från verklig produktion."
         userEmail={context.email}
       />
 
@@ -346,64 +323,8 @@ export default async function AgtCasePage({
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Run</div>
           <div className="mt-1 text-sm font-semibold text-slate-950">{run ? run.status : 'ingen aktiv run'}</div>
           <div className="mt-1 text-xs text-slate-600">{run ? formatDate(run.created_at) : 'skapa run först'}</div>
-          {run ? <div className="mt-1 text-xs text-slate-500">Portal-ID: {metadataValue(runMetadata.portalTestId)}</div> : null}
         </div>
       </section>
-
-      {requiresL7RuntimeData ? (
-        <section className={`rounded-2xl border p-5 ${missingL7Data ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">L7 Auto Testdata Resolver</h2>
-              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-                L7 är aktör → portal, så GridCore får inget inbound affärsmeddelande med testdata. Därför sparar vi portalens testdata/felrapport på aktiv run och generatorn läser faktiska dataelement därifrån. Ingen manuell variant väljs i UI:t och inga E32/Z04 eller E64/Z03 hårdkodas globalt.
-              </p>
-            </div>
-            <Badge tone={missingL7Data ? 'yellow' : 'green'}>{missingL7Data ? 'saknar run-data' : 'run-data klar'}</Badge>
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <div className="rounded-xl border border-white/70 bg-white p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">223 / Z13 reason</div>
-              <div className="mt-1 font-mono text-sm font-semibold text-slate-950">{metadataValue(l7Expected.reasonForTransaction)}</div>
-            </div>
-            <div className="rounded-xl border border-white/70 bg-white p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">217 / Z04 method</div>
-              <div className="mt-1 font-mono text-sm font-semibold text-slate-950">{metadataValue(l7Expected.meteringMethod)}</div>
-            </div>
-            <div className="rounded-xl border border-white/70 bg-white p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">DTM qualifier</div>
-              <div className="mt-1 font-mono text-sm font-semibold text-slate-950">{l7Expected.dateQualifier}</div>
-            </div>
-            <div className="rounded-xl border border-white/70 bg-white p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Källa</div>
-              <div className="mt-1 text-sm font-semibold text-slate-950">{l7Expected.source}</div>
-            </div>
-          </div>
-
-          <form action={updateAgtRunPortalReportAction} className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_2fr_auto]">
-            <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
-            <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
-            <label className="block text-sm font-medium text-slate-700">
-              Portal test-ID
-              <input name="portal_test_id" className={inputClassName()} placeholder="t.ex. ID i testloggen" />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Testversion
-              <input name="portal_test_version" className={inputClassName()} placeholder="Gällande / v2023" />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Testdata eller valideringsrapport
-              <textarea name="portal_report" rows={3} className={inputClassName()} placeholder={'Klistra in rapporten med 217 - Measuring method och 223 - Reason for transaction'} />
-            </label>
-            <div className="flex items-end">
-              <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-                Spara på run
-              </button>
-            </div>
-          </form>
-        </section>
-      ) : null}
 
       <section className="grid gap-4 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -422,10 +343,9 @@ export default async function AgtCasePage({
               <form action={createAgtSupplierOutboundDraftAction}>
                 <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
                 <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
-                <button disabled={!run || missingL7Data} className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">
-                  Skapa outbound-draft
+                <button disabled={!run} className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">
+                  Generera + skicka
                 </button>
-                {missingL7Data ? <div className="mt-2 max-w-xs text-xs font-semibold text-amber-700">Spara portalens 217/223-testdata på aktiv run först.</div> : null}
               </form>
             ) : (
               <form action={pollAgtMailboxForCaseAction}>
@@ -445,20 +365,20 @@ export default async function AgtCasePage({
               <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
               <input type="hidden" name="test_run_id" value={run.id} />
               <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100">
-                Rensa gamla test-drafts
+                Makulera gamla oskickade testmeddelanden
               </button>
             </form>
           ) : null}
 
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
-            Motorn skapar svarsdraft, inte autoskick. Du granskar payload och skickar från raden. Produktion/live-flöden ska inte gå via den här testvyn. Gamla test-drafts makuleras via rensning, de hårdraderas inte eftersom Ediel-historik ska kunna spåras.
+            För Aktör → Portal genererar GridCore outbound och skickar direkt; därefter sparas skickat meddelande som audit/logg och portalkvittenser importeras. För Portal → Aktör skapas kvittensförslag från inbound-raden. Produktion/live-flöden ska inte gå via den här testvyn.
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-slate-950">Manuell import</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Använd detta om IMAP inte hunnit hämta meddelandet eller om du vill klistra in EDIFACT från portalen. Motorn försöker koppla mot rätt steg och skapar AGT-svar om det är portalens affärsmeddelande.
+            Använd detta om IMAP inte hunnit hämta meddelandet eller om du vill klistra in EDIFACT från portalen. För Portal → Aktör skapar motorn AGT-svar från portalens affärsmeddelande. För Aktör → Portal kopplas endast portalens CONTRL/APERAK till auditkedjan.
           </p>
           <form action={importAgtRawInboundForCaseAction} className="mt-4 space-y-3">
             <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
@@ -472,7 +392,7 @@ export default async function AgtCasePage({
               <textarea name="raw_payload" rows={5} className={inputClassName()} placeholder="UNA:+.? 'UNB+..." />
             </label>
             <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-              Importera och skapa AGT-svar
+              Importera och koppla
             </button>
           </form>
         </div>
@@ -482,7 +402,7 @@ export default async function AgtCasePage({
 
       {linkedAckPairs.some((pair) => pair.acks.length > 0) ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-slate-950">Skapade svarsdraft för kopplade inbound</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Skapade kvittensförslag för kopplade inbound</h2>
           <div className="mt-4 space-y-3">
             {linkedAckPairs.flatMap((pair) => pair.acks).map((ack) => (
               <div key={ack.id} className="rounded-xl border border-slate-200 p-4">
@@ -533,7 +453,7 @@ export default async function AgtCasePage({
                     <MessageSummary message={message} />
                     <div className="mt-2 text-xs text-slate-500">Mottaget: {formatDate(message.message_received_at ?? message.created_at)}</div>
                     {isPrimaryInbound(testCase, message) ? (
-                      <div className="mt-2 text-xs font-semibold text-emerald-700">Detta är portalens affärsmeddelande för testet. Motorn skapar rätt svarsdraft.</div>
+                      <div className="mt-2 text-xs font-semibold text-emerald-700">Detta är portalens affärsmeddelande för testet. Motorn skapar rätt kvittensförslag.</div>
                     ) : (
                       <div className="mt-2 text-xs font-semibold text-blue-700">Detta är portalens kvittens/svarsmeddelande för ett outbound-test och kan kopplas till testkedjan.</div>
                     )}
@@ -547,7 +467,7 @@ export default async function AgtCasePage({
                       <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
                       <input type="hidden" name="source_message_id" value={message.id} />
                       <button className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
-                        Koppla + skapa svar
+                        {actorToPortal ? 'Koppla kvittens' : 'Koppla + skapa svar'}
                       </button>
                     </form>
                   </div>
@@ -555,7 +475,7 @@ export default async function AgtCasePage({
 
                 {acks.length > 0 ? (
                   <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Svarsdraft / kvittenser</div>
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Kvittensförslag / kvittenser</div>
                     <div className="space-y-2">
                       {acks.map((ack) => (
                         <div key={ack.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-2">
@@ -580,7 +500,7 @@ export default async function AgtCasePage({
       <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-sm leading-6 text-indigo-900">
         <div className="font-semibold text-indigo-950">SaaS-regel för detta fönster</div>
         <p className="mt-1">
-          Testfallet styrs av AGT-registret, aktiv tenant-runtime och run-specifik portaltestdata. Inga leverantörsnamn eller L7-varianter ska ligga som specialfall i motorn. För andra leverantörer byts Ediel-id, mailbox, routes och eventuell BRP i runtime.
+          Testfallet styrs av AGT-registret och aktiv tenant-runtime. Inga tenantnamn ska ligga som specialfall i motorn. För andra leverantörer byts Ediel-id, mailbox, routes, eventuell sender-subadress och BRP i runtime.
         </p>
         {testCase.suite === 'PRODAT' ? (
           <p className="mt-2">PRODAT AGT mot portalen använder receiver {EDIEL_AGT_PORTAL_EDIEL_ID}:ZZ:{EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}. Sender-subadress ska följa Edielregistret per tenant.</p>

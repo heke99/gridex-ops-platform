@@ -125,6 +125,7 @@ export function buildGenericProdatSegments(input: {
   const bgmReference = compactProdatReference(context.bgmReference, 35)
   const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
   const isPermissionMessage = isPermissionMessageCode(context.code)
+  const isSupplierZ09 = context.code === 'Z09'
   const explicitReasonForTransaction = portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? null
   const reasonForTransaction = isPermissionMessage
     ? resolvePermissionReasonForCode(context.code, explicitReasonForTransaction)
@@ -157,7 +158,9 @@ export function buildGenericProdatSegments(input: {
 
   const startDate203 = prodatDate203AtStartOfDay(startDate)
   if (startDate203) {
-    segments.push(`DTM+92:${startDate203}:203`)
+    // Z09 uses validity date (field 216) in SG8/DTM qualifier 157.
+    // Supplier AGT L7 failed when this was rendered as DTM+92.
+    segments.push(`DTM+${isSupplierZ09 ? '157' : '92'}:${startDate203}:203`)
   }
 
   if (reasonForTransaction) {
@@ -205,11 +208,12 @@ export function buildGenericProdatSegments(input: {
   }
 
   const powerOfAttorneyReference = portalString(portalData, 'powerOfAttorneyReference') ?? context.powerOfAttorneyReference
-  if (powerOfAttorneyReference) {
+  if (!isSupplierZ09 && powerOfAttorneyReference) {
     segments.push(`RFF+ANJ:${sanitizeProdatText(powerOfAttorneyReference)}`)
   }
 
-  segments.push(prodatCustomerNadSegment({
+  if (!isSupplierZ09) {
+    segments.push(prodatCustomerNadSegment({
     customerId: portalString(portalData, 'customerId') ?? context.customerId ?? null,
     customerIdCodeListQualifier: portalString(portalData, 'customerIdCodeListQualifier') ?? context.customerIdCodeListQualifier ?? null,
     customerName: portalString(portalData, 'customerName') ?? context.customerName,
@@ -217,9 +221,10 @@ export function buildGenericProdatSegments(input: {
     city: portalString(portalData, 'customerCity') ?? context.customerCity ?? null,
     postalCode: portalString(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null,
     country: portalString(portalData, 'customerCountry') ?? context.customerCountry ?? 'SE',
-  }))
+    }))
+  }
 
-  if (context.code !== 'Z03') {
+  if (!isSupplierZ09 && context.code !== 'Z03') {
     segments.push(prodatInstallationNadSegment({
       meterPointId,
       address: portalString(portalData, 'siteAddress') ?? context.siteAddress ?? null,

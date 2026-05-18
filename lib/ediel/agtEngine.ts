@@ -19,7 +19,6 @@ import {
   getEdielMessageById,
   listAckMessagesForSource,
   listEdielTestRuns,
-  updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { renderProdat26A, type ProdatEngineCode } from '@/lib/ediel/prodatEngine'
@@ -27,6 +26,7 @@ import {
   EDIEL_AGT_PORTAL_EDIEL_ID,
   EDIEL_AGT_PORTAL_SMTP,
   EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS,
   getEdielAgtTestCaseByCode,
   inferEdielAgtCaseForInboundMessage,
   isEdielAgtRunApprovalVersion,
@@ -34,14 +34,6 @@ import {
   type EdielAgtTestCaseDefinition,
 } from '@/lib/ediel/agtRegistry'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
-import {
-  buildEdielAgtRunNotes,
-  getL7AgtExpectedValues,
-  isL7DynamicTestDataRequired,
-  parseEdielAgtRunMetadata,
-  validateL7PayloadPreflight,
-  type EdielAgtRunMetadata,
-} from '@/lib/ediel/agtRunMetadata'
 import type {
   CreateEdielMessageInput,
   EdielMessageRow,
@@ -160,38 +152,6 @@ function agtTransactionReference(definition: EdielAgtTestCaseDefinition): string
   return sanitizeToken(`LIAGT${definition.testCaseCode}${definition.messageCode}${agtStamp()}`, 25)
 }
 
-function getAgtOutboundProdatDefaults(definition: EdielAgtTestCaseDefinition, metadata?: EdielAgtRunMetadata | null): {
-  reasonForTransaction: string
-  meteringMethod: string
-  includePowerOfAttorneyReference: boolean
-  source: string
-} {
-  if (isL7DynamicTestDataRequired(definition)) {
-    const reasonForTransaction = metadata?.expectedReasonForTransaction
-    const meteringMethod = metadata?.expectedMeteringMethod
-
-    if (!reasonForTransaction || !meteringMethod) {
-      throw new Error(
-        'L7/Z09 saknar aktiv portaltestdata. Klistra in Edielportalens testdata/valideringsrapport på L7-runnen så systemet kan läsa 223 Reason for transaction och 217 Measuring method innan draft skapas.'
-      )
-    }
-
-    return {
-      reasonForTransaction,
-      meteringMethod,
-      includePowerOfAttorneyReference: false,
-      source: metadata?.source ?? 'portal_report',
-    }
-  }
-
-  return {
-    reasonForTransaction: 'Z22',
-    meteringMethod: 'Z03',
-    includePowerOfAttorneyReference: true,
-    source: 'agt_case_default',
-  }
-}
-
 async function resolveAgtActorRuntime(params?: {
   actorName?: string | null
   actorEdielId?: string | null
@@ -211,7 +171,7 @@ async function resolveAgtActorRuntime(params?: {
   return {
     actorEdielId,
     actorName,
-    senderSubAddress: agtRuntime?.prodat.profile?.sender_sub_address ?? activeActor?.sender_sub_address ?? null,
+    senderSubAddress: trimOrNull(agtRuntime?.prodat.profile?.sender_sub_address) ?? trimOrNull(activeActor?.sender_sub_address) ?? EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS,
     receiverSubAddress: EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
     receiverEdielId: agtRuntime?.prodat.profile?.receiver_ediel_id ?? EDIEL_AGT_PORTAL_EDIEL_ID,
     receiverEmail: agtRuntime?.prodat.route?.target_email ?? EDIEL_AGT_PORTAL_SMTP,
@@ -252,7 +212,7 @@ export async function getEdielAgtReadiness(params?: {
       severity: 'warning',
       code: 'agt_balance_responsible_missing',
       title: 'Balansansvarig Ediel-id saknas',
-      description: 'L1 PRODAT Z03 kräver NAD+Z02 enligt portalens validering. Fyll i balansansvarig Ediel-id innan outbound-draft skapas för L1/L7. L2-L5 är inbound-tester och ska inte blockeras av detta.',
+      description: 'L1/L7 PRODAT behöver NAD+Z02 enligt portalens validering. Fyll i balansansvarig Ediel-id innan outbound skickas. L2-L5 är inbound-tester och ska inte blockeras av detta.',
     })
   }
 
@@ -265,34 +225,6 @@ export async function getEdielAgtReadiness(params?: {
 
 function agtApprovalVersion(): string {
   return 'AGT 2026A'
-}
-
-
-async function cancelOtherActiveAgtRunsForDefinition(params: {
-  actorUserId: string
-  definition: EdielAgtTestCaseDefinition
-  keepRunId?: string | null
-  reason: string
-}) {
-  const runs = await listEdielTestRuns()
-  const activeRuns = runs.filter((run) =>
-    isEdielAgtRunApprovalVersion(run.approval_version) &&
-    (run.status === 'running' || run.status === 'draft') &&
-    run.test_suite === params.definition.suite &&
-    run.role_code === params.definition.roleCode &&
-    run.test_case_code === params.definition.testCaseCode &&
-    run.id !== params.keepRunId
-  )
-
-  for (const run of activeRuns) {
-    await updateEdielTestRunStatus({
-      actorUserId: params.actorUserId,
-      testRunId: run.id,
-      status: 'cancelled',
-      failureReason: params.reason,
-      completedAt: new Date().toISOString(),
-    })
-  }
 }
 
 export async function createEdielSupplierAgtRun(params: {
@@ -326,12 +258,6 @@ export async function createEdielSupplierAgtRun(params: {
     )
   }
 
-  await cancelOtherActiveAgtRunsForDefinition({
-    actorUserId: params.actorUserId,
-    definition,
-    reason: `Ny aktiv AGT-run skapades för ${definition.testCaseCode}. Äldre run makulerades så fel draft inte kan skickas mot fel portaltest.`,
-  })
-
   return createEdielTestRun({
     actorUserId: params.actorUserId,
     approvalVersion: `${agtApprovalVersion()} · ${readiness.actor.actorName} · ${readiness.actor.actorEdielId}`,
@@ -341,17 +267,14 @@ export async function createEdielSupplierAgtRun(params: {
     title: definition.title,
     status: 'running',
     startedAt: new Date().toISOString(),
-    notes: buildEdielAgtRunNotes({
-      purpose: definition.purpose,
-      instruction: definition.agtInstruction,
-      actorLabel: `${readiness.actor.actorName} (${readiness.actor.actorEdielId})`,
-      notes: [
-        'Motpart: Edielportalen 91100 / 91100@ediel.se.',
-        'PRODAT använder tenantens sparade UNB sender-subadress och receiver-subadress PRODAT. UTILTS använder ingen subadress.',
-        ...definition.notes,
-      ],
-      metadata: isL7DynamicTestDataRequired(definition) ? { dateQualifier: '157', source: 'unknown' } : { source: 'system_default' },
-    }),
+    notes: [
+      definition.purpose,
+      definition.agtInstruction,
+      `AGT-aktör: ${readiness.actor.actorName} (${readiness.actor.actorEdielId})`,
+      'Motpart: Edielportalen 91100 / 91100@ediel.se.',
+      'PRODAT använder leverantörens registrerade UNB sender-subadress om sådan finns i Edielregistret; annars tom. Receiver-subadress mot Edielportalen är PRODAT. UTILTS använder ingen subadress.',
+      ...definition.notes,
+    ].join('\n'),
   })
 }
 
@@ -438,19 +361,18 @@ export async function autoAttachImportedMessageToActiveAgtRun(params: {
   return { testRunId: activeRun.id, stepNo: attached.step_no }
 }
 
-function buildAgtProdatDraftInput(params: {
+function buildAgtProdatOutboundInput(params: {
   actorUserId: string
   definition: EdielAgtTestCaseDefinition
   actor: EdielAgtActorRuntime
-  testRun?: EdielTestRunRow | null
 }): CreateEdielMessageInput {
   const definition = params.definition
   const code = definition.messageCode as ProdatEngineCode
   const externalReference = agtDocumentReference(definition)
   const transactionReference = agtTransactionReference(definition)
   const startDate = datePlusDays102(30)
-  const runMetadata = parseEdielAgtRunMetadata(params.testRun?.notes ?? null)
-  const agtProdatDefaults = getAgtOutboundProdatDefaults(definition, runMetadata)
+  const reasonForTransaction = code === 'Z09' ? 'E32' : 'Z22'
+  const meteringMethod = code === 'Z09' ? 'Z04' : 'Z03'
 
   const rendered = renderProdat26A({
     context: {
@@ -473,21 +395,21 @@ function buildAgtProdatDraftInput(params: {
       sitePostalCode: '11111',
       siteCity: 'STOCKHOLM',
       siteCountry: 'SE',
-      reasonForTransaction: agtProdatDefaults.reasonForTransaction,
-      meteringMethod: agtProdatDefaults.meteringMethod,
-      powerOfAttorneyReference: agtProdatDefaults.includePowerOfAttorneyReference ? `AGT-${externalReference}` : null,
+      reasonForTransaction,
+      meteringMethod,
+      powerOfAttorneyReference: code === 'Z09' ? null : `AGT-${externalReference}`,
       balanceResponsibleId: params.actor.balanceResponsibleEdielId,
     },
     portalSnapshot: {
-      reasonForTransaction: agtProdatDefaults.reasonForTransaction,
-      meteringMethod: agtProdatDefaults.meteringMethod,
+      reasonForTransaction,
+      meteringMethod,
       customerName: buildAgtSyntheticCustomerName(params.actor.actorEdielId),
       customerId: buildAgtSyntheticCustomerId(params.actor.actorEdielId),
       customerIdCodeListQualifier: 'SE2',
       facilityId: buildAgtSyntheticMeteringPointId(params.actor.actorEdielId, definition),
       gridAreaId: 'TES',
       agreementStartDateTime: `${startDate}0000`,
-      powerOfAttorneyReference: agtProdatDefaults.includePowerOfAttorneyReference ? `AGT-${externalReference}` : null,
+      powerOfAttorneyReference: code === 'Z09' ? null : `AGT-${externalReference}`,
       balanceResponsibleId: params.actor.balanceResponsibleEdielId,
     },
   })
@@ -503,13 +425,6 @@ function buildAgtProdatDraftInput(params: {
     segments: rendered.segments,
   })
 
-  const l7PreflightBlockers = isL7DynamicTestDataRequired(definition)
-    ? validateL7PayloadPreflight(envelope.raw)
-    : []
-  if (l7PreflightBlockers.length > 0) {
-    throw new Error(`L7/Z09 preflight blockerar draft: ${l7PreflightBlockers.join(' | ')}`)
-  }
-
   const ack = deriveEdielAckDefaults({ family: 'PRODAT', code })
 
   return {
@@ -522,7 +437,7 @@ function buildAgtProdatDraftInput(params: {
     processType: `agt_supplier_${definition.testCaseCode.toLowerCase()}`,
     environment: 'test',
     testFlag: 1,
-    status: 'draft',
+    status: 'prepared',
     transportType: 'smtp',
     mailbox: params.actor.mailbox,
     senderEdielId: params.actor.actorEdielId,
@@ -548,21 +463,16 @@ function buildAgtProdatDraftInput(params: {
       agtTestCaseCode: definition.testCaseCode,
       agtPortalTitle: definition.portalTitle,
       agtScenario: definition.scenario,
-      generator: 'ediel.agtEngine.buildAgtProdatDraftInput',
+      generator: 'ediel.agtEngine.buildAgtProdatOutboundInput',
       actorEdielId: params.actor.actorEdielId,
       portalEdielId: params.actor.receiverEdielId,
       prodatEngine: rendered.diagnostics,
-      agtRunMetadata: runMetadata,
-      agtDataSource: agtProdatDefaults.source,
     },
     validationReport: {
       ok: true,
       agt: true,
       errors: [],
       warnings: rendered.issues.map((issue) => `${issue.title}: ${issue.description}`),
-      preflightBlockers: l7PreflightBlockers,
-      expectedReasonForTransaction: agtProdatDefaults.reasonForTransaction,
-      expectedMeteringMethod: agtProdatDefaults.meteringMethod,
       expectedPortalResponse: 'positive CONTRL + negative APERAK',
       instruction: definition.agtInstruction,
     },
@@ -583,7 +493,7 @@ function buildAgtProdatDraftInput(params: {
   }
 }
 
-export async function createEdielSupplierAgtOutboundDraft(params: {
+export async function createEdielSupplierAgtOutboundCommand(params: {
   actorUserId: string
   testRunId?: string | null
   testCaseCode: string
@@ -609,26 +519,18 @@ export async function createEdielSupplierAgtOutboundDraft(params: {
   }
 
   if (!trimOrNull(readiness.actor.balanceResponsibleEdielId)) {
-    throw new Error('Outbound AGT PRODAT kräver NAD+Z02. Fyll i balansansvarig/BRP Ediel-id i AGT-runtime innan du skapar L1/L7-draft. Detta stoppar bara felaktig outbound-payload, inte L2-L5 inbound-testerna.')
+    throw new Error('Outbound AGT PRODAT kräver NAD+Z02. Fyll i balansansvarig/BRP Ediel-id i AGT-runtime innan du skickar L1/L7. Detta stoppar bara felaktig outbound-payload, inte L2-L5 inbound-testerna.')
   }
+
+  const message = await createEdielMessage(buildAgtProdatOutboundInput({
+    actorUserId: params.actorUserId,
+    definition,
+    actor: readiness.actor,
+  }))
 
   const run = params.testRunId
     ? await getActiveRunById(params.testRunId)
     : await findActiveAgtRunForDefinition(definition)
-
-  if (isL7DynamicTestDataRequired(definition)) {
-    const l7Expected = getL7AgtExpectedValues(run)
-    if (!l7Expected.reasonForTransaction || !l7Expected.meteringMethod) {
-      throw new Error('L7/Z09 saknar aktiv run-testdata. Klistra in portalens testdata/valideringsrapport på L7-sidan innan outbound-draft skapas.')
-    }
-  }
-
-  const message = await createEdielMessage(buildAgtProdatDraftInput({
-    actorUserId: params.actorUserId,
-    definition,
-    actor: readiness.actor,
-    testRun: run,
-  }))
 
   if (run) {
     const step = findStep(definition, {
@@ -653,14 +555,13 @@ export async function createEdielSupplierAgtOutboundDraft(params: {
     edielMessageId: message.id,
     eventType: 'prepared',
     eventStatus: 'success',
-    message: `AGT ${definition.testCaseCode} ${definition.messageCode}-draft skapad. Kontrollera payload och skicka när motsvarande test är startat i Edielportalen.`,
+    message: `AGT ${definition.testCaseCode} ${definition.messageCode} outbound-kommando skapades. Det ska skickas direkt från AGT-vyn när motsvarande test är startat i Edielportalen.`,
     payload: {
       agt: true,
       testCaseCode: definition.testCaseCode,
       testRunId: run?.id ?? null,
       actorEdielId: readiness.actor.actorEdielId,
       portalEdielId: readiness.actor.receiverEdielId,
-      agtRunMetadata: run ? parseEdielAgtRunMetadata(run.notes) : null,
     },
   })
 
@@ -678,7 +579,7 @@ function agtGenericAperakErrors(sourceMessage: EdielMessageRow): EdielAperakAppl
     {
       ercCode: '40',
       fieldCode: '105',
-      text: 'The object could not be identified',
+      text: `AGT ${sourceMessage.message_family} ${sourceMessage.message_code}: meddelandet innehåller uppgifter som inte finns i aktörens produktionsapplikation`,
       referenceQualifier: sourceMessage.metering_point_id ? 'Z07' : null,
       referenceNumber: sourceMessage.metering_point_id ?? null,
       lineItemReference: sourceMessage.transaction_reference ?? null,
@@ -926,3 +827,7 @@ export async function createEdielSupplierAgtResponsesForInbound(params: {
 
   return created
 }
+
+
+// Backwards-compatible alias for older server actions/components. Actor→Portal AGT no longer creates long-lived drafts; it creates a prepared outbound command that the server action sends immediately.
+export const createEdielSupplierAgtOutboundDraft = createEdielSupplierAgtOutboundCommand

@@ -46,6 +46,7 @@ export const EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS: string | null = null
 // Backwards-compatible alias. In supplier AGT PRODAT this means the portal/receiver subaddress.
 export const EDIEL_AGT_PRODAT_SUB_ADDRESS = EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS
 export const EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID = '92825'
+export const DIV3RSA_AGT_EDIEL_ID = '21660'
 
 function actorOutbound(stepNo: number, family: EdielMessageFamily, code: string, title: string): EdielAgtExpectedStep {
   return { stepNo, actor: 'actor', direction: 'outbound', family, code, title }
@@ -134,10 +135,10 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
     title: 'PRODAT L1 · Z03',
     portalTitle: 'L1 – PRODAT Z03',
     purpose: 'Verifierar att leverantören kan skicka PRODAT Z03 till Edielportalen och ta emot positiv CONTRL samt negativ APERAK.',
-    agtInstruction: 'Starta L1 i Edielportalen. Skapa därefter ett outbound Z03-draft i systemet, kontrollera att leverantörens Ediel-id är avsändare, att avsändarens UNB-subadress matchar Edielportalen, att mottagare är 91100:ZZ:PRODAT, skicka filen och invänta CONTRL + APERAK från portalen.',
+    agtInstruction: 'Starta L1 i Edielportalen. Skicka därefter outbound Z03 direkt från GridCore. Leverantörens Ediel-id och eventuell sender-subadress ska komma från aktiv tenant/Edielregistret, mottagare är 91100:ZZ:PRODAT. Efter skick inväntas CONTRL + APERAK från portalen.',
     notes: [
       'Leverantören skickar Z03 till Edielportalen.',
-      'Nätägaren och mottagaren i Z03 ska vara Ediel-id 91100. UNB avsändar-subadress ska följa aktörens Edielregisterprofil; för Div3rsa är den tom, medan mottagaren har subadress PRODAT.',
+      'Nätägaren och mottagaren i Z03 ska vara Ediel-id 91100. UNB sender-subadress ska följa leverantörens registrerade tekniska adress i Edielregistret; saknas den i Edielregistret ska den vara tom. Mottagaren har subadress PRODAT.',
       'Portalen svarar med positiv CONTRL om CONTRL är begärd och därefter negativ APERAK.',
     ],
     messageFamily: 'PRODAT',
@@ -187,13 +188,11 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
     testCaseCode: 'L7',
     title: 'PRODAT L7 · Z09',
     portalTitle: 'L7 – PRODAT Z09',
-    purpose: 'Verifierar att leverantören kan skicka PRODAT Z09 till Edielportalen och ta emot positiv CONTRL samt negativ APERAK.',
-    agtInstruction: 'Starta L7 i Edielportalen. Spara portalens test-id/testversion och klistra in eventuell testdata eller valideringsrapport på aktiv run. Skapa därefter outbound Z09-draft; generatorn läser 223 Reason for transaction och 217 Measuring method från run-data, använder DTM+157 i SG8, skickar till 91100:ZZ:PRODAT och inväntar CONTRL + APERAK från portalen.',
+    purpose: 'Verifierar att leverantören kan skicka PRODAT Z09F/Z09G till Edielportalen och ta emot positiv CONTRL samt negativ APERAK.',
+    agtInstruction: 'Starta L7 i Edielportalen. Skicka därefter outbound Z09 direkt från GridCore. Leverantörens Ediel-id och eventuell sender-subadress ska komma från aktiv tenant/Edielregistret, mottagare är 91100:ZZ:PRODAT. Efter skick inväntas CONTRL + APERAK från portalen.',
     notes: [
-      'Leverantören skickar Z09 till Edielportalen.',
-      'L7 ska använda SG8/DTM+157 i stället för DTM+92. Det är facit från portalens L7-validering.',
-      'L7 ska inte vara hårdkodad till E64/Z03 eller E32/Z04. Den aktiva runnen måste bära portalens förväntade 223 Reason for transaction och 217 Measuring method.',
-      'Nätägaren och mottagaren i Z09 ska vara Ediel-id 91100. UNB avsändar-subadress ska följa aktörens Edielregisterprofil; för Div3rsa är den tom, medan mottagaren har subadress PRODAT.',
+      'Leverantören skickar Z09F eller Z09G till Edielportalen.',
+      'Nätägaren och mottagaren i Z09 ska vara Ediel-id 91100. UNB sender-subadress ska följa leverantörens registrerade tekniska adress i Edielregistret; saknas den i Edielregistret ska den vara tom. Mottagaren har subadress PRODAT.',
       'Portalen svarar med positiv CONTRL om CONTRL är begärd och därefter negativ APERAK.',
     ],
     messageFamily: 'PRODAT',

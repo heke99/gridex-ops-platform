@@ -15,13 +15,11 @@ import {
   listEdielTestRunMessages,
   listEdielTestRuns,
   updateEdielMessageStatus,
-  updateEdielTestRunNotes,
   updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import {
   createEdielSupplierAgtOutboundDraft,
   createEdielSupplierAgtResponsesForInbound,
-  createEdielSupplierAgtRun,
 } from '@/lib/ediel/agtEngine'
 import type { EdielMessageRow, EdielRouteProfileAckMode, EdielTestRunRow } from '@/lib/ediel/types'
 import {
@@ -40,12 +38,7 @@ import {
 import { pollEdielMailboxViaImap } from '@/lib/ediel/transport'
 import { registerEdielFile } from '@/lib/ediel/fileEngine'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
-import {
-  buildEdielAgtRunNotes,
-  isL7DynamicTestDataRequired,
-  mergeEdielAgtRunMetadata,
-  parseEdielAgtPortalValidationReport,
-} from '@/lib/ediel/agtRunMetadata'
+import { sendQueuedEdielMessage } from '@/lib/ediel/orchestrator'
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key)
@@ -163,12 +156,7 @@ async function ensureAgtRunForCase(params: {
     testCaseCode: params.testCase.testCaseCode,
     title: params.testCase.title,
     approvalVersion: params.testCase.approvalVersion,
-    notes: buildEdielAgtRunNotes({
-      purpose: params.testCase.purpose,
-      instruction: params.testCase.agtInstruction,
-      notes: [...params.testCase.notes, 'Skapad automatiskt från AGT-testkortet vid import.'],
-      metadata: isL7DynamicTestDataRequired(params.testCase) ? { dateQualifier: '157', source: 'unknown' } : { source: 'system_default' },
-    }),
+    notes: `${params.testCase.notes} Skapad automatiskt från AGT-testkortet vid import.`,
     status: 'running',
     startedAt: new Date().toISOString(),
   })
@@ -371,7 +359,7 @@ async function upsertRouteProfile(input: {
     is_enabled: true,
     sender_ediel_id: input.senderEdielId,
     sender_name: input.senderName,
-    sender_sub_address: input.senderSubAddress,
+    sender_sub_address: input.family === 'PRODAT' ? input.senderSubAddress : null,
     receiver_ediel_id: EDIEL_AGT_PORTAL_EDIEL_ID,
     receiver_name: input.receiverName,
     receiver_sub_address: isProdat ? EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS : null,
@@ -389,7 +377,7 @@ async function upsertRouteProfile(input: {
     mailbox: input.mailbox,
     encryption_mode: 'none',
     payload_format: 'edifact',
-    notes: `${input.family} AGT 2026A route profile. Sender-id kommer från aktörens AGT-form, inte från Gridcore/TGT-konstant.`,
+    notes: `${input.family} AGT route profile. Sender-id och eventuell sender-subadress kommer från aktiv SaaS-tenant/Edielregistret, inte från Gridcore/TGT-konstant.`,
     updated_by: input.actorUserId,
     updated_at: new Date().toISOString(),
   }
@@ -539,57 +527,37 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
     throw new Error(`Okänt AGT 2026A leverantörstest: ${testCaseCode}`)
   }
 
-  await createEdielSupplierAgtRun({
+  const runs = await listEdielTestRuns()
+  for (const run of runs) {
+    if (
+      run.role_code === testCase.roleCode &&
+      run.test_suite === testCase.suite &&
+      run.test_case_code === testCase.testCaseCode &&
+      run.approval_version === testCase.approvalVersion &&
+      (run.status === 'draft' || run.status === 'running')
+    ) {
+      await updateEdielTestRunStatus({
+        actorUserId,
+        testRunId: run.id,
+        status: 'cancelled',
+        failureReason: 'Ny AGT-körning startades för samma testfall. En aktiv körning åt gången hålls i GridCore för att inte blanda portalens testlogg med gamla payloads.',
+        completedAt: new Date().toISOString(),
+      })
+    }
+  }
+
+  await createEdielTestRun({
     actorUserId,
+    testSuite: testCase.suite,
+    roleCode: testCase.roleCode,
     testCaseCode: testCase.testCaseCode,
-    suite: testCase.suite,
+    title: testCase.title,
+    approvalVersion: testCase.approvalVersion,
+    notes: `${testCase.notes} Skapad som aktiv AGT-körning från leverantörens AGT-sida.`,
+    status: 'running',
   })
 
   revalidateAgt()
-}
-
-
-export async function updateAgtRunPortalReportAction(formData: FormData) {
-  await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const actorUserId = await getCurrentUserId()
-  const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
-  const testRun = await ensureAgtRunForCase({
-    actorUserId,
-    testCase,
-    testRunId: value(formData, 'test_run_id'),
-  })
-
-  const reportText = value(formData, 'portal_report')
-  const portalTestId = value(formData, 'portal_test_id')
-  const portalTestVersion = value(formData, 'portal_test_version')
-
-  if (!reportText && !portalTestId && !portalTestVersion) {
-    throw new Error('Klistra in portalens testdata/valideringsrapport eller ange portalens test-id/testversion.')
-  }
-
-  const parsed = parseEdielAgtPortalValidationReport(reportText ?? '')
-
-  if (isL7DynamicTestDataRequired(testCase) && parsed.confidence === 'none') {
-    throw new Error('Rapporten saknar både 217 Measuring method och 223 Reason for transaction. Klistra in hela felrapporten/testdatan från Edielportalen.')
-  }
-
-  const merged = mergeEdielAgtRunMetadata(testRun.notes, {
-    portalTestId: portalTestId ?? parsed.portalTestId,
-    portalTestVersion: portalTestVersion ?? parsed.portalTestVersion,
-    expectedReasonForTransaction: parsed.expectedReasonForTransaction,
-    expectedMeteringMethod: parsed.expectedMeteringMethod,
-    dateQualifier: isL7DynamicTestDataRequired(testCase) ? '157' : null,
-    source: reportText ? 'portal_report' : 'operator',
-  })
-
-  await updateEdielTestRunNotes({
-    actorUserId,
-    testRunId: testRun.id,
-    notes: merged.notes,
-  })
-
-  revalidateAgt()
-  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
 }
 
 
@@ -607,8 +575,14 @@ export async function createAgtSupplierOutboundDraftAction(formData: FormData) {
     testCaseCode,
   })
 
+  const sent = await sendQueuedEdielMessage({
+    actorUserId,
+    edielMessageId: message.id,
+    smtpMimeMode: 'ediel-singlepart-base64',
+  })
+
   revalidateAgt()
-  redirect(`/admin/ediel/messages/${message.id}`)
+  redirect(`/admin/ediel/messages/${sent.id}`)
 }
 
 export async function createAllAgtSupplierTestRunsAction(_formData: FormData) {
@@ -623,8 +597,8 @@ export async function createAllAgtSupplierTestRunsAction(_formData: FormData) {
       testCaseCode: testCase.testCaseCode,
       title: testCase.title,
       approvalVersion: testCase.approvalVersion,
-      notes: `${testCase.notes} Skapad från AGT 2026A-sidan.`,
-      status: 'draft',
+      notes: `${testCase.notes} Skapad som aktiv AGT-körning från leverantörens AGT-sida.`,
+      status: 'running',
     })
   }
 
@@ -715,8 +689,6 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
   const rawPayload = uploaded.text ?? pasted
   if (!rawPayload) throw new Error('Ladda upp EDIFACT-fil eller klistra in inbound-payload från Edielportalen.')
 
-  const runtime = await getEdielAgtSupplierRuntime()
-
   const result = await registerEdielFile({
     actorUserId,
     direction: 'inbound',
@@ -726,8 +698,6 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
     mailbox: value(formData, 'mailbox') ?? 'agt-manual-import',
     mailboxMessageId: value(formData, 'mailbox_message_id') ?? `agt-${testCase.testCaseCode}-${Date.now()}`,
     subject: `AGT ${testCase.testCaseCode} manual import`,
-    ownActorEdielId: runtime.actor?.actor_ediel_id ?? null,
-    ownActorName: runtime.actor?.actor_name ?? runtime.actor?.sender_name ?? null,
   })
 
   const message = await getEdielMessageById(result.id)
@@ -805,7 +775,7 @@ export async function cleanupAgtCaseDraftMessagesAction(formData: FormData) {
     run.role_code === testCase.roleCode &&
     run.test_suite === testCase.suite &&
     run.test_case_code === testCase.testCaseCode &&
-    isEdielAgtRunApprovalVersion(run.approval_version) &&
+    run.approval_version === testCase.approvalVersion &&
     run.status !== 'cancelled'
   )
 
@@ -824,7 +794,7 @@ export async function cleanupAgtCaseDraftMessagesAction(formData: FormData) {
         actorUserId,
         edielMessageId: message.id,
         status: 'cancelled',
-        failureReason: `Rensad från AGT ${testCase.testCaseCode}. Historik behålls men draften ska inte skickas.`,
+        failureReason: `Rensad från AGT ${testCase.testCaseCode}. Historik behålls men meddelandet ska inte skickas.`,
       })
 
       await createEdielMessageEvent({
@@ -832,7 +802,7 @@ export async function cleanupAgtCaseDraftMessagesAction(formData: FormData) {
         edielMessageId: message.id,
         eventType: 'manual_note',
         eventStatus: 'warning',
-        message: `AGT ${testCase.testCaseCode}: gammal draft rensades från testfönstret.`,
+        message: `AGT ${testCase.testCaseCode}: gammalt oskickat AGT-meddelande makulerades från testfönstret.`,
         payload: { agt: true, testCaseCode: testCase.testCaseCode, testRunId: run.id, cleanup: true },
       })
     }
