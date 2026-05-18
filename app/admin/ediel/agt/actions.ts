@@ -15,11 +15,13 @@ import {
   listEdielTestRunMessages,
   listEdielTestRuns,
   updateEdielMessageStatus,
+  updateEdielTestRunNotes,
   updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import {
   createEdielSupplierAgtOutboundDraft,
   createEdielSupplierAgtResponsesForInbound,
+  createEdielSupplierAgtRun,
 } from '@/lib/ediel/agtEngine'
 import type { EdielMessageRow, EdielRouteProfileAckMode, EdielTestRunRow } from '@/lib/ediel/types'
 import {
@@ -38,6 +40,12 @@ import {
 import { pollEdielMailboxViaImap } from '@/lib/ediel/transport'
 import { registerEdielFile } from '@/lib/ediel/fileEngine'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
+import {
+  buildEdielAgtRunNotes,
+  isL7DynamicTestDataRequired,
+  mergeEdielAgtRunMetadata,
+  parseEdielAgtPortalValidationReport,
+} from '@/lib/ediel/agtRunMetadata'
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key)
@@ -155,7 +163,12 @@ async function ensureAgtRunForCase(params: {
     testCaseCode: params.testCase.testCaseCode,
     title: params.testCase.title,
     approvalVersion: params.testCase.approvalVersion,
-    notes: `${params.testCase.notes} Skapad automatiskt från AGT-testkortet vid import.`,
+    notes: buildEdielAgtRunNotes({
+      purpose: params.testCase.purpose,
+      instruction: params.testCase.agtInstruction,
+      notes: [...params.testCase.notes, 'Skapad automatiskt från AGT-testkortet vid import.'],
+      metadata: isL7DynamicTestDataRequired(params.testCase) ? { dateQualifier: '157', source: 'unknown' } : { source: 'system_default' },
+    }),
     status: 'running',
     startedAt: new Date().toISOString(),
   })
@@ -526,18 +539,57 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
     throw new Error(`Okänt AGT 2026A leverantörstest: ${testCaseCode}`)
   }
 
-  await createEdielTestRun({
+  await createEdielSupplierAgtRun({
     actorUserId,
-    testSuite: testCase.suite,
-    roleCode: testCase.roleCode,
     testCaseCode: testCase.testCaseCode,
-    title: testCase.title,
-    approvalVersion: testCase.approvalVersion,
-    notes: `${testCase.notes} Skapad från AGT 2026A-sidan.`,
-    status: 'draft',
+    suite: testCase.suite,
   })
 
   revalidateAgt()
+}
+
+
+export async function updateAgtRunPortalReportAction(formData: FormData) {
+  await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const actorUserId = await getCurrentUserId()
+  const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
+  const testRun = await ensureAgtRunForCase({
+    actorUserId,
+    testCase,
+    testRunId: value(formData, 'test_run_id'),
+  })
+
+  const reportText = value(formData, 'portal_report')
+  const portalTestId = value(formData, 'portal_test_id')
+  const portalTestVersion = value(formData, 'portal_test_version')
+
+  if (!reportText && !portalTestId && !portalTestVersion) {
+    throw new Error('Klistra in portalens testdata/valideringsrapport eller ange portalens test-id/testversion.')
+  }
+
+  const parsed = parseEdielAgtPortalValidationReport(reportText ?? '')
+
+  if (isL7DynamicTestDataRequired(testCase) && parsed.confidence === 'none') {
+    throw new Error('Rapporten saknar både 217 Measuring method och 223 Reason for transaction. Klistra in hela felrapporten/testdatan från Edielportalen.')
+  }
+
+  const merged = mergeEdielAgtRunMetadata(testRun.notes, {
+    portalTestId: portalTestId ?? parsed.portalTestId,
+    portalTestVersion: portalTestVersion ?? parsed.portalTestVersion,
+    expectedReasonForTransaction: parsed.expectedReasonForTransaction,
+    expectedMeteringMethod: parsed.expectedMeteringMethod,
+    dateQualifier: isL7DynamicTestDataRequired(testCase) ? '157' : null,
+    source: reportText ? 'portal_report' : 'operator',
+  })
+
+  await updateEdielTestRunNotes({
+    actorUserId,
+    testRunId: testRun.id,
+    notes: merged.notes,
+  })
+
+  revalidateAgt()
+  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
 }
 
 
@@ -753,7 +805,7 @@ export async function cleanupAgtCaseDraftMessagesAction(formData: FormData) {
     run.role_code === testCase.roleCode &&
     run.test_suite === testCase.suite &&
     run.test_case_code === testCase.testCaseCode &&
-    run.approval_version === testCase.approvalVersion &&
+    isEdielAgtRunApprovalVersion(run.approval_version) &&
     run.status !== 'cancelled'
   )
 

@@ -89,6 +89,7 @@ import {
 } from "@/lib/ediel/tgtTestDataStore";
 import { resolveRecommendedAckForInboundMessage } from "@/lib/ediel/core/ackDecisionEngine";
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight";
+import { validateL7PayloadPreflight } from "@/lib/ediel/agtRunMetadata";
 import {
   effectiveTgtTestCaseCodeForMessageRow,
   fieldValuesFromTgtTestData,
@@ -148,6 +149,23 @@ function isPostgresUniqueViolation(error: unknown): boolean {
     typeof error === "object" &&
     "code" in error &&
     (error as { code?: unknown }).code === "23505",
+  );
+}
+
+function messageJsonRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function isAgtL7OutboundMessage(message: EdielMessageRow): boolean {
+  const parsedPayload = messageJsonRecord(message.parsed_payload);
+  return (
+    message.direction === "outbound" &&
+    String(message.message_family ?? "").toUpperCase() === "PRODAT" &&
+    String(message.message_code ?? "").toUpperCase() === "Z09" &&
+    parsedPayload.agt === true &&
+    String(parsedPayload.agtTestCaseCode ?? "").toUpperCase() === "L7"
   );
 }
 
@@ -1105,6 +1123,31 @@ export async function sendEdielMessageAction(formData: FormData) {
 
   const message = await getEdielMessageById(edielMessageId);
   if (!message) throw new Error("Meddelandet hittades inte");
+
+  if (isAgtL7OutboundMessage(message)) {
+    const blockers = validateL7PayloadPreflight(message.raw_payload ?? "");
+
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId,
+      eventType: "manual_note",
+      eventStatus: blockers.length === 0 ? "success" : "error",
+      message:
+        blockers.length === 0
+          ? "L7/Z09 preflight OK innan skick."
+          : `L7/Z09 preflight blockerar skick: ${blockers.join(" | ")}`,
+      payload: {
+        phase: "send_preflight",
+        agt: true,
+        testCaseCode: "L7",
+        issues: blockers,
+      },
+    });
+
+    if (blockers.length > 0) {
+      throw new Error(`L7/Z09 preflight blockerar skick: ${blockers.join(" | ")}`);
+    }
+  }
 
   if (
     ["CONTRL", "APERAK", "UTILTS_ERR"].includes(String(message.message_family))

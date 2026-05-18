@@ -9,12 +9,14 @@ import {
   EDIEL_AGT_PORTAL_SMTP,
   EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_AGT_SUPPLIER_2026A_CASES,
+  isEdielAgtRunApprovalVersion,
 } from '@/lib/ediel/agtRegistry'
 import {
   createAgtSupplierTestRunAction,
   createAgtSupplierOutboundDraftAction,
   saveAgtSupplierRuntimeAction,
 } from '@/app/admin/ediel/agt/actions'
+import { getL7AgtExpectedValues, isL7DynamicTestDataRequired } from '@/lib/ediel/agtRunMetadata'
 
 export const dynamic = 'force-dynamic'
 
@@ -147,7 +149,7 @@ export default async function EdielAgtPage() {
   const supplierAgtRuns = testRuns.filter(
     (run) =>
       run.role_code === 'supplier' &&
-      run.approval_version === '2026A' &&
+      isEdielAgtRunApprovalVersion(run.approval_version) &&
       EDIEL_AGT_SUPPLIER_2026A_CASES.some(
         (testCase) => testCase.suite === run.test_suite && testCase.testCaseCode === run.test_case_code
       )
@@ -335,6 +337,10 @@ export default async function EdielAgtPage() {
             )
             const hasRun = Boolean(activeRun)
             const actorToPortal = testCase.direction === 'actor_to_portal'
+            const requiresL7Data = isL7DynamicTestDataRequired(testCase)
+            const l7Expected = getL7AgtExpectedValues(activeRun)
+            const missingL7Data = requiresL7Data && (!l7Expected.reasonForTransaction || !l7Expected.meteringMethod)
+            const draftDisabled = !hasRun || runtime.issues.some((issue) => issue.severity === 'error') || missingL7Data
             return (
               <div key={`${testCase.suite}-${testCase.testCaseCode}`} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -380,11 +386,12 @@ export default async function EdielAgtPage() {
                       <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
                       <input type="hidden" name="test_run_id" value={activeRun?.id ?? ''} />
                       <button
-                        disabled={!hasRun || runtime.issues.some((issue) => issue.severity === 'error')}
+                        disabled={draftDisabled}
                         className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
-                        {hasRun ? 'Skapa draft och öppna payload' : 'Skapa run först'}
+                        {!hasRun ? 'Skapa run först' : missingL7Data ? 'Spara L7-testdata först' : 'Skapa draft och öppna payload'}
                       </button>
+                      {missingL7Data ? <div className="mt-2 text-xs font-semibold text-amber-700">Öppna L7-testmotorn och klistra in portalens 217/223-rapport innan draft skapas.</div> : null}
                     </form>
                   ) : (
                     <Link

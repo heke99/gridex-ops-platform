@@ -188,11 +188,11 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
     title: 'PRODAT L7 · Z09',
     portalTitle: 'L7 – PRODAT Z09',
     purpose: 'Verifierar att leverantören kan skicka PRODAT Z09 till Edielportalen och ta emot positiv CONTRL samt negativ APERAK.',
-    agtInstruction: 'Starta L7 i Edielportalen. Skapa därefter outbound Z09-draft i systemet, kontrollera att leverantörens Ediel-id är avsändare, att avsändarens UNB-subadress matchar Edielportalen, att mottagare är 91100:ZZ:PRODAT, att Z09 har DTM+157 i SG8 samt testdata 223=E64 och 217=Z03, skicka filen och invänta CONTRL + APERAK från portalen.',
+    agtInstruction: 'Starta L7 i Edielportalen. Spara portalens test-id/testversion och klistra in eventuell testdata eller valideringsrapport på aktiv run. Skapa därefter outbound Z09-draft; generatorn läser 223 Reason for transaction och 217 Measuring method från run-data, använder DTM+157 i SG8, skickar till 91100:ZZ:PRODAT och inväntar CONTRL + APERAK från portalen.',
     notes: [
       'Leverantören skickar Z09 till Edielportalen.',
       'L7 ska använda SG8/DTM+157 i stället för DTM+92. Det är facit från portalens L7-validering.',
-      'L7 ska använda transaktionstyp 223 = E64 och mätmetod 217 = Z03 enligt portalens aktiva testdata för L7.',
+      'L7 ska inte vara hårdkodad till E64/Z03 eller E32/Z04. Den aktiva runnen måste bära portalens förväntade 223 Reason for transaction och 217 Measuring method.',
       'Nätägaren och mottagaren i Z09 ska vara Ediel-id 91100. UNB avsändar-subadress ska följa aktörens Edielregisterprofil; för Div3rsa är den tom, medan mottagaren har subadress PRODAT.',
       'Portalen svarar med positiv CONTRL om CONTRL är begärd och därefter negativ APERAK.',
     ],

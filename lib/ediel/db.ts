@@ -855,6 +855,29 @@ export async function listEdielMessagesByIds(ids: string[]): Promise<EdielMessag
   return rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
 }
 
+
+export async function updateEdielTestRunNotes(input: {
+  actorUserId: string
+  testRunId: string
+  notes: string | null
+}): Promise<EdielTestRunRow> {
+  const payload = cleanObject({
+    notes: input.notes ?? null,
+    updated_by: input.actorUserId,
+    updated_at: new Date().toISOString(),
+  })
+
+  const { data, error } = await supabaseService
+    .from('ediel_test_runs')
+    .update(payload)
+    .eq('id', input.testRunId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as EdielTestRunRow
+}
+
 export async function updateEdielTestRunStatus(
   input: UpdateEdielTestRunStatusInput
 ): Promise<EdielTestRunRow> {
