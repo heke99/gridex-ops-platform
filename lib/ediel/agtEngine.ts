@@ -157,13 +157,14 @@ function getAgtOutboundProdatDefaults(definition: EdielAgtTestCaseDefinition): {
   includePowerOfAttorneyReference: boolean
 } {
   // AGT-testregel, inte tenant-/referenshårdkodning:
-  // L7 i leverantörs-AGT valideras som Z09G-lik ändring där portalen förväntar
-  // 223 = E32 och 217 = Z04. Tidigare E64/Z03 passerade EDIFACT-validering
-  // men föll på testdata-matchningen i Edielportalen.
+  // L7 i Div3rsa/leverantörs-AGT passerade EDIFACT-strukturen först när Z09
+  // renderades som F/G med SG8/DTM+157 och utan ANJ/UD/IT. Portalens aktiva
+  // testdata för SE_778861 förväntar 223 = E64 och 217 = Z03. Dessa värden är
+  // därför L7-standard för AGT 2026A tills testmotorn får en explicit Z09F/Z09G-väljare.
   if (definition.testCaseCode === 'L7' && definition.messageCode === 'Z09') {
     return {
-      reasonForTransaction: 'E32',
-      meteringMethod: 'Z04',
+      reasonForTransaction: 'E64',
+      meteringMethod: 'Z03',
       includePowerOfAttorneyReference: false,
     }
   }
