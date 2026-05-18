@@ -6,9 +6,18 @@ import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { saveCommunicationRoute } from '@/lib/cis/db'
-import { createEdielTestRun } from '@/lib/ediel/db'
-import { createEdielSupplierAgtOutboundDraft } from '@/lib/ediel/agtEngine'
-import type { EdielRouteProfileAckMode } from '@/lib/ediel/types'
+import {
+  attachEdielMessageToTestRun,
+  createEdielMessageEvent,
+  createEdielTestRun,
+  getEdielMessageById,
+  listEdielTestRuns,
+} from '@/lib/ediel/db'
+import {
+  createEdielSupplierAgtOutboundDraft,
+  createEdielSupplierAgtResponsesForInbound,
+} from '@/lib/ediel/agtEngine'
+import type { EdielMessageRow, EdielRouteProfileAckMode, EdielTestRunRow } from '@/lib/ediel/types'
 import {
   EDIEL_AGT_APPROVAL_VERSION_2026A,
   EDIEL_AGT_PORTAL_EDIEL_ID,
@@ -18,7 +27,13 @@ import {
   EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID,
   getEdielAgtRouteName,
   getEdielAgtSupplier2026ACase,
+  isEdielAgtRunApprovalVersion,
+  type EdielAgtExpectedStep,
+  type EdielAgtTestCaseDefinition,
 } from '@/lib/ediel/agtRegistry'
+import { pollEdielMailboxViaImap } from '@/lib/ediel/transport'
+import { registerEdielFile } from '@/lib/ediel/fileEngine'
+import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key)
@@ -38,6 +53,134 @@ function nullableUpper(value: string | null): string | null {
 
 function emptyToNull(input: string | null): string | null {
   return input && input.trim().length > 0 ? input.trim() : null
+}
+
+async function uploadedFileText(value: FormDataEntryValue | null): Promise<{ text: string | null; fileName: string | null }> {
+  if (!value || typeof value === 'string') return { text: null, fileName: null }
+  const maybeFile = value as unknown as { arrayBuffer?: () => Promise<ArrayBuffer>; name?: string; size?: number }
+  if (typeof maybeFile.arrayBuffer !== 'function' || Number(maybeFile.size ?? 0) <= 0) {
+    return { text: null, fileName: null }
+  }
+
+  const buffer = Buffer.from(await maybeFile.arrayBuffer())
+  return {
+    text: buffer.toString('utf8'),
+    fileName: typeof maybeFile.name === 'string' ? maybeFile.name : null,
+  }
+}
+
+function expectedInboundStepForMessage(
+  testCase: EdielAgtTestCaseDefinition,
+  message: EdielMessageRow
+): EdielAgtExpectedStep | null {
+  const family = String(message.message_family ?? '').toUpperCase()
+  const code = String(message.message_code ?? '').toUpperCase()
+
+  return testCase.expectedSteps.find((step) => {
+    if (step.actor !== 'portal' || step.direction !== 'inbound') return false
+    if (String(step.family).toUpperCase() !== family) return false
+    const expectedCode = String(step.code ?? '').toUpperCase()
+    return expectedCode === family || expectedCode === code || expectedCode === String(testCase.messageCode).toUpperCase()
+  }) ?? null
+}
+
+async function ensureAgtRunForCase(params: {
+  actorUserId: string
+  testCase: EdielAgtTestCaseDefinition
+  testRunId?: string | null
+}): Promise<EdielTestRunRow> {
+  const runs = await listEdielTestRuns()
+  const explicitRun = params.testRunId
+    ? runs.find((run) => run.id === params.testRunId)
+    : null
+
+  if (explicitRun && (explicitRun.status === 'draft' || explicitRun.status === 'running')) {
+    return explicitRun
+  }
+
+  const activeRun = runs.find((run) =>
+    isEdielAgtRunApprovalVersion(run.approval_version) &&
+    (run.status === 'draft' || run.status === 'running') &&
+    run.role_code === params.testCase.roleCode &&
+    run.test_suite === params.testCase.suite &&
+    run.test_case_code === params.testCase.testCaseCode
+  )
+
+  if (activeRun) return activeRun
+
+  return createEdielTestRun({
+    actorUserId: params.actorUserId,
+    testSuite: params.testCase.suite,
+    roleCode: params.testCase.roleCode,
+    testCaseCode: params.testCase.testCaseCode,
+    title: params.testCase.title,
+    approvalVersion: params.testCase.approvalVersion,
+    notes: `${params.testCase.notes} Skapad automatiskt från AGT-testkortet vid import.`,
+    status: 'running',
+    startedAt: new Date().toISOString(),
+  })
+}
+
+async function attachExpectedAgtMessage(params: {
+  actorUserId: string
+  testRunId: string
+  testCase: EdielAgtTestCaseDefinition
+  message: EdielMessageRow
+}): Promise<EdielAgtExpectedStep | null> {
+  const step = expectedInboundStepForMessage(params.testCase, params.message)
+  if (!step) return null
+
+  await attachEdielMessageToTestRun({
+    testRunId: params.testRunId,
+    edielMessageId: params.message.id,
+    stepNo: step.stepNo,
+    expectedDirection: step.direction,
+    expectedFamily: step.family,
+    expectedCode: step.code,
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.message.id,
+    eventType: 'linked',
+    eventStatus: 'success',
+    message: `AGT ${params.testCase.testCaseCode}: meddelandet kopplades till steg ${step.stepNo}.`,
+    payload: {
+      agt: true,
+      testRunId: params.testRunId,
+      testCaseCode: params.testCase.testCaseCode,
+      stepNo: step.stepNo,
+      expectedFamily: step.family,
+      expectedCode: step.code,
+    },
+  })
+
+  return step
+}
+
+async function createAgtResponsesIfBusinessInbound(params: {
+  actorUserId: string
+  testRunId: string
+  testCase: EdielAgtTestCaseDefinition
+  message: EdielMessageRow
+}): Promise<EdielMessageRow[]> {
+  const matchedExpectedStep = expectedInboundStepForMessage(params.testCase, params.message)
+  if (!matchedExpectedStep) return []
+  if (params.message.direction !== 'inbound') return []
+  if (String(params.message.message_family).toUpperCase() === 'CONTRL') return []
+
+  return createEdielSupplierAgtResponsesForInbound({
+    actorUserId: params.actorUserId,
+    sourceMessageId: params.message.id,
+    testRunId: params.testRunId,
+    testCaseCode: params.testCase.testCaseCode,
+  })
+}
+
+async function getAgtCaseOrThrow(testCaseCode: string | null): Promise<EdielAgtTestCaseDefinition> {
+  const testCase = getEdielAgtSupplier2026ACase(String(testCaseCode ?? '').toUpperCase())
+  if (!testCase) throw new Error(`Okänt AGT 2026A leverantörstest: ${testCaseCode ?? ''}`)
+  return testCase
 }
 
 function agtActorNotes(input: {
@@ -388,3 +531,156 @@ export async function createAllAgtSupplierTestRunsAction(_formData: FormData) {
 
   revalidateAgt()
 }
+
+export async function pollAgtMailboxForCaseAction(formData: FormData) {
+  await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const actorUserId = await getCurrentUserId()
+  const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
+  const testRun = await ensureAgtRunForCase({
+    actorUserId,
+    testCase,
+    testRunId: value(formData, 'test_run_id'),
+  })
+
+  const runtime = await getEdielAgtSupplierRuntime()
+  const routeId = testCase.suite === 'PRODAT' ? runtime.prodat.route?.id : runtime.utilts.route?.id
+  const mailbox = value(formData, 'mailbox') ?? runtime.actor?.mailbox ?? 'INBOX'
+  const limitRaw = value(formData, 'limit')
+  const limit = limitRaw ? Number(limitRaw) : 10
+
+  const imported = await pollEdielMailboxViaImap({
+    actorUserId,
+    mailbox,
+    communicationRouteId: routeId ?? null,
+    limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
+  })
+
+  let matched = 0
+  for (const message of imported) {
+    const step = await attachExpectedAgtMessage({
+      actorUserId,
+      testRunId: testRun.id,
+      testCase,
+      message,
+    })
+
+    if (!step) continue
+    matched += 1
+
+    const responses = await createAgtResponsesIfBusinessInbound({
+      actorUserId,
+      testRunId: testRun.id,
+      testCase,
+      message,
+    })
+  }
+
+  if (matched === 0 && imported[0]) {
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: imported[0].id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: `AGT ${testCase.testCaseCode}: IMAP importerade ${imported.length} meddelanden, men inget matchade förväntat steg.`,
+      payload: {
+        agt: true,
+        testRunId: testRun.id,
+        testCaseCode: testCase.testCaseCode,
+        importedCount: imported.length,
+        matchedCount: matched,
+      },
+    }).catch(() => null)
+  }
+
+  revalidateAgt()
+  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
+}
+
+export async function importAgtRawInboundForCaseAction(formData: FormData) {
+  await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const actorUserId = await getCurrentUserId()
+  const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
+  const testRun = await ensureAgtRunForCase({
+    actorUserId,
+    testCase,
+    testRunId: value(formData, 'test_run_id'),
+  })
+
+  const uploaded = await uploadedFileText(formData.get('ediel_file'))
+  const pasted = value(formData, 'raw_payload')
+  const rawPayload = uploaded.text ?? pasted
+  if (!rawPayload) throw new Error('Ladda upp EDIFACT-fil eller klistra in inbound-payload från Edielportalen.')
+
+  const result = await registerEdielFile({
+    actorUserId,
+    direction: 'inbound',
+    mode: 'agt',
+    rawPayload,
+    fileName: uploaded.fileName,
+    mailbox: value(formData, 'mailbox') ?? 'agt-manual-import',
+    mailboxMessageId: value(formData, 'mailbox_message_id') ?? `agt-${testCase.testCaseCode}-${Date.now()}`,
+    subject: `AGT ${testCase.testCaseCode} manual import`,
+  })
+
+  const message = await getEdielMessageById(result.id)
+  if (!message) throw new Error('Det importerade meddelandet kunde inte läsas efter import.')
+
+  const step = await attachExpectedAgtMessage({
+    actorUserId,
+    testRunId: testRun.id,
+    testCase,
+    message,
+  })
+
+  if (!step) {
+    throw new Error(`Importerad fil är ${message.message_family}/${message.message_code}, men ${testCase.testCaseCode} väntar på ${testCase.messageFamily}/${testCase.messageCode} eller portalens kvittenser.`)
+  }
+
+  await createAgtResponsesIfBusinessInbound({
+    actorUserId,
+    testRunId: testRun.id,
+    testCase,
+    message,
+  })
+
+  revalidateAgt()
+  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
+}
+
+export async function attachAgtInboundAndCreateResponsesAction(formData: FormData) {
+  await requireAnyPermissionServer(['communication.write', 'communication.read'])
+  const actorUserId = await getCurrentUserId()
+  const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
+  const testRun = await ensureAgtRunForCase({
+    actorUserId,
+    testCase,
+    testRunId: value(formData, 'test_run_id'),
+  })
+  const sourceMessageId = value(formData, 'source_message_id')
+  if (!sourceMessageId) throw new Error('Välj ett inbound-meddelande att koppla.')
+
+  const message = await getEdielMessageById(sourceMessageId)
+  if (!message) throw new Error('Meddelandet hittades inte.')
+
+  const step = await attachExpectedAgtMessage({
+    actorUserId,
+    testRunId: testRun.id,
+    testCase,
+    message,
+  })
+
+  if (!step) {
+    throw new Error(`Meddelandet ${message.message_family}/${message.message_code} matchar inte förväntat portalsteg för ${testCase.testCaseCode}.`)
+  }
+
+  await createAgtResponsesIfBusinessInbound({
+    actorUserId,
+    testRunId: testRun.id,
+    testCase,
+    message,
+  })
+
+  revalidateAgt()
+  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
+}
+

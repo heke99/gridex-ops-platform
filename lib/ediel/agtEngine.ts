@@ -586,6 +586,25 @@ function agtGenericAperakErrors(sourceMessage: EdielMessageRow): EdielAperakAppl
   ]
 }
 
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function hasAgtSyntaxFailure(sourceMessage: EdielMessageRow): boolean {
+  const report = sourceMessage.validation_report ?? {}
+  const errors = asArray(report.errors)
+  const syntaxErrors = asArray(report.syntaxErrors)
+
+  return (
+    sourceMessage.syntax_check_status === 'failed' ||
+    report.syntaxAccepted === false ||
+    report.syntaxCheckStatus === 'failed' ||
+    report.syntaxRejected === true ||
+    errors.length > 0 ||
+    syntaxErrors.length > 0
+  )
+}
+
 function planForInboundSource(sourceMessage: EdielMessageRow, definition: EdielAgtTestCaseDefinition | null): EdielAgtAckPlanItem[] {
   const family = upper(sourceMessage.message_family)
 
@@ -600,6 +619,13 @@ function planForInboundSource(sourceMessage: EdielMessageRow, definition: EdielA
   if (family === 'PRODAT') {
     const contrlStep = definition ? findStep(definition, { actor: 'actor', direction: 'outbound', family: 'CONTRL' }) : null
     const aperakStep = definition ? findStep(definition, { actor: 'actor', direction: 'outbound', family: 'APERAK' }) : null
+
+    if (hasAgtSyntaxFailure(sourceMessage)) {
+      return [
+        { ackFamily: 'CONTRL', outcome: 'negative', messageText: 'AGT: syntaxfel eller valideringsfel i inbound PRODAT', applicationErrors: null, stepNo: contrlStep?.stepNo ?? null },
+      ]
+    }
+
     return [
       { ackFamily: 'CONTRL', outcome: 'positive', messageText: null, applicationErrors: null, stepNo: contrlStep?.stepNo ?? null },
       { ackFamily: 'APERAK', outcome: 'negative', messageText: 'AGT: Uppgifter saknas i produktionsapplikationen', applicationErrors: agtGenericAperakErrors(sourceMessage), stepNo: aperakStep?.stepNo ?? null },
@@ -609,6 +635,13 @@ function planForInboundSource(sourceMessage: EdielMessageRow, definition: EdielA
   if (family === 'UTILTS') {
     const contrlStep = definition ? findStep(definition, { actor: 'actor', direction: 'outbound', family: 'CONTRL' }) : null
     const errStep = definition ? findStep(definition, { actor: 'actor', direction: 'outbound', family: 'UTILTS_ERR' }) : null
+
+    if (hasAgtSyntaxFailure(sourceMessage)) {
+      return [
+        { ackFamily: 'CONTRL', outcome: 'negative', messageText: 'AGT: syntaxfel eller valideringsfel i inbound UTILTS', applicationErrors: null, stepNo: contrlStep?.stepNo ?? null },
+      ]
+    }
+
     return [
       { ackFamily: 'CONTRL', outcome: 'positive', messageText: null, applicationErrors: null, stepNo: contrlStep?.stepNo ?? null },
       { ackFamily: 'UTILTS_ERR', outcome: 'negative', messageText: 'E14', applicationErrors: null, stepNo: errStep?.stepNo ?? null },

@@ -350,9 +350,16 @@ export default async function EdielAgtPage() {
                 )}
 
                 <div className="mt-4 flex flex-wrap gap-2">
+                  <Link
+                    href={`/admin/ediel/agt/${testCase.testCaseCode}`}
+                    className="rounded-xl bg-indigo-700 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-800"
+                  >
+                    Öppna testmotor
+                  </Link>
+
                   <form action={createAgtSupplierTestRunAction}>
                     <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
-                    <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                    <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                       Skapa run {testCase.testCaseCode}
                     </button>
                   </form>
@@ -368,7 +375,14 @@ export default async function EdielAgtPage() {
                         {hasRun ? 'Skapa draft och öppna payload' : 'Skapa run först'}
                       </button>
                     </form>
-                  ) : null}
+                  ) : (
+                    <Link
+                      href={`/admin/ediel/agt/${testCase.testCaseCode}`}
+                      className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+                    >
+                      Importera/koppla inbound
+                    </Link>
+                  )}
                 </div>
               </div>
             )

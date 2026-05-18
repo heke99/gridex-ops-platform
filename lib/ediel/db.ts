@@ -824,6 +824,37 @@ export async function listEdielTestRuns(): Promise<EdielTestRunRow[]> {
   return (data ?? []) as EdielTestRunRow[]
 }
 
+
+export async function listEdielTestRunMessages(params: {
+  testRunId: string
+}): Promise<EdielTestRunMessageRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_test_run_messages')
+    .select('*')
+    .eq('test_run_id', params.testRunId)
+    .order('step_no', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return (data ?? []) as EdielTestRunMessageRow[]
+}
+
+export async function listEdielMessagesByIds(ids: string[]): Promise<EdielMessageRow[]> {
+  const uniqueIds = Array.from(new Set(ids.filter((id) => id && id.trim().length > 0)))
+  if (uniqueIds.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .in('id', uniqueIds)
+
+  if (error) throw error
+
+  const rows = (data ?? []) as EdielMessageRow[]
+  const order = new Map(uniqueIds.map((id, index) => [id, index]))
+  return rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+}
+
 export async function updateEdielTestRunStatus(
   input: UpdateEdielTestRunStatusInput
 ): Promise<EdielTestRunRow> {

@@ -1,0 +1,472 @@
+import Link from 'next/link'
+import type { ReactNode } from 'react'
+import AdminHeader from '@/components/admin/AdminHeader'
+import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import {
+  listAckMessagesForSource,
+  listEdielMessages,
+  listEdielMessagesByIds,
+  listEdielTestRunMessages,
+  listEdielTestRuns,
+} from '@/lib/ediel/db'
+import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
+import {
+  EDIEL_AGT_PORTAL_EDIEL_ID,
+  EDIEL_AGT_PORTAL_SMTP,
+  EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  getEdielAgtSupplier2026ACase,
+  type EdielAgtTestCaseDefinition,
+} from '@/lib/ediel/agtRegistry'
+import type { EdielMessageRow, EdielTestRunMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
+import {
+  attachAgtInboundAndCreateResponsesAction,
+  createAgtSupplierOutboundDraftAction,
+  createAgtSupplierTestRunAction,
+  importAgtRawInboundForCaseAction,
+  pollAgtMailboxForCaseAction,
+} from '@/app/admin/ediel/agt/actions'
+import { sendEdielMessageAction } from '@/app/admin/ediel/actions'
+
+export const dynamic = 'force-dynamic'
+
+type Tone = 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+
+function badgeTone(tone: Tone) {
+  if (tone === 'green') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (tone === 'yellow') return 'border-amber-200 bg-amber-50 text-amber-700'
+  if (tone === 'red') return 'border-rose-200 bg-rose-50 text-rose-700'
+  if (tone === 'blue') return 'border-blue-200 bg-blue-50 text-blue-700'
+  return 'border-slate-200 bg-slate-50 text-slate-700'
+}
+
+function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeTone(tone)}`}>{children}</span>
+}
+
+function inputClassName() {
+  return 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400'
+}
+
+function statusTone(status: string | null | undefined): Tone {
+  const value = String(status ?? '').toLowerCase()
+  if (['sent', 'received', 'acknowledged', 'processed', 'success'].includes(value)) return 'green'
+  if (['draft', 'queued', 'prepared', 'pending', 'in_progress', 'running'].includes(value)) return 'yellow'
+  if (['failed', 'cancelled', 'error', 'rejected'].includes(value)) return 'red'
+  return 'slate'
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return '—'
+  return value.replace('T', ' ').slice(0, 16)
+}
+
+function directionText(testCase: EdielAgtTestCaseDefinition) {
+  return testCase.direction === 'actor_to_portal' ? 'Leverantör → Edielportalen' : 'Edielportalen → Leverantör'
+}
+
+function canAttachToCase(testCase: EdielAgtTestCaseDefinition, message: EdielMessageRow) {
+  if (message.direction !== 'inbound') return false
+  const family = String(message.message_family).toUpperCase()
+  const code = String(message.message_code).toUpperCase()
+  return testCase.expectedSteps.some((step) => {
+    if (step.actor !== 'portal' || step.direction !== 'inbound') return false
+    if (String(step.family).toUpperCase() !== family) return false
+    const expectedCode = String(step.code).toUpperCase()
+    return expectedCode === family || expectedCode === code || expectedCode === String(testCase.messageCode).toUpperCase()
+  })
+}
+
+function isPrimaryInbound(testCase: EdielAgtTestCaseDefinition, message: EdielMessageRow) {
+  return (
+    testCase.direction === 'portal_to_actor' &&
+    message.direction === 'inbound' &&
+    String(message.message_family).toUpperCase() === String(testCase.messageFamily).toUpperCase() &&
+    String(message.message_code).toUpperCase() === String(testCase.messageCode).toUpperCase()
+  )
+}
+
+function MessageSummary({ message }: { message: EdielMessageRow }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={statusTone(message.status)}>{message.status}</Badge>
+        <Badge tone="slate">{message.direction}</Badge>
+        <Badge tone="blue">{message.message_family} {message.message_code}</Badge>
+        {message.ack_outcome ? <Badge tone={message.ack_outcome === 'positive' ? 'green' : 'red'}>{message.ack_outcome}</Badge> : null}
+      </div>
+      <div className="grid gap-2 text-xs text-slate-600 md:grid-cols-2">
+        <div>Från: <span className="font-mono text-slate-900">{message.sender_ediel_id ?? '—'}</span></div>
+        <div>Till: <span className="font-mono text-slate-900">{message.receiver_ediel_id ?? '—'}</span></div>
+        <div>UNB ref: <span className="font-mono text-slate-900">{message.interchange_reference ?? '—'}</span></div>
+        <div>Transaktion: <span className="font-mono text-slate-900">{message.transaction_reference ?? '—'}</span></div>
+      </div>
+    </div>
+  )
+}
+
+function SendButton({ message }: { message: EdielMessageRow }) {
+  const canSend = message.direction === 'outbound' && (message.status === 'draft' || message.status === 'queued' || message.status === 'prepared')
+  if (!canSend) return null
+
+  return (
+    <form action={sendEdielMessageAction}>
+      <input type="hidden" name="edielMessageId" value={message.id} />
+      <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+        Skicka
+      </button>
+    </form>
+  )
+}
+
+function LinkedTimeline({
+  testCase,
+  run,
+  links,
+  messagesById,
+}: {
+  testCase: EdielAgtTestCaseDefinition
+  run: EdielTestRunRow | null
+  links: EdielTestRunMessageRow[]
+  messagesById: Map<string, EdielMessageRow>
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-950">Testkedja</h2>
+          <p className="mt-1 text-sm text-slate-500">Förväntade steg och kopplade meddelanden för just detta test.</p>
+        </div>
+        <Badge tone={run ? statusTone(run.status) : 'slate'}>{run ? `run ${run.status}` : 'ingen run'}</Badge>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {testCase.expectedSteps.map((step) => {
+          const linked = links.filter((link) => link.step_no === step.stepNo)
+          return (
+            <div key={step.stepNo} className="rounded-2xl border border-slate-200 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold text-slate-950">Steg {step.stepNo}: {step.title}</div>
+                  <div className="mt-1 text-xs text-slate-500">{step.actor} · {step.direction} · {step.family} {step.code}</div>
+                </div>
+                <Badge tone={linked.length > 0 ? 'green' : 'slate'}>{linked.length > 0 ? 'kopplad' : 'väntar'}</Badge>
+              </div>
+
+              {linked.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {linked.map((link) => {
+                    const message = messagesById.get(link.ediel_message_id)
+                    if (!message) return null
+                    return (
+                      <div key={link.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <MessageSummary message={message} />
+                          <div className="flex flex-wrap gap-2">
+                            <Link href={`/admin/ediel/messages/${message.id}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                              Öppna payload
+                            </Link>
+                            <SendButton message={message} />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null}
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+export default async function AgtCasePage({
+  params,
+}: {
+  params: Promise<{ testCaseCode: string }>
+}) {
+  const { testCaseCode } = await params
+  const context = await requireAnyPermissionServer(['communication.read'])
+  const testCase = getEdielAgtSupplier2026ACase(String(testCaseCode).toUpperCase())
+
+  if (!testCase) {
+    return (
+      <div className="space-y-6">
+        <AdminHeader title="AGT-test" subtitle="Testfallet hittades inte." userEmail={context.email} />
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+          Okänt testfall: {testCaseCode}
+        </div>
+      </div>
+    )
+  }
+
+  const [runtime, runs, recentInbound] = await Promise.all([
+    getEdielAgtSupplierRuntime(),
+    listEdielTestRuns(),
+    listEdielMessages({ direction: 'inbound', limit: 80 }),
+  ])
+
+  const run = runs.find((item) =>
+    item.role_code === testCase.roleCode &&
+    item.test_suite === testCase.suite &&
+    item.test_case_code === testCase.testCaseCode &&
+    item.approval_version === testCase.approvalVersion &&
+    (item.status === 'draft' || item.status === 'running')
+  ) ?? null
+
+  const links = run ? await listEdielTestRunMessages({ testRunId: run.id }) : []
+  const linkedIds = links.map((link) => link.ediel_message_id)
+  const linkedMessages = await listEdielMessagesByIds(linkedIds)
+  const messagesById = new Map(linkedMessages.map((message) => [message.id, message]))
+
+  const candidateInbound = recentInbound
+    .filter((message) => canAttachToCase(testCase, message))
+    .slice(0, 15)
+
+  const candidateAckPairs = await Promise.all(
+    candidateInbound.map(async (message) => ({
+      message,
+      acks: await listAckMessagesForSource({ sourceMessageId: message.id }),
+    }))
+  )
+
+  const linkedSourceIds = Array.from(new Set(linkedMessages.filter((message) => message.direction === 'inbound').map((message) => message.id)))
+  const linkedAckPairs = await Promise.all(
+    linkedSourceIds.map(async (id) => ({
+      sourceId: id,
+      acks: await listAckMessagesForSource({ sourceMessageId: id }),
+    }))
+  )
+
+  const actorToPortal = testCase.direction === 'actor_to_portal'
+  const route = testCase.suite === 'PRODAT' ? runtime.prodat.route : runtime.utilts.route
+  const profile = testCase.suite === 'PRODAT' ? runtime.prodat.profile : runtime.utilts.profile
+
+  return (
+    <div className="space-y-6">
+      <AdminHeader
+        title={`${testCase.testCaseCode} · ${testCase.title}`}
+        subtitle="AGT-testmotor: importera, koppla, skapa svarsdraft och skicka efter kontroll. Separat från verklig produktion."
+        userEmail={context.email}
+      />
+
+      <section className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-slate-50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="blue">TESTLÄGE</Badge>
+              <Badge tone="slate">{testCase.suite}</Badge>
+              <Badge tone="slate">{testCase.messageCode}</Badge>
+              <Badge tone={actorToPortal ? 'yellow' : 'green'}>{directionText(testCase)}</Badge>
+            </div>
+            <h1 className="mt-3 text-2xl font-semibold text-slate-950">{testCase.portalTitle}</h1>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">{testCase.purpose}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/ediel/agt" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Till alla AGT-test
+            </Link>
+            <Link href="/admin/ediel/messages" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Meddelanden
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Aktiv tenant/leverantör</div>
+          <div className="mt-1 text-sm font-semibold text-slate-950">{runtime.actor?.actor_name ?? '—'}</div>
+          <div className="mt-1 font-mono text-xs text-slate-600">{runtime.actor?.actor_ediel_id ?? 'saknas'}</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Portal</div>
+          <div className="mt-1 text-sm font-semibold text-slate-950">{EDIEL_AGT_PORTAL_EDIEL_ID}</div>
+          <div className="mt-1 text-xs text-slate-600">{EDIEL_AGT_PORTAL_SMTP}</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Route</div>
+          <div className="mt-1 text-sm font-semibold text-slate-950">{route?.route_name ?? 'saknas'}</div>
+          <div className="mt-1 text-xs text-slate-600">{profile?.encryption_mode ?? '—'} · {profile?.ack_mode ?? '—'}</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Run</div>
+          <div className="mt-1 text-sm font-semibold text-slate-950">{run ? run.status : 'ingen aktiv run'}</div>
+          <div className="mt-1 text-xs text-slate-600">{run ? formatDate(run.created_at) : 'skapa run först'}</div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-950">Kör detta test</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{testCase.agtInstruction}</p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <form action={createAgtSupplierTestRunAction}>
+              <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+              <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                {run ? 'Skapa ny run' : 'Skapa run'}
+              </button>
+            </form>
+
+            {actorToPortal ? (
+              <form action={createAgtSupplierOutboundDraftAction}>
+                <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+                <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
+                <button disabled={!run} className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">
+                  Skapa outbound-draft
+                </button>
+              </form>
+            ) : (
+              <form action={pollAgtMailboxForCaseAction}>
+                <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+                <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
+                <input type="hidden" name="mailbox" value={runtime.actor?.mailbox ?? 'INBOX'} />
+                <input type="hidden" name="limit" value="20" />
+                <button className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+                  Importera från IMAP + koppla
+                </button>
+              </form>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
+            Motorn skapar svarsdraft, inte autoskick. Du granskar payload och skickar från raden. Produktion/live-flöden ska inte gå via den här testvyn.
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-950">Manuell import</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Använd detta om IMAP inte hunnit hämta meddelandet eller om du vill klistra in EDIFACT från portalen. Motorn försöker koppla mot rätt steg och skapar AGT-svar om det är portalens affärsmeddelande.
+          </p>
+          <form action={importAgtRawInboundForCaseAction} encType="multipart/form-data" className="mt-4 space-y-3">
+            <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+            <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
+            <label className="block text-sm font-medium text-slate-700">
+              Fil
+              <input type="file" name="ediel_file" className={inputClassName()} />
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              Eller klistra in raw EDIFACT
+              <textarea name="raw_payload" rows={5} className={inputClassName()} placeholder="UNA:+.? 'UNB+..." />
+            </label>
+            <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+              Importera och skapa AGT-svar
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <LinkedTimeline testCase={testCase} run={run} links={links} messagesById={messagesById} />
+
+      {linkedAckPairs.some((pair) => pair.acks.length > 0) ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-950">Skapade svarsdraft för kopplade inbound</h2>
+          <div className="mt-4 space-y-3">
+            {linkedAckPairs.flatMap((pair) => pair.acks).map((ack) => (
+              <div key={ack.id} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <MessageSummary message={ack} />
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/admin/ediel/messages/${ack.id}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                      Öppna payload
+                    </Link>
+                    <SendButton message={ack} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">Möjliga inbound att koppla</h2>
+            <p className="mt-1 text-sm text-slate-500">Senaste inbound som matchar förväntad familj/kod för {testCase.testCaseCode}.</p>
+          </div>
+          {actorToPortal ? (
+            <form action={pollAgtMailboxForCaseAction}>
+              <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+              <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
+              <input type="hidden" name="mailbox" value={runtime.actor?.mailbox ?? 'INBOX'} />
+              <input type="hidden" name="limit" value="20" />
+              <button className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+                Importera portalens CONTRL/APERAK från IMAP
+              </button>
+            </form>
+          ) : null}
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {candidateAckPairs.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
+              Inga matchande inbound hittades än. Starta testet i Edielportalen och använd IMAP-importen ovan.
+            </div>
+          ) : (
+            candidateAckPairs.map(({ message, acks }) => (
+              <div key={message.id} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <MessageSummary message={message} />
+                    <div className="mt-2 text-xs text-slate-500">Mottaget: {formatDate(message.message_received_at ?? message.created_at)}</div>
+                    {isPrimaryInbound(testCase, message) ? (
+                      <div className="mt-2 text-xs font-semibold text-emerald-700">Detta är portalens affärsmeddelande för testet. Motorn skapar rätt svarsdraft.</div>
+                    ) : (
+                      <div className="mt-2 text-xs font-semibold text-blue-700">Detta är portalens kvittens/svarsmeddelande och kan kopplas till testkedjan.</div>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/admin/ediel/messages/${message.id}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                      Öppna
+                    </Link>
+                    <form action={attachAgtInboundAndCreateResponsesAction}>
+                      <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+                      <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
+                      <input type="hidden" name="source_message_id" value={message.id} />
+                      <button className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+                        Koppla + skapa svar
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {acks.length > 0 ? (
+                  <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Svarsdraft / kvittenser</div>
+                    <div className="space-y-2">
+                      {acks.map((ack) => (
+                        <div key={ack.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-2">
+                          <MessageSummary message={ack} />
+                          <div className="flex flex-wrap gap-2">
+                            <Link href={`/admin/ediel/messages/${ack.id}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                              Öppna payload
+                            </Link>
+                            <SendButton message={ack} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-sm leading-6 text-indigo-900">
+        <div className="font-semibold text-indigo-950">SaaS-regel för detta fönster</div>
+        <p className="mt-1">
+          Testfallet styrs av AGT-registret och aktiv tenant-runtime. Inga Div3rsa-namn eller testvärden ska ligga som specialfall i motorn. För andra leverantörer byts Ediel-id, mailbox, routes och eventuell BRP i runtime.
+        </p>
+        {testCase.suite === 'PRODAT' ? (
+          <p className="mt-2">PRODAT AGT mot portalen använder receiver {EDIEL_AGT_PORTAL_EDIEL_ID}:ZZ:{EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}. Sender-subadress ska följa Edielregistret per tenant.</p>
+        ) : null}
+      </section>
+    </div>
+  )
+}
