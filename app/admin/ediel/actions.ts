@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAnyPermissionServer } from "@/lib/auth/requirePermissionServer";
 import {
   createAckDraftForMessage,
@@ -966,6 +967,7 @@ function getProdatDraftBuilder(messageCode: ProdatSwitchCode) {
 function revalidateEdiel(messageId?: string | null) {
   revalidatePath("/admin/ediel");
   revalidatePath("/admin/ediel/ai-list");
+  revalidatePath("/admin/ediel/agt");
   revalidatePath("/admin/ediel/control-tower");
   revalidatePath("/admin/ediel/routes");
   revalidatePath("/admin/ediel/settings");
@@ -1269,6 +1271,7 @@ export async function createEdielAgtOutboundDraftAction(formData: FormData) {
 
   await revalidateRelatedMessage(message.id);
   revalidateEdiel(message.id);
+  redirect(`/admin/ediel/messages/${message.id}`);
 }
 
 export async function createEdielAgtResponsesForInboundAction(formData: FormData) {
