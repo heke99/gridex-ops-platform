@@ -13,7 +13,6 @@ import {
 import {
   createAgtSupplierTestRunAction,
   createAgtSupplierOutboundDraftAction,
-  createAllAgtSupplierTestRunsAction,
   saveAgtSupplierRuntimeAction,
 } from '@/app/admin/ediel/agt/actions'
 
@@ -161,27 +160,42 @@ export default async function EdielAgtPage() {
   return (
     <div className="space-y-6">
       <AdminHeader
-        title="AGT 2026A · Leverantör"
-        subtitle="Här fyller du i leverantörens Ediel-id och skapar AGT-routes/testkörningar utan att blanda ihop dem med Gridcore/TGT-id."
+        title="AGT leverantör · PRODAT"
+        subtitle="Tydligt körläge för Div3rsa/leverantörsrollen: L1 och L7 skickas av aktören, L2–L5 tas emot från Edielportalen."
         userEmail={context.email}
       />
 
-      <section className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-5">
+      <section className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Starta inte tester blint</div>
-            <h1 className="mt-1 text-2xl font-semibold text-slate-950">Först ska AGT runtime vara grön</h1>
+            <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">AGT-arbetsflöde</div>
+            <h1 className="mt-1 text-2xl font-semibold text-slate-950">Skapa inte fil blint – granska run, payload och ACK-kedja här</h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-              Värdena i formuläret sparas i aktörskort, communication_routes och ediel_route_profiles. Nuvarande värden är bara förifyllda defaultvärden i formuläret. Runtime ska läsa från databasen så att samma SaaS-flöde fungerar för varje leverantör/tenant senare.
+              Den här sidan är byggd för SaaS: samma fält används för varje leverantör/tenant. Testrespons och engine-regler ändras inte här; sidan hjälper bara användaren att spara rätt aktörsprofil, skapa rätt run och öppna rätt meddelande.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge tone={runtime.isReady ? 'green' : 'red'}>{runtime.isReady ? 'AGT redo' : 'AGT blockerad'}</Badge>
+            <Badge tone={errorCount > 0 ? 'red' : runtime.isReady ? 'green' : 'yellow'}>{errorCount > 0 ? 'setup kräver fix' : runtime.isReady ? 'runtime redo' : 'setup varningar'}</Badge>
             <Badge tone={errorCount > 0 ? 'red' : 'green'}>fel {errorCount}</Badge>
             <Badge tone={warningCount > 0 ? 'yellow' : 'green'}>varningar {warningCount}</Badge>
-            <Link href="/admin/ediel" className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-              Till Ediel
+            <Link href="/admin/ediel/messages" className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              Meddelanden
             </Link>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-blue-200 bg-white p-4 text-sm text-slate-700">
+            <div className="font-semibold text-slate-950">1. Starta i portalen</div>
+            <p className="mt-1 leading-6">Starta bara ett AGT-test åt gången i Edielportalen.</p>
+          </div>
+          <div className="rounded-2xl border border-blue-200 bg-white p-4 text-sm text-slate-700">
+            <div className="font-semibold text-slate-950">2. Hantera i GridCore</div>
+            <p className="mt-1 leading-6">L1/L7 skapar draft. L2-L5 väntar på inbound och svarar med CONTRL + APERAK.</p>
+          </div>
+          <div className="rounded-2xl border border-blue-200 bg-white p-4 text-sm text-slate-700">
+            <div className="font-semibold text-slate-950">3. Följ kvittenser</div>
+            <p className="mt-1 leading-6">Öppna meddelandet och kontrollera statuskedjan innan nästa test startas.</p>
           </div>
         </div>
       </section>
@@ -237,8 +251,9 @@ export default async function EdielAgtPage() {
                 <input name="actor_ediel_id" defaultValue={runtime.actor?.actor_ediel_id ?? '21660'} className={inputClassName()} />
               </label>
               <label className="text-sm text-slate-700">
-                Balansansvarig Ediel-id
-                <input name="balance_responsible_ediel_id" defaultValue={agtActorNotes.balanceResponsibleEdielId ?? ''} className={inputClassName()} placeholder="BRP-id krävs för L1/L7 Z03/Z09" />
+                BRP / balansansvarig Ediel-id
+                <input name="balance_responsible_ediel_id" defaultValue={agtActorNotes.balanceResponsibleEdielId ?? ''} className={inputClassName()} placeholder="Fyll i när BRP-id finns" />
+                <span className="mt-1 block text-xs leading-5 text-slate-500">Krävs för outbound L1. L2-L5 påverkas inte eftersom portalen skickar in meddelandet.</span>
               </label>
               <label className="text-sm text-slate-700">
                 Sender name
@@ -285,7 +300,7 @@ export default async function EdielAgtPage() {
             </div>
 
             <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-              Knappen skapar/uppdaterar ett aktivt test-aktörskort, en PRODAT-route och en UTILTS-route. PRODAT AGT sparas med tom UNB sender-subadress, receiver-subadress PRODAT och okrypterad SMTP. Balansansvarig Ediel-id sparas i aktörens AGT-notes och används som NAD+Z02 i L1/L7.
+              Knappen skapar/uppdaterar aktörskort, PRODAT-route och UTILTS-route för aktuell leverantör. PRODAT AGT sparas med tom UNB sender-subadress, receiver-subadress PRODAT och okrypterad SMTP. BRP-id sparas tenant-specifikt och används som NAD+Z02 när outbound L1-draft skapas.
             </div>
           </div>
 
@@ -307,14 +322,12 @@ export default async function EdielAgtPage() {
           <div>
             <h2 className="text-lg font-semibold text-slate-950">Testfall 2026A</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Skapa run här när du startar motsvarande test i Edielportalen. Kör ett test åt gången.
+              Skapa run först efter att testet är startat i Edielportalen. L1 och L7 öppnar payload för granskning; L2-L5 väntar på inbound från portalen.
             </p>
           </div>
-          <form action={createAllAgtSupplierTestRunsAction}>
-            <button className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              Skapa alla som draft
-            </button>
-          </form>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600">
+            Kör ett test åt gången. Bulkknapp är borttagen från UI för att undvika felaktiga AGT-runs.
+          </div>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-2">
@@ -340,12 +353,12 @@ export default async function EdielAgtPage() {
                     <div className="font-semibold">Kontroll innan skick</div>
                     <div>UNB sender: leverantörens Ediel-id utan sender-subadress.</div>
                     <div>UNB receiver: {EDIEL_AGT_PORTAL_EDIEL_ID}:ZZ:{EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}</div>
-                    <div>L1 måste innehålla NAD+Z02 enligt portalens validering. Fyll i balansansvarig/BRP Ediel-id innan du skapar outbound-draft.</div>
+                    <div>Outbound-draft måste innehålla de obligatoriska parterna för aktuell PRODAT-kod. För L1 kräver portalen NAD+Z02, så fyll i BRP Ediel-id innan du skapar L1-draft.</div>
                   </div>
                 ) : (
                   <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
                     <div className="font-semibold">Portal → Aktör</div>
-                    <div>Starta testet i Edielportalen och importera inbound {testCase.messageCode}. Skapa sedan CONTRL + APERAK från inbound-raden.</div>
+                    <div>Starta testet i Edielportalen och hämta/importera inbound {testCase.messageCode}. Skapa sedan positiv CONTRL + negativ APERAK från inbound-raden.</div>
                   </div>
                 )}
 
@@ -362,10 +375,10 @@ export default async function EdielAgtPage() {
                       <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
                       <input type="hidden" name="test_run_id" value={activeRun?.id ?? ''} />
                       <button
-                        disabled={runtime.issues.some((issue) => issue.severity === 'error')}
+                        disabled={runtime.issues.some((issue) => issue.severity === 'error') || !activeRun}
                         className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
-                        Skapa draft och öppna payload
+                        {activeRun ? 'Skapa draft och öppna payload' : 'Skapa run först'}
                       </button>
                     </form>
                   ) : null}
@@ -379,7 +392,7 @@ export default async function EdielAgtPage() {
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
         <h2 className="text-lg font-semibold text-slate-950">Praktisk körordning</h2>
         <p className="mt-2 text-sm leading-6 text-blue-900">
-          Spara AGT-runtime först. Starta L1 i Edielportalen, skapa L1-run här, fyll i balansansvarig/BRP Ediel-id, skapa draft, kontrollera payload och skicka. L2-L5 är Portal → Aktör: starta testet i portalen, importera inbound PRODAT och skapa CONTRL + APERAK från inbound-raden. Kör L7 sist som outbound Z09.
+          Spara AGT-runtime först. För L1: starta testet i portalen, skapa run här, fyll i BRP-id när du fått det, skapa draft, kontrollera payload och skicka. För L2-L5: starta testet i portalen, hämta/importera inbound PRODAT och skapa positiv CONTRL + negativ APERAK från inbound-raden. Kör L7 sist som outbound Z09.
         </p>
       </section>
     </div>

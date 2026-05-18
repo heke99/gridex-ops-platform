@@ -4,7 +4,6 @@ import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import { listAckMessagesForSource, listEdielMessages } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
-  deleteAllEdielMessagesAction,
   deleteEdielMessageAction,
   pollMailboxAction,
   processEdielOperationalMessageAction,
@@ -169,7 +168,7 @@ export default async function AdminEdielMessagesPage({
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="Ediel meddelanden"
-        subtitle="Inbound/outbound, UTILTS TGT-svar, ACK-kedjor och rensning inför Edielportalens tester."
+        subtitle="Inbox, outbox, payload och ACK-kedjor. Fokus på att svara korrekt utan att röra engine-reglerna."
         userEmail={context.email}
       />
 
@@ -178,8 +177,8 @@ export default async function AdminEdielMessagesPage({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-xl font-semibold text-slate-900">Meddelandevy</h1>
-              <p className="mt-1 max-w-3xl text-sm text-slate-600">
-                Hämta IMAP, öppna rätt inbound UTILTS/PRODAT och kör engine en gång. CONTRL, APERAK och UTILTS_ERR visas som kopplade svar på samma inbound-kort när de har related_message_id, så normalvyn blir inte tre separata kort för samma test.
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+                Hämta IMAP, öppna rätt inbound PRODAT/UTILTS och skapa svar från samma kort. CONTRL, APERAK och UTILTS_ERR visas kopplade till källmeddelandet så testkedjan blir lätt att följa.
               </p>
             </div>
 
@@ -192,21 +191,15 @@ export default async function AdminEdielMessagesPage({
                   Hämta IMAP nu
                 </button>
               </form>
-              <form action={deleteAllEdielMessagesAction}>
-                <button
-                  type="submit"
-                  className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100"
-                >
-                  Radera alla meddelanden
-                </button>
-              </form>
             </div>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2 text-sm">
             <Link href="/admin/ediel/messages" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">Alla</Link>
+            <Link href="/admin/ediel/messages?family=PRODAT&direction=inbound" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">Inbound PRODAT</Link>
             <Link href="/admin/ediel/messages?family=UTILTS&direction=inbound" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">Inbound UTILTS</Link>
-            <Link href="/admin/ediel/messages?direction=outbound&status=draft" className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">Outbound draft</Link>
+            <Link href="/admin/ediel/messages?direction=outbound&status=draft" className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">Outbound drafts</Link>
+            <Link href="/admin/ediel/messages?status=failed" className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700">Felade</Link>
             <Link href="/admin/ediel/messages?family=CONTRL" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">CONTRL</Link>
             <Link href="/admin/ediel/messages?family=APERAK" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">APERAK</Link>
           </div>
@@ -242,7 +235,7 @@ export default async function AdminEdielMessagesPage({
 
                       {isInboundUtilts ? (
                         <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-                          Inbound UTILTS: {hasTgtResponse ? 'TGT-svar finns redan. Skicka befintlig CONTRL/APERAK nedan.' : 'öppna eller kör engine för TGT-svar.'}
+                          Inbound UTILTS: {hasTgtResponse ? 'Svar finns redan. Skicka befintlig CONTRL/APERAK/UTILTS_ERR nedan.' : 'Öppna eller kör engine från kortet för att skapa svar.'}
                         </div>
                       ) : null}
 
@@ -290,7 +283,7 @@ export default async function AdminEdielMessagesPage({
                         <form action={processEdielOperationalMessageAction}>
                           <input type="hidden" name="edielMessageId" value={message.id} />
                           <button type="submit" className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
-                            Kör engine / skapa TGT-svar
+                            Kör engine / skapa svar
                           </button>
                         </form>
                       ) : null}

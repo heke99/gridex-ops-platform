@@ -1108,7 +1108,7 @@ export default async function CustomerAdminDetailPage({
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Kundkort v2
+              Kundkort
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
@@ -1132,9 +1132,6 @@ export default async function CustomerAdminDetailPage({
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
                 {customerTypeUiLabel}
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                Kund-ID: {customer.id}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
                 Kundnummer: {customer.customer_number ?? '—'}
@@ -1263,14 +1260,14 @@ export default async function CustomerAdminDetailPage({
                 Kundens arbetsyta
               </div>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Härifrån hoppar du direkt till leverantörsbyte, nätägarbegäran, Ediel och avtal utan att leta längre ner på sidan.
+                Härifrån går du direkt till det operativa arbetet: fullmakt, leverantörsbyte, nätägaruppgifter, Ediel och avtal.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" tone="success" />
               <QuickJumpLink href="#switch-operations" label="Starta leverantörsbyte" tone="success" />
-              <QuickJumpLink href="#billing-metering" label="Begär uppgifter från nätägare" tone="warning" />
+              <QuickJumpLink href="#billing-metering" label="Nätägaruppgifter" tone="warning" />
               <QuickJumpLink href="#ediel-operations" label="Öppna Ediel" tone="info" />
               <QuickJumpLink href="#contracts" label="Avtal" />
             </div>
@@ -1279,11 +1276,11 @@ export default async function CustomerAdminDetailPage({
           <div className="mt-4 flex flex-wrap gap-2">
             <QuickJumpLink href="#profile" label="Profil" />
             <QuickJumpLink href="#portal-access" label="Kundportal" tone="info" />
-            <QuickJumpLink href="#grid-owner-import" label="Grid owner import" />
+            <QuickJumpLink href="#grid-owner-import" label="Nätägarsynk" />
             <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" />
             <QuickJumpLink href="#switch-operations" label="Leverantörsbyte" />
             <QuickJumpLink href="#ediel-operations" label="Ediel" />
-            <QuickJumpLink href="#billing-metering" label="Billing / metering" />
+            <QuickJumpLink href="#billing-metering" label="Mätvärden / billing" />
             <QuickJumpLink href="#contracts" label="Avtal" />
             <QuickJumpLink href="#contacts-addresses" label="Kontakter / adresser" />
             <QuickJumpLink href="#sites" label="Anläggningar" />
@@ -1466,7 +1463,7 @@ export default async function CustomerAdminDetailPage({
 
       <SectionAnchor
         id="grid-owner-import"
-        title="Grid owner import"
+        title="Nätägarsynk"
         description="Importera eller synka underlag från nätägarsidan för kunden."
       >
         <CustomerGridOwnerFileImportCard customerId={id} />
@@ -1524,7 +1521,7 @@ export default async function CustomerAdminDetailPage({
 
       <SectionAnchor
         id="billing-metering"
-        title="Begär uppgifter från nätägare"
+        title="Nätägaruppgifter"
         description="Här begär du mätvärden, billingunderlag och övrigt underlag från nätägaren."
       >
         <CustomerBillingMeteringCard
