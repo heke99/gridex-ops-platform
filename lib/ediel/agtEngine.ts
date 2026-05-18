@@ -578,7 +578,7 @@ function agtGenericAperakErrors(sourceMessage: EdielMessageRow): EdielAperakAppl
     {
       ercCode: '40',
       fieldCode: '105',
-      text: `AGT ${sourceMessage.message_family} ${sourceMessage.message_code}: meddelandet innehåller uppgifter som inte finns i aktörens produktionsapplikation`,
+      text: 'The object could not be identified',
       referenceQualifier: sourceMessage.metering_point_id ? 'Z07' : null,
       referenceNumber: sourceMessage.metering_point_id ?? null,
       lineItemReference: sourceMessage.transaction_reference ?? null,

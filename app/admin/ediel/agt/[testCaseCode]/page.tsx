@@ -161,7 +161,12 @@ function LinkedTimeline({
         {testCase.expectedSteps.map((step) => {
           const validLinked = links
             .map((link) => ({ link, message: messagesById.get(link.ediel_message_id) }))
-            .filter((item): item is { link: EdielTestRunMessageRow; message: EdielMessageRow } => Boolean(item.message) && item.link.step_no === step.stepNo && messageMatchesExpectedStep(step, item.message))
+            .filter((item): item is { link: EdielTestRunMessageRow; message: EdielMessageRow } => {
+              const message = item.message
+              if (!message) return false
+              if (item.link.step_no !== step.stepNo) return false
+              return messageMatchesExpectedStep(step, message)
+            })
             .filter((item) => item.message.status !== 'cancelled')
             .sort((a, b) => Date.parse(b.message.created_at ?? '') - Date.parse(a.message.created_at ?? ''))
           const visibleLinked = validLinked.slice(0, 1)
