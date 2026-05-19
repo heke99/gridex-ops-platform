@@ -9,6 +9,7 @@ import type {
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import { findBestCommunicationRoute } from './db-routes'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
   buildBatchKey,
   buildContractPayload,
@@ -197,6 +198,7 @@ export async function createOutboundRequest(input: {
   })
 
   const companyId = requireContextCompanyId(context, 'Skapa outbound request')
+  await requireCompanyOperationalForWrites(companyId)
   const channelType = route?.route_type ?? 'unresolved'
   const shouldReplaceSupplierSwitchAttempt = Boolean(
     input.replaceOpenSupplierSwitchAttempt &&
@@ -417,11 +419,17 @@ export async function updateOutboundRequestStatus(input: {
 
   const existingQuery = await supabaseService
     .from('outbound_requests')
-    .select('attempts_count')
+    .select('attempts_count, company_id')
     .eq('id', input.outboundRequestId)
     .maybeSingle()
 
   if (existingQuery.error) throw existingQuery.error
+
+  const currentCompanyId = typeof existingQuery.data?.company_id === 'string' ? existingQuery.data.company_id : null
+
+  if (currentCompanyId && ['queued', 'prepared', 'sent'].includes(input.status)) {
+    await requireCompanyOperationalForWrites(currentCompanyId)
+  }
 
   const currentAttempts =
     typeof existingQuery.data?.attempts_count === 'number'
@@ -505,6 +513,10 @@ export async function refreshOutboundRequestRouteResolution(input: {
     throw new Error('Outbound request hittades inte')
   }
 
+  if (current.company_id) {
+    await requireCompanyOperationalForWrites(current.company_id)
+  }
+
   const route = await findBestCommunicationRoute({
     requestType: current.request_type,
     gridOwnerId: current.grid_owner_id,
@@ -534,6 +546,11 @@ export async function resetOutboundRequestForRetry(input: {
   outboundRequestId: string
   reason?: string | null
 }): Promise<OutboundRequestRow> {
+  const current = await getOutboundRequestById(input.outboundRequestId)
+  if (current?.company_id) {
+    await requireCompanyOperationalForWrites(current.company_id)
+  }
+
   const { data, error } = await supabaseService
     .from('outbound_requests')
     .update({

@@ -6,7 +6,6 @@ type UserRoleRow = {
   user_id: string
   role_id: string
   is_active?: boolean | null
-  status?: string | null
   roles: {
     key: string
     name: string
@@ -43,7 +42,7 @@ export type AdminUserListItem = {
 
 function isActiveRole(row: UserRoleRow) {
   if (typeof row.is_active === 'boolean') return row.is_active
-  return (row.status ?? 'active') === 'active'
+  return true
 }
 
 export async function getAdminUsers(): Promise<AdminUserListItem[]> {
@@ -63,7 +62,7 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
 
   const { data: roleRows, error: roleError } = await supabaseService
     .from('user_roles')
-    .select('user_id, role_id, is_active, status, roles(key, name)')
+    .select('user_id, role_id, is_active, roles(key, name)')
     .in('user_id', userIds)
 
   if (roleError) throw roleError

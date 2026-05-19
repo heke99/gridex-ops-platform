@@ -19,6 +19,7 @@ import {
   updateOutboundRequestStatus,
 } from '@/lib/cis/db'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
   createSupplierSwitchEvent,
   getSupplierSwitchRequestById,
@@ -711,6 +712,8 @@ export async function bulkQueueReadyBillingExportsAction(
   if (!companyId) {
     throw new Error(companyScope.message ?? 'Aktivt bolag saknas för exportkörningen.')
   }
+
+  await requireCompanyOperationalForWrites(companyId)
 
   const { data: underlays, error: underlaysError } = await supabaseService
     .from('billing_underlays')

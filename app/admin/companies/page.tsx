@@ -8,6 +8,7 @@ import {
   type CompanyOperationalStatus,
 } from '@/lib/tenant/governance'
 import {
+  anonymizeCompanyContactDetailsAction,
   createCompanyAction,
   deleteTestCompanyAction,
   inviteCompanyUserAction,
@@ -18,6 +19,11 @@ import {
 export const dynamic = 'force-dynamic'
 
 const emptyCompanyActionState = { ok: false, message: '' }
+
+async function anonymizeCompanyContactDetailsFormAction(formData: FormData) {
+  'use server'
+  await anonymizeCompanyContactDetailsAction(emptyCompanyActionState, formData)
+}
 
 async function createCompanyFormAction(formData: FormData) {
   'use server'
@@ -322,7 +328,7 @@ export default async function CompaniesPage() {
                           </form>
                         </div>
 
-                        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
+                        <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(0,1fr)_260px_260px]">
                           <form action={inviteCompanyUserFormAction} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_1fr_150px_140px]">
                             <input type="hidden" name="company_id" value={company.id} />
                             <input name="email" type="email" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" placeholder="bjud in e-post" />
@@ -337,6 +343,14 @@ export default async function CompaniesPage() {
                             <input type="hidden" name="role_key" value="company_admin" />
                             <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
                               Bjud in
+                            </button>
+                          </form>
+
+                          <form action={anonymizeCompanyContactDetailsFormAction} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                            <input type="hidden" name="company_id" value={company.id} />
+                            <input name="reason" required placeholder="Anledning till anonymisering" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-slate-500" />
+                            <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                              Anonymisera kontakt
                             </button>
                           </form>
 

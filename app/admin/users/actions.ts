@@ -429,6 +429,7 @@ export async function disablePlatformUserAction(
         disabled_at: new Date().toISOString(),
         disabled_by: actorUserId,
         disabled_reason: reason,
+        session_revoked_at: new Date().toISOString(),
       })
       .eq('id', userId)
 

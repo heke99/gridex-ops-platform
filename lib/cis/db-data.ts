@@ -25,6 +25,7 @@ import {
   mergeJsonObjects,
   normalizeQuery,
 } from './db-shared'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
   buildBillingReadinessMap,
   evaluateBillingUnderlayReadiness,
@@ -193,6 +194,7 @@ export async function createGridOwnerDataRequest(input: {
   })
 
   const companyId = requireContextCompanyId(context, 'Skapa nätägarbegäran')
+  await requireCompanyOperationalForWrites(companyId)
 
   const requestPayload = mergeJsonObjects({}, {
     company_id: companyId,
@@ -267,11 +269,13 @@ export async function createPartnerExport(input: {
   })
 
   const companyId = requireContextCompanyId(context, 'Skapa partnerexport')
+  await requireCompanyOperationalForWrites(companyId)
 
   const enrichedPayload = mergeJsonObjects(input.payload ?? {}, {
     company_id: companyId,
     export_kind: input.exportKind,
     target_system: input.targetSystem,
+    payload_version: 'partner_export_v1',
     external_reference: input.externalReference ?? null,
     billing_underlay_id: input.billingUnderlayId ?? null,
     notes: input.notes ?? null,
@@ -679,6 +683,7 @@ export async function ingestMeteringValue(input: {
     meteringPointId: input.meteringPointId,
   })
   const companyId = requireContextCompanyId(context, 'Registrera mätvärde')
+  await requireCompanyOperationalForWrites(companyId)
   const sourceEdielMessageId = extractStringFromPayload(input.rawPayload, [
     'edielMessageId',
     'sourceEdielMessageId',
@@ -821,6 +826,7 @@ export async function ingestBillingUnderlay(input: {
     meteringPointId: input.meteringPointId ?? null,
   })
   const companyId = requireContextCompanyId(context, 'Registrera faktureringsunderlag')
+  await requireCompanyOperationalForWrites(companyId)
 
   const insertPayload: Record<string, unknown> = {
     company_id: companyId,

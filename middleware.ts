@@ -51,6 +51,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  if (user && isProtectedPath(pathname)) {
+    const { data: sessionAllowed, error: sessionCheckError } = await supabase.rpc(
+      'gridex_is_current_session_allowed'
+    )
+
+    if (!sessionCheckError && sessionAllowed === false) {
+      await supabase.auth.signOut()
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('next', `${pathname}${search}`)
+      loginUrl.searchParams.set('reason', 'account_disabled')
+      return NextResponse.redirect(loginUrl)
+    }
+  }
+
   if (user && pathname === '/login') {
     const next = normalizeNextPath(request.nextUrl.searchParams.get('next'))
     return NextResponse.redirect(new URL(next, request.url))

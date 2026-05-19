@@ -112,6 +112,7 @@ import {
   runTgtAutopilotForRun,
 } from "@/lib/ediel/tgtAutopilot";
 import { processEdielOperationalMessage } from "@/lib/ediel/operationalBridge";
+import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import {
   autoAttachImportedMessageToActiveAgtRun,
   createEdielSupplierAgtOutboundCommand,
@@ -1123,6 +1124,14 @@ export async function sendEdielMessageAction(formData: FormData) {
 
   const message = await getEdielMessageById(edielMessageId);
   if (!message) throw new Error("Meddelandet hittades inte");
+
+  const messageCompanyId = typeof (message as unknown as { company_id?: unknown }).company_id === "string"
+    ? (message as unknown as { company_id: string }).company_id
+    : null;
+
+  if (message.direction === "outbound" && messageCompanyId) {
+    await requireCompanyOperationalForWrites(messageCompanyId);
+  }
 
   if (isAgtL7OutboundMessage(message)) {
     const blockers = validateL7PayloadPreflight(message.raw_payload ?? "");

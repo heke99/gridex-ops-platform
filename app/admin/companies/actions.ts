@@ -635,3 +635,133 @@ export async function setCompanyUserRoleAction(
     return { ok: false, message: error instanceof Error ? error.message : 'Bolagsrollen kunde inte uppdateras.' }
   }
 }
+export async function transferCompanyOpenTasksAction(
+  _prevState: CompanyActionState,
+  formData: FormData
+): Promise<CompanyActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['tenants.write', 'users.write'] })
+    const actorUserId = await getCurrentUserId()
+    const companyId = normalizeText(formData.get('company_id'))
+    const fromUserId = normalizeText(formData.get('from_user_id'))
+    const toUserId = normalizeText(formData.get('to_user_id'))
+    const reason = normalizeText(formData.get('reason')) || null
+
+    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    if (!fromUserId) return { ok: false, message: 'Från-användare saknas.' }
+    if (!toUserId) return { ok: false, message: 'Mottagande användare saknas.' }
+    if (fromUserId === toUserId) return { ok: false, message: 'Välj en annan mottagare för öppna uppgifter.' }
+
+    await requireCompanyOperationalForWrites(companyId)
+
+    const { data, error } = await supabaseService
+      .from('customer_operation_tasks')
+      .update({
+        assigned_to: toUserId,
+        reassigned_at: new Date().toISOString(),
+        reassigned_by: actorUserId,
+        assignment_reason: reason,
+        updated_by: actorUserId,
+      })
+      .eq('company_id', companyId)
+      .eq('assigned_to', fromUserId)
+      .in('status', ['open', 'in_progress', 'blocked'])
+      .select('id')
+
+    if (error) {
+      if (['42P01', 'PGRST205', '42703'].includes(error.code ?? '')) {
+        return {
+          ok: false,
+          message: 'Task-flytt kräver migrationen för assigned_to/reassigned_at på customer_operation_tasks.',
+        }
+      }
+      throw error
+    }
+
+    const movedCount = (data ?? []).length
+
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_OPEN_TASKS_TRANSFERRED',
+      actorUserId,
+      companyId,
+      targetUserId: fromUserId,
+      reason,
+      metadata: { fromUserId, toUserId, movedCount },
+    })
+
+    revalidatePath('/admin/companies')
+    revalidatePath(`/admin/companies/${companyId}/users`)
+    revalidatePath('/admin/controltower')
+    revalidatePath('/admin/operations/tasks')
+
+    return { ok: true, message: `${movedCount} öppna uppgifter flyttades.` }
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Öppna uppgifter kunde inte flyttas.' }
+  }
+}
+
+export async function anonymizeCompanyContactDetailsAction(
+  _prevState: CompanyActionState,
+  formData: FormData
+): Promise<CompanyActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['tenants.write'] })
+    const actorUserId = await getCurrentUserId()
+    const companyId = normalizeText(formData.get('company_id'))
+    const reason = normalizeText(formData.get('reason')) || null
+
+    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    if (!reason) return { ok: false, message: 'Ange anledning för anonymisering.' }
+
+    const company = await getCompanyById(companyId)
+    if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
+
+    const anonymizedAt = new Date().toISOString()
+    const { error } = await supabaseService
+      .from('companies')
+      .update({
+        primary_contact_email: null,
+        primary_contact_name: 'Anonymiserad kontakt',
+        phone: null,
+        website: null,
+        status_reason: reason,
+        updated_at: anonymizedAt,
+        metadata: {
+          anonymized_contact_details: true,
+          anonymized_at: anonymizedAt,
+          anonymized_by: actorUserId,
+          anonymization_reason: reason,
+        },
+      })
+      .eq('id', companyId)
+
+    if (error) throw error
+
+    await supabaseService
+      .from('company_invitations')
+      .update({ status: 'invitation_revoked', revoked_at: anonymizedAt })
+      .eq('company_id', companyId)
+      .eq('status', 'pending')
+
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_COMPANY_CONTACTS_ANONYMIZED',
+      actorUserId,
+      companyId,
+      reason,
+      metadata: {
+        companyName: company.name,
+        anonymizedFields: ['primary_contact_email', 'primary_contact_name', 'phone', 'website'],
+        revokedPendingInvitations: true,
+      },
+    })
+
+    revalidatePath('/admin/companies')
+    revalidatePath(`/admin/companies/${companyId}/users`)
+    revalidatePath('/admin/controltower')
+
+    return { ok: true, message: 'Bolagets kontaktuppgifter anonymiserades och öppna inbjudningar återkallades.' }
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Kontaktuppgifter kunde inte anonymiseras.' }
+  }
+}
+

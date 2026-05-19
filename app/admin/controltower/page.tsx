@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
+import { listPlatformControlTowerAlerts } from '@/lib/tenant/controlTower'
 
 export const dynamic = 'force-dynamic'
 
@@ -157,7 +159,7 @@ export default async function AdminControlTowerPage() {
  const scope = await getOperationalCompanyScope(admin.userId)
  const scopeFilters = companyFilter(scope.companyId)
 
- const [
+ const [platformAlerts, [
  openTasks,
  blockedTasks,
  uploadedPoaDocs,
@@ -168,7 +170,9 @@ export default async function AdminControlTowerPage() {
  failedOutbound,
  failedEdielMessages,
  movedCustomers,
- ] = await Promise.all([
+ ]] = await Promise.all([
+ listPlatformControlTowerAlerts(),
+ Promise.all([
  safeCount(supabase, 'customer_operation_tasks', [...scopeFilters, { column: 'status', op: 'in', value: ['open', 'in_progress'] }]),
  safeCount(supabase, 'customer_operation_tasks', [...scopeFilters, { column: 'status', value: 'blocked' }]),
  safeCount(supabase, 'customer_authorization_documents', [...scopeFilters, { column: 'document_type', value: 'power_of_attorney' }, { column: 'status', value: 'uploaded' }]),
@@ -179,6 +183,7 @@ export default async function AdminControlTowerPage() {
  safeCount(supabase, 'outbound_requests', [...scopeFilters, { column: 'status', value: 'failed' }]),
  safeCount(supabase, 'ediel_messages', [...scopeFilters, { column: 'status', value: 'failed' }]),
  safeCount(supabase, 'customers', [...scopeFilters, { column: 'status', op: 'in', value: ['moved', 'terminated'] }]),
+ ]),
  ])
 
  const [taskRows, gridOwnerRows, switchRows, movedRows] = await Promise.all([
@@ -281,6 +286,31 @@ export default async function AdminControlTowerPage() {
  {scope.message}
  </section>
  ) : null}
+
+ {platformAlerts.length > 0 ? (
+ <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+ <div className="border-b border-slate-100 px-5 py-4">
+ <h2 className="text-base font-semibold text-slate-950">Superadmin-larm</h2>
+ <p className="mt-1 text-sm text-slate-700">Tenant-, Ediel-, route-, export- och behörighetslarm som påverkar SaaS-driften.</p>
+ </div>
+ <div className="grid gap-4 p-5 xl:grid-cols-3">
+ {platformAlerts.map((alert) => (
+ <Link key={alert.id} href={alert.href} className={`rounded-3xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass(alert.severity === 'danger' ? 'danger' : alert.severity === 'warning' ? 'warning' : 'neutral')}`}>
+ <div className="flex items-start justify-between gap-3">
+ <h3 className="text-sm font-semibold text-slate-950">{alert.title}</h3>
+ <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeClass(alert.severity === 'danger' ? 'danger' : alert.severity === 'warning' ? 'warning' : 'neutral')}`}>{alert.count}</span>
+ </div>
+ <p className="mt-3 text-sm leading-6 text-slate-700">{alert.description}</p>
+ {alert.meta ? <p className="mt-2 text-xs text-slate-600">{alert.meta}</p> : null}
+ </Link>
+ ))}
+ </div>
+ </section>
+ ) : (
+ <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 shadow-sm">
+ Inga superadmin-larm för pausade bolag, saknad Ediel-profil, routeproblem, försenade kvittenser eller blockerade exporter.
+ </section>
+ )}
 
  <section className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-5 text-sm leading-6 text-emerald-950 shadow-sm">
  <h2 className="text-base font-semibold">Operationsprincip</h2>

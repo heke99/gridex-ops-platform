@@ -33,8 +33,9 @@ import {
   updateGridOwnerDataRequestStatus,
   updateOutboundRequestStatus,
 } from '@/lib/cis/db'
-import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/types'
+import type { GridOwnerDataRequestRow, MeteringValueRow, OutboundRequestRow } from '@/lib/cis/types'
 import type { EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
   findMatchingGridOwnerDataRequest,
   matchMeteringPointForEdielMessage,
@@ -57,6 +58,7 @@ type UtiltsProcessResult = {
   ackIds: string[]
   outboundRequestId?: string | null
   ingestedMeterValueId?: string | null
+  ingestedMeterValueIds?: string[]
   billingUnderlayId?: string | null
 }
 
@@ -137,6 +139,147 @@ function normalizeMeteringPayload(message: EdielMessageRow): Record<string, unkn
     unit: stringOrNull(parsed.unit) ?? 'KWH',
     source: 'ediel_utilts',
   }
+}
+
+type UtiltsMeteringSeriesItem = {
+  sourceOrder: number
+  quantity: number
+  readAt: string
+  periodStart: string | null
+  periodEnd: string | null
+  readingType: unknown
+  qualityCode: string | null
+  rawItem: Record<string, unknown>
+}
+
+function arrayFromCandidate(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function extractSeriesCandidates(payload: Record<string, unknown>): unknown[] {
+  const keys = [
+    'values',
+    'meteringValues',
+    'metering_values',
+    'readings',
+    'series',
+    'timeSeries',
+    'time_series',
+    'intervals',
+    'intervalValues',
+    'interval_values',
+  ]
+
+  for (const key of keys) {
+    const candidate = arrayFromCandidate(payload[key])
+    if (candidate.length > 0) return candidate
+  }
+
+  return []
+}
+
+function readSeriesQuantity(item: Record<string, unknown>): number | null {
+  return (
+    numberOrNull(item.quantity) ??
+    numberOrNull(item.valueKwh) ??
+    numberOrNull(item.value_kwh) ??
+    numberOrNull(item.value) ??
+    numberOrNull(item.kwh) ??
+    numberOrNull(item.energy)
+  )
+}
+
+function readSeriesTimestamp(item: Record<string, unknown>, fallback: Record<string, unknown>, message: EdielMessageRow): string | null {
+  return (
+    normalizedIso(stringOrNull(item.readAt)) ??
+    normalizedIso(stringOrNull(item.read_at)) ??
+    normalizedIso(stringOrNull(item.timestamp)) ??
+    normalizedIso(stringOrNull(item.time)) ??
+    normalizedIso(stringOrNull(item.registrationTime)) ??
+    normalizedIso(stringOrNull(item.registration_time)) ??
+    normalizedIso(stringOrNull(item.periodEnd)) ??
+    normalizedIso(stringOrNull(item.period_end)) ??
+    stringOrNull(fallback.readAt) ??
+    message.message_received_at ??
+    message.created_at
+  )
+}
+
+function itemToUtiltsSeriesItem(params: {
+  item: unknown
+  index: number
+  fallback: Record<string, unknown>
+  message: EdielMessageRow
+}): UtiltsMeteringSeriesItem | null {
+  if (!params.item || typeof params.item !== 'object' || Array.isArray(params.item)) return null
+  const rawItem = params.item as Record<string, unknown>
+  const quantity = readSeriesQuantity(rawItem)
+  if (quantity === null) return null
+
+  const periodStart =
+    normalizedIso(stringOrNull(rawItem.periodStart)) ??
+    normalizedIso(stringOrNull(rawItem.period_start)) ??
+    normalizedIso(stringOrNull(rawItem.start)) ??
+    stringOrNull(params.fallback.periodStart)
+
+  const periodEnd =
+    normalizedIso(stringOrNull(rawItem.periodEnd)) ??
+    normalizedIso(stringOrNull(rawItem.period_end)) ??
+    normalizedIso(stringOrNull(rawItem.end)) ??
+    stringOrNull(params.fallback.periodEnd)
+
+  const readAt = readSeriesTimestamp(rawItem, params.fallback, params.message)
+  if (!readAt) return null
+
+  return {
+    sourceOrder: numberOrNull(rawItem.sourceOrder) ?? numberOrNull(rawItem.source_order) ?? params.index,
+    quantity,
+    readAt,
+    periodStart,
+    periodEnd,
+    readingType: rawItem.readingType ?? rawItem.reading_type ?? params.fallback.readingType,
+    qualityCode:
+      stringOrNull(rawItem.qualityCode) ??
+      stringOrNull(rawItem.quality_code) ??
+      stringOrNull(params.fallback.qualityCode),
+    rawItem,
+  }
+}
+
+function extractUtiltsMeteringSeries(
+  normalizedPayload: Record<string, unknown>,
+  message: EdielMessageRow
+): UtiltsMeteringSeriesItem[] {
+  const candidates = extractSeriesCandidates(normalizedPayload)
+  const series = candidates
+    .map((item, index) => itemToUtiltsSeriesItem({ item, index, fallback: normalizedPayload, message }))
+    .filter((item): item is UtiltsMeteringSeriesItem => Boolean(item))
+    .sort((a, b) => a.sourceOrder - b.sourceOrder)
+
+  if (series.length > 0) return series
+
+  const quantity = numberOrNull(normalizedPayload.quantity)
+  const readAt = stringOrNull(normalizedPayload.readAt) ?? message.message_received_at ?? message.created_at
+  if (quantity === null || !readAt) return []
+
+  return [
+    {
+      sourceOrder: 0,
+      quantity,
+      readAt,
+      periodStart: stringOrNull(normalizedPayload.periodStart),
+      periodEnd: stringOrNull(normalizedPayload.periodEnd),
+      readingType: normalizedPayload.readingType,
+      qualityCode: stringOrNull(normalizedPayload.qualityCode),
+      rawItem: normalizedPayload,
+    },
+  ]
+}
+
+function totalQuantityFromMeteringSeries(normalizedPayload: Record<string, unknown>, message: EdielMessageRow): number | null {
+  const series = extractUtiltsMeteringSeries(normalizedPayload, message)
+  if (series.length === 0) return numberOrNull(normalizedPayload.quantity)
+  return series.reduce((sum, item) => sum + item.quantity, 0)
 }
 
 function toMeteringReadingType(
@@ -224,37 +367,45 @@ async function maybeIngestMeteringValue(params: {
   dataRequestId: string | null
   message: EdielMessageRow
   normalizedPayload: Record<string, unknown>
-}) {
-  const quantity = numberOrNull(params.normalizedPayload.quantity)
+}): Promise<MeteringValueRow[]> {
+  if (!shouldIngestMeteringValue(params.message)) return []
+  if (!params.customerId || !params.meteringPointId) return []
 
-  if (!shouldIngestMeteringValue(params.message)) return null
-  if (!params.customerId || !params.meteringPointId || quantity === null) return null
+  const series = extractUtiltsMeteringSeries(params.normalizedPayload, params.message)
+  if (series.length === 0) return []
 
-  return ingestMeteringValue({
-    actorUserId: params.actorUserId,
-    customerId: params.customerId,
-    siteId: params.siteId,
-    meteringPointId: params.meteringPointId,
-    sourceRequestId: params.dataRequestId,
-    gridOwnerId: params.gridOwnerId,
-    readingType: toMeteringReadingType(params.normalizedPayload.readingType),
-    valueKwh: quantity,
-    qualityCode: stringOrNull(params.normalizedPayload.qualityCode),
-    readAt:
-      stringOrNull(params.normalizedPayload.readAt) ??
-      params.message.message_received_at ??
-      params.message.created_at,
-    periodStart: stringOrNull(params.normalizedPayload.periodStart),
-    periodEnd: stringOrNull(params.normalizedPayload.periodEnd),
-    sourceSystem: 'ediel_utilts',
-    rawPayload: {
-      edielMessageId: params.message.id,
-      messageCode: params.message.message_code,
-      normalizedPayload: params.normalizedPayload,
-      parsedPayload: params.message.parsed_payload ?? {},
-    },
-  })
+  const rows: MeteringValueRow[] = []
+
+  for (const item of series) {
+    const row = await ingestMeteringValue({
+      actorUserId: params.actorUserId,
+      customerId: params.customerId,
+      siteId: params.siteId,
+      meteringPointId: params.meteringPointId,
+      sourceRequestId: params.dataRequestId,
+      gridOwnerId: params.gridOwnerId,
+      readingType: toMeteringReadingType(item.readingType),
+      valueKwh: item.quantity,
+      qualityCode: item.qualityCode,
+      readAt: item.readAt,
+      periodStart: item.periodStart,
+      periodEnd: item.periodEnd,
+      sourceSystem: 'ediel_utilts',
+      rawPayload: {
+        edielMessageId: params.message.id,
+        messageCode: params.message.message_code,
+        sourceOrder: item.sourceOrder,
+        seriesItem: item.rawItem,
+        normalizedPayload: params.normalizedPayload,
+        parsedPayload: params.message.parsed_payload ?? {},
+      },
+    })
+    rows.push(row)
+  }
+
+  return rows
 }
+
 
 async function maybeCreateBillingUnderlay(params: {
   actorUserId: string
@@ -268,7 +419,7 @@ async function maybeCreateBillingUnderlay(params: {
 }) {
   const currentResponse = ensureJson(params.dataRequest.response_payload)
   const existingBillingUnderlayId = stringOrNull(currentResponse.billingUnderlayId)
-  const quantity = numberOrNull(params.normalizedPayload.quantity)
+  const quantity = totalQuantityFromMeteringSeries(params.normalizedPayload, params.message)
 
   if (
     !shouldCreateBillingUnderlay({
@@ -602,6 +753,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   const dataRequest = await getGridOwnerDataRequestById(params.gridOwnerDataRequestId)
 
   if (!dataRequest) throw new Error('Grid owner data request hittades inte')
+  if (dataRequest.company_id) await requireCompanyOperationalForWrites(dataRequest.company_id)
 
   const site = dataRequest.site_id ? await getCustomerSiteById(supabase, dataRequest.site_id) : null
   const meteringPoint = dataRequest.metering_point_id
@@ -748,6 +900,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   const dataRequest = await getGridOwnerDataRequestById(params.gridOwnerDataRequestId)
 
   if (!dataRequest) throw new Error('Grid owner data request hittades inte')
+  if (dataRequest.company_id) await requireCompanyOperationalForWrites(dataRequest.company_id)
 
   const site = dataRequest.site_id ? await getCustomerSiteById(supabase, dataRequest.site_id) : null
   const meteringPoint = dataRequest.metering_point_id
@@ -962,6 +1115,7 @@ export async function processInboundUtiltsMessage(params: {
       ackIds,
       outboundRequestId: null,
       ingestedMeterValueId: null,
+      ingestedMeterValueIds: [],
       billingUnderlayId: null,
     }
   }
@@ -996,6 +1150,7 @@ export async function processInboundUtiltsMessage(params: {
       ackIds,
       outboundRequestId: null,
       ingestedMeterValueId: null,
+      ingestedMeterValueIds: [],
       billingUnderlayId: null,
     }
   }
@@ -1014,7 +1169,7 @@ export async function processInboundUtiltsMessage(params: {
     normalizedPayload,
   })
 
-  const ingestedMeterValue = await maybeIngestMeteringValue({
+  const ingestedMeterValues = await maybeIngestMeteringValue({
     actorUserId,
     customerId,
     siteId,
@@ -1024,6 +1179,9 @@ export async function processInboundUtiltsMessage(params: {
     message,
     normalizedPayload,
   })
+
+  const ingestedMeterValue = ingestedMeterValues[0] ?? null
+  const ingestedMeterValueIds = ingestedMeterValues.map((row) => row.id)
 
   const billingUnderlay = await maybeCreateBillingUnderlay({
     actorUserId,
@@ -1046,6 +1204,7 @@ export async function processInboundUtiltsMessage(params: {
     notes: dataRequest.notes ?? null,
     extraResponsePayload: {
       normalizedMeteringPayload: normalizedPayload,
+      ingestedMeterValueIds,
       utiltsRuntime: {
         validation: runtime.validation,
         ackPlan: runtime.ackPlan,
@@ -1081,6 +1240,7 @@ export async function processInboundUtiltsMessage(params: {
       normalizedMeteringPayload: normalizedPayload,
       utiltsRuntimeFacts: runtime.facts,
       ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+      ingestedMeterValueIds,
       billingUnderlayId: billingUnderlay?.id ?? null,
     },
     validationReport: {
@@ -1105,6 +1265,7 @@ export async function processInboundUtiltsMessage(params: {
       createdAckMessageIds: ackIds,
       outboundRequestId: acknowledgedOutbound?.id ?? null,
       ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+      ingestedMeterValueIds,
       billingUnderlayId: billingUnderlay?.id ?? null,
       normalizedMeteringPayload: normalizedPayload,
       validation: runtime.validation,
@@ -1118,6 +1279,7 @@ export async function processInboundUtiltsMessage(params: {
     ackIds,
     outboundRequestId: acknowledgedOutbound?.id ?? null,
     ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+    ingestedMeterValueIds,
     billingUnderlayId: billingUnderlay?.id ?? null,
   }
 }
