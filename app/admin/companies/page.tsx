@@ -74,7 +74,7 @@ export default async function CompaniesPage() {
     <div className="min-h-screen">
       <AdminHeader
         title="Företag"
-        subtitle="Skapa bolagskonton, bjud in ansvariga och håll användare kopplade till rätt tenant."
+        subtitle="Skapa bolagskonton, bjud in ansvariga och håll användare kopplade till rätt företag."
         userEmail={admin.email}
       />
 
@@ -108,7 +108,7 @@ export default async function CompaniesPage() {
               <div className="border-b border-emerald-100 px-6 py-5">
                 <h2 className="text-lg font-semibold text-slate-950">Skapa nytt företag</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Skapa en tenant och bjud in första bolagsansvarig i samma steg.
+                  Skapa ett bolagskonto och bjud in första bolagsansvarig i samma steg.
                 </p>
               </div>
 
@@ -145,7 +145,7 @@ export default async function CompaniesPage() {
 
                 <div className="md:col-span-2 flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm leading-6 text-emerald-900">
-                    Den ansvariga användaren får rollen Company admin och kopplas direkt till företaget.
+                    Den ansvariga användaren får rollen Bolagsansvarig och kopplas direkt till företaget.
                   </p>
                   <button className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-emerald-700/20 transition hover:bg-emerald-800">
                     Skapa företag

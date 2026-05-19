@@ -16,7 +16,7 @@ const capabilities = [
       'Samla kundintag, fullmakter, switchärenden, anläggningsdata och avvikelser i en arbetsyta som är byggd för daglig drift.',
   },
   {
-    title: 'Tenant-säker SaaS-modell',
+    title: 'Bolagsseparerad SaaS-modell',
     description:
       'Varje elhandelsbolag arbetar i sin egen miljö med egna användare, roller, kunder, avtal och operativa flöden.',
   },
@@ -131,7 +131,7 @@ export default function LandingPage() {
                   <h2 className="mt-1 text-xl font-semibold">Daglig prioritering</h2>
                 </div>
                 <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-200">
-                  Tenant-säker
+                  Bolagsseparerad
                 </span>
               </div>
 
@@ -227,12 +227,12 @@ export default function LandingPage() {
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-emerald-50/80">
                 Superadmin kan skapa och bjuda in nya bolag. Varje bolag kan därefter
-                hantera sina användare, roller och dagliga processer inom sin egen tenant.
+                hantera sina användare, roller och dagliga processer inom sin egen bolagsmiljö.
               </p>
             </div>
 
             <div className="grid gap-3">
-              {['Superadmin skapar bolag', 'Company admin bjuder in team', 'Roller styr arbetsytor', 'Kunddata hålls tenant-säker'].map((item) => (
+              {['Superadmin skapar bolag', 'Bolagsansvarig bjuder in team', 'Roller styr arbetsytor', 'Kunddata hålls bolagsseparerad'].map((item) => (
                 <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-semibold text-white">
                   {item}
                 </div>

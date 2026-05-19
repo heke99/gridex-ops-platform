@@ -56,15 +56,15 @@ export type TenantCompanyPageData = {
 }
 
 export const COMPANY_USER_ROLE_OPTIONS = [
-  { value: 'company_admin', label: 'Company admin' },
-  { value: 'operations_manager', label: 'Operations manager' },
-  { value: 'operations_agent', label: 'Operations agent' },
-  { value: 'customer_service_manager', label: 'Kundtjänst manager' },
+  { value: 'company_admin', label: 'Bolagsansvarig' },
+  { value: 'operations_manager', label: 'Operationsansvarig' },
+  { value: 'operations_agent', label: 'Operationshandläggare' },
+  { value: 'customer_service_manager', label: 'Kundtjänstansvarig' },
   { value: 'customer_service_agent', label: 'Kundtjänst' },
-  { value: 'sales_manager', label: 'Sales manager' },
-  { value: 'pricing_manager', label: 'Pricing manager' },
-  { value: 'finance_readonly', label: 'Finance readonly' },
-  { value: 'executive_readonly', label: 'Executive readonly' },
+  { value: 'sales_manager', label: 'Säljansvarig' },
+  { value: 'pricing_manager', label: 'Prisansvarig' },
+  { value: 'finance_readonly', label: 'Ekonomi läsbehörighet' },
+  { value: 'executive_readonly', label: 'Ledning läsbehörighet' },
 ]
 
 export function userIsPlatformAdmin(roles: string[], permissions: string[]) {
@@ -209,7 +209,7 @@ export async function canInviteIntoCompany(input: {
     .select('id')
     .eq('company_id', input.companyId)
     .eq('user_id', input.userId)
-    .eq('membership_role', 'company_admin')
+    .in('membership_role', ['owner', 'company_admin'])
     .eq('status', 'active')
     .maybeSingle()
 
