@@ -8,6 +8,7 @@ import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import {
+  archiveSupplierSwitchEvent,
   createSupplierSwitchEvent,
   finalizeSupplierSwitchExecution,
   findCustomerSiteById,
@@ -655,4 +656,45 @@ export async function runOperationsTaskAutoResolutionSweepAction(): Promise<void
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
   revalidatePath('/admin/operations/ready-to-execute')
+}
+
+export async function archiveSupplierSwitchEventFromAdminAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+
+  const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
+  const eventId = formValue(formData, 'event_id') ?? ''
+  const switchRequestId = formValue(formData, 'switch_request_id') ?? null
+  const reason = formValue(formData, 'archive_reason')
+
+  if (!eventId) {
+    throw new Error('Händelse-ID saknas')
+  }
+
+  const saved = await archiveSupplierSwitchEvent(supabase, {
+    eventId,
+    actorUserId: actor.id,
+    reason,
+  })
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'supplier_switch_event',
+    entityId: saved.id,
+    action: 'supplier_switch_event_archived_from_admin_operations',
+    newValues: saved,
+    metadata: {
+      switchRequestId: saved.switch_request_id,
+      reason: saved.archive_reason,
+    },
+  })
+
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/switches')
+
+  if (switchRequestId) {
+    revalidatePath(`/admin/operations/switches/${switchRequestId}`)
+  }
 }

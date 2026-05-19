@@ -14,11 +14,11 @@ import {
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import {
-  listOutboundRequests,
   listAllBillingUnderlays,
   listAllGridOwnerDataRequests,
   listAllMeteringValues,
   listAllPartnerExports,
+  listOutboundRequests,
 } from '@/lib/cis/db'
 import {
   getBillingExportReadiness,
@@ -30,8 +30,10 @@ import {
   bulkQueueReadyBillingExportsAction,
   runOperationsAutomationSweepAction,
 } from './control-actions'
-import type { CustomerSiteRow } from '@/lib/masterdata/types'
+import { archiveSupplierSwitchEventFromAdminAction } from './actions'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
+import type { CustomerSiteRow } from '@/lib/masterdata/types'
+import type { SupplierSwitchEventRow } from '@/lib/operations/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,13 +41,26 @@ function KpiCard({
   label,
   value,
   hint,
+  tone = 'neutral',
 }: {
   label: string
   value: number
   hint: string
+  tone?: 'neutral' | 'danger' | 'success' | 'info' | 'warning'
 }) {
+  const toneClass =
+    tone === 'danger'
+      ? 'border-rose-200 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-950/10'
+      : tone === 'success'
+        ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/50 dark:bg-emerald-950/10'
+        : tone === 'info'
+          ? 'border-blue-200 bg-blue-50/70 dark:border-blue-900/50 dark:bg-blue-950/10'
+          : tone === 'warning'
+            ? 'border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/10'
+            : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className={`rounded-3xl border p-6 shadow-sm ${toneClass}`}>
       <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
         {label}
       </p>
@@ -68,6 +83,8 @@ function statusStyle(status: string): string {
       'acknowledged',
       'ready_to_execute',
       'ready',
+      'received',
+      'active',
     ].includes(status)
   ) {
     return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
@@ -99,16 +116,72 @@ function alertTone(severity: 'critical' | 'high' | 'medium' | 'low'): string {
   }
 }
 
+function lifecycleLabel(status: string): string {
+  switch (status) {
+    case 'blocked':
+      return 'Blockerad'
+    case 'queued_for_outbound':
+      return 'Klar för utskick'
+    case 'awaiting_dispatch':
+      return 'Väntar på utskick'
+    case 'awaiting_response':
+      return 'Väntar på svar'
+    case 'ready_to_execute':
+      return 'Redo att slutföra'
+    case 'completed':
+      return 'Slutförd'
+    case 'failed':
+    case 'rejected':
+      return 'Kräver åtgärd'
+    case 'draft':
+      return 'Utkast'
+    case 'sent':
+      return 'Skickad'
+    case 'pending':
+      return 'Väntar'
+    case 'received':
+      return 'Mottagen'
+    default:
+      return status
+        .replaceAll('_', ' ')
+        .replace(/^./, (char) => char.toUpperCase())
+  }
+}
+
+function eventTypeLabel(value: string): string {
+  switch (value) {
+    case 'status_changed':
+      return 'Status ändrad'
+    case 'validation_updated':
+      return 'Validering uppdaterad'
+    case 'outbound_queued':
+      return 'Utskick köat'
+    case 'execution_completed':
+      return 'Slutförd'
+    default:
+      return lifecycleLabel(value)
+  }
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—'
+
+  return new Intl.DateTimeFormat('sv-SE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
 function formatRequestScope(scope: GridOwnerDataRequestRow['request_scope']): string {
   switch (scope) {
     case 'meter_values':
       return 'Mätvärden'
     case 'billing_underlay':
-      return 'Billing-underlag'
+      return 'Faktureringsunderlag'
     case 'customer_masterdata':
-      return 'Masterdata'
+      return 'Kund- och anläggningsdata'
     default:
-      return scope
+      return lifecycleLabel(scope)
   }
 }
 
@@ -122,25 +195,25 @@ function describeRequestFollowup(params: {
   if (request.status === 'failed') {
     return (
       request.failure_reason?.trim() ||
-      'Requesten har felat och behöver manuell uppföljning.'
+      'Begäran har stoppats och behöver manuell uppföljning.'
     )
   }
 
   if (request.status === 'received') {
     return hasReceivedData
-      ? 'Svar inkommet och relaterat underlag finns registrerat.'
-      : 'Svar inkommet men underlag behöver verifieras i nästa steg.'
+      ? 'Svar är mottaget och relaterat underlag finns registrerat.'
+      : 'Svar är mottaget och underlaget behöver verifieras.'
   }
 
   if (request.status === 'sent') {
     return outboundCount > 0
-      ? 'Requesten är skickad och har outbound-koppling. Följ upp kvittens eller svar.'
-      : 'Requesten står som skickad men saknar tydlig outbound-kedja att följa upp.'
+      ? 'Begäran är skickad. Följ upp kvittens eller inkommande svar.'
+      : 'Begäran är markerad som skickad men saknar tydlig utskickskedja.'
   }
 
   return outboundCount > 0
-    ? 'Requesten väntar fortfarande på nästa steg i outbound-kedjan.'
-    : 'Requesten är skapad men saknar ännu tydlig dispatch-uppföljning.'
+    ? 'Begäran väntar på nästa steg i utskickskedjan.'
+    : 'Begäran är skapad och behöver förberedas för utskick.'
 }
 
 function QueueCard({
@@ -160,13 +233,13 @@ function QueueCard({
 }) {
   const toneClass =
     tone === 'danger'
-      ? 'border-rose-200 bg-rose-50/60 dark:border-rose-900/50 dark:bg-rose-950/10'
+      ? 'border-rose-200 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-950/10'
       : tone === 'success'
-        ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/50 dark:bg-emerald-950/10'
+        ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/50 dark:bg-emerald-950/10'
         : tone === 'info'
-          ? 'border-blue-200 bg-blue-50/60 dark:border-blue-900/50 dark:bg-blue-950/10'
+          ? 'border-blue-200 bg-blue-50/70 dark:border-blue-900/50 dark:bg-blue-950/10'
           : tone === 'warning'
-            ? 'border-amber-200 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/10'
+            ? 'border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/10'
             : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
 
   return (
@@ -184,12 +257,12 @@ function QueueCard({
           </div>
         </div>
 
-        <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-300">
+        <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
           {cta}
         </span>
       </div>
 
-      <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+      <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
         {description}
       </p>
     </Link>
@@ -211,7 +284,7 @@ function SectionHeader({
         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
           {title}
         </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
           {subtitle}
         </p>
       </div>
@@ -223,6 +296,83 @@ function SectionHeader({
 async function queueReadyBillingExportsFormAction(formData: FormData): Promise<void> {
   'use server'
   await bulkQueueReadyBillingExportsAction(formData)
+}
+
+function SwitchEventItem({ event }: { event: SupplierSwitchEventRow }) {
+  return (
+    <details className="group rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+      <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(
+                event.event_status ?? event.event_type
+              )}`}
+            >
+              {eventTypeLabel(event.event_type)}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {formatDateTime(event.created_at)}
+            </span>
+          </div>
+          <p className="mt-2 text-sm font-medium text-slate-800 dark:text-slate-100">
+            {event.message ?? 'Händelsen saknar beskrivning.'}
+          </p>
+        </div>
+
+        <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition group-open:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:group-open:bg-slate-800">
+          Visa detaljer
+        </span>
+      </summary>
+
+      <div className="mt-4 space-y-3 border-t border-slate-100 pt-4 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
+            <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              Status
+            </div>
+            <div className="mt-1 font-medium text-slate-900 dark:text-white">
+              {lifecycleLabel(event.event_status)}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
+            <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              Switchärende
+            </div>
+            <div className="mt-1 font-mono text-xs text-slate-900 dark:text-white">
+              {event.switch_request_id}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href={`/admin/operations/switches/${event.switch_request_id}`}
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Öppna switchärende
+          </Link>
+
+          <form action={archiveSupplierSwitchEventFromAdminAction}>
+            <input type="hidden" name="event_id" value={event.id} />
+            <input
+              type="hidden"
+              name="switch_request_id"
+              value={event.switch_request_id}
+            />
+            <input
+              type="hidden"
+              name="archive_reason"
+              value="Arkiverad från operationsöversikten."
+            />
+            <button className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+              Arkivera händelse
+            </button>
+          </form>
+        </div>
+      </div>
+    </details>
+  )
 }
 
 export default async function AdminOperationsPage() {
@@ -255,7 +405,7 @@ export default async function AdminOperationsPage() {
   ] = await Promise.all([
     listAllOperationTasks(supabase),
     listAllSupplierSwitchRequests(supabase),
-    listRecentSupplierSwitchEvents(supabase, 20),
+    listRecentSupplierSwitchEvents(supabase, 30),
     listOutboundRequests({
       status: 'all',
       requestType: 'all',
@@ -266,7 +416,10 @@ export default async function AdminOperationsPage() {
     listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '' }),
     listAllMeteringValues({ query: '' }),
     listAllPartnerExports({ status: 'all', exportKind: 'all', query: '' }),
-    listMeteringPointsBySiteIds(supabase, sites.map((site) => site.id)),
+    listMeteringPointsBySiteIds(
+      supabase,
+      sites.map((site) => site.id)
+    ),
     getEdielSummary(supabase),
   ])
 
@@ -416,40 +569,40 @@ export default async function AdminOperationsPage() {
   const queuePriority = [
     {
       id: 'blocked-switches',
-      title: 'Blockerade switchar',
+      title: 'Blockerade leverantörsbyten',
       count: blockedSwitches.length,
       description:
-        'Readiness blockerar nästa steg. Börja här om leverantörsbyten inte rör sig framåt.',
+        'Readiness stoppar nästa steg. Börja här när ett leverantörsbyte inte kan gå vidare.',
       href: '/admin/operations/switches?stage=blocked',
-      cta: 'Öppna blockerade',
+      cta: 'Granska blockerare',
       tone: 'danger' as const,
     },
     {
       id: 'unresolved-outbound',
-      title: 'Unresolved outbound',
+      title: 'Ej matchade utskick',
       count: unresolvedOutbound.length,
       description:
-        'Requests utan route eller dispatch-kanal. Här fastnar automationen först.',
+        'Utskick som saknar tydlig mottagare, kanal eller rutt. Dessa bör hanteras innan automationsflödet fortsätter.',
       href: '/admin/outbound/unresolved',
-      cta: 'Fixa route',
+      cta: 'Lös matchning',
       tone: 'danger' as const,
     },
     {
       id: 'awaiting-dispatch',
-      title: 'Väntar dispatch',
+      title: 'Väntar på utskick',
       count: awaitingDispatchSwitches.length,
       description:
-        'Redo internt men ännu inte faktiskt skickade ut i extern kedja.',
+        'Ärenden som är förberedda internt men ännu inte har fullständig utskickskedja.',
       href: '/admin/operations/switches?stage=awaiting_dispatch',
-      cta: 'Öppna dispatch-kö',
+      cta: 'Öppna kön',
       tone: 'warning' as const,
     },
     {
       id: 'awaiting-response',
-      title: 'Väntar på kvittens',
+      title: 'Väntar på svar',
       count: awaitingResponseSwitches.length,
       description:
-        'Skickade ärenden som väntar på svar från extern part eller manuell uppföljning.',
+        'Skickade ärenden som väntar på kvittens, nätägarsvar eller annan extern återkoppling.',
       href: '/admin/operations/switches?stage=awaiting_response',
       cta: 'Följ upp svar',
       tone: 'info' as const,
@@ -459,30 +612,20 @@ export default async function AdminOperationsPage() {
       title: 'Redo att slutföra',
       count: readyToExecuteSwitches.length,
       description:
-        'Kvitterade switchar som är klara för intern execution / finalize.',
+        'Kvitterade leverantörsbyten som är klara för intern slutföring.',
       href: '/admin/operations/ready-to-execute',
-      cta: 'Slutför switchar',
+      cta: 'Slutför ärenden',
       tone: 'success' as const,
     },
     {
       id: 'failed-switches',
-      title: 'Failed / rejected',
+      title: 'Kräver manuell åtgärd',
       count: failedSwitches.length,
       description:
-        'Ärenden som redan brutit flödet och behöver beslut, retry eller manuell korrigering.',
+        'Ärenden som har stoppats, avvisats eller behöver beslut innan de kan fortsätta.',
       href: '/admin/operations/switches?stage=failed',
-      cta: 'Granska fel',
+      cta: 'Granska ärenden',
       tone: 'danger' as const,
-    },
-    {
-      id: 'customer-sync',
-      title: 'Kundsynk / onboarding',
-      count: readinessResults.filter((result) => !result.isReady).length,
-      description:
-        'Kunder där kund, avtal, fullmakt, anläggning, mätpunkt eller nätägardata behöver kopplas ihop innan automation går vidare.',
-      href: '/admin/operations/sync',
-      cta: 'Öppna synkvy',
-      tone: 'info' as const,
     },
   ]
 
@@ -498,89 +641,93 @@ export default async function AdminOperationsPage() {
     )
     .slice(0, 12)
 
+  const latestEvents = events.slice(0, 5)
+  const archivedBehindAccordion = events.slice(5)
+
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Operations control tower"
-        subtitle="En tydlig startsida för vad som kräver åtgärd nu, vart du ska gå och hur switch-, outbound-, Ediel- och billingkedjan mår."
+        title="Operations"
+        subtitle="Daglig kontroll av kundintag, leverantörsbyten, utskick, nätägardata, mätvärden och faktureringsunderlag."
         userEmail={user?.email ?? null}
       />
 
       <div className="space-y-8 p-8">
-        <section className="grid gap-5 lg:grid-cols-2 xl:grid-cols-10">
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
           <KpiCard
-            label="Öppna tasks"
+            label="Öppna arbetsuppgifter"
             value={openTasks.length}
-            hint="Pågående operativa tasks som ännu inte är klara."
+            hint="Operativa uppgifter som ännu inte är slutförda."
           />
           <KpiCard
-            label="Blockerade tasks"
+            label="Blockerade uppgifter"
             value={blockedTasks.length}
-            hint="Tasks som fastnat och kräver beslut eller korrigering."
+            hint="Uppgifter som kräver beslut eller komplettering."
+            tone={blockedTasks.length > 0 ? 'danger' : 'neutral'}
           />
           <KpiCard
-            label="Unresolved outbound"
+            label="Ej matchade utskick"
             value={unresolvedOutbound.length}
-            hint="Outbound requests utan fungerande route eller dispatch."
+            hint="Utskick som saknar fungerande rutt eller mottagare."
+            tone={unresolvedOutbound.length > 0 ? 'danger' : 'neutral'}
           />
           <KpiCard
             label="Väntar på svar"
             value={waitingResponseOutbound.length}
-            hint="Skickade outbound requests utan kvittens eller slutligt svar."
+            hint="Skickade ärenden utan slutlig återkoppling."
+            tone="info"
           />
           <KpiCard
-            label="Failed outbound"
-            value={failedOutbound.length}
-            hint="Outbound requests som redan har felat."
-          />
-          <KpiCard
-            label="Öppna nätägarrequests"
-            value={openDataRequests.length}
-            hint="Pending eller sent requests mot nätägare."
-          />
-          <KpiCard
-            label="Felade nätägarrequests"
-            value={failedDataRequests.length}
-            hint="Requests mot nätägare som behöver manuell uppföljning."
-          />
-          <KpiCard
-            label="Ready billing exports"
+            label="Klara faktureringsunderlag"
             value={readyBillingExports.length}
-            hint="Billing-underlag som är klara att köa för export."
+            hint="Underlag som kan köas vidare för export."
+            tone="success"
           />
           <KpiCard
-            label="Draft switchar"
+            label="Felade utskick"
+            value={failedOutbound.length}
+            hint="Utskick som behöver manuell hantering."
+            tone={failedOutbound.length > 0 ? 'danger' : 'neutral'}
+          />
+          <KpiCard
+            label="Öppna nätägarbegäran"
+            value={openDataRequests.length}
+            hint="Begäran som väntar eller är skickade."
+          />
+          <KpiCard
+            label="Felade nätägarbegäran"
+            value={failedDataRequests.length}
+            hint="Begäran mot nätägare som kräver uppföljning."
+            tone={failedDataRequests.length > 0 ? 'danger' : 'neutral'}
+          />
+          <KpiCard
+            label="Utkast till leverantörsbyte"
             value={draftSwitches.length}
-            hint="Leverantörsbyten som ännu inte lämnat draft-läget."
+            hint="Ärenden som inte är redo för utskick."
+            tone="warning"
           />
           <KpiCard
-            label="Ediel attention"
-            value={
-              edielSummary.queuedMessages +
-              edielSummary.failedMessages +
-              edielSummary.ackPendingMessages
-            }
-            hint="Ediel-meddelanden som behöver uppföljning nu."
+            label="Ediel-meddelanden"
+            value={edielSummary.totalMessages}
+            hint="Totalt antal registrerade Ediel-meddelanden."
+            tone="info"
           />
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <SectionHeader
-            title="Köer att öppna först"
-            subtitle="Det här är snabbaste vägen till de arbetsytor som normalt kräver åtgärd först."
+            title="Prioriterade arbetsköer"
+            subtitle="Köerna är sorterade efter vad som normalt blockerar driftflödet först."
             action={
               <form action={runOperationsAutomationSweepAction}>
-                <button
-                  type="submit"
-                  className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  Kör automation sweep
+                <button className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-black dark:bg-white dark:text-slate-950">
+                  Kör automatisk genomgång
                 </button>
               </form>
             }
           />
 
-          <div className="grid gap-5 p-6 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-5 p-6 md:grid-cols-2 xl:grid-cols-3">
             {queuePriority.map((item) => (
               <QueueCard key={item.id} {...item} />
             ))}
@@ -590,14 +737,14 @@ export default async function AdminOperationsPage() {
         <section className="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <SectionHeader
-              title="Aktiva alerts"
-              subtitle="Problem eller risker som bör uppmärksammas snabbt innan de blir större operativa fel."
+              title="Aktiva driftvarningar"
+              subtitle="Risker och fel som bör få snabb uppmärksamhet innan de påverkar kundflödet."
             />
 
             <div className="space-y-4 p-6">
               {alerts.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Inga aktiva alerts hittades just nu.
+                  Inga aktiva driftvarningar hittades just nu.
                 </div>
               ) : (
                 alerts.map((alert) => (
@@ -611,23 +758,23 @@ export default async function AdminOperationsPage() {
                           alert.severity
                         )}`}
                       >
-                        {alert.severity}
+                        {lifecycleLabel(alert.severity)}
                       </span>
                       <span className="text-sm font-semibold text-slate-950 dark:text-white">
                         {alert.title}
                       </span>
                     </div>
 
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                       {alert.description}
                     </p>
 
-                    <div className="mt-3 flex flex-wrap gap-3">
+                    <div className="mt-3">
                       <Link
                         href={alert.href}
                         className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
                       >
-                        Öppna
+                        Öppna arbetsytan
                       </Link>
                     </div>
                   </div>
@@ -638,8 +785,8 @@ export default async function AdminOperationsPage() {
 
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <SectionHeader
-              title="Nätägarrequests att följa upp"
-              subtitle="Requests som är mest angelägna utifrån status, svarsläge och kopplat underlag."
+              title="Nätägarbegäran att följa upp"
+              subtitle="Begäran som är mest angelägna utifrån status, svarsläge och kopplat underlag."
             />
 
             <div className="overflow-x-auto">
@@ -647,7 +794,7 @@ export default async function AdminOperationsPage() {
                 <thead className="bg-slate-50 dark:bg-slate-950/40">
                   <tr>
                     <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
-                      Scope
+                      Underlag
                     </th>
                     <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
                       Status
@@ -667,7 +814,7 @@ export default async function AdminOperationsPage() {
                         colSpan={4}
                         className="px-6 py-8 text-sm text-slate-500 dark:text-slate-400"
                       >
-                        Inga nätägarrequests kräver särskild uppföljning just nu.
+                        Inga nätägarbegäran kräver särskild uppföljning just nu.
                       </td>
                     </tr>
                   ) : (
@@ -687,14 +834,14 @@ export default async function AdminOperationsPage() {
                               row.request.status
                             )}`}
                           >
-                            {row.request.status}
+                            {lifecycleLabel(row.request.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                           <div>{row.followup}</div>
                           <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                            Outbound: {row.relatedOutbound.length} · Underlag:{' '}
-                            {row.relatedUnderlay ? 'ja' : 'nej'} · Mätvärden:{' '}
+                            Utskick: {row.relatedOutbound.length} · Underlag:{' '}
+                            {row.relatedUnderlay ? 'finns' : 'saknas'} · Mätvärden:{' '}
                             {row.relatedMeterValueCount}
                           </div>
                         </td>
@@ -703,7 +850,7 @@ export default async function AdminOperationsPage() {
                             href={`/admin/operations/grid-owner-requests/${row.request.id}`}
                             className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                           >
-                            Öppna detail
+                            Öppna ärende
                           </Link>
                         </td>
                       </tr>
@@ -718,8 +865,8 @@ export default async function AdminOperationsPage() {
         <section className="grid gap-8 xl:grid-cols-[1.3fr_0.9fr]">
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <SectionHeader
-              title="Switchar som kräver action"
-              subtitle="Fokusera här när du vill jobba igenom leverantörsbyten i rätt ordning."
+              title="Leverantörsbyten som kräver åtgärd"
+              subtitle="Fokusera här när du vill arbeta igenom leverantörsbyten i rätt ordning."
             />
 
             <div className="overflow-x-auto">
@@ -727,16 +874,16 @@ export default async function AdminOperationsPage() {
                 <thead className="bg-slate-50 dark:bg-slate-950/40">
                   <tr>
                     <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
-                      Request
+                      Ärende
                     </th>
                     <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
-                      Stage
+                      Läge
                     </th>
                     <th className="px-6 py-3 text-left font-medium text-slate-500 dark:text-slate-400">
                       Readiness
                     </th>
                     <th className="px-6 py-3 text-right font-medium text-slate-500 dark:text-slate-400">
-                      Öppna
+                      Åtgärd
                     </th>
                   </tr>
                 </thead>
@@ -747,7 +894,7 @@ export default async function AdminOperationsPage() {
                         colSpan={4}
                         className="px-6 py-8 text-sm text-slate-500 dark:text-slate-400"
                       >
-                        Inga switchar kräver action just nu.
+                        Inga leverantörsbyten kräver åtgärd just nu.
                       </td>
                     </tr>
                   ) : (
@@ -758,7 +905,7 @@ export default async function AdminOperationsPage() {
                             {row.request.id.slice(0, 8)}
                           </div>
                           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Site {row.request.site_id?.slice(0, 8) ?? '—'}
+                            Anläggning {row.request.site_id?.slice(0, 8) ?? '—'}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -767,7 +914,7 @@ export default async function AdminOperationsPage() {
                               row.lifecycle.stage
                             )}`}
                           >
-                            {row.lifecycle.stage}
+                            {lifecycleLabel(row.lifecycle.stage)}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
@@ -780,7 +927,7 @@ export default async function AdminOperationsPage() {
                             href={`/admin/operations/switches/${row.request.id}`}
                             className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                           >
-                            Öppna switch
+                            Öppna ärende
                           </Link>
                         </td>
                       </tr>
@@ -794,7 +941,7 @@ export default async function AdminOperationsPage() {
           <div className="space-y-8">
             <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <SectionHeader
-                title="Ready billing exports"
+                title="Faktureringsunderlag redo för export"
                 subtitle="Underlag som kan köas vidare till exportpartnern nu."
                 action={
                   <form action={queueReadyBillingExportsFormAction}>
@@ -802,7 +949,7 @@ export default async function AdminOperationsPage() {
                       type="submit"
                       className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
-                      Köa redo exports
+                      Köa redo underlag
                     </button>
                   </form>
                 }
@@ -820,7 +967,7 @@ export default async function AdminOperationsPage() {
                           {underlay.id.slice(0, 8)}
                         </div>
                         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          Underlag {underlay.underlay_year ?? '—'}-
+                          Period {underlay.underlay_year ?? '—'}-
                           {String(underlay.underlay_month ?? '').padStart(2, '0')}
                         </div>
                       </div>
@@ -834,8 +981,8 @@ export default async function AdminOperationsPage() {
                         className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
                         {underlay.source_request_id
-                          ? 'Öppna source request'
-                          : 'Öppna billing'}
+                          ? 'Öppna nätägarbegäran'
+                          : 'Öppna fakturaunderlag'}
                       </Link>
                     </div>
                   </div>
@@ -843,7 +990,7 @@ export default async function AdminOperationsPage() {
 
                 {readyBillingExports.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                    Inga billing exports är redo just nu.
+                    Inga faktureringsunderlag är redo för export just nu.
                   </div>
                 ) : null}
               </div>
@@ -851,50 +998,34 @@ export default async function AdminOperationsPage() {
 
             <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <SectionHeader
-                title="Senaste switch-events"
-                subtitle="Snabb överblick över senaste händelserna i switchflödet."
+                title="Senaste switchhändelser"
+                subtitle="De fem senaste händelserna visas direkt. Äldre händelser ligger samlade under en utfällbar historik."
               />
 
               <div className="space-y-3 p-6">
                 {events.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                    Inga event hittades.
+                    Inga switchhändelser hittades.
                   </div>
                 ) : (
-                  events.map((event) => (
-                    <div
-                      key={event.id}
-                      className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(
-                            event.event_status ?? event.event_type
-                          )}`}
-                        >
-                          {event.event_type}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {event.created_at ?? '—'}
-                        </span>
-                      </div>
+                  <>
+                    {latestEvents.map((event) => (
+                      <SwitchEventItem key={event.id} event={event} />
+                    ))}
 
-                      <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
-                        {event.message ?? 'Ingen meddelandetext'}
-                      </p>
-
-                      {event.switch_request_id ? (
-                        <div className="mt-3">
-                          <Link
-                            href={`/admin/operations/switches/${event.switch_request_id}`}
-                            className="text-xs font-semibold text-slate-700 underline underline-offset-4 dark:text-slate-200"
-                          >
-                            Öppna switch
-                          </Link>
+                    {archivedBehindAccordion.length > 0 ? (
+                      <details className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+                        <summary className="cursor-pointer text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          Visa äldre switchhändelser ({archivedBehindAccordion.length})
+                        </summary>
+                        <div className="mt-4 space-y-3">
+                          {archivedBehindAccordion.map((event) => (
+                            <SwitchEventItem key={event.id} event={event} />
+                          ))}
                         </div>
-                      ) : null}
-                    </div>
-                  ))
+                      </details>
+                    ) : null}
+                  </>
                 )}
               </div>
             </div>

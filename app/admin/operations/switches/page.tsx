@@ -282,7 +282,7 @@ export default async function AdminOperationsSwitchesPage({
             active={stage === 'blocked'}
           />
           <KpiCard
-            label="Saknar outbound"
+            label="Saknar utskick"
             value={queuedForOutboundCount}
             href={buildSwitchesHref({
               status,
@@ -293,7 +293,7 @@ export default async function AdminOperationsSwitchesPage({
             active={stage === 'queued_for_outbound'}
           />
           <KpiCard
-            label="Väntar dispatch"
+            label="Väntar på utskick"
             value={awaitingDispatchCount}
             href={buildSwitchesHref({
               status,
@@ -321,7 +321,7 @@ export default async function AdminOperationsSwitchesPage({
             active={stage === 'ready_to_execute'}
           />
           <KpiCard
-            label="Failed"
+            label="Kräver åtgärd"
             value={failedCount}
             href={buildSwitchesHref({
               status,
@@ -332,7 +332,7 @@ export default async function AdminOperationsSwitchesPage({
             active={stage === 'failed'}
           />
           <KpiCard
-            label="Completed"
+            label="Slutförda"
             value={completedCount}
             href={buildSwitchesHref({
               status,
@@ -351,7 +351,7 @@ export default async function AdminOperationsSwitchesPage({
                 Filter och arbetsläge
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Filtrera både på rå status och faktisk lifecycle. Ready-to-execute går till den dedikerade slutföringskön.
+                Filtrera på status, ärendetyp och handläggningsläge. Ärenden som är redo att slutföras visas i den dedikerade slutföringskön.
               </p>
             </div>
 
@@ -360,14 +360,14 @@ export default async function AdminOperationsSwitchesPage({
                 href="/admin/operations/ready-to-execute"
                 className="rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
               >
-                Öppna ready-to-execute
+                Öppna slutföringskö
               </Link>
 
               <Link
                 href="/admin/outbound"
                 className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                Öppna outbound
+                Öppna utskick
               </Link>
             </div>
           </div>
@@ -386,13 +386,13 @@ export default async function AdminOperationsSwitchesPage({
               className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
             >
               <option value="all">Alla statusar</option>
-              <option value="draft">Draft</option>
-              <option value="queued">Queued</option>
-              <option value="submitted">Submitted</option>
-              <option value="accepted">Accepted</option>
-              <option value="rejected">Rejected</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
+              <option value="draft">Utkast</option>
+              <option value="queued">Köad</option>
+              <option value="submitted">Skickad</option>
+              <option value="accepted">Accepterad</option>
+              <option value="rejected">Avvisad</option>
+              <option value="completed">Slutförd</option>
+              <option value="failed">Kräver åtgärd</option>
             </select>
 
             <select
@@ -411,14 +411,14 @@ export default async function AdminOperationsSwitchesPage({
               defaultValue={stage}
               className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
             >
-              <option value="all">Alla lifecycle-steg</option>
-              <option value="blocked">Blocked</option>
-              <option value="queued_for_outbound">Queued for outbound</option>
-              <option value="awaiting_dispatch">Awaiting dispatch</option>
-              <option value="awaiting_response">Awaiting response</option>
-              <option value="ready_to_execute">Ready to execute</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
+              <option value="all">Alla handläggningslägen</option>
+              <option value="blocked">Blockerad</option>
+              <option value="queued_for_outbound">Saknar utskick</option>
+              <option value="awaiting_dispatch">Väntar på utskick</option>
+              <option value="awaiting_response">Väntar på svar</option>
+              <option value="ready_to_execute">Redo att slutföra</option>
+              <option value="completed">Slutförd</option>
+              <option value="failed">Kräver åtgärd</option>
             </select>
 
             <div className="flex gap-3">
@@ -557,25 +557,25 @@ export default async function AdminOperationsSwitchesPage({
                             </span>
                           </div>
                           <div>
-                            Senaste event:{' '}
+                            Senaste händelse:{' '}
                             <span className="font-medium">
                               {latestEventText(request.id, events)}
                             </span>
                           </div>
                           <div>
-                            Lifecycle:{' '}
+                            Handläggningsläge:{' '}
                             <span className="font-medium">{lifecycle.reason}</span>
                           </div>
                           <div>
-                            Outbound status:{' '}
+                            Utskicksstatus:{' '}
                             <span className="font-medium">
-                              {outbound?.status ?? 'Ingen outbound ännu'}
+                              {outbound?.status ?? 'Inget utskick ännu'}
                             </span>
                           </div>
 
                           {readiness && !readiness.isReady ? (
                             <div className="text-rose-700 dark:text-rose-300">
-                              Blockers:{' '}
+                              Blockeringar:{' '}
                               <span className="font-medium">
                                 {summarizeReadinessIssues(readiness)}
                               </span>
@@ -588,7 +588,7 @@ export default async function AdminOperationsSwitchesPage({
                             href={`/admin/operations/switches/${request.id}`}
                             className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
                           >
-                            Öppna detail view
+                            Öppna ärende
                           </Link>
 
                           <Link
@@ -610,13 +610,13 @@ export default async function AdminOperationsSwitchesPage({
                           {['queued', 'submitted', 'accepted'].includes(request.status) ? (
                             outbound ? (
                               <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                                Outbound finns redan
+                                Utskick finns redan
                               </span>
                             ) : (
                               <form action={queueSupplierSwitchOutboundAction}>
                                 <input type="hidden" name="request_id" value={request.id} />
                                 <button className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-                                  Köa outbound manuellt
+                                  Köa utskick manuellt
                                 </button>
                               </form>
                             )
@@ -635,7 +635,7 @@ export default async function AdminOperationsSwitchesPage({
                                 href="/admin/operations/ready-to-execute"
                                 className="rounded-2xl border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
                               >
-                                Öppna ready-kö
+                                Öppna slutföringskö
                               </Link>
                             </>
                           ) : null}
@@ -658,13 +658,13 @@ export default async function AdminOperationsSwitchesPage({
                             defaultValue={request.status}
                             className="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                           >
-                            <option value="draft">Draft</option>
-                            <option value="queued">Queued</option>
-                            <option value="submitted">Submitted</option>
-                            <option value="accepted">Accepted</option>
-                            <option value="rejected">Rejected</option>
-                            <option value="completed">Completed</option>
-                            <option value="failed">Failed</option>
+                            <option value="draft">Utkast</option>
+                            <option value="queued">Köad</option>
+                            <option value="submitted">Skickad</option>
+                            <option value="accepted">Accepterad</option>
+                            <option value="rejected">Avvisad</option>
+                            <option value="completed">Slutförd</option>
+                            <option value="failed">Kräver åtgärd</option>
                           </select>
 
                           <input

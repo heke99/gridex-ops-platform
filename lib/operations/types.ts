@@ -157,6 +157,9 @@ export type SupplierSwitchEventRow = {
   payload: Record<string, unknown>
   created_at: string
   created_by: string | null
+  archived_at?: string | null
+  archived_by?: string | null
+  archive_reason?: string | null
 }
 
 export type SwitchReadinessIssueCode =

@@ -490,10 +490,10 @@ function buildCustomerLifecycleSummary(params: {
       failed,
       completed,
       activeOpen,
-      primaryLabel: 'Saknar outbound',
+      primaryLabel: 'Saknar utskick',
       primaryHref: '/admin/operations/switches?stage=queued_for_outbound',
       primaryDescription:
-        'Det finns switchar som saknar dispatchpost och behöver köas eller felsökas.',
+        'Det finns switchärenden som saknar utskick och behöver köas eller följas upp.',
     }
   }
 
@@ -507,10 +507,10 @@ function buildCustomerLifecycleSummary(params: {
       failed,
       completed,
       activeOpen,
-      primaryLabel: 'Failed / rejected',
+      primaryLabel: 'Kräver manuell åtgärd',
       primaryHref: '/admin/operations/switches?stage=failed',
       primaryDescription:
-        'Minst ett ärende har brutit flödet och behöver manuell bedömning, retry eller korrigering.',
+        'Minst ett ärende behöver manuell bedömning, nytt försök eller korrigering.',
     }
   }
 
@@ -1237,7 +1237,7 @@ export default async function CustomerAdminDetailPage({
                 {dataRequests.length}
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                billing + metering
+                faktura- och mätdata
               </div>
             </div>
 
@@ -1247,7 +1247,7 @@ export default async function CustomerAdminDetailPage({
                 {partnerExports.length}
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                queued / sent / ack
+                köade, skickade och kvitterade
               </div>
             </div>
           </div>
@@ -1315,7 +1315,7 @@ export default async function CustomerAdminDetailPage({
                       ? 'ready_to_execute'
                       : lifecycleSummary.primaryLabel === 'Väntar på kvittens'
                         ? 'awaiting_response'
-                        : lifecycleSummary.primaryLabel === 'Failed / rejected'
+                        : lifecycleSummary.primaryLabel === 'Kräver manuell åtgärd'
                           ? 'failed'
                           : lifecycleSummary.primaryLabel === 'Inga akuta switchblockerare'
                             ? 'completed'
@@ -1396,7 +1396,7 @@ export default async function CustomerAdminDetailPage({
               href="/admin/operations/switches?stage=queued_for_outbound"
               className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-950"
             >
-              <div className="text-sm text-slate-500 dark:text-slate-400">Saknar outbound</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">Saknar utskick</div>
               <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
                 {lifecycleSummary.queuedForOutbound}
               </div>
@@ -1406,7 +1406,7 @@ export default async function CustomerAdminDetailPage({
               href="/admin/operations/switches?stage=awaiting_dispatch"
               className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-950"
             >
-              <div className="text-sm text-slate-500 dark:text-slate-400">Väntar dispatch</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">Väntar på utskick</div>
               <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
                 {lifecycleSummary.awaitingDispatch}
               </div>
@@ -1416,7 +1416,7 @@ export default async function CustomerAdminDetailPage({
               href="/admin/operations/switches?stage=failed"
               className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-950"
             >
-              <div className="text-sm text-slate-500 dark:text-slate-400">Failed / rejected</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">Kräver manuell åtgärd</div>
               <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
                 {lifecycleSummary.failed}
               </div>
@@ -1426,7 +1426,7 @@ export default async function CustomerAdminDetailPage({
               href="/admin/operations/ready-to-execute"
               className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20"
             >
-              <div className="text-sm text-slate-500 dark:text-slate-400">Completed / ready view</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">Slutförda och redo</div>
               <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
                 {lifecycleSummary.completed + lifecycleSummary.readyToExecute}
               </div>

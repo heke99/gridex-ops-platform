@@ -49,8 +49,15 @@ type CustomerOperationsSummary = {
   priorityLabel: string
 }
 
+type CustomerAuthorizationSummary = {
+  powerOfAttorneyCount: number
+  signedPowerOfAttorneyCount: number
+  hasSignedPowerOfAttorney: boolean
+}
+
 type CustomerWithOperations = CustomerListRow & {
   operations: CustomerOperationsSummary
+  authorization: CustomerAuthorizationSummary
 }
 
 type OperationsFilterKey =
@@ -299,13 +306,13 @@ function buildCustomerOperationsSummary(params: {
       failed,
       completed,
       activeOpen,
-      primaryLabel: 'Väntar dispatch',
+      primaryLabel: 'Väntar på utskick',
       primaryHref: '/admin/operations/switches?stage=awaiting_dispatch',
       primaryTone: lifecycleTone('awaiting_dispatch'),
       primaryDescription:
-        'Outbound finns men dispatchkedjan är inte färdig.',
+        'Utskick finns men utskickskedjan är inte färdig.',
       priorityRank: 4,
-      priorityLabel: 'Dispatch pågår',
+      priorityLabel: 'Utskick pågår',
     }
   }
 
@@ -319,13 +326,13 @@ function buildCustomerOperationsSummary(params: {
       failed,
       completed,
       activeOpen,
-      primaryLabel: 'Saknar outbound',
+      primaryLabel: 'Saknar utskick',
       primaryHref: '/admin/operations/switches?stage=queued_for_outbound',
       primaryTone: lifecycleTone('queued_for_outbound'),
       primaryDescription:
-        'Minst en switch saknar dispatchpost och behöver köas eller felsökas.',
+        'Minst ett switchärende saknar utskick och behöver köas eller följas upp.',
       priorityRank: 5,
-      priorityLabel: 'Köa outbound',
+      priorityLabel: 'Köa utskick',
     }
   }
 
@@ -339,11 +346,11 @@ function buildCustomerOperationsSummary(params: {
       failed,
       completed,
       activeOpen,
-      primaryLabel: 'Failed / rejected',
+      primaryLabel: 'Kräver manuell åtgärd',
       primaryHref: '/admin/operations/switches?stage=failed',
       primaryTone: lifecycleTone('failed'),
       primaryDescription:
-        'Det finns ärenden som brutit flödet och kräver manuell bedömning.',
+        'Det finns ärenden som har stoppats och kräver manuell bedömning.',
       priorityRank: 6,
       priorityLabel: 'Kräver beslut',
     }
@@ -611,11 +618,11 @@ function filterLabel(filter: OperationsFilterKey): string {
     case 'awaiting_response':
       return 'kunder som väntar på svar'
     case 'awaiting_dispatch':
-      return 'kunder som väntar på dispatch'
+      return 'kunder som väntar på utskick'
     case 'queued_for_outbound':
-      return 'kunder som saknar outbound'
+      return 'kunder som saknar utskick'
     case 'failed':
-      return 'kunder med failed/rejected'
+      return 'kunder som kräver manuell åtgärd'
     case 'active_open':
       return 'kunder med aktiv operationssignal'
     case 'no_signal':
@@ -662,7 +669,7 @@ function customerTypeLabel(value: string | null): string {
 function customerStatusLabel(value: string | null): string {
   switch (value) {
     case 'draft':
-      return 'Draft'
+      return 'Utkast'
     case 'pending_verification':
       return 'Väntar verifiering'
     case 'active':
@@ -683,7 +690,7 @@ function customerStatusLabel(value: string | null): string {
 function contractStatusLabel(value: CustomerContractRow['status']): string {
   switch (value) {
     case 'draft':
-      return 'Draft'
+      return 'Utkast'
     case 'pending_signature':
       return 'Väntar signering'
     case 'signed':
@@ -784,7 +791,12 @@ export default async function AdminCustomersPage({
 
   const customerIds = customers.map((customer) => customer.id)
 
-  const [sitesQuery, switchRequestsQuery, outboundRequestsQuery, latestContractsByCustomerId] =
+  const [
+    sitesQuery,
+    switchRequestsQuery,
+    outboundRequestsQuery,
+    powersOfAttorneyQuery,
+  ] =
     customerIds.length > 0
       ? await Promise.all([
           supabaseService
@@ -800,28 +812,74 @@ export default async function AdminCustomersPage({
             .select('*')
             .eq('request_type', 'supplier_switch')
             .in('customer_id', customerIds),
-          listLatestCustomerContractsByCustomerIds(customerIds),
+          supabaseService
+            .from('powers_of_attorney')
+            .select('id, customer_id, status')
+            .in('customer_id', customerIds),
         ])
       : [
           { data: [], error: null },
           { data: [], error: null },
           { data: [], error: null },
-          new Map<string, LatestCustomerContractSummary>(),
+          { data: [], error: null },
         ]
+
+  const latestContractsByCustomerId: Map<string, LatestCustomerContractSummary> =
+    customerIds.length > 0
+      ? await listLatestCustomerContractsByCustomerIds(customerIds)
+      : new Map<string, LatestCustomerContractSummary>()
 
   if (sitesQuery.error) throw sitesQuery.error
   if (switchRequestsQuery.error) throw switchRequestsQuery.error
   if (outboundRequestsQuery.error) throw outboundRequestsQuery.error
+  if (powersOfAttorneyQuery.error) throw powersOfAttorneyQuery.error
 
   const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
   const switchRequests =
     (switchRequestsQuery.data ?? []) as SupplierSwitchRequestRow[]
   const outboundRequests =
     (outboundRequestsQuery.data ?? []) as OutboundRequestRow[]
+  const powerOfAttorneyRows = (powersOfAttorneyQuery.data ?? []) as Array<{
+    id: string
+    customer_id: string
+    status: string | null
+  }>
+
+  const authorizationByCustomerId = new Map<string, CustomerAuthorizationSummary>()
+
+  for (const customer of customers) {
+    authorizationByCustomerId.set(customer.id, {
+      powerOfAttorneyCount: 0,
+      signedPowerOfAttorneyCount: 0,
+      hasSignedPowerOfAttorney: false,
+    })
+  }
+
+  for (const row of powerOfAttorneyRows) {
+    const current = authorizationByCustomerId.get(row.customer_id) ?? {
+      powerOfAttorneyCount: 0,
+      signedPowerOfAttorneyCount: 0,
+      hasSignedPowerOfAttorney: false,
+    }
+    const signed = row.status === 'signed'
+
+    authorizationByCustomerId.set(row.customer_id, {
+      powerOfAttorneyCount: current.powerOfAttorneyCount + 1,
+      signedPowerOfAttorneyCount:
+        current.signedPowerOfAttorneyCount + (signed ? 1 : 0),
+      hasSignedPowerOfAttorney: current.hasSignedPowerOfAttorney || signed,
+    })
+  }
 
   const customersWithOperations: CustomerWithOperations[] = customers.map(
     (customer) => ({
       ...customer,
+      authorization:
+        authorizationByCustomerId.get(customer.id) ?? {
+          powerOfAttorneyCount: 0,
+          signedPowerOfAttorneyCount: 0,
+          hasSignedPowerOfAttorney: false,
+        },
       operations: buildCustomerOperationsSummary({
         customerId: customer.id,
         sites,
@@ -873,6 +931,14 @@ export default async function AdminCustomersPage({
     (customer) => customer.operations.activeOpen === 0
   ).length
 
+  const customersWithSignedPowerOfAttorney = sortedCustomers.filter(
+    (customer) => customer.authorization.hasSignedPowerOfAttorney
+  ).length
+
+  const customersMissingPowerOfAttorney = sortedCustomers.filter(
+    (customer) => !customer.authorization.hasSignedPowerOfAttorney
+  ).length
+
   const latestContracts = Array.from(latestContractsByCustomerId.values())
   const noContractCustomers = customersMatchingOps.filter(
     (customer) => !latestContractsByCustomerId.get(customer.id)
@@ -902,7 +968,7 @@ export default async function AdminCustomersPage({
     <div className="min-h-screen">
       <AdminHeader
         title="Kunder"
-        subtitle="Grundregister för privat- och företagskunder, nu med operationsfilter, kundstatusfilter, avtalsfilter, avtalssnabbvy och pagination."
+        subtitle="Kundregister med sök, statusfilter, avtalsläge, fullmaktsöversikt och tydlig operationsstatus."
         userEmail={user?.email ?? null}
       />
 
@@ -912,7 +978,7 @@ export default async function AdminCustomersPage({
             href="/admin/customers/intake"
             className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
           >
-            Kundintag / bulkimport
+            Kundintag och import
           </Link>
 
           <Link
@@ -944,25 +1010,25 @@ export default async function AdminCustomersPage({
               {pageResult.counts.active}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Kundstatus = active
+              Aktiva kundrelationer
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/10">
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Inaktiva kunder
+              Saknar signerad fullmakt
             </div>
             <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
-              {pageResult.counts.inactive}
+              {customersMissingPowerOfAttorney}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Kundstatus = inactive
+              Signerad fullmakt finns för {customersWithSignedPowerOfAttorney} kunder på sidan.
             </div>
           </div>
 
           <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Aktivt avtal på sidan
+              Aktiva avtal
             </div>
             <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
               {activeContractsOnPage}
@@ -974,13 +1040,13 @@ export default async function AdminCustomersPage({
 
           <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Aktiv operationsuppföljning på sidan
+              Aktiv operationsuppföljning
             </div>
             <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
               {activeOperationsCustomers}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Väntar svar: {awaitingResponseCustomers} · Väntar dispatch: {awaitingDispatchCustomers}
+              Väntar svar: {awaitingResponseCustomers} · Väntar på utskick: {awaitingDispatchCustomers}
             </div>
           </div>
         </section>
@@ -991,7 +1057,7 @@ export default async function AdminCustomersPage({
               Ny kund
             </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Skapa kundpost innan avtal, fullmakt och anläggning kopplas. För full kundregistrering med avtal, nätägare och bulkimport använder du Kundintag.
+              Skapa en kundpost snabbt. För komplett registrering med avtal, fullmakt, anläggning och import använder du Kundintag.
             </p>
 
             <form action={createCustomerFromCustomersPage} className="mt-6 space-y-4">
@@ -1052,7 +1118,7 @@ export default async function AdminCustomersPage({
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Org.nr
+                    Organisationsnummer
                   </label>
                   <input
                     name="orgNumber"
@@ -1103,7 +1169,7 @@ export default async function AdminCustomersPage({
                     {opsFilter !== 'all' ? ` i operationsfiltret "${filterLabel(opsFilter)}"` : ''}.
                   </p>
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    Sorteras automatiskt efter operationsprioritet på sidan: blockerad → redo att slutföra → väntar svar → väntar dispatch → saknar outbound → failed → övriga.
+                    Sorteras automatiskt efter operationsprioritet på sidan: blockerad → redo att slutföra → väntar svar → väntar på utskick → saknar utskick → kräver åtgärd → övriga.
                   </p>
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     Sökningen stöder kundnummer, personnummer, namn, efternamn, e-post, telefon, anläggning och mätpunkts-id.
@@ -1124,7 +1190,7 @@ export default async function AdminCustomersPage({
                     className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   >
                     <option value="all">Alla kundstatusar</option>
-                    <option value="draft">Draft</option>
+                    <option value="draft">Utkast</option>
                     <option value="pending_verification">Väntar verifiering</option>
                     <option value="active">Aktiv</option>
                     <option value="inactive">Inaktiv</option>
@@ -1166,7 +1232,7 @@ export default async function AdminCustomersPage({
                   active={statusFilter === 'all'}
                 />
                 <FilterChip
-                  label="Draft"
+                  label="Utkast"
                   count={pageResult.counts.draft}
                   href={buildCustomersHref({ q: query, ops: opsFilter, status: 'draft', contract: contractFilter, page: 1 })}
                   active={statusFilter === 'draft'}
@@ -1364,7 +1430,7 @@ export default async function AdminCustomersPage({
                   tone="info"
                 />
                 <FilterChip
-                  label="Väntar dispatch"
+                  label="Väntar på utskick"
                   count={awaitingDispatchCustomers}
                   href={buildCustomersHref({
                     q: query,
@@ -1377,7 +1443,7 @@ export default async function AdminCustomersPage({
                   tone="warning"
                 />
                 <FilterChip
-                  label="Saknar outbound"
+                  label="Saknar utskick"
                   count={queuedForOutboundCustomers}
                   href={buildCustomersHref({
                     q: query,
@@ -1390,7 +1456,7 @@ export default async function AdminCustomersPage({
                   tone="warning"
                 />
                 <FilterChip
-                  label="Failed"
+                  label="Kräver åtgärd"
                   count={failedCustomers}
                   href={buildCustomersHref({
                     q: query,
@@ -1494,16 +1560,7 @@ export default async function AdminCustomersPage({
                       Kontakt
                     </th>
                     <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
-                      Anläggningar
-                    </th>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
-                      Aktiva anl.
-                    </th>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
-                      Mätpunkter
-                    </th>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
-                      Aktiva mätpkt
+                      Kopplingar
                     </th>
                     <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
                       Senaste avtal
@@ -1521,7 +1578,7 @@ export default async function AdminCustomersPage({
                   {filteredCustomers.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={13}
+                        colSpan={10}
                         className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
                       >
                         Inga kunder matchade sökningen eller filtren på denna sida.
@@ -1578,27 +1635,28 @@ export default async function AdminCustomersPage({
                           </td>
 
                           <td className="px-6 py-4">
-                            <span className="inline-flex min-w-10 justify-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                              {customer.site_count}
-                            </span>
-                          </td>
-
-                          <td className="px-6 py-4">
-                            <span className="inline-flex min-w-10 justify-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                              {customer.active_site_count}
-                            </span>
-                          </td>
-
-                          <td className="px-6 py-4">
-                            <span className="inline-flex min-w-10 justify-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                              {customer.metering_point_count}
-                            </span>
-                          </td>
-
-                          <td className="px-6 py-4">
-                            <span className="inline-flex min-w-10 justify-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                              {customer.active_metering_point_count}
-                            </span>
+                            <div className="min-w-[230px] space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                                  Anläggningar: {customer.active_site_count}/{customer.site_count}
+                                </span>
+                                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                                  Mätpunkter: {customer.active_metering_point_count}/{customer.metering_point_count}
+                                </span>
+                                <span
+                                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
+                                    customer.authorization.hasSignedPowerOfAttorney
+                                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                      : 'border-amber-200 bg-amber-50 text-amber-700'
+                                  }`}
+                                >
+                                  Fullmakt: {customer.authorization.signedPowerOfAttorneyCount}/{customer.authorization.powerOfAttorneyCount}
+                                </span>
+                              </div>
+                              <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                Anläggningar, mätpunkter och fullmakter används för att koppla inkommande data till rätt kund.
+                              </p>
+                            </div>
                           </td>
 
                           <td className="px-6 py-4">
@@ -1653,7 +1711,7 @@ export default async function AdminCustomersPage({
 
                                 {operations.activeOpen > 0 ? (
                                   <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                                    öppna: {operations.activeOpen}
+                                    öppna ärenden: {operations.activeOpen}
                                   </span>
                                 ) : null}
                               </div>
@@ -1661,19 +1719,19 @@ export default async function AdminCustomersPage({
                               <div className="mt-2 flex flex-wrap gap-2">
                                 {operations.blocked > 0 ? (
                                   <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">
-                                    blocked {operations.blocked}
+                                    blockerad {operations.blocked}
                                   </span>
                                 ) : null}
 
                                 {operations.queuedForOutbound > 0 ? (
                                   <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                                    saknar outbound {operations.queuedForOutbound}
+                                    saknar utskick {operations.queuedForOutbound}
                                   </span>
                                 ) : null}
 
                                 {operations.awaitingDispatch > 0 ? (
                                   <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                                    dispatch {operations.awaitingDispatch}
+                                    utskick {operations.awaitingDispatch}
                                   </span>
                                 ) : null}
 
@@ -1685,13 +1743,13 @@ export default async function AdminCustomersPage({
 
                                 {operations.readyToExecute > 0 ? (
                                   <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                                    ready {operations.readyToExecute}
+                                    redo {operations.readyToExecute}
                                   </span>
                                 ) : null}
 
                                 {operations.failed > 0 ? (
                                   <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">
-                                    failed {operations.failed}
+                                    åtgärd {operations.failed}
                                   </span>
                                 ) : null}
                               </div>

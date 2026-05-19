@@ -951,6 +951,7 @@ export async function listSupplierSwitchEventsByRequestIds(
     .from('supplier_switch_events')
     .select('*')
     .in('switch_request_id', requestIds)
+    .is('archived_at', null)
     .order('created_at', { ascending: false })
 
   if (error) throw error
@@ -964,6 +965,7 @@ export async function listRecentSupplierSwitchEvents(
   const { data, error } = await supabase
     .from('supplier_switch_events')
     .select('*')
+    .is('archived_at', null)
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -1394,6 +1396,30 @@ export async function updateSupplierSwitchRequestStatus(
   })
 
   return saved
+}
+
+
+export async function archiveSupplierSwitchEvent(
+  supabase: SupabaseClient,
+  params: {
+    eventId: string
+    actorUserId: string
+    reason?: string | null
+  }
+): Promise<SupplierSwitchEventRow> {
+  const { data, error } = await supabase
+    .from('supplier_switch_events')
+    .update({
+      archived_at: new Date().toISOString(),
+      archived_by: params.actorUserId,
+      archive_reason: params.reason?.trim() || 'Arkiverad från operationsöversikten.',
+    })
+    .eq('id', params.eventId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as SupplierSwitchEventRow
 }
 
 export async function createSupplierSwitchEvent(
