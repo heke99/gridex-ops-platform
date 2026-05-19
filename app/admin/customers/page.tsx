@@ -77,9 +77,9 @@ function StatusBadge({ status }: { status: string | null }) {
   const styles: Record<string, string> = {
     active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     draft: 'border-amber-200 bg-amber-50 text-amber-700',
-    pending_verification: 'border-blue-200 bg-blue-50 text-blue-700',
+    pending_verification: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     inactive: 'border-slate-200 bg-slate-50 text-slate-700',
-    moved: 'border-purple-200 bg-purple-50 text-purple-700',
+    moved: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     terminated: 'border-rose-200 bg-rose-50 text-rose-700',
     blocked: 'border-rose-200 bg-rose-50 text-rose-700',
   }
@@ -107,7 +107,7 @@ function lifecycleTone(stage: string): string {
   }
 
   if (['awaiting_response'].includes(stage)) {
-    return 'border-blue-200 bg-blue-50 text-blue-700'
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   }
 
   return 'border-amber-200 bg-amber-50 text-amber-700'
@@ -116,7 +116,7 @@ function lifecycleTone(stage: string): string {
 function priorityTone(rank: number): string {
   if (rank === 1) return 'border-rose-200 bg-rose-50 text-rose-700'
   if (rank === 2) return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  if (rank === 3) return 'border-blue-200 bg-blue-50 text-blue-700'
+  if (rank === 3) return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (rank <= 5) return 'border-amber-200 bg-amber-50 text-amber-700'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
@@ -546,7 +546,7 @@ function FilterChip({
       : tone === 'success'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
         : tone === 'info'
-          ? 'border-blue-200 bg-blue-50 text-blue-700'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
           : tone === 'warning'
             ? 'border-amber-200 bg-amber-50 text-amber-700'
             : 'border-slate-200 bg-slate-50 text-slate-700'
@@ -720,7 +720,7 @@ function contractStatusTone(value: CustomerContractRow['status']): string {
     case 'active':
       return 'border-emerald-200 bg-emerald-50 text-emerald-700'
     case 'signed':
-      return 'border-blue-200 bg-blue-50 text-blue-700'
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700'
     case 'pending_signature':
       return 'border-amber-200 bg-amber-50 text-amber-700'
     case 'terminated':
@@ -958,7 +958,7 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
             </div>
           </div>
 
-          <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/10">
             <div className="text-sm text-slate-500 dark:text-slate-400">
               Aktivt avtal på sidan
             </div>
@@ -970,7 +970,7 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
             </div>
           </div>
 
-          <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/10">
             <div className="text-sm text-slate-500 dark:text-slate-400">
               Aktiv operationsuppföljning på sidan
             </div>
@@ -984,8 +984,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-          <section className="rounded-3xl border border-blue-200 bg-blue-50 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/20">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-200">
+          <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/20">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-200">
               Operativt bolag
             </p>
             <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">
@@ -1601,7 +1601,7 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
                                 ) : null}
 
                                 {operations.awaitingResponse > 0 ? (
-                                  <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
                                     väntar svar {operations.awaitingResponse}
                                   </span>
                                 ) : null}
@@ -1636,7 +1636,7 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
 
                               <Link
                                 href={`/admin/customers/${customer.id}#contracts`}
-                                className="inline-flex rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/20 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                                className="inline-flex rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
                               >
                                 Avtal
                               </Link>

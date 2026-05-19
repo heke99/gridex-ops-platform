@@ -15,7 +15,7 @@ function text(value: unknown): string {
 function statusTone(status: string): string {
   if (status === 'applied') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (status === 'rejected' || status === 'failed') return 'border-rose-200 bg-rose-50 text-rose-700'
-  if (status === 'approved') return 'border-blue-200 bg-blue-50 text-blue-700'
+  if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   return 'border-amber-200 bg-amber-50 text-amber-700'
 }
 
@@ -51,7 +51,7 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
             <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
               {item.status}
             </span>
-            <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
               {item.case_type}
             </span>
           </div>

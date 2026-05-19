@@ -77,7 +77,7 @@ function ProdatPrepareCard({
         {linkedMessageId ? (
           <Link
             href={`/admin/ediel/messages/${linkedMessageId}`}
-            className="text-indigo-700 underline-offset-2 hover:underline"
+            className="text-emerald-700 underline-offset-2 hover:underline"
           >
             {linkedMessageId}
           </Link>
@@ -209,7 +209,7 @@ export default function PrepareSwitchPanels({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-950">
@@ -222,13 +222,13 @@ export default function PrepareSwitchPanels({
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border border-blue-200 bg-white px-2 py-1 font-medium text-blue-700">
+            <span className="rounded-full border border-emerald-200 bg-white px-2 py-1 font-medium text-emerald-700">
               PRODAT Z03 / Z04 / Z05 / Z06 / Z09 / Z10
             </span>
-            <span className="rounded-full border border-blue-200 bg-white px-2 py-1 font-medium text-blue-700">
+            <span className="rounded-full border border-emerald-200 bg-white px-2 py-1 font-medium text-emerald-700">
               UTILTS E73 / E66
             </span>
-            <span className="rounded-full border border-blue-200 bg-white px-2 py-1 font-medium text-blue-700">
+            <span className="rounded-full border border-emerald-200 bg-white px-2 py-1 font-medium text-emerald-700">
               AI-lista
             </span>
           </div>

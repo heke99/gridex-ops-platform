@@ -54,7 +54,7 @@ function KpiCard({
       : tone === 'success'
         ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/50 dark:bg-emerald-950/10'
         : tone === 'info'
-          ? 'border-blue-200 bg-blue-50/70 dark:border-blue-900/50 dark:bg-blue-950/10'
+          ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/50 dark:bg-emerald-950/10'
           : tone === 'warning'
             ? 'border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/10'
             : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
@@ -97,7 +97,7 @@ function statusStyle(status: string): string {
   }
 
   if (['sent', 'submitted', 'awaiting_response'].includes(status)) {
-    return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
 
   return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
@@ -237,7 +237,7 @@ function QueueCard({
       : tone === 'success'
         ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/50 dark:bg-emerald-950/10'
         : tone === 'info'
-          ? 'border-blue-200 bg-blue-50/70 dark:border-blue-900/50 dark:bg-blue-950/10'
+          ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/50 dark:bg-emerald-950/10'
           : tone === 'warning'
             ? 'border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/10'
             : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'

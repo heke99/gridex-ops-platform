@@ -100,7 +100,7 @@ export default function EdielRuleTemplateModals({ hasProdatRule }: Props) {
 
   return (
     <>
-      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
         <h2 className="text-lg font-semibold text-slate-950">Processmallar för regler</h2>
         <p className="mt-1 text-sm text-slate-700">
           Klicka på en mall så öppnas en ruta direkt. Där ser du vilka regler som kommer
@@ -123,7 +123,7 @@ export default function EdielRuleTemplateModals({ hasProdatRule }: Props) {
                     Version {template.versionLabel}
                   </span>
                   {template.defaultValidFrom ? (
-                    <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                    <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
                       Från {template.defaultValidFrom}
                     </span>
                   ) : null}
@@ -167,7 +167,7 @@ export default function EdielRuleTemplateModals({ hasProdatRule }: Props) {
               </button>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-slate-700">
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-slate-700">
               <div className="font-medium text-slate-900">Vad den här mallen gör</div>
               <p className="mt-1">{activeTemplate.help}</p>
             </div>

@@ -36,7 +36,7 @@ function badgeTone(tone: Tone) {
   if (tone === 'green') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (tone === 'yellow') return 'border-amber-200 bg-amber-50 text-amber-700'
   if (tone === 'red') return 'border-rose-200 bg-rose-50 text-rose-700'
-  if (tone === 'blue') return 'border-blue-200 bg-blue-50 text-blue-700'
+  if (tone === 'blue') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
@@ -280,7 +280,7 @@ export default async function AgtCasePage({
         userEmail={context.email}
       />
 
-      <section className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-slate-50 p-5">
+      <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap gap-2">
@@ -332,8 +332,8 @@ export default async function AgtCasePage({
           <p className="mt-2 text-sm leading-6 text-slate-600">{testCase.agtInstruction}</p>
 
           {testCase.prodatOutboundTemplate ? (
-            <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm leading-6 text-blue-900">
-              <div className="font-semibold text-blue-950">2026A outbound-template</div>
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">
+              <div className="font-semibold text-emerald-950">2026A outbound-template</div>
               <div className="mt-1">
                 GridCore skickar bara om payloaden matchar vald AGT-template. För detta test: 223/Z13 ={' '}
                 <span className="font-mono font-semibold">{testCase.prodatOutboundTemplate.reasonForTransaction}</span> och 217/Z04 ={' '}
@@ -354,7 +354,7 @@ export default async function AgtCasePage({
               <form action={createAgtSupplierOutboundCommandAction}>
                 <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
                 <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
-                <button disabled={!run} className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">
+                <button disabled={!run} className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300">
                   Generera + skicka
                 </button>
               </form>
@@ -466,7 +466,7 @@ export default async function AgtCasePage({
                     {isPrimaryInbound(testCase, message) ? (
                       <div className="mt-2 text-xs font-semibold text-emerald-700">Detta är portalens affärsmeddelande för testet. Motorn skapar rätt kvittensförslag.</div>
                     ) : (
-                      <div className="mt-2 text-xs font-semibold text-blue-700">Detta är portalens kvittens/svarsmeddelande för ett outbound-test och kan kopplas till testkedjan.</div>
+                      <div className="mt-2 text-xs font-semibold text-emerald-700">Detta är portalens kvittens/svarsmeddelande för ett outbound-test och kan kopplas till testkedjan.</div>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -508,8 +508,8 @@ export default async function AgtCasePage({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-sm leading-6 text-indigo-900">
-        <div className="font-semibold text-indigo-950">SaaS-regel för detta fönster</div>
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-900">
+        <div className="font-semibold text-emerald-950">SaaS-regel för detta fönster</div>
         <p className="mt-1">
           Testfallet styrs av AGT-registret och aktiv tenant-runtime. Inga tenantnamn ska ligga som specialfall i motorn. För andra leverantörer byts Ediel-id, mailbox, routes, eventuell sender-subadress och BRP i runtime.
         </p>

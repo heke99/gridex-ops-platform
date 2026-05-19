@@ -15,14 +15,14 @@ function tone(status: EdielInstructionStatus): string {
   if (status === 'runtime_ready') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (status === 'runtime_partial') return 'border-amber-200 bg-amber-50 text-amber-700'
   if (status === 'documented_not_enabled') return 'border-slate-200 bg-slate-50 text-slate-700'
-  return 'border-blue-200 bg-blue-50 text-blue-700'
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700'
 }
 
 function cardTone(status: EdielInstructionStatus): string {
   if (status === 'runtime_ready') return 'border-emerald-200 bg-emerald-50'
   if (status === 'runtime_partial') return 'border-amber-200 bg-amber-50'
   if (status === 'documented_not_enabled') return 'border-slate-200 bg-white'
-  return 'border-blue-200 bg-blue-50'
+  return 'border-emerald-200 bg-emerald-50'
 }
 
 function getPreviousVersion(spec: InstructionSpecRow): string {
@@ -76,9 +76,9 @@ export default async function AdminEdielAnvisningarPage() {
           <p className="mt-2 text-3xl font-semibold text-amber-900">{partialCount}</p>
         </article>
 
-        <article className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-          <p className="text-sm text-blue-700">Parkerade/senare</p>
-          <p className="mt-2 text-3xl font-semibold text-blue-900">{parkedCount}</p>
+        <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-sm text-emerald-700">Parkerade/senare</p>
+          <p className="mt-2 text-3xl font-semibold text-emerald-900">{parkedCount}</p>
         </article>
       </section>
 
@@ -146,7 +146,7 @@ export default async function AdminEdielAnvisningarPage() {
 
               <div className="rounded-xl bg-white/70 p-2">
                 <div className="text-slate-500">Senare</div>
-                <div className="text-lg font-semibold text-blue-800">
+                <div className="text-lg font-semibold text-emerald-800">
                   {group.documentedNotEnabled + group.futureScope}
                 </div>
               </div>

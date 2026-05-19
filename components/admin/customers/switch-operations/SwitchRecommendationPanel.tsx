@@ -80,8 +80,8 @@ export default function SwitchRecommendationPanel({
   edielMessageCount,
 }: Props) {
   return (
-    <div className="rounded-3xl border border-blue-200 bg-blue-50/70 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
-      <div className="border-b border-blue-200 px-6 py-5 dark:border-blue-900/50">
+    <div className="rounded-3xl border border-emerald-200 bg-emerald-50/70 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/10">
+      <div className="border-b border-emerald-200 px-6 py-5 dark:border-emerald-900/50">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
           Rekommenderat nästa steg i switchkedjan
         </h2>
@@ -270,7 +270,7 @@ export default function SwitchRecommendationPanel({
             </Link>
             <Link
               href="/admin/ediel"
-              className="rounded-2xl border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-700 dark:border-blue-800 dark:text-blue-300"
+              className="rounded-2xl border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300"
             >
               Öppna Ediel-center
             </Link>

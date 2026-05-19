@@ -45,7 +45,7 @@ function tone(status: string): string {
     return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
   }
   if (['sent'].includes(status)) {
-    return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
   return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
 }
@@ -608,7 +608,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                                 {linkedMessage ? (
                                   <Link
                                     href={`/admin/ediel/messages/${linkedMessage.id}`}
-                                    className="text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+                                    className="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
                                   >
                                     {linkedMessage.message_family} {linkedMessage.message_code} ·{' '}
                                     {linkedMessage.status}
@@ -674,7 +674,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                           ) : null}
 
                           {request.status === 'sent' ? (
-                            <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                            <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
                               {['email_manual', 'file_export'].includes(request.channel_type)
                                 ? 'Den här requesten kan auto-kvitteras av sweepen eftersom kanalen är intern/manuell.'
                                 : 'Den här requesten väntar på extern återkoppling.'}
@@ -712,7 +712,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                                 <input type="hidden" name="customer_id" value={request.customer_id} />
                                 <input type="hidden" name="status" value="sent" />
                                 <input type="hidden" name="dispatch_step" value="send" />
-                                <button className="w-full rounded-2xl border border-blue-300 px-4 py-2.5 text-sm font-semibold text-blue-700 dark:border-blue-800 dark:text-blue-300">
+                                <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">
                                   Markera som skickad
                                 </button>
                               </form>

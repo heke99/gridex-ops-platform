@@ -88,7 +88,7 @@ export function documentFlowBadge(
   if (replacesAnotherDocument) {
     return {
       label: 'Ersättningsdokument',
-      className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
+      className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
     }
   }
 
@@ -369,7 +369,7 @@ export function buildDocumentTimelineItems(params: {
         ]
           .filter((value): value is string => Boolean(value))
           .join(' '),
-        tone: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
+        tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
         links,
       })
       continue

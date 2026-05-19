@@ -22,14 +22,14 @@ function statusTone(status: string): string {
   if (['failed', 'cancelled'].includes(status)) {
     return 'bg-rose-100 text-rose-700'
   }
-  if (status === 'sent') return 'bg-blue-100 text-blue-700'
+  if (status === 'sent') return 'bg-emerald-100 text-emerald-700'
   return 'bg-amber-100 text-amber-700'
 }
 
 function sourceTone(sourceSystem: string): string {
   const normalized = sourceSystem.toLowerCase()
   if (normalized.includes('ediel') || normalized.includes('utilts')) {
-    return 'bg-indigo-100 text-indigo-700'
+    return 'bg-emerald-100 text-emerald-700'
   }
   if (normalized.includes('manual')) return 'bg-slate-100 text-slate-700'
   return 'bg-emerald-100 text-emerald-700'
@@ -96,8 +96,8 @@ export function MeteringOperationalSummary({
         <div className="mt-2 text-3xl font-semibold text-slate-950">{openRequests.length}</div>
       </div>
 
-      <div className="rounded-3xl border border-blue-200 bg-blue-50 p-5">
-        <div className="text-sm font-medium text-blue-700">Skickade E73-liknande</div>
+      <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+        <div className="text-sm font-medium text-emerald-700">Skickade E73-liknande</div>
         <div className="mt-2 text-3xl font-semibold text-slate-950">{sentRequests.length}</div>
       </div>
 
@@ -111,8 +111,8 @@ export function MeteringOperationalSummary({
         <div className="mt-2 text-3xl font-semibold text-slate-950">{failedRequests.length}</div>
       </div>
 
-      <div className="rounded-3xl border border-indigo-200 bg-indigo-50 p-5">
-        <div className="text-sm font-medium text-indigo-700">UTILTS/Ediel-värden</div>
+      <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+        <div className="text-sm font-medium text-emerald-700">UTILTS/Ediel-värden</div>
         <div className="mt-2 text-3xl font-semibold text-slate-950">{edielValues.length}</div>
       </div>
 
@@ -167,7 +167,7 @@ export function MeteringRequestsSection({
                     {requestKindLabel(request.request_scope)}
                   </span>
                   {request.response_payload?.edielMessageId ? (
-                    <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                       Inkommet via Ediel
                     </span>
                   ) : null}

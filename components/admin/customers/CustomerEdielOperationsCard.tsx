@@ -683,8 +683,8 @@ aperak_status: normalizeRecommendationAckStatus(
         </div>
       </div>
 
-      <div className="rounded-3xl border border-blue-200 bg-blue-50/70 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
-        <div className="border-b border-blue-200 px-6 py-5 dark:border-blue-900/50">
+      <div className="rounded-3xl border border-emerald-200 bg-emerald-50/70 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/10">
+        <div className="border-b border-emerald-200 px-6 py-5 dark:border-emerald-900/50">
           <h3 className="text-base font-semibold text-slate-900 dark:text-white">
             Rekommenderat Ediel-nästa steg för kunden
           </h3>
@@ -1185,7 +1185,7 @@ aperak_status: normalizeRecommendationAckStatus(
                         <div className="flex flex-wrap items-center gap-2">
                           <Link
                             href={`/admin/ediel/messages/${message.id}`}
-                            className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 underline-offset-2 hover:underline dark:bg-indigo-950/40 dark:text-indigo-300"
+                            className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 underline-offset-2 hover:underline dark:bg-emerald-950/40 dark:text-emerald-300"
                           >
                             {message.message_family} {message.message_code}
                           </Link>
@@ -1442,7 +1442,7 @@ function EdielLifecyclePanel({
                 {lifecycle.latestInbound ? (
                   <Link
                     href={`/admin/ediel/messages/${lifecycle.latestInbound.id}`}
-                    className="text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+                    className="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
                   >
                     {lifecycle.latestInbound.message_family} {lifecycle.latestInbound.message_code}
                   </Link>
@@ -1472,7 +1472,7 @@ function EdielLifecyclePanel({
               <div className="mt-1 text-xs leading-5">
                 <Link
                   href={`/admin/ediel/messages/${lifecycle.latestFailure.id}`}
-                  className="text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+                  className="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
                 >
                   {lifecycle.latestFailure.message_family} {lifecycle.latestFailure.message_code}
                 </Link>{' '}
@@ -1567,7 +1567,7 @@ function LifecycleCountCard({
         {latest ? (
           <Link
             href={`/admin/ediel/messages/${latest.id}`}
-            className="text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+            className="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
           >
             {latest.message_family} {latest.message_code} · {latest.status}
           </Link>
@@ -1641,7 +1641,7 @@ function Grid({
         {href && value ? (
           <Link
             href={href}
-            className="font-medium text-indigo-700 underline-offset-2 hover:underline dark:text-indigo-300"
+            className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
           >
             {displayValue}
           </Link>

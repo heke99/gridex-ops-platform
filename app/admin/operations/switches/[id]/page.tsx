@@ -126,7 +126,7 @@ function tone(status: string): string {
   }
 
   if (['submitted', 'sent'].includes(status)) {
-    return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
 
   return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
@@ -755,7 +755,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
                         <input type="hidden" name="customer_id" value={request.customer_id} />
                         <input type="hidden" name="status" value="sent" />
                         <input type="hidden" name="dispatch_step" value="send" />
-                        <button className="w-full rounded-2xl border border-blue-300 px-4 py-2.5 text-sm font-semibold text-blue-700 dark:border-blue-800 dark:text-blue-300">
+                        <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">
                           Markera som skickad
                         </button>
                       </form>
@@ -794,7 +794,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/10">
               <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
                 Ediel direkt från switchdetaljen
               </h2>

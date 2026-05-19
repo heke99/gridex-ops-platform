@@ -21,7 +21,7 @@ function tone(status: string): string {
   if (['failed', 'cancelled'].includes(status)) {
     return 'bg-rose-100 text-rose-700'
   }
-  if (['sent'].includes(status)) return 'bg-blue-100 text-blue-700'
+  if (['sent'].includes(status)) return 'bg-emerald-100 text-emerald-700'
   return 'bg-amber-100 text-amber-700'
 }
 

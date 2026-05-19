@@ -45,9 +45,9 @@ function Badge({
         : tone === 'red'
           ? 'border-rose-200 bg-rose-50 text-rose-700'
           : tone === 'blue'
-            ? 'border-blue-200 bg-blue-50 text-blue-700'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
             : tone === 'indigo'
-              ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
               : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return (
@@ -113,7 +113,7 @@ function MessageCard({ row, action }: { row: EdielMessageRow; action?: 'safe_app
     <div className="rounded-xl border border-slate-200 bg-white p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <Link href={`/admin/ediel/messages/${row.id}`} className="break-all text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline">
+          <Link href={`/admin/ediel/messages/${row.id}`} className="break-all text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline">
             {row.message_family} {row.message_code}
           </Link>
           <div className="mt-1 text-xs text-slate-500">{formatDateTime(row.created_at)}</div>
@@ -167,7 +167,7 @@ export default function EdielOperationalVerificationPanel({
   const unlinkedOperational = messages.filter(isUnlinkedOperationalMessage).slice(0, 6)
 
   return (
-    <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+    <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Batch 6B · Verifiering och safe apply</h2>

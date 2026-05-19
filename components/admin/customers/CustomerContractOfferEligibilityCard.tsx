@@ -86,7 +86,7 @@ export default function CustomerContractOfferEligibilityCard({
         </p>
       </div>
 
-      <div className="mb-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-100">
+      <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-100">
         <div className="font-semibold">Nästa steg för admin</div>
         <p className="mt-1">
           Att en mall är valbar betyder inte att kunden redan har ett avtal.

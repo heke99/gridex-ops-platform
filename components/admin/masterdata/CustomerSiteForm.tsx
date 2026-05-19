@@ -206,7 +206,7 @@ export default function CustomerSiteForm({
         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{flowSummary}</p>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-3 dark:border-blue-900/50 dark:bg-blue-950/10">
+      <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 dark:border-emerald-900/50 dark:bg-emerald-950/10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-slate-900 dark:text-white">

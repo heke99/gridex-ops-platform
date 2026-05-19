@@ -165,8 +165,8 @@ function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: Badge
     green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     yellow: 'border-amber-200 bg-amber-50 text-amber-700',
     red: 'border-rose-200 bg-rose-50 text-rose-700',
-    blue: 'border-blue-200 bg-blue-50 text-blue-700',
-    indigo: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+    blue: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    indigo: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   }[tone]
 
   return (
@@ -397,7 +397,7 @@ function PortalTestCatalogPanel() {
         </div>
       </summary>
 
-      <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
+      <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-900">
         <div className="font-semibold">Arbetssätt</div>
         <p className="mt-1">
           <strong>Formulär här nedan</strong> används för verklig kund-/switchuppsättning i era
@@ -503,13 +503,13 @@ function EdielPortalTestCustomerOnboardingPanel() {
     .sort((a, b) => compareTestCaseCodes(a.testCaseCode, b.testCaseCode))
 
   return (
-    <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+    <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-indigo-950">
+          <h3 className="text-sm font-semibold text-emerald-950">
             Skapa Edielportal-testkund som riktig kund
           </h3>
-          <p className="mt-1 max-w-4xl text-xs text-indigo-800">
+          <p className="mt-1 max-w-4xl text-xs text-emerald-800">
             Här fyller du in kunduppgifterna från Edielportalen manuellt. Testdataregistret kan
             hjälpa senare, men formuläret är källan till sanningen. När kunden skapas hamnar kund,
             fakturamottagare, anläggning, mätpunkt, route, fullmakt och switchärende i era riktiga
@@ -523,7 +523,7 @@ function EdielPortalTestCustomerOnboardingPanel() {
         {testCases.map((testCase) => (
           <details
             key={`${testCase.suite}-${testCase.roleCode}-${testCase.testCaseCode}`}
-            className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm open:ring-2 open:ring-indigo-100"
+            className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm open:ring-2 open:ring-emerald-100"
           >
             <summary className="cursor-pointer list-none">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -873,7 +873,7 @@ function EdielPortalTestCustomerOnboardingPanel() {
                 alltid ligga kvar för spårbarhet.
               </div>
 
-              <button className="w-full rounded-xl bg-indigo-700 px-3 py-3 text-xs font-semibold text-white hover:bg-indigo-800">
+              <button className="w-full rounded-xl bg-emerald-700 px-3 py-3 text-xs font-semibold text-white hover:bg-emerald-800">
                 Skapa testkund + switchärende
               </button>
             </form>
@@ -998,13 +998,13 @@ function ProductionCandidateCard({
         <div className="mt-4 flex flex-wrap gap-2">
           <form
             action={updateEdielPortalSwitchTestDataAction}
-            className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-3"
+            className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3"
           >
             <input type="hidden" name="switchRequestId" value={candidate.switchRequestId} />
-            <div className="text-xs font-semibold text-indigo-950">
+            <div className="text-xs font-semibold text-emerald-950">
               Justera Edielportal-testdata för detta ärende
             </div>
-            <p className="mt-1 text-[11px] leading-5 text-indigo-800">
+            <p className="mt-1 text-[11px] leading-5 text-emerald-800">
               Använd detta när portalen säger att testdata inte matchar, utan att behöva skapa om
               kund/anläggning. När du sparar avbryts gamla oskickade PRODAT-utkast automatiskt.
               Skapa sedan nytt PRODAT-utkast.
@@ -1118,7 +1118,7 @@ function ProductionCandidateCard({
             ) : null}
             <button
               disabled={!candidate.readyForPortalOrProduction}
-              className="rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+              className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
             >
               Skapa Z09-utkast
             </button>
@@ -1128,7 +1128,7 @@ function ProductionCandidateCard({
             <form action={pollMailboxAction}>
               <input type="hidden" name="communicationRouteId" value={candidate.communicationRouteId} />
               <input type="hidden" name="limit" value="10" />
-              <button className="rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-100">
+              <button className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
                 Hämta svar från IMAP
               </button>
             </form>
@@ -1173,7 +1173,7 @@ function ProductionCandidateCard({
                   <div className="flex flex-wrap gap-2">
                     <Link
                       href={`/admin/ediel/messages/${message.id}`}
-                      className="font-semibold text-indigo-700 hover:underline"
+                      className="font-semibold text-emerald-700 hover:underline"
                     >
                       Öppna
                     </Link>
@@ -1255,7 +1255,7 @@ export default function EdielProductionProdatPanel({
             Utgå från ett switchärende så kund, avtal, anläggning och mätpunkt hänger ihop.
           </p>
         </div>
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
           <div className="font-semibold">2. Kontrollera spärrar</div>
           <p className="mt-1">
             Saknas personnummer, kontaktuppgift, fullmakt, route eller mätpunkt blockeras

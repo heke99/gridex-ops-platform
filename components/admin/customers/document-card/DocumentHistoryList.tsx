@@ -313,7 +313,7 @@ export default function DocumentHistoryList({
                   {matchingSwitchRequests[0] ? (
                     <Link
                       href={`/admin/operations/switches/${matchingSwitchRequests[0].id}`}
-                      className="inline-flex items-center rounded-2xl bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+                      className="inline-flex items-center rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
                     >
                       Gå till switch-request
                     </Link>
@@ -326,7 +326,7 @@ export default function DocumentHistoryList({
                           ? '/admin/outbound/unresolved'
                           : '/admin/outbound'
                       }
-                      className="inline-flex items-center rounded-2xl bg-sky-50 px-3 py-2 text-xs font-medium text-sky-700 hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:bg-sky-500/20"
+                      className="inline-flex items-center rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
                     >
                       {matchingOutbounds.some((row) => row.channel_type === 'unresolved')
                         ? 'Gå till outbound unresolved'

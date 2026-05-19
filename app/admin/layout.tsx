@@ -19,8 +19,8 @@ export default async function AdminLayout({
           <AdminSidebar permissions={admin.permissions} />
         </div>
 
-        <div className="flex min-h-screen flex-col">
-          <div className="border-b border-emerald-100 bg-white lg:hidden">
+        <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.08),transparent_28%),linear-gradient(180deg,#f7fbf8_0%,#ffffff_42%,#f7fbf8_100%)]">
+          <div className="border-b border-emerald-100/80 bg-white/92 backdrop-blur-xl lg:hidden">
             <div className="flex items-center justify-between px-5 py-4">
               <div>
                 <p className="text-sm font-semibold text-slate-950">Gridex Operations</p>
@@ -35,9 +35,9 @@ export default async function AdminLayout({
             </div>
           </div>
 
-          <div className="flex-1">{children}</div>
+          <main className="flex-1">{children}</main>
 
-          <div className="border-t border-emerald-100 bg-white/85 px-6 py-4">
+          <div className="border-t border-emerald-100/80 bg-white/88 px-6 py-4 backdrop-blur-xl">
             <div className="flex flex-col items-start justify-between gap-3 text-sm text-slate-500 sm:flex-row sm:items-center">
               <p>Gridex Energy Operations • SaaS Control Center</p>
 

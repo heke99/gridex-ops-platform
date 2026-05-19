@@ -153,7 +153,7 @@ function SignalStat({
     tone === 'amber'
       ? 'border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-200'
       : tone === 'blue'
-        ? 'border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/20 text-blue-800 dark:text-blue-200'
+        ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-200'
         : 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-200'
 
   return (

@@ -64,7 +64,7 @@ function tone(status: string): string {
   }
 
   if (['sent'].includes(status)) {
-    return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
 
   return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
@@ -700,7 +700,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/10">
               <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
                 Ediel direkt från requestdetaljen
               </h2>
@@ -906,7 +906,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
                       <div className="mt-3">
                         <Link
                           href={entry.href}
-                          className="text-xs font-medium text-sky-700 underline dark:text-sky-300"
+                          className="text-xs font-medium text-emerald-700 underline dark:text-emerald-300"
                         >
                           Öppna relaterad vy
                         </Link>

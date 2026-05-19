@@ -39,7 +39,7 @@ function Metric({
 }) {
   const classes: Record<typeof tone, string> = {
     slate: 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
-    blue: 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20',
+    blue: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
     emerald: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
     amber: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20',
     rose: 'border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/20',
@@ -65,7 +65,7 @@ function Pill({
     green: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200',
     yellow: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-500/15 dark:text-amber-200',
     red: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-500/15 dark:text-rose-200',
-    blue: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-500/15 dark:text-blue-200',
+    blue: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200',
     slate: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-200',
   }
 
@@ -90,8 +90,8 @@ function AreaCard({
   const styles: Record<typeof tone, string> = {
     default: 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
     production: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
-    test: 'border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/20',
-    settings: 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20',
+    test: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
+    settings: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
   }
 
   return (
@@ -267,10 +267,10 @@ export default async function EdielPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-indigo-200 bg-indigo-50 p-6 shadow-sm dark:border-indigo-900 dark:bg-indigo-950/20">
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-700 dark:text-indigo-300">Leverantörs-AGT</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Leverantörs-AGT</p>
                 <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">L-testernas riktning</h2>
               </div>
               <Pill tone={agtErrors > 0 ? 'red' : agtWarnings > 0 ? 'yellow' : 'green'}>

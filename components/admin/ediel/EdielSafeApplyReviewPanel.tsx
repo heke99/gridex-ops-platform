@@ -27,7 +27,7 @@ function Badge({
         : tone === 'red'
           ? 'border-rose-200 bg-rose-50 text-rose-700'
           : tone === 'blue'
-            ? 'border-blue-200 bg-blue-50 text-blue-700'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
             : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${toneClass}`}>{children}</span>
@@ -111,7 +111,7 @@ function SafeApplyCard({ item }: { item: EdielSafeApplyReviewItem }) {
           <p className="mt-1 text-sm text-slate-600">{item.summary}</p>
           <div className="mt-2 text-xs text-slate-500">
             Importerad: {formatDate(item.message.created_at)} · Message ID:{' '}
-            <Link href={`/admin/ediel/messages/${item.message.id}`} className="text-indigo-700 underline-offset-2 hover:underline">
+            <Link href={`/admin/ediel/messages/${item.message.id}`} className="text-emerald-700 underline-offset-2 hover:underline">
               {item.message.id}
             </Link>
           </div>
@@ -123,7 +123,7 @@ function SafeApplyCard({ item }: { item: EdielSafeApplyReviewItem }) {
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto]">
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
           Safe apply skriver bara till whitelisted masterdatafält. Allt annat hoppas över och måste hanteras manuellt.
         </div>
         <form action={rejectEdielSafeApplyAction} className="flex gap-2">
@@ -177,7 +177,7 @@ function UtiltsCard({ item }: { item: EdielUtiltsBillingReviewItem }) {
           </div>
           <p className="mt-1 text-sm text-slate-600">{item.summary}</p>
           <div className="mt-2 text-xs text-slate-500">
-            <Link href={`/admin/ediel/messages/${item.message.id}`} className="text-indigo-700 underline-offset-2 hover:underline">
+            <Link href={`/admin/ediel/messages/${item.message.id}`} className="text-emerald-700 underline-offset-2 hover:underline">
               {item.message.id}
             </Link>
           </div>

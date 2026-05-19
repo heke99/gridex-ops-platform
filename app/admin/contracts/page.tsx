@@ -64,8 +64,8 @@ export default async function AdminContractsPage() {
       />
 
       <div className="grid gap-6 p-8 xl:grid-cols-[460px_minmax(0,1fr)]">
-        <section className="rounded-3xl border border-blue-200 bg-blue-50 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/20 xl:col-span-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-200">Operativt bolag</p>
+        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/20 xl:col-span-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-200">Operativt bolag</p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">{scope.companyName ?? 'Bolagskoppling saknas'}</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
             Avtal och kampanjer skapas bara i ditt aktiva elhandelsbolag. Skapa nya elhandelsbolag under Elhandelsbolag, inte här.

@@ -49,7 +49,7 @@ export default function EdielFileEnginePanel({
     .slice(0, 8)
 
   return (
-    <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+    <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">
@@ -68,9 +68,9 @@ export default function EdielFileEnginePanel({
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <form action={registerEdielFileAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm text-indigo-950">
+          <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-950">
             <div className="font-semibold">När använder jag detta?</div>
-            <p className="mt-1 text-xs text-indigo-900">
+            <p className="mt-1 text-xs text-emerald-900">
               Efter att du skickat en fil i Edielportalen hämtar du portalens svar och importerar det här som inbound/TGT. Systemet försöker koppla svaret till rätt TGT-run automatiskt.
             </p>
           </div>
@@ -170,7 +170,7 @@ export default function EdielFileEnginePanel({
 
           <button
             type="submit"
-            className="mt-4 rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800"
+            className="mt-4 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
           >
             Registrera fil i Ediel-motorn
           </button>
@@ -281,7 +281,7 @@ export default function EdielFileEnginePanel({
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-2">
-                          <Link href={`/admin/ediel/messages/${row.id}`} className="text-indigo-700 underline-offset-2 hover:underline">
+                          <Link href={`/admin/ediel/messages/${row.id}`} className="text-emerald-700 underline-offset-2 hover:underline">
                             Öppna
                           </Link>
                           <form action={cancelEdielMessageAction}>

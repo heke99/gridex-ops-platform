@@ -53,7 +53,7 @@ function Pill({
         : tone === 'red'
           ? 'bg-rose-100 text-rose-700'
           : tone === 'blue'
-            ? 'bg-blue-100 text-blue-700'
+            ? 'bg-emerald-100 text-emerald-700'
             : 'bg-slate-100 text-slate-700'
 
   return <span className={`rounded-full px-2 py-1 text-xs font-medium ${toneClass}`}>{text}</span>
@@ -324,7 +324,7 @@ export default async function AdminEdielAiListPage() {
                       <td className="px-3 py-3">
                         <Link
                           href={`/admin/ediel/messages/${row.id}`}
-                          className="font-medium text-indigo-700 underline-offset-2 hover:underline"
+                          className="font-medium text-emerald-700 underline-offset-2 hover:underline"
                         >
                           {row.message_code}
                         </Link>

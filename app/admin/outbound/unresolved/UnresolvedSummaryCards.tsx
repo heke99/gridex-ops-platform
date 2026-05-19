@@ -67,7 +67,7 @@ export default function UnresolvedSummaryCards({
         </div>
       </div>
 
-      <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
+      <div className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/10">
         <div className="text-sm text-slate-500 dark:text-slate-400">Manuellt valbar route</div>
         <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
           {requestsWithManualChoiceAvailable}

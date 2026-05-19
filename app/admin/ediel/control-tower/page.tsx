@@ -15,7 +15,7 @@ function tone(value: 'green' | 'yellow' | 'red' | 'slate' | 'blue'): string {
   if (value === 'green') return 'border-green-200 bg-green-50 text-green-700'
   if (value === 'yellow') return 'border-yellow-200 bg-yellow-50 text-yellow-700'
   if (value === 'red') return 'border-red-200 bg-red-50 text-red-700'
-  if (value === 'blue') return 'border-blue-200 bg-blue-50 text-blue-700'
+  if (value === 'blue') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
@@ -127,7 +127,7 @@ export default async function AdminEdielControlTowerPage() {
         subtitle="Driftvy för kvittenser, dublettskydd, regelkonflikter och senaste Ediel-trafik."
       />
 
-      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-900">
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
         <h2 className="text-base font-semibold">Så ska sidan användas</h2>
         <p className="mt-2 max-w-4xl">
           Börja alltid med röda varningar. Försenad kvittens betyder att 30 minuter har passerat.

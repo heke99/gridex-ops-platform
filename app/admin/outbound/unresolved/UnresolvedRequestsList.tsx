@@ -230,7 +230,7 @@ export default function UnresolvedRequestsList({
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-900/40 dark:bg-blue-950/10">
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/10">
                       <div className="text-sm font-semibold text-slate-900 dark:text-white">
                         Välj route nu
                       </div>
@@ -379,7 +379,7 @@ export default function UnresolvedRequestsList({
                                     {route.route_type}
                                   </span>
                                   {isDirectMatch ? (
-                                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                                       valbar nu
                                     </span>
                                   ) : null}

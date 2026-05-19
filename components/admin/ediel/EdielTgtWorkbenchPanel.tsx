@@ -161,8 +161,8 @@ function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: Badge
     green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     yellow: 'border-amber-200 bg-amber-50 text-amber-700',
     red: 'border-rose-200 bg-rose-50 text-rose-700',
-    blue: 'border-blue-200 bg-blue-50 text-blue-700',
-    indigo: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+    blue: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    indigo: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   }[tone]
 
   return (
@@ -321,9 +321,9 @@ const PORTAL_PRODAT_S12_STEPS = [
 
 function PortalTestStepTable() {
   return (
-    <div className="mt-3 overflow-x-auto rounded-2xl border border-blue-100 bg-white">
+    <div className="mt-3 overflow-x-auto rounded-2xl border border-emerald-100 bg-white">
       <table className="min-w-full text-left text-xs">
-        <thead className="bg-blue-50 text-blue-900">
+        <thead className="bg-emerald-50 text-emerald-900">
           <tr>
             <th className="px-3 py-2 font-semibold">Portalsteg</th>
             <th className="px-3 py-2 font-semibold">Meddelande</th>
@@ -333,7 +333,7 @@ function PortalTestStepTable() {
         </thead>
         <tbody>
           {PORTAL_PRODAT_S12_STEPS.map(([stepNo, message, direction, instruction]) => (
-            <tr key={stepNo} className="border-t border-blue-100 align-top">
+            <tr key={stepNo} className="border-t border-emerald-100 align-top">
               <td className="whitespace-nowrap px-3 py-2 font-semibold text-slate-900">{stepNo}</td>
               <td className="whitespace-nowrap px-3 py-2 text-slate-800">{message}</td>
               <td className="whitespace-nowrap px-3 py-2 text-slate-700">{direction}</td>
@@ -458,11 +458,11 @@ function TestDataObjectOrder({ group }: { group: EdielTgtCaseTestDataGroup }) {
   if (columns.length === 0) return null
 
   return (
-    <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-900">
+    <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-900">
         Importerad objektordning som används för LIN-block
       </div>
-      <div className="mt-2 space-y-1 text-xs text-blue-950">
+      <div className="mt-2 space-y-1 text-xs text-emerald-950">
         {columns.map((column, index) => {
           const objectId = valueForSummaryField(group, column.name, ['209', '233']) ?? '—'
           const customerId = valueForSummaryField(group, column.name, ['227']) ?? '—'
@@ -562,11 +562,11 @@ function TestDataSummary({ data }: { data: EdielTgtCaseTestData | null }) {
   }
 
   return (
-    <div className="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-3">
+    <div className="mt-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <div className="text-xs font-semibold text-indigo-950">{data.title}</div>
-          <div className="mt-1 text-xs text-indigo-800">{data.sourceNote}</div>
+          <div className="text-xs font-semibold text-emerald-950">{data.title}</div>
+          <div className="mt-1 text-xs text-emerald-800">{data.sourceNote}</div>
         </div>
         <Badge tone="indigo">Excel-import</Badge>
       </div>
@@ -632,24 +632,24 @@ function CoverageDashboard({
 
 function Batch5RunbookPanel() {
   return (
-    <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
+    <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-950">
       <div className="font-semibold">Arbeta rent med TGT-runs</div>
       <div className="mt-2 grid gap-2 md:grid-cols-2">
         <div className="rounded-xl bg-white/70 p-3">
           <div className="font-medium">En aktiv run per testfall</div>
-          <p className="mt-1 text-xs text-blue-900">Starta helst bara en aktiv PRODAT/UTILTS-run åt gången. Arkivera äldre runs så arbetsvyn blir ren.</p>
+          <p className="mt-1 text-xs text-emerald-900">Starta helst bara en aktiv PRODAT/UTILTS-run åt gången. Arkivera äldre runs så arbetsvyn blir ren.</p>
         </div>
         <div className="rounded-xl bg-white/70 p-3">
           <div className="font-medium">Arkivera, inte hårdradera</div>
-          <p className="mt-1 text-xs text-blue-900">Arkivering sätter status till cancelled. Det håller audit/spårbarhet kvar men döljer run från huvudvyn.</p>
+          <p className="mt-1 text-xs text-emerald-900">Arkivering sätter status till cancelled. Det håller audit/spårbarhet kvar men döljer run från huvudvyn.</p>
         </div>
         <div className="rounded-xl bg-white/70 p-3">
           <div className="font-medium">När portalen svarar</div>
-          <p className="mt-1 text-xs text-blue-900">Importera svaret i filmotorn, koppla det mot rätt TGT-steg och följ nästa instruktion i guided mode.</p>
+          <p className="mt-1 text-xs text-emerald-900">Importera svaret i filmotorn, koppla det mot rätt TGT-steg och följ nästa instruktion i guided mode.</p>
         </div>
         <div className="rounded-xl bg-white/70 p-3">
           <div className="font-medium">Vid negativ kvittens</div>
-          <p className="mt-1 text-xs text-blue-900">Stoppa flödet, öppna meddelandet, läs ERC/FTX eller CONTRL-status och skapa inte nytt svar på samma transaktion innan felet är förstått.</p>
+          <p className="mt-1 text-xs text-emerald-900">Stoppa flödet, öppna meddelandet, läs ERC/FTX eller CONTRL-status och skapa inte nytt svar på samma transaktion innan felet är förstått.</p>
         </div>
       </div>
     </div>
@@ -697,7 +697,7 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
   const isAckLikeNextStep = isAckLikeFamily(nextStep?.family)
 
   return (
-    <div className={`mt-4 rounded-2xl border p-4 ${tone === 'green' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'red' ? 'border-rose-200 bg-rose-50 text-rose-950' : tone === 'blue' ? 'border-blue-200 bg-blue-50 text-blue-950' : tone === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-slate-200 bg-slate-50 text-slate-950'}`}>
+    <div className={`mt-4 rounded-2xl border p-4 ${tone === 'green' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'red' ? 'border-rose-200 bg-rose-50 text-rose-950' : tone === 'blue' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-slate-200 bg-slate-50 text-slate-950'}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide">Nästa steg</div>
@@ -709,7 +709,7 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
             </p>
           ) : null}
           {shouldUseCustomerProdat ? (
-            <p className="mt-2 rounded-xl border border-indigo-200 bg-white/70 px-3 py-2 text-xs text-indigo-900">
+            <p className="mt-2 rounded-xl border border-emerald-200 bg-white/70 px-3 py-2 text-xs text-emerald-900">
               PRODAT Z03/Z04 ska skapas från riktig kund/testkund i avsnittet Kundstyrd PRODAT ovan. TGT-guiden används här som checklista och för att importera portalens svar.
             </p>
           ) : null}
@@ -726,14 +726,14 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
         {!shouldUseCustomerProdat && !isAckLikeNextStep ? (
           <form action={runEdielTgtAutopilotAction}>
             <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
-            <button className="rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100">
+            <button className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
               Försök skapa nästa GridCore-utkast
             </button>
           </form>
         ) : null}
 
         {shouldUseCustomerProdat ? (
-          <a href="#production-prodat" className="rounded-xl border border-indigo-300 bg-white px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-50">
+          <a href="#production-prodat" className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">
             Gå till kundstyrd PRODAT
           </a>
         ) : null}
@@ -810,7 +810,7 @@ function DraftOptionPanel({
   if (generatable.length === 0) {
     if (prodatOptions.length > 0 && usesCustomerProdat && !compact) {
       return (
-        <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-900">
+        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
           PRODAT Z03/Z04 ska skapas från kundstyrd PRODAT ovan, inte från en separat testgenerator. Skapa först Edielportal-testkund och switchärende, använd sedan Z03/Z04-knapparna i kundstyrda panelen.
         </div>
       )
@@ -877,7 +877,7 @@ function TestCaseCard({
   const hasDynamicData = Boolean(dynamicTestDataRow?.parsedPayload)
 
   return (
-    <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm open:ring-2 open:ring-indigo-100">
+    <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm open:ring-2 open:ring-emerald-100">
       <summary className="cursor-pointer list-none p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -892,10 +892,10 @@ function TestCaseCard({
             </div>
             <h3 className="mt-3 text-sm font-semibold text-slate-950">{testCase.title}</h3>
             <p className="mt-1 text-sm text-slate-600">{testCase.purpose}</p>
-            <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+            <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
               <span className="font-semibold">I Edielportalen:</span> {portalTestName(testCase)}
             </div>
-            <p className="mt-2 text-xs font-medium text-indigo-700 group-open:hidden">
+            <p className="mt-2 text-xs font-medium text-emerald-700 group-open:hidden">
               Klicka här för att öppna ett fokuserat testfönster. Du behöver inte scrolla hela sidan.
             </p>
           </div>
@@ -906,11 +906,11 @@ function TestCaseCard({
       </summary>
 
       <div className="border-t border-slate-100 p-4">
-        <div className="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+        <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-indigo-950">Guidat arbetsfönster</div>
-              <p className="mt-1 text-xs text-indigo-800">
+              <div className="text-sm font-semibold text-emerald-950">Guidat arbetsfönster</div>
+              <p className="mt-1 text-xs text-emerald-800">
                 Jobba klart detta testfall här inne: skapa run, skapa fil, importera portalens svar och följ stegen tills allt är grönt.
               </p>
             </div>
@@ -931,9 +931,9 @@ function TestCaseCard({
         </div>
 
         {isFirstRecommendedCase(testCase) ? (
-          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-            <div className="text-sm font-semibold text-blue-950">Så matchar GridCore mot Edielportalens S1.2-steg</div>
-            <p className="mt-1 text-xs text-blue-900">
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="text-sm font-semibold text-emerald-950">Så matchar GridCore mot Edielportalens S1.2-steg</div>
+            <p className="mt-1 text-xs text-emerald-900">
               Börja med steg 1. När portalen ger svar importerar du svaren via Filimport. GridCore skapar sedan svar på steg 5 och 6 via inbound-meddelandekortet.
             </p>
             <PortalTestStepTable />
@@ -983,8 +983,8 @@ function TestCaseCard({
           </form>
         </details>
 
-        <details className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3">
-          <summary className="cursor-pointer text-xs font-semibold text-indigo-950">
+        <details className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+          <summary className="cursor-pointer text-xs font-semibold text-emerald-950">
             Visa testdata som generatorn använder
           </summary>
           {hasDynamicData ? (
@@ -1090,7 +1090,7 @@ function RunEvaluationCard({
       <RunArchiveControls evaluation={evaluation} />
 
       {testData ? (
-        <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
+        <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-900">
           <div className="font-semibold">{testData.title}</div>
           <div className="mt-1">{testData.sourceNote}</div>
         </div>
@@ -1130,7 +1130,7 @@ function RunEvaluationCard({
                     {match.message ? (
                       <Link
                         href={`/admin/ediel/messages/${match.message.id}`}
-                        className="mt-2 inline-block text-xs font-medium text-indigo-700 underline-offset-2 hover:underline"
+                        className="mt-2 inline-block text-xs font-medium text-emerald-700 underline-offset-2 hover:underline"
                       >
                         Öppna matchat meddelande
                       </Link>
@@ -1153,7 +1153,7 @@ function RunEvaluationCard({
                             </div>
                             <Link
                               href={`/admin/ediel/messages/${message.id}`}
-                              className="rounded-lg border border-indigo-200 bg-white px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                              className="rounded-lg border border-emerald-200 bg-white px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
                             >
                               Öppna och läs
                             </Link>
@@ -1233,7 +1233,7 @@ function GroupedTestCasePanel({
         const stats = groupStats(group)
 
         return (
-          <details key={group.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm open:ring-2 open:ring-indigo-100">
+          <details key={group.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm open:ring-2 open:ring-emerald-100">
             <summary className="cursor-pointer list-none">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -1361,7 +1361,7 @@ export default function EdielTgtWorkbenchPanel({
             <h3 className="text-sm font-semibold text-slate-950">Testfall i grupper</h3>
             <Badge tone="indigo">dropdown-läge</Badge>
           </div>
-          <div className="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 text-xs leading-5 text-indigo-900">
+          <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
             Öppna bara gruppen du arbetar med. S1.2-testen använder kundstyrd PRODAT ovan, medan S1.3 och framåt körs via TGT guided mode och generatorn när filsteget ägs av GridCore.
           </div>
           <GroupedTestCasePanel

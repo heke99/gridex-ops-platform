@@ -154,11 +154,11 @@ export default function InboundTestDataUploadForm({
           multiple
           accept=".xlsx,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={handleFileChange}
-          className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+          className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
         />
       </label>
 
-      <div className="md:col-span-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-[11px] leading-5 text-indigo-900">
+      <div className="md:col-span-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] leading-5 text-emerald-900">
         {fileStatus}
       </div>
 
@@ -172,7 +172,7 @@ export default function InboundTestDataUploadForm({
       <button
         type="submit"
         disabled={isReadingFiles}
-        className="w-fit rounded-xl bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="w-fit rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
       >
         {isReadingFiles ? 'Läser fil…' : 'Spara och jämför med detta inbound'}
       </button>

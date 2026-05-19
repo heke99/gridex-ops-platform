@@ -54,7 +54,7 @@ function Badge({
         : tone === 'red'
           ? 'border-rose-200 bg-rose-50 text-rose-700'
           : tone === 'blue'
-            ? 'border-blue-200 bg-blue-50 text-blue-700'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
             : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>{children}</span>
@@ -101,7 +101,7 @@ function RouteCard({
         <Field label="Encryption" value={profile?.encryption_mode} />
       </div>
 
-      <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+      <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
         {family === 'PRODAT'
           ? `PRODAT AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID}. Sender-subadress ska följa tenantens Edielregisteruppgift; receiver-subadress är ${EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}.`
           : `UTILTS AGT ska gå mot ${EDIEL_AGT_PORTAL_EDIEL_ID} utan subadress.`}
@@ -165,10 +165,10 @@ export default async function EdielAgtPage() {
         userEmail={context.email}
       />
 
-      <section className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-5">
+      <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Starta inte tester blint</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Starta inte tester blint</div>
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">Först ska AGT runtime vara grön</h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
               Värdena i formuläret sparas i aktörskort, communication_routes och ediel_route_profiles. Nuvarande värden är bara förifyllda defaultvärden i formuläret. Runtime ska läsa från databasen så att samma SaaS-flöde fungerar för varje leverantör/tenant senare.
@@ -287,7 +287,7 @@ export default async function EdielAgtPage() {
               </label>
             </div>
 
-            <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
               Knappen skapar/uppdaterar ett aktivt test-aktörskort, en PRODAT-route och en UTILTS-route. PRODAT AGT sparas med tenantens registrerade sender-subadress om sådan finns, receiver-subadress PRODAT och okrypterad SMTP. Balansansvarig Ediel-id sparas i aktörens AGT-notes och används som NAD+Z02 i L1/L7.
             </div>
           </div>
@@ -340,7 +340,7 @@ export default async function EdielAgtPage() {
                 <p className="mt-3 text-sm leading-6 text-slate-700">{notesText(testCase.notes)}</p>
 
                 {actorToPortal ? (
-                  <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-900">
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
                     <div className="font-semibold">Kontroll innan skick</div>
                     <div>UNB sender: leverantörens Ediel-id + registrerad sender-subadress om den finns.</div>
                     <div>UNB receiver: {EDIEL_AGT_PORTAL_EDIEL_ID}:ZZ:{EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}</div>
@@ -356,7 +356,7 @@ export default async function EdielAgtPage() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
                     href={`/admin/ediel/agt/${testCase.testCaseCode}`}
-                    className="rounded-xl bg-indigo-700 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-800"
+                    className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
                   >
                     Öppna testmotor
                   </Link>
@@ -374,7 +374,7 @@ export default async function EdielAgtPage() {
                       <input type="hidden" name="test_run_id" value={activeRun?.id ?? ''} />
                       <button
                         disabled={!hasRun || runtime.issues.some((issue) => issue.severity === 'error')}
-                        className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
                         {hasRun ? 'Generera + skicka' : 'Skapa run först'}
                       </button>
@@ -394,9 +394,9 @@ export default async function EdielAgtPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
         <h2 className="text-lg font-semibold text-slate-950">Praktisk körordning</h2>
-        <p className="mt-2 text-sm leading-6 text-blue-900">
+        <p className="mt-2 text-sm leading-6 text-emerald-900">
           Spara AGT-runtime först. Starta L1 i Edielportalen, skapa L1-run här, fyll i balansansvarig/BRP Ediel-id och skicka L1 direkt från GridCore. L2-L5 är Portal → Aktör: starta testet i portalen, importera inbound PRODAT och skapa CONTRL + APERAK från inbound-raden. Kör L7 sist som outbound Z09-kommandot.
         </p>
       </section>

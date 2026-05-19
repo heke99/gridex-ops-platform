@@ -165,7 +165,7 @@ export default function DispatchPanels({
                   {selectedMessage?.id ? (
                     <Link
                       href={`/admin/ediel/messages/${selectedMessage.id}`}
-                      className="text-indigo-700 underline-offset-2 hover:underline"
+                      className="text-emerald-700 underline-offset-2 hover:underline"
                     >
                       {selectedMessage.id}
                     </Link>
@@ -302,7 +302,7 @@ export default function DispatchPanels({
                   {selectedInboundUtilts?.id ? (
                     <Link
                       href={`/admin/ediel/messages/${selectedInboundUtilts.id}`}
-                      className="text-indigo-700 underline-offset-2 hover:underline"
+                      className="text-emerald-700 underline-offset-2 hover:underline"
                     >
                       {selectedInboundUtilts.id}
                     </Link>
@@ -397,7 +397,7 @@ export default function DispatchPanels({
                   {selectedAckSource?.id ? (
                     <Link
                       href={`/admin/ediel/messages/${selectedAckSource.id}`}
-                      className="text-indigo-700 underline-offset-2 hover:underline"
+                      className="text-emerald-700 underline-offset-2 hover:underline"
                     >
                       {selectedAckSource.id}
                     </Link>

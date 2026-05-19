@@ -30,9 +30,9 @@ function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: Badge
         : tone === 'red'
           ? 'border-rose-200 bg-rose-50 text-rose-700'
           : tone === 'blue'
-            ? 'border-blue-200 bg-blue-50 text-blue-700'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
             : tone === 'indigo'
-              ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
               : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return (
@@ -148,13 +148,13 @@ function CaseCard({
         </form>
 
         {actorSendsFirst ? (
-          <form action={createEdielAgtOutboundCommandAction} className="rounded-2xl border border-blue-200 bg-blue-50 p-3">
+          <form action={createEdielAgtOutboundCommandAction} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
             <input type="hidden" name="testRunId" value={activeRun?.id ?? ''} />
             <input type="hidden" name="testCaseCode" value={definition.testCaseCode} />
-            <button type="submit" className="w-full rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+            <button type="submit" className="w-full rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
               Generera + skicka outbound AGT
             </button>
-            <p className="mt-2 text-xs leading-5 text-blue-800">
+            <p className="mt-2 text-xs leading-5 text-emerald-800">
               Gäller {definition.messageFamily} {definition.messageCode}. Payload renderas vid skick och sparas därefter som audit/logg.
             </p>
           </form>
@@ -183,7 +183,7 @@ function CaseCard({
                     <Badge>{message.status}</Badge>
                     <span className="text-slate-500">{formatDateTime(message.created_at)}</span>
                   </div>
-                  <Link href={`/admin/ediel/messages/${message.id}`} className="text-xs font-semibold text-blue-700 hover:underline">
+                  <Link href={`/admin/ediel/messages/${message.id}`} className="text-xs font-semibold text-emerald-700 hover:underline">
                     Öppna
                   </Link>
                 </div>
@@ -222,7 +222,7 @@ export default function EdielAgtWorkbenchPanel({
 
   return (
     <section className="space-y-5">
-      <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="indigo">AGT 2026A</Badge>
           <Badge tone="blue">Aktiv leverantör från AGT-runtime</Badge>

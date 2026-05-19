@@ -189,7 +189,7 @@ export default function CustomerSwitchCreatePanel({
                   {site.site_name}
                 </span>
                 {site.grid_owner_id ? (
-                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                     nätägare kopplad
                   </span>
                 ) : (

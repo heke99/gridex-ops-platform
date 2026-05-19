@@ -84,7 +84,7 @@ function Pill({
         : tone === 'red'
           ? 'border-rose-200 bg-rose-50 text-rose-700'
           : tone === 'blue'
-            ? 'border-blue-200 bg-blue-50 text-blue-700'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
             : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return (
@@ -294,7 +294,7 @@ export default async function AdminEdielRoutesPage() {
         userEmail={context.email}
       />
 
-      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
         <h2 className="text-lg font-semibold text-slate-950">Minnesmodell i runtime</h2>
         <p className="mt-1 text-sm text-slate-700">
           Route-profile sparar transport/routing. Aktörskortet sparar din identitet per miljö.
