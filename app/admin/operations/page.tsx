@@ -564,6 +564,7 @@ export default async function AdminOperationsPage() {
  outboundRequests,
  billingUnderlays: underlays,
  partnerExports,
+ meteringValues,
  })
 
  const queuePriority = [

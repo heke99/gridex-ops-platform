@@ -2,10 +2,12 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
  listAllBillingUnderlays,
  listAllGridOwnerDataRequests,
  listAllPartnerExports,
+ listAllMeteringValues,
 } from '@/lib/cis/db'
 import {
  BillingFilterBar,
@@ -13,7 +15,9 @@ import {
  BillingRequestsSection,
  BillingUnderlaysSection,
  BillingExportsSection,
+ BillingReadinessExportPanel,
 } from './_components'
+import { buildBillingReadinessMap } from '@/lib/cis/billingReadiness'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,26 +39,40 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
  const {
  data: { user },
  } = await supabase.auth.getUser()
+ const companyScope = user ? await getOperationalCompanyScope(user.id) : null
+ const companyId = companyScope?.companyId ?? null
 
- const [underlays, requests, exports] = await Promise.all([
+ const [underlays, requests, exports, values] = await Promise.all([
  listAllBillingUnderlays({
  status,
  query,
+ companyId,
  }),
  listAllGridOwnerDataRequests({
  status: 'all',
  scope: 'billing_underlay',
  query,
+ companyId,
  }),
  listAllPartnerExports({
  status: 'all',
  exportKind: 'billing_underlay',
  query,
+ companyId,
+ }),
+ listAllMeteringValues({
+ query,
+ companyId,
  }),
  ])
 
  const requestById = new Map(requests.map((request) => [request.id, request] as const))
  const underlayById = new Map(underlays.map((underlay) => [underlay.id, underlay] as const))
+ const readinessByUnderlayId = buildBillingReadinessMap({
+ underlays,
+ meterValues: values,
+ partnerExports: exports,
+ })
 
  return (
  <div className="min-h-screen">
@@ -73,6 +91,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
  <BillingUnderlaysSection
  underlays={underlays}
  requestById={requestById}
+ readinessByUnderlayId={readinessByUnderlayId}
  />
  <BillingExportsSection
  exports={exports}
@@ -81,7 +100,10 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
  />
  </div>
 
+ <div className="space-y-6">
+ <BillingReadinessExportPanel />
  <BillingIngestForm />
+ </div>
  </section>
  </div>
  </div>

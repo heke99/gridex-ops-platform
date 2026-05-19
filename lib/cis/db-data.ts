@@ -19,11 +19,17 @@ import {
   buildSitePayload,
   findPostgresErrorCode,
   getCustomerExportContext,
+  requireContextCompanyId,
   getGridOwnerDataRequestByAutomationKey,
   matchesQuery,
   mergeJsonObjects,
   normalizeQuery,
 } from './db-shared'
+import {
+  buildBillingReadinessMap,
+  evaluateBillingUnderlayReadiness,
+  type BillingReadinessResult,
+} from './billingReadiness'
 
 export async function listGridOwnerDataRequestsByCustomerId(
   customerId: string
@@ -42,6 +48,7 @@ export async function listAllGridOwnerDataRequests(options: {
   status?: string | null
   scope?: string | null
   query?: string | null
+  companyId?: string | null
 } = {}): Promise<GridOwnerDataRequestRow[]> {
   let requestQuery = supabaseService
     .from('grid_owner_data_requests')
@@ -54,6 +61,10 @@ export async function listAllGridOwnerDataRequests(options: {
 
   if (options.scope && options.scope !== 'all') {
     requestQuery = requestQuery.eq('request_scope', options.scope)
+  }
+
+  if (options.companyId) {
+    requestQuery = requestQuery.eq('company_id', options.companyId)
   }
 
   const { data, error } = await requestQuery
@@ -97,12 +108,19 @@ export async function listMeteringValuesByCustomerId(
 
 export async function listAllMeteringValues(options: {
   query?: string | null
+  companyId?: string | null
 } = {}): Promise<MeteringValueRow[]> {
-  const { data, error } = await supabaseService
+  let queryBuilder = supabaseService
     .from('metering_values')
     .select('*')
     .order('read_at', { ascending: false })
     .limit(250)
+
+  if (options.companyId) {
+    queryBuilder = queryBuilder.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await queryBuilder
 
   if (error) throw error
 
@@ -174,7 +192,10 @@ export async function createGridOwnerDataRequest(input: {
     meteringPointId: input.meteringPointId ?? null,
   })
 
+  const companyId = requireContextCompanyId(context, 'Skapa nätägarbegäran')
+
   const requestPayload = mergeJsonObjects({}, {
+    company_id: companyId,
     request_scope: input.requestScope,
     requested_period_start: input.requestedPeriodStart ?? null,
     requested_period_end: input.requestedPeriodEnd ?? null,
@@ -186,6 +207,7 @@ export async function createGridOwnerDataRequest(input: {
   })
 
   const insertPayload = {
+    company_id: companyId,
     customer_id: input.customerId,
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
@@ -234,6 +256,7 @@ export async function createPartnerExport(input: {
   exportKind: 'billing_underlay' | 'meter_values' | 'customer_snapshot'
   targetSystem: string
   externalReference?: string | null
+  exportBatchKey?: string | null
   payload?: Record<string, unknown>
   notes?: string | null
 }): Promise<PartnerExportRow> {
@@ -243,7 +266,10 @@ export async function createPartnerExport(input: {
     meteringPointId: input.meteringPointId ?? null,
   })
 
+  const companyId = requireContextCompanyId(context, 'Skapa partnerexport')
+
   const enrichedPayload = mergeJsonObjects(input.payload ?? {}, {
+    company_id: companyId,
     export_kind: input.exportKind,
     target_system: input.targetSystem,
     external_reference: input.externalReference ?? null,
@@ -258,6 +284,7 @@ export async function createPartnerExport(input: {
   const { data, error } = await supabaseService
     .from('partner_exports')
     .insert({
+      company_id: companyId,
       customer_id: input.customerId,
       site_id: input.siteId ?? null,
       metering_point_id: input.meteringPointId ?? null,
@@ -266,6 +293,7 @@ export async function createPartnerExport(input: {
       target_system: input.targetSystem,
       status: 'queued',
       external_reference: input.externalReference ?? null,
+      export_batch_key: input.exportBatchKey ?? null,
       payload: enrichedPayload,
       response_payload: {},
       created_by: input.actorUserId,
@@ -281,6 +309,7 @@ export async function createPartnerExport(input: {
 export async function listAllBillingUnderlays(options: {
   status?: string | null
   query?: string | null
+  companyId?: string | null
 } = {}): Promise<BillingUnderlayRow[]> {
   let queryBuilder = supabaseService
     .from('billing_underlays')
@@ -289,6 +318,10 @@ export async function listAllBillingUnderlays(options: {
 
   if (options.status && options.status !== 'all') {
     queryBuilder = queryBuilder.eq('status', options.status)
+  }
+
+  if (options.companyId) {
+    queryBuilder = queryBuilder.eq('company_id', options.companyId)
   }
 
   const { data, error } = await queryBuilder
@@ -318,6 +351,7 @@ export async function listAllPartnerExports(options: {
   status?: string | null
   exportKind?: string | null
   query?: string | null
+  companyId?: string | null
 } = {}): Promise<PartnerExportRow[]> {
   let queryBuilder = supabaseService
     .from('partner_exports')
@@ -330,6 +364,10 @@ export async function listAllPartnerExports(options: {
 
   if (options.exportKind && options.exportKind !== 'all') {
     queryBuilder = queryBuilder.eq('export_kind', options.exportKind)
+  }
+
+  if (options.companyId) {
+    queryBuilder = queryBuilder.eq('company_id', options.companyId)
   }
 
   const { data, error } = await queryBuilder
@@ -570,6 +608,55 @@ export async function updatePartnerExportStatus(input: {
   return data as PartnerExportRow
 }
 
+function extractStringFromPayload(payload: Record<string, unknown> | undefined, keys: string[]): string | null {
+  if (!payload) return null
+  for (const key of keys) {
+    const value = payload[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
+function buildMeteringDedupeKey(input: {
+  companyId: string
+  meteringPointId: string
+  readingType: string
+  readAt: string
+  periodStart?: string | null
+  periodEnd?: string | null
+}): string {
+  return [
+    input.companyId,
+    input.meteringPointId,
+    input.readingType,
+    input.readAt,
+    input.periodStart ?? 'no-period-start',
+    input.periodEnd ?? 'no-period-end',
+  ].join('|')
+}
+
+function isCorrectionInput(input: {
+  readingType: string
+  qualityCode?: string | null
+  rawPayload?: Record<string, unknown>
+}): boolean {
+  const quality = String(input.qualityCode ?? '').toLowerCase()
+  const rawCorrection = extractStringFromPayload(input.rawPayload, [
+    'correctionReason',
+    'correction_reason',
+    'replacementReason',
+    'replacement_reason',
+  ])
+
+  return (
+    input.readingType === 'adjustment' ||
+    quality.includes('correct') ||
+    quality.includes('korr') ||
+    quality.includes('rätt') ||
+    Boolean(rawCorrection)
+  )
+}
+
 export async function ingestMeteringValue(input: {
   actorUserId: string
   customerId: string
@@ -586,29 +673,128 @@ export async function ingestMeteringValue(input: {
   sourceSystem?: string
   rawPayload?: Record<string, unknown>
 }): Promise<MeteringValueRow> {
+  const context = await getCustomerExportContext({
+    customerId: input.customerId,
+    siteId: input.siteId ?? null,
+    meteringPointId: input.meteringPointId,
+  })
+  const companyId = requireContextCompanyId(context, 'Registrera mätvärde')
+  const sourceEdielMessageId = extractStringFromPayload(input.rawPayload, [
+    'edielMessageId',
+    'sourceEdielMessageId',
+    'source_ediel_message_id',
+  ])
+  const canonicalDedupeKey = buildMeteringDedupeKey({
+    companyId,
+    meteringPointId: input.meteringPointId,
+    readingType: input.readingType,
+    readAt: input.readAt,
+    periodStart: input.periodStart ?? null,
+    periodEnd: input.periodEnd ?? null,
+  })
+  const isCorrection = isCorrectionInput({
+    readingType: input.readingType,
+    qualityCode: input.qualityCode ?? null,
+    rawPayload: input.rawPayload ?? {},
+  })
+
+  const { data: existingData, error: existingError } = await supabaseService
+    .from('metering_values')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('canonical_dedupe_key', canonicalDedupeKey)
+    .eq('is_current', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+
+  const existing = (existingData as MeteringValueRow | null) ?? null
+  const existingValue = existing ? Number(existing.value_kwh) : null
+  const shouldReplaceExisting = Boolean(
+    existing &&
+      (isCorrection ||
+        existingValue === null ||
+        Math.abs(existingValue - input.valueKwh) > 0.000001 ||
+        existing.quality_code !== (input.qualityCode ?? null))
+  )
+
+  if (existing && !shouldReplaceExisting) {
+    return existing
+  }
+
+  if (existing && shouldReplaceExisting) {
+    const { error: replaceError } = await supabaseService
+      .from('metering_values')
+      .update({
+        is_current: false,
+        value_status: 'replaced',
+        correction_reason:
+          extractStringFromPayload(input.rawPayload, ['correctionReason', 'correction_reason']) ??
+          'Nytt mätvärde ersatte tidigare rad med samma periodnyckel.',
+      })
+      .eq('id', existing.id)
+
+    if (replaceError) throw replaceError
+  }
+
+  const revisionNumber = existing ? Number(existing.revision_number ?? 1) + 1 : 1
+  const insertPayload: Record<string, unknown> = {
+    company_id: companyId,
+    customer_id: input.customerId,
+    site_id: input.siteId ?? null,
+    metering_point_id: input.meteringPointId,
+    source_request_id: input.sourceRequestId ?? null,
+    grid_owner_id: input.gridOwnerId ?? null,
+    reading_type: input.readingType,
+    value_kwh: input.valueKwh,
+    quality_code: input.qualityCode ?? null,
+    read_at: input.readAt,
+    period_start: input.periodStart ?? null,
+    period_end: input.periodEnd ?? null,
+    source_system: input.sourceSystem ?? 'grid_owner',
+    raw_payload: {
+      ...(input.rawPayload ?? {}),
+      tenant: {
+        company_id: companyId,
+        issues: context.tenantIssues,
+      },
+      canonical_dedupe_key: canonicalDedupeKey,
+      previous_value_id: existing?.id ?? null,
+    },
+    source_ediel_message_id: sourceEdielMessageId,
+    canonical_dedupe_key: canonicalDedupeKey,
+    is_current: true,
+    previous_value_id: existing?.id ?? null,
+    revision_number: revisionNumber,
+    correction_reason:
+      existing || isCorrection
+        ? extractStringFromPayload(input.rawPayload, ['correctionReason', 'correction_reason']) ??
+          'Korrigerat eller ersatt mätvärde enligt mätvärdesflöde.'
+        : null,
+    value_status: 'current',
+    created_by: input.actorUserId,
+  }
+
   const { data, error } = await supabaseService
     .from('metering_values')
-    .insert({
-      customer_id: input.customerId,
-      site_id: input.siteId ?? null,
-      metering_point_id: input.meteringPointId,
-      source_request_id: input.sourceRequestId ?? null,
-      grid_owner_id: input.gridOwnerId ?? null,
-      reading_type: input.readingType,
-      value_kwh: input.valueKwh,
-      quality_code: input.qualityCode ?? null,
-      read_at: input.readAt,
-      period_start: input.periodStart ?? null,
-      period_end: input.periodEnd ?? null,
-      source_system: input.sourceSystem ?? 'grid_owner',
-      raw_payload: input.rawPayload ?? {},
-      created_by: input.actorUserId,
-    })
+    .insert(insertPayload)
     .select('*')
     .single()
 
   if (error) throw error
-  return data as MeteringValueRow
+
+  const row = data as MeteringValueRow
+
+  if (existing) {
+    await supabaseService
+      .from('metering_values')
+      .update({ replaced_by_value_id: row.id })
+      .eq('id', existing.id)
+  }
+
+  return row
 }
 
 export async function ingestBillingUnderlay(input: {
@@ -629,8 +815,15 @@ export async function ingestBillingUnderlay(input: {
   failureReason?: string | null
 }): Promise<BillingUnderlayRow> {
   const now = new Date().toISOString()
+  const context = await getCustomerExportContext({
+    customerId: input.customerId,
+    siteId: input.siteId ?? null,
+    meteringPointId: input.meteringPointId ?? null,
+  })
+  const companyId = requireContextCompanyId(context, 'Registrera faktureringsunderlag')
 
   const insertPayload: Record<string, unknown> = {
+    company_id: companyId,
     customer_id: input.customerId,
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
@@ -643,8 +836,16 @@ export async function ingestBillingUnderlay(input: {
     total_sek_ex_vat: input.totalSekExVat ?? null,
     currency: input.currency ?? 'SEK',
     source_system: input.sourceSystem ?? 'grid_owner',
-    payload: input.payload ?? {},
+    payload: {
+      ...(input.payload ?? {}),
+      tenant: {
+        company_id: companyId,
+        issues: context.tenantIssues,
+      },
+    },
     failure_reason: input.failureReason ?? null,
+    readiness_status: 'not_checked',
+    readiness_issues: [],
     created_by: input.actorUserId,
     updated_by: input.actorUserId,
   }
@@ -661,6 +862,101 @@ export async function ingestBillingUnderlay(input: {
 
   if (error) throw error
   return data as BillingUnderlayRow
+}
+
+
+export async function updateBillingUnderlayReadiness(input: {
+  actorUserId: string
+  underlayId: string
+  readiness: BillingReadinessResult
+}): Promise<void> {
+  const { error } = await supabaseService
+    .from('billing_underlays')
+    .update({
+      readiness_status: input.readiness.status,
+      readiness_issues: input.readiness.issues,
+      updated_by: input.actorUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.underlayId)
+
+  if (error) throw error
+}
+
+export async function queueReadyBillingUnderlayExports(input: {
+  actorUserId: string
+  underlays: BillingUnderlayRow[]
+  meterValues: MeteringValueRow[]
+  partnerExports: PartnerExportRow[]
+  targetSystem?: string | null
+  batchKey: string
+}): Promise<{
+  created: PartnerExportRow[]
+  readinessByUnderlayId: Map<string, BillingReadinessResult>
+  createdCount: number
+  skippedCount: number
+  flaggedCount: number
+  blockedCount: number
+  candidateCount: number
+}> {
+  const readinessByUnderlayId = buildBillingReadinessMap({
+    underlays: input.underlays,
+    meterValues: input.meterValues,
+    partnerExports: input.partnerExports,
+  })
+  const created: PartnerExportRow[] = []
+
+  for (const underlay of input.underlays) {
+    const readiness = readinessByUnderlayId.get(underlay.id) ?? evaluateBillingUnderlayReadiness({
+      underlay,
+      meterValues: input.meterValues,
+      existingExport: null,
+    })
+
+    await updateBillingUnderlayReadiness({
+      actorUserId: input.actorUserId,
+      underlayId: underlay.id,
+      readiness,
+    })
+
+    if (!readiness.isExportable) continue
+
+    const exportRow = await createPartnerExport({
+      actorUserId: input.actorUserId,
+      customerId: underlay.customer_id,
+      siteId: underlay.site_id,
+      meteringPointId: underlay.metering_point_id,
+      billingUnderlayId: underlay.id,
+      exportKind: 'billing_underlay',
+      targetSystem: input.targetSystem || 'billing_partner',
+      exportBatchKey: input.batchKey,
+      payload: {
+        exportBatchKey: input.batchKey,
+        underlayYear: underlay.underlay_year,
+        underlayMonth: underlay.underlay_month,
+        sourceSystem: underlay.source_system,
+        readinessStatus: readiness.status,
+        readinessIssues: readiness.issues,
+        matchedMeterValueCount: readiness.matchedMeterValueCount,
+        exportMode: 'partial_batch_ready_rows_only',
+      },
+      notes: `Köad via 6C-readiness. Ofullständiga rader i samma period flaggas men stoppar inte färdiga rader. Batch ${input.batchKey}.`,
+    })
+
+    created.push(exportRow)
+  }
+
+  const readinessValues = Array.from(readinessByUnderlayId.values())
+
+  return {
+    created,
+    readinessByUnderlayId,
+    createdCount: created.length,
+    skippedCount: Math.max(0, input.underlays.length - created.length),
+    flaggedCount: readinessValues.filter((row) => row.status === 'warning').length,
+    blockedCount: readinessValues.filter((row) => row.status === 'blocked' || row.status === 'requires_correction').length,
+    candidateCount: input.underlays.length,
+  }
 }
 
 export async function bulkQueueMissingMeterValues(params: {

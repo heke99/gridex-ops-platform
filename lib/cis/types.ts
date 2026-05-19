@@ -12,6 +12,7 @@ export type GridOwnerDataRequestStatus =
 
 export type GridOwnerDataRequestRow = {
   id: string
+  company_id?: string | null
   customer_id: string
   site_id: string | null
   metering_point_id: string | null
@@ -30,6 +31,8 @@ export type GridOwnerDataRequestRow = {
   received_at: string | null
   failed_at: string | null
   failure_reason: string | null
+  readiness_status?: 'not_checked' | 'ready' | 'warning' | 'blocked' | 'exported' | 'requires_correction' | string | null
+  readiness_issues?: Array<Record<string, unknown>> | null
   created_at: string
   updated_at: string
   created_by: string | null
@@ -46,6 +49,7 @@ export type MeteringValueReadingType =
 
 export type MeteringValueRow = {
   id: string
+  company_id?: string | null
   customer_id: string
   site_id: string | null
   metering_point_id: string
@@ -59,6 +63,14 @@ export type MeteringValueRow = {
   period_end: string | null
   source_system: string
   raw_payload: Record<string, unknown>
+  source_ediel_message_id?: string | null
+  canonical_dedupe_key?: string | null
+  is_current?: boolean | null
+  previous_value_id?: string | null
+  replaced_by_value_id?: string | null
+  revision_number?: number | null
+  correction_reason?: string | null
+  value_status?: 'current' | 'replaced' | 'void' | string | null
   created_at: string
   created_by: string | null
 }
@@ -72,6 +84,7 @@ export type BillingUnderlayStatus =
 
 export type BillingUnderlayRow = {
   id: string
+  company_id?: string | null
   customer_id: string
   site_id: string | null
   metering_point_id: string | null
@@ -89,6 +102,8 @@ export type BillingUnderlayRow = {
   validated_at: string | null
   exported_at: string | null
   failure_reason: string | null
+  readiness_status?: 'not_checked' | 'ready' | 'warning' | 'blocked' | 'exported' | 'requires_correction' | string | null
+  readiness_issues?: Array<Record<string, unknown>> | null
   created_at: string
   updated_at: string
   created_by: string | null
@@ -109,6 +124,7 @@ export type PartnerExportStatus =
 
 export type PartnerExportRow = {
   id: string
+  company_id?: string | null
   customer_id: string
   site_id: string | null
   metering_point_id: string | null
@@ -119,6 +135,7 @@ export type PartnerExportRow = {
   payload: Record<string, unknown>
   response_payload: Record<string, unknown>
   external_reference: string | null
+  export_batch_key?: string | null
   queued_at: string
   sent_at: string | null
   acknowledged_at: string | null
@@ -183,6 +200,7 @@ export type OutboundChannelType =
 
 export type OutboundRequestRow = {
   id: string
+  company_id?: string | null
   customer_id: string
   site_id: string | null
   metering_point_id: string | null

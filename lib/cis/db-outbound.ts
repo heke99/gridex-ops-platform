@@ -18,6 +18,7 @@ import {
   buildSitePayload,
   findPostgresErrorCode,
   getCustomerExportContext,
+  requireContextCompanyId,
   getOutboundRequestByAutomationKey,
   matchesQuery,
   mergeJsonObjects,
@@ -195,6 +196,7 @@ export async function createOutboundRequest(input: {
     meteringPointId: input.meteringPointId ?? null,
   })
 
+  const companyId = requireContextCompanyId(context, 'Skapa outbound request')
   const channelType = route?.route_type ?? 'unresolved'
   const shouldReplaceSupplierSwitchAttempt = Boolean(
     input.replaceOpenSupplierSwitchAttempt &&
@@ -211,6 +213,7 @@ export async function createOutboundRequest(input: {
   }
 
   const enrichedPayload = mergeJsonObjects(input.payload ?? {}, {
+    company_id: companyId,
     request_type: input.requestType,
     source_type: input.sourceType ?? 'manual',
     source_id: input.sourceId ?? null,
@@ -225,6 +228,7 @@ export async function createOutboundRequest(input: {
   })
 
   const insertPayload = {
+    company_id: companyId,
     customer_id: input.customerId,
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,

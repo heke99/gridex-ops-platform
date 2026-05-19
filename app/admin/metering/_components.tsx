@@ -57,6 +57,11 @@ function isEdielValue(value: MeteringValueRow): boolean {
  return source.includes('ediel') || source.includes('utilts')
 }
 
+function isCorrectedValue(value: MeteringValueRow): boolean {
+ const quality = String(value.quality_code ?? '').toLowerCase()
+ return Boolean((value.revision_number ?? 1) > 1 || value.previous_value_id || quality.includes('correct') || quality.includes('korr') || quality.includes('rätt'))
+}
+
 export function MeteringFilterBar({ query }: { query: string }) {
  return (
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -88,9 +93,11 @@ export function MeteringOperationalSummary({
  const failedRequests = requests.filter((request) => request.status === 'failed')
  const edielValues = values.filter(isEdielValue)
  const valuesWithSourceRequest = values.filter((value) => Boolean(value.source_request_id))
+ const correctedValues = values.filter(isCorrectedValue)
+ const missingTenantValues = values.filter((value) => !value.company_id)
 
  return (
- <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+ <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-8">
  <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
  <div className="text-sm font-medium text-amber-700">Öppna requests</div>
  <div className="mt-2 text-3xl font-semibold text-slate-950">{openRequests.length}</div>
@@ -121,6 +128,16 @@ export function MeteringOperationalSummary({
  <div className="mt-2 text-3xl font-semibold text-slate-950">
  {valuesWithSourceRequest.length}
  </div>
+ </div>
+
+ <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+ <div className="text-sm font-medium text-amber-900">Korrigerade värden</div>
+ <div className="mt-2 text-3xl font-semibold text-slate-950">{correctedValues.length}</div>
+ </div>
+
+ <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
+ <div className="text-sm font-medium text-red-900">Saknar tenant</div>
+ <div className="mt-2 text-3xl font-semibold text-slate-950">{missingTenantValues.length}</div>
  </div>
  </section>
  )
@@ -315,13 +332,14 @@ export function MeteringValuesTable({ values }: { values: MeteringValueRow[] }) 
  <th className="px-6 py-4 font-semibold text-slate-700">Typ/source</th>
  <th className="px-6 py-4 font-semibold text-slate-700">kWh</th>
  <th className="px-6 py-4 font-semibold text-slate-700">Period</th>
+ <th className="px-6 py-4 font-semibold text-slate-700">Revision</th>
  <th className="px-6 py-4 text-right font-semibold text-slate-700">Öppna</th>
  </tr>
  </thead>
  <tbody>
  {values.length === 0 ? (
  <tr>
- <td colSpan={7} className="px-6 py-10 text-center text-sm text-slate-700">
+ <td colSpan={8} className="px-6 py-10 text-center text-sm text-slate-700">
  Inga mätvärden ännu.
  </td>
  </tr>
@@ -344,6 +362,16 @@ export function MeteringValuesTable({ values }: { values: MeteringValueRow[] }) 
  <td className="px-6 py-4 font-medium text-slate-900">{value.value_kwh}</td>
  <td className="px-6 py-4 text-slate-700">
  {value.period_start ?? '—'} → {value.period_end ?? '—'}
+ </td>
+ <td className="px-6 py-4">
+ <div className="flex flex-wrap gap-1">
+ <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${isCorrectedValue(value) ? 'bg-amber-100 text-amber-950' : 'bg-slate-100 text-slate-800'}`}>
+ v{value.revision_number ?? 1}
+ </span>
+ {value.is_current === false ? (
+ <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-800">Ersatt</span>
+ ) : null}
+ </div>
  </td>
  <td className="px-6 py-4 text-right">
  {value.source_request_id ? (

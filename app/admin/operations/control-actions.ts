@@ -11,13 +11,14 @@ import type {
 } from '@/lib/masterdata/types'
 import {
   createOutboundRequest,
-  createPartnerExport,
+  queueReadyBillingUnderlayExports,
   findOpenOutboundBySource,
   listOutboundRequests,
   refreshOutboundRequestRouteResolution,
   resetOutboundRequestForRetry,
   updateOutboundRequestStatus,
 } from '@/lib/cis/db'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
   createSupplierSwitchEvent,
   getSupplierSwitchRequestById,
@@ -29,6 +30,7 @@ import {
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import type {
   BillingUnderlayRow,
+  MeteringValueRow,
   OutboundRequestRow,
   PartnerExportRow,
 } from '@/lib/cis/types'
@@ -686,6 +688,8 @@ export async function bulkQueueReadyBillingExportsAction(
   month: number
   createdCount: number
   skippedCount: number
+  flaggedCount: number
+  blockedCount: number
   candidateCount: number
   batchKey: string
 }> {
@@ -695,15 +699,23 @@ export async function bulkQueueReadyBillingExportsAction(
   ])
 
   const actor = await getActor()
+  const companyScope = await getOperationalCompanyScope(actor.id)
+  const companyId = companyScope.companyId
   const period = normalizeMonthInput(formValue(formData, 'period_month'))
+  const targetSystem = formValue(formData, 'target_system') || 'billing_partner'
 
   if (!period) {
     throw new Error('Välj en månad för exportkörningen')
   }
 
+  if (!companyId) {
+    throw new Error(companyScope.message ?? 'Aktivt bolag saknas för exportkörningen.')
+  }
+
   const { data: underlays, error: underlaysError } = await supabaseService
     .from('billing_underlays')
     .select('*')
+    .eq('company_id', companyId)
     .eq('underlay_year', period.year)
     .eq('underlay_month', period.month)
     .in('status', ['received', 'validated'])
@@ -719,6 +731,7 @@ export async function bulkQueueReadyBillingExportsAction(
     const { data: exportsData, error: exportsError } = await supabaseService
       .from('partner_exports')
       .select('*')
+      .eq('company_id', companyId)
       .in('billing_underlay_id', underlayIds)
       .in('status', ['queued', 'sent', 'acknowledged'])
 
@@ -726,40 +739,24 @@ export async function bulkQueueReadyBillingExportsAction(
     existingExports = (exportsData ?? []) as PartnerExportRow[]
   }
 
-  const existingByUnderlayId = new Map(
-    existingExports
-      .filter((row) => row.billing_underlay_id)
-      .map((row) => [row.billing_underlay_id as string, row])
-  )
+  const { data: meteringData, error: meteringError } = await supabaseService
+    .from('metering_values')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('read_at', { ascending: false })
+    .limit(5000)
 
-  let createdCount = 0
+  if (meteringError) throw meteringError
 
-  for (const underlay of typedUnderlays) {
-    if (existingByUnderlayId.has(underlay.id)) continue
-
-    await createPartnerExport({
-      actorUserId: actor.id,
-      customerId: underlay.customer_id,
-      siteId: underlay.site_id,
-      meteringPointId: underlay.metering_point_id,
-      billingUnderlayId: underlay.id,
-      exportKind: 'billing_underlay',
-      targetSystem: 'billing_partner',
-      payload: {
-        underlayYear: underlay.underlay_year,
-        underlayMonth: underlay.underlay_month,
-        sourceSystem: underlay.source_system,
-      },
-      notes: `Batch 7 export sweep för ${period.year}-${String(
-        period.month
-      ).padStart(2, '0')}`,
-    })
-
-    createdCount += 1
-  }
-
-  const skippedCount = Math.max(0, typedUnderlays.length - createdCount)
-  const batchKey = `billing-export:${period.year}-${String(period.month).padStart(2, '0')}`
+  const batchKey = `billing-export:${companyId}:${period.year}-${String(period.month).padStart(2, '0')}`
+  const result = await queueReadyBillingUnderlayExports({
+    actorUserId: actor.id,
+    underlays: typedUnderlays,
+    meterValues: (meteringData ?? []) as MeteringValueRow[],
+    partnerExports: existingExports,
+    targetSystem,
+    batchKey,
+  })
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -767,12 +764,17 @@ export async function bulkQueueReadyBillingExportsAction(
     entityId: `${period.year}-${String(period.month).padStart(2, '0')}`,
     action: 'bulk_queue_ready_billing_exports',
     metadata: {
+      companyId,
+      targetSystem,
       year: period.year,
       month: period.month,
-      createdCount,
-      skippedCount,
-      candidateCount: typedUnderlays.length,
+      createdCount: result.createdCount,
+      skippedCount: result.skippedCount,
+      flaggedCount: result.flaggedCount,
+      blockedCount: result.blockedCount,
+      candidateCount: result.candidateCount,
       batchKey,
+      mode: 'partial_batch_ready_rows_only',
     },
   })
 
@@ -780,13 +782,16 @@ export async function bulkQueueReadyBillingExportsAction(
   revalidatePath('/admin/billing')
   revalidatePath('/admin/partner-exports')
   revalidatePath('/admin/operations')
+  revalidatePath('/admin/controltower')
 
   return {
     year: period.year,
     month: period.month,
-    createdCount,
-    skippedCount,
-    candidateCount: typedUnderlays.length,
+    createdCount: result.createdCount,
+    skippedCount: result.skippedCount,
+    flaggedCount: result.flaggedCount,
+    blockedCount: result.blockedCount,
+    candidateCount: result.candidateCount,
     batchKey,
   }
 }

@@ -41,6 +41,7 @@ export type GridOwnerRow = {
   updated_at: string
   created_by: string | null
   updated_by: string | null
+  company_id?: string | null
 }
 
 export type ElectricitySupplierRow = {
@@ -107,6 +108,7 @@ export type CustomerSiteRow = {
   closed_at?: string | null
   closed_reason?: string | null
   internal_notes: string | null
+  company_id?: string | null
   created_at: string
   updated_at: string
   created_by: string | null
@@ -129,6 +131,7 @@ export type MeteringPointRow = {
   closed_at?: string | null
   closed_reason?: string | null
   is_settlement_relevant: boolean
+  company_id?: string | null
   created_at: string
   updated_at: string
   created_by: string | null

@@ -2,6 +2,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
  listAllGridOwnerDataRequests,
  listAllMeteringValues,
@@ -32,15 +33,19 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  const {
  data: { user },
  } = await supabase.auth.getUser()
+ const companyScope = user ? await getOperationalCompanyScope(user.id) : null
+ const companyId = companyScope?.companyId ?? null
 
  const [requests, values] = await Promise.all([
  listAllGridOwnerDataRequests({
  status: 'all',
  scope: 'meter_values',
  query,
+ companyId,
  }),
  listAllMeteringValues({
  query,
+ companyId,
  }),
  ])
 

@@ -5,10 +5,12 @@ import type {
  GridOwnerDataRequestRow,
  PartnerExportRow,
 } from '@/lib/cis/types'
+import type { BillingReadinessResult } from '@/lib/cis/billingReadiness'
 import {
  ingestBillingUnderlayAction,
  updateGridOwnerDataRequestStatusAction,
  updatePartnerExportStatusAction,
+ queueReadyBillingExportsFromBillingAction,
 } from '@/app/admin/cis/actions'
 
 export function billingTone(status: string): string {
@@ -22,6 +24,58 @@ export function billingTone(status: string): string {
  return 'bg-emerald-100 text-emerald-700'
  }
  return 'bg-amber-100 text-amber-700'
+}
+
+function readinessTone(status: BillingReadinessResult['status'] | string): string {
+ if (status === 'ready') return 'border-emerald-300 bg-emerald-100 text-emerald-900'
+ if (status === 'warning') return 'border-amber-300 bg-amber-100 text-amber-950'
+ if (status === 'requires_correction' || status === 'blocked') return 'border-red-300 bg-red-100 text-red-950'
+ if (status === 'already_exported') return 'border-slate-300 bg-slate-100 text-slate-900'
+ return 'border-slate-300 bg-white text-slate-900'
+}
+
+function ReadinessBadge({ readiness }: { readiness: BillingReadinessResult | null | undefined }) {
+ if (!readiness) {
+ return <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-900">Ej kontrollerad</span>
+ }
+
+ return (
+ <span className={`rounded-full border px-3 py-1 text-xs font-bold ${readinessTone(readiness.status)}`}>
+ {readiness.label}
+ </span>
+ )
+}
+
+export function BillingReadinessExportPanel() {
+ const currentMonth = new Date().toISOString().slice(0, 7)
+
+ return (
+ <form action={queueReadyBillingExportsFromBillingAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+ <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-900">6C exportberedskap</p>
+ <h2 className="mt-2 text-lg font-black text-slate-950">Köa bara redo underlag</h2>
+ <p className="mt-2 text-sm font-medium leading-6 text-slate-700">
+ Exportkörningen stoppar inte hela perioden om en kund eller mätpunkt saknar data. Systemet köar färdiga rader och flaggar ofullständiga rader för handläggning.
+ </p>
+ <div className="mt-5 grid gap-4">
+ <input
+ name="period_month"
+ type="month"
+ defaultValue={currentMonth}
+ className="h-11 rounded-2xl border border-slate-300 px-4 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-700"
+ required
+ />
+ <input
+ name="target_system"
+ defaultValue="billing_partner"
+ placeholder="Mottagande exportsystem"
+ className="h-11 rounded-2xl border border-slate-300 px-4 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-700"
+ />
+ <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-800">
+ Köa redo underlag
+ </button>
+ </div>
+ </form>
+ )
 }
 
 export function BillingFilterBar({
@@ -182,9 +236,11 @@ export function BillingRequestsSection({
 export function BillingUnderlaysSection({
  underlays,
  requestById,
+ readinessByUnderlayId,
 }: {
  underlays: BillingUnderlayRow[]
  requestById: Map<string, GridOwnerDataRequestRow>
+ readinessByUnderlayId: Map<string, BillingReadinessResult>
 }) {
  return (
  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -204,18 +260,21 @@ export function BillingUnderlaysSection({
  ? requestById.get(underlay.source_request_id) ?? null
  : null
 
+ const readiness = readinessByUnderlayId.get(underlay.id) ?? null
+
  return (
- <div key={underlay.id} className="rounded-2xl border p-4">
+ <div key={underlay.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
  <div className="flex flex-wrap items-center justify-between gap-3">
  <div className="flex flex-wrap items-center gap-2">
  <span
- className={`rounded-full px-3 py-1 text-xs font-semibold ${billingTone(
+ className={`rounded-full px-3 py-1 text-xs font-bold ${billingTone(
  underlay.status
  )}`}
  >
  {underlay.status}
  </span>
- <span className="text-xs text-slate-700">
+ <ReadinessBadge readiness={readiness} />
+ <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-900">
  {underlay.underlay_year ?? '—'}-
  {String(underlay.underlay_month ?? '').padStart(2, '0')}
  </span>
@@ -257,7 +316,22 @@ export function BillingUnderlaysSection({
  {sourceRequest?.id ?? underlay.source_request_id ?? '—'}
  </span>
  </div>
+ <div>
+ Matchade mätvärden:{' '}
+ <span className="font-medium">{readiness?.matchedMeterValueCount ?? 0}</span>
  </div>
+ </div>
+
+ {readiness?.issues.length ? (
+ <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+ <div className="text-xs font-black uppercase tracking-[0.14em] text-amber-950">Flaggor per underlag</div>
+ <ul className="mt-2 space-y-1 text-sm font-medium leading-6 text-amber-950">
+ {readiness.issues.slice(0, 4).map((issue) => (
+ <li key={`${underlay.id}:${issue.code}`}>• {issue.title}: {issue.description}</li>
+ ))}
+ </ul>
+ </div>
+ ) : null}
  </div>
  )
  })

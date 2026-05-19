@@ -1,5 +1,6 @@
 import type {
   BillingUnderlayRow,
+  MeteringValueRow,
   OutboundRequestRow,
   PartnerExportRow,
 } from '@/lib/cis/types'
@@ -9,10 +10,10 @@ import type {
   SwitchReadinessResult,
 } from '@/lib/operations/types'
 import {
-  getBillingExportReadiness,
   getSwitchLifecycle,
   summarizeReadinessIssues,
 } from '@/lib/operations/controlTower'
+import { evaluateBillingUnderlayReadiness } from '@/lib/cis/billingReadiness'
 
 export type OperationsAlertSeverity = 'critical' | 'high' | 'medium' | 'low'
 
@@ -27,6 +28,9 @@ export type OperationsAlert = {
     | 'switch'
     | 'outbound'
     | 'billing_export'
+    | 'billing_readiness'
+    | 'metering'
+    | 'tenant'
     | 'readiness'
   customerId?: string | null
   siteId?: string | null
@@ -53,6 +57,7 @@ export function buildOperationsAlerts(params: {
   outboundRequests: OutboundRequestRow[]
   billingUnderlays: BillingUnderlayRow[]
   partnerExports: PartnerExportRow[]
+  meteringValues?: MeteringValueRow[]
 }): OperationsAlert[] {
   const alerts: OperationsAlert[] = []
 
@@ -197,21 +202,37 @@ export function buildOperationsAlerts(params: {
   )
 
   for (const underlay of params.billingUnderlays) {
-    const readiness = getBillingExportReadiness({
+    const readiness = evaluateBillingUnderlayReadiness({
       underlay,
+      meterValues: params.meteringValues ?? [],
       existingExport: exportMap.get(underlay.id) ?? null,
     })
 
-    if (!readiness.isReady) continue
+    if (readiness.status === 'blocked' || readiness.status === 'requires_correction') {
+      alerts.push({
+        id: `billing-blocked:${underlay.id}`,
+        severity: readiness.status === 'requires_correction' ? 'high' : 'medium',
+        title: readiness.status === 'requires_correction' ? 'Korrigerat mätvärde efter export' : 'Billing-underlag saknar data',
+        description: readiness.issues.map((issue) => issue.title).join(', ') || 'Underlaget behöver kompletteras.',
+        href: '/admin/billing',
+        category: 'billing_readiness',
+        customerId: underlay.customer_id,
+        siteId: underlay.site_id,
+        meteringPointId: underlay.metering_point_id,
+      })
+      continue
+    }
+
+    if (!readiness.isExportable) continue
 
     alerts.push({
       id: `billing-export-ready:${underlay.id}`,
-      severity: 'medium',
-      title: 'Billing-underlag redo för export',
+      severity: readiness.status === 'warning' ? 'medium' : 'low',
+      title: readiness.status === 'warning' ? 'Billing-underlag redo med flagga' : 'Billing-underlag redo för export',
       description: `Underlag ${underlay.underlay_year ?? '—'}-${String(
         underlay.underlay_month ?? ''
-      ).padStart(2, '0')} för kund ${underlay.customer_id} saknar aktiv partnerexport.`,
-      href: '/admin/partner-exports',
+      ).padStart(2, '0')} för kund ${underlay.customer_id} kan köas. Färdiga rader exporteras även om andra rader i perioden saknar data.`,
+      href: '/admin/billing',
       category: 'billing_export',
       customerId: underlay.customer_id,
       siteId: underlay.site_id,

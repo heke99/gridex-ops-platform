@@ -32,6 +32,7 @@ import type { OutboundRequestRow, OutboundRequestStatus } from '@/lib/cis/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/orchestrator'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
+import { bulkQueueReadyBillingExportsAction } from '@/app/admin/operations/control-actions'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -571,6 +572,7 @@ export async function ingestMeteringValueAction(
   await syncCustomerOperationsAfterCisChange(customerId)
 
   revalidatePath('/admin/metering')
+  revalidatePath('/admin/billing')
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
@@ -967,4 +969,10 @@ export async function bulkQueueReadySupplierSwitchesAction(): Promise<{
   revalidatePath('/admin/operations/switches')
 
   return result
+}
+
+export async function queueReadyBillingExportsFromBillingAction(
+  formData: FormData
+): Promise<void> {
+  await bulkQueueReadyBillingExportsAction(formData)
 }

@@ -73,7 +73,14 @@ export async function getOutboundRequestByAutomationKey(
   return (data as OutboundRequestRow | null) ?? null
 }
 
-type CustomerExportContext = {
+export type TenantConsistencyIssue = {
+  code: 'company_missing' | 'company_conflict'
+  message: string
+}
+
+export type CustomerExportContext = {
+  companyId: string | null
+  tenantIssues: TenantConsistencyIssue[]
   customer: CustomerRow | null
   contacts: CustomerContactRow[]
   site: CustomerSiteRow | null
@@ -175,6 +182,74 @@ async function getLatestContract(params: {
   return (data as CustomerContractRow | null) ?? null
 }
 
+function normalizeCompanyId(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function resolveTenantConsistency(params: {
+  customer: CustomerRow | null
+  site: CustomerSiteRow | null
+  meteringPoint: MeteringPointRow | null
+  contract: CustomerContractRow | null
+}): { companyId: string | null; tenantIssues: TenantConsistencyIssue[] } {
+  const candidates = [
+    { source: 'customer', companyId: normalizeCompanyId(params.customer?.company_id) },
+    { source: 'site', companyId: normalizeCompanyId(params.site?.company_id) },
+    { source: 'metering_point', companyId: normalizeCompanyId(params.meteringPoint?.company_id) },
+    { source: 'contract', companyId: normalizeCompanyId(params.contract?.company_id) },
+  ].filter((row) => row.companyId)
+
+  const uniqueCompanyIds = Array.from(new Set(candidates.map((row) => row.companyId as string)))
+
+  if (uniqueCompanyIds.length > 1) {
+    return {
+      companyId: null,
+      tenantIssues: [
+        {
+          code: 'company_conflict',
+          message: `Tenant-konflikt: kund, anläggning, mätpunkt eller avtal pekar på olika bolag (${uniqueCompanyIds.join(', ')}).`,
+        },
+      ],
+    }
+  }
+
+  if (uniqueCompanyIds.length === 0) {
+    return {
+      companyId: null,
+      tenantIssues: [
+        {
+          code: 'company_missing',
+          message: 'Tenant saknas: kundflödet saknar company_id och får inte användas för mätvärden, export eller Ediel-runtime.',
+        },
+      ],
+    }
+  }
+
+  return {
+    companyId: uniqueCompanyIds[0],
+    tenantIssues: [],
+  }
+}
+
+export function requireContextCompanyId(
+  context: CustomerExportContext,
+  operationLabel = 'operation'
+): string {
+  const blockingIssue = context.tenantIssues.find((issue) =>
+    issue.code === 'company_conflict' || issue.code === 'company_missing'
+  )
+
+  if (blockingIssue) {
+    throw new Error(`${operationLabel} stoppades: ${blockingIssue.message}`)
+  }
+
+  if (!context.companyId) {
+    throw new Error(`${operationLabel} stoppades: company_id saknas.`)
+  }
+
+  return context.companyId
+}
+
 export async function getCustomerExportContext(params: {
   customerId: string
   siteId?: string | null
@@ -191,7 +266,16 @@ export async function getCustomerExportContext(params: {
     }),
   ])
 
+  const tenant = resolveTenantConsistency({
+    customer,
+    site,
+    meteringPoint,
+    contract,
+  })
+
   return {
+    companyId: tenant.companyId,
+    tenantIssues: tenant.tenantIssues,
     customer,
     contacts,
     site,
@@ -207,6 +291,10 @@ export function buildCustomerIdentityPayload(
   const primaryContact = preferPrimaryContact(context.contacts)
 
   return {
+    tenant: {
+      company_id: context.companyId,
+      issues: context.tenantIssues,
+    },
     customer: customer
       ? {
           id: customer.id,
