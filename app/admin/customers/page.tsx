@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
   listCustomersPage,
   type CustomerListRow,
@@ -17,7 +18,6 @@ import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
-import { resolveTenantScope } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +28,6 @@ type CustomersPageProps = {
     status?: string
     contract?: string
     page?: string
-    company?: string
   }>
 }
 
@@ -49,15 +48,8 @@ type CustomerOperationsSummary = {
   priorityLabel: string
 }
 
-type CustomerAuthorizationSummary = {
-  powerOfAttorneyCount: number
-  signedPowerOfAttorneyCount: number
-  hasSignedPowerOfAttorney: boolean
-}
-
 type CustomerWithOperations = CustomerListRow & {
   operations: CustomerOperationsSummary
-  authorization: CustomerAuthorizationSummary
 }
 
 type OperationsFilterKey =
@@ -306,11 +298,11 @@ function buildCustomerOperationsSummary(params: {
       failed,
       completed,
       activeOpen,
-      primaryLabel: 'Väntar på utskick',
+      primaryLabel: 'Väntar utskick',
       primaryHref: '/admin/operations/switches?stage=awaiting_dispatch',
       primaryTone: lifecycleTone('awaiting_dispatch'),
       primaryDescription:
-        'Utskick finns men utskickskedjan är inte färdig.',
+        'Utskicket finns men skickflödet är inte färdigt.',
       priorityRank: 4,
       priorityLabel: 'Utskick pågår',
     }
@@ -330,9 +322,9 @@ function buildCustomerOperationsSummary(params: {
       primaryHref: '/admin/operations/switches?stage=queued_for_outbound',
       primaryTone: lifecycleTone('queued_for_outbound'),
       primaryDescription:
-        'Minst ett switchärende saknar utskick och behöver köas eller följas upp.',
+        'Minst en switch saknar utskick och behöver förberedas eller kontrolleras.',
       priorityRank: 5,
-      priorityLabel: 'Köa utskick',
+      priorityLabel: 'Förbered utskick',
     }
   }
 
@@ -346,11 +338,11 @@ function buildCustomerOperationsSummary(params: {
       failed,
       completed,
       activeOpen,
-      primaryLabel: 'Kräver manuell åtgärd',
+      primaryLabel: 'Kräver åtgärd',
       primaryHref: '/admin/operations/switches?stage=failed',
       primaryTone: lifecycleTone('failed'),
       primaryDescription:
-        'Det finns ärenden som har stoppats och kräver manuell bedömning.',
+        'Det finns ärenden som brutit flödet och kräver manuell bedömning.',
       priorityRank: 6,
       priorityLabel: 'Kräver beslut',
     }
@@ -622,7 +614,7 @@ function filterLabel(filter: OperationsFilterKey): string {
     case 'queued_for_outbound':
       return 'kunder som saknar utskick'
     case 'failed':
-      return 'kunder som kräver manuell åtgärd'
+      return 'kunder med ärenden som kräver åtgärd'
     case 'active_open':
       return 'kunder med aktiv operationssignal'
     case 'no_signal':
@@ -669,7 +661,7 @@ function customerTypeLabel(value: string | null): string {
 function customerStatusLabel(value: string | null): string {
   switch (value) {
     case 'draft':
-      return 'Utkast'
+      return 'Förbereds'
     case 'pending_verification':
       return 'Väntar verifiering'
     case 'active':
@@ -690,7 +682,7 @@ function customerStatusLabel(value: string | null): string {
 function contractStatusLabel(value: CustomerContractRow['status']): string {
   switch (value) {
     case 'draft':
-      return 'Utkast'
+      return 'Förbereds'
     case 'pending_signature':
       return 'Väntar signering'
     case 'signed':
@@ -761,29 +753,24 @@ function formatCurrency(value: number | null | undefined): string {
 export default async function AdminCustomersPage({
   searchParams,
 }: CustomersPageProps) {
-  const admin = await requireAdminPageAccess({ anyOf: ['customers.read', 'masterdata.read'] })
+  const context = await requirePermissionServer('masterdata.read')
 
   const resolvedSearchParams = await searchParams
-  const scope = await resolveTenantScope({
-    userId: admin.userId,
-    roles: admin.roles,
-    permissions: admin.permissions,
-    requestedCompanyId: resolvedSearchParams.company ?? null,
-    requireCompany: false,
-  })
-  const selectedCompanyId = scope.companyId
   const query = (resolvedSearchParams.q ?? '').trim()
   const opsFilter = normalizeOperationsFilter(resolvedSearchParams.ops)
   const statusFilter = normalizeStatusFilter(resolvedSearchParams.status)
   const contractFilter = normalizeContractFilter(resolvedSearchParams.contract)
   const page = normalizePage(resolvedSearchParams.page)
 
+  const companyScope = await getOperationalCompanyScope(context.userId)
+
   const pageResult = await listCustomersPage({
     query,
     page,
     pageSize: PAGE_SIZE,
     status: statusFilter,
-    companyId: selectedCompanyId,
+    contractFilter,
+    companyId: companyScope.companyId,
   })
 
   const customers = pageResult.rows
@@ -795,120 +782,44 @@ export default async function AdminCustomersPage({
 
   const customerIds = customers.map((customer) => customer.id)
 
-  const [
-    sitesQuery,
-    switchRequestsQuery,
-    outboundRequestsQuery,
-    powersOfAttorneyQuery,
-  ] =
+  const [sitesQuery, switchRequestsQuery, outboundRequestsQuery, latestContractsByCustomerId] =
     customerIds.length > 0
       ? await Promise.all([
-          selectedCompanyId
-            ? supabaseService
-                .from('customer_sites')
-                .select('*')
-                .eq('company_id', selectedCompanyId)
-                .in('customer_id', customerIds)
-            : supabaseService
-                .from('customer_sites')
-                .select('*')
-                .in('customer_id', customerIds),
-          selectedCompanyId
-            ? supabaseService
-                .from('supplier_switch_requests')
-                .select('*')
-                .eq('company_id', selectedCompanyId)
-                .in('customer_id', customerIds)
-            : supabaseService
-                .from('supplier_switch_requests')
-                .select('*')
-                .in('customer_id', customerIds),
-          selectedCompanyId
-            ? supabaseService
-                .from('outbound_requests')
-                .select('*')
-                .eq('request_type', 'supplier_switch')
-                .eq('company_id', selectedCompanyId)
-                .in('customer_id', customerIds)
-            : supabaseService
-                .from('outbound_requests')
-                .select('*')
-                .eq('request_type', 'supplier_switch')
-                .in('customer_id', customerIds),
-          selectedCompanyId
-            ? supabaseService
-                .from('powers_of_attorney')
-                .select('id, customer_id, status')
-                .eq('company_id', selectedCompanyId)
-                .in('customer_id', customerIds)
-            : supabaseService
-                .from('powers_of_attorney')
-                .select('id, customer_id, status')
-                .in('customer_id', customerIds),
+          supabaseService
+            .from('customer_sites')
+            .select('*')
+            .in('customer_id', customerIds),
+          supabaseService
+            .from('supplier_switch_requests')
+            .select('*')
+            .in('customer_id', customerIds),
+          supabaseService
+            .from('outbound_requests')
+            .select('*')
+            .eq('request_type', 'supplier_switch')
+            .in('customer_id', customerIds),
+          listLatestCustomerContractsByCustomerIds(customerIds),
         ])
       : [
           { data: [], error: null },
           { data: [], error: null },
           { data: [], error: null },
-          { data: [], error: null },
+          new Map<string, LatestCustomerContractSummary>(),
         ]
-
-  const latestContractsByCustomerId: Map<string, LatestCustomerContractSummary> =
-    customerIds.length > 0
-      ? await listLatestCustomerContractsByCustomerIds(customerIds, { companyId: selectedCompanyId })
-      : new Map<string, LatestCustomerContractSummary>()
 
   if (sitesQuery.error) throw sitesQuery.error
   if (switchRequestsQuery.error) throw switchRequestsQuery.error
   if (outboundRequestsQuery.error) throw outboundRequestsQuery.error
-  if (powersOfAttorneyQuery.error) throw powersOfAttorneyQuery.error
 
   const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
   const switchRequests =
     (switchRequestsQuery.data ?? []) as SupplierSwitchRequestRow[]
   const outboundRequests =
     (outboundRequestsQuery.data ?? []) as OutboundRequestRow[]
-  const powerOfAttorneyRows = (powersOfAttorneyQuery.data ?? []) as Array<{
-    id: string
-    customer_id: string
-    status: string | null
-  }>
-
-  const authorizationByCustomerId = new Map<string, CustomerAuthorizationSummary>()
-
-  for (const customer of customers) {
-    authorizationByCustomerId.set(customer.id, {
-      powerOfAttorneyCount: 0,
-      signedPowerOfAttorneyCount: 0,
-      hasSignedPowerOfAttorney: false,
-    })
-  }
-
-  for (const row of powerOfAttorneyRows) {
-    const current = authorizationByCustomerId.get(row.customer_id) ?? {
-      powerOfAttorneyCount: 0,
-      signedPowerOfAttorneyCount: 0,
-      hasSignedPowerOfAttorney: false,
-    }
-    const signed = row.status === 'signed'
-
-    authorizationByCustomerId.set(row.customer_id, {
-      powerOfAttorneyCount: current.powerOfAttorneyCount + 1,
-      signedPowerOfAttorneyCount:
-        current.signedPowerOfAttorneyCount + (signed ? 1 : 0),
-      hasSignedPowerOfAttorney: current.hasSignedPowerOfAttorney || signed,
-    })
-  }
 
   const customersWithOperations: CustomerWithOperations[] = customers.map(
     (customer) => ({
       ...customer,
-      authorization:
-        authorizationByCustomerId.get(customer.id) ?? {
-          powerOfAttorneyCount: 0,
-          signedPowerOfAttorneyCount: 0,
-          hasSignedPowerOfAttorney: false,
-        },
       operations: buildCustomerOperationsSummary({
         customerId: customer.id,
         sites,
@@ -960,14 +871,6 @@ export default async function AdminCustomersPage({
     (customer) => customer.operations.activeOpen === 0
   ).length
 
-  const customersWithSignedPowerOfAttorney = sortedCustomers.filter(
-    (customer) => customer.authorization.hasSignedPowerOfAttorney
-  ).length
-
-  const customersMissingPowerOfAttorney = sortedCustomers.filter(
-    (customer) => !customer.authorization.hasSignedPowerOfAttorney
-  ).length
-
   const latestContracts = Array.from(latestContractsByCustomerId.values())
   const noContractCustomers = customersMatchingOps.filter(
     (customer) => !latestContractsByCustomerId.get(customer.id)
@@ -994,34 +897,28 @@ export default async function AdminCustomersPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 via-white to-slate-50">
+    <div className="min-h-screen">
       <AdminHeader
-        title="Kunder"
-        subtitle="Kundregister med sök, statusfilter, avtalsläge, fullmaktsöversikt och tydlig operationsstatus."
+        title="Kundregister"
+        subtitle="Kunder, anläggningar, mätpunkter, avtal och operationsläge för det operativa elhandelsbolaget."
         userEmail={user?.email ?? null}
       />
 
-      <div className="space-y-6 px-6 py-8 lg:px-8">
-        <div className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white/85 p-5 shadow-sm shadow-emerald-950/5 backdrop-blur lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-slate-950">Kundregistret visar befintliga kunder.</p>
-            <p className="mt-1 text-sm text-slate-500">Nya kunder skapas i kundintaget. Nya elhandelsbolag skapas under Företag.</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
+      <div className="space-y-6 p-8">
+        <div className="flex flex-wrap gap-3">
           <Link
             href="/admin/customers/intake"
-            className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-800"
+            className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
           >
-            Kundintag och import
+            Kundintag / bulkimport
           </Link>
 
           <Link
             href="/admin/contracts"
-            className="inline-flex items-center rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+            className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Avtalskatalog
           </Link>
-          </div>
         </div>
 
         <section className="grid gap-4 xl:grid-cols-5">
@@ -1033,7 +930,7 @@ export default async function AdminCustomersPage({
               {pageResult.total}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingTo}.
+Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingTo}.
             </div>
           </div>
 
@@ -1049,21 +946,21 @@ export default async function AdminCustomersPage({
             </div>
           </div>
 
-          <div className="rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/10">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Saknar signerad fullmakt
+              Inaktiva kunder
             </div>
             <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
-              {customersMissingPowerOfAttorney}
+              {pageResult.counts.inactive}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Signerad fullmakt finns för {customersWithSignedPowerOfAttorney} kunder på sidan.
+              Inaktiva kundrelationer
             </div>
           </div>
 
           <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Aktiva avtal
+              Aktivt avtal på sidan
             </div>
             <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
               {activeContractsOnPage}
@@ -1075,51 +972,47 @@ export default async function AdminCustomersPage({
 
           <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Aktiv operationsuppföljning
+              Aktiv operationsuppföljning på sidan
             </div>
             <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
               {activeOperationsCustomers}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Väntar svar: {awaitingResponseCustomers} · Väntar på utskick: {awaitingDispatchCustomers}
+              Väntar svar: {awaitingResponseCustomers} · Väntar utskick: {awaitingDispatchCustomers}
             </div>
           </div>
         </section>
 
-        <div className="space-y-6">
-          <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-                  Separata arbetsflöden
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
-                  Kundintag och bolagsadministration är uppdelade
-                </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                  Skapa kunder via kundintaget så att kund, anläggning, mätpunkt, avtal och bolagstillhörighet sparas kontrollerat. Skapa nya elhandelsbolag och bjud in bolagsansvariga under Företag.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/admin/customers/intake"
-                  className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
-                >
-                  Starta kundintag
-                </Link>
-                <Link
-                  href="/admin/companies"
-                  className="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
-                >
-                  Hantera företag
-                </Link>
-              </div>
-            </div>
+        <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
+          <section className="rounded-3xl border border-blue-200 bg-blue-50 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/20">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-200">
+              Operativt bolag
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">
+              {companyScope.companyName ?? 'Bolagskoppling saknas'}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Kundregistret visar kunder för ditt aktiva elhandelsbolag. Ny kund, anläggning, mätpunkt och avtal registreras via kundintaget så all data sparas i rätt bolag.
+            </p>
+            {companyScope.message ? (
+              <p className="mt-3 text-sm font-semibold text-amber-700 dark:text-amber-300">{companyScope.message}</p>
+            ) : null}
+            <Link
+              href="/admin/customers/intake"
+              className="mt-5 inline-flex w-full justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
+            >
+              Starta kundintag
+            </Link>
+            <Link
+              href="/admin/contracts"
+              className="mt-3 inline-flex w-full justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+            >
+              Hantera avtal och kampanjer
+            </Link>
           </section>
 
-          <section className="overflow-hidden rounded-[2rem] border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
-            <div className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50/80 to-white px-6 py-5">
+          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
@@ -1133,10 +1026,10 @@ export default async function AdminCustomersPage({
                     {opsFilter !== 'all' ? ` i operationsfiltret "${filterLabel(opsFilter)}"` : ''}.
                   </p>
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    Sorteras automatiskt efter operationsprioritet på sidan: blockerad → redo att slutföra → väntar svar → väntar på utskick → saknar utskick → kräver åtgärd → övriga.
+                    Sorteras automatiskt efter operationsprioritet på sidan: blockerad → redo att slutföra → väntar svar → väntar utskick → saknar utskick → kräver åtgärd → övriga.
                   </p>
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    Sökningen stöder kundnummer, personnummer, namn, efternamn, e-post, telefon, anläggning och mätpunkts-id.
+                    Sökningen stöder kundnummer, personnummer, namn, e-post, telefon, anläggnings-id och mätpunkts-id.
                   </p>
                 </div>
 
@@ -1146,15 +1039,15 @@ export default async function AdminCustomersPage({
                     name="q"
                     defaultValue={query}
                     placeholder="Sök på kundnummer, personnummer, namn, e-post, anläggning eller mätpunkts-id"
-                    className="h-11 min-w-[240px] flex-1 rounded-2xl border border-emerald-200 bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                    className="h-11 min-w-[240px] flex-1 rounded-2xl border border-slate-300 px-4 text-sm outline-none transition focus:border-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   />
                   <select
                     name="status"
                     defaultValue={statusFilter}
-                    className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-sm text-slate-800"
+                    className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   >
                     <option value="all">Alla kundstatusar</option>
-                    <option value="draft">Utkast</option>
+                    <option value="draft">Förbereds</option>
                     <option value="pending_verification">Väntar verifiering</option>
                     <option value="active">Aktiv</option>
                     <option value="inactive">Inaktiv</option>
@@ -1165,7 +1058,7 @@ export default async function AdminCustomersPage({
                   <select
                     name="contract"
                     defaultValue={contractFilter}
-                    className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-sm text-slate-800"
+                    className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   >
                     <option value="all">Alla avtalslägen</option>
                     <option value="none">Utan avtal</option>
@@ -1174,7 +1067,7 @@ export default async function AdminCustomersPage({
                     <option value="active">Aktivt avtal</option>
                     <option value="closed">Avslutat avtal</option>
                   </select>
-                  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800">
+                  <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
                     Sök
                   </button>
                   {query || opsFilter !== 'all' || statusFilter !== 'all' || contractFilter !== 'all' ? (
@@ -1196,7 +1089,7 @@ export default async function AdminCustomersPage({
                   active={statusFilter === 'all'}
                 />
                 <FilterChip
-                  label="Utkast"
+                  label="Förbereds"
                   count={pageResult.counts.draft}
                   href={buildCustomersHref({ q: query, ops: opsFilter, status: 'draft', contract: contractFilter, page: 1 })}
                   active={statusFilter === 'draft'}
@@ -1394,7 +1287,7 @@ export default async function AdminCustomersPage({
                   tone="info"
                 />
                 <FilterChip
-                  label="Väntar på utskick"
+                  label="Väntar utskick"
                   count={awaitingDispatchCustomers}
                   href={buildCustomersHref({
                     q: query,
@@ -1407,7 +1300,7 @@ export default async function AdminCustomersPage({
                   tone="warning"
                 />
                 <FilterChip
-                  label="Saknar utskick"
+                  label="Saknar outbound"
                   count={queuedForOutboundCustomers}
                   href={buildCustomersHref({
                     q: query,
@@ -1420,7 +1313,7 @@ export default async function AdminCustomersPage({
                   tone="warning"
                 />
                 <FilterChip
-                  label="Kräver åtgärd"
+                  label="Failed"
                   count={failedCustomers}
                   href={buildCustomersHref({
                     q: query,
@@ -1524,7 +1417,16 @@ export default async function AdminCustomersPage({
                       Kontakt
                     </th>
                     <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
-                      Kopplingar
+                      Anläggningar
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
+                      Aktiva anl.
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
+                      Mätpunkter
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
+                      Aktiva mätpkt
                     </th>
                     <th className="px-6 py-4 text-left font-semibold text-slate-600 dark:text-slate-300">
                       Senaste avtal
@@ -1542,7 +1444,7 @@ export default async function AdminCustomersPage({
                   {filteredCustomers.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={10}
+                        colSpan={13}
                         className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
                       >
                         Inga kunder matchade sökningen eller filtren på denna sida.
@@ -1599,28 +1501,27 @@ export default async function AdminCustomersPage({
                           </td>
 
                           <td className="px-6 py-4">
-                            <div className="min-w-[230px] space-y-2">
-                              <div className="flex flex-wrap gap-2">
-                                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                                  Anläggningar: {customer.active_site_count}/{customer.site_count}
-                                </span>
-                                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                                  Mätpunkter: {customer.active_metering_point_count}/{customer.metering_point_count}
-                                </span>
-                                <span
-                                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
-                                    customer.authorization.hasSignedPowerOfAttorney
-                                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                      : 'border-amber-200 bg-amber-50 text-amber-700'
-                                  }`}
-                                >
-                                  Fullmakt: {customer.authorization.signedPowerOfAttorneyCount}/{customer.authorization.powerOfAttorneyCount}
-                                </span>
-                              </div>
-                              <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                Anläggningar, mätpunkter och fullmakter används för att koppla inkommande data till rätt kund.
-                              </p>
-                            </div>
+                            <span className="inline-flex min-w-10 justify-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              {customer.site_count}
+                            </span>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <span className="inline-flex min-w-10 justify-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                              {customer.active_site_count}
+                            </span>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <span className="inline-flex min-w-10 justify-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              {customer.metering_point_count}
+                            </span>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <span className="inline-flex min-w-10 justify-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                              {customer.active_metering_point_count}
+                            </span>
                           </td>
 
                           <td className="px-6 py-4">
@@ -1675,7 +1576,7 @@ export default async function AdminCustomersPage({
 
                                 {operations.activeOpen > 0 ? (
                                   <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                                    öppna ärenden: {operations.activeOpen}
+                                    öppna: {operations.activeOpen}
                                   </span>
                                 ) : null}
                               </div>
@@ -1683,7 +1584,7 @@ export default async function AdminCustomersPage({
                               <div className="mt-2 flex flex-wrap gap-2">
                                 {operations.blocked > 0 ? (
                                   <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">
-                                    blockerad {operations.blocked}
+                                    blocked {operations.blocked}
                                   </span>
                                 ) : null}
 
@@ -1695,7 +1596,7 @@ export default async function AdminCustomersPage({
 
                                 {operations.awaitingDispatch > 0 ? (
                                   <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                                    utskick {operations.awaitingDispatch}
+                                    dispatch {operations.awaitingDispatch}
                                   </span>
                                 ) : null}
 
@@ -1707,13 +1608,13 @@ export default async function AdminCustomersPage({
 
                                 {operations.readyToExecute > 0 ? (
                                   <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                                    redo {operations.readyToExecute}
+                                    ready {operations.readyToExecute}
                                   </span>
                                 ) : null}
 
                                 {operations.failed > 0 ? (
                                   <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">
-                                    åtgärd {operations.failed}
+                                    failed {operations.failed}
                                   </span>
                                 ) : null}
                               </div>

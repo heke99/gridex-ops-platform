@@ -61,56 +61,28 @@ export async function listContractOffers(options: {
     .order('is_active', { ascending: false })
     .order('updated_at', { ascending: false })
 
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
   if (options.activeOnly) {
     query = query.eq('is_active', true).eq('status', 'active')
   }
 
-  if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
-  }
-
   const { data, error } = await query
   if (error) throw error
-
 
   return (data ?? []) as ContractOfferRow[]
 }
 
-export async function getContractOfferUsageCounts(options: {
-  companyId?: string | null
-} = {}): Promise<Map<string, number>> {
-  let query = supabaseService
-    .from('customer_contracts')
-    .select('contract_offer_id')
-    .not('contract_offer_id', 'is', null)
-
-  if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
-  }
-
-  const { data, error } = await query
-  if (error) throw error
-
-  const counts = new Map<string, number>()
-  for (const row of (data ?? []) as Array<{ contract_offer_id: string | null }>) {
-    if (!row.contract_offer_id) continue
-    counts.set(row.contract_offer_id, (counts.get(row.contract_offer_id) ?? 0) + 1)
-  }
-
-  return counts
-}
-
-export async function getContractOfferById(
-  id: string,
-  options: { companyId?: string | null } = {}
-): Promise<ContractOfferRow | null> {
+export async function getContractOfferById(id: string, companyId?: string | null): Promise<ContractOfferRow | null> {
   let query = supabaseService
     .from('contract_offers')
     .select('*')
     .eq('id', id)
 
-  if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
+  if (companyId) {
+    query = query.eq('company_id', companyId)
   }
 
   const { data, error } = await query.maybeSingle()
@@ -121,6 +93,7 @@ export async function getContractOfferById(
 
 export async function saveContractOffer(input: {
   id?: string
+  companyId?: string | null
   name: string
   slug?: string | null
   status: 'draft' | 'active' | 'inactive'
@@ -140,9 +113,9 @@ export async function saveContractOffer(input: {
   validFrom?: string | null
   validTo?: string | null
   actorUserId?: string | null
-  companyId?: string | null
 }): Promise<ContractOfferRow> {
   const payload = {
+    company_id: input.companyId ?? null,
     name: input.name.trim(),
     slug: (input.slug?.trim() || slugify(input.name)).slice(0, 120),
     status: input.status,
@@ -162,19 +135,14 @@ export async function saveContractOffer(input: {
     valid_from: input.validFrom ?? null,
     valid_to: input.validTo ?? null,
     updated_by: input.actorUserId ?? null,
-    company_id: input.companyId ?? null,
   }
 
-  let query = input.id
+  const query = input.id
     ? supabaseService.from('contract_offers').update(payload).eq('id', input.id)
     : supabaseService.from('contract_offers').insert({
         ...payload,
         created_by: input.actorUserId ?? null,
       })
-
-  if (input.id && input.companyId) {
-    query = query.eq('company_id', input.companyId)
-  }
 
   const { data, error } = await query.select('*').single()
   if (error) throw error
@@ -183,27 +151,20 @@ export async function saveContractOffer(input: {
 }
 
 export async function listCustomerContractsByCustomerId(
-  customerId: string,
-  options: { companyId?: string | null } = {}
+  customerId: string
 ): Promise<CustomerContractRow[]> {
-  let query = supabaseService
+  const { data, error } = await supabaseService
     .from('customer_contracts')
     .select('*')
     .eq('customer_id', customerId)
-
-  if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) throw error
   return (data ?? []) as CustomerContractRow[]
 }
 
 export async function listLatestCustomerContractsByCustomerIds(
-  customerIds: string[],
-  options: { companyId?: string | null } = {}
+  customerIds: string[]
 ): Promise<Map<string, LatestCustomerContractSummary>> {
   const result = new Map<string, LatestCustomerContractSummary>()
 
@@ -211,16 +172,11 @@ export async function listLatestCustomerContractsByCustomerIds(
     return result
   }
 
-  let query = supabaseService
+  const { data, error } = await supabaseService
     .from('customer_contracts')
     .select('*')
     .in('customer_id', customerIds)
-
-  if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) throw error
 
@@ -295,6 +251,7 @@ export async function listCustomerIdsByLatestContractBucket(options: {
   bucket: LatestContractBucketFilter
   page: number
   pageSize: number
+  companyId?: string | null
 }): Promise<{
   customerIds: string[]
   total: number
@@ -307,6 +264,7 @@ export async function listCustomerIdsByLatestContractBucket(options: {
       contract_bucket: options.bucket,
       page_num: options.page,
       page_size: options.pageSize,
+      company_id: options.companyId ?? null,
     }
   )
 
@@ -356,6 +314,7 @@ export async function createCustomerContract(input: {
   contractOfferId?: string | null
   sourceType: 'catalog' | 'manual_override'
   status?: CustomerContractRow['status']
+  companyId?: string | null
   contractName: string
   contractType: ContractType
   campaignName?: string | null
@@ -377,11 +336,11 @@ export async function createCustomerContract(input: {
   autoRenewTermMonths?: number | null
   overrideReason?: string | null
   actorUserId?: string | null
-  companyId?: string | null
 }): Promise<CustomerContractRow> {
   const { data, error } = await supabaseService
     .from('customer_contracts')
     .insert({
+      company_id: input.companyId ?? null,
       customer_id: input.customerId,
       site_id: input.siteId ?? null,
       contract_offer_id: input.contractOfferId ?? null,
@@ -419,7 +378,6 @@ export async function createCustomerContract(input: {
       override_reason: input.overrideReason ?? null,
       created_by: input.actorUserId ?? null,
       updated_by: input.actorUserId ?? null,
-      company_id: input.companyId ?? null,
     })
     .select('*')
     .single()
@@ -433,6 +391,7 @@ export async function updateCustomerContract(input: {
   customerId: string
   siteId?: string | null
   status: CustomerContractRow['status']
+  companyId?: string | null
   contractName: string
   contractType: ContractType
   fixedPriceOrePerKwh?: number | null
@@ -450,7 +409,6 @@ export async function updateCustomerContract(input: {
   autoRenewTermMonths?: number | null
   overrideReason?: string | null
   actorUserId?: string | null
-  companyId?: string | null
 }): Promise<CustomerContractRow> {
   const { data, error } = await supabaseService
     .from('customer_contracts')
@@ -484,7 +442,6 @@ export async function updateCustomerContract(input: {
       auto_renew_term_months: input.autoRenewTermMonths ?? input.bindingMonths ?? null,
       override_reason: input.overrideReason ?? null,
       updated_by: input.actorUserId ?? null,
-      company_id: input.companyId ?? null,
     })
     .eq('id', input.id)
     .eq('customer_id', input.customerId)
@@ -496,6 +453,7 @@ export async function updateCustomerContract(input: {
 }
 
 export async function addCustomerContractEvent(input: {
+  companyId?: string | null
   customerContractId: string
   customerId: string
   eventType: CustomerContractEventType
@@ -503,9 +461,9 @@ export async function addCustomerContractEvent(input: {
   note?: string | null
   metadata?: Record<string, unknown> | null
   actorUserId?: string | null
-  companyId?: string | null
 }): Promise<CustomerContractEventRow> {
   const eventPayload = {
+    company_id: input.companyId ?? null,
     customer_contract_id: input.customerContractId,
     customer_id: input.customerId,
     event_type: input.eventType,
@@ -513,7 +471,6 @@ export async function addCustomerContractEvent(input: {
     note: input.note ?? null,
     metadata: input.metadata ?? null,
     actor_user_id: input.actorUserId ?? null,
-    company_id: input.companyId ?? null,
   }
 
   const { data, error } = await supabaseService
@@ -525,7 +482,7 @@ export async function addCustomerContractEvent(input: {
   if (error) throw error
 
   if (input.eventType === 'signed' || input.eventType === 'activated') {
-    const patch: Record<string, unknown> =
+    const patch =
       input.eventType === 'activated'
         ? {
             status: 'active',
@@ -537,8 +494,6 @@ export async function addCustomerContractEvent(input: {
             updated_by: input.actorUserId ?? null,
           }
 
-    if (input.companyId) patch.company_id = input.companyId
-
     const { error: updateError } = await supabaseService
       .from('customer_contracts')
       .update(patch)
@@ -548,15 +503,12 @@ export async function addCustomerContractEvent(input: {
   }
 
   if (input.eventType === 'terminated' || input.eventType === 'cancelled') {
-    const patch: Record<string, unknown> = {
-      status: input.eventType === 'terminated' ? 'terminated' : 'cancelled',
-      updated_by: input.actorUserId ?? null,
-    }
-    if (input.companyId) patch.company_id = input.companyId
-
     const { error: updateError } = await supabaseService
       .from('customer_contracts')
-      .update(patch)
+      .update({
+        status: input.eventType === 'terminated' ? 'terminated' : 'cancelled',
+        updated_by: input.actorUserId ?? null,
+      })
       .eq('id', input.customerContractId)
 
     if (updateError) throw updateError
@@ -589,7 +541,6 @@ export async function addCustomerContractEvent(input: {
           status: current?.status ?? null,
         }),
         updated_by: input.actorUserId ?? null,
-        ...(input.companyId ? { company_id: input.companyId } : {}),
       })
       .eq('id', input.customerContractId)
 

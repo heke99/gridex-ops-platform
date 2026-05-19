@@ -220,8 +220,8 @@ export default function CustomerBillingMeteringCard({
         </SectionCard>
 
         <SectionCard
-          title="Direktåtgärder för outbound"
-          description="Köa externa requests direkt för mätvärden eller billingunderlag."
+          title="Direktåtgärder för utskick"
+          description="Förbered externa utskick direkt för mätvärden eller faktureringsunderlag."
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <form action={queueOutboundRequestAction} className="contents">
@@ -235,10 +235,10 @@ export default function CustomerBillingMeteringCard({
               <input
                 type="hidden"
                 name="payload_note"
-                value="Snabbåtgärd från kundkort: outbound meter values"
+                value="Snabbåtgärd från kundkort: utskick av mätvärden"
               />
               <QuickActionButton
-                idleLabel="Köa outbound: mätvärden"
+                idleLabel="Förbered utskick: mätvärden"
                 pendingLabel="Köar..."
                 tone="info"
               />
@@ -255,10 +255,10 @@ export default function CustomerBillingMeteringCard({
               <input
                 type="hidden"
                 name="payload_note"
-                value="Snabbåtgärd från kundkort: outbound billing underlay"
+                value="Snabbåtgärd från kundkort: utskick av faktureringsunderlag"
               />
               <QuickActionButton
-                idleLabel="Köa outbound: billingunderlag"
+                idleLabel="Förbered utskick: faktureringsunderlag"
                 pendingLabel="Köar..."
                 tone="info"
               />
@@ -280,10 +280,10 @@ export default function CustomerBillingMeteringCard({
               <input
                 type="hidden"
                 name="notes"
-                value="Snabbåtgärd från kundkort: billing underlay export"
+                value="Snabbåtgärd från kundkort: export av faktureringsunderlag"
               />
               <QuickActionButton
-                idleLabel="Export: billingunderlag"
+                idleLabel="Export: faktureringsunderlag"
                 pendingLabel="Skapar..."
                 tone="success"
               />
@@ -298,7 +298,7 @@ export default function CustomerBillingMeteringCard({
               <input
                 type="hidden"
                 name="notes"
-                value="Snabbåtgärd från kundkort: meter values export"
+                value="Snabbåtgärd från kundkort: export av mätvärden"
               />
               <QuickActionButton
                 idleLabel="Export: mätvärden"
@@ -316,10 +316,10 @@ export default function CustomerBillingMeteringCard({
               <input
                 type="hidden"
                 name="notes"
-                value="Snabbåtgärd från kundkort: customer snapshot export"
+                value="Snabbåtgärd från kundkort: export av kundbild"
               />
               <QuickActionButton
-                idleLabel="Export: kundsnapshot"
+                idleLabel="Export: kundbild"
                 pendingLabel="Skapar..."
                 tone="success"
               />
@@ -344,8 +344,8 @@ export default function CustomerBillingMeteringCard({
         />
 
         <SectionCard
-          title="Köa extern outbound request"
-          description="Smart formulär: mätpunkter filtreras per vald anläggning, nätägare förifylls och perioden rekommenderas utifrån verklig data."
+          title="Förbered externt utskick"
+          description="Styrt formulär: mätpunkter filtreras per vald anläggning, nätägare förifylls och perioden rekommenderas utifrån verklig data."
         >
           <SmartOutboundForm
             customerId={customerId}
@@ -366,7 +366,7 @@ export default function CustomerBillingMeteringCard({
 
         <SectionCard
           title="Begär underlag från nätägare"
-          description="Smart formulär: mätpunkter filtreras per vald anläggning, nätägare förifylls och perioden rekommenderas utifrån verklig data."
+          description="Styrt formulär: mätpunkter filtreras per vald anläggning, nätägare förifylls och perioden rekommenderas utifrån verklig data."
         >
           <SmartDataRequestForm
             customerId={customerId}
@@ -380,7 +380,7 @@ export default function CustomerBillingMeteringCard({
 
         <SectionCard
           title="Köa partnerexport"
-          description="Smart formulär: billingunderlag filtreras hårt mot vald anläggning och mätpunkt."
+          description="Styrt formulär: billingunderlag filtreras hårt mot vald anläggning och mätpunkt."
         >
           <SmartPartnerExportForm
             customerId={customerId}

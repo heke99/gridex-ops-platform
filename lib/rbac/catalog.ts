@@ -9,13 +9,15 @@ export type RoleCatalogItem = {
   loginAllowed: boolean
 }
 
-export type PermissionCatalogItem = {
+export type BehörighetCatalogItem = {
   key: string
   label: string
   description: string
   area: string
   risk: 'low' | 'medium' | 'high'
 }
+
+export type PermissionCatalogItem = BehörighetCatalogItem
 
 export const ROLE_CATALOG: RoleCatalogItem[] = [
   {
@@ -28,6 +30,15 @@ export const ROLE_CATALOG: RoleCatalogItem[] = [
     loginAllowed: true,
   },
   {
+    key: 'company_admin',
+    label: 'Bolagsansvarig',
+    description:
+      'Administrerar användare och dagliga flöden inom sitt eget elhandelsbolag.',
+    audience: 'internal',
+    recommendedFor: 'Ansvarig hos elhandelsbolag på plattformen.',
+    loginAllowed: true,
+  },
+  {
     key: 'admin',
     label: 'Admin',
     description:
@@ -36,21 +47,11 @@ export const ROLE_CATALOG: RoleCatalogItem[] = [
     recommendedFor: 'Huvudadministratör eller driftansvarig.',
     loginAllowed: true,
   },
-
-  {
-    key: 'company_admin',
-    label: 'Company admin',
-    description:
-      'Bolagsansvarig med behörighet att administrera användare och dagliga flöden inom sitt bolag.',
-    audience: 'internal',
-    recommendedFor: 'Ansvarig administratör hos ett anslutet elhandelsbolag.',
-    loginAllowed: true,
-  },
   {
     key: 'operations_manager',
     label: 'Operations manager',
     description:
-      'Operativ ledarroll för switch, outbound, meterflöden och processuppföljning.',
+      'Operativ ledarroll för switch, utskick, meterflöden och processuppföljning.',
     audience: 'internal',
     recommendedFor: 'Operations lead.',
     loginAllowed: true,
@@ -165,7 +166,28 @@ export const ROLE_CATALOG: RoleCatalogItem[] = [
   },
 ]
 
-const PERMISSION_CATALOG: PermissionCatalogItem[] = [
+const PERMISSION_CATALOG: BehörighetCatalogItem[] = [
+  {
+    key: 'tenants.read',
+    label: 'Läsa bolag',
+    description: 'Kan se bolag på plattformen.',
+    area: 'SaaS',
+    risk: 'medium',
+  },
+  {
+    key: 'tenants.write',
+    label: 'Skapa och ändra bolag',
+    description: 'Kan skapa nya elhandelsbolag och uppdatera bolagsinformation.',
+    area: 'SaaS',
+    risk: 'high',
+  },
+  {
+    key: 'tenants.invite',
+    label: 'Bjuda in till bolag',
+    description: 'Kan koppla användare till ett elhandelsbolag.',
+    area: 'SaaS',
+    risk: 'high',
+  },
   {
     key: 'users.read',
     label: 'Läsa användare',
@@ -180,28 +202,6 @@ const PERMISSION_CATALOG: PermissionCatalogItem[] = [
     area: 'Access',
     risk: 'high',
   },
-
-  {
-    key: 'tenants.read',
-    label: 'Läsa företag',
-    description: 'Kan se bolagskonton och tenant-kopplingar.',
-    area: 'SaaS',
-    risk: 'medium',
-  },
-  {
-    key: 'tenants.write',
-    label: 'Skapa eller ändra företag',
-    description: 'Kan skapa och uppdatera bolagskonton i plattformen.',
-    area: 'SaaS',
-    risk: 'high',
-  },
-  {
-    key: 'tenants.invite',
-    label: 'Bjuda in till företag',
-    description: 'Kan bjuda in användare till ett bolag och sätta bolagsroll.',
-    area: 'SaaS',
-    risk: 'high',
-  },
   {
     key: 'roles.manage',
     label: 'Hantera roller',
@@ -211,8 +211,8 @@ const PERMISSION_CATALOG: PermissionCatalogItem[] = [
   },
   {
     key: 'permissions.manage',
-    label: 'Hantera permission-overrides',
-    description: 'Kan sätta individuella allow/deny-overrides per permission.',
+    label: 'Hantera individuella behörigheter',
+    description: 'Kan sätta individuella allow/deny-overrides per behörighet.',
     area: 'Access',
     risk: 'high',
   },
@@ -459,12 +459,12 @@ export function getRoleMeta(roleKey: string): RoleCatalogItem {
   )
 }
 
-export function getPermissionMeta(permissionKey: string): PermissionCatalogItem {
+export function getBehörighetMeta(permissionKey: string): BehörighetCatalogItem {
   return (
     permissionMap.get(permissionKey) ?? {
       key: permissionKey,
       label: titleCase(permissionKey),
-      description: 'Ingen manuell beskrivning finns ännu för denna permission.',
+      description: 'Ingen manuell beskrivning finns ännu för denna behörighet.',
       area: permissionKey.includes('.')
         ? titleCase(permissionKey.split('.')[0] ?? 'Övrigt')
         : 'Övrigt',
@@ -485,18 +485,26 @@ export function getInternalRoleOptions<T extends { id: string; key: string; name
   return roles.filter((role) => role.key !== 'customer')
 }
 
-export function sortPermissions<T extends { key: string }>(permissions: T[]): T[] {
+export function sortBehörigheter<T extends { key: string }>(permissions: T[]): T[] {
   return [...permissions].sort((a, b) => {
-    const areaCompare = getPermissionMeta(a.key).area.localeCompare(
-      getPermissionMeta(b.key).area,
+    const areaCompare = getBehörighetMeta(a.key).area.localeCompare(
+      getBehörighetMeta(b.key).area,
       'sv'
     )
 
     if (areaCompare !== 0) return areaCompare
 
-    return getPermissionMeta(a.key).label.localeCompare(
-      getPermissionMeta(b.key).label,
+    return getBehörighetMeta(a.key).label.localeCompare(
+      getBehörighetMeta(b.key).label,
       'sv'
     )
   })
+}
+
+export function getPermissionMeta(permissionKey: string): PermissionCatalogItem {
+  return getBehörighetMeta(permissionKey)
+}
+
+export function sortPermissions<T extends { key: string }>(permissions: T[]): T[] {
+  return sortBehörigheter(permissions)
 }

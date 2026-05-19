@@ -23,7 +23,6 @@ export type CustomerListRow = {
   active_site_count: number
   metering_point_count: number
   active_metering_point_count: number
-  company_id?: string | null
 }
 
 type CustomerBaseRow = {
@@ -41,7 +40,6 @@ type CustomerBaseRow = {
   customer_number: string | null
   apartment_number: string | null
   created_at: string
-  company_id?: string | null
 }
 
 type CustomerSiteSearchRow = {
@@ -117,19 +115,13 @@ function sanitizeSearchTerm(value: string): string {
   return value.replace(/[%_,]/g, ' ').trim()
 }
 
-async function resolveRelatedCustomerIds(
-  query: string,
-  companyId?: string | null
-): Promise<string[]> {
+async function resolveRelatedCustomerIds(query: string, companyId?: string | null): Promise<string[]> {
   if (!query) return []
 
-  let siteQuery = supabaseService
+  let siteSearchQuery = supabaseService
     .from('customer_sites')
     .select('id, customer_id, site_name, facility_id, street, postal_code, city')
-
-  if (companyId) siteQuery = siteQuery.eq('company_id', companyId)
-
-  const { data: matchingSites, error: siteSearchError } = await siteQuery.or(
+    .or(
       [
         `site_name.ilike.%${query}%`,
         `facility_id.ilike.%${query}%`,
@@ -140,6 +132,11 @@ async function resolveRelatedCustomerIds(
     )
     .limit(250)
 
+  if (companyId) {
+    siteSearchQuery = siteSearchQuery.eq('company_id', companyId)
+  }
+
+  const { data: matchingSites, error: siteSearchError } = await siteSearchQuery
   if (siteSearchError) throw siteSearchError
 
   const typedMatchingSites = (matchingSites ?? []) as CustomerSiteSearchRow[]
@@ -148,16 +145,17 @@ async function resolveRelatedCustomerIds(
     .map((row) => row.customer_id)
     .filter((value): value is string => Boolean(value))
 
-  let pointQuery = supabaseService
+  let pointSearchQuery = supabaseService
     .from('metering_points')
     .select('id, site_id, meter_point_id')
-
-  if (companyId) pointQuery = pointQuery.eq('company_id', companyId)
-
-  const { data: matchingPoints, error: pointSearchError } = await pointQuery
     .or(`meter_point_id.ilike.%${query}%`)
     .limit(250)
 
+  if (companyId) {
+    pointSearchQuery = pointSearchQuery.eq('company_id', companyId)
+  }
+
+  const { data: matchingPoints, error: pointSearchError } = await pointSearchQuery
   if (pointSearchError) throw pointSearchError
 
   const typedMatchingPoints = (matchingPoints ?? []) as MeteringPointSearchRow[]
@@ -180,10 +178,11 @@ async function resolveRelatedCustomerIds(
     .select('id, customer_id')
     .in('id', Array.from(siteIds))
 
-  if (companyId) relatedSitesQuery = relatedSitesQuery.eq('company_id', companyId)
+  if (companyId) {
+    relatedSitesQuery = relatedSitesQuery.eq('company_id', companyId)
+  }
 
   const { data: relatedSites, error: relatedSitesError } = await relatedSitesQuery
-
   if (relatedSitesError) throw relatedSitesError
 
   const typedRelatedSites = (relatedSites ?? []) as Array<{
@@ -220,25 +219,23 @@ function buildCustomerOrFilter(context: SearchContext): string | null {
   return parts.join(',')
 }
 
-async function buildCustomerRows(
-  customerRows: CustomerBaseRow[],
-  companyId?: string | null
-): Promise<CustomerListRow[]> {
+async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: string | null): Promise<CustomerListRow[]> {
   const customerIds = customerRows.map((row) => row.id)
 
   if (customerIds.length === 0) {
     return []
   }
 
-  let siteRowsQuery = supabaseService
+  let sitesQuery = supabaseService
     .from('customer_sites')
     .select('id, customer_id, status')
     .in('customer_id', customerIds)
 
-  if (companyId) siteRowsQuery = siteRowsQuery.eq('company_id', companyId)
+  if (companyId) {
+    sitesQuery = sitesQuery.eq('company_id', companyId)
+  }
 
-  const { data: siteRows, error: siteError } = await siteRowsQuery
-
+  const { data: siteRows, error: siteError } = await sitesQuery
   if (siteError) throw siteError
 
   const typedSites = (siteRows ?? []) as CustomerSiteCountRow[]
@@ -246,14 +243,10 @@ async function buildCustomerRows(
 
   const { data: pointRows, error: pointError } =
     siteIds.length > 0
-      ? await (() => {
-          let pointRowsQuery = supabaseService
-            .from('metering_points')
-            .select('id, site_id, status')
-            .in('site_id', siteIds)
-          if (companyId) pointRowsQuery = pointRowsQuery.eq('company_id', companyId)
-          return pointRowsQuery
-        })()
+      ? await supabaseService
+          .from('metering_points')
+          .select('id, site_id, status')
+          .in('site_id', siteIds)
       : { data: [], error: null }
 
   if (pointError) throw pointError
@@ -322,12 +315,12 @@ async function countCustomersByStatus(
     query = query.or(orFilter)
   }
 
-  if (status) {
-    query = query.eq('status', status)
-  }
-
   if (context.companyId) {
     query = query.eq('company_id', context.companyId)
+  }
+
+  if (status) {
+    query = query.eq('status', status)
   }
 
   const { count, error } = await query
@@ -368,22 +361,20 @@ export async function listCustomersPage(options: {
       bucket: contractFilter,
       page,
       pageSize,
+      companyId,
     })
 
     total = contractFiltered.total
 
     if (contractFiltered.customerIds.length > 0) {
-      let customerQuery = supabaseService
+      const { data, error } = await supabaseService
         .from('customers')
         .select(
-          'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, company_id'
+          'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
         )
         .in('id', contractFiltered.customerIds)
 
-      if (companyId) customerQuery = customerQuery.eq('company_id', companyId)
-
-      const { data, error } = await customerQuery
-
+      // customer ids already come from a tenant-scoped RPC when companyId is present.
       if (error) throw error
 
       const rows = (data ?? []) as CustomerBaseRow[]
@@ -399,10 +390,14 @@ export async function listCustomersPage(options: {
     let rowsQuery = supabaseService
       .from('customers')
       .select(
-        'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, company_id',
+        'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at',
         { count: 'exact' }
       )
       .order('created_at', { ascending: false })
+
+    if (companyId) {
+      rowsQuery = rowsQuery.eq('company_id', companyId)
+    }
 
     const orFilter = buildCustomerOrFilter(context)
     if (orFilter) {
@@ -411,10 +406,6 @@ export async function listCustomersPage(options: {
 
     if (status !== 'all') {
       rowsQuery = rowsQuery.eq('status', status)
-    }
-
-    if (companyId) {
-      rowsQuery = rowsQuery.eq('company_id', companyId)
     }
 
     const from = (page - 1) * pageSize

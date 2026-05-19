@@ -65,16 +65,17 @@ import {
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 import { getCustomerEdielDataBundle } from '@/lib/ediel/customerData'
 import CustomerPortalAccessCard from '@/components/admin/customers/CustomerPortalAccessCard'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
   listCustomerPortalAccountsByCustomerId,
   listCustomerPortalClaimsByCustomerId,
 } from '@/lib/customer-portal/admin'
-import { resolveTenantScope } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
 type CustomerRow = {
   id: string
+  company_id: string | null
   customer_type: string | null
   status: string | null
   first_name: string | null
@@ -88,7 +89,6 @@ type CustomerRow = {
   customer_number: string | null
   apartment_number: string | null
   created_at: string
-  company_id?: string | null
 }
 
 type CustomerPageProps = {
@@ -279,21 +279,15 @@ function compactJson(value: Record<string, unknown> | null): string {
 
 async function getCustomer(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  id: string,
-  companyId?: string | null
+  id: string
 ): Promise<CustomerRow | null> {
-  let query = supabase
+  const { data, error } = await supabase
     .from('customers')
     .select(
       'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
     )
     .eq('id', id)
-
-  if (companyId) {
-    query = query.eq('company_id', companyId)
-  }
-
-  const { data, error } = await query.maybeSingle()
+    .maybeSingle()
 
   if (error) throw error
   return (data as CustomerRow | null) ?? null
@@ -498,10 +492,10 @@ function buildCustomerLifecycleSummary(params: {
       failed,
       completed,
       activeOpen,
-      primaryLabel: 'Saknar utskick',
+      primaryLabel: 'Saknar outbound',
       primaryHref: '/admin/operations/switches?stage=queued_for_outbound',
       primaryDescription:
-        'Det finns switchärenden som saknar utskick och behöver köas eller följas upp.',
+        'Det finns switchar som saknar dispatchpost och behöver köas eller felsökas.',
     }
   }
 
@@ -515,10 +509,10 @@ function buildCustomerLifecycleSummary(params: {
       failed,
       completed,
       activeOpen,
-      primaryLabel: 'Kräver manuell åtgärd',
+      primaryLabel: 'Failed / rejected',
       primaryHref: '/admin/operations/switches?stage=failed',
       primaryDescription:
-        'Minst ett ärende behöver manuell bedömning, nytt försök eller korrigering.',
+        'Minst ett ärende har brutit flödet och behöver manuell bedömning, retry eller korrigering.',
     }
   }
 
@@ -579,7 +573,7 @@ function SectionAnchor({
 }) {
   return (
     <section id={id} className="scroll-mt-36 space-y-3">
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
         <h2 className="text-base font-semibold text-slate-900 dark:text-white">
           {title}
         </h2>
@@ -654,28 +648,28 @@ function StickyActionBar({
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
           <div className="text-slate-500 dark:text-slate-400">Primär signal</div>
           <div className="mt-1 font-semibold text-slate-950 dark:text-white">
             {lifecycleSummary.primaryLabel}
           </div>
         </div>
 
-        <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
           <div className="text-slate-500 dark:text-slate-400">Öppna switchflöden</div>
           <div className="mt-1 font-semibold text-slate-950 dark:text-white">
             {lifecycleSummary.activeOpen}
           </div>
         </div>
 
-        <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
-          <div className="text-slate-500 dark:text-slate-400">Redo att slutföra</div>
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+          <div className="text-slate-500 dark:text-slate-400">Ready to execute</div>
           <div className="mt-1 font-semibold text-slate-950 dark:text-white">
             {lifecycleSummary.readyToExecute}
           </div>
         </div>
 
-        <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
           <div className="text-slate-500 dark:text-slate-400">Nätägarbegäran</div>
           <div className="mt-1 font-semibold text-slate-950 dark:text-white">
             {dataRequestsCount}
@@ -870,21 +864,15 @@ export default async function CustomerAdminDetailPage({
   params,
   searchParams,
 }: CustomerPageProps) {
-  const admin = await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
+  const access = await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
 
   const { id } = await params
   const resolvedSearchParams = await searchParams
   const editSiteId = resolvedSearchParams.editSite ?? null
   const editMeteringPointId = resolvedSearchParams.editMeteringPoint ?? null
-  const scope = await resolveTenantScope({
-    userId: admin.userId,
-    roles: admin.roles,
-    permissions: admin.permissions,
-    requireCompany: false,
-  })
-  const tenantCompanyId = scope.companyId
 
   const supabase = await createSupabaseServerClient()
+  const companyScope = await getOperationalCompanyScope(access.userId)
 
   const [
     customer,
@@ -905,7 +893,7 @@ export default async function CustomerAdminDetailPage({
     powersOfAttorney,
     authorizationDocuments,
   ] = await Promise.all([
-    getCustomer(supabase, id, tenantCompanyId),
+    getCustomer(supabase, id),
     listGridOwners(supabase),
     listPriceAreas(supabase),
     listCustomerSitesByCustomerId(supabase, id),
@@ -920,23 +908,25 @@ export default async function CustomerAdminDetailPage({
       .from('customer_contacts')
       .select('*')
       .eq('customer_id', id)
-      .eq(tenantCompanyId ? 'company_id' : 'customer_id', tenantCompanyId ?? id)
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: false }),
     supabase
       .from('customer_addresses')
       .select('*')
       .eq('customer_id', id)
-      .eq(tenantCompanyId ? 'company_id' : 'customer_id', tenantCompanyId ?? id)
       .order('is_active', { ascending: false })
       .order('created_at', { ascending: false }),
-    listContractOffers({ activeOnly: true, companyId: tenantCompanyId }),
-    listCustomerContractsByCustomerId(id, { companyId: tenantCompanyId }),
+    listContractOffers({ activeOnly: true, companyId: companyScope.companyId }),
+    listCustomerContractsByCustomerId(id),
     listPowersOfAttorneyByCustomerId(supabase, id),
     listCustomerAuthorizationDocumentsByCustomerId(supabase, id),
   ])
 
   if (!customer) {
+    notFound()
+  }
+
+  if (companyScope.companyId && customer.company_id && customer.company_id !== companyScope.companyId) {
     notFound()
   }
 
@@ -1120,8 +1110,8 @@ export default async function CustomerAdminDetailPage({
   )
 
   return (
-    <div className="space-y-6 bg-gradient-to-b from-emerald-50/80 via-white to-slate-50 px-6 py-8 lg:px-8">
-      <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -1160,7 +1150,7 @@ export default async function CustomerAdminDetailPage({
             </div>
 
             <div className="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-400 sm:grid-cols-3">
-              <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 dark:bg-slate-950">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   {primaryIdentityLabel}
                 </div>
@@ -1169,7 +1159,7 @@ export default async function CustomerAdminDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 dark:bg-slate-950">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   {secondaryIdentityLabel}
                 </div>
@@ -1178,7 +1168,7 @@ export default async function CustomerAdminDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 dark:bg-slate-950">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   Skapad
                 </div>
@@ -1228,7 +1218,7 @@ export default async function CustomerAdminDetailPage({
           </div>
 
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
               <div className="text-slate-500 dark:text-slate-400">Anläggningar</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                 {sites.length}
@@ -1238,7 +1228,7 @@ export default async function CustomerAdminDetailPage({
               </div>
             </div>
 
-            <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
               <div className="text-slate-500 dark:text-slate-400">Mätpunkter</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                 {meteringPoints.length}
@@ -1248,29 +1238,29 @@ export default async function CustomerAdminDetailPage({
               </div>
             </div>
 
-            <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
-              <div className="text-slate-500 dark:text-slate-400">Nätägarbegäran</div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+              <div className="text-slate-500 dark:text-slate-400">Nätägar-requests</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                 {dataRequests.length}
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                faktura- och mätdata
+                billing + metering
               </div>
             </div>
 
-            <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
               <div className="text-slate-500 dark:text-slate-400">Partnerexporter</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                 {partnerExports.length}
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                köade, skickade och kvitterade
+                queued / sent / ack
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
+        <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -1319,10 +1309,10 @@ export default async function CustomerAdminDetailPage({
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-          <div className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                Operationsöversikt
+                Operations summary
               </div>
               <span
                 className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
@@ -1332,7 +1322,7 @@ export default async function CustomerAdminDetailPage({
                       ? 'ready_to_execute'
                       : lifecycleSummary.primaryLabel === 'Väntar på kvittens'
                         ? 'awaiting_response'
-                        : lifecycleSummary.primaryLabel === 'Kräver manuell åtgärd'
+                        : lifecycleSummary.primaryLabel === 'Failed / rejected'
                           ? 'failed'
                           : lifecycleSummary.primaryLabel === 'Inga akuta switchblockerare'
                             ? 'completed'
@@ -1356,7 +1346,7 @@ export default async function CustomerAdminDetailPage({
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="text-slate-500 dark:text-slate-400">Redo att slutföra</div>
+                <div className="text-slate-500 dark:text-slate-400">Ready to execute</div>
                 <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                   {lifecycleSummary.readyToExecute}
                 </div>
@@ -1380,28 +1370,28 @@ export default async function CustomerAdminDetailPage({
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href={lifecycleSummary.primaryHref}
-                className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
+                className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
               >
                 Öppna rekommenderad arbetsyta
               </Link>
 
               <Link
                 href="#switch-operations"
-                className="rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 Gå till leverantörsbyte
               </Link>
 
               <Link
                 href="#billing-metering"
-                className="rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 Gå till nätägarbegäran
               </Link>
 
               <Link
                 href="#ediel-operations"
-                className="rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 Gå till Ediel
               </Link>
@@ -1413,7 +1403,7 @@ export default async function CustomerAdminDetailPage({
               href="/admin/operations/switches?stage=queued_for_outbound"
               className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-950"
             >
-              <div className="text-sm text-slate-500 dark:text-slate-400">Saknar utskick</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">Saknar outbound</div>
               <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
                 {lifecycleSummary.queuedForOutbound}
               </div>
@@ -1423,7 +1413,7 @@ export default async function CustomerAdminDetailPage({
               href="/admin/operations/switches?stage=awaiting_dispatch"
               className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-950"
             >
-              <div className="text-sm text-slate-500 dark:text-slate-400">Väntar på utskick</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">Väntar dispatch</div>
               <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
                 {lifecycleSummary.awaitingDispatch}
               </div>
@@ -1433,7 +1423,7 @@ export default async function CustomerAdminDetailPage({
               href="/admin/operations/switches?stage=failed"
               className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-950"
             >
-              <div className="text-sm text-slate-500 dark:text-slate-400">Kräver manuell åtgärd</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">Failed / rejected</div>
               <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
                 {lifecycleSummary.failed}
               </div>
@@ -1443,7 +1433,7 @@ export default async function CustomerAdminDetailPage({
               href="/admin/operations/ready-to-execute"
               className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20"
             >
-              <div className="text-sm text-slate-500 dark:text-slate-400">Slutförda och redo</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">Completed / ready view</div>
               <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">
                 {lifecycleSummary.completed + lifecycleSummary.readyToExecute}
               </div>

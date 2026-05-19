@@ -32,6 +32,54 @@ function getBaseAppUrl() {
   )
 }
 
+async function upsertOptionalUserProfile(input: { userId: string; email: string; fullName: string | null }) {
+  const { error } = await supabaseService.from('user_profiles').upsert(
+    {
+      id: input.userId,
+      email: input.email,
+      full_name: input.fullName,
+    },
+    { onConflict: 'id' }
+  )
+
+  if (error && !['42P01', 'PGRST205'].includes(error.code ?? '')) {
+    throw error
+  }
+}
+
+async function insertActiveUserRole(input: { userId: string; roleId: string }) {
+  const first = await supabaseService.from('user_roles').insert({
+    user_id: input.userId,
+    role_id: input.roleId,
+    status: 'active',
+  })
+
+  if (!first.error) return
+
+  if ((first.error.message ?? '').includes('status') || first.error.code === '42703') {
+    const second = await supabaseService.from('user_roles').insert({
+      user_id: input.userId,
+      role_id: input.roleId,
+      is_active: true,
+    })
+
+    if (!second.error) return
+
+    if ((second.error.message ?? '').includes('is_active') || second.error.code === '42703') {
+      const third = await supabaseService.from('user_roles').insert({
+        user_id: input.userId,
+        role_id: input.roleId,
+      })
+      if (third.error) throw third.error
+      return
+    }
+
+    throw second.error
+  }
+
+  throw first.error
+}
+
 async function resolveRoleIdByKey(roleKey: string) {
   const { data, error } = await supabaseService
     .from('roles')
@@ -41,7 +89,7 @@ async function resolveRoleIdByKey(roleKey: string) {
 
   if (error) throw error
   if (!data?.id) {
-    throw new Error(`Role not found: ${roleKey}`)
+    throw new Error(`Rollen hittades inte: ${roleKey}`)
   }
 
   return data.id as string
@@ -51,12 +99,12 @@ async function resolveUserByIdOrEmail(input: { userId?: string; email?: string }
   if (input.userId) {
     const { data, error } = await supabaseService.auth.admin.getUserById(input.userId)
     if (error) throw error
-    if (!data.user) throw new Error('User not found')
+    if (!data.user) throw new Error('Användaren hittades inte')
     return data.user
   }
 
   const email = input.email?.trim().toLowerCase()
-  if (!email) throw new Error('Missing user identifier')
+  if (!email) throw new Error('Användaruppgift saknas')
 
   const { data, error } = await supabaseService.auth.admin.listUsers()
   if (error) throw error
@@ -66,7 +114,7 @@ async function resolveUserByIdOrEmail(input: { userId?: string; email?: string }
   )
 
   if (!user) {
-    throw new Error(`No user found with email ${email}`)
+    throw new Error(`Ingen användare hittades med e-post ${email}`)
   }
 
   return user
@@ -117,16 +165,11 @@ export async function inviteAdminUserAction(
       userId = existingUser.id
     }
 
-    const { error: profileError } = await supabaseService.from('user_profiles').upsert(
-      {
-        id: userId,
-        email,
-        full_name: fullName || null,
-      },
-      { onConflict: 'id' }
-    )
-
-    if (profileError) throw profileError
+    await upsertOptionalUserProfile({
+      userId,
+      email,
+      fullName: fullName || null,
+    })
 
     const { error: deleteRolesError } = await supabaseService
       .from('user_roles')
@@ -135,15 +178,7 @@ export async function inviteAdminUserAction(
 
     if (deleteRolesError) throw deleteRolesError
 
-    const { error: insertRoleError } = await supabaseService
-      .from('user_roles')
-      .insert({
-        user_id: userId,
-        role_id: roleId,
-        status: 'active',
-      })
-
-    if (insertRoleError) throw insertRoleError
+    await insertActiveUserRole({ userId, roleId })
 
     revalidatePath('/admin/users')
     revalidatePath('/admin/roles')
@@ -175,7 +210,7 @@ export async function setUserRoleAction(
       normalizeText(formData.get('role'))
 
     if (!userId) {
-      return { ok: false, message: 'User ID saknas.' }
+      return { ok: false, message: 'Användar-id saknas.' }
     }
 
     if (!roleKey) {
@@ -191,15 +226,7 @@ export async function setUserRoleAction(
 
     if (deleteError) throw deleteError
 
-    const { error: insertError } = await supabaseService
-      .from('user_roles')
-      .insert({
-        user_id: userId,
-        role_id: roleId,
-        status: 'active',
-      })
-
-    if (insertError) throw insertError
+    await insertActiveUserRole({ userId, roleId })
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
@@ -228,7 +255,7 @@ export async function setUserPermissionOverridesAction(
     const denyRaw = normalizeText(formData.get('deny_permissions'))
 
     if (!userId) {
-      return { ok: false, message: 'User ID saknas.' }
+      return { ok: false, message: 'Användar-id saknas.' }
     }
 
     const allowKeys = allowRaw
@@ -259,13 +286,13 @@ export async function setUserPermissionOverridesAction(
 
     const allowIds = allowKeys.map((key) => {
       const id = byKey.get(key)
-      if (!id) throw new Error(`Permission not found: ${key}`)
+      if (!id) throw new Error(`Behörigheten hittades inte: ${key}`)
       return id
     })
 
     const denyIds = denyKeys.map((key) => {
       const id = byKey.get(key)
-      if (!id) throw new Error(`Permission not found: ${key}`)
+      if (!id) throw new Error(`Behörigheten hittades inte: ${key}`)
       return id
     })
 
@@ -302,7 +329,7 @@ export async function setUserPermissionOverridesAction(
 
     return {
       ok: true,
-      message: 'Permission-overrides uppdaterades.',
+      message: 'Individuella behörigheter uppdaterades.',
     }
   } catch (error) {
     return {
@@ -310,7 +337,7 @@ export async function setUserPermissionOverridesAction(
       message:
         error instanceof Error
           ? error.message
-          : 'Kunde inte uppdatera permission-overrides.',
+          : 'Kunde inte uppdatera individuella behörigheter.',
     }
   }
 }
@@ -324,7 +351,7 @@ export async function deactivateUserAccessAction(
 
     const userId = normalizeText(formData.get('user_id'))
     if (!userId) {
-      return { ok: false, message: 'User ID saknas.' }
+      return { ok: false, message: 'Användar-id saknas.' }
     }
 
     const { error: roleDeleteError } = await supabaseService
@@ -359,5 +386,16 @@ export async function deactivateUserAccessAction(
 /**
  * Bakåtkompatibla exportnamn så dina befintliga pages bygger utan att du behöver byta imports direkt.
  */
-export const inviteUserAction = inviteAdminUserAction
-export const createUserAction = inviteAdminUserAction
+export async function inviteUserAction(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  return inviteAdminUserAction(prevState, formData)
+}
+
+export async function createUserAction(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  return inviteAdminUserAction(prevState, formData)
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   deleteCustomerForRecreateAction,
   saveCustomerProfileAction,
@@ -31,9 +31,6 @@ export default function CustomerProfileCard({
 }) {
   const [customerType, setCustomerType] = useState(customer.customer_type ?? 'private')
 
-  useEffect(() => {
-    setCustomerType(customer.customer_type ?? 'private')
-  }, [customer.customer_type])
 
   const helperText = useMemo(() => {
     if (customerType === 'business') {
@@ -88,13 +85,13 @@ export default function CustomerProfileCard({
             defaultValue={customer.status ?? 'draft'}
             className={inputClassName()}
           >
-            <option value="draft">Draft</option>
-            <option value="pending_verification">Pending verification</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="moved">Moved</option>
-            <option value="terminated">Terminated</option>
-            <option value="blocked">Blocked</option>
+            <option value="draft">Förbereds</option>
+            <option value="pending_verification">Väntar verifiering</option>
+            <option value="active">Aktiv</option>
+            <option value="inactive">Inaktiv</option>
+            <option value="moved">Flyttad</option>
+            <option value="terminated">Avslutad</option>
+            <option value="blocked">Blockerad</option>
           </select>
         </label>
 
@@ -221,7 +218,7 @@ export default function CustomerProfileCard({
             <span className="text-rose-700 dark:text-rose-200">Skriv RADERA för att bekräfta</span>
             <input
               name="confirm_delete"
-              placeholder="RADERA"
+              placeholder="Skriv RADERA för att bekräfta"
               className="h-11 rounded-2xl border border-rose-300 bg-white px-4 text-rose-950 dark:border-rose-900 dark:bg-slate-950 dark:text-white"
             />
           </label>

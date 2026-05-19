@@ -1,5 +1,3 @@
-import type { CustomerImportPreview } from '@/lib/customers/importParser'
-
 export type IntakeField =
   | 'customerType'
   | 'intakeFlowType'
@@ -61,29 +59,30 @@ export const initialIntakeActionState: IntakeActionState = {
   fieldErrors: {},
   createdCustomerId: null,
 }
+export type CustomerImportPreviewRow = {
+  rowNumber: number
+  label: string
+  uniqueKey: string
+  warnings: string[]
+  payload: Record<string, string>
+}
 
-export type CustomerImportPreviewActionState = {
+export type CustomerImportActionState = {
   status: 'idle' | 'success' | 'error'
   message: string | null
-  preview: CustomerImportPreview | null
+  totalRows: number
+  createdRows: number
+  failedRows: number
+  warnings: string[]
+  rows: CustomerImportPreviewRow[]
 }
 
-export const initialCustomerImportPreviewState: CustomerImportPreviewActionState = {
+export const initialCustomerImportActionState: CustomerImportActionState = {
   status: 'idle',
   message: null,
-  preview: null,
-}
-
-export type CustomerImportCommitActionState = {
-  status: 'idle' | 'success' | 'error'
-  message: string | null
-  created: number
-  failed: number
-}
-
-export const initialCustomerImportCommitState: CustomerImportCommitActionState = {
-  status: 'idle',
-  message: null,
-  created: 0,
-  failed: 0,
+  totalRows: 0,
+  createdRows: 0,
+  failedRows: 0,
+  warnings: [],
+  rows: [],
 }

@@ -1,11 +1,12 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { saveContractOffer } from '@/lib/customer-contracts/db'
 import type { ContractType, GreenFeeMode } from '@/lib/customer-contracts/types'
 import { supabaseService } from '@/lib/supabase/service'
-import { resolveTenantScope } from '@/lib/tenant/scope'
+import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -47,11 +48,6 @@ function parseGreenFeeMode(value: string): GreenFeeMode {
   }
 }
 
-function parseStatus(value: string): 'draft' | 'active' | 'inactive' {
-  if (value === 'active' || value === 'inactive') return value
-  return 'draft'
-}
-
 function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
   const trimmed = value.trim()
   if (!trimmed) return []
@@ -72,68 +68,32 @@ function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
     })
 }
 
-async function getContractTenantContext(formData: FormData) {
-  const admin = await requireAdminActionAccess(['pricing.write'])
-  const scope = await resolveTenantScope({
-    userId: admin.userId,
-    roles: admin.roles,
-    permissions: admin.permissions,
-    requestedCompanyId: getString(formData, 'companyId') || null,
-    requireCompany: true,
-  })
-
-  if (!scope.companyId) {
-    throw new Error('Välj vilket företag avtalet ska tillhöra.')
-  }
-
-  return { actorUserId: admin.userId, companyId: scope.companyId }
-}
-
-async function writeContractOfferVersion(params: {
-  companyId: string
-  actorUserId: string
-  offerId: string
-  snapshot: Record<string, unknown>
-}) {
-  try {
-    const { count } = await supabaseService
-      .from('contract_offer_versions')
-      .select('id', { count: 'exact', head: true })
-      .eq('contract_offer_id', params.offerId)
-
-    await supabaseService.from('contract_offer_versions').insert({
-      company_id: params.companyId,
-      contract_offer_id: params.offerId,
-      version_number: (count ?? 0) + 1,
-      snapshot: params.snapshot,
-      created_by: params.actorUserId,
-    })
-  } catch (error) {
-    console.warn('Contract offer version could not be written', error)
-  }
-}
-
 export async function saveContractOfferAction(formData: FormData) {
-  const { actorUserId, companyId } = await getContractTenantContext(formData)
+  await requireAdminActionAccess(['pricing.write'])
 
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
+  const companyId = await requireOperationalCompanyId(user.id)
   const id = getString(formData, 'id') || undefined
   const name = getString(formData, 'name')
-  const validFrom = getString(formData, 'valid_from') || null
-  const validTo = getString(formData, 'valid_to') || null
 
   if (!name) {
-    throw new Error('Avtalsnamn krävs.')
-  }
-
-  if (validFrom && validTo && validTo < validFrom) {
-    throw new Error('Slutdatum får inte vara tidigare än startdatum.')
+    throw new Error('Avtalsnamn krävs')
   }
 
   const saved = await saveContractOffer({
     id,
+    companyId,
     name,
     slug: getString(formData, 'slug') || null,
-    status: parseStatus(getString(formData, 'status')),
+    status: (getString(formData, 'status') || 'active') as 'draft' | 'active' | 'inactive',
     contractType: parseContractType(getString(formData, 'contract_type')),
     campaignName: getString(formData, 'campaign_name') || null,
     description: getString(formData, 'description') || null,
@@ -147,24 +107,16 @@ export async function saveContractOfferAction(formData: FormData) {
     defaultNoticeMonths: getNullableInt(formData, 'default_notice_months'),
     optionalFeeLines: parseOptionalFeeLines(getString(formData, 'optional_fee_lines')),
     isActive: getString(formData, 'is_active') === 'on',
-    validFrom,
-    validTo,
-    actorUserId,
-    companyId,
-  })
-
-  await writeContractOfferVersion({
-    companyId,
-    actorUserId,
-    offerId: saved.id,
-    snapshot: saved as unknown as Record<string, unknown>,
+    validFrom: getString(formData, 'valid_from') || null,
+    validTo: getString(formData, 'valid_to') || null,
+    actorUserId: user.id,
   })
 
   await supabaseService.from('audit_logs').insert({
-    actor_user_id: actorUserId,
-    company_id: companyId,
+    actor_user_id: user.id,
     entity_type: 'contract_offer',
     entity_id: saved.id,
+    company_id: companyId,
     action: id ? 'contract_offer_updated' : 'contract_offer_created',
     new_values: saved,
   })

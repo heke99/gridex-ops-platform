@@ -1,73 +1,12 @@
-import { Buffer } from 'node:buffer'
+import { inflateRawSync } from 'node:zlib'
 
-export const CUSTOMER_IMPORT_HEADERS = [
-  'customer_type',
-  'intake_flow_type',
-  'first_name',
-  'last_name',
-  'contact_title',
-  'company_name',
-  'email',
-  'phone',
-  'personal_number',
-  'org_number',
-  'apartment_number',
-  'site_name',
-  'facility_id',
-  'meter_point_id',
-  'grid_owner_id',
-  'price_area_code',
-  'move_in_date',
-  'annual_consumption_kwh',
-  'street',
-  'postal_code',
-  'city',
-  'care_of',
-  'country',
-  'current_supplier_name',
-  'current_supplier_org_number',
-  'moved_from_street',
-  'moved_from_postal_code',
-  'moved_from_city',
-  'moved_from_supplier_name',
-  'contract_offer_id',
-  'contract_start_date',
-  'contract_status',
-  'contract_type_override',
-  'fixed_price_ore_per_kwh',
-  'spot_markup_ore_per_kwh',
-  'variable_fee_ore_per_kwh',
-  'monthly_fee_sek',
-  'green_fee_mode',
-  'green_fee_value',
-  'binding_months',
-  'notice_months',
-  'optional_fee_lines',
-] as const
-
-export type CustomerImportHeader = (typeof CUSTOMER_IMPORT_HEADERS)[number]
-
-export type CustomerImportRow = Record<CustomerImportHeader, string>
-
-export type CustomerImportIssueSeverity = 'error' | 'warning' | 'info'
-
-export type CustomerImportIssue = {
-  rowNumber: number
-  field?: string
-  severity: CustomerImportIssueSeverity
-  message: string
-}
-
-export type CustomerImportPreview = {
-  rows: CustomerImportRow[]
-  normalizedCsv: string
-  issues: CustomerImportIssue[]
-  duplicateKeys: string[]
+export type ParsedCustomerImport = {
+  rows: Array<Record<string, string>>
+  warnings: string[]
   sourceKind: 'text' | 'csv' | 'excel' | 'pdf'
-  message: string
 }
 
-const HEADER_ALIASES: Record<string, CustomerImportHeader> = {
+const HEADER_ALIASES: Record<string, string> = {
   kundtyp: 'customer_type',
   customer_type: 'customer_type',
   typ: 'customer_type',
@@ -79,125 +18,70 @@ const HEADER_ALIASES: Record<string, CustomerImportHeader> = {
   first_name: 'first_name',
   efternamn: 'last_name',
   last_name: 'last_name',
-  kontaktperson_titel: 'contact_title',
-  contact_title: 'contact_title',
-  foretagsnamn: 'company_name',
-  företagsnamn: 'company_name',
-  bolagsnamn: 'company_name',
+  foretag: 'company_name',
+  företag: 'company_name',
+  bolag: 'company_name',
   company_name: 'company_name',
   epost: 'email',
   'e-post': 'email',
-  mail: 'email',
   email: 'email',
+  mail: 'email',
   telefon: 'phone',
-  mobil: 'phone',
   phone: 'phone',
+  mobil: 'phone',
   personnummer: 'personal_number',
   personal_number: 'personal_number',
   orgnummer: 'org_number',
   organisationsnummer: 'org_number',
   org_number: 'org_number',
-  lagenhetsnummer: 'apartment_number',
-  lägenhetsnummer: 'apartment_number',
-  apartment_number: 'apartment_number',
-  anlaggningsnamn: 'site_name',
-  anläggningsnamn: 'site_name',
-  site_name: 'site_name',
   anlaggningsid: 'facility_id',
+  'anläggnings-id': 'facility_id',
   anläggningsid: 'facility_id',
   facility_id: 'facility_id',
-  facilityid: 'facility_id',
   matpunktsid: 'meter_point_id',
   mätpunktsid: 'meter_point_id',
+  'mätpunkts-id': 'meter_point_id',
   meter_point_id: 'meter_point_id',
-  metering_point_id: 'meter_point_id',
-  natagare: 'grid_owner_id',
-  nätägare: 'grid_owner_id',
-  grid_owner_id: 'grid_owner_id',
+  natagare: 'grid_owner_name',
+  nätägare: 'grid_owner_name',
+  grid_owner: 'grid_owner_name',
   elomrade: 'price_area_code',
   elområde: 'price_area_code',
   price_area_code: 'price_area_code',
   startdatum: 'move_in_date',
-  inflyttningsdatum: 'move_in_date',
+  avtalsstart: 'contract_start_date',
   move_in_date: 'move_in_date',
   arsförbrukning: 'annual_consumption_kwh',
-  arsförbrukning_kwh: 'annual_consumption_kwh',
   årsförbrukning: 'annual_consumption_kwh',
   annual_consumption_kwh: 'annual_consumption_kwh',
   adress: 'street',
-  gatuadress: 'street',
+  gata: 'street',
   street: 'street',
   postnummer: 'postal_code',
   postal_code: 'postal_code',
-  stad: 'city',
   ort: 'city',
+  stad: 'city',
   city: 'city',
-  co: 'care_of',
-  'c/o': 'care_of',
-  care_of: 'care_of',
-  land: 'country',
-  country: 'country',
-  nuvarande_leverantor: 'current_supplier_name',
-  nuvarande_leverantör: 'current_supplier_name',
-  current_supplier_name: 'current_supplier_name',
-  current_supplier_org_number: 'current_supplier_org_number',
-  tidigare_adress: 'moved_from_street',
-  moved_from_street: 'moved_from_street',
-  tidigare_postnummer: 'moved_from_postal_code',
-  moved_from_postal_code: 'moved_from_postal_code',
-  tidigare_stad: 'moved_from_city',
-  moved_from_city: 'moved_from_city',
-  tidigare_leverantor: 'moved_from_supplier_name',
-  tidigare_leverantör: 'moved_from_supplier_name',
-  moved_from_supplier_name: 'moved_from_supplier_name',
-  avtal: 'contract_offer_id',
-  avtalsmall: 'contract_offer_id',
-  contract_offer_id: 'contract_offer_id',
-  avtalsstart: 'contract_start_date',
-  contract_start_date: 'contract_start_date',
-  avtalsstatus: 'contract_status',
-  contract_status: 'contract_status',
-  contract_type_override: 'contract_type_override',
-  fixed_price_ore_per_kwh: 'fixed_price_ore_per_kwh',
-  spot_markup_ore_per_kwh: 'spot_markup_ore_per_kwh',
-  variable_fee_ore_per_kwh: 'variable_fee_ore_per_kwh',
-  monthly_fee_sek: 'monthly_fee_sek',
-  green_fee_mode: 'green_fee_mode',
-  green_fee_value: 'green_fee_value',
-  binding_months: 'binding_months',
-  notice_months: 'notice_months',
-  optional_fee_lines: 'optional_fee_lines',
+  avtal: 'contract_offer_name',
+  kampanj: 'campaign_name',
 }
 
 function normalizeHeader(value: string): string {
-  return value
+  const normalized = value
     .trim()
     .toLowerCase()
-    .replace(/\uFEFF/g, '')
-    .replace(/[\s/-]+/g, '_')
-}
+    .replace(/[()]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/å/g, 'a')
+    .replace(/ä/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/[^a-z0-9_-]/g, '')
 
-function csvEscape(value: string): string {
-  if (!/[;"\n\r]/.test(value)) return value
-  return `"${value.replace(/"/g, '""')}"`
-}
-
-export function rowsToNormalizedCsv(rows: CustomerImportRow[]): string {
-  return [
-    CUSTOMER_IMPORT_HEADERS.join(';'),
-    ...rows.map((row) => CUSTOMER_IMPORT_HEADERS.map((header) => csvEscape(row[header] ?? '')).join(';')),
-  ].join('\n')
-}
-
-function detectDelimiter(headerLine: string): string {
-  if (headerLine.includes('\t')) return '\t'
-  const semicolonCount = (headerLine.match(/;/g) ?? []).length
-  const commaCount = (headerLine.match(/,/g) ?? []).length
-  return semicolonCount >= commaCount ? ';' : ','
+  return HEADER_ALIASES[normalized] ?? HEADER_ALIASES[value.trim().toLowerCase()] ?? normalized
 }
 
 function splitDelimitedLine(line: string, delimiter: string): string[] {
-  const values: string[] = []
+  const result: string[] = []
   let current = ''
   let inQuotes = false
 
@@ -205,7 +89,7 @@ function splitDelimitedLine(line: string, delimiter: string): string[] {
     const char = line[index]
     const next = line[index + 1]
 
-    if (char === '"' && inQuotes && next === '"') {
+    if (char === '"' && next === '"') {
       current += '"'
       index += 1
       continue
@@ -217,7 +101,7 @@ function splitDelimitedLine(line: string, delimiter: string): string[] {
     }
 
     if (char === delimiter && !inQuotes) {
-      values.push(current.trim())
+      result.push(current.trim())
       current = ''
       continue
     }
@@ -225,267 +109,241 @@ function splitDelimitedLine(line: string, delimiter: string): string[] {
     current += char
   }
 
-  values.push(current.trim())
-  return values
+  result.push(current.trim())
+  return result
 }
 
-function emptyImportRow(): CustomerImportRow {
-  return CUSTOMER_IMPORT_HEADERS.reduce((acc, header) => {
-    acc[header] = ''
-    return acc
-  }, {} as CustomerImportRow)
+function detectDelimiter(headerLine: string): string {
+  const candidates = [';', '\t', ',']
+  return candidates
+    .map((delimiter) => ({ delimiter, count: headerLine.split(delimiter).length }))
+    .sort((a, b) => b.count - a.count)[0]?.delimiter ?? ';'
 }
 
-function parseDelimitedRows(text: string): CustomerImportRow[] {
-  const lines = text
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .split('\n')
+export function parseDelimitedCustomerRows(raw: string): ParsedCustomerImport {
+  const lines = raw
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
 
-  if (lines.length < 2) return []
+  if (lines.length < 2) {
+    return { rows: [], warnings: ['Underlaget behöver en rubrikrad och minst en kundrad.'], sourceKind: 'text' }
+  }
 
   const delimiter = detectDelimiter(lines[0])
-  const rawHeaders = splitDelimitedLine(lines[0], delimiter)
-  const headers = rawHeaders.map((header) => {
-    const normalized = normalizeHeader(header)
-    const mapped = HEADER_ALIASES[normalized]
-    if (mapped) return mapped
-    if ((CUSTOMER_IMPORT_HEADERS as readonly string[]).includes(normalized)) {
-      return normalized as CustomerImportHeader
-    }
-    return null
-  })
-
-  return lines.slice(1).map((line) => {
-    const values = splitDelimitedLine(line, delimiter)
-    const row = emptyImportRow()
+  const headers = splitDelimitedLine(lines[0], delimiter).map(normalizeHeader)
+  const warnings: string[] = []
+  const rows = lines.slice(1).map((line) => {
+    const cols = splitDelimitedLine(line, delimiter)
+    const row: Record<string, string> = {}
 
     headers.forEach((header, index) => {
-      if (header) row[header] = String(values[index] ?? '').trim()
+      if (!header) return
+      row[header] = String(cols[index] ?? '').trim()
     })
 
-    if (!row.customer_type) row.customer_type = row.org_number || row.company_name ? 'business' : 'private'
-    if (!row.intake_flow_type) row.intake_flow_type = 'switch'
-    if (!row.country) row.country = 'SE'
-    if (!row.contract_status && row.contract_offer_id) row.contract_status = 'pending_signature'
-
     return row
   })
+
+  if (!headers.includes('email') && !headers.includes('personal_number') && !headers.includes('org_number')) {
+    warnings.push('Underlaget saknar tydlig unik kundnyckel. Dubblettkontrollen blir svagare.')
+  }
+
+  return { rows, warnings, sourceKind: delimiter === ',' ? 'csv' : 'text' }
 }
 
-function decodePdfLiteral(value: string): string {
+function decodeXmlEntities(value: string): string {
   return value
-    .replace(/\\n/g, '\n')
-    .replace(/\\r/g, '\n')
-    .replace(/\\t/g, '\t')
-    .replace(/\\\(/g, '(')
-    .replace(/\\\)/g, ')')
-    .replace(/\\\\/g, '\\')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
 }
 
-function decodePdfHex(value: string): string {
-  const clean = value.replace(/\s+/g, '')
-  if (clean.length < 2 || clean.length % 2 !== 0) return ''
-  const bytes: number[] = []
+type ZipEntry = { name: string; data: Buffer }
 
-  for (let index = 0; index < clean.length; index += 2) {
-    const parsed = Number.parseInt(clean.slice(index, index + 2), 16)
-    if (Number.isFinite(parsed)) bytes.push(parsed)
-  }
-
-  return Buffer.from(bytes).toString('utf8').replace(/\u0000/g, '')
+function readUInt32LE(buffer: Buffer, offset: number): number {
+  return buffer.readUInt32LE(offset)
 }
 
-export function extractTextFromPdfBytes(bytes: Buffer): string {
-  const raw = bytes.toString('latin1')
-  const chunks: string[] = []
-  const literalRegex = /\((?:\\.|[^\\)]){2,}\)/g
-  const hexRegex = /<([0-9a-fA-F\s]{8,})>/g
-
-  for (const match of raw.matchAll(literalRegex)) {
-    const value = match[0].slice(1, -1)
-    const decoded = decodePdfLiteral(value).trim()
-    if (decoded && /[a-zA-ZåäöÅÄÖ0-9]/.test(decoded)) chunks.push(decoded)
-  }
-
-  for (const match of raw.matchAll(hexRegex)) {
-    const decoded = decodePdfHex(match[1]).trim()
-    if (decoded && /[a-zA-ZåäöÅÄÖ0-9]/.test(decoded)) chunks.push(decoded)
-  }
-
-  return chunks.join('\n')
+function readUInt16LE(buffer: Buffer, offset: number): number {
+  return buffer.readUInt16LE(offset)
 }
 
-function inferRowsFromLooseText(text: string): CustomerImportRow[] {
-  const normalized = text
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .replace(/[ \t]+/g, ' ')
-
-  if (normalized.includes(';') || normalized.includes('\t')) {
-    const parsed = parseDelimitedRows(normalized)
-    if (parsed.length > 0) return parsed
-  }
-
-  const blocks = normalized
-    .split(/\n{2,}|(?=\b(?:kund|namn|bolag|företag|fornamn|förnamn)\b[: ]?)/i)
-    .map((block) => block.trim())
-    .filter((block) => block.length > 10)
-
-  return blocks.map((block) => {
-    const row = emptyImportRow()
-    const email = block.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? ''
-    const phone = block.match(/(?:\+46|0)\s?7[0-9][0-9\s-]{6,}/)?.[0]?.replace(/\s+/g, '') ?? ''
-    const org = block.match(/\b\d{6}[- ]?\d{4}\b/)?.[0] ?? ''
-    const facility = block.match(/\b7359\d{14,}\b/)?.[0] ?? ''
-    const priceArea = block.match(/\bSE[1-4]\b/i)?.[0]?.toUpperCase() ?? ''
-    const postal = block.match(/\b\d{3}\s?\d{2}\b/)?.[0] ?? ''
-    const date = block.match(/\b20\d{2}-\d{2}-\d{2}\b/)?.[0] ?? ''
-
-    row.email = email
-    row.phone = phone
-    row.facility_id = facility
-    row.meter_point_id = facility
-    row.price_area_code = priceArea
-    row.postal_code = postal
-    row.move_in_date = date
-    row.customer_type = org ? 'business' : 'private'
-    row.intake_flow_type = 'switch'
-    row.country = 'SE'
-
-    if (org) row.org_number = org
-
-    const lines = block.split('\n').map((line) => line.trim()).filter(Boolean)
-    const likelyName = lines.find((line) =>
-      !line.includes('@') &&
-      !/7359\d+/.test(line) &&
-      !/\bSE[1-4]\b/i.test(line) &&
-      !/\b\d{3}\s?\d{2}\b/.test(line) &&
-      /[a-zA-ZåäöÅÄÖ]/.test(line)
-    )
-
-    if (likelyName) {
-      const cleaned = likelyName.replace(/^(kund|namn|bolag|företag|foretag)[: ]+/i, '').trim()
-      if (org) {
-        row.company_name = cleaned
-      } else {
-        const parts = cleaned.split(/\s+/)
-        row.first_name = parts[0] ?? ''
-        row.last_name = parts.slice(1).join(' ')
-      }
-      row.site_name = cleaned
+function readZipEntries(buffer: Buffer): ZipEntry[] {
+  const eocdSignature = 0x06054b50
+  let eocdOffset = -1
+  for (let offset = buffer.length - 22; offset >= Math.max(0, buffer.length - 66000); offset -= 1) {
+    if (readUInt32LE(buffer, offset) === eocdSignature) {
+      eocdOffset = offset
+      break
     }
+  }
 
+  if (eocdOffset < 0) return []
+
+  const totalEntries = readUInt16LE(buffer, eocdOffset + 10)
+  const centralDirectoryOffset = readUInt32LE(buffer, eocdOffset + 16)
+  const entries: ZipEntry[] = []
+  let offset = centralDirectoryOffset
+
+  for (let i = 0; i < totalEntries; i += 1) {
+    if (readUInt32LE(buffer, offset) !== 0x02014b50) break
+
+    const compressionMethod = readUInt16LE(buffer, offset + 10)
+    const compressedSize = readUInt32LE(buffer, offset + 20)
+    const fileNameLength = readUInt16LE(buffer, offset + 28)
+    const extraLength = readUInt16LE(buffer, offset + 30)
+    const commentLength = readUInt16LE(buffer, offset + 32)
+    const localHeaderOffset = readUInt32LE(buffer, offset + 42)
+    const name = buffer.subarray(offset + 46, offset + 46 + fileNameLength).toString('utf8')
+
+    const localNameLength = readUInt16LE(buffer, localHeaderOffset + 26)
+    const localExtraLength = readUInt16LE(buffer, localHeaderOffset + 28)
+    const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength
+    const compressed = buffer.subarray(dataStart, dataStart + compressedSize)
+
+    let data: Buffer | null = null
+    if (compressionMethod === 0) data = Buffer.from(compressed)
+    if (compressionMethod === 8) data = inflateRawSync(compressed)
+
+    if (data) entries.push({ name, data })
+    offset += 46 + fileNameLength + extraLength + commentLength
+  }
+
+  return entries
+}
+
+function parseSharedStrings(xml: string): string[] {
+  return Array.from(xml.matchAll(/<si[\s\S]*?<\/si>/g)).map((match) => {
+    const textParts = Array.from(match[0].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)).map((part) => decodeXmlEntities(part[1] ?? ''))
+    return textParts.join('')
+  })
+}
+
+function cellColumn(ref: string): number {
+  const letters = (ref.match(/[A-Z]+/i)?.[0] ?? '').toUpperCase()
+  let value = 0
+  for (const letter of letters) {
+    value = value * 26 + (letter.charCodeAt(0) - 64)
+  }
+  return Math.max(0, value - 1)
+}
+
+function parseSheetXml(xml: string, sharedStrings: string[]): string[][] {
+  return Array.from(xml.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)).map((rowMatch) => {
+    const row: string[] = []
+    for (const cellMatch of rowMatch[1].matchAll(/<c([^>]*)>([\s\S]*?)<\/c>/g)) {
+      const attrs = cellMatch[1] ?? ''
+      const body = cellMatch[2] ?? ''
+      const ref = attrs.match(/r="([A-Z]+\d+)"/)?.[1] ?? ''
+      const type = attrs.match(/t="([^"]+)"/)?.[1] ?? ''
+      const column = ref ? cellColumn(ref) : row.length
+      const rawValue = body.match(/<v>([\s\S]*?)<\/v>/)?.[1] ?? body.match(/<t[^>]*>([\s\S]*?)<\/t>/)?.[1] ?? ''
+      const value = type === 's' ? sharedStrings[Number(rawValue)] ?? '' : decodeXmlEntities(rawValue)
+      row[column] = value.trim()
+    }
     return row
-  }).filter((row) => row.email || row.org_number || row.personal_number || row.facility_id || row.company_name || row.first_name)
+  }).filter((row) => row.some(Boolean))
 }
 
-export async function parseCustomerImportSource(input: {
-  text?: string | null
-  file?: File | null
-}): Promise<{
-  rows: CustomerImportRow[]
-  sourceKind: CustomerImportPreview['sourceKind']
-  message: string
-}> {
-  const file = input.file
-  const pastedText = input.text?.trim() ?? ''
+export function parseXlsxCustomerRows(buffer: Buffer): ParsedCustomerImport {
+  const entries = readZipEntries(buffer)
+  const sharedStringsXml = entries.find((entry) => entry.name === 'xl/sharedStrings.xml')?.data.toString('utf8') ?? ''
+  const sharedStrings = sharedStringsXml ? parseSharedStrings(sharedStringsXml) : []
+  const firstSheet = entries.find((entry) => /^xl\/worksheets\/sheet\d+\.xml$/.test(entry.name))
 
-  if (file && file.size > 0) {
-    const fileName = file.name.toLowerCase()
-    const bytes = Buffer.from(await file.arrayBuffer())
-
-    if (file.type === 'application/pdf' || fileName.endsWith('.pdf')) {
-      const text = extractTextFromPdfBytes(bytes)
-      return {
-        rows: inferRowsFromLooseText(text),
-        sourceKind: 'pdf',
-        message: 'PDF-underlaget har tolkats. Granska förhandsgranskningen innan importen sparas.',
-      }
-    }
-
-    const text = bytes.toString('utf8')
-    return {
-      rows: parseDelimitedRows(text),
-      sourceKind: fileName.endsWith('.xlsx') || fileName.endsWith('.xls') ? 'excel' : 'csv',
-      message:
-        fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
-          ? 'Excel-filen behandlas som tabelltext. Exportera gärna till CSV om kolumner saknas.'
-          : 'Importfilen har lästs in. Granska förhandsgranskningen innan importen sparas.',
-    }
+  if (!firstSheet) {
+    return { rows: [], warnings: ['Kunde inte hitta första bladet i Excel-filen.'], sourceKind: 'excel' }
   }
 
-  return {
-    rows: parseDelimitedRows(pastedText),
-    sourceKind: 'text',
-    message: 'Importerad text har tolkats. Granska förhandsgranskningen innan importen sparas.',
+  const table = parseSheetXml(firstSheet.data.toString('utf8'), sharedStrings)
+  if (table.length < 2) {
+    return { rows: [], warnings: ['Excel-filen behöver en rubrikrad och minst en kundrad.'], sourceKind: 'excel' }
   }
-}
 
-export function validateCustomerImportRows(rows: CustomerImportRow[]): CustomerImportIssue[] {
-  const issues: CustomerImportIssue[] = []
-  const seenKeys = new Map<string, number>()
-
-  rows.forEach((row, index) => {
-    const rowNumber = index + 2
-    const key = row.org_number || row.personal_number || row.facility_id || row.meter_point_id || row.email
-
-    if (!row.customer_type) {
-      issues.push({ rowNumber, field: 'customer_type', severity: 'warning', message: 'Kundtyp saknas och sätts till privatkund vid import.' })
-    }
-
-    if (row.customer_type === 'private') {
-      if (!row.first_name) issues.push({ rowNumber, field: 'first_name', severity: 'error', message: 'Förnamn saknas för privatkund.' })
-      if (!row.last_name) issues.push({ rowNumber, field: 'last_name', severity: 'error', message: 'Efternamn saknas för privatkund.' })
-    } else {
-      if (!row.company_name) issues.push({ rowNumber, field: 'company_name', severity: 'error', message: 'Företags- eller föreningsnamn saknas.' })
-      if (!row.org_number) issues.push({ rowNumber, field: 'org_number', severity: 'error', message: 'Organisationsnummer saknas.' })
-    }
-
-    if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
-      issues.push({ rowNumber, field: 'email', severity: 'error', message: 'E-postadressen har ogiltigt format.' })
-    }
-
-    if (row.move_in_date && !/^\d{4}-\d{2}-\d{2}$/.test(row.move_in_date)) {
-      issues.push({ rowNumber, field: 'move_in_date', severity: 'error', message: 'Datum ska anges som YYYY-MM-DD.' })
-    }
-
-    if (key) {
-      const normalizedKey = key.toLowerCase().replace(/\s+/g, '')
-      const previous = seenKeys.get(normalizedKey)
-      if (previous) {
-        issues.push({ rowNumber, severity: 'warning', message: `Möjlig dubblett i filen. Samma nyckel finns även på rad ${previous}.` })
-      } else {
-        seenKeys.set(normalizedKey, rowNumber)
-      }
-    } else {
-      issues.push({ rowNumber, severity: 'warning', message: 'Raden saknar tydlig matchningsnyckel såsom orgnummer, personnummer, anläggnings-id, mätpunkts-id eller e-post.' })
-    }
+  const headers = table[0].map(normalizeHeader)
+  const rows = table.slice(1).map((cols) => {
+    const row: Record<string, string> = {}
+    headers.forEach((header, index) => {
+      if (!header) return
+      row[header] = String(cols[index] ?? '').trim()
+    })
+    return row
   })
 
-  return issues
+  return { rows, warnings: [], sourceKind: 'excel' }
 }
 
-export function buildCustomerImportPreview(input: {
-  rows: CustomerImportRow[]
-  sourceKind: CustomerImportPreview['sourceKind']
-  message: string
-  extraIssues?: CustomerImportIssue[]
-}): CustomerImportPreview {
-  const rows = input.rows
-  const issues = [...validateCustomerImportRows(rows), ...(input.extraIssues ?? [])]
-  const duplicateKeys = issues
-    .filter((issue) => issue.message.toLowerCase().includes('dubblett'))
-    .map((issue) => `Rad ${issue.rowNumber}`)
+function bestEffortPdfText(buffer: Buffer): string {
+  const raw = buffer.toString('latin1')
+  const textParts = Array.from(raw.matchAll(/\(([^()]|\\.){2,}\)/g))
+    .map((match) => match[0].slice(1, -1).replace(/\\([()\\])/g, '$1'))
+    .join('\n')
+  return textParts || raw.replace(/[^\x09\x0A\x0D\x20-\x7EÅÄÖåäö]/g, ' ')
+}
+
+export function parsePdfCustomerRows(buffer: Buffer): ParsedCustomerImport {
+  const text = bestEffortPdfText(buffer)
+  const delimited = parseDelimitedCustomerRows(text)
+  if (delimited.rows.length > 0) {
+    return {
+      ...delimited,
+      sourceKind: 'pdf',
+      warnings: [
+        'PDF-underlag tolkas som förhandsgranskning. Kontrollera raderna innan import.',
+        ...delimited.warnings,
+      ],
+    }
+  }
+
+  const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? ''
+  const orgNumber = text.match(/\b\d{6}[- ]?\d{4}\b/)?.[0] ?? ''
+  const facilityId = text.match(/\b735\d{15}\b/)?.[0] ?? ''
+  const priceArea = text.match(/\bSE[1-4]\b/i)?.[0]?.toUpperCase() ?? ''
+  const phone = text.match(/\b(?:\+46|0)\d[\d\s-]{6,}\b/)?.[0] ?? ''
+
+  const row: Record<string, string> = {
+    customer_type: orgNumber ? 'business' : 'private',
+    email,
+    phone,
+    org_number: orgNumber,
+    facility_id: facilityId,
+    price_area_code: priceArea,
+  }
 
   return {
-    rows,
-    normalizedCsv: rowsToNormalizedCsv(rows),
-    issues,
-    duplicateKeys,
-    sourceKind: input.sourceKind,
-    message: rows.length > 0 ? input.message : 'Inga importerbara rader hittades i underlaget.',
+    rows: Object.values(row).some(Boolean) ? [row] : [],
+    warnings: [
+      'PDF-underlag kunde inte läsas som tabell. En försiktig förhandsgranskning skapades från hittade nyckelvärden.',
+    ],
+    sourceKind: 'pdf',
   }
+}
+
+export async function parseCustomerImportFormData(formData: FormData): Promise<ParsedCustomerImport> {
+  const file = formData.get('bulkFile')
+  const upload = file && typeof file === 'object' && 'arrayBuffer' in file && 'size' in file
+    ? (file as File)
+    : null
+
+  if (upload && upload.size > 0) {
+    const buffer = Buffer.from(await upload.arrayBuffer())
+    const name = upload.name.toLowerCase()
+    if (name.endsWith('.xlsx')) return parseXlsxCustomerRows(buffer)
+    if (name.endsWith('.xls')) {
+      return {
+        rows: [],
+        warnings: ['Äldre .xls-format stöds inte fullt ut. Exportera till .xlsx eller CSV innan import.'],
+        sourceKind: 'excel',
+      }
+    }
+    if (name.endsWith('.pdf')) return parsePdfCustomerRows(buffer)
+    return parseDelimitedCustomerRows(buffer.toString('utf8'))
+  }
+
+  const raw = String(formData.get('bulkPayload') ?? '').trim()
+  return parseDelimitedCustomerRows(raw)
 }

@@ -11,6 +11,7 @@ export type AdminPageKey =
   | 'customers.intake'
   | 'customers.segments'
   | 'contracts.catalog'
+  | 'companies.manage'
   | 'operations.control_tower'
   | 'operations.sync'
   | 'operations.integrity'
@@ -32,7 +33,6 @@ export type AdminPageKey =
   | 'integrations.routes'
   | 'ediel.workspace'
   | 'ediel.routes'
-  | 'companies.manage'
   | 'users.list'
   | 'users.detail'
   | 'roles.catalog'
@@ -56,7 +56,6 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
       'pricing.read',
       'audit.read',
       'users.read',
-      'tenants.read',
     ],
   },
   'customers.list': { anyOf: ['customers.read'] },
@@ -64,6 +63,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'customers.intake': { anyOf: ['customers.write'] },
   'customers.segments': { anyOf: ['customers.read', 'reports.read'] },
   'contracts.catalog': { anyOf: ['pricing.read'] },
+  'companies.manage': { anyOf: ['tenants.read', 'tenants.write', 'tenants.invite'] },
   'operations.control_tower': {
     anyOf: [
       'switching.read',
@@ -130,8 +130,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'ediel.routes': {
     anyOf: ['communication.read', 'switching.read', 'metering.read', 'billing_underlay.read'],
   },
-  'companies.manage': { anyOf: ['tenants.read', 'tenants.write', 'tenants.invite'] },
-  'users.list': { anyOf: ['users.read', 'tenants.invite'] },
+  'users.list': { anyOf: ['users.read'] },
   'users.detail': { anyOf: ['users.read'] },
   'roles.catalog': { anyOf: ['roles.manage', 'permissions.manage', 'users.read'] },
   'audit.log': { anyOf: ['audit.read'] },
@@ -182,13 +181,12 @@ export const ROLE_PERMISSION_PROFILES: Record<string, RolePermissionProfile> = {
       'audit.read',
     ],
   },
-  admin: {
-    label: 'Admin',
-    description: 'Bred daglig adminåtkomst men utan individuell permission-governance för andra användare.',
+  company_admin: {
+    label: 'Bolagsansvarig',
+    description: 'Administrerar användare och dagliga flöden inom sitt eget elhandelsbolag.',
     permissions: [
       'users.read',
-      'tenants.read',
-      'tenants.invite',
+      'users.write',
       'customers.read',
       'customers.write',
       'contracts.read',
@@ -219,17 +217,14 @@ export const ROLE_PERMISSION_PROFILES: Record<string, RolePermissionProfile> = {
       'pricing.write',
       'reports.read',
       'audit.read',
+      'tenants.invite',
     ],
   },
-
-  company_admin: {
-    label: 'Company admin',
-    description: 'Bolagsansvarig som kan bjuda in användare och administrera sitt bolags arbetsyta.',
+  admin: {
+    label: 'Admin',
+    description: 'Bred daglig adminåtkomst men utan individuell permission-governance för andra användare.',
     permissions: [
       'users.read',
-      'users.write',
-      'tenants.read',
-      'tenants.invite',
       'customers.read',
       'customers.write',
       'contracts.read',

@@ -274,7 +274,7 @@ export default function CustomerOperationsCard({
                             defaultValue={latestPowerOfAttorney?.status ?? 'draft'}
                             className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                           >
-                            <option value="draft">Draft</option>
+                            <option value="draft">Förbereds</option>
                             <option value="sent">Skickad</option>
                             <option value="signed">Signerad</option>
                             <option value="expired">Expired</option>

@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Gridex Energy Operations',
+  title: 'Gridex Operations',
   description:
-    'SaaS-plattform för elhandelsbolag med kundintag, operations, Ediel, mätvärden och partnerhandoff.',
+    'Operationsplattform för elhandelsbolag med kundintag, avtal, Ediel, mätvärden och faktureringsunderlag.',
 }
 
 export default function RootLayout({
@@ -13,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="sv" className="h-full antialiased" data-scroll-behavior="smooth">
-      <body className="flex min-h-full flex-col bg-[#f7fbf8] text-slate-900">
+    <html lang="sv" data-scroll-behavior="smooth" className="h-full scroll-smooth antialiased">
+      <body className="flex min-h-full flex-col bg-slate-50 text-slate-900">
         {children}
       </body>
     </html>

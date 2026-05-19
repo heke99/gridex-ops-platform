@@ -255,7 +255,7 @@ export default function CustomerSwitchOperationsCard({
         request.failed_at ??
         request.submitted_at ??
         request.created_at,
-      title: 'Switch request',
+      title: 'Switchärende',
       description: `${request.request_type} · ${request.status} · ${siteLabel(
         request.site_id,
         sites
@@ -265,7 +265,7 @@ export default function CustomerSwitchOperationsCard({
     ...switchEvents.map((event) => ({
       id: `switch-event:${event.id}`,
       occurredAt: event.created_at,
-      title: 'Switch event',
+      title: 'Switchhändelse',
       description: event.message ?? `${event.event_type} · ${event.event_status}`,
       tone: event.event_status,
     })),
@@ -278,7 +278,7 @@ export default function CustomerSwitchOperationsCard({
         outbound.prepared_at ??
         outbound.queued_at ??
         outbound.created_at,
-      title: 'Outbound dispatch',
+      title: 'Utskick',
       description: `${outbound.status} · ${outbound.channel_type}`,
       tone: outbound.channel_type === 'unresolved' ? 'missing_route' : outbound.status,
     })),
@@ -300,23 +300,23 @@ export default function CustomerSwitchOperationsCard({
             {openSwitches.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Draft, queued, submitted, accepted och failed som fortfarande kräver uppföljning.
+            Förberedda, köade, inskickade, accepterade eller avvikande ärenden som fortfarande kräver uppföljning.
           </div>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="text-sm text-slate-500 dark:text-slate-400">Saknar outbound</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">Saknar utskick</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
             {missingOutbound.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Switchärenden där extern dispatch ännu inte finns.
+            Switchärenden där externt utskick ännu inte finns.
           </div>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="text-sm text-slate-500 dark:text-slate-400">
-            Blockerade av validation
+            Blockerade av validering
           </div>
           <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
             {blockedByValidation.length}
@@ -327,12 +327,12 @@ export default function CustomerSwitchOperationsCard({
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="text-sm text-slate-500 dark:text-slate-400">Väntar dispatch</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">Väntar utskick</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
             {awaitingDispatch.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Outbound finns men har ännu inte gått hela vägen vidare.
+            Utskicket finns men har ännu inte gått hela vägen vidare.
           </div>
         </div>
 
@@ -352,27 +352,27 @@ export default function CustomerSwitchOperationsCard({
             {readyToExecute.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Kvitterade switchar där nästa steg är intern finalize/execution.
+            Kvitterade switchar där nästa steg är intern slutförande.
           </div>
         </div>
 
         <div className="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/10">
-          <div className="text-sm text-slate-500 dark:text-slate-400">Auto-köad outbound</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">Automatiskt köade utskick</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
             {autoQueuedOutbound.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Switchar som redan fått outbound automatiskt efter skapande.
+            Switchar som redan fått externt utskick automatiskt efter skapande.
           </div>
         </div>
 
         <div className="rounded-3xl border border-rose-200 bg-rose-50/60 p-6 shadow-sm dark:border-rose-900/50 dark:bg-rose-950/10">
-          <div className="text-sm text-slate-500 dark:text-slate-400">Oupplösta outbound</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">Ej matchade utskick</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
             {unresolvedOutbound.length}
           </div>
           <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Switch-dispatch där route eller transportkedja fortfarande saknas.
+            Switchutskick där rutt eller transportkedja fortfarande saknas.
           </div>
         </div>
 
@@ -401,8 +401,8 @@ export default function CustomerSwitchOperationsCard({
       />
 
       <SwitchRequestSection
-        title="Senaste dispatch"
-        description="Snabb överblick av senaste outbound för switchflödena."
+        title="Senaste utskick"
+        description="Snabb överblick av senaste utskick för switchflödena."
       >
         <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200">
           {latestDispatch ? (
@@ -424,11 +424,11 @@ export default function CustomerSwitchOperationsCard({
                 href={`/admin/outbound/${latestDispatch.id}`}
                 className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
               >
-                Öppna outbound
+                Öppna utskick
               </Link>
             </div>
           ) : (
-            'Ingen outbound dispatch finns ännu för switchärenden på kunden.'
+            'Inget externt utskick finns ännu för switchärenden på kunden.'
           )}
         </div>
       </SwitchRequestSection>
@@ -482,7 +482,7 @@ export default function CustomerSwitchOperationsCard({
 
       <SwitchRequestSection
         title="Tidslinje"
-        description="Senaste switch-, event- och dispatchhändelser i samma lista."
+        description="Senaste switch-, händelse- och utskickshistorik i samma lista."
       >
         <div className="space-y-3">
           {switchTimeline.length === 0 ? (

@@ -4,9 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { parseCustomerImportFormData } from '@/lib/customers/importParser'
 import type {
-  CustomerImportCommitActionState,
-  CustomerImportPreviewActionState,
+  CustomerImportActionState,
+  CustomerImportPreviewRow,
   IntakeActionState,
   IntakeFieldErrors,
 } from './actionState'
@@ -24,15 +26,6 @@ import {
   syncCustomerOperationsForSite,
 } from '@/lib/operations/db'
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
-import { resolveTenantScope } from '@/lib/tenant/scope'
-import {
-  buildCustomerImportPreview,
-  parseCustomerImportSource,
-  rowsToNormalizedCsv,
-  type CustomerImportIssue,
-  type CustomerImportPreview,
-  type CustomerImportRow,
-} from '@/lib/customers/importParser'
 
 type CustomerType = 'private' | 'business' | 'association'
 type SiteType = 'consumption' | 'production' | 'mixed'
@@ -176,29 +169,6 @@ function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
         unit: unitRaw || 'sek',
       }
     })
-}
-
-function parseBulkRows(raw: string): Array<Record<string, string>> {
-  const lines = raw
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-
-  if (lines.length < 2) return []
-
-  const delimiter = lines[0].includes('\t') ? '\t' : ';'
-  const headers = lines[0].split(delimiter).map((part) => part.trim())
-
-  return lines.slice(1).map((line) => {
-    const cols = line.split(delimiter)
-    const row: Record<string, string> = {}
-
-    headers.forEach((header, index) => {
-      row[header] = String(cols[index] ?? '').trim()
-    })
-
-    return row
-  })
 }
 
 function normalizeCustomerType(value: string | null | undefined): CustomerType {
@@ -371,97 +341,6 @@ function createValidationErrorFromFieldErrors(
   return new IntakeValidationError(message, fieldErrors)
 }
 
-function duplicateValidationError(message: string, field: keyof IntakeFieldErrors): IntakeValidationError {
-  return new IntakeValidationError(message, { [field]: message })
-}
-
-async function existsInTable(params: {
-  table: string
-  companyId: string
-  column: string
-  value: string | null
-}): Promise<boolean> {
-  if (!params.value) return false
-
-  const { data, error } = await supabaseService
-    .from(params.table)
-    .select('id')
-    .eq('company_id', params.companyId)
-    .eq(params.column, params.value)
-    .limit(1)
-
-  if (error) throw error
-  return (data ?? []).length > 0
-}
-
-async function assertNoDuplicateCustomerGraph(params: CreateCustomerGraphParams) {
-  const normalizedOrgNumber = normalizeOptionalString(params.orgNumber)
-  const normalizedPersonalNumber = normalizeOptionalString(params.personalNumber)
-  const normalizedEmail = normalizeOptionalString(params.email)
-  const normalizedFacilityId = normalizeOptionalString(params.facilityId)
-  const normalizedMeterPointId = normalizeOptionalString(params.meterPointId)
-
-  if (
-    normalizedOrgNumber &&
-    (await existsInTable({
-      table: 'customers',
-      companyId: params.companyId,
-      column: 'org_number',
-      value: normalizedOrgNumber,
-    }))
-  ) {
-    throw duplicateValidationError('En kund med samma organisationsnummer finns redan i valt företag.', 'orgNumber')
-  }
-
-  if (
-    normalizedPersonalNumber &&
-    (await existsInTable({
-      table: 'customers',
-      companyId: params.companyId,
-      column: 'personal_number',
-      value: normalizedPersonalNumber,
-    }))
-  ) {
-    throw duplicateValidationError('En kund med samma personnummer finns redan i valt företag.', 'personalNumber')
-  }
-
-  if (
-    normalizedEmail &&
-    (await existsInTable({
-      table: 'customers',
-      companyId: params.companyId,
-      column: 'email',
-      value: normalizedEmail,
-    }))
-  ) {
-    throw duplicateValidationError('En kund med samma e-postadress finns redan i valt företag.', 'email')
-  }
-
-  if (
-    normalizedFacilityId &&
-    (await existsInTable({
-      table: 'customer_sites',
-      companyId: params.companyId,
-      column: 'facility_id',
-      value: normalizedFacilityId,
-    }))
-  ) {
-    throw duplicateValidationError('Anläggnings-id finns redan i valt företag.', 'facilityId')
-  }
-
-  if (
-    normalizedMeterPointId &&
-    (await existsInTable({
-      table: 'metering_points',
-      companyId: params.companyId,
-      column: 'meter_point_id',
-      value: normalizedMeterPointId,
-    }))
-  ) {
-    throw duplicateValidationError('Mätpunkts-id finns redan i valt företag.', 'meterPointId')
-  }
-}
-
 function buildCreateCustomerParams(
   formData: FormData,
   actorUserId: string,
@@ -521,34 +400,24 @@ function buildCreateCustomerParams(
   }
 }
 
-async function getActionTenantContext(formData?: FormData): Promise<{
-  actorUserId: string
-  companyId: string
-}> {
-  const admin = await requireAdminActionAccess({ anyOf: ['customers.write', 'masterdata.write'] })
-  const scope = await resolveTenantScope({
-    userId: admin.userId,
-    roles: admin.roles,
-    permissions: admin.permissions,
-    requestedCompanyId: formData ? getNullableString(formData, 'companyId') : null,
-    requireCompany: true,
-  })
+async function getActorUserId(): Promise<string> {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!scope.companyId) {
-    throw new Error('Välj företag innan du sparar kunddata.')
-  }
-
-  return { actorUserId: admin.userId, companyId: scope.companyId }
+  if (!user) throw new Error('Unauthorized')
+  return user.id
 }
 
 async function insertAuditLog(params: {
   actorUserId: string
+  companyId?: string | null
   entityType: string
   entityId: string
   action: string
   newValues?: Record<string, unknown>
   metadata?: Record<string, unknown>
-  companyId?: string | null
 }) {
   const { data, error } = await supabaseService
     .from('audit_logs')
@@ -570,7 +439,6 @@ async function insertAuditLog(params: {
 
 async function createPrimaryContact(params: {
   customerId: string
-  companyId: string
   customerType: CustomerType
   firstName: string | null
   lastName: string | null
@@ -578,6 +446,7 @@ async function createPrimaryContact(params: {
   email: string | null
   phone: string | null
   title: string | null
+  companyId: string
 }) {
   const personName = `${params.firstName ?? ''} ${params.lastName ?? ''}`.trim() || null
 
@@ -593,8 +462,8 @@ async function createPrimaryContact(params: {
   const { data, error } = await supabaseService
     .from('customer_contacts')
     .insert({
-      customer_id: params.customerId,
       company_id: params.companyId,
+      customer_id: params.customerId,
       type: 'primary',
       name,
       email: params.email ?? null,
@@ -611,13 +480,13 @@ async function createPrimaryContact(params: {
 
 async function createFacilityAddress(params: {
   customerId: string
-  companyId: string
   street: string | null
   postalCode: string | null
   city: string | null
   careOf: string | null
   moveInDate: string | null
   country: string | null
+  companyId: string
 }) {
   if (!params.street && !params.postalCode && !params.city) {
     return null
@@ -626,8 +495,8 @@ async function createFacilityAddress(params: {
   const { data, error } = await supabaseService
     .from('customer_addresses')
     .insert({
-      customer_id: params.customerId,
       company_id: params.companyId,
+      customer_id: params.customerId,
       type: 'facility',
       street_1: params.street ?? '',
       street_2: params.careOf ?? null,
@@ -648,7 +517,6 @@ async function createFacilityAddress(params: {
 
 async function syncContractLifecycleEvents(params: {
   customerId: string
-  companyId: string
   contractId: string
   contractStatus: ContractStatus | null
   contractStartDate: string | null
@@ -664,7 +532,6 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal satt till väntar signering i intake-flödet',
       actorUserId: params.actorUserId,
-      companyId: params.companyId,
     })
     return
   }
@@ -677,7 +544,6 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som signerat i intake-flödet',
       actorUserId: params.actorUserId,
-      companyId: params.companyId,
     })
     return
   }
@@ -690,7 +556,6 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som signerat i intake-flödet',
       actorUserId: params.actorUserId,
-      companyId: params.companyId,
     })
 
     await addCustomerContractEvent({
@@ -700,7 +565,6 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som aktivt i intake-flödet',
       actorUserId: params.actorUserId,
-      companyId: params.companyId,
     })
     return
   }
@@ -713,7 +577,6 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som avslutat i intake-flödet',
       actorUserId: params.actorUserId,
-      companyId: params.companyId,
     })
     return
   }
@@ -726,14 +589,12 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som avbrutet i intake-flödet',
       actorUserId: params.actorUserId,
-      companyId: params.companyId,
     })
   }
 }
 
 async function maybeCreateSwitchRequestFromIntake(params: {
   customerId: string
-  companyId: string
   siteId: string | null
   intakeFlowType: SupplierSwitchRequestType | null
 }) {
@@ -791,7 +652,6 @@ async function maybeCreateSwitchRequestFromIntake(params: {
     meteringPoint: candidateMeteringPoint,
     requestType: params.intakeFlowType,
     requestedStartDate: site.move_in_date ?? null,
-    companyId: params.companyId,
   })
 
   return {
@@ -856,7 +716,7 @@ async function cleanupCreatedGraph(context: CreationContext) {
       await supabaseService.from('customers').delete().eq('id', context.customerId)
     }
   } catch (cleanupError) {
-    console.error('Customer intake cleanup failed', cleanupError)
+    console.error('Customer intake rollback failed', cleanupError)
   }
 }
 
@@ -1006,7 +866,6 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
 
     const contact = await createPrimaryContact({
       customerId: customer.id,
-      companyId: params.companyId,
       customerType: params.customerType,
       firstName: normalizedFirstName,
       lastName: normalizedLastName,
@@ -1014,18 +873,19 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
       title: normalizedContactTitle,
       email: normalizedEmail,
       phone: normalizedPhone,
+      companyId: params.companyId,
     })
     creationContext.contactId = contact?.id ?? null
 
     const address = await createFacilityAddress({
       customerId: customer.id,
-      companyId: params.companyId,
       street: normalizedStreet,
       postalCode: normalizedPostalCode,
       city: normalizedCity,
       careOf: normalizedCareOf,
       moveInDate: normalizedMoveInDate,
       country: normalizedCountry,
+      companyId: params.companyId,
     })
     creationContext.addressId = address?.id ?? null
 
@@ -1044,8 +904,8 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
       const { data: site, error: siteError } = await supabaseService
         .from('customer_sites')
         .insert({
-          customer_id: customer.id,
           company_id: params.companyId,
+          customer_id: customer.id,
           site_name: normalizedSiteName || displayName || 'Ny anläggning',
           facility_id: normalizedFacilityId,
           site_type: params.siteType ?? 'consumption',
@@ -1080,8 +940,8 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
       const { data: meteringPoint, error: meteringPointError } = await supabaseService
         .from('metering_points')
         .insert({
-          site_id: siteId,
           company_id: params.companyId,
+          site_id: siteId,
           meter_point_id: normalizedMeterPointId,
           site_facility_id: normalizedFacilityId,
           status: 'draft',
@@ -1102,10 +962,11 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
 
     if (params.contractOfferId || params.contractTypeOverride) {
       const offer = params.contractOfferId
-        ? await getContractOfferById(params.contractOfferId, { companyId: params.companyId })
+        ? await getContractOfferById(params.contractOfferId)
         : null
 
       const contract = await createCustomerContract({
+        companyId: params.companyId,
         customerId: customer.id,
         siteId,
         contractOfferId: offer?.id ?? null,
@@ -1137,7 +998,6 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
             : null,
         overrideReason: normalizedOverrideReason,
         actorUserId: params.actorUserId,
-        companyId: params.companyId,
       })
 
       creationContext.contractId = contract.id
@@ -1154,7 +1014,6 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
           customerNumber: customer.customer_number ?? null,
         },
         actorUserId: params.actorUserId,
-        companyId: params.companyId,
       })
 
       await syncContractLifecycleEvents({
@@ -1163,13 +1022,11 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         contractStatus: normalizedContractStatus,
         contractStartDate: normalizedContractStartDate,
         actorUserId: params.actorUserId,
-        companyId: params.companyId,
       })
     }
 
     const switchRequestResult = await maybeCreateSwitchRequestFromIntake({
       customerId: customer.id,
-      companyId: params.companyId,
       siteId,
       intakeFlowType: params.intakeFlowType,
     })
@@ -1192,13 +1049,13 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         phone: customer.phone,
         customer_number: customer.customer_number,
       },
+      companyId: params.companyId,
       metadata: {
         intakeFlowType: params.intakeFlowType,
         siteId,
         switchRequest: switchRequestResult ?? null,
-        transactionReadyMode: 'manual_rollback',
+        transactionReadyMode: 'server_validated_rollback',
       },
-      companyId: params.companyId,
     })
 
     return customer
@@ -1208,97 +1065,15 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
   }
 }
 
-
-async function buildDatabaseDuplicateIssues(rows: CustomerImportRow[], companyId: string) {
-  const issues: CustomerImportIssue[] = []
-
-  for (const [index, row] of rows.entries()) {
-    const rowNumber = index + 2
-    const checks: Array<{ table: string; column: string; value: string; label: string }> = []
-
-    if (row.org_number) checks.push({ table: 'customers', column: 'org_number', value: row.org_number, label: 'organisationsnummer' })
-    if (row.personal_number) checks.push({ table: 'customers', column: 'personal_number', value: row.personal_number, label: 'personnummer' })
-    if (row.email) checks.push({ table: 'customers', column: 'email', value: row.email, label: 'e-postadress' })
-    if (row.facility_id) checks.push({ table: 'customer_sites', column: 'facility_id', value: row.facility_id, label: 'anläggnings-id' })
-    if (row.meter_point_id) checks.push({ table: 'metering_points', column: 'meter_point_id', value: row.meter_point_id, label: 'mätpunkts-id' })
-
-    for (const check of checks) {
-      if (await existsInTable({ table: check.table, companyId, column: check.column, value: check.value })) {
-        issues.push({
-          rowNumber,
-          field: check.column,
-          severity: 'warning',
-          message: `Möjlig dubblett: ${check.label} finns redan i valt företag.`,
-        })
-      }
-    }
-  }
-
-  return issues
-}
-
-export async function previewCustomerImportAction(
-  _prevState: CustomerImportPreviewActionState,
-  formData: FormData
-): Promise<CustomerImportPreviewActionState> {
-  try {
-    const { companyId } = await getActionTenantContext(formData)
-    const fileEntry = formData.get('importFile')
-    const file = fileEntry instanceof File && fileEntry.size > 0 ? fileEntry : null
-    const text = getString(formData, 'bulkPayload')
-    const parsed = await parseCustomerImportSource({ text, file })
-    const duplicateIssues = await buildDatabaseDuplicateIssues(parsed.rows, companyId)
-    const preview = buildCustomerImportPreview({
-      rows: parsed.rows,
-      sourceKind: parsed.sourceKind,
-      message: parsed.message,
-      extraIssues: duplicateIssues,
-    })
-
-    return {
-      status: preview.rows.length > 0 ? 'success' : 'error',
-      message: preview.message,
-      preview,
-    }
-  } catch (error) {
-    return {
-      status: 'error',
-      message: error instanceof Error ? error.message : 'Importunderlaget kunde inte läsas.',
-      preview: null,
-    }
-  }
-}
-
-export async function commitCustomerImportAction(
-  _prevState: CustomerImportCommitActionState,
-  formData: FormData
-): Promise<CustomerImportCommitActionState> {
-  try {
-    const result = await bulkCreateCustomersAction(formData)
-    return {
-      status: 'success',
-      message: `Importen är sparad. ${result.created} kunder skapades.`,
-      created: result.created,
-      failed: result.failed,
-    }
-  } catch (error) {
-    return {
-      status: 'error',
-      message: error instanceof Error ? error.message : 'Importen kunde inte sparas.',
-      created: 0,
-      failed: 1,
-    }
-  }
-}
-
 export async function createCustomerAction(
   _prevState: IntakeActionState,
   formData: FormData
 ): Promise<IntakeActionState> {
   try {
-    const { actorUserId, companyId } = await getActionTenantContext(formData)
+    await requireAdminActionAccess({ anyOf: ['customers.write', 'masterdata.write'] })
+    const actorUserId = await getActorUserId()
+    const companyId = await requireOperationalCompanyId(actorUserId)
     const params = buildCreateCustomerParams(formData, actorUserId, companyId)
-    await assertNoDuplicateCustomerGraph(params)
 
     const customer = await createCustomerGraph(params)
 
@@ -1316,18 +1091,40 @@ export async function createCustomerAction(
   }
 }
 
-export async function bulkCreateCustomersAction(formData: FormData): Promise<{ created: number; failed: number }> {
-  const { actorUserId, companyId } = await getActionTenantContext(formData)
+export async function bulkCreateCustomersAction(formData: FormData) {
+  await requireAdminActionAccess({ anyOf: ['customers.write', 'masterdata.write'] })
+  const actorUserId = await getActorUserId()
+  const companyId = await requireOperationalCompanyId(actorUserId)
 
-  const raw = getString(formData, 'bulkPayload')
-  if (!raw) {
-    throw new Error('Ingen bulkdata skickades in')
-  }
-
-  const rows = parseBulkRows(raw || rowsToNormalizedCsv([]))
+  const parsedImport = await parseCustomerImportFormData(formData)
+  const rows = parsedImport.rows
   if (rows.length === 0) {
-    throw new Error('Bulkformatet måste ha en header-rad och minst en datarad')
+    throw new Error(parsedImport.warnings[0] ?? 'Importunderlaget innehöll inga kundrader.')
   }
+
+  const file = formData.get('bulkFile')
+  const fileName = file && typeof file === 'object' && 'name' in file ? String((file as File).name) : null
+  const importBatchResult = await supabaseService
+    .from('customer_import_batches')
+    .insert({
+      company_id: companyId,
+      source_kind: parsedImport.sourceKind,
+      file_name: fileName,
+      status: 'completed',
+      total_rows: rows.length,
+      created_rows: 0,
+      failed_rows: 0,
+      warnings: parsedImport.warnings,
+      created_by: actorUserId,
+    })
+    .select('id')
+    .maybeSingle()
+
+  if (importBatchResult.error && !['42P01', 'PGRST205'].includes(importBatchResult.error.code ?? '')) {
+    throw importBatchResult.error
+  }
+
+  const importBatch = importBatchResult.data
 
   let created = 0
   const errors: string[] = []
@@ -1390,13 +1187,43 @@ export async function bulkCreateCustomersAction(formData: FormData): Promise<{ c
         throw createValidationErrorFromFieldErrors(validationErrors)
       }
 
-      await assertNoDuplicateCustomerGraph(params)
-      await createCustomerGraph(params)
+      const customer = await createCustomerGraph(params)
       created += 1
+
+      if (importBatch?.id) {
+        await supabaseService.from('customer_import_rows').insert({
+          import_batch_id: importBatch.id,
+          company_id: companyId,
+          row_number: index + 2,
+          status: 'created',
+          normalized_payload: row,
+          customer_id: customer.id,
+          warnings: [],
+        })
+      }
     } catch (error) {
       const intakeError = mapUnknownErrorToIntakeState(error)
       errors.push(`Rad ${index + 2}: ${intakeError.message ?? 'Okänt fel'}`)
+
+      if (importBatch?.id) {
+        await supabaseService.from('customer_import_rows').insert({
+          import_batch_id: importBatch.id,
+          company_id: companyId,
+          row_number: index + 2,
+          status: 'failed',
+          normalized_payload: row,
+          error_message: intakeError.message ?? 'Okänt fel',
+          warnings: [],
+        })
+      }
     }
+  }
+
+  if (importBatch?.id) {
+    await supabaseService
+      .from('customer_import_batches')
+      .update({ created_rows: created, failed_rows: errors.length })
+      .eq('id', importBatch.id)
   }
 
   await insertAuditLog({
@@ -1408,11 +1235,13 @@ export async function bulkCreateCustomersAction(formData: FormData): Promise<{ c
       created,
       failed: errors.length,
     },
+    companyId,
     metadata: {
       totalRows: rows.length,
+      sourceKind: parsedImport.sourceKind,
+      warnings: parsedImport.warnings,
       firstError: errors[0] ?? null,
     },
-    companyId,
   })
 
   revalidatePath('/admin/customers')
@@ -1420,9 +1249,137 @@ export async function bulkCreateCustomersAction(formData: FormData): Promise<{ c
 
   if (errors.length > 0) {
     throw new Error(
-      `Importen sparades delvis: ${created} kunder skapades och ${errors.length} rader behöver åtgärdas. ${errors[0]}`
+      `Importen slutfördes med ${created} skapade kunder och ${errors.length} rader som kräver kontroll. ${errors[0]}`
     )
   }
+}
 
-  return { created, failed: errors.length }
+function importPreviewLabel(row: Record<string, string>): string {
+  const name = [row.first_name, row.last_name].filter(Boolean).join(' ').trim()
+  return row.company_name || name || row.email || row.org_number || row.personal_number || 'Kundrad'
+}
+
+function importUniqueKey(row: Record<string, string>): string {
+  return row.org_number || row.personal_number || row.email || row.facility_id || row.meter_point_id || ''
+}
+
+function importRowWarnings(row: Record<string, string>): string[] {
+  const warnings: string[] = []
+  const customerType = normalizeCustomerType(row.customer_type || 'private')
+  if (customerType === 'private' && (!row.first_name || !row.last_name)) {
+    warnings.push('Privatkund bör ha för- och efternamn.')
+  }
+  if (customerType !== 'private' && (!row.company_name || !row.org_number)) {
+    warnings.push('Företagskund bör ha bolagsnamn och organisationsnummer.')
+  }
+  if (!row.email && !row.personal_number && !row.org_number) {
+    warnings.push('Saknar tydlig unik kundnyckel för dubblettkontroll.')
+  }
+  if (!row.facility_id && !row.meter_point_id) {
+    warnings.push('Anläggnings-id eller mätpunkts-id saknas.')
+  }
+  return warnings
+}
+
+export async function previewCustomerImportAction(
+  _prevState: CustomerImportActionState,
+  formData: FormData
+): Promise<CustomerImportActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['customers.write', 'masterdata.read'] })
+    const actorUserId = await getActorUserId()
+    const companyId = await requireOperationalCompanyId(actorUserId)
+    const parsedImport = await parseCustomerImportFormData(formData)
+
+    const duplicateKeys = parsedImport.rows
+      .map(importUniqueKey)
+      .filter(Boolean)
+      .slice(0, 200)
+
+    const existingKeys = new Set<string>()
+    if (duplicateKeys.length > 0) {
+      const { data: existingCustomers } = await supabaseService
+        .from('customers')
+        .select('email,personal_number,org_number')
+        .eq('company_id', companyId)
+        .or(
+          duplicateKeys
+            .flatMap((key) => [
+              `email.eq.${key}`,
+              `personal_number.eq.${key}`,
+              `org_number.eq.${key}`,
+            ])
+            .join(',')
+        )
+
+      for (const customer of existingCustomers ?? []) {
+        for (const value of [customer.email, customer.personal_number, customer.org_number]) {
+          if (value) existingKeys.add(String(value))
+        }
+      }
+    }
+
+    const rows: CustomerImportPreviewRow[] = parsedImport.rows.slice(0, 50).map((row, index) => {
+      const uniqueKey = importUniqueKey(row)
+      const warnings = importRowWarnings(row)
+      if (uniqueKey && existingKeys.has(uniqueKey)) {
+        warnings.push('Möjlig dubblett hittades i kundregistret.')
+      }
+      return {
+        rowNumber: index + 2,
+        label: importPreviewLabel(row),
+        uniqueKey,
+        warnings,
+        payload: row,
+      }
+    })
+
+    return {
+      status: 'success',
+      message: `Förhandsgranskning klar: ${parsedImport.rows.length} rader hittades. Kontrollera varningar innan import.`,
+      totalRows: parsedImport.rows.length,
+      createdRows: 0,
+      failedRows: 0,
+      warnings: parsedImport.warnings,
+      rows,
+    }
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Importunderlaget kunde inte förhandsgranskas.',
+      totalRows: 0,
+      createdRows: 0,
+      failedRows: 0,
+      warnings: [],
+      rows: [],
+    }
+  }
+}
+
+export async function commitCustomerImportAction(
+  _prevState: CustomerImportActionState,
+  formData: FormData
+): Promise<CustomerImportActionState> {
+  try {
+    await bulkCreateCustomersAction(formData)
+    return {
+      status: 'success',
+      message: 'Importen slutfördes. Öppna kundregistret för att kontrollera skapade kunder.',
+      totalRows: 0,
+      createdRows: 0,
+      failedRows: 0,
+      warnings: [],
+      rows: [],
+    }
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Importen kunde inte slutföras.',
+      totalRows: 0,
+      createdRows: 0,
+      failedRows: 0,
+      warnings: [],
+      rows: [],
+    }
+  }
 }
