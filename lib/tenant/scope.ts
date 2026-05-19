@@ -22,6 +22,12 @@ export type ResolveTenantScopeOptions = {
   permissions: string[]
   requestedCompanyId?: string | null
   requireCompany?: boolean
+  /**
+   * Operational pages must not let platform admins work inside arbitrary customer tenants.
+   * Leave this false for customer intake, customers, contracts and operations.
+   * Use true only on explicit platform administration pages where cross-tenant oversight is intended.
+   */
+  includeAllCompaniesForPlatformAdmin?: boolean
 }
 
 function unique(values: Array<string | null | undefined>): string[] {
@@ -37,28 +43,58 @@ async function listActiveMembershipCompanyIds(userId: string): Promise<string[]>
       .eq('status', 'active')
 
     if (error) return []
-    return unique((data ?? []).map((row) => String(row.company_id ?? '')))
+    return unique(
+      ((data ?? []) as Array<{ company_id?: string | null }>).map((row) =>
+        String(row.company_id ?? '')
+      )
+    )
   } catch {
     return []
   }
 }
 
-async function listCompaniesByScope(params: {
-  isPlatformAdmin: boolean
-  companyIds: string[]
-}): Promise<TenantScopeCompanyOption[]> {
+async function getActiveProfileCompanyId(userId: string): Promise<string | null> {
   try {
-    let query = supabaseService
+    const { data, error } = await supabaseService
+      .from('user_profiles')
+      .select('active_company_id')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (error) return null
+    const value = String(
+      (data as { active_company_id?: string | null } | null)?.active_company_id ?? ''
+    ).trim()
+    return value || null
+  } catch {
+    return null
+  }
+}
+
+async function listCompaniesByIds(companyIds: string[]): Promise<TenantScopeCompanyOption[]> {
+  if (companyIds.length === 0) return []
+
+  try {
+    const { data, error } = await supabaseService
+      .from('companies')
+      .select('id, name, slug, org_number, status')
+      .in('id', companyIds)
+      .order('name', { ascending: true })
+
+    if (error) return []
+    return (data ?? []) as TenantScopeCompanyOption[]
+  } catch {
+    return []
+  }
+}
+
+async function listAllCompanies(): Promise<TenantScopeCompanyOption[]> {
+  try {
+    const { data, error } = await supabaseService
       .from('companies')
       .select('id, name, slug, org_number, status')
       .order('name', { ascending: true })
 
-    if (!params.isPlatformAdmin) {
-      if (params.companyIds.length === 0) return []
-      query = query.in('id', params.companyIds)
-    }
-
-    const { data, error } = await query
     if (error) return []
     return (data ?? []) as TenantScopeCompanyOption[]
   } catch {
@@ -70,22 +106,32 @@ export async function resolveTenantScope(
   options: ResolveTenantScopeOptions
 ): Promise<TenantScope> {
   const isPlatformAdmin = userIsPlatformAdmin(options.roles, options.permissions)
-  const membershipCompanyIds = await listActiveMembershipCompanyIds(options.userId)
-  const companies = await listCompaniesByScope({
-    isPlatformAdmin,
-    companyIds: membershipCompanyIds,
-  })
-  const allowedCompanyIds = isPlatformAdmin
-    ? companies.map((company) => company.id)
-    : membershipCompanyIds
+  const includeAllCompaniesForPlatformAdmin = Boolean(options.includeAllCompaniesForPlatformAdmin)
+  const [membershipCompanyIds, activeProfileCompanyId] = await Promise.all([
+    listActiveMembershipCompanyIds(options.userId),
+    getActiveProfileCompanyId(options.userId),
+  ])
 
+  const companyIds =
+    isPlatformAdmin && includeAllCompaniesForPlatformAdmin
+      ? (await listAllCompanies()).map((company) => company.id)
+      : membershipCompanyIds
+
+  const companies =
+    isPlatformAdmin && includeAllCompaniesForPlatformAdmin
+      ? await listAllCompanies()
+      : await listCompaniesByIds(companyIds)
+
+  const allowedCompanyIds = companies.map((company) => company.id)
   const requestedCompanyId = options.requestedCompanyId?.trim() || null
   let companyId: string | null = null
 
-  if (requestedCompanyId) {
-    if (isPlatformAdmin || allowedCompanyIds.includes(requestedCompanyId)) {
-      companyId = requestedCompanyId
-    }
+  if (requestedCompanyId && allowedCompanyIds.includes(requestedCompanyId)) {
+    companyId = requestedCompanyId
+  } else if (activeProfileCompanyId && allowedCompanyIds.includes(activeProfileCompanyId)) {
+    companyId = activeProfileCompanyId
+  } else if (allowedCompanyIds.length === 1) {
+    companyId = allowedCompanyIds[0] ?? null
   } else if (!isPlatformAdmin) {
     companyId = allowedCompanyIds[0] ?? null
   }
@@ -93,7 +139,7 @@ export async function resolveTenantScope(
   if (options.requireCompany && !companyId) {
     throw new Error(
       isPlatformAdmin
-        ? 'Välj vilket företag som posten ska tillhöra.'
+        ? 'Ditt konto saknar en tydlig operativ bolagskoppling. Lägg till dig själv som aktiv användare i rätt elhandelsbolag innan du skapar kunder eller avtal.'
         : 'Ditt konto saknar aktiv bolagskoppling.'
     )
   }
@@ -118,6 +164,6 @@ export function findCompanyName(
   companies: TenantScopeCompanyOption[],
   companyId: string | null | undefined
 ): string {
-  if (!companyId) return 'Alla företag'
+  if (!companyId) return 'Inget operativt företag valt'
   return companies.find((company) => company.id === companyId)?.name ?? 'Valt företag'
 }

@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="sv" className="h-full antialiased">
+    <html lang="sv" className="h-full antialiased" data-scroll-behavior="smooth">
       <body className="flex min-h-full flex-col bg-[#f7fbf8] text-slate-900">
         {children}
       </body>

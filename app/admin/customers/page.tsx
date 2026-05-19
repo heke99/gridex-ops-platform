@@ -2,8 +2,6 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
-import { createCustomerAction } from './actions'
-import { initialIntakeActionState } from './actionState'
 import {
   listCustomersPage,
   type CustomerListRow,
@@ -760,11 +758,6 @@ function formatCurrency(value: number | null | undefined): string {
   }).format(value)
 }
 
-async function createCustomerFromCustomersPage(formData: FormData) {
-  'use server'
-  await createCustomerAction(initialIntakeActionState, formData)
-}
-
 export default async function AdminCustomersPage({
   searchParams,
 }: CustomersPageProps) {
@@ -1001,28 +994,34 @@ export default async function AdminCustomersPage({
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 via-white to-slate-50">
       <AdminHeader
         title="Kunder"
         subtitle="Kundregister med sök, statusfilter, avtalsläge, fullmaktsöversikt och tydlig operationsstatus."
         userEmail={user?.email ?? null}
       />
 
-      <div className="space-y-6 p-8">
-        <div className="flex flex-wrap gap-3">
+      <div className="space-y-6 px-6 py-8 lg:px-8">
+        <div className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white/85 p-5 shadow-sm shadow-emerald-950/5 backdrop-blur lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-950">Kundregistret visar befintliga kunder.</p>
+            <p className="mt-1 text-sm text-slate-500">Nya kunder skapas i kundintaget. Nya elhandelsbolag skapas under Företag.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
           <Link
             href="/admin/customers/intake"
-            className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
+            className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-800"
           >
             Kundintag och import
           </Link>
 
           <Link
             href="/admin/contracts"
-            className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="inline-flex items-center rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
           >
             Avtalskatalog
           </Link>
+          </div>
         </div>
 
         <section className="grid gap-4 xl:grid-cols-5">
@@ -1087,134 +1086,40 @@ export default async function AdminCustomersPage({
           </div>
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Ny kund
-            </h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Skapa en kundpost snabbt. För komplett registrering med avtal, fullmakt, anläggning och import använder du Kundintag.
-            </p>
-
-            <form action={createCustomerFromCustomersPage} className="mt-6 space-y-4">
-              {scope.isPlatformAdmin ? (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Företag
-                  </label>
-                  <select
-                    name="companyId"
-                    defaultValue={selectedCompanyId ?? ''}
-                    required
-                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                  >
-                    <option value="">Välj företag</option>
-                    {scope.companies.map((company) => (
-                      <option key={company.id} value={company.id}>
-                        {company.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <input type="hidden" name="companyId" value={selectedCompanyId ?? ''} />
-              )}
-
+        <div className="space-y-6">
+          <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Kundtyp
-                </label>
-                <select
-                  name="customerType"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                  defaultValue="private"
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  Separata arbetsflöden
+                </p>
+                <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+                  Kundintag och bolagsadministration är uppdelade
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                  Skapa kunder via kundintaget så att kund, anläggning, mätpunkt, avtal och bolagstillhörighet sparas kontrollerat. Skapa nya elhandelsbolag och bjud in bolagsansvariga under Företag.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/admin/customers/intake"
+                  className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
                 >
-                  <option value="private">Privat</option>
-                  <option value="business">Företag</option>
-                </select>
+                  Starta kundintag
+                </Link>
+                <Link
+                  href="/admin/companies"
+                  className="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                >
+                  Hantera företag
+                </Link>
               </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Förnamn
-                  </label>
-                  <input
-                    name="firstName"
-                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Efternamn
-                  </label>
-                  <input
-                    name="lastName"
-                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Företagsnamn
-                </label>
-                <input
-                  name="companyName"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Personnummer
-                  </label>
-                  <input
-                    name="personalNumber"
-                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Organisationsnummer
-                  </label>
-                  <input
-                    name="orgNumber"
-                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                  E-post
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Telefon
-                </label>
-                <input
-                  name="phone"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                />
-              </div>
-
-              <button className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
-                Skapa kund
-              </button>
-            </form>
+            </div>
           </section>
 
-          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+          <section className="overflow-hidden rounded-[2rem] border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
+            <div className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50/80 to-white px-6 py-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
@@ -1241,12 +1146,12 @@ export default async function AdminCustomersPage({
                     name="q"
                     defaultValue={query}
                     placeholder="Sök på kundnummer, personnummer, namn, e-post, anläggning eller mätpunkts-id"
-                    className="h-11 min-w-[240px] flex-1 rounded-2xl border border-slate-300 px-4 text-sm outline-none transition focus:border-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="h-11 min-w-[240px] flex-1 rounded-2xl border border-emerald-200 bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                   />
                   <select
                     name="status"
                     defaultValue={statusFilter}
-                    className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-sm text-slate-800"
                   >
                     <option value="all">Alla kundstatusar</option>
                     <option value="draft">Utkast</option>
@@ -1260,7 +1165,7 @@ export default async function AdminCustomersPage({
                   <select
                     name="contract"
                     defaultValue={contractFilter}
-                    className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-sm text-slate-800"
                   >
                     <option value="all">Alla avtalslägen</option>
                     <option value="none">Utan avtal</option>
@@ -1269,7 +1174,7 @@ export default async function AdminCustomersPage({
                     <option value="active">Aktivt avtal</option>
                     <option value="closed">Avslutat avtal</option>
                   </select>
-                  <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950">
+                  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800">
                     Sök
                   </button>
                   {query || opsFilter !== 'all' || statusFilter !== 'all' || contractFilter !== 'all' ? (

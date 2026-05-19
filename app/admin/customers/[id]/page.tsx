@@ -579,7 +579,7 @@ function SectionAnchor({
 }) {
   return (
     <section id={id} className="scroll-mt-36 space-y-3">
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
+      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
         <h2 className="text-base font-semibold text-slate-900 dark:text-white">
           {title}
         </h2>
@@ -654,28 +654,28 @@ function StickyActionBar({
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+        <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
           <div className="text-slate-500 dark:text-slate-400">Primär signal</div>
           <div className="mt-1 font-semibold text-slate-950 dark:text-white">
             {lifecycleSummary.primaryLabel}
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+        <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
           <div className="text-slate-500 dark:text-slate-400">Öppna switchflöden</div>
           <div className="mt-1 font-semibold text-slate-950 dark:text-white">
             {lifecycleSummary.activeOpen}
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-          <div className="text-slate-500 dark:text-slate-400">Ready to execute</div>
+        <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
+          <div className="text-slate-500 dark:text-slate-400">Redo att slutföra</div>
           <div className="mt-1 font-semibold text-slate-950 dark:text-white">
             {lifecycleSummary.readyToExecute}
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+        <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
           <div className="text-slate-500 dark:text-slate-400">Nätägarbegäran</div>
           <div className="mt-1 font-semibold text-slate-950 dark:text-white">
             {dataRequestsCount}
@@ -1120,8 +1120,8 @@ export default async function CustomerAdminDetailPage({
   )
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="space-y-6 bg-gradient-to-b from-emerald-50/80 via-white to-slate-50 px-6 py-8 lg:px-8">
+      <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -1160,7 +1160,7 @@ export default async function CustomerAdminDetailPage({
             </div>
 
             <div className="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-400 sm:grid-cols-3">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
+              <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   {primaryIdentityLabel}
                 </div>
@@ -1169,7 +1169,7 @@ export default async function CustomerAdminDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
+              <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   {secondaryIdentityLabel}
                 </div>
@@ -1178,7 +1178,7 @@ export default async function CustomerAdminDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950">
+              <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 dark:bg-slate-950">
                 <div className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   Skapad
                 </div>
@@ -1228,7 +1228,7 @@ export default async function CustomerAdminDetailPage({
           </div>
 
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+            <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
               <div className="text-slate-500 dark:text-slate-400">Anläggningar</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                 {sites.length}
@@ -1238,7 +1238,7 @@ export default async function CustomerAdminDetailPage({
               </div>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+            <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
               <div className="text-slate-500 dark:text-slate-400">Mätpunkter</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                 {meteringPoints.length}
@@ -1248,8 +1248,8 @@ export default async function CustomerAdminDetailPage({
               </div>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
-              <div className="text-slate-500 dark:text-slate-400">Nätägar-requests</div>
+            <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
+              <div className="text-slate-500 dark:text-slate-400">Nätägarbegäran</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                 {dataRequests.length}
               </div>
@@ -1258,7 +1258,7 @@ export default async function CustomerAdminDetailPage({
               </div>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-950">
+            <div className="rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm dark:bg-slate-950">
               <div className="text-slate-500 dark:text-slate-400">Partnerexporter</div>
               <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                 {partnerExports.length}
@@ -1270,7 +1270,7 @@ export default async function CustomerAdminDetailPage({
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
+        <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -1319,10 +1319,10 @@ export default async function CustomerAdminDetailPage({
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
+          <div className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5 dark:border-slate-800 dark:bg-slate-950">
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                Operations summary
+                Operationsöversikt
               </div>
               <span
                 className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
@@ -1356,7 +1356,7 @@ export default async function CustomerAdminDetailPage({
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="text-slate-500 dark:text-slate-400">Ready to execute</div>
+                <div className="text-slate-500 dark:text-slate-400">Redo att slutföra</div>
                 <div className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                   {lifecycleSummary.readyToExecute}
                 </div>
@@ -1380,28 +1380,28 @@ export default async function CustomerAdminDetailPage({
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href={lifecycleSummary.primaryHref}
-                className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
+                className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
               >
                 Öppna rekommenderad arbetsyta
               </Link>
 
               <Link
                 href="#switch-operations"
-                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
               >
                 Gå till leverantörsbyte
               </Link>
 
               <Link
                 href="#billing-metering"
-                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
               >
                 Gå till nätägarbegäran
               </Link>
 
               <Link
                 href="#ediel-operations"
-                className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
               >
                 Gå till Ediel
               </Link>

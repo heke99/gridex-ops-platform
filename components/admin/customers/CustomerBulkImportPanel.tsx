@@ -92,14 +92,17 @@ export default function CustomerBulkImportPanel({
   )
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <section className="overflow-hidden rounded-[2rem] border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
+      <div className="flex flex-col gap-2 border-b border-emerald-100 bg-gradient-to-r from-emerald-50/80 to-white p-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-            Bulkimport med förhandsgranskning
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            Import
+          </p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+            Importera kundunderlag
           </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Läs in CSV, semikolonseparerad text eller PDF-underlag. Importen visar möjliga fel och dubbletter innan den sparas i kundregistret.
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Läs in CSV, semikolonseparerad text eller PDF-underlag. Importen visar möjliga fel och dubbletter innan något sparas i kundregistret.
           </p>
         </div>
 
@@ -110,7 +113,7 @@ export default function CustomerBulkImportPanel({
         ) : null}
       </div>
 
-      <form action={previewAction} className="mt-5 space-y-4">
+      <form action={previewAction} className="space-y-4 p-6">
         <CompanyField
           companies={companies}
           selectedCompanyId={selectedCompanyId}
@@ -125,7 +128,7 @@ export default function CustomerBulkImportPanel({
             type="file"
             name="importFile"
             accept=".csv,.txt,.tsv,.pdf,.xls,.xlsx,text/csv,text/plain,application/pdf"
-            className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 px-4 py-3 text-sm text-slate-700"
           />
         </label>
 
@@ -137,18 +140,19 @@ export default function CustomerBulkImportPanel({
             name="bulkPayload"
             rows={12}
             defaultValue={bulkExample}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3 font-mono text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 font-mono text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           />
         </label>
 
         <button
           disabled={previewPending}
-          className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="w-full rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {previewPending ? 'Läser underlaget...' : 'Förhandsgranska import'}
         </button>
       </form>
 
+      <div className="px-6 pb-6">
       {previewState.message ? (
         <div
           className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
@@ -230,7 +234,7 @@ export default function CustomerBulkImportPanel({
             <input type="hidden" name="bulkPayload" value={preview.normalizedCsv} />
             <button
               disabled={commitPending || hasBlockingIssues || preview.rows.length === 0}
-              className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-950"
+              className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {commitPending ? 'Sparar import...' : 'Spara godkända rader'}
             </button>
@@ -254,6 +258,7 @@ export default function CustomerBulkImportPanel({
           {commitState.message}
         </div>
       ) : null}
+      </div>
     </section>
   )
 }

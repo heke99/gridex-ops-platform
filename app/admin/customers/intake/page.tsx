@@ -30,13 +30,7 @@ export default async function CustomerIntakePage({
     requestedCompanyId: resolvedSearchParams.company ?? null,
     requireCompany: false,
   })
-  const selectedCompanyId =
-    scope.companyId ??
-    (!scope.isPlatformAdmin
-      ? scope.companyIds[0] ?? null
-      : scope.companies.length === 1
-        ? scope.companies[0]?.id ?? null
-        : null)
+  const selectedCompanyId = scope.companyId
   const companyOptions = scope.companies.map((company) => ({
     id: company.id,
     name: company.name,
@@ -75,36 +69,87 @@ export default async function CustomerIntakePage({
   }))
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 via-white to-slate-50">
       <AdminHeader
         title="Kundintag"
         subtitle="Skapa kund, anläggning, mätpunkt och avtal i ett kontrollerat flöde med validering, dubblettskydd och bolagstillhörighet."
         userEmail={user?.email ?? null}
       />
 
-      <div className="space-y-6 p-8">
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/admin/customers"
-            className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            Till kundlistan
-          </Link>
+      <div className="space-y-6 px-6 py-8 lg:px-8">
+        <div className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white/85 p-5 shadow-sm shadow-emerald-950/5 backdrop-blur lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-950">Kundintag för elhandelsbolag</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Här skapas kunder under ett befintligt företag. Nya företag och bolagsadministratörer hanteras separat under Företag.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/admin/customers"
+              className="inline-flex items-center rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+            >
+              Till kundregister
+            </Link>
 
-          <Link
-            href="/admin/contracts"
-            className="inline-flex items-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black dark:bg-white dark:text-slate-950"
-          >
-            Hantera avtalskatalog
-          </Link>
+            <Link
+              href="/admin/contracts"
+              className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
+            >
+              Avtal och kampanjer
+            </Link>
+          </div>
         </div>
 
-        {scope.isPlatformAdmin && !selectedCompanyId ? (
-          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100">
-            Välj företag i formuläret innan kund skapas. Avtalsförslag visas när ett företag är valt och sidan öppnas med företagsfilter.
+        {scope.isPlatformAdmin ? (
+          <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  Operativ bolagskoppling
+                </p>
+                <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+                  Kunden sparas i ditt aktiva elhandelsbolag
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Listan visar bara elhandelsbolag där ditt konto har aktiv bolagskoppling. Kundintag ska inte användas för att registrera kunder i andra bolag.
+                </p>
+              </div>
+
+              <form method="get" className="flex flex-col gap-2 sm:min-w-[320px]">
+                <label className="text-sm font-medium text-slate-700" htmlFor="company">
+                  Ditt elhandelsbolag
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    id="company"
+                    name="company"
+                    defaultValue={selectedCompanyId ?? ''}
+                    className="h-11 flex-1 rounded-2xl border border-emerald-200 bg-white px-4 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  >
+                    <option value="">Välj ditt bolag</option>
+                    {companyOptions.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800">
+                    Visa
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {!selectedCompanyId ? (
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Välj ett av de elhandelsbolag där ditt konto är aktivt kopplat innan du registrerar kund eller importerar kundunderlag.
+              </div>
+            ) : null}
           </section>
         ) : null}
 
+        {selectedCompanyId ? (
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <CustomerIntakeForm
             gridOwners={gridOwners.map((owner) => ({ id: owner.id, name: owner.name }))}
@@ -112,7 +157,7 @@ export default async function CustomerIntakePage({
             contractOffers={serializedOffers}
             companies={companyOptions}
             selectedCompanyId={selectedCompanyId}
-            isPlatformAdmin={scope.isPlatformAdmin}
+            isPlatformAdmin={false}
           />
 
           <div className="space-y-6">
@@ -120,7 +165,7 @@ export default async function CustomerIntakePage({
               bulkExample={bulkExample}
               companies={companyOptions}
               selectedCompanyId={selectedCompanyId}
-              isPlatformAdmin={scope.isPlatformAdmin}
+              isPlatformAdmin={false}
             />
 
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -136,6 +181,22 @@ export default async function CustomerIntakePage({
             </section>
           </div>
         </section>
+        ) : (
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-950">Inget operativt företag valt</h2>
+            <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              Kundintag kräver en aktiv bolagskoppling. Lägg till dig själv som användare i rätt elhandelsbolag under Företag innan du skapar kunddata.
+            </p>
+            <div className="mt-5 flex justify-center gap-3">
+              <Link
+                href="/admin/companies"
+                className="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+              >
+                Hantera företag
+              </Link>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   )
