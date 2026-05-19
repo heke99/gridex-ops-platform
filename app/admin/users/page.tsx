@@ -1,404 +1,423 @@
-import Link from 'next/link'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { getAdminUsers } from '@/lib/rbac/getAdminUsers'
-import { getAllRoles } from '@/lib/rbac/getAllRoles'
-import { getInternalRoleOptions, getRoleMeta } from '@/lib/rbac/catalog'
-import AdminHeader from '@/components/admin/AdminHeader'
+import Link from "next/link";
+import { requirePermissionServer } from "@/lib/auth/requirePermissionServer";
+import { getAdminUsers } from "@/lib/rbac/getAdminUsers";
+import { getAllRoles } from "@/lib/rbac/getAllRoles";
+import { getInternalRoleOptions, getRoleMeta } from "@/lib/rbac/catalog";
+import AdminHeader from "@/components/admin/AdminHeader";
 import {
-  createUserAction,
-  disablePlatformUserAction,
   inviteUserAction,
-  reactivatePlatformUserAction,
-  sendUserEmailConfirmationAction,
-  sendUserPasswordResetAction,
-} from './actions'
+  createUserAction,
+  sendAdminPasswordResetAction,
+  sendAdminConfirmationEmailAction,
+} from "./actions";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
 function formatDate(value: string | null | undefined) {
- if (!value) return '–'
+  if (!value) return "–";
 
- const date = new Date(value)
- if (Number.isNaN(date.getTime())) return value
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
 
- return date.toLocaleString('sv-SE')
+  return date.toLocaleString("sv-SE");
 }
 
 export default async function AdminUsersPage() {
- const context = await requirePermissionServer('users.read')
- const users = await getAdminUsers()
- const allRoles = await getAllRoles()
- const assignableRoles = getInternalRoleOptions(allRoles)
+  const context = await requirePermissionServer("users.read");
+  const users = await getAdminUsers();
+  const allRoles = await getAllRoles();
+  const assignableRoles = getInternalRoleOptions(allRoles);
 
- const canWriteUsers = context.permissions.includes('users.write')
- const canManageRoles = context.permissions.includes('roles.manage')
+  const canWriteUsers = context.permissions.includes("users.write");
+  const canManageRoles = context.permissions.includes("roles.manage");
 
- const userCount = users.length
- const privilegedCount = users.filter((row) => row.highAccess).length
- const disabledCount = users.filter((row) => row.userStatus !== 'active' || row.isBanned).length
- const unconfirmedEmailCount = users.filter((row) => !row.emailConfirmedAt).length
+  const userCount = users.length;
+  const privilegedCount = users.filter((row) =>
+    row.roles.some((role) => ["admin", "super_admin"].includes(role)),
+  ).length;
 
- async function inviteUserFormAction(formData: FormData) {
- 'use server'
- await inviteUserAction({} as Parameters<typeof inviteUserAction>[0], formData)
- }
+  async function inviteUserFormAction(formData: FormData) {
+    "use server";
+    await inviteUserAction(
+      {} as Parameters<typeof inviteUserAction>[0],
+      formData,
+    );
+  }
 
- async function createUserFormAction(formData: FormData) {
- 'use server'
- await createUserAction({} as Parameters<typeof createUserAction>[0], formData)
- }
+  async function createUserFormAction(formData: FormData) {
+    "use server";
+    await createUserAction(
+      {} as Parameters<typeof createUserAction>[0],
+      formData,
+    );
+  }
 
- async function disableUserFormAction(formData: FormData) {
- 'use server'
- await disablePlatformUserAction({ ok: false, message: '' }, formData)
- }
+  async function sendPasswordResetFormAction(formData: FormData) {
+    "use server";
+    await sendAdminPasswordResetAction(
+      {} as Parameters<typeof sendAdminPasswordResetAction>[0],
+      formData,
+    );
+  }
 
- async function reactivateUserFormAction(formData: FormData) {
- 'use server'
- await reactivatePlatformUserAction({ ok: false, message: '' }, formData)
- }
+  async function sendConfirmationEmailFormAction(formData: FormData) {
+    "use server";
+    await sendAdminConfirmationEmailAction(
+      {} as Parameters<typeof sendAdminConfirmationEmailAction>[0],
+      formData,
+    );
+  }
 
- async function sendResetPasswordFormAction(formData: FormData) {
- 'use server'
- await sendUserPasswordResetAction({ ok: false, message: '' }, formData)
- }
+  return (
+    <div className="min-h-screen">
+      <AdminHeader
+        title="Användare och access"
+        subtitle="Hantera interna konton, roller och individuella behörigheter. Kundrollen ska inte användas för intern adminåtkomst."
+        userEmail={context.email}
+      />
 
- async function sendEmailConfirmationFormAction(formData: FormData) {
- 'use server'
- await sendUserEmailConfirmationAction({ ok: false, message: '' }, formData)
- }
+      <div className="space-y-6 p-8">
+        <section className="grid gap-4 xl:grid-cols-3">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium text-slate-700">Interna konton</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-950">
+              {userCount}
+            </p>
+            <p className="mt-2 text-sm text-slate-700">
+              Auth-användare som idag finns i systemet.
+            </p>
+          </div>
 
- return (
- <div className="min-h-screen">
- <AdminHeader
- title="Användare och access"
- subtitle="Hantera interna konton, roller och individuella behörigheter. Kundrollen ska inte användas för intern adminåtkomst."
- userEmail={context.email}
- />
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium text-slate-700">
+              Admin / super admin
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-slate-950">
+              {privilegedCount}
+            </p>
+            <p className="mt-2 text-sm text-slate-700">
+              Högaccess-konton som bör hållas få och tydligt granskade.
+            </p>
+          </div>
 
- <div className="space-y-6 p-8">
- <section className="grid gap-4 xl:grid-cols-4">
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
- <p className="text-sm font-medium text-slate-700">Interna konton</p>
- <p className="mt-2 text-3xl font-semibold text-slate-950">{userCount}</p>
- <p className="mt-2 text-sm text-slate-700">
- Auth-användare som idag finns i systemet.
- </p>
- </div>
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <p className="text-sm font-medium text-amber-700">Kundrollen</p>
+            <p className="mt-2 text-lg font-semibold text-amber-950">
+              Inte för intern admin
+            </p>
+            <p className="mt-2 text-sm text-amber-800">
+              Rollen <strong>customer</strong> ska inte användas i intern
+              invite- eller accesshantering för adminytan.
+            </p>
+          </div>
+        </section>
 
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
- <p className="text-sm font-medium text-slate-700">Admin / super admin</p>
- <p className="mt-2 text-3xl font-semibold text-slate-950">
- {privilegedCount}
- </p>
- <p className="mt-2 text-sm text-slate-700">
- Högaccess-konton som bör hållas få och tydligt granskade.
- </p>
- </div>
+        {canWriteUsers ? (
+          <section className="grid gap-6 xl:grid-cols-2">
+            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-6 py-5">
+                <h2 className="text-lg font-semibold text-slate-950">
+                  Bjud in användare
+                </h2>
+                <p className="mt-1 text-sm text-slate-700">
+                  Skicka e-postinbjudan. Välj startroll direkt om du också har
+                  rätt att hantera roller.
+                </p>
+              </div>
 
- <div className="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm">
- <p className="text-sm font-medium text-red-700">Avstängda</p>
- <p className="mt-2 text-3xl font-semibold text-red-950">{disabledCount}</p>
- <p className="mt-2 text-sm text-red-800">Konton som inte ska kunna logga in eller arbeta operativt.</p>
- </div>
+              <form
+                action={inviteUserFormAction}
+                className="grid gap-4 px-6 py-6 md:grid-cols-3"
+              >
+                <label className="grid gap-2 md:col-span-1">
+                  <span className="text-sm font-medium text-slate-700">
+                    E-post
+                  </span>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="namn@bolag.se"
+                    className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700"
+                  />
+                </label>
 
- <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
- <p className="text-sm font-medium text-amber-700">Obekräftade e-postadresser</p>
- <p className="mt-2 text-3xl font-semibold text-amber-950">
- {unconfirmedEmailCount}
- </p>
- <p className="mt-2 text-sm text-amber-800">
- Konton där Supabase Auth ännu inte visar bekräftad e-post.
- </p>
- </div>
- </section>
+                <label className="grid gap-2 md:col-span-1">
+                  <span className="text-sm font-medium text-slate-700">
+                    Startroll
+                  </span>
+                  <select
+                    name="roleId"
+                    defaultValue=""
+                    disabled={!canManageRoles}
+                    className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700 disabled:bg-slate-100 disabled:text-slate-700"
+                  >
+                    <option value="">Ingen roll ännu</option>
+                    {assignableRoles.map((role) => {
+                      const meta = getRoleMeta(role.key);
+                      return (
+                        <option key={role.id} value={role.id}>
+                          {meta.label} ({role.key})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
 
- {canWriteUsers ? (
- <section className="grid gap-6 xl:grid-cols-2">
- <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
- <div className="border-b border-slate-200 px-6 py-5">
- <h2 className="text-lg font-semibold text-slate-950">Bjud in användare</h2>
- <p className="mt-1 text-sm text-slate-700">
- Skicka e-postinbjudan. Välj startroll direkt om du också har rätt att hantera roller.
- </p>
- </div>
+                <div className="flex items-end">
+                  <button className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-800">
+                    Skicka inbjudan
+                  </button>
+                </div>
+              </form>
+            </section>
 
- <form action={inviteUserFormAction} className="grid gap-4 px-6 py-6 md:grid-cols-3">
- <label className="grid gap-2 md:col-span-1">
- <span className="text-sm font-medium text-slate-700">E-post</span>
- <input
- type="email"
- name="email"
- required
- placeholder="namn@bolag.se"
- className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700"
- />
- </label>
+            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-6 py-5">
+                <h2 className="text-lg font-semibold text-slate-950">
+                  Skapa konto direkt
+                </h2>
+                <p className="mt-1 text-sm text-slate-700">
+                  För intern personal när du vill skapa användaren direkt med
+                  lösenord.
+                </p>
+              </div>
 
- <label className="grid gap-2 md:col-span-1">
- <span className="text-sm font-medium text-slate-700">Startroll</span>
- <select
- name="roleId"
- defaultValue=""
- disabled={!canManageRoles}
- className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700 disabled:bg-slate-100 disabled:text-slate-700"
- >
- <option value="">Ingen roll ännu</option>
- {assignableRoles.map((role) => {
- const meta = getRoleMeta(role.key)
- return (
- <option key={role.id} value={role.id}>
- {meta.label} ({role.key})
- </option>
- )
- })}
- </select>
- </label>
+              <form
+                action={createUserFormAction}
+                className="grid gap-4 px-6 py-6 md:grid-cols-2"
+              >
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium text-slate-700">
+                    Namn
+                  </span>
+                  <input
+                    type="text"
+                    name="fullName"
+                    placeholder="För- och efternamn"
+                    className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700"
+                  />
+                </label>
 
- <div className="flex items-end">
- <button className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-800">
- Skicka inbjudan
- </button>
- </div>
- </form>
- </section>
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium text-slate-700">
+                    E-post
+                  </span>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="namn@bolag.se"
+                    className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700"
+                  />
+                </label>
 
- <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
- <div className="border-b border-slate-200 px-6 py-5">
- <h2 className="text-lg font-semibold text-slate-950">Skapa konto direkt</h2>
- <p className="mt-1 text-sm text-slate-700">
- För intern personal när du vill skapa användaren direkt med lösenord.
- </p>
- </div>
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium text-slate-700">
+                    Lösenord
+                  </span>
+                  <input
+                    type="text"
+                    name="password"
+                    required
+                    minLength={10}
+                    placeholder="Minst 10 tecken"
+                    className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700"
+                  />
+                </label>
 
- <form action={createUserFormAction} className="grid gap-4 px-6 py-6 md:grid-cols-2">
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700">Namn</span>
- <input
- type="text"
- name="fullName"
- placeholder="För- och efternamn"
- className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700"
- />
- </label>
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium text-slate-700">
+                    Startroll
+                  </span>
+                  <select
+                    name="roleId"
+                    defaultValue=""
+                    disabled={!canManageRoles}
+                    className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700 disabled:bg-slate-100 disabled:text-slate-700"
+                  >
+                    <option value="">Ingen roll ännu</option>
+                    {assignableRoles.map((role) => {
+                      const meta = getRoleMeta(role.key);
+                      return (
+                        <option key={role.id} value={role.id}>
+                          {meta.label} ({role.key})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
 
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700">E-post</span>
- <input
- type="email"
- name="email"
- required
- placeholder="namn@bolag.se"
- className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700"
- />
- </label>
+                <div className="md:col-span-2 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-700">
+                    Skapa konto kräver <code>users.write</code>. Att sätta roll
+                    direkt kräver också <code>roles.manage</code>.
+                  </p>
+                  <button className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-800">
+                    Skapa konto
+                  </button>
+                </div>
+              </form>
+            </section>
+          </section>
+        ) : (
+          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-amber-950">
+              Endast läsbehörighet
+            </h2>
+            <p className="mt-2 text-sm text-amber-800">
+              Du kan se användare här men du saknar <code>users.write</code>, så
+              du kan inte bjuda in eller skapa konton.
+            </p>
+          </section>
+        )}
 
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700">Lösenord</span>
- <input
- type="text"
- name="password"
- required
- minLength={10}
- placeholder="Minst 10 tecken"
- className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700"
- />
- </label>
+        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-5">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">
+                Alla användare
+              </h2>
+              <p className="mt-1 text-sm text-slate-700">
+                Totalt {users.length} användare i systemet.
+              </p>
+            </div>
 
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700">Startroll</span>
- <select
- name="roleId"
- defaultValue=""
- disabled={!canManageRoles}
- className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700 disabled:bg-slate-100 disabled:text-slate-700"
- >
- <option value="">Ingen roll ännu</option>
- {assignableRoles.map((role) => {
- const meta = getRoleMeta(role.key)
- return (
- <option key={role.id} value={role.id}>
- {meta.label} ({role.key})
- </option>
- )
- })}
- </select>
- </label>
+            <Link
+              href="/admin/roles"
+              className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Öppna roller och permissions
+            </Link>
+          </div>
 
- <div className="md:col-span-2 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
- <p className="text-sm text-slate-700">
- Skapa konto kräver <code>users.write</code>. Att sätta roll direkt kräver också <code>roles.manage</code>.
- </p>
- <button className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-800">
- Skapa konto
- </button>
- </div>
- </form>
- </section>
- </section>
- ) : (
- <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
- <h2 className="text-lg font-semibold text-amber-950">Endast läsbehörighet</h2>
- <p className="mt-2 text-sm text-amber-800">
- Du kan se användare här men du saknar <code>users.write</code>, så du kan inte bjuda in eller skapa konton.
- </p>
- </section>
- )}
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50">
+                <tr className="border-b border-slate-200">
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">
+                    E-post
+                  </th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">
+                    Roller
+                  </th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">
+                    Auth-status
+                  </th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">
+                    Skapad
+                  </th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">
+                    Åtgärd
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="border-b border-slate-100 transition hover:bg-slate-50"
+                  >
+                    <td className="px-6 py-4">
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {row.email ?? "Saknar e-post"}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-700">{row.id}</p>
+                      </div>
+                    </td>
 
- <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
- <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-5">
- <div>
- <h2 className="text-lg font-semibold text-slate-950">Alla användare</h2>
- <p className="mt-1 text-sm text-slate-700">
- Totalt {users.length} användare i systemet.
- </p>
- </div>
+                    <td className="px-6 py-4">
+                      {row.roles.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {row.roles.map((role) => {
+                            const meta = getRoleMeta(role);
+                            return (
+                              <span
+                                key={role}
+                                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700"
+                                title={meta.description}
+                              >
+                                {meta.label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-slate-700">Inga roller</span>
+                      )}
+                    </td>
 
- <Link
- href="/admin/roles"
- className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
- >
- Öppna roller och permissions
- </Link>
- </div>
+                    <td className="px-6 py-4">
+                      <div className="space-y-2 text-xs text-slate-700">
+                        <span
+                          className={
+                            row.email_confirmed_at
+                              ? "inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700"
+                              : "inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-medium text-amber-800"
+                          }
+                        >
+                          {row.email_confirmed_at
+                            ? "E-post bekräftad"
+                            : "E-post ej bekräftad"}
+                        </span>
+                        <p>
+                          Senaste invite: {formatDate(row.last_invite_sent_at)}
+                        </p>
+                        <p>
+                          Senaste reset:{" "}
+                          {formatDate(row.last_password_reset_sent_at)}
+                        </p>
+                      </div>
+                    </td>
 
- <div className="overflow-x-auto">
- <table className="min-w-full text-sm">
- <thead className="bg-slate-50">
- <tr className="border-b border-slate-200">
- <th className="px-6 py-4 text-left font-semibold text-slate-700">E-post</th>
- <th className="px-6 py-4 text-left font-semibold text-slate-700">Roller</th>
- <th className="px-6 py-4 text-left font-semibold text-slate-700">Status</th>
- <th className="px-6 py-4 text-left font-semibold text-slate-700">Auth-mail</th>
- <th className="px-6 py-4 text-left font-semibold text-slate-700">Bolag</th>
- <th className="px-6 py-4 text-left font-semibold text-slate-700">Skapad</th>
- <th className="px-6 py-4 text-left font-semibold text-slate-700">Åtgärd</th>
- </tr>
- </thead>
- <tbody>
- {users.map((row) => (
- <tr
- key={row.id}
- className="border-b border-slate-100 transition hover:bg-slate-50"
- >
- <td className="px-6 py-4">
- <div>
- <p className="font-medium text-slate-900">
- {row.email ?? 'Saknar e-post'}
- </p>
- {row.fullName ? <p className="mt-1 text-xs text-slate-700">{row.fullName}</p> : null}
- <p className="mt-1 text-xs text-slate-700">{row.id}</p>
- </div>
- </td>
+                    <td className="px-6 py-4 text-slate-700">
+                      {formatDate(row.created_at)}
+                    </td>
 
- <td className="px-6 py-4">
- {row.roles.length > 0 ? (
- <div className="flex flex-wrap gap-2">
- {row.roles.map((role) => {
- const meta = getRoleMeta(role)
- return (
- <span
- key={role}
- className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700"
- title={meta.description}
- >
- {meta.label}
- </span>
- )
- })}
- </div>
- ) : (
- <span className="text-slate-700">Inga roller</span>
- )}
- </td>
-
- <td className="px-6 py-4">
- <span className={
- row.userStatus === 'active' && !row.isBanned
- ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800'
- : 'rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-800'
- }>
- {row.isBanned ? 'disabled' : row.userStatus}
- </span>
- {row.disabledAt ? <p className="mt-2 text-xs text-slate-700">{formatDate(row.disabledAt)}</p> : null}
- </td>
-
- <td className="px-6 py-4">
- <span className={
- row.emailConfirmedAt
- ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800'
- : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800'
- }>
- {row.emailConfirmedAt ? 'Bekräftad' : 'Ej bekräftad'}
- </span>
- <div className="mt-2 space-y-1 text-xs text-slate-700">
- <p>Bekräftad: {formatDate(row.emailConfirmedAt)}</p>
- <p>Senaste invite: {formatDate(row.lastInviteSentAt)}</p>
- <p>Senaste reset: {formatDate(row.lastPasswordResetSentAt)}</p>
- {row.lastAuthEmailAction ? (
- <p>Senaste auth-händelse: {row.lastAuthEmailAction}</p>
- ) : null}
- </div>
- </td>
-
- <td className="px-6 py-4 text-slate-700">
- {row.companyCount}
- </td>
-
- <td className="px-6 py-4 text-slate-700">
- {formatDate(row.created_at)}
- </td>
-
- <td className="space-y-2 px-6 py-4">
- <Link
- href={`/admin/users/${row.id}`}
- className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-50"
- >
- Öppna
- </Link>
- {canWriteUsers ? (
- <>
- <form action={sendResetPasswordFormAction}>
- <input type="hidden" name="user_id" value={row.id} />
- <button className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
- Skicka reset
- </button>
- </form>
- <form action={sendEmailConfirmationFormAction}>
- <input type="hidden" name="user_id" value={row.id} />
- <button className="inline-flex items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100">
- Skicka confirm email
- </button>
- </form>
- </>
- ) : null}
- {canWriteUsers ? (
- row.userStatus === 'active' && !row.isBanned ? (
- <form action={disableUserFormAction} className="grid gap-2 rounded-2xl border border-red-200 bg-red-50 p-3">
- <input type="hidden" name="user_id" value={row.id} />
- <input name="reason" required placeholder="Anledning" className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs" />
- <button className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-800 hover:bg-red-100">
- Stäng av
- </button>
- </form>
- ) : (
- <form action={reactivateUserFormAction} className="grid gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
- <input type="hidden" name="user_id" value={row.id} />
- <input name="reason" placeholder="Anledning, valfritt" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs" />
- <button className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
- Återaktivera
- </button>
- </form>
- )
- ) : null}
- </td>
- </tr>
- ))}
- </tbody>
- </table>
- </div>
- </section>
- </div>
- </div>
- )
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/admin/users/${row.id}`}
+                          className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Öppna
+                        </Link>
+                        {canWriteUsers && row.email ? (
+                          <>
+                            <form action={sendPasswordResetFormAction}>
+                              <input
+                                type="hidden"
+                                name="email"
+                                value={row.email}
+                              />
+                              <button className="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 font-medium text-blue-700 transition hover:bg-blue-100">
+                                Skicka reset
+                              </button>
+                            </form>
+                            {!row.email_confirmed_at ? (
+                              <form action={sendConfirmationEmailFormAction}>
+                                <input
+                                  type="hidden"
+                                  name="email"
+                                  value={row.email}
+                                />
+                                <button className="inline-flex items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 font-medium text-amber-800 transition hover:bg-amber-100">
+                                  Skicka confirm
+                                </button>
+                              </form>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 }

@@ -1,8 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { buildAuthCallbackUrl } from '@/lib/auth/urls'
+import { sendPasswordResetEmailForKnownUser } from '@/lib/auth/authEmailFlow'
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase()
@@ -19,16 +18,17 @@ export async function requestPasswordResetAction(formData: FormData) {
     )
   }
 
-  const supabase = await createSupabaseServerClient()
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: buildAuthCallbackUrl('/login/update-password?mode=reset'),
-  })
-
-  if (error) {
+  try {
+    await sendPasswordResetEmailForKnownUser({
+      email,
+      source: 'self_service_forgot_password',
+    })
+  } catch (error) {
     redirect(
       `/login/forgot-password?error=${encodeURIComponent(
-        'Det gick inte att skicka återställningslänken. Kontrollera e-postadressen och försök igen.'
+        error instanceof Error
+          ? error.message
+          : 'Det gick inte att skicka återställningslänken. Kontrollera e-postadressen och försök igen.'
       )}`
     )
   }

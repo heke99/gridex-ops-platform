@@ -1,59 +1,23 @@
-import { NextResponse, type NextRequest } from 'next/server'
-import type { EmailOtpType } from '@supabase/supabase-js'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getSafeNextPath } from '@/lib/auth/urls'
-import { recordAuthEmailEvent, syncAuthUserToProfile } from '@/lib/auth/userSync'
+import { NextResponse } from 'next/server'
+import {
+  getBaseAppUrl,
+  getDefaultNextPathForAuthType,
+  getSafeNextPath,
+  normalizeAuthEmailType,
+} from '@/lib/auth/authEmailFlow'
 
-function redirectWithError(origin: string, message: string) {
-  return NextResponse.redirect(
-    new URL(`/login?error=${encodeURIComponent(message)}`, origin)
-  )
-}
+export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
-  const origin = requestUrl.origin
-  const tokenHash = requestUrl.searchParams.get('token_hash')
-  const type = requestUrl.searchParams.get('type')
-  const nextPath = getSafeNextPath(
-    requestUrl.searchParams.get('next'),
-    type === 'recovery' ? '/login/update-password?mode=reset' : '/login?message=E-postadressen är bekräftad. Du kan logga in.'
-  )
+  const type = normalizeAuthEmailType(requestUrl.searchParams.get('type')) ?? 'email'
+  const tokenHash = requestUrl.searchParams.get('token_hash') ?? requestUrl.searchParams.get('token') ?? ''
+  const nextPath = getSafeNextPath(requestUrl.searchParams.get('next'), getDefaultNextPathForAuthType(type))
 
-  if (!tokenHash || !type) {
-    return redirectWithError(origin, 'Bekräftelselänken saknar giltig verifieringskod.')
-  }
+  const actionUrl = new URL('/auth/action', getBaseAppUrl())
+  if (tokenHash) actionUrl.searchParams.set('token_hash', tokenHash)
+  actionUrl.searchParams.set('type', type)
+  actionUrl.searchParams.set('next', nextPath)
 
-  const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.verifyOtp({
-    token_hash: tokenHash,
-    type: type as EmailOtpType,
-  })
-
-  if (error) {
-    await recordAuthEmailEvent({
-      action: 'auth_callback_failed',
-      status: 'failed',
-      message: error.message,
-      metadata: { type, route: '/auth/confirm' },
-    })
-    return redirectWithError(origin, 'Bekräftelselänken har gått ut eller är redan använd.')
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (user?.id) {
-    await syncAuthUserToProfile(user.id)
-    await recordAuthEmailEvent({
-      userId: user.id,
-      email: user.email,
-      action: type === 'recovery' ? 'auth_callback_completed' : 'email_confirmed',
-      status: 'completed',
-      metadata: { type, route: '/auth/confirm' },
-    })
-  }
-
-  return NextResponse.redirect(new URL(nextPath, origin))
+  return NextResponse.redirect(actionUrl)
 }

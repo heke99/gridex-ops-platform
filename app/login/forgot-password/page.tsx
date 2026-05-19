@@ -58,7 +58,7 @@ export default async function ForgotPasswordPage({
 
               {sent ? (
                 <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                  Om adressen finns registrerad skickas en återställningslänk inom kort.
+                  En återställningslänk har skickats till den registrerade e-postadressen.
                 </div>
               ) : null}
 

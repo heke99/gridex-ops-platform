@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { recordAuthEmailEvent, syncAuthUserToProfile } from '@/lib/auth/userSync'
+import { recordAuthEmailEvent, upsertAuthUserProfile } from '@/lib/auth/authEmailFlow'
 
 export async function updatePasswordAction(formData: FormData) {
   const password = String(formData.get('password') ?? '')
@@ -25,15 +25,14 @@ export async function updatePasswordAction(formData: FormData) {
   }
 
   const supabase = await createSupabaseServerClient()
-
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (!user?.email) {
     redirect(
-      `/login/forgot-password?error=${encodeURIComponent(
-        'Sessionen saknas eller har gått ut. Begär en ny återställningslänk.'
+      `/login/update-password?error=${encodeURIComponent(
+        'Din återställningssession saknas eller har gått ut. Begär en ny länk och försök igen.'
       )}`
     )
   }
@@ -48,14 +47,19 @@ export async function updatePasswordAction(formData: FormData) {
     )
   }
 
-  await syncAuthUserToProfile(user.id)
+  await upsertAuthUserProfile({
+    userId: user.id,
+    email: user.email,
+    lastAction: 'password_updated',
+  })
+
   await recordAuthEmailEvent({
     userId: user.id,
     email: user.email,
-    action: 'password_updated',
-    status: 'completed',
+    eventType: 'password_updated',
+    status: 'verified',
+    source: 'update_password_page',
   })
 
-  await supabase.auth.signOut()
   redirect('/login?message=Lösenordet är uppdaterat. Logga in med ditt nya lösenord.')
 }

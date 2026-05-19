@@ -2,10 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { buildAuthCallbackUrl } from '@/lib/auth/urls'
-import { recordAuthEmailEvent, syncAuthUserToProfile } from '@/lib/auth/userSync'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import {
+  recordAuthEmailEvent,
+  upsertAuthUserProfile,
+} from '@/lib/auth/authEmailFlow'
 import {
   getCompanyById,
   getCompanyDeleteBlockers,
@@ -49,6 +51,10 @@ function slugify(value: string): string {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 120)
+}
+
+function getBaseAppUrl() {
+  return process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'http://localhost:3000'
 }
 
 async function getCurrentUserId(): Promise<string> {
@@ -151,24 +157,28 @@ async function resolveOrInviteUser(params: {
   email: string
   fullName: string | null
   sendInvite: boolean
-  actorUserId?: string | null
 }): Promise<string> {
   if (params.sendInvite) {
     const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(params.email, {
-      redirectTo: buildAuthCallbackUrl('/login/update-password?mode=invite'),
+      redirectTo: `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent('/login/update-password')}`,
       data: params.fullName ? { full_name: params.fullName } : undefined,
     })
 
     if (!error && data.user?.id) {
-      await syncAuthUserToProfile(data.user.id)
+      const sentAt = new Date().toISOString()
+      await upsertAuthUserProfile({
+        userId: data.user.id,
+        email: params.email,
+        fullName: params.fullName,
+        lastInviteSentAt: sentAt,
+        lastAction: 'company_invite_sent',
+      })
       await recordAuthEmailEvent({
         userId: data.user.id,
         email: params.email,
-        action: 'invite_sent',
+        eventType: 'invite_sent',
         status: 'sent',
-        actorUserId: params.actorUserId ?? null,
-        message: 'Admin skickade bolagsinbjudan.',
-        metadata: { source: 'company_invite' },
+        source: 'company_invite',
       })
       return data.user.id
     }
@@ -307,7 +317,6 @@ export async function createCompanyAction(
         email: initialAdminEmail,
         fullName: initialAdminName || null,
         sendInvite,
-        actorUserId,
       })
 
       await upsertOptionalUserProfile({
@@ -324,7 +333,7 @@ export async function createCompanyAction(
           company_id: company.id,
           user_id: userId,
           membership_role: 'owner',
-          status: 'active',
+          status: sendInvite ? 'pending' : 'active',
           invited_email: initialAdminEmail,
           invited_by: actorUserId,
           invited_at: new Date().toISOString(),
@@ -386,7 +395,7 @@ export async function inviteCompanyUserAction(
 
     await requireCompanyOperationalForWrites(companyId)
 
-    const userId = await resolveOrInviteUser({ email, fullName, sendInvite: true, actorUserId })
+    const userId = await resolveOrInviteUser({ email, fullName, sendInvite: true })
     await upsertOptionalUserProfile({ userId, email, fullName })
     await insertActiveUserRole({ userId, roleId: await resolveRoleIdByKey(roleKey) })
 
@@ -395,7 +404,7 @@ export async function inviteCompanyUserAction(
         company_id: companyId,
         user_id: userId,
         membership_role: membershipRole,
-        status: 'active',
+        status: 'pending',
         invited_email: email,
         invited_by: actorUserId,
         invited_at: new Date().toISOString(),
