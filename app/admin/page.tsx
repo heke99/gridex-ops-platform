@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminAccess } from '@/lib/admin/guards'
 import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { getEdielOperationsEngineStatus } from '@/lib/ediel/operations/engineStatus'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,11 +66,11 @@ function NumberCard({
   value: number | string
   hint: string
   href?: string
-  tone?: 'slate' | 'blue' | 'emerald' | 'amber' | 'rose'
+  tone?: 'slate' | 'mint' | 'emerald' | 'amber' | 'rose'
 }) {
   const classes: Record<typeof tone, string> = {
     slate: 'border-slate-200 bg-white text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white',
-    blue: 'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-100',
+    mint: 'border-emerald-100 bg-emerald-50/70 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-100',
     emerald: 'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-100',
     amber: 'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-100',
     rose: 'border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900 dark:bg-rose-950/20 dark:text-rose-100',
@@ -110,7 +111,7 @@ function WorkCard({
   const styles: Record<typeof tone, string> = {
     default: 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
     primary: 'border-slate-900 bg-slate-950 text-white dark:border-white dark:bg-white dark:text-slate-950',
-    test: 'border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/20',
+    test: 'border-emerald-100 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/20',
     danger: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20',
   }
   const muted = tone === 'primary' ? 'text-white/70 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'
@@ -140,13 +141,13 @@ function ModeRow({
   label: string
   value: string
   description: string
-  tone: 'green' | 'blue' | 'amber'
+  tone: 'green' | 'mint' | 'amber'
 }) {
   const color =
     tone === 'green'
       ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200'
-      : tone === 'blue'
-        ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-200'
+      : tone === 'mint'
+        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200'
         : 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200'
 
   return (
@@ -183,6 +184,7 @@ export default async function AdminPage() {
   ])
 
   const edielNeedsAttention = ediel.failedMessages + ediel.queuedMessages + ediel.ackPendingMessages + ediel.ackOverdueMessages
+  const engineStatus = getEdielOperationsEngineStatus()
 
   return (
     <div className="min-h-screen">
@@ -216,7 +218,7 @@ export default async function AdminPage() {
         </section>
 
         <section className="grid gap-4 xl:grid-cols-4">
-          <NumberCard label="Kunder" value={customers} hint={`${activeCustomers} aktiva kunder`} href="/admin/customers" tone="blue" />
+          <NumberCard label="Kunder" value={customers} hint={`${activeCustomers} aktiva kunder`} href="/admin/customers" tone="mint" />
           <NumberCard label="Anläggningar" value={sites} hint={`${meteringPoints} mätpunkter i systemet`} href="/admin/customers" tone="slate" />
           <NumberCard label="Switchärenden" value={switchRequests} hint="Leverantörsbyte och onboardingflöden" href="/admin/operations/switches" tone="emerald" />
           <NumberCard
@@ -226,6 +228,28 @@ export default async function AdminPage() {
             href={edielNeedsAttention > 0 ? '/admin/ediel/control-tower' : '/admin/outbound/unresolved'}
             tone={edielNeedsAttention + unresolvedOutbound > 0 ? 'amber' : 'emerald'}
           />
+        </section>
+
+
+        <section className="rounded-[2rem] border border-emerald-100 bg-white/90 p-6 shadow-sm shadow-emerald-950/5">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Engine</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{engineStatus.title}</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">{engineStatus.description}</p>
+            </div>
+            <Link href="/admin/ediel/agt" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-900 hover:bg-emerald-100">
+              Öppna AGT-engine
+            </Link>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {engineStatus.checks.map((check) => (
+              <div key={check.label} className="rounded-2xl border border-emerald-100 bg-[#f7fbf8] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{check.label}</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">{check.value}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-3">
@@ -238,7 +262,7 @@ export default async function AdminPage() {
           <ModeRow
             label="Godkännande"
             value="AGT/TGT separat"
-            tone="blue"
+            tone="mint"
             description="Edielportalen, leverantörstester och testkörningar ska inte blandas med kunddrift eller produktionsköer."
           />
           <ModeRow
@@ -314,7 +338,7 @@ export default async function AdminPage() {
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <NumberCard label="Totalt" value={ediel.totalMessages} hint="Alla Ediel-meddelanden" href="/admin/ediel/messages" tone="blue" />
+            <NumberCard label="Totalt" value={ediel.totalMessages} hint="Alla Ediel-meddelanden" href="/admin/ediel/messages" tone="mint" />
             <NumberCard label="Förbereds" value={ediel.draftMessages} hint="Ska granskas innan skick" href="/admin/ediel/messages" tone={ediel.draftMessages > 0 ? 'amber' : 'slate'} />
             <NumberCard label="Köade" value={ediel.queuedMessages + ediel.preparedMessages} hint="Väntar på utskick" href="/admin/ediel/messages" tone={ediel.queuedMessages + ediel.preparedMessages > 0 ? 'amber' : 'slate'} />
             <NumberCard label="Felade" value={ediel.failedMessages} hint="Kräver manuell kontroll" href="/admin/ediel/control-tower" tone={ediel.failedMessages > 0 ? 'rose' : 'slate'} />

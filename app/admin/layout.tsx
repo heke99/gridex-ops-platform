@@ -13,8 +13,8 @@ export default async function AdminLayout({
   const admin = await requireAdminAccess()
 
   return (
-    <div className="min-h-screen bg-[#f6faf7] text-slate-900">
-      <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[320px_1fr]">
+    <div className="min-h-screen bg-[#f7fbf8] text-slate-900">
+      <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[300px_1fr]">
         <div className="hidden lg:block">
           <AdminSidebar permissions={admin.permissions} />
         </div>
@@ -37,7 +37,7 @@ export default async function AdminLayout({
 
           <div className="flex-1">{children}</div>
 
-          <div className="border-t border-emerald-100 bg-white px-6 py-4">
+          <div className="border-t border-emerald-100 bg-white/85 px-6 py-4">
             <div className="flex flex-col items-start justify-between gap-3 text-sm text-slate-500 sm:flex-row sm:items-center">
               <p>Gridex Energy Operations • SaaS Control Center</p>
 

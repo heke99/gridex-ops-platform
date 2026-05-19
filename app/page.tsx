@@ -1,5 +1,7 @@
 import Link from 'next/link'
 
+export const revalidate = 3600
+
 const platformHighlights = [
   'Kundintag och kundregister',
   'Anläggningar och mätpunkter',
@@ -44,8 +46,8 @@ const workflowSteps = [
 export default function LandingPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#f7fbf8] text-slate-950">
-      <section className="relative isolate border-b border-emerald-100 bg-gradient-to-br from-white via-emerald-50/70 to-sky-50">
-        <div className="absolute inset-x-0 top-0 -z-10 h-64 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_35%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.18),transparent_35%)]" />
+      <section className="relative isolate border-b border-emerald-100 bg-gradient-to-br from-white via-emerald-50/70 to-[#f7fbf8]">
+        <div className="absolute inset-x-0 top-0 -z-10 h-64 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_35%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_35%)]" />
 
         <header className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-6 sm:px-8">
           <Link href="/" className="flex items-center gap-3">

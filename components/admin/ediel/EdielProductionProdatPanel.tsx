@@ -577,7 +577,7 @@ function EdielPortalTestCustomerOnboardingPanel() {
                   <option value="SE1">Organisationsnummer = SE1</option>
                   <option value="1">Födelsedatum = 1</option>
                 </FormSelect>
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900 md:col-span-2">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900 md:col-span-2">
                   För 1.2.1 Z03L med personnummer används normalt SE2. För 1.2.2 Z03LK med
                   organisationsnummer 5560143041 ska kund-id typ vara SE1.
                 </div>
@@ -759,10 +759,10 @@ function EdielPortalTestCustomerOnboardingPanel() {
                   <option value="E32">Z09G = avtal om 15-minutersvärden upphör = E32</option>
                   <option value="Z70">Z09D = nytt avtal om mikroproduktion = Z70</option>
                 </FormSelect>
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900 md:col-span-2">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900 md:col-span-2">
                   Välj L/Z22 för vanligt leverantörsbyte, t.ex. 1.2.1 Z03L. Välj LK/Z23 för
                   leverantörs- och kundbyte, t.ex. 1.2.2 Z03LK. För Z09-testerna används
-                  E64 = Z09F, E32 = Z09G och Z70 = Z09D.
+                  E64 = Z09F med mätmetod Z04, E32 = Z09G med mätmetod Z03 och Z70 = Z09D.
                 </div>
                 <FormSelect
                   name="powerOfAttorneyStatus"
@@ -1056,13 +1056,13 @@ function ProductionCandidateCard({
                 placeholder="Ex. BOLAGET XXX"
               />
             </div>
-            <div className="mt-3 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-[11px] leading-5 text-indigo-900">
+            <div className="mt-3 rounded-xl border border-emerald-100 bg-white px-3 py-2 text-[11px] leading-5 text-emerald-900">
               För 1.2.2 Z03LK ska du normalt ha: <strong>Z04</strong>, <strong>Z23</strong> och{' '}
               <strong>SE1</strong>. Raw PRODAT ska då innehålla{' '}
               <code>CCI++Z04&apos; CAV+Z04&apos;</code>, <code>CAV+Z23&apos;</code> och{' '}
               <code>NAD+UD+5560143041:SE1:260</code>.
             </div>
-            <button className="mt-3 rounded-xl bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800">
+            <button className="mt-3 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
               Spara testdata på ärendet
             </button>
           </form>

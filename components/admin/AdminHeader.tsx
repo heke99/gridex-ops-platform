@@ -10,8 +10,8 @@ export default function AdminHeader({
   userEmail,
 }: AdminHeaderProps) {
   return (
-    <header className="sticky top-0 z-20 border-b border-emerald-100 bg-white/90 backdrop-blur-xl">
-      <div className="flex min-h-[84px] items-center justify-between gap-6 px-8">
+    <header className="sticky top-0 z-20 border-b border-emerald-100 bg-[#f7fbf8]/92 backdrop-blur-xl">
+      <div className="flex min-h-[84px] items-center justify-between gap-6 px-6 py-2 sm:px-8">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
             Gridex Operations
@@ -25,7 +25,7 @@ export default function AdminHeader({
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-right">
+          <div className="rounded-2xl border border-emerald-100 bg-white/85 px-4 py-3 text-right shadow-sm shadow-emerald-950/5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
               Inloggad
             </p>

@@ -29,12 +29,75 @@ function isZ09DLike(input: {
   return explicit === 'D' || explicit === 'Z09D' || explicit === 'Z70'
 }
 
+function findCavAfter(segments: string[], cciSegment: string): { index: number; value: string | null } {
+  const cciIndex = segments.findIndex((segment) => segment === cciSegment)
+  if (cciIndex < 0) return { index: -1, value: null }
+
+  for (let index = cciIndex + 1; index < segments.length; index += 1) {
+    const segment = segments[index]
+    if (segment.startsWith('CCI+')) break
+    if (segment.startsWith('CAV+')) return { index, value: segment.slice(4).split(':')[0]?.trim().toUpperCase() || null }
+  }
+
+  return { index: -1, value: null }
+}
+
+function resolveZ09ProductionMeteringMethod(segments: string[]): {
+  segments: string[]
+  reasonForTransaction: string | null
+  meteringMethod: string | null
+  appliedRule: string | null
+  warning: string | null
+} {
+  const nextSegments = [...segments]
+  const reason = findCavAfter(nextSegments, 'CCI++Z13').value
+  const metering = findCavAfter(nextSegments, 'CCI++Z04')
+
+  let requiredMeteringMethod: string | null = null
+  let appliedRule: string | null = null
+
+  if (reason === 'E64') {
+    requiredMeteringMethod = 'Z04'
+    appliedRule = 'Z09F/E64 => mätmetod Z04'
+  }
+
+  if (reason === 'E32') {
+    requiredMeteringMethod = 'Z03'
+    appliedRule = 'Z09G/E32 => mätmetod Z03'
+  }
+
+  if (!requiredMeteringMethod || metering.index < 0) {
+    return {
+      segments: nextSegments,
+      reasonForTransaction: reason,
+      meteringMethod: metering.value,
+      appliedRule,
+      warning: null,
+    }
+  }
+
+  const previous = metering.value
+  nextSegments[metering.index] = `CAV+${requiredMeteringMethod}`
+
+  return {
+    segments: nextSegments,
+    reasonForTransaction: reason,
+    meteringMethod: requiredMeteringMethod,
+    appliedRule,
+    warning:
+      previous && previous !== requiredMeteringMethod
+        ? `Mätmetod korrigerad av Z09-regel från ${previous} till ${requiredMeteringMethod}.`
+        : null,
+  }
+}
+
 function z09FOrGSegments(segments: string[]): string[] {
   let convertedLineDate = false
 
   return segments.flatMap((segment) => {
-    // L7 AGT uses Z09F/Z09G. The portal validation requires SG8/DTM[157]
-    // and warns that SG8/DTM[92] is not in use for this Z09 profile.
+    // Z09F/Z09G uses SG8/DTM[157] as validity date. Some legacy paths still
+    // render DTM+92; keep this adapter until every old entry point uses the
+    // new engine contract directly.
     if (!convertedLineDate && segment.startsWith('DTM+92:')) {
       convertedLineDate = true
       return [segment.replace(/^DTM\+92:/, 'DTM+157:')]
@@ -69,15 +132,31 @@ export function buildZ09Segments(input: {
     return result
   }
 
-  const segments = z09FOrGSegments(result.segments)
+  const filteredSegments = z09FOrGSegments(result.segments)
+  const normalized = resolveZ09ProductionMeteringMethod(filteredSegments)
+  const warnings = normalized.warning
+    ? [
+        ...result.issues,
+        {
+          severity: 'warning' as const,
+          code: 'z09_metering_method_normalized',
+          title: 'Mätmetod styrdes av Z09-regeln',
+          description: normalized.warning,
+        },
+      ]
+    : result.issues
 
   return {
     ...result,
-    segments,
+    segments: normalized.segments,
+    issues: warnings,
     diagnostics: {
       ...result.diagnostics,
-      renderer: 'prodat.builders.z09.buildZ09Segments.z09FOrG',
-      segmentCountBeforeEnvelope: segments.length,
+      renderer: 'prodat.builders.z09.buildZ09Segments.z09FOrGEngine',
+      reasonForTransaction: normalized.reasonForTransaction ?? result.diagnostics.reasonForTransaction,
+      meteringMethod: normalized.meteringMethod ?? result.diagnostics.meteringMethod,
+      segmentCountBeforeEnvelope: normalized.segments.length,
+      routeDecisionReason: normalized.appliedRule ?? input.routeDecisionReason ?? result.diagnostics.routeDecisionReason,
     },
   }
 }

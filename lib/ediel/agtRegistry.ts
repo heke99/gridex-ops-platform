@@ -66,10 +66,10 @@ const EDIEL_AGT_L1_Z03_2026A_TEMPLATE: EdielAgtProdatOutboundTemplate = {
 }
 
 const EDIEL_AGT_L7_Z09_2026A_TEMPLATE: EdielAgtProdatOutboundTemplate = {
-  // Facit från Edielportalens 2026A-validering för Div3rsa/leverantör L7:
-  // field 223 must be E32 and field 217 must be Z04.
+  // Facit från Ediel/SvK för AGT PRODAT L7 / Z09G:
+  // field 223 must be E32 and field 217 must be Z03 (nätägaren avgör mätmetod).
   reasonForTransaction: 'E32',
-  meteringMethod: 'Z04',
+  meteringMethod: 'Z03',
   dateQualifier: '157',
   suppressCustomerAndPowerOfAttorneyGroups: true,
 }
@@ -219,7 +219,7 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
     agtInstruction: 'Starta L7 i Edielportalen. Skicka därefter outbound Z09 direkt från GridCore. Leverantörens Ediel-id och eventuell sender-subadress ska komma från aktiv tenant/Edielregistret, mottagare är 91100:ZZ:PRODAT. Efter skick inväntas CONTRL + APERAK från portalen.',
     notes: [
       'Leverantören skickar Z09 till Edielportalen enligt vald AGT-godkännandeversion.',
-      'För 2026A ska L7 Z09 skickas som 223/E32 och 217/Z04. Skicka inte både E32/Z04 och E64/Z03 i samma eller separata meddelanden.',
+      'För 2026A ska L7 Z09G skickas som 223/E32 och 217/Z03. Z09G betyder att avtalet om kvartsvärden upphör och att nätägaren avgör mätmetoden.',
       'Nätägaren och mottagaren i Z09 ska vara Ediel-id 91100. UNB sender-subadress ska följa leverantörens registrerade tekniska adress i Edielregistret; saknas den i Edielregistret ska den vara tom. Mottagaren har subadress PRODAT.',
       'Portalen svarar med positiv CONTRL om CONTRL är begärd och därefter negativ APERAK.',
     ],

@@ -373,12 +373,12 @@ function buildAgtProdatOutboundInput(params: {
   const startDate = datePlusDays102(30)
   // Actor → Portal AGT is a send-time command, not a long-lived draft.
   // Values that Edielportalen validates as testdata must come from the
-  // versioned AGT template registry, so we do not flip E32/Z04 ↔ E64/Z03
-  // after each validation report. Reports are diagnostics; the selected
+  // versioned AGT template registry. Reports are diagnostics; the selected
   // approvalVersion template is the source of truth for outbound AGT.
+  // Production rule: Z09G/E32 must carry metering method Z03, not Z04.
   const template = definition.prodatOutboundTemplate ?? {
     reasonForTransaction: code === 'Z09' ? 'E32' : 'Z22',
-    meteringMethod: code === 'Z09' ? 'Z04' : 'Z03',
+    meteringMethod: 'Z03',
   }
   const reasonForTransaction = template.reasonForTransaction
   const meteringMethod = template.meteringMethod
@@ -553,8 +553,8 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
 
   if (definition.testCaseCode === 'L7' && definition.approvalVersion === '2026A') {
     const raw = input.rawPayload ?? ''
-    if (!raw.includes("CCI++Z13'CAV+E32'") || !raw.includes("CCI++Z04'CAV+Z04'")) {
-      throw new Error('L7 2026A preflight stoppade skick: payload måste innehålla CCI++Z13/CAV+E32 och CCI++Z04/CAV+Z04. Skickar inte E64/Z03 mot 2026A.')
+    if (!raw.includes("CCI++Z13'CAV+E32'") || !raw.includes("CCI++Z04'CAV+Z03'")) {
+      throw new Error('L7 2026A preflight stoppade skick: Z09G måste innehålla CCI++Z13/CAV+E32 och CCI++Z04/CAV+Z03. Skickar inte Z04 som mätmetod för Z09G.')
     }
   }
 
