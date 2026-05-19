@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { buildAuthCallbackUrl } from '@/lib/auth/urls'
+import { recordAuthEmailEvent, syncAuthUserToProfile } from '@/lib/auth/userSync'
 import { logTenantGovernanceEvent } from '@/lib/tenant/governance'
 
 type ActionState = {
@@ -26,15 +28,6 @@ function normalizeCheckbox(value: FormDataEntryValue | null) {
   return value === 'on' || value === 'true' || value === '1'
 }
 
-function getBaseAppUrl() {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.SITE_URL ||
-    'http://localhost:3000'
-  )
-}
-
-
 async function getCurrentUserId(): Promise<string> {
   const supabase = await createSupabaseServerClient()
   const {
@@ -45,44 +38,81 @@ async function getCurrentUserId(): Promise<string> {
   return user.id
 }
 
-async function upsertOptionalUserProfile(input: { userId: string; email: string; fullName: string | null }) {
+async function upsertOptionalUserProfile(input: {
+  userId: string
+  email: string
+  fullName: string | null
+  userStatus?: string
+}) {
+  const now = new Date().toISOString()
   const { error } = await supabaseService.from('user_profiles').upsert(
     {
       id: input.userId,
       email: input.email,
       full_name: input.fullName,
+      user_status: input.userStatus ?? 'active',
+      auth_last_synced_at: now,
+      updated_at: now,
     },
     { onConflict: 'id' }
   )
 
-  if (error && !['42P01', 'PGRST205'].includes(error.code ?? '')) {
+  if (!error) return
+
+  if (error.code === '42703' || /user_status|auth_last_synced_at|updated_at/i.test(error.message ?? '')) {
+    const retry = await supabaseService.from('user_profiles').upsert(
+      {
+        id: input.userId,
+        email: input.email,
+        full_name: input.fullName,
+      },
+      { onConflict: 'id' }
+    )
+
+    if (retry.error && !['42P01', 'PGRST205'].includes(retry.error.code ?? '')) {
+      throw retry.error
+    }
+    return
+  }
+
+  if (!['42P01', 'PGRST205'].includes(error.code ?? '')) {
     throw error
   }
 }
 
 async function insertActiveUserRole(input: { userId: string; roleId: string }) {
-  const first = await supabaseService.from('user_roles').insert({
-    user_id: input.userId,
-    role_id: input.roleId,
-    status: 'active',
-  })
+  const first = await supabaseService.from('user_roles').upsert(
+    {
+      user_id: input.userId,
+      role_id: input.roleId,
+      status: 'active',
+      is_active: true,
+    },
+    { onConflict: 'user_id,role_id' }
+  )
 
   if (!first.error) return
 
   if ((first.error.message ?? '').includes('status') || first.error.code === '42703') {
-    const second = await supabaseService.from('user_roles').insert({
-      user_id: input.userId,
-      role_id: input.roleId,
-      is_active: true,
-    })
+    const second = await supabaseService.from('user_roles').upsert(
+      {
+        user_id: input.userId,
+        role_id: input.roleId,
+        is_active: true,
+      },
+      { onConflict: 'user_id,role_id' }
+    )
 
     if (!second.error) return
 
     if ((second.error.message ?? '').includes('is_active') || second.error.code === '42703') {
-      const third = await supabaseService.from('user_roles').insert({
-        user_id: input.userId,
-        role_id: input.roleId,
-      })
+      const third = await supabaseService.from('user_roles').upsert(
+        {
+          user_id: input.userId,
+          role_id: input.roleId,
+        },
+        { onConflict: 'user_id,role_id' }
+      )
       if (third.error) throw third.error
       return
     }
@@ -108,13 +138,12 @@ async function resolveRoleIdByKey(roleKey: string) {
   return data.id as string
 }
 
-
 function resolveRoleIdFromForm(formData: FormData): string | null {
   const roleId = normalizeText(formData.get('roleId')) || normalizeText(formData.get('role_id'))
   return roleId || null
 }
 
-async function resolveRoleIdFromFormOrKey(formData: FormData): Promise<string> {
+async function resolveOptionalRoleIdFromFormOrKey(formData: FormData): Promise<string | null> {
   const directRoleId = resolveRoleIdFromForm(formData)
   if (directRoleId) return directRoleId
 
@@ -122,11 +151,14 @@ async function resolveRoleIdFromFormOrKey(formData: FormData): Promise<string> {
     normalizeText(formData.get('role_key')) ||
     normalizeText(formData.get('role'))
 
-  if (!roleKey) {
-    throw new Error('Roll saknas.')
-  }
-
+  if (!roleKey) return null
   return resolveRoleIdByKey(roleKey)
+}
+
+async function resolveRequiredRoleIdFromFormOrKey(formData: FormData): Promise<string> {
+  const roleId = await resolveOptionalRoleIdFromFormOrKey(formData)
+  if (!roleId) throw new Error('Roll saknas.')
+  return roleId
 }
 
 async function resolveUserByIdOrEmail(input: { userId?: string; email?: string }) {
@@ -154,15 +186,29 @@ async function resolveUserByIdOrEmail(input: { userId?: string; email?: string }
   return user
 }
 
+async function replaceUserRoleIfProvided(userId: string, roleId: string | null) {
+  if (!roleId) return
+
+  const { error: deleteRolesError } = await supabaseService
+    .from('user_roles')
+    .delete()
+    .eq('user_id', userId)
+
+  if (deleteRolesError) throw deleteRolesError
+  await insertActiveUserRole({ userId, roleId })
+}
+
 export async function inviteAdminUserAction(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
   try {
     await requireAdminActionAccess({ anyOf: ['users.write'] })
+    const actorUserId = await getCurrentUserId()
 
     const email = normalizeEmail(formData.get('email'))
-    const fullName = normalizeText(formData.get('full_name'))
+    const fullName =
+      normalizeText(formData.get('full_name')) || normalizeText(formData.get('fullName'))
     const sendInviteRaw = formData.get('send_invite')
     const sendInvite =
       sendInviteRaw === null ? true : normalizeCheckbox(sendInviteRaw)
@@ -171,8 +217,8 @@ export async function inviteAdminUserAction(
       return { ok: false, message: 'E-post saknas.' }
     }
 
-    const roleId = await resolveRoleIdFromFormOrKey(formData)
-    const redirectTo = `${getBaseAppUrl()}/login`
+    const roleId = await resolveOptionalRoleIdFromFormOrKey(formData)
+    const redirectTo = buildAuthCallbackUrl('/login/update-password?mode=invite')
 
     let userId: string | null = null
 
@@ -197,14 +243,17 @@ export async function inviteAdminUserAction(
       fullName: fullName || null,
     })
 
-    const { error: deleteRolesError } = await supabaseService
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
-
-    if (deleteRolesError) throw deleteRolesError
-
-    await insertActiveUserRole({ userId, roleId })
+    await replaceUserRoleIfProvided(userId, roleId)
+    await syncAuthUserToProfile(userId)
+    await recordAuthEmailEvent({
+      userId,
+      email,
+      action: sendInvite ? 'invite_sent' : 'auth_callback_completed',
+      status: sendInvite ? 'sent' : 'completed',
+      actorUserId,
+      message: sendInvite ? 'Admin skickade inbjudan.' : 'Admin kopplade roll till befintlig användare.',
+      metadata: { redirectTo },
+    })
 
     revalidatePath('/admin/users')
     revalidatePath('/admin/roles')
@@ -212,13 +261,177 @@ export async function inviteAdminUserAction(
     return {
       ok: true,
       message: sendInvite
-        ? 'Användaren bjöds in och rollen kopplades.'
-        : 'Roll kopplades till befintlig användare.',
+        ? 'Användaren bjöds in och rollen synkades.'
+        : 'Befintlig användare synkades.',
     }
   } catch (error) {
     return {
       ok: false,
       message: error instanceof Error ? error.message : 'Kunde inte skapa/inbjuda användare.',
+    }
+  }
+}
+
+export async function createUserAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    const actorUserId = await getCurrentUserId()
+
+    const email = normalizeEmail(formData.get('email'))
+    const fullName =
+      normalizeText(formData.get('full_name')) || normalizeText(formData.get('fullName'))
+    const password = normalizeText(formData.get('password'))
+    const roleId = await resolveOptionalRoleIdFromFormOrKey(formData)
+
+    if (!email) return { ok: false, message: 'E-post saknas.' }
+    if (password.length < 10) {
+      return { ok: false, message: 'Lösenordet behöver vara minst 10 tecken.' }
+    }
+
+    const { data, error } = await supabaseService.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: fullName ? { full_name: fullName } : undefined,
+    })
+
+    if (error) throw error
+    const userId = data.user?.id
+    if (!userId) throw new Error('Auth skapade ingen användar-id.')
+
+    await upsertOptionalUserProfile({
+      userId,
+      email,
+      fullName: fullName || null,
+    })
+    await replaceUserRoleIfProvided(userId, roleId)
+    await syncAuthUserToProfile(userId)
+    await recordAuthEmailEvent({
+      userId,
+      email,
+      action: 'email_confirmed',
+      status: 'completed',
+      actorUserId,
+      message: 'Admin skapade konto direkt och markerade e-post som bekräftad.',
+    })
+
+    revalidatePath('/admin/users')
+    revalidatePath('/admin/roles')
+
+    return { ok: true, message: 'Konto skapades och synkades med databasen.' }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte skapa konto.',
+    }
+  }
+}
+
+export async function sendUserPasswordResetAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    const actorUserId = await getCurrentUserId()
+    const userId = normalizeText(formData.get('user_id'))
+    const user = await resolveUserByIdOrEmail({ userId })
+    const email = (user.email ?? '').trim().toLowerCase()
+
+    if (!email) return { ok: false, message: 'Användaren saknar e-postadress.' }
+
+    const redirectTo = buildAuthCallbackUrl('/login/update-password?mode=admin-reset')
+    const { error } = await supabaseService.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    })
+
+    if (error) throw error
+
+    await syncAuthUserToProfile(user.id)
+    await recordAuthEmailEvent({
+      userId: user.id,
+      email,
+      action: 'password_reset_sent',
+      status: 'sent',
+      actorUserId,
+      message: 'Admin skickade återställningslänk.',
+      metadata: { redirectTo },
+    })
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${user.id}`)
+
+    return { ok: true, message: 'Återställningslänk skickades och synkades.' }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte skicka återställningslänk.',
+    }
+  }
+}
+
+export async function sendUserEmailConfirmationAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    const actorUserId = await getCurrentUserId()
+    const userId = normalizeText(formData.get('user_id'))
+    const user = await resolveUserByIdOrEmail({ userId })
+    const email = (user.email ?? '').trim().toLowerCase()
+
+    if (!email) return { ok: false, message: 'Användaren saknar e-postadress.' }
+
+    await syncAuthUserToProfile(user.id)
+
+    if (user.email_confirmed_at || user.confirmed_at) {
+      await recordAuthEmailEvent({
+        userId: user.id,
+        email,
+        action: 'email_confirmed',
+        status: 'completed',
+        actorUserId,
+        message: 'E-postadressen var redan bekräftad.',
+      })
+      revalidatePath('/admin/users')
+      revalidatePath(`/admin/users/${user.id}`)
+      return { ok: true, message: 'E-postadressen är redan bekräftad.' }
+    }
+
+    const emailRedirectTo = buildAuthCallbackUrl(
+      '/login?message=E-postadressen är bekräftad. Du kan logga in.'
+    )
+
+    const { error } = await supabaseService.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo },
+    })
+
+    if (error) throw error
+
+    await recordAuthEmailEvent({
+      userId: user.id,
+      email,
+      action: 'confirmation_sent',
+      status: 'sent',
+      actorUserId,
+      message: 'Admin skickade bekräftelsemail.',
+      metadata: { emailRedirectTo },
+    })
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${user.id}`)
+
+    return { ok: true, message: 'Bekräftelsemail skickades och synkades.' }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte skicka bekräftelsemail.',
     }
   }
 }
@@ -235,16 +448,8 @@ export async function setUserRoleAction(
       return { ok: false, message: 'Användar-id saknas.' }
     }
 
-    const roleId = await resolveRoleIdFromFormOrKey(formData)
-
-    const { error: deleteError } = await supabaseService
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
-
-    if (deleteError) throw deleteError
-
-    await insertActiveUserRole({ userId, roleId })
+    const roleId = await resolveRequiredRoleIdFromFormOrKey(formData)
+    await replaceUserRoleIfProvided(userId, roleId)
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
@@ -401,8 +606,6 @@ export async function deactivateUserAccessAction(
   }
 }
 
-
-
 export async function disablePlatformUserAction(
   _prevState: ActionState,
   formData: FormData
@@ -530,16 +733,9 @@ export async function reactivatePlatformUserAction(
 }
 
 /**
- * Bakåtkompatibla exportnamn så dina befintliga pages bygger utan att du behöver byta imports direkt.
+ * Bakåtkompatibelt exportnamn så befintliga sidor bygger vidare.
  */
 export async function inviteUserAction(
-  prevState: ActionState,
-  formData: FormData
-): Promise<ActionState> {
-  return inviteAdminUserAction(prevState, formData)
-}
-
-export async function createUserAction(
   prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {

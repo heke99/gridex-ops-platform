@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { buildAuthCallbackUrl } from '@/lib/auth/urls'
+import { recordAuthEmailEvent, syncAuthUserToProfile } from '@/lib/auth/userSync'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import {
@@ -47,10 +49,6 @@ function slugify(value: string): string {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 120)
-}
-
-function getBaseAppUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'http://localhost:3000'
 }
 
 async function getCurrentUserId(): Promise<string> {
@@ -153,14 +151,27 @@ async function resolveOrInviteUser(params: {
   email: string
   fullName: string | null
   sendInvite: boolean
+  actorUserId?: string | null
 }): Promise<string> {
   if (params.sendInvite) {
     const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(params.email, {
-      redirectTo: `${getBaseAppUrl()}/login`,
+      redirectTo: buildAuthCallbackUrl('/login/update-password?mode=invite'),
       data: params.fullName ? { full_name: params.fullName } : undefined,
     })
 
-    if (!error && data.user?.id) return data.user.id
+    if (!error && data.user?.id) {
+      await syncAuthUserToProfile(data.user.id)
+      await recordAuthEmailEvent({
+        userId: data.user.id,
+        email: params.email,
+        action: 'invite_sent',
+        status: 'sent',
+        actorUserId: params.actorUserId ?? null,
+        message: 'Admin skickade bolagsinbjudan.',
+        metadata: { source: 'company_invite' },
+      })
+      return data.user.id
+    }
 
     if (error && !/already|registered|exists/i.test(error.message ?? '')) {
       throw error
@@ -296,6 +307,7 @@ export async function createCompanyAction(
         email: initialAdminEmail,
         fullName: initialAdminName || null,
         sendInvite,
+        actorUserId,
       })
 
       await upsertOptionalUserProfile({
@@ -374,7 +386,7 @@ export async function inviteCompanyUserAction(
 
     await requireCompanyOperationalForWrites(companyId)
 
-    const userId = await resolveOrInviteUser({ email, fullName, sendInvite: true })
+    const userId = await resolveOrInviteUser({ email, fullName, sendInvite: true, actorUserId })
     await upsertOptionalUserProfile({ userId, email, fullName })
     await insertActiveUserRole({ userId, roleId: await resolveRoleIdByKey(roleKey) })
 

@@ -9,6 +9,8 @@ import {
   disablePlatformUserAction,
   inviteUserAction,
   reactivatePlatformUserAction,
+  sendUserEmailConfirmationAction,
+  sendUserPasswordResetAction,
 } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -34,6 +36,7 @@ export default async function AdminUsersPage() {
  const userCount = users.length
  const privilegedCount = users.filter((row) => row.highAccess).length
  const disabledCount = users.filter((row) => row.userStatus !== 'active' || row.isBanned).length
+ const unconfirmedEmailCount = users.filter((row) => !row.emailConfirmedAt).length
 
  async function inviteUserFormAction(formData: FormData) {
  'use server'
@@ -53,6 +56,16 @@ export default async function AdminUsersPage() {
  async function reactivateUserFormAction(formData: FormData) {
  'use server'
  await reactivatePlatformUserAction({ ok: false, message: '' }, formData)
+ }
+
+ async function sendResetPasswordFormAction(formData: FormData) {
+ 'use server'
+ await sendUserPasswordResetAction({ ok: false, message: '' }, formData)
+ }
+
+ async function sendEmailConfirmationFormAction(formData: FormData) {
+ 'use server'
+ await sendUserEmailConfirmationAction({ ok: false, message: '' }, formData)
  }
 
  return (
@@ -90,12 +103,12 @@ export default async function AdminUsersPage() {
  </div>
 
  <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
- <p className="text-sm font-medium text-amber-700">Kundrollen</p>
- <p className="mt-2 text-lg font-semibold text-amber-950">
- Inte för intern admin
+ <p className="text-sm font-medium text-amber-700">Obekräftade e-postadresser</p>
+ <p className="mt-2 text-3xl font-semibold text-amber-950">
+ {unconfirmedEmailCount}
  </p>
  <p className="mt-2 text-sm text-amber-800">
- Rollen <strong>customer</strong> ska inte användas i intern invite- eller accesshantering för adminytan.
+ Konton där Supabase Auth ännu inte visar bekräftad e-post.
  </p>
  </div>
  </section>
@@ -256,6 +269,7 @@ export default async function AdminUsersPage() {
  <th className="px-6 py-4 text-left font-semibold text-slate-700">E-post</th>
  <th className="px-6 py-4 text-left font-semibold text-slate-700">Roller</th>
  <th className="px-6 py-4 text-left font-semibold text-slate-700">Status</th>
+ <th className="px-6 py-4 text-left font-semibold text-slate-700">Auth-mail</th>
  <th className="px-6 py-4 text-left font-semibold text-slate-700">Bolag</th>
  <th className="px-6 py-4 text-left font-semibold text-slate-700">Skapad</th>
  <th className="px-6 py-4 text-left font-semibold text-slate-700">Åtgärd</th>
@@ -309,6 +323,24 @@ export default async function AdminUsersPage() {
  {row.disabledAt ? <p className="mt-2 text-xs text-slate-700">{formatDate(row.disabledAt)}</p> : null}
  </td>
 
+ <td className="px-6 py-4">
+ <span className={
+ row.emailConfirmedAt
+ ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800'
+ : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800'
+ }>
+ {row.emailConfirmedAt ? 'Bekräftad' : 'Ej bekräftad'}
+ </span>
+ <div className="mt-2 space-y-1 text-xs text-slate-700">
+ <p>Bekräftad: {formatDate(row.emailConfirmedAt)}</p>
+ <p>Senaste invite: {formatDate(row.lastInviteSentAt)}</p>
+ <p>Senaste reset: {formatDate(row.lastPasswordResetSentAt)}</p>
+ {row.lastAuthEmailAction ? (
+ <p>Senaste auth-händelse: {row.lastAuthEmailAction}</p>
+ ) : null}
+ </div>
+ </td>
+
  <td className="px-6 py-4 text-slate-700">
  {row.companyCount}
  </td>
@@ -324,6 +356,22 @@ export default async function AdminUsersPage() {
  >
  Öppna
  </Link>
+ {canWriteUsers ? (
+ <>
+ <form action={sendResetPasswordFormAction}>
+ <input type="hidden" name="user_id" value={row.id} />
+ <button className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+ Skicka reset
+ </button>
+ </form>
+ <form action={sendEmailConfirmationFormAction}>
+ <input type="hidden" name="user_id" value={row.id} />
+ <button className="inline-flex items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100">
+ Skicka confirm email
+ </button>
+ </form>
+ </>
+ ) : null}
  {canWriteUsers ? (
  row.userStatus === 'active' && !row.isBanned ? (
  <form action={disableUserFormAction} className="grid gap-2 rounded-2xl border border-red-200 bg-red-50 p-3">

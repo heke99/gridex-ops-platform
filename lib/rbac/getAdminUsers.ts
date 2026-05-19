@@ -17,6 +17,9 @@ type ListedAuthUser = {
   email?: string | null
   created_at: string
   banned_until?: string | null
+  email_confirmed_at?: string | null
+  confirmed_at?: string | null
+  last_sign_in_at?: string | null
 }
 
 type UserProfileRow = {
@@ -25,6 +28,15 @@ type UserProfileRow = {
   full_name?: string | null
   user_status?: string | null
   disabled_at?: string | null
+  auth_email_confirmed_at?: string | null
+  auth_last_sign_in_at?: string | null
+  auth_last_synced_at?: string | null
+  last_invite_sent_at?: string | null
+  last_password_reset_sent_at?: string | null
+  last_confirmation_email_sent_at?: string | null
+  last_auth_email_action?: string | null
+  last_auth_email_action_at?: string | null
+  last_auth_email_message?: string | null
 }
 
 export type AdminUserListItem = {
@@ -38,11 +50,56 @@ export type AdminUserListItem = {
   isBanned: boolean
   companyCount: number
   highAccess: boolean
+  emailConfirmedAt: string | null
+  lastSignInAt: string | null
+  lastInviteSentAt: string | null
+  lastPasswordResetSentAt: string | null
+  lastConfirmationEmailSentAt: string | null
+  lastAuthEmailAction: string | null
+  lastAuthEmailActionAt: string | null
+  lastAuthEmailMessage: string | null
 }
 
 function isActiveRole(row: UserRoleRow) {
   if (typeof row.is_active === 'boolean') return row.is_active
   return true
+}
+
+async function fetchProfiles(userIds: string[]): Promise<Map<string, UserProfileRow>> {
+  const profileById = new Map<string, UserProfileRow>()
+
+  try {
+    const { data, error } = await supabaseService
+      .from('user_profiles')
+      .select(
+        'id, email, full_name, user_status, disabled_at, auth_email_confirmed_at, auth_last_sign_in_at, auth_last_synced_at, last_invite_sent_at, last_password_reset_sent_at, last_confirmation_email_sent_at, last_auth_email_action, last_auth_email_action_at, last_auth_email_message'
+      )
+      .in('id', userIds)
+
+    if (error) throw error
+
+    for (const profile of ((data ?? []) as unknown as UserProfileRow[])) {
+      profileById.set(profile.id, profile)
+    }
+    return profileById
+  } catch {
+    // Older installs can miss the new auth-sync columns until the migration has run.
+  }
+
+  try {
+    const { data } = await supabaseService
+      .from('user_profiles')
+      .select('id, email, full_name, user_status, disabled_at')
+      .in('id', userIds)
+
+    for (const profile of ((data ?? []) as unknown as UserProfileRow[])) {
+      profileById.set(profile.id, profile)
+    }
+  } catch {
+    // user_profiles is optional in partial installs.
+  }
+
+  return profileById
 }
 
 export async function getAdminUsers(): Promise<AdminUserListItem[]> {
@@ -76,19 +133,7 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
     groupedRoles.set(row.user_id, list)
   }
 
-  const profileById = new Map<string, UserProfileRow>()
-  try {
-    const { data: profiles } = await supabaseService
-      .from('user_profiles')
-      .select('id, email, full_name, user_status, disabled_at')
-      .in('id', userIds)
-
-    for (const profile of ((profiles ?? []) as unknown as UserProfileRow[])) {
-      profileById.set(profile.id, profile)
-    }
-  } catch {
-    // user_profiles is optional in some installs.
-  }
+  const profileById = await fetchProfiles(userIds)
 
   const companyCountByUserId = new Map<string, number>()
   try {
@@ -110,6 +155,8 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
     const roles = groupedRoles.get(user.id) ?? []
     const bannedUntil = user.banned_until ? new Date(user.banned_until) : null
     const isBanned = Boolean(bannedUntil && bannedUntil.getTime() > Date.now())
+    const emailConfirmedAt = profile?.auth_email_confirmed_at ?? user.email_confirmed_at ?? user.confirmed_at ?? null
+    const lastSignInAt = profile?.auth_last_sign_in_at ?? user.last_sign_in_at ?? null
 
     return {
       id: user.id,
@@ -122,6 +169,14 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
       isBanned,
       companyCount: companyCountByUserId.get(user.id) ?? 0,
       highAccess: roles.some((role) => HIGH_ACCESS_ROLES.has(role)),
+      emailConfirmedAt,
+      lastSignInAt,
+      lastInviteSentAt: profile?.last_invite_sent_at ?? null,
+      lastPasswordResetSentAt: profile?.last_password_reset_sent_at ?? null,
+      lastConfirmationEmailSentAt: profile?.last_confirmation_email_sent_at ?? null,
+      lastAuthEmailAction: profile?.last_auth_email_action ?? null,
+      lastAuthEmailActionAt: profile?.last_auth_email_action_at ?? null,
+      lastAuthEmailMessage: profile?.last_auth_email_message ?? null,
     }
   })
 }

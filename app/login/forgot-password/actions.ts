@@ -2,19 +2,10 @@
 
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { buildAuthCallbackUrl } from '@/lib/auth/urls'
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase()
-}
-
-function getBaseUrl(): string {
-  const value =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    'http://localhost:3000'
-
-  return value.replace(/\/$/, '')
 }
 
 export async function requestPasswordResetAction(formData: FormData) {
@@ -31,7 +22,7 @@ export async function requestPasswordResetAction(formData: FormData) {
   const supabase = await createSupabaseServerClient()
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${getBaseUrl()}/login/update-password`,
+    redirectTo: buildAuthCallbackUrl('/login/update-password?mode=reset'),
   })
 
   if (error) {
