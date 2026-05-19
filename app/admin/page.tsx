@@ -1,3 +1,4 @@
+//app/admin/page.tsx
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'

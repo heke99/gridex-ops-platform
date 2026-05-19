@@ -1,3 +1,4 @@
+// app/admin/ediel/page.tsx
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -41,16 +42,16 @@ function Metric({
 }) {
   const classes: Record<typeof tone, string> = {
     slate: 'border-slate-200 bg-white',
-    emerald: 'border-emerald-200 bg-emerald-50/80',
-    amber: 'border-amber-200 bg-amber-50/90',
-    red: 'border-red-200 bg-red-50/90',
+    emerald: 'border-emerald-200 bg-emerald-50/90',
+    amber: 'border-amber-200 bg-amber-50/95',
+    red: 'border-red-200 bg-red-50/95',
   }
 
   return (
     <div className={`rounded-3xl border p-5 shadow-sm ${classes[tone]}`}>
-      <div className="text-sm font-semibold text-slate-600">{label}</div>
+      <div className="text-sm font-bold text-slate-700">{label}</div>
       <div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div>
-      <div className="mt-2 text-xs leading-5 text-slate-600">{hint}</div>
+      <div className="mt-2 text-xs font-medium leading-5 text-slate-700">{hint}</div>
     </div>
   )
 }
@@ -63,13 +64,17 @@ function Pill({
   children: ReactNode
 }) {
   const classes: Record<typeof tone, string> = {
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200',
-    amber: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-500/15 dark:text-amber-200',
-    red: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-500/15 dark:text-red-200',
-    slate: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-200',
+    emerald: 'border-emerald-300 bg-emerald-100 text-emerald-900',
+    amber: 'border-amber-300 bg-amber-100 text-amber-950',
+    red: 'border-red-300 bg-red-100 text-red-950',
+    slate: 'border-slate-300 bg-slate-100 text-slate-900',
   }
 
-  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${classes[tone]}`}>{children}</span>
+  return (
+    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${classes[tone]}`}>
+      {children}
+    </span>
+  )
 }
 
 function AreaCard({
@@ -88,18 +93,28 @@ function AreaCard({
   tone?: 'default' | 'production' | 'test' | 'settings'
 }) {
   const styles: Record<typeof tone, string> = {
-    default: 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
-    production: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
-    test: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
-    settings: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
+    default: 'border-slate-200 bg-white',
+    production: 'border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white',
+    test: 'border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white',
+    settings: 'border-emerald-200 bg-gradient-to-br from-white via-emerald-50/70 to-white',
+  }
+
+  const eyebrowStyles: Record<typeof tone, string> = {
+    default: 'text-slate-700',
+    production: 'text-emerald-900',
+    test: 'text-amber-900',
+    settings: 'text-emerald-900',
   }
 
   return (
     <div className={`rounded-3xl border p-6 shadow-sm ${styles[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{eyebrow}</p>
-      <h2 className="mt-3 text-xl font-semibold text-slate-950 dark:text-white">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{text}</p>
-      <Link href={href} className="mt-5 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
+      <p className={`text-xs font-black uppercase tracking-[0.18em] ${eyebrowStyles[tone]}`}>{eyebrow}</p>
+      <h2 className="mt-3 text-xl font-black tracking-tight text-slate-950">{title}</h2>
+      <p className="mt-2 text-sm font-medium leading-6 text-slate-700">{text}</p>
+      <Link
+        href={href}
+        className="mt-5 inline-flex rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800"
+      >
         {cta}
       </Link>
     </div>
@@ -116,14 +131,14 @@ function FlowStep({
   text: string
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-sm font-black text-white">
           {number}
         </span>
         <div>
-          <div className="text-sm font-semibold text-slate-950 dark:text-white">{title}</div>
-          <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">{text}</p>
+          <div className="text-sm font-black text-slate-950">{title}</div>
+          <p className="mt-1 text-sm font-medium leading-6 text-slate-700">{text}</p>
         </div>
       </div>
     </div>
@@ -138,10 +153,11 @@ function CaseLine({
   direction: 'actor_to_portal' | 'portal_to_actor'
 }) {
   const outbound = direction === 'actor_to_portal'
+
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-      <span className="text-sm font-semibold text-slate-950 dark:text-white">{label}</span>
-      <Pill tone={outbound ? 'emerald' : 'emerald'}>{outbound ? 'Leverantör → Portal' : 'Portal → Leverantör'}</Pill>
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <span className="text-sm font-bold text-slate-950">{label}</span>
+      <Pill tone={outbound ? 'emerald' : 'slate'}>{outbound ? 'Leverantör → Portal' : 'Portal → Leverantör'}</Pill>
     </div>
   )
 }
@@ -157,8 +173,8 @@ function ProfileField({
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</div>
-      <div className="mt-1 break-all text-sm font-semibold text-slate-950">{display}</div>
+      <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-600">{label}</div>
+      <div className="mt-1 break-all text-sm font-black text-slate-950">{display}</div>
     </div>
   )
 }
@@ -167,6 +183,7 @@ export default async function EdielPage() {
   const context = await requireAnyPermissionServer(['communication.read'])
   const supabase = await createSupabaseServerClient()
   const companyScope = await getOperationalCompanyScope(context.userId)
+
   const [ediel, agtRuntime, activeProductionActor, activeTestActor] = await Promise.all([
     getEdielSummary(supabase).catch(() => EMPTY_EDIEL_SUMMARY),
     getEdielAgtSupplierRuntime(companyScope.companyId).catch(() => null),
@@ -190,17 +207,24 @@ export default async function EdielPage() {
       />
 
       <div className="space-y-8 p-8">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Ediel Live</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Liveflödet först. Testmiljö separat.</h1>
-              <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600 dark:text-slate-400">
-                GridCore ska fungera som SaaS: varje bolag har egna aktörs-id, route-profiler och kvittensregler. Därför visas liveflöde, Ediel Control Tower och adressering tydligt här. AGT är bara en låst testmiljö för godkännande.
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">Ediel Live</p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                Liveflödet först. Testmiljö separat.
+              </h1>
+              <p className="mt-3 max-w-4xl text-sm font-medium leading-6 text-slate-700">
+                GridCore ska fungera som SaaS: varje bolag har egna aktörs-id, route-profiler och kvittensregler.
+                Därför visas liveflöde, Ediel Control Tower och adressering tydligt här. AGT är bara en låst testmiljö
+                för godkännande.
               </p>
             </div>
+
             <div className="flex flex-wrap gap-2">
-              <Pill tone={liveAttention > 0 ? 'amber' : 'emerald'}>{liveAttention > 0 ? `${liveAttention} live-ärenden` : 'live ok'}</Pill>
+              <Pill tone={liveAttention > 0 ? 'amber' : 'emerald'}>
+                {liveAttention > 0 ? `${liveAttention} live-ärenden` : 'Live ok'}
+              </Pill>
               <Pill tone={agtRuntime?.isReady ? 'emerald' : agtErrors > 0 ? 'red' : 'amber'}>
                 {agtRuntime?.isReady ? 'Testmiljö redo' : agtRuntime ? 'Testmiljö behöver kontroll' : 'Testmiljö ej laddad'}
               </Pill>
@@ -238,20 +262,29 @@ export default async function EdielPage() {
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Aktiv tenant och Ediel-profil</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">{companyScope.companyName ?? 'Bolag ej valt'} · {liveActor?.actor_name ?? 'Ediel-profil saknas'}</h2>
-              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-                Tenantprofilen är källan för Ediel-id, sender-namn, mailbox, Application Reference och route-profiler. När profilen sparas ska den ligga på samma company_id som kunder, routes, outbound, Ediel-meddelanden och mätvärden.
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">
+                Aktiv tenant och Ediel-profil
+              </p>
+              <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
+                {companyScope.companyName ?? 'Bolag ej valt'} · {liveActor?.actor_name ?? 'Ediel-profil saknas'}
+              </h2>
+              <p className="mt-2 max-w-4xl text-sm font-medium leading-6 text-slate-700">
+                Tenantprofilen är källan för Ediel-id, sender-namn, mailbox, Application Reference och route-profiler.
+                När profilen sparas ska den ligga på samma company_id som kunder, routes, outbound, Ediel-meddelanden
+                och mätvärden.
               </p>
             </div>
+
             <div className="flex flex-wrap gap-2">
               <Pill tone={liveActor ? 'emerald' : 'red'}>{liveActor ? 'Tenantprofil hittad' : 'Profil saknas'}</Pill>
-              <Pill tone={activeProductionActor ? 'emerald' : activeTestActor ? 'amber' : 'red'}>{activeProductionActor ? 'Produktion aktiv' : activeTestActor ? 'Endast testprofil aktiv' : 'Ingen aktiv miljö'}</Pill>
+              <Pill tone={activeProductionActor ? 'emerald' : activeTestActor ? 'amber' : 'red'}>
+                {activeProductionActor ? 'Produktion aktiv' : activeTestActor ? 'Endast testprofil aktiv' : 'Ingen aktiv miljö'}
+              </Pill>
             </div>
           </div>
 
           {companyScope.message ? (
-            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+            <div className="mt-5 rounded-2xl border border-amber-300 bg-amber-100 px-4 py-3 text-sm font-bold text-amber-950">
               {companyScope.message}
             </div>
           ) : null}
@@ -272,10 +305,16 @@ export default async function EdielPage() {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/admin/ediel/settings" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">
+            <Link
+              href="/admin/ediel/settings"
+              className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800"
+            >
               Hantera tenantprofil
             </Link>
-            <Link href="/admin/ediel/routes" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+            <Link
+              href="/admin/ediel/routes"
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+            >
               Kontrollera routes
             </Link>
           </div>
@@ -291,28 +330,44 @@ export default async function EdielPage() {
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Rätt arbetssätt</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">När något händer i Ediel</h2>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Rätt arbetssätt</p>
+                <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">När något händer i Ediel</h2>
               </div>
-              <Link href="/admin/ediel/control-tower" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              <Link
+                href="/admin/ediel/control-tower"
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+              >
                 Control Tower
               </Link>
             </div>
+
             <div className="mt-5 grid gap-3">
-              <FlowStep number="1" title="Se om det är live eller testmiljö" text="Kunddrift, switchar och mätvärden hanteras i liveflödet. AGT-run och portaltester hanteras i låst testmiljö." />
-              <FlowStep number="2" title="Följ meddelandekedjan" text="Öppna meddelandet och kontrollera länken mellan PRODAT/UTILTS, CONTRL, APERAK och relevant kund-/switchärende." />
-              <FlowStep number="3" title="Skicka bara från rätt kontext" text="Outbound draft ska komma från kundflöde eller låst testkörning. Manuella filgeneratorer ska inte vara primär arbetsväg." />
+              <FlowStep
+                number="1"
+                title="Se om det är live eller testmiljö"
+                text="Kunddrift, switchar och mätvärden hanteras i liveflödet. AGT-run och portaltester hanteras i låst testmiljö."
+              />
+              <FlowStep
+                number="2"
+                title="Följ meddelandekedjan"
+                text="Öppna meddelandet och kontrollera länken mellan PRODAT/UTILTS, CONTRL, APERAK och relevant kund-/switchärende."
+              />
+              <FlowStep
+                number="3"
+                title="Skicka bara från rätt kontext"
+                text="Outbound draft ska komma från kundflöde eller låst testkörning. Manuella filgeneratorer ska inte vara primär arbetsväg."
+              />
             </div>
           </div>
 
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">
+          <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Testmiljö / AGT-tester</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">Låsta godkännandeflöden</h2>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-900">Testmiljö / AGT-tester</p>
+                <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Låsta godkännandeflöden</h2>
               </div>
               <Pill tone={agtErrors > 0 ? 'red' : agtWarnings > 0 ? 'amber' : 'emerald'}>
                 {agtErrors} fel · {agtWarnings} varningar
@@ -328,23 +383,26 @@ export default async function EdielPage() {
               ))}
             </div>
 
-            <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-400">
-              AGT används endast för aktörs- och leverantörsgodkännande. Vanliga SaaS-kunder ska arbeta i Live-meddelanden, Control Tower och Routes.
+            <p className="mt-4 text-sm font-medium leading-6 text-slate-700">
+              AGT används endast för aktörs- och leverantörsgodkännande. Vanliga SaaS-kunder ska arbeta i
+              Live-meddelanden, Control Tower och Routes.
             </p>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Separat från liveflödet</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">Testverktyg ska inte styra daglig drift</h2>
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-700">Separat från liveflödet</p>
+          <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Testverktyg ska inte styra daglig drift</h2>
+
           <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
-              Filgeneratorer och testverktyg är inte primära flöden. De kan ligga kvar tekniskt men ska inte vara huvudväg för operatören.
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium leading-6 text-slate-700">
+              Filgeneratorer och testverktyg är inte primära flöden. De kan ligga kvar tekniskt men ska inte vara
+              huvudväg för operatören.
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium leading-6 text-slate-700">
               TGT/AGT och portaldiagnostik hör hemma i låst testmiljö, inte i live Ediel Center.
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium leading-6 text-slate-700">
               Alla leverantörer ska kopplas via tenant-konfiguration: aktör, route, profil, mailbox och ack-policy.
             </div>
           </div>
