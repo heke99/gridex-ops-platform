@@ -143,6 +143,7 @@ export type CommunicationRouteType =
 
 export type CommunicationRouteRow = {
   id: string
+  company_id?: string | null
   route_name: string
   is_active: boolean
   route_scope: CommunicationRouteScope

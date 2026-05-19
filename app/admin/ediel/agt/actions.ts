@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
+import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { saveCommunicationRoute } from '@/lib/cis/db'
 import {
   attachEdielMessageToTestRun,
@@ -252,6 +253,7 @@ async function getCurrentUserId(): Promise<string> {
 
 async function saveActiveSupplierActor(input: {
   actorUserId: string
+  companyId: string
   actorName: string
   actorEdielId: string
   senderName: string | null
@@ -279,6 +281,7 @@ async function saveActiveSupplierActor(input: {
       updated_by: input.actorUserId,
     })
     .eq('environment', 'test')
+    .eq('company_id', input.companyId)
 
   if (deactivate.error) throw deactivate.error
 
@@ -286,6 +289,7 @@ async function saveActiveSupplierActor(input: {
     .from('ediel_actor_settings')
     .select('id')
     .eq('environment', 'test')
+    .eq('company_id', input.companyId)
     .eq('actor_ediel_id', input.actorEdielId)
     .order('updated_at', { ascending: false })
     .limit(1)
@@ -294,6 +298,7 @@ async function saveActiveSupplierActor(input: {
   if (existing.error) throw existing.error
 
   const payload = {
+    company_id: input.companyId,
     actor_name: input.actorName,
     actor_ediel_id: input.actorEdielId,
     actor_role: 'supplier',
@@ -332,6 +337,7 @@ async function saveActiveSupplierActor(input: {
 
 async function upsertRouteProfile(input: {
   actorUserId: string
+  companyId: string
   routeId: string
   family: 'PRODAT' | 'UTILTS'
   senderEdielId: string
@@ -347,6 +353,7 @@ async function upsertRouteProfile(input: {
     .from('ediel_route_profiles')
     .select('id')
     .eq('communication_route_id', input.routeId)
+    .eq('company_id', input.companyId)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -355,6 +362,7 @@ async function upsertRouteProfile(input: {
 
   const isProdat = input.family === 'PRODAT'
   const payload = {
+    company_id: input.companyId,
     communication_route_id: input.routeId,
     is_enabled: true,
     sender_ediel_id: input.senderEdielId,
@@ -402,6 +410,7 @@ async function upsertRouteProfile(input: {
 
 async function upsertAgtRoute(input: {
   actorUserId: string
+  companyId: string
   family: 'PRODAT' | 'UTILTS'
   actorEdielId: string
   senderName: string | null
@@ -417,6 +426,7 @@ async function upsertAgtRoute(input: {
     .from('communication_routes')
     .select('id')
     .eq('route_name', routeName)
+    .eq('company_id', input.companyId)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -425,6 +435,7 @@ async function upsertAgtRoute(input: {
 
   const route = await saveCommunicationRoute({
     actorUserId: input.actorUserId,
+    companyId: input.companyId,
     id: existing.data?.id ?? undefined,
     routeName,
     isActive: true,
@@ -440,6 +451,7 @@ async function upsertAgtRoute(input: {
 
   await upsertRouteProfile({
     actorUserId: input.actorUserId,
+    companyId: input.companyId,
     routeId: route.id,
     family: input.family,
     senderEdielId: input.actorEdielId,
@@ -456,6 +468,7 @@ async function upsertAgtRoute(input: {
 export async function saveAgtSupplierRuntimeAction(formData: FormData) {
   await requireAnyPermissionServer(['communication.write', 'communication.read'])
   const actorUserId = await getCurrentUserId()
+  const companyId = await requireOperationalCompanyId(actorUserId)
 
   const actorName = value(formData, 'actor_name') ?? ''
   const actorEdielId = upper(formData, 'actor_ediel_id') ?? ''
@@ -477,6 +490,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
 
   await saveActiveSupplierActor({
     actorUserId,
+    companyId,
     actorName,
     actorEdielId,
     senderName,
@@ -490,6 +504,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
 
   await upsertAgtRoute({
     actorUserId,
+    companyId,
     family: 'PRODAT',
     actorEdielId,
     senderName,
@@ -503,6 +518,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
 
   await upsertAgtRoute({
     actorUserId,
+    companyId,
     family: 'UTILTS',
     actorEdielId,
     senderName,

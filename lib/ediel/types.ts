@@ -324,6 +324,7 @@ export type EdielActorRole = 'supplier' | 'grid_owner' | 'balance_responsible' |
 
 export type EdielActorSettingsRow = {
   id: string
+  company_id?: string | null
   actor_name: string
   actor_ediel_id: string
   actor_role: EdielActorRole
@@ -357,6 +358,7 @@ export type EdielPayloadFormat = 'edifact' | 'xml' | 'raw'
 
 export type EdielRouteProfileRow = {
   id: string
+  company_id?: string | null
   communication_route_id: string
   is_enabled: boolean
   sender_ediel_id: string | null

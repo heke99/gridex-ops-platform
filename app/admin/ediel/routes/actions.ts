@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { saveCommunicationRoute } from '@/lib/cis/db'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
@@ -92,15 +93,18 @@ async function getActorContext() {
     throw new Error('Unauthorized')
   }
 
+  const companyId = await requireOperationalCompanyId(user.id)
+
   return {
     supabase,
     userId: user.id,
+    companyId,
   }
 }
 
-async function getActorDefaults(environment: 'test' | 'production') {
+async function getActorDefaults(environment: 'test' | 'production', companyId?: string | null) {
   try {
-    return await resolveCanonicalActorContext(environment)
+    return await resolveCanonicalActorContext(environment, companyId)
   } catch {
     return null
   }
@@ -108,6 +112,7 @@ async function getActorDefaults(environment: 'test' | 'production') {
 
 async function upsertEdielRouteProfileLocal(input: {
   actorUserId: string
+  companyId: string
   communicationRouteId: string
   isEnabled: boolean
   senderEdielId: string | null
@@ -134,7 +139,7 @@ async function upsertEdielRouteProfileLocal(input: {
 }) {
   const supabase = await createSupabaseServerClient()
   const existing = await getEdielRouteProfileByCommunicationRouteId(input.communicationRouteId)
-  const actorDefaults = await getActorDefaults(input.environment)
+  const actorDefaults = await getActorDefaults(input.environment, input.companyId)
 
   const senderSubAddress = coalesceString(
     input.senderSubAddress,
@@ -143,6 +148,7 @@ async function upsertEdielRouteProfileLocal(input: {
   )
 
   const payload = {
+    company_id: input.companyId,
     communication_route_id: input.communicationRouteId,
     is_enabled: input.isEnabled,
     sender_ediel_id: coalesceString(
@@ -222,12 +228,13 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     throw new Error('Missing communication route id')
   }
 
-  const { userId } = await getActorContext()
+  const { userId, companyId } = await getActorContext()
   const environment =
     (stringValue(formData, 'environment') as 'test' | 'production' | null) ?? 'test'
 
   await upsertEdielRouteProfileLocal({
     actorUserId: userId,
+    companyId,
     communicationRouteId,
     isEnabled: boolValue(formData, 'isEnabled'),
     senderEdielId: stringValue(formData, 'senderEdielId'),
@@ -266,7 +273,7 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
     'billing_underlay.write',
   ])
 
-  const { userId } = await getActorContext()
+  const { userId, companyId } = await getActorContext()
 
   const id = stringValue(formData, 'id')
   const routeName = stringValue(formData, 'route_name')
@@ -289,6 +296,7 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
 
   const saved = await saveCommunicationRoute({
     actorUserId: userId,
+    companyId,
     id: id ?? undefined,
     routeName,
     isActive: boolValue(formData, 'is_active'),
@@ -312,7 +320,7 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
     'billing_underlay.write',
   ])
 
-  const { userId } = await getActorContext()
+  const { userId, companyId } = await getActorContext()
   const environment =
     (stringValue(formData, 'environment') as 'test' | 'production' | null) ?? 'test'
 
@@ -328,6 +336,7 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
 
   const saved = await saveCommunicationRoute({
     actorUserId: userId,
+    companyId,
     routeName,
     isActive: true,
     routeScope,
@@ -342,6 +351,7 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
 
   await upsertEdielRouteProfileLocal({
     actorUserId: userId,
+    companyId,
     communicationRouteId: saved.id,
     isEnabled: true,
     senderEdielId: stringValue(formData, 'senderEdielId'),
@@ -385,7 +395,7 @@ export async function quickFixEdielTargetEmailAction(formData: FormData) {
     throw new Error('routeId saknas')
   }
 
-  const { supabase, userId } = await getActorContext()
+  const { supabase, userId, companyId } = await getActorContext()
 
   const { error } = await supabase
     .from('communication_routes')
@@ -416,7 +426,7 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
     throw new Error('routeId saknas')
   }
 
-  const { supabase, userId } = await getActorContext()
+  const { supabase, userId, companyId } = await getActorContext()
 
   if (activateRoute) {
     const { error } = await supabase
@@ -434,6 +444,7 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
 
   await upsertEdielRouteProfileLocal({
     actorUserId: userId,
+    companyId,
     communicationRouteId: routeId,
     isEnabled: enableEdiel || existingProfile?.is_enabled || false,
     senderEdielId: existingProfile?.sender_ediel_id ?? null,
@@ -480,11 +491,12 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
     throw new Error('routeId saknas')
   }
 
-  const { userId } = await getActorContext()
+  const { userId, companyId } = await getActorContext()
   const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId)
 
   await upsertEdielRouteProfileLocal({
     actorUserId: userId,
+    companyId,
     communicationRouteId: routeId,
     isEnabled: enableEdiel || existingProfile?.is_enabled || false,
     senderEdielId: senderEdielId ?? existingProfile?.sender_ediel_id ?? null,
@@ -535,7 +547,7 @@ export async function quickFixGridOwnerEdielIdAction(formData: FormData) {
     throw new Error('Ediel-id saknas')
   }
 
-  const { supabase, userId } = await getActorContext()
+  const { supabase, userId, companyId } = await getActorContext()
 
   const { error } = await supabase
     .from('grid_owners')

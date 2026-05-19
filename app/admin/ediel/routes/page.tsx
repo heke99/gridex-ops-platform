@@ -1,6 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
   explainEdielRouteRuntime,
   getEdielRouteRuntimeByCommunicationRouteId,
@@ -25,6 +26,7 @@ export const dynamic = 'force-dynamic'
 
 type CommunicationRouteRow = {
   id: string
+  company_id?: string | null
   route_name: string
   is_active: boolean
   route_scope: string
@@ -210,15 +212,22 @@ export default async function AdminEdielRoutesPage() {
     'masterdata.read',
     'switching.read',
   ])
+  const companyScope = await getOperationalCompanyScope(context.userId)
 
   const supabase = await createSupabaseServerClient()
 
+  let routesQuery = supabase
+    .from('communication_routes')
+    .select(
+      'id,company_id,route_name,is_active,route_scope,route_type,grid_owner_id,target_system,endpoint,target_email,supported_payload_version,notes,updated_at'
+    )
+
+  if (companyScope.companyId) {
+    routesQuery = routesQuery.or(`company_id.is.null,company_id.eq.${companyScope.companyId}`)
+  }
+
   const [routesResult, gridOwnersResult, testActor, prodActor] = await Promise.all([
-    supabase
-      .from('communication_routes')
-      .select(
-        'id,route_name,is_active,route_scope,route_type,grid_owner_id,target_system,endpoint,target_email,supported_payload_version,notes,updated_at'
-      )
+    routesQuery
       .order('updated_at', { ascending: false }),
     supabase.from('grid_owners').select('id,name,ediel_id,owner_code').order('name'),
     resolveCanonicalActorContext('test').catch(() => null),
@@ -288,7 +297,7 @@ export default async function AdminEdielRoutesPage() {
     <div className="space-y-6">
       <AdminHeader
         title="Ediel-adressering & aktörsregister"
-        subtitle="Spara nätägare, leverantörer, BRP och route profiles enligt handbokslogiken: rätt Ediel-id, rätt motpart, rätt process och rätt kvittenspolicy per bolag."
+        subtitle={`Spara nätägare, leverantörer, BRP och route profiles för ${companyScope.companyName ?? 'valt bolag'}: rätt Ediel-id, rätt motpart, rätt process och rätt kvittenspolicy.`}
         userEmail={context.email}
       />
 

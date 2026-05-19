@@ -3,6 +3,7 @@ import type { CommunicationRouteRow, OutboundRequestType } from '@/lib/cis/types
 import { matchesQuery, normalizeQuery } from './db-shared'
 
 export async function listCommunicationRoutes(options: {
+  companyId?: string | null
   scope?: string | null
   routeScope?: string | null
   routeType?: string | null
@@ -14,6 +15,10 @@ export async function listCommunicationRoutes(options: {
     .order('created_at', { ascending: false })
 
   const resolvedScope = options.routeScope ?? options.scope ?? null
+
+  if (options.companyId) {
+    queryBuilder = queryBuilder.or(`company_id.is.null,company_id.eq.${options.companyId}`)
+  }
 
   if (resolvedScope && resolvedScope !== 'all') {
     queryBuilder = queryBuilder.eq('route_scope', resolvedScope)
@@ -49,6 +54,7 @@ export async function listCommunicationRoutes(options: {
 
 export async function saveCommunicationRoute(input: {
   actorUserId: string
+  companyId?: string | null
   id?: string
   routeName: string
   isActive: boolean
@@ -62,6 +68,7 @@ export async function saveCommunicationRoute(input: {
   notes?: string | null
 }): Promise<CommunicationRouteRow> {
   const payload = {
+    company_id: input.companyId ?? null,
     route_name: input.routeName,
     is_active: input.isActive,
     route_scope: input.routeScope,
@@ -101,18 +108,25 @@ export async function saveCommunicationRoute(input: {
 }
 
 export async function findBestCommunicationRoute(params: {
+  companyId?: string | null
   requestType: OutboundRequestType
   gridOwnerId?: string | null
 }): Promise<CommunicationRouteRow | null> {
   const scope = params.requestType
 
   if (params.gridOwnerId) {
-    const { data, error } = await supabaseService
+    let scopedQuery = supabaseService
       .from('communication_routes')
       .select('*')
       .eq('route_scope', scope)
       .eq('is_active', true)
       .eq('grid_owner_id', params.gridOwnerId)
+
+    if (params.companyId) {
+      scopedQuery = scopedQuery.or(`company_id.is.null,company_id.eq.${params.companyId}`)
+    }
+
+    const { data, error } = await scopedQuery
       .order('created_at', { ascending: false })
       .limit(1)
 
@@ -121,12 +135,18 @@ export async function findBestCommunicationRoute(params: {
     if (scoped[0]) return scoped[0]
   }
 
-  const { data, error } = await supabaseService
+  let fallbackQuery = supabaseService
     .from('communication_routes')
     .select('*')
     .eq('route_scope', scope)
     .eq('is_active', true)
     .is('grid_owner_id', null)
+
+  if (params.companyId) {
+    fallbackQuery = fallbackQuery.or(`company_id.is.null,company_id.eq.${params.companyId}`)
+  }
+
+  const { data, error } = await fallbackQuery
     .order('created_at', { ascending: false })
     .limit(1)
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -51,9 +52,12 @@ async function getActorContext() {
     throw new Error('Unauthorized')
   }
 
+  const companyId = await requireOperationalCompanyId(user.id)
+
   return {
     supabase,
     userId: user.id,
+    companyId,
   }
 }
 
@@ -68,7 +72,7 @@ function revalidateEdielPaths() {
 export async function saveEdielActorSettingsAction(formData: FormData) {
   await requireAdminActionAccess(['communication.read', 'communication.send'])
 
-  const { supabase, userId } = await getActorContext()
+  const { supabase, userId, companyId } = await getActorContext()
 
   const id = stringValue(formData, 'id')
   const environment =
@@ -76,6 +80,7 @@ export async function saveEdielActorSettingsAction(formData: FormData) {
   const isActive = boolValue(formData, 'is_active')
 
   const payload = {
+    company_id: companyId,
     actor_name: stringValue(formData, 'actor_name') ?? '',
     actor_ediel_id: uppercaseOrNull(stringValue(formData, 'actor_ediel_id')) ?? '',
     actor_role: stringValue(formData, 'actor_role') ?? '',
@@ -108,6 +113,7 @@ export async function saveEdielActorSettingsAction(formData: FormData) {
         updated_by: userId,
       })
       .eq('environment', environment)
+      .eq('company_id', companyId)
 
     if (deactivateError) throw deactivateError
   }

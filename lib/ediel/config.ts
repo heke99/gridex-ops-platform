@@ -92,20 +92,48 @@ function sanitize(value?: string | null): string | null {
 }
 
 export async function getActiveEdielActorSettings(
-  environment: EdielEnvironment = 'test'
+  environment: EdielEnvironment = 'test',
+  companyId?: string | null
 ): Promise<EdielActorSettingsRow | null> {
+  const scopedCompanyId = sanitize(companyId)
+
+  if (scopedCompanyId) {
+    const scoped = await supabaseService
+      .from('ediel_actor_settings')
+      .select('*')
+      .eq('environment', environment)
+      .eq('company_id', scopedCompanyId)
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!scoped.error && scoped.data) {
+      return scoped.data as EdielActorSettingsRow
+    }
+
+    // Backward-compatible fallback for databases where company_id has not been migrated yet.
+    if (scoped.error && scoped.error.code !== '42703' && scoped.error.code !== 'PGRST204') {
+      throw scoped.error
+    }
+  }
+
   const { data, error } = await supabaseService
-    .from('ediel_active_actor_settings_v')
+    .from('ediel_actor_settings')
     .select('*')
     .eq('environment', environment)
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
     .maybeSingle()
 
   if (error) {
     const fallback = await supabaseService
-      .from('ediel_actor_settings')
+      .from('ediel_active_actor_settings_v')
       .select('*')
       .eq('environment', environment)
-      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
     if (fallback.error) throw fallback.error

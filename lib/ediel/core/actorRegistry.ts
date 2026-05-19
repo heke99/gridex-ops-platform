@@ -28,13 +28,14 @@ function trimOrNull(value?: string | null): string | null {
 }
 
 export async function resolveCanonicalActorContext(
-  environment: EdielEnvironment = 'test'
+  environment: EdielEnvironment = 'test',
+  companyId?: string | null
 ): Promise<CanonicalActorContext> {
-  const actor = await getActiveEdielActorSettings(environment)
+  const actor = await getActiveEdielActorSettings(environment, companyId)
 
   if (!actor) {
     throw new Error(
-      `Ingen aktiv ediel_actor_settings hittades för environment ${environment}.`
+      `Ingen aktiv ediel_actor_settings hittades för environment ${environment}${companyId ? ` och company_id ${companyId}` : ''}.`
     )
   }
 

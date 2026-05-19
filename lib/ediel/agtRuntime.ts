@@ -68,12 +68,18 @@ function parseAgtActorNotes(notes?: string | null): { balanceResponsibleEdielId:
   }
 }
 
-async function getActiveTestSupplierActor(): Promise<EdielActorSettingsRow | null> {
-  const { data, error } = await supabaseService
+async function getActiveTestSupplierActor(companyId?: string | null): Promise<EdielActorSettingsRow | null> {
+  let query = supabaseService
     .from('ediel_actor_settings')
     .select('*')
     .eq('environment', 'test')
     .eq('is_active', true)
+
+  if (companyId) {
+    query = query.eq('company_id', companyId)
+  }
+
+  const { data, error } = await query
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -82,11 +88,17 @@ async function getActiveTestSupplierActor(): Promise<EdielActorSettingsRow | nul
   return (data as EdielActorSettingsRow | null) ?? null
 }
 
-async function getRouteByName(routeName: string): Promise<CommunicationRouteLite | null> {
-  const { data, error } = await supabaseService
+async function getRouteByName(routeName: string, companyId?: string | null): Promise<CommunicationRouteLite | null> {
+  let query = supabaseService
     .from('communication_routes')
     .select('id,route_name,is_active,route_scope,route_type,target_system,target_email,endpoint,supported_payload_version,notes,updated_at')
     .eq('route_name', routeName)
+
+  if (companyId) {
+    query = query.or(`company_id.is.null,company_id.eq.${companyId}`)
+  }
+
+  const { data, error } = await query
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -95,13 +107,19 @@ async function getRouteByName(routeName: string): Promise<CommunicationRouteLite
   return (data as CommunicationRouteLite | null) ?? null
 }
 
-async function getRouteProfile(routeId: string | null): Promise<EdielRouteProfileRow | null> {
+async function getRouteProfile(routeId: string | null, companyId?: string | null): Promise<EdielRouteProfileRow | null> {
   if (!routeId) return null
 
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_route_profiles')
     .select('*')
     .eq('communication_route_id', routeId)
+
+  if (companyId) {
+    query = query.or(`company_id.is.null,company_id.eq.${companyId}`)
+  }
+
+  const { data, error } = await query
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -279,15 +297,15 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
   return issues
 }
 
-export async function getEdielAgtSupplierRuntime(): Promise<EdielAgtSupplierRuntime> {
-  const actor = await getActiveTestSupplierActor()
+export async function getEdielAgtSupplierRuntime(companyId?: string | null): Promise<EdielAgtSupplierRuntime> {
+  const actor = await getActiveTestSupplierActor(companyId)
   const [prodatRoute, utiltsRoute] = await Promise.all([
-    getRouteByName(getEdielAgtRouteName('PRODAT')),
-    getRouteByName(getEdielAgtRouteName('UTILTS')),
+    getRouteByName(getEdielAgtRouteName('PRODAT'), companyId),
+    getRouteByName(getEdielAgtRouteName('UTILTS'), companyId),
   ])
   const [prodatProfile, utiltsProfile] = await Promise.all([
-    getRouteProfile(prodatRoute?.id ?? null),
-    getRouteProfile(utiltsRoute?.id ?? null),
+    getRouteProfile(prodatRoute?.id ?? null, companyId),
+    getRouteProfile(utiltsRoute?.id ?? null, companyId),
   ])
 
   const prodat = { family: 'PRODAT' as const, route: prodatRoute, profile: prodatProfile }

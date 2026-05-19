@@ -6,6 +6,7 @@ import EdielRuleGroups, {
 import EdielRuleTemplateModals from '@/components/admin/ediel/EdielRuleTemplateModals'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
   saveEdielActorSettingsAction,
   saveEdielMessageRuleAction,
@@ -192,13 +193,20 @@ function pickPreviousRule(
 
 export default async function AdminEdielSettingsPage() {
   const context = await requireAnyPermissionServer(['communication.read'])
+  const companyScope = await getOperationalCompanyScope(context.userId)
 
   const supabase = await createSupabaseServerClient()
 
+  let actorSettingsQuery = supabase
+    .from('ediel_actor_settings')
+    .select('*')
+
+  if (companyScope.companyId) {
+    actorSettingsQuery = actorSettingsQuery.or(`company_id.is.null,company_id.eq.${companyScope.companyId}`)
+  }
+
   const [actorSettingsResult, messageRulesResult] = await Promise.all([
-    supabase
-      .from('ediel_actor_settings')
-      .select('*')
+    actorSettingsQuery
       .order('environment', { ascending: true })
       .order('updated_at', { ascending: false }),
     supabase
@@ -326,8 +334,8 @@ export default async function AdminEdielSettingsPage() {
   return (
     <div className="space-y-6">
       <AdminHeader
-        title="Ediel settings"
-        subtitle="Aktörskort och message rules, nu med modalbaserade processmallar och en förenklad rule-vy med current / previous / history."
+        title="Ediel-inställningar"
+        subtitle={`Aktörsprofiler och meddelanderegler för ${companyScope.companyName ?? 'valt bolag'}. Aktiva profiler sparas tenant-scopat så samma Ediel-id används i routes, liveflöde och testmiljö.`}
         userEmail={context.email}
       />
 

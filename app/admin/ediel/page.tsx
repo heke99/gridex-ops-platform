@@ -4,6 +4,8 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
+import { getActiveEdielActorSettings } from '@/lib/ediel/config'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
 import { EDIEL_AGT_SUPPLIER_2026A_CASES } from '@/lib/ediel/agtRegistry'
 
@@ -38,17 +40,17 @@ function Metric({
   tone?: 'slate' | 'emerald' | 'amber' | 'red'
 }) {
   const classes: Record<typeof tone, string> = {
-    slate: 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
-    emerald: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
-    amber: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20',
-    red: 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20',
+    slate: 'border-slate-200 bg-white',
+    emerald: 'border-emerald-200 bg-emerald-50/80',
+    amber: 'border-amber-200 bg-amber-50/90',
+    red: 'border-red-200 bg-red-50/90',
   }
 
   return (
     <div className={`rounded-3xl border p-5 shadow-sm ${classes[tone]}`}>
-      <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</div>
-      <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">{value}</div>
-      <div className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{hint}</div>
+      <div className="text-sm font-semibold text-slate-600">{label}</div>
+      <div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div>
+      <div className="mt-2 text-xs leading-5 text-slate-600">{hint}</div>
     </div>
   )
 }
@@ -144,14 +146,35 @@ function CaseLine({
   )
 }
 
+function ProfileField({
+  label,
+  value,
+}: {
+  label: string
+  value: string | number | null | undefined
+}) {
+  const display = value === null || value === undefined || String(value).trim().length === 0 ? '—' : String(value)
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</div>
+      <div className="mt-1 break-all text-sm font-semibold text-slate-950">{display}</div>
+    </div>
+  )
+}
+
 export default async function EdielPage() {
   const context = await requireAnyPermissionServer(['communication.read'])
   const supabase = await createSupabaseServerClient()
-  const [ediel, agtRuntime] = await Promise.all([
+  const companyScope = await getOperationalCompanyScope(context.userId)
+  const [ediel, agtRuntime, activeProductionActor, activeTestActor] = await Promise.all([
     getEdielSummary(supabase).catch(() => EMPTY_EDIEL_SUMMARY),
-    getEdielAgtSupplierRuntime().catch(() => null),
+    getEdielAgtSupplierRuntime(companyScope.companyId).catch(() => null),
+    getActiveEdielActorSettings('production', companyScope.companyId).catch(() => null),
+    getActiveEdielActorSettings('test', companyScope.companyId).catch(() => null),
   ])
 
+  const liveActor = activeProductionActor ?? activeTestActor ?? agtRuntime?.actor ?? null
   const liveAttention = ediel.failedMessages + ediel.ackPendingMessages + ediel.ackOverdueMessages
   const agtErrors = agtRuntime?.issues.filter((issue) => issue.severity === 'error').length ?? 0
   const agtWarnings = agtRuntime?.issues.filter((issue) => issue.severity === 'warning').length ?? 0
@@ -212,29 +235,49 @@ export default async function EdielPage() {
           />
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Aktiv tenant och aktörsprofil</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">{agtRuntime?.actor?.actor_name ?? 'Ingen aktiv leverantör vald'}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                Live Ediel och testmiljö ska alltid utgå från aktiv aktörsprofil. Byter du leverantör i SaaS-läget ska Ediel-id, mailbox, sender-namn och route-profiler styras av konfiguration – inte av kod.
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Aktiv tenant och Ediel-profil</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">{companyScope.companyName ?? 'Bolag ej valt'} · {liveActor?.actor_name ?? 'Ediel-profil saknas'}</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
+                Tenantprofilen är källan för Ediel-id, sender-namn, mailbox, Application Reference och route-profiler. När profilen sparas ska den ligga på samma company_id som kunder, routes, outbound, Ediel-meddelanden och mätvärden.
               </p>
             </div>
-            <div className="grid gap-2 text-sm md:min-w-72">
-              <div className="flex justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-3 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400">Ediel-id</span>
-                <span className="font-mono font-semibold text-slate-950 dark:text-white">{agtRuntime?.actor?.actor_ediel_id ?? '—'}</span>
-              </div>
-              <div className="flex justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-3 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400">Mailbox</span>
-                <span className="font-mono font-semibold text-slate-950 dark:text-white">{agtRuntime?.actor?.mailbox ?? '—'}</span>
-              </div>
-              <div className="flex justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-3 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400">Testmiljö readiness</span>
-                <span className="font-semibold text-slate-950 dark:text-white">{agtRuntime?.isReady ? 'redo' : `${agtErrors} fel / ${agtWarnings} varningar`}</span>
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <Pill tone={liveActor ? 'emerald' : 'red'}>{liveActor ? 'Tenantprofil hittad' : 'Profil saknas'}</Pill>
+              <Pill tone={activeProductionActor ? 'emerald' : activeTestActor ? 'amber' : 'red'}>{activeProductionActor ? 'Produktion aktiv' : activeTestActor ? 'Endast testprofil aktiv' : 'Ingen aktiv miljö'}</Pill>
             </div>
+          </div>
+
+          {companyScope.message ? (
+            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+              {companyScope.message}
+            </div>
+          ) : null}
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <ProfileField label="Bolag / tenant" value={companyScope.companyName} />
+            <ProfileField label="Company ID" value={companyScope.companyId} />
+            <ProfileField label="Miljö som visas" value={activeProductionActor ? 'production' : activeTestActor ? 'test' : liveActor?.environment} />
+            <ProfileField label="Aktörsroll" value={liveActor?.actor_role} />
+            <ProfileField label="Ediel-id" value={liveActor?.actor_ediel_id} />
+            <ProfileField label="Sender-namn" value={liveActor?.sender_name ?? liveActor?.actor_name} />
+            <ProfileField label="Sender subaddress" value={liveActor?.sender_sub_address} />
+            <ProfileField label="Mailbox" value={liveActor?.mailbox} />
+            <ProfileField label="Application Reference" value={liveActor?.default_application_reference} />
+            <ProfileField label="SMTP från" value={liveActor?.smtp_from_email} />
+            <ProfileField label="Charset" value={liveActor?.default_charset} />
+            <ProfileField label="Testmiljö readiness" value={agtRuntime?.isReady ? 'redo' : `${agtErrors} fel / ${agtWarnings} varningar`} />
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/admin/ediel/settings" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">
+              Hantera tenantprofil
+            </Link>
+            <Link href="/admin/ediel/routes" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+              Kontrollera routes
+            </Link>
           </div>
         </section>
 
