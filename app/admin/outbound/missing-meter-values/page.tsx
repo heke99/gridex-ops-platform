@@ -7,249 +7,249 @@ import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
-  searchParams: Promise<{
-    period?: string
-  }>
+ searchParams: Promise<{
+ period?: string
+ }>
 }
 
 function defaultPeriod(): string {
-  const now = new Date()
-  const prev = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
-  return `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}`
+ const now = new Date()
+ const prev = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+ return `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}`
 }
 
 function normalizePeriod(value: string | undefined): string {
-  const trimmed = value?.trim() ?? ''
-  if (!trimmed) return defaultPeriod()
+ const trimmed = value?.trim() ?? ''
+ if (!trimmed) return defaultPeriod()
 
-  const match = /^(\d{4})-(\d{2})$/.exec(trimmed)
-  if (!match) return defaultPeriod()
+ const match = /^(\d{4})-(\d{2})$/.exec(trimmed)
+ if (!match) return defaultPeriod()
 
-  const year = Number(match[1])
-  const month = Number(match[2])
+ const year = Number(match[1])
+ const month = Number(match[2])
 
-  if (!Number.isInteger(year) || !Number.isInteger(month)) {
-    return defaultPeriod()
-  }
+ if (!Number.isInteger(year) || !Number.isInteger(month)) {
+ return defaultPeriod()
+ }
 
-  if (month < 1 || month > 12) {
-    return defaultPeriod()
-  }
+ if (month < 1 || month > 12) {
+ return defaultPeriod()
+ }
 
-  return `${year}-${String(month).padStart(2, '0')}`
+ return `${year}-${String(month).padStart(2, '0')}`
 }
 
 function monthPeriod(monthInput: string): { start: string; end: string } {
-  const match = /^(\d{4})-(\d{2})$/.exec(monthInput)
+ const match = /^(\d{4})-(\d{2})$/.exec(monthInput)
 
-  if (!match) {
-    const fallback = defaultPeriod()
-    const fallbackMatch = /^(\d{4})-(\d{2})$/.exec(fallback)
-    if (!fallbackMatch) {
-      throw new Error('Kunde inte beräkna period')
-    }
+ if (!match) {
+ const fallback = defaultPeriod()
+ const fallbackMatch = /^(\d{4})-(\d{2})$/.exec(fallback)
+ if (!fallbackMatch) {
+ throw new Error('Kunde inte beräkna period')
+ }
 
-    const fallbackYear = Number(fallbackMatch[1])
-    const fallbackMonth = Number(fallbackMatch[2])
+ const fallbackYear = Number(fallbackMatch[1])
+ const fallbackMonth = Number(fallbackMatch[2])
 
-    return {
-      start: new Date(Date.UTC(fallbackYear, fallbackMonth - 1, 1))
-        .toISOString()
-        .slice(0, 10),
-      end: new Date(Date.UTC(fallbackYear, fallbackMonth, 0))
-        .toISOString()
-        .slice(0, 10),
-    }
-  }
+ return {
+ start: new Date(Date.UTC(fallbackYear, fallbackMonth - 1, 1))
+ .toISOString()
+ .slice(0, 10),
+ end: new Date(Date.UTC(fallbackYear, fallbackMonth, 0))
+ .toISOString()
+ .slice(0, 10),
+ }
+ }
 
-  const year = Number(match[1])
-  const month = Number(match[2])
+ const year = Number(match[1])
+ const month = Number(match[2])
 
-  return {
-    start: new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10),
-    end: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10),
-  }
+ return {
+ start: new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10),
+ end: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10),
+ }
 }
 
 async function queueMissingMeterValuesFormAction(
-  formData: FormData
+ formData: FormData
 ): Promise<void> {
-  'use server'
-  await bulkQueueMissingMeterValuesAction(formData)
+ 'use server'
+ await bulkQueueMissingMeterValuesAction(formData)
 }
 
 export default async function MissingMeterValuesPage({
-  searchParams,
+ searchParams,
 }: PageProps) {
-  await requirePermissionServer('metering.read')
+ await requirePermissionServer('metering.read')
 
-  const params = await searchParams
-  const selectedPeriod = normalizePeriod(params.period)
-  const period = monthPeriod(selectedPeriod)
+ const params = await searchParams
+ const selectedPeriod = normalizePeriod(params.period)
+ const period = monthPeriod(selectedPeriod)
 
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+ const supabase = await createSupabaseServerClient()
+ const {
+ data: { user },
+ } = await supabase.auth.getUser()
 
-  const { data: sites, error: sitesError } = await supabase
-    .from('customer_sites')
-    .select('*')
-    .order('created_at', { ascending: false })
+ const { data: sites, error: sitesError } = await supabase
+ .from('customer_sites')
+ .select('*')
+ .order('created_at', { ascending: false })
 
-  if (sitesError) throw sitesError
+ if (sitesError) throw sitesError
 
-  const safeSites = ((sites ?? []) as { id: string }[]).filter(
-    (site): site is { id: string } => Boolean(site?.id)
-  )
+ const safeSites = ((sites ?? []) as { id: string }[]).filter(
+ (site): site is { id: string } => Boolean(site?.id)
+ )
 
-  const meteringPoints = await listMeteringPointsBySiteIds(
-    supabase,
-    safeSites.map((site) => site.id)
-  )
+ const meteringPoints = await listMeteringPointsBySiteIds(
+ supabase,
+ safeSites.map((site) => site.id)
+ )
 
-  const valuesQuery = supabase
-    .from('metering_values')
-    .select('metering_point_id, period_start, period_end')
-    .gte('period_start', period.start)
-    .lte('period_end', period.end)
+ const valuesQuery = supabase
+ .from('metering_values')
+ .select('metering_point_id, period_start, period_end')
+ .gte('period_start', period.start)
+ .lte('period_end', period.end)
 
-  const { data: values, error: valuesError } = await valuesQuery
-  if (valuesError) throw valuesError
+ const { data: values, error: valuesError } = await valuesQuery
+ if (valuesError) throw valuesError
 
-  const existingPointIds = new Set(
-    ((values ?? []) as Array<{ metering_point_id: string | null }>)
-      .map((row) => row.metering_point_id)
-      .filter((value): value is string => Boolean(value))
-  )
+ const existingPointIds = new Set(
+ ((values ?? []) as Array<{ metering_point_id: string | null }>)
+ .map((row) => row.metering_point_id)
+ .filter((value): value is string => Boolean(value))
+ )
 
-  const missingPoints = meteringPoints.filter(
-    (point) => !existingPointIds.has(point.id)
-  )
+ const missingPoints = meteringPoints.filter(
+ (point) => !existingPointIds.has(point.id)
+ )
 
-  return (
-    <div className="min-h-screen">
-      <AdminHeader
-        title="Bulk: saknade mätvärden"
-        subtitle="Köa periodspecifika mätvärdesförfrågningar utan att skapa dubbletter för samma månad."
-        userEmail={user?.email ?? null}
-      />
+ return (
+ <div className="min-h-screen">
+ <AdminHeader
+ title="Bulk: saknade mätvärden"
+ subtitle="Köa periodspecifika mätvärdesförfrågningar utan att skapa dubbletter för samma månad."
+ userEmail={user?.email ?? null}
+ />
 
-      <div className="space-y-6 p-8">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <form className="grid gap-4 xl:grid-cols-[260px_auto]">
-            <input
-              type="month"
-              name="period"
-              defaultValue={selectedPeriod}
-              className="h-11 rounded-2xl border border-slate-300 px-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-            />
-            <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
-              Visa period
-            </button>
-          </form>
+ <div className="space-y-6 p-8">
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <form className="grid gap-4 xl:grid-cols-[260px_auto]">
+ <input
+ type="month"
+ name="period"
+ defaultValue={selectedPeriod}
+ className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ />
+ <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white ">
+ Visa period
+ </button>
+ </form>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-950">
-              <div className="text-sm text-slate-500 dark:text-slate-400">
-                Totala mätpunkter
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">
-                {meteringPoints.length}
-              </div>
-            </div>
+ <div className="mt-6 grid gap-4 md:grid-cols-3">
+ <div className="rounded-2xl bg-slate-50 px-4 py-4 ">
+ <div className="text-sm text-slate-700 ">
+ Totala mätpunkter
+ </div>
+ <div className="mt-2 text-2xl font-semibold text-slate-950 ">
+ {meteringPoints.length}
+ </div>
+ </div>
 
-            <div className="rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-950">
-              <div className="text-sm text-slate-500 dark:text-slate-400">
-                Har värden i perioden
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">
-                {meteringPoints.length - missingPoints.length}
-              </div>
-            </div>
+ <div className="rounded-2xl bg-slate-50 px-4 py-4 ">
+ <div className="text-sm text-slate-700 ">
+ Har värden i perioden
+ </div>
+ <div className="mt-2 text-2xl font-semibold text-slate-950 ">
+ {meteringPoints.length - missingPoints.length}
+ </div>
+ </div>
 
-            <div className="rounded-2xl bg-amber-50 px-4 py-4 dark:bg-amber-950/20">
-              <div className="text-sm text-amber-700 dark:text-amber-300">
-                Saknar värden i perioden
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-amber-900 dark:text-amber-200">
-                {missingPoints.length}
-              </div>
-            </div>
-          </div>
+ <div className="rounded-2xl bg-amber-50 px-4 py-4 ">
+ <div className="text-sm text-amber-700 ">
+ Saknar värden i perioden
+ </div>
+ <div className="mt-2 text-2xl font-semibold text-amber-900 ">
+ {missingPoints.length}
+ </div>
+ </div>
+ </div>
 
-          <form action={queueMissingMeterValuesFormAction} className="mt-6">
-            <input type="hidden" name="period_month" value={selectedPeriod} />
-            <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
-              Köa saknade mätvärden för {selectedPeriod}
-            </button>
-          </form>
-        </section>
+ <form action={queueMissingMeterValuesFormAction} className="mt-6">
+ <input type="hidden" name="period_month" value={selectedPeriod} />
+ <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white ">
+ Köa saknade mätvärden för {selectedPeriod}
+ </button>
+ </form>
+ </section>
 
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Förhandsvisning
-            </h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Mätpunkter som saknar importerade mätvärden för vald period.
-            </p>
-          </div>
+ <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
+ <div className="border-b border-slate-200 px-6 py-5 ">
+ <h2 className="text-lg font-semibold text-slate-950 ">
+ Förhandsvisning
+ </h2>
+ <p className="mt-1 text-sm text-slate-700 ">
+ Mätpunkter som saknar importerade mätvärden för vald period.
+ </p>
+ </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-950/50">
-                <tr className="border-b border-slate-200 text-left dark:border-slate-800">
-                  <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
-                    Mätpunkt
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
-                    Site
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
-                    Nätägare
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {missingPoints.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400"
-                    >
-                      Alla mätpunkter har minst ett mätvärde registrerat för vald period.
-                    </td>
-                  </tr>
-                ) : (
-                  missingPoints.map((point) => (
-                    <tr
-                      key={point.id}
-                      className="border-b border-slate-100 dark:border-slate-800"
-                    >
-                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                        {point.meter_point_id}
-                      </td>
-                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                        {point.site_id}
-                      </td>
-                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                        {point.grid_owner_id ?? '—'}
-                      </td>
-                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                        {point.status}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-    </div>
-  )
+ <div className="overflow-x-auto">
+ <table className="min-w-full text-sm">
+ <thead className="bg-slate-50 ">
+ <tr className="border-b border-slate-200 text-left ">
+ <th className="px-6 py-4 font-semibold text-slate-700 ">
+ Mätpunkt
+ </th>
+ <th className="px-6 py-4 font-semibold text-slate-700 ">
+ Site
+ </th>
+ <th className="px-6 py-4 font-semibold text-slate-700 ">
+ Nätägare
+ </th>
+ <th className="px-6 py-4 font-semibold text-slate-700 ">
+ Status
+ </th>
+ </tr>
+ </thead>
+ <tbody>
+ {missingPoints.length === 0 ? (
+ <tr>
+ <td
+ colSpan={4}
+ className="px-6 py-10 text-center text-sm text-slate-700 "
+ >
+ Alla mätpunkter har minst ett mätvärde registrerat för vald period.
+ </td>
+ </tr>
+ ) : (
+ missingPoints.map((point) => (
+ <tr
+ key={point.id}
+ className="border-b border-slate-100 "
+ >
+ <td className="px-6 py-4 text-slate-700 ">
+ {point.meter_point_id}
+ </td>
+ <td className="px-6 py-4 text-slate-700 ">
+ {point.site_id}
+ </td>
+ <td className="px-6 py-4 text-slate-700 ">
+ {point.grid_owner_id ?? '—'}
+ </td>
+ <td className="px-6 py-4 text-slate-700 ">
+ {point.status}
+ </td>
+ </tr>
+ ))
+ )}
+ </tbody>
+ </table>
+ </div>
+ </section>
+ </div>
+ </div>
+ )
 }

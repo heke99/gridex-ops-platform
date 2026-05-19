@@ -32,7 +32,7 @@ export function formatDateTime(value: string | null | undefined): string {
 
 export function statusTone(status: string | null | undefined): string {
   if (!status) {
-    return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+    return 'bg-slate-100 text-slate-700'
   }
 
   if (
@@ -40,7 +40,7 @@ export function statusTone(status: string | null | undefined): string {
       status
     )
   ) {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+    return 'bg-emerald-100 text-emerald-700'
   }
 
   if (
@@ -48,30 +48,30 @@ export function statusTone(status: string | null | undefined): string {
       status
     )
   ) {
-    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
+    return 'bg-red-100 text-red-700'
   }
 
   if (['sent', 'submitted', 'awaiting_response'].includes(status)) {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+    return 'bg-emerald-100 text-emerald-700'
   }
 
-  return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+  return 'bg-amber-100 text-amber-700'
 }
 
 export function lifecycleTone(stage: string): string {
   if (['completed', 'ready_to_execute'].includes(stage)) {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+    return 'bg-emerald-100 text-emerald-700'
   }
 
   if (['failed', 'blocked'].includes(stage)) {
-    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
+    return 'bg-red-100 text-red-700'
   }
 
   if (['awaiting_response'].includes(stage)) {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+    return 'bg-emerald-100 text-emerald-700'
   }
 
-  return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+  return 'bg-amber-100 text-amber-700'
 }
 
 export function routeLabel(route: EdielRecommendationRouteRow | null): string {
@@ -84,8 +84,8 @@ export function routeLabel(route: EdielRecommendationRouteRow | null): string {
 
 export function routeIssueTone(issue: EdielRouteIssue): string {
   return issue.severity === 'error'
-    ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
-    : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+    ? 'bg-red-100 text-red-700'
+    : 'bg-amber-100 text-amber-700'
 }
 
 export function siteLabel(siteId: string, sites: CustomerSiteRow[]): string {

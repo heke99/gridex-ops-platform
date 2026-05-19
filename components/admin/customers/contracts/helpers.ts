@@ -68,17 +68,17 @@ export function greenFeeLabel(mode: GreenFeeMode, value: number | null | undefin
 export function statusTone(status: string): string {
   switch (status) {
     case 'active':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300'
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700'
     case 'signed':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300'
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700'
     case 'pending_signature':
-      return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300'
+      return 'border-amber-200 bg-amber-50 text-amber-700'
     case 'terminated':
     case 'cancelled':
     case 'expired':
-      return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300'
+      return 'border-red-200 bg-red-50 text-red-700'
     default:
-      return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+      return 'border-slate-200 bg-slate-50 text-slate-700'
   }
 }
 

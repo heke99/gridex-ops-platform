@@ -51,29 +51,29 @@ export function statusBadgeClass(status: string) {
     case 'received':
     case 'completed':
     case 'acknowledged':
-      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+      return 'bg-emerald-100 text-emerald-700'
     case 'archived':
     case 'revoked':
     case 'cancelled':
-      return 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+      return 'bg-slate-200 text-slate-700'
     case 'failed':
     case 'rejected':
-      return 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
+      return 'bg-red-100 text-red-700'
     default:
-      return 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+      return 'bg-amber-100 text-amber-700'
   }
 }
 
 export function uploadResultClass(status: 'idle' | 'success' | 'duplicate' | 'error') {
   switch (status) {
     case 'success':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200'
+      return 'border-emerald-200 bg-emerald-50 text-emerald-800'
     case 'duplicate':
-      return 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-500/10 dark:text-amber-200'
+      return 'border-amber-200 bg-amber-50 text-amber-800'
     case 'error':
-      return 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/60 dark:bg-red-500/10 dark:text-red-200'
+      return 'border-red-200 bg-red-50 text-red-800'
     default:
-      return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300'
+      return 'border-slate-200 bg-slate-50 text-slate-700'
   }
 }
 
@@ -88,20 +88,20 @@ export function documentFlowBadge(
   if (replacesAnotherDocument) {
     return {
       label: 'Ersättningsdokument',
-      className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+      className: 'bg-emerald-100 text-emerald-700',
     }
   }
 
   if (documentRow.status === 'archived' && documentRow.replaced_document_id) {
     return {
       label: 'Ersatt',
-      className: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+      className: 'bg-slate-200 text-slate-700',
     }
   }
 
   return {
     label: 'Nytt dokument',
-    className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+    className: 'bg-emerald-100 text-emerald-700',
   }
 }
 
@@ -203,7 +203,7 @@ export function buildDocumentFlowSteps(params: {
           href: buildOutboundHref(latestOutbound),
           tone:
             latestOutbound.channel_type === 'unresolved'
-              ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+              ? 'bg-amber-100 text-amber-700'
               : statusBadgeClass(latestOutbound.status),
         }
       : {
@@ -225,10 +225,10 @@ export function buildDocumentFlowSteps(params: {
         responseValue === 'Kvittens mottagen' ||
         responseValue === 'Underlag mottaget' ||
         responseValue === 'Switch slutförd'
-          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+          ? 'bg-emerald-100 text-emerald-700'
           : responseValue.includes('fel') || responseValue.includes('Stoppad')
-            ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
-            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+            ? 'bg-red-100 text-red-700'
+            : 'bg-slate-100 text-slate-700',
     },
   ]
 }
@@ -256,7 +256,7 @@ export function buildDocumentTimelineItems(params: {
       occurredAt: params.documentRow.uploaded_at,
       title: 'Dokument uppladdat',
       description: `${documentTypeLabel(params.documentRow.document_type)} registrerat som ${params.documentRow.status}.`,
-      tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+      tone: 'bg-emerald-100 text-emerald-700',
       links: [],
     })
   }
@@ -328,7 +328,7 @@ export function buildDocumentTimelineItems(params: {
         occurredAt: log.created_at,
         title: 'Upload registrerad',
         description: descriptionParts.join(' '),
-        tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+        tone: 'bg-emerald-100 text-emerald-700',
         links: links.filter(
           (link, index, array) =>
             array.findIndex(
@@ -410,8 +410,8 @@ export function buildDocumentTimelineItems(params: {
           .filter((value): value is string => Boolean(value))
           .join(' '),
         tone: blockedReasons.length
-          ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
-          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+          ? 'bg-amber-100 text-amber-700'
+          : 'bg-emerald-100 text-emerald-700',
         links: links.filter(
           (link, index, array) =>
             array.findIndex(
@@ -452,7 +452,7 @@ export function buildDocumentTimelineItems(params: {
         ]
           .filter((value): value is string => Boolean(value))
           .join(' '),
-        tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+        tone: 'bg-emerald-100 text-emerald-700',
         links,
       })
       continue
@@ -536,7 +536,7 @@ export function buildDocumentTimelineItems(params: {
         ]
           .filter((value): value is string => Boolean(value))
           .join(' '),
-        tone: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300',
+        tone: 'bg-red-100 text-red-700',
         links,
       })
       continue
@@ -547,7 +547,7 @@ export function buildDocumentTimelineItems(params: {
       occurredAt: log.created_at,
       title: log.action,
       description: 'Audit-händelse registrerad för dokumentet.',
-      tone: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+      tone: 'bg-slate-100 text-slate-700',
       links: [],
     })
   }
@@ -558,7 +558,7 @@ export function buildDocumentTimelineItems(params: {
       occurredAt: params.documentRow.updated_at,
       title: 'Dokument ersatt',
       description: `Dokumentet ersattes av dokument ${params.documentRow.replaced_document_id}.`,
-      tone: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+      tone: 'bg-slate-100 text-slate-700',
       links: [],
     })
   }

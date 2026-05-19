@@ -190,3 +190,46 @@ textarea {
 .admin-saas-content :where(.text-red-700, .text-red-800, .text-red-900) {
   color: #b91c1c;
 }
+
+/* Strict admin contrast guard. This prevents hidden/light text and secondary buttons in all admin subsections. */
+.admin-saas-content :where(.text-slate-400, .text-slate-500, .text-slate-600) {
+  color: #334155 !important;
+}
+
+.admin-saas-content :where(.text-slate-300, .text-slate-200, .text-slate-100) {
+  color: #475569 !important;
+}
+
+.admin-saas-content :where(button[class*="bg-slate-50"][class*="text-white"], a[class*="bg-slate-50"][class*="text-white"]) {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.admin-saas-content :where(button[class*="bg-emerald-700"], a[class*="bg-emerald-700"], input[type="submit"][class*="bg-emerald-700"]) {
+  background-color: #047857 !important;
+  color: #ffffff !important;
+}
+
+.admin-saas-content :where(button[class*="bg-emerald-700"]:hover, a[class*="bg-emerald-700"]:hover, input[type="submit"][class*="bg-emerald-700"]:hover) {
+  background-color: #065f46 !important;
+}
+
+.admin-saas-content :where([class*="rounded-"][class*="border"]) {
+  border-color: #e2e8f0;
+}
+
+.admin-saas-content :where([class*="rounded-"][class*="bg-white"], [class*="rounded-"][class*="bg-slate-50"], [class*="rounded-"][class*="bg-emerald-50"], [class*="rounded-"][class*="bg-amber-50"], [class*="rounded-"][class*="bg-red-50"]) {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.admin-saas-content :where(input, select, textarea) {
+  min-height: 2.5rem;
+  border-radius: 1rem;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.admin-saas-content :where(input::placeholder, textarea::placeholder) {
+  color: #64748b !important;
+}

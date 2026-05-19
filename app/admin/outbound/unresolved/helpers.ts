@@ -22,15 +22,15 @@ export type ResolutionSummary = {
 
 export function tone(status: string): string {
   if (['acknowledged', 'ready', 'resolved', 'active'].includes(status)) {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+    return 'bg-emerald-100 text-emerald-700'
   }
   if (['failed', 'cancelled', 'unresolved', 'missing_route', 'inactive'].includes(status)) {
-    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
+    return 'bg-red-100 text-red-700'
   }
   if (['sent', 'submitted'].includes(status)) {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+    return 'bg-emerald-100 text-emerald-700'
   }
-  return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+  return 'bg-amber-100 text-amber-700'
 }
 
 export function formatDateTime(value: string | null | undefined): string {
