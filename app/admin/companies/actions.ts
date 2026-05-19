@@ -4,11 +4,29 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import {
+  getCompanyById,
+  getCompanyDeleteBlockers,
+  logTenantGovernanceEvent,
+  normalizeCompanyStatus,
+  requireCompanyOperationalForWrites,
+  type CompanyOperationalStatus,
+  type GovernanceEventAction,
+} from '@/lib/tenant/governance'
 
 export type CompanyActionState = {
   ok: boolean
   message: string
 }
+
+const ACTIVE_COMPANY_STATUSES: CompanyOperationalStatus[] = ['active', 'onboarding']
+const GOVERNANCE_COMPANY_STATUSES: CompanyOperationalStatus[] = [
+  'active',
+  'paused',
+  'suspended',
+  'archived',
+  'pending_deletion',
+]
 
 function normalizeText(value: FormDataEntryValue | null): string {
   return String(value ?? '').trim()
@@ -105,9 +123,26 @@ async function upsertOptionalUserProfile(input: { userId: string; email: string;
       id: input.userId,
       email: input.email,
       full_name: input.fullName,
+      user_status: 'active',
     },
     { onConflict: 'id' }
   )
+
+  if (error && (error.code === '42703' || /user_status/i.test(error.message ?? ''))) {
+    const retry = await supabaseService.from('user_profiles').upsert(
+      {
+        id: input.userId,
+        email: input.email,
+        full_name: input.fullName,
+      },
+      { onConflict: 'id' }
+    )
+
+    if (retry.error && !['42P01', 'PGRST205'].includes(retry.error.code ?? '')) {
+      throw retry.error
+    }
+    return
+  }
 
   if (error && !['42P01', 'PGRST205'].includes(error.code ?? '')) {
     throw error
@@ -138,6 +173,80 @@ async function resolveOrInviteUser(params: {
   const user = (data.users ?? []).find((row) => (row.email ?? '').toLowerCase() === params.email)
   if (!user?.id) throw new Error(`Ingen användare hittades med e-post ${params.email}.`)
   return user.id
+}
+
+function parseCompanyStatus(value: string): CompanyOperationalStatus {
+  const normalized = normalizeCompanyStatus(value)
+  if (!GOVERNANCE_COMPANY_STATUSES.includes(normalized)) {
+    throw new Error('Ogiltig bolagsstatus.')
+  }
+  return normalized
+}
+
+function governanceActionForStatus(status: CompanyOperationalStatus): GovernanceEventAction {
+  if (status === 'active') return 'SUPERADMIN_COMPANY_REACTIVATED'
+  if (status === 'paused') return 'SUPERADMIN_COMPANY_PAUSED'
+  if (status === 'suspended') return 'SUPERADMIN_COMPANY_SUSPENDED'
+  if (status === 'archived') return 'SUPERADMIN_COMPANY_ARCHIVED'
+  return 'SUPERADMIN_COMPANY_DELETION_REQUESTED'
+}
+
+function statusUpdatePayload(status: CompanyOperationalStatus, actorUserId: string, reason: string | null) {
+  const now = new Date().toISOString()
+  const base: Record<string, unknown> = {
+    status,
+    status_reason: reason,
+    updated_at: now,
+  }
+
+  if (status === 'active') {
+    return {
+      ...base,
+      reactivated_at: now,
+      reactivated_by: actorUserId,
+      paused_at: null,
+      paused_by: null,
+      suspended_at: null,
+      suspended_by: null,
+      archived_at: null,
+      archived_by: null,
+      deletion_requested_at: null,
+      deletion_requested_by: null,
+    }
+  }
+
+  if (status === 'paused') {
+    return { ...base, paused_at: now, paused_by: actorUserId }
+  }
+
+  if (status === 'suspended') {
+    return { ...base, suspended_at: now, suspended_by: actorUserId }
+  }
+
+  if (status === 'archived') {
+    return { ...base, archived_at: now, archived_by: actorUserId }
+  }
+
+  return { ...base, deletion_requested_at: now, deletion_requested_by: actorUserId }
+}
+
+async function setCompanyStatus(input: {
+  companyId: string
+  status: CompanyOperationalStatus
+  actorUserId: string
+  reason: string | null
+}) {
+  const payload = statusUpdatePayload(input.status, input.actorUserId, input.reason)
+
+  const { data, error } = await supabaseService
+    .from('companies')
+    .update(payload)
+    .eq('id', input.companyId)
+    .select('id, name, status')
+    .single()
+
+  if (error) throw error
+  return data as { id: string; name: string; status: string }
 }
 
 export async function createCompanyAction(
@@ -230,13 +339,12 @@ export async function createCompanyAction(
       })
     }
 
-    await supabaseService.from('audit_logs').insert({
-      actor_user_id: actorUserId,
-      entity_type: 'company',
-      entity_id: company.id,
-      action: 'company_created',
-      company_id: company.id,
-      new_values: company,
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_COMPANY_REACTIVATED',
+      actorUserId,
+      companyId: company.id,
+      reason: 'Bolag skapades',
+      metadata: { name, orgNumber },
     })
 
     revalidatePath('/admin/companies')
@@ -264,6 +372,8 @@ export async function inviteCompanyUserAction(
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!email) return { ok: false, message: 'E-post saknas.' }
 
+    await requireCompanyOperationalForWrites(companyId)
+
     const userId = await resolveOrInviteUser({ email, fullName, sendInvite: true })
     await upsertOptionalUserProfile({ userId, email, fullName })
     await insertActiveUserRole({ userId, roleId: await resolveRoleIdByKey(roleKey) })
@@ -278,6 +388,11 @@ export async function inviteCompanyUserAction(
         invited_by: actorUserId,
         invited_at: new Date().toISOString(),
         accepted_at: null,
+        disabled_at: null,
+        disabled_by: null,
+        removed_at: null,
+        removed_by: null,
+        status_reason: null,
         metadata: {},
       },
       { onConflict: 'company_id,user_id' }
@@ -298,11 +413,225 @@ export async function inviteCompanyUserAction(
       metadata: {},
     })
 
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_ROLE_CHANGED',
+      actorUserId,
+      companyId,
+      targetUserId: userId,
+      reason: 'Användare bjöds in och kopplades till bolag',
+      metadata: { membershipRole, roleKey, email },
+    })
+
     revalidatePath('/admin/companies')
+    revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
 
     return { ok: true, message: 'Inbjudan skapades och användaren kopplades till bolaget.' }
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Inbjudan kunde inte skapas.' }
+  }
+}
+
+export async function setCompanyOperationalStatusAction(
+  _prevState: CompanyActionState,
+  formData: FormData
+): Promise<CompanyActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['tenants.write'] })
+    const actorUserId = await getCurrentUserId()
+    const companyId = normalizeText(formData.get('company_id'))
+    const nextStatus = parseCompanyStatus(normalizeText(formData.get('next_status')))
+    const reason = normalizeText(formData.get('reason')) || null
+
+    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    if (!ACTIVE_COMPANY_STATUSES.includes(nextStatus) && !reason) {
+      return { ok: false, message: 'Ange anledning för styrningsåtgärden.' }
+    }
+
+    const company = await getCompanyById(companyId)
+    if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
+
+    const updated = await setCompanyStatus({ companyId, status: nextStatus, actorUserId, reason })
+
+    await logTenantGovernanceEvent({
+      action: governanceActionForStatus(nextStatus),
+      actorUserId,
+      companyId,
+      reason,
+      metadata: {
+        previousStatus: company.status,
+        nextStatus: updated.status,
+        companyName: company.name,
+      },
+    })
+
+    revalidatePath('/admin/companies')
+    revalidatePath(`/admin/companies/${companyId}/users`)
+    revalidatePath('/admin/controltower')
+    revalidatePath('/admin/ediel/control-tower')
+
+    return { ok: true, message: `${updated.name} uppdaterades till ${nextStatus}.` }
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Bolagsstatus kunde inte uppdateras.' }
+  }
+}
+
+export async function requestCompanyDeletionAction(
+  _prevState: CompanyActionState,
+  formData: FormData
+): Promise<CompanyActionState> {
+  const cloned = new FormData()
+  cloned.set('company_id', normalizeText(formData.get('company_id')))
+  cloned.set('next_status', 'pending_deletion')
+  cloned.set('reason', normalizeText(formData.get('reason')) || 'Radering begärd av superadmin')
+  return setCompanyOperationalStatusAction(_prevState, cloned)
+}
+
+export async function deleteTestCompanyAction(
+  _prevState: CompanyActionState,
+  formData: FormData
+): Promise<CompanyActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['tenants.write'] })
+    const actorUserId = await getCurrentUserId()
+    const companyId = normalizeText(formData.get('company_id'))
+    const reason = normalizeText(formData.get('reason')) || null
+
+    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+
+    const company = await getCompanyById(companyId)
+    if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
+
+    const blockers = await getCompanyDeleteBlockers(companyId)
+    if (blockers.length > 0) {
+      await logTenantGovernanceEvent({
+        action: 'SUPERADMIN_DELETE_BLOCKED_DUE_TO_HISTORY',
+        actorUserId,
+        companyId,
+        reason,
+        metadata: { blockers, companyName: company.name },
+      })
+
+      return {
+        ok: false,
+        message: `Hård radering nekades. Bolaget har historik: ${blockers
+          .map((blocker) => `${blocker.label} (${blocker.count})`)
+          .join(', ')}. Arkivera eller pausa bolaget i stället.`,
+      }
+    }
+
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_COMPANY_DELETED_TEST_ONLY',
+      actorUserId,
+      companyId,
+      reason,
+      metadata: { companyName: company.name },
+    })
+
+    await supabaseService.from('company_invitations').delete().eq('company_id', companyId)
+    await supabaseService.from('company_memberships').delete().eq('company_id', companyId)
+
+    const { error } = await supabaseService.from('companies').delete().eq('id', companyId)
+    if (error) throw error
+
+    revalidatePath('/admin/companies')
+    return { ok: true, message: 'Testbolaget raderades eftersom det saknade historik.' }
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Bolaget kunde inte raderas.' }
+  }
+}
+
+export async function removeUserFromCompanyAction(
+  _prevState: CompanyActionState,
+  formData: FormData
+): Promise<CompanyActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['tenants.write', 'users.write'] })
+    const actorUserId = await getCurrentUserId()
+    const companyId = normalizeText(formData.get('company_id'))
+    const userId = normalizeText(formData.get('user_id'))
+    const reason = normalizeText(formData.get('reason')) || null
+
+    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    if (!userId) return { ok: false, message: 'Användare saknas.' }
+
+    const { error } = await supabaseService
+      .from('company_memberships')
+      .update({
+        status: 'removed_from_company',
+        removed_at: new Date().toISOString(),
+        removed_by: actorUserId,
+        status_reason: reason,
+      })
+      .eq('company_id', companyId)
+      .eq('user_id', userId)
+
+    if (error) throw error
+
+    await supabaseService
+      .from('company_invitations')
+      .update({ status: 'invitation_revoked', revoked_at: new Date().toISOString() })
+      .eq('company_id', companyId)
+      .eq('invited_user_id', userId)
+      .eq('status', 'pending')
+
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_USER_REMOVED_FROM_COMPANY',
+      actorUserId,
+      companyId,
+      targetUserId: userId,
+      reason,
+    })
+
+    revalidatePath('/admin/companies')
+    revalidatePath(`/admin/companies/${companyId}/users`)
+    revalidatePath('/admin/users')
+
+    return { ok: true, message: 'Användaren togs bort från bolaget utan att historik raderades.' }
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Användaren kunde inte tas bort från bolaget.' }
+  }
+}
+
+export async function setCompanyUserRoleAction(
+  _prevState: CompanyActionState,
+  formData: FormData
+): Promise<CompanyActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['tenants.write', 'users.write'] })
+    const actorUserId = await getCurrentUserId()
+    const companyId = normalizeText(formData.get('company_id'))
+    const userId = normalizeText(formData.get('user_id'))
+    const membershipRole = normalizeText(formData.get('membership_role')) || 'member'
+    const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
+
+    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    if (!userId) return { ok: false, message: 'Användare saknas.' }
+
+    const { error } = await supabaseService
+      .from('company_memberships')
+      .update({ membership_role: membershipRole, status: 'active', status_reason: null })
+      .eq('company_id', companyId)
+      .eq('user_id', userId)
+
+    if (error) throw error
+
+    await insertActiveUserRole({ userId, roleId: await resolveRoleIdByKey(roleKey) })
+
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_ROLE_CHANGED',
+      actorUserId,
+      companyId,
+      targetUserId: userId,
+      reason: 'Bolagsroll ändrades av superadmin',
+      metadata: { membershipRole, roleKey },
+    })
+
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/companies/${companyId}/users`)
+
+    return { ok: true, message: 'Användarens bolagsroll uppdaterades.' }
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Bolagsrollen kunde inte uppdateras.' }
   }
 }

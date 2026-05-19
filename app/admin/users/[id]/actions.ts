@@ -33,6 +33,24 @@ async function resolveRoleIdByKey(roleKey: string) {
   return data.id as string
 }
 
+
+function resolveRoleIdFromForm(formData: FormData): string | null {
+  const roleId = normalizeText(formData.get('roleId')) || normalizeText(formData.get('role_id'))
+  return roleId || null
+}
+
+async function resolveRoleIdFromFormOrKey(formData: FormData): Promise<string> {
+  const directRoleId = resolveRoleIdFromForm(formData)
+  if (directRoleId) return directRoleId
+
+  const roleKey =
+    normalizeText(formData.get('role_key')) ||
+    normalizeText(formData.get('role'))
+
+  if (!roleKey) throw new Error('Roll saknas.')
+  return resolveRoleIdByKey(roleKey)
+}
+
 async function resolvePermissionIdByKey(permissionKey: string) {
   const { data, error } = await supabaseService
     .from('permissions')
@@ -46,6 +64,19 @@ async function resolvePermissionIdByKey(permissionKey: string) {
   }
 
   return data.id as string
+}
+
+
+async function resolvePermissionIdFromFormOrKey(formData: FormData): Promise<string> {
+  const directPermissionId = normalizeText(formData.get('permissionId')) || normalizeText(formData.get('permission_id'))
+  if (directPermissionId) return directPermissionId
+
+  const permissionKey =
+    normalizeText(formData.get('permission_key')) ||
+    normalizeText(formData.get('permission'))
+
+  if (!permissionKey) throw new Error('Permission saknas.')
+  return resolvePermissionIdByKey(permissionKey)
 }
 
 async function resolvePermissionIds(permissionKeys: string[]) {
@@ -83,21 +114,13 @@ export async function updateUserRoleAction(
     await requireAdminActionAccess({ anyOf: ['users.write'] })
 
     const userId = normalizeText(formData.get('user_id'))
-    const roleKey =
-      normalizeText(formData.get('role_key')) ||
-      normalizeText(formData.get('role'))
-
     const preserveOverrides = normalizeCheckbox(formData.get('preserve_overrides'))
 
     if (!userId) {
       return { ok: false, message: 'User ID saknas.' }
     }
 
-    if (!roleKey) {
-      return { ok: false, message: 'Roll saknas.' }
-    }
-
-    const roleId = await resolveRoleIdByKey(roleKey)
+    const roleId = await resolveRoleIdFromFormOrKey(formData)
 
     const { error: deleteRolesError } = await supabaseService
       .from('user_roles')
@@ -303,19 +326,11 @@ export async function addSecondaryRoleAction(
     await requireAdminActionAccess({ anyOf: ['users.write'] })
 
     const userId = normalizeText(formData.get('user_id'))
-    const roleKey =
-      normalizeText(formData.get('role_key')) ||
-      normalizeText(formData.get('role'))
-
     if (!userId) {
       return { ok: false, message: 'User ID saknas.' }
     }
 
-    if (!roleKey) {
-      return { ok: false, message: 'Roll saknas.' }
-    }
-
-    const roleId = await resolveRoleIdByKey(roleKey)
+    const roleId = await resolveRoleIdFromFormOrKey(formData)
 
     const { error } = await supabaseService
       .from('user_roles')
@@ -353,19 +368,11 @@ export async function removeSecondaryRoleAction(
     await requireAdminActionAccess({ anyOf: ['users.write'] })
 
     const userId = normalizeText(formData.get('user_id'))
-    const roleKey =
-      normalizeText(formData.get('role_key')) ||
-      normalizeText(formData.get('role'))
-
     if (!userId) {
       return { ok: false, message: 'User ID saknas.' }
     }
 
-    if (!roleKey) {
-      return { ok: false, message: 'Roll saknas.' }
-    }
-
-    const roleId = await resolveRoleIdByKey(roleKey)
+    const roleId = await resolveRoleIdFromFormOrKey(formData)
 
     const { error } = await supabaseService
       .from('user_roles')
@@ -397,14 +404,9 @@ export async function assignUserRoleAction(formData: FormData): Promise<void> {
   await requireAdminActionAccess({ anyOf: ['users.write'] })
 
   const userId = normalizeText(formData.get('user_id'))
-  const roleKey =
-    normalizeText(formData.get('role_key')) ||
-    normalizeText(formData.get('role'))
-
   if (!userId) throw new Error('User ID saknas.')
-  if (!roleKey) throw new Error('Roll saknas.')
 
-  const roleId = await resolveRoleIdByKey(roleKey)
+  const roleId = await resolveRoleIdFromFormOrKey(formData)
 
   const { error } = await supabaseService
     .from('user_roles')
@@ -427,22 +429,28 @@ export async function removeUserRoleAction(formData: FormData): Promise<void> {
   await requireAdminActionAccess({ anyOf: ['users.write'] })
 
   const userId = normalizeText(formData.get('user_id'))
-  const roleKey =
-    normalizeText(formData.get('role_key')) ||
-    normalizeText(formData.get('role'))
+  const userRoleId = normalizeText(formData.get('userRoleId')) || normalizeText(formData.get('user_role_id'))
 
   if (!userId) throw new Error('User ID saknas.')
-  if (!roleKey) throw new Error('Roll saknas.')
 
-  const roleId = await resolveRoleIdByKey(roleKey)
+  if (userRoleId) {
+    const { error } = await supabaseService
+      .from('user_roles')
+      .delete()
+      .eq('id', userRoleId)
+      .eq('user_id', userId)
 
-  const { error } = await supabaseService
-    .from('user_roles')
-    .delete()
-    .eq('user_id', userId)
-    .eq('role_id', roleId)
+    if (error) throw error
+  } else {
+    const roleId = await resolveRoleIdFromFormOrKey(formData)
+    const { error } = await supabaseService
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+      .eq('role_id', roleId)
 
-  if (error) throw error
+    if (error) throw error
+  }
 
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)
@@ -452,19 +460,14 @@ export async function addUserPermissionOverrideAction(formData: FormData): Promi
   await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
 
   const userId = normalizeText(formData.get('user_id'))
-  const permissionKey =
-    normalizeText(formData.get('permission_key')) ||
-    normalizeText(formData.get('permission'))
-
   const effectRaw =
     normalizeText(formData.get('effect')) ||
     normalizeText(formData.get('mode')) ||
     normalizeText(formData.get('value'))
 
   if (!userId) throw new Error('User ID saknas.')
-  if (!permissionKey) throw new Error('Permission saknas.')
 
-  const permissionId = await resolvePermissionIdByKey(permissionKey)
+  const permissionId = await resolvePermissionIdFromFormOrKey(formData)
   const isAllowed = effectRaw === 'deny' ? false : true
 
   const { error } = await supabaseService
@@ -490,22 +493,28 @@ export async function removeUserPermissionOverrideAction(
   await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
 
   const userId = normalizeText(formData.get('user_id'))
-  const permissionKey =
-    normalizeText(formData.get('permission_key')) ||
-    normalizeText(formData.get('permission'))
+  const overrideId = normalizeText(formData.get('overrideId')) || normalizeText(formData.get('override_id'))
 
   if (!userId) throw new Error('User ID saknas.')
-  if (!permissionKey) throw new Error('Permission saknas.')
 
-  const permissionId = await resolvePermissionIdByKey(permissionKey)
+  if (overrideId) {
+    const { error } = await supabaseService
+      .from('user_permissions')
+      .delete()
+      .eq('id', overrideId)
+      .eq('user_id', userId)
 
-  const { error } = await supabaseService
-    .from('user_permissions')
-    .delete()
-    .eq('user_id', userId)
-    .eq('permission_id', permissionId)
+    if (error) throw error
+  } else {
+    const permissionId = await resolvePermissionIdFromFormOrKey(formData)
+    const { error } = await supabaseService
+      .from('user_permissions')
+      .delete()
+      .eq('user_id', userId)
+      .eq('permission_id', permissionId)
 
-  if (error) throw error
+    if (error) throw error
+  }
 
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)

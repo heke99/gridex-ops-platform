@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getCurrentUserPermissionContext, requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getAdminUserById } from '@/lib/rbac/getAdminUserById'
 import { getAllRoles } from '@/lib/rbac/getAllRoles'
 import { getAllPermissions } from '@/lib/rbac/getAllPermissions'

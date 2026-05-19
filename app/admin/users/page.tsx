@@ -4,7 +4,12 @@ import { getAdminUsers } from '@/lib/rbac/getAdminUsers'
 import { getAllRoles } from '@/lib/rbac/getAllRoles'
 import { getInternalRoleOptions, getRoleMeta } from '@/lib/rbac/catalog'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { inviteUserAction, createUserAction } from './actions'
+import {
+  createUserAction,
+  disablePlatformUserAction,
+  inviteUserAction,
+  reactivatePlatformUserAction,
+} from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,9 +32,8 @@ export default async function AdminUsersPage() {
  const canManageRoles = context.permissions.includes('roles.manage')
 
  const userCount = users.length
- const privilegedCount = users.filter((row) =>
- row.roles.some((role) => ['admin', 'super_admin'].includes(role))
- ).length
+ const privilegedCount = users.filter((row) => row.highAccess).length
+ const disabledCount = users.filter((row) => row.userStatus !== 'active' || row.isBanned).length
 
  async function inviteUserFormAction(formData: FormData) {
  'use server'
@@ -41,6 +45,16 @@ export default async function AdminUsersPage() {
  await createUserAction({} as Parameters<typeof createUserAction>[0], formData)
  }
 
+ async function disableUserFormAction(formData: FormData) {
+ 'use server'
+ await disablePlatformUserAction({ ok: false, message: '' }, formData)
+ }
+
+ async function reactivateUserFormAction(formData: FormData) {
+ 'use server'
+ await reactivatePlatformUserAction({ ok: false, message: '' }, formData)
+ }
+
  return (
  <div className="min-h-screen">
  <AdminHeader
@@ -50,7 +64,7 @@ export default async function AdminUsersPage() {
  />
 
  <div className="space-y-6 p-8">
- <section className="grid gap-4 xl:grid-cols-3">
+ <section className="grid gap-4 xl:grid-cols-4">
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
  <p className="text-sm font-medium text-slate-700">Interna konton</p>
  <p className="mt-2 text-3xl font-semibold text-slate-950">{userCount}</p>
@@ -67,6 +81,12 @@ export default async function AdminUsersPage() {
  <p className="mt-2 text-sm text-slate-700">
  Högaccess-konton som bör hållas få och tydligt granskade.
  </p>
+ </div>
+
+ <div className="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm">
+ <p className="text-sm font-medium text-red-700">Avstängda</p>
+ <p className="mt-2 text-3xl font-semibold text-red-950">{disabledCount}</p>
+ <p className="mt-2 text-sm text-red-800">Konton som inte ska kunna logga in eller arbeta operativt.</p>
  </div>
 
  <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
@@ -235,6 +255,8 @@ export default async function AdminUsersPage() {
  <tr className="border-b border-slate-200">
  <th className="px-6 py-4 text-left font-semibold text-slate-700">E-post</th>
  <th className="px-6 py-4 text-left font-semibold text-slate-700">Roller</th>
+ <th className="px-6 py-4 text-left font-semibold text-slate-700">Status</th>
+ <th className="px-6 py-4 text-left font-semibold text-slate-700">Bolag</th>
  <th className="px-6 py-4 text-left font-semibold text-slate-700">Skapad</th>
  <th className="px-6 py-4 text-left font-semibold text-slate-700">Åtgärd</th>
  </tr>
@@ -250,6 +272,7 @@ export default async function AdminUsersPage() {
  <p className="font-medium text-slate-900">
  {row.email ?? 'Saknar e-post'}
  </p>
+ {row.fullName ? <p className="mt-1 text-xs text-slate-700">{row.fullName}</p> : null}
  <p className="mt-1 text-xs text-slate-700">{row.id}</p>
  </div>
  </td>
@@ -275,17 +298,51 @@ export default async function AdminUsersPage() {
  )}
  </td>
 
+ <td className="px-6 py-4">
+ <span className={
+ row.userStatus === 'active' && !row.isBanned
+ ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800'
+ : 'rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-800'
+ }>
+ {row.isBanned ? 'disabled' : row.userStatus}
+ </span>
+ {row.disabledAt ? <p className="mt-2 text-xs text-slate-700">{formatDate(row.disabledAt)}</p> : null}
+ </td>
+
+ <td className="px-6 py-4 text-slate-700">
+ {row.companyCount}
+ </td>
+
  <td className="px-6 py-4 text-slate-700">
  {formatDate(row.created_at)}
  </td>
 
- <td className="px-6 py-4">
+ <td className="space-y-2 px-6 py-4">
  <Link
  href={`/admin/users/${row.id}`}
  className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-50"
  >
  Öppna
  </Link>
+ {canWriteUsers ? (
+ row.userStatus === 'active' && !row.isBanned ? (
+ <form action={disableUserFormAction} className="grid gap-2 rounded-2xl border border-red-200 bg-red-50 p-3">
+ <input type="hidden" name="user_id" value={row.id} />
+ <input name="reason" required placeholder="Anledning" className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs" />
+ <button className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-800 hover:bg-red-100">
+ Stäng av
+ </button>
+ </form>
+ ) : (
+ <form action={reactivateUserFormAction} className="grid gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+ <input type="hidden" name="user_id" value={row.id} />
+ <input name="reason" placeholder="Anledning, valfritt" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs" />
+ <button className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+ Återaktivera
+ </button>
+ </form>
+ )
+ ) : null}
  </td>
  </tr>
  ))}
