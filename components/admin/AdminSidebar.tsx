@@ -77,7 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: 'Ediel',
-    description: 'Live och test hålls åtskilda',
+    description: 'Liveflöden, AGT och konfiguration',
     items: [
       {
         href: '/admin/ediel',
@@ -98,19 +98,19 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: '/admin/ediel/agt',
-        label: 'AGT tester',
-        description: 'Leverantörstester separat från produktion',
+        label: 'AGT-arbetsyta',
+        description: 'AGT-flöden separat från produktion',
         pageKey: 'ediel.workspace',
       },
       {
         href: '/admin/ediel/routes',
-        label: 'Routes',
+        label: 'Ediel-routing',
         description: 'Tenant, mailbox, SMTP och profiler',
         pageKey: 'ediel.routes',
       },
       {
         href: '/admin/ediel/settings',
-        label: 'Settings',
+        label: 'Aktörsinställningar',
         description: 'Aktörskort, versioner och ack-policy',
       },
     ],
@@ -133,19 +133,19 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: '/admin/outbound',
-        label: 'Outbound queue',
+        label: 'Outbound',
         description: 'Extern dispatch och retry',
         pageKey: 'outbound.queue',
       },
       {
         href: '/admin/outbound/unresolved',
-        label: 'Unresolved',
-        description: 'Saknad route, kanal eller payload',
+        label: 'Ej matchade',
+        description: 'Saknad kanal, route eller underlag',
         pageKey: 'outbound.unresolved',
       },
       {
         href: '/admin/partner-exports',
-        label: 'Partner exports',
+        label: 'Partnerexporter',
         description: 'Handoff till extern partner',
         pageKey: 'partner_exports.workspace',
       },
@@ -183,12 +183,18 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: 'Admin',
-    description: 'SaaS access, roller och spårbarhet',
+    description: 'SaaS-konton, roller och spårbarhet',
     items: [
+      {
+        href: '/admin/companies',
+        label: 'Företag',
+        description: 'Bolagskonton och tenant-ansvariga',
+        pageKey: 'companies.manage',
+      },
       {
         href: '/admin/users',
         label: 'Användare',
-        description: 'Konton, roller och overrides',
+        description: 'Konton, roller och behörigheter',
         pageKey: 'users.list',
       },
       {
@@ -231,18 +237,18 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
   })).filter((group) => group.items.length > 0)
 
   return (
-    <aside className="flex h-screen w-full flex-col border-r border-slate-800 bg-slate-950 text-slate-100">
-      <div className="border-b border-slate-800 px-6 py-6">
-        <div className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-300">
+    <aside className="flex h-screen w-full flex-col border-r border-emerald-100 bg-white text-slate-900 shadow-xl shadow-emerald-950/5">
+      <div className="border-b border-emerald-100 bg-gradient-to-br from-white to-emerald-50 px-6 py-6">
+        <div className="inline-flex items-center rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">
           GridCore SaaS
         </div>
 
         <div className="mt-4">
-          <h1 className="text-xl font-semibold tracking-tight text-white">
+          <h1 className="text-xl font-semibold tracking-tight text-slate-950">
             Control Center
           </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Kunder, Ediel, switching och partnerhandoff. Tester ligger separat från produktion.
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Kunder, Ediel, switching och partnerhandoff med tenant-säker åtkomst.
           </p>
         </div>
       </div>
@@ -251,7 +257,7 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
         {visibleGroups.map((group) => (
           <section key={group.title}>
             <div className="px-2">
-              <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                 {group.title}
               </h2>
               <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -269,15 +275,15 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
                     href={item.href}
                     className={`block rounded-2xl border px-3 py-3 transition ${
                       active
-                        ? 'border-slate-600 bg-slate-800 text-white'
-                        : 'border-transparent text-slate-200 hover:border-slate-800 hover:bg-slate-900'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-950 shadow-sm'
+                        : 'border-transparent text-slate-700 hover:border-emerald-100 hover:bg-emerald-50/60'
                     }`}
                   >
                     <div className="text-sm font-medium">{item.label}</div>
                     {item.description ? (
                       <div
                         className={`mt-1 text-xs leading-5 ${
-                          active ? 'text-slate-300' : 'text-slate-500'
+                          active ? 'text-emerald-800/75' : 'text-slate-500'
                         }`}
                       >
                         {item.description}

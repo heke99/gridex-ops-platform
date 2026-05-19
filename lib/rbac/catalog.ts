@@ -36,6 +36,16 @@ export const ROLE_CATALOG: RoleCatalogItem[] = [
     recommendedFor: 'Huvudadministratör eller driftansvarig.',
     loginAllowed: true,
   },
+
+  {
+    key: 'company_admin',
+    label: 'Company admin',
+    description:
+      'Bolagsansvarig med behörighet att administrera användare och dagliga flöden inom sitt bolag.',
+    audience: 'internal',
+    recommendedFor: 'Ansvarig administratör hos ett anslutet elhandelsbolag.',
+    loginAllowed: true,
+  },
   {
     key: 'operations_manager',
     label: 'Operations manager',
@@ -168,6 +178,28 @@ const PERMISSION_CATALOG: PermissionCatalogItem[] = [
     label: 'Skapa eller ändra användare',
     description: 'Kan skapa konton eller ändra användarrelaterad accesslogik.',
     area: 'Access',
+    risk: 'high',
+  },
+
+  {
+    key: 'tenants.read',
+    label: 'Läsa företag',
+    description: 'Kan se bolagskonton och tenant-kopplingar.',
+    area: 'SaaS',
+    risk: 'medium',
+  },
+  {
+    key: 'tenants.write',
+    label: 'Skapa eller ändra företag',
+    description: 'Kan skapa och uppdatera bolagskonton i plattformen.',
+    area: 'SaaS',
+    risk: 'high',
+  },
+  {
+    key: 'tenants.invite',
+    label: 'Bjuda in till företag',
+    description: 'Kan bjuda in användare till ett bolag och sätta bolagsroll.',
+    area: 'SaaS',
     risk: 'high',
   },
   {

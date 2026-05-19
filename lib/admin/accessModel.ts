@@ -32,6 +32,7 @@ export type AdminPageKey =
   | 'integrations.routes'
   | 'ediel.workspace'
   | 'ediel.routes'
+  | 'companies.manage'
   | 'users.list'
   | 'users.detail'
   | 'roles.catalog'
@@ -55,6 +56,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
       'pricing.read',
       'audit.read',
       'users.read',
+      'tenants.read',
     ],
   },
   'customers.list': { anyOf: ['customers.read'] },
@@ -128,7 +130,8 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'ediel.routes': {
     anyOf: ['communication.read', 'switching.read', 'metering.read', 'billing_underlay.read'],
   },
-  'users.list': { anyOf: ['users.read'] },
+  'companies.manage': { anyOf: ['tenants.read', 'tenants.write', 'tenants.invite'] },
+  'users.list': { anyOf: ['users.read', 'tenants.invite'] },
   'users.detail': { anyOf: ['users.read'] },
   'roles.catalog': { anyOf: ['roles.manage', 'permissions.manage', 'users.read'] },
   'audit.log': { anyOf: ['audit.read'] },
@@ -141,6 +144,9 @@ export const ROLE_PERMISSION_PROFILES: Record<string, RolePermissionProfile> = {
     permissions: [
       'users.read',
       'users.write',
+      'tenants.read',
+      'tenants.write',
+      'tenants.invite',
       'roles.manage',
       'permissions.manage',
       'customers.read',
@@ -181,6 +187,49 @@ export const ROLE_PERMISSION_PROFILES: Record<string, RolePermissionProfile> = {
     description: 'Bred daglig adminåtkomst men utan individuell permission-governance för andra användare.',
     permissions: [
       'users.read',
+      'tenants.read',
+      'tenants.invite',
+      'customers.read',
+      'customers.write',
+      'contracts.read',
+      'contracts.write',
+      'documents.read',
+      'documents.write',
+      'communication.read',
+      'communication.send',
+      'cases.read',
+      'cases.write',
+      'switching.read',
+      'switching.write',
+      'metering.read',
+      'metering.write',
+      'metering_points.read',
+      'metering_points.write',
+      'sites.read',
+      'sites.write',
+      'masterdata.read',
+      'masterdata.write',
+      'billing_underlay.read',
+      'billing_underlay.export',
+      'partner_exports.read',
+      'partner_exports.write',
+      'poa.read',
+      'poa.write',
+      'pricing.read',
+      'pricing.write',
+      'reports.read',
+      'audit.read',
+    ],
+  },
+
+  company_admin: {
+    label: 'Company admin',
+    description: 'Bolagsansvarig som kan bjuda in användare och administrera sitt bolags arbetsyta.',
+    permissions: [
+      'users.read',
+      'users.write',
+      'tenants.read',
+      'tenants.invite',
       'customers.read',
       'customers.write',
       'contracts.read',

@@ -10,24 +10,27 @@ export default function AdminHeader({
   userEmail,
 }: AdminHeaderProps) {
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-emerald-100 bg-white/90 backdrop-blur-xl">
       <div className="flex min-h-[84px] items-center justify-between gap-6 px-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            Gridex Operations
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
             {title}
           </h1>
           {subtitle ? (
-            <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+            <p className="mt-1 max-w-4xl text-sm leading-6 text-slate-500">{subtitle}</p>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right sm:block">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-              Inloggad som
+        <div className="hidden items-center gap-3 md:flex">
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-right">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              Inloggad
             </p>
-            <p className="mt-1 text-sm font-medium text-slate-800">
-              {userEmail ?? 'Okänd användare'}
+            <p className="mt-1 max-w-[240px] truncate text-sm font-semibold text-slate-800">
+              {userEmail ?? 'Användare'}
             </p>
           </div>
         </div>
