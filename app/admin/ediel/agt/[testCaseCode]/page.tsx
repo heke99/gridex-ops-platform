@@ -221,7 +221,7 @@ export default async function AgtCasePage({
   if (!testCase) {
     return (
       <div className="space-y-6">
-        <AdminHeader title="AGT-test" subtitle="Testfallet hittades inte." userEmail={context.email} />
+        <AdminHeader title="Testmiljö / AGT-test" subtitle="Testfallet hittades inte." userEmail={context.email} />
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
           Okänt testfall: {testCaseCode}
         </div>
@@ -276,7 +276,7 @@ export default async function AgtCasePage({
     <div className="space-y-6">
       <AdminHeader
         title={`${testCase.testCaseCode} · ${testCase.title}`}
-        subtitle="AGT-testmotor: outbound skickas direkt för Aktör → Portal; Portal → Aktör kopplas från inbound och får kvittensförslag. Separat från verklig produktion."
+        subtitle="Låst AGT-testmotor: outbound skickas direkt för Aktör → Portal; Portal → Aktör kopplas från inbound och får kvittensförslag. Separat från verklig produktion."
         userEmail={context.email}
       />
 
@@ -294,7 +294,7 @@ export default async function AgtCasePage({
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href="/admin/ediel/agt" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              Till alla AGT-test
+              Till testmiljö
             </Link>
             <Link href="/admin/ediel/messages" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               Meddelanden

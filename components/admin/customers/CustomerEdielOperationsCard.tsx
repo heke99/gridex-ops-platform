@@ -628,7 +628,7 @@ aperak_status: normalizeRecommendationAckStatus(
                 href="/admin/ediel"
                 className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
               >
-                Öppna Ediel-center
+                Öppna Ediel Live Center
               </Link>
               <Link
                 href="/admin/ediel/routes"
@@ -689,7 +689,7 @@ aperak_status: normalizeRecommendationAckStatus(
             Rekommenderat Ediel-nästa steg för kunden
           </h3>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Detta räknas fram med samma rekommendationsmotor som i Ediel-center, men visas direkt på kundkortet så handläggaren slipper hoppa mellan vyer.
+            Detta räknas fram med samma rekommendationsmotor som i Ediel Live Center, men visas direkt på kundkortet så handläggaren slipper hoppa mellan vyer.
           </p>
         </div>
 

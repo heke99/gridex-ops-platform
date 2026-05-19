@@ -137,3 +137,54 @@ textarea {
   from { opacity: 0.72; transform: translateY(2px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Admin product polish: make legacy admin pages feel like the same SaaS surface even when older pages use local markup. */
+.admin-saas-content :where(.rounded-2xl, .rounded-3xl, .rounded-\[2rem\]) {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.admin-saas-content :where(table) {
+  background: #ffffff;
+}
+
+.admin-saas-content :where(thead) {
+  background: #f8fafc;
+  color: #475569;
+}
+
+.admin-saas-content :where(th) {
+  font-weight: 650;
+}
+
+.admin-saas-content :where(button, a) {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: 150ms;
+}
+
+.admin-saas-content :where(.bg-gradient-to-br.from-emerald-50.via-white.to-emerald-50) {
+  background-image: linear-gradient(135deg, #ecfdf5 0%, #ffffff 48%, #f8fafc 100%) !important;
+}
+
+.admin-saas-content :where(.text-green-700, .text-green-800, .text-green-900) {
+  color: #047857 !important;
+}
+
+.admin-saas-content :where(.bg-green-50, .bg-green-100) {
+  background-color: #ecfdf5 !important;
+}
+
+.admin-saas-content :where(.border-green-200, .border-green-300) {
+  border-color: #a7f3d0 !important;
+}
+
+.admin-saas-content :where(.text-yellow-700, .text-yellow-800, .text-yellow-900) {
+  color: #92400e !important;
+}
+
+.admin-saas-content :where(.bg-yellow-50, .bg-yellow-100) {
+  background-color: #fffbeb !important;
+}
+
+.admin-saas-content :where(.border-yellow-200, .border-yellow-300) {
+  border-color: #fde68a !important;
+}

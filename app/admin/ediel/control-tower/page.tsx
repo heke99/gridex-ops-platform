@@ -105,7 +105,7 @@ function AckBadge({ state }: { state: string }) {
 }
 
 export default async function AdminEdielControlTowerPage() {
-  await requirePermissionServer('operations.read')
+  await requirePermissionServer('communication.read')
 
   const [recentMessages, overdueMessages, duplicateAckCandidates, ruleAmbiguities] =
     await Promise.all([
@@ -124,15 +124,13 @@ export default async function AdminEdielControlTowerPage() {
     <div className="space-y-6">
       <AdminHeader
         title="Ediel Control Tower"
-        subtitle="Driftvy för kvittenser, dublettskydd, regelkonflikter och senaste Ediel-trafik."
+        subtitle="Liveövervakning för CONTRL, APERAK, UTILTS_ERR, dubbletter, regelkonflikter och Ediel-trafik per tenant."
       />
 
       <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
-        <h2 className="text-base font-semibold">Så ska sidan användas</h2>
+        <h2 className="text-base font-semibold">Liveflöde före testflöde</h2>
         <p className="mt-2 max-w-4xl">
-          Börja alltid med röda varningar. Försenad kvittens betyder att 30 minuter har passerat.
-          Dublettskydd betyder att samma källa riskerar flera CONTRL/APERAK. Regelkonflikt betyder
-          att versionstabellen inte är entydig för runtime.
+          Börja alltid med röda varningar. Försenad kvittens betyder att 30 minuter har passerat. Dublettskydd betyder att samma källa riskerar flera CONTRL/APERAK. Regelkonflikt betyder att versionstabellen inte är entydig för live-runtime.
         </p>
       </section>
 

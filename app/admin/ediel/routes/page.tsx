@@ -289,16 +289,51 @@ export default async function AdminEdielRoutesPage() {
   return (
     <div className="space-y-6">
       <AdminHeader
-        title="Ediel routes"
-        subtitle="Den här sidan visar vad runtime faktiskt använder: effective receiver, mailbox, version override, ack-mode och blockerande route/profilproblem."
+        title="Ediel-adressering & aktörsregister"
+        subtitle="Spara nätägare, leverantörer, BRP och route profiles enligt handbokslogiken: rätt Ediel-id, rätt motpart, rätt process och rätt kvittenspolicy per bolag."
         userEmail={context.email}
       />
 
+      <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Ediel Live setup</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Aktör, motpart och route måste vara tydligt separerade</h2>
+            <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">
+              Den här sidan ska användas för livekonfiguration: eget bolags Ediel-identitet, nätägares mottagning, leverantörers/BRP-uppgifter och route profiles för PRODAT, UTILTS, APERAK och CONTRL. Testmiljö får finnas, men produktion får aldrig bygga på hårdkodade AGT-värden.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Pill text="PRODAT" tone="green" />
+            <Pill text="UTILTS" tone="green" />
+            <Pill text="APERAK / CONTRL" tone="green" />
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+            <div className="text-sm font-semibold text-slate-950">Eget bolag / tenant</div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Bolagsnamn, organisationsnummer, Ediel-id, miljö, mailbox, Application Reference och roll ska komma från tenant-konfiguration.</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="text-sm font-semibold text-slate-950">Nätägare</div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Spara Ediel-id, nätområde, subaddress, processer och teknisk mottagning så Z03/Z09/UTILTS-flöden hamnar rätt.</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="text-sm font-semibold text-slate-950">Leverantörer och BRP</div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Motparter och balansansvarig ska vara masterdata, inte fria textfält i generatorer.</p>
+          </div>
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div className="text-sm font-semibold text-amber-950">Preflight före aktivering</div>
+            <p className="mt-2 text-sm leading-6 text-amber-800">Route får inte vara aktiv om Ediel-id, mottagare, version, transport, ack-policy eller company/tenant-koppling saknas.</p>
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-        <h2 className="text-lg font-semibold text-slate-950">Minnesmodell i runtime</h2>
+        <h2 className="text-lg font-semibold text-slate-950">Produktionsmodell i runtime</h2>
         <p className="mt-1 text-sm text-slate-700">
-          Route-profile sparar transport/routing. Aktörskortet sparar din identitet per miljö.
-          När du lämnar sender/application reference/mailbox tomt i route-profile använder systemet aktivt aktörskort som default. Tidigare sparade mottagare kan nu återanvändas från listan.
+          Route profile styr transport, mottagare, version och kvittenspolicy. Aktörskortet styr bolagets Ediel-identitet per miljö. Lämna sender/application reference/mailbox tomt bara när aktiv aktörsprofil uttryckligen ska vara default.
         </p>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-white/70 bg-white p-4">
@@ -318,20 +353,20 @@ export default async function AdminEdielRoutesPage() {
             </div>
           </div>
           <div className="rounded-xl border border-white/70 bg-white p-4">
-            <div className="text-sm font-semibold text-slate-900">Kända mottagare</div>
+            <div className="text-sm font-semibold text-slate-900">Kända motparter</div>
             <div className="mt-2 text-3xl font-semibold text-slate-950">{receiverPresets.length}</div>
-            <div className="mt-1 text-xs text-slate-500">Byggs från sparade routes, profiles och grid owners.</div>
+            <div className="mt-1 text-xs text-slate-500">Byggs från routes, profiler och nätägare.</div>
           </div>
         </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="text-sm text-slate-500">Ediel-routes</div>
+          <div className="text-sm text-slate-500">Routes</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950">{sortedRoutes.length}</div>
         </div>
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-          <div className="text-sm text-emerald-700">Redo i runtime</div>
+          <div className="text-sm text-emerald-700">Redo för live</div>
           <div className="mt-2 text-3xl font-semibold text-emerald-900">{readyCount}</div>
         </div>
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
@@ -339,11 +374,11 @@ export default async function AdminEdielRoutesPage() {
           <div className="mt-2 text-3xl font-semibold text-rose-900">{blockedCount}</div>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <div className="text-sm text-amber-700">Saknar runtime-profil</div>
+          <div className="text-sm text-amber-700">Saknar profil</div>
           <div className="mt-2 text-3xl font-semibold text-amber-900">{missingRuntimeCount}</div>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <div className="text-sm text-amber-700">Saknar receiver</div>
+          <div className="text-sm text-amber-700">Saknar mottagare</div>
           <div className="mt-2 text-3xl font-semibold text-amber-900">{missingReceiverCount}</div>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -356,7 +391,7 @@ export default async function AdminEdielRoutesPage() {
         <section data-receiver-scope className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <h2 className="text-lg font-semibold text-slate-950">Första Ediel-route saknas</h2>
           <p className="mt-1 text-sm text-slate-700">
-            Du har aktörskort och rules, men ingen faktisk Ediel-route ännu. Skapa första routen här. Om du lämnar sender/mailbox/application reference tomt kommer profilen att använda aktiv identitet för vald miljö.
+            Skapa första live-routen här. Välj process, motpart och miljö. Systemet ska kunna härleda rätt avsändare, mottagare, mailbox, Application Reference, version och ack-policy innan route aktiveras.
           </p>
 
           <div className="mt-4">
@@ -365,11 +400,11 @@ export default async function AdminEdielRoutesPage() {
 
           <form action={createEdielBootstrapRouteAction} className="mt-4 grid gap-4 lg:grid-cols-2">
             <div className="rounded-2xl border border-white/70 bg-white p-4">
-              <div className="mb-3 text-sm font-semibold text-slate-900">Communication route</div>
+              <div className="mb-3 text-sm font-semibold text-slate-900">Kommunikationsroute</div>
               <div className="grid gap-3 md:grid-cols-2">
                 <input
                   name="route_name"
-                  defaultValue="EDIEL meter_values test"
+                  defaultValue="EDIEL mätvärden"
                   className={textInputClassName()}
                   placeholder="Route name"
                 />
@@ -427,7 +462,7 @@ export default async function AdminEdielRoutesPage() {
             </div>
 
             <div className="rounded-2xl border border-white/70 bg-white p-4">
-              <div className="mb-3 text-sm font-semibold text-slate-900">Runtime profile</div>
+              <div className="mb-3 text-sm font-semibold text-slate-900">Ediel route profile</div>
               <div className="grid gap-3 md:grid-cols-2">
                 <input
                   name="receiverEdielId"
@@ -534,7 +569,7 @@ export default async function AdminEdielRoutesPage() {
                   </div>
 
                   <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="text-sm font-semibold text-slate-900">Runtime summary</div>
+                    <div className="text-sm font-semibold text-slate-900">Route-preflight</div>
                     <p className="mt-2 text-sm text-slate-700">
                       {explanation?.summary ??
                         'Ingen runtime-profil hittades för routen ännu. Det betyder att communication route finns, men Ediel-runtime kan inte förklara eller använda den fullt ut.'}
@@ -561,7 +596,7 @@ export default async function AdminEdielRoutesPage() {
                   </div>
 
                   <div className="mt-4">
-                    <div className="mb-2 text-sm font-semibold text-slate-900">Runtime issues</div>
+                    <div className="mb-2 text-sm font-semibold text-slate-900">Preflight-problem</div>
                     {explanation?.issues.length ? (
                       <div className="space-y-2">
                         {explanation.issues.map((issue) => (
@@ -583,7 +618,7 @@ export default async function AdminEdielRoutesPage() {
                       </div>
                     ) : (
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800">
-                        Inga blockerande eller varningsnivå-issues just nu.
+                        Inga blockerande eller varnande preflight-problem just nu.
                       </div>
                     )}
                   </div>
@@ -595,7 +630,7 @@ export default async function AdminEdielRoutesPage() {
                     >
                       <input type="hidden" name="id" value={route.id} />
                       <div className="mb-3 text-sm font-semibold text-slate-900">
-                        Communication route
+                        Kommunikationsroute
                       </div>
 
                       <div className="grid gap-3 md:grid-cols-2">
@@ -644,10 +679,10 @@ export default async function AdminEdielRoutesPage() {
                     >
                       <input type="hidden" name="communicationRouteId" value={route.id} />
                       <div className="mb-3 text-sm font-semibold text-slate-900">
-                        Ediel runtime profile
+                        Ediel route profile
                       </div>
                       <p className="mb-3 text-xs text-slate-500">
-                        Lämna sender/application reference/mailbox tomt för att använda aktiv aktörsidentitet i vald miljö.
+                        Lämna sender/application reference/mailbox tomt endast om aktiv aktörsidentitet ska vara default i vald miljö.
                       </p>
 
                       <div className="grid gap-3 md:grid-cols-2">
@@ -705,7 +740,7 @@ export default async function AdminEdielRoutesPage() {
 
                       <div className="mt-4">
                         <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
-                          Spara runtime profile
+                          Spara route profile
                         </button>
                       </div>
                     </form>
@@ -714,7 +749,7 @@ export default async function AdminEdielRoutesPage() {
                   <div className="mt-5 grid gap-4 xl:grid-cols-4">
                     <form action={quickFixEdielTargetEmailAction} className="rounded-2xl border border-slate-200 p-4">
                       <input type="hidden" name="routeId" value={route.id} />
-                      <div className="mb-2 text-sm font-semibold text-slate-900">Quick fix: target_email</div>
+                      <div className="mb-2 text-sm font-semibold text-slate-900">Snabb komplettering: mottagaradress</div>
                       <input
                         name="targetEmail"
                         defaultValue={route.target_email ?? ''}
@@ -728,7 +763,7 @@ export default async function AdminEdielRoutesPage() {
 
                     <form action={quickFixEdielProfileBasicsAction} className="rounded-2xl border border-slate-200 p-4">
                       <input type="hidden" name="routeId" value={route.id} />
-                      <div className="mb-2 text-sm font-semibold text-slate-900">Quick fix: profilbas</div>
+                      <div className="mb-2 text-sm font-semibold text-slate-900">Snabb komplettering: profilbas</div>
                       <input name="senderEdielId" defaultValue={runtime?.sender_ediel_id ?? ''} placeholder="senderEdielId" className={`${textInputClassName()} mb-2`} />
                       <input name="receiverEdielId" defaultValue={runtime?.receiver_ediel_id ?? ''} placeholder="receiverEdielId" className={`${textInputClassName()} mb-2`} />
                       <input name="mailbox" defaultValue={runtime?.mailbox ?? ''} placeholder="mailbox" className={textInputClassName()} />
@@ -743,7 +778,7 @@ export default async function AdminEdielRoutesPage() {
 
                     <form action={quickFixEdielRouteActivationAction} className="rounded-2xl border border-slate-200 p-4">
                       <input type="hidden" name="routeId" value={route.id} />
-                      <div className="mb-2 text-sm font-semibold text-slate-900">Quick fix: aktivering</div>
+                      <div className="mb-2 text-sm font-semibold text-slate-900">Snabb komplettering: aktivering</div>
                       <label className="mb-2 inline-flex items-center gap-2 text-sm text-slate-700">
                         <input type="checkbox" name="activateRoute" value="true" defaultChecked={route.is_active} className="h-4 w-4 rounded border-slate-300" />
                         Aktivera route
@@ -759,11 +794,11 @@ export default async function AdminEdielRoutesPage() {
 
                     <form action={quickFixGridOwnerEdielIdAction} className="rounded-2xl border border-slate-200 p-4">
                       <input type="hidden" name="gridOwnerId" value={gridOwner?.id ?? ''} />
-                      <div className="mb-2 text-sm font-semibold text-slate-900">Quick fix: grid owner Ediel-id</div>
+                      <div className="mb-2 text-sm font-semibold text-slate-900">Snabb komplettering: nätägarens Ediel-id</div>
                       <input
                         name="edielId"
                         defaultValue={gridOwner?.ediel_id ?? ''}
-                        placeholder="grid owner ediel id"
+                        placeholder="nätägarens Ediel-id"
                         className={textInputClassName()}
                         disabled={!gridOwner?.id}
                       />
@@ -771,7 +806,7 @@ export default async function AdminEdielRoutesPage() {
                         className="mt-3 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={!gridOwner?.id}
                       >
-                        Spara grid owner-id
+                        Spara Ediel-id
                       </button>
                     </form>
                   </div>

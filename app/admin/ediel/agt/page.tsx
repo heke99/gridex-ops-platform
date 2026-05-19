@@ -160,22 +160,22 @@ export default async function EdielAgtPage() {
   return (
     <div className="space-y-6">
       <AdminHeader
-        title="AGT 2026A · Leverantör"
-        subtitle="Här fyller du i leverantörens Ediel-id och skapar AGT-routes/testkörningar utan att blanda ihop dem med Gridcore/TGT-id."
+        title="Testmiljö / AGT-tester"
+        subtitle="Låst godkännandeyta för Edielportalen. Vanliga leverantörer ska arbeta i Ediel Live Center; detta läge används bara vid aktörs- och leverantörsgodkännande."
         userEmail={context.email}
       />
 
       <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Starta inte tester blint</div>
-            <h1 className="mt-1 text-2xl font-semibold text-slate-950">Först ska AGT runtime vara grön</h1>
+            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Låst testmiljö</div>
+            <h1 className="mt-1 text-2xl font-semibold text-slate-950">Först ska testmiljön vara redo</h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
               Värdena i formuläret sparas i aktörskort, communication_routes och ediel_route_profiles. Nuvarande värden är bara förifyllda defaultvärden i formuläret. Runtime ska läsa från databasen så att samma SaaS-flöde fungerar för varje leverantör/tenant senare.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge tone={runtime.isReady ? 'green' : 'red'}>{runtime.isReady ? 'AGT redo' : 'AGT blockerad'}</Badge>
+            <Badge tone={runtime.isReady ? 'green' : 'red'}>{runtime.isReady ? 'testmiljö redo' : 'testmiljö blockerad'}</Badge>
             <Badge tone={errorCount > 0 ? 'red' : 'green'}>fel {errorCount}</Badge>
             <Badge tone={warningCount > 0 ? 'yellow' : 'green'}>varningar {warningCount}</Badge>
             <Link href="/admin/ediel" className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">

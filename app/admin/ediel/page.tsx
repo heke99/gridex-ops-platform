@@ -163,8 +163,8 @@ export default async function EdielPage() {
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Ediel-center"
-        subtitle="Liveproduktion, leverantörs-AGT och tenant-konfiguration hålls separerade. Härifrån ska operatören förstå nästa steg utan filgeneratorer och testbrus."
+        title="Ediel Live Center"
+        subtitle="Produktion för PRODAT, UTILTS, CONTRL och APERAK. Testmiljö och AGT hålls låst och separat från vanliga leverantörsflöden."
         userEmail={context.email}
       />
 
@@ -172,16 +172,16 @@ export default async function EdielPage() {
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Ediel operations</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">En ingång. Tre tydliga lägen.</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Ediel Live</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Liveflödet först. Testmiljö separat.</h1>
               <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600 dark:text-slate-400">
-                GridCore ska fungera som SaaS: varje bolag har egna aktörs-id, route-profiler och teststatus. Därför visas verklig körning, AGT och konfiguration som separata arbetsytor.
+                GridCore ska fungera som SaaS: varje bolag har egna aktörs-id, route-profiler och kvittensregler. Därför visas liveflöde, Ediel Control Tower och adressering tydligt här. AGT är bara en låst testmiljö för godkännande.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Pill tone={liveAttention > 0 ? 'yellow' : 'green'}>{liveAttention > 0 ? `${liveAttention} live-ärenden` : 'live ok'}</Pill>
               <Pill tone={agtRuntime?.isReady ? 'green' : agtErrors > 0 ? 'red' : 'yellow'}>
-                {agtRuntime?.isReady ? 'AGT redo' : agtRuntime ? 'AGT behöver kontroll' : 'AGT ej laddad'}
+                {agtRuntime?.isReady ? 'Testmiljö redo' : agtRuntime ? 'Testmiljö behöver kontroll' : 'Testmiljö ej laddad'}
               </Pill>
             </div>
           </div>
@@ -190,26 +190,26 @@ export default async function EdielPage() {
         <section className="grid gap-5 xl:grid-cols-3">
           <AreaCard
             eyebrow="Produktion"
-            title="Live Ediel-drift"
-            text="Meddelanden som faktiskt hör till kunddrift: PRODAT, UTILTS, CONTRL och APERAK. Här följer du status, fel och kvittenser."
+            title="Live-meddelanden"
+            text="Meddelanden som hör till riktig kunddrift: PRODAT, UTILTS, CONTRL och APERAK. Följ status, fel, kvittenser och koppling till kundflöde."
             href="/admin/ediel/messages"
             cta="Öppna liveflöde"
             tone="production"
           />
           <AreaCard
-            eyebrow="Test"
-            title="Leverantörs-AGT"
-            text="Egen testyta för aktiv leverantör/tenant. L1/L7 skickas ut, L2–L5 tas emot från portalen och kvitteras."
-            href="/admin/ediel/agt"
-            cta="Öppna AGT"
-            tone="test"
+            eyebrow="Driftkontroll"
+            title="Ediel Control Tower"
+            text="Övervaka saknad CONTRL/APERAK, negativ kvittens, UTILTS_ERR, dubbletter, route-problem och regelkonflikter."
+            href="/admin/ediel/control-tower"
+            cta="Öppna Control Tower"
+            tone="settings"
           />
           <AreaCard
-            eyebrow="SaaS setup"
-            title="Routes och aktörsprofil"
-            text="Konfigurera Ediel-id, mailbox, subadresser, ack-policy och motpart per bolag. Ingen testlogik ska hårdkoda en tenant."
+            eyebrow="Aktörsregister"
+            title="Adressering och routes"
+            text="Konfigurera Ediel-id, nätägare, leverantörer, BRP, subadresser, mailbox, versioner och ack-policy per bolag."
             href="/admin/ediel/routes"
-            cta="Öppna routes"
+            cta="Öppna adressering"
             tone="settings"
           />
         </section>
@@ -217,10 +217,10 @@ export default async function EdielPage() {
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Aktiv tenant/aktörsprofil</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Aktiv tenant och aktörsprofil</p>
               <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">{agtRuntime?.actor?.actor_name ?? 'Ingen aktiv leverantör vald'}</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                AGT och Ediel-routes ska alltid utgå från den aktiva aktörsprofilen. Byter du leverantör i SaaS-läget ska Ediel-id, mailbox, sender-namn och route-profiler bytas här – inte i kod.
+                Live Ediel och testmiljö ska alltid utgå från aktiv aktörsprofil. Byter du leverantör i SaaS-läget ska Ediel-id, mailbox, sender-namn och route-profiler styras av konfiguration – inte av kod.
               </p>
             </div>
             <div className="grid gap-2 text-sm md:min-w-72">
@@ -233,7 +233,7 @@ export default async function EdielPage() {
                 <span className="font-mono font-semibold text-slate-950 dark:text-white">{agtRuntime?.actor?.mailbox ?? '—'}</span>
               </div>
               <div className="flex justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-3 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400">AGT readiness</span>
+                <span className="text-slate-500 dark:text-slate-400">Testmiljö readiness</span>
                 <span className="font-semibold text-slate-950 dark:text-white">{agtRuntime?.isReady ? 'redo' : `${agtErrors} fel / ${agtWarnings} varningar`}</span>
               </div>
             </div>
@@ -241,12 +241,12 @@ export default async function EdielPage() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-          <Metric label="Totalt" value={ediel.totalMessages} hint="Live + historik" tone="blue" />
+          <Metric label="Totalt" value={ediel.totalMessages} hint="Live + historik" tone="emerald" />
           <Metric label="Inbound" value={ediel.inboundMessages} hint="Från motpart" />
           <Metric label="Outbound" value={ediel.outboundMessages} hint="Till motpart" />
           <Metric label="Drafts" value={ediel.draftMessages} hint="Granska före skick" tone={ediel.draftMessages > 0 ? 'amber' : 'slate'} />
           <Metric label="Felade" value={ediel.failedMessages} hint="Manuell åtgärd" tone={ediel.failedMessages > 0 ? 'rose' : 'emerald'} />
-          <Metric label="Kvittenser" value={ediel.ackPendingMessages} hint={`${ediel.ackOverdueMessages} overdue`} tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
+          <Metric label="Kvittenser" value={ediel.ackPendingMessages} hint={`${ediel.ackOverdueMessages} försenade`} tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
@@ -257,21 +257,21 @@ export default async function EdielPage() {
                 <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">När något händer i Ediel</h2>
               </div>
               <Link href="/admin/ediel/control-tower" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                Control tower
+                Control Tower
               </Link>
             </div>
             <div className="mt-5 grid gap-3">
-              <FlowStep number="1" title="Se om det är live eller test" text="AGT-run och portaltester hanteras i AGT. Kunddrift, switchar och mätvärden hanteras i liveflödet." />
+              <FlowStep number="1" title="Se om det är live eller testmiljö" text="Kunddrift, switchar och mätvärden hanteras i liveflödet. AGT-run och portaltester hanteras i låst testmiljö." />
               <FlowStep number="2" title="Följ meddelandekedjan" text="Öppna meddelandet och kontrollera länken mellan PRODAT/UTILTS, CONTRL, APERAK och relevant kund-/switchärende." />
-              <FlowStep number="3" title="Skicka bara från rätt kontext" text="Outbound draft ska komma från kundflöde eller AGT-run. Manuella filgeneratorer ska inte vara primär arbetsväg." />
+              <FlowStep number="3" title="Skicka bara från rätt kontext" text="Outbound draft ska komma från kundflöde eller låst testkörning. Manuella filgeneratorer ska inte vara primär arbetsväg." />
             </div>
           </div>
 
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Leverantörs-AGT</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">L-testernas riktning</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Testmiljö / AGT-tester</p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">Låsta godkännandeflöden</h2>
               </div>
               <Pill tone={agtErrors > 0 ? 'red' : agtWarnings > 0 ? 'yellow' : 'green'}>
                 {agtErrors} fel · {agtWarnings} varningar
@@ -288,23 +288,23 @@ export default async function EdielPage() {
             </div>
 
             <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-400">
-              L1 och L7 är outbound från leverantören. L2–L5 är inbound från portalen och ska svaras med positiv CONTRL och negativ APERAK från inbound-meddelandet.
+              AGT används endast för aktörs- och leverantörsgodkännande. Vanliga SaaS-kunder ska arbeta i Live-meddelanden, Control Tower och Routes.
             </p>
           </div>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Rensat från huvudarbetsytan</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">Det som inte ska styra daglig drift</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Separat från liveflödet</p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">Testverktyg ska inte styra daglig drift</h2>
           <div className="mt-5 grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
               Filgeneratorer och testverktyg är inte primära flöden. De kan ligga kvar tekniskt men ska inte vara huvudväg för operatören.
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
-              TGT/anvisningsdetaljer hör hemma i test/diagnostik, inte i live Ediel-center.
+              TGT/AGT och portaldiagnostik hör hemma i låst testmiljö, inte i live Ediel Center.
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
-              Alla framtida leverantörer ska kopplas via tenant-konfiguration: aktör, route, profil, mailbox och ack-policy.
+              Alla leverantörer ska kopplas via tenant-konfiguration: aktör, route, profil, mailbox och ack-policy.
             </div>
           </div>
         </section>

@@ -14,6 +14,7 @@ type NavItem = {
   label: string
   description?: string
   pageKey?: AdminPageKey
+  badge?: string
 }
 
 type NavGroup = {
@@ -29,25 +30,62 @@ type AdminSidebarProps = {
 const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Översikt',
-    description: 'Daglig prioritering och driftläge',
+    description: 'Daglig drift och prioriterade blockeringar',
     items: [
       {
         href: '/admin',
-        label: 'Systemöversikt',
-        description: 'Kunddrift, Ediel-status och åtgärder',
+        label: 'Driftöversikt',
+        description: 'Kunddrift, Ediel, mätvärden och åtgärder',
         pageKey: 'dashboard',
       },
       {
         href: '/admin/controltower',
-        label: 'Control Tower',
-        description: 'Blockeringar, fullmakter, Ediel och handoff',
+        label: 'System Control Tower',
+        description: 'Fullmakter, switchar, mätvärden och handoff',
         pageKey: 'operations.control_tower',
       },
+    ],
+  },
+  {
+    title: 'Ediel Center',
+    description: 'Liveflöden, kvittenser, aktörer och testmiljö',
+    items: [
       {
-        href: '/admin/operations',
-        label: 'Operationsöversikt',
-        description: 'Switchar, uppgifter och beredskap',
-        pageKey: 'operations.control_tower',
+        href: '/admin/ediel',
+        label: 'Ediel Live Center',
+        description: 'Produktion för PRODAT, UTILTS, CONTRL och APERAK',
+        pageKey: 'ediel.workspace',
+      },
+      {
+        href: '/admin/ediel/control-tower',
+        label: 'Ediel Control Tower',
+        description: 'Kvittenser, dubbletter, fel och regelkonflikter',
+        pageKey: 'ediel.workspace',
+      },
+      {
+        href: '/admin/ediel/messages',
+        label: 'Live-meddelanden',
+        description: 'Alla inkommande och utgående Ediel-meddelanden',
+        pageKey: 'ediel.workspace',
+      },
+      {
+        href: '/admin/ediel/routes',
+        label: 'Adressering & routes',
+        description: 'Nätägare, leverantörer, BRP och route profiles',
+        pageKey: 'ediel.routes',
+      },
+      {
+        href: '/admin/ediel/settings',
+        label: 'Ediel-inställningar',
+        description: 'Aktörsidentitet, versioner och ack-policy',
+        pageKey: 'ediel.routes',
+      },
+      {
+        href: '/admin/ediel/agt',
+        label: 'Testmiljö / AGT-tester',
+        description: 'Låst godkännandeyta för portaltester',
+        pageKey: 'ediel.workspace',
+        badge: 'Låst',
       },
     ],
   },
@@ -64,7 +102,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/admin/customers/intake',
         label: 'Nytt kundintag',
-        description: 'Skapa kund, anläggning och mätpunkt',
+        description: 'Skapa kund, anläggning, mätpunkt och fullmakt',
         pageKey: 'customers.intake',
       },
       {
@@ -116,6 +154,12 @@ const NAV_GROUPS: NavGroup[] = [
     description: 'Leverantörsbyte, outbounds och uppföljning',
     items: [
       {
+        href: '/admin/operations',
+        label: 'Operationsöversikt',
+        description: 'Switchar, uppgifter och beredskap',
+        pageKey: 'operations.control_tower',
+      },
+      {
         href: '/admin/operations/switches',
         label: 'Switchärenden',
         description: 'Z03, svar, status och slutförande',
@@ -144,48 +188,6 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Redo outbounds',
         description: 'Switchar som kan köas och skickas',
         pageKey: 'outbound.ready_switches',
-      },
-    ],
-  },
-  {
-    title: 'Ediel & meddelanden',
-    description: 'Produktion och godkännandeflöden hålls åtskilda',
-    items: [
-      {
-        href: '/admin/ediel',
-        label: 'Ediel-center',
-        description: 'Välj live, AGT eller konfiguration',
-        pageKey: 'ediel.workspace',
-      },
-      {
-        href: '/admin/ediel/messages',
-        label: 'Meddelanden',
-        description: 'PRODAT, UTILTS, CONTRL och APERAK',
-        pageKey: 'ediel.workspace',
-      },
-      {
-        href: '/admin/ediel/control-tower',
-        label: 'Ediel Control Tower',
-        description: 'Fel, försenade kvittenser och dubbletter',
-        pageKey: 'ediel.workspace',
-      },
-      {
-        href: '/admin/ediel/agt',
-        label: 'Leverantörsgodkännande',
-        description: 'AGT L1–L7 och UTILTS UL-flöden',
-        pageKey: 'ediel.workspace',
-      },
-      {
-        href: '/admin/ediel/routes',
-        label: 'Rutter och profiler',
-        description: 'Bolag, mailbox, SMTP och profiler',
-        pageKey: 'ediel.routes',
-      },
-      {
-        href: '/admin/ediel/settings',
-        label: 'Inställningar',
-        description: 'Aktörskort, versioner och ack-policy',
-        pageKey: 'ediel.routes',
       },
     ],
   },
@@ -227,12 +229,12 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: 'Masterdata',
-    description: 'Grunddata som driver automationen',
+    description: 'Aktörs- och grunddata som driver automationen',
     items: [
       {
         href: '/admin/network-owners',
         label: 'Nätägare',
-        description: 'Elnätsägare och tekniska uppgifter',
+        description: 'Elnätsägare, nätområden och teknisk adressdata',
         pageKey: 'masterdata.network_owners',
       },
       {
@@ -334,12 +336,12 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
             Kontrollcenter
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Kunder, Ediel, switching och partnerhandoff i samma professionella arbetsyta.
+            Ediel, kunder, switching, mätvärden och partnerhandoff i samma arbetsyta.
           </p>
         </div>
       </div>
 
-      <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-5">
+      <nav className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5">
         {visibleGroups.map((group) => (
           <section key={group.title} className="rounded-3xl border border-transparent p-1">
             <div className="px-2">
@@ -374,9 +376,16 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
                     <div className="pl-2">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-semibold">{item.label}</div>
-                        {active ? (
-                          <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" />
-                        ) : null}
+                        <div className="flex items-center gap-2">
+                          {item.badge ? (
+                            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-800">
+                              {item.badge}
+                            </span>
+                          ) : null}
+                          {active ? (
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" />
+                          ) : null}
+                        </div>
                       </div>
                       {item.description ? (
                         <div

@@ -272,7 +272,7 @@ export default function SwitchRecommendationPanel({
               href="/admin/ediel"
               className="rounded-2xl border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300"
             >
-              Öppna Ediel-center
+              Öppna Ediel Live Center
             </Link>
             <Link
               href="/admin/ediel/routes"
