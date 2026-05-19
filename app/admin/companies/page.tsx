@@ -146,7 +146,7 @@ export default async function CompaniesPage() {
           </div>
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
+        <div className="grid gap-6 2xl:grid-cols-[440px_minmax(0,1fr)]">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Skapa nytt bolag</h2>
             <p className="mt-1 text-sm leading-6 text-slate-700">
@@ -194,14 +194,14 @@ export default async function CompaniesPage() {
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <h3 className="text-sm font-semibold text-slate-900">Första bolagsansvarig</h3>
                 <p className="mt-1 text-xs leading-5 text-slate-700">
-                  Personen får bolagskoppling och rollen Bolagsansvarig. Lämna tomt om du vill skapa bolaget först.
+                  Personen får rollen Ägare/Bolagsansvarig. Systemet skickar inbjudan via e-post med ett temporärt lösenord och kräver lösenordsbyte vid första inloggning.
                 </p>
                 <div className="mt-4 grid gap-4">
                   <input name="admin_name" className="rounded-2xl border border-slate-300 px-4 py-3" placeholder="Namn" />
                   <input name="admin_email" type="email" className="rounded-2xl border border-slate-300 px-4 py-3" placeholder="namn@bolag.se" />
                   <label className="flex items-center gap-3 text-sm text-slate-700">
                     <input type="checkbox" name="send_invite" defaultChecked />
-                    Skicka inbjudan via e-post
+                    Skicka inbjudan med temporärt lösenord
                   </label>
                 </div>
               </div>
@@ -314,7 +314,7 @@ export default async function CompaniesPage() {
                           </div>
                         ) : null}
 
-                        <div className="mt-5 grid gap-3 xl:grid-cols-5">
+                        <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">
                           <GovernanceActionForm companyId={company.id} status="paused" label="Pausa bolag" reasonPlaceholder="Anledning till paus" />
                           <GovernanceActionForm companyId={company.id} status="active" label="Återaktivera" reasonPlaceholder="Anledning, valfritt" />
                           <GovernanceActionForm companyId={company.id} status="suspended" label="Stäng av" reasonPlaceholder="Anledning till avstängning" danger />
@@ -328,10 +328,10 @@ export default async function CompaniesPage() {
                           </form>
                         </div>
 
-                        <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(0,1fr)_260px_260px]">
-                          <form action={inviteCompanyUserFormAction} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_1fr_150px_140px]">
+                        <div className="mt-5 grid gap-4 2xl:grid-cols-[minmax(0,1fr)_280px_280px]">
+                          <form action={inviteCompanyUserFormAction} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(160px,1fr)_minmax(140px,1fr)_150px_120px]">
                             <input type="hidden" name="company_id" value={company.id} />
-                            <input name="email" type="email" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" placeholder="bjud in e-post" />
+                            <input name="email" type="email" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" placeholder="bjud in e-post" required />
                             <input name="full_name" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" placeholder="namn" />
                             <select name="membership_role" defaultValue="admin" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
                               <option value="owner">Ägare</option>

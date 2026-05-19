@@ -52,6 +52,15 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && isProtectedPath(pathname)) {
+    const mustChangePassword = user.user_metadata?.must_change_password === true
+
+    if (mustChangePassword && pathname !== '/login/update-password') {
+      const passwordUrl = new URL('/login/update-password', request.url)
+      passwordUrl.searchParams.set('reason', 'temporary_password')
+      passwordUrl.searchParams.set('next', `${pathname}${search}`)
+      return NextResponse.redirect(passwordUrl)
+    }
+
     const { data: sessionAllowed, error: sessionCheckError } = await supabase.rpc(
       'gridex_is_current_session_allowed'
     )

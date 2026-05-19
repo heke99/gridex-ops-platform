@@ -9,6 +9,7 @@ import {
   createUserAction,
   sendAdminPasswordResetAction,
   sendAdminConfirmationEmailAction,
+  deleteUserCompletelyAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +65,14 @@ export default async function AdminUsersPage() {
     "use server";
     await sendAdminConfirmationEmailAction(
       {} as Parameters<typeof sendAdminConfirmationEmailAction>[0],
+      formData,
+    );
+  }
+
+  async function deleteUserCompletelyFormAction(formData: FormData) {
+    "use server";
+    await deleteUserCompletelyAction(
+      {} as Parameters<typeof deleteUserCompletelyAction>[0],
       formData,
     );
   }
@@ -408,6 +417,14 @@ export default async function AdminUsersPage() {
                               </form>
                             ) : null}
                           </>
+                        ) : null}
+                        {canWriteUsers ? (
+                          <form action={deleteUserCompletelyFormAction}>
+                            <input type="hidden" name="user_id" value={row.id} />
+                            <button className="inline-flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 font-medium text-red-700 transition hover:bg-red-100">
+                              Radera användare
+                            </button>
+                          </form>
                         ) : null}
                       </div>
                     </td>

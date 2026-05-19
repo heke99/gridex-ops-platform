@@ -268,6 +268,12 @@ const NAV_GROUPS: NavGroup[] = [
  pageKey: 'companies.manage',
  },
  {
+ href: '/admin/company-settings',
+ label: 'Bolagsinställningar',
+ description: 'Kontaktuppgifter, ansvariga och login-e-post',
+ pageKey: 'companies.manage',
+ },
+ {
  href: '/admin/users',
  label: 'Användare',
  description: 'Konton, roller och individuella behörigheter',

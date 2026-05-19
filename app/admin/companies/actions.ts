@@ -4,10 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import {
-  recordAuthEmailEvent,
-  upsertAuthUserProfile,
-} from '@/lib/auth/authEmailFlow'
+import { provisionCompanyInvitation } from '@/lib/auth/companyInvitationFlow'
 import {
   getCompanyById,
   getCompanyDeleteBlockers,
@@ -51,10 +48,6 @@ function slugify(value: string): string {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 120)
-}
-
-function getBaseAppUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'http://localhost:3000'
 }
 
 async function getCurrentUserId(): Promise<string> {
@@ -119,81 +112,6 @@ async function insertActiveUserRole(input: { userId: string; roleId: string }) {
   }
 
   throw first.error
-}
-
-async function upsertOptionalUserProfile(input: { userId: string; email: string; fullName: string | null }) {
-  const { error } = await supabaseService.from('user_profiles').upsert(
-    {
-      id: input.userId,
-      email: input.email,
-      full_name: input.fullName,
-      user_status: 'active',
-    },
-    { onConflict: 'id' }
-  )
-
-  if (error && (error.code === '42703' || /user_status/i.test(error.message ?? ''))) {
-    const retry = await supabaseService.from('user_profiles').upsert(
-      {
-        id: input.userId,
-        email: input.email,
-        full_name: input.fullName,
-      },
-      { onConflict: 'id' }
-    )
-
-    if (retry.error && !['42P01', 'PGRST205'].includes(retry.error.code ?? '')) {
-      throw retry.error
-    }
-    return
-  }
-
-  if (error && !['42P01', 'PGRST205'].includes(error.code ?? '')) {
-    throw error
-  }
-}
-
-async function resolveOrInviteUser(params: {
-  email: string
-  fullName: string | null
-  sendInvite: boolean
-}): Promise<string> {
-  if (params.sendInvite) {
-    const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(params.email, {
-      redirectTo: `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent('/login/update-password')}`,
-      data: params.fullName ? { full_name: params.fullName } : undefined,
-    })
-
-    if (!error && data.user?.id) {
-      const sentAt = new Date().toISOString()
-      await upsertAuthUserProfile({
-        userId: data.user.id,
-        email: params.email,
-        fullName: params.fullName,
-        lastInviteSentAt: sentAt,
-        lastAction: 'company_invite_sent',
-      })
-      await recordAuthEmailEvent({
-        userId: data.user.id,
-        email: params.email,
-        eventType: 'invite_sent',
-        status: 'sent',
-        source: 'company_invite',
-      })
-      return data.user.id
-    }
-
-    if (error && !/already|registered|exists/i.test(error.message ?? '')) {
-      throw error
-    }
-  }
-
-  const { data, error } = await supabaseService.auth.admin.listUsers()
-  if (error) throw error
-
-  const user = (data.users ?? []).find((row) => (row.email ?? '').toLowerCase() === params.email)
-  if (!user?.id) throw new Error(`Ingen användare hittades med e-post ${params.email}.`)
-  return user.id
 }
 
 function parseCompanyStatus(value: string): CompanyOperationalStatus {
@@ -286,8 +204,6 @@ export async function createCompanyAction(
     const website = normalizeText(formData.get('website')) || null
     const initialAdminEmail = normalizeEmail(formData.get('admin_email'))
     const initialAdminName = normalizeText(formData.get('admin_name')) || primaryContactName
-    const sendInvite = formData.get('send_invite') !== 'off'
-
     if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
 
     const slug = slugify(normalizeText(formData.get('slug')) || name)
@@ -313,50 +229,16 @@ export async function createCompanyAction(
     if (companyError) throw companyError
 
     if (initialAdminEmail) {
-      const userId = await resolveOrInviteUser({
+      await provisionCompanyInvitation({
+        companyId: company.id,
+        companyName: name,
         email: initialAdminEmail,
         fullName: initialAdminName || null,
-        sendInvite,
-      })
-
-      await upsertOptionalUserProfile({
-        userId,
-        email: initialAdminEmail,
-        fullName: initialAdminName || null,
-      })
-
-      const roleId = await resolveRoleIdByKey('company_admin')
-      await insertActiveUserRole({ userId, roleId })
-
-      const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-        {
-          company_id: company.id,
-          user_id: userId,
-          membership_role: 'owner',
-          status: sendInvite ? 'pending' : 'active',
-          invited_email: initialAdminEmail,
-          invited_by: actorUserId,
-          invited_at: new Date().toISOString(),
-          accepted_at: sendInvite ? null : new Date().toISOString(),
-          metadata: {},
-        },
-        { onConflict: 'company_id,user_id' }
-      )
-
-      if (membershipError) throw membershipError
-
-      await supabaseService.from('company_invitations').insert({
-        company_id: company.id,
-        email: initialAdminEmail,
-        full_name: initialAdminName || null,
-        membership_role: 'owner',
-        role_key: 'company_admin',
-        status: sendInvite ? 'pending' : 'accepted',
-        invited_by: actorUserId,
-        invited_user_id: userId,
-        expires_at: sendInvite ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString() : null,
-        accepted_at: sendInvite ? null : new Date().toISOString(),
-        metadata: {},
+        membershipRole: 'owner',
+        roleKey: 'company_admin',
+        actorUserId,
+        source: 'company_owner_invite',
+        issueTemporaryPassword: true,
       })
     }
 
@@ -395,44 +277,17 @@ export async function inviteCompanyUserAction(
 
     await requireCompanyOperationalForWrites(companyId)
 
-    const userId = await resolveOrInviteUser({ email, fullName, sendInvite: true })
-    await upsertOptionalUserProfile({ userId, email, fullName })
-    await insertActiveUserRole({ userId, roleId: await resolveRoleIdByKey(roleKey) })
-
-    const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-      {
-        company_id: companyId,
-        user_id: userId,
-        membership_role: membershipRole,
-        status: 'pending',
-        invited_email: email,
-        invited_by: actorUserId,
-        invited_at: new Date().toISOString(),
-        accepted_at: null,
-        disabled_at: null,
-        disabled_by: null,
-        removed_at: null,
-        removed_by: null,
-        status_reason: null,
-        metadata: {},
-      },
-      { onConflict: 'company_id,user_id' }
-    )
-
-    if (membershipError) throw membershipError
-
-    await supabaseService.from('company_invitations').insert({
-      company_id: companyId,
+    const provisioned = await provisionCompanyInvitation({
+      companyId,
       email,
-      full_name: fullName,
-      membership_role: membershipRole,
-      role_key: roleKey,
-      status: 'pending',
-      invited_by: actorUserId,
-      invited_user_id: userId,
-      expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString(),
-      metadata: {},
+      fullName,
+      membershipRole,
+      roleKey,
+      actorUserId,
+      source: 'company_user_invite',
+      issueTemporaryPassword: true,
     })
+    const userId = provisioned.userId
 
     await logTenantGovernanceEvent({
       action: 'SUPERADMIN_ROLE_CHANGED',
@@ -549,8 +404,19 @@ export async function deleteTestCompanyAction(
       metadata: { companyName: company.name },
     })
 
-    await supabaseService.from('company_invitations').delete().eq('company_id', companyId)
-    await supabaseService.from('company_memberships').delete().eq('company_id', companyId)
+    const relatedTables = [
+      'company_invitations',
+      'company_memberships',
+      'tenant_governance_events',
+      'auth_email_events',
+    ]
+
+    for (const table of relatedTables) {
+      const { error: relatedDeleteError } = await supabaseService.from(table).delete().eq('company_id', companyId)
+      if (relatedDeleteError && !['42P01', '42703', 'PGRST205'].includes(relatedDeleteError.code ?? '')) {
+        throw relatedDeleteError
+      }
+    }
 
     const { error } = await supabaseService.from('companies').delete().eq('id', companyId)
     if (error) throw error

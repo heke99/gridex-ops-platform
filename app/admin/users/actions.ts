@@ -479,3 +479,47 @@ export async function inviteUserAction(prevState: ActionState, formData: FormDat
 export async function createUserAction(prevState: ActionState, formData: FormData): Promise<ActionState> {
   return createDirectAdminUserAction(prevState, formData)
 }
+
+export async function deleteUserCompletelyAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAdminActionAccess({ anyOf: ['users.write'] })
+
+    const userId = normalizeText(formData.get('user_id'))
+    if (!userId) return { ok: false, message: 'Användar-id saknas.' }
+
+    const actorUserId = await getCurrentActorUserId()
+    if (actorUserId && actorUserId === userId) {
+      return { ok: false, message: 'Du kan inte radera ditt eget superadmin-konto här.' }
+    }
+
+    const deleteSteps: Array<{ table: string; column: string }> = [
+      { table: 'user_permissions', column: 'user_id' },
+      { table: 'user_roles', column: 'user_id' },
+      { table: 'company_memberships', column: 'user_id' },
+      { table: 'company_invitations', column: 'invited_user_id' },
+      { table: 'auth_email_events', column: 'user_id' },
+      { table: 'user_profiles', column: 'id' },
+    ]
+
+    for (const step of deleteSteps) {
+      const { error } = await supabaseService.from(step.table).delete().eq(step.column, userId)
+      if (error && !['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) throw error
+    }
+
+    const { error: authError } = await supabaseService.auth.admin.deleteUser(userId)
+    if (authError) throw authError
+
+    revalidatePath('/admin/users')
+    revalidatePath('/admin/companies')
+
+    return { ok: true, message: 'Användaren raderades från Auth och interna databastabeller.' }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Kunde inte radera användaren.',
+    }
+  }
+}

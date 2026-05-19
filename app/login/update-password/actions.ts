@@ -7,6 +7,8 @@ import { recordAuthEmailEvent, upsertAuthUserProfile } from '@/lib/auth/authEmai
 export async function updatePasswordAction(formData: FormData) {
   const password = String(formData.get('password') ?? '')
   const confirmPassword = String(formData.get('confirmPassword') ?? '')
+  const next = String(formData.get('next') ?? '/dashboard').trim()
+  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
 
   if (password.length < 8) {
     redirect(
@@ -37,7 +39,14 @@ export async function updatePasswordAction(formData: FormData) {
     )
   }
 
-  const { error } = await supabase.auth.updateUser({ password })
+  const { error } = await supabase.auth.updateUser({
+    password,
+    data: {
+      ...(user.user_metadata ?? {}),
+      must_change_password: false,
+      password_changed_at: new Date().toISOString(),
+    },
+  })
 
   if (error) {
     redirect(
@@ -53,6 +62,16 @@ export async function updatePasswordAction(formData: FormData) {
     lastAction: 'password_updated',
   })
 
+  await supabase
+    .from('user_profiles')
+    .update({
+      must_change_password: false,
+      temporary_password_expires_at: null,
+      password_changed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', user.id)
+
   await recordAuthEmailEvent({
     userId: user.id,
     email: user.email,
@@ -61,5 +80,5 @@ export async function updatePasswordAction(formData: FormData) {
     source: 'update_password_page',
   })
 
-  redirect('/login?message=Lösenordet är uppdaterat. Logga in med ditt nya lösenord.')
+  redirect(`${safeNext}?message=${encodeURIComponent('Lösenordet är uppdaterat.')}`)
 }
