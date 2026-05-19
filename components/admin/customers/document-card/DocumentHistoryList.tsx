@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   archiveCustomerAuthorizationDocumentAction,
   setCustomerAuthorizationDocumentActiveAction,
+  verifyCustomerAuthorizationDocumentAndRequestDataAction,
 } from '@/app/admin/customers/[id]/document-actions'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type {
@@ -287,6 +288,18 @@ export default function DocumentHistoryList({
                         idleLabel="Sätt som aktiv"
                         pendingLabel="Sätter aktiv..."
                         tone="secondary"
+                      />
+                    </form>
+                  ) : null}
+
+                  {documentRow.document_type === 'power_of_attorney' && documentRow.status !== 'archived' ? (
+                    <form action={verifyCustomerAuthorizationDocumentAndRequestDataAction}>
+                      <input type="hidden" name="customer_id" value={customerId} />
+                      <input type="hidden" name="document_id" value={documentRow.id} />
+                      <SubmitButton
+                        idleLabel="Verifiera & begär uppgifter"
+                        pendingLabel="Skapar begäran..."
+                        tone="primary"
                       />
                     </form>
                   ) : null}

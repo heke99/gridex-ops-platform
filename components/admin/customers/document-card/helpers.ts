@@ -339,6 +339,89 @@ export function buildDocumentTimelineItems(params: {
       continue
     }
 
+
+    if (log.action === 'customer_authorization_document_verified_automation') {
+      const createdGridOwnerRequestIds = getStringArray(log.metadata, 'createdGridOwnerRequestIds')
+      const createdGridOwnerOutboundIds = getStringArray(log.metadata, 'createdGridOwnerOutboundIds')
+      const linkedPowerOfAttorneyId = getString(log.metadata, 'linkedPowerOfAttorneyId')
+      const switchRequestId = getString(log.metadata, 'switchRequestId')
+      const switchOutboundId = getString(log.metadata, 'switchOutboundId')
+      const switchEdielMessageId = getString(log.metadata, 'switchEdielMessageId')
+      const blockedReasons = getStringArray(log.metadata, 'automationBlockedReasons')
+      const warnings = getStringArray(log.metadata, 'automationWarnings')
+
+      const links: TimelineLink[] = []
+      if (linkedPowerOfAttorneyId) {
+        links.push({
+          label: `Fullmakt ${linkedPowerOfAttorneyId}`,
+          href: buildGridOwnerRequestHref(params.customerId),
+        })
+      }
+      createdGridOwnerRequestIds.forEach((id) => {
+        links.push({
+          label: `Request ${id}`,
+          href: buildGridOwnerRequestHref(params.customerId, id),
+        })
+      })
+      createdGridOwnerOutboundIds.forEach((id) => {
+        const outbound = params.matchingOutbounds.find((row) => row.id === id)
+        links.push({
+          label: `Outbound ${id}`,
+          href: outbound ? buildOutboundHref(outbound) : '/admin/outbound',
+        })
+      })
+      if (switchRequestId) {
+        links.push({
+          label: `Switch ${switchRequestId}`,
+          href: `/admin/operations/switches/${switchRequestId}`,
+        })
+      }
+      if (switchOutboundId) {
+        const outbound = params.matchingOutbounds.find((row) => row.id === switchOutboundId)
+        links.push({
+          label: `Switch outbound ${switchOutboundId}`,
+          href: outbound ? buildOutboundHref(outbound) : '/admin/outbound',
+        })
+      }
+      if (switchEdielMessageId) {
+        links.push({
+          label: `Ediel Z03 ${switchEdielMessageId}`,
+          href: '/admin/ediel/messages',
+        })
+      }
+
+      items.push({
+        id: log.id,
+        occurredAt: log.created_at,
+        title: 'Fullmakt verifierad och begäran startad',
+        description: [
+          'Fullmakten verifierades och användes som operations-trigger.',
+          createdGridOwnerRequestIds.length
+            ? `Skapade eller återanvände nätägarbegäran: ${createdGridOwnerRequestIds.join(', ')}.`
+            : null,
+          createdGridOwnerOutboundIds.length
+            ? `Köade outbound för uppgiftsbegäran: ${createdGridOwnerOutboundIds.join(', ')}.`
+            : null,
+          switchRequestId ? `Kopplade switchärende ${switchRequestId}.` : null,
+          switchEdielMessageId ? `Ediel Z03 skapades: ${switchEdielMessageId}.` : null,
+          warnings.length ? `Begränsningar: ${warnings.join(' ')}` : null,
+          blockedReasons.length ? `Blockeringar: ${blockedReasons.join(' ')}` : null,
+        ]
+          .filter((value): value is string => Boolean(value))
+          .join(' '),
+        tone: blockedReasons.length
+          ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+        links: links.filter(
+          (link, index, array) =>
+            array.findIndex(
+              (item) => item.label === link.label && item.href === link.href
+            ) === index
+        ),
+      })
+      continue
+    }
+
     if (log.action === 'customer_authorization_document_set_active') {
       const archivedConflictIds = getStringArray(log.metadata, 'archivedConflictIds')
       const restoredPowerOfAttorneyId = getString(log.metadata, 'restoredPowerOfAttorneyId')

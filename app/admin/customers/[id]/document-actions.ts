@@ -25,6 +25,7 @@ import {
   listActiveCustomerAuthorizationDocumentsByScope,
   listMeteringPointsForSite,
   listPowersOfAttorneyByCustomerId,
+  getPowerOfAttorneyById,
   listSupplierSwitchRequestsByCustomerId,
   buildDocumentUploadIdempotencyKey,
   findExistingCustomerAuthorizationDocumentByFingerprint,
@@ -38,6 +39,7 @@ import {
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
+import { resolveFullmaktAutomationPolicy } from '@/lib/operations/fullmaktAutomation'
 import type {
   CustomerAuthorizationDocumentRow,
   SupplierSwitchRequestType,
@@ -349,6 +351,8 @@ type UploadAutomationDecision = {
   resolvedGridOwnerId: string | null
   blockedReasons: string[]
   warnings: string[]
+  canUseDocumentForRequests: boolean
+  canUseDocumentForSwitch: boolean
 }
 
 function formatMessageLines(lines: Array<string | null | undefined>): string {
@@ -710,6 +714,8 @@ async function resolveUploadAutomationDecision(params: {
   includeBillingUnderlay: boolean
   autoCreateSwitchRequest: boolean
   autoQueueSwitchOutbound: boolean
+  autoSendRequestsAfterSignedFullmakt: boolean
+  autoSendRequestsAfterUploadedFullmakt: boolean
 }): Promise<UploadAutomationDecision> {
   const blockedReasons: string[] = []
   const warnings: string[] = []
@@ -725,6 +731,29 @@ async function resolveUploadAutomationDecision(params: {
     params.autoCreateGridOwnerRequests && params.includeBillingUnderlay
   let resolvedMeteringPointId: string | null = null
   let resolvedGridOwnerId: string | null = null
+
+  const fullmaktPolicy = resolveFullmaktAutomationPolicy({
+    documentType: params.documentType,
+    markAsSigned: params.markAsSigned,
+    savedPowerOfAttorneyId: params.savedPowerOfAttorneyId,
+    autoCreateGridOwnerRequests: shouldCreateGridOwnerRequests,
+    autoCreateSwitchRequest: shouldCreateSwitchRequest,
+    autoQueueSwitchOutbound: shouldQueueSwitchOutbound,
+    autoSendRequestsAfterSignedFullmakt: params.autoSendRequestsAfterSignedFullmakt,
+    autoSendRequestsAfterUploadedFullmakt: params.autoSendRequestsAfterUploadedFullmakt,
+  })
+
+  shouldCreateGridOwnerRequests = fullmaktPolicy.shouldCreateGridOwnerRequests
+  shouldCreateSwitchRequest = fullmaktPolicy.shouldCreateSwitchRequest
+  shouldQueueSwitchOutbound = fullmaktPolicy.shouldQueueSwitchOutbound
+  blockedReasons.push(...fullmaktPolicy.blockedReasons)
+  warnings.push(...fullmaktPolicy.warnings)
+
+  if (!shouldCreateGridOwnerRequests) {
+    includeCustomerMasterdata = false
+    includeMeterValues = false
+    includeBillingUnderlay = false
+  }
 
   if (
     !params.siteId &&
@@ -745,6 +774,8 @@ async function resolveUploadAutomationDecision(params: {
       resolvedGridOwnerId: null,
       blockedReasons,
       warnings,
+      canUseDocumentForRequests: fullmaktPolicy.canUseDocumentForRequests,
+      canUseDocumentForSwitch: fullmaktPolicy.canUseDocumentForSwitch,
     }
   }
 
@@ -760,6 +791,8 @@ async function resolveUploadAutomationDecision(params: {
       resolvedGridOwnerId,
       blockedReasons,
       warnings,
+      canUseDocumentForRequests: fullmaktPolicy.canUseDocumentForRequests,
+      canUseDocumentForSwitch: fullmaktPolicy.canUseDocumentForSwitch,
     }
   }
 
@@ -778,6 +811,8 @@ async function resolveUploadAutomationDecision(params: {
       resolvedGridOwnerId: null,
       blockedReasons,
       warnings,
+      canUseDocumentForRequests: fullmaktPolicy.canUseDocumentForRequests,
+      canUseDocumentForSwitch: fullmaktPolicy.canUseDocumentForSwitch,
     }
   }
 
@@ -838,6 +873,16 @@ async function resolveUploadAutomationDecision(params: {
     )
   }
 
+  if (shouldCreateGridOwnerRequests && !resolvedGridOwnerId) {
+    shouldCreateGridOwnerRequests = false
+    includeCustomerMasterdata = false
+    includeMeterValues = false
+    includeBillingUnderlay = false
+    blockedReasons.push(
+      'Begäran skickades inte eftersom systemet inte kunde fastställa rätt nätägare/mottagare från anläggning eller mätpunkt.'
+    )
+  }
+
   return {
     shouldCreateGridOwnerRequests,
     shouldCreateSwitchRequest,
@@ -849,6 +894,8 @@ async function resolveUploadAutomationDecision(params: {
     resolvedGridOwnerId,
     blockedReasons,
     warnings,
+    canUseDocumentForRequests: fullmaktPolicy.canUseDocumentForRequests,
+    canUseDocumentForSwitch: fullmaktPolicy.canUseDocumentForSwitch,
   }
 }
 
@@ -906,6 +953,14 @@ export async function uploadCustomerAuthorizationDocumentAction(
   const autoQueueSwitchOutbound = toBoolean(
     formData,
     'auto_queue_switch_outbound'
+  )
+  const autoSendRequestsAfterSignedFullmakt = toBoolean(
+    formData,
+    'auto_send_requests_after_signed_fullmakt'
+  )
+  const autoSendRequestsAfterUploadedFullmakt = toBoolean(
+    formData,
+    'auto_send_requests_after_uploaded_fullmakt'
   )
   const replaceDocumentId = formValue(formData, 'replace_document_id') || null
   const requestType = normalizeSwitchRequestType(formValue(formData, 'request_type'))
@@ -1073,6 +1128,8 @@ export async function uploadCustomerAuthorizationDocumentAction(
     includeBillingUnderlay,
     autoCreateSwitchRequest,
     autoQueueSwitchOutbound,
+    autoSendRequestsAfterSignedFullmakt,
+    autoSendRequestsAfterUploadedFullmakt,
   })
 
   const archivedDocumentIds: string[] = []
@@ -1226,6 +1283,12 @@ export async function uploadCustomerAuthorizationDocumentAction(
         shouldCreateSwitchRequest: automationDecision.shouldCreateSwitchRequest,
         shouldQueueSwitchOutbound:
           automationDecision.shouldQueueSwitchOutbound,
+        canUseDocumentForRequests:
+          automationDecision.canUseDocumentForRequests,
+        canUseDocumentForSwitch:
+          automationDecision.canUseDocumentForSwitch,
+        autoSendRequestsAfterSignedFullmakt,
+        autoSendRequestsAfterUploadedFullmakt,
         includeCustomerMasterdata:
           automationDecision.includeCustomerMasterdata,
         includeMeterValues: automationDecision.includeMeterValues,
@@ -1271,6 +1334,241 @@ export async function uploadCustomerAuthorizationDocumentAction(
     documentId: savedDocument.id,
     duplicateDocumentId: null,
   }
+}
+
+
+export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
+  formData: FormData
+): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+
+  const actor = await getActor()
+  const supabase = await createSupabaseServerClient()
+  const customerId = formValue(formData, 'customer_id') ?? ''
+  const documentId = formValue(formData, 'document_id') ?? ''
+  const requestedPeriodStart = normalizeDateOrNull(
+    formValue(formData, 'requested_period_start')
+  )
+  const requestedPeriodEnd = normalizeDateOrNull(
+    formValue(formData, 'requested_period_end')
+  )
+  const requestedStartDate = normalizeDateOrNull(
+    formValue(formData, 'requested_start_date')
+  )
+
+  if (!customerId || !documentId) {
+    throw new Error('customer_id och document_id krävs')
+  }
+
+  if (isIsoDateBefore(requestedPeriodEnd, requestedPeriodStart)) {
+    throw new Error('Begär period till kan inte vara tidigare än begär period från')
+  }
+
+  const existingDocument = await getCustomerAuthorizationDocumentById(
+    supabase,
+    documentId
+  )
+
+  if (!existingDocument || existingDocument.customer_id !== customerId) {
+    throw new Error('Fullmaktsdokumentet hittades inte för aktuell kund')
+  }
+
+  if (existingDocument.status === 'archived') {
+    throw new Error('Arkiverad fullmakt kan inte verifieras eller användas för nya begäran')
+  }
+
+  if (existingDocument.document_type !== 'power_of_attorney') {
+    throw new Error('Endast fullmaktsdokument kan verifieras från detta flöde')
+  }
+
+  let powerOfAttorneyId = existingDocument.power_of_attorney_id
+  let linkedPowerOfAttorney = powerOfAttorneyId
+    ? await getPowerOfAttorneyById(supabase, powerOfAttorneyId)
+    : null
+
+  if (!linkedPowerOfAttorney) {
+    linkedPowerOfAttorney = await savePowerOfAttorney(supabase, {
+      customer_id: customerId,
+      site_id: existingDocument.site_id,
+      scope: 'supplier_switch',
+      status: 'signed',
+      signed_at: new Date().toISOString(),
+      valid_from: null,
+      valid_to: null,
+      document_path: existingDocument.file_path,
+      reference: existingDocument.reference,
+      notes: existingDocument.notes
+        ? `${existingDocument.notes}\n\nVerifierad manuellt från kundkortet.`
+        : 'Verifierad manuellt från kundkortet.',
+    })
+    powerOfAttorneyId = linkedPowerOfAttorney.id
+  } else if (linkedPowerOfAttorney.status !== 'signed') {
+    linkedPowerOfAttorney = await savePowerOfAttorney(supabase, {
+      id: linkedPowerOfAttorney.id,
+      customer_id: linkedPowerOfAttorney.customer_id,
+      site_id: linkedPowerOfAttorney.site_id,
+      scope: linkedPowerOfAttorney.scope,
+      status: 'signed',
+      signed_at: linkedPowerOfAttorney.signed_at ?? new Date().toISOString(),
+      valid_from: linkedPowerOfAttorney.valid_from,
+      valid_to: linkedPowerOfAttorney.valid_to,
+      document_path: linkedPowerOfAttorney.document_path ?? existingDocument.file_path,
+      reference: linkedPowerOfAttorney.reference ?? existingDocument.reference,
+      notes: linkedPowerOfAttorney.notes
+        ? `${linkedPowerOfAttorney.notes}\n\nVerifierad manuellt från kundkortet.`
+        : 'Verifierad manuellt från kundkortet.',
+    })
+  }
+
+  const { data: updatedDocument, error: updateError } = await supabase
+    .from('customer_authorization_documents')
+    .update({
+      power_of_attorney_id: powerOfAttorneyId,
+      status: 'active',
+      notes: existingDocument.notes
+        ? `${existingDocument.notes}\n\nVerifierad och använd för automatisk uppgiftsbegäran.`
+        : 'Verifierad och använd för automatisk uppgiftsbegäran.',
+      updated_by: actor.id,
+    })
+    .eq('id', existingDocument.id)
+    .select('*')
+    .single()
+
+  if (updateError) throw updateError
+
+  const document = updatedDocument as CustomerAuthorizationDocumentRow
+  const siteId = document.site_id
+  const automationDecision = await resolveUploadAutomationDecision({
+    supabase,
+    customerId,
+    siteId,
+    documentType: document.document_type,
+    markAsSigned: true,
+    savedPowerOfAttorneyId: powerOfAttorneyId,
+    autoCreateGridOwnerRequests: true,
+    includeCustomerMasterdata: true,
+    includeMeterValues: true,
+    includeBillingUnderlay: true,
+    autoCreateSwitchRequest: true,
+    autoQueueSwitchOutbound: true,
+    autoSendRequestsAfterSignedFullmakt: true,
+    autoSendRequestsAfterUploadedFullmakt: true,
+  })
+
+  let createdGridOwnerRequestIds: string[] = []
+  let createdGridOwnerOutboundIds: string[] = []
+  let switchRequestId: string | null = null
+  let switchOutboundId: string | null = null
+  let switchEdielMessageId: string | null = null
+  let switchEdielAutomationError: string | null = null
+  let switchReadinessIssues: Array<{ code?: unknown; title?: unknown }> | null = null
+
+  if (siteId && automationDecision.shouldCreateGridOwnerRequests) {
+    const requestResult = await queueGridOwnerRequestsFromDocument({
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      document,
+      meteringPointId: automationDecision.resolvedMeteringPointId,
+      gridOwnerId: automationDecision.resolvedGridOwnerId,
+      externalReference: document.reference,
+      requestedPeriodStart,
+      requestedPeriodEnd,
+      notes: document.notes,
+      includeCustomerMasterdata: automationDecision.includeCustomerMasterdata,
+      includeMeterValues: automationDecision.includeMeterValues,
+      includeBillingUnderlay: automationDecision.includeBillingUnderlay,
+    })
+
+    createdGridOwnerRequestIds = requestResult.createdGridOwnerRequestIds
+    createdGridOwnerOutboundIds = requestResult.createdOutboundIds
+  }
+
+  if (
+    siteId &&
+    (automationDecision.shouldCreateSwitchRequest ||
+      automationDecision.shouldQueueSwitchOutbound)
+  ) {
+    const switchResult = await ensureSwitchRequestAndOutboundFromDocument({
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      document,
+      requestType: 'switch',
+      requestedStartDate,
+      autoQueueOutbound: automationDecision.shouldQueueSwitchOutbound,
+    })
+
+    switchRequestId = switchResult.switchRequestId
+    switchOutboundId = switchResult.switchOutboundId
+    switchReadinessIssues = switchResult.readinessIssues
+
+    if (switchResult.switchRequestId && automationDecision.shouldQueueSwitchOutbound) {
+      try {
+        const edielResult = await ensureInitialSwitchEdielAutomation({
+          actorUserId: actor.id,
+          switchRequestId: switchResult.switchRequestId,
+        })
+
+        switchEdielMessageId = edielResult.message?.id ?? null
+        if (!switchOutboundId && edielResult.outboundRequestId) {
+          switchOutboundId = edielResult.outboundRequestId
+        }
+      } catch (error) {
+        switchEdielAutomationError = error instanceof Error ? error.message : String(error)
+        automationDecision.warnings.push(
+          `Ediel Z03 skapades inte automatiskt efter verifierad fullmakt: ${switchEdielAutomationError}`
+        )
+      }
+    }
+
+    if (!switchResult.switchRequestId && switchResult.readinessIssues?.length) {
+      automationDecision.blockedReasons.push(
+        `Supplier switch skapades inte eftersom readiness blockerade: ${switchResult.readinessIssues
+          .map((issue) => String(issue.title ?? issue.code ?? 'okänd blockerare'))
+          .join(', ')}`
+      )
+    }
+  }
+
+  const syncSummary = siteId
+    ? await syncCustomerOperationsForSite(supabase, {
+        customerId,
+        siteId,
+      })
+    : await syncCustomerOperationsForCustomer(supabase, customerId)
+
+  await createAuditLogEntry(supabase, {
+    actorUserId: actor.id,
+    entityType: 'customer_authorization_document',
+    entityId: document.id,
+    action: 'customer_authorization_document_verified_automation',
+    oldValues: existingDocument,
+    newValues: document,
+    metadata: {
+      customerId,
+      siteId,
+      linkedPowerOfAttorneyId: powerOfAttorneyId,
+      createdGridOwnerRequestIds,
+      createdGridOwnerOutboundIds,
+      switchRequestId,
+      switchOutboundId,
+      switchEdielMessageId,
+      switchEdielAutomationError,
+      switchReadinessIssues,
+      automationBlockedReasons: automationDecision.blockedReasons,
+      automationWarnings: automationDecision.warnings,
+      automationDecision,
+      syncSummary,
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/controltower')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/outbound/unresolved')
 }
 
 export async function archiveCustomerAuthorizationDocumentAction(

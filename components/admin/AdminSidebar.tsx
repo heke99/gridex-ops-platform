@@ -28,8 +28,8 @@ type AdminSidebarProps = {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    title: 'Start',
-    description: 'Överblick och daglig prioritering',
+    title: 'Översikt',
+    description: 'Daglig prioritering och driftläge',
     items: [
       {
         href: '/admin',
@@ -38,16 +38,22 @@ const NAV_GROUPS: NavGroup[] = [
         pageKey: 'dashboard',
       },
       {
+        href: '/admin/controltower',
+        label: 'Control Tower',
+        description: 'Blockeringar, fullmakter, Ediel och handoff',
+        pageKey: 'operations.control_tower',
+      },
+      {
         href: '/admin/operations',
-        label: 'Operations',
+        label: 'Operationsöversikt',
         description: 'Switchar, uppgifter och beredskap',
         pageKey: 'operations.control_tower',
       },
     ],
   },
   {
-    title: 'Kunder',
-    description: 'Allt som rör kund, avtal och anläggning',
+    title: 'Kunder & avtal',
+    description: 'Kund, avtal, anläggning och mätpunkt',
     items: [
       {
         href: '/admin/customers',
@@ -67,10 +73,82 @@ const NAV_GROUPS: NavGroup[] = [
         description: 'Avtalskatalog och prissättning',
         pageKey: 'contracts.catalog',
       },
+      {
+        href: '/admin/customers/segments',
+        label: 'Kundsegment',
+        description: 'Segment och urval för uppföljning',
+        pageKey: 'customers.segments',
+      },
     ],
   },
   {
-    title: 'Ediel',
+    title: 'Fullmakter & onboarding',
+    description: 'Från signerad fullmakt till begärda uppgifter',
+    items: [
+      {
+        href: '/admin/customers/intake',
+        label: 'Kundintag',
+        description: 'Starta kund, avtal och fullmaktsflöde',
+        pageKey: 'customers.intake',
+      },
+      {
+        href: '/admin/operations/tasks',
+        label: 'Operationsuppgifter',
+        description: 'Blockerade fullmakter och saknade uppgifter',
+        pageKey: 'operations.tasks',
+      },
+      {
+        href: '/admin/operations/sync',
+        label: 'Sync & readiness',
+        description: 'Synka kund, anläggning och switchberedskap',
+        pageKey: 'operations.sync',
+      },
+      {
+        href: '/admin/operations/integrity',
+        label: 'Datakontroll',
+        description: 'Hitta fel i kund- och operationsdata',
+        pageKey: 'operations.integrity',
+      },
+    ],
+  },
+  {
+    title: 'Operations',
+    description: 'Leverantörsbyte, outbounds och uppföljning',
+    items: [
+      {
+        href: '/admin/operations/switches',
+        label: 'Switchärenden',
+        description: 'Z03, svar, status och slutförande',
+        pageKey: 'operations.switches',
+      },
+      {
+        href: '/admin/operations/ready-to-execute',
+        label: 'Redo att slutföra',
+        description: 'Accepterade flöden som kan aktiveras',
+        pageKey: 'operations.ready_to_execute',
+      },
+      {
+        href: '/admin/outbound',
+        label: 'Utskickskö',
+        description: 'Extern kommunikation och uppföljning',
+        pageKey: 'outbound.queue',
+      },
+      {
+        href: '/admin/outbound/unresolved',
+        label: 'Ej matchade meddelanden',
+        description: 'Saknad rutt, kanal eller underlag',
+        pageKey: 'outbound.unresolved',
+      },
+      {
+        href: '/admin/outbound/ready-switches',
+        label: 'Redo outbounds',
+        description: 'Switchar som kan köas och skickas',
+        pageKey: 'outbound.ready_switches',
+      },
+    ],
+  },
+  {
+    title: 'Ediel & meddelanden',
     description: 'Produktion och godkännandeflöden hålls åtskilda',
     items: [
       {
@@ -87,13 +165,14 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: '/admin/ediel/control-tower',
-        label: 'Driftkontroll',
-        description: 'Fel, försenade kvittenser och driftkontroll',
+        label: 'Ediel Control Tower',
+        description: 'Fel, försenade kvittenser och dubbletter',
+        pageKey: 'ediel.workspace',
       },
       {
         href: '/admin/ediel/agt',
         label: 'Leverantörsgodkännande',
-        description: 'Godkännandeflöden separat från kunddrift',
+        description: 'AGT L1–L7 och UTILTS UL-flöden',
         pageKey: 'ediel.workspace',
       },
       {
@@ -106,12 +185,13 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/admin/ediel/settings',
         label: 'Inställningar',
         description: 'Aktörskort, versioner och ack-policy',
+        pageKey: 'ediel.routes',
       },
     ],
   },
   {
-    title: 'Data och handoff',
-    description: 'Mätvärden, faktureringsunderlag och externa exporter',
+    title: 'Mätvärden & fakturaunderlag',
+    description: 'UTILTS, mätvärden och partnerhandoff',
     items: [
       {
         href: '/admin/metering',
@@ -126,16 +206,16 @@ const NAV_GROUPS: NavGroup[] = [
         pageKey: 'billing.workspace',
       },
       {
-        href: '/admin/outbound',
-        label: 'Utskickskö',
-        description: 'Extern kommunikation och uppföljning',
-        pageKey: 'outbound.queue',
+        href: '/admin/outbound/missing-meter-values',
+        label: 'Saknade mätvärden',
+        description: 'Perioder där mätdata saknas',
+        pageKey: 'outbound.missing_meter_values',
       },
       {
-        href: '/admin/outbound/unresolved',
-        label: 'Ej matchade meddelanden',
-        description: 'Saknad rutt, kanal eller underlag',
-        pageKey: 'outbound.unresolved',
+        href: '/admin/outbound/missing-billing-underlays',
+        label: 'Saknade underlag',
+        description: 'Billingunderlag som blockerar export',
+        pageKey: 'outbound.missing_billing_underlays',
       },
       {
         href: '/admin/partner-exports',
@@ -146,7 +226,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: 'Register',
+    title: 'Masterdata',
     description: 'Grunddata som driver automationen',
     items: [
       {
@@ -176,13 +256,13 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: 'Administration',
+    title: 'Inställningar',
     description: 'Bolag, användare, roller och spårbarhet',
     items: [
       {
         href: '/admin/companies',
         label: 'Elhandelsbolag',
-        description: 'Skapa bolag och bjud in bolagsansvariga',
+        description: 'Skapa bolag och bjud in ansvariga',
         pageKey: 'companies.manage',
       },
       {
@@ -206,8 +286,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ]
-
-const EXACT_MATCH_ITEMS = new Set(['/admin', '/admin/ediel'])
+const EXACT_MATCH_ITEMS = new Set(['/admin', '/admin/ediel', '/admin/controltower'])
 
 function isActive(pathname: string, href: string) {
   if (EXACT_MATCH_ITEMS.has(href)) return pathname === href

@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from 'react'
 import { uploadCustomerAuthorizationDocumentAction } from '@/app/admin/customers/[id]/document-actions'
+import { FULLMAKT_REQUEST_SCOPES } from '@/lib/operations/fullmaktAutomation'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type { CustomerAuthorizationDocumentRow } from '@/lib/operations/types'
 import SubmitButton from './SubmitButton'
@@ -51,8 +52,8 @@ export default function UploadForm({
           Fullmakt / komplett avtal
         </h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Upload kan nu skapa fullmakt, nätägarbegäran, supplier switch och outbound direkt,
-          och blockerar samma fil via checksum/idempotency.
+          Signerad eller verifierad fullmakt är nu en operations-trigger: systemet kan skapa
+          rätt nätägarbegäran, switchärende och outbound utan att handläggaren behöver hoppa mellan sidor.
         </p>
       </div>
 
@@ -238,10 +239,19 @@ export default function UploadForm({
           />
         </label>
 
-        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+        <div className="grid gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-sm text-slate-700 dark:border-emerald-900/50 dark:bg-emerald-950/10 dark:text-slate-300">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
+              Fullmaktsstatus och verifiering
+            </div>
+            <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-400">
+              En signerad fullmakt kan automatiskt starta uppgiftsbegäran till rätt nätägare. En uppladdad men osignerad fullmakt sparas för verifiering innan utskick.
+            </p>
+          </div>
+
           <label className="flex items-start gap-3">
             <input name="mark_as_signed" type="checkbox" defaultChecked className="mt-1" />
-            <span>Markera dokumentet som signerat direkt.</span>
+            <span>Markera dokumentet som signerat/verifierat direkt.</span>
           </label>
 
           <label className="flex items-start gap-3">
@@ -270,7 +280,36 @@ export default function UploadForm({
           </label>
         </div>
 
-        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
+              Automatiska begäran efter fullmakt
+            </div>
+            <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-400">
+              Systemet försöker hitta rätt nätägare via anläggning, nätområde, mätpunkt och route profile. Saknas mottagare stoppas utskicket och visas i Control Tower.
+            </p>
+          </div>
+
+          <label className="flex items-start gap-3 rounded-2xl bg-emerald-50/70 p-3 dark:bg-emerald-500/10">
+            <input
+              name="auto_send_requests_after_signed_fullmakt"
+              type="checkbox"
+              defaultChecked
+              className="mt-1"
+            />
+            <span>Skicka begäran automatiskt när fullmakten är signerad/verifierad.</span>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
+            <input
+              name="auto_send_requests_after_uploaded_fullmakt"
+              type="checkbox"
+              defaultChecked
+              className="mt-1"
+            />
+            <span>Tillåt uppladdad fullmakt att förberedas för automatisk begäran efter verifiering.</span>
+          </label>
+
           <label className="flex items-start gap-3">
             <input
               name="auto_create_grid_owner_requests"
@@ -282,28 +321,28 @@ export default function UploadForm({
           </label>
 
           <div className="grid gap-2 pl-6">
-            <label className="flex items-start gap-3">
-              <input
-                name="include_customer_masterdata"
-                type="checkbox"
-                defaultChecked
-                className="mt-1"
-              />
-              <span>Inkludera kund/masterdata-begäran.</span>
-            </label>
-            <label className="flex items-start gap-3">
-              <input name="include_meter_values" type="checkbox" defaultChecked className="mt-1" />
-              <span>Inkludera mätvärdesbegäran.</span>
-            </label>
-            <label className="flex items-start gap-3">
-              <input
-                name="include_billing_underlay"
-                type="checkbox"
-                defaultChecked
-                className="mt-1"
-              />
-              <span>Inkludera billing-underlay-begäran.</span>
-            </label>
+            {FULLMAKT_REQUEST_SCOPES.map((scope) => (
+              <label key={scope.code} className="flex items-start gap-3">
+                <input
+                  name={
+                    scope.code === 'customer_masterdata'
+                      ? 'include_customer_masterdata'
+                      : scope.code === 'meter_values'
+                        ? 'include_meter_values'
+                        : 'include_billing_underlay'
+                  }
+                  type="checkbox"
+                  defaultChecked
+                  className="mt-1"
+                />
+                <span>
+                  <span className="font-medium">{scope.label}</span>
+                  <span className="mt-0.5 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {scope.description}
+                  </span>
+                </span>
+              </label>
+            ))}
           </div>
 
           <label className="flex items-start gap-3">
@@ -323,7 +362,7 @@ export default function UploadForm({
               defaultChecked
               className="mt-1"
             />
-            <span>Köa supplier-switch outbound direkt från upload.</span>
+            <span>Köa supplier-switch outbound och Ediel Z03 direkt från verifierad fullmakt.</span>
           </label>
         </div>
 

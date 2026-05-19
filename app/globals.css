@@ -62,3 +62,78 @@ textarea {
 ::selection {
   background: rgba(5, 150, 105, 0.18);
 }
+
+/* Admin SaaS unifier: all admin routes should follow the same white/emerald/slate product language.
+   This intentionally normalizes older blue/indigo/sky/purple/cyan/teal Tailwind utilities inside admin only. */
+.admin-saas-shell {
+  --admin-brand: #047857;
+  --admin-brand-strong: #065f46;
+  --admin-brand-soft: #ecfdf5;
+  --admin-brand-line: #a7f3d0;
+  --admin-surface: #ffffff;
+  --admin-muted: #f8fafc;
+}
+
+.admin-saas-shell :where(.bg-blue-50, .bg-indigo-50, .bg-sky-50, .bg-cyan-50, .bg-purple-50, .bg-teal-50) {
+  background-color: var(--admin-brand-soft) !important;
+}
+
+.admin-saas-shell :where(.bg-blue-100, .bg-indigo-100, .bg-sky-100, .bg-cyan-100, .bg-purple-100, .bg-teal-100) {
+  background-color: #d1fae5 !important;
+}
+
+.admin-saas-shell :where(.bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-indigo-500, .bg-indigo-600, .bg-indigo-700, .bg-sky-500, .bg-sky-600, .bg-cyan-500, .bg-cyan-600, .bg-purple-500, .bg-purple-600, .bg-teal-500, .bg-teal-600) {
+  background-color: var(--admin-brand) !important;
+}
+
+.admin-saas-shell :where(.text-blue-500, .text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900, .text-indigo-500, .text-indigo-600, .text-indigo-700, .text-indigo-800, .text-indigo-900, .text-sky-500, .text-sky-600, .text-sky-700, .text-cyan-500, .text-cyan-600, .text-cyan-700, .text-purple-500, .text-purple-600, .text-purple-700, .text-teal-500, .text-teal-600, .text-teal-700) {
+  color: var(--admin-brand) !important;
+}
+
+.admin-saas-shell :where(.border-blue-100, .border-blue-200, .border-blue-300, .border-indigo-100, .border-indigo-200, .border-indigo-300, .border-sky-100, .border-sky-200, .border-cyan-100, .border-cyan-200, .border-purple-100, .border-purple-200, .border-teal-100, .border-teal-200) {
+  border-color: var(--admin-brand-line) !important;
+}
+
+.admin-saas-shell :where(.ring-blue-100, .ring-blue-200, .ring-indigo-100, .ring-indigo-200, .ring-sky-100, .ring-sky-200, .ring-purple-100, .ring-purple-200, .ring-cyan-100, .ring-cyan-200, .ring-teal-100, .ring-teal-200) {
+  --tw-ring-color: rgba(16, 185, 129, 0.24) !important;
+}
+
+.admin-saas-shell .hover\:bg-blue-50:hover,
+.admin-saas-shell .hover\:bg-indigo-50:hover,
+.admin-saas-shell .hover\:bg-sky-50:hover,
+.admin-saas-shell .hover\:bg-cyan-50:hover,
+.admin-saas-shell .hover\:bg-purple-50:hover,
+.admin-saas-shell .hover\:bg-teal-50:hover {
+  background-color: var(--admin-brand-soft) !important;
+}
+
+.admin-saas-shell .focus\:border-blue-500:focus,
+.admin-saas-shell .focus\:border-indigo-500:focus,
+.admin-saas-shell .focus\:border-sky-500:focus,
+.admin-saas-shell .focus\:border-cyan-500:focus,
+.admin-saas-shell .focus\:border-purple-500:focus,
+.admin-saas-shell .focus\:border-teal-500:focus {
+  border-color: var(--admin-brand) !important;
+}
+
+.admin-saas-shell :where(table) {
+  border-color: #e2e8f0;
+}
+
+.admin-saas-shell :where(input, select, textarea) {
+  border-color: #cbd5e1;
+}
+
+.admin-saas-shell :where(input, select, textarea):focus {
+  border-color: var(--admin-brand) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+.admin-saas-content > :where(div) {
+  animation: adminFadeIn 160ms ease-out;
+}
+
+@keyframes adminFadeIn {
+  from { opacity: 0.72; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
