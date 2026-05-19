@@ -21,7 +21,7 @@ export default function ClaimCustomerForm({ userEmail }: { userEmail: string | n
         </p>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+      <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
         Du är inloggad som <span className="font-semibold">{userEmail ?? 'okänd e-post'}</span>.
         Den e-postadressen måste finnas på kundkortet eller som kundkontakt.
       </div>

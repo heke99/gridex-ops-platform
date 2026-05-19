@@ -41,5 +41,5 @@ export function invoiceStatusTone(status: string): string {
   if (status === 'cancelled' || status === 'credited') {
     return 'border-slate-200 bg-slate-50 text-slate-600'
   }
-  return 'border-blue-200 bg-blue-50 text-blue-700'
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700'
 }

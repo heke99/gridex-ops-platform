@@ -103,6 +103,9 @@ export type CustomerSiteRow = {
   moved_from_postal_code: string | null
   moved_from_city: string | null
   moved_from_supplier_name: string | null
+  move_out_date?: string | null
+  closed_at?: string | null
+  closed_reason?: string | null
   internal_notes: string | null
   created_at: string
   updated_at: string
@@ -123,6 +126,8 @@ export type MeteringPointRow = {
   price_area_code: PriceAreaCode | null
   start_date: string | null
   end_date: string | null
+  closed_at?: string | null
+  closed_reason?: string | null
   is_settlement_relevant: boolean
   created_at: string
   updated_at: string

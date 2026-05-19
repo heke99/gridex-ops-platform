@@ -6,6 +6,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
+import { addCustomerContractEvent } from '@/lib/customer-contracts/db'
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -130,6 +132,11 @@ export async function saveCustomerProfileAction(formData: FormData): Promise<voi
 
   if (beforeError) throw beforeError
 
+  await assertUserCanOperateCompany(
+    actorUserId,
+    typeof before.company_id === 'string' ? before.company_id : null
+  )
+
   const { data: updated, error: updateError } = await supabaseService
     .from('customers')
     .update({
@@ -212,6 +219,298 @@ export async function saveCustomerProfileAction(formData: FormData): Promise<voi
   revalidatePath('/admin/customers')
   revalidatePath('/admin/customers/segments')
 }
+
+function normalizeLifecycleMode(value: string | null | undefined): 'move_out' | 'terminate' {
+  return value === 'terminate' ? 'terminate' : 'move_out'
+}
+
+function normalizeIsoDateOrToday(value: string | null | undefined): string {
+  const trimmed = value?.trim()
+  if (trimmed && /^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+  return new Date().toISOString().slice(0, 10)
+}
+
+function buildMoveOutNote(params: {
+  moveOutDate: string
+  reason: string | null
+  mode: 'move_out' | 'terminate'
+}): string {
+  const label = params.mode === 'terminate' ? 'Avslut' : 'Utflytt'
+  const reason = params.reason?.trim()
+  return [
+    `${label} registrerat ${new Date().toISOString()}.`,
+    `Avsluts-/utflyttsdatum: ${params.moveOutDate}.`,
+    reason ? `Orsak/notering: ${reason}.` : null,
+    'Kunden och kopplade anläggningar/mätpunkter är mjukt avslutade. Historik, Ediel, fullmakter, mätvärden och faktureringsunderlag sparas för spårbarhet.',
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+export async function closeCustomerLifecycleAction(formData: FormData): Promise<void> {
+  const actorUserId = await getActorUserId()
+  const customerId = getString(formData, 'customer_id')
+  const confirmText = getString(formData, 'confirm_close')
+  const mode = normalizeLifecycleMode(getNullableString(formData, 'lifecycle_mode'))
+  const moveOutDate = normalizeIsoDateOrToday(getNullableString(formData, 'move_out_date'))
+  const reason = getNullableString(formData, 'reason')
+  const createFollowUpTask = getString(formData, 'create_follow_up_task') === 'on'
+
+  if (!customerId) throw new Error('customer_id saknas')
+  if (confirmText !== 'AVSLUTA') {
+    throw new Error('Skriv AVSLUTA för att bekräfta mjukt avslut/flytt av kunden.')
+  }
+
+  const { data: customerBefore, error: customerError } = await supabaseService
+    .from('customers')
+    .select('*')
+    .eq('id', customerId)
+    .single()
+
+  if (customerError) throw customerError
+
+  const companyId = await assertUserCanOperateCompany(
+    actorUserId,
+    typeof customerBefore.company_id === 'string' ? customerBefore.company_id : null
+  )
+
+  const { data: sitesBefore, error: sitesError } = await supabaseService
+    .from('customer_sites')
+    .select('*')
+    .eq('customer_id', customerId)
+
+  if (sitesError) throw sitesError
+
+  const siteIds = (sitesBefore ?? [])
+    .map((row: { id?: string }) => row.id)
+    .filter((value): value is string => Boolean(value))
+
+  const { data: meteringPointsBefore, error: pointsError } =
+    siteIds.length > 0
+      ? await supabaseService.from('metering_points').select('*').in('site_id', siteIds)
+      : { data: [], error: null }
+
+  if (pointsError) throw pointsError
+
+  const { data: contractsBefore, error: contractsError } = await supabaseService
+    .from('customer_contracts')
+    .select('*')
+    .eq('customer_id', customerId)
+    .in('status', ['draft', 'pending_signature', 'signed', 'active'])
+
+  if (contractsError) throw contractsError
+
+  const { data: switchRequestsBefore, error: switchError } = await supabaseService
+    .from('supplier_switch_requests')
+    .select('*')
+    .eq('customer_id', customerId)
+    .in('status', ['draft', 'queued', 'submitted', 'accepted'])
+
+  if (switchError) throw switchError
+
+  const nowIso = new Date().toISOString()
+  const customerStatus = mode === 'terminate' ? 'terminated' : 'moved'
+  const note = buildMoveOutNote({ moveOutDate, reason, mode })
+  const lifecycleMetadata = {
+    mode,
+    moveOutDate,
+    reason,
+    source: 'admin_customer_card',
+    legalHandling:
+      'Soft close only. Customer records are retained for Ediel, metering, billing, audit and support traceability.',
+  }
+
+  const { data: customerAfter, error: updateCustomerError } = await supabaseService
+    .from('customers')
+    .update({
+      status: customerStatus,
+      moved_out_at: moveOutDate,
+      lifecycle_closed_at: nowIso,
+      lifecycle_closed_by: actorUserId,
+      lifecycle_status_reason: reason,
+      updated_at: nowIso,
+    })
+    .eq('id', customerId)
+    .select('*')
+    .single()
+
+  if (updateCustomerError) throw updateCustomerError
+
+  if (siteIds.length > 0) {
+    const { error: updateSitesError } = await supabaseService
+      .from('customer_sites')
+      .update({
+        status: 'closed',
+        move_out_date: moveOutDate,
+        closed_at: nowIso,
+        closed_reason: reason ?? (mode === 'terminate' ? 'Kund avslutad.' : 'Kunden har flyttat.'),
+        updated_by: actorUserId,
+      })
+      .in('id', siteIds)
+
+    if (updateSitesError) throw updateSitesError
+
+    const { error: updatePointsError } = await supabaseService
+      .from('metering_points')
+      .update({
+        status: 'closed',
+        end_date: moveOutDate,
+        closed_at: nowIso,
+        closed_reason: reason ?? (mode === 'terminate' ? 'Kund avslutad.' : 'Kunden har flyttat.'),
+        updated_by: actorUserId,
+      })
+      .in('site_id', siteIds)
+
+    if (updatePointsError) throw updatePointsError
+  }
+
+  const contracts = (contractsBefore ?? []) as Array<{
+    id: string
+    company_id?: string | null
+    customer_id: string
+    status?: string | null
+  }>
+
+  for (const contract of contracts) {
+    const { error: contractUpdateError } = await supabaseService
+      .from('customer_contracts')
+      .update({
+        status: 'terminated',
+        ends_at: moveOutDate,
+        termination_notice_date: nowIso,
+        termination_reason: 'move_out',
+        updated_by: actorUserId,
+      })
+      .eq('id', contract.id)
+
+    if (contractUpdateError) throw contractUpdateError
+
+    await addCustomerContractEvent({
+      companyId: contract.company_id ?? companyId,
+      customerContractId: contract.id,
+      customerId,
+      eventType: 'terminated',
+      happenedAt: nowIso,
+      note:
+        mode === 'terminate'
+          ? 'Avtalet avslutades via kundens livscykelåtgärd.'
+          : 'Avtalet avslutades eftersom kunden registrerades som utflyttad.',
+      metadata: lifecycleMetadata,
+      actorUserId,
+    })
+  }
+
+  const activeSwitchIds = ((switchRequestsBefore ?? []) as Array<{ id: string }>).map((row) => row.id)
+  if (activeSwitchIds.length > 0) {
+    const { error: switchUpdateError } = await supabaseService
+      .from('supplier_switch_requests')
+      .update({
+        status: 'failed',
+        failed_at: nowIso,
+        failure_reason:
+          mode === 'terminate'
+            ? 'Kunden avslutades innan switchen slutfördes.'
+            : 'Kunden registrerades som utflyttad innan switchen slutfördes.',
+        updated_by: actorUserId,
+      })
+      .in('id', activeSwitchIds)
+
+    if (switchUpdateError) throw switchUpdateError
+  }
+
+  const { error: taskCancelError } = await supabaseService
+    .from('customer_operation_tasks')
+    .update({
+      status: 'cancelled',
+      resolved_at: nowIso,
+      updated_by: actorUserId,
+    })
+    .eq('customer_id', customerId)
+    .in('status', ['open', 'in_progress', 'blocked'])
+
+  if (taskCancelError) throw taskCancelError
+
+  if (createFollowUpTask) {
+    const { error: followUpError } = await supabaseService.from('customer_operation_tasks').insert({
+      company_id: companyId,
+      customer_id: customerId,
+      site_id: siteIds[0] ?? null,
+      metering_point_id: null,
+      task_type: 'move_out_confirmation_pending',
+      status: 'open',
+      priority: 'high',
+      title: 'Följ upp utflytt och slutunderlag',
+      description:
+        'Bekräfta att nätägaren har registrerat utflytt/avslut, invänta Z05LK vid relevant flöde och säkerställ slutliga mätvärden/faktureringsunderlag.',
+      metadata: lifecycleMetadata,
+      created_by: actorUserId,
+      updated_by: actorUserId,
+    })
+
+    if (followUpError) throw followUpError
+  }
+
+  const { error: noteError } = await supabaseService.from('customer_internal_notes').insert({
+    company_id: companyId,
+    customer_id: customerId,
+    body: note,
+    created_by: actorUserId,
+    updated_by: actorUserId,
+  })
+
+  if (noteError) throw noteError
+
+  const { error: lifecycleEventError } = await supabaseService.from('customer_lifecycle_events').insert({
+    company_id: companyId,
+    customer_id: customerId,
+    event_type: mode,
+    event_status: 'completed',
+    effective_date: moveOutDate,
+    reason,
+    payload: {
+      ...lifecycleMetadata,
+      affectedSites: siteIds.length,
+      affectedMeteringPoints: (meteringPointsBefore ?? []).length,
+      terminatedContracts: contracts.length,
+      cancelledSwitchRequests: activeSwitchIds.length,
+      followUpTaskCreated: createFollowUpTask,
+    },
+    created_by: actorUserId,
+  })
+
+  if (lifecycleEventError) throw lifecycleEventError
+
+  await insertAuditLog({
+    actorUserId,
+    entityType: 'customer',
+    entityId: customerId,
+    action: mode === 'terminate' ? 'customer_soft_terminated' : 'customer_move_out_registered',
+    oldValues: {
+      customer: customerBefore,
+      sites: sitesBefore ?? [],
+      meteringPoints: meteringPointsBefore ?? [],
+      contracts: contractsBefore ?? [],
+      switchRequests: switchRequestsBefore ?? [],
+    },
+    newValues: {
+      customer: customerAfter,
+      lifecycle: lifecycleMetadata,
+    },
+    metadata: {
+      retainedData: true,
+      hardDelete: false,
+      note:
+        'Kunden har inte raderats permanent. Historik sparas för spårbarhet, fakturering, mätvärden och Ediel-kedjor.',
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/customers')
+  revalidatePath('/admin/customers/segments')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/controltower')
+}
+
 async function selectIds(table: string, column: string, values: string[]): Promise<string[]> {
   if (values.length === 0) return []
   const { data, error } = await supabaseService.from(table).select('id').in(column, values)
@@ -375,6 +674,10 @@ export async function deleteCustomerForRecreateAction(formData: FormData): Promi
   }
 
   const graph = await collectCustomerDeleteGraph(customerId)
+  await assertUserCanOperateCompany(
+    actorUserId,
+    typeof graph.customer.company_id === 'string' ? graph.customer.company_id : null
+  )
   const storageSummary = await deleteStorageObjectsForCustomer(customerId)
 
   await insertAuditLog({

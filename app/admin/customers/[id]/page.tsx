@@ -89,6 +89,9 @@ type CustomerRow = {
   customer_number: string | null
   apartment_number: string | null
   created_at: string
+  moved_out_at: string | null
+  lifecycle_closed_at: string | null
+  lifecycle_status_reason: string | null
 }
 
 type CustomerPageProps = {
@@ -284,7 +287,7 @@ async function getCustomer(
   const { data, error } = await supabase
     .from('customers')
     .select(
-      'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
+      'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason'
     )
     .eq('id', id)
     .maybeSingle()
