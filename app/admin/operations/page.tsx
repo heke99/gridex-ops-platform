@@ -331,9 +331,6 @@ export default async function AdminOperationsPage() {
   const blockedSwitches = switchLifecycle.filter(
     (row) => row.lifecycle.stage === 'blocked'
   )
-  const missingOutboundSwitches = switchLifecycle.filter(
-    (row) => row.lifecycle.stage === 'queued_for_outbound'
-  )
   const awaitingDispatchSwitches = switchLifecycle.filter(
     (row) => row.lifecycle.stage === 'awaiting_dispatch'
   )
@@ -476,6 +473,16 @@ export default async function AdminOperationsPage() {
       href: '/admin/operations/switches?stage=failed',
       cta: 'Granska fel',
       tone: 'danger' as const,
+    },
+    {
+      id: 'customer-sync',
+      title: 'Kundsynk / onboarding',
+      count: readinessResults.filter((result) => !result.isReady).length,
+      description:
+        'Kunder där kund, avtal, fullmakt, anläggning, mätpunkt eller nätägardata behöver kopplas ihop innan automation går vidare.',
+      href: '/admin/operations/sync',
+      cta: 'Öppna synkvy',
+      tone: 'info' as const,
     },
   ]
 

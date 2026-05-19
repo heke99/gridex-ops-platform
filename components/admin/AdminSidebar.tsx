@@ -43,6 +43,12 @@ const NAV_GROUPS: NavGroup[] = [
         description: 'Switchar, tasks och readiness',
         pageKey: 'operations.control_tower',
       },
+      {
+        href: '/admin/operations/sync',
+        label: 'Kundsynk',
+        description: 'Onboarding, avtal och datakoppling',
+        pageKey: 'operations.sync',
+      },
     ],
   },
   {

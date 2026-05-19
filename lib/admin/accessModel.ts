@@ -12,6 +12,7 @@ export type AdminPageKey =
   | 'customers.segments'
   | 'contracts.catalog'
   | 'operations.control_tower'
+  | 'operations.sync'
   | 'operations.integrity'
   | 'operations.tasks'
   | 'operations.switches'
@@ -69,6 +70,17 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
       'partner_exports.read',
       'communication.read',
       'poa.read',
+    ],
+  },
+  'operations.sync': {
+    anyOf: [
+      'customers.read',
+      'switching.read',
+      'metering.read',
+      'billing_underlay.read',
+      'communication.read',
+      'poa.read',
+      'pricing.read',
     ],
   },
   'operations.integrity': {
