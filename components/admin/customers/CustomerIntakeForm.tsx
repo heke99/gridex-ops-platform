@@ -19,6 +19,11 @@ type PriceAreaOption = {
   name: string
 }
 
+type CompanyOption = {
+  id: string
+  name: string
+}
+
 type ContractOfferOption = {
   id: string
   name: string
@@ -38,6 +43,9 @@ type Props = {
   gridOwners: GridOwnerOption[]
   priceAreas: PriceAreaOption[]
   contractOffers: ContractOfferOption[]
+  companies: CompanyOption[]
+  selectedCompanyId: string | null
+  isPlatformAdmin: boolean
 }
 
 function inputClassName(state: IntakeActionState, fieldName: string, span?: 'full') {
@@ -61,6 +69,9 @@ export default function CustomerIntakeForm({
   gridOwners,
   priceAreas,
   contractOffers,
+  companies,
+  selectedCompanyId,
+  isPlatformAdmin,
 }: Props) {
   const [state, formAction, isPending] = useActionState(
     createCustomerAction,
@@ -77,6 +88,26 @@ export default function CustomerIntakeForm({
       </p>
 
       <form action={formAction} className="mt-6 space-y-6" data-customer-intake-form>
+        {isPlatformAdmin ? (
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-600 dark:text-slate-300">Företag</span>
+            <select
+              name="companyId"
+              defaultValue={selectedCompanyId ?? ''}
+              required
+              className="rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            >
+              <option value="">Välj företag</option>
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <input type="hidden" name="companyId" value={selectedCompanyId ?? ''} />
+        )}
         {state.status === 'error' && state.message ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-100">
             <p className="font-semibold">Intaget stoppades innan ofullständig data sparades.</p>
@@ -367,7 +398,7 @@ export default function CustomerIntakeForm({
             <label className="grid gap-1 text-sm">
               <span className="text-slate-600 dark:text-slate-300">Avtalsstatus</span>
               <select name="contractStatus" defaultValue="pending_signature" className={inputClassName(state, 'contractStatus')}>
-                <option value="draft">Draft</option>
+                <option value="draft">Utkast</option>
                 <option value="pending_signature">Väntar signering</option>
                 <option value="signed">Signerat</option>
                 <option value="active">Aktivt</option>
@@ -376,13 +407,13 @@ export default function CustomerIntakeForm({
             </label>
 
             <label className="grid gap-1 text-sm md:col-span-2">
-              <span className="text-slate-600 dark:text-slate-300">Override-orsak</span>
-              <input name="overrideReason" placeholder="Override-orsak" className={inputClassName(state, 'overrideReason', 'full')} />
+              <span className="text-slate-600 dark:text-slate-300">Orsak till kundspecifik anpassning</span>
+              <input name="overrideReason" placeholder="Orsak till kundspecifik anpassning" className={inputClassName(state, 'overrideReason', 'full')} />
               <FieldError state={state} name="overrideReason" />
             </label>
 
             <label className="grid gap-1 text-sm">
-              <span className="text-slate-600 dark:text-slate-300">Avtalstyp override</span>
+              <span className="text-slate-600 dark:text-slate-300">Kundspecifik avtalstyp</span>
               <select name="contractTypeOverride" className={inputClassName(state, 'contractTypeOverride')}>
                 <option value="">Behåll katalogens avtalstyp</option>
                 <option value="fixed">Fast</option>
@@ -394,7 +425,7 @@ export default function CustomerIntakeForm({
             </label>
 
             <label className="grid gap-1 text-sm">
-              <span className="text-slate-600 dark:text-slate-300">Grön el-avgift override</span>
+              <span className="text-slate-600 dark:text-slate-300">Kundspecifik grön el-avgift</span>
               <select name="greenFeeMode" className={inputClassName(state, 'greenFeeMode')}>
                 <option value="">Behåll katalogens grön el-avgift</option>
                 <option value="none">Ingen</option>
@@ -405,27 +436,27 @@ export default function CustomerIntakeForm({
             </label>
 
             <div className="grid gap-1 text-sm">
-              <input name="fixedPriceOrePerKwh" placeholder="Override fast pris öre/kWh" className={inputClassName(state, 'fixedPriceOrePerKwh')} />
+              <input name="fixedPriceOrePerKwh" placeholder="Kundspecifikt fast pris öre/kWh" className={inputClassName(state, 'fixedPriceOrePerKwh')} />
               <FieldError state={state} name="fixedPriceOrePerKwh" />
             </div>
 
             <div className="grid gap-1 text-sm">
-              <input name="spotMarkupOrePerKwh" placeholder="Override påslag öre/kWh" className={inputClassName(state, 'spotMarkupOrePerKwh')} />
+              <input name="spotMarkupOrePerKwh" placeholder="Kundspecifikt påslag öre/kWh" className={inputClassName(state, 'spotMarkupOrePerKwh')} />
               <FieldError state={state} name="spotMarkupOrePerKwh" />
             </div>
 
             <div className="grid gap-1 text-sm">
-              <input name="variableFeeOrePerKwh" placeholder="Override rörlig avgift öre/kWh" className={inputClassName(state, 'variableFeeOrePerKwh')} />
+              <input name="variableFeeOrePerKwh" placeholder="Kundspecifik rörlig avgift öre/kWh" className={inputClassName(state, 'variableFeeOrePerKwh')} />
               <FieldError state={state} name="variableFeeOrePerKwh" />
             </div>
 
             <div className="grid gap-1 text-sm">
-              <input name="monthlyFeeSek" placeholder="Override månadsavgift kr" className={inputClassName(state, 'monthlyFeeSek')} />
+              <input name="monthlyFeeSek" placeholder="Kundspecifik månadsavgift kr" className={inputClassName(state, 'monthlyFeeSek')} />
               <FieldError state={state} name="monthlyFeeSek" />
             </div>
 
             <div className="grid gap-1 text-sm">
-              <input name="greenFeeValue" placeholder="Override grön el-värde" className={inputClassName(state, 'greenFeeValue')} />
+              <input name="greenFeeValue" placeholder="Kundspecifikt grön el-värde" className={inputClassName(state, 'greenFeeValue')} />
               <FieldError state={state} name="greenFeeValue" />
             </div>
 
@@ -449,7 +480,7 @@ export default function CustomerIntakeForm({
         <CustomerIntakeEnhancer offers={contractOffers} />
 
         <button disabled={isPending} className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950">
-          {isPending ? 'Skapar kund...' : 'Skapa kund med avtal'}
+          {isPending ? 'Sparar kund...' : 'Skapa kund med avtal'}
         </button>
       </form>
     </div>

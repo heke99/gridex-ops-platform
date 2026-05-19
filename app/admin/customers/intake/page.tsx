@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import CustomerIntakeForm from '@/components/admin/customers/CustomerIntakeForm'
+import CustomerBulkImportPanel from '@/components/admin/customers/CustomerBulkImportPanel'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { listGridOwners, listPriceAreas } from '@/lib/masterdata/db'
 import { listContractOffers } from '@/lib/customer-contracts/db'
-import { bulkCreateCustomersAction } from '@/app/admin/customers/actions'
+import { resolveTenantScope } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,8 +14,33 @@ const bulkExample = `customer_type;intake_flow_type;first_name;last_name;contact
 private;switch;Anna;Svensson;;;anna@example.se;0700000000;199001011234;;1201;Anna Svensson - Lägenhet;735999111111111111;735999000000000001;REPLACE_GRID_OWNER_UUID;SE3;2026-06-01;12000;Storgatan 1;11122;Stockholm;;SE;Fortum;5560000000;;;;;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;1
 association;move_in;Sara;Ek;Ordförande;Brf Solrosen;sara@solrosen.se;0701111111;;769600-1234;;Brf Solrosen Huvudanläggning;735999111111111112;735999000000000002;REPLACE_GRID_OWNER_UUID;SE3;2026-08-01;54000;Föreningsgatan 4;11123;Stockholm;c/o Styrelsen;SE;E.ON;5561000000;Gamla vägen 9;11121;Stockholm;Vattenfall;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;3`
 
-export default async function CustomerIntakePage() {
-  await requireAdminPageAccess(['masterdata.read'])
+type CustomerIntakePageProps = {
+  searchParams: Promise<{ company?: string }>
+}
+
+export default async function CustomerIntakePage({
+  searchParams,
+}: CustomerIntakePageProps) {
+  const admin = await requireAdminPageAccess({ anyOf: ['customers.write', 'masterdata.read'] })
+  const resolvedSearchParams = await searchParams
+  const scope = await resolveTenantScope({
+    userId: admin.userId,
+    roles: admin.roles,
+    permissions: admin.permissions,
+    requestedCompanyId: resolvedSearchParams.company ?? null,
+    requireCompany: false,
+  })
+  const selectedCompanyId =
+    scope.companyId ??
+    (!scope.isPlatformAdmin
+      ? scope.companyIds[0] ?? null
+      : scope.companies.length === 1
+        ? scope.companies[0]?.id ?? null
+        : null)
+  const companyOptions = scope.companies.map((company) => ({
+    id: company.id,
+    name: company.name,
+  }))
 
   const supabase = await createSupabaseServerClient()
   const [
@@ -28,7 +54,9 @@ export default async function CustomerIntakePage() {
     supabase.auth.getUser(),
     listGridOwners(supabase),
     listPriceAreas(supabase),
-    listContractOffers({ activeOnly: true }),
+    selectedCompanyId
+      ? listContractOffers({ activeOnly: true, companyId: selectedCompanyId })
+      : Promise.resolve([]),
   ])
 
   const serializedOffers = contractOffers.map((offer) => ({
@@ -50,7 +78,7 @@ export default async function CustomerIntakePage() {
     <div className="min-h-screen">
       <AdminHeader
         title="Kundintag"
-        subtitle="Skapa kund med anläggning, nätägare, mätpunkt och avtal. Flödet är nu servervaliderat, ger tydliga fel och rullar tillbaka skapad data om ett senare steg fallerar."
+        subtitle="Skapa kund, anläggning, mätpunkt och avtal i ett kontrollerat flöde med validering, dubblettskydd och bolagstillhörighet."
         userEmail={user?.email ?? null}
       />
 
@@ -71,45 +99,39 @@ export default async function CustomerIntakePage() {
           </Link>
         </div>
 
+        {scope.isPlatformAdmin && !selectedCompanyId ? (
+          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100">
+            Välj företag i formuläret innan kund skapas. Avtalsförslag visas när ett företag är valt och sidan öppnas med företagsfilter.
+          </section>
+        ) : null}
+
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <CustomerIntakeForm
             gridOwners={gridOwners.map((owner) => ({ id: owner.id, name: owner.name }))}
             priceAreas={priceAreas.map((area) => ({ code: area.code, name: area.name }))}
             contractOffers={serializedOffers}
+            companies={companyOptions}
+            selectedCompanyId={selectedCompanyId}
+            isPlatformAdmin={scope.isPlatformAdmin}
           />
 
           <div className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Bulkimport
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Klistra in semikolon- eller tab-separerad data. Samma servervalidering används rad för rad, och varje rad rensas tillbaka om något i dess kedja fallerar.
-              </p>
-
-              <form action={bulkCreateCustomersAction} className="mt-4 space-y-4">
-                <textarea
-                  name="bulkPayload"
-                  rows={18}
-                  defaultValue={bulkExample}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 font-mono text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                />
-
-                <button className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-                  Kör bulkimport
-                </button>
-              </form>
-            </section>
+            <CustomerBulkImportPanel
+              bulkExample={bulkExample}
+              companies={companyOptions}
+              selectedCompanyId={selectedCompanyId}
+              isPlatformAdmin={scope.isPlatformAdmin}
+            />
 
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Vad som är härdat nu
+                Kontroller innan sparande
               </h2>
               <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                <p>Servern stoppar ofullständiga kundtyper, flyttflöden och avtalsstatusar innan databasen hinner spridas.</p>
-                <p>Fel visas tydligt i formuläret i stället för som generisk 500-krasch.</p>
-                <p>Om ett senare steg fallerar rensas kund, kontakt, adress, anläggning, mätpunkt, avtal och switchdata bort i omvänd ordning.</p>
-                <p>Koden är nu uppdelad så att samma validering kan flyttas till RPC eller riktig databastransaktion senare utan att formuläret behöver byggas om igen.</p>
+                <p>Alla nya kunder kopplas till valt företag innan kund, kontakt, anläggning, mätpunkt, avtal och switchärende sparas.</p>
+                <p>Importen visar förhandsgranskning, saknade fält och möjliga dubbletter innan data förs in i kundregistret.</p>
+                <p>Om ett senare steg inte kan slutföras rensas den aktuella raden tillbaka i omvänd ordning så kundregistret inte lämnas halvfärdigt.</p>
+                <p>Avtalsförslag hämtas per företag för att undvika att villkor från ett bolag används på ett annat bolags kund.</p>
               </div>
             </section>
           </div>

@@ -69,6 +69,7 @@ import {
   listCustomerPortalAccountsByCustomerId,
   listCustomerPortalClaimsByCustomerId,
 } from '@/lib/customer-portal/admin'
+import { resolveTenantScope } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,6 +88,7 @@ type CustomerRow = {
   customer_number: string | null
   apartment_number: string | null
   created_at: string
+  company_id?: string | null
 }
 
 type CustomerPageProps = {
@@ -277,15 +279,21 @@ function compactJson(value: Record<string, unknown> | null): string {
 
 async function getCustomer(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  id: string
+  id: string,
+  companyId?: string | null
 ): Promise<CustomerRow | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('customers')
     .select(
-      'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
+      'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
     )
     .eq('id', id)
-    .maybeSingle()
+
+  if (companyId) {
+    query = query.eq('company_id', companyId)
+  }
+
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return (data as CustomerRow | null) ?? null
@@ -862,12 +870,19 @@ export default async function CustomerAdminDetailPage({
   params,
   searchParams,
 }: CustomerPageProps) {
-  await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
+  const admin = await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
 
   const { id } = await params
   const resolvedSearchParams = await searchParams
   const editSiteId = resolvedSearchParams.editSite ?? null
   const editMeteringPointId = resolvedSearchParams.editMeteringPoint ?? null
+  const scope = await resolveTenantScope({
+    userId: admin.userId,
+    roles: admin.roles,
+    permissions: admin.permissions,
+    requireCompany: false,
+  })
+  const tenantCompanyId = scope.companyId
 
   const supabase = await createSupabaseServerClient()
 
@@ -890,7 +905,7 @@ export default async function CustomerAdminDetailPage({
     powersOfAttorney,
     authorizationDocuments,
   ] = await Promise.all([
-    getCustomer(supabase, id),
+    getCustomer(supabase, id, tenantCompanyId),
     listGridOwners(supabase),
     listPriceAreas(supabase),
     listCustomerSitesByCustomerId(supabase, id),
@@ -905,16 +920,18 @@ export default async function CustomerAdminDetailPage({
       .from('customer_contacts')
       .select('*')
       .eq('customer_id', id)
+      .eq(tenantCompanyId ? 'company_id' : 'customer_id', tenantCompanyId ?? id)
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: false }),
     supabase
       .from('customer_addresses')
       .select('*')
       .eq('customer_id', id)
+      .eq(tenantCompanyId ? 'company_id' : 'customer_id', tenantCompanyId ?? id)
       .order('is_active', { ascending: false })
       .order('created_at', { ascending: false }),
-    listContractOffers({ activeOnly: true }),
-    listCustomerContractsByCustomerId(id),
+    listContractOffers({ activeOnly: true, companyId: tenantCompanyId }),
+    listCustomerContractsByCustomerId(id, { companyId: tenantCompanyId }),
     listPowersOfAttorneyByCustomerId(supabase, id),
     listCustomerAuthorizationDocumentsByCustomerId(supabase, id),
   ])

@@ -48,6 +48,7 @@ export type ContractOfferRow = {
   updated_at: string
   created_by: string | null
   updated_by: string | null
+  company_id?: string | null
 }
 
 export type CustomerContractRow = {
@@ -81,6 +82,7 @@ export type CustomerContractRow = {
   updated_at: string
   created_by: string | null
   updated_by: string | null
+  company_id?: string | null
 }
 
 export type CustomerContractEventType =
@@ -104,4 +106,5 @@ export type CustomerContractEventRow = {
   metadata: Record<string, unknown> | null
   actor_user_id: string | null
   created_at: string
+  company_id?: string | null
 }

@@ -1,3 +1,5 @@
+import type { CustomerImportPreview } from '@/lib/customers/importParser'
+
 export type IntakeField =
   | 'customerType'
   | 'intakeFlowType'
@@ -58,4 +60,30 @@ export const initialIntakeActionState: IntakeActionState = {
   message: null,
   fieldErrors: {},
   createdCustomerId: null,
+}
+
+export type CustomerImportPreviewActionState = {
+  status: 'idle' | 'success' | 'error'
+  message: string | null
+  preview: CustomerImportPreview | null
+}
+
+export const initialCustomerImportPreviewState: CustomerImportPreviewActionState = {
+  status: 'idle',
+  message: null,
+  preview: null,
+}
+
+export type CustomerImportCommitActionState = {
+  status: 'idle' | 'success' | 'error'
+  message: string | null
+  created: number
+  failed: number
+}
+
+export const initialCustomerImportCommitState: CustomerImportCommitActionState = {
+  status: 'idle',
+  message: null,
+  created: 0,
+  failed: 0,
 }

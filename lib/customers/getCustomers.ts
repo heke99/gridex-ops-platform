@@ -23,6 +23,7 @@ export type CustomerListRow = {
   active_site_count: number
   metering_point_count: number
   active_metering_point_count: number
+  company_id?: string | null
 }
 
 type CustomerBaseRow = {
@@ -40,6 +41,7 @@ type CustomerBaseRow = {
   customer_number: string | null
   apartment_number: string | null
   created_at: string
+  company_id?: string | null
 }
 
 type CustomerSiteSearchRow = {
@@ -72,6 +74,7 @@ type MeteringPointCountRow = {
 
 type GetCustomersOptions = {
   query?: string | null
+  companyId?: string | null
 }
 
 export type CustomerStatusFilter =
@@ -107,19 +110,26 @@ export type CustomerListPageResult = {
 type SearchContext = {
   query: string
   relatedCustomerIds: string[]
+  companyId?: string | null
 }
 
 function sanitizeSearchTerm(value: string): string {
   return value.replace(/[%_,]/g, ' ').trim()
 }
 
-async function resolveRelatedCustomerIds(query: string): Promise<string[]> {
+async function resolveRelatedCustomerIds(
+  query: string,
+  companyId?: string | null
+): Promise<string[]> {
   if (!query) return []
 
-  const { data: matchingSites, error: siteSearchError } = await supabaseService
+  let siteQuery = supabaseService
     .from('customer_sites')
     .select('id, customer_id, site_name, facility_id, street, postal_code, city')
-    .or(
+
+  if (companyId) siteQuery = siteQuery.eq('company_id', companyId)
+
+  const { data: matchingSites, error: siteSearchError } = await siteQuery.or(
       [
         `site_name.ilike.%${query}%`,
         `facility_id.ilike.%${query}%`,
@@ -138,9 +148,13 @@ async function resolveRelatedCustomerIds(query: string): Promise<string[]> {
     .map((row) => row.customer_id)
     .filter((value): value is string => Boolean(value))
 
-  const { data: matchingPoints, error: pointSearchError } = await supabaseService
+  let pointQuery = supabaseService
     .from('metering_points')
     .select('id, site_id, meter_point_id')
+
+  if (companyId) pointQuery = pointQuery.eq('company_id', companyId)
+
+  const { data: matchingPoints, error: pointSearchError } = await pointQuery
     .or(`meter_point_id.ilike.%${query}%`)
     .limit(250)
 
@@ -161,10 +175,14 @@ async function resolveRelatedCustomerIds(query: string): Promise<string[]> {
     return Array.from(new Set(directCustomerIds))
   }
 
-  const { data: relatedSites, error: relatedSitesError } = await supabaseService
+  let relatedSitesQuery = supabaseService
     .from('customer_sites')
     .select('id, customer_id')
     .in('id', Array.from(siteIds))
+
+  if (companyId) relatedSitesQuery = relatedSitesQuery.eq('company_id', companyId)
+
+  const { data: relatedSites, error: relatedSitesError } = await relatedSitesQuery
 
   if (relatedSitesError) throw relatedSitesError
 
@@ -202,17 +220,24 @@ function buildCustomerOrFilter(context: SearchContext): string | null {
   return parts.join(',')
 }
 
-async function buildCustomerRows(customerRows: CustomerBaseRow[]): Promise<CustomerListRow[]> {
+async function buildCustomerRows(
+  customerRows: CustomerBaseRow[],
+  companyId?: string | null
+): Promise<CustomerListRow[]> {
   const customerIds = customerRows.map((row) => row.id)
 
   if (customerIds.length === 0) {
     return []
   }
 
-  const { data: siteRows, error: siteError } = await supabaseService
+  let siteRowsQuery = supabaseService
     .from('customer_sites')
     .select('id, customer_id, status')
     .in('customer_id', customerIds)
+
+  if (companyId) siteRowsQuery = siteRowsQuery.eq('company_id', companyId)
+
+  const { data: siteRows, error: siteError } = await siteRowsQuery
 
   if (siteError) throw siteError
 
@@ -221,10 +246,14 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[]): Promise<Custo
 
   const { data: pointRows, error: pointError } =
     siteIds.length > 0
-      ? await supabaseService
-          .from('metering_points')
-          .select('id, site_id, status')
-          .in('site_id', siteIds)
+      ? await (() => {
+          let pointRowsQuery = supabaseService
+            .from('metering_points')
+            .select('id, site_id, status')
+            .in('site_id', siteIds)
+          if (companyId) pointRowsQuery = pointRowsQuery.eq('company_id', companyId)
+          return pointRowsQuery
+        })()
       : { data: [], error: null }
 
   if (pointError) throw pointError
@@ -297,6 +326,10 @@ async function countCustomersByStatus(
     query = query.eq('status', status)
   }
 
+  if (context.companyId) {
+    query = query.eq('company_id', context.companyId)
+  }
+
   const { count, error } = await query
   if (error) throw error
 
@@ -309,6 +342,7 @@ export async function listCustomersPage(options: {
   pageSize?: number
   status?: CustomerStatusFilter
   contractFilter?: LatestContractBucketFilter
+  companyId?: string | null
 } = {}): Promise<CustomerListPageResult> {
   const query = sanitizeSearchTerm(options.query ?? '')
   const page = Math.max(options.page ?? 1, 1)
@@ -316,10 +350,12 @@ export async function listCustomersPage(options: {
   const status = options.status ?? 'all'
   const contractFilter = options.contractFilter ?? 'all'
 
-  const relatedCustomerIds = await resolveRelatedCustomerIds(query)
+  const companyId = options.companyId ?? null
+  const relatedCustomerIds = await resolveRelatedCustomerIds(query, companyId)
   const context: SearchContext = {
     query,
     relatedCustomerIds,
+    companyId,
   }
 
   let customerRows: CustomerBaseRow[] = []
@@ -337,12 +373,16 @@ export async function listCustomersPage(options: {
     total = contractFiltered.total
 
     if (contractFiltered.customerIds.length > 0) {
-      const { data, error } = await supabaseService
+      let customerQuery = supabaseService
         .from('customers')
         .select(
-          'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
+          'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, company_id'
         )
         .in('id', contractFiltered.customerIds)
+
+      if (companyId) customerQuery = customerQuery.eq('company_id', companyId)
+
+      const { data, error } = await customerQuery
 
       if (error) throw error
 
@@ -359,7 +399,7 @@ export async function listCustomersPage(options: {
     let rowsQuery = supabaseService
       .from('customers')
       .select(
-        'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at',
+        'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, company_id',
         { count: 'exact' }
       )
       .order('created_at', { ascending: false })
@@ -373,6 +413,10 @@ export async function listCustomersPage(options: {
       rowsQuery = rowsQuery.eq('status', status)
     }
 
+    if (companyId) {
+      rowsQuery = rowsQuery.eq('company_id', companyId)
+    }
+
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
@@ -383,7 +427,7 @@ export async function listCustomersPage(options: {
     total = count ?? 0
   }
 
-  const rows = await buildCustomerRows(customerRows)
+  const rows = await buildCustomerRows(customerRows, companyId)
 
   const counts: CustomerStatusCounts = {
     all: await countCustomersByStatus(context),
@@ -417,6 +461,7 @@ export async function getCustomers(
     pageSize: 100,
     status: 'all',
     contractFilter: 'all',
+    companyId: options.companyId ?? null,
   })
 
   return result.rows

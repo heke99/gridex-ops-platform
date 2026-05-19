@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { createCustomerAction } from './actions'
 import { initialIntakeActionState } from './actionState'
 import {
@@ -19,6 +19,7 @@ import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
+import { resolveTenantScope } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +30,7 @@ type CustomersPageProps = {
     status?: string
     contract?: string
     page?: string
+    company?: string
   }>
 }
 
@@ -766,9 +768,17 @@ async function createCustomerFromCustomersPage(formData: FormData) {
 export default async function AdminCustomersPage({
   searchParams,
 }: CustomersPageProps) {
-  await requirePermissionServer('masterdata.read')
+  const admin = await requireAdminPageAccess({ anyOf: ['customers.read', 'masterdata.read'] })
 
   const resolvedSearchParams = await searchParams
+  const scope = await resolveTenantScope({
+    userId: admin.userId,
+    roles: admin.roles,
+    permissions: admin.permissions,
+    requestedCompanyId: resolvedSearchParams.company ?? null,
+    requireCompany: false,
+  })
+  const selectedCompanyId = scope.companyId
   const query = (resolvedSearchParams.q ?? '').trim()
   const opsFilter = normalizeOperationsFilter(resolvedSearchParams.ops)
   const statusFilter = normalizeStatusFilter(resolvedSearchParams.status)
@@ -780,6 +790,7 @@ export default async function AdminCustomersPage({
     page,
     pageSize: PAGE_SIZE,
     status: statusFilter,
+    companyId: selectedCompanyId,
   })
 
   const customers = pageResult.rows
@@ -799,23 +810,48 @@ export default async function AdminCustomersPage({
   ] =
     customerIds.length > 0
       ? await Promise.all([
-          supabaseService
-            .from('customer_sites')
-            .select('*')
-            .in('customer_id', customerIds),
-          supabaseService
-            .from('supplier_switch_requests')
-            .select('*')
-            .in('customer_id', customerIds),
-          supabaseService
-            .from('outbound_requests')
-            .select('*')
-            .eq('request_type', 'supplier_switch')
-            .in('customer_id', customerIds),
-          supabaseService
-            .from('powers_of_attorney')
-            .select('id, customer_id, status')
-            .in('customer_id', customerIds),
+          selectedCompanyId
+            ? supabaseService
+                .from('customer_sites')
+                .select('*')
+                .eq('company_id', selectedCompanyId)
+                .in('customer_id', customerIds)
+            : supabaseService
+                .from('customer_sites')
+                .select('*')
+                .in('customer_id', customerIds),
+          selectedCompanyId
+            ? supabaseService
+                .from('supplier_switch_requests')
+                .select('*')
+                .eq('company_id', selectedCompanyId)
+                .in('customer_id', customerIds)
+            : supabaseService
+                .from('supplier_switch_requests')
+                .select('*')
+                .in('customer_id', customerIds),
+          selectedCompanyId
+            ? supabaseService
+                .from('outbound_requests')
+                .select('*')
+                .eq('request_type', 'supplier_switch')
+                .eq('company_id', selectedCompanyId)
+                .in('customer_id', customerIds)
+            : supabaseService
+                .from('outbound_requests')
+                .select('*')
+                .eq('request_type', 'supplier_switch')
+                .in('customer_id', customerIds),
+          selectedCompanyId
+            ? supabaseService
+                .from('powers_of_attorney')
+                .select('id, customer_id, status')
+                .eq('company_id', selectedCompanyId)
+                .in('customer_id', customerIds)
+            : supabaseService
+                .from('powers_of_attorney')
+                .select('id, customer_id, status')
+                .in('customer_id', customerIds),
         ])
       : [
           { data: [], error: null },
@@ -826,7 +862,7 @@ export default async function AdminCustomersPage({
 
   const latestContractsByCustomerId: Map<string, LatestCustomerContractSummary> =
     customerIds.length > 0
-      ? await listLatestCustomerContractsByCustomerIds(customerIds)
+      ? await listLatestCustomerContractsByCustomerIds(customerIds, { companyId: selectedCompanyId })
       : new Map<string, LatestCustomerContractSummary>()
 
   if (sitesQuery.error) throw sitesQuery.error
@@ -1061,6 +1097,29 @@ export default async function AdminCustomersPage({
             </p>
 
             <form action={createCustomerFromCustomersPage} className="mt-6 space-y-4">
+              {scope.isPlatformAdmin ? (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Företag
+                  </label>
+                  <select
+                    name="companyId"
+                    defaultValue={selectedCompanyId ?? ''}
+                    required
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  >
+                    <option value="">Välj företag</option>
+                    {scope.companies.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <input type="hidden" name="companyId" value={selectedCompanyId ?? ''} />
+              )}
+
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
                   Kundtyp

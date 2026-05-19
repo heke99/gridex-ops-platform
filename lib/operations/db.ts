@@ -141,6 +141,7 @@ export async function savePowerOfAttorney(
     document_path?: string | null
     reference?: string | null
     notes?: string | null
+    companyId?: string | null
   }
 ): Promise<PowerOfAttorneyRow> {
   const actorId = await getActorId(supabase)
@@ -157,6 +158,7 @@ export async function savePowerOfAttorney(
     reference: input.reference ?? null,
     notes: input.notes ?? null,
     updated_by: actorId,
+    company_id: input.companyId ?? null,
   }
 
   if (input.id) {
@@ -1224,6 +1226,7 @@ export async function createSupplierSwitchRequest(
     authorizationDocumentId?: string | null
     automationOrigin?: string | null
     automationKey?: string | null
+    companyId?: string | null
   }
 ): Promise<SupplierSwitchRequestRow> {
   const actorId = await getActorId(supabase)
@@ -1261,6 +1264,7 @@ export async function createSupplierSwitchRequest(
     automation_key: params.automationKey ?? null,
     created_by: actorId,
     updated_by: actorId,
+    company_id: params.companyId ?? null,
   }
 
   const { data, error } = await supabase
@@ -1301,6 +1305,7 @@ export async function createSupplierSwitchRequest(
       incomingSupplierOrgNumber,
       ownSupplierResolution: ownSupplierLookup.resolution,
     },
+    companyId: params.companyId ?? null,
   })
 
   return request
@@ -1430,6 +1435,7 @@ export async function createSupplierSwitchEvent(
     eventStatus: string
     message?: string | null
     payload?: Record<string, unknown>
+    companyId?: string | null
   }
 ): Promise<SupplierSwitchEventRow> {
   const actorId = await getActorId(supabase)
@@ -1442,6 +1448,7 @@ export async function createSupplierSwitchEvent(
       event_status: params.eventStatus,
       message: params.message ?? null,
       payload: params.payload ?? {},
+      company_id: params.companyId ?? null,
       created_by: actorId,
     })
     .select('*')

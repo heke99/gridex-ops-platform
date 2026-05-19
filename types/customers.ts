@@ -30,6 +30,7 @@ export type CustomerRow = {
   created_by: string | null
   created_at: string
   updated_at: string
+  company_id?: string | null
 }
 
 export type CustomerAddressType = 'registered' | 'billing' | 'facility' | 'other'
@@ -48,6 +49,7 @@ export type CustomerAddressRow = {
   moved_out_at: string | null
   is_active: boolean
   created_at: string
+  company_id?: string | null
 }
 
 export type CustomerContactType =
@@ -68,6 +70,7 @@ export type CustomerContactRow = {
   title: string | null
   is_primary: boolean
   created_at: string
+  company_id?: string | null
 }
 
 export type CustomerNoteRow = {
@@ -78,6 +81,7 @@ export type CustomerNoteRow = {
   updated_by: string | null
   created_at: string
   updated_at: string
+  company_id?: string | null
 }
 
 /**
@@ -131,6 +135,8 @@ export type CustomerSiteRow = {
     name: string
     code: string | null
   } | null
+
+  company_id?: string | null
 
   price_areas?: {
     id: string

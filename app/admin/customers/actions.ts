@@ -4,7 +4,12 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import type { IntakeActionState, IntakeFieldErrors } from './actionState'
+import type {
+  CustomerImportCommitActionState,
+  CustomerImportPreviewActionState,
+  IntakeActionState,
+  IntakeFieldErrors,
+} from './actionState'
 import {
   addCustomerContractEvent,
   createCustomerContract,
@@ -19,6 +24,15 @@ import {
   syncCustomerOperationsForSite,
 } from '@/lib/operations/db'
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
+import { resolveTenantScope } from '@/lib/tenant/scope'
+import {
+  buildCustomerImportPreview,
+  parseCustomerImportSource,
+  rowsToNormalizedCsv,
+  type CustomerImportIssue,
+  type CustomerImportPreview,
+  type CustomerImportRow,
+} from '@/lib/customers/importParser'
 
 type CustomerType = 'private' | 'business' | 'association'
 type SiteType = 'consumption' | 'production' | 'mixed'
@@ -34,6 +48,7 @@ type ContractStatus =
 
 type CreateCustomerGraphParams = {
   actorUserId: string
+  companyId: string
   customerType: CustomerType
   intakeFlowType: SupplierSwitchRequestType | null
   firstName: string | null
@@ -356,12 +371,105 @@ function createValidationErrorFromFieldErrors(
   return new IntakeValidationError(message, fieldErrors)
 }
 
+function duplicateValidationError(message: string, field: keyof IntakeFieldErrors): IntakeValidationError {
+  return new IntakeValidationError(message, { [field]: message })
+}
+
+async function existsInTable(params: {
+  table: string
+  companyId: string
+  column: string
+  value: string | null
+}): Promise<boolean> {
+  if (!params.value) return false
+
+  const { data, error } = await supabaseService
+    .from(params.table)
+    .select('id')
+    .eq('company_id', params.companyId)
+    .eq(params.column, params.value)
+    .limit(1)
+
+  if (error) throw error
+  return (data ?? []).length > 0
+}
+
+async function assertNoDuplicateCustomerGraph(params: CreateCustomerGraphParams) {
+  const normalizedOrgNumber = normalizeOptionalString(params.orgNumber)
+  const normalizedPersonalNumber = normalizeOptionalString(params.personalNumber)
+  const normalizedEmail = normalizeOptionalString(params.email)
+  const normalizedFacilityId = normalizeOptionalString(params.facilityId)
+  const normalizedMeterPointId = normalizeOptionalString(params.meterPointId)
+
+  if (
+    normalizedOrgNumber &&
+    (await existsInTable({
+      table: 'customers',
+      companyId: params.companyId,
+      column: 'org_number',
+      value: normalizedOrgNumber,
+    }))
+  ) {
+    throw duplicateValidationError('En kund med samma organisationsnummer finns redan i valt företag.', 'orgNumber')
+  }
+
+  if (
+    normalizedPersonalNumber &&
+    (await existsInTable({
+      table: 'customers',
+      companyId: params.companyId,
+      column: 'personal_number',
+      value: normalizedPersonalNumber,
+    }))
+  ) {
+    throw duplicateValidationError('En kund med samma personnummer finns redan i valt företag.', 'personalNumber')
+  }
+
+  if (
+    normalizedEmail &&
+    (await existsInTable({
+      table: 'customers',
+      companyId: params.companyId,
+      column: 'email',
+      value: normalizedEmail,
+    }))
+  ) {
+    throw duplicateValidationError('En kund med samma e-postadress finns redan i valt företag.', 'email')
+  }
+
+  if (
+    normalizedFacilityId &&
+    (await existsInTable({
+      table: 'customer_sites',
+      companyId: params.companyId,
+      column: 'facility_id',
+      value: normalizedFacilityId,
+    }))
+  ) {
+    throw duplicateValidationError('Anläggnings-id finns redan i valt företag.', 'facilityId')
+  }
+
+  if (
+    normalizedMeterPointId &&
+    (await existsInTable({
+      table: 'metering_points',
+      companyId: params.companyId,
+      column: 'meter_point_id',
+      value: normalizedMeterPointId,
+    }))
+  ) {
+    throw duplicateValidationError('Mätpunkts-id finns redan i valt företag.', 'meterPointId')
+  }
+}
+
 function buildCreateCustomerParams(
   formData: FormData,
-  actorUserId: string
+  actorUserId: string,
+  companyId: string
 ): CreateCustomerGraphParams {
   return {
     actorUserId,
+    companyId,
     customerType: normalizeCustomerType(getString(formData, 'customerType') || 'private'),
     intakeFlowType: normalizeIntakeFlowType(getNullableString(formData, 'intakeFlowType')),
     firstName: getNullableString(formData, 'firstName'),
@@ -413,14 +521,24 @@ function buildCreateCustomerParams(
   }
 }
 
-async function getActorUserId(): Promise<string> {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+async function getActionTenantContext(formData?: FormData): Promise<{
+  actorUserId: string
+  companyId: string
+}> {
+  const admin = await requireAdminActionAccess({ anyOf: ['customers.write', 'masterdata.write'] })
+  const scope = await resolveTenantScope({
+    userId: admin.userId,
+    roles: admin.roles,
+    permissions: admin.permissions,
+    requestedCompanyId: formData ? getNullableString(formData, 'companyId') : null,
+    requireCompany: true,
+  })
 
-  if (!user) throw new Error('Unauthorized')
-  return user.id
+  if (!scope.companyId) {
+    throw new Error('Välj företag innan du sparar kunddata.')
+  }
+
+  return { actorUserId: admin.userId, companyId: scope.companyId }
 }
 
 async function insertAuditLog(params: {
@@ -430,6 +548,7 @@ async function insertAuditLog(params: {
   action: string
   newValues?: Record<string, unknown>
   metadata?: Record<string, unknown>
+  companyId?: string | null
 }) {
   const { data, error } = await supabaseService
     .from('audit_logs')
@@ -440,6 +559,7 @@ async function insertAuditLog(params: {
       action: params.action,
       new_values: params.newValues ?? null,
       metadata: params.metadata ?? null,
+      company_id: params.companyId ?? null,
     })
     .select('id')
     .single()
@@ -450,6 +570,7 @@ async function insertAuditLog(params: {
 
 async function createPrimaryContact(params: {
   customerId: string
+  companyId: string
   customerType: CustomerType
   firstName: string | null
   lastName: string | null
@@ -473,6 +594,7 @@ async function createPrimaryContact(params: {
     .from('customer_contacts')
     .insert({
       customer_id: params.customerId,
+      company_id: params.companyId,
       type: 'primary',
       name,
       email: params.email ?? null,
@@ -489,6 +611,7 @@ async function createPrimaryContact(params: {
 
 async function createFacilityAddress(params: {
   customerId: string
+  companyId: string
   street: string | null
   postalCode: string | null
   city: string | null
@@ -504,6 +627,7 @@ async function createFacilityAddress(params: {
     .from('customer_addresses')
     .insert({
       customer_id: params.customerId,
+      company_id: params.companyId,
       type: 'facility',
       street_1: params.street ?? '',
       street_2: params.careOf ?? null,
@@ -524,6 +648,7 @@ async function createFacilityAddress(params: {
 
 async function syncContractLifecycleEvents(params: {
   customerId: string
+  companyId: string
   contractId: string
   contractStatus: ContractStatus | null
   contractStartDate: string | null
@@ -539,6 +664,7 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal satt till väntar signering i intake-flödet',
       actorUserId: params.actorUserId,
+      companyId: params.companyId,
     })
     return
   }
@@ -551,6 +677,7 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som signerat i intake-flödet',
       actorUserId: params.actorUserId,
+      companyId: params.companyId,
     })
     return
   }
@@ -563,6 +690,7 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som signerat i intake-flödet',
       actorUserId: params.actorUserId,
+      companyId: params.companyId,
     })
 
     await addCustomerContractEvent({
@@ -572,6 +700,7 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som aktivt i intake-flödet',
       actorUserId: params.actorUserId,
+      companyId: params.companyId,
     })
     return
   }
@@ -584,6 +713,7 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som avslutat i intake-flödet',
       actorUserId: params.actorUserId,
+      companyId: params.companyId,
     })
     return
   }
@@ -596,12 +726,14 @@ async function syncContractLifecycleEvents(params: {
       happenedAt,
       note: 'Avtal markerat som avbrutet i intake-flödet',
       actorUserId: params.actorUserId,
+      companyId: params.companyId,
     })
   }
 }
 
 async function maybeCreateSwitchRequestFromIntake(params: {
   customerId: string
+  companyId: string
   siteId: string | null
   intakeFlowType: SupplierSwitchRequestType | null
 }) {
@@ -659,6 +791,7 @@ async function maybeCreateSwitchRequestFromIntake(params: {
     meteringPoint: candidateMeteringPoint,
     requestType: params.intakeFlowType,
     requestedStartDate: site.move_in_date ?? null,
+    companyId: params.companyId,
   })
 
   return {
@@ -852,6 +985,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
     const { data: customer, error: customerError } = await supabaseService
       .from('customers')
       .insert({
+        company_id: params.companyId,
         customer_type: params.customerType,
         status: 'draft',
         first_name: normalizedFirstName,
@@ -872,6 +1006,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
 
     const contact = await createPrimaryContact({
       customerId: customer.id,
+      companyId: params.companyId,
       customerType: params.customerType,
       firstName: normalizedFirstName,
       lastName: normalizedLastName,
@@ -884,6 +1019,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
 
     const address = await createFacilityAddress({
       customerId: customer.id,
+      companyId: params.companyId,
       street: normalizedStreet,
       postalCode: normalizedPostalCode,
       city: normalizedCity,
@@ -909,6 +1045,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         .from('customer_sites')
         .insert({
           customer_id: customer.id,
+          company_id: params.companyId,
           site_name: normalizedSiteName || displayName || 'Ny anläggning',
           facility_id: normalizedFacilityId,
           site_type: params.siteType ?? 'consumption',
@@ -944,6 +1081,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         .from('metering_points')
         .insert({
           site_id: siteId,
+          company_id: params.companyId,
           meter_point_id: normalizedMeterPointId,
           site_facility_id: normalizedFacilityId,
           status: 'draft',
@@ -964,7 +1102,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
 
     if (params.contractOfferId || params.contractTypeOverride) {
       const offer = params.contractOfferId
-        ? await getContractOfferById(params.contractOfferId)
+        ? await getContractOfferById(params.contractOfferId, { companyId: params.companyId })
         : null
 
       const contract = await createCustomerContract({
@@ -999,6 +1137,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
             : null,
         overrideReason: normalizedOverrideReason,
         actorUserId: params.actorUserId,
+        companyId: params.companyId,
       })
 
       creationContext.contractId = contract.id
@@ -1015,6 +1154,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
           customerNumber: customer.customer_number ?? null,
         },
         actorUserId: params.actorUserId,
+        companyId: params.companyId,
       })
 
       await syncContractLifecycleEvents({
@@ -1023,11 +1163,13 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         contractStatus: normalizedContractStatus,
         contractStartDate: normalizedContractStartDate,
         actorUserId: params.actorUserId,
+        companyId: params.companyId,
       })
     }
 
     const switchRequestResult = await maybeCreateSwitchRequestFromIntake({
       customerId: customer.id,
+      companyId: params.companyId,
       siteId,
       intakeFlowType: params.intakeFlowType,
     })
@@ -1056,6 +1198,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         switchRequest: switchRequestResult ?? null,
         transactionReadyMode: 'manual_rollback',
       },
+      companyId: params.companyId,
     })
 
     return customer
@@ -1065,14 +1208,97 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
   }
 }
 
+
+async function buildDatabaseDuplicateIssues(rows: CustomerImportRow[], companyId: string) {
+  const issues: CustomerImportIssue[] = []
+
+  for (const [index, row] of rows.entries()) {
+    const rowNumber = index + 2
+    const checks: Array<{ table: string; column: string; value: string; label: string }> = []
+
+    if (row.org_number) checks.push({ table: 'customers', column: 'org_number', value: row.org_number, label: 'organisationsnummer' })
+    if (row.personal_number) checks.push({ table: 'customers', column: 'personal_number', value: row.personal_number, label: 'personnummer' })
+    if (row.email) checks.push({ table: 'customers', column: 'email', value: row.email, label: 'e-postadress' })
+    if (row.facility_id) checks.push({ table: 'customer_sites', column: 'facility_id', value: row.facility_id, label: 'anläggnings-id' })
+    if (row.meter_point_id) checks.push({ table: 'metering_points', column: 'meter_point_id', value: row.meter_point_id, label: 'mätpunkts-id' })
+
+    for (const check of checks) {
+      if (await existsInTable({ table: check.table, companyId, column: check.column, value: check.value })) {
+        issues.push({
+          rowNumber,
+          field: check.column,
+          severity: 'warning',
+          message: `Möjlig dubblett: ${check.label} finns redan i valt företag.`,
+        })
+      }
+    }
+  }
+
+  return issues
+}
+
+export async function previewCustomerImportAction(
+  _prevState: CustomerImportPreviewActionState,
+  formData: FormData
+): Promise<CustomerImportPreviewActionState> {
+  try {
+    const { companyId } = await getActionTenantContext(formData)
+    const fileEntry = formData.get('importFile')
+    const file = fileEntry instanceof File && fileEntry.size > 0 ? fileEntry : null
+    const text = getString(formData, 'bulkPayload')
+    const parsed = await parseCustomerImportSource({ text, file })
+    const duplicateIssues = await buildDatabaseDuplicateIssues(parsed.rows, companyId)
+    const preview = buildCustomerImportPreview({
+      rows: parsed.rows,
+      sourceKind: parsed.sourceKind,
+      message: parsed.message,
+      extraIssues: duplicateIssues,
+    })
+
+    return {
+      status: preview.rows.length > 0 ? 'success' : 'error',
+      message: preview.message,
+      preview,
+    }
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Importunderlaget kunde inte läsas.',
+      preview: null,
+    }
+  }
+}
+
+export async function commitCustomerImportAction(
+  _prevState: CustomerImportCommitActionState,
+  formData: FormData
+): Promise<CustomerImportCommitActionState> {
+  try {
+    const result = await bulkCreateCustomersAction(formData)
+    return {
+      status: 'success',
+      message: `Importen är sparad. ${result.created} kunder skapades.`,
+      created: result.created,
+      failed: result.failed,
+    }
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Importen kunde inte sparas.',
+      created: 0,
+      failed: 1,
+    }
+  }
+}
+
 export async function createCustomerAction(
   _prevState: IntakeActionState,
   formData: FormData
 ): Promise<IntakeActionState> {
   try {
-    await requireAdminActionAccess(['masterdata.write'])
-    const actorUserId = await getActorUserId()
-    const params = buildCreateCustomerParams(formData, actorUserId)
+    const { actorUserId, companyId } = await getActionTenantContext(formData)
+    const params = buildCreateCustomerParams(formData, actorUserId, companyId)
+    await assertNoDuplicateCustomerGraph(params)
 
     const customer = await createCustomerGraph(params)
 
@@ -1090,16 +1316,15 @@ export async function createCustomerAction(
   }
 }
 
-export async function bulkCreateCustomersAction(formData: FormData) {
-  await requireAdminActionAccess(['masterdata.write'])
-  const actorUserId = await getActorUserId()
+export async function bulkCreateCustomersAction(formData: FormData): Promise<{ created: number; failed: number }> {
+  const { actorUserId, companyId } = await getActionTenantContext(formData)
 
   const raw = getString(formData, 'bulkPayload')
   if (!raw) {
     throw new Error('Ingen bulkdata skickades in')
   }
 
-  const rows = parseBulkRows(raw)
+  const rows = parseBulkRows(raw || rowsToNormalizedCsv([]))
   if (rows.length === 0) {
     throw new Error('Bulkformatet måste ha en header-rad och minst en datarad')
   }
@@ -1111,6 +1336,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
     try {
       const params: CreateCustomerGraphParams = {
         actorUserId,
+        companyId,
         customerType: normalizeCustomerType(row.customer_type || 'private'),
         intakeFlowType: normalizeIntakeFlowType(row.intake_flow_type || null),
         firstName: row.first_name || null,
@@ -1164,6 +1390,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
         throw createValidationErrorFromFieldErrors(validationErrors)
       }
 
+      await assertNoDuplicateCustomerGraph(params)
       await createCustomerGraph(params)
       created += 1
     } catch (error) {
@@ -1185,6 +1412,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
       totalRows: rows.length,
       firstError: errors[0] ?? null,
     },
+    companyId,
   })
 
   revalidatePath('/admin/customers')
@@ -1192,7 +1420,9 @@ export async function bulkCreateCustomersAction(formData: FormData) {
 
   if (errors.length > 0) {
     throw new Error(
-      `Bulkimport klar med ${created} skapade och ${errors.length} fel. ${errors[0]}`
+      `Importen sparades delvis: ${created} kunder skapades och ${errors.length} rader behöver åtgärdas. ${errors[0]}`
     )
   }
+
+  return { created, failed: errors.length }
 }
