@@ -58,7 +58,7 @@ export function statusBadgeClass(status: string) {
       return 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
     case 'failed':
     case 'rejected':
-      return 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'
+      return 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
     default:
       return 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
   }
@@ -71,7 +71,7 @@ export function uploadResultClass(status: 'idle' | 'success' | 'duplicate' | 'er
     case 'duplicate':
       return 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-500/10 dark:text-amber-200'
     case 'error':
-      return 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/60 dark:bg-rose-500/10 dark:text-rose-200'
+      return 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/60 dark:bg-red-500/10 dark:text-red-200'
     default:
       return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300'
   }
@@ -227,7 +227,7 @@ export function buildDocumentFlowSteps(params: {
         responseValue === 'Switch slutförd'
           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
           : responseValue.includes('fel') || responseValue.includes('Stoppad')
-            ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'
+            ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
             : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
     },
   ]
@@ -536,7 +536,7 @@ export function buildDocumentTimelineItems(params: {
         ]
           .filter((value): value is string => Boolean(value))
           .join(' '),
-        tone: 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+        tone: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300',
         links,
       })
       continue

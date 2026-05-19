@@ -306,7 +306,7 @@ export default function UnresolvedRequestsList({
                           name="response_payload_note"
                           value="Manuellt avbruten från unresolved-sidan."
                         />
-                        <button className="rounded-2xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
+                        <button className="rounded-2xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 dark:border-red-800 dark:text-red-300">
                           Avbryt request
                         </button>
                       </form>
@@ -352,7 +352,7 @@ export default function UnresolvedRequestsList({
                       </div>
                       <div className="mt-3 space-y-3">
                         {summary.routeMatches.length === 0 ? (
-                          <div className="rounded-2xl bg-rose-50 px-3 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                          <div className="rounded-2xl bg-red-50 px-3 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
                             Inga routes finns alls för scope {request.request_type}.
                           </div>
                         ) : (

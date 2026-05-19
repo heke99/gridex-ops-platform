@@ -227,7 +227,7 @@ export default function EdielRuleTemplateModals({ hasProdatRule }: Props) {
                     className={`mt-4 rounded-2xl border p-4 text-sm ${
                       state.ok
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-rose-200 bg-rose-50 text-rose-800'
+                        : 'border-red-200 bg-red-50 text-red-800'
                     }`}
                   >
                     <div className="font-medium">{state.message}</div>

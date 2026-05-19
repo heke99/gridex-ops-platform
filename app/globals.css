@@ -63,8 +63,7 @@ textarea {
   background: rgba(5, 150, 105, 0.18);
 }
 
-/* Admin SaaS unifier: all admin routes should follow the same white/emerald/slate product language.
-   This intentionally normalizes older blue/indigo/sky/purple/cyan/teal Tailwind utilities inside admin only. */
+/* Admin SaaS unifier: all admin routes follow one white/emerald/slate product language. */
 .admin-saas-shell {
   --admin-brand: #047857;
   --admin-brand-strong: #065f46;
@@ -72,48 +71,6 @@ textarea {
   --admin-brand-line: #a7f3d0;
   --admin-surface: #ffffff;
   --admin-muted: #f8fafc;
-}
-
-.admin-saas-shell :where(.bg-blue-50, .bg-indigo-50, .bg-sky-50, .bg-cyan-50, .bg-purple-50, .bg-teal-50) {
-  background-color: var(--admin-brand-soft) !important;
-}
-
-.admin-saas-shell :where(.bg-blue-100, .bg-indigo-100, .bg-sky-100, .bg-cyan-100, .bg-purple-100, .bg-teal-100) {
-  background-color: #d1fae5 !important;
-}
-
-.admin-saas-shell :where(.bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-indigo-500, .bg-indigo-600, .bg-indigo-700, .bg-sky-500, .bg-sky-600, .bg-cyan-500, .bg-cyan-600, .bg-purple-500, .bg-purple-600, .bg-teal-500, .bg-teal-600) {
-  background-color: var(--admin-brand) !important;
-}
-
-.admin-saas-shell :where(.text-blue-500, .text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900, .text-indigo-500, .text-indigo-600, .text-indigo-700, .text-indigo-800, .text-indigo-900, .text-sky-500, .text-sky-600, .text-sky-700, .text-cyan-500, .text-cyan-600, .text-cyan-700, .text-purple-500, .text-purple-600, .text-purple-700, .text-teal-500, .text-teal-600, .text-teal-700) {
-  color: var(--admin-brand) !important;
-}
-
-.admin-saas-shell :where(.border-blue-100, .border-blue-200, .border-blue-300, .border-indigo-100, .border-indigo-200, .border-indigo-300, .border-sky-100, .border-sky-200, .border-cyan-100, .border-cyan-200, .border-purple-100, .border-purple-200, .border-teal-100, .border-teal-200) {
-  border-color: var(--admin-brand-line) !important;
-}
-
-.admin-saas-shell :where(.ring-blue-100, .ring-blue-200, .ring-indigo-100, .ring-indigo-200, .ring-sky-100, .ring-sky-200, .ring-purple-100, .ring-purple-200, .ring-cyan-100, .ring-cyan-200, .ring-teal-100, .ring-teal-200) {
-  --tw-ring-color: rgba(16, 185, 129, 0.24) !important;
-}
-
-.admin-saas-shell .hover\:bg-blue-50:hover,
-.admin-saas-shell .hover\:bg-indigo-50:hover,
-.admin-saas-shell .hover\:bg-sky-50:hover,
-.admin-saas-shell .hover\:bg-cyan-50:hover,
-.admin-saas-shell .hover\:bg-purple-50:hover,
-.admin-saas-shell .hover\:bg-teal-50:hover {
-  background-color: var(--admin-brand-soft) !important;
-}
-
-.admin-saas-shell .focus\:border-blue-500:focus,
-.admin-saas-shell .focus\:border-indigo-500:focus,
-.admin-saas-shell .focus\:border-sky-500:focus,
-.admin-saas-shell .focus\:border-cyan-500:focus,
-.admin-saas-shell .focus\:border-purple-500:focus,
-.admin-saas-shell .focus\:border-teal-500:focus {
-  border-color: var(--admin-brand) !important;
 }
 
 .admin-saas-shell :where(table) {
@@ -165,26 +122,71 @@ textarea {
   background-image: linear-gradient(135deg, #ecfdf5 0%, #ffffff 48%, #f8fafc 100%) !important;
 }
 
-.admin-saas-content :where(.text-green-700, .text-green-800, .text-green-900) {
-  color: #047857 !important;
+
+/* Shared internal admin surfaces: cards, tables, forms and badges should feel consistent on every admin page. */
+.admin-saas-content :where(.rounded-xl.border, .rounded-2xl.border, .rounded-3xl.border, .rounded-\[2rem\].border) {
+  border-color: #e2e8f0;
 }
 
-.admin-saas-content :where(.bg-green-50, .bg-green-100) {
-  background-color: #ecfdf5 !important;
+.admin-saas-content :where(.rounded-xl.bg-white, .rounded-2xl.bg-white, .rounded-3xl.bg-white) {
+  background-color: rgba(255, 255, 255, 0.96);
 }
 
-.admin-saas-content :where(.border-green-200, .border-green-300) {
-  border-color: #a7f3d0 !important;
+.admin-saas-content :where(input, select, textarea) {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 
-.admin-saas-content :where(.text-yellow-700, .text-yellow-800, .text-yellow-900) {
-  color: #92400e !important;
+.admin-saas-content :where(input::placeholder, textarea::placeholder) {
+  color: #94a3b8;
 }
 
-.admin-saas-content :where(.bg-yellow-50, .bg-yellow-100) {
-  background-color: #fffbeb !important;
+.admin-saas-content :where(button) {
+  border-radius: 0.9rem;
 }
 
-.admin-saas-content :where(.border-yellow-200, .border-yellow-300) {
-  border-color: #fde68a !important;
+.admin-saas-content :where(table) {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-saas-content :where(tbody tr:hover) {
+  background-color: #f8fafc;
+}
+
+.admin-saas-content :where(.bg-emerald-50) {
+  background-color: #ecfdf5;
+}
+
+.admin-saas-content :where(.border-emerald-100, .border-emerald-200, .border-emerald-300) {
+  border-color: #a7f3d0;
+}
+
+.admin-saas-content :where(.text-emerald-700, .text-emerald-800, .text-emerald-900) {
+  color: #047857;
+}
+
+.admin-saas-content :where(.bg-amber-50) {
+  background-color: #fffbeb;
+}
+
+.admin-saas-content :where(.border-amber-100, .border-amber-200, .border-amber-300) {
+  border-color: #fde68a;
+}
+
+.admin-saas-content :where(.text-amber-700, .text-amber-800, .text-amber-900) {
+  color: #92400e;
+}
+
+.admin-saas-content :where(.bg-red-50) {
+  background-color: #fef2f2;
+}
+
+.admin-saas-content :where(.border-red-100, .border-red-200, .border-red-300) {
+  border-color: #fecaca;
+}
+
+.admin-saas-content :where(.text-red-700, .text-red-800, .text-red-900) {
+  color: #b91c1c;
 }

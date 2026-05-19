@@ -290,11 +290,11 @@ export default function CustomerProfileCard({
         </form>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900/60 dark:bg-rose-950/30">
-        <h3 className="text-sm font-semibold text-rose-800 dark:text-rose-200">
+      <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/30">
+        <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
           Permanent radering – endast test/felregistrering
         </h3>
-        <p className="mt-1 text-sm leading-6 text-rose-700 dark:text-rose-200/80">
+        <p className="mt-1 text-sm leading-6 text-red-700 dark:text-red-200/80">
           Använd inte detta för verkliga kunder som flyttar. Permanent radering är endast för felaktiga testposter eller felregistrering innan kunden hunnit användas i drift. Vid flytt ska du använda mjukt avslut ovan.
         </p>
         <form
@@ -308,15 +308,15 @@ export default function CustomerProfileCard({
         >
           <input type="hidden" name="customer_id" value={customer.id} />
           <label className="grid gap-1 text-sm">
-            <span className="text-rose-700 dark:text-rose-200">Skriv RADERA för att bekräfta</span>
+            <span className="text-red-700 dark:text-red-200">Skriv RADERA för att bekräfta</span>
             <input
               name="confirm_delete"
               placeholder="Skriv RADERA för att bekräfta"
-              className="h-11 rounded-2xl border border-rose-300 bg-white px-4 text-rose-950 dark:border-rose-900 dark:bg-slate-950 dark:text-white"
+              className="h-11 rounded-2xl border border-red-300 bg-white px-4 text-red-950 dark:border-red-900 dark:bg-slate-950 dark:text-white"
             />
           </label>
           <div className="flex items-end">
-            <button className="inline-flex h-11 items-center rounded-2xl bg-rose-700 px-4 text-sm font-semibold text-white hover:bg-rose-800">
+            <button className="inline-flex h-11 items-center rounded-2xl bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800">
               Radera kund
             </button>
           </div>

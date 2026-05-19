@@ -43,27 +43,25 @@ function Pill({
   tone,
 }: {
   text: string
-  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  tone: 'emerald' | 'amber' | 'red' | 'slate'
 }) {
   const toneClass =
-    tone === 'green'
+    tone === 'emerald'
       ? 'bg-emerald-100 text-emerald-700'
-      : tone === 'yellow'
+      : tone === 'amber'
         ? 'bg-amber-100 text-amber-700'
         : tone === 'red'
-          ? 'bg-rose-100 text-rose-700'
-          : tone === 'blue'
-            ? 'bg-emerald-100 text-emerald-700'
+          ? 'bg-red-100 text-red-700'
             : 'bg-slate-100 text-slate-700'
 
   return <span className={`rounded-full px-2 py-1 text-xs font-medium ${toneClass}`}>{text}</span>
 }
 
-function statusTone(status: string): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
-  if (status === 'acknowledged' || status === 'received') return 'green'
-  if (status === 'queued' || status === 'prepared' || status === 'draft') return 'yellow'
+function statusTone(status: string): 'emerald' | 'amber' | 'red' | 'slate' {
+  if (status === 'acknowledged' || status === 'received') return 'emerald'
+  if (status === 'queued' || status === 'prepared' || status === 'draft') return 'amber'
   if (status === 'failed' || status === 'cancelled') return 'red'
-  if (status === 'sent') return 'blue'
+  if (status === 'sent') return 'emerald'
   return 'slate'
 }
 

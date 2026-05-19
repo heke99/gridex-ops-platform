@@ -92,8 +92,8 @@ export function CustomerOperationalSignalPanel({
         <SignalStat title="Öppna mätvärdesrequests" value={openMeterValueRequests.length} tone="amber" />
         <SignalStat title="Öppna billingrequests" value={openBillingRequests.length} tone="amber" />
         <SignalStat title="Öppna masterdatarequests" value={openMasterdataRequests.length} tone="amber" />
-        <SignalStat title="Outbound mätvärden" value={queuedMeterValueOutbound.length} tone="blue" />
-        <SignalStat title="Outbound billingunderlag" value={queuedBillingOutbound.length} tone="blue" />
+        <SignalStat title="Outbound mätvärden" value={queuedMeterValueOutbound.length} tone="emerald" />
+        <SignalStat title="Outbound billingunderlag" value={queuedBillingOutbound.length} tone="emerald" />
         <SignalStat title="Billingexporter" value={billingExports.length} tone="emerald" />
         <SignalStat title="Mätvärdesexporter" value={meteringExports.length} tone="emerald" />
         <SignalStat title="Kundsnapshot-exporter" value={customerSnapshotExports.length} tone="emerald" />
@@ -106,9 +106,9 @@ export function CustomerOperationalSignalPanel({
           {unresolvedOutbound.slice(0, 3).map((request) => (
             <div
               key={request.id}
-              className="rounded-2xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-500/20 dark:bg-rose-500/10"
+              className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10"
             >
-              <div className="text-sm font-semibold text-rose-700 dark:text-rose-300">
+              <div className="text-sm font-semibold text-red-700 dark:text-red-300">
                 Outbound saknar route
               </div>
               <div className="mt-1 text-sm text-slate-700 dark:text-slate-200">
@@ -147,12 +147,12 @@ function SignalStat({
 }: {
   title: string
   value: number
-  tone: 'amber' | 'blue' | 'emerald'
+  tone: 'amber' | 'emerald' | 'emerald'
 }) {
   const classes =
     tone === 'amber'
       ? 'border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-200'
-      : tone === 'blue'
+      : tone === 'emerald'
         ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-200'
         : 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-200'
 

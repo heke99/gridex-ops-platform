@@ -89,7 +89,7 @@ function statusTone(status: string | null | undefined): string {
   }
 
   if (['failed', 'cancelled', 'rejected'].includes(status)) {
-    return 'bg-rose-100 text-rose-700'
+    return 'bg-red-100 text-red-700'
   }
 
   if (['queued', 'prepared', 'received', 'parsed'].includes(status)) {
@@ -389,7 +389,7 @@ function buildAckBadgesForMessage(message: EdielMessageSummaryRow): Array<{
       className: hasSuccessfulAckStatus(message)
         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
         : hasFailedAckStatus(message)
-          ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+          ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
           : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
     })
   }
@@ -398,7 +398,7 @@ function buildAckBadgesForMessage(message: EdielMessageSummaryRow): Array<{
     badges.push({
       label: hasFailedAckStatus(message) ? 'Negativ APERAK' : 'APERAK',
       className: hasFailedAckStatus(message)
-        ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+        ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
         : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
     })
   }
@@ -407,7 +407,7 @@ function buildAckBadgesForMessage(message: EdielMessageSummaryRow): Array<{
     badges.push({
       label: 'UTILTS_ERR',
       className:
-        'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+        'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
     })
   }
 
@@ -418,7 +418,7 @@ function buildAckBadgesForMessage(message: EdielMessageSummaryRow): Array<{
     badges.push({
       label: 'Felstatus',
       className:
-        'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+        'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
     })
   }
 
@@ -448,7 +448,7 @@ function renderSwitchAckBadges(state: SwitchAckState) {
     badges.push({
       label: 'Negativ APERAK',
       className:
-        'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+        'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
     })
   }
 
@@ -456,7 +456,7 @@ function renderSwitchAckBadges(state: SwitchAckState) {
     badges.push({
       label: 'Ack-fel',
       className:
-        'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+        'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
     })
   }
 
@@ -750,13 +750,13 @@ aperak_status: normalizeRecommendationAckStatus(
               <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasTargetEmail ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'}`}>
                 target email {recommendation.routeHealth.hasTargetEmail ? 'ok' : 'saknas'}
               </span>
-              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasSenderEdielId ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasSenderEdielId ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'}`}>
                 sender {recommendation.routeHealth.hasSenderEdielId ? 'ok' : 'saknas'}
               </span>
-              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasReceiverEdielId ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasReceiverEdielId ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'}`}>
                 receiver {recommendation.routeHealth.hasReceiverEdielId ? 'ok' : 'saknas'}
               </span>
-              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasMailbox ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
+              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${recommendation.routeHealth.hasMailbox ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'}`}>
                 mailbox {recommendation.routeHealth.hasMailbox ? 'ok' : 'saknas'}
               </span>
             </div>
@@ -777,7 +777,7 @@ aperak_status: normalizeRecommendationAckStatus(
                     key={issue.key}
                     className={`rounded-xl border px-3 py-2 text-sm ${
                       issue.severity === 'error'
-                        ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-300'
+                        ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300'
                         : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300'
                     }`}
                   >
@@ -1351,7 +1351,7 @@ function ValidationPanel({
             key={issue.key}
             className={`rounded-xl border px-3 py-2 ${
               issue.severity === 'error'
-                ? 'border-rose-200 bg-white text-rose-800 dark:border-rose-900/50 dark:bg-slate-950/40 dark:text-rose-200'
+                ? 'border-red-200 bg-white text-red-800 dark:border-red-900/50 dark:bg-slate-950/40 dark:text-red-200'
                 : 'border-amber-200 bg-white text-amber-900 dark:border-amber-900/50 dark:bg-slate-950/40 dark:text-amber-100'
             }`}
           >
@@ -1359,7 +1359,7 @@ function ValidationPanel({
               <span
                 className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                   issue.severity === 'error'
-                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200'
+                    ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-200'
                     : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200'
                 }`}
               >
@@ -1467,7 +1467,7 @@ function EdielLifecyclePanel({
           </div>
 
           {lifecycle.latestFailure ? (
-            <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-200">
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-200">
               <div className="font-medium">Senaste fel i Ediel-kedjan</div>
               <div className="mt-1 text-xs leading-5">
                 <Link

@@ -14,7 +14,7 @@ function text(value: unknown): string {
 
 function statusTone(status: string): string {
   if (status === 'applied') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  if (status === 'rejected' || status === 'failed') return 'border-rose-200 bg-rose-50 text-rose-700'
+  if (status === 'rejected' || status === 'failed') return 'border-red-200 bg-red-50 text-red-700'
   if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   return 'border-amber-200 bg-amber-50 text-amber-700'
 }
@@ -91,7 +91,7 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
       ) : null}
 
       {item.failure_reason ? (
-        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
           {item.failure_reason}
         </div>
       ) : null}
@@ -136,7 +136,7 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
               placeholder="Varför ska detta inte appliceras?"
               className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
             />
-            <button className="mt-2 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100">
+            <button className="mt-2 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
               Avvisa case
             </button>
           </form>

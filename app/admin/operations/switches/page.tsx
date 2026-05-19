@@ -51,7 +51,7 @@ function statusStyle(status: string): string {
   }
 
   if (['failed', 'rejected', 'blocked', 'cancelled'].includes(status)) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   if (['sent', 'submitted', 'awaiting_response'].includes(status)) {
@@ -574,7 +574,7 @@ export default async function AdminOperationsSwitchesPage({
                           </div>
 
                           {readiness && !readiness.isReady ? (
-                            <div className="text-rose-700 dark:text-rose-300">
+                            <div className="text-red-700 dark:text-red-300">
                               Blockeringar:{' '}
                               <span className="font-medium">
                                 {summarizeReadinessIssues(readiness)}

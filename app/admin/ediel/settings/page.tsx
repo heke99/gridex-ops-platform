@@ -33,18 +33,16 @@ function Pill({
   tone,
 }: {
   text: string
-  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  tone: 'emerald' | 'amber' | 'red' | 'slate'
 }) {
   const toneClass =
-    tone === 'green'
+    tone === 'emerald'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : tone === 'yellow'
+      : tone === 'amber'
         ? 'border-amber-200 bg-amber-50 text-amber-700'
         : tone === 'red'
-          ? 'border-rose-200 bg-rose-50 text-rose-700'
-          : tone === 'blue'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-slate-200 bg-slate-50 text-slate-700'
+          ? 'border-red-200 bg-red-50 text-red-700'
+          : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return (
     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${toneClass}`}>
@@ -394,8 +392,8 @@ export default async function AdminEdielSettingsPage() {
               <input type="hidden" name="id" value={row.id} />
 
               <div className="mb-4 flex flex-wrap items-center gap-2">
-                <Pill text={row.environment} tone={row.environment === 'production' ? 'red' : 'blue'} />
-                <Pill text={row.is_active ? 'Aktiv' : 'Inaktiv'} tone={row.is_active ? 'green' : 'slate'} />
+                <Pill text={row.environment} tone={row.environment === 'production' ? 'red' : 'emerald'} />
+                <Pill text={row.is_active ? 'Aktiv' : 'Inaktiv'} tone={row.is_active ? 'emerald' : 'slate'} />
                 <span className="text-xs text-slate-500">
                   Uppdaterad {formatDate(row.updated_at)}
                 </span>
@@ -501,8 +499,8 @@ export default async function AdminEdielSettingsPage() {
                     {row.family} {row.code}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Pill text={row.standard} tone="blue" />
-                    <Pill text={`aktiva regler ${row.activeCount}`} tone={row.activeCount > 1 ? 'yellow' : 'green'} />
+                    <Pill text={row.standard} tone="emerald" />
+                    <Pill text={`aktiva regler ${row.activeCount}`} tone={row.activeCount > 1 ? 'amber' : 'emerald'} />
                   </div>
                 </div>
 

@@ -39,15 +39,13 @@ type Props = {
   groups: EdielRuleGroup[]
 }
 
-function pillClassName(tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate') {
-  return tone === 'green'
+function pillClassName(tone: 'emerald' | 'amber' | 'red' | 'slate') {
+  return tone === 'emerald'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-    : tone === 'yellow'
+    : tone === 'amber'
       ? 'border-amber-200 bg-amber-50 text-amber-700'
       : tone === 'red'
-        ? 'border-rose-200 bg-rose-50 text-rose-700'
-        : tone === 'blue'
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+        ? 'border-red-200 bg-red-50 text-red-700'
           : 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
@@ -56,7 +54,7 @@ function Pill({
   tone,
 }: {
   text: string
-  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  tone: 'emerald' | 'amber' | 'red' | 'slate'
 }) {
   return (
     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${pillClassName(tone)}`}>
@@ -156,9 +154,9 @@ function RuleEditorCard({
 
   const tone =
     row.statusTag === 'current'
-      ? 'green'
+      ? 'emerald'
       : row.statusTag === 'previous'
-        ? 'yellow'
+        ? 'amber'
         : 'slate'
 
   return (
@@ -173,9 +171,9 @@ function RuleEditorCard({
             text={row.statusTag === 'current' ? 'CURRENT' : row.statusTag === 'previous' ? 'PREVIOUS' : 'HISTORY'}
             tone={tone}
           />
-          <Pill text={row.version_code} tone="blue" />
+          <Pill text={row.version_code} tone="emerald" />
           <Pill text={row.direction} tone="slate" />
-          <Pill text={row.is_active ? 'Aktiv' : 'Inaktiv'} tone={row.is_active ? 'green' : 'slate'} />
+          <Pill text={row.is_active ? 'Aktiv' : 'Inaktiv'} tone={row.is_active ? 'emerald' : 'slate'} />
         </div>
 
         <div className="text-xs text-slate-500">
@@ -293,7 +291,7 @@ export default function EdielRuleGroups({ groups }: Props) {
                     <h3 className="text-base font-semibold text-slate-950">
                       {group.family} {group.code}
                     </h3>
-                    <Pill text={group.standard} tone="blue" />
+                    <Pill text={group.standard} tone="emerald" />
                   </div>
                   <p className="mt-1 text-sm text-slate-500">
                     Current = runtime current outbound-version. Previous = närmast föregående giltiga version. History = övriga sparade regler för samma family/code/standard.
@@ -303,11 +301,11 @@ export default function EdielRuleGroups({ groups }: Props) {
                 <div className="flex flex-wrap gap-2">
                   <Pill
                     text={`current ${group.currentRule?.version_code ?? '—'}`}
-                    tone="green"
+                    tone="emerald"
                   />
                   <Pill
                     text={`previous ${group.previousRule?.version_code ?? '—'}`}
-                    tone="yellow"
+                    tone="amber"
                   />
                   <Pill
                     text={`accepted ${group.currentRule?.acceptedVersions.length ?? 0}`}

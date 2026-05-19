@@ -50,7 +50,7 @@ function KpiCard({
 }) {
   const toneClass =
     tone === 'danger'
-      ? 'border-rose-200 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-950/10'
+      ? 'border-red-200 bg-red-50/70 dark:border-red-900/50 dark:bg-red-950/10'
       : tone === 'success'
         ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/50 dark:bg-emerald-950/10'
         : tone === 'info'
@@ -93,7 +93,7 @@ function statusStyle(status: string): string {
   if (
     ['failed', 'rejected', 'blocked', 'cancelled', 'unresolved'].includes(status)
   ) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   if (['sent', 'submitted', 'awaiting_response'].includes(status)) {
@@ -106,7 +106,7 @@ function statusStyle(status: string): string {
 function alertTone(severity: 'critical' | 'high' | 'medium' | 'low'): string {
   switch (severity) {
     case 'critical':
-      return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+      return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
     case 'high':
       return 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300'
     case 'medium':
@@ -233,7 +233,7 @@ function QueueCard({
 }) {
   const toneClass =
     tone === 'danger'
-      ? 'border-rose-200 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-950/10'
+      ? 'border-red-200 bg-red-50/70 dark:border-red-900/50 dark:bg-red-950/10'
       : tone === 'success'
         ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/50 dark:bg-emerald-950/10'
         : tone === 'info'

@@ -17,18 +17,16 @@ function Badge({
   tone = 'slate',
 }: {
   children: ReactNode
-  tone?: 'slate' | 'green' | 'yellow' | 'red' | 'blue'
+  tone?: 'slate' | 'emerald' | 'amber' | 'red'
 }) {
   const toneClass =
-    tone === 'green'
+    tone === 'emerald'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : tone === 'yellow'
+      : tone === 'amber'
         ? 'border-amber-200 bg-amber-50 text-amber-700'
         : tone === 'red'
-          ? 'border-rose-200 bg-rose-50 text-rose-700'
-          : tone === 'blue'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-slate-200 bg-slate-50 text-slate-700'
+          ? 'border-red-200 bg-red-50 text-red-700'
+          : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${toneClass}`}>{children}</span>
 }
@@ -40,17 +38,17 @@ function formatDate(value: string | null | undefined): string {
   return date.toLocaleString('sv-SE')
 }
 
-function reviewTone(status: EdielSafeApplyReviewItem['status']): 'slate' | 'green' | 'yellow' | 'red' | 'blue' {
-  if (status === 'applied') return 'green'
+function reviewTone(status: EdielSafeApplyReviewItem['status']): 'slate' | 'emerald' | 'amber' | 'red' {
+  if (status === 'applied') return 'emerald'
   if (status === 'rejected') return 'red'
-  if (status === 'pending') return 'yellow'
+  if (status === 'pending') return 'amber'
   return 'slate'
 }
 
-function utiltsTone(status: EdielUtiltsBillingReviewItem['status']): 'slate' | 'green' | 'yellow' | 'red' | 'blue' {
-  if (status === 'processed') return 'green'
-  if (status === 'ready') return 'blue'
-  if (status === 'needs_link') return 'yellow'
+function utiltsTone(status: EdielUtiltsBillingReviewItem['status']): 'slate' | 'emerald' | 'amber' | 'red' {
+  if (status === 'processed') return 'emerald'
+  if (status === 'ready') return 'emerald'
+  if (status === 'needs_link') return 'amber'
   return 'slate'
 }
 
@@ -106,7 +104,7 @@ function SafeApplyCard({ item }: { item: EdielSafeApplyReviewItem }) {
               {item.message.message_family} {item.message.message_code}
             </h3>
             <Badge tone={reviewTone(item.status)}>{item.status}</Badge>
-            <Badge tone="blue">Batch 6C</Badge>
+            <Badge tone="emerald">Batch 6C</Badge>
           </div>
           <p className="mt-1 text-sm text-slate-600">{item.summary}</p>
           <div className="mt-2 text-xs text-slate-500">
@@ -137,7 +135,7 @@ function SafeApplyCard({ item }: { item: EdielSafeApplyReviewItem }) {
           <button
             type="submit"
             disabled={disabled}
-            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Avvisa
           </button>
@@ -172,8 +170,8 @@ function UtiltsCard({ item }: { item: EdielUtiltsBillingReviewItem }) {
               {item.message.message_family} {item.message.message_code}
             </h3>
             <Badge tone={utiltsTone(item.status)}>{item.status}</Badge>
-            {item.hasMeteringValue ? <Badge tone="green">mätvärde skapat</Badge> : null}
-            {item.hasBillingUnderlay ? <Badge tone="green">billing-underlay skapat</Badge> : null}
+            {item.hasMeteringValue ? <Badge tone="emerald">mätvärde skapat</Badge> : null}
+            {item.hasBillingUnderlay ? <Badge tone="emerald">billing-underlay skapat</Badge> : null}
           </div>
           <p className="mt-1 text-sm text-slate-600">{item.summary}</p>
           <div className="mt-2 text-xs text-slate-500">
@@ -239,7 +237,7 @@ export default function EdielSafeApplyReviewPanel({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold text-slate-950">Batch 6C · Safe apply och mätvärdesunderlag</h2>
-            <Badge tone="green">filbaserat</Badge>
+            <Badge tone="emerald">filbaserat</Badge>
             <Badge tone="slate">SMTP/ECP off</Badge>
           </div>
           <p className="mt-1 max-w-3xl text-sm text-slate-600">
@@ -247,9 +245,9 @@ export default function EdielSafeApplyReviewPanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge tone={pendingSafeApply > 0 ? 'yellow' : 'green'}>safe apply: {pendingSafeApply}</Badge>
-          <Badge tone={readyUtilts > 0 ? 'blue' : 'slate'}>UTILTS redo: {readyUtilts}</Badge>
-          <Badge tone="green">UTILTS klara: {processedUtilts}</Badge>
+          <Badge tone={pendingSafeApply > 0 ? 'amber' : 'emerald'}>safe apply: {pendingSafeApply}</Badge>
+          <Badge tone={readyUtilts > 0 ? 'emerald' : 'slate'}>UTILTS redo: {readyUtilts}</Badge>
+          <Badge tone="emerald">UTILTS klara: {processedUtilts}</Badge>
         </div>
       </div>
 
@@ -257,7 +255,7 @@ export default function EdielSafeApplyReviewPanel({
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-slate-950">Z06/Z10 ändringsförslag</h3>
-            <Badge tone={safeApplyItems.length > 0 ? 'yellow' : 'green'}>{safeApplyItems.length}</Badge>
+            <Badge tone={safeApplyItems.length > 0 ? 'amber' : 'emerald'}>{safeApplyItems.length}</Badge>
           </div>
           {safeApplyItems.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
@@ -271,7 +269,7 @@ export default function EdielSafeApplyReviewPanel({
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-slate-950">UTILTS till mätvärden/fakturaunderlag</h3>
-            <Badge tone={utiltsItems.length > 0 ? 'blue' : 'slate'}>{utiltsItems.length}</Badge>
+            <Badge tone={utiltsItems.length > 0 ? 'emerald' : 'slate'}>{utiltsItems.length}</Badge>
           </div>
           {utiltsItems.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">

@@ -122,7 +122,7 @@ function tone(status: string): string {
   }
 
   if (['failed', 'rejected', 'cancelled', 'blocked'].includes(status)) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   if (['submitted', 'sent'].includes(status)) {
@@ -522,7 +522,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
               </div>
 
               {request.failure_reason ? (
-                <div className="mt-5 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                <div className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
                   {request.failure_reason}
                 </div>
               ) : null}
@@ -606,7 +606,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
                     {readiness && !readiness.isReady ? (
                       <div className="space-y-2">
                         {readiness.issues.map((issue) => (
-                          <div key={issue.code} className="rounded-2xl bg-rose-50 px-3 py-2 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                          <div key={issue.code} className="rounded-2xl bg-red-50 px-3 py-2 text-red-700 dark:bg-red-500/10 dark:text-red-300">
                             <div className="font-medium">{issue.title}</div>
                             <div className="mt-1 text-xs">{issue.description}</div>
                           </div>
@@ -778,7 +778,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
                         <input type="hidden" name="switch_request_id" value={request.id} />
                         <input type="hidden" name="outbound_request_id" value={outboundRequest.id} />
                         <input type="hidden" name="customer_id" value={request.customer_id} />
-                        <button className="w-full rounded-2xl border border-rose-300 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
+                        <button className="w-full rounded-2xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 dark:border-red-800 dark:text-red-300">
                           Retry outbound
                         </button>
                       </form>
@@ -786,7 +786,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
                   </div>
 
                   {outboundRequest.failure_reason ? (
-                    <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                    <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
                       {outboundRequest.failure_reason}
                     </div>
                   ) : null}

@@ -50,7 +50,7 @@ function statusTone(status: string | null | undefined): string {
     return 'border-amber-200 bg-amber-50 text-amber-700'
   }
   if (['failed', 'cancelled'].includes(status)) {
-    return 'border-rose-200 bg-rose-50 text-rose-700'
+    return 'border-red-200 bg-red-50 text-red-700'
   }
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
@@ -199,7 +199,7 @@ export default async function AdminEdielMessagesPage({
             <Link href="/admin/ediel/messages?family=PRODAT&direction=inbound" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">Inbound PRODAT</Link>
             <Link href="/admin/ediel/messages?family=UTILTS&direction=inbound" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">Inbound UTILTS</Link>
             <Link href="/admin/ediel/messages?direction=outbound&status=draft" className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">Outbound drafts</Link>
-            <Link href="/admin/ediel/messages?status=failed" className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700">Felade</Link>
+            <Link href="/admin/ediel/messages?status=failed" className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-700">Felade</Link>
             <Link href="/admin/ediel/messages?family=CONTRL" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">CONTRL</Link>
             <Link href="/admin/ediel/messages?family=APERAK" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">APERAK</Link>
           </div>
@@ -299,7 +299,7 @@ export default async function AdminEdielMessagesPage({
 
                       <form action={deleteEdielMessageAction}>
                         <input type="hidden" name="edielMessageId" value={message.id} />
-                        <button type="submit" className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100">
+                        <button type="submit" className="rounded-2xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
                           Radera
                         </button>
                       </form>

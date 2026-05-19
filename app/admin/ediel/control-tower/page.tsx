@@ -11,11 +11,10 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-function tone(value: 'green' | 'yellow' | 'red' | 'slate' | 'blue'): string {
-  if (value === 'green') return 'border-green-200 bg-green-50 text-green-700'
-  if (value === 'yellow') return 'border-yellow-200 bg-yellow-50 text-yellow-700'
+function tone(value: 'emerald' | 'amber' | 'red' | 'slate' | 'emerald'): string {
+  if (value === 'emerald') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (value === 'amber') return 'border-amber-200 bg-amber-50 text-amber-700'
   if (value === 'red') return 'border-red-200 bg-red-50 text-red-700'
-  if (value === 'blue') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
@@ -34,7 +33,7 @@ function ackTone(state: string): string {
     state === 'awaiting_aperak' ||
     state === 'in_progress'
   ) {
-    return tone('yellow')
+    return tone('amber')
   }
 
   if (
@@ -43,7 +42,7 @@ function ackTone(state: string): string {
     state === 'utilts_err_received' ||
     state === 'no_ack_required'
   ) {
-    return tone('green')
+    return tone('emerald')
   }
 
   return tone('slate')
@@ -51,9 +50,9 @@ function ackTone(state: string): string {
 
 function statusTone(status: string): string {
   if (status === 'failed') return tone('red')
-  if (status === 'queued' || status === 'prepared') return tone('yellow')
-  if (status === 'sent' || status === 'parsed' || status === 'validated') return tone('blue')
-  return tone('green')
+  if (status === 'queued' || status === 'prepared') return tone('amber')
+  if (status === 'sent' || status === 'parsed' || status === 'validated') return tone('emerald')
+  return tone('emerald')
 }
 
 function formatDate(value: string | null | undefined) {

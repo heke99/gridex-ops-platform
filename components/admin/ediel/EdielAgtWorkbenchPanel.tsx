@@ -19,20 +19,16 @@ import {
 } from '@/lib/ediel/agtRegistry'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 
-type BadgeTone = 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo'
+type BadgeTone = 'slate' | 'emerald' | 'amber' | 'red'
 
 function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: BadgeTone }) {
   const toneClass =
-    tone === 'green'
+    tone === 'emerald'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : tone === 'yellow'
+      : tone === 'amber'
         ? 'border-amber-200 bg-amber-50 text-amber-700'
         : tone === 'red'
-          ? 'border-rose-200 bg-rose-50 text-rose-700'
-          : tone === 'blue'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : tone === 'indigo'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          ? 'border-red-200 bg-red-50 text-red-700'
               : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return (
@@ -103,10 +99,10 @@ function CaseCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={definition.suite === 'PRODAT' ? 'blue' : 'green'}>{definition.suite}</Badge>
-            <Badge tone="indigo">{definition.testCaseCode}</Badge>
+            <Badge tone={definition.suite === 'PRODAT' ? 'emerald' : 'emerald'}>{definition.suite}</Badge>
+            <Badge tone="emerald">{definition.testCaseCode}</Badge>
             {definition.messageVariant ? <Badge>{definition.messageVariant}</Badge> : null}
-            {activeRun ? <Badge tone="yellow">aktiv run</Badge> : <Badge>inte startad i systemet</Badge>}
+            {activeRun ? <Badge tone="amber">aktiv run</Badge> : <Badge>inte startad i systemet</Badge>}
           </div>
           <h3 className="mt-3 text-base font-semibold text-slate-950">{definition.title}</h3>
           <p className="mt-1 text-sm leading-6 text-slate-700">{definition.purpose}</p>
@@ -126,7 +122,7 @@ function CaseCard({
       <div className="mt-4 grid gap-2">
         {definition.expectedSteps.map((step) => (
           <div key={`${definition.testCaseCode}-${step.stepNo}`} className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 px-3 py-2 text-xs text-slate-700">
-            <Badge tone={step.actor === 'actor' ? 'blue' : 'green'}>Steg {step.stepNo}</Badge>
+            <Badge tone={step.actor === 'actor' ? 'emerald' : 'emerald'}>Steg {step.stepNo}</Badge>
             <span className="font-medium">{step.actor === 'actor' ? 'Leverantören/systemet' : 'Edielportalen'}</span>
             <span>{step.direction}</span>
             <span>{step.family} {step.code}</span>
@@ -178,7 +174,7 @@ function CaseCard({
               <div key={message.id} className="rounded-2xl border border-slate-200 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <Badge tone="green">inbound</Badge>
+                    <Badge tone="emerald">inbound</Badge>
                     <Badge>{message.message_family} {message.message_code}</Badge>
                     <Badge>{message.status}</Badge>
                     <span className="text-slate-500">{formatDateTime(message.created_at)}</span>
@@ -224,9 +220,9 @@ export default function EdielAgtWorkbenchPanel({
     <section className="space-y-5">
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="indigo">AGT 2026A</Badge>
-          <Badge tone="blue">Aktiv leverantör från AGT-runtime</Badge>
-          <Badge tone="green">Portal {EDIEL_TGT_TESTSYSTEM_EDIEL_ID}</Badge>
+          <Badge tone="emerald">AGT 2026A</Badge>
+          <Badge tone="emerald">Aktiv leverantör från AGT-runtime</Badge>
+          <Badge tone="emerald">Portal {EDIEL_TGT_TESTSYSTEM_EDIEL_ID}</Badge>
         </div>
         <h2 className="mt-3 text-lg font-semibold text-slate-950">Leverantörstest mot Edielportalen</h2>
         <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -250,7 +246,7 @@ export default function EdielAgtWorkbenchPanel({
 
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Badge tone="blue">PRODAT leverantör</Badge>
+          <Badge tone="emerald">PRODAT leverantör</Badge>
           <span className="text-sm text-slate-600">L1 och L7 genereras och skickas direkt. L2-L5 besvarar portalens inbound.</span>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
@@ -262,7 +258,7 @@ export default function EdielAgtWorkbenchPanel({
 
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Badge tone="green">UTILTS leverantör</Badge>
+          <Badge tone="emerald">UTILTS leverantör</Badge>
           <span className="text-sm text-slate-600">Inbound från portalen ska få positiv CONTRL och negativ UTILTS/UTILTS_ERR.</span>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">

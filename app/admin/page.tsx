@@ -35,14 +35,13 @@ function Metric({
   label: string
   value: string | number
   hint: string
-  tone?: 'slate' | 'blue' | 'emerald' | 'amber' | 'rose'
+  tone?: 'slate' | 'emerald' | 'amber' | 'red'
 }) {
   const classes: Record<typeof tone, string> = {
     slate: 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
-    blue: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
     emerald: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
     amber: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20',
-    rose: 'border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/20',
+    red: 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20',
   }
 
   return (
@@ -58,14 +57,13 @@ function Pill({
   tone,
   children,
 }: {
-  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  tone: 'emerald' | 'amber' | 'red' | 'slate'
   children: ReactNode
 }) {
   const classes: Record<typeof tone, string> = {
-    green: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200',
-    yellow: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-500/15 dark:text-amber-200',
-    red: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-500/15 dark:text-rose-200',
-    blue: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200',
+    amber: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-500/15 dark:text-amber-200',
+    red: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-500/15 dark:text-red-200',
     slate: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-200',
   }
 
@@ -141,7 +139,7 @@ function CaseLine({
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
       <span className="text-sm font-semibold text-slate-950 dark:text-white">{label}</span>
-      <Pill tone={outbound ? 'blue' : 'green'}>{outbound ? 'Leverantör → Portal' : 'Portal → Leverantör'}</Pill>
+      <Pill tone={outbound ? 'emerald' : 'emerald'}>{outbound ? 'Leverantör → Portal' : 'Portal → Leverantör'}</Pill>
     </div>
   )
 }
@@ -179,8 +177,8 @@ export default async function EdielPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Pill tone={liveAttention > 0 ? 'yellow' : 'green'}>{liveAttention > 0 ? `${liveAttention} live-ärenden` : 'live ok'}</Pill>
-              <Pill tone={agtRuntime?.isReady ? 'green' : agtErrors > 0 ? 'red' : 'yellow'}>
+              <Pill tone={liveAttention > 0 ? 'amber' : 'emerald'}>{liveAttention > 0 ? `${liveAttention} live-ärenden` : 'live ok'}</Pill>
+              <Pill tone={agtRuntime?.isReady ? 'emerald' : agtErrors > 0 ? 'red' : 'amber'}>
                 {agtRuntime?.isReady ? 'Testmiljö redo' : agtRuntime ? 'Testmiljö behöver kontroll' : 'Testmiljö ej laddad'}
               </Pill>
             </div>
@@ -245,7 +243,7 @@ export default async function EdielPage() {
           <Metric label="Inbound" value={ediel.inboundMessages} hint="Från motpart" />
           <Metric label="Outbound" value={ediel.outboundMessages} hint="Till motpart" />
           <Metric label="Drafts" value={ediel.draftMessages} hint="Granska före skick" tone={ediel.draftMessages > 0 ? 'amber' : 'slate'} />
-          <Metric label="Felade" value={ediel.failedMessages} hint="Manuell åtgärd" tone={ediel.failedMessages > 0 ? 'rose' : 'emerald'} />
+          <Metric label="Felade" value={ediel.failedMessages} hint="Manuell åtgärd" tone={ediel.failedMessages > 0 ? 'red' : 'emerald'} />
           <Metric label="Kvittenser" value={ediel.ackPendingMessages} hint={`${ediel.ackOverdueMessages} försenade`} tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
         </section>
 
@@ -273,7 +271,7 @@ export default async function EdielPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Testmiljö / AGT-tester</p>
                 <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">Låsta godkännandeflöden</h2>
               </div>
-              <Pill tone={agtErrors > 0 ? 'red' : agtWarnings > 0 ? 'yellow' : 'green'}>
+              <Pill tone={agtErrors > 0 ? 'red' : agtWarnings > 0 ? 'amber' : 'emerald'}>
                 {agtErrors} fel · {agtWarnings} varningar
               </Pill>
             </div>

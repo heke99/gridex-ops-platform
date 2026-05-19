@@ -366,7 +366,7 @@ export default function CustomerSwitchOperationsCard({
           </div>
         </div>
 
-        <div className="rounded-3xl border border-rose-200 bg-rose-50/60 p-6 shadow-sm dark:border-rose-900/50 dark:bg-rose-950/10">
+        <div className="rounded-3xl border border-red-200 bg-red-50/60 p-6 shadow-sm dark:border-red-900/50 dark:bg-red-950/10">
           <div className="text-sm text-slate-500 dark:text-slate-400">Ej matchade utskick</div>
           <div className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
             {unresolvedOutbound.length}

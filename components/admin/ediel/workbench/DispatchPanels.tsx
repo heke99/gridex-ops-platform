@@ -337,7 +337,7 @@ export default function DispatchPanels({
                 <input type="hidden" name="messageText" value="Functional error" />
                 <button
                   disabled={!selectedInboundUtiltsId}
-                  className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Manuell UTILTS-ERR
                 </button>
@@ -349,7 +349,7 @@ export default function DispatchPanels({
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-slate-950">ACK-utkast</h2>
           <p className="mt-1 text-sm text-slate-600">
-            ACK-typen styrs nu av faktiskt sammanhang i aktivt scope istället för gamla placeholder-koder.
+            ACK-typen styrs nu av faktiskt sammanhang i aktivt scope istället för gamla referenskoder.
           </p>
 
           <form action={createAckDraftAction} className="mt-4 space-y-4">

@@ -317,7 +317,7 @@ export default async function AdminRolesPage() {
                         extraInDb.map((permissionKey) => (
                           <span
                             key={permissionKey}
-                            className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs text-rose-800"
+                            className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs text-red-800"
                             title={permissionMetadata.get(permissionKey)?.description ?? ''}
                           >
                             {permissionKey}

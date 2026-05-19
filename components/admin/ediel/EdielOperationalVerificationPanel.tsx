@@ -35,19 +35,15 @@ function Badge({
   tone = 'slate',
 }: {
   children: ReactNode
-  tone?: 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo'
+  tone?: 'slate' | 'emerald' | 'amber' | 'red'
 }) {
   const toneClass =
-    tone === 'green'
+    tone === 'emerald'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : tone === 'yellow'
+      : tone === 'amber'
         ? 'border-amber-200 bg-amber-50 text-amber-700'
         : tone === 'red'
-          ? 'border-rose-200 bg-rose-50 text-rose-700'
-          : tone === 'blue'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : tone === 'indigo'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          ? 'border-red-200 bg-red-50 text-red-700'
               : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return (
@@ -57,16 +53,16 @@ function Badge({
   )
 }
 
-function statusTone(status: EdielOperationalVerificationSummary['status']): 'green' | 'yellow' | 'red' {
-  if (status === 'ok') return 'green'
+function statusTone(status: EdielOperationalVerificationSummary['status']): 'emerald' | 'amber' | 'red' {
+  if (status === 'ok') return 'emerald'
   if (status === 'blocked') return 'red'
-  return 'yellow'
+  return 'amber'
 }
 
-function issueTone(severity: string): 'green' | 'yellow' | 'red' | 'slate' {
-  if (severity === 'ok') return 'green'
+function issueTone(severity: string): 'emerald' | 'amber' | 'red' | 'slate' {
+  if (severity === 'ok') return 'emerald'
   if (severity === 'blocked') return 'red'
-  if (severity === 'warning') return 'yellow'
+  if (severity === 'warning') return 'amber'
   return 'slate'
 }
 
@@ -96,7 +92,7 @@ function isUnlinkedOperationalMessage(row: EdielMessageRow): boolean {
   return !row.switch_request_id && !row.grid_owner_data_request_id && !row.customer_id && !row.site_id && !row.metering_point_id
 }
 
-function Metric({ label, value, tone = 'slate' }: { label: string; value: string | number; tone?: 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo' }) {
+function Metric({ label, value, tone = 'slate' }: { label: string; value: string | number; tone?: 'slate' | 'emerald' | 'amber' | 'red' }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
@@ -119,7 +115,7 @@ function MessageCard({ row, action }: { row: EdielMessageRow; action?: 'safe_app
           <div className="mt-1 text-xs text-slate-500">{formatDateTime(row.created_at)}</div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge tone={row.direction === 'inbound' ? 'green' : 'blue'}>{row.direction}</Badge>
+          <Badge tone={row.direction === 'inbound' ? 'emerald' : 'emerald'}>{row.direction}</Badge>
           <Badge tone="slate">{row.status}</Badge>
         </div>
       </div>
@@ -177,18 +173,18 @@ export default function EdielOperationalVerificationPanel({
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge tone={statusTone(summary.status)}>status: {summary.status}</Badge>
-          <Badge tone="blue">score {summary.score}/100</Badge>
-          <Badge tone="yellow">SMTP/ECP live: nej</Badge>
+          <Badge tone="emerald">score {summary.score}/100</Badge>
+          <Badge tone="amber">SMTP/ECP live: nej</Badge>
         </div>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <Metric label="Z03 med länk" value={summary.z03WithSwitchLink} tone="green" />
-        <Metric label="Z03 utan länk" value={summary.z03MissingSwitchLink} tone={summary.z03MissingSwitchLink > 0 ? 'yellow' : 'green'} />
-        <Metric label="ACK ok-länkade" value={summary.inboundAckLinked} tone="green" />
-        <Metric label="ACK utan länk" value={summary.inboundAckUnlinked} tone={summary.inboundAckUnlinked > 0 ? 'yellow' : 'green'} />
-        <Metric label="Safe apply" value={summary.safeApplyCandidates} tone={summary.safeApplyCandidates > 0 ? 'yellow' : 'green'} />
-        <Metric label="UTILTS E66/E30" value={summary.meteringCandidates} tone="indigo" />
+        <Metric label="Z03 med länk" value={summary.z03WithSwitchLink} tone="emerald" />
+        <Metric label="Z03 utan länk" value={summary.z03MissingSwitchLink} tone={summary.z03MissingSwitchLink > 0 ? 'amber' : 'emerald'} />
+        <Metric label="ACK ok-länkade" value={summary.inboundAckLinked} tone="emerald" />
+        <Metric label="ACK utan länk" value={summary.inboundAckUnlinked} tone={summary.inboundAckUnlinked > 0 ? 'amber' : 'emerald'} />
+        <Metric label="Safe apply" value={summary.safeApplyCandidates} tone={summary.safeApplyCandidates > 0 ? 'amber' : 'emerald'} />
+        <Metric label="UTILTS E66/E30" value={summary.meteringCandidates} tone="emerald" />
       </div>
 
       {summary.issues.length > 0 ? (
@@ -219,7 +215,7 @@ export default function EdielOperationalVerificationPanel({
               <h3 className="text-sm font-semibold text-slate-950">Z06/Z10 safe apply</h3>
               <p className="mt-1 text-xs text-slate-600">Skapa förslag innan masterdata uppdateras. Inga fält skrivs över automatiskt.</p>
             </div>
-            <Badge tone={safeApplyCandidates.length > 0 ? 'yellow' : 'green'}>{safeApplyCandidates.length}</Badge>
+            <Badge tone={safeApplyCandidates.length > 0 ? 'amber' : 'emerald'}>{safeApplyCandidates.length}</Badge>
           </div>
           <div className="mt-3 space-y-3">
             {safeApplyCandidates.length === 0 ? (
@@ -236,7 +232,7 @@ export default function EdielOperationalVerificationPanel({
               <h3 className="text-sm font-semibold text-slate-950">ACK utan källkoppling</h3>
               <p className="mt-1 text-xs text-slate-600">Dessa ska kopplas innan de får styra switch/outbound-status.</p>
             </div>
-            <Badge tone={unlinkedAcks.length > 0 ? 'yellow' : 'green'}>{unlinkedAcks.length}</Badge>
+            <Badge tone={unlinkedAcks.length > 0 ? 'amber' : 'emerald'}>{unlinkedAcks.length}</Badge>
           </div>
           <div className="mt-3 space-y-3">
             {unlinkedAcks.length === 0 ? (
@@ -253,7 +249,7 @@ export default function EdielOperationalVerificationPanel({
               <h3 className="text-sm font-semibold text-slate-950">Inbound utan verksamhetslänk</h3>
               <p className="mt-1 text-xs text-slate-600">PRODAT/UTILTS ska helst länkas till switch, data request, kund, anläggning eller mätpunkt.</p>
             </div>
-            <Badge tone={unlinkedOperational.length > 0 ? 'yellow' : 'green'}>{unlinkedOperational.length}</Badge>
+            <Badge tone={unlinkedOperational.length > 0 ? 'amber' : 'emerald'}>{unlinkedOperational.length}</Badge>
           </div>
           <div className="mt-3 space-y-3">
             {unlinkedOperational.length === 0 ? (

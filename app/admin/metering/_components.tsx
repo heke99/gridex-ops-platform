@@ -20,7 +20,7 @@ function statusTone(status: string): string {
     return 'bg-emerald-100 text-emerald-700'
   }
   if (['failed', 'cancelled'].includes(status)) {
-    return 'bg-rose-100 text-rose-700'
+    return 'bg-red-100 text-red-700'
   }
   if (status === 'sent') return 'bg-emerald-100 text-emerald-700'
   return 'bg-amber-100 text-amber-700'
@@ -106,8 +106,8 @@ export function MeteringOperationalSummary({
         <div className="mt-2 text-3xl font-semibold text-slate-950">{receivedRequests.length}</div>
       </div>
 
-      <div className="rounded-3xl border border-rose-200 bg-rose-50 p-5">
-        <div className="text-sm font-medium text-rose-700">Felade</div>
+      <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
+        <div className="text-sm font-medium text-red-700">Felade</div>
         <div className="mt-2 text-3xl font-semibold text-slate-950">{failedRequests.length}</div>
       </div>
 

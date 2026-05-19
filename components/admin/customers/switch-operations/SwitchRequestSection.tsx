@@ -281,7 +281,7 @@ export default function SwitchRequestSection({
                           name="outbound_request_id"
                           value={outbound.id}
                         />
-                        <button className="rounded-2xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
+                        <button className="rounded-2xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 dark:border-red-800 dark:text-red-300">
                           Retry outbound
                         </button>
                       </form>
@@ -311,7 +311,7 @@ export default function SwitchRequestSection({
                     {outbound?.channel_type === 'unresolved' ? (
                       <Link
                         href="/admin/outbound/unresolved"
-                        className="rounded-2xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300"
+                        className="rounded-2xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 dark:border-red-800 dark:text-red-300"
                       >
                         Gå till unresolved
                       </Link>

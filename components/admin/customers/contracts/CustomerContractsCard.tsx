@@ -46,7 +46,7 @@ function ContractLifecyclePill({
       : tone === 'success'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300'
         : tone === 'danger'
-          ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300'
+          ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300'
           : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
 
   return (
@@ -68,7 +68,7 @@ function RecommendationCard({
       : recommendation.tone === 'success'
         ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/20'
         : recommendation.tone === 'danger'
-          ? 'border-rose-200 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20'
+          ? 'border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20'
           : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950'
 
   return (

@@ -66,7 +66,7 @@ function quickActionToneClass(tone: 'neutral' | 'warning' | 'danger' | 'success'
     case 'warning':
       return 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20'
     case 'danger':
-      return 'border-rose-200 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20'
+      return 'border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20'
     case 'success':
       return 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/20'
     default:

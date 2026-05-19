@@ -60,7 +60,7 @@ function tone(status: string): string {
   }
 
   if (['failed', 'cancelled', 'rejected'].includes(status)) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   if (['sent'].includes(status)) {
@@ -472,7 +472,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
               ) : null}
 
               {request.failure_reason ? (
-                <div className="mt-5 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                <div className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
                   {request.failure_reason}
                 </div>
               ) : null}

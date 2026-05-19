@@ -42,7 +42,7 @@ function tone(status: string): string {
     return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
   if (['failed', 'cancelled'].includes(status)) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
   if (['sent'].includes(status)) {
     return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
@@ -668,7 +668,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                           </div>
 
                           {request.channel_type === 'unresolved' ? (
-                            <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                            <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
                               Den här requesten saknar aktiv route. Sweep 7.8 försöker lösa om route finns nu, annars ligger den kvar för manuell route-fix.
                             </div>
                           ) : null}
@@ -682,7 +682,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                           ) : null}
 
                           {request.status === 'failed' ? (
-                            <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                            <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
                               {request.failure_reason ??
                                 'Dispatch misslyckades och kräver ny åtgärd.'}{' '}
                               {request.attempts_count < 3
@@ -741,7 +741,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
                                   value="Dispatch markerad som failed från snabbåtgärd."
                                 />
                                 <input type="hidden" name="dispatch_step" value="fail" />
-                                <button className="w-full rounded-2xl border border-rose-300 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
+                                <button className="w-full rounded-2xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 dark:border-red-800 dark:text-red-300">
                                   Markera som failed
                                 </button>
                               </form>

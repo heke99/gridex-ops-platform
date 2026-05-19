@@ -25,7 +25,7 @@ export function tone(status: string): string {
     return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
   }
   if (['failed', 'cancelled', 'unresolved', 'missing_route', 'inactive'].includes(status)) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
   if (['sent', 'submitted'].includes(status)) {
     return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'

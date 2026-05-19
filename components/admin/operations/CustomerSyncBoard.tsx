@@ -9,7 +9,7 @@ type Props = {
 function signalClass(signal: CustomerSyncSignal): string {
   switch (signal) {
     case 'blocked':
-      return 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/20 dark:text-rose-300'
+      return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300'
     case 'attention':
       return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-300'
     case 'ready':

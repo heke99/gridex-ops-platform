@@ -50,19 +50,15 @@ function Badge({
   tone = 'slate',
 }: {
   children: ReactNode
-  tone?: 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo'
+  tone?: 'slate' | 'emerald' | 'amber' | 'red'
 }) {
   const toneClass =
-    tone === 'green'
+    tone === 'emerald'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : tone === 'yellow'
+      : tone === 'amber'
         ? 'border-amber-200 bg-amber-50 text-amber-700'
         : tone === 'red'
-          ? 'border-rose-200 bg-rose-50 text-rose-700'
-          : tone === 'blue'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : tone === 'indigo'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          ? 'border-red-200 bg-red-50 text-red-700'
               : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return (
@@ -72,7 +68,7 @@ function Badge({
   )
 }
 
-function StatCard({ label, value, tone = 'slate' }: { label: string; value: string | number; tone?: 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo' }) {
+function StatCard({ label, value, tone = 'slate' }: { label: string; value: string | number; tone?: 'slate' | 'emerald' | 'amber' | 'red' }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
@@ -99,31 +95,31 @@ function isOperationalCandidate(row: EdielMessageRow): boolean {
   return ['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(row.message_family)
 }
 
-function switchTone(status: string): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
-  if (status === 'completed' || status === 'accepted') return 'green'
-  if (status === 'submitted') return 'blue'
+function switchTone(status: string): 'emerald' | 'amber' | 'red' | 'slate' {
+  if (status === 'completed' || status === 'accepted') return 'emerald'
+  if (status === 'submitted') return 'emerald'
   if (status === 'failed' || status === 'rejected' || status === 'cancelled') return 'red'
-  if (status === 'queued' || status === 'draft') return 'yellow'
+  if (status === 'queued' || status === 'draft') return 'amber'
   return 'slate'
 }
 
-function dataTone(status: string): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
-  if (status === 'received') return 'green'
-  if (status === 'sent') return 'blue'
+function dataTone(status: string): 'emerald' | 'amber' | 'red' | 'slate' {
+  if (status === 'received') return 'emerald'
+  if (status === 'sent') return 'emerald'
   if (status === 'failed' || status === 'cancelled') return 'red'
-  if (status === 'pending') return 'yellow'
+  if (status === 'pending') return 'amber'
   return 'slate'
 }
 
 function SummaryStrip({ summary }: { summary: EdielOperationalBridgeSummary }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-      <StatCard label="Öppna switchar" value={summary.switchRequestsOpen} tone={summary.switchRequestsOpen > 0 ? 'yellow' : 'green'} />
-      <StatCard label="Z03 skapade" value={summary.prodatZ03Outbound} tone="blue" />
-      <StatCard label="Inbound Z04" value={summary.prodatZ04Inbound} tone="green" />
-      <StatCard label="Inbound Z05" value={summary.prodatZ05Inbound} tone="green" />
-      <StatCard label="UTILTS mätvärden" value={summary.utiltsInboundMetering} tone="indigo" />
-      <StatCard label="Att processa" value={summary.candidateInboundToProcess} tone={summary.candidateInboundToProcess > 0 ? 'yellow' : 'green'} />
+      <StatCard label="Öppna switchar" value={summary.switchRequestsOpen} tone={summary.switchRequestsOpen > 0 ? 'amber' : 'emerald'} />
+      <StatCard label="Z03 skapade" value={summary.prodatZ03Outbound} tone="emerald" />
+      <StatCard label="Inbound Z04" value={summary.prodatZ04Inbound} tone="emerald" />
+      <StatCard label="Inbound Z05" value={summary.prodatZ05Inbound} tone="emerald" />
+      <StatCard label="UTILTS mätvärden" value={summary.utiltsInboundMetering} tone="emerald" />
+      <StatCard label="Att processa" value={summary.candidateInboundToProcess} tone={summary.candidateInboundToProcess > 0 ? 'amber' : 'emerald'} />
     </div>
   )
 }
@@ -165,9 +161,9 @@ export default function EdielOperationalBridgePanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge tone="green">filbaserad motor</Badge>
-          <Badge tone={summary.smtpEcpEnabled ? 'red' : 'yellow'}>SMTP/ECP ej aktivt</Badge>
-          <Badge tone="blue">Ediel-id via route/runtime</Badge>
+          <Badge tone="emerald">filbaserad motor</Badge>
+          <Badge tone={summary.smtpEcpEnabled ? 'red' : 'amber'}>SMTP/ECP ej aktivt</Badge>
+          <Badge tone="emerald">Ediel-id via route/runtime</Badge>
         </div>
       </div>
 
@@ -184,7 +180,7 @@ export default function EdielOperationalBridgePanel({
                 Använd detta när ett riktigt supplier_switch_request är redo och ska bli en filbaserad PRODAT Z03.
               </p>
             </div>
-            <Badge tone={switchCandidates.length > 0 ? 'yellow' : 'green'}>{switchCandidates.length} kandidater</Badge>
+            <Badge tone={switchCandidates.length > 0 ? 'amber' : 'emerald'}>{switchCandidates.length} kandidater</Badge>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -228,7 +224,7 @@ export default function EdielOperationalBridgePanel({
                 Efter IMAP-import kör denna knapp rätt runtime. För inbound UTILTS skapas CONTRL + APERAK/UTILTS-ERR innan verksamhetskoppling.
               </p>
             </div>
-            <Badge tone={candidates.length > 0 ? 'yellow' : 'green'}>{candidates.length} att granska</Badge>
+            <Badge tone={candidates.length > 0 ? 'amber' : 'emerald'}>{candidates.length} att granska</Badge>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -246,7 +242,7 @@ export default function EdielOperationalBridgePanel({
                       </div>
                       <div className="mt-1 break-all text-xs text-slate-500">{row.id}</div>
                     </div>
-                    <Badge tone={row.status === 'failed' ? 'red' : 'blue'}>{row.status}</Badge>
+                    <Badge tone={row.status === 'failed' ? 'red' : 'emerald'}>{row.status}</Badge>
                   </div>
                   <div className="mt-2 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
                     <div>Switch: {row.switch_request_id ?? '—'}</div>
@@ -282,9 +278,9 @@ export default function EdielOperationalBridgePanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge tone="yellow">SMTP off</Badge>
-            <Badge tone="yellow">ECP/EDX off</Badge>
-            <Badge tone={transportReadiness.blockedIssues > 0 ? 'red' : 'green'}>
+            <Badge tone="amber">SMTP off</Badge>
+            <Badge tone="amber">ECP/EDX off</Badge>
+            <Badge tone={transportReadiness.blockedIssues > 0 ? 'red' : 'emerald'}>
               blocked: {transportReadiness.blockedIssues}
             </Badge>
           </div>
@@ -292,8 +288,8 @@ export default function EdielOperationalBridgePanel({
 
         <div className="mt-4 grid gap-3 md:grid-cols-4">
           <StatCard label="Routes" value={transportReadiness.routesTotal} tone="slate" />
-          <StatCard label="Filredo routes" value={transportReadiness.fileReadyRoutes} tone={transportReadiness.fileReadyRoutes > 0 ? 'green' : 'red'} />
-          <StatCard label="SMTP-kandidater" value={transportReadiness.smtpReadyCandidates} tone={transportReadiness.smtpReadyCandidates > 0 ? 'yellow' : 'slate'} />
+          <StatCard label="Filredo routes" value={transportReadiness.fileReadyRoutes} tone={transportReadiness.fileReadyRoutes > 0 ? 'emerald' : 'red'} />
+          <StatCard label="SMTP-kandidater" value={transportReadiness.smtpReadyCandidates} tone={transportReadiness.smtpReadyCandidates > 0 ? 'amber' : 'slate'} />
           <StatCard label="ECP-kandidater" value={transportReadiness.ecpReadyCandidates} tone="slate" />
         </div>
 
@@ -302,7 +298,7 @@ export default function EdielOperationalBridgePanel({
             <div key={issue.key} className="rounded-xl border border-white/70 bg-white p-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="font-semibold text-slate-950">{issue.title}</div>
-                <Badge tone={issue.severity === 'blocked' ? 'red' : issue.severity === 'warning' ? 'yellow' : 'blue'}>
+                <Badge tone={issue.severity === 'blocked' ? 'red' : issue.severity === 'warning' ? 'amber' : 'emerald'}>
                   {issue.severity}
                 </Badge>
               </div>

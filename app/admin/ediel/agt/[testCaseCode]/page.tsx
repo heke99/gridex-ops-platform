@@ -30,13 +30,12 @@ import { sendEdielMessageAction } from '@/app/admin/ediel/actions'
 
 export const dynamic = 'force-dynamic'
 
-type Tone = 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+type Tone = 'emerald' | 'amber' | 'red' | 'slate'
 
 function badgeTone(tone: Tone) {
-  if (tone === 'green') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  if (tone === 'yellow') return 'border-amber-200 bg-amber-50 text-amber-700'
-  if (tone === 'red') return 'border-rose-200 bg-rose-50 text-rose-700'
-  if (tone === 'blue') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (tone === 'emerald') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (tone === 'amber') return 'border-amber-200 bg-amber-50 text-amber-700'
+  if (tone === 'red') return 'border-red-200 bg-red-50 text-red-700'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
@@ -50,8 +49,8 @@ function inputClassName() {
 
 function statusTone(status: string | null | undefined): Tone {
   const value = String(status ?? '').toLowerCase()
-  if (['sent', 'received', 'acknowledged', 'processed', 'success'].includes(value)) return 'green'
-  if (['draft', 'queued', 'prepared', 'pending', 'in_progress', 'running'].includes(value)) return 'yellow'
+  if (['sent', 'received', 'acknowledged', 'processed', 'success'].includes(value)) return 'emerald'
+  if (['draft', 'queued', 'prepared', 'pending', 'in_progress', 'running'].includes(value)) return 'amber'
   if (['failed', 'cancelled', 'error', 'rejected'].includes(value)) return 'red'
   return 'slate'
 }
@@ -109,8 +108,8 @@ function MessageSummary({ message }: { message: EdielMessageRow }) {
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={statusTone(message.status)}>{message.status}</Badge>
         <Badge tone="slate">{message.direction}</Badge>
-        <Badge tone="blue">{message.message_family} {message.message_code}</Badge>
-        {message.ack_outcome ? <Badge tone={message.ack_outcome === 'positive' ? 'green' : 'red'}>{message.ack_outcome}</Badge> : null}
+        <Badge tone="emerald">{message.message_family} {message.message_code}</Badge>
+        {message.ack_outcome ? <Badge tone={message.ack_outcome === 'positive' ? 'emerald' : 'red'}>{message.ack_outcome}</Badge> : null}
       </div>
       <div className="grid gap-2 text-xs text-slate-600 md:grid-cols-2">
         <div>Från: <span className="font-mono text-slate-900">{message.sender_ediel_id ?? '—'}</span></div>
@@ -176,7 +175,7 @@ function LinkedTimeline({
                   <div className="text-sm font-semibold text-slate-950">Steg {step.stepNo}: {step.title}</div>
                   <div className="mt-1 text-xs text-slate-500">{step.actor} · {step.direction} · {step.family} {step.code}</div>
                 </div>
-                <Badge tone={visibleLinked.length > 0 ? 'green' : 'slate'}>{visibleLinked.length > 0 ? 'kopplad' : 'väntar'}</Badge>
+                <Badge tone={visibleLinked.length > 0 ? 'emerald' : 'slate'}>{visibleLinked.length > 0 ? 'kopplad' : 'väntar'}</Badge>
               </div>
 
               {visibleLinked.length > 0 ? (
@@ -284,10 +283,10 @@ export default async function AgtCasePage({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap gap-2">
-              <Badge tone="blue">TESTLÄGE</Badge>
+              <Badge tone="emerald">TESTLÄGE</Badge>
               <Badge tone="slate">{testCase.suite}</Badge>
               <Badge tone="slate">{testCase.messageCode}</Badge>
-              <Badge tone={actorToPortal ? 'yellow' : 'green'}>{directionText(testCase)}</Badge>
+              <Badge tone={actorToPortal ? 'amber' : 'emerald'}>{directionText(testCase)}</Badge>
             </div>
             <h1 className="mt-3 text-2xl font-semibold text-slate-950">{testCase.portalTitle}</h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">{testCase.purpose}</p>
@@ -375,7 +374,7 @@ export default async function AgtCasePage({
             <form action={cleanupAgtCaseUnsentMessagesAction} className="mt-3">
               <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
               <input type="hidden" name="test_run_id" value={run.id} />
-              <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100">
+              <button className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
                 Makulera gamla oskickade testkommandon
               </button>
             </form>

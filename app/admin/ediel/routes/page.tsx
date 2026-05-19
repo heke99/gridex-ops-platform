@@ -74,18 +74,16 @@ function Pill({
   tone,
 }: {
   text: string
-  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  tone: 'emerald' | 'amber' | 'red' | 'slate'
 }) {
   const toneClass =
-    tone === 'green'
+    tone === 'emerald'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : tone === 'yellow'
+      : tone === 'amber'
         ? 'border-amber-200 bg-amber-50 text-amber-700'
         : tone === 'red'
-          ? 'border-rose-200 bg-rose-50 text-rose-700'
-          : tone === 'blue'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-slate-200 bg-slate-50 text-slate-700'
+          ? 'border-red-200 bg-red-50 text-red-700'
+          : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return (
     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${toneClass}`}>
@@ -124,12 +122,12 @@ function selectClassName() {
   return 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900'
 }
 
-function boolTone(value: boolean): 'green' | 'red' {
-  return value ? 'green' : 'red'
+function boolTone(value: boolean): 'emerald' | 'red' {
+  return value ? 'emerald' : 'red'
 }
 
-function issueTone(value: 'error' | 'warning'): 'red' | 'yellow' {
-  return value === 'error' ? 'red' : 'yellow'
+function issueTone(value: 'error' | 'warning'): 'red' | 'amber' {
+  return value === 'error' ? 'red' : 'amber'
 }
 
 function sortRoutesForOps(rows: RouteRuntimeViewRow[]): RouteRuntimeViewRow[] {
@@ -304,9 +302,9 @@ export default async function AdminEdielRoutesPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Pill text="PRODAT" tone="green" />
-            <Pill text="UTILTS" tone="green" />
-            <Pill text="APERAK / CONTRL" tone="green" />
+            <Pill text="PRODAT" tone="emerald" />
+            <Pill text="UTILTS" tone="emerald" />
+            <Pill text="APERAK / CONTRL" tone="emerald" />
           </div>
         </div>
 
@@ -369,9 +367,9 @@ export default async function AdminEdielRoutesPage() {
           <div className="text-sm text-emerald-700">Redo för live</div>
           <div className="mt-2 text-3xl font-semibold text-emerald-900">{readyCount}</div>
         </div>
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
-          <div className="text-sm text-rose-700">Blockerade</div>
-          <div className="mt-2 text-3xl font-semibold text-rose-900">{blockedCount}</div>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+          <div className="text-sm text-red-700">Blockerade</div>
+          <div className="mt-2 text-3xl font-semibold text-red-900">{blockedCount}</div>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <div className="text-sm text-amber-700">Saknar profil</div>
@@ -551,11 +549,11 @@ export default async function AdminEdielRoutesPage() {
                       <Pill text={route.is_active ? 'route aktiv' : 'route inaktiv'} tone={boolTone(route.is_active)} />
                       <Pill
                         text={runtime?.is_enabled ? 'profil aktiv' : 'profil saknas/av'}
-                        tone={runtime?.is_enabled ? 'green' : 'red'}
+                        tone={runtime?.is_enabled ? 'emerald' : 'red'}
                       />
                       <Pill
                         text={explanation?.isReadyForOutbound ? 'runtime redo' : 'runtime blockerad'}
-                        tone={explanation?.isReadyForOutbound ? 'green' : 'red'}
+                        tone={explanation?.isReadyForOutbound ? 'emerald' : 'red'}
                       />
                     </div>
                   </div>
@@ -604,7 +602,7 @@ export default async function AdminEdielRoutesPage() {
                             key={issue.key}
                             className={`rounded-xl border px-3 py-3 ${
                               issue.severity === 'error'
-                                ? 'border-rose-200 bg-rose-50'
+                                ? 'border-red-200 bg-red-50'
                                 : 'border-amber-200 bg-amber-50'
                             }`}
                           >

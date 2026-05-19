@@ -242,7 +242,7 @@ export default function SiteLifecycleSection({
 
                       <Link
                         href="/admin/outbound/unresolved"
-                        className="block rounded-2xl border border-rose-300 px-4 py-2.5 text-center text-sm font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300"
+                        className="block rounded-2xl border border-red-300 px-4 py-2.5 text-center text-sm font-semibold text-red-700 dark:border-red-800 dark:text-red-300"
                       >
                         Öppna unresolved routes
                       </Link>

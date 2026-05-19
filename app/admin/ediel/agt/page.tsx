@@ -43,27 +43,25 @@ function Badge({
   tone,
   children,
 }: {
-  tone: 'green' | 'yellow' | 'red' | 'blue' | 'slate'
+  tone: 'emerald' | 'amber' | 'red' | 'slate'
   children: ReactNode
 }) {
   const className =
-    tone === 'green'
+    tone === 'emerald'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : tone === 'yellow'
+      : tone === 'amber'
         ? 'border-amber-200 bg-amber-50 text-amber-700'
         : tone === 'red'
-          ? 'border-rose-200 bg-rose-50 text-rose-700'
-          : tone === 'blue'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-slate-200 bg-slate-50 text-slate-700'
+          ? 'border-red-200 bg-red-50 text-red-700'
+          : 'border-slate-200 bg-slate-50 text-slate-700'
 
   return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>{children}</span>
 }
 
 function issueTone(severity: 'error' | 'warning' | 'info') {
   if (severity === 'error') return 'red' as const
-  if (severity === 'warning') return 'yellow' as const
-  return 'blue' as const
+  if (severity === 'warning') return 'amber' as const
+  return 'emerald' as const
 }
 
 function RouteCard({
@@ -85,8 +83,8 @@ function RouteCard({
           <div className="mt-1 text-sm text-slate-500">Runtime route + Ediel profile som AGT använder.</div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge tone={route?.is_active ? 'green' : 'red'}>{route?.is_active ? 'route aktiv' : 'route saknas/inaktiv'}</Badge>
-          <Badge tone={profile?.is_enabled ? 'green' : 'red'}>{profile?.is_enabled ? 'profil aktiv' : 'profil saknas/inaktiv'}</Badge>
+          <Badge tone={route?.is_active ? 'emerald' : 'red'}>{route?.is_active ? 'route aktiv' : 'route saknas/inaktiv'}</Badge>
+          <Badge tone={profile?.is_enabled ? 'emerald' : 'red'}>{profile?.is_enabled ? 'profil aktiv' : 'profil saknas/inaktiv'}</Badge>
         </div>
       </div>
 
@@ -111,7 +109,7 @@ function RouteCard({
 }
 
 function caseTone(hasRun: boolean) {
-  return hasRun ? 'green' : 'slate'
+  return hasRun ? 'emerald' : 'slate'
 }
 
 
@@ -175,9 +173,9 @@ export default async function EdielAgtPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge tone={runtime.isReady ? 'green' : 'red'}>{runtime.isReady ? 'testmiljö redo' : 'testmiljö blockerad'}</Badge>
-            <Badge tone={errorCount > 0 ? 'red' : 'green'}>fel {errorCount}</Badge>
-            <Badge tone={warningCount > 0 ? 'yellow' : 'green'}>varningar {warningCount}</Badge>
+            <Badge tone={runtime.isReady ? 'emerald' : 'red'}>{runtime.isReady ? 'testmiljö redo' : 'testmiljö blockerad'}</Badge>
+            <Badge tone={errorCount > 0 ? 'red' : 'emerald'}>fel {errorCount}</Badge>
+            <Badge tone={warningCount > 0 ? 'amber' : 'emerald'}>varningar {warningCount}</Badge>
             <Link href="/admin/ediel" className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
               Till Ediel
             </Link>
@@ -314,7 +312,7 @@ export default async function EdielAgtPage() {
                 Kör ett test åt gången. L1/L7 skickas som outbound-kommandon direkt till portalen. L2–L5 ska vänta på inbound från Edielportalen.
               </p>
             </div>
-            <Badge tone="blue">testläge separat från produktion</Badge>
+            <Badge tone="emerald">testläge separat från produktion</Badge>
           </div>
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
             Den här sidan ska bara användas för AGT. Verkliga kundflöden skapas från kundkort, operations och live Ediel-meddelanden.

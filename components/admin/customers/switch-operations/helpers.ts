@@ -48,7 +48,7 @@ export function statusTone(status: string | null | undefined): string {
       status
     )
   ) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   if (['sent', 'submitted', 'awaiting_response'].includes(status)) {
@@ -64,7 +64,7 @@ export function lifecycleTone(stage: string): string {
   }
 
   if (['failed', 'blocked'].includes(stage)) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   if (['awaiting_response'].includes(stage)) {
@@ -84,7 +84,7 @@ export function routeLabel(route: EdielRecommendationRouteRow | null): string {
 
 export function routeIssueTone(issue: EdielRouteIssue): string {
   return issue.severity === 'error'
-    ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
     : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
 }
 

@@ -20,7 +20,7 @@ import type {
   EdielProdatProductionCandidate,
 } from '@/lib/ediel/prodatContext'
 
-type BadgeTone = 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo'
+type BadgeTone = 'slate' | 'emerald' | 'amber' | 'red'
 
 type ProdatCatalogGroupConfig = {
   id: string
@@ -42,7 +42,7 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
     title: 'S1.2 – Korrekt PRODAT för produktion och portaltest',
     description:
       'Positiva huvudtester för Z03/Z04. Dessa är kärnflödena för leverantörsbyte och mikroproduktion.',
-    tone: 'green',
+    tone: 'emerald',
     prefixes: ['1.2'],
   },
   {
@@ -66,7 +66,7 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
     title: 'S1.5 – Syntaxfel / negativ CONTRL',
     description:
       'Används för att verifiera att syntaxfel ger negativ CONTRL i stället för APERAK.',
-    tone: 'yellow',
+    tone: 'amber',
     prefixes: ['1.5'],
   },
   {
@@ -74,7 +74,7 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
     title: 'S2.1 – Korrekt PRODAT för Z06',
     description:
       'Ändringar av avräkningsmetod, mätmetod, räkneverkstyp och adressuppgifter.',
-    tone: 'blue',
+    tone: 'emerald',
     prefixes: ['2.1'],
   },
   {
@@ -90,7 +90,7 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
     title: 'S2.3 – Korrekt PRODAT för Z10',
     description:
       'Positiva testfall för mätarbyte.',
-    tone: 'blue',
+    tone: 'emerald',
     prefixes: ['2.3'],
   },
   {
@@ -106,7 +106,7 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
     title: 'S2.5 – Korrekt PRODAT för Z09',
     description:
       'Korrekta testfall för Z09, inklusive mikroproduktionsavtal.',
-    tone: 'blue',
+    tone: 'emerald',
     prefixes: ['2.5'],
   },
   {
@@ -114,7 +114,7 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
     title: 'S3.1 – Korrekt PRODAT för Z05',
     description:
       'Positiva testfall för Z05L och Z05LK.',
-    tone: 'blue',
+    tone: 'emerald',
     prefixes: ['3.1'],
   },
   {
@@ -130,7 +130,7 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
     title: 'S8.1 – Energitjänsteföretag: korrekt Z13/Z14',
     description:
       'ESCO-flöden där GridCore skickar Z13 och portalen svarar med Z14.',
-    tone: 'green',
+    tone: 'emerald',
     prefixes: ['8.1'],
   },
   {
@@ -146,7 +146,7 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
     title: 'S9.1 – Energitjänsteföretag: korrekt Z15/Z18',
     description:
       'Avslutsflöden för aktivt tillstånd och rapportering.',
-    tone: 'green',
+    tone: 'emerald',
     prefixes: ['9.1'],
   },
   {
@@ -162,11 +162,9 @@ const PRODAT_PORTAL_GROUPS: ProdatCatalogGroupConfig[] = [
 function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: BadgeTone }) {
   const classes = {
     slate: 'border-slate-200 bg-slate-50 text-slate-700',
-    green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    yellow: 'border-amber-200 bg-amber-50 text-amber-700',
-    red: 'border-rose-200 bg-rose-50 text-rose-700',
-    blue: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    indigo: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    amber: 'border-amber-200 bg-amber-50 text-amber-700',
+    red: 'border-red-200 bg-red-50 text-red-700',
   }[tone]
 
   return (
@@ -194,8 +192,8 @@ function SmtpModeNotice({ compact = false }: { compact?: boolean }) {
 
 function issueTone(issue: EdielProdatCandidateIssue): BadgeTone {
   if (issue.severity === 'error') return 'red'
-  if (issue.severity === 'warning') return 'yellow'
-  return 'blue'
+  if (issue.severity === 'warning') return 'amber'
+  return 'emerald'
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -389,9 +387,9 @@ function PortalTestCatalogPanel() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge tone="blue">{groups.length} grupper</Badge>
-            <Badge tone="green">{formCases} formulärtest</Badge>
-            <Badge tone="indigo">{guidedCases} TGT-test</Badge>
+            <Badge tone="emerald">{groups.length} grupper</Badge>
+            <Badge tone="emerald">{formCases} formulärtest</Badge>
+            <Badge tone="emerald">{guidedCases} TGT-test</Badge>
             <Badge tone="slate">{totalCases} totalt</Badge>
           </div>
         </div>
@@ -420,7 +418,7 @@ function PortalTestCatalogPanel() {
                   <div className="flex flex-wrap gap-2">
                     <Badge tone={group.tone}>{group.title}</Badge>
                     <Badge tone="slate">{group.testCases.length} testfall</Badge>
-                    <Badge tone="green">
+                    <Badge tone="emerald">
                       {
                         group.testCases.filter((testCase) =>
                           PORTAL_FORM_CASE_CODES.has(testCase.testCaseCode)
@@ -428,7 +426,7 @@ function PortalTestCatalogPanel() {
                       }{' '}
                       formulär
                     </Badge>
-                    <Badge tone="indigo">
+                    <Badge tone="emerald">
                       {
                         group.testCases.filter(
                           (testCase) => !PORTAL_FORM_CASE_CODES.has(testCase.testCaseCode)
@@ -457,12 +455,12 @@ function PortalTestCatalogPanel() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="flex flex-wrap gap-2">
-                          <Badge tone="blue">{testCase.testCaseCode}</Badge>
+                          <Badge tone="emerald">{testCase.testCaseCode}</Badge>
                           <Badge>{testCase.suite}</Badge>
-                          <Badge tone={usesForm ? 'green' : 'indigo'}>
+                          <Badge tone={usesForm ? 'emerald' : 'emerald'}>
                             {usesForm ? 'formulär här nedan' : 'TGT guided mode'}
                           </Badge>
-                          <Badge tone={testCase.status === 'ready_for_file_engine' ? 'green' : 'yellow'}>
+                          <Badge tone={testCase.status === 'ready_for_file_engine' ? 'emerald' : 'amber'}>
                             {testCase.status === 'ready_for_file_engine'
                               ? 'redo i filmotor'
                               : 'manuell senare'}
@@ -516,7 +514,7 @@ function EdielPortalTestCustomerOnboardingPanel() {
             tabeller.
           </p>
         </div>
-        <Badge tone="indigo">formulär → riktig kunddata · testläge</Badge>
+        <Badge tone="emerald">formulär → riktig kunddata · testläge</Badge>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -529,9 +527,9 @@ function EdielPortalTestCustomerOnboardingPanel() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap gap-2">
-                    <Badge tone="blue">{testCase.testCaseCode}</Badge>
+                    <Badge tone="emerald">{testCase.testCaseCode}</Badge>
                     <Badge>{testCase.suite}</Badge>
-                    <Badge tone="indigo">öppna formulär</Badge>
+                    <Badge tone="emerald">öppna formulär</Badge>
                   </div>
                   <div className="mt-3 text-sm font-semibold text-slate-950">
                     {testCase.title}
@@ -903,18 +901,18 @@ function ProductionCandidateCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap gap-2">
-              <Badge tone={candidate.readyForPortalOrProduction ? 'green' : 'red'}>
+              <Badge tone={candidate.readyForPortalOrProduction ? 'emerald' : 'red'}>
                 {candidate.readyForPortalOrProduction ? 'redo för Ediel-utkast' : 'spärrad'}
               </Badge>
               <Badge>{candidate.requestType}</Badge>
-              <Badge tone="blue">{candidate.switchStatus}</Badge>
+              <Badge tone="emerald">{candidate.switchStatus}</Badge>
               {z03Count > 0 ? (
-                <Badge tone="yellow">Z03 finns: {z03Count}</Badge>
+                <Badge tone="amber">Z03 finns: {z03Count}</Badge>
               ) : (
                 <Badge tone="slate">ingen Z03</Badge>
               )}
               {z04Count > 0 ? (
-                <Badge tone="yellow">Z04 finns: {z04Count}</Badge>
+                <Badge tone="amber">Z04 finns: {z04Count}</Badge>
               ) : (
                 <Badge tone="slate">ingen Z04</Badge>
               )}
@@ -961,13 +959,13 @@ function ProductionCandidateCard({
         </div>
 
         {blockingIssues.length > 0 ? (
-          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-3">
-            <div className="text-xs font-semibold text-rose-950">Spärr innan skickning</div>
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3">
+            <div className="text-xs font-semibold text-red-950">Spärr innan skickning</div>
             <div className="mt-2 space-y-2">
               {blockingIssues.map((issue) => (
                 <div
                   key={issue.code}
-                  className="rounded-xl border border-rose-100 bg-white px-3 py-2 text-xs text-rose-800"
+                  className="rounded-xl border border-red-100 bg-white px-3 py-2 text-xs text-red-800"
                 >
                   <div className="font-semibold">{issue.title}</div>
                   <div className="mt-1">{issue.description}</div>
@@ -1199,7 +1197,7 @@ function ProductionCandidateCard({
                           name="reason"
                           value="Avbrutet från kundstyrd Ediel-panel. Fel kund/underlag eller nytt utkast ska skapas. Historik behålls."
                         />
-                        <button className="font-semibold text-rose-700 hover:underline">
+                        <button className="font-semibold text-red-700 hover:underline">
                           Avbryt utkast
                         </button>
                       </form>
@@ -1239,9 +1237,9 @@ export default function EdielProductionProdatPanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge tone="green">redo: {ready}</Badge>
-          <Badge tone={blocked > 0 ? 'red' : 'green'}>spärrade: {blocked}</Badge>
-          <Badge tone="blue">kandidater: {candidates.length}</Badge>
+          <Badge tone="emerald">redo: {ready}</Badge>
+          <Badge tone={blocked > 0 ? 'red' : 'emerald'}>spärrade: {blocked}</Badge>
+          <Badge tone="emerald">kandidater: {candidates.length}</Badge>
         </div>
       </div>
 

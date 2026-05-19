@@ -18,7 +18,7 @@ function StateMessage({ state }: { state: CustomerImportActionState }) {
   if (!state.message) return null
 
   const tone = state.status === 'error'
-    ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-200'
+    ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-200'
     : 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-200'
 
   return (

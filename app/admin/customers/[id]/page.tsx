@@ -218,7 +218,7 @@ function statusTone(status: string | null): string {
       return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
     case 'inactive':
     case 'closed':
-      return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+      return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
     default:
       return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
   }
@@ -230,7 +230,7 @@ function lifecycleTone(stage: string): string {
   }
 
   if (['blocked', 'failed'].includes(stage)) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   if (['awaiting_response'].includes(stage)) {
@@ -608,7 +608,7 @@ function QuickJumpLink({
         : tone === 'warning'
           ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-300'
           : tone === 'danger'
-            ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/20 dark:text-rose-300'
+            ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/20 dark:text-red-300'
             : 'border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
 
   return (

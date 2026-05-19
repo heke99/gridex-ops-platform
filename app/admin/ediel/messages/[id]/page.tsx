@@ -28,17 +28,16 @@ import { evaluateProdatPortalReadiness } from '@/lib/ediel/prodatPortalReadiness
 
 export const dynamic = 'force-dynamic'
 
-function tone(kind: 'green' | 'yellow' | 'red' | 'blue' | 'slate'): string {
-  if (kind === 'green') return 'bg-emerald-100 text-emerald-700'
-  if (kind === 'yellow') return 'bg-amber-100 text-amber-700'
-  if (kind === 'red') return 'bg-rose-100 text-rose-700'
-  if (kind === 'blue') return 'bg-emerald-100 text-emerald-700'
+function tone(kind: 'emerald' | 'amber' | 'red' | 'slate'): string {
+  if (kind === 'emerald') return 'bg-emerald-100 text-emerald-700'
+  if (kind === 'amber') return 'bg-amber-100 text-amber-700'
+  if (kind === 'red') return 'bg-red-100 text-red-700'
   return 'bg-slate-100 text-slate-700'
 }
 
 function badgeTone(
   status: string | null | undefined
-): 'green' | 'yellow' | 'red' | 'blue' | 'slate' {
+): 'emerald' | 'amber' | 'red' | 'slate' {
   if (!status) return 'slate'
   if (
     [
@@ -54,7 +53,7 @@ function badgeTone(
       'info',
     ].includes(status)
   ) {
-    return 'green'
+    return 'emerald'
   }
   if (
     [
@@ -67,7 +66,7 @@ function badgeTone(
       'warning',
     ].includes(status)
   ) {
-    return 'yellow'
+    return 'amber'
   }
   if (
     [
@@ -81,7 +80,7 @@ function badgeTone(
     return 'red'
   }
   if (['sent', 'validated', 'parsed'].includes(status)) {
-    return 'blue'
+    return 'emerald'
   }
   return 'slate'
 }
@@ -421,7 +420,7 @@ export default async function AdminEdielMessageDetailPage({
                 <input type="hidden" name="edielMessageId" value={message.id} />
                 <button
                   type="submit"
-                  className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100"
+                  className="rounded-2xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
                 >
                   Radera meddelande + svar
                 </button>
@@ -476,7 +475,7 @@ export default async function AdminEdielMessageDetailPage({
                       key={issue.code}
                       className={`rounded-2xl border p-4 text-sm ${
                         issue.severity === 'error'
-                          ? 'border-rose-200 bg-rose-50 text-rose-800'
+                          ? 'border-red-200 bg-red-50 text-red-800'
                           : issue.severity === 'warning'
                             ? 'border-amber-200 bg-amber-50 text-amber-800'
                             : 'border-emerald-200 bg-emerald-50 text-emerald-800'
@@ -592,7 +591,7 @@ export default async function AdminEdielMessageDetailPage({
                 ) : null}
 
                 {versionDiagnostics.versionErrors.length > 0 ? (
-                  <div className="mt-3 rounded-xl bg-rose-50 p-3 text-rose-700">
+                  <div className="mt-3 rounded-xl bg-red-50 p-3 text-red-700">
                     <div className="font-medium">Version errors</div>
                     <ul className="mt-2 list-disc space-y-1 pl-5">
                       {versionDiagnostics.versionErrors.map((error) => (
@@ -680,9 +679,9 @@ export default async function AdminEdielMessageDetailPage({
             ) : (
               <div className="mt-4 space-y-4">
                 {codeListDiagnostics.codeListErrors.length > 0 ? (
-                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
-                    <div className="text-sm font-medium text-rose-700">Code list errors</div>
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-rose-700">
+                  <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                    <div className="text-sm font-medium text-red-700">Code list errors</div>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-red-700">
                       {codeListDiagnostics.codeListErrors.map((error) => (
                         <li key={error}>{error}</li>
                       ))}

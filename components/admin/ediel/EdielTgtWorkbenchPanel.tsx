@@ -33,7 +33,7 @@ import { getEdielTgtDraftOptionsForCase } from '@/lib/ediel/tgtEdifact'
 import { edielCodeLabel } from '@/lib/ediel/codeLabels'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 
-type BadgeTone = 'slate' | 'green' | 'yellow' | 'red' | 'blue' | 'indigo'
+type BadgeTone = 'slate' | 'emerald' | 'amber' | 'red'
 
 type TgtWorkbenchGroupConfig = {
   id: string
@@ -52,7 +52,7 @@ const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
     id: 's1-2',
     title: 'S1.2 – Korrekt PRODAT Z03/Z04',
     description: 'Positiva basflöden. Z03/Z04 skapas från riktig kunddata och kvittenser matchas mot portalens svar.',
-    tone: 'green',
+    tone: 'emerald',
     prefixes: ['1.2'],
   },
   {
@@ -73,14 +73,14 @@ const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
     id: 's1-5',
     title: 'S1.5 – Syntaxfel / negativ CONTRL',
     description: 'Syntaxfel ska ge negativ CONTRL. Detta är inte en APERAK-affärskontroll.',
-    tone: 'yellow',
+    tone: 'amber',
     prefixes: ['1.5'],
   },
   {
     id: 's2-1',
     title: 'S2.1 – Korrekt PRODAT Z06',
     description: 'Z06F/Z06G för ändrad avräkning, mätmetod, räkneverk eller anläggningsadress.',
-    tone: 'blue',
+    tone: 'emerald',
     prefixes: ['2.1'],
   },
   {
@@ -94,7 +94,7 @@ const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
     id: 's2-3',
     title: 'S2.3 – Korrekt PRODAT Z10',
     description: 'Korrekt Z10M för mätarbyte och relaterade mätaruppgifter.',
-    tone: 'blue',
+    tone: 'emerald',
     prefixes: ['2.3'],
   },
   {
@@ -108,14 +108,14 @@ const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
     id: 's2-5',
     title: 'S2.5 – Korrekt PRODAT Z09',
     description: 'Korrekt Z09F/Z09G/Z09D, inklusive nytt avtal om mikroproduktion.',
-    tone: 'blue',
+    tone: 'emerald',
     prefixes: ['2.5'],
   },
   {
     id: 's3-1',
     title: 'S3.1 – Korrekt PRODAT Z05',
     description: 'Korrekt Z05L och Z05LK.',
-    tone: 'blue',
+    tone: 'emerald',
     prefixes: ['3.1'],
   },
   {
@@ -129,7 +129,7 @@ const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
     id: 's8-1',
     title: 'S8.1 – Energitjänsteföretag: korrekt Z13/Z14',
     description: 'ESCO-flöden där GridCore skickar Z13 och portalen svarar med Z14.',
-    tone: 'green',
+    tone: 'emerald',
     prefixes: ['8.1'],
   },
   {
@@ -143,7 +143,7 @@ const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
     id: 's9-1',
     title: 'S9.1 – Energitjänsteföretag: korrekt Z15/Z18',
     description: 'Avslutsflöden för tillstånd: Z15 och Z18.',
-    tone: 'green',
+    tone: 'emerald',
     prefixes: ['9.1'],
   },
   {
@@ -158,11 +158,9 @@ const TGT_PRODAT_GROUPS: TgtWorkbenchGroupConfig[] = [
 function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: BadgeTone }) {
   const classes = {
     slate: 'border-slate-200 bg-slate-50 text-slate-700',
-    green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    yellow: 'border-amber-200 bg-amber-50 text-amber-700',
-    red: 'border-rose-200 bg-rose-50 text-rose-700',
-    blue: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    indigo: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    amber: 'border-amber-200 bg-amber-50 text-amber-700',
+    red: 'border-red-200 bg-red-50 text-red-700',
   }[tone]
 
   return (
@@ -170,6 +168,14 @@ function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: Badge
       {children}
     </span>
   )
+}
+
+
+function normalizeBadgeTone(tone: string | null | undefined): BadgeTone {
+  if (tone === 'green' || tone === 'blue' || tone === 'indigo' || tone === 'emerald') return 'emerald'
+  if (tone === 'yellow' || tone === 'amber') return 'amber'
+  if (tone === 'red') return 'red'
+  return 'slate'
 }
 
 function formatDateTime(value: string | null | undefined): string {
@@ -180,22 +186,22 @@ function formatDateTime(value: string | null | undefined): string {
 }
 
 function statusTone(status: EdielTgtRunEvaluation['computedStatus']): BadgeTone {
-  if (status === 'passed') return 'green'
+  if (status === 'passed') return 'emerald'
   if (status === 'failed' || status === 'not_mapped') return 'red'
-  if (status === 'in_progress') return 'yellow'
+  if (status === 'in_progress') return 'amber'
   return 'slate'
 }
 
 function dbStatusTone(status: EdielTestRunRow['status']): BadgeTone {
-  if (status === 'passed') return 'green'
+  if (status === 'passed') return 'emerald'
   if (status === 'failed') return 'red'
-  if (status === 'running') return 'yellow'
+  if (status === 'running') return 'amber'
   if (status === 'cancelled') return 'slate'
-  return 'blue'
+  return 'emerald'
 }
 
-function definitionTone(status: EdielTgtTestCaseDefinition['status']): 'green' | 'yellow' {
-  return status === 'ready_for_file_engine' ? 'green' : 'yellow'
+function definitionTone(status: EdielTgtTestCaseDefinition['status']): 'emerald' | 'amber' {
+  return status === 'ready_for_file_engine' ? 'emerald' : 'amber'
 }
 
 function directionLabel(direction: string): string {
@@ -356,7 +362,7 @@ function PortalScopePanel() {
             Använd detta som kompass när du väljer test i portalen. Börja inte med alla tester samtidigt.
           </p>
         </div>
-        <Badge tone="blue">GridCore · APP + EDI</Badge>
+        <Badge tone="emerald">GridCore · APP + EDI</Badge>
       </div>
       <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-3">
@@ -568,7 +574,7 @@ function TestDataSummary({ data }: { data: EdielTgtCaseTestData | null }) {
           <div className="text-xs font-semibold text-emerald-950">{data.title}</div>
           <div className="mt-1 text-xs text-emerald-800">{data.sourceNote}</div>
         </div>
-        <Badge tone="indigo">Excel-import</Badge>
+        <Badge tone="emerald">Excel-import</Badge>
       </div>
       <div className="mt-3 space-y-3">
         {data.groups.map((group, groupIndex) => (
@@ -594,11 +600,11 @@ function CoverageDashboard({
   const summary = getEdielTgtCoverageSummary(evaluations, definitions)
   const cells: Array<[string, string, BadgeTone]> = [
     ['Aktiva körningar', String(summary.totalRuns), 'slate'],
-    ['Godkända', String(summary.passedRuns), 'green'],
+    ['Godkända', String(summary.passedRuns), 'emerald'],
     ['Fel/mismatch', String(summary.failedRuns), summary.failedRuns > 0 ? 'red' : 'slate'],
-    ['Pågår', String(summary.inProgressRuns), 'yellow'],
-    ['Core-mallar körda', `${summary.coreCasesWithRuns}/${summary.totalCoreCases}`, summary.coreCasesWithoutRuns === 0 ? 'green' : 'yellow'],
-    ['Arkiverade/dolda', String(archivedCount), archivedCount > 0 ? 'yellow' : 'slate'],
+    ['Pågår', String(summary.inProgressRuns), 'amber'],
+    ['Core-mallar körda', `${summary.coreCasesWithRuns}/${summary.totalCoreCases}`, summary.coreCasesWithoutRuns === 0 ? 'emerald' : 'amber'],
+    ['Arkiverade/dolda', String(archivedCount), archivedCount > 0 ? 'amber' : 'slate'],
   ]
 
   return (
@@ -610,7 +616,7 @@ function CoverageDashboard({
             Huvudvyn visar bara aktiva runs. Arkiverade runs ligger kvar i databasen för spårbarhet men döljs från arbetsflödet.
           </p>
         </div>
-        <Badge tone={summary.readyForFinalApproval ? 'green' : 'yellow'}>
+        <Badge tone={summary.readyForFinalApproval ? 'emerald' : 'amber'}>
           {summary.readyForFinalApproval ? 'redo för portal-kontroll' : 'inte komplett ännu'}
         </Badge>
       </div>
@@ -686,7 +692,7 @@ function RunArchiveControls({ evaluation }: { evaluation: EdielTgtRunEvaluation 
 
 function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluation }) {
   const nextAction = getEdielTgtNextAction(evaluation)
-  const tone = nextAction.tone
+  const tone = normalizeBadgeTone(nextAction.tone)
   const isWaitingForPortal = nextAction.kind === 'import_portal_file'
   const nextStep = evaluation.definition?.expectedSteps.find((step) => step.stepNo === nextAction.stepNo) ?? null
   const shouldUseCustomerProdat =
@@ -697,7 +703,7 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
   const isAckLikeNextStep = isAckLikeFamily(nextStep?.family)
 
   return (
-    <div className={`mt-4 rounded-2xl border p-4 ${tone === 'green' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'red' ? 'border-rose-200 bg-rose-50 text-rose-950' : tone === 'blue' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-slate-200 bg-slate-50 text-slate-950'}`}>
+    <div className={`mt-4 rounded-2xl border p-4 ${tone === 'emerald' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : tone === 'red' ? 'border-red-200 bg-red-50 text-red-950' : tone === 'amber' ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-slate-200 bg-slate-50 text-slate-950'}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide">Nästa steg</div>
@@ -841,7 +847,7 @@ function DraftOptionPanel({
               Systemet skapar ett filutkast. Edielportalen är fortfarande slutligt facit.
             </div>
           </div>
-          <Badge tone="green">generator</Badge>
+          <Badge tone="emerald">generator</Badge>
         </div>
       ) : null}
 
@@ -882,13 +888,13 @@ function TestCaseCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap gap-2">
-              <Badge tone="indigo">{testCase.suite}</Badge>
-              <Badge tone="blue">{testCase.testCaseCode}</Badge>
+              <Badge tone="emerald">{testCase.suite}</Badge>
+              <Badge tone="emerald">{testCase.testCaseCode}</Badge>
               <Badge>{testCase.roleCode}</Badge>
               <Badge tone={definitionTone(testCase.status)}>{testCase.status}</Badge>
-              {testData ? <Badge tone="green">testdata kopplad</Badge> : <Badge tone="yellow">utan testdata</Badge>}
-              <Badge tone={activeRunsForCase > 0 ? 'yellow' : 'slate'}>{activeRunsForCase} aktiva runs</Badge>
-              {isFirstRecommendedCase(testCase) ? <Badge tone="green">börja här</Badge> : null}
+              {testData ? <Badge tone="emerald">testdata kopplad</Badge> : <Badge tone="amber">utan testdata</Badge>}
+              <Badge tone={activeRunsForCase > 0 ? 'amber' : 'slate'}>{activeRunsForCase} aktiva runs</Badge>
+              {isFirstRecommendedCase(testCase) ? <Badge tone="emerald">börja här</Badge> : null}
             </div>
             <h3 className="mt-3 text-sm font-semibold text-slate-950">{testCase.title}</h3>
             <p className="mt-1 text-sm text-slate-600">{testCase.purpose}</p>
@@ -1015,9 +1021,9 @@ function TestCaseCard({
                   <Badge>{actorLabel(step.actor)}</Badge>
                   <Badge>{step.family}</Badge>
                   <Badge>{prodatStepCodeLabel(step)}</Badge>
-                  {step.outcome ? <Badge tone={step.outcome === 'positive' ? 'green' : 'red'}>{step.outcome}</Badge> : null}
-                  <Badge tone={step.required ? 'blue' : 'slate'}>{step.required ? 'obligatorisk' : 'alternativ'}</Badge>
-                  {isAckLikeFamily(step.family) ? <Badge tone="yellow">skapas på inbound-kort</Badge> : null}
+                  {step.outcome ? <Badge tone={step.outcome === 'positive' ? 'emerald' : 'red'}>{step.outcome}</Badge> : null}
+                  <Badge tone={step.required ? 'emerald' : 'slate'}>{step.required ? 'obligatorisk' : 'alternativ'}</Badge>
+                  {isAckLikeFamily(step.family) ? <Badge tone="amber">skapas på inbound-kort</Badge> : null}
                 </div>
               </div>
             </div>
@@ -1052,12 +1058,12 @@ function RunEvaluationCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap gap-2">
-            <Badge tone="indigo">{evaluation.testRun.test_suite}</Badge>
-            <Badge tone="blue">{evaluation.testRun.test_case_code}</Badge>
+            <Badge tone="emerald">{evaluation.testRun.test_suite}</Badge>
+            <Badge tone="emerald">{evaluation.testRun.test_case_code}</Badge>
             <Badge>{evaluation.testRun.role_code}</Badge>
             <Badge tone={statusTone(evaluation.computedStatus)}>{evaluation.computedStatus}</Badge>
             <Badge tone={dbStatusTone(evaluation.testRun.status)}>DB: {evaluation.testRun.status}</Badge>
-            {testData ? <Badge tone="green">testdata</Badge> : null}
+            {testData ? <Badge tone="emerald">testdata</Badge> : null}
           </div>
           <h3 className="mt-3 text-sm font-semibold text-slate-950">
             {evaluation.definition?.title ?? evaluation.testRun.title ?? 'Ej mappat testfall'}
@@ -1106,7 +1112,7 @@ function RunEvaluationCard({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap gap-2">
-                      <Badge tone={match.status === 'passed' ? 'green' : match.status === 'mismatch' ? 'red' : 'yellow'}>
+                      <Badge tone={match.status === 'passed' ? 'emerald' : match.status === 'mismatch' ? 'red' : 'amber'}>
                         {matchStatusLabel(match.status)}
                       </Badge>
                       <Badge>Steg {match.step.stepNo}</Badge>
@@ -1115,7 +1121,7 @@ function RunEvaluationCard({
                       <Badge>{match.step.family}</Badge>
                       <Badge>{prodatStepCodeLabel(match.step)}</Badge>
                       {match.step.outcome ? <Badge>{match.step.outcome}</Badge> : null}
-                      {isAckLikeFamily(match.step.family) ? <Badge tone="yellow">använd inbound-kort</Badge> : null}
+                      {isAckLikeFamily(match.step.family) ? <Badge tone="amber">använd inbound-kort</Badge> : null}
                     </div>
                     <div className="mt-2 text-sm font-semibold text-slate-900">{match.step.title}</div>
                     <div className="mt-1 text-xs text-slate-600">{match.step.description}</div>
@@ -1125,7 +1131,7 @@ function RunEvaluationCard({
                       </div>
                     ) : null}
                     {match.issues.length > 0 ? (
-                      <div className="mt-2 text-xs text-rose-700">{match.issues.join(' · ')}</div>
+                      <div className="mt-2 text-xs text-red-700">{match.issues.join(' · ')}</div>
                     ) : null}
                     {match.message ? (
                       <Link
@@ -1147,8 +1153,8 @@ function RunEvaluationCard({
                         <div key={message.id} className="rounded-xl border border-slate-200 bg-slate-50 p-2">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex flex-wrap gap-1">
-                              <Badge tone={message.direction === match.step.direction ? 'green' : 'yellow'}>{message.direction}</Badge>
-                              <Badge tone={message.message_family === match.step.family ? 'green' : 'yellow'}>{message.message_family}/{String(message.message_code)}</Badge>
+                              <Badge tone={message.direction === match.step.direction ? 'emerald' : 'amber'}>{message.direction}</Badge>
+                              <Badge tone={message.message_family === match.step.family ? 'emerald' : 'amber'}>{message.message_family}/{String(message.message_code)}</Badge>
                               <Badge>{message.status}</Badge>
                             </div>
                             <Link
@@ -1194,7 +1200,7 @@ function RunEvaluationCard({
           })}
         </div>
       ) : (
-        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           Testfallet finns inte i Batch 4C-registret ännu. Skapa det via en av mallarna ovan för automatisk stegutvärdering.
         </div>
       )}
@@ -1240,10 +1246,10 @@ function GroupedTestCasePanel({
                   <div className="flex flex-wrap gap-2">
                     <Badge tone={group.tone}>{group.title}</Badge>
                     <Badge tone="slate">{group.testCases.length} testfall</Badge>
-                    <Badge tone={stats.active > 0 ? 'yellow' : 'slate'}>{stats.active} aktiva</Badge>
-                    <Badge tone={stats.passed > 0 ? 'green' : 'slate'}>{stats.passed} klara</Badge>
+                    <Badge tone={stats.active > 0 ? 'amber' : 'slate'}>{stats.active} aktiva</Badge>
+                    <Badge tone={stats.passed > 0 ? 'emerald' : 'slate'}>{stats.passed} klara</Badge>
                     <Badge tone={stats.failed > 0 ? 'red' : 'slate'}>{stats.failed} fel</Badge>
-                    <Badge tone={stats.inProgress > 0 ? 'yellow' : 'slate'}>{stats.inProgress} pågår</Badge>
+                    <Badge tone={stats.inProgress > 0 ? 'amber' : 'slate'}>{stats.inProgress} pågår</Badge>
                   </div>
                   <p className="mt-3 text-xs leading-5 text-slate-600">{group.description}</p>
                 </div>
@@ -1338,11 +1344,11 @@ export default function EdielTgtWorkbenchPanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge tone="green">PRODAT testkunder</Badge>
-          <Badge tone="green">UTILTS testanläggningar</Badge>
-          <Badge tone="green">EDIFACT-utkast</Badge>
-          <Badge tone="blue">{linkedTestDataCount}/{coreDefinitions.length} mallar med testdata</Badge>
-          <Badge tone={archivedRuns.length > 0 ? 'yellow' : 'slate'}>{archivedRuns.length} arkiverade</Badge>
+          <Badge tone="emerald">PRODAT testkunder</Badge>
+          <Badge tone="emerald">UTILTS testanläggningar</Badge>
+          <Badge tone="emerald">EDIFACT-utkast</Badge>
+          <Badge tone="emerald">{linkedTestDataCount}/{coreDefinitions.length} mallar med testdata</Badge>
+          <Badge tone={archivedRuns.length > 0 ? 'amber' : 'slate'}>{archivedRuns.length} arkiverade</Badge>
         </div>
       </div>
 
@@ -1359,7 +1365,7 @@ export default function EdielTgtWorkbenchPanel({
         <div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-slate-950">Testfall i grupper</h3>
-            <Badge tone="indigo">dropdown-läge</Badge>
+            <Badge tone="emerald">dropdown-läge</Badge>
           </div>
           <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
             Öppna bara gruppen du arbetar med. S1.2-testen använder kundstyrd PRODAT ovan, medan S1.3 och framåt körs via TGT guided mode och generatorn när filsteget ägs av GridCore.

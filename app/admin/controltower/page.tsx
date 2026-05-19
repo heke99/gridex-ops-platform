@@ -25,14 +25,14 @@ type QueueRow = {
 function toneClass(tone: 'success' | 'warning' | 'danger' | 'neutral'): string {
   if (tone === 'success') return 'border-emerald-200 bg-emerald-50/80 text-emerald-900'
   if (tone === 'warning') return 'border-amber-200 bg-amber-50/80 text-amber-900'
-  if (tone === 'danger') return 'border-rose-200 bg-rose-50/80 text-rose-900'
+  if (tone === 'danger') return 'border-red-200 bg-red-50/80 text-red-900'
   return 'border-slate-200 bg-white text-slate-900'
 }
 
 function badgeClass(tone: 'success' | 'warning' | 'danger' | 'neutral'): string {
   if (tone === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (tone === 'warning') return 'border-amber-200 bg-amber-50 text-amber-700'
-  if (tone === 'danger') return 'border-rose-200 bg-rose-50 text-rose-700'
+  if (tone === 'danger') return 'border-red-200 bg-red-50 text-red-700'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 

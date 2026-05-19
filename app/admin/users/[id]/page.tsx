@@ -31,7 +31,7 @@ function formatDate(value: string | null | undefined) {
 function toneClasses(state: 'allow' | 'deny') {
   return state === 'allow'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-    : 'border-rose-200 bg-rose-50 text-rose-700'
+    : 'border-red-200 bg-red-50 text-red-700'
 }
 
 export default async function AdminUserDetailPage({
@@ -103,9 +103,9 @@ export default async function AdminUserDetailPage({
           <p className="text-sm font-medium text-emerald-700">Allow</p>
           <p className="mt-2 text-3xl font-semibold text-emerald-950">{allowCount}</p>
         </div>
-        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
-          <p className="text-sm font-medium text-rose-700">Deny</p>
-          <p className="mt-2 text-3xl font-semibold text-rose-950">{denyCount}</p>
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm">
+          <p className="text-sm font-medium text-red-700">Deny</p>
+          <p className="mt-2 text-3xl font-semibold text-red-950">{denyCount}</p>
         </div>
       </section>
 

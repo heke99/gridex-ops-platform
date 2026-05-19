@@ -35,7 +35,7 @@ function statusStyle(status: string): string {
   }
 
   if (status === 'blocked' || status === 'cancelled') {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
@@ -43,7 +43,7 @@ function statusStyle(status: string): string {
 
 function priorityStyle(priority: string): string {
   if (priority === 'critical') {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   if (priority === 'high') {

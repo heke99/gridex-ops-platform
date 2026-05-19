@@ -20,7 +20,7 @@ function formatDateTime(value: string | null | undefined): string {
 
 function statusTone(value: string | null | undefined): string {
   if (value === 'approved' || value === 'active') return 'bg-emerald-100 text-emerald-700'
-  if (value === 'rejected' || value === 'disabled') return 'bg-rose-100 text-rose-700'
+  if (value === 'rejected' || value === 'disabled') return 'bg-red-100 text-red-700'
   return 'bg-amber-100 text-amber-700'
 }
 
@@ -181,7 +181,7 @@ export default function CustomerPortalAccessCard({
                   </div>
 
                   {claim.failure_reason ? (
-                    <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+                    <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                       {claim.failure_reason}
                     </div>
                   ) : null}

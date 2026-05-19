@@ -28,7 +28,7 @@ function badgeTone(status: string): string {
   }
 
   if (['failed', 'rejected', 'cancelled', 'blocked'].includes(status)) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
   }
 
   if (['sent', 'submitted'].includes(status)) {

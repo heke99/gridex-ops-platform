@@ -101,7 +101,7 @@ function QueueCard({
 }: QueueCardProps) {
   const toneClass =
     tone === 'danger'
-      ? 'border-rose-200 bg-rose-50/70 dark:border-rose-900/40 dark:bg-rose-950/20'
+      ? 'border-red-200 bg-red-50/70 dark:border-red-900/40 dark:bg-red-950/20'
       : tone === 'warning'
         ? 'border-amber-200 bg-amber-50/70 dark:border-amber-900/40 dark:bg-amber-950/20'
         : tone === 'info'
@@ -291,18 +291,18 @@ function FeedbackBanner({
   }
 
   return (
-    <section className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-5 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
+    <section className="rounded-3xl border border-red-200 bg-red-50 px-6 py-5 shadow-sm dark:border-red-900/40 dark:bg-red-950/20">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-rose-900 dark:text-rose-200">
+          <h2 className="text-base font-semibold text-red-900 dark:text-red-200">
             Åtgärden misslyckades
           </h2>
-          <p className="mt-1 text-sm text-rose-800 dark:text-rose-300">
+          <p className="mt-1 text-sm text-red-800 dark:text-red-300">
             {actionLabel}
             {periodLabel} gick inte igenom.
           </p>
           {message ? (
-            <p className="mt-2 text-sm text-rose-700 dark:text-rose-300">
+            <p className="mt-2 text-sm text-red-700 dark:text-red-300">
               Felmeddelande: {message}
             </p>
           ) : null}
@@ -311,13 +311,13 @@ function FeedbackBanner({
         <div className="flex flex-wrap gap-3">
           <Link
             href="/admin/billing"
-            className="rounded-2xl border border-rose-300 px-4 py-2.5 text-sm font-semibold text-rose-900 hover:bg-rose-100 dark:border-rose-800 dark:text-rose-200 dark:hover:bg-rose-950/30"
+            className="rounded-2xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-900 hover:bg-red-100 dark:border-red-800 dark:text-red-200 dark:hover:bg-red-950/30"
           >
             Öppna billing
           </Link>
           <Link
             href="/admin/outbound"
-            className="rounded-2xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-800"
+            className="rounded-2xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800"
           >
             Öppna outbound
           </Link>

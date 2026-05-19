@@ -272,7 +272,7 @@ export default function EdielFileEnginePanel({
                       </td>
                       <td className="px-3 py-2 text-xs">
                         {errors.length > 0 ? (
-                          <span className="font-medium text-rose-700">{errors.length} fel</span>
+                          <span className="font-medium text-red-700">{errors.length} fel</span>
                         ) : warnings.length > 0 ? (
                           <span className="font-medium text-amber-700">{warnings.length} varningar</span>
                         ) : (
@@ -287,7 +287,7 @@ export default function EdielFileEnginePanel({
                           <form action={cancelEdielMessageAction}>
                             <input type="hidden" name="edielMessageId" value={row.id} />
                             <input type="hidden" name="reason" value="Dold från filimportlistan via admin cleanup." />
-                            <button className="text-rose-700 underline-offset-2 hover:underline">
+                            <button className="text-red-700 underline-offset-2 hover:underline">
                               Dölj
                             </button>
                           </form>

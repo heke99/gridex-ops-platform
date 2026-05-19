@@ -16,7 +16,7 @@ export function billingTone(status: string): string {
     return 'bg-emerald-100 text-emerald-700'
   }
   if (['failed', 'cancelled'].includes(status)) {
-    return 'bg-rose-100 text-rose-700'
+    return 'bg-red-100 text-red-700'
   }
   if (['sent'].includes(status)) {
     return 'bg-emerald-100 text-emerald-700'

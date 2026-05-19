@@ -80,8 +80,8 @@ function StatusBadge({ status }: { status: string | null }) {
     pending_verification: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     inactive: 'border-slate-200 bg-slate-50 text-slate-700',
     moved: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    terminated: 'border-rose-200 bg-rose-50 text-rose-700',
-    blocked: 'border-rose-200 bg-rose-50 text-rose-700',
+    terminated: 'border-red-200 bg-red-50 text-red-700',
+    blocked: 'border-red-200 bg-red-50 text-red-700',
   }
 
   const safeStatus = status ?? 'unknown'
@@ -103,7 +103,7 @@ function lifecycleTone(stage: string): string {
   }
 
   if (['blocked', 'failed'].includes(stage)) {
-    return 'border-rose-200 bg-rose-50 text-rose-700'
+    return 'border-red-200 bg-red-50 text-red-700'
   }
 
   if (['awaiting_response'].includes(stage)) {
@@ -114,7 +114,7 @@ function lifecycleTone(stage: string): string {
 }
 
 function priorityTone(rank: number): string {
-  if (rank === 1) return 'border-rose-200 bg-rose-50 text-rose-700'
+  if (rank === 1) return 'border-red-200 bg-red-50 text-red-700'
   if (rank === 2) return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (rank === 3) return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (rank <= 5) return 'border-amber-200 bg-amber-50 text-amber-700'
@@ -542,7 +542,7 @@ function FilterChip({
 }) {
   const toneClass =
     tone === 'danger'
-      ? 'border-rose-200 bg-rose-50 text-rose-700'
+      ? 'border-red-200 bg-red-50 text-red-700'
       : tone === 'success'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
         : tone === 'info'
@@ -726,7 +726,7 @@ function contractStatusTone(value: CustomerContractRow['status']): string {
     case 'terminated':
     case 'cancelled':
     case 'expired':
-      return 'border-rose-200 bg-rose-50 text-rose-700'
+      return 'border-red-200 bg-red-50 text-red-700'
     default:
       return 'border-slate-200 bg-slate-50 text-slate-700'
   }
@@ -1583,7 +1583,7 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
 
                               <div className="mt-2 flex flex-wrap gap-2">
                                 {operations.blocked > 0 ? (
-                                  <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">
+                                  <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700">
                                     blocked {operations.blocked}
                                   </span>
                                 ) : null}
@@ -1613,7 +1613,7 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
                                 ) : null}
 
                                 {operations.failed > 0 ? (
-                                  <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">
+                                  <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700">
                                     failed {operations.failed}
                                   </span>
                                 ) : null}
