@@ -10,9 +10,12 @@ import {
   listMeteringPermissions,
 } from '@/lib/onboarding/infoRequests'
 import {
+  applyZ14SnapshotAction,
   createAuthorizationScopeAction,
   createCustomerInfoRequestAction,
   createMeteringPermissionDraftAction,
+  queueCustomerInfoRequestAction,
+  queueMeteringPermissionZ13Action,
 } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -207,6 +210,12 @@ export default async function CustomerInfoRequestsPage() {
                   <div className="mt-3 text-sm font-semibold text-slate-950">{request.request_type}</div>
                   <div className="mt-1 text-xs leading-5 text-slate-600">{request.target_party_type}{request.target_party_name ? ` · ${request.target_party_name}` : ''}</div>
                   {request.blocker_reason ? <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">{request.blocker_reason}</div> : null}
+                  <form action={queueCustomerInfoRequestAction} className="mt-3">
+                    <input type="hidden" name="request_id" value={request.id} />
+                    <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+                      Kontrollera fullmakt och köa Z01-flöde
+                    </button>
+                  </form>
                 </div>
               ))}
             </div>
@@ -244,6 +253,36 @@ export default async function CustomerInfoRequestsPage() {
                   <div className="mt-3 text-sm font-semibold text-slate-950">{permission.case_reference ?? permission.permission_reference ?? 'Tillståndsutkast'}</div>
                   <div className="mt-1 text-xs leading-5 text-slate-600">{permission.requested_start_date ?? 'Start saknas'} → {permission.requested_end_date ?? 'tills vidare'}</div>
                   {permission.last_blocker ? <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{permission.last_blocker}</div> : null}
+                  <div className="mt-3 grid gap-2">
+                    <form action={queueMeteringPermissionZ13Action}>
+                      <input type="hidden" name="permission_id" value={permission.id} />
+                      <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+                        Kontrollera fullmakt och köa Z13
+                      </button>
+                    </form>
+                    <details className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <summary className="cursor-pointer text-xs font-semibold text-slate-700">Registrera Z14-svar manuellt</summary>
+                      <form action={applyZ14SnapshotAction} className="mt-3 grid gap-2">
+                        <input type="hidden" name="permission_id" value={permission.id} />
+                        <input name="permission_reference" placeholder="Tillståndets id/RFF+Z09" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
+                        <div className="grid gap-2 md:grid-cols-2">
+                          <input name="approved_start_date" type="date" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
+                          <input name="approved_end_date" type="date" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          <input name="facility_id" placeholder="Anläggnings-id/LIN" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
+                          <input name="grid_area_code" placeholder="Nätområde/RFF+Z05" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
+                        </div>
+                        <input name="resolution_code" placeholder="Tidslängd, t.ex. 15 min" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
+                        <input name="report_frequency" placeholder="Rapporteringsfrekvens" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
+                        <select name="site_status" defaultValue="approved" className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs">
+                          <option value="approved">Godkänd</option>
+                          <option value="rejected">Nekad</option>
+                        </select>
+                        <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Spara Z14-status</button>
+                      </form>
+                    </details>
+                  </div>
                 </div>
               ))}
             </div>

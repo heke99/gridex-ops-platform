@@ -5,7 +5,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { buildBillingReadinessMap } from '@/lib/cis/billingReadiness'
 import { getBillingExportCenterData } from '@/lib/billing/exportCenter'
-import { createBillingExportRunAction } from './actions'
+import { createBillingExportRunAction, queueReadyBillingExportRunItemsAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,8 +93,14 @@ export default async function BillingExportCenterPage() {
                     <div>Total: <span className="font-semibold text-slate-950">{run.rows_total}</span></div>
                     <div>Redo: <span className="font-semibold text-emerald-800">{run.rows_ready}</span></div>
                     <div>Blockerade: <span className="font-semibold text-red-800">{run.rows_blocked}</span></div>
-                    <div>Exporterade: <span className="font-semibold text-slate-950">{run.rows_exported}</span></div>
+                    <div>Köade: <span className="font-semibold text-slate-950">{run.rows_exported}</span></div>
                   </div>
+                  <form action={queueReadyBillingExportRunItemsAction} className="mt-4">
+                    <input type="hidden" name="export_run_id" value={run.id} />
+                    <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={run.rows_ready === 0}>
+                      Köa redo rader till partnerexport
+                    </button>
+                  </form>
                 </article>
               ))}
             </div>

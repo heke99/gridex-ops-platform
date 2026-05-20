@@ -3,6 +3,8 @@ import type { BillingUnderlayRow, MeteringValueRow, PartnerExportRow } from '@/l
 import { buildBillingReadinessMap } from '@/lib/cis/billingReadiness'
 import { listAllBillingUnderlays, listAllMeteringValues, listAllPartnerExports } from '@/lib/cis/db'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { createPartnerExport } from '@/lib/cis/db-data'
+import { calculatePricingForBillingUnderlay, listPricingComponentRules } from '@/lib/billing/pricingEngine'
 
 export type BillingExportRunRow = {
   id: string
@@ -79,10 +81,11 @@ export async function createBillingExportRun(input: {
 }) {
   await requireCompanyOperationalForWrites(input.companyId)
 
-  const [underlays, meterValues, partnerExports] = await Promise.all([
+  const [underlays, meterValues, partnerExports, pricingRules] = await Promise.all([
     listAllBillingUnderlays({ companyId: input.companyId, status: 'all' }),
     listAllMeteringValues({ companyId: input.companyId }),
     listAllPartnerExports({ companyId: input.companyId, status: 'all' }),
+    listPricingComponentRules(input.companyId),
   ])
 
   const [year, month] = input.periodMonth.split('-').map((part) => Number(part))
@@ -94,6 +97,15 @@ export async function createBillingExportRun(input: {
   const readiness = buildBillingReadinessMap({ underlays: periodUnderlays, meterValues, partnerExports })
   const items = periodUnderlays.map((underlay) => {
     const result = readiness.get(underlay.id)
+    const pricing = calculatePricingForBillingUnderlay({ underlay, rules: pricingRules })
+    const pricingWarnings = pricing.warnings.map((warning) => ({
+      code: 'pricing_warning',
+      severity: 'warning',
+      title: 'Prismotor behöver granskning',
+      description: warning,
+    }))
+    const blockerReasons = [...(result?.issues ?? []), ...pricingWarnings]
+
     return {
       company_id: input.companyId,
       billing_underlay_id: underlay.id,
@@ -102,10 +114,17 @@ export async function createBillingExportRun(input: {
       metering_point_id: underlay.metering_point_id,
       status: result?.isExportable ? 'ready' : 'blocked',
       readiness_status: result?.status ?? 'blocked',
-      blocker_reasons: result?.issues ?? [],
+      blocker_reasons: blockerReasons,
       payload_snapshot: {
         underlay,
         readiness: result,
+        pricing,
+        exportContract: {
+          version: 'billing_export_v2',
+          periodMonth: input.periodMonth,
+          targetSystem: input.targetSystem,
+          exportFormat: input.exportFormat,
+        },
       },
     }
   })
@@ -146,4 +165,87 @@ export async function createBillingExportRun(input: {
   }
 
   return run as BillingExportRunRow
+}
+
+
+export async function queueReadyBillingExportRunItems(input: {
+  companyId: string
+  actorUserId: string
+  exportRunId: string
+}): Promise<{ queued: number; blocked: number }> {
+  await requireCompanyOperationalForWrites(input.companyId)
+
+  const { data: run, error: runError } = await supabaseService
+    .from('billing_export_runs')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('id', input.exportRunId)
+    .maybeSingle()
+
+  if (runError) throw runError
+  if (!run) throw new Error('Exportkörningen hittades inte för valt bolag.')
+
+  const { data: items, error: itemError } = await supabaseService
+    .from('billing_export_run_items')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('billing_export_run_id', input.exportRunId)
+    .eq('status', 'ready')
+
+  if (itemError) throw itemError
+
+  const readyItems = (items ?? []) as Array<{
+    id: string
+    customer_id: string | null
+    site_id: string | null
+    metering_point_id: string | null
+    billing_underlay_id: string | null
+    payload_snapshot: Record<string, unknown>
+  }>
+
+  let queued = 0
+
+  for (const item of readyItems) {
+    if (!item.customer_id) continue
+
+    await createPartnerExport({
+      actorUserId: input.actorUserId,
+      customerId: item.customer_id,
+      siteId: item.site_id,
+      meteringPointId: item.metering_point_id,
+      billingUnderlayId: item.billing_underlay_id,
+      exportKind: 'billing_underlay',
+      targetSystem: String((run as BillingExportRunRow).target_system ?? 'billing_partner'),
+      exportBatchKey: input.exportRunId,
+      externalReference: `BILLING-${input.exportRunId.slice(0, 8).toUpperCase()}-${queued + 1}`,
+      payload: {
+        exportRunId: input.exportRunId,
+        exportRunItemId: item.id,
+        ...(item.payload_snapshot ?? {}),
+      },
+    })
+
+    queued += 1
+  }
+
+  const blocked = Math.max(0, Number((run as BillingExportRunRow).rows_blocked ?? 0))
+
+  const { error: updateError } = await supabaseService
+    .from('billing_export_runs')
+    .update({
+      status: queued > 0 ? 'sent' : 'blocked',
+      rows_exported: queued,
+      updated_at: new Date().toISOString(),
+      metadata: {
+        ...(((run as { metadata?: Record<string, unknown> }).metadata) ?? {}),
+        queuedPartnerExportsAt: new Date().toISOString(),
+        queuedPartnerExportsCount: queued,
+      },
+    })
+    .eq('company_id', input.companyId)
+    .eq('id', input.exportRunId)
+
+  if (updateError) throw updateError
+
+  return { queued, blocked }
 }

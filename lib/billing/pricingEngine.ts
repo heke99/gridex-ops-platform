@@ -1,6 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import type { ContractOfferRow } from '@/lib/customer-contracts/types'
+import type { BillingUnderlayRow } from '@/lib/cis/types'
 
 export type PricingComponentRuleRow = {
   id: string
@@ -168,4 +169,125 @@ export function evaluatePricingReadiness(input: {
   }
 
   return issues
+}
+
+
+export type PricingCalculationLine = {
+  componentRuleId: string
+  componentCode: string
+  componentLabel: string
+  componentType: string
+  calculationUnit: string
+  valueAmount: number | null
+  quantity: number | null
+  amountSekExVat: number
+  currency: string
+  appliesTo: string
+}
+
+export type PricingCalculationResult = {
+  underlayId: string
+  totalKwh: number | null
+  subtotalSekExVat: number
+  vatSek: number
+  totalSekIncVat: number
+  lines: PricingCalculationLine[]
+  warnings: string[]
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
+function isRuleActiveForPeriod(rule: PricingComponentRuleRow, periodDate: string | null): boolean {
+  if (!rule.is_active) return false
+  if (!periodDate) return true
+  if (rule.valid_from && periodDate < rule.valid_from) return false
+  if (rule.valid_to && periodDate > rule.valid_to) return false
+  return true
+}
+
+function periodDateFromUnderlay(underlay: BillingUnderlayRow): string | null {
+  if (!underlay.underlay_year || !underlay.underlay_month) return null
+  return `${underlay.underlay_year}-${String(underlay.underlay_month).padStart(2, '0')}-01`
+}
+
+export function calculatePricingForBillingUnderlay(params: {
+  underlay: BillingUnderlayRow
+  rules: PricingComponentRuleRow[]
+  vatRate?: number
+}): PricingCalculationResult {
+  const { underlay } = params
+  const vatRate = params.vatRate ?? 0.25
+  const totalKwh = typeof underlay.total_kwh === 'number' ? underlay.total_kwh : null
+  const periodDate = periodDateFromUnderlay(underlay)
+  const warnings: string[] = []
+
+  const activeRules = params.rules
+    .filter((rule) => isRuleActiveForPeriod(rule, periodDate))
+    .sort((a, b) => a.priority - b.priority)
+
+  const lines: PricingCalculationLine[] = []
+
+  for (const rule of activeRules) {
+    let amount = 0
+    let quantity: number | null = null
+
+    if (rule.calculation_unit === 'ore_per_kwh') {
+      quantity = totalKwh
+      if (totalKwh === null || rule.value_amount === null) {
+        warnings.push(`${rule.component_label}: kan inte beräknas utan kWh eller värde.`)
+        continue
+      }
+      amount = (totalKwh * rule.value_amount) / 100
+    } else if (rule.calculation_unit === 'sek_month') {
+      quantity = 1
+      if (rule.value_amount === null) {
+        warnings.push(`${rule.component_label}: månadsbelopp saknas.`)
+        continue
+      }
+      amount = rule.value_amount
+    } else if (rule.calculation_unit === 'sek_once') {
+      quantity = 1
+      if (rule.value_amount === null) {
+        warnings.push(`${rule.component_label}: engångsbelopp saknas.`)
+        continue
+      }
+      amount = rule.value_amount
+    } else if (rule.calculation_unit === 'percent_of_spot') {
+      warnings.push(`${rule.component_label}: procent av spot kräver spotprisunderlag och flaggas för senare motorsteg.`)
+      continue
+    } else {
+      warnings.push(`${rule.component_label}: okänd beräkningsenhet ${rule.calculation_unit}.`)
+      continue
+    }
+
+    lines.push({
+      componentRuleId: rule.id,
+      componentCode: rule.component_code,
+      componentLabel: rule.component_label,
+      componentType: rule.component_type,
+      calculationUnit: rule.calculation_unit,
+      valueAmount: rule.value_amount,
+      quantity,
+      amountSekExVat: roundMoney(amount),
+      currency: rule.currency,
+      appliesTo: rule.applies_to,
+    })
+  }
+
+  const componentTotal = lines.reduce((sum, line) => sum + line.amountSekExVat, 0)
+  const baseUnderlayAmount = typeof underlay.total_sek_ex_vat === 'number' ? underlay.total_sek_ex_vat : 0
+  const subtotal = roundMoney(baseUnderlayAmount + componentTotal)
+  const vat = roundMoney(subtotal * vatRate)
+
+  return {
+    underlayId: underlay.id,
+    totalKwh,
+    subtotalSekExVat: subtotal,
+    vatSek: vat,
+    totalSekIncVat: roundMoney(subtotal + vat),
+    lines,
+    warnings,
+  }
 }

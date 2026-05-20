@@ -8,6 +8,9 @@ import {
   createAuthorizationScope,
   createCustomerInfoRequest,
   createMeteringPermissionDraft,
+  queueCustomerInfoRequestForDispatch,
+  queueMeteringPermissionForZ13,
+  applyZ14SnapshotToMeteringPermission,
 } from '@/lib/onboarding/infoRequests'
 
 function text(formData: FormData, key: string): string {
@@ -106,6 +109,74 @@ export async function createMeteringPermissionDraftAction(formData: FormData) {
     requestedEndDate: nullableText(formData, 'requested_end_date'),
     caseReference: nullableText(formData, 'case_reference'),
     lastBlocker: hasAuthorization ? null : 'Fullmakt/avtal måste kontrolleras innan Z13 kan skickas.',
+  })
+
+  revalidatePath('/admin/customer-info-requests')
+  revalidatePath('/admin/metering')
+}
+
+
+export async function queueCustomerInfoRequestAction(formData: FormData) {
+  await requireAdminActionAccess(['customers.write', 'communication.write'])
+  const actor = await currentActor()
+  const requestId = text(formData, 'request_id')
+
+  if (!requestId) throw new Error('request_id saknas.')
+
+  await queueCustomerInfoRequestForDispatch({
+    companyId: actor.companyId,
+    actorUserId: actor.userId,
+    requestId,
+  })
+
+  revalidatePath('/admin/customer-info-requests')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/operations')
+}
+
+export async function queueMeteringPermissionZ13Action(formData: FormData) {
+  await requireAdminActionAccess(['metering.write', 'communication.write'])
+  const actor = await currentActor()
+  const permissionId = text(formData, 'permission_id')
+
+  if (!permissionId) throw new Error('permission_id saknas.')
+
+  await queueMeteringPermissionForZ13({
+    companyId: actor.companyId,
+    actorUserId: actor.userId,
+    permissionId,
+  })
+
+  revalidatePath('/admin/customer-info-requests')
+  revalidatePath('/admin/metering')
+  revalidatePath('/admin/outbound')
+}
+
+export async function applyZ14SnapshotAction(formData: FormData) {
+  await requireAdminActionAccess(['metering.write', 'communication.write'])
+  const actor = await currentActor()
+  const permissionId = text(formData, 'permission_id')
+
+  if (!permissionId) throw new Error('permission_id saknas.')
+
+  await applyZ14SnapshotToMeteringPermission({
+    companyId: actor.companyId,
+    actorUserId: actor.userId,
+    permissionId,
+    permissionReference: nullableText(formData, 'permission_reference'),
+    approvedStartDate: nullableText(formData, 'approved_start_date'),
+    approvedEndDate: nullableText(formData, 'approved_end_date'),
+    resolutionCode: nullableText(formData, 'resolution_code'),
+    reportFrequency: nullableText(formData, 'report_frequency'),
+    approvedSites: [
+      {
+        siteId: nullableText(formData, 'site_id'),
+        meteringPointId: nullableText(formData, 'metering_point_id'),
+        facilityId: nullableText(formData, 'facility_id'),
+        gridAreaCode: nullableText(formData, 'grid_area_code'),
+        status: text(formData, 'site_status') || 'approved',
+      },
+    ],
   })
 
   revalidatePath('/admin/customer-info-requests')

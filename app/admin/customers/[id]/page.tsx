@@ -57,6 +57,11 @@ import {
  listPartnerExportsByCustomerId,
 } from '@/lib/cis/db'
 import {
+ listAuthorizationScopesByCustomerId,
+ listCustomerInfoRequestsByCustomerId,
+ listMeteringPermissionsByCustomerId,
+} from '@/lib/onboarding/infoRequests'
+import {
  listCustomerAuthorizationDocumentsByCustomerId,
  listPowersOfAttorneyByCustomerId,
  listSupplierSwitchEventsByRequestIds,
@@ -683,6 +688,84 @@ function StickyActionBar({
  )
 }
 
+
+function OnboardingDataRequestsSection({
+ customerId,
+ infoRequests,
+ authorizationScopes,
+ meteringPermissions,
+}: {
+ customerId: string
+ infoRequests: Array<{ id: string; status: string; request_type: string; blocker_reason: string | null; created_at: string }>
+ authorizationScopes: Array<{ id: string; status: string; scope_type: string; covers_grid_owner_data: boolean; covers_current_supplier_contract: boolean; covers_metering_data: boolean }>
+ meteringPermissions: Array<{ id: string; status: string; case_reference: string | null; permission_reference: string | null; last_blocker: string | null; created_at: string }>
+}) {
+ const activeScopes = authorizationScopes.filter((scopeRow) => scopeRow.status === 'active')
+ const blockedRequests = infoRequests.filter((request) => ['missing_authorization', 'negative_aperak', 'blocked'].includes(request.status)).length
+ const activePermissions = meteringPermissions.filter((permission) => ['approved', 'z14_received', 'active', 'partially_approved'].includes(permission.status)).length
+
+ return (
+ <section className="rounded-3xl border border-slate-200 bg-white shadow-sm ">
+ <div className="border-b border-slate-200 px-6 py-5 ">
+ <div className="flex flex-wrap items-start justify-between gap-3">
+ <div>
+ <h2 className="text-lg font-semibold text-slate-900 ">Uppgiftsbegäran och mätvärdestillstånd</h2>
+ <p className="mt-1 text-sm text-slate-700 ">
+ Z01/Z02, fullmaktsomfattning och Z13/Z14 är kopplade till kundens arbetsyta så att mätvärden senare kan matchas till rätt anläggning och faktureringsunderlag.
+ </p>
+ </div>
+ <Link href={`/admin/customer-info-requests?customer=${customerId}`} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 ">
+ Öppna uppgiftsflöde
+ </Link>
+ </div>
+ </div>
+ <div className="grid gap-4 p-6 lg:grid-cols-3">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="text-sm text-slate-700 ">Uppgiftsbegäran</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">{infoRequests.length}</div>
+ <div className="mt-1 text-xs text-slate-700 ">{blockedRequests} blockerade/kräver åtgärd</div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="text-sm text-slate-700 ">Aktiva fullmaktsscope</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">{activeScopes.length}</div>
+ <div className="mt-1 text-xs text-slate-700 ">
+ {activeScopes.some((scopeRow) => scopeRow.covers_metering_data) ? 'Mätvärden täcks' : 'Mätvärden saknar scope'}
+ </div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="text-sm text-slate-700 ">Mätvärdestillstånd</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">{meteringPermissions.length}</div>
+ <div className="mt-1 text-xs text-slate-700 ">{activePermissions} godkända/aktiva</div>
+ </div>
+ </div>
+ <div className="grid gap-4 px-6 pb-6 xl:grid-cols-2">
+ {[...infoRequests.slice(0, 3), ...meteringPermissions.slice(0, 3)].length === 0 ? (
+ <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600 xl:col-span-2">
+ Inga uppgiftsbegäran eller mätvärdestillstånd finns ännu.
+ </div>
+ ) : (
+ <>
+ {infoRequests.slice(0, 3).map((request) => (
+ <div key={request.id} className="rounded-2xl border border-slate-200 p-4 text-sm">
+ <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(request.status)}`}>{request.status}</span>
+ <div className="mt-3 font-semibold text-slate-950 ">{request.request_type}</div>
+ {request.blocker_reason ? <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">{request.blocker_reason}</div> : null}
+ </div>
+ ))}
+ {meteringPermissions.slice(0, 3).map((permission) => (
+ <div key={permission.id} className="rounded-2xl border border-slate-200 p-4 text-sm">
+ <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(permission.status)}`}>{permission.status}</span>
+ <div className="mt-3 font-semibold text-slate-950 ">{permission.case_reference ?? permission.permission_reference ?? 'Z13/Z14-tillstånd'}</div>
+ {permission.last_blocker ? <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{permission.last_blocker}</div> : null}
+ </div>
+ ))}
+ </>
+ )}
+ </div>
+ </section>
+ )
+}
+
 function NotesSection({
  customerId,
  notes,
@@ -895,6 +978,9 @@ export default async function CustomerAdminDetailPage({
  customerContracts,
  powersOfAttorney,
  authorizationDocuments,
+ customerInfoRequests,
+ authorizationScopes,
+ meteringPermissions,
  ] = await Promise.all([
  getCustomer(supabase, id),
  listGridOwners(supabase),
@@ -923,6 +1009,9 @@ export default async function CustomerAdminDetailPage({
  listCustomerContractsByCustomerId(id),
  listPowersOfAttorneyByCustomerId(supabase, id),
  listCustomerAuthorizationDocumentsByCustomerId(supabase, id),
+ companyScope.companyId ? listCustomerInfoRequestsByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
+ companyScope.companyId ? listAuthorizationScopesByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
+ companyScope.companyId ? listMeteringPermissionsByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
  ])
 
  if (!customer) {
@@ -1287,6 +1376,7 @@ export default async function CustomerAdminDetailPage({
  <QuickJumpLink href="#profile" label="Profil" />
  <QuickJumpLink href="#portal-access" label="Kundportal" tone="info" />
  <QuickJumpLink href="#grid-owner-import" label="Nätägarsynk" />
+ <QuickJumpLink href="#data-requests" label="Uppgiftsbegäran" tone="warning" />
  <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" />
  <QuickJumpLink href="#switch-operations" label="Leverantörsbyte" />
  <QuickJumpLink href="#ediel-operations" label="Ediel" />
@@ -1477,6 +1567,19 @@ export default async function CustomerAdminDetailPage({
  description="Importera eller synka underlag från nätägarsidan för kunden."
  >
  <CustomerGridOwnerFileImportCard customerId={id} />
+ </SectionAnchor>
+
+ <SectionAnchor
+ id="data-requests"
+ title="Uppgiftsbegäran och mätvärdestillstånd"
+ description="Z01/Z02, fullmaktsomfattning och Z13/Z14 kopplat direkt till kunden."
+ >
+ <OnboardingDataRequestsSection
+ customerId={id}
+ infoRequests={customerInfoRequests}
+ authorizationScopes={authorizationScopes}
+ meteringPermissions={meteringPermissions}
+ />
  </SectionAnchor>
 
  <SectionAnchor

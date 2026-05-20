@@ -184,13 +184,6 @@ export async function createOutboundRequest(input: {
   automationKey?: string | null
   replaceOpenSupplierSwitchAttempt?: boolean
 }): Promise<OutboundRequestRow> {
-  const route = input.communicationRouteId
-    ? await getCommunicationRouteById(input.communicationRouteId)
-    : await findBestCommunicationRoute({
-        requestType: input.requestType,
-        gridOwnerId: input.gridOwnerId ?? null,
-      })
-
   const context = await getCustomerExportContext({
     customerId: input.customerId,
     siteId: input.siteId ?? null,
@@ -199,6 +192,18 @@ export async function createOutboundRequest(input: {
 
   const companyId = requireContextCompanyId(context, 'Skapa outbound request')
   await requireCompanyOperationalForWrites(companyId)
+
+  const route = input.communicationRouteId
+    ? await getCommunicationRouteById(input.communicationRouteId)
+    : await findBestCommunicationRoute({
+        companyId,
+        requestType: input.requestType,
+        gridOwnerId: input.gridOwnerId ?? context.meteringPoint?.grid_owner_id ?? context.site?.grid_owner_id ?? null,
+      })
+
+  if (route?.company_id && route.company_id !== companyId) {
+    throw new Error('Vald kommunikationsroute tillhör ett annat bolag.')
+  }
   const channelType = route?.route_type ?? 'unresolved'
   const shouldReplaceSupplierSwitchAttempt = Boolean(
     input.replaceOpenSupplierSwitchAttempt &&
