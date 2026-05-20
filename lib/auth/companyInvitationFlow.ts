@@ -2,12 +2,12 @@ import crypto from 'node:crypto'
 import type { User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  findAuthUserByEmail,
   getBaseAppUrl,
   recordAuthEmailEvent,
   upsertAuthUserProfile,
-  findAuthUserByEmail,
 } from '@/lib/auth/authEmailFlow'
-import { assertTransactionalEmailReady, sendTransactionalEmail } from '@/lib/auth/smtpTransactionalEmail'
+import { sendTransactionalEmail } from '@/lib/auth/smtpTransactionalEmail'
 
 export type CompanyInviteProvisionResult = {
   userId: string
@@ -16,6 +16,8 @@ export type CompanyInviteProvisionResult = {
   wasCreated: boolean
   invitationToken: string
   acceptUrl: string
+  emailSent: boolean
+  emailError: string | null
 }
 
 type CompanyInviteInput = {
@@ -28,6 +30,8 @@ type CompanyInviteInput = {
   actorUserId: string | null
   source: string
   issueTemporaryPassword?: boolean
+  temporaryPassword?: string | null
+  sendEmail?: boolean
 }
 
 type CompanyInvitationRow = {
@@ -47,6 +51,10 @@ function normalizeEmail(value: string | null | undefined) {
   return String(value ?? '').trim().toLowerCase()
 }
 
+function normalizeText(value: string | null | undefined) {
+  return String(value ?? '').trim()
+}
+
 function isIgnorableSchemaError(error: { code?: string; message?: string } | null | undefined) {
   if (!error) return false
   return ['42P01', '42703', 'PGRST205'].includes(error.code ?? '')
@@ -58,6 +66,12 @@ function createTemporaryPassword() {
   let password = ''
   for (const byte of bytes) password += alphabet[byte % alphabet.length]
   return `${password}9!`
+}
+
+function assertValidTemporaryPassword(password: string) {
+  if (password.length < 8) {
+    throw new Error('Temporärt lösenord måste vara minst 8 tecken.')
+  }
 }
 
 function createInvitationToken() {
@@ -106,19 +120,19 @@ function inviteEmailHtml(input: {
           <tr>
             <td style="padding:32px 32px 20px 32px;">
               <div style="font-size:13px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#047857;">Gridex</div>
-              <h1 style="margin:16px 0 0 0;font-size:26px;line-height:1.25;color:#0f172a;">Du har blivit inbjuden till ${safeCompanyName}</h1>
-              <p style="margin:14px 0 0 0;font-size:15px;line-height:1.7;color:#475569;">Hej ${safeFullName}. En administratör har skapat åtkomst för dig i Gridex.</p>
+              <h1 style="margin:16px 0 0 0;font-size:26px;line-height:1.25;color:#0f172a;">Du har fått åtkomst till ${safeCompanyName}</h1>
+              <p style="margin:14px 0 0 0;font-size:15px;line-height:1.7;color:#475569;">Hej ${safeFullName}. En administratör har skapat ett konto eller kopplat ditt konto till bolaget i Gridex.</p>
             </td>
           </tr>
           <tr>
             <td style="padding:8px 32px 32px 32px;">
-              <a href="${escapeHtml(input.acceptUrl)}" style="display:inline-block;background:#047857;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 22px;border-radius:14px;">Acceptera inbjudan</a>
+              <a href="${escapeHtml(input.acceptUrl)}" style="display:inline-block;background:#047857;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 22px;border-radius:14px;">Öppna åtkomst</a>
               <div style="margin-top:24px;padding:18px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;">
                 <p style="margin:0 0 8px 0;font-size:13px;color:#64748b;">Inloggning</p>
                 <p style="margin:0;font-size:14px;line-height:1.7;color:#334155;"><strong>E-post:</strong> ${safeEmail}</p>
                 ${input.temporaryPassword ? `<p style="margin:6px 0 0 0;font-size:14px;line-height:1.7;color:#334155;"><strong>Temporärt lösenord:</strong> <span style="font-family:Consolas,Monaco,monospace;">${safePassword}</span></p>` : ''}
               </div>
-              ${input.temporaryPassword ? '<p style="margin:18px 0 0 0;font-size:13px;line-height:1.6;color:#b45309;">Du blir ombedd att byta lösenord första gången du loggar in.</p>' : '<p style="margin:18px 0 0 0;font-size:13px;line-height:1.6;color:#64748b;">Acceptera inbjudan och logga sedan in med ditt befintliga konto.</p>'}
+              ${input.temporaryPassword ? '<p style="margin:18px 0 0 0;font-size:13px;line-height:1.6;color:#b45309;">Du blir ombedd att byta lösenord första gången du loggar in.</p>' : '<p style="margin:18px 0 0 0;font-size:13px;line-height:1.6;color:#64748b;">Logga in med ditt befintliga konto. Om du inte minns lösenordet kan du använda glömt lösenord.</p>'}
               <p style="margin:20px 0 0 0;font-size:12px;line-height:1.6;color:#94a3b8;">Länken är personlig och ska inte vidarebefordras.</p>
             </td>
           </tr>
@@ -136,12 +150,14 @@ async function upsertUserProfileWithTemporaryState(input: {
   temporaryPassword: string | null
   source: string
 }) {
+  const now = new Date().toISOString()
+
   await upsertAuthUserProfile({
     userId: input.user.id,
     email: input.email,
     fullName: input.fullName,
-    emailConfirmedAt: input.user.email_confirmed_at ?? new Date().toISOString(),
-    lastInviteSentAt: new Date().toISOString(),
+    emailConfirmedAt: input.user.email_confirmed_at ?? now,
+    lastInviteSentAt: now,
     lastAction: input.source,
   })
 
@@ -149,12 +165,12 @@ async function upsertUserProfileWithTemporaryState(input: {
     id: input.user.id,
     email: input.email,
     full_name: input.fullName,
-    updated_at: new Date().toISOString(),
+    updated_at: now,
   }
 
   if (input.temporaryPassword) {
     payload.must_change_password = true
-    payload.temporary_password_set_at = new Date().toISOString()
+    payload.temporary_password_set_at = now
     payload.temporary_password_expires_at = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString()
   }
 
@@ -166,32 +182,45 @@ async function createOrUpdateAuthUser(input: {
   email: string
   fullName: string | null
   issueTemporaryPassword: boolean
+  temporaryPassword?: string | null
 }): Promise<{ user: User; temporaryPassword: string | null; wasCreated: boolean }> {
   const existing = await findAuthUserByEmail(input.email)
-  const temporaryPassword = input.issueTemporaryPassword ? createTemporaryPassword() : null
+  const manualTemporaryPassword = normalizeText(input.temporaryPassword)
+  const temporaryPassword = input.issueTemporaryPassword
+    ? manualTemporaryPassword || createTemporaryPassword()
+    : null
+
+  if (temporaryPassword) assertValidTemporaryPassword(temporaryPassword)
 
   if (existing) {
-    const mergedMetadata = {
-      ...(existing.user_metadata ?? {}),
-      full_name: input.fullName ?? existing.user_metadata?.full_name ?? null,
+    const updatePayload: {
+      user_metadata: Record<string, unknown>
+      password?: string
+      email_confirm?: boolean
+    } = {
+      user_metadata: {
+        ...(existing.user_metadata ?? {}),
+        full_name: input.fullName ?? existing.user_metadata?.full_name ?? null,
+        must_change_password: Boolean(temporaryPassword) || Boolean(existing.user_metadata?.must_change_password),
+        temporary_password_set_at: temporaryPassword ? new Date().toISOString() : existing.user_metadata?.temporary_password_set_at ?? null,
+      },
     }
 
-    const { data, error } = await supabaseService.auth.admin.updateUserById(existing.id, {
-      user_metadata: mergedMetadata,
-    })
+    if (temporaryPassword) {
+      updatePayload.password = temporaryPassword
+      updatePayload.email_confirm = true
+    }
 
+    const { data, error } = await supabaseService.auth.admin.updateUserById(existing.id, updatePayload)
     if (error) throw error
 
-    // Viktigt: om personen redan finns ska vi inte byta deras lösenord i bakgrunden.
-    // Då riskerar vi att låsa ute en befintlig användare om mailet fastnar.
-    // Nya användare får temporärt lösenord; befintliga användare loggar in med sitt befintliga lösenord
-    // eller använder glömt lösenord.
-    return { user: data.user ?? existing, temporaryPassword: null, wasCreated: false }
+    return { user: data.user ?? existing, temporaryPassword, wasCreated: false }
   }
 
+  const finalPassword = temporaryPassword ?? createTemporaryPassword()
   const { data, error } = await supabaseService.auth.admin.createUser({
     email: input.email,
-    password: temporaryPassword ?? createTemporaryPassword(),
+    password: finalPassword,
     email_confirm: true,
     user_metadata: {
       full_name: input.fullName ?? null,
@@ -210,17 +239,12 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
   const email = normalizeEmail(input.email)
   if (!email) throw new Error('E-post saknas.')
 
-  // Kör SMTP-kontroll innan vi skapar bolagets membership/invite och innan ett nytt Auth-konto skapas.
-  // Då undviker vi partial success där bolag/användare finns men inget mail med temporärt lösenord går iväg.
-  await assertTransactionalEmailReady()
-
   const companyQuery = await supabaseService.from('companies').select('id, name').eq('id', input.companyId).maybeSingle()
   if (companyQuery.error) throw companyQuery.error
   const companyName = input.companyName ?? (companyQuery.data as { name?: string | null } | null)?.name ?? 'Gridex'
 
   let createdAuthUserId: string | null = null
   let userId: string | null = null
-  let temporaryPassword: string | null = null
   let token = ''
   let acceptUrl = ''
 
@@ -229,11 +253,11 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       email,
       fullName: input.fullName ?? null,
       issueTemporaryPassword: input.issueTemporaryPassword !== false,
+      temporaryPassword: input.temporaryPassword ?? null,
     })
 
-    const { user, wasCreated } = authResult
+    const { user, wasCreated, temporaryPassword } = authResult
     userId = user.id
-    temporaryPassword = authResult.temporaryPassword
     if (wasCreated) createdAuthUserId = user.id
 
     await upsertUserProfileWithTemporaryState({
@@ -254,11 +278,11 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
         company_id: input.companyId,
         user_id: user.id,
         membership_role: input.membershipRole,
-        status: 'pending',
+        status: 'active',
         invited_email: email,
         invited_by: input.actorUserId,
         invited_at: now,
-        accepted_at: null,
+        accepted_at: now,
         disabled_at: null,
         disabled_by: null,
         removed_at: null,
@@ -267,6 +291,7 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
         metadata: {
           invite_source: input.source,
           force_password_change: Boolean(temporaryPassword),
+          login_ready: true,
         },
       },
       { onConflict: 'company_id,user_id' }
@@ -291,6 +316,8 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       metadata: {
         invite_source: input.source,
         force_password_change: Boolean(temporaryPassword),
+        login_ready: true,
+        admin_supplied_temporary_password: Boolean(input.temporaryPassword),
       },
     }
 
@@ -327,26 +354,36 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
     }
 
     acceptUrl = buildAcceptUrl(token)
-    await sendTransactionalEmail({
-      to: email,
-      subject: `Inbjudan till ${companyName} i Gridex`,
-      html: inviteEmailHtml({
-        companyName,
-        email,
-        fullName: input.fullName ?? null,
-        acceptUrl,
-        temporaryPassword,
-      }),
-      text: temporaryPassword
-        ? `Du har blivit inbjuden till ${companyName} i Gridex. Acceptera: ${acceptUrl}\nE-post: ${email}\nTemporärt lösenord: ${temporaryPassword}\nDu blir ombedd att byta lösenord när du loggar in.`
-        : `Du har blivit inbjuden till ${companyName} i Gridex. Acceptera: ${acceptUrl}\nLogga in med ditt befintliga konto. Om du inte minns lösenordet kan du använda glömt lösenord.`,
-    })
+    let emailSent = false
+    let emailError: string | null = null
+
+    if (input.sendEmail !== false) {
+      try {
+        await sendTransactionalEmail({
+          to: email,
+          subject: `Åtkomst till ${companyName} i Gridex`,
+          html: inviteEmailHtml({
+            companyName,
+            email,
+            fullName: input.fullName ?? null,
+            acceptUrl,
+            temporaryPassword,
+          }),
+          text: temporaryPassword
+            ? `Du har fått åtkomst till ${companyName} i Gridex. Länk: ${acceptUrl}\nE-post: ${email}\nTemporärt lösenord: ${temporaryPassword}\nDu blir ombedd att byta lösenord när du loggar in.`
+            : `Du har fått åtkomst till ${companyName} i Gridex. Länk: ${acceptUrl}\nLogga in med ditt befintliga konto.`,
+        })
+        emailSent = true
+      } catch (mailError) {
+        emailError = mailError instanceof Error ? mailError.message : String(mailError)
+      }
+    }
 
     await recordAuthEmailEvent({
       userId: user.id,
       email,
       eventType: 'invite_sent',
-      status: 'sent',
+      status: emailSent ? 'sent' : 'failed',
       source: input.source,
       actorUserId: input.actorUserId,
       companyId: input.companyId,
@@ -356,10 +393,21 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
         temporaryPasswordIssued: Boolean(temporaryPassword),
         existingUser: !createdAuthUserId,
         acceptUrl,
+        emailSent,
+        emailError,
       },
     })
 
-    return { userId: user.id, email, temporaryPassword, wasCreated: Boolean(createdAuthUserId), invitationToken: token, acceptUrl }
+    return {
+      userId: user.id,
+      email,
+      temporaryPassword,
+      wasCreated: Boolean(createdAuthUserId),
+      invitationToken: token,
+      acceptUrl,
+      emailSent,
+      emailError,
+    }
   } catch (error) {
     await recordAuthEmailEvent({
       userId,
@@ -372,10 +420,9 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       metadata: { error: error instanceof Error ? error.message : String(error) },
     })
 
-    // Rollback för nyskapade Auth-konton och pending-rader så systemet inte hamnar i halvt skapat läge.
     if (userId) {
       await supabaseService.from('company_invitations').delete().eq('company_id', input.companyId).eq('invited_user_id', userId).eq('status', 'pending')
-      await supabaseService.from('company_memberships').delete().eq('company_id', input.companyId).eq('user_id', userId).eq('status', 'pending')
+      await supabaseService.from('company_memberships').delete().eq('company_id', input.companyId).eq('user_id', userId)
     }
 
     if (createdAuthUserId) {
@@ -424,12 +471,22 @@ export async function getCompanyInvitationByToken(token: string): Promise<Compan
 export async function acceptCompanyInvitationByToken(token: string) {
   const invitation = await getCompanyInvitationByToken(token)
   if (!invitation) throw new Error('Inbjudningslänken är ogiltig eller saknar aktiv token.')
-  if (invitation.status !== 'pending') throw new Error('Inbjudan är redan använd eller återkallad.')
+
+  const email = normalizeEmail(invitation.email)
+
+  if (invitation.status === 'accepted') {
+    return {
+      email,
+      companyId: invitation.company_id,
+      companyName: companyNameFromJoin(invitation),
+    }
+  }
+
+  if (invitation.status !== 'pending') throw new Error('Inbjudan är återkallad eller inte längre giltig.')
 
   const expiresAt = invitation.expires_at ? new Date(invitation.expires_at).getTime() : null
   if (expiresAt && expiresAt < Date.now()) throw new Error('Inbjudan har gått ut. Be administratören skicka en ny inbjudan.')
 
-  const email = normalizeEmail(invitation.email)
   const authUser = invitation.invited_user_id
     ? (await supabaseService.auth.admin.getUserById(invitation.invited_user_id)).data.user
     : await findAuthUserByEmail(email)
@@ -462,6 +519,7 @@ export async function acceptCompanyInvitationByToken(token: string) {
       accepted_at: now,
       metadata: {
         accepted_via: 'company_invite_token',
+        login_ready: true,
       },
     },
     { onConflict: 'company_id,user_id' }

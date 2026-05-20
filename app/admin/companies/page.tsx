@@ -290,9 +290,9 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
                 <div className="mt-4 grid gap-3">
                   <Input name="admin_name" className="rounded-2xl px-4 py-3" placeholder="Namn" />
                   <Input name="admin_email" type="email" className="rounded-2xl px-4 py-3" placeholder="namn@bolag.se" />
-                  <input type="hidden" name="send_invite" value="on" />
+                  <Input name="admin_temporary_password" type="text" minLength={8} className="rounded-2xl px-4 py-3" placeholder="Temporärt lösenord, minst 8 tecken" />
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900">
-                    Inbjudan skickas alltid via e-post med accept-länk och temporärt lösenord när bolagsansvarig anges.
+                    Kontot skapas direkt med det temporära lösenordet. Personen kan logga in direkt och måste byta lösenord vid första inloggning. Mail skickas om SMTP fungerar men blockerar inte skapandet.
                   </div>
                 </div>
               </div>
@@ -444,13 +444,14 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
                         <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
                           <SectionTitle
                             title="Bjud in användare"
-                            description="Skicka en inbjudan till bolaget. Personen får rätt bolagskoppling och kan logga in efter accepterad inbjudan."
+                            description="Skicka en inbjudan till bolaget. Personen får konto och bolagskoppling direkt. Ange ett temporärt lösenord som personen byter vid första inloggning."
                           />
                           <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3">
                             <input type="hidden" name="company_id" value={company.id} />
-                            <div className="grid gap-3 xl:grid-cols-[minmax(220px,1.2fr)_minmax(180px,1fr)_minmax(150px,180px)_minmax(150px,180px)]">
+                            <div className="grid gap-3 xl:grid-cols-[minmax(220px,1.2fr)_minmax(180px,1fr)_minmax(170px,220px)_minmax(150px,180px)_minmax(150px,180px)]">
                               <Input name="email" type="email" required placeholder="bjud in e-post" />
                               <Input name="full_name" placeholder="namn" />
+                              <Input name="temporary_password" type="text" minLength={8} required placeholder="temporärt lösenord" />
                               <Select name="membership_role" defaultValue="admin">
                                 <option value="owner">Ägare</option>
                                 <option value="admin">Admin</option>
@@ -467,7 +468,7 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
                             </div>
                             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-center">
                               <p className="text-xs leading-5 text-slate-600">
-                                Tips: använd Bolagsadmin för bolagsansvarig. Viewer ska bara kunna läsa historik och status.
+                                Tips: dela det temporära lösenordet säkert. Använd Bolagsadmin för bolagsansvarig. Viewer ska bara kunna läsa historik och status.
                               </p>
                               <Button>Bjud in användare</Button>
                             </div>

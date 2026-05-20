@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { provisionCompanyInvitation } from '@/lib/auth/companyInvitationFlow'
-import { assertTransactionalEmailReady } from '@/lib/auth/smtpTransactionalEmail'
 import {
   getCompanyById,
   getCompanyDeleteBlockers,
@@ -36,6 +35,26 @@ function normalizeText(value: FormDataEntryValue | null): string {
 
 function normalizeEmail(value: FormDataEntryValue | null): string {
   return normalizeText(value).toLowerCase()
+}
+
+function formatActionError(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'string' && error.trim()) return error
+  try {
+    return JSON.stringify(error)
+  } catch {
+    return fallback
+  }
+}
+
+function normalizeTemporaryPassword(value: FormDataEntryValue | null): string {
+  return normalizeText(value)
+}
+
+function validateTemporaryPassword(password: string) {
+  if (password.length < 8) {
+    throw new Error('Temporärt lösenord måste vara minst 8 tecken.')
+  }
 }
 
 function slugify(value: string): string {
@@ -219,20 +238,15 @@ export async function createCompanyAction(
     const website = normalizeText(formData.get('website')) || null
     const initialAdminEmail = normalizeEmail(formData.get('admin_email'))
     const initialAdminName = normalizeText(formData.get('admin_name')) || primaryContactName
-    const sendInvite = formData.get('send_invite') !== 'off'
+    const initialAdminTemporaryPassword = normalizeTemporaryPassword(formData.get('admin_temporary_password'))
 
     if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
 
-    if (initialAdminEmail && !sendInvite) {
-      return {
-        ok: false,
-        message: 'Första bolagsansvarig måste bjudas in så temporärt lösenord och accept-länk kan skickas säkert.',
-      }
+    if (initialAdminEmail && !initialAdminTemporaryPassword) {
+      return { ok: false, message: 'Ange ett temporärt lösenord för första bolagsansvarig.' }
     }
 
-    if (initialAdminEmail) {
-      await assertTransactionalEmailReady()
-    }
+    if (initialAdminTemporaryPassword) validateTemporaryPassword(initialAdminTemporaryPassword)
 
     const slug = slugify(normalizeText(formData.get('slug')) || name)
 
@@ -256,6 +270,8 @@ export async function createCompanyAction(
 
     if (companyError) throw companyError
 
+    let ownerInviteMailMessage = ''
+
     if (initialAdminEmail) {
       try {
         const invitation = await provisionCompanyInvitation({
@@ -268,14 +284,20 @@ export async function createCompanyAction(
           actorUserId,
           source: 'admin_companies_create_company_owner',
           issueTemporaryPassword: true,
+          temporaryPassword: initialAdminTemporaryPassword,
+          sendEmail: true,
         })
+
+        ownerInviteMailMessage = invitation.emailSent
+          ? ' Mail skickades till bolagsansvarig.'
+          : ` Mail kunde inte skickas, men kontot är skapat och kan användas med det temporära lösenordet. SMTP-fel: ${invitation.emailError ?? 'okänt fel'}`
 
         await logTenantGovernanceEvent({
           action: 'SUPERADMIN_ROLE_CHANGED',
           actorUserId,
           companyId: company.id,
           targetUserId: invitation.userId,
-          reason: 'Första bolagsansvarig skapades och bjöds in med temporärt lösenord',
+          reason: 'Första bolagsansvarig skapades med temporärt lösenord och bolagskoppling',
           metadata: { email: initialAdminEmail, membershipRole: 'owner', roleKey: 'company_admin' },
         })
       } catch (inviteError) {
@@ -286,7 +308,7 @@ export async function createCompanyAction(
         )
         revalidatePath('/admin/companies')
         revalidatePath('/admin/users')
-        throw new Error(`Bolaget skapades inte eftersom inbjudan till bolagsansvarig inte kunde skickas. ${inviteMessage}`)
+        throw new Error(`Bolaget skapades inte eftersom bolagsansvarig inte kunde skapas eller kopplas. ${inviteMessage}`)
       }
     }
 
@@ -301,9 +323,9 @@ export async function createCompanyAction(
     revalidatePath('/admin/companies')
     revalidatePath('/admin/users')
 
-    return { ok: true, message: initialAdminEmail ? 'Elhandelsbolaget skapades och bolagsansvarig bjöds in med temporärt lösenord.' : 'Elhandelsbolaget skapades.' }
+    return { ok: true, message: initialAdminEmail ? `Elhandelsbolaget skapades. Bolagsansvarig kan logga in med det temporära lösenordet och måste byta lösenord vid första inloggning.${ownerInviteMailMessage}` : 'Elhandelsbolaget skapades.' }
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Bolaget kunde inte skapas.' }
+    return { ok: false, message: formatActionError(error, 'Bolaget kunde inte skapas.') }
   }
 }
 
@@ -319,9 +341,12 @@ export async function inviteCompanyUserAction(
     const fullName = normalizeText(formData.get('full_name')) || null
     const membershipRole = normalizeText(formData.get('membership_role')) || 'member'
     const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
+    const temporaryPassword = normalizeTemporaryPassword(formData.get('temporary_password'))
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!email) return { ok: false, message: 'E-post saknas.' }
+    if (!temporaryPassword) return { ok: false, message: 'Ange ett temporärt lösenord för användaren.' }
+    validateTemporaryPassword(temporaryPassword)
 
     await requireCompanyOperationalForWrites(companyId)
 
@@ -338,6 +363,8 @@ export async function inviteCompanyUserAction(
       actorUserId,
       source: 'admin_companies_invite_user',
       issueTemporaryPassword: true,
+      temporaryPassword,
+      sendEmail: true,
     })
 
     await logTenantGovernanceEvent({
@@ -345,7 +372,7 @@ export async function inviteCompanyUserAction(
       actorUserId,
       companyId,
       targetUserId: invitation.userId,
-      reason: 'Användare bjöds in och kopplades till bolag',
+      reason: 'Användare skapades/kopplades med temporärt lösenord',
       metadata: { membershipRole, roleKey, email },
     })
 
@@ -353,9 +380,9 @@ export async function inviteCompanyUserAction(
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
 
-    return { ok: true, message: 'Inbjudan skickades med accept-länk och temporärt lösenord.' }
+    return { ok: true, message: invitation.emailSent ? 'Användaren skapades/kopplades och mail skickades. Personen kan logga in med det temporära lösenordet.' : `Användaren skapades/kopplades och kan logga in med det temporära lösenordet. Mail kunde inte skickas: ${invitation.emailError ?? 'okänt SMTP-fel'}` }
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Inbjudan kunde inte skapas.' }
+    return { ok: false, message: formatActionError(error, 'Inbjudan kunde inte skapas.') }
   }
 }
 
@@ -611,7 +638,6 @@ export async function setCompanyUserRoleAction(
     const userId = normalizeText(formData.get('user_id'))
     const membershipRole = normalizeText(formData.get('membership_role')) || 'member'
     const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
-
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!userId) return { ok: false, message: 'Användare saknas.' }
 
