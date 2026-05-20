@@ -1,381 +1,347 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { getCanonicalAckState } from '@/lib/ediel/ack'
-import {
- listDuplicateAckCandidates,
- listEdielMessages,
- listOverdueAckMessages,
- listRuleAmbiguities,
-} from '@/lib/ediel/db'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
+import { listPlatformControlTowerAlerts } from '@/lib/tenant/controlTower'
 
 export const dynamic = 'force-dynamic'
 
-function tone(value: 'emerald' | 'amber' | 'red' | 'slate' | 'emerald'): string {
- if (value === 'emerald') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
- if (value === 'amber') return 'border-amber-200 bg-amber-50 text-amber-700'
- if (value === 'red') return 'border-red-200 bg-red-50 text-red-700'
+type CountFilter = {
+ column: string
+ op?: 'eq' | 'in' | 'is'
+ value: string | string[] | null
+}
+
+type QueueRow = {
+ id: string
+ title: string
+ description: string
+ href: string
+ status: string
+ tone: 'success' | 'warning' | 'danger' | 'neutral'
+ meta?: string
+}
+
+function toneClass(tone: 'success' | 'warning' | 'danger' | 'neutral'): string {
+ if (tone === 'success') return 'border-emerald-200 bg-emerald-50/80 text-emerald-900'
+ if (tone === 'warning') return 'border-amber-200 bg-amber-50/80 text-amber-900'
+ if (tone === 'danger') return 'border-red-200 bg-red-50/80 text-red-900'
+ return 'border-slate-200 bg-white text-slate-900'
+}
+
+function badgeClass(tone: 'success' | 'warning' | 'danger' | 'neutral'): string {
+ if (tone === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+ if (tone === 'warning') return 'border-amber-200 bg-amber-50 text-amber-700'
+ if (tone === 'danger') return 'border-red-200 bg-red-50 text-red-700'
  return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
-function ackTone(state: string): string {
- if (
- state === 'ack_overdue' ||
- state === 'failed' ||
- state === 'contrl_failed' ||
- state === 'aperak_received_negative'
- ) {
- return tone('red')
- }
-
- if (
- state === 'awaiting_contrl' ||
- state === 'awaiting_aperak' ||
- state === 'in_progress'
- ) {
- return tone('amber')
- }
-
- if (
- state === 'contrl_received' ||
- state === 'aperak_received_positive' ||
- state === 'utilts_err_received' ||
- state === 'no_ack_required'
- ) {
- return tone('emerald')
- }
-
- return tone('slate')
-}
-
-function statusTone(status: string): string {
- if (status === 'failed') return tone('red')
- if (status === 'queued' || status === 'prepared') return tone('amber')
- if (status === 'sent' || status === 'parsed' || status === 'validated') return tone('emerald')
- return tone('emerald')
-}
-
-function formatDate(value: string | null | undefined) {
+function formatDate(value: string | null | undefined): string {
  if (!value) return '—'
  const date = new Date(value)
  if (Number.isNaN(date.getTime())) return value
- return date.toLocaleString('sv-SE')
+ return new Intl.DateTimeFormat('sv-SE', {
+ dateStyle: 'medium',
+ timeStyle: 'short',
+ }).format(date)
 }
 
-function ackLabel(state: string): string {
- if (state === 'awaiting_contrl') return 'Väntar på CONTRL'
- if (state === 'contrl_received') return 'CONTRL mottagen/skickad'
- if (state === 'contrl_failed') return 'CONTRL fel'
- if (state === 'awaiting_aperak') return 'Väntar på APERAK'
- if (state === 'aperak_received_positive') return 'Positiv APERAK'
- if (state === 'aperak_received_negative') return 'Negativ APERAK'
- if (state === 'utilts_err_received') return 'UTILTS felkvittens'
- if (state === 'ack_overdue') return 'Försenad kvittens'
- if (state === 'no_ack_required') return 'Ingen kvittens krävs'
- if (state === 'failed') return 'Fel'
- return 'Pågår'
+function applyFilter(query: any, filter: CountFilter): any {
+ if (filter.op === 'in') return query.in(filter.column, Array.isArray(filter.value) ? filter.value : [])
+ if (filter.op === 'is') return query.is(filter.column, filter.value)
+ return query.eq(filter.column, filter.value)
 }
 
-function ackHelpText(state: string): string {
- if (state === 'awaiting_contrl') {
- return 'Syntaxkvittens saknas fortfarande. Kontrollera om mottagande part skickat CONTRL.'
+async function safeCount(
+ supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+ table: string,
+ filters: CountFilter[] = []
+): Promise<number> {
+ try {
+ let query: any = supabase.from(table).select('*', { count: 'exact', head: true })
+ for (const filter of filters) query = applyFilter(query, filter)
+ const { count, error } = await query
+ if (error) throw error
+ return count ?? 0
+ } catch (error) {
+ if (isMissingRelationError(error)) return 0
+ throw error
  }
- if (state === 'awaiting_aperak') {
- return 'Applikationskvittens saknas fortfarande. Skicka inte ny kvittens automatiskt; följ upp mot motparten.'
- }
- if (state === 'ack_overdue') {
- return '30-minutersgränsen har passerat. Öppna meddelandet och eskalera manuellt eller kontrollera mailbox.'
- }
- if (state === 'aperak_received_negative' || state === 'utilts_err_received') {
- return 'Motparten har avvisat eller markerat fel. Öppna källmeddelandet och läs events/validering.'
- }
- if (state === 'no_ack_required') {
- return 'Reglerna säger att detta meddelande inte behöver ack i runtime.'
- }
- return 'Statusen kommer från canonical ack-state, inte från en enskild UI-flagga.'
 }
 
-function AckBadge({ state }: { state: string }) {
+async function safeRows<T>(
+ supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+ table: string,
+ select: string,
+ filters: CountFilter[] = [],
+ limit = 8
+): Promise<T[]> {
+ try {
+ let query: any = supabase.from(table).select(select).order('created_at', { ascending: false }).limit(limit)
+ for (const filter of filters) query = applyFilter(query, filter)
+ const { data, error } = await query
+ if (error) throw error
+ return (data ?? []) as T[]
+ } catch (error) {
+ if (isMissingRelationError(error)) return []
+ throw error
+ }
+}
+
+function companyFilter(companyId: string | null): CountFilter[] {
+ return companyId ? [{ column: 'company_id', value: companyId }] : []
+}
+
+function KpiCard({
+ label,
+ value,
+ description,
+ href,
+ tone = 'neutral',
+}: {
+ label: string
+ value: number
+ description: string
+ href: string
+ tone?: 'success' | 'warning' | 'danger' | 'neutral'
+}) {
  return (
- <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${ackTone(state)}`}>
- {ackLabel(state)}
+ <Link href={href} className={`block rounded-3xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass(tone)}`}>
+ <div className="flex items-start justify-between gap-3">
+ <p className="text-sm font-semibold text-slate-700">{label}</p>
+ <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeClass(tone)}`}>
+ Öppna
  </span>
+ </div>
+ <p className="mt-4 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+ <p className="mt-2 text-sm leading-6 text-slate-700">{description}</p>
+ </Link>
  )
 }
 
-export default async function AdminEdielControlTowerPage() {
- await requirePermissionServer('communication.read')
+function QueueList({ title, rows }: { title: string; rows: QueueRow[] }) {
+ return (
+ <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+ <div className="border-b border-slate-100 px-5 py-4">
+ <h2 className="text-base font-semibold text-slate-950">{title}</h2>
+ <p className="mt-1 text-sm text-slate-700">Praktiska blockerare som operations ska kunna agera på utan att leta i flera menyer.</p>
+ </div>
+ {rows.length === 0 ? (
+ <div className="px-5 py-8 text-sm text-slate-700">Inga tydliga blockerare i den här kön just nu.</div>
+ ) : (
+ <div className="divide-y divide-slate-100">
+ {rows.map((row) => (
+ <Link key={`${row.href}-${row.id}`} href={row.href} className="block px-5 py-4 transition hover:bg-emerald-50/50">
+ <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+ <div>
+ <div className="flex flex-wrap items-center gap-2">
+ <h3 className="font-semibold text-slate-950">{row.title}</h3>
+ <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeClass(row.tone)}`}>{row.status}</span>
+ </div>
+ <p className="mt-1 text-sm leading-6 text-slate-700">{row.description}</p>
+ {row.meta ? <p className="mt-1 text-xs text-slate-700">{row.meta}</p> : null}
+ </div>
+ <span className="text-sm font-semibold text-emerald-700">Öppna →</span>
+ </div>
+ </Link>
+ ))}
+ </div>
+ )}
+ </section>
+ )
+}
 
- const [recentMessages, overdueMessages, duplicateAckCandidates, ruleAmbiguities] =
- await Promise.all([
- listEdielMessages({ limit: 20 }),
- listOverdueAckMessages({ limit: 50 }),
- listDuplicateAckCandidates(),
- listRuleAmbiguities(),
+export default async function AdminControlTowerPage() {
+ const admin = await requireAdminPageKeyAccess('operations.control_tower')
+ const supabase = await createSupabaseServerClient()
+ const isPlatformAdmin = isPlatformAdminContext(admin)
+ const scope = await getOperationalCompanyScope(admin.userId)
+ const scopeFilters = companyFilter(isPlatformAdmin ? null : scope.companyId)
+
+ const [platformAlerts, [
+ openTasks,
+ blockedTasks,
+ uploadedPoaDocs,
+ signedPowersOfAttorney,
+ pendingGridOwnerRequests,
+ waitingSwitches,
+ failedSwitches,
+ failedOutbound,
+ failedEdielMessages,
+ movedCustomers,
+ ]] = await Promise.all([
+ isPlatformAdmin ? listPlatformControlTowerAlerts() : Promise.resolve([]),
+ Promise.all([
+ safeCount(supabase, 'customer_operation_tasks', [...scopeFilters, { column: 'status', op: 'in', value: ['open', 'in_progress'] }]),
+ safeCount(supabase, 'customer_operation_tasks', [...scopeFilters, { column: 'status', value: 'blocked' }]),
+ safeCount(supabase, 'customer_authorization_documents', [...scopeFilters, { column: 'document_type', value: 'power_of_attorney' }, { column: 'status', value: 'uploaded' }]),
+ safeCount(supabase, 'powers_of_attorney', [...scopeFilters, { column: 'status', value: 'signed' }]),
+ safeCount(supabase, 'grid_owner_data_requests', [...scopeFilters, { column: 'status', op: 'in', value: ['pending', 'sent'] }]),
+ safeCount(supabase, 'supplier_switch_requests', [...scopeFilters, { column: 'status', op: 'in', value: ['queued', 'submitted', 'accepted'] }]),
+ safeCount(supabase, 'supplier_switch_requests', [...scopeFilters, { column: 'status', op: 'in', value: ['failed', 'rejected'] }]),
+ safeCount(supabase, 'outbound_requests', [...scopeFilters, { column: 'status', value: 'failed' }]),
+ safeCount(supabase, 'ediel_messages', [...scopeFilters, { column: 'status', value: 'failed' }]),
+ safeCount(supabase, 'customers', [...scopeFilters, { column: 'status', op: 'in', value: ['moved', 'terminated'] }]),
+ ]),
  ])
 
- const inboundCount = recentMessages.filter((row) => row.direction === 'inbound').length
- const outboundCount = recentMessages.filter((row) => row.direction === 'outbound').length
- const failedRecentCount = recentMessages.filter((row) => row.status === 'failed').length
- const activeAlertCount = overdueMessages.length + duplicateAckCandidates.length + ruleAmbiguities.length
+ const [taskRows, gridOwnerRows, switchRows, movedRows] = await Promise.all([
+ safeRows<{
+ id: string
+ customer_id: string | null
+ title: string | null
+ description: string | null
+ status: string | null
+ priority: string | null
+ created_at: string | null
+ }>(supabase, 'customer_operation_tasks', 'id, customer_id, title, description, status, priority, created_at', [...scopeFilters, { column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] }], 8),
+ safeRows<{
+ id: string
+ customer_id: string | null
+ request_scope: string | null
+ status: string | null
+ created_at: string | null
+ }>(supabase, 'grid_owner_data_requests', 'id, customer_id, request_scope, status, created_at', [...scopeFilters, { column: 'status', op: 'in', value: ['pending', 'sent'] }], 6),
+ safeRows<{
+ id: string
+ customer_id: string | null
+ request_type: string | null
+ status: string | null
+ failure_reason: string | null
+ created_at: string | null
+ }>(supabase, 'supplier_switch_requests', 'id, customer_id, request_type, status, failure_reason, created_at', [...scopeFilters, { column: 'status', op: 'in', value: ['queued', 'submitted', 'accepted', 'failed', 'rejected'] }], 8),
+ safeRows<{
+ id: string
+ full_name: string | null
+ company_name: string | null
+ customer_number: string | null
+ status: string | null
+ moved_out_at: string | null
+ lifecycle_closed_at: string | null
+ lifecycle_status_reason: string | null
+ created_at: string | null
+ }>(supabase, 'customers', 'id, full_name, company_name, customer_number, status, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, created_at', [...scopeFilters, { column: 'status', op: 'in', value: ['moved', 'terminated'] }], 6),
+ ])
+
+ const queueRows: QueueRow[] = [
+ ...taskRows.map((task) => ({
+ id: task.id,
+ title: task.title ?? 'Operationsuppgift',
+ description: task.description ?? 'Öppen operationsuppgift som påverkar kundflödet.',
+ href: task.customer_id ? `/admin/customers/${task.customer_id}` : '/admin/operations/tasks',
+ status: task.status ?? 'open',
+ tone: task.status === 'blocked' || task.priority === 'critical' ? 'danger' as const : 'warning' as const,
+ meta: `Skapad ${formatDate(task.created_at)}`,
+ })),
+ ...gridOwnerRows.map((request) => ({
+ id: request.id,
+ title: 'Begäran till nätägare väntar',
+ description: `Scope: ${request.request_scope ?? 'uppgifter'}. Kontrollera att fullmakt, mottagare och route profile är korrekt.`,
+ href: request.customer_id ? `/admin/customers/${request.customer_id}` : `/admin/operations/grid-owner-requests/${request.id}`,
+ status: request.status ?? 'pending',
+ tone: 'warning' as const,
+ meta: `Skapad ${formatDate(request.created_at)}`,
+ })),
+ ...switchRows.map((request) => ({
+ id: request.id,
+ title: `Switchflöde ${request.request_type ?? ''}`.trim(),
+ description: request.failure_reason ?? 'Switchärende väntar på nästa steg i operationskedjan.',
+ href: request.customer_id ? `/admin/customers/${request.customer_id}` : '/admin/operations/switches',
+ status: request.status ?? 'queued',
+ tone: ['failed', 'rejected'].includes(request.status ?? '') ? 'danger' as const : 'warning' as const,
+ meta: `Skapad ${formatDate(request.created_at)}`,
+ })),
+ ].slice(0, 14)
+
+ const lifecycleRows: QueueRow[] = movedRows.map((customer) => ({
+ id: customer.id,
+ title: customer.full_name ?? customer.company_name ?? customer.customer_number ?? 'Avslutad kund',
+ description: customer.lifecycle_status_reason ?? 'Kunden har mjukt avslutats. Följ upp slutmätvärden och faktureringsunderlag.',
+ href: `/admin/customers/${customer.id}`,
+ status: customer.status ?? 'moved',
+ tone: 'neutral',
+ meta: `Utflytts-/avslutsdatum ${customer.moved_out_at ?? customer.lifecycle_closed_at?.slice(0, 10) ?? '—'}`,
+ }))
+
+ const activeIssues =
+ openTasks +
+ blockedTasks +
+ uploadedPoaDocs +
+ pendingGridOwnerRequests +
+ waitingSwitches +
+ failedSwitches +
+ failedOutbound +
+ failedEdielMessages
 
  return (
- <div className="space-y-6">
+ <div className="space-y-6 p-6 xl:p-8">
  <AdminHeader
- title="Ediel Control Tower"
- subtitle="Liveövervakning för CONTRL, APERAK, UTILTS_ERR, dubbletter, regelkonflikter och Ediel-trafik per tenant."
+ title="Control Tower"
+ subtitle={isPlatformAdmin ? 'Global SaaS-drift för tenants, Ediel, routes och blockerade flöden.' : `Driftläge för ${scope.companyName ?? 'ditt bolag'}: fullmakter, kundflöden, Ediel, nätägarbegäran och avslutade kunder.`}
+ userEmail={admin.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : scope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
- <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
- <h2 className="text-base font-semibold">Liveflöde före testflöde</h2>
- <p className="mt-2 max-w-4xl">
- Börja alltid med röda varningar. Försenad kvittens betyder att 30 minuter har passerat. Dublettskydd betyder att samma källa riskerar flera CONTRL/APERAK. Regelkonflikt betyder att versionstabellen inte är entydig för live-runtime.
- </p>
+ {scope.message ? (
+ <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 shadow-sm">
+ {scope.message}
  </section>
+ ) : null}
 
- <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-7">
- <article className="rounded-2xl border border-slate-200 bg-white p-4">
- <p className="text-sm text-slate-700">Aktiva varningar</p>
- <p className="mt-2 text-2xl font-semibold text-slate-900">{activeAlertCount}</p>
- </article>
- <article className="rounded-2xl border border-slate-200 bg-white p-4">
- <p className="text-sm text-slate-700">Senaste meddelanden</p>
- <p className="mt-2 text-2xl font-semibold text-slate-900">{recentMessages.length}</p>
- </article>
- <article className="rounded-2xl border border-slate-200 bg-white p-4">
- <p className="text-sm text-slate-700">Inbound</p>
- <p className="mt-2 text-2xl font-semibold text-slate-900">{inboundCount}</p>
- </article>
- <article className="rounded-2xl border border-slate-200 bg-white p-4">
- <p className="text-sm text-slate-700">Outbound</p>
- <p className="mt-2 text-2xl font-semibold text-slate-900">{outboundCount}</p>
- </article>
- <article className="rounded-2xl border border-slate-200 bg-white p-4">
- <p className="text-sm text-slate-700">Försenade kvittenser</p>
- <p className="mt-2 text-2xl font-semibold text-slate-900">{overdueMessages.length}</p>
- </article>
- <article className="rounded-2xl border border-slate-200 bg-white p-4">
- <p className="text-sm text-slate-700">Ack-dubletter</p>
- <p className="mt-2 text-2xl font-semibold text-slate-900">{duplicateAckCandidates.length}</p>
- </article>
- <article className="rounded-2xl border border-slate-200 bg-white p-4">
- <p className="text-sm text-slate-700">Failed senaste</p>
- <p className="mt-2 text-2xl font-semibold text-slate-900">{failedRecentCount}</p>
- </article>
- </section>
-
- <section className="rounded-2xl border border-slate-200 bg-white">
- <div className="border-b border-slate-200 px-5 py-4">
- <h2 className="text-base font-semibold text-slate-900">Försenade kvittenser</h2>
- <p className="mt-1 text-sm text-slate-700">
- Detta är driftslistan. Den ska inte autoskapa nya kvittenser; den ska hjälpa admin att följa upp.
- </p>
+ {isPlatformAdmin ? (
+ platformAlerts.length > 0 ? (
+ <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+ <div className="border-b border-slate-100 px-5 py-4">
+ <h2 className="text-base font-semibold text-slate-950">Superadmin-larm</h2>
+ <p className="mt-1 text-sm text-slate-700">Tenant-, Ediel-, route-, export- och behörighetslarm som påverkar SaaS-driften.</p>
  </div>
-
- {overdueMessages.length === 0 ? (
- <div className="px-5 py-6 text-sm text-slate-700">Inga försenade kvittenser just nu.</div>
- ) : (
- <div className="overflow-x-auto">
- <table className="min-w-full divide-y divide-slate-200 text-sm">
- <thead className="bg-slate-50 text-left text-slate-700">
- <tr>
- <th className="px-4 py-3 font-medium">Meddelande</th>
- <th className="px-4 py-3 font-medium">Ack-state</th>
- <th className="px-4 py-3 font-medium">Deadline</th>
- <th className="px-4 py-3 font-medium">Vad betyder det?</th>
- <th className="px-4 py-3 font-medium">Åtgärd</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-100">
- {overdueMessages.map((row) => {
- const canonicalState = getCanonicalAckState(row)
- const state = String(canonicalState)
- return (
- <tr key={row.id}>
- <td className="px-4 py-3 align-top">
- <div className="font-medium text-slate-900">
- {row.message_family} {row.message_code}
+ <div className="grid gap-4 p-5 xl:grid-cols-3">
+ {platformAlerts.map((alert) => (
+ <Link key={alert.id} href={alert.href} className={`rounded-3xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass(alert.severity === 'danger' ? 'danger' : alert.severity === 'warning' ? 'warning' : 'neutral')}`}>
+ <div className="flex items-start justify-between gap-3">
+ <h3 className="text-sm font-semibold text-slate-950">{alert.title}</h3>
+ <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeClass(alert.severity === 'danger' ? 'danger' : alert.severity === 'warning' ? 'warning' : 'neutral')}`}>{alert.count}</span>
  </div>
- <div className="mt-1 text-xs text-slate-700">
- {row.direction} · {row.message_version || 'utan version'} · {row.status}
- </div>
- </td>
- <td className="px-4 py-3 align-top">
- <AckBadge state={state} />
- <div className="mt-2 space-y-1 text-xs text-slate-700">
- <div>CONTRL: {row.contrl_status ?? '—'}</div>
- <div>APERAK: {row.aperak_status ?? '—'}</div>
- <div>UTILTS_ERR: {row.utilts_err_status ?? '—'}</div>
- </div>
- </td>
- <td className="px-4 py-3 align-top text-xs text-slate-700">
- {formatDate(row.ack_due_at)}
- </td>
- <td className="px-4 py-3 align-top text-xs text-slate-700">
- {ackHelpText(state)}
- </td>
- <td className="px-4 py-3 align-top text-xs">
- <Link
- href={`/admin/ediel/messages/${row.id}`}
- className="font-medium text-slate-700 underline-offset-2 hover:underline"
- >
- Öppna och hantera
+ <p className="mt-3 text-sm leading-6 text-slate-700">{alert.description}</p>
+ {alert.meta ? <p className="mt-2 text-xs text-slate-600">{alert.meta}</p> : null}
  </Link>
- </td>
- </tr>
+ ))}
+ </div>
+ </section>
+ ) : (
+ <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 shadow-sm">
+ Inga superadmin-larm för pausade bolag, saknad Ediel-profil, routeproblem, försenade kvittenser eller blockerade exporter.
+ </section>
  )
- })}
- </tbody>
- </table>
- </div>
- )}
+ ) : null}
+
+ <section className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-5 text-sm leading-6 text-emerald-950 shadow-sm">
+ <h2 className="text-base font-semibold">Operationsprincip</h2>
+ <p className="mt-2 max-w-5xl">
+ Control Tower ska visa vad som stoppar flödet. Verkliga kunder ska inte raderas när de flyttar; de ska mjukt avslutas så att Ediel-historik, fullmakter, mätvärden, avtal och slutdebitering kan följas upp.
+ </p>
  </section>
 
- <section className="grid gap-6 lg:grid-cols-2">
- <article className="rounded-2xl border border-slate-200 bg-white">
- <div className="border-b border-slate-200 px-5 py-4">
- <h2 className="text-base font-semibold text-slate-900">Dublettskydd ack</h2>
- <p className="mt-1 text-sm text-slate-700">
- Ska normalt vara tom. Om något visas här finns mer än en CONTRL/APERAK/UTILTS_ERR för samma källmeddelande.
- </p>
- </div>
- {duplicateAckCandidates.length === 0 ? (
- <div className="px-5 py-6 text-sm text-slate-700">Inga ack-dubletter hittades.</div>
- ) : (
- <ul className="divide-y divide-slate-100">
- {duplicateAckCandidates.map((row) => (
- <li key={`${row.related_message_id}-${row.message_family}`} className="px-5 py-4">
- <div className="flex items-start justify-between gap-4">
- <div>
- <div className="font-medium text-slate-900">
- {row.message_family} för källa {row.related_message_id}
- </div>
- <div className="mt-1 text-sm text-slate-700">
- {row.duplicate_count} kvittenser hittades. Kontrollera historiken och stoppa vidare autoskick.
- </div>
- </div>
- <Link
- href={`/admin/ediel/messages/${row.related_message_id}`}
- className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
- >
- Öppna källa
- </Link>
- </div>
- <div className="mt-3 flex flex-wrap gap-2">
- {row.message_ids.map((messageId) => (
- <Link
- key={messageId}
- href={`/admin/ediel/messages/${messageId}`}
- className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-700 underline-offset-2 hover:bg-slate-50 hover:underline"
- >
- {messageId}
- </Link>
- ))}
- </div>
- </li>
- ))}
- </ul>
- )}
- </article>
-
- <article className="rounded-2xl border border-slate-200 bg-white">
- <div className="border-b border-slate-200 px-5 py-4">
- <h2 className="text-base font-semibold text-slate-900">Regelkonflikter</h2>
- <p className="mt-1 text-sm text-slate-700">
- Runtime ska kunna välja exakt en aktiv regel per family, code, standard och riktning.
- </p>
- </div>
- {ruleAmbiguities.length === 0 ? (
- <div className="px-5 py-6 text-sm text-slate-700">Inga regelkonflikter hittades.</div>
- ) : (
- <ul className="divide-y divide-slate-100">
- {ruleAmbiguities.map((row) => (
- <li key={`${row.message_family}-${row.message_code}-${row.message_standard}-${row.direction}`} className="px-5 py-4">
- <div className="font-medium text-slate-900">
- {row.message_family} {row.message_code}
- </div>
- <div className="mt-1 text-sm text-slate-700">
- {row.message_standard} · {row.direction} · {row.active_rule_count} aktiva regler
- </div>
- <p className="mt-2 text-xs text-slate-700">
- Åtgärd: stäng av överlappande regel eller sätt valid_to så current och previous-valid blir tydliga.
- </p>
- <div className="mt-2 flex flex-wrap gap-2">
- {row.version_codes.map((version) => (
- <span key={version} className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-700">
- {version}
- </span>
- ))}
- </div>
- </li>
- ))}
- </ul>
- )}
- </article>
+ <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+ <KpiCard label="Aktiva blockerare" value={activeIssues} description="Total kö som kräver manuell eller automatisk åtgärd." href="/admin/operations" tone={activeIssues > 0 ? 'warning' : 'success'} />
+ <KpiCard label="Blockerade uppgifter" value={blockedTasks} description="Kundflöden som inte ska skickas vidare innan datan är rättad." href="/admin/operations/tasks?status=blocked" tone={blockedTasks > 0 ? 'danger' : 'success'} />
+ <KpiCard label="Uppladdade fullmakter" value={uploadedPoaDocs} description="Fullmakter som behöver verifieras innan uppgifter begärs." href="/admin/operations/tasks" tone={uploadedPoaDocs > 0 ? 'warning' : 'success'} />
+ <KpiCard label="Signerade fullmakter" value={signedPowersOfAttorney} description="Signerade fullmakter som kan ligga till grund för automation." href="/admin/customers" tone="neutral" />
+ <KpiCard label="Väntar på nätägare" value={pendingGridOwnerRequests} description="Begäran om kund-/anläggningsdata, mätvärden eller underlag." href="/admin/outbound/unresolved" tone={pendingGridOwnerRequests > 0 ? 'warning' : 'success'} />
+ <KpiCard label="Switchar i flöde" value={waitingSwitches} description="Köade, skickade eller accepterade leverantörsbyten." href="/admin/operations/switches" tone="neutral" />
+ <KpiCard label="Switchfel" value={failedSwitches} description="Switchar som behöver rättas eller stängas manuellt." href="/admin/operations/switches?stage=failed" tone={failedSwitches > 0 ? 'danger' : 'success'} />
+ <KpiCard label="Outboundfel" value={failedOutbound} description="Utskick som inte gick igenom och måste felsökas." href="/admin/outbound" tone={failedOutbound > 0 ? 'danger' : 'success'} />
+ <KpiCard label="Ediel-fel" value={failedEdielMessages} description="Meddelanden med felstatus i Ediel-kedjan." href="/admin/ediel/control-tower" tone={failedEdielMessages > 0 ? 'danger' : 'success'} />
+ <KpiCard label="Flyttade/avslutade" value={movedCustomers} description="Kunder som är mjukt stängda och ska slutuppföljas." href="/admin/customers?status=moved" tone="neutral" />
  </section>
 
- <section className="rounded-2xl border border-slate-200 bg-white">
- <div className="border-b border-slate-200 px-5 py-4">
- <h2 className="text-base font-semibold text-slate-900">Senaste trafik</h2>
- <p className="mt-1 text-sm text-slate-700">Senaste Ediel-meddelanden med svensk ack-förklaring.</p>
+ <div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
+ <QueueList title="Prioriterad operationskö" rows={queueRows} />
+ <QueueList title="Flytt / avslut att följa upp" rows={lifecycleRows} />
  </div>
-
- {recentMessages.length === 0 ? (
- <div className="px-5 py-6 text-sm text-slate-700">Inga Ediel-meddelanden hittades ännu.</div>
- ) : (
- <div className="overflow-x-auto">
- <table className="min-w-full divide-y divide-slate-200 text-sm">
- <thead className="bg-slate-50 text-left text-slate-700">
- <tr>
- <th className="px-4 py-3 font-medium">Skapad</th>
- <th className="px-4 py-3 font-medium">Meddelande</th>
- <th className="px-4 py-3 font-medium">Status</th>
- <th className="px-4 py-3 font-medium">Ack-state</th>
- <th className="px-4 py-3 font-medium">Referenser</th>
- <th className="px-4 py-3 font-medium">Öppna</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-100">
- {recentMessages.map((row) => {
- const state = String(getCanonicalAckState(row))
- return (
- <tr key={row.id}>
- <td className="px-4 py-3 align-top text-xs text-slate-700">{formatDate(row.created_at)}</td>
- <td className="px-4 py-3 align-top">
- <div className="font-medium text-slate-900">
- {row.message_family} {row.message_code}
- </div>
- <div className="mt-1 text-xs text-slate-700">
- {row.direction} · {row.message_version || 'utan version'}
- </div>
- </td>
- <td className="px-4 py-3 align-top">
- <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusTone(row.status)}`}>
- {row.status}
- </span>
- </td>
- <td className="px-4 py-3 align-top">
- <AckBadge state={state} />
- <p className="mt-2 max-w-xs text-xs text-slate-700">{ackHelpText(state)}</p>
- </td>
- <td className="px-4 py-3 align-top text-xs text-slate-700">
- <div>External: {row.external_reference ?? '—'}</div>
- <div>Transaction: {row.transaction_reference ?? '—'}</div>
- <div>Interchange: {row.interchange_reference ?? '—'}</div>
- </td>
- <td className="px-4 py-3 align-top text-xs">
- <Link href={`/admin/ediel/messages/${row.id}`} className="font-medium text-slate-700 underline-offset-2 hover:underline">
- Öppna
- </Link>
- </td>
- </tr>
- )
- })}
- </tbody>
- </table>
- </div>
- )}
- </section>
  </div>
  )
 }

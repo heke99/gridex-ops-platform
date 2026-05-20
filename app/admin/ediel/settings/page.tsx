@@ -202,8 +202,12 @@ export default async function AdminEdielSettingsPage() {
  .from('ediel_actor_settings')
  .select('*')
 
+ if (!isPlatformAdmin) {
  if (companyScope.companyId) {
- actorSettingsQuery = actorSettingsQuery.or(`company_id.is.null,company_id.eq.${companyScope.companyId}`)
+ actorSettingsQuery = actorSettingsQuery.eq('company_id', companyScope.companyId)
+ } else {
+ actorSettingsQuery = actorSettingsQuery.eq('company_id', '00000000-0000-0000-0000-000000000000')
+ }
  }
 
  const [actorSettingsResult, messageRulesResult] = await Promise.all([
@@ -338,8 +342,10 @@ export default async function AdminEdielSettingsPage() {
  <div className="space-y-6">
  <AdminHeader
  title="Ediel-inställningar"
- subtitle={`Aktörsprofiler och meddelanderegler för ${companyScope.companyName ?? 'valt bolag'}. Aktiva profiler sparas tenant-scopat så samma Ediel-id används i routes, liveflöde och testmiljö.`}
+ subtitle={isPlatformAdmin ? 'Plattformsöversikt för aktörsprofiler samt global regelhantering. Tenant-regler visas inte i vanliga bolagsvyer.' : `Bolagets Ediel-profil för ${companyScope.companyName ?? 'ditt bolag'}. Aktiva profiler sparas tenant-scopat så rätt Ediel-id används i routes, liveflöde och testmiljö.`}
  userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
  <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -403,6 +409,12 @@ export default async function AdminEdielSettingsPage() {
  </div>
 
  <div className="space-y-6">
+ {actorSettings.length === 0 ? (
+ <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-900">
+ Inget aktörskort finns för aktuellt bolag. Skapa ett test- eller produktionskort innan liveflöden skickas. Systemet kommer inte att fallbacka till ett annat bolags Ediel-profil.
+ </div>
+ ) : null}
+
  {actorSettings.map((row) => (
  <form
  key={row.id}

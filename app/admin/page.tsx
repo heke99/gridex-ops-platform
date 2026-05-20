@@ -211,6 +211,8 @@ export default async function AdminDashboardPage() {
  title="Driftöversikt"
  subtitle="Samlad översikt för Ediel, kunder, fullmakter, operations, mätvärden, faktureringsunderlag och tenant-säkerhet."
  userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
  <div className="space-y-8 p-8">

@@ -18,6 +18,12 @@ async function updateResponsibleUserFormAction(formData: FormData) {
   await updateCompanyResponsibleUserAction(emptyState, formData)
 }
 
+
+function getBrandingValue(branding: Record<string, unknown> | null | undefined, key: string) {
+  const value = branding?.[key]
+  return typeof value === 'string' ? value : ''
+}
+
 function roleLabel(value: string) {
   const labels: Record<string, string> = {
     owner: 'Ägare',
@@ -37,6 +43,7 @@ export default async function CompanySettingsPage() {
   const company = companyId ? await getCompanyById(companyId) : null
   const users = companyId ? await listCompanyUsersForGovernance(companyId) : []
   const responsibleUsers = users.filter((user) => ['owner', 'admin', 'company_admin'].includes(user.membershipRole))
+  const branding = company?.branding && typeof company.branding === 'object' ? company.branding : null
 
   return (
     <div className="min-h-screen">
@@ -124,6 +131,33 @@ export default async function CompanySettingsPage() {
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">Landkod</span>
                       <input name="country_code" defaultValue={company.country_code ?? 'SE'} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+                  <h3 className="text-sm font-semibold text-slate-950">White-label profil</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-700">Det här styr hur bolagsytan, kundkommunikation och framtida kundportal ska kännas för tenantens användare och kunder.</p>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Visningsnamn</span>
+                      <input name="branding_display_name" defaultValue={getBrandingValue(branding, 'display_name') || company.name} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Logotyp URL</span>
+                      <input name="branding_logo_url" defaultValue={getBrandingValue(branding, 'logo_url')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder="https://..." />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Primärfärg</span>
+                      <input name="branding_primary_color" defaultValue={getBrandingValue(branding, 'primary_color') || '#047857'} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder="#047857" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Avsändarmail</span>
+                      <input name="branding_sender_email" type="email" defaultValue={getBrandingValue(branding, 'sender_email')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Kundportalnamn</span>
+                      <input name="branding_customer_portal_name" defaultValue={getBrandingValue(branding, 'customer_portal_name') || company.name} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
                     </label>
                   </div>
                 </div>

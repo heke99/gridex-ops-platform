@@ -102,6 +102,24 @@ async function getActorContext() {
   }
 }
 
+
+async function assertCommunicationRouteBelongsToCompany(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  routeId: string,
+  companyId: string
+) {
+  const { data, error } = await supabase
+    .from('communication_routes')
+    .select('id, company_id')
+    .eq('id', routeId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data || data.company_id !== companyId) {
+    throw new Error('Route saknas eller tillhör ett annat bolag.')
+  }
+}
+
 async function getActorDefaults(environment: 'test' | 'production', companyId?: string | null) {
   try {
     return await resolveCanonicalActorContext(environment, companyId)
@@ -228,7 +246,8 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     throw new Error('Missing communication route id')
   }
 
-  const { userId, companyId } = await getActorContext()
+  const { supabase, userId, companyId } = await getActorContext()
+  await assertCommunicationRouteBelongsToCompany(supabase, communicationRouteId, companyId)
   const environment =
     (stringValue(formData, 'environment') as 'test' | 'production' | null) ?? 'test'
 
@@ -273,7 +292,7 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
     'billing_underlay.write',
   ])
 
-  const { userId, companyId } = await getActorContext()
+  const { supabase, userId, companyId } = await getActorContext()
 
   const id = stringValue(formData, 'id')
   const routeName = stringValue(formData, 'route_name')
@@ -292,6 +311,10 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
 
   if (!routeName || !routeScope || !routeType || !targetSystem) {
     throw new Error('Missing communication route fields')
+  }
+
+  if (id) {
+    await assertCommunicationRouteBelongsToCompany(supabase, id, companyId)
   }
 
   const saved = await saveCommunicationRoute({
@@ -396,6 +419,7 @@ export async function quickFixEdielTargetEmailAction(formData: FormData) {
   }
 
   const { supabase, userId, companyId } = await getActorContext()
+  await assertCommunicationRouteBelongsToCompany(supabase, routeId, companyId)
 
   const { error } = await supabase
     .from('communication_routes')
@@ -427,6 +451,7 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
   }
 
   const { supabase, userId, companyId } = await getActorContext()
+  await assertCommunicationRouteBelongsToCompany(supabase, routeId, companyId)
 
   if (activateRoute) {
     const { error } = await supabase
@@ -491,7 +516,8 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
     throw new Error('routeId saknas')
   }
 
-  const { userId, companyId } = await getActorContext()
+  const { supabase, userId, companyId } = await getActorContext()
+  await assertCommunicationRouteBelongsToCompany(supabase, routeId, companyId)
   const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId)
 
   await upsertEdielRouteProfileLocal({
@@ -547,7 +573,7 @@ export async function quickFixGridOwnerEdielIdAction(formData: FormData) {
     throw new Error('Ediel-id saknas')
   }
 
-  const { supabase, userId, companyId } = await getActorContext()
+  const { supabase, userId } = await getActorContext()
 
   const { error } = await supabase
     .from('grid_owners')

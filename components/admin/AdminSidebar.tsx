@@ -27,6 +27,8 @@ type NavGroup = {
 type AdminSidebarProps = {
  permissions: string[]
  isPlatformAdmin: boolean
+ workspaceName?: string | null
+ workspaceSubtitle?: string | null
 }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -306,6 +308,13 @@ const NAV_GROUPS: NavGroup[] = [
  pageKey: 'platform.ediel.routes',
  platformOnly: true,
  },
+ {
+ href: '/admin/platform/ediel/runtime',
+ label: 'Runtimekontroll',
+ description: 'Versioner, routes och ack-policy i drift',
+ pageKey: 'platform.ediel.runtime',
+ platformOnly: true,
+ },
  ],
  },
  {
@@ -343,8 +352,16 @@ function canAccessNavItem(currentPermissions: string[], item: NavItem, isPlatfor
  )
 }
 
-export default function AdminSidebar({ permissions, isPlatformAdmin }: AdminSidebarProps) {
+export default function AdminSidebar({
+ permissions,
+ isPlatformAdmin,
+ workspaceName,
+ workspaceSubtitle,
+}: AdminSidebarProps) {
  const pathname = usePathname()
+ const displayName = workspaceName?.trim() || (isPlatformAdmin ? 'Gridex Platform' : 'Ditt bolag')
+ const displaySubtitle = workspaceSubtitle?.trim() || (isPlatformAdmin ? 'SaaS-plattform' : 'White-label arbetsyta')
+ const initial = displayName.charAt(0).toUpperCase()
 
  const visibleGroups = NAV_GROUPS.map((group) => ({
  ...group,
@@ -356,14 +373,14 @@ export default function AdminSidebar({ permissions, isPlatformAdmin }: AdminSide
  <div className="border-b border-emerald-100/80 bg-white/90 px-5 py-5 backdrop-blur-xl">
  <Link href="/admin" className="group flex items-center gap-3 rounded-3xl border border-emerald-100 bg-white p-3 shadow-sm shadow-emerald-950/5 transition hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-950/10">
  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 text-base font-bold text-white shadow-sm shadow-emerald-700/20">
- G
+ {initial}
  </span>
  <span className="min-w-0">
- <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
- Gridex
+ <span className="block truncate text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
+ {displaySubtitle}
  </span>
  <span className="mt-0.5 block truncate text-sm font-semibold text-slate-950">
- Operations Center
+ {displayName}
  </span>
  </span>
  </Link>
@@ -376,7 +393,9 @@ export default function AdminSidebar({ permissions, isPlatformAdmin }: AdminSide
  {isPlatformAdmin ? 'Kontrollcenter' : 'Driftcenter'}
  </h1>
  <p className="mt-2 text-sm leading-6 text-slate-700">
- {isPlatformAdmin ? 'Plattformsstyrning, tenants, Ediel och drift i samma arbetsyta.' : 'Ediel, kunder, switching, mätvärden och partnerhandoff för ditt bolag.'}
+ {isPlatformAdmin
+ ? 'Plattformsstyrning, tenants, Ediel och drift i samma arbetsyta.'
+ : 'White-label drift för kunder, Ediel, mätvärden och faktureringsunderlag.'}
  </p>
  </div>
  </div>

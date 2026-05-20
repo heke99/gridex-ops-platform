@@ -27,6 +27,12 @@ function normalizeEnvironment(value: FormDataEntryValue | null) {
   return text === 'production' ? 'production' : 'test'
 }
 
+function normalizeHexColor(value: FormDataEntryValue | null) {
+  const text = normalizeText(value)
+  if (!text) return null
+  return /^#[0-9a-fA-F]{6}$/.test(text) ? text.toUpperCase() : text
+}
+
 const COMPANY_ASSIGNABLE_ROLE_KEYS = new Set([
   'company_admin',
   'operations_manager',
@@ -89,6 +95,15 @@ export async function updateCompanySettingsAction(
     const senderSubAddress = normalizeUpper(formData.get('sender_sub_address'))
     const edielMailbox = normalizeText(formData.get('ediel_mailbox')) || null
     const operatingEnvironment = normalizeEnvironment(formData.get('operating_environment'))
+    const branding = {
+      display_name: normalizeText(formData.get('branding_display_name')) || name,
+      logo_url: normalizeText(formData.get('branding_logo_url')) || null,
+      primary_color: normalizeHexColor(formData.get('branding_primary_color')) || '#047857',
+      support_email: supportEmail,
+      billing_email: billingContactEmail,
+      sender_email: normalizeEmail(formData.get('branding_sender_email')) || primaryContactEmail,
+      customer_portal_name: normalizeText(formData.get('branding_customer_portal_name')) || name,
+    }
 
     if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
 
@@ -113,6 +128,7 @@ export async function updateCompanySettingsAction(
         sender_sub_address: senderSubAddress,
         ediel_mailbox: edielMailbox,
         operating_environment: operatingEnvironment,
+        branding,
         updated_at: new Date().toISOString(),
       })
       .eq('id', companyId)

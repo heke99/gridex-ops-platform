@@ -1,6 +1,6 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
  explainEdielRouteRuntime,
@@ -207,11 +207,8 @@ function buildReceiverPresets(params: {
 }
 
 export default async function AdminEdielRoutesPage() {
- const context = await requireAnyPermissionServer([
- 'communication.read',
- 'masterdata.read',
- 'switching.read',
- ])
+ const context = await requireAdminPageKeyAccess('ediel.routes')
+ const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)
 
  const supabase = await createSupabaseServerClient()
@@ -222,16 +219,20 @@ export default async function AdminEdielRoutesPage() {
  'id,company_id,route_name,is_active,route_scope,route_type,grid_owner_id,target_system,endpoint,target_email,supported_payload_version,notes,updated_at'
  )
 
+ if (!isPlatformAdmin) {
  if (companyScope.companyId) {
- routesQuery = routesQuery.or(`company_id.is.null,company_id.eq.${companyScope.companyId}`)
+ routesQuery = routesQuery.eq('company_id', companyScope.companyId)
+ } else {
+ routesQuery = routesQuery.eq('company_id', '00000000-0000-0000-0000-000000000000')
+ }
  }
 
  const [routesResult, gridOwnersResult, testActor, prodActor] = await Promise.all([
  routesQuery
  .order('updated_at', { ascending: false }),
  supabase.from('grid_owners').select('id,name,ediel_id,owner_code').order('name'),
- resolveCanonicalActorContext('test').catch(() => null),
- resolveCanonicalActorContext('production').catch(() => null),
+ resolveCanonicalActorContext('test', isPlatformAdmin ? null : companyScope.companyId).catch(() => null),
+ resolveCanonicalActorContext('production', isPlatformAdmin ? null : companyScope.companyId).catch(() => null),
  ])
 
  if (routesResult.error) throw routesResult.error
@@ -297,8 +298,10 @@ export default async function AdminEdielRoutesPage() {
  <div className="space-y-6">
  <AdminHeader
  title="Ediel-adressering & aktörsregister"
- subtitle={`Spara nätägare, leverantörer, BRP och route profiles för ${companyScope.companyName ?? 'valt bolag'}: rätt Ediel-id, rätt motpart, rätt process och rätt kvittenspolicy.`}
+ subtitle={isPlatformAdmin ? 'Global route-governance och runtimekontroll för plattformen. Tenant-vyer visar bara bolagets egna routes.' : `Spara route profiles för ${companyScope.companyName ?? 'ditt bolag'}: rätt Ediel-id, rätt motpart, rätt process och rätt kvittenspolicy.`}
  userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
  <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">

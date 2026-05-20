@@ -61,6 +61,23 @@ async function getActorContext() {
   }
 }
 
+
+async function getAuthenticatedEdielActionContext() {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
+  return {
+    supabase,
+    userId: user.id,
+  }
+}
+
 function revalidateEdielPaths() {
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/ediel/settings')
@@ -140,7 +157,7 @@ export async function saveEdielActorSettingsAction(formData: FormData) {
 export async function saveEdielMessageRuleAction(formData: FormData) {
   await requirePlatformAdminActionAccess()
 
-  const { supabase, userId } = await getActorContext()
+  const { supabase, userId } = await getAuthenticatedEdielActionContext()
 
   const id = stringValue(formData, 'id')
   const messageFamily = uppercaseOrNull(stringValue(formData, 'message_family')) ?? ''
@@ -530,9 +547,9 @@ export async function applyEdielRuleTemplateAction(
   formData: FormData
 ): Promise<EdielTemplateActionState> {
   try {
-    await requireAdminActionAccess(['communication.read', 'communication.send'])
+    await requirePlatformAdminActionAccess()
 
-    const { supabase, userId } = await getActorContext()
+    const { supabase, userId } = await getAuthenticatedEdielActionContext()
     const template = stringValue(formData, 'template')
 
     if (!template) {

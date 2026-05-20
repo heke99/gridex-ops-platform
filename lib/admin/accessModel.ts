@@ -17,6 +17,7 @@ export type AdminPageKey =
   | 'platform.ediel.rules'
   | 'platform.ediel.versions'
   | 'platform.ediel.routes'
+  | 'platform.ediel.runtime'
   | 'operations.control_tower'
   | 'operations.sync'
   | 'operations.integrity'
@@ -74,6 +75,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'platform.ediel.rules': { anyOf: ['tenants.write'] },
   'platform.ediel.versions': { anyOf: ['tenants.write'] },
   'platform.ediel.routes': { anyOf: ['tenants.write'] },
+  'platform.ediel.runtime': { anyOf: ['tenants.write'] },
   'operations.control_tower': {
     anyOf: [
       'switching.read',
