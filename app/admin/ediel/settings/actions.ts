@@ -65,9 +65,6 @@ function revalidateEdielPaths() {
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/ediel/settings')
   revalidatePath('/admin/ediel/routes')
-  revalidatePath('/admin/platform/ediel/rules')
-  revalidatePath('/admin/platform/ediel/versions')
-  revalidatePath('/admin/platform/ediel/routes')
   revalidatePath('/admin/ediel/control-tower')
   revalidatePath('/admin/ediel/ai-list')
 }
@@ -126,7 +123,6 @@ export async function saveEdielActorSettingsAction(formData: FormData) {
       .from('ediel_actor_settings')
       .update(payload)
       .eq('id', id)
-      .eq('company_id', companyId)
 
     if (error) throw error
   } else {
@@ -142,9 +138,9 @@ export async function saveEdielActorSettingsAction(formData: FormData) {
 }
 
 export async function saveEdielMessageRuleAction(formData: FormData) {
-  const access = await requirePlatformAdminActionAccess()
-  const supabase = await createSupabaseServerClient()
-  const userId = access.userId
+  await requirePlatformAdminActionAccess()
+
+  const { supabase, userId } = await getActorContext()
 
   const id = stringValue(formData, 'id')
   const messageFamily = uppercaseOrNull(stringValue(formData, 'message_family')) ?? ''
@@ -534,9 +530,9 @@ export async function applyEdielRuleTemplateAction(
   formData: FormData
 ): Promise<EdielTemplateActionState> {
   try {
-    const access = await requirePlatformAdminActionAccess()
-    const supabase = await createSupabaseServerClient()
-    const userId = access.userId
+    await requireAdminActionAccess(['communication.read', 'communication.send'])
+
+    const { supabase, userId } = await getActorContext()
     const template = stringValue(formData, 'template')
 
     if (!template) {

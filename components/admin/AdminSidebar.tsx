@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import {
  getAdminPageRequirement,
  hasPermissionRequirement,
- isPlatformAdminAccess,
  type AdminPageKey,
 } from '@/lib/admin/accessModel'
 
@@ -27,46 +26,10 @@ type NavGroup = {
 
 type AdminSidebarProps = {
  permissions: string[]
- roles?: string[]
- companyName?: string | null
+ isPlatformAdmin: boolean
 }
 
 const NAV_GROUPS: NavGroup[] = [
-
- {
- title: 'Plattform',
- description: 'Superadmin-only styrning och säkerhetskontroll',
- items: [
- {
- href: '/admin/platform/ediel/rules',
- label: 'Globala Ediel-regler',
- description: 'Versioner, message rules och runtime-regler',
- pageKey: 'platform.ediel.rules',
- platformOnly: true,
- },
- {
- href: '/admin/platform/ediel/versions',
- label: 'Ediel-versioner',
- description: 'Current, previous och accepted inbound versions',
- pageKey: 'platform.ediel.versions',
- platformOnly: true,
- },
- {
- href: '/admin/platform/ediel/routes',
- label: 'Globala Ediel-rutter',
- description: 'Route profiles och teknisk adressering över alla tenants',
- pageKey: 'platform.ediel.routes',
- platformOnly: true,
- },
- {
- href: '/admin/platform/security',
- label: 'RBAC säkerhetskontroll',
- description: 'Kontroller för server actions, routes och tenant-scope',
- pageKey: 'platform.security',
- platformOnly: true,
- },
- ],
- },
  {
  title: 'Översikt',
  description: 'Daglig drift och prioriterade blockeringar',
@@ -116,8 +79,8 @@ const NAV_GROUPS: NavGroup[] = [
  {
  href: '/admin/ediel/settings',
  label: 'Ediel-inställningar',
- description: 'Aktörsidentitet och teknisk bolagsprofil',
- pageKey: 'ediel.settings',
+ description: 'Aktörsidentitet, versioner och ack-policy',
+ pageKey: 'ediel.routes',
  },
  {
  href: '/admin/ediel/agt',
@@ -296,17 +259,59 @@ const NAV_GROUPS: NavGroup[] = [
  },
  ],
  },
+
  {
- title: 'Inställningar',
- description: 'Bolag, användare, roller och spårbarhet',
+ title: 'Plattform',
+ description: 'Endast superadmin: tenants, globala regler och systemstyrning',
  items: [
  {
  href: '/admin/companies',
- label: 'Elhandelsbolag',
- description: 'Skapa bolag, governance och plattformsstatistik',
+ label: 'Bolag på plattformen',
+ description: 'Skapa, pausa och styra elhandelsbolag',
  pageKey: 'companies.manage',
  platformOnly: true,
  },
+ {
+ href: '/admin/users',
+ label: 'Alla användare',
+ description: 'Globala konton, roller och overrides',
+ pageKey: 'users.list',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/roles',
+ label: 'Roller & behörigheter',
+ description: 'Global accessmodell',
+ pageKey: 'roles.catalog',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/platform/ediel/rules',
+ label: 'Globala Ediel-regler',
+ description: 'Message rules och runtime-regler',
+ pageKey: 'platform.ediel.rules',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/platform/ediel/versions',
+ label: 'Ediel-versioner',
+ description: 'Versioner och giltighetstider',
+ pageKey: 'platform.ediel.versions',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/platform/ediel/routes',
+ label: 'Platform routes',
+ description: 'Global route-governance',
+ pageKey: 'platform.ediel.routes',
+ platformOnly: true,
+ },
+ ],
+ },
+ {
+ title: 'Inställningar',
+ description: 'Bolagets egna inställningar och spårbarhet',
+ items: [
  {
  href: '/admin/company-settings',
  label: 'Bolagsinställningar',
@@ -314,22 +319,9 @@ const NAV_GROUPS: NavGroup[] = [
  pageKey: 'company.settings',
  },
  {
- href: '/admin/users',
- label: 'Användare',
- description: 'Konton, roller och individuella behörigheter',
- pageKey: 'users.list',
- },
- {
- href: '/admin/roles',
- label: 'Roller',
- description: 'Global behörighetsmodell för plattformen',
- pageKey: 'roles.catalog',
- platformOnly: true,
- },
- {
  href: '/admin/audit',
  label: 'Revisionslogg',
- description: 'Historik och spårbarhet',
+ description: 'Historik och spårbarhet för behörigt scope',
  pageKey: 'audit.log',
  },
  ],
@@ -342,7 +334,7 @@ function isActive(pathname: string, href: string) {
  return pathname.startsWith(href)
 }
 
-function canAccessNavItem(currentPermissions: string[], isPlatformAdmin: boolean, item: NavItem) {
+function canAccessNavItem(currentPermissions: string[], item: NavItem, isPlatformAdmin: boolean) {
  if (item.platformOnly && !isPlatformAdmin) return false
  if (!item.pageKey) return true
  return hasPermissionRequirement(
@@ -351,13 +343,12 @@ function canAccessNavItem(currentPermissions: string[], isPlatformAdmin: boolean
  )
 }
 
-export default function AdminSidebar({ permissions, roles = [], companyName }: AdminSidebarProps) {
+export default function AdminSidebar({ permissions, isPlatformAdmin }: AdminSidebarProps) {
  const pathname = usePathname()
- const isPlatformAdmin = isPlatformAdminAccess(permissions, roles)
 
  const visibleGroups = NAV_GROUPS.map((group) => ({
  ...group,
- items: group.items.filter((item) => canAccessNavItem(permissions, isPlatformAdmin, item)),
+ items: group.items.filter((item) => canAccessNavItem(permissions, item, isPlatformAdmin)),
  })).filter((group) => group.items.length > 0)
 
  return (
@@ -379,13 +370,13 @@ export default function AdminSidebar({ permissions, roles = [], companyName }: A
 
  <div className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
  <div className="inline-flex rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
- {isPlatformAdmin ? 'Plattformsvy' : 'Bolagsvy'}
+ SaaS Control
  </div>
  <h1 className="mt-3 text-lg font-semibold tracking-tight text-slate-950">
  Kontrollcenter
  </h1>
  <p className="mt-2 text-sm leading-6 text-slate-700">
- {isPlatformAdmin ? 'Plattformsstyrning, tenants och drift i samma vy.' : `Du arbetar i ${companyName ?? 'ditt bolag'}. Menyn visar bara tillåten access.`}
+ Ediel, kunder, switching, mätvärden och partnerhandoff i samma arbetsyta.
  </p>
  </div>
  </div>

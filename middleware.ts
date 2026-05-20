@@ -10,13 +10,52 @@ function isProtectedPath(pathname: string) {
 }
 
 
-function isPlatformOnlyAdminPath(pathname: string) {
+function isPlatformAdminPath(pathname: string) {
   return (
     pathname === '/admin/companies' ||
-    pathname.startsWith('/admin/users') ||
-    pathname.startsWith('/admin/roles') ||
-    pathname.startsWith('/admin/platform')
+    pathname.startsWith('/admin/companies/') ||
+    pathname === '/admin/users' ||
+    pathname.startsWith('/admin/users/') ||
+    pathname === '/admin/roles' ||
+    pathname.startsWith('/admin/roles/') ||
+    pathname === '/admin/platform' ||
+    pathname.startsWith('/admin/platform/')
   )
+}
+
+type RpcRoleRow = { role_key?: string | null }
+type RpcPermissionRow = { permission_key?: string | null; gridex_get_user_permissions?: string[] | null }
+
+function normalizeRpcPermissions(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  if (value.every((item) => typeof item === 'string')) return value as string[]
+
+  const out = new Set<string>()
+  for (const item of value as RpcPermissionRow[]) {
+    if (typeof item.permission_key === 'string') out.add(item.permission_key)
+    if (Array.isArray(item.gridex_get_user_permissions)) {
+      for (const permission of item.gridex_get_user_permissions) {
+        if (typeof permission === 'string') out.add(permission)
+      }
+    }
+  }
+  return Array.from(out)
+}
+
+async function isPlatformAdminSession(supabase: ReturnType<typeof createServerClient>, userId: string) {
+  const [{ data: roleRows, error: rolesError }, { data: permissionRows, error: permissionsError }] = await Promise.all([
+    supabase.rpc('gridex_get_user_roles', { p_user_id: userId }),
+    supabase.rpc('gridex_get_user_permissions', { p_user_id: userId }),
+  ])
+
+  if (rolesError || permissionsError) return false
+
+  const roles = ((roleRows ?? []) as RpcRoleRow[])
+    .map((row) => row.role_key ?? null)
+    .filter((role): role is string => typeof role === 'string' && role.length > 0)
+  const permissions = normalizeRpcPermissions(permissionRows)
+
+  return roles.includes('super_admin') || roles.includes('platform_admin') || permissions.includes('tenants.write')
 }
 
 function normalizeNextPath(value: string | null) {
@@ -82,22 +121,18 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('reason', 'account_disabled')
       return NextResponse.redirect(loginUrl)
     }
-
-
-    if (isPlatformOnlyAdminPath(pathname)) {
-      const { data: isPlatformAdmin, error: platformCheckError } = await supabase.rpc(
-        'gridex_user_is_platform_admin'
-      )
-
-      if (!platformCheckError && isPlatformAdmin !== true) {
-        return NextResponse.redirect(new URL('/admin', request.url))
-      }
-    }
   }
 
   if (user && pathname === '/login') {
     const next = normalizeNextPath(request.nextUrl.searchParams.get('next'))
     return NextResponse.redirect(new URL(next, request.url))
+  }
+
+  if (user && isPlatformAdminPath(pathname)) {
+    const allowed = await isPlatformAdminSession(supabase, user.id)
+    if (!allowed) {
+      return NextResponse.redirect(new URL('/admin/company-settings', request.url))
+    }
   }
 
   return response

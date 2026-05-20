@@ -13,10 +13,10 @@ export type AdminPageKey =
   | 'contracts.catalog'
   | 'companies.manage'
   | 'company.settings'
+  | 'platform.security'
   | 'platform.ediel.rules'
   | 'platform.ediel.versions'
   | 'platform.ediel.routes'
-  | 'platform.security'
   | 'operations.control_tower'
   | 'operations.sync'
   | 'operations.integrity'
@@ -38,7 +38,6 @@ export type AdminPageKey =
   | 'integrations.routes'
   | 'ediel.workspace'
   | 'ediel.routes'
-  | 'ediel.settings'
   | 'users.list'
   | 'users.detail'
   | 'roles.catalog'
@@ -69,12 +68,12 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'customers.intake': { anyOf: ['customers.write'] },
   'customers.segments': { anyOf: ['customers.read', 'reports.read'] },
   'contracts.catalog': { anyOf: ['pricing.read'] },
-  'companies.manage': { anyOf: ['tenants.read', 'tenants.write'] },
-  'company.settings': { anyOf: ['tenants.invite', 'users.write', 'communication.read'] },
-  'platform.ediel.rules': { anyOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
-  'platform.ediel.versions': { anyOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
-  'platform.ediel.routes': { anyOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
-  'platform.security': { anyOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
+  'companies.manage': { anyOf: ['tenants.write'] },
+  'company.settings': { anyOf: ['tenants.invite', 'users.read', 'users.write'] },
+  'platform.security': { anyOf: ['tenants.write'] },
+  'platform.ediel.rules': { anyOf: ['tenants.write'] },
+  'platform.ediel.versions': { anyOf: ['tenants.write'] },
+  'platform.ediel.routes': { anyOf: ['tenants.write'] },
   'operations.control_tower': {
     anyOf: [
       'switching.read',
@@ -141,10 +140,9 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'ediel.routes': {
     anyOf: ['communication.read', 'switching.read', 'metering.read', 'billing_underlay.read'],
   },
-  'ediel.settings': { anyOf: ['communication.read'] },
-  'users.list': { anyOf: ['tenants.read', 'tenants.write'] },
-  'users.detail': { anyOf: ['tenants.read', 'tenants.write'] },
-  'roles.catalog': { anyOf: ['roles.manage', 'permissions.manage'] },
+  'users.list': { anyOf: ['users.read'] },
+  'users.detail': { anyOf: ['users.read'] },
+  'roles.catalog': { anyOf: ['roles.manage', 'permissions.manage', 'users.read'] },
   'audit.log': { anyOf: ['audit.read'] },
 }
 
@@ -517,12 +515,4 @@ export function getRoleProfilePermissions(roleKey: string): string[] {
   return [...(ROLE_PERMISSION_PROFILES[roleKey]?.permissions ?? [])].sort((a, b) =>
     a.localeCompare(b, 'sv')
   )
-}
-
-export function isPlatformAdminRole(roles: string[]): boolean {
-  return roles.some((role) => role === 'super_admin' || role === 'platform_admin')
-}
-
-export function isPlatformAdminAccess(permissions: string[], roles: string[] = []): boolean {
-  return isPlatformAdminRole(roles) || permissions.includes('tenants.write') || permissions.includes('permissions.manage')
 }

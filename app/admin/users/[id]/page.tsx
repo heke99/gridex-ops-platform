@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getAdminUserById } from '@/lib/rbac/getAdminUserById'
 import { getAllRoles } from '@/lib/rbac/getAllRoles'
 import { getAllPermissions } from '@/lib/rbac/getAllPermissions'
@@ -39,7 +39,7 @@ export default async function AdminUserDetailPage({
 }: {
  params: Promise<{ id: string }>
 }) {
- const current = await requirePermissionServer('users.read')
+ const current = await requirePlatformAdminAccess()
  const { id } = await params
 
  const user = await getAdminUserById(id)

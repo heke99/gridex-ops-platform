@@ -1,7 +1,7 @@
 // app/admin/roles/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
  ROLE_PERMISSION_PROFILES,
  getRoleProfilePermissions,
@@ -46,7 +46,7 @@ function uniqueSorted(values: string[]) {
 }
 
 export default async function AdminRolesPage() {
- await requireAdminPageKeyAccess('roles.catalog')
+ await requirePlatformAdminAccess()
  const supabase = await createSupabaseServerClient()
 
  const {

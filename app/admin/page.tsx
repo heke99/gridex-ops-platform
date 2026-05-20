@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
 import { getActiveEdielActorSettings } from '@/lib/ediel/config'
@@ -52,7 +52,6 @@ async function safeCount(
  filters: CountFilter[] = []
 ) {
  try {
- // eslint-disable-next-line @typescript-eslint/no-explicit-any
  let query = supabase.from(table).select('id', { count: 'exact', head: true }) as any
 
  if (companyId) {
@@ -160,12 +159,10 @@ function ActionLine({ label, value, tone = 'slate' }: { label: string; value: st
 }
 
 export default async function AdminDashboardPage() {
- const context = await requireAnyPermissionServer(DASHBOARD_PERMISSIONS)
+ const context = await requireAdminPageKeyAccess('dashboard')
+ const isPlatformAdmin = isPlatformAdminContext(context)
  const supabase = await createSupabaseServerClient()
- const isPlatformAdmin = context.permissions.includes('tenants.write') || context.permissions.includes('permissions.manage')
- const companyScope = isPlatformAdmin
- ? { companyId: null, companyName: 'Plattformen', memberships: [], requiresCompany: false, message: null }
- : await getOperationalCompanyScope(context.userId)
+ const companyScope = await getOperationalCompanyScope(context.userId)
  const companyId = companyScope.companyId
 
  const [
@@ -186,7 +183,7 @@ export default async function AdminDashboardPage() {
  networkOwners,
  suppliers,
  ] = await Promise.all([
- getEdielSummary(supabase).catch(() => EMPTY_EDIEL_SUMMARY),
+ getEdielSummary(supabase, isPlatformAdmin ? null : companyId).catch(() => EMPTY_EDIEL_SUMMARY),
  getActiveEdielActorSettings('production', companyId).catch(() => null),
  getActiveEdielActorSettings('test', companyId).catch(() => null),
  safeCount(supabase, 'customers', companyId),
@@ -199,9 +196,9 @@ export default async function AdminDashboardPage() {
  safeCount(supabase, 'outbound_requests', companyId),
  safeCount(supabase, 'metering_values', companyId),
  safeCount(supabase, 'billing_underlays', companyId),
- safeCount(supabase, 'companies'),
- safeCount(supabase, 'grid_owners'),
- safeCount(supabase, 'electricity_suppliers'),
+ isPlatformAdmin ? safeCount(supabase, 'companies') : Promise.resolve(0),
+ isPlatformAdmin ? safeCount(supabase, 'grid_owners') : Promise.resolve(0),
+ isPlatformAdmin ? safeCount(supabase, 'electricity_suppliers') : Promise.resolve(0),
  ])
 
  const actor = productionActor ?? testActor
@@ -211,10 +208,8 @@ export default async function AdminDashboardPage() {
  return (
  <div className="min-h-screen">
  <AdminHeader
- title={isPlatformAdmin ? 'Plattformsöversikt' : 'Driftöversikt'}
- subtitle={isPlatformAdmin
- ? 'Superadmin-vy med bolag, tenant-risker, plattformsvolymer och globala blockeringar.'
- : 'Bolagsvy med egna kunder, fullmakter, operations, mätvärden och faktureringsunderlag.'}
+ title="Driftöversikt"
+ subtitle="Samlad översikt för Ediel, kunder, fullmakter, operations, mätvärden, faktureringsunderlag och tenant-säkerhet."
  userEmail={context.email}
  />
 
@@ -224,12 +219,11 @@ export default async function AdminDashboardPage() {
  <div>
  <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-900">Gridex Operations</p>
  <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
- {isPlatformAdmin ? 'Dagens plattformsläge' : `Dagens driftläge för ${companyScope.companyName ?? 'ditt bolag'}`}
+{isPlatformAdmin ? 'Plattformsöversikt' : `Dagens driftläge för ${companyScope.companyName ?? 'ditt bolag'}`}
  </h1>
  <p className="mt-3 max-w-4xl text-sm font-bold leading-6 text-slate-700">
- {isPlatformAdmin
- ? 'Här ser du plattformsvolymer, tenant-risker och globala blockerare utan att blanda ihop dem med enskilda bolagsvyer.'
- : 'Den här sidan visar bara det egna bolagets kundflöden, onboarding, operations, mätvärden och faktureringsunderlag.'}
+ Den här sidan är systemets startsida. Ediel Live Center, kundflöden, onboarding, operations,
+ mätvärden och faktureringsunderlag visas i samma arbetsyta så att inga kritiska blockeringar göms.
  </p>
  {companyScope.message ? (
  <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-100 px-4 py-3 text-sm font-black text-amber-950">
@@ -239,7 +233,11 @@ export default async function AdminDashboardPage() {
  </div>
 
  <div className="flex flex-wrap gap-2">
- <Pill tone={isPlatformAdmin || tenantReady ? 'emerald' : 'red'}>{isPlatformAdmin ? 'Plattformsvy' : tenantReady ? 'Tenantprofil aktiv' : 'Tenantprofil behöver åtgärd'}</Pill>
+ {isPlatformAdmin ? (
+ <Pill tone="emerald">Platform admin</Pill>
+ ) : (
+ <Pill tone={tenantReady ? 'emerald' : 'red'}>{tenantReady ? 'Tenantprofil aktiv' : 'Tenantprofil behöver åtgärd'}</Pill>
+ )}
  <Pill tone={liveWarnings > 0 ? 'amber' : 'emerald'}>{liveWarnings > 0 ? `${liveWarnings} driftärenden` : 'Inga akuta blockeringar'}</Pill>
  </div>
  </div>
@@ -315,49 +313,51 @@ export default async function AdminDashboardPage() {
  <ActionLine label="Billingunderlag" value={billingUnderlays} tone={billingUnderlays > 0 ? 'emerald' : 'slate'} />
  </WorkAreaCard>
 
+ {isPlatformAdmin ? (
  <WorkAreaCard
- eyebrow="Masterdata & inställningar"
- title="Aktörer, bolag och behörigheter"
- text="Nätägare, leverantörer, routes, bolag, användare och roller ska vara rätt innan automation används i produktion."
- href={isPlatformAdmin ? '/admin/companies' : '/admin/company-settings'}
- cta={isPlatformAdmin ? 'Öppna plattformsinställningar' : 'Öppna bolagsinställningar'}
+ eyebrow="Plattform"
+ title="Bolag, globala användare och styrning"
+ text="Detta är en superadmin-yta. Här hanteras tenants, globala användare, roller och plattformsregler. Vanliga elbolag ser inte den här vägen."
+ href="/admin/companies"
+ cta="Öppna plattformens bolag"
  >
- {isPlatformAdmin ? <ActionLine label="Bolag" value={companies} tone={companies > 0 ? 'emerald' : 'amber'} /> : null}
+ <ActionLine label="Bolag" value={companies} tone={companies > 0 ? 'emerald' : 'amber'} />
  <ActionLine label="Nätägare" value={networkOwners} tone={networkOwners > 0 ? 'emerald' : 'amber'} />
  <ActionLine label="Elleverantörer" value={suppliers} tone={suppliers > 0 ? 'emerald' : 'amber'} />
  </WorkAreaCard>
+ ) : (
+ <WorkAreaCard
+ eyebrow="Bolagsinställningar"
+ title="Ditt elbolags profil och team"
+ text="Här hanterar du bara ditt eget bolags kontaktuppgifter, Ediel-profil och användare. Du kan inte skapa eller se andra elbolag."
+ href="/admin/company-settings"
+ cta="Öppna bolagsinställningar"
+ >
+ <ActionLine label="Bolagskoppling" value={companyScope.companyName ?? 'Saknas'} tone={companyId ? 'emerald' : 'red'} />
+ <ActionLine label="Ediel-id" value={actor?.actor_ediel_id ?? 'Saknas'} tone={actor?.actor_ediel_id ? 'emerald' : 'red'} />
+ </WorkAreaCard>
+ )}
  </section>
 
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
- <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">{isPlatformAdmin ? 'Plattformsstyrning' : 'Tenantprofil'}</p>
+ <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Tenantprofil</p>
  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
- {isPlatformAdmin ? 'Global SaaS-vy' : `${companyScope.companyName ?? 'Bolagskoppling saknas'} · ${actor?.actor_name ?? 'Ediel-profil saknas'}`}
+ {companyScope.companyName ?? 'Bolagskoppling saknas'} · {actor?.actor_name ?? 'Ediel-profil saknas'}
  </h2>
  <p className="mt-2 max-w-4xl text-sm font-bold leading-6 text-slate-700">
- {isPlatformAdmin
- ? 'Superadmin ska se plattformsnivå, bolagsvolymer och tenant-risker utan att råka hamna i ett enskilt bolags operativa scope.'
- : 'När tenantprofilen sparas ska samma company_id följa kunder, fullmakter, routes, outbound, Ediel-meddelanden, mätvärden och faktureringsunderlag. Om profilen saknas ska liveflöden inte skickas.'}
+ När tenantprofilen sparas ska samma company_id följa kunder, fullmakter, routes, outbound, Ediel-meddelanden,
+ mätvärden och faktureringsunderlag. Om profilen saknas ska liveflöden inte skickas.
  </p>
  </div>
 
  <div className="flex flex-wrap gap-2">
- {isPlatformAdmin ? (
- <>
- <Pill tone="emerald">Superadmin-scope</Pill>
- <Pill tone={companies > 0 ? 'emerald' : 'amber'}>{companies} bolag</Pill>
- <Pill tone={liveWarnings > 0 ? 'amber' : 'emerald'}>{liveWarnings} öppna signaler</Pill>
- </>
- ) : (
- <>
  <Pill tone={companyId ? 'emerald' : 'red'}>{companyId ? 'Company ID finns' : 'Company ID saknas'}</Pill>
  <Pill tone={actor?.actor_ediel_id ? 'emerald' : 'red'}>{actor?.actor_ediel_id ? 'Ediel-id finns' : 'Ediel-id saknas'}</Pill>
  <Pill tone={productionActor ? 'emerald' : testActor ? 'amber' : 'red'}>
  {productionActor ? 'Produktion aktiv' : testActor ? 'Endast testprofil' : 'Ingen aktörsprofil'}
  </Pill>
- </>
- )}
  </div>
  </div>
 

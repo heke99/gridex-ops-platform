@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireCompanyScopedAdminAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
   getCompanyById,
   getCompanyStatusCopy,
@@ -58,16 +58,15 @@ export default async function CompanyUsersPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  
+  const admin = await requirePlatformAdminAccess()
   const { id } = await params
-  const admin = await requireCompanyScopedAdminAccess(id, { anyOf: ['tenants.read', 'users.read'] })
   const company = await getCompanyById(id)
 
   if (!company) {
     return (
       <div className="space-y-6 p-8">
-        <Link href={admin.isPlatformAdmin ? '/admin/companies' : '/admin/company-settings'} className="text-sm font-semibold text-emerald-800 hover:text-emerald-900">
-          Tillbaka
+        <Link href="/admin/companies" className="text-sm font-semibold text-emerald-800 hover:text-emerald-900">
+          Tillbaka till bolag
         </Link>
         <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-800">Bolaget hittades inte.</div>
       </div>
@@ -88,8 +87,8 @@ export default async function CompanyUsersPage({
 
       <div className="space-y-6 p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href={admin.isPlatformAdmin ? '/admin/companies' : '/admin/company-settings'} className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            Tillbaka
+          <Link href="/admin/companies" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            Tillbaka till bolag
           </Link>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={normalizeCompanyStatus(company.status)} />

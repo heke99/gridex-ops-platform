@@ -46,15 +46,28 @@ function isAckOverdue(
 }
 
 export async function getEdielSummary(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  companyId?: string | null
 ): Promise<EdielSummary> {
+  let messagesQuery = supabase.from('ediel_messages').select('*')
+  let routesQuery = supabase
+    .from('communication_routes')
+    .select('id,is_active,route_type,target_system,target_email,company_id')
+  let profilesQuery = supabase.from('ediel_route_profiles').select('*')
+  let testsQuery = supabase.from('ediel_test_runs').select('*')
+
+  if (companyId) {
+    messagesQuery = messagesQuery.eq('company_id', companyId)
+    routesQuery = routesQuery.eq('company_id', companyId)
+    profilesQuery = profilesQuery.eq('company_id', companyId)
+    testsQuery = testsQuery.eq('company_id', companyId)
+  }
+
   const [messagesRes, routesRes, profilesRes, testsRes] = await Promise.all([
-    supabase.from('ediel_messages').select('*'),
-    supabase
-      .from('communication_routes')
-      .select('id,is_active,route_type,target_system,target_email'),
-    supabase.from('ediel_route_profiles').select('*'),
-    supabase.from('ediel_test_runs').select('*'),
+    messagesQuery,
+    routesQuery,
+    profilesQuery,
+    testsQuery,
   ])
 
   if (messagesRes.error) throw messagesRes.error
