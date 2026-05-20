@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { listTenantUsageStats } from '@/lib/tenant/usageStats'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,7 @@ function total(rows: Array<Record<string, unknown>>, key: string): number {
 }
 
 export default async function PlatformUsagePage() {
-  const admin = await requireAdminPageKeyAccess('platform.usage')
+  const admin = await requirePlatformAdminAccess()
   const rows = await listTenantUsageStats()
   const totals = {
     customers: total(rows, 'customers'),

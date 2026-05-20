@@ -702,7 +702,7 @@ function OnboardingDataRequestsSection({
  meteringPermissions: Array<{ id: string; status: string; case_reference: string | null; permission_reference: string | null; last_blocker: string | null; created_at: string }>
 }) {
  const activeScopes = authorizationScopes.filter((scopeRow) => scopeRow.status === 'active')
- const blockedRequests = infoRequests.filter((request) => ['missing_authorization', 'negative_aperak', 'blocked'].includes(request.status)).length
+ const blockedRequests = infoRequests.filter((request) => ['missing_authorization', 'route_missing', 'negative_aperak', 'blocked'].includes(request.status)).length
  const activePermissions = meteringPermissions.filter((permission) => ['approved', 'z14_received', 'active', 'partially_approved'].includes(permission.status)).length
 
  return (

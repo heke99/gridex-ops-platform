@@ -311,7 +311,7 @@ export async function prepareManualUtiltsMessage(params: {
 }
 
 export async function inspectManualRouteRuntime(params: {
-  requestType: 'supplier_switch' | 'meter_values' | 'billing_underlay'
+  requestType: 'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
   gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
   preferredRouteId?: string | null
 }) {

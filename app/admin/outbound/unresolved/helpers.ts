@@ -60,6 +60,7 @@ export function meteringPointLabel(
 
 export function requestScopeLabel(requestType: OutboundRequestRow['request_type']): string {
   if (requestType === 'supplier_switch') return 'supplier_switch'
+  if (requestType === 'customer_masterdata') return 'customer_masterdata'
   if (requestType === 'meter_values') return 'meter_values'
   return 'billing_underlay'
 }

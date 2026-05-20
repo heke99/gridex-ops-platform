@@ -2,6 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import { createGridOwnerDataRequest } from '@/lib/cis/db-data'
 import { createOutboundRequest } from '@/lib/cis/db-outbound'
+import { prepareAndQueueProdatZ01FromDataRequest } from '@/lib/ediel/flows/prodatCustomerMasterdata'
 
 export type CustomerOption = {
   id: string
@@ -628,21 +629,33 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     automationKey,
   })
 
+  const z01 = await prepareAndQueueProdatZ01FromDataRequest({
+    actorUserId: input.actorUserId,
+    gridOwnerDataRequestId: gridOwnerDataRequest.id,
+  })
+
+  const nextStatus = z01.prepared ? 'z01_prepared' : 'route_missing'
+  const blockerReason = z01.blockerReason
+  const now = new Date().toISOString()
+
   const { data, error } = await supabaseService
     .from('customer_info_requests')
     .update({
-      status: 'sent_to_grid_owner',
-      requested_at: new Date().toISOString(),
-      sent_at: new Date().toISOString(),
-      blocker_reason: null,
+      status: nextStatus,
+      requested_at: now,
+      sent_at: null,
+      blocker_reason: blockerReason,
       verified_payload: {
         ...(request.verified_payload ?? {}),
         gridOwnerDataRequestId: gridOwnerDataRequest.id,
-        expectedResponse: 'PRODAT Z02 eller negativ APERAK',
+        outboundRequestId: z01.outbound.id,
+        edielMessageId: z01.message?.id ?? null,
+        expectedResponse: 'CONTRL/APERAK och därefter PRODAT Z02 eller negativ APERAK',
         prodatCode: 'Z01',
+        routeReady: z01.prepared,
       },
       updated_by: input.actorUserId,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
     .eq('company_id', input.companyId)
     .eq('id', request.id)
@@ -656,10 +669,14 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     requestId: request.id,
     customerId: request.customer_id,
     actorUserId: input.actorUserId,
-    eventType: 'z01_ready_for_dispatch',
-    message: 'Z01-kontroll är kopplad till nätägarbegäran. Nästa steg är Ediel/route-dispatch eller manuell sändning enligt route.',
+    eventType: z01.prepared ? 'z01_prepared_for_dispatch' : 'z01_route_missing',
+    message: z01.prepared
+      ? 'PRODAT Z01 är skapad som Ediel-draft, länkad till outbound och köad för dispatch.'
+      : blockerReason ?? 'PRODAT Z01 kräver route innan utskick.',
     payload: {
       gridOwnerDataRequestId: gridOwnerDataRequest.id,
+      outboundRequestId: z01.outbound.id,
+      edielMessageId: z01.message?.id ?? null,
       prodatCode: 'Z01',
     },
   })
@@ -667,9 +684,9 @@ export async function queueCustomerInfoRequestForDispatch(input: {
   return {
     customerInfoRequest: data as CustomerInfoRequestRow,
     gridOwnerDataRequestId: gridOwnerDataRequest.id,
-    outboundRequestId: null,
-    status: 'sent_to_grid_owner',
-    blockerReason: null,
+    outboundRequestId: z01.outbound.id,
+    status: nextStatus,
+    blockerReason,
   }
 }
 

@@ -270,6 +270,7 @@ export async function saveCommunicationRouteAction(
     routeScope:
       (formValue(formData, 'route_scope') as
         | 'supplier_switch'
+        | 'customer_masterdata'
         | 'meter_values'
         | 'billing_underlay'
         | null) ?? 'meter_values',
@@ -330,6 +331,7 @@ export async function queueOutboundRequestAction(
     requestType:
       (formValue(formData, 'request_type') as
         | 'supplier_switch'
+        | 'customer_masterdata'
         | 'meter_values'
         | 'billing_underlay'
         | null) ?? 'meter_values',

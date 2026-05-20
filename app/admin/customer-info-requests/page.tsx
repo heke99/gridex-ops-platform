@@ -21,8 +21,8 @@ import {
 export const dynamic = 'force-dynamic'
 
 function statusTone(status: string) {
-  if (['active', 'approved', 'z02_received', 'ready_for_switch'].includes(status)) return 'border-emerald-200 bg-emerald-50 text-emerald-800'
-  if (['blocked', 'negative_aperak', 'rejected', 'revoked'].includes(status)) return 'border-red-200 bg-red-50 text-red-800'
+  if (['active', 'approved', 'z01_prepared', 'z02_received', 'ready_for_switch'].includes(status)) return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (['blocked', 'route_missing', 'negative_aperak', 'rejected', 'revoked', 'missing_authorization'].includes(status)) return 'border-red-200 bg-red-50 text-red-800'
   if (['sent', 'waiting_for_z02', 'waiting_for_z14', 'pending'].includes(status)) return 'border-amber-200 bg-amber-50 text-amber-900'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
@@ -58,7 +58,7 @@ export default async function CustomerInfoRequestsPage() {
       ])
     : [[], [], [], []]
 
-  const blockedRequests = requests.filter((request) => ['blocked', 'negative_aperak', 'manual_review_required'].includes(request.status))
+  const blockedRequests = requests.filter((request) => ['blocked', 'route_missing', 'negative_aperak', 'manual_review_required', 'missing_authorization'].includes(request.status))
   const activeScopes = authorizationScopes.filter((scopeRow) => scopeRow.status === 'active')
   const activePermissions = permissions.filter((permission) => ['approved', 'active', 'z14_received'].includes(permission.status))
 

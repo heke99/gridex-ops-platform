@@ -165,8 +165,9 @@ async function applyEdielMeteringMethodToSwitchSnapshots(params: {
 
 function mapGridOwnerRequestScopeToOutboundType(
   value: 'meter_values' | 'billing_underlay' | 'customer_masterdata'
-): 'meter_values' | 'billing_underlay' {
+): 'customer_masterdata' | 'meter_values' | 'billing_underlay' {
   if (value === 'billing_underlay') return 'billing_underlay'
+  if (value === 'customer_masterdata') return 'customer_masterdata'
   return 'meter_values'
 }
 

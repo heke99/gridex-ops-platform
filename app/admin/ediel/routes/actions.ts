@@ -301,6 +301,7 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
   const routeName = stringValue(formData, 'route_name')
   const routeScope = stringValue(formData, 'route_scope') as
     | 'supplier_switch'
+    | 'customer_masterdata'
     | 'meter_values'
     | 'billing_underlay'
     | null
@@ -356,6 +357,7 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
 
   const routeScope = (stringValue(formData, 'route_scope') as
     | 'supplier_switch'
+    | 'customer_masterdata'
     | 'meter_values'
     | 'billing_underlay'
     | null) ?? 'meter_values'

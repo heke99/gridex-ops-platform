@@ -144,6 +144,11 @@ export async function requireAdminPageAccess(
 export async function requireAdminPageKeyAccess(
   pageKey: AdminPageKey
 ): Promise<GuardResult> {
+  // Platform pages are gated by explicit platform roles, never by broad tenant/report permissions.
+  if (String(pageKey).startsWith('platform.')) {
+    return requirePlatformAdminAccess()
+  }
+
   return requireAdminPageAccess(getAdminPageRequirement(pageKey))
 }
 

@@ -16,6 +16,7 @@ import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 
 export type CanonicalRouteRequestType =
   | 'supplier_switch'
+  | 'customer_masterdata'
   | 'meter_values'
   | 'billing_underlay'
 
@@ -41,6 +42,10 @@ export type CanonicalRouteContext = {
   routeKey: string
   routeDecisionReason: string
   routeSelectionSource: 'explicit_route' | 'auto_route'
+}
+
+function isProdatRouteRequestType(value: CanonicalRouteRequestType): boolean {
+  return value === 'supplier_switch' || value === 'customer_masterdata'
 }
 
 function trimOrNull(value?: string | null): string | null {
@@ -150,13 +155,13 @@ export async function resolveCanonicalRouteContext(params: {
     trimOrNull(routeRuntime?.receiver_name) ?? trimOrNull(params.gridOwner?.name)
   const receiverSubAddress =
     trimOrNull(routeRuntime?.receiver_sub_address) ??
-    (isEdielPortalTgtRoute && params.requestType === 'supplier_switch'
+    (isEdielPortalTgtRoute && isProdatRouteRequestType(params.requestType)
       ? 'PRODAT'
       : 'EDIEL')
   const mailbox = trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox
   const applicationReference =
     trimOrNull(routeRuntime?.application_reference) ??
-    (isEdielPortalTgtRoute && params.requestType === 'supplier_switch'
+    (isEdielPortalTgtRoute && isProdatRouteRequestType(params.requestType)
       ? '23-DDQ-PRODAT'
       : actor.defaultApplicationReference)
 

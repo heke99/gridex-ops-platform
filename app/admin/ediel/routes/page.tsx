@@ -424,6 +424,7 @@ export default async function AdminEdielRoutesPage() {
  className={selectClassName()}
  >
  <option value="meter_values">meter_values</option>
+ <option value="customer_masterdata">customer_masterdata</option>
  <option value="supplier_switch">supplier_switch</option>
  <option value="billing_underlay">billing_underlay</option>
  </select>
@@ -647,6 +648,7 @@ export default async function AdminEdielRoutesPage() {
  <input name="route_name" defaultValue={route.route_name} className={textInputClassName()} />
  <select name="route_scope" defaultValue={route.route_scope} className={selectClassName()}>
  <option value="supplier_switch">supplier_switch</option>
+ <option value="customer_masterdata">customer_masterdata</option>
  <option value="meter_values">meter_values</option>
  <option value="billing_underlay">billing_underlay</option>
  </select>

@@ -53,7 +53,7 @@ export function SmartOutboundForm({
  inferredGridOwnerId(sites, meteringPoints)
  )
  const [requestType, setRequestType] = useState<
- 'supplier_switch' | 'meter_values' | 'billing_underlay'
+ 'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
  >('meter_values')
 
  const filteredMeteringPoints = useMemo(() => {
@@ -114,6 +114,7 @@ export function SmartOutboundForm({
  setRequestType(
  event.target.value as
  | 'supplier_switch'
+ | 'customer_masterdata'
  | 'meter_values'
  | 'billing_underlay'
  )
@@ -121,6 +122,7 @@ export function SmartOutboundForm({
  className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm "
  >
  <option value="supplier_switch">Leverantörsbyte</option>
+ <option value="customer_masterdata">Kund- och anläggningsdata (Z01)</option>
  <option value="meter_values">Mätvärden</option>
  <option value="billing_underlay">Billing underlag</option>
  </select>

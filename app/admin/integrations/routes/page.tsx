@@ -70,6 +70,7 @@ export default async function CommunicationRoutesPage({
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
  <option value="supplier_switch">Supplier switch</option>
+ <option value="customer_masterdata">Customer masterdata / Z01</option>
  <option value="meter_values">Meter values</option>
  <option value="billing_underlay">Billing underlay</option>
  </select>

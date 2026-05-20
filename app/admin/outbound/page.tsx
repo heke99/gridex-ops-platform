@@ -453,6 +453,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  >
  <option value="all">Alla request-typer</option>
  <option value="supplier_switch">Supplier switch</option>
+ <option value="customer_masterdata">Customer masterdata / Z01</option>
  <option value="meter_values">Meter values</option>
  <option value="billing_underlay">Billing underlay</option>
  </select>

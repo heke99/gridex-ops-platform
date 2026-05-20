@@ -151,6 +151,7 @@ export type CommunicationRouteScope =
   | 'supplier_switch'
   | 'meter_values'
   | 'billing_underlay'
+  | 'customer_masterdata'
 
 export type CommunicationRouteType =
   | 'partner_api'
@@ -182,6 +183,7 @@ export type OutboundRequestType =
   | 'supplier_switch'
   | 'meter_values'
   | 'billing_underlay'
+  | 'customer_masterdata'
 
 export type OutboundRequestStatus =
   | 'queued'

@@ -1,5 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
-import type { CommunicationRouteRow, OutboundRequestType } from '@/lib/cis/types'
+import type { CommunicationRouteRow, CommunicationRouteScope, OutboundRequestType } from '@/lib/cis/types'
 import { matchesQuery, normalizeQuery } from './db-shared'
 
 export async function listCommunicationRoutes(options: {
@@ -58,7 +58,7 @@ export async function saveCommunicationRoute(input: {
   id?: string
   routeName: string
   isActive: boolean
-  routeScope: 'supplier_switch' | 'meter_values' | 'billing_underlay'
+  routeScope: CommunicationRouteScope
   routeType: 'partner_api' | 'ediel_partner' | 'file_export' | 'email_manual'
   gridOwnerId?: string | null
   targetSystem: string

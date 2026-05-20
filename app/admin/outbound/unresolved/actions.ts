@@ -217,9 +217,11 @@ export async function assignRouteToUnresolvedOutboundAction(
   const allowedScope =
     before.request_type === 'supplier_switch'
       ? 'supplier_switch'
-      : before.request_type === 'meter_values'
-        ? 'meter_values'
-        : 'billing_underlay'
+      : before.request_type === 'customer_masterdata'
+        ? 'customer_masterdata'
+        : before.request_type === 'meter_values'
+          ? 'meter_values'
+          : 'billing_underlay'
 
   if (route.route_scope !== allowedScope) {
     throw new Error('Vald route har fel scope för denna outbound request')

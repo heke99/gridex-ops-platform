@@ -138,7 +138,7 @@ export async function findOrCreateSwitchOutbound(params: {
 
 export async function findOrCreateDataRequestOutbound(params: {
   actorUserId: string
-  requestType: 'meter_values' | 'billing_underlay'
+  requestType: 'customer_masterdata' | 'meter_values' | 'billing_underlay'
   communicationRouteId?: string | null
   dataRequest: GridOwnerDataRequestRow
   payload: Record<string, unknown>
@@ -170,7 +170,7 @@ export async function findOrCreateDataRequestOutbound(params: {
 
 export async function finalizeOutboundDraft(params: {
   actorUserId: string
-  requestType: 'supplier_switch' | 'meter_values' | 'billing_underlay'
+  requestType: 'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
   draft: CreateEdielMessageInput
   outboundRequestId?: string | null

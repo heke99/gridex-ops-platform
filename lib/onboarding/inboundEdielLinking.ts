@@ -101,7 +101,7 @@ async function findCustomerInfoRequestForZ02(message: EdielMessageRow): Promise<
     .from('customer_info_requests')
     .select('*')
     .eq('company_id', companyId)
-    .in('status', ['sent_to_grid_owner', 'waiting_for_z02', 'waiting_for_aperak', 'waiting_for_contrl', 'ready_to_send', 'draft', 'manual_review_required'])
+    .in('status', ['z01_prepared', 'route_missing', 'sent_to_grid_owner', 'waiting_for_z02', 'waiting_for_aperak', 'waiting_for_contrl', 'ready_to_send', 'draft', 'manual_review_required'])
     .order('created_at', { ascending: false })
     .limit(200)
 

@@ -297,7 +297,7 @@ export function buildGridOwnerDataRequestAutomationKey(params: {
 
 export function buildOutboundRequestAutomationKey(params: {
   documentId: string
-  requestType: 'supplier_switch' | 'meter_values' | 'billing_underlay'
+  requestType: 'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
   sourceType?:
     | 'supplier_switch_request'
     | 'grid_owner_data_request'
@@ -471,7 +471,7 @@ export async function findOpenOutboundRequestByDocument(
     customerId: string
     siteId?: string | null
     meteringPointId?: string | null
-    requestType: 'supplier_switch' | 'meter_values' | 'billing_underlay'
+    requestType: 'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
     documentId: string
     sourceType?:
       | 'supplier_switch_request'
