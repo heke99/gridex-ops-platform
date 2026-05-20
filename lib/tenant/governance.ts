@@ -28,8 +28,8 @@ export type GovernanceEventAction =
   | 'SUPERADMIN_USER_REACTIVATED'
   | 'SUPERADMIN_USER_REMOVED_FROM_COMPANY'
   | 'SUPERADMIN_ROLE_CHANGED'
-  | 'SUPERADMIN_OPEN_TASKS_TRANSFERRED'
   | 'SUPERADMIN_COMPANY_CONTACTS_ANONYMIZED'
+  | 'SUPERADMIN_OPEN_TASKS_TRANSFERRED'
 
 export type GovernanceCount = {
   table: string
@@ -116,7 +116,6 @@ const HISTORY_TABLES: Array<{ table: string; label: string }> = [
   { table: 'billing_underlays', label: 'faktureringsunderlag' },
   { table: 'partner_exports', label: 'exporthistorik' },
   { table: 'outbound_requests', label: 'utskick' },
-  { table: 'audit_logs', label: 'revisionslogg' },
 ]
 
 export const BLOCKED_TENANT_WRITE_STATUSES = new Set<CompanyOperationalStatus>([
@@ -335,6 +334,7 @@ export async function listCompanyGovernanceSummaries(): Promise<GovernanceCompan
   const { data, error } = await supabaseService
     .from('companies')
     .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, created_at, updated_at')
+    .neq('status', 'deleted_test_only')
     .order('created_at', { ascending: false })
 
   if (error) throw error
