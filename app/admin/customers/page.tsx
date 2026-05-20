@@ -785,20 +785,32 @@ export default async function AdminCustomersPage({
  const [sitesQuery, switchRequestsQuery, outboundRequestsQuery, latestContractsByCustomerId] =
  customerIds.length > 0
  ? await Promise.all([
- supabaseService
+ (() => {
+ let query = supabaseService
  .from('customer_sites')
  .select('*')
- .in('customer_id', customerIds),
- supabaseService
+ .in('customer_id', customerIds)
+ if (companyScope.companyId) query = query.eq('company_id', companyScope.companyId)
+ return query
+ })(),
+ (() => {
+ let query = supabaseService
  .from('supplier_switch_requests')
  .select('*')
- .in('customer_id', customerIds),
- supabaseService
+ .in('customer_id', customerIds)
+ if (companyScope.companyId) query = query.eq('company_id', companyScope.companyId)
+ return query
+ })(),
+ (() => {
+ let query = supabaseService
  .from('outbound_requests')
  .select('*')
  .eq('request_type', 'supplier_switch')
- .in('customer_id', customerIds),
- listLatestCustomerContractsByCustomerIds(customerIds),
+ .in('customer_id', customerIds)
+ if (companyScope.companyId) query = query.eq('company_id', companyScope.companyId)
+ return query
+ })(),
+ listLatestCustomerContractsByCustomerIds(customerIds, { companyId: companyScope.companyId }),
  ])
  : [
  { data: [], error: null },

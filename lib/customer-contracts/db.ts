@@ -164,7 +164,8 @@ export async function listCustomerContractsByCustomerId(
 }
 
 export async function listLatestCustomerContractsByCustomerIds(
-  customerIds: string[]
+  customerIds: string[],
+  options: { companyId?: string | null } = {}
 ): Promise<Map<string, LatestCustomerContractSummary>> {
   const result = new Map<string, LatestCustomerContractSummary>()
 
@@ -172,11 +173,16 @@ export async function listLatestCustomerContractsByCustomerIds(
     return result
   }
 
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('customer_contracts')
     .select('*')
     .in('customer_id', customerIds)
-    .order('created_at', { ascending: false })
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) throw error
 

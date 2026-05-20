@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import {
  bulkFinalizeReadySupplierSwitchesAction,
  finalizeSupplierSwitchExecutionAction,
@@ -43,7 +44,9 @@ function siteLabel(siteId: string, sites: CustomerSiteRow[]): string {
 }
 
 export default async function ReadyToExecuteSwitchesPage() {
- await requirePermissionServer('masterdata.read')
+ const context = await requireAdminPageKeyAccess('operations.ready_to_execute')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const supabase = await createSupabaseServerClient()
  const {
@@ -55,14 +58,20 @@ export default async function ReadyToExecuteSwitchesPage() {
  status: 'all',
  requestType: 'all',
  query: '',
+ companyId,
  }),
  listOutboundRequests({
  status: 'all',
  requestType: 'supplier_switch',
  channelType: 'all',
  query: '',
+ companyId,
  }),
- supabase.from('customer_sites').select('*'),
+ (() => {
+ let query = supabase.from('customer_sites').select('*')
+ if (companyId) query = query.eq('company_id', companyId)
+ return query
+ })(),
  ])
 
  if (sitesQuery.error) {
@@ -122,7 +131,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  <AdminHeader
  title="Ready to execute"
  subtitle="Dedikerad kö för accepted + acknowledged switchar som väntar på sista interna execution-steget. Här kan du slutföra enskilt eller i bulk."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">

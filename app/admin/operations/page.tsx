@@ -4,13 +4,14 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import { getEdielSummary } from '@/lib/ediel/summary'
 import {
  listAllOperationTasks,
  listAllSupplierSwitchRequests,
  listPowersOfAttorneyByCustomerId,
- listRecentSupplierSwitchEvents,
+ listSupplierSwitchEventsByRequestIds,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import {
@@ -376,17 +377,24 @@ function SwitchEventItem({ event }: { event: SupplierSwitchEventRow }) {
 }
 
 export default async function AdminOperationsPage() {
- await requireAdminPageKeyAccess('operations.control_tower')
+ const context = await requireAdminPageKeyAccess('operations.control_tower')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const supabase = await createSupabaseServerClient()
  const {
  data: { user },
  } = await supabase.auth.getUser()
 
- const sitesQuery = await supabase
+ let sitesQueryBuilder = supabase
  .from('customer_sites')
  .select('*')
- .order('created_at', { ascending: false })
+
+ if (companyId) {
+ sitesQueryBuilder = sitesQueryBuilder.eq('company_id', companyId)
+ }
+
+ const sitesQuery = await sitesQueryBuilder.order('created_at', { ascending: false })
 
  if (sitesQuery.error) throw sitesQuery.error
  const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
@@ -394,7 +402,7 @@ export default async function AdminOperationsPage() {
  const [
  tasks,
  switchRequests,
- events,
+ _eventsPlaceholder,
  outboundRequests,
  underlays,
  dataRequests,
@@ -403,25 +411,33 @@ export default async function AdminOperationsPage() {
  meteringPoints,
  edielSummary,
  ] = await Promise.all([
- listAllOperationTasks(supabase),
- listAllSupplierSwitchRequests(supabase),
- listRecentSupplierSwitchEvents(supabase, 30),
+ listAllOperationTasks(supabase, { companyId }),
+ listAllSupplierSwitchRequests(supabase, { companyId }),
+ Promise.resolve([]),
  listOutboundRequests({
  status: 'all',
  requestType: 'all',
  channelType: 'all',
  query: '',
+ companyId,
  }),
- listAllBillingUnderlays({ status: 'all', query: '' }),
- listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '' }),
- listAllMeteringValues({ query: '' }),
- listAllPartnerExports({ status: 'all', exportKind: 'all', query: '' }),
+ listAllBillingUnderlays({ status: 'all', query: '', companyId }),
+ listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '', companyId }),
+ listAllMeteringValues({ query: '', companyId }),
+ listAllPartnerExports({ status: 'all', exportKind: 'all', query: '', companyId }),
  listMeteringPointsBySiteIds(
  supabase,
- sites.map((site) => site.id)
+ sites.map((site) => site.id),
+ { companyId }
  ),
- getEdielSummary(supabase),
+ getEdielSummary(supabase, companyId),
  ])
+
+ const scopedEvents = await listSupplierSwitchEventsByRequestIds(
+ supabase,
+ switchRequests.map((request) => request.id)
+ )
+ const events = scopedEvents.slice(0, 30)
 
  const readinessResults = await Promise.all(
  sites.map(async (site) => {

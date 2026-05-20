@@ -1443,7 +1443,11 @@ export async function pollEdielMailboxViaImap(params?: {
         const mailboxMessageId = normalizeInboundMailboxIdentity(item.uid)
         if (!mailboxMessageId) continue
 
-        const existing = await findEdielMessageByMailboxIdentity({ mailbox, mailboxMessageId })
+        const existing = await findEdielMessageByMailboxIdentity({
+          mailbox,
+          mailboxMessageId,
+          companyId: params?.companyId ?? routeProfile?.company_id ?? null,
+        })
         if (existing) continue
 
         const rawSource =

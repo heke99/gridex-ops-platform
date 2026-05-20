@@ -421,15 +421,21 @@ export async function saveCustomerSite(
 
 export async function listMeteringPointsBySiteIds(
   supabase: SupabaseClient,
-  siteIds: string[]
+  siteIds: string[],
+  options: { companyId?: string | null } = {}
 ): Promise<MeteringPointRow[]> {
   if (siteIds.length === 0) return []
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('metering_points')
     .select('*')
     .in('site_id', siteIds)
-    .order('created_at', { ascending: false })
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) throw error
   return (data ?? []) as MeteringPointRow[]

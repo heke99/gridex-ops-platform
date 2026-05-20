@@ -3,6 +3,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import {
  listAllSupplierSwitchRequests,
@@ -147,7 +148,9 @@ function KpiCard({
 export default async function AdminOperationsSwitchesPage({
  searchParams,
 }: SwitchesPageProps) {
- await requireAdminPageKeyAccess('operations.switches')
+ const context = await requireAdminPageKeyAccess('operations.switches')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const resolvedSearchParams = await searchParams
  const supabase = await createSupabaseServerClient()
@@ -164,16 +167,23 @@ export default async function AdminOperationsSwitchesPage({
  status,
  requestType,
  query,
+ companyId,
  })
 
  const siteIds = Array.from(new Set(requests.map((request) => request.site_id)))
 
  let sites: CustomerSiteRow[] = []
  if (siteIds.length > 0) {
- const sitesQuery = await supabase
+ let sitesQueryBuilder = supabase
  .from('customer_sites')
  .select('*')
  .in('id', siteIds)
+
+ if (companyId) {
+ sitesQueryBuilder = sitesQueryBuilder.eq('company_id', companyId)
+ }
+
+ const sitesQuery = await sitesQueryBuilder
 
  if (sitesQuery.error) throw sitesQuery.error
  sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
@@ -189,8 +199,9 @@ export default async function AdminOperationsSwitchesPage({
  requestType: 'supplier_switch',
  channelType: 'all',
  query: '',
+ companyId,
  }),
- listMeteringPointsBySiteIds(supabase, siteIds),
+ listMeteringPointsBySiteIds(supabase, siteIds, { companyId }),
  ])
 
  const readinessMap = new Map<

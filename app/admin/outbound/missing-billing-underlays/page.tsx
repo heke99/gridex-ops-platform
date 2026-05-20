@@ -1,6 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { bulkQueueMissingBillingUnderlaysAction } from '@/app/admin/cis/actions'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 
@@ -49,7 +50,9 @@ async function queueMissingBillingUnderlaysFormAction(
 export default async function MissingBillingUnderlaysPage({
  searchParams,
 }: PageProps) {
- await requirePermissionServer('billing_underlay.read')
+ const context = await requireAdminPageKeyAccess('outbound.missing_billing_underlays')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const params = await searchParams
  const selectedPeriod = normalizePeriod(params.period)
@@ -62,10 +65,15 @@ export default async function MissingBillingUnderlaysPage({
  data: { user },
  } = await supabase.auth.getUser()
 
- const { data: sites, error: sitesError } = await supabase
+ let sitesQueryBuilder = supabase
  .from('customer_sites')
  .select('*')
- .order('created_at', { ascending: false })
+
+ if (companyId) {
+ sitesQueryBuilder = sitesQueryBuilder.eq('company_id', companyId)
+ }
+
+ const { data: sites, error: sitesError } = await sitesQueryBuilder.order('created_at', { ascending: false })
 
  if (sitesError) throw sitesError
 
@@ -75,14 +83,21 @@ export default async function MissingBillingUnderlaysPage({
 
  const meteringPoints = await listMeteringPointsBySiteIds(
  supabase,
- safeSites.map((site) => site.id)
+ safeSites.map((site) => site.id),
+ { companyId }
  )
 
- const { data: underlays, error: underlaysError } = await supabase
+ let underlaysQuery = supabase
  .from('billing_underlays')
  .select('metering_point_id')
  .eq('underlay_year', year)
  .eq('underlay_month', month)
+
+ if (companyId) {
+ underlaysQuery = underlaysQuery.eq('company_id', companyId)
+ }
+
+ const { data: underlays, error: underlaysError } = await underlaysQuery
 
  if (underlaysError) throw underlaysError
 
@@ -101,7 +116,7 @@ export default async function MissingBillingUnderlaysPage({
  <AdminHeader
  title="Bulk: saknade billing-underlag"
  subtitle="Identifiera mätpunkter som saknar billing-underlag för vald månad och köa outbound utan dubbletter."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">

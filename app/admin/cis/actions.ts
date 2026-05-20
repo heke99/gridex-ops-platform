@@ -33,6 +33,8 @@ import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/orchestrator'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 import { bulkQueueReadyBillingExportsAction } from '@/app/admin/operations/control-actions'
+import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -124,6 +126,33 @@ async function insertAuditLog(params: {
 
   if (error) throw error
 }
+
+async function assertEntityCompanyAccess(params: {
+  actorUserId: string
+  table: string
+  id: string
+  requiresOperationalWrite?: boolean
+}): Promise<string | null> {
+  const { data, error } = await supabaseService
+    .from(params.table)
+    .select('company_id')
+    .eq('id', params.id)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) throw new Error('Raden hittades inte eller är inte tillgänglig.')
+
+  const companyId = typeof data.company_id === 'string' ? data.company_id : null
+  if (companyId) {
+    await assertUserCanOperateCompany(params.actorUserId, companyId)
+    if (params.requiresOperationalWrite) {
+      await requireCompanyOperationalForWrites(companyId)
+    }
+  }
+
+  return companyId
+}
+
 
 async function syncCustomerOperationsAfterCisChange(
   customerId: string
@@ -355,6 +384,13 @@ export async function updateOutboundRequestStatusAction(
     throw new Error('outbound_request_id och customer_id krävs')
   }
 
+  await assertEntityCompanyAccess({
+    actorUserId: actor.id,
+    table: 'outbound_requests',
+    id: outboundRequestId,
+    requiresOperationalWrite: ['queued', 'prepared', 'sent'].includes(status),
+  })
+
   const saved = await updateOutboundRequestStatus({
     actorUserId: actor.id,
     outboundRequestId,
@@ -477,17 +513,26 @@ export async function updatePartnerExportStatusAction(
     throw new Error('export_id och customer_id krävs')
   }
 
+  const nextStatus =
+    (formValue(formData, 'status') as
+      | 'queued'
+      | 'sent'
+      | 'acknowledged'
+      | 'failed'
+      | 'cancelled'
+      | null) ?? 'queued'
+
+  await assertEntityCompanyAccess({
+    actorUserId: actor.id,
+    table: 'partner_exports',
+    id: exportId,
+    requiresOperationalWrite: ['queued', 'sent'].includes(nextStatus),
+  })
+
   const saved = await updatePartnerExportStatus({
     actorUserId: actor.id,
     exportId,
-    status:
-      (formValue(formData, 'status') as
-        | 'queued'
-        | 'sent'
-        | 'acknowledged'
-        | 'failed'
-        | 'cancelled'
-        | null) ?? 'queued',
+    status: nextStatus,
     externalReference: formValue(formData, 'external_reference') || null,
     failureReason: formValue(formData, 'failure_reason') || null,
     responsePayload: {

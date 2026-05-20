@@ -274,8 +274,8 @@ export default async function AdminEdielMessageDetailPage({
 
  const [message, ackState, events] = await Promise.all([
  getEdielMessageById(id, { companyId }),
- getEdielMessageAckStateById(id),
- listEdielMessageEvents(id),
+ getEdielMessageAckStateById(id, companyId),
+ listEdielMessageEvents(id, companyId),
  ])
 
  if (!message) {

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import { listAllOperationTasks } from '@/lib/operations/db'
 import {
@@ -123,7 +124,9 @@ function taskMeteringPointLabel(
 export default async function AdminOperationsTasksPage({
  searchParams,
 }: TasksPageProps) {
- await requireAdminPageKeyAccess('operations.tasks')
+ const context = await requireAdminPageKeyAccess('operations.tasks')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const resolvedSearchParams = await searchParams
  const supabase = await createSupabaseServerClient()
@@ -139,25 +142,37 @@ export default async function AdminOperationsTasksPage({
  status,
  priority,
  query,
+ companyId,
  })
 
- const sitesQuery = await supabase
+ let sitesQueryBuilder = supabase
  .from('customer_sites')
  .select('*')
- .order('created_at', { ascending: false })
+
+ if (companyId) {
+ sitesQueryBuilder = sitesQueryBuilder.eq('company_id', companyId)
+ }
+
+ const sitesQuery = await sitesQueryBuilder.order('created_at', { ascending: false })
 
  if (sitesQuery.error) throw sitesQuery.error
  const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
 
  const meteringPoints = await listMeteringPointsBySiteIds(
  supabase,
- sites.map((site) => site.id)
+ sites.map((site) => site.id),
+ { companyId }
  )
 
- const poaQuery = await supabase
+ let poaQueryBuilder = supabase
  .from('powers_of_attorney')
  .select('*')
- .order('created_at', { ascending: false })
+
+ if (companyId) {
+ poaQueryBuilder = poaQueryBuilder.eq('company_id', companyId)
+ }
+
+ const poaQuery = await poaQueryBuilder.order('created_at', { ascending: false })
 
  if (poaQuery.error) throw poaQuery.error
  const powersOfAttorney = (poaQuery.data ?? []) as PowerOfAttorneyRow[]

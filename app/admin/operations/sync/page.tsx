@@ -2,6 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import CustomerSyncBoard from '@/components/admin/operations/CustomerSyncBoard'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import { listAllSupplierSwitchRequests } from '@/lib/operations/db'
@@ -23,18 +24,26 @@ function SyncGuideCard({ title, body }: { title: string; body: string }) {
 }
 
 export default async function OperationsSyncPage() {
- await requireAdminPageKeyAccess('operations.sync')
+ const context = await requireAdminPageKeyAccess('operations.sync')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const supabase = await createSupabaseServerClient()
  const {
  data: { user },
  } = await supabase.auth.getUser()
 
- const customersQuery = await supabase
+ let customersQueryBuilder = supabase
  .from('customers')
  .select(
  'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
  )
+
+ if (companyId) {
+ customersQueryBuilder = customersQueryBuilder.eq('company_id', companyId)
+ }
+
+ const customersQuery = await customersQueryBuilder
  .order('created_at', { ascending: false })
  .limit(500)
 
@@ -46,21 +55,30 @@ export default async function OperationsSyncPage() {
  const [sitesQuery, contractsQuery, powersOfAttorneyQuery] =
  customerIds.length > 0
  ? await Promise.all([
- supabase
+ (() => {
+ let query = supabase
  .from('customer_sites')
  .select('*')
  .in('customer_id', customerIds)
- .order('created_at', { ascending: false }),
- supabase
+ if (companyId) query = query.eq('company_id', companyId)
+ return query.order('created_at', { ascending: false })
+ })(),
+ (() => {
+ let query = supabase
  .from('customer_contracts')
  .select('*')
  .in('customer_id', customerIds)
- .order('created_at', { ascending: false }),
- supabase
+ if (companyId) query = query.eq('company_id', companyId)
+ return query.order('created_at', { ascending: false })
+ })(),
+ (() => {
+ let query = supabase
  .from('powers_of_attorney')
  .select('*')
  .in('customer_id', customerIds)
- .order('created_at', { ascending: false }),
+ if (companyId) query = query.eq('company_id', companyId)
+ return query.order('created_at', { ascending: false })
+ })(),
  ])
  : [
  { data: [], error: null },
@@ -75,16 +93,17 @@ export default async function OperationsSyncPage() {
  const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
  const meteringPoints = await listMeteringPointsBySiteIds(
  supabase,
- sites.map((site) => site.id)
+ sites.map((site) => site.id),
+ { companyId }
  )
 
  const [switchRequests, gridOwnerDataRequests, meteringValues, billingUnderlays, outboundRequests] =
  await Promise.all([
- listAllSupplierSwitchRequests(supabase),
- listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '' }),
- listAllMeteringValues({ query: '' }),
- listAllBillingUnderlays({ status: 'all', query: '' }),
- listOutboundRequests({ status: 'all', requestType: 'all', channelType: 'all', query: '' }),
+ listAllSupplierSwitchRequests(supabase, { companyId }),
+ listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '', companyId }),
+ listAllMeteringValues({ query: '', companyId }),
+ listAllBillingUnderlays({ status: 'all', query: '', companyId }),
+ listOutboundRequests({ status: 'all', requestType: 'all', channelType: 'all', query: '', companyId }),
  ])
 
  const relevantCustomerIds = new Set(customerIds)

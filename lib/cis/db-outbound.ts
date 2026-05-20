@@ -348,6 +348,7 @@ export async function listOutboundRequests(options: {
   requestType?: string | null
   channelType?: string | null
   query?: string | null
+  companyId?: string | null
 } = {}): Promise<OutboundRequestRow[]> {
   let requestQuery = supabaseService
     .from('outbound_requests')
@@ -364,6 +365,10 @@ export async function listOutboundRequests(options: {
 
   if (options.channelType && options.channelType !== 'all') {
     requestQuery = requestQuery.eq('channel_type', options.channelType)
+  }
+
+  if (options.companyId) {
+    requestQuery = requestQuery.eq('company_id', options.companyId)
   }
 
   const { data, error } = await requestQuery
@@ -620,13 +625,20 @@ export async function listOutboundRequestsByCustomerId(
   return (data ?? []) as OutboundRequestRow[]
 }
 
-export async function listUnresolvedOutboundRequests(): Promise<OutboundRequestRow[]> {
-  const { data, error } = await supabaseService
+export async function listUnresolvedOutboundRequests(options: {
+  companyId?: string | null
+} = {}): Promise<OutboundRequestRow[]> {
+  let query = supabaseService
     .from('outbound_requests')
     .select('*')
     .eq('channel_type', 'unresolved')
     .in('status', ['queued', 'prepared', 'sent', 'failed'])
-    .order('created_at', { ascending: false })
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) throw error
   return (data ?? []) as OutboundRequestRow[]

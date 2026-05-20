@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import {
  listAllBillingUnderlays,
  listAllPartnerExports,
@@ -148,7 +149,9 @@ async function queueReadyBillingExportsFormAction(
 }
 
 export default async function OutboundPage({ searchParams }: PageProps) {
- await requirePermissionServer('masterdata.read')
+ const context = await requireAdminPageKeyAccess('outbound.queue')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const params = await searchParams
  const status = (params.status ?? 'all').trim()
@@ -157,9 +160,6 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  const query = (params.q ?? '').trim()
 
  const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
 
  const [requests, underlays, partnerExports, switchRequests] = await Promise.all([
  listOutboundRequests({
@@ -167,13 +167,15 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  requestType,
  channelType,
  query,
+ companyId,
  }),
- listAllBillingUnderlays({ status: 'all', query: '' }),
- listAllPartnerExports({ status: 'all', exportKind: 'all', query: '' }),
+ listAllBillingUnderlays({ status: 'all', query: '', companyId }),
+ listAllPartnerExports({ status: 'all', exportKind: 'all', query: '', companyId }),
  listAllSupplierSwitchRequests(supabase, {
  status: 'all',
  requestType: 'all',
  query: '',
+ companyId,
  }),
  ])
 
@@ -181,13 +183,17 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  listOutboundDispatchEventsByRequestIds(requests.map((row) => row.id)),
  requests.length === 0
  ? Promise.resolve({ data: [], error: null })
- : supabase
+ : (() => {
+ const linkedQuery = supabase
  .from('ediel_messages')
  .select(
  'id,outbound_request_id,direction,message_family,message_code,status,created_at'
  )
  .in('outbound_request_id', requests.map((row) => row.id))
- .order('created_at', { ascending: false }),
+ .order('created_at', { ascending: false })
+
+ return companyId ? linkedQuery.eq('company_id', companyId) : linkedQuery
+ })(),
  ])
 
  if (linkedEdielMessagesQuery.error) throw linkedEdielMessagesQuery.error
@@ -264,7 +270,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <AdminHeader
  title="Outbound queue"
  subtitle="Extern orkestrering för switch, mätvärden, billing-underlag och partner-handoff. Automation sweep kan nu lösa route, återköa efter cooldown, auto-förbereda, auto-skicka och auto-kvittera interna kanaler."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">

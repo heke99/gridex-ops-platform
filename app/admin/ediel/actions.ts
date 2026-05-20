@@ -1239,13 +1239,20 @@ export async function pollMailboxAction(formData: FormData) {
     "communication.read",
   ]);
   const scope = await getOperationalCompanyScope(context.userId);
-  const companyId = isPlatformAdminContext(context) ? null : scope.companyId;
+  const requestedCompanyId = formString(formData.get("companyId"));
+  const mailbox = formString(formData.get("mailbox"));
+  const communicationRouteId = formString(formData.get("communicationRouteId"));
+  const companyId = isPlatformAdminContext(context)
+    ? requestedCompanyId ?? scope.companyId
+    : scope.companyId;
+
+  if (!companyId && !communicationRouteId) {
+    throw new Error("Mailboximport måste köras mot ett valt bolag eller en tenant-kopplad route.");
+  }
+
   if (companyId) {
     await requireCompanyOperationalForWrites(companyId);
   }
-
-  const mailbox = formString(formData.get("mailbox"));
-  const communicationRouteId = formString(formData.get("communicationRouteId"));
   const limitRaw = formString(formData.get("limit"));
   const limit = limitRaw ? Number(limitRaw) : 10;
 

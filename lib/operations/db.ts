@@ -812,6 +812,7 @@ export async function listAllOperationTasks(
     status?: string | null
     priority?: string | null
     query?: string | null
+    companyId?: string | null
   } = {}
 ): Promise<CustomerOperationTaskRow[]> {
   let taskQuery = supabase
@@ -825,6 +826,10 @@ export async function listAllOperationTasks(
 
   if (options.priority && options.priority !== 'all') {
     taskQuery = taskQuery.eq('priority', options.priority)
+  }
+
+  if (options.companyId) {
+    taskQuery = taskQuery.eq('company_id', options.companyId)
   }
 
   const { data, error } = await taskQuery
@@ -894,6 +899,7 @@ export async function listAllSupplierSwitchRequests(
     status?: string | null
     requestType?: string | null
     query?: string | null
+    companyId?: string | null
   } = {}
 ): Promise<SupplierSwitchRequestRow[]> {
   let requestQuery = supabase
@@ -907,6 +913,10 @@ export async function listAllSupplierSwitchRequests(
 
   if (options.requestType && options.requestType !== 'all') {
     requestQuery = requestQuery.eq('request_type', options.requestType)
+  }
+
+  if (options.companyId) {
+    requestQuery = requestQuery.eq('company_id', options.companyId)
   }
 
   const { data, error } = await requestQuery

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getCustomers } from '@/lib/customers/getCustomers'
 import type { ReactNode } from 'react'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
@@ -606,7 +607,9 @@ function QueueSection({
 export default async function AdminOperationsIntegrityPage({
  searchParams,
 }: PageProps) {
- await requireAdminPageKeyAccess('operations.integrity')
+ const context = await requireAdminPageKeyAccess('operations.integrity')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const resolvedSearchParams = await searchParams
 
@@ -615,7 +618,7 @@ export default async function AdminOperationsIntegrityPage({
  data: { user },
  } = await supabase.auth.getUser()
 
- const customers = await getCustomers({ query: '' })
+ const customers = await getCustomers({ query: '', companyId })
  const customerIds = customers.map((customer) => customer.id)
 
  const [
@@ -627,17 +630,26 @@ export default async function AdminOperationsIntegrityPage({
  partnerExports,
  allMeteringValues,
  ] = await Promise.all([
- supabase.from('customer_sites').select('*').in('customer_id', customerIds),
- supabase.from('customer_contracts').select('*').in('customer_id', customerIds),
+ (() => {
+ let query = supabase.from('customer_sites').select('*').in('customer_id', customerIds)
+ if (companyId) query = query.eq('company_id', companyId)
+ return query
+ })(),
+ (() => {
+ let query = supabase.from('customer_contracts').select('*').in('customer_id', customerIds)
+ if (companyId) query = query.eq('company_id', companyId)
+ return query
+ })(),
  listAllSupplierSwitchRequests(supabase, {
  status: 'all',
  requestType: 'all',
  query: '',
+ companyId,
  }),
- listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '' }),
- listAllBillingUnderlays({ status: 'all', query: '' }),
- listAllPartnerExports({ status: 'all', exportKind: 'all', query: '' }),
- listAllMeteringValues({ query: '' }),
+ listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '', companyId }),
+ listAllBillingUnderlays({ status: 'all', query: '', companyId }),
+ listAllPartnerExports({ status: 'all', exportKind: 'all', query: '', companyId }),
+ listAllMeteringValues({ query: '', companyId }),
  ])
 
  if (sitesResponse.error) throw sitesResponse.error
@@ -647,7 +659,8 @@ export default async function AdminOperationsIntegrityPage({
  const contracts = (contractsResponse.data ?? []) as CustomerContractRow[]
  const meteringPoints = await listMeteringPointsBySiteIds(
  supabase,
- sites.map((site) => site.id)
+ sites.map((site) => site.id),
+ { companyId }
  )
 
  const period = previousMonthPeriod()

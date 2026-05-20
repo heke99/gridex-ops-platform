@@ -1,6 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { bulkQueueMissingMeterValuesAction } from '@/app/admin/cis/actions'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 
@@ -81,7 +82,9 @@ async function queueMissingMeterValuesFormAction(
 export default async function MissingMeterValuesPage({
  searchParams,
 }: PageProps) {
- await requirePermissionServer('metering.read')
+ const context = await requireAdminPageKeyAccess('outbound.missing_meter_values')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const params = await searchParams
  const selectedPeriod = normalizePeriod(params.period)
@@ -92,10 +95,15 @@ export default async function MissingMeterValuesPage({
  data: { user },
  } = await supabase.auth.getUser()
 
- const { data: sites, error: sitesError } = await supabase
+ let sitesQueryBuilder = supabase
  .from('customer_sites')
  .select('*')
- .order('created_at', { ascending: false })
+
+ if (companyId) {
+ sitesQueryBuilder = sitesQueryBuilder.eq('company_id', companyId)
+ }
+
+ const { data: sites, error: sitesError } = await sitesQueryBuilder.order('created_at', { ascending: false })
 
  if (sitesError) throw sitesError
 
@@ -105,14 +113,19 @@ export default async function MissingMeterValuesPage({
 
  const meteringPoints = await listMeteringPointsBySiteIds(
  supabase,
- safeSites.map((site) => site.id)
+ safeSites.map((site) => site.id),
+ { companyId }
  )
 
- const valuesQuery = supabase
+ let valuesQuery = supabase
  .from('metering_values')
  .select('metering_point_id, period_start, period_end')
  .gte('period_start', period.start)
  .lte('period_end', period.end)
+
+ if (companyId) {
+ valuesQuery = valuesQuery.eq('company_id', companyId)
+ }
 
  const { data: values, error: valuesError } = await valuesQuery
  if (valuesError) throw valuesError
@@ -132,7 +145,7 @@ export default async function MissingMeterValuesPage({
  <AdminHeader
  title="Bulk: saknade mätvärden"
  subtitle="Köa periodspecifika mätvärdesförfrågningar utan att skapa dubbletter för samma månad."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">

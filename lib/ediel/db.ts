@@ -465,13 +465,17 @@ export async function listAckMessagesForSource(params: {
 }
 
 export async function getEdielMessageAckStateById(
-  id: string
+  id: string,
+  companyId?: string | null
 ): Promise<EdielMessageAckStateRow | null> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_message_ack_state_v')
     .select('*')
     .eq('id', id)
-    .maybeSingle()
+
+  query = applyCompanyScope(query, companyId)
+
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return (data as EdielMessageAckStateRow | null) ?? null
@@ -480,13 +484,17 @@ export async function getEdielMessageAckStateById(
 export async function findEdielMessageByMailboxIdentity(params: {
   mailbox: string
   mailboxMessageId: string
+  companyId?: string | null
 }): Promise<EdielMessageRow | null> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_messages')
     .select('*')
     .eq('mailbox', params.mailbox)
     .eq('mailbox_message_id', params.mailboxMessageId)
-    .maybeSingle()
+
+  query = applyCompanyScope(query, params.companyId)
+
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return (data as EdielMessageRow | null) ?? null
@@ -686,8 +694,14 @@ export async function listRecentInvalidCodeUsageMessages(params?: {
 }
 
 export async function listEdielMessageEvents(
-  edielMessageId: string
+  edielMessageId: string,
+  companyId?: string | null
 ): Promise<EdielMessageEventRow[]> {
+  if (companyId) {
+    const parent = await getEdielMessageById(edielMessageId, { companyId })
+    if (!parent) return []
+  }
+
   const { data, error } = await supabaseService
     .from('ediel_message_events')
     .select('*')

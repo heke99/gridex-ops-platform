@@ -1,6 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import {
  bulkQueueReadySupplierSwitchesAction,
  queueSupplierSwitchOutboundAction,
@@ -18,7 +19,9 @@ async function bulkQueueReadySupplierSwitchesFormAction(
 }
 
 export default async function ReadySwitchesPage() {
- await requirePermissionServer('switching.read')
+ const context = await requireAdminPageKeyAccess('outbound.ready_switches')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const supabase = await createSupabaseServerClient()
  const {
@@ -30,12 +33,14 @@ export default async function ReadySwitchesPage() {
  status: 'all',
  requestType: 'all',
  query: '',
+ companyId,
  }),
  listOutboundRequests({
  status: 'all',
  requestType: 'supplier_switch',
  channelType: 'all',
  query: '',
+ companyId,
  }),
  ])
 
@@ -67,7 +72,7 @@ export default async function ReadySwitchesPage() {
  <AdminHeader
  title="Bulk: redo för byte"
  subtitle="Köa externa leverantörsbytesrequests i bulk för switchärenden som är klara att skickas vidare. Du kan även köa enskilda ärenden manuellt."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">

@@ -1,8 +1,8 @@
 // app/admin/partner-exports/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listAllBillingUnderlays, listAllPartnerExports } from '@/lib/cis/db'
 import { updatePartnerExportStatusAction } from '@/app/admin/cis/actions'
 
@@ -28,27 +28,26 @@ function tone(status: string): string {
 export default async function AdminPartnerExportsPage({
  searchParams,
 }: PageProps) {
- await requirePermissionServer('partner_exports.read')
+ const context = await requireAdminPageKeyAccess('partner_exports.workspace')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const params = await searchParams
  const status = (params.status ?? 'all').trim()
  const exportKind = (params.exportKind ?? 'all').trim()
  const query = (params.q ?? '').trim()
 
- const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
-
  const [exports, underlays] = await Promise.all([
  listAllPartnerExports({
  status,
  exportKind,
  query,
+ companyId,
  }),
  listAllBillingUnderlays({
  status: 'all',
  query: '',
+ companyId,
  }),
  ])
 
@@ -59,7 +58,7 @@ export default async function AdminPartnerExportsPage({
  <AdminHeader
  title="Partner exports"
  subtitle="Queue, statusuppföljning och ack/felhantering mot externa partnerflöden."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">

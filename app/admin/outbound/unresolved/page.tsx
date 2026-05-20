@@ -1,6 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import {
  listAllGridOwnerDataRequests,
  listCommunicationRoutes,
@@ -17,21 +18,24 @@ import UnresolvedRequestsList from './UnresolvedRequestsList'
 export const dynamic = 'force-dynamic'
 
 export default async function UnresolvedOutboundPage() {
- await requirePermissionServer('masterdata.read')
+ const context = await requireAdminPageKeyAccess('outbound.unresolved')
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const companyId = tenantScope.companyId
 
  const supabase = await createSupabaseServerClient()
  const {
  data: { user },
  } = await supabase.auth.getUser()
 
- const requests = await listUnresolvedOutboundRequests()
+ const requests = await listUnresolvedOutboundRequests({ companyId })
  const [routes, dataRequests, switchRequests] = await Promise.all([
- listCommunicationRoutes({ routeScope: 'all', routeType: 'all', query: '' }),
- listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '' }),
+ listCommunicationRoutes({ routeScope: 'all', routeType: 'all', query: '', companyId }),
+ listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '', companyId }),
  listAllSupplierSwitchRequests(supabase, {
  status: 'all',
  requestType: 'all',
  query: '',
+ companyId,
  }),
  ])
 
@@ -43,16 +47,22 @@ export default async function UnresolvedOutboundPage() {
 
  let sites: CustomerSiteRow[] = []
  if (siteIds.length > 0) {
- const sitesQuery = await supabase
+ let sitesQueryBuilder = supabase
  .from('customer_sites')
  .select('*')
  .in('id', siteIds)
+
+ if (companyId) {
+ sitesQueryBuilder = sitesQueryBuilder.eq('company_id', companyId)
+ }
+
+ const sitesQuery = await sitesQueryBuilder
 
  if (sitesQuery.error) throw sitesQuery.error
  sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
  }
 
- const meteringPoints = await listMeteringPointsBySiteIds(supabase, siteIds)
+ const meteringPoints = await listMeteringPointsBySiteIds(supabase, siteIds, { companyId })
 
  const switchRelatedCount = requests.filter(
  (row) => row.request_type === 'supplier_switch'
@@ -78,7 +88,7 @@ export default async function UnresolvedOutboundPage() {
  <AdminHeader
  title="Outbound exceptions: unresolved"
  subtitle="Undantagskö för requests utan aktiv route. Här ser du varför något fastnat, vilken data eller route som saknas och vad nästa steg är."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
  <div className="space-y-6 p-8">

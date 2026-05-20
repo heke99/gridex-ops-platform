@@ -488,11 +488,21 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
   ])
 
   const actor = await getActor()
+  const companyScope = await getOperationalCompanyScope(actor.id)
+  const companyId = companyScope.companyId
+
+  if (!companyId) {
+    throw new Error('Automation sweep måste köras mot ett valt operativt bolag.')
+  }
+
+  await requireCompanyOperationalForWrites(companyId)
+
   const supabase = await createSupabaseServerClient()
 
   const sitesQuery = await supabase
     .from('customer_sites')
     .select('*')
+    .eq('company_id', companyId)
     .order('created_at', { ascending: false })
 
   if (sitesQuery.error) throw sitesQuery.error
@@ -500,13 +510,15 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
 
   const meteringPoints = await listMeteringPointsBySiteIds(
     supabase,
-    sites.map((site) => site.id)
+    sites.map((site) => site.id),
+    { companyId }
   )
 
   const switchRequests = await listAllSupplierSwitchRequests(supabase, {
     status: 'all',
     requestType: 'all',
     query: '',
+    companyId,
   })
 
   let readinessSynced = 0
@@ -591,6 +603,7 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
     requestType: 'all',
     channelType: 'all',
     query: '',
+    companyId,
   })
 
   const automationCandidates = outboundRequests.filter((request) =>
@@ -618,6 +631,7 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
     status: 'all',
     requestType: 'all',
     query: '',
+    companyId,
   })
 
   const refreshedOutboundRequests = await listOutboundRequests({
@@ -625,6 +639,7 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
     requestType: 'supplier_switch',
     channelType: 'all',
     query: '',
+    companyId,
   })
 
   for (const request of refreshedSwitchRequests) {
