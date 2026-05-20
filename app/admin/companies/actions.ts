@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { provisionCompanyInvitation } from '@/lib/auth/companyInvitationFlow'
+import { assertTransactionalEmailReady } from '@/lib/auth/smtpTransactionalEmail'
 import {
   getCompanyById,
   getCompanyDeleteBlockers,
@@ -188,6 +189,20 @@ async function setCompanyStatus(input: {
   return data as { id: string; name: string; status: string }
 }
 
+async function rollbackNewCompanyAfterInviteFailure(companyId: string, reason: string) {
+  const { error } = await supabaseService.from('companies').delete().eq('id', companyId)
+  if (!error) return
+
+  await supabaseService
+    .from('companies')
+    .update({
+      status: 'deleted_test_only',
+      status_reason: reason,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', companyId)
+}
+
 export async function createCompanyAction(
   _prevState: CompanyActionState,
   formData: FormData
@@ -207,6 +222,17 @@ export async function createCompanyAction(
     const sendInvite = formData.get('send_invite') !== 'off'
 
     if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
+
+    if (initialAdminEmail && !sendInvite) {
+      return {
+        ok: false,
+        message: 'Första bolagsansvarig måste bjudas in så temporärt lösenord och accept-länk kan skickas säkert.',
+      }
+    }
+
+    if (initialAdminEmail) {
+      await assertTransactionalEmailReady()
+    }
 
     const slug = slugify(normalizeText(formData.get('slug')) || name)
 
@@ -231,33 +257,37 @@ export async function createCompanyAction(
     if (companyError) throw companyError
 
     if (initialAdminEmail) {
-      if (!sendInvite) {
-        return {
-          ok: false,
-          message: 'Första bolagsansvarig måste bjudas in så temporärt lösenord och accept-länk kan skickas säkert.',
-        }
+      try {
+        const invitation = await provisionCompanyInvitation({
+          companyId: company.id,
+          companyName: name,
+          email: initialAdminEmail,
+          fullName: initialAdminName || null,
+          membershipRole: 'owner',
+          roleKey: 'company_admin',
+          actorUserId,
+          source: 'admin_companies_create_company_owner',
+          issueTemporaryPassword: true,
+        })
+
+        await logTenantGovernanceEvent({
+          action: 'SUPERADMIN_ROLE_CHANGED',
+          actorUserId,
+          companyId: company.id,
+          targetUserId: invitation.userId,
+          reason: 'Första bolagsansvarig skapades och bjöds in med temporärt lösenord',
+          metadata: { email: initialAdminEmail, membershipRole: 'owner', roleKey: 'company_admin' },
+        })
+      } catch (inviteError) {
+        const inviteMessage = inviteError instanceof Error ? inviteError.message : String(inviteError)
+        await rollbackNewCompanyAfterInviteFailure(
+          company.id,
+          `Bolaget rullades tillbaka eftersom inbjudan till bolagsansvarig misslyckades: ${inviteMessage}`
+        )
+        revalidatePath('/admin/companies')
+        revalidatePath('/admin/users')
+        throw new Error(`Bolaget skapades inte eftersom inbjudan till bolagsansvarig inte kunde skickas. ${inviteMessage}`)
       }
-
-      const invitation = await provisionCompanyInvitation({
-        companyId: company.id,
-        companyName: name,
-        email: initialAdminEmail,
-        fullName: initialAdminName || null,
-        membershipRole: 'owner',
-        roleKey: 'company_admin',
-        actorUserId,
-        source: 'admin_companies_create_company_owner',
-        issueTemporaryPassword: true,
-      })
-
-      await logTenantGovernanceEvent({
-        action: 'SUPERADMIN_ROLE_CHANGED',
-        actorUserId,
-        companyId: company.id,
-        targetUserId: invitation.userId,
-        reason: 'Första bolagsansvarig skapades och bjöds in med temporärt lösenord',
-        metadata: { email: initialAdminEmail, membershipRole: 'owner', roleKey: 'company_admin' },
-      })
     }
 
     await logTenantGovernanceEvent({

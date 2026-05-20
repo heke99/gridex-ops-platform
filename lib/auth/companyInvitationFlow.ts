@@ -7,12 +7,13 @@ import {
   upsertAuthUserProfile,
   findAuthUserByEmail,
 } from '@/lib/auth/authEmailFlow'
-import { sendTransactionalEmail } from '@/lib/auth/smtpTransactionalEmail'
+import { assertTransactionalEmailReady, sendTransactionalEmail } from '@/lib/auth/smtpTransactionalEmail'
 
 export type CompanyInviteProvisionResult = {
   userId: string
   email: string
   temporaryPassword: string | null
+  wasCreated: boolean
   invitationToken: string
   acceptUrl: string
 }
@@ -170,24 +171,22 @@ async function createOrUpdateAuthUser(input: {
   const temporaryPassword = input.issueTemporaryPassword ? createTemporaryPassword() : null
 
   if (existing) {
-    if (temporaryPassword) {
-      const mergedMetadata = {
-        ...(existing.user_metadata ?? {}),
-        full_name: input.fullName ?? existing.user_metadata?.full_name ?? null,
-        must_change_password: true,
-        temporary_password_set_at: new Date().toISOString(),
-      }
-
-      const { data, error } = await supabaseService.auth.admin.updateUserById(existing.id, {
-        password: temporaryPassword,
-        user_metadata: mergedMetadata,
-      })
-      if (error) throw error
-      if (!data.user) throw new Error('Auth-användaren kunde inte uppdateras med temporärt lösenord.')
-      return { user: data.user, temporaryPassword, wasCreated: false }
+    const mergedMetadata = {
+      ...(existing.user_metadata ?? {}),
+      full_name: input.fullName ?? existing.user_metadata?.full_name ?? null,
     }
 
-    return { user: existing, temporaryPassword: null, wasCreated: false }
+    const { data, error } = await supabaseService.auth.admin.updateUserById(existing.id, {
+      user_metadata: mergedMetadata,
+    })
+
+    if (error) throw error
+
+    // Viktigt: om personen redan finns ska vi inte byta deras lösenord i bakgrunden.
+    // Då riskerar vi att låsa ute en befintlig användare om mailet fastnar.
+    // Nya användare får temporärt lösenord; befintliga användare loggar in med sitt befintliga lösenord
+    // eller använder glömt lösenord.
+    return { user: data.user ?? existing, temporaryPassword: null, wasCreated: false }
   }
 
   const { data, error } = await supabaseService.auth.admin.createUser({
@@ -211,118 +210,123 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
   const email = normalizeEmail(input.email)
   if (!email) throw new Error('E-post saknas.')
 
+  // Kör SMTP-kontroll innan vi skapar bolagets membership/invite och innan ett nytt Auth-konto skapas.
+  // Då undviker vi partial success där bolag/användare finns men inget mail med temporärt lösenord går iväg.
+  await assertTransactionalEmailReady()
+
   const companyQuery = await supabaseService.from('companies').select('id, name').eq('id', input.companyId).maybeSingle()
   if (companyQuery.error) throw companyQuery.error
   const companyName = input.companyName ?? (companyQuery.data as { name?: string | null } | null)?.name ?? 'Gridex'
 
-  const { user, temporaryPassword } = await createOrUpdateAuthUser({
-    email,
-    fullName: input.fullName ?? null,
-    issueTemporaryPassword: input.issueTemporaryPassword !== false,
-  })
+  let createdAuthUserId: string | null = null
+  let userId: string | null = null
+  let temporaryPassword: string | null = null
+  let token = ''
+  let acceptUrl = ''
 
-  await upsertUserProfileWithTemporaryState({
-    user,
-    email,
-    fullName: input.fullName ?? null,
-    temporaryPassword,
-    source: input.source,
-  })
+  try {
+    const authResult = await createOrUpdateAuthUser({
+      email,
+      fullName: input.fullName ?? null,
+      issueTemporaryPassword: input.issueTemporaryPassword !== false,
+    })
 
-  const token = createInvitationToken()
-  const tokenHash = hashCompanyInvitationToken(token)
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString()
-  const now = new Date().toISOString()
+    const { user, wasCreated } = authResult
+    userId = user.id
+    temporaryPassword = authResult.temporaryPassword
+    if (wasCreated) createdAuthUserId = user.id
 
-  const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-    {
+    await upsertUserProfileWithTemporaryState({
+      user,
+      email,
+      fullName: input.fullName ?? null,
+      temporaryPassword,
+      source: input.source,
+    })
+
+    token = createInvitationToken()
+    const tokenHash = hashCompanyInvitationToken(token)
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString()
+    const now = new Date().toISOString()
+
+    const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
+      {
+        company_id: input.companyId,
+        user_id: user.id,
+        membership_role: input.membershipRole,
+        status: 'pending',
+        invited_email: email,
+        invited_by: input.actorUserId,
+        invited_at: now,
+        accepted_at: null,
+        disabled_at: null,
+        disabled_by: null,
+        removed_at: null,
+        removed_by: null,
+        status_reason: null,
+        metadata: {
+          invite_source: input.source,
+          force_password_change: Boolean(temporaryPassword),
+        },
+      },
+      { onConflict: 'company_id,user_id' }
+    )
+    if (membershipError) throw membershipError
+
+    const invitationPayload: Record<string, unknown> = {
       company_id: input.companyId,
-      user_id: user.id,
+      email,
+      full_name: input.fullName ?? null,
       membership_role: input.membershipRole,
+      role_key: input.roleKey,
       status: 'pending',
-      invited_email: email,
       invited_by: input.actorUserId,
-      invited_at: now,
+      invited_user_id: user.id,
+      expires_at: expiresAt,
       accepted_at: null,
-      disabled_at: null,
-      disabled_by: null,
-      removed_at: null,
-      removed_by: null,
-      status_reason: null,
+      revoked_at: null,
+      accept_token_hash: tokenHash,
+      temporary_password_issued_at: temporaryPassword ? now : null,
+      temporary_password_expires_at: temporaryPassword ? expiresAt : null,
       metadata: {
         invite_source: input.source,
         force_password_change: Boolean(temporaryPassword),
       },
-    },
-    { onConflict: 'company_id,user_id' }
-  )
-  if (membershipError) throw membershipError
-
-  const invitationPayload: Record<string, unknown> = {
-    company_id: input.companyId,
-    email,
-    full_name: input.fullName ?? null,
-    membership_role: input.membershipRole,
-    role_key: input.roleKey,
-    status: 'pending',
-    invited_by: input.actorUserId,
-    invited_user_id: user.id,
-    expires_at: expiresAt,
-    accepted_at: null,
-    revoked_at: null,
-    metadata: {
-      invite_source: input.source,
-      force_password_change: Boolean(temporaryPassword),
-    },
-  }
-
-  const insertWithToken = await supabaseService.from('company_invitations').insert({
-    ...invitationPayload,
-    accept_token_hash: tokenHash,
-    temporary_password_issued_at: temporaryPassword ? now : null,
-    temporary_password_expires_at: temporaryPassword ? expiresAt : null,
-  })
-
-  if (insertWithToken.error) {
-    if (insertWithToken.error.code === '42703') {
-      const retry = await supabaseService.from('company_invitations').insert(invitationPayload)
-      if (retry.error) throw retry.error
-    } else {
-      throw insertWithToken.error
     }
-  }
 
-  const roleQuery = await supabaseService.from('roles').select('id,key').eq('key', input.roleKey).maybeSingle()
-  if (roleQuery.error) throw roleQuery.error
-  if (roleQuery.data?.id) {
-    const rolePayload = {
-      user_id: user.id,
-      role_id: roleQuery.data.id,
-      status: 'active',
-      is_active: true,
-    }
-    const roleInsert = await supabaseService.from('user_roles').upsert(rolePayload, {
-      onConflict: 'user_id,role_id',
-    })
+    const { error: inviteError } = await supabaseService.from('company_invitations').insert(invitationPayload)
+    if (inviteError) throw inviteError
 
-    if (roleInsert.error) {
-      if (roleInsert.error.code === '42703') {
-        const retry = await supabaseService.from('user_roles').upsert(
-          {
-            user_id: user.id,
-            role_id: roleQuery.data.id,
-          },
-          { onConflict: 'user_id,role_id' }
-        )
-        if (retry.error) throw retry.error
-      } else {
-        throw roleInsert.error
+    const roleQuery = await supabaseService.from('roles').select('id,key').eq('key', input.roleKey).maybeSingle()
+    if (roleQuery.error) throw roleQuery.error
+    if (roleQuery.data?.id) {
+      const rolePayload = {
+        user_id: user.id,
+        role_id: roleQuery.data.id,
+        status: 'active',
+        is_active: true,
+      }
+      const roleInsert = await supabaseService.from('user_roles').upsert(rolePayload, {
+        onConflict: 'user_id,role_id',
+      })
+
+      if (roleInsert.error) {
+        if (roleInsert.error.code === '42703') {
+          const retry = await supabaseService.from('user_roles').upsert(
+            {
+              user_id: user.id,
+              role_id: roleQuery.data.id,
+            },
+            { onConflict: 'user_id,role_id' }
+          )
+          if (retry.error) throw retry.error
+        } else {
+          throw roleInsert.error
+        }
       }
     }
-  }
 
-  const acceptUrl = buildAcceptUrl(token)
-  try {
+    acceptUrl = buildAcceptUrl(token)
     await sendTransactionalEmail({
       to: email,
       subject: `Inbjudan till ${companyName} i Gridex`,
@@ -335,11 +339,30 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       }),
       text: temporaryPassword
         ? `Du har blivit inbjuden till ${companyName} i Gridex. Acceptera: ${acceptUrl}\nE-post: ${email}\nTemporärt lösenord: ${temporaryPassword}\nDu blir ombedd att byta lösenord när du loggar in.`
-        : `Du har blivit inbjuden till ${companyName} i Gridex. Acceptera: ${acceptUrl}\nLogga in med ditt befintliga konto.`,
+        : `Du har blivit inbjuden till ${companyName} i Gridex. Acceptera: ${acceptUrl}\nLogga in med ditt befintliga konto. Om du inte minns lösenordet kan du använda glömt lösenord.`,
     })
-  } catch (error) {
+
     await recordAuthEmailEvent({
       userId: user.id,
+      email,
+      eventType: 'invite_sent',
+      status: 'sent',
+      source: input.source,
+      actorUserId: input.actorUserId,
+      companyId: input.companyId,
+      metadata: {
+        membershipRole: input.membershipRole,
+        roleKey: input.roleKey,
+        temporaryPasswordIssued: Boolean(temporaryPassword),
+        existingUser: !createdAuthUserId,
+        acceptUrl,
+      },
+    })
+
+    return { userId: user.id, email, temporaryPassword, wasCreated: Boolean(createdAuthUserId), invitationToken: token, acceptUrl }
+  } catch (error) {
+    await recordAuthEmailEvent({
+      userId,
       email,
       eventType: 'invite_sent',
       status: 'failed',
@@ -348,26 +371,21 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       companyId: input.companyId,
       metadata: { error: error instanceof Error ? error.message : String(error) },
     })
+
+    // Rollback för nyskapade Auth-konton och pending-rader så systemet inte hamnar i halvt skapat läge.
+    if (userId) {
+      await supabaseService.from('company_invitations').delete().eq('company_id', input.companyId).eq('invited_user_id', userId).eq('status', 'pending')
+      await supabaseService.from('company_memberships').delete().eq('company_id', input.companyId).eq('user_id', userId).eq('status', 'pending')
+    }
+
+    if (createdAuthUserId) {
+      await supabaseService.from('user_roles').delete().eq('user_id', createdAuthUserId)
+      await supabaseService.from('user_profiles').delete().eq('id', createdAuthUserId)
+      await supabaseService.auth.admin.deleteUser(createdAuthUserId)
+    }
+
     throw error
   }
-
-  await recordAuthEmailEvent({
-    userId: user.id,
-    email,
-    eventType: 'invite_sent',
-    status: 'sent',
-    source: input.source,
-    actorUserId: input.actorUserId,
-    companyId: input.companyId,
-    metadata: {
-      membershipRole: input.membershipRole,
-      roleKey: input.roleKey,
-      temporaryPasswordIssued: Boolean(temporaryPassword),
-      acceptUrl,
-    },
-  })
-
-  return { userId: user.id, email, temporaryPassword, invitationToken: token, acceptUrl }
 }
 
 export async function getCompanyInvitationByToken(token: string): Promise<CompanyInvitationRow | null> {
