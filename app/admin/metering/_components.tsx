@@ -69,7 +69,7 @@ export function MeteringFilterBar({ query }: { query: string }) {
  <input
  name="q"
  defaultValue={query}
- placeholder="Sök kund, site, mätpunkt, request-id, kvalitet eller source"
+ placeholder="Sök kund, anläggning, mätpunkt, ärende-id, kvalitet eller källa"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:border-emerald-700"
  />
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white">
@@ -281,11 +281,11 @@ export function MeteringIngestForm() {
  </p>
 
  <div className="mt-5 grid gap-4">
- <input name="customer_id" placeholder="Customer ID" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
- <input name="site_id" placeholder="Site ID" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
- <input name="metering_point_id" placeholder="Metering point ID" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
- <input name="source_request_id" placeholder="Source request ID" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
- <input name="grid_owner_id" placeholder="Grid owner ID" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="customer_id" placeholder="Kund-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
+ <input name="site_id" placeholder="Anläggnings-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="metering_point_id" placeholder="Mätpunkt-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
+ <input name="source_request_id" placeholder="Källärende-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="grid_owner_id" placeholder="Nätägare-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
 
  <select name="reading_type" defaultValue="consumption" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm">
  <option value="consumption">Consumption</option>
@@ -295,7 +295,7 @@ export function MeteringIngestForm() {
  </select>
 
  <input name="value_kwh" placeholder="kWh" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
- <input name="quality_code" placeholder="Quality code" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="quality_code" placeholder="Kvalitetskod" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
  <input name="read_at" type="datetime-local" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
  <input name="period_start" type="datetime-local" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
  <input name="period_end" type="datetime-local" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />

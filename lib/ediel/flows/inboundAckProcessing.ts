@@ -24,6 +24,7 @@ import {
   updateSupplierSwitchRequestStatus,
 } from '@/lib/operations/db'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
+import { syncCustomerCaseCancellationAck } from '@/lib/customer-cases/db'
 
 type InboundAckFamily = Extract<EdielMessageFamily, 'CONTRL' | 'APERAK' | 'UTILTS_ERR'>
 type InboundAckOutcome = 'positive' | 'negative'
@@ -786,6 +787,14 @@ export async function processInboundAckMessage(params: {
     failureReason: sourcePatch.failureReason,
   })
 
+  const customerCase = await syncCustomerCaseCancellationAck({
+    actorUserId,
+    sourceMessage: sourcePatch.updated,
+    ackMessage,
+    outcome,
+    finalAckReached: sourcePatch.finalAckReached,
+  })
+
   await updateEdielMessageStatus({
     actorUserId,
     edielMessageId: ackMessage.id,
@@ -819,6 +828,7 @@ export async function processInboundAckMessage(params: {
       outboundRequestId: outboundRequest?.id ?? sourceMessage.outbound_request_id,
       switchRequestId: switchResult?.id ?? sourceMessage.switch_request_id,
       gridOwnerDataRequestId: gridOwnerDataRequest?.id ?? sourceMessage.grid_owner_data_request_id,
+      customerCaseId: customerCase?.id ?? null,
       ackOutcome: outcome,
       finalAckReached: sourcePatch.finalAckReached,
     },

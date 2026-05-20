@@ -428,7 +428,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <input
  name="q"
  defaultValue={query}
- placeholder="Sök på kund, site, mätpunkt, batch eller referens"
+ placeholder="Sök på kund, anläggning, mätpunkt, körning eller referens"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 

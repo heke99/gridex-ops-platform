@@ -59,7 +59,7 @@ export default async function CommunicationRoutesPage({
 
  <input
  name="route_name"
- placeholder="Route name"
+ placeholder="Routens namn"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  required
  />
@@ -100,33 +100,33 @@ export default async function CommunicationRoutesPage({
 
  <input
  name="target_system"
- placeholder="Target system"
+ placeholder="Mottagande system"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  defaultValue="partner_system"
  />
 
  <input
  name="endpoint"
- placeholder="Endpoint / path"
+ placeholder="Endpoint eller sökväg"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <input
  name="target_email"
- placeholder="Target email"
+ placeholder="Mottagande e-post"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <input
  name="supported_payload_version"
- placeholder="Payload version"
+ placeholder="Payload-version"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <textarea
  name="notes"
  rows={4}
- placeholder="Notes"
+ placeholder="Notering"
  className="rounded-2xl border border-slate-300 px-4 py-3 text-sm "
  />
 

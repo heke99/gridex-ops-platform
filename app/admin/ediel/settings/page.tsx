@@ -432,26 +432,26 @@ export default async function AdminEdielSettingsPage() {
  </div>
 
  <div className="grid gap-3 md:grid-cols-3">
- <Input name="actor_name" defaultValue={row.actor_name} placeholder="Actor name" />
- <Input name="actor_ediel_id" defaultValue={row.actor_ediel_id} placeholder="Actor Ediel ID" />
- <Input name="actor_role" defaultValue={row.actor_role} placeholder="Actor role" />
+ <Input name="actor_name" defaultValue={row.actor_name} placeholder="Aktörens namn" />
+ <Input name="actor_ediel_id" defaultValue={row.actor_ediel_id} placeholder="Aktörens Ediel-id" />
+ <Input name="actor_role" defaultValue={row.actor_role} placeholder="Aktörsroll" />
  <Select name="environment" defaultValue={row.environment}>
  <option value="test">test</option>
  <option value="production">production</option>
  </Select>
- <Input name="sender_name" defaultValue={row.sender_name} placeholder="Sender name" />
- <Input name="sender_sub_address" defaultValue={row.sender_sub_address} placeholder="Sender sub address" />
- <Input name="default_application_reference" defaultValue={row.default_application_reference} placeholder="Application reference" />
- <Input name="default_timezone" defaultValue={row.default_timezone} placeholder="Timezone" type="number" />
- <Input name="default_charset" defaultValue={row.default_charset} placeholder="Charset" />
+ <Input name="sender_name" defaultValue={row.sender_name} placeholder="Avsändarnamn" />
+ <Input name="sender_sub_address" defaultValue={row.sender_sub_address} placeholder="Avsändarens subadress" />
+ <Input name="default_application_reference" defaultValue={row.default_application_reference} placeholder="Application Reference" />
+ <Input name="default_timezone" defaultValue={row.default_timezone} placeholder="Tidszon" type="number" />
+ <Input name="default_charset" defaultValue={row.default_charset} placeholder="Teckenuppsättning" />
  <Select name="default_test_flag" defaultValue={row.default_test_flag}>
  <option value="1">1</option>
  <option value="0">0</option>
  </Select>
- <Input name="smtp_from_email" defaultValue={row.smtp_from_email} placeholder="SMTP from email" />
- <Input name="smtp_reply_to_email" defaultValue={row.smtp_reply_to_email} placeholder="SMTP reply-to" />
- <Input name="mailbox" defaultValue={row.mailbox} placeholder="Mailbox" />
- <Input name="notes" defaultValue={row.notes} placeholder="Notes" />
+ <Input name="smtp_from_email" defaultValue={row.smtp_from_email} placeholder="SMTP avsändaradress" />
+ <Input name="smtp_reply_to_email" defaultValue={row.smtp_reply_to_email} placeholder="SMTP svara-till" />
+ <Input name="mailbox" defaultValue={row.mailbox} placeholder="Brevlåda" />
+ <Input name="notes" defaultValue={row.notes} placeholder="Notering" />
  </div>
 
  <div className="mt-4 flex flex-wrap items-center gap-4">
@@ -475,26 +475,26 @@ export default async function AdminEdielSettingsPage() {
  </div>
 
  <div className="grid gap-3 md:grid-cols-3">
- <Input name="actor_name" placeholder="Actor name" />
- <Input name="actor_ediel_id" placeholder="Actor Ediel ID" />
- <Input name="actor_role" placeholder="Actor role" />
+ <Input name="actor_name" placeholder="Aktörens namn" />
+ <Input name="actor_ediel_id" placeholder="Aktörens Ediel-id" />
+ <Input name="actor_role" placeholder="Aktörsroll" />
  <Select name="environment" defaultValue="test">
  <option value="test">test</option>
  <option value="production">production</option>
  </Select>
- <Input name="sender_name" placeholder="Sender name" />
- <Input name="sender_sub_address" placeholder="Sender sub address" />
- <Input name="default_application_reference" placeholder="Application reference" />
+ <Input name="sender_name" placeholder="Avsändarnamn" />
+ <Input name="sender_sub_address" placeholder="Avsändarens subadress" />
+ <Input name="default_application_reference" placeholder="Application Reference" />
  <Input name="default_timezone" type="number" defaultValue={1} />
  <Input name="default_charset" defaultValue="UNOC" />
  <Select name="default_test_flag" defaultValue={1}>
  <option value="1">1</option>
  <option value="0">0</option>
  </Select>
- <Input name="smtp_from_email" placeholder="SMTP from email" />
- <Input name="smtp_reply_to_email" placeholder="SMTP reply-to" />
- <Input name="mailbox" placeholder="Mailbox" />
- <Input name="notes" placeholder="Notes" />
+ <Input name="smtp_from_email" placeholder="SMTP avsändaradress" />
+ <Input name="smtp_reply_to_email" placeholder="SMTP svara-till" />
+ <Input name="mailbox" placeholder="Brevlåda" />
+ <Input name="notes" placeholder="Notering" />
  </div>
 
  <div className="mt-4 flex flex-wrap items-center gap-4">
@@ -575,7 +575,7 @@ export default async function AdminEdielSettingsPage() {
  <option value="xml">xml</option>
  <option value="ai_list">ai_list</option>
  </Select>
- <Input name="version_code" placeholder="E5SE5A / Ver20140401 ..." />
+ <Input name="version_code" placeholder="Ex. E5SE5A / Ver20140401" />
  <Select name="direction" defaultValue="both">
  <option value="both">both</option>
  <option value="inbound">inbound</option>
@@ -583,7 +583,7 @@ export default async function AdminEdielSettingsPage() {
  </Select>
  <Input name="valid_from" type="date" />
  <Input name="valid_to" type="date" />
- <Input name="notes" placeholder="Notes" />
+ <Input name="notes" placeholder="Notering" />
  </div>
 
  <div className="mt-4 flex flex-wrap items-center gap-4">

@@ -491,28 +491,28 @@ export function BillingIngestForm() {
  <div className="mt-5 grid gap-4">
  <input
  name="customer_id"
- placeholder="Customer ID"
+ placeholder="Kund-id"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
  required
  />
  <input
  name="site_id"
- placeholder="Site ID"
+ placeholder="Anläggnings-id"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
  />
  <input
  name="metering_point_id"
- placeholder="Metering point ID"
+ placeholder="Mätpunkt-id"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
  />
  <input
  name="source_request_id"
- placeholder="Source request ID"
+ placeholder="Källärende-id"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
  />
  <input
  name="grid_owner_id"
- placeholder="Grid owner ID"
+ placeholder="Nätägare-id"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
  />
 

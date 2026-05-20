@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assessWithdrawal, applyCustomerCaseOperationalStops, createCancellationDraftForCase } from './engine'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { CustomerCaseEventRow, CustomerCaseListRow, CustomerCaseRow, CustomerCaseType } from './types'
 
 type CustomerCaseInput = {
@@ -335,4 +336,97 @@ export async function updateCustomerCaseStatus(input: {
   })
 
   return row
+}
+
+
+export async function syncCustomerCaseCancellationAck(params: {
+  actorUserId: string
+  sourceMessage: EdielMessageRow
+  ackMessage: EdielMessageRow
+  outcome: 'positive' | 'negative'
+  finalAckReached: boolean
+}) {
+  if (!params.sourceMessage.company_id) return null
+
+  const { data, error } = await supabaseService
+    .from('customer_cases')
+    .select('*')
+    .eq('cancellation_ediel_message_id', params.sourceMessage.id)
+    .eq('company_id', params.sourceMessage.company_id)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+
+  const row = data as CustomerCaseRow
+  const now = new Date().toISOString()
+  const negative = params.outcome === 'negative'
+  const finalPositive = params.outcome === 'positive' && params.finalAckReached
+  const nextCancellationStatus = negative ? 'rejected' : finalPositive ? 'accepted' : 'sent'
+  const nextStatus = negative ? 'manual_follow_up' : finalPositive ? 'resolved' : 'awaiting_external_response'
+  const nextAction = negative
+    ? 'Annulleringen fick negativ kvittens. Kontrollera feltext, kontakta nätägare och håll fakturering blockerad.'
+    : finalPositive
+      ? 'Annullering kvitterad. Behåll historiken och säkerställ att fakturering inte startar för avbrutet byte.'
+      : 'Annullering skickad. Väntar på komplett CONTRL/APERAK-kedja.'
+
+  const metadata = {
+    ...(row.metadata ?? {}),
+    cancellationAck: {
+      ackMessageId: params.ackMessage.id,
+      ackFamily: params.ackMessage.message_family,
+      outcome: params.outcome,
+      finalAckReached: params.finalAckReached,
+      processedAt: now,
+    },
+  }
+
+  const { data: updated, error: updateError } = await supabaseService
+    .from('customer_cases')
+    .update({
+      status: nextStatus,
+      cancellation_status: nextCancellationStatus,
+      billing_blocked: true,
+      billing_manual_review: !finalPositive,
+      next_action: nextAction,
+      metadata,
+      resolved_at: finalPositive ? now : row.resolved_at,
+      updated_by: params.actorUserId,
+      updated_at: now,
+    })
+    .eq('id', row.id)
+    .eq('company_id', row.company_id)
+    .select('*')
+    .single()
+
+  if (updateError) throw updateError
+
+  await createCustomerCaseEvent({
+    companyId: row.company_id,
+    customerCaseId: row.id,
+    customerId: row.customer_id,
+    eventType: negative ? 'cancellation_ack_rejected' : finalPositive ? 'cancellation_ack_accepted' : 'cancellation_ack_received',
+    eventStatus: negative ? 'error' : finalPositive ? 'success' : 'info',
+    message: nextAction,
+    payload: metadata.cancellationAck,
+    actorUserId: params.actorUserId,
+  })
+
+  await logAudit({
+    companyId: row.company_id,
+    customerCaseId: row.id,
+    customerId: row.customer_id,
+    action: negative ? 'cancellation_ack_rejected' : finalPositive ? 'cancellation_ack_accepted' : 'cancellation_ack_received',
+    actorUserId: params.actorUserId,
+    newValues: {
+      customerCaseId: row.id,
+      cancellationEdielMessageId: params.sourceMessage.id,
+      ackMessageId: params.ackMessage.id,
+      outcome: params.outcome,
+      finalAckReached: params.finalAckReached,
+    },
+  })
+
+  return updated as CustomerCaseRow
 }

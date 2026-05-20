@@ -1,5 +1,6 @@
 import type { EmailOtpType, User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
+import { sendTenantBrandedPasswordResetEmail } from '@/lib/tenant/passwordResetEmail'
 
 export type AuthEmailActionType =
   | 'email'
@@ -187,26 +188,17 @@ export async function sendPasswordResetEmailForKnownUser(input: {
   }
 
   const sentAt = new Date().toISOString()
-  const { error } = await supabaseService.auth.resetPasswordForEmail(email, {
-    redirectTo: buildAuthCallbackRedirect('/login/update-password'),
+  await sendTenantBrandedPasswordResetEmail({
+    email,
+    actorUserId: input.actorUserId ?? null,
+    source: input.source ?? 'admin_password_reset',
   })
-
-  if (error) throw error
 
   await upsertAuthUserProfile({
     userId: user.id,
     email,
     lastPasswordResetSentAt: sentAt,
     lastAction: 'password_reset_sent',
-  })
-
-  await recordAuthEmailEvent({
-    userId: user.id,
-    email,
-    eventType: 'password_reset_sent',
-    status: 'sent',
-    source: input.source ?? 'password_reset',
-    actorUserId: input.actorUserId ?? null,
   })
 
   return user

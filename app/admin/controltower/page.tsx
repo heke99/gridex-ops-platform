@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 type CountFilter = {
  column: string
  op?: 'eq' | 'in' | 'is'
- value: string | string[] | null
+ value: string | string[] | boolean | null
 }
 
 type QueueRow = {
@@ -170,6 +170,9 @@ export default async function AdminControlTowerPage() {
  failedSwitches,
  failedOutbound,
  failedEdielMessages,
+ openCustomerCases,
+ billingBlockedCases,
+ cancellationCustomerCases,
  movedCustomers,
  ]] = await Promise.all([
  isPlatformAdmin ? listPlatformControlTowerAlerts() : Promise.resolve([]),
@@ -183,11 +186,14 @@ export default async function AdminControlTowerPage() {
  safeCount(supabase, 'supplier_switch_requests', [...scopeFilters, { column: 'status', op: 'in', value: ['failed', 'rejected'] }]),
  safeCount(supabase, 'outbound_requests', [...scopeFilters, { column: 'status', value: 'failed' }]),
  safeCount(supabase, 'ediel_messages', [...scopeFilters, { column: 'status', value: 'failed' }]),
+ safeCount(supabase, 'customer_cases', [...scopeFilters, { column: 'status', op: 'in', value: ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up'] }]),
+ safeCount(supabase, 'customer_cases', [...scopeFilters, { column: 'billing_blocked', value: true }]),
+ safeCount(supabase, 'customer_cases', [...scopeFilters, { column: 'cancellation_status', op: 'in', value: ['draft_required', 'draft_created', 'sent', 'rejected', 'manual_review'] }]),
  safeCount(supabase, 'customers', [...scopeFilters, { column: 'status', op: 'in', value: ['moved', 'terminated'] }]),
  ]),
  ])
 
- const [taskRows, gridOwnerRows, switchRows, movedRows] = await Promise.all([
+ const [taskRows, gridOwnerRows, switchRows, customerCaseRows, movedRows] = await Promise.all([
  safeRows<{
  id: string
  customer_id: string | null
@@ -212,6 +218,18 @@ export default async function AdminControlTowerPage() {
  failure_reason: string | null
  created_at: string | null
  }>(supabase, 'supplier_switch_requests', 'id, customer_id, request_type, status, failure_reason, created_at', [...scopeFilters, { column: 'status', op: 'in', value: ['queued', 'submitted', 'accepted', 'failed', 'rejected'] }], 8),
+ safeRows<{
+ id: string
+ customer_id: string | null
+ case_type: string | null
+ status: string | null
+ title: string | null
+ next_action: string | null
+ cancellation_status: string | null
+ billing_blocked: boolean | null
+ delivery_start_at: string | null
+ created_at: string | null
+ }>(supabase, 'customer_cases', 'id, customer_id, case_type, status, title, next_action, cancellation_status, billing_blocked, delivery_start_at, created_at', [...scopeFilters, { column: 'status', op: 'in', value: ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up'] }], 8),
  safeRows<{
  id: string
  full_name: string | null
@@ -253,6 +271,15 @@ export default async function AdminControlTowerPage() {
  tone: ['failed', 'rejected'].includes(request.status ?? '') ? 'danger' as const : 'warning' as const,
  meta: `Skapad ${formatDate(request.created_at)}`,
  })),
+ ...customerCaseRows.map((item) => ({
+ id: item.id,
+ title: item.title ?? (item.case_type === 'withdrawal' ? 'Ångerärende' : 'Kundärende'),
+ description: item.next_action ?? 'Kundärende behöver uppföljning innan flödet fortsätter.',
+ href: item.customer_id ? `/admin/customers/${item.customer_id}` : '/admin/customer-cases',
+ status: item.billing_blocked ? 'Fakturering blockerad' : item.status ?? 'open',
+ tone: item.billing_blocked || item.cancellation_status === 'rejected' ? 'danger' as const : 'warning' as const,
+ meta: item.delivery_start_at ? `Leveransstart ${formatDate(item.delivery_start_at)}` : `Skapad ${formatDate(item.created_at)}`,
+ })),
  ].slice(0, 14)
 
  const lifecycleRows: QueueRow[] = movedRows.map((customer) => ({
@@ -273,7 +300,10 @@ export default async function AdminControlTowerPage() {
  waitingSwitches +
  failedSwitches +
  failedOutbound +
- failedEdielMessages
+ failedEdielMessages +
+ openCustomerCases +
+ billingBlockedCases +
+ cancellationCustomerCases
 
  return (
  <div className="space-y-6 p-6 xl:p-8">
@@ -333,6 +363,9 @@ export default async function AdminControlTowerPage() {
  <KpiCard label="Switchfel" value={failedSwitches} description="Switchar som behöver rättas eller stängas manuellt." href="/admin/operations/switches?stage=failed" tone={failedSwitches > 0 ? 'danger' : 'success'} />
  <KpiCard label="Outboundfel" value={failedOutbound} description="Utskick som inte gick igenom och måste felsökas." href="/admin/outbound" tone={failedOutbound > 0 ? 'danger' : 'success'} />
  <KpiCard label="Ediel-fel" value={failedEdielMessages} description="Meddelanden med felstatus i Ediel-kedjan." href="/admin/ediel/control-tower" tone={failedEdielMessages > 0 ? 'danger' : 'success'} />
+ <KpiCard label="Kundärenden" value={openCustomerCases} description="Ånger, nekade kunder och ärenden som stoppar kundflödet." href="/admin/customer-cases" tone={openCustomerCases > 0 ? 'warning' : 'success'} />
+ <KpiCard label="Ånger/annullering" value={cancellationCustomerCases} description="Ärenden där annullering eller kvittenskedja måste följas upp." href="/admin/customer-cases?type=withdrawal" tone={cancellationCustomerCases > 0 ? 'danger' : 'success'} />
+ <KpiCard label="Faktureringsstopp" value={billingBlockedCases} description="Kunder där fakturering ska hållas blockerad tills ärendet är hanterat." href="/admin/customer-cases?status=billing_blocked" tone={billingBlockedCases > 0 ? 'danger' : 'success'} />
  <KpiCard label="Flyttade/avslutade" value={movedCustomers} description="Kunder som är mjukt stängda och ska slutuppföljas." href="/admin/customers?status=moved" tone="neutral" />
  </section>
 

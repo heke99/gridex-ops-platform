@@ -1,5 +1,9 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessage } from '@/lib/ediel/db'
+import type { EdielMessageRow } from '@/lib/ediel/types'
+import { buildEdifactEnvelope } from '@/lib/ediel/messages'
+import { renderProdat26A } from '@/lib/ediel/prodat/engine'
+import type { ProdatEngineProductionContext } from '@/lib/ediel/prodat/types'
 import type { CustomerCaseRow, WithdrawalScenario } from './types'
 
 export type WithdrawalAssessmentInput = {
@@ -42,6 +46,202 @@ function parseDate(value: string | null | undefined): Date | null {
 
 function isDistanceChannel(channel: string | null | undefined) {
   return ['phone', 'web', 'email', 'sms', 'distance', 'external_sales'].includes(String(channel ?? '').trim())
+}
+
+
+type DynamicRow = Record<string, unknown>
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function asNumberOrString(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return asString(value)
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function firstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    const stringValue = asNumberOrString(value)
+    if (stringValue) return stringValue
+  }
+  return null
+}
+
+function compactReference(value: string | null | undefined, fallback: string): string {
+  const raw = (value && value.trim() ? value : fallback).replace(/[^A-Za-z0-9_.\/-]/g, '')
+  return raw.slice(0, 35) || fallback.slice(0, 35)
+}
+
+async function maybeSelectById(table: string, id: string | null | undefined, companyId: string): Promise<DynamicRow | null> {
+  if (!id) return null
+  const { data, error } = await supabaseService
+    .from(table)
+    .select('*')
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .maybeSingle()
+
+  if (error && !['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) throw error
+  return (data as DynamicRow | null) ?? null
+}
+
+async function findSourceSwitchMessage(caseRow: CustomerCaseRow): Promise<EdielMessageRow | null> {
+  if (caseRow.outbound_request_id) {
+    const { data, error } = await supabaseService
+      .from('ediel_messages')
+      .select('*')
+      .eq('company_id', caseRow.company_id)
+      .eq('outbound_request_id', caseRow.outbound_request_id)
+      .eq('direction', 'outbound')
+      .eq('message_family', 'PRODAT')
+      .eq('message_code', 'Z03')
+      .neq('process_type', 'supplier_switch_cancellation')
+      .order('message_sent_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error && !['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) throw error
+    if (data) return data as EdielMessageRow
+  }
+
+  if (!caseRow.supplier_switch_request_id) return null
+
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('company_id', caseRow.company_id)
+    .eq('switch_request_id', caseRow.supplier_switch_request_id)
+    .eq('direction', 'outbound')
+    .eq('message_family', 'PRODAT')
+    .eq('message_code', 'Z03')
+    .neq('process_type', 'supplier_switch_cancellation')
+    .order('message_sent_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error && !['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) throw error
+  return (data as EdielMessageRow | null) ?? null
+}
+
+function buildCustomerDisplayName(customer: DynamicRow | null, sourcePayload: Record<string, unknown>): string {
+  return firstString(
+    sourcePayload.customerName,
+    customer?.full_name,
+    [customer?.first_name, customer?.last_name].filter(Boolean).join(' '),
+    customer?.company_name,
+    customer?.name
+  ) ?? 'Kund'
+}
+
+function buildCancellationProdatPayload(params: {
+  caseRow: CustomerCaseRow
+  sourceMessage: EdielMessageRow
+  customer: DynamicRow | null
+  site: DynamicRow | null
+  meteringPoint: DynamicRow | null
+  switchRequest: DynamicRow | null
+}) {
+  const sourcePayload = asRecord(params.sourceMessage.parsed_payload)
+  const senderEdielId = firstString(params.sourceMessage.sender_ediel_id, sourcePayload.senderEdielId)
+  const receiverEdielId = firstString(params.sourceMessage.receiver_ediel_id, sourcePayload.receiverEdielId, sourcePayload.gridOwnerEdielId)
+
+  if (!senderEdielId || !receiverEdielId) {
+    return {
+      rawPayload: null,
+      context: null,
+      validationReport: {
+        status: 'manual_review_required',
+        reason: 'Ursprungligt Z03 saknar Ediel-avsändare eller mottagare. Annullering kräver manuell route-kontroll.',
+      },
+    }
+  }
+
+  const cancellationReference = compactReference(
+    params.caseRow.cancellation_reference,
+    `C${params.caseRow.id.replace(/-/g, '').slice(0, 18)}`
+  )
+  const originalTransactionReference = firstString(
+    params.sourceMessage.transaction_reference,
+    sourcePayload.transactionReference,
+    sourcePayload.edielReference,
+    sourcePayload.switchRequestId,
+    params.caseRow.supplier_switch_request_id
+  )
+  const transactionReference = compactReference(originalTransactionReference, cancellationReference)
+  const meterPointId = firstString(
+    params.meteringPoint?.meter_point_id,
+    params.meteringPoint?.metering_point_id,
+    params.site?.facility_id,
+    sourcePayload.meterPointId,
+    sourcePayload.facilityId
+  ) ?? 'UNKNOWN'
+
+  const context: ProdatEngineProductionContext = {
+    code: 'Z03',
+    bgmReference: cancellationReference,
+    transactionReference,
+    senderEdielId,
+    receiverEdielId,
+    customerName: buildCustomerDisplayName(params.customer, sourcePayload),
+    customerId: firstString(
+      sourcePayload.customerId,
+      params.customer?.customer_number,
+      params.customer?.personal_identity_number,
+      params.customer?.organization_number,
+      params.customer?.org_number
+    ),
+    customerIdCodeListQualifier: firstString(sourcePayload.customerIdCodeListQualifier),
+    meterPointId,
+    gridAreaId: firstString(params.site?.grid_area_code, params.meteringPoint?.grid_area_code, sourcePayload.gridAreaId, sourcePayload.netArea),
+    startDate: firstString(params.switchRequest?.requested_start_date, sourcePayload.requestedStartDate, params.caseRow.delivery_start_at),
+    customerAddress: firstString(params.customer?.address_line1, params.customer?.street_address, sourcePayload.customerAddress),
+    customerCity: firstString(params.customer?.city, sourcePayload.customerCity),
+    customerPostalCode: firstString(params.customer?.postal_code, sourcePayload.customerPostalCode),
+    customerCountry: firstString(params.customer?.country_code, sourcePayload.customerCountry) ?? 'SE',
+    siteAddress: firstString(params.site?.address_line1, params.site?.street_address, sourcePayload.siteAddress),
+    siteCity: firstString(params.site?.city, sourcePayload.siteCity),
+    sitePostalCode: firstString(params.site?.postal_code, sourcePayload.sitePostalCode),
+    siteCountry: firstString(params.site?.country_code, sourcePayload.siteCountry) ?? 'SE',
+    reasonForTransaction: 'Z24',
+    meteringMethod: firstString(params.meteringPoint?.metering_method, params.site?.metering_method, sourcePayload.meteringMethod),
+    powerOfAttorneyReference: firstString(sourcePayload.powerOfAttorneyReference, params.switchRequest?.power_of_attorney_id, params.switchRequest?.authorization_document_id),
+    balanceResponsibleId: firstString(sourcePayload.balanceResponsibleId),
+  }
+
+  const rendered = renderProdat26A({ context })
+  const envelope = buildEdifactEnvelope({
+    senderEdielId,
+    senderSubAddress: params.sourceMessage.sender_sub_address,
+    receiverEdielId,
+    receiverSubAddress: params.sourceMessage.receiver_sub_address,
+    applicationReference: params.sourceMessage.application_reference ?? '23-DDQ-PRODAT',
+    testFlag: params.sourceMessage.test_flag === 0 ? 0 : 1,
+    messageTypeToken: `PRODAT:D:97A:UN:${params.sourceMessage.message_version === '25A' ? 'E2SE5A' : 'E2SE6A'}`,
+    segments: rendered.segments,
+  })
+
+  return {
+    rawPayload: envelope.raw,
+    context,
+    validationReport: {
+      status: rendered.issues.some((issue) => issue.severity === 'error') ? 'warning' : 'ok',
+      cancellation: true,
+      prodatFunction: 'Z03',
+      reasonForTransaction: 'Z24',
+      originalEdielMessageId: params.sourceMessage.id,
+      originalTransactionReference,
+      issues: rendered.issues,
+      diagnostics: rendered.diagnostics,
+      ruleBasis: 'PRODAT Z03C annullering enligt C/Z24 och koppling till ursprungligt ärende.',
+    },
+  }
 }
 
 export function assessWithdrawal(input: WithdrawalAssessmentInput): WithdrawalAssessment {
@@ -121,9 +321,17 @@ export function assessWithdrawal(input: WithdrawalAssessmentInput): WithdrawalAs
   }
 }
 
-async function updateTableSafely(table: string, patch: Record<string, unknown>, filters: Array<{ column: string; value: string }>) {
+async function updateTableSafely(
+  table: string,
+  patch: Record<string, unknown>,
+  filters: Array<{ column: string; value: string | string[]; op?: 'eq' | 'in' }>
+) {
   let query = supabaseService.from(table).update(patch)
-  for (const filter of filters) query = query.eq(filter.column, filter.value)
+  for (const filter of filters) {
+    query = filter.op === 'in' && Array.isArray(filter.value)
+      ? query.in(filter.column, filter.value)
+      : query.eq(filter.column, String(filter.value))
+  }
   const { error } = await query
   if (error && !['42P01', '42703', 'PGRST205', '23514'].includes(error.code ?? '')) throw error
 }
@@ -161,26 +369,35 @@ export async function applyCustomerCaseOperationalStops(caseRow: CustomerCaseRow
       {
         status: 'cancelled',
         failure_reason: `Stoppat av kundärende ${caseRow.id}: ${caseRow.title}`,
+        customer_case_id: caseRow.id,
         updated_by: actorUserId,
         updated_at: now,
       },
-      baseFilters
+      [
+        ...baseFilters,
+        { column: 'status', op: 'in', value: ['draft', 'pending', 'queued', 'prepared', 'ready_to_send'] },
+      ]
     ),
     updateTableSafely(
       'partner_exports',
       {
         status: 'cancelled',
         failure_reason: `Stoppat av kundärende ${caseRow.id}: ${caseRow.title}`,
+        customer_case_id: caseRow.id,
         updated_by: actorUserId,
         updated_at: now,
       },
-      baseFilters
+      [
+        ...baseFilters,
+        { column: 'status', op: 'in', value: ['draft', 'pending', 'queued', 'prepared', 'ready'] },
+      ]
     ),
     updateTableSafely(
       'billing_underlays',
       {
         readiness_status: 'blocked',
         failure_reason: `Manuell kontroll krävs på grund av kundärende ${caseRow.id}.`,
+        billing_blocked_by_case_id: caseRow.id,
         updated_by: actorUserId,
         updated_at: now,
       },
@@ -192,7 +409,8 @@ export async function applyCustomerCaseOperationalStops(caseRow: CustomerCaseRow
     await updateTableSafely(
       'customer_contracts',
       {
-        status: 'cancelled',
+        status: caseRow.withdrawal_scenario === 'before_prodat_sent' ? 'cancelled_by_customer' : 'manual_review',
+        billing_blocked_by_case_id: caseRow.id,
         updated_by: actorUserId,
         updated_at: now,
       },
@@ -207,7 +425,11 @@ export async function applyCustomerCaseOperationalStops(caseRow: CustomerCaseRow
     await updateTableSafely(
       'supplier_switch_requests',
       {
-        status: 'cancelled',
+        status: caseRow.withdrawal_scenario === 'before_prodat_sent'
+          ? 'cancelled_before_start'
+          : caseRow.cancellation_required
+            ? 'cancellation_requested'
+            : 'manual_followup_required',
         failure_reason: `Stoppat av kundärende ${caseRow.id}: ${caseRow.title}`,
         updated_by: actorUserId,
         updated_at: now,
@@ -223,37 +445,81 @@ export async function applyCustomerCaseOperationalStops(caseRow: CustomerCaseRow
 export async function createCancellationDraftForCase(caseRow: CustomerCaseRow, actorUserId: string | null) {
   if (!caseRow.cancellation_required || caseRow.cancellation_ediel_message_id) return null
 
+  const sourceMessage = await findSourceSwitchMessage(caseRow)
+  const [customer, site, meteringPoint, switchRequest] = await Promise.all([
+    maybeSelectById('customers', caseRow.customer_id, caseRow.company_id),
+    maybeSelectById('customer_sites', caseRow.site_id, caseRow.company_id),
+    maybeSelectById('metering_points', caseRow.metering_point_id, caseRow.company_id),
+    maybeSelectById('supplier_switch_requests', caseRow.supplier_switch_request_id, caseRow.company_id),
+  ])
+
+  const cancellation = sourceMessage
+    ? buildCancellationProdatPayload({ caseRow, sourceMessage, customer, site, meteringPoint, switchRequest })
+    : {
+        rawPayload: null,
+        context: null,
+        validationReport: {
+          status: 'manual_review_required',
+          reason: 'Ursprungligt PRODAT Z03 kunde inte hittas. Annullering kan inte skickas automatiskt innan originalärendet är identifierat.',
+        },
+      }
+
   const message = await createEdielMessage({
     companyId: caseRow.company_id,
     direction: 'outbound',
     messageStandard: 'edifact',
     messageFamily: 'PRODAT',
     messageCode: 'Z03',
-    messageVersion: 'E2SE6A',
+    messageVersion: sourceMessage?.message_version ?? 'E2SE6A',
     processType: 'supplier_switch_cancellation',
-    environment: 'test',
-    status: 'draft',
+    environment: sourceMessage?.environment === 'production' ? 'production' : 'test',
+    testFlag: sourceMessage?.test_flag === 0 ? 0 : 1,
+    status: cancellation.rawPayload ? 'prepared' : 'draft',
+    transportType: sourceMessage?.transport_type ?? 'smtp',
+    mailbox: sourceMessage?.mailbox ?? null,
+    senderEdielId: sourceMessage?.sender_ediel_id ?? null,
+    senderName: sourceMessage?.sender_name ?? null,
+    senderSubAddress: sourceMessage?.sender_sub_address ?? null,
+    receiverEdielId: sourceMessage?.receiver_ediel_id ?? null,
+    receiverName: sourceMessage?.receiver_name ?? null,
+    receiverSubAddress: sourceMessage?.receiver_sub_address ?? null,
+    senderEmail: sourceMessage?.sender_email ?? null,
+    receiverEmail: sourceMessage?.receiver_email ?? null,
+    subject: sourceMessage?.subject ? `Annullering ${sourceMessage.subject}` : 'PRODAT Z03C annullering',
+    fileName: cancellation.rawPayload ? `PRODAT-Z03C-${caseRow.cancellation_reference ?? caseRow.id}.edi` : null,
+    mimeType: cancellation.rawPayload ? 'application/EDIFACT' : null,
     customerId: caseRow.customer_id,
     siteId: caseRow.site_id,
     meteringPointId: caseRow.metering_point_id,
     switchRequestId: caseRow.supplier_switch_request_id,
     outboundRequestId: caseRow.outbound_request_id,
     externalReference: caseRow.cancellation_reference ?? `CANCEL-${caseRow.id.slice(0, 8).toUpperCase()}`,
+    transactionReference: cancellation.context?.transactionReference ?? sourceMessage?.transaction_reference ?? null,
+    applicationReference: sourceMessage?.application_reference ?? '23-DDQ-PRODAT',
+    originalMessageId: sourceMessage?.external_reference ?? sourceMessage?.id ?? null,
+    originalTransactionId: sourceMessage?.transaction_reference ?? null,
+    originalMessageCode: sourceMessage?.message_code ?? 'Z03',
+    relatedMessageId: sourceMessage?.id ?? null,
     correlationReference: caseRow.id,
-    rawPayload: null,
+    rawPayload: cancellation.rawPayload,
     parsedPayload: {
       caseId: caseRow.id,
       cancellation: true,
+      prodatFunction: 'Z03',
+      prodatSubtype: 'C',
+      reasonForTransaction: 'Z24',
       reason: caseRow.reason_category,
       scenario: caseRow.withdrawal_scenario,
-      note: 'Annulleringsutkast skapat från ångerärende. Granska och skapa korrekt PRODAT-annullering innan dispatch.',
+      originalEdielMessageId: sourceMessage?.id ?? null,
+      originalExternalReference: sourceMessage?.external_reference ?? null,
+      originalTransactionReference: sourceMessage?.transaction_reference ?? null,
+      generatedEdifact: Boolean(cancellation.rawPayload),
     },
-    validationReport: {
-      status: 'manual_review_required',
-      reason: 'Kundärende kräver annullering kopplad till originalärende.',
-    },
+    validationReport: cancellation.validationReport,
     requiresContrl: true,
     requiresAperak: true,
+    contrlStatus: 'pending',
+    aperakStatus: 'pending',
     actorUserId: actorUserId ?? '00000000-0000-0000-0000-000000000000',
   })
 
@@ -261,11 +527,18 @@ export async function createCancellationDraftForCase(caseRow: CustomerCaseRow, a
     .from('customer_cases')
     .update({
       cancellation_ediel_message_id: message.id,
-      cancellation_status: 'draft_created',
+      cancellation_status: cancellation.rawPayload ? 'draft_created' : 'manual_review',
       updated_by: actorUserId,
       updated_at: new Date().toISOString(),
+      metadata: {
+        ...(caseRow.metadata ?? {}),
+        cancellationEdifactCreated: Boolean(cancellation.rawPayload),
+        originalEdielMessageId: sourceMessage?.id ?? null,
+        cancellationValidation: cancellation.validationReport,
+      },
     })
     .eq('id', caseRow.id)
+    .eq('company_id', caseRow.company_id)
 
   if (error) throw error
   return message
