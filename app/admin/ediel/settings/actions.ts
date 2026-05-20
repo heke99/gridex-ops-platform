@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -53,6 +54,7 @@ async function getActorContext() {
   }
 
   const companyId = await requireOperationalCompanyId(user.id)
+  await requireCompanyOperationalForWrites(companyId)
 
   return {
     supabase,
@@ -140,6 +142,7 @@ export async function saveEdielActorSettingsAction(formData: FormData) {
       .from('ediel_actor_settings')
       .update(payload)
       .eq('id', id)
+      .eq('company_id', companyId)
 
     if (error) throw error
   } else {

@@ -50,6 +50,7 @@ export async function prepareAndQueueAiList(params: {
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
+    companyId: site.company_id ?? null,
     environment,
     messageStandard: 'ai_list',
   })
@@ -64,6 +65,7 @@ export async function prepareAndQueueAiList(params: {
 
   const draft = await buildAiListOutboundDraft({
     actorUserId,
+    companyId: site.company_id ?? null,
     listType: params.listType,
     senderEdielId: routeContext.senderEdielId,
     senderName: routeContext.senderName,

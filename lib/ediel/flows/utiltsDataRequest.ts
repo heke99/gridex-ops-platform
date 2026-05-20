@@ -772,6 +772,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
+    companyId: dataRequest.company_id ?? null,
     environment,
     messageStandard: 'edifact',
   })
@@ -919,6 +920,7 @@ export async function prepareAndQueueUtiltsE66(params: {
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
+    companyId: dataRequest.company_id ?? null,
     environment,
     messageStandard: 'edifact',
   })

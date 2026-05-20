@@ -120,6 +120,7 @@ export type SupplierSwitchRequestStatus =
 
 export type SupplierSwitchRequestRow = {
   id: string
+  company_id?: string | null
   customer_id: string
   site_id: string
   metering_point_id: string

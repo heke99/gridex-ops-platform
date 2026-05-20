@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { listAckMessagesForSource, listEdielMessages } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
@@ -138,7 +139,10 @@ export default async function AdminEdielMessagesPage({
 }: {
  searchParams?: Promise<SearchParams> | SearchParams
 }) {
- const context = await requireAnyPermissionServer(['communication.read'])
+ const context = await requireAdminPageKeyAccess('ediel.workspace')
+ const isPlatformAdmin = isPlatformAdminContext(context)
+ const companyScope = await getOperationalCompanyScope(context.userId)
+ const companyId = isPlatformAdmin ? null : companyScope.companyId
  const resolvedSearchParams = searchParams ? await searchParams : {}
  const family = firstParam(resolvedSearchParams.family) ?? undefined
  const directionParam = firstParam(resolvedSearchParams.direction)
@@ -149,6 +153,7 @@ export default async function AdminEdielMessagesPage({
  family,
  direction,
  status,
+ companyId,
  limit: 100,
  })
 
@@ -159,7 +164,7 @@ export default async function AdminEdielMessagesPage({
  message,
  ackMessages:
  message.direction === 'inbound'
- ? await listAckMessagesForSource({ sourceMessageId: message.id })
+ ? await listAckMessagesForSource({ sourceMessageId: message.id, companyId })
  : [],
  }))
  )
@@ -170,6 +175,8 @@ export default async function AdminEdielMessagesPage({
  title="Ediel meddelanden"
  subtitle="Inbox, outbox, payload och ACK-kedjor. Fokus på att svara korrekt utan att röra engine-reglerna."
  userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
  <main className="space-y-6 p-8">

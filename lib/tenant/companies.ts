@@ -67,8 +67,9 @@ export const COMPANY_USER_ROLE_OPTIONS = [
   { value: 'executive_readonly', label: 'Ledning läsbehörighet' },
 ]
 
-export function userIsPlatformAdmin(roles: string[], permissions: string[]) {
-  return roles.includes('super_admin') || permissions.includes('tenants.write')
+export function userIsPlatformAdmin(roles: string[], _permissions: string[]) {
+  // Platform context must come from explicit platform roles, not broad tenant permissions.
+  return roles.some((role) => role === 'super_admin' || role === 'superadmin' || role === 'platform_admin')
 }
 
 async function safeCount(

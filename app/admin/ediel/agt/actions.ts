@@ -3,9 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { getOperationalCompanyScope, requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { saveCommunicationRoute } from '@/lib/cis/db'
 import {
   attachEdielMessageToTestRun,
@@ -578,8 +579,10 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
 
 
 export async function createAgtSupplierOutboundCommandAction(formData: FormData) {
-  await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const actorUserId = await getCurrentUserId()
+  const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
+  const actorUserId = context.userId
+  const scope = await getOperationalCompanyScope(actorUserId)
+  const companyId = isPlatformAdminContext(context) ? null : scope.companyId
   const testCaseCode = upper(formData, 'test_case_code') ?? ''
   const testRunId = value(formData, 'test_run_id')
 
@@ -587,6 +590,7 @@ export async function createAgtSupplierOutboundCommandAction(formData: FormData)
 
   const message = await createEdielSupplierAgtOutboundCommand({
     actorUserId,
+    companyId,
     testRunId,
     testCaseCode,
   })
@@ -625,8 +629,10 @@ export async function createAllAgtSupplierTestRunsAction(_formData: FormData) {
 }
 
 export async function pollAgtMailboxForCaseAction(formData: FormData) {
-  await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const actorUserId = await getCurrentUserId()
+  const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
+  const actorUserId = context.userId
+  const scope = await getOperationalCompanyScope(actorUserId)
+  const companyId = isPlatformAdminContext(context) ? null : scope.companyId
   const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
   const testRun = await ensureAgtRunForCase({
     actorUserId,
@@ -644,6 +650,7 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
     actorUserId,
     mailbox,
     communicationRouteId: routeId ?? null,
+    companyId,
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
   })
 
@@ -694,8 +701,10 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
 }
 
 export async function importAgtRawInboundForCaseAction(formData: FormData) {
-  await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const actorUserId = await getCurrentUserId()
+  const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
+  const actorUserId = context.userId
+  const scope = await getOperationalCompanyScope(actorUserId)
+  const companyId = isPlatformAdminContext(context) ? null : scope.companyId
   const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
   const testRun = await ensureAgtRunForCase({
     actorUserId,
@@ -710,6 +719,7 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
 
   const result = await registerEdielFile({
     actorUserId,
+    companyId,
     direction: 'inbound',
     mode: 'agt',
     rawPayload,
@@ -719,7 +729,7 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
     subject: `AGT ${testCase.testCaseCode} manual import`,
   })
 
-  const message = await getEdielMessageById(result.id)
+  const message = await getEdielMessageById(result.id, { companyId })
   if (!message) throw new Error('Det importerade meddelandet kunde inte läsas efter import.')
 
   const step = await attachExpectedAgtMessage({
@@ -745,8 +755,10 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
 }
 
 export async function attachAgtInboundAndCreateResponsesAction(formData: FormData) {
-  await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const actorUserId = await getCurrentUserId()
+  const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
+  const actorUserId = context.userId
+  const scope = await getOperationalCompanyScope(actorUserId)
+  const companyId = isPlatformAdminContext(context) ? null : scope.companyId
   const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
   const testRun = await ensureAgtRunForCase({
     actorUserId,
@@ -756,7 +768,7 @@ export async function attachAgtInboundAndCreateResponsesAction(formData: FormDat
   const sourceMessageId = value(formData, 'source_message_id')
   if (!sourceMessageId) throw new Error('Välj ett inbound-meddelande att koppla.')
 
-  const message = await getEdielMessageById(sourceMessageId)
+  const message = await getEdielMessageById(sourceMessageId, { companyId })
   if (!message) throw new Error('Meddelandet hittades inte.')
 
   const step = await attachExpectedAgtMessage({

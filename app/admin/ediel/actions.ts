@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAnyPermissionServer } from "@/lib/auth/requirePermissionServer";
+import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess, type GuardResult } from "@/lib/admin/guards";
+import { assertUserCanOperateCompany, getOperationalCompanyScope } from "@/lib/tenant/scope";
 import {
   createAckDraftForMessage,
   createNegativeUtiltsResponse,
@@ -1011,8 +1013,29 @@ async function revalidateRelatedMessage(messageId?: string | null) {
   revalidateEdiel(message.id);
 }
 
+async function requireScopedEdielMessageForAction(
+  messageId: string,
+  context: GuardResult
+): Promise<EdielMessageRow> {
+  const message = await getEdielMessageById(messageId);
+  if (!message) throw new Error("Meddelandet hittades inte");
+
+  const companyId = message.company_id ?? null;
+
+  if (companyId) {
+    await assertUserCanOperateCompany(context.userId, companyId);
+    return message;
+  }
+
+  if (!isPlatformAdminContext(context)) {
+    throw new Error("Meddelandet saknar tenantkoppling och kan bara hanteras av platform admin.");
+  }
+
+  return message;
+}
+
 export async function cancelEdielMessageAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -1022,6 +1045,8 @@ export async function cancelEdielMessageAction(formData: FormData) {
     "Dold/raderad från admin av användare.";
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
+
+  await requireScopedEdielMessageForAction(edielMessageId, context);
 
   await updateEdielMessageStatus({
     actorUserId: context.userId,
@@ -1069,7 +1094,7 @@ async function deleteEdielMessagesByIds(params: {
 }
 
 export async function deleteEdielMessageAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -1077,10 +1102,19 @@ export async function deleteEdielMessageAction(formData: FormData) {
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
-  const { data: relatedRows, error: relatedError } = await supabaseService
+  const message = await requireScopedEdielMessageForAction(edielMessageId, context);
+  const companyId = message.company_id ?? null;
+
+  let relatedQuery = supabaseService
     .from("ediel_messages")
     .select("id")
     .or(`id.eq.${edielMessageId},related_message_id.eq.${edielMessageId}`);
+
+  if (companyId) {
+    relatedQuery = relatedQuery.eq("company_id", companyId);
+  }
+
+  const { data: relatedRows, error: relatedError } = await relatedQuery;
 
   if (relatedError) throw relatedError;
 
@@ -1094,10 +1128,7 @@ export async function deleteEdielMessageAction(formData: FormData) {
 }
 
 export async function deleteAllEdielMessagesAction(_formData?: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requirePlatformAdminActionAccess();
 
   const { data: rows, error: rowsError } = await supabaseService
     .from("ediel_messages")
@@ -1115,15 +1146,14 @@ export async function deleteAllEdielMessagesAction(_formData?: FormData) {
 }
 
 export async function sendEdielMessageAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
   const edielMessageId = formString(formData.get("edielMessageId"));
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
-  const message = await getEdielMessageById(edielMessageId);
-  if (!message) throw new Error("Meddelandet hittades inte");
+  const message = await requireScopedEdielMessageForAction(edielMessageId, context);
 
   const messageCompanyId = typeof (message as unknown as { company_id?: unknown }).company_id === "string"
     ? (message as unknown as { company_id: string }).company_id
@@ -1167,7 +1197,7 @@ export async function sendEdielMessageAction(formData: FormData) {
       );
     }
 
-    const sourceMessage = await getEdielMessageById(message.related_message_id);
+    const sourceMessage = await getEdielMessageById(message.related_message_id, { companyId: messageCompanyId });
     if (!sourceMessage)
       throw new Error("Källmeddelande för kvittensen hittades inte");
 
@@ -1204,10 +1234,15 @@ export async function sendEdielMessageAction(formData: FormData) {
 }
 
 export async function pollMailboxAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
+  const scope = await getOperationalCompanyScope(context.userId);
+  const companyId = isPlatformAdminContext(context) ? null : scope.companyId;
+  if (companyId) {
+    await requireCompanyOperationalForWrites(companyId);
+  }
 
   const mailbox = formString(formData.get("mailbox"));
   const communicationRouteId = formString(formData.get("communicationRouteId"));
@@ -1218,6 +1253,7 @@ export async function pollMailboxAction(formData: FormData) {
     actorUserId: context.userId,
     mailbox,
     communicationRouteId,
+    companyId,
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
   });
 
@@ -1225,10 +1261,15 @@ export async function pollMailboxAction(formData: FormData) {
 }
 
 export async function registerEdielFileAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
+  const scope = await getOperationalCompanyScope(context.userId);
+  const companyId = isPlatformAdminContext(context) ? null : scope.companyId;
+  if (companyId) {
+    await requireCompanyOperationalForWrites(companyId);
+  }
 
   const uploaded = await formFileText(formData.get("edielFile"));
   const pastedPayload = formString(formData.get("rawPayload"));
@@ -1239,10 +1280,11 @@ export async function registerEdielFileAction(formData: FormData) {
   }
 
   const mode = parseFileEngineMode(formData.get("mode"));
-  const agtRuntime = mode === "agt" ? await getEdielAgtSupplierRuntime().catch(() => null) : null;
+  const agtRuntime = mode === "agt" ? await getEdielAgtSupplierRuntime(companyId).catch(() => null) : null;
 
   const message = await registerEdielFile({
     actorUserId: context.userId,
+    companyId,
     direction: parseDirection(formData.get("direction")),
     mode,
     rawPayload,
@@ -1256,7 +1298,7 @@ export async function registerEdielFileAction(formData: FormData) {
     ownActorName: agtRuntime?.actor?.actor_name ?? agtRuntime?.actor?.sender_name ?? null,
   });
 
-  const createdMessage = await getEdielMessageById(message.id);
+  const createdMessage = await getEdielMessageById(message.id, { companyId });
   if (createdMessage) {
     const autoAttachResult = await autoAttachImportedMessageToActiveTgtRun({
       edielMessage: createdMessage,
@@ -1477,7 +1519,7 @@ export async function saveEdielTgtPortalTestDataAction(formData: FormData) {
 export async function saveEdielInboundMessageTestDataAction(
   formData: FormData,
 ) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -1505,8 +1547,7 @@ export async function saveEdielInboundMessageTestDataAction(
     );
   }
 
-  const sourceMessage = await getEdielMessageById(sourceMessageId);
-  if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
+  const sourceMessage = await requireScopedEdielMessageForAction(sourceMessageId, context);
 
   const testCaseCode = inferInboundTgtTestCaseCode({
     provided: formString(formData.get("testCaseCode")),
@@ -1767,7 +1808,7 @@ function isOperationalAckMessage(message: EdielMessageRow): boolean {
 }
 
 export async function processEdielOperationalMessageAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -1775,8 +1816,7 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
-  const sourceMessage = await getEdielMessageById(edielMessageId);
-  if (!sourceMessage) throw new Error("Ediel-meddelandet hittades inte");
+  const sourceMessage = await requireScopedEdielMessageForAction(edielMessageId, context);
 
   if (sourceMessage.direction !== 'inbound') {
     throw new Error('Engine kan bara skapa TGT-svar från ett inbound-meddelande.');
@@ -1784,6 +1824,7 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
 
   const existingAckMessages = await listAckMessagesForSource({
     sourceMessageId: edielMessageId,
+    companyId: sourceMessage.company_id ?? null,
   });
   const activeAckMessages = existingAckMessages.filter(
     (message) => isActiveEdielAckMessage(message) && isOperationalAckMessage(message),
@@ -2180,13 +2221,14 @@ async function resolveBackendAperakDecision(params: {
 }
 
 export async function createSafeMasterdataProposalAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
   const edielMessageId = formString(formData.get("edielMessageId"));
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
+  await requireScopedEdielMessageForAction(edielMessageId, context);
 
   await createSafeMasterdataProposalForMessage({
     actorUserId: context.userId,
@@ -2198,7 +2240,7 @@ export async function createSafeMasterdataProposalAction(formData: FormData) {
 }
 
 export async function createAckDraftAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -2217,8 +2259,7 @@ export async function createAckDraftAction(formData: FormData) {
     throw new Error("Ogiltig ackType");
   }
 
-  const sourceMessage = await getEdielMessageById(sourceMessageId);
-  if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
+  const sourceMessage = await requireScopedEdielMessageForAction(sourceMessageId, context);
 
   const backendDecision =
     ackType === "APERAK"
@@ -2319,7 +2360,7 @@ export async function createAckDraftAction(formData: FormData) {
 }
 
 export async function createAndSendRecommendedAckAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -2330,10 +2371,12 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
 
   if (!sourceMessageId) throw new Error("sourceMessageId saknas");
 
-  const sourceMessage = await getEdielMessageById(sourceMessageId);
-  if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
+  const sourceMessage = await requireScopedEdielMessageForAction(sourceMessageId, context);
 
-  const relatedAcks = await listAckMessagesForSource({ sourceMessageId });
+  const relatedAcks = await listAckMessagesForSource({
+    sourceMessageId,
+    companyId: sourceMessage.company_id ?? null,
+  });
   const tgtResolution = await resolveTgtTestDataForAckAction({
     message: sourceMessage,
     testSuite,
@@ -2382,6 +2425,7 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     sourceMessageId,
     ackFamily: recommendation.action.ackFamily,
     preset: recommendation.title,
+    companyId: sourceMessage.company_id ?? null,
   });
 
   const finalApplicationErrors =
@@ -2567,7 +2611,7 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
 }
 
 export async function createAndSendAckAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -2586,8 +2630,7 @@ export async function createAndSendAckAction(formData: FormData) {
     throw new Error("Ogiltig ackType");
   }
 
-  const sourceMessage = await getEdielMessageById(sourceMessageId);
-  if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
+  const sourceMessage = await requireScopedEdielMessageForAction(sourceMessageId, context);
 
   const backendDecision =
     ackType === "APERAK"
@@ -2613,6 +2656,7 @@ export async function createAndSendAckAction(formData: FormData) {
     sourceMessageId,
     ackFamily: ackType,
     preset: `${ackType} ${finalOutcome}`,
+    companyId: sourceMessage.company_id ?? null,
   });
 
   const ackMessage = await createAckDraftForMessage({
@@ -2717,10 +2761,12 @@ async function removeReplaceableAckMessagesForSource(params: {
   sourceMessageId: string;
   ackFamily: AckFamily;
   preset: string;
+  companyId?: string | null;
 }) {
   const existingAcks = await listAckMessagesForSource({
     sourceMessageId: params.sourceMessageId,
     ackFamily: params.ackFamily,
+    companyId: params.companyId ?? null,
   });
 
   const nonReplaceable = existingAcks.find(
@@ -2814,13 +2860,16 @@ function withLineItemReferences(
 
 async function createAndSendTgtAperakPreset(params: {
   actorUserId: string;
+  context: GuardResult;
   sourceMessageId: string;
   preset: string;
   errors: readonly EdielAperakApplicationError[];
   successMessage: string;
 }) {
-  const sourceMessage = await getEdielMessageById(params.sourceMessageId);
-  if (!sourceMessage) throw new Error("Källmeddelande hittades inte");
+  const sourceMessage = await requireScopedEdielMessageForAction(
+    params.sourceMessageId,
+    params.context,
+  );
 
   if (
     sourceMessage.direction !== "inbound" ||
@@ -2837,6 +2886,7 @@ async function createAndSendTgtAperakPreset(params: {
     sourceMessageId: params.sourceMessageId,
     ackFamily: "APERAK",
     preset: params.preset,
+    companyId: sourceMessage.company_id ?? null,
   });
 
   const ackMessage = await createAckDraftForMessage({
@@ -2925,7 +2975,7 @@ function deriveS142LineItemReferences(
 }
 
 export async function createAndSendTgtS142AperakAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -2935,6 +2985,7 @@ export async function createAndSendTgtS142AperakAction(formData: FormData) {
 
   await createAndSendTgtAperakPreset({
     actorUserId: context.userId,
+    context,
     sourceMessageId,
     preset: "S1.4.2",
     errors: TGT_S142_APERAK_APPLICATION_ERRORS,
@@ -2979,7 +3030,7 @@ const TGT_S142B_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
 ];
 
 export async function createAndSendTgtS142BAperakAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -2989,6 +3040,7 @@ export async function createAndSendTgtS142BAperakAction(formData: FormData) {
 
   await createAndSendTgtAperakPreset({
     actorUserId: context.userId,
+    context,
     sourceMessageId,
     preset: "S1.4.2B",
     errors: TGT_S142B_APERAK_APPLICATION_ERRORS,
@@ -3009,7 +3061,7 @@ const TGT_S143_APERAK_APPLICATION_ERRORS: EdielAperakApplicationError[] = [
 ];
 
 export async function createAndSendTgtS143AperakAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -3019,6 +3071,7 @@ export async function createAndSendTgtS143AperakAction(formData: FormData) {
 
   await createAndSendTgtAperakPreset({
     actorUserId: context.userId,
+    context,
     sourceMessageId,
     preset: "S1.4.3",
     errors: TGT_S143_APERAK_APPLICATION_ERRORS,
@@ -3028,7 +3081,7 @@ export async function createAndSendTgtS143AperakAction(formData: FormData) {
 }
 
 export async function createNegativeUtiltsResponseAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -3037,6 +3090,7 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
   if (!messageText) throw new Error("messageText saknas");
+  await requireScopedEdielMessageForAction(edielMessageId, context);
 
   const ackMessage = await createNegativeUtiltsResponse({
     actorUserId: context.userId,
@@ -3049,7 +3103,7 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
 }
 
 export async function createProdatDraftAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
+  const context = await requireAdminActionAccess([
     "communication.write",
     "communication.read",
   ]);
@@ -3075,6 +3129,14 @@ export async function createProdatDraftAction(formData: FormData) {
   const site = await getCustomerSiteById(supabase, switchRequest.site_id);
   if (!site) throw new Error("Anläggning saknas för switchärendet");
 
+  const companyId = switchRequest.company_id ?? site.company_id ?? null;
+  if (companyId) {
+    await assertUserCanOperateCompany(context.userId, companyId);
+    await requireCompanyOperationalForWrites(companyId);
+  } else if (!isPlatformAdminContext(context)) {
+    throw new Error("Switchärendet saknar tenantkoppling och kan bara hanteras av platform admin.");
+  }
+
   const meteringPoint = await getMeteringPointById(
     supabase,
     switchRequest.metering_point_id,
@@ -3091,6 +3153,7 @@ export async function createProdatDraftAction(formData: FormData) {
     preferredRouteId: communicationRouteId ?? null,
     environment: "test",
     messageStandard: "edifact",
+    companyId,
   });
 
   const draftBuilder = getProdatDraftBuilder(messageCode);

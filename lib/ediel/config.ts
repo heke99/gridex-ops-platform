@@ -33,6 +33,7 @@ export type {
 }
 
 export type EdielRouteRuntimeRow = {
+  company_id?: string | null
   route_profile_id: string
   communication_route_id: string
   environment: EdielEnvironment
@@ -108,20 +109,19 @@ export async function getActiveEdielActorSettings(
       .limit(1)
       .maybeSingle()
 
-    if (!scoped.error && scoped.data) {
-      return scoped.data as EdielActorSettingsRow
-    }
-
-    // Backward-compatible fallback for databases where company_id has not been migrated yet.
-    if (scoped.error && scoped.error.code !== '42703' && scoped.error.code !== 'PGRST204') {
+    if (scoped.error) {
       throw scoped.error
     }
+
+    // SaaS rule: tenant runtime must never silently borrow a global/other-company actor profile.
+    return (scoped.data as EdielActorSettingsRow | null) ?? null
   }
 
   const { data, error } = await supabaseService
     .from('ediel_actor_settings')
     .select('*')
     .eq('environment', environment)
+    .is('company_id', null)
     .eq('is_active', true)
     .order('updated_at', { ascending: false })
     .limit(1)
@@ -137,7 +137,8 @@ export async function getActiveEdielActorSettings(
       .maybeSingle()
 
     if (fallback.error) throw fallback.error
-    return (fallback.data as EdielActorSettingsRow | null) ?? null
+    const row = (fallback.data as EdielActorSettingsRow | null) ?? null
+    return row && !row.company_id ? row : null
   }
 
   return (data as EdielActorSettingsRow | null) ?? null
@@ -185,13 +186,20 @@ export async function resolveMessageVersion(
 }
 
 export async function getEdielRouteRuntimeByCommunicationRouteId(
-  communicationRouteId: string
+  communicationRouteId: string,
+  options?: { companyId?: string | null }
 ): Promise<EdielRouteRuntimeRow | null> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_route_runtime_v')
     .select('*')
     .eq('communication_route_id', communicationRouteId)
-    .maybeSingle()
+
+  const scopedCompanyId = sanitize(options?.companyId)
+  if (scopedCompanyId) {
+    query = query.eq('company_id', scopedCompanyId)
+  }
+
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return (data as EdielRouteRuntimeRow | null) ?? null

@@ -157,6 +157,7 @@ export function isActiveEdielTestSuite(
 
 export type EdielMessageRow = {
   id: string
+  company_id?: string | null
   direction: EdielDirection
   message_standard: EdielMessageStandard
   message_family: EdielMessageFamily
@@ -408,6 +409,7 @@ export type EdielMessageRuleRow = {
 
 export type CreateEdielMessageInput = {
   actorUserId: string
+  companyId?: string | null
   direction: EdielDirection
   messageStandard: EdielMessageStandard
   messageFamily: EdielMessageFamily

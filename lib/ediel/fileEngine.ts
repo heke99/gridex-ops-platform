@@ -105,6 +105,7 @@ type RegisterFileParams = {
   subject?: string | null
   ownActorEdielId?: string | null
   ownActorName?: string | null
+  companyId?: string | null
 }
 
 function trimOrNull(value: unknown): string | null {
@@ -607,6 +608,7 @@ export async function registerEdielFile(params: RegisterFileParams): Promise<Edi
 
   const input: CreateEdielMessageInput = {
     actorUserId: params.actorUserId,
+    companyId: params.companyId ?? null,
     direction: params.direction,
     messageStandard: parsed.messageStandard,
     messageFamily: parsed.messageFamily,

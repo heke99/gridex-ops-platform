@@ -165,6 +165,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     requestType: 'supplier_switch',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
+    companyId: switchRequest.company_id ?? site.company_id ?? null,
     environment: params.environment ?? 'test',
     messageStandard: 'edifact',
   })

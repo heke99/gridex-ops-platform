@@ -297,6 +297,7 @@ export function buildAiListDetailFromSite(params: {
 
 export async function buildAiListOutboundDraft(input: {
   actorUserId?: string | null
+  companyId?: string | null
   listType: AiListType
   senderEdielId: string
   senderName?: string | null
@@ -359,6 +360,7 @@ export async function buildAiListOutboundDraft(input: {
 
   return {
     actorUserId: input.actorUserId ?? 'system',
+    companyId: input.companyId ?? null,
     direction: 'outbound',
     messageStandard: 'ai_list',
     messageFamily: 'AI_LIST',

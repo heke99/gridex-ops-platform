@@ -2,7 +2,8 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { listEdielMessages } from '@/lib/ediel/db'
 import {
  prepareAiListAction,
@@ -70,33 +71,43 @@ function customerLabel(row: CustomerRow) {
 }
 
 export default async function AdminEdielAiListPage() {
- const context = await requireAnyPermissionServer([
- 'communication.read',
- 'metering.read',
- 'billing_underlay.read',
- 'switching.read',
- ])
+ const context = await requireAdminPageKeyAccess('ediel.workspace')
+ const isPlatformAdmin = isPlatformAdminContext(context)
+ const companyScope = await getOperationalCompanyScope(context.userId)
+ const companyId = isPlatformAdmin ? null : companyScope.companyId
 
  const supabase = await createSupabaseServerClient()
 
- const [messages, customersResult, sitesResult, meteringPointsResult] =
- await Promise.all([
- listEdielMessages({ family: 'AI_LIST', limit: 100 }),
- supabase
+ let customersQuery = supabase
  .from('customers')
  .select('id, full_name, company_name, customer_number')
  .order('created_at', { ascending: false })
- .limit(100),
- supabase
+ .limit(100)
+
+ let sitesQuery = supabase
  .from('customer_sites')
  .select('id, customer_id, site_name')
  .order('created_at', { ascending: false })
- .limit(200),
- supabase
+ .limit(200)
+
+ let meteringPointsQuery = supabase
  .from('metering_points')
  .select('id, site_id, meter_point_id')
  .order('created_at', { ascending: false })
- .limit(200),
+ .limit(200)
+
+ if (companyId) {
+ customersQuery = customersQuery.eq('company_id', companyId)
+ sitesQuery = sitesQuery.eq('company_id', companyId)
+ meteringPointsQuery = meteringPointsQuery.eq('company_id', companyId)
+ }
+
+ const [messages, customersResult, sitesResult, meteringPointsResult] =
+ await Promise.all([
+ listEdielMessages({ family: 'AI_LIST', companyId, limit: 100 }),
+ customersQuery,
+ sitesQuery,
+ meteringPointsQuery,
  ])
 
  if (customersResult.error) throw customersResult.error
@@ -116,6 +127,8 @@ export default async function AdminEdielAiListPage() {
  title="AI-/BI-listor"
  subtitle="Operativ vy för export av AI-/BI-listor och historik över skickade listmeddelanden."
  userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
  <div className="space-y-8 p-8">

@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
  getEdielMessageById,
  getEdielMessageAckStateById,
@@ -266,10 +267,13 @@ export default async function AdminEdielMessageDetailPage({
  params: Promise<{ id: string }>
 }) {
  const { id } = await params
- const context = await requireAnyPermissionServer(['communication.read'])
+ const context = await requireAdminPageKeyAccess('ediel.workspace')
+ const isPlatformAdmin = isPlatformAdminContext(context)
+ const companyScope = await getOperationalCompanyScope(context.userId)
+ const companyId = isPlatformAdmin ? null : companyScope.companyId
 
  const [message, ackState, events] = await Promise.all([
- getEdielMessageById(id),
+ getEdielMessageById(id, { companyId }),
  getEdielMessageAckStateById(id),
  listEdielMessageEvents(id),
  ])
@@ -281,6 +285,8 @@ export default async function AdminEdielMessageDetailPage({
  title="Ediel message"
  subtitle="Meddelandet hittades inte."
  userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
  <div className="p-8">
  <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-700">
@@ -293,13 +299,13 @@ export default async function AdminEdielMessageDetailPage({
 
  const [relatedAckMessages, linkedMessage, routeRuntime, versionWindow] = await Promise.all([
  message.direction === 'inbound'
- ? listAckMessagesForSource({ sourceMessageId: message.id })
+ ? listAckMessagesForSource({ sourceMessageId: message.id, companyId })
  : Promise.resolve([]),
  message.related_message_id
- ? getEdielMessageById(message.related_message_id)
+ ? getEdielMessageById(message.related_message_id, { companyId })
  : Promise.resolve(null),
  message.communication_route_id
- ? getEdielRouteRuntimeByCommunicationRouteId(message.communication_route_id)
+ ? getEdielRouteRuntimeByCommunicationRouteId(message.communication_route_id, { companyId })
  : Promise.resolve(null),
  message.direction === 'inbound'
  ? resolveInboundAcceptedVersionsRuntime({
@@ -341,6 +347,8 @@ export default async function AdminEdielMessageDetailPage({
  title={`Ediel ${message.message_family} ${message.message_code}`}
  subtitle="Detaljvy för canonical kernel, versionsmotor, route-beslut, ack chain och dedupe-spår."
  userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
  <div className="space-y-8 p-8">

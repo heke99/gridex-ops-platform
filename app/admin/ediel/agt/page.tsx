@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { listEdielTestRuns } from '@/lib/ediel/db'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
 import {
@@ -136,9 +137,12 @@ function parseAgtActorNotes(notes?: string | null): { balanceResponsibleEdielId:
 }
 
 export default async function EdielAgtPage() {
- const context = await requireAnyPermissionServer(['communication.read'])
+ const context = await requireAdminPageKeyAccess('ediel.workspace')
+ const isPlatformAdmin = isPlatformAdminContext(context)
+ const companyScope = await getOperationalCompanyScope(context.userId)
+ const companyId = isPlatformAdmin ? null : companyScope.companyId
  const [runtime, testRuns] = await Promise.all([
- getEdielAgtSupplierRuntime(),
+ getEdielAgtSupplierRuntime(companyId),
  listEdielTestRuns(),
  ])
 
@@ -161,6 +165,8 @@ export default async function EdielAgtPage() {
  title="Testmiljö / AGT-tester"
  subtitle="Låst godkännandeyta för Edielportalen. Vanliga leverantörer ska arbeta i Ediel Live Center; detta läge används bara vid aktörs- och leverantörsgodkännande."
  userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Platform Control' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
  <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-5">

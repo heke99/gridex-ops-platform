@@ -445,6 +445,7 @@ export async function pollAndIngestEdielMailbox(params: {
   actorUserId: string
   mailbox?: string | null
   communicationRouteId?: string | null
+  companyId?: string | null
   limit?: number
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
@@ -453,6 +454,7 @@ export async function pollAndIngestEdielMailbox(params: {
     actorUserId,
     mailbox: params.mailbox ?? null,
     communicationRouteId: params.communicationRouteId ?? null,
+    companyId: params.companyId ?? null,
     limit: params.limit ?? 10,
   })
 

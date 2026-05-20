@@ -62,7 +62,9 @@ export async function getCustomerEdielDataBundle(params: {
   const routeProfiles = (
     await Promise.all(
       communicationRoutes.map((route: CommunicationRouteRow) =>
-        getEdielRouteProfileByCommunicationRouteId(route.id)
+        getEdielRouteProfileByCommunicationRouteId(route.id, {
+          companyId: route.company_id ?? null,
+        })
       )
     )
   ).filter((profile: EdielRouteProfileRow | null): profile is EdielRouteProfileRow => Boolean(profile))

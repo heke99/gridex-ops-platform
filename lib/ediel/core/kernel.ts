@@ -73,6 +73,7 @@ export async function resolveCanonicalOutboundContext(params: {
   requestType: CanonicalRouteRequestType
   gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
   preferredRouteId?: string | null
+  companyId?: string | null
   environment?: EdielEnvironment
   messageStandard?: EdielMessageStandard
 }) {
@@ -80,6 +81,7 @@ export async function resolveCanonicalOutboundContext(params: {
     requestType: params.requestType,
     gridOwner: (params.gridOwner ?? null) as never,
     preferredRouteId: params.preferredRouteId ?? null,
+    companyId: params.companyId ?? null,
     environment: params.environment ?? 'test',
     messageStandard: params.messageStandard ?? 'edifact',
   })
@@ -87,8 +89,9 @@ export async function resolveCanonicalOutboundContext(params: {
 
 export async function resolveCanonicalInboundActor(params?: {
   environment?: EdielEnvironment
+  companyId?: string | null
 }) {
-  return resolveCanonicalActorContext(params?.environment ?? 'test')
+  return resolveCanonicalActorContext(params?.environment ?? 'test', params?.companyId ?? null)
 }
 
 export async function resolveOutboundMessageVersion(params: {
@@ -345,6 +348,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
     baseInput: {
       ...params.draft,
       actorUserId,
+      companyId: params.draft.companyId ?? params.routeContext.companyId ?? null,
       messageVersion: resolvedVersion ?? params.draft.messageVersion ?? null,
       applicationReference:
         params.draft.applicationReference ??
@@ -480,6 +484,7 @@ export async function createCanonicalAckMessage(params: {
   const input = {
     ...params.draft,
     actorUserId,
+    companyId: params.draft.companyId ?? params.sourceMessage.company_id ?? null,
     externalReference: refs.externalReference,
     transactionReference: refs.transactionReference,
     correlationReference: refs.correlationReference,

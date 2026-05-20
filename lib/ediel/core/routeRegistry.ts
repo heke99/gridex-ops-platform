@@ -20,6 +20,7 @@ export type CanonicalRouteRequestType =
   | 'billing_underlay'
 
 export type CanonicalRouteContext = {
+  companyId: string | null
   actor: Awaited<ReturnType<typeof resolveCanonicalActorContext>>
   route: CommunicationRouteRow
   routeRuntime: EdielRouteRuntimeRow | null
@@ -48,13 +49,22 @@ function trimOrNull(value?: string | null): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
-async function getCommunicationRouteById(id: string): Promise<CommunicationRouteRow | null> {
+async function getCommunicationRouteById(
+  id: string,
+  companyId?: string | null
+): Promise<CommunicationRouteRow | null> {
   const { supabaseService } = await import('@/lib/supabase/service')
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('communication_routes')
     .select('*')
     .eq('id', id)
-    .maybeSingle()
+
+  const scopedCompanyId = trimOrNull(companyId)
+  if (scopedCompanyId) {
+    query = query.eq('company_id', scopedCompanyId)
+  }
+
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return (data as CommunicationRouteRow | null) ?? null
@@ -64,12 +74,13 @@ async function resolveCommunicationRoute(params: {
   requestType: CanonicalRouteRequestType
   gridOwnerId?: string | null
   preferredRouteId?: string | null
+  companyId?: string | null
 }): Promise<{
   route: CommunicationRouteRow | null
   source: 'explicit_route' | 'auto_route'
 }> {
   if (params.preferredRouteId) {
-    const explicitRoute = await getCommunicationRouteById(params.preferredRouteId)
+    const explicitRoute = await getCommunicationRouteById(params.preferredRouteId, params.companyId)
     if (explicitRoute?.is_active) {
       return {
         route: explicitRoute,
@@ -80,6 +91,7 @@ async function resolveCommunicationRoute(params: {
 
   return {
     route: await findBestCommunicationRoute({
+      companyId: params.companyId ?? null,
       requestType: params.requestType,
       gridOwnerId: params.gridOwnerId ?? null,
     }),
@@ -91,15 +103,18 @@ export async function resolveCanonicalRouteContext(params: {
   requestType: CanonicalRouteRequestType
   gridOwner?: GridOwnerRow | null
   preferredRouteId?: string | null
+  companyId?: string | null
   environment?: EdielEnvironment
   messageStandard?: EdielMessageStandard
 }): Promise<CanonicalRouteContext> {
   const environment = params.environment ?? 'test'
-  const actor = await resolveCanonicalActorContext(environment)
+  const companyId = trimOrNull(params.companyId)
+  const actor = await resolveCanonicalActorContext(environment, companyId)
   const resolvedRoute = await resolveCommunicationRoute({
     requestType: params.requestType,
     gridOwnerId: params.gridOwner?.id ?? null,
     preferredRouteId: params.preferredRouteId ?? null,
+    companyId,
   })
   const route = resolvedRoute.route
 
@@ -111,7 +126,7 @@ export async function resolveCanonicalRouteContext(params: {
     )
   }
 
-  const routeRuntime = await getEdielRouteRuntimeByCommunicationRouteId(route.id)
+  const routeRuntime = await getEdielRouteRuntimeByCommunicationRouteId(route.id, { companyId })
 
   const targetSystem = String(route.target_system ?? '').toLowerCase()
   const isEdielPortalTgtRoute = targetSystem.includes('ediel_portal_tgt') || targetSystem.includes('tgt')
@@ -184,6 +199,7 @@ export async function resolveCanonicalRouteContext(params: {
         }. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverSubAddress}, mailbox ${mailbox ?? '—'} och ack_mode ${ackMode}.`
 
   return {
+    companyId: companyId ?? route.company_id ?? null,
     actor,
     route,
     routeRuntime,

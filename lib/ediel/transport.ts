@@ -1032,7 +1032,9 @@ export async function sendEdielMessageViaSmtp(
   }
 
   const routeProfile = message.communication_route_id
-    ? await getEdielRouteProfileByCommunicationRouteId(message.communication_route_id)
+    ? await getEdielRouteProfileByCommunicationRouteId(message.communication_route_id, {
+        companyId: message.company_id ?? null,
+      })
     : null
 
   const host = requireEnv('EDIEL_SMTP_HOST', routeProfile?.smtp_host ?? null)
@@ -1388,11 +1390,14 @@ export async function pollEdielMailboxViaImap(params?: {
   actorUserId?: string | null
   mailbox?: string | null
   communicationRouteId?: string | null
+  companyId?: string | null
   limit?: number
 }): Promise<EdielMessageRow[]> {
   const actorUserId = requireActorUserId(params?.actorUserId)
   const routeProfile = params?.communicationRouteId
-    ? await getEdielRouteProfileByCommunicationRouteId(params.communicationRouteId)
+    ? await getEdielRouteProfileByCommunicationRouteId(params.communicationRouteId, {
+        companyId: params.companyId ?? null,
+      })
     : null
 
   const host = requireEnv('EDIEL_IMAP_HOST', routeProfile?.imap_host ?? null)
@@ -1559,10 +1564,15 @@ export async function pollEdielMailboxViaImap(params?: {
 
         const createdMessage = await registerInboundCanonicalMessage({
           actorUserId,
-          input,
+          input: {
+            ...input,
+            companyId: params?.companyId ?? routeProfile?.company_id ?? null,
+          },
         })
 
-        const justCreated = await getEdielMessageById(createdMessage.id)
+        const justCreated = await getEdielMessageById(createdMessage.id, {
+          companyId: params?.companyId ?? routeProfile?.company_id ?? null,
+        })
         if (justCreated) {
           created.push(justCreated)
           count += 1

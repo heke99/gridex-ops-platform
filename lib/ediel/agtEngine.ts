@@ -365,6 +365,7 @@ function buildAgtProdatOutboundInput(params: {
   actorUserId: string
   definition: EdielAgtTestCaseDefinition
   actor: EdielAgtActorRuntime
+  companyId?: string | null
 }): CreateEdielMessageInput {
   const definition = params.definition
   const code = definition.messageCode as ProdatEngineCode
@@ -438,6 +439,7 @@ function buildAgtProdatOutboundInput(params: {
 
   return {
     actorUserId: params.actorUserId,
+    companyId: params.companyId ?? null,
     direction: 'outbound',
     messageStandard: 'edifact',
     messageFamily: 'PRODAT',
@@ -522,6 +524,7 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
   testCaseCode: string
   actorName?: string | null
   actorEdielId?: string | null
+  companyId?: string | null
 }): Promise<EdielMessageRow> {
   const definition = getEdielAgtTestCaseByCode({
     roleCode: 'supplier',
@@ -549,6 +552,7 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     actorUserId: params.actorUserId,
     definition,
     actor: readiness.actor,
+    companyId: params.companyId ?? null,
   })
 
   if (definition.testCaseCode === 'L7' && definition.approvalVersion === '2026A') {

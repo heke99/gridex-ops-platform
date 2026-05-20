@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { saveCommunicationRoute } from '@/lib/cis/db'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
@@ -95,6 +96,8 @@ async function getActorContext() {
 
   const companyId = await requireOperationalCompanyId(user.id)
 
+  await requireCompanyOperationalForWrites(companyId)
+
   return {
     supabase,
     userId: user.id,
@@ -156,7 +159,7 @@ async function upsertEdielRouteProfileLocal(input: {
   notes: string | null
 }) {
   const supabase = await createSupabaseServerClient()
-  const existing = await getEdielRouteProfileByCommunicationRouteId(input.communicationRouteId)
+  const existing = await getEdielRouteProfileByCommunicationRouteId(input.communicationRouteId, { companyId: input.companyId })
   const actorDefaults = await getActorDefaults(input.environment, input.companyId)
 
   const senderSubAddress = coalesceString(
@@ -465,7 +468,7 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
     if (error) throw error
   }
 
-  const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId)
+  const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId, { companyId })
 
   await upsertEdielRouteProfileLocal({
     actorUserId: userId,
@@ -518,7 +521,7 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
 
   const { supabase, userId, companyId } = await getActorContext()
   await assertCommunicationRouteBelongsToCompany(supabase, routeId, companyId)
-  const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId)
+  const existingProfile = await getEdielRouteProfileByCommunicationRouteId(routeId, { companyId })
 
   await upsertEdielRouteProfileLocal({
     actorUserId: userId,

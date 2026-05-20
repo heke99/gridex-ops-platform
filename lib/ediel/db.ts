@@ -85,6 +85,12 @@ function cleanObject<T extends Record<string, unknown>>(value: T): T {
   return Object.fromEntries(entries) as T
 }
 
+function applyCompanyScope<T>(query: T, companyId?: string | null): T {
+  const normalized = typeof companyId === 'string' && companyId.trim().length > 0 ? companyId.trim() : null
+  if (!normalized) return query
+  return (query as unknown as { eq: (column: string, value: string) => T }).eq('company_id', normalized)
+}
+
 function ensureJson(value: unknown): Record<string, unknown> {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as Record<string, unknown>
@@ -276,6 +282,7 @@ export async function createEdielMessage(
   assertNoTgtLeakageInProductionInput(input)
 
   const payload = cleanObject({
+    company_id: input.companyId ?? null,
     direction: input.direction,
     message_standard: input.messageStandard,
     message_family: input.messageFamily,
@@ -377,13 +384,17 @@ export async function createEdielMessage(
 }
 
 export async function getEdielMessageById(
-  id: string
+  id: string,
+  options?: { companyId?: string | null }
 ): Promise<EdielMessageRow | null> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_messages')
     .select('*')
     .eq('id', id)
-    .maybeSingle()
+
+  query = applyCompanyScope(query, options?.companyId)
+
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return (data as EdielMessageRow | null) ?? null
@@ -425,12 +436,15 @@ export async function listAckMessagesForSource(params: {
   sourceMessageId: string
   ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'
+  companyId?: string | null
 }): Promise<EdielMessageRow[]> {
   let query = supabaseService
     .from('ediel_messages')
     .select('*')
     .eq('related_message_id', params.sourceMessageId)
     .in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR'])
+
+  query = applyCompanyScope(query, params.companyId)
 
   if (params.ackFamily) {
     query = query.eq('message_family', params.ackFamily)
@@ -482,6 +496,7 @@ export async function listEdielMessages(params?: {
   family?: string
   direction?: 'inbound' | 'outbound'
   status?: string
+  companyId?: string | null
   limit?: number
 }): Promise<EdielMessageRow[]> {
   const limit = params?.limit ?? 50
@@ -491,6 +506,8 @@ export async function listEdielMessages(params?: {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit)
+
+  query = applyCompanyScope(query, params?.companyId)
 
   if (params?.family) {
     query = query.eq('message_family', params.family)
@@ -512,14 +529,19 @@ export async function listEdielMessages(params?: {
 
 export async function listOverdueAckMessages(params?: {
   limit?: number
+  companyId?: string | null
 }): Promise<EdielMessageAckStateRow[]> {
   const limit = params?.limit ?? 100
 
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_overdue_message_acks_v')
     .select('*')
     .order('ack_due_at', { ascending: true })
     .limit(limit)
+
+  query = applyCompanyScope(query, params?.companyId)
+
+  const { data, error } = await query
 
   if (error) throw error
   return (data ?? []) as EdielMessageAckStateRow[]
@@ -641,9 +663,11 @@ export async function listCanonicalAckConflictEvents(params?: {
 
 export async function listRecentVersionMismatchMessages(params?: {
   limit?: number
+  companyId?: string | null
 }): Promise<EdielMessageRow[]> {
   const recentMessages = await listEdielMessages({
     limit: Math.max(params?.limit ?? 50, 150),
+    companyId: params?.companyId ?? null,
   })
 
   return recentMessages.filter(hasVersionMismatch).slice(0, params?.limit ?? 50)
@@ -651,9 +675,11 @@ export async function listRecentVersionMismatchMessages(params?: {
 
 export async function listRecentInvalidCodeUsageMessages(params?: {
   limit?: number
+  companyId?: string | null
 }): Promise<EdielMessageRow[]> {
   const recentMessages = await listEdielMessages({
     limit: Math.max(params?.limit ?? 50, 150),
+    companyId: params?.companyId ?? null,
   })
 
   return recentMessages.filter(hasInvalidCodeUsage).slice(0, params?.limit ?? 50)
@@ -839,14 +865,21 @@ export async function listEdielTestRunMessages(params: {
   return (data ?? []) as EdielTestRunMessageRow[]
 }
 
-export async function listEdielMessagesByIds(ids: string[]): Promise<EdielMessageRow[]> {
+export async function listEdielMessagesByIds(
+  ids: string[],
+  options?: { companyId?: string | null }
+): Promise<EdielMessageRow[]> {
   const uniqueIds = Array.from(new Set(ids.filter((id) => id && id.trim().length > 0)))
   if (uniqueIds.length === 0) return []
 
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_messages')
     .select('*')
     .in('id', uniqueIds)
+
+  query = applyCompanyScope(query, options?.companyId)
+
+  const { data, error } = await query
 
   if (error) throw error
 
@@ -956,13 +989,17 @@ export async function attachEdielMessageToTestRun(
 
 
 export async function getEdielRouteProfileByCommunicationRouteId(
-  communicationRouteId: string
+  communicationRouteId: string,
+  options?: { companyId?: string | null }
 ): Promise<EdielRouteProfileRow | null> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_route_profiles')
     .select('*')
     .eq('communication_route_id', communicationRouteId)
-    .maybeSingle()
+
+  query = applyCompanyScope(query, options?.companyId)
+
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return (data as EdielRouteProfileRow | null) ?? null

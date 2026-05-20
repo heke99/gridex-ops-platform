@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
  listAckMessagesForSource,
  listEdielMessages,
@@ -214,13 +215,22 @@ export default async function AgtCasePage({
  params: Promise<{ testCaseCode: string }>
 }) {
  const { testCaseCode } = await params
- const context = await requireAnyPermissionServer(['communication.read'])
+ const context = await requireAdminPageKeyAccess('ediel.workspace')
+ const isPlatformAdmin = isPlatformAdminContext(context)
+ const companyScope = await getOperationalCompanyScope(context.userId)
+ const companyId = isPlatformAdmin ? null : companyScope.companyId
  const testCase = getEdielAgtSupplier2026ACase(String(testCaseCode).toUpperCase())
 
  if (!testCase) {
  return (
  <div className="space-y-6">
- <AdminHeader title="Testmiljö / AGT-test" subtitle="Testfallet hittades inte." userEmail={context.email} />
+ <AdminHeader
+ title="Testmiljö / AGT-test"
+ subtitle="Testfallet hittades inte."
+ userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Platform Control' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
+ />
  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-700">
  Okänt testfall: {testCaseCode}
  </div>
@@ -229,9 +239,9 @@ export default async function AgtCasePage({
  }
 
  const [runtime, runs, recentInbound] = await Promise.all([
- getEdielAgtSupplierRuntime(),
+ getEdielAgtSupplierRuntime(companyId),
  listEdielTestRuns(),
- listEdielMessages({ direction: 'inbound', limit: 80 }),
+ listEdielMessages({ direction: 'inbound', companyId, limit: 80 }),
  ])
 
  const run = runs.find((item) =>
@@ -244,7 +254,7 @@ export default async function AgtCasePage({
 
  const links = run ? await listEdielTestRunMessages({ testRunId: run.id }) : []
  const linkedIds = links.map((link) => link.ediel_message_id)
- const linkedMessages = await listEdielMessagesByIds(linkedIds)
+ const linkedMessages = await listEdielMessagesByIds(linkedIds, { companyId })
  const messagesById = new Map(linkedMessages.map((message) => [message.id, message]))
 
  const candidateInbound = recentInbound
@@ -255,7 +265,7 @@ export default async function AgtCasePage({
  const candidateAckPairs = await Promise.all(
  candidateInbound.map(async (message) => ({
  message,
- acks: await listAckMessagesForSource({ sourceMessageId: message.id }),
+ acks: await listAckMessagesForSource({ sourceMessageId: message.id, companyId }),
  }))
  )
 
@@ -263,7 +273,7 @@ export default async function AgtCasePage({
  const linkedAckPairs = await Promise.all(
  linkedSourceIds.map(async (id) => ({
  sourceId: id,
- acks: await listAckMessagesForSource({ sourceMessageId: id }),
+ acks: await listAckMessagesForSource({ sourceMessageId: id, companyId }),
  }))
  )
 
@@ -275,8 +285,12 @@ export default async function AgtCasePage({
  <div className="space-y-6">
  <AdminHeader
  title={`${testCase.testCaseCode} · ${testCase.title}`}
- subtitle="Låst AGT-testmotor: outbound skickas direkt för Aktör → Portal; Portal → Aktör kopplas från inbound och får kvittensförslag. Separat från verklig produktion."
+ subtitle={isPlatformAdmin
+ ? 'Plattformens AGT-testmotor. Inbound/outbound visas globalt för platform admin.'
+ : 'Tenant-skopad AGT-testvy. Endast bolagets egna inbound/outbound-meddelanden visas.'}
  userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Platform Control' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
  <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5">

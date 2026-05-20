@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 import { listPlatformControlTowerAlerts } from '@/lib/tenant/controlTower'
 
@@ -156,8 +156,9 @@ function QueueList({ title, rows }: { title: string; rows: QueueRow[] }) {
 export default async function AdminControlTowerPage() {
  const admin = await requireAdminPageKeyAccess('operations.control_tower')
  const supabase = await createSupabaseServerClient()
+ const isPlatformAdmin = isPlatformAdminContext(admin)
  const scope = await getOperationalCompanyScope(admin.userId)
- const scopeFilters = companyFilter(scope.companyId)
+ const scopeFilters = companyFilter(isPlatformAdmin ? null : scope.companyId)
 
  const [platformAlerts, [
  openTasks,
@@ -171,7 +172,7 @@ export default async function AdminControlTowerPage() {
  failedEdielMessages,
  movedCustomers,
  ]] = await Promise.all([
- listPlatformControlTowerAlerts(),
+ isPlatformAdmin ? listPlatformControlTowerAlerts() : Promise.resolve([]),
  Promise.all([
  safeCount(supabase, 'customer_operation_tasks', [...scopeFilters, { column: 'status', op: 'in', value: ['open', 'in_progress'] }]),
  safeCount(supabase, 'customer_operation_tasks', [...scopeFilters, { column: 'status', value: 'blocked' }]),
@@ -278,7 +279,10 @@ export default async function AdminControlTowerPage() {
  <div className="space-y-6 p-6 xl:p-8">
  <AdminHeader
  title="Control Tower"
- subtitle="Samlade blockerare för fullmakter, kundflöden, Ediel, nätägarbegäran och avslutade kunder."
+ subtitle={isPlatformAdmin ? 'Global SaaS-drift för tenants, Ediel, routes och blockerade flöden.' : `Driftläge för ${scope.companyName ?? 'ditt bolag'}: fullmakter, kundflöden, Ediel och nätägarbegäran.`}
+ userEmail={admin.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : scope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
  {scope.message ? (
@@ -308,7 +312,7 @@ export default async function AdminControlTowerPage() {
  </section>
  ) : (
  <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 shadow-sm">
- Inga superadmin-larm för pausade bolag, saknad Ediel-profil, routeproblem, försenade kvittenser eller blockerade exporter.
+ Inga plattformsövergripande larm för pausade bolag, saknad Ediel-profil, routeproblem, försenade kvittenser eller blockerade exporter.
  </section>
  )}
 
