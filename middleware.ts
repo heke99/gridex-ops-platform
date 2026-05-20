@@ -24,38 +24,18 @@ function isPlatformAdminPath(pathname: string) {
 }
 
 type RpcRoleRow = { role_key?: string | null }
-type RpcPermissionRow = { permission_key?: string | null; gridex_get_user_permissions?: string[] | null }
-
-function normalizeRpcPermissions(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  if (value.every((item) => typeof item === 'string')) return value as string[]
-
-  const out = new Set<string>()
-  for (const item of value as RpcPermissionRow[]) {
-    if (typeof item.permission_key === 'string') out.add(item.permission_key)
-    if (Array.isArray(item.gridex_get_user_permissions)) {
-      for (const permission of item.gridex_get_user_permissions) {
-        if (typeof permission === 'string') out.add(permission)
-      }
-    }
-  }
-  return Array.from(out)
-}
-
 async function isPlatformAdminSession(supabase: ReturnType<typeof createServerClient>, userId: string) {
-  const [{ data: roleRows, error: rolesError }, { data: permissionRows, error: permissionsError }] = await Promise.all([
-    supabase.rpc('gridex_get_user_roles', { p_user_id: userId }),
-    supabase.rpc('gridex_get_user_permissions', { p_user_id: userId }),
-  ])
+  const { data: roleRows, error: rolesError } = await supabase.rpc('gridex_get_user_roles', {
+    p_user_id: userId,
+  })
 
-  if (rolesError || permissionsError) return false
+  if (rolesError) return false
 
   const roles = ((roleRows ?? []) as RpcRoleRow[])
     .map((row) => row.role_key ?? null)
     .filter((role): role is string => typeof role === 'string' && role.length > 0)
-  const permissions = normalizeRpcPermissions(permissionRows)
 
-  return roles.includes('super_admin') || roles.includes('platform_admin') || permissions.includes('tenants.write')
+  return roles.includes('super_admin') || roles.includes('superadmin') || roles.includes('platform_admin')
 }
 
 function normalizeNextPath(value: string | null) {

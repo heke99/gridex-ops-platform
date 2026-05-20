@@ -79,7 +79,7 @@ const NAV_GROUPS: NavGroup[] = [
  {
  href: '/admin/ediel/settings',
  label: 'Ediel-inställningar',
- description: 'Aktörsidentitet, versioner och ack-policy',
+ description: 'Bolagets aktörsidentitet och Edielförutsättningar',
  pageKey: 'ediel.routes',
  },
  {
@@ -370,13 +370,13 @@ export default function AdminSidebar({ permissions, isPlatformAdmin }: AdminSide
 
  <div className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
  <div className="inline-flex rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
- SaaS Control
+ {isPlatformAdmin ? 'Platform Control' : 'Bolagsyta'}
  </div>
  <h1 className="mt-3 text-lg font-semibold tracking-tight text-slate-950">
- Kontrollcenter
+ {isPlatformAdmin ? 'Kontrollcenter' : 'Driftcenter'}
  </h1>
  <p className="mt-2 text-sm leading-6 text-slate-700">
- Ediel, kunder, switching, mätvärden och partnerhandoff i samma arbetsyta.
+ {isPlatformAdmin ? 'Plattformsstyrning, tenants, Ediel och drift i samma arbetsyta.' : 'Ediel, kunder, switching, mätvärden och partnerhandoff för ditt bolag.'}
  </p>
  </div>
  </div>

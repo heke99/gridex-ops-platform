@@ -22,6 +22,24 @@ export type CompanyActionState = {
 }
 
 const ACTIVE_COMPANY_STATUSES: CompanyOperationalStatus[] = ['active', 'onboarding']
+const COMPANY_ASSIGNABLE_ROLE_KEYS = new Set([
+  'company_admin',
+  'operations_manager',
+  'operations_agent',
+  'customer_service_manager',
+  'customer_service_agent',
+  'finance_readonly',
+  'executive_readonly',
+])
+const COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES = new Set([
+  'owner',
+  'admin',
+  'company_admin',
+  'operations',
+  'support',
+  'viewer',
+  'member',
+])
 const GOVERNANCE_COMPANY_STATUSES: CompanyOperationalStatus[] = [
   'active',
   'paused',
@@ -145,6 +163,21 @@ function parseCompanyStatus(value: string): CompanyOperationalStatus {
   }
   return normalized
 }
+
+function parseCompanyAssignableRoleKey(value: string): string {
+  if (!COMPANY_ASSIGNABLE_ROLE_KEYS.has(value)) {
+    throw new Error('Systemrollen är inte tillåten på bolagsnivå.')
+  }
+  return value
+}
+
+function parseCompanyAssignableMembershipRole(value: string): string {
+  if (!COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES.has(value)) {
+    throw new Error('Bolagsrollen är inte tillåten på bolagsnivå.')
+  }
+  return value
+}
+
 
 function governanceActionForStatus(status: CompanyOperationalStatus): GovernanceEventAction {
   if (status === 'active') return 'SUPERADMIN_COMPANY_REACTIVATED'
@@ -379,8 +412,8 @@ export async function inviteCompanyUserAction(
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('full_name')) || null
     const temporaryPassword = normalizeTemporaryPassword(formData.get('temporary_password'))
-    const membershipRole = normalizeText(formData.get('membership_role')) || 'member'
-    const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
+    const membershipRole = parseCompanyAssignableMembershipRole(normalizeText(formData.get('membership_role')) || 'member')
+    const roleKey = parseCompanyAssignableRoleKey(normalizeText(formData.get('role_key')) || 'company_admin')
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     await assertCanManageCompanyUsers(companyId)
@@ -640,8 +673,8 @@ export async function setCompanyUserRoleAction(
     const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
     const userId = normalizeText(formData.get('user_id'))
-    const membershipRole = normalizeText(formData.get('membership_role')) || 'member'
-    const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
+    const membershipRole = parseCompanyAssignableMembershipRole(normalizeText(formData.get('membership_role')) || 'member')
+    const roleKey = parseCompanyAssignableRoleKey(normalizeText(formData.get('role_key')) || 'company_admin')
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     await assertCanManageCompanyUsers(companyId)

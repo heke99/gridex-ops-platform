@@ -24,7 +24,7 @@ type UserRoleRpcRow = {
   role_key?: string | null
 }
 
-const PLATFORM_ADMIN_ROLES = new Set(['super_admin', 'platform_admin'])
+const PLATFORM_ADMIN_ROLES = new Set(['super_admin', 'superadmin', 'platform_admin'])
 const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set(['owner', 'admin'])
 const COMPANY_READ_MEMBERSHIP_ROLES = new Set(['owner', 'admin', 'operations', 'support', 'viewer', 'member'])
 
@@ -39,12 +39,10 @@ function normalizeRequirement(
 }
 
 export function isPlatformAdminContext(input: Pick<GuardResult, 'roles' | 'permissions'>): boolean {
-  return (
-    input.roles.some((role) => PLATFORM_ADMIN_ROLES.has(role)) ||
-    input.permissions.includes('permissions.manage') ||
-    input.permissions.includes('roles.manage') ||
-    input.permissions.includes('tenants.write')
-  )
+  // Platform access must be based on explicit platform roles, not broad permissions.
+  // Some company-level roles may carry tenant/user permissions for their own company,
+  // but that must never unlock /admin/companies, /admin/users, /admin/roles or /admin/platform/*.
+  return input.roles.some((role) => PLATFORM_ADMIN_ROLES.has(role))
 }
 
 async function loadBaseAdminContext(): Promise<GuardResult> {
