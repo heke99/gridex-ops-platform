@@ -12,6 +12,8 @@ export type AdminPageKey =
   | 'customers.segments'
   | 'contracts.catalog'
   | 'companies.manage'
+  | 'company.settings'
+  | 'platform.ediel.rules'
   | 'operations.control_tower'
   | 'operations.sync'
   | 'operations.integrity'
@@ -33,6 +35,7 @@ export type AdminPageKey =
   | 'integrations.routes'
   | 'ediel.workspace'
   | 'ediel.routes'
+  | 'ediel.settings'
   | 'users.list'
   | 'users.detail'
   | 'roles.catalog'
@@ -63,7 +66,9 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'customers.intake': { anyOf: ['customers.write'] },
   'customers.segments': { anyOf: ['customers.read', 'reports.read'] },
   'contracts.catalog': { anyOf: ['pricing.read'] },
-  'companies.manage': { anyOf: ['tenants.read', 'tenants.write', 'tenants.invite'] },
+  'companies.manage': { anyOf: ['tenants.read', 'tenants.write'] },
+  'company.settings': { anyOf: ['tenants.invite', 'users.write', 'communication.read'] },
+  'platform.ediel.rules': { anyOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'operations.control_tower': {
     anyOf: [
       'switching.read',
@@ -130,9 +135,10 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'ediel.routes': {
     anyOf: ['communication.read', 'switching.read', 'metering.read', 'billing_underlay.read'],
   },
-  'users.list': { anyOf: ['users.read'] },
-  'users.detail': { anyOf: ['users.read'] },
-  'roles.catalog': { anyOf: ['roles.manage', 'permissions.manage', 'users.read'] },
+  'ediel.settings': { anyOf: ['communication.read'] },
+  'users.list': { anyOf: ['tenants.read', 'tenants.write'] },
+  'users.detail': { anyOf: ['tenants.read', 'tenants.write'] },
+  'roles.catalog': { anyOf: ['roles.manage', 'permissions.manage'] },
   'audit.log': { anyOf: ['audit.read'] },
 }
 
@@ -505,4 +511,12 @@ export function getRoleProfilePermissions(roleKey: string): string[] {
   return [...(ROLE_PERMISSION_PROFILES[roleKey]?.permissions ?? [])].sort((a, b) =>
     a.localeCompare(b, 'sv')
   )
+}
+
+export function isPlatformAdminRole(roles: string[]): boolean {
+  return roles.some((role) => role === 'super_admin' || role === 'platform_admin')
+}
+
+export function isPlatformAdminAccess(permissions: string[], roles: string[] = []): boolean {
+  return isPlatformAdminRole(roles) || permissions.includes('tenants.write') || permissions.includes('permissions.manage')
 }

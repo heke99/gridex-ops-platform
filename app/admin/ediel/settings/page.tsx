@@ -193,6 +193,7 @@ function pickPreviousRule(
 
 export default async function AdminEdielSettingsPage() {
  const context = await requireAnyPermissionServer(['communication.read'])
+ const isPlatformAdmin = context.permissions.includes('tenants.write') || context.permissions.includes('permissions.manage')
  const companyScope = await getOperationalCompanyScope(context.userId)
 
  const supabase = await createSupabaseServerClient()
@@ -201,20 +202,26 @@ export default async function AdminEdielSettingsPage() {
  .from('ediel_actor_settings')
  .select('*')
 
+ if (!isPlatformAdmin) {
  if (companyScope.companyId) {
- actorSettingsQuery = actorSettingsQuery.or(`company_id.is.null,company_id.eq.${companyScope.companyId}`)
+ actorSettingsQuery = actorSettingsQuery.eq('company_id', companyScope.companyId)
+ } else {
+ actorSettingsQuery = actorSettingsQuery.is('company_id', null).eq('id', '__no_company_scope__')
+ }
  }
 
  const [actorSettingsResult, messageRulesResult] = await Promise.all([
  actorSettingsQuery
  .order('environment', { ascending: true })
  .order('updated_at', { ascending: false }),
- supabase
+ isPlatformAdmin
+ ? supabase
  .from('ediel_message_rules')
  .select('*')
  .order('message_family', { ascending: true })
  .order('message_code', { ascending: true })
- .order('valid_from', { ascending: false, nullsFirst: false }),
+ .order('valid_from', { ascending: false, nullsFirst: false })
+ : Promise.resolve({ data: [], error: null }),
  ])
 
  if (actorSettingsResult.error) throw actorSettingsResult.error
@@ -335,11 +342,13 @@ export default async function AdminEdielSettingsPage() {
  <div className="space-y-6">
  <AdminHeader
  title="Ediel-inställningar"
- subtitle={`Aktörsprofiler och meddelanderegler för ${companyScope.companyName ?? 'valt bolag'}. Aktiva profiler sparas tenant-scopat så samma Ediel-id används i routes, liveflöde och testmiljö.`}
+ subtitle={isPlatformAdmin
+ ? 'Global plattformsstyrning för aktörsprofiler och Ediel-regler. Bolagsanvändare ser inte globala runtime-regler.'
+ : `Aktörsprofil och teknisk bolagskonfiguration för ${companyScope.companyName ?? 'ditt bolag'}.`} 
  userEmail={context.email}
  />
 
- <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+ <section className={`grid gap-4 md:grid-cols-3 ${isPlatformAdmin ? 'xl:grid-cols-6' : 'xl:grid-cols-2'}`}>
  <div className="rounded-2xl border border-slate-200 bg-white p-4">
  <div className="text-sm text-slate-700">Aktiv test-aktör</div>
  <div className="mt-2 text-lg font-semibold text-slate-900">
@@ -352,6 +361,8 @@ export default async function AdminEdielSettingsPage() {
  {activeProdActor?.actor_ediel_id ?? 'Saknas'}
  </div>
  </div>
+ {isPlatformAdmin ? (
+ <>
  <div className="rounded-2xl border border-slate-200 bg-white p-4">
  <div className="text-sm text-slate-700">Aktiva regler</div>
  <div className="mt-2 text-3xl font-semibold text-slate-950">{activeRuleCount}</div>
@@ -368,12 +379,15 @@ export default async function AdminEdielSettingsPage() {
  <div className="text-sm text-emerald-700">Previous-valid aktivt</div>
  <div className="mt-2 text-3xl font-semibold text-emerald-900">{previousValidCount}</div>
  </div>
+ </>
+ ) : null}
  </section>
 
- <EdielRuleTemplateModals hasProdatRule={hasProdatRule} />
+ {isPlatformAdmin ? <EdielRuleTemplateModals hasProdatRule={hasProdatRule} /> : null}
 
+ {isPlatformAdmin ? (
  <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
- <h2 className="text-lg font-semibold text-slate-950">Så läser du versionerna</h2>
+ <h2 className="text-lg font-semibold text-slate-950">Global regelstyrning</h2>
  <p className="mt-1 text-sm text-slate-700">
  “Version” är den Ediel-anvisningsversion som regeln kommer använda i runtime.
  “Giltig från” är datumet då just den versionen ska börja användas. Outbound current
@@ -381,6 +395,7 @@ export default async function AdminEdielSettingsPage() {
  föregående giltiga version under övergångsperioden.
  </p>
  </section>
+ ) : null}
 
  <section className="rounded-2xl border border-slate-200 bg-white p-6">
  <div className="mb-5">
@@ -486,6 +501,8 @@ export default async function AdminEdielSettingsPage() {
  </div>
  </section>
 
+ {isPlatformAdmin ? (
+ <>
  <section className="rounded-2xl border border-slate-200 bg-white p-6">
  <div className="mb-5">
  <h2 className="text-lg font-semibold text-slate-900">Runtime-upplösning per family/code</h2>
@@ -574,6 +591,8 @@ export default async function AdminEdielSettingsPage() {
  </div>
  </form>
  </section>
+ </>
+ ) : null}
  </div>
  )
 }

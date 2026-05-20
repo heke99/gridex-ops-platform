@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePermissionServer } from "@/lib/auth/requirePermissionServer";
+import { requirePlatformAdminAccess } from "@/lib/admin/guards";
 import { getAdminUsers } from "@/lib/rbac/getAdminUsers";
 import { getAllRoles } from "@/lib/rbac/getAllRoles";
 import { getInternalRoleOptions, getRoleMeta } from "@/lib/rbac/catalog";
@@ -24,7 +24,7 @@ function formatDate(value: string | null | undefined) {
 }
 
 export default async function AdminUsersPage() {
-  const context = await requirePermissionServer("users.read");
+  const context = await requirePlatformAdminAccess();
   const users = await getAdminUsers();
   const allRoles = await getAllRoles();
   const assignableRoles = getInternalRoleOptions(allRoles);

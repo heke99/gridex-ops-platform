@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
  getAdminPageRequirement,
  hasPermissionRequirement,
+ isPlatformAdminAccess,
  type AdminPageKey,
 } from '@/lib/admin/accessModel'
 
@@ -15,6 +16,7 @@ type NavItem = {
  description?: string
  pageKey?: AdminPageKey
  badge?: string
+ platformOnly?: boolean
 }
 
 type NavGroup = {
@@ -25,6 +27,8 @@ type NavGroup = {
 
 type AdminSidebarProps = {
  permissions: string[]
+ roles?: string[]
+ companyName?: string | null
 }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -77,8 +81,8 @@ const NAV_GROUPS: NavGroup[] = [
  {
  href: '/admin/ediel/settings',
  label: 'Ediel-inställningar',
- description: 'Aktörsidentitet, versioner och ack-policy',
- pageKey: 'ediel.routes',
+ description: 'Aktörsidentitet och teknisk bolagsprofil',
+ pageKey: 'ediel.settings',
  },
  {
  href: '/admin/ediel/agt',
@@ -264,14 +268,15 @@ const NAV_GROUPS: NavGroup[] = [
  {
  href: '/admin/companies',
  label: 'Elhandelsbolag',
- description: 'Skapa bolag och bjud in ansvariga',
+ description: 'Skapa bolag, governance och plattformsstatistik',
  pageKey: 'companies.manage',
+ platformOnly: true,
  },
  {
  href: '/admin/company-settings',
  label: 'Bolagsinställningar',
  description: 'Kontaktuppgifter, ansvariga och login-e-post',
- pageKey: 'companies.manage',
+ pageKey: 'company.settings',
  },
  {
  href: '/admin/users',
@@ -282,8 +287,9 @@ const NAV_GROUPS: NavGroup[] = [
  {
  href: '/admin/roles',
  label: 'Roller',
- description: 'Behörigheter och rollmodell',
+ description: 'Global behörighetsmodell för plattformen',
  pageKey: 'roles.catalog',
+ platformOnly: true,
  },
  {
  href: '/admin/audit',
@@ -301,7 +307,8 @@ function isActive(pathname: string, href: string) {
  return pathname.startsWith(href)
 }
 
-function canAccessNavItem(currentPermissions: string[], item: NavItem) {
+function canAccessNavItem(currentPermissions: string[], isPlatformAdmin: boolean, item: NavItem) {
+ if (item.platformOnly && !isPlatformAdmin) return false
  if (!item.pageKey) return true
  return hasPermissionRequirement(
  currentPermissions,
@@ -309,12 +316,13 @@ function canAccessNavItem(currentPermissions: string[], item: NavItem) {
  )
 }
 
-export default function AdminSidebar({ permissions }: AdminSidebarProps) {
+export default function AdminSidebar({ permissions, roles = [], companyName }: AdminSidebarProps) {
  const pathname = usePathname()
+ const isPlatformAdmin = isPlatformAdminAccess(permissions, roles)
 
  const visibleGroups = NAV_GROUPS.map((group) => ({
  ...group,
- items: group.items.filter((item) => canAccessNavItem(permissions, item)),
+ items: group.items.filter((item) => canAccessNavItem(permissions, isPlatformAdmin, item)),
  })).filter((group) => group.items.length > 0)
 
  return (
@@ -336,13 +344,13 @@ export default function AdminSidebar({ permissions }: AdminSidebarProps) {
 
  <div className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
  <div className="inline-flex rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
- SaaS Control
+ {isPlatformAdmin ? 'Plattformsvy' : 'Bolagsvy'}
  </div>
  <h1 className="mt-3 text-lg font-semibold tracking-tight text-slate-950">
  Kontrollcenter
  </h1>
  <p className="mt-2 text-sm leading-6 text-slate-700">
- Ediel, kunder, switching, mätvärden och partnerhandoff i samma arbetsyta.
+ {isPlatformAdmin ? 'Plattformsstyrning, tenants och drift i samma vy.' : `Du arbetar i ${companyName ?? 'ditt bolag'}. Menyn visar bara tillåten access.`}
  </p>
  </div>
  </div>

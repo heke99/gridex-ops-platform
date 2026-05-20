@@ -2,8 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
-import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
+import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 
 export type CompanySettingsActionState = {
   ok: boolean
@@ -18,17 +17,27 @@ function normalizeEmail(value: FormDataEntryValue | null) {
   return normalizeText(value).toLowerCase()
 }
 
+const COMPANY_ASSIGNABLE_ROLE_KEYS = new Set([
+  'company_admin',
+  'operations_manager',
+  'operations_agent',
+  'customer_service_manager',
+  'customer_service_agent',
+  'finance_readonly',
+  'executive_readonly',
+])
+
+const COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES = new Set([
+  'owner',
+  'admin',
+  'company_admin',
+  'operations',
+  'support',
+  'viewer',
+])
+
 async function assertCanManageCompany(companyId: string) {
-  const context = await requireAdminActionAccess({ anyOf: ['tenants.write', 'users.write', 'tenants.invite'] })
-  if (context.permissions.includes('tenants.write') || context.roles.includes('super_admin')) return context
-
-  const memberships = await listOperationalCompaniesForUser(context.userId)
-  const membership = memberships.find((row) => row.companyId === companyId)
-  if (!membership || !['owner', 'admin', 'company_admin'].includes(membership.membershipRole)) {
-    throw new Error('Du saknar behörighet att ändra bolagets inställningar.')
-  }
-
-  return context
+  return requireCompanyScopedActionAccess(companyId, { anyOf: ['tenants.invite', 'users.write'] })
 }
 
 async function resolveRoleIdByKey(roleKey: string): Promise<string | null> {
@@ -100,6 +109,12 @@ export async function updateCompanyResponsibleUserAction(
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!userId) return { ok: false, message: 'Användare saknas.' }
     if (!email) return { ok: false, message: 'E-post krävs.' }
+    if (!COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES.has(membershipRole)) {
+      return { ok: false, message: 'Bolagsrollen är inte tillåten på bolagsnivå.' }
+    }
+    if (!COMPANY_ASSIGNABLE_ROLE_KEYS.has(roleKey)) {
+      return { ok: false, message: 'Systemrollen är inte tillåten på bolagsnivå.' }
+    }
 
     await assertCanManageCompany(companyId)
 

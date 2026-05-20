@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
   getCompanyStatusCopy,
   listCompanyGovernanceSummaries,
@@ -97,7 +97,7 @@ function GovernanceActionForm({
 }
 
 export default async function CompaniesPage() {
-  const admin = await requireAdminPageAccess({ anyOf: ['tenants.read', 'tenants.write', 'users.read'] })
+  const admin = await requirePlatformAdminAccess()
   const supabase = await createSupabaseServerClient()
   const [companies, { data: auth }] = await Promise.all([
     listCompanyGovernanceSummaries(),
@@ -246,6 +246,9 @@ export default async function CompaniesPage() {
                           </div>
 
                           <div className="flex flex-wrap gap-2">
+                            <Link href={`/admin/companies/${company.id}`} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+                              Bolagsvy & statistik
+                            </Link>
                             <Link href={`/admin/companies/${company.id}/users`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
                               Användare
                             </Link>

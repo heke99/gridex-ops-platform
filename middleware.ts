@@ -9,6 +9,16 @@ function isProtectedPath(pathname: string) {
   )
 }
 
+
+function isPlatformOnlyAdminPath(pathname: string) {
+  return (
+    pathname === '/admin/companies' ||
+    pathname.startsWith('/admin/users') ||
+    pathname.startsWith('/admin/roles') ||
+    pathname.startsWith('/admin/platform')
+  )
+}
+
 function normalizeNextPath(value: string | null) {
   if (!value) return '/dashboard'
   if (!value.startsWith('/')) return '/dashboard'
@@ -71,6 +81,17 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('next', `${pathname}${search}`)
       loginUrl.searchParams.set('reason', 'account_disabled')
       return NextResponse.redirect(loginUrl)
+    }
+
+
+    if (isPlatformOnlyAdminPath(pathname)) {
+      const { data: isPlatformAdmin, error: platformCheckError } = await supabase.rpc(
+        'gridex_user_is_platform_admin'
+      )
+
+      if (!platformCheckError && isPlatformAdmin !== true) {
+        return NextResponse.redirect(new URL('/admin', request.url))
+      }
     }
   }
 

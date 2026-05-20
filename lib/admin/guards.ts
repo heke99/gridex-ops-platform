@@ -4,17 +4,20 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   getAdminPageRequirement,
   hasPermissionRequirement,
+  isPlatformAdminAccess,
   type AdminPageKey,
   type PermissionRequirement,
 } from '@/lib/admin/accessModel'
 import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
+import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
 
-type GuardResult = {
+export type GuardResult = {
   userId: string
   email: string | null
   permissions: string[]
   roles: string[]
   isAdmin: boolean
+  isPlatformAdmin: boolean
 }
 
 type UserRoleRpcRow = {
@@ -71,6 +74,7 @@ async function loadBaseAdminContext(): Promise<GuardResult> {
     permissions,
     roles,
     isAdmin,
+    isPlatformAdmin: isPlatformAdminAccess(permissions, roles),
   }
 }
 
@@ -79,6 +83,74 @@ export async function requireAdminAccess(): Promise<GuardResult> {
 
   if (!base.isAdmin) {
     redirect('/login')
+  }
+
+  return base
+}
+
+export async function requirePlatformAdminAccess(): Promise<GuardResult> {
+  const base = await requireAdminAccess()
+
+  if (!base.isPlatformAdmin) {
+    redirect('/admin')
+  }
+
+  return base
+}
+
+export async function requirePlatformAdminActionAccess(): Promise<GuardResult> {
+  const base = await loadBaseAdminContext()
+
+  if (!base.isAdmin || !base.isPlatformAdmin) {
+    throw new Error('Forbidden')
+  }
+
+  return base
+}
+
+export async function requireCompanyScopedAdminAccess(
+  companyId: string,
+  requiredPermissions: string[] | PermissionRequirement = []
+): Promise<GuardResult> {
+  const base = await requireAdminPageAccess(requiredPermissions)
+
+  if (base.isPlatformAdmin) {
+    return base
+  }
+
+  const memberships = await listOperationalCompaniesForUser(base.userId)
+  const allowed = memberships.some(
+    (membership) =>
+      membership.companyId === companyId &&
+      ['owner', 'admin', 'operations', 'support', 'viewer', 'member'].includes(membership.membershipRole)
+  )
+
+  if (!allowed) {
+    redirect('/admin')
+  }
+
+  return base
+}
+
+export async function requireCompanyScopedActionAccess(
+  companyId: string,
+  requiredPermissions: string[] | PermissionRequirement = []
+): Promise<GuardResult> {
+  const base = await requireAdminActionAccess(requiredPermissions)
+
+  if (base.isPlatformAdmin) {
+    return base
+  }
+
+  const memberships = await listOperationalCompaniesForUser(base.userId)
+  const allowed = memberships.some(
+    (membership) =>
+      membership.companyId === companyId &&
+      ['owner', 'admin'].includes(membership.membershipRole)
+  )
+
+  if (!allowed) {
+    throw new Error('Du saknar behörighet för valt bolag.')
   }
 
   return base

@@ -2,7 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import {
+  requireCompanyScopedActionAccess,
+  requirePlatformAdminActionAccess,
+} from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { provisionDirectTemporaryPasswordUser } from '@/lib/auth/directAccountProvisioning'
 import {
@@ -218,7 +221,7 @@ export async function createCompanyAction(
   let createdCompanyId: string | null = null
 
   try {
-    await requireAdminActionAccess({ anyOf: ['tenants.write', 'users.write'] })
+    await requirePlatformAdminActionAccess()
     const actorUserId = await getCurrentUserId()
 
     const name = normalizeText(formData.get('name'))
@@ -358,16 +361,29 @@ export async function inviteCompanyUserAction(
   formData: FormData
 ): Promise<CompanyActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['tenants.invite', 'users.write'] })
-    const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
+    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    const access = await requireCompanyScopedActionAccess(companyId, { anyOf: ['tenants.invite', 'users.write'] })
+    const actorUserId = access.userId
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('full_name')) || null
     const temporaryPassword = normalizeTemporaryPassword(formData.get('temporary_password'))
     const membershipRole = normalizeText(formData.get('membership_role')) || 'member'
     const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
 
-    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    const allowedCompanyRoleKeys = new Set([
+      'company_admin',
+      'operations_manager',
+      'operations_agent',
+      'customer_service_manager',
+      'customer_service_agent',
+      'finance_readonly',
+      'executive_readonly',
+    ])
+    if (!access.isPlatformAdmin && !allowedCompanyRoleKeys.has(roleKey)) {
+      return { ok: false, message: 'Bolagsadmin kan bara tilldela bolagsspecifika roller.' }
+    }
+
     if (!email) return { ok: false, message: 'E-post saknas.' }
 
     const temporaryPasswordError = assertTemporaryPasswordForUser(email, temporaryPassword)
@@ -460,7 +476,7 @@ export async function setCompanyOperationalStatusAction(
   formData: FormData
 ): Promise<CompanyActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['tenants.write'] })
+    await requirePlatformAdminActionAccess()
     const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
     const nextStatus = parseCompanyStatus(normalizeText(formData.get('next_status')))
@@ -515,7 +531,7 @@ export async function deleteTestCompanyAction(
   formData: FormData
 ): Promise<CompanyActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['tenants.write'] })
+    await requirePlatformAdminActionAccess()
     const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
     const reason = normalizeText(formData.get('reason')) || null
@@ -569,13 +585,13 @@ export async function removeUserFromCompanyAction(
   formData: FormData
 ): Promise<CompanyActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['tenants.write', 'users.write'] })
-    const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
+    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    const access = await requireCompanyScopedActionAccess(companyId, { anyOf: ['tenants.write', 'users.write'] })
+    const actorUserId = access.userId
     const userId = normalizeText(formData.get('user_id'))
     const reason = normalizeText(formData.get('reason')) || null
 
-    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!userId) return { ok: false, message: 'Användare saknas.' }
 
     const { error } = await supabaseService
@@ -621,14 +637,27 @@ export async function setCompanyUserRoleAction(
   formData: FormData
 ): Promise<CompanyActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['tenants.write', 'users.write'] })
-    const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
+    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    const access = await requireCompanyScopedActionAccess(companyId, { anyOf: ['tenants.write', 'users.write'] })
+    const actorUserId = access.userId
     const userId = normalizeText(formData.get('user_id'))
     const membershipRole = normalizeText(formData.get('membership_role')) || 'member'
     const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
 
-    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
+    const allowedCompanyRoleKeys = new Set([
+      'company_admin',
+      'operations_manager',
+      'operations_agent',
+      'customer_service_manager',
+      'customer_service_agent',
+      'finance_readonly',
+      'executive_readonly',
+    ])
+    if (!access.isPlatformAdmin && !allowedCompanyRoleKeys.has(roleKey)) {
+      return { ok: false, message: 'Bolagsadmin kan bara tilldela bolagsspecifika roller.' }
+    }
+
     if (!userId) return { ok: false, message: 'Användare saknas.' }
 
     const { error } = await supabaseService

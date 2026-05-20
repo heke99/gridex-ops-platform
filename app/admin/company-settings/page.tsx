@@ -1,5 +1,6 @@
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
+import Link from 'next/link'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getCompanyById, listCompanyUsersForGovernance } from '@/lib/tenant/governance'
 import { updateCompanyResponsibleUserAction, updateCompanySettingsAction } from './actions'
@@ -31,7 +32,7 @@ function roleLabel(value: string) {
 }
 
 export default async function CompanySettingsPage() {
-  const context = await requireAdminPageAccess({ anyOf: ['users.read', 'tenants.read', 'tenants.invite'] })
+  const context = await requireAdminPageKeyAccess('company.settings')
   const scope = await getOperationalCompanyScope(context.userId)
   const companyId = scope.companyId
   const company = companyId ? await getCompanyById(companyId) : null
@@ -54,9 +55,15 @@ export default async function CompanySettingsPage() {
         ) : (
           <>
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-950">Bolagsuppgifter</h2>
-              <p className="mt-1 text-sm text-slate-700">Dessa uppgifter används i adminytan, onboarding och kommunikation.</p>
-
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-950">Bolagsuppgifter</h2>
+                  <p className="mt-1 text-sm text-slate-700">Dessa uppgifter används i adminytan, onboarding och kommunikation.</p>
+                </div>
+                <Link href={`/admin/companies/${companyId}`} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">
+                  Visa bolagsstatistik
+                </Link>
+              </div>
               <form action={updateCompanySettingsFormAction} className="mt-5 grid gap-4 lg:grid-cols-2">
                 <input type="hidden" name="company_id" value={companyId} />
                 <label className="grid gap-2 text-sm">
