@@ -656,7 +656,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  <div className="mt-4 grid gap-2 text-sm text-slate-700 ">
  <div>
- Batch:{' '}
+ Körningsnyckel:{' '}
  <span className="font-medium">
  {request.dispatch_batch_key ?? '—'}
  </span>

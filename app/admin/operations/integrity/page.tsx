@@ -225,7 +225,7 @@ function FeedbackBanner({
  bulk_queue_missing_meter_values: 'Köa saknade mätvärden',
  bulk_queue_missing_billing_underlays: 'Köa saknade billing-underlag',
  bulk_queue_ready_supplier_switches: 'Köa redo switchar',
- bulk_queue_ready_billing_exports: 'Skapa redo exportbatch',
+ bulk_queue_ready_billing_exports: 'Skapa redo exportkörning',
  }
 
  const actionLabel = actionLabelMap[action] ?? action
@@ -266,7 +266,7 @@ function FeedbackBanner({
  ) : null}
  {batchKey ? (
  <span className="rounded-full border border-emerald-300 px-3 py-1 font-mono text-emerald-900 ">
- Batch: {batchKey}
+ Körning: {batchKey}
  </span>
  ) : null}
  </div>
@@ -341,7 +341,7 @@ function ActionStrip({
  Operativa snabbvägar och bulk actions
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Hoppa direkt till rätt queue eller kör batchåtgärder utan att lämna kontrolltornet.
+ Hoppa direkt till rätt kö eller kör massåtgärder utan att lämna kontrolltornet.
  </p>
  </div>
 
@@ -432,7 +432,7 @@ function ActionStrip({
  <BulkActionButton
  action={runBulkQueueReadyBillingExportsFromIntegrityAction}
  hiddenFields={[{ name: 'period_month', value: period.label }]}
- label={`Skapa exportbatch ${period.label}`}
+ label={`Skapa exportkörning ${period.label}`}
  variant="success"
  />
  </div>
@@ -1146,7 +1146,7 @@ export default async function AdminOperationsIntegrityPage({
  bulkAction={{
  label: 'Masskö för redo byten',
  description:
- 'Kör en batch som lägger redo switchar i outbound-kön direkt från kontrolltornet.',
+ 'Kör en massåtgärd som lägger redo switchar i outbound-kön direkt från kontrolltornet.',
  form: (
  <form action={runBulkQueueReadySupplierSwitchesFromIntegrityAction}>
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
@@ -1202,14 +1202,14 @@ export default async function AdminOperationsIntegrityPage({
  workspaceLabel="Öppna exportkö"
  workspaceDescription="När source request redan finns ska raden öppna request-detail. Exportkön är sekundär när ett konkret ärende redan finns."
  bulkAction={{
- label: `Skapa exportbatch för ${period.label}`,
+ label: `Skapa exportkörning för ${period.label}`,
  description:
  'Skapar partner exports för alla redo billing-underlag i vald period, men hoppar över sådant som redan har aktiv export.',
  form: (
  <BulkActionButton
  action={runBulkQueueReadyBillingExportsFromIntegrityAction}
  hiddenFields={[{ name: 'period_month', value: period.label }]}
- label={`Skapa exportbatch ${period.label}`}
+ label={`Skapa exportkörning ${period.label}`}
  variant="success"
  />
  ),
@@ -1219,7 +1219,7 @@ export default async function AdminOperationsIntegrityPage({
  <QueueSection
  id="missing-billing-underlays"
  title={`Saknade billing-underlag (${period.label})`}
- subtitle="Den här batchen hjälper dig att köa underlagsförfrågningar för mätpunkter som ännu inte fått billing-underlag."
+ subtitle="Den här körningen hjälper dig att köa underlagsförfrågningar för mätpunkter som ännu inte fått faktureringsunderlag."
  rows={[]}
  emptyText="Använd knappen nedan för att köa saknade billing-underlag för vald period."
  workspaceHref={`/admin/outbound/missing-billing-underlays?period=${period.label}`}

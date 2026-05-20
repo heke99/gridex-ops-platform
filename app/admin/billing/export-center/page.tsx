@@ -69,7 +69,7 @@ export default async function BillingExportCenterPage() {
               <select name="export_format" defaultValue="json" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
                 <option value="json">JSON</option>
                 <option value="csv">CSV</option>
-                <option value="excel">Excel</option>
+                <option value="xlsx">Excel (.xlsx)</option>
                 <option value="api">API</option>
               </select>
               <input name="target_system" defaultValue="billing_partner" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
@@ -98,7 +98,7 @@ export default async function BillingExportCenterPage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     <a href={`/admin/billing/export-center/${run.id}/download?format=json`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">JSON</a>
                     <a href={`/admin/billing/export-center/${run.id}/download?format=csv`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">CSV</a>
-                    <a href={`/admin/billing/export-center/${run.id}/download?format=excel`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Excel</a>
+                    <a href={`/admin/billing/export-center/${run.id}/download?format=xlsx`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Excel (.xlsx)</a>
                     <form action={queueReadyBillingExportRunItemsAction}>
                       <input type="hidden" name="export_run_id" value={run.id} />
                       <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={run.rows_ready === 0}>

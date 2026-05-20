@@ -28,7 +28,9 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
   const { run, items } = await getBillingExportRunWithItems({ companyId, exportRunId: id })
   const file = buildBillingExportFile({ run, items, format })
 
-  return new NextResponse(file.body, {
+  const responseBody = typeof file.body === 'string' ? file.body : new Blob([file.body as BlobPart], { type: file.contentType })
+
+  return new NextResponse(responseBody, {
     headers: {
       'content-type': file.contentType,
       'content-disposition': `attachment; filename="${file.fileName}"`,

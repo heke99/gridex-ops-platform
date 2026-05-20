@@ -5,6 +5,7 @@ import { listAllBillingUnderlays, listAllMeteringValues, listAllPartnerExports }
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import { createPartnerExport } from '@/lib/cis/db-data'
 import { calculatePricingForBillingUnderlay, listPricingComponentRules } from '@/lib/billing/pricingEngine'
+import { buildXlsxWorkbook } from '@/lib/billing/xlsx'
 
 export type BillingExportRunRow = {
   id: string
@@ -268,7 +269,7 @@ export type BillingExportRunItemRow = {
 export type BillingExportFile = {
   fileName: string
   contentType: string
-  body: string
+  body: string | Uint8Array
 }
 
 function csvEscape(value: unknown): string {
@@ -370,20 +371,29 @@ export function buildBillingExportFile(params: {
     return { fileName: `${baseName}.csv`, contentType: 'text/csv; charset=utf-8', body }
   }
 
-  if (format === 'excel' || format === 'xls') {
-    const headers = Object.keys(rows[0] ?? {
-      export_run_item_id: '',
-      billing_underlay_id: '',
-      customer_id: '',
-      status: '',
-      total_kwh: '',
-      calculated_amount_sek_ex_vat: '',
-      vat_sek: '',
-      total_sek_inc_vat: '',
-    })
-    const htmlRows = rows.map((row) => `<tr>${headers.map((header) => `<td>${csvEscape((row as Record<string, unknown>)[header])}</td>`).join('')}</tr>`).join('')
-    const body = `<!doctype html><html><head><meta charset="utf-8" /></head><body><table><thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead><tbody>${htmlRows}</tbody></table></body></html>`
-    return { fileName: `${baseName}.xls`, contentType: 'application/vnd.ms-excel; charset=utf-8', body }
+  if (format === 'excel' || format === 'xlsx') {
+    const headers = [
+      'export_run_item_id',
+      'billing_underlay_id',
+      'customer_id',
+      'site_id',
+      'metering_point_id',
+      'status',
+      'readiness_status',
+      'period_year',
+      'period_month',
+      'total_kwh',
+      'base_amount_sek_ex_vat',
+      'calculated_amount_sek_ex_vat',
+      'vat_sek',
+      'total_sek_inc_vat',
+      'blocker_reasons',
+    ]
+    return {
+      fileName: `${baseName}.xlsx`,
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      body: buildXlsxWorkbook(headers, rows),
+    }
   }
 
   return {

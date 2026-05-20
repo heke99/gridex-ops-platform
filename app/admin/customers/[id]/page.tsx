@@ -1730,18 +1730,18 @@ export default async function CustomerAdminDetailPage({
  <SectionAnchor
  id="cases"
  title="Ärenden"
- description="Ånger, nekade kunder och manuell uppföljning samlas här i nästa ärendesteg. Kundkortet reserverar redan platsen så flödet inte blir löst från kunden."
+ description="Ånger, nekade kunder och manuell uppföljning kopplas till kundens drift- och avtalsarbete."
  >
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex flex-wrap items-start justify-between gap-3">
  <div>
  <h2 className="text-lg font-semibold text-slate-900 ">Kundärenden</h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Inga aktiva ånger- eller nekad-kund-ärenden är kopplade ännu. När Batch 5 körs ska ärenden visas här och kopplas till avtal, anläggning, Ediel och fakturering.
+ Inga aktiva ånger- eller nekad-kund-ärenden är kopplade just nu. Nya ärenden ska kopplas till kund, avtal, anläggning, Ediel och fakturering så att uppföljningen ligger kvar på kundkortet.
  </p>
  </div>
  <Link href="/admin/customer-info-requests" className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 ">
- Öppna operativa begäran
+ Öppna uppgiftsbegäran
  </Link>
  </div>
  </section>

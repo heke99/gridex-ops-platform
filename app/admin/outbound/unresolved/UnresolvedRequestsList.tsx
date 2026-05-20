@@ -206,7 +206,7 @@ export default function UnresolvedRequestsList({
  </span>
  </div>
  <div>
- Batch key:{' '}
+ Körningsnyckel:{' '}
  <span className="font-medium">
  {request.dispatch_batch_key ?? '—'}
  </span>

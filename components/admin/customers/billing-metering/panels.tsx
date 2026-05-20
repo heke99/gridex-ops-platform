@@ -245,7 +245,7 @@ export function CustomerOutboundHistoryPanel({
  <div>Mätpunkt: <span className="font-medium">{meteringPointLabel(request.metering_point_id, meteringPoints)}</span></div>
  <div>Nätägare: <span className="font-medium">{gridOwnerLabel(request.grid_owner_id, gridOwners)}</span></div>
  <div>Period: <span className="font-medium">{request.period_start ?? '—'} → {request.period_end ?? '—'}</span></div>
- <div>Batch: <span className="font-medium">{request.dispatch_batch_key ?? '—'}</span></div>
+ <div>Körningsnyckel: <span className="font-medium">{request.dispatch_batch_key ?? '—'}</span></div>
  <div>Extern referens: <span className="font-medium">{request.external_reference ?? '—'}</span></div>
  </div>
  </article>
