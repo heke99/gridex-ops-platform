@@ -10,7 +10,9 @@ export type AdminPageKey =
   | 'customers.detail'
   | 'customers.intake'
   | 'customers.segments'
+  | 'customer.info_requests'
   | 'contracts.catalog'
+  | 'pricing.engine'
   | 'companies.manage'
   | 'company.settings'
   | 'platform.security'
@@ -35,6 +37,7 @@ export type AdminPageKey =
   | 'masterdata.price_area_localities'
   | 'metering.workspace'
   | 'billing.workspace'
+  | 'billing.export_center'
   | 'partner_exports.workspace'
   | 'integrations.routes'
   | 'ediel.workspace'
@@ -68,7 +71,9 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'customers.detail': { anyOf: ['customers.read'] },
   'customers.intake': { anyOf: ['customers.write'] },
   'customers.segments': { anyOf: ['customers.read', 'reports.read'] },
+  'customer.info_requests': { anyOf: ['customers.read', 'poa.read', 'metering.read'] },
   'contracts.catalog': { anyOf: ['pricing.read'] },
+  'pricing.engine': { anyOf: ['pricing.read'] },
   'companies.manage': { anyOf: ['tenants.write'] },
   'company.settings': { anyOf: ['tenants.invite', 'users.read', 'users.write'] },
   'platform.security': { anyOf: ['tenants.write'] },
@@ -134,6 +139,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'masterdata.price_area_localities': { anyOf: ['masterdata.read'] },
   'metering.workspace': { anyOf: ['metering.read'] },
   'billing.workspace': { anyOf: ['billing_underlay.read'] },
+  'billing.export_center': { anyOf: ['billing_underlay.read', 'billing_underlay.export'] },
   'partner_exports.workspace': { anyOf: ['partner_exports.read'] },
   'integrations.routes': {
     anyOf: ['communication.read', 'switching.read', 'metering.read', 'billing_underlay.read'],

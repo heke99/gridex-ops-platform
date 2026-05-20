@@ -116,10 +116,22 @@ const NAV_GROUPS: NavGroup[] = [
  pageKey: 'contracts.catalog',
  },
  {
+ href: '/admin/pricing',
+ label: 'Prismotor',
+ description: 'Påslag, avgifter, elcertifikat och komponentregler',
+ pageKey: 'pricing.engine',
+ },
+ {
  href: '/admin/customers/segments',
  label: 'Kundsegment',
  description: 'Segment och urval för uppföljning',
  pageKey: 'customers.segments',
+ },
+ {
+ href: '/admin/customer-info-requests',
+ label: 'Uppgiftsbegäran',
+ description: 'Z01/Z02, fullmakter och mätvärdestillstånd',
+ pageKey: 'customer.info_requests',
  },
  ],
  },
@@ -210,6 +222,12 @@ const NAV_GROUPS: NavGroup[] = [
  label: 'Faktureringsunderlag',
  description: 'Underlag till faktureringspartner',
  pageKey: 'billing.workspace',
+ },
+ {
+ href: '/admin/billing/export-center',
+ label: 'Exportcenter',
+ description: 'Redo rader, blockerade rader och exporthistorik',
+ pageKey: 'billing.export_center',
  },
  {
  href: '/admin/outbound/missing-meter-values',
@@ -360,7 +378,7 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
  const pathname = usePathname()
  const displayName = workspaceName?.trim() || (isPlatformAdmin ? 'Gridex Platform' : 'Ditt bolag')
- const displaySubtitle = workspaceSubtitle?.trim() || (isPlatformAdmin ? 'SaaS-plattform' : 'White-label arbetsyta')
+ const displaySubtitle = workspaceSubtitle?.trim() || (isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta')
  const initial = displayName.charAt(0).toUpperCase()
 
  const visibleGroups = NAV_GROUPS.map((group) => ({
@@ -395,7 +413,7 @@ export default function AdminSidebar({
  <p className="mt-2 text-sm leading-6 text-slate-700">
  {isPlatformAdmin
  ? 'Plattformsstyrning, tenants, Ediel och drift i samma arbetsyta.'
- : 'White-label drift för kunder, Ediel, mätvärden och faktureringsunderlag.'}
+ : 'Drift för kunder, Ediel, mätvärden och faktureringsunderlag i bolagets egen arbetsyta.'}
  </p>
  </div>
  </div>

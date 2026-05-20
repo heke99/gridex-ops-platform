@@ -52,8 +52,8 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Metering"
- subtitle="Driftvy för mätvärdesrequests, UTILTS E73-begäran och inkomna E66/E30-värden."
+ title="Mätvärden"
+ subtitle="Driftvy för mätvärdesbegäran, UTILTS-import, kvalitet och koppling till rätt anläggning, nätägare och kund."
  userEmail={user?.email ?? null}
  />
 

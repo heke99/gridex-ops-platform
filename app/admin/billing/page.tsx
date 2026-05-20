@@ -77,8 +77,8 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Billing"
- subtitle="Billing underlag från nätägare, ingest och partnerexportflöde."
+ title="Faktureringsunderlag"
+ subtitle="Skapa och validera faktureringsunderlag från avtal, kampanjer, prismotor, mätvärden och partnerexporter."
  userEmail={user?.email ?? null}
  />
 

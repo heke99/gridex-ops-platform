@@ -15,7 +15,7 @@ export default async function AdminLayout({
  const isPlatformAdmin = isPlatformAdminContext(admin)
  const scope = await getOperationalCompanyScope(admin.userId)
  const workspaceName = isPlatformAdmin ? 'Gridex Platform' : scope.companyName ?? 'Bolagsyta saknas'
- const workspaceSubtitle = isPlatformAdmin ? 'SaaS-plattform' : 'White-label arbetsyta'
+ const workspaceSubtitle = isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta'
 
  return (
  <div className="admin-saas-shell min-h-screen bg-[#f7fbf8] text-slate-900">

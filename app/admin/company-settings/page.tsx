@@ -136,29 +136,33 @@ export default async function CompanySettingsPage() {
                 </div>
 
                 <div className="lg:col-span-2 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-                  <h3 className="text-sm font-semibold text-slate-950">White-label profil</h3>
-                  <p className="mt-1 text-sm leading-6 text-slate-700">Det här styr hur bolagsytan, kundkommunikation och framtida kundportal ska kännas för tenantens användare och kunder.</p>
+                  <h3 className="text-sm font-semibold text-slate-950">Varumärke och kundkommunikation</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-700">Fälten är valfria. Lämna dem tomma om bolagets juridiska namn och standardavsändare ska användas. Systemet ska inte förifylla testnamn, färger eller kundportalnamn.</p>
                   <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
                     <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-slate-700">Visningsnamn</span>
-                      <input name="branding_display_name" defaultValue={getBrandingValue(branding, 'display_name') || company.name} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                      <span className="font-medium text-slate-700">Publikt visningsnamn</span>
+                      <input name="branding_display_name" defaultValue={getBrandingValue(branding, 'display_name')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder={company.name} />
                     </label>
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">Logotyp URL</span>
-                      <input name="branding_logo_url" defaultValue={getBrandingValue(branding, 'logo_url')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder="https://..." />
+                      <input name="branding_logo_url" defaultValue={getBrandingValue(branding, 'logo_url')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder="Lämna tomt om logotyp saknas" />
                     </label>
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">Primärfärg</span>
-                      <input name="branding_primary_color" defaultValue={getBrandingValue(branding, 'primary_color') || '#047857'} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder="#047857" />
+                      <input name="branding_primary_color" defaultValue={getBrandingValue(branding, 'primary_color')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder="Valfritt, t.ex. #047857" />
                     </label>
                     <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-slate-700">Avsändarmail</span>
-                      <input name="branding_sender_email" type="email" defaultValue={getBrandingValue(branding, 'sender_email')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                      <span className="font-medium text-slate-700">Avsändarmail för kundutskick</span>
+                      <input name="branding_sender_email" type="email" defaultValue={getBrandingValue(branding, 'sender_email')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder={company.primary_contact_email ?? 'namn@bolag.se'} />
                     </label>
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">Kundportalnamn</span>
-                      <input name="branding_customer_portal_name" defaultValue={getBrandingValue(branding, 'customer_portal_name') || company.name} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                      <input name="branding_customer_portal_name" defaultValue={getBrandingValue(branding, 'customer_portal_name')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder={company.name} />
                     </label>
+                    <div className="rounded-2xl border border-emerald-200 bg-white p-4 text-sm text-slate-700">
+                      <div className="font-semibold text-slate-950">Förhandslogik</div>
+                      <p className="mt-1 leading-6">Tomma fält betyder att systemet använder bolagsnamn, kontaktmail och standardtema i kommunikationen. Inga testvärden sparas automatiskt.</p>
+                    </div>
                   </div>
                 </div>
 
