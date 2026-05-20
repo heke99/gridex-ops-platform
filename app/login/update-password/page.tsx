@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic'
 type UpdatePasswordPageProps = {
   searchParams: Promise<{
     error?: string
-    reason?: string
     next?: string
   }>
 }
@@ -16,8 +15,7 @@ export default async function UpdatePasswordPage({
 }: UpdatePasswordPageProps) {
   const params = await searchParams
   const error = params.error
-  const reason = params.reason
-  const next = params.next ?? '/dashboard'
+  const next = params.next || '/dashboard'
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-slate-100 p-6">
@@ -30,9 +28,7 @@ export default async function UpdatePasswordPage({
             Välj nytt lösenord
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            {reason === 'temporary_password'
-              ? 'Du loggade in med ett temporärt lösenord. Välj ett nytt lösenord innan du fortsätter.'
-              : 'Ange ett nytt lösenord för ditt användarkonto.'}
+            Ange ett nytt lösenord för ditt användarkonto.
           </p>
         </div>
 

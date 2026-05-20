@@ -1,10 +1,21 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { sendPasswordResetEmailForKnownUser } from '@/lib/auth/authEmailFlow'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { findAuthUserByEmail } from '@/lib/auth/directAccountProvisioning'
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase()
+}
+
+function getBaseUrl(): string {
+  const value =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    process.env.NEXT_PUBLIC_BASE_URL ??
+    'http://localhost:3000'
+
+  return value.replace(/\/$/, '')
 }
 
 export async function requestPasswordResetAction(formData: FormData) {
@@ -18,17 +29,26 @@ export async function requestPasswordResetAction(formData: FormData) {
     )
   }
 
-  try {
-    await sendPasswordResetEmailForKnownUser({
-      email,
-      source: 'self_service_forgot_password',
-    })
-  } catch (error) {
+  const existingUser = await findAuthUserByEmail(email)
+
+  if (!existingUser) {
     redirect(
       `/login/forgot-password?error=${encodeURIComponent(
-        error instanceof Error
-          ? error.message
-          : 'Det gick inte att skicka återställningslänken. Kontrollera e-postadressen och försök igen.'
+        'Den här e-postadressen finns inte som användare i Gridex.'
+      )}`
+    )
+  }
+
+  const supabase = await createSupabaseServerClient()
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${getBaseUrl()}/login/update-password`,
+  })
+
+  if (error) {
+    redirect(
+      `/login/forgot-password?error=${encodeURIComponent(
+        'Det gick inte att skicka återställningslänken. Kontrollera e-postadressen och försök igen.'
       )}`
     )
   }

@@ -2,19 +2,26 @@
 
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { recordAuthEmailEvent, upsertAuthUserProfile } from '@/lib/auth/authEmailFlow'
+import { clearTemporaryPasswordFlags } from '@/lib/auth/directAccountProvisioning'
+
+function normalizeNext(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return '/dashboard'
+  if (!trimmed.startsWith('/')) return '/dashboard'
+  if (trimmed.startsWith('//')) return '/dashboard'
+  return trimmed
+}
 
 export async function updatePasswordAction(formData: FormData) {
   const password = String(formData.get('password') ?? '')
   const confirmPassword = String(formData.get('confirmPassword') ?? '')
-  const next = String(formData.get('next') ?? '/dashboard').trim()
-  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
+  const next = normalizeNext(String(formData.get('next') ?? '/dashboard'))
 
   if (password.length < 8) {
     redirect(
       `/login/update-password?error=${encodeURIComponent(
         'Lösenordet behöver vara minst 8 tecken.'
-      )}`
+      )}&next=${encodeURIComponent(next)}`
     )
   }
 
@@ -22,7 +29,7 @@ export async function updatePasswordAction(formData: FormData) {
     redirect(
       `/login/update-password?error=${encodeURIComponent(
         'Lösenorden matchar inte.'
-      )}`
+      )}&next=${encodeURIComponent(next)}`
     )
   }
 
@@ -31,54 +38,44 @@ export async function updatePasswordAction(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user?.email) {
+  if (!user?.id) {
     redirect(
       `/login/update-password?error=${encodeURIComponent(
-        'Din återställningssession saknas eller har gått ut. Begär en ny länk och försök igen.'
+        'Sessionen saknas. Logga in igen med det temporära lösenordet.'
       )}`
     )
   }
 
+  const currentMetadata = (user.user_metadata ?? {}) as Record<string, unknown>
+  const nextMetadata: Record<string, unknown> = {
+    ...currentMetadata,
+    must_change_password: false,
+    password_changed_at: new Date().toISOString(),
+  }
+
+  delete nextMetadata.temporary_password_set_at
+  delete nextMetadata.temporary_password_set_by
+  delete nextMetadata.temporary_password_company_id
+  delete nextMetadata.temporary_password_company_name
+
   const { error } = await supabase.auth.updateUser({
     password,
-    data: {
-      ...(user.user_metadata ?? {}),
-      must_change_password: false,
-      password_changed_at: new Date().toISOString(),
-    },
+    data: nextMetadata,
   })
 
   if (error) {
     redirect(
       `/login/update-password?error=${encodeURIComponent(
         'Det gick inte att uppdatera lösenordet. Begär en ny återställningslänk och försök igen.'
-      )}`
+      )}&next=${encodeURIComponent(next)}`
     )
   }
 
-  await upsertAuthUserProfile({
-    userId: user.id,
-    email: user.email,
-    lastAction: 'password_updated',
-  })
+  try {
+    await clearTemporaryPasswordFlags(user.id)
+  } catch {
+    // Auth-password is already changed. DB sync can be repaired by admin if optional profile columns are missing.
+  }
 
-  await supabase
-    .from('user_profiles')
-    .update({
-      must_change_password: false,
-      temporary_password_expires_at: null,
-      password_changed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id)
-
-  await recordAuthEmailEvent({
-    userId: user.id,
-    email: user.email,
-    eventType: 'password_updated',
-    status: 'verified',
-    source: 'update_password_page',
-  })
-
-  redirect(`${safeNext}?message=${encodeURIComponent('Lösenordet är uppdaterat.')}`)
+  redirect(`${next}?message=${encodeURIComponent('Lösenordet är uppdaterat.')}`)
 }

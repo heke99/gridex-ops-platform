@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { provisionCompanyInvitation } from '@/lib/auth/companyInvitationFlow'
+import { provisionDirectTemporaryPasswordUser } from '@/lib/auth/directAccountProvisioning'
 import {
   getCompanyById,
   getCompanyDeleteBlockers,
@@ -37,24 +37,27 @@ function normalizeEmail(value: FormDataEntryValue | null): string {
   return normalizeText(value).toLowerCase()
 }
 
-function formatActionError(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) return error.message
-  if (typeof error === 'string' && error.trim()) return error
-  try {
-    return JSON.stringify(error)
-  } catch {
-    return fallback
+function errorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>
+    const message = record.message ?? record.error_description ?? record.error
+    const code = record.code ? ` · kod: ${String(record.code)}` : ''
+    if (typeof message === 'string') return `${message}${code}`
   }
+  return fallback
 }
 
 function normalizeTemporaryPassword(value: FormDataEntryValue | null): string {
-  return normalizeText(value)
+  return String(value ?? '').trim()
 }
 
-function validateTemporaryPassword(password: string) {
-  if (password.length < 8) {
-    throw new Error('Temporärt lösenord måste vara minst 8 tecken.')
-  }
+function assertTemporaryPasswordForUser(email: string, password: string): string | null {
+  if (!email) return null
+  if (!password) return 'Temporärt lösenord krävs när en bolagsansvarig/användare ska skapas.'
+  if (password.length < 8) return 'Temporärt lösenord måste vara minst 8 tecken.'
+  return null
 }
 
 function slugify(value: string): string {
@@ -208,24 +211,12 @@ async function setCompanyStatus(input: {
   return data as { id: string; name: string; status: string }
 }
 
-async function rollbackNewCompanyAfterInviteFailure(companyId: string, reason: string) {
-  const { error } = await supabaseService.from('companies').delete().eq('id', companyId)
-  if (!error) return
-
-  await supabaseService
-    .from('companies')
-    .update({
-      status: 'deleted_test_only',
-      status_reason: reason,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', companyId)
-}
-
 export async function createCompanyAction(
   _prevState: CompanyActionState,
   formData: FormData
 ): Promise<CompanyActionState> {
+  let createdCompanyId: string | null = null
+
   try {
     await requireAdminActionAccess({ anyOf: ['tenants.write', 'users.write'] })
     const actorUserId = await getCurrentUserId()
@@ -238,15 +229,12 @@ export async function createCompanyAction(
     const website = normalizeText(formData.get('website')) || null
     const initialAdminEmail = normalizeEmail(formData.get('admin_email'))
     const initialAdminName = normalizeText(formData.get('admin_name')) || primaryContactName
-    const initialAdminTemporaryPassword = normalizeTemporaryPassword(formData.get('admin_temporary_password'))
+    const temporaryPassword = normalizeTemporaryPassword(formData.get('temporary_password'))
 
     if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
 
-    if (initialAdminEmail && !initialAdminTemporaryPassword) {
-      return { ok: false, message: 'Ange ett temporärt lösenord för första bolagsansvarig.' }
-    }
-
-    if (initialAdminTemporaryPassword) validateTemporaryPassword(initialAdminTemporaryPassword)
+    const temporaryPasswordError = assertTemporaryPasswordForUser(initialAdminEmail, temporaryPassword)
+    if (temporaryPasswordError) return { ok: false, message: temporaryPasswordError }
 
     const slug = slugify(normalizeText(formData.get('slug')) || name)
 
@@ -269,44 +257,67 @@ export async function createCompanyAction(
       .single()
 
     if (companyError) throw companyError
-
-    let ownerInviteMailMessage = ''
+    createdCompanyId = company.id as string
 
     if (initialAdminEmail) {
-      try {
-        const invitation = await provisionCompanyInvitation({
-          companyId: company.id,
-          companyName: name,
-          email: initialAdminEmail,
-          fullName: initialAdminName || null,
-          membershipRole: 'owner',
-          roleKey: 'company_admin',
-          actorUserId,
-          source: 'admin_companies_create_company_owner',
-          issueTemporaryPassword: true,
-          temporaryPassword: initialAdminTemporaryPassword,
-          sendEmail: false,
-        })
+      const provisioned = await provisionDirectTemporaryPasswordUser({
+        email: initialAdminEmail,
+        fullName: initialAdminName || null,
+        temporaryPassword,
+        companyId: company.id,
+        companyName: name,
+        actorUserId,
+      })
 
-        ownerInviteMailMessage = ' Bolagsansvarig kan logga in direkt med e-post och temporärt lösenord.'
+      const roleId = await resolveRoleIdByKey('company_admin')
+      await insertActiveUserRole({ userId: provisioned.userId, roleId })
 
-        await logTenantGovernanceEvent({
-          action: 'SUPERADMIN_ROLE_CHANGED',
-          actorUserId,
-          companyId: company.id,
-          targetUserId: invitation.userId,
-          reason: 'Första bolagsansvarig skapades med temporärt lösenord och bolagskoppling',
-          metadata: { email: initialAdminEmail, membershipRole: 'owner', roleKey: 'company_admin' },
-        })
-      } catch (inviteError) {
-        const inviteMessage = inviteError instanceof Error ? inviteError.message : String(inviteError)
-        await rollbackNewCompanyAfterInviteFailure(
-          company.id,
-          `Bolaget rullades tillbaka eftersom inbjudan till bolagsansvarig misslyckades: ${inviteMessage}`
-        )
-        revalidatePath('/admin/companies')
-        revalidatePath('/admin/users')
-        throw new Error(`Bolaget skapades inte eftersom bolagsansvarig inte kunde skapas eller kopplas. ${inviteMessage}`)
+      const now = new Date().toISOString()
+      const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
+        {
+          company_id: company.id,
+          user_id: provisioned.userId,
+          membership_role: 'owner',
+          status: 'active',
+          invited_email: initialAdminEmail,
+          invited_by: actorUserId,
+          invited_at: now,
+          accepted_at: now,
+          disabled_at: null,
+          disabled_by: null,
+          removed_at: null,
+          removed_by: null,
+          status_reason: null,
+          metadata: {
+            account_flow: 'direct_temporary_password',
+            password_verified: provisioned.passwordVerified,
+            created_auth_user: provisioned.createdAuthUser,
+          },
+        },
+        { onConflict: 'company_id,user_id' }
+      )
+
+      if (membershipError) throw membershipError
+
+      const inviteInsert = await supabaseService.from('company_invitations').insert({
+        company_id: company.id,
+        email: initialAdminEmail,
+        full_name: initialAdminName || null,
+        membership_role: 'owner',
+        role_key: 'company_admin',
+        status: 'accepted',
+        invited_by: actorUserId,
+        invited_user_id: provisioned.userId,
+        expires_at: null,
+        accepted_at: now,
+        metadata: {
+          account_flow: 'direct_temporary_password',
+          password_verified: provisioned.passwordVerified,
+        },
+      })
+
+      if (inviteInsert.error && !['42P01', 'PGRST205'].includes(inviteInsert.error.code ?? '')) {
+        throw inviteInsert.error
       }
     }
 
@@ -315,15 +326,30 @@ export async function createCompanyAction(
       actorUserId,
       companyId: company.id,
       reason: 'Bolag skapades',
-      metadata: { name, orgNumber },
+      metadata: {
+        name,
+        orgNumber,
+        accountFlow: initialAdminEmail ? 'direct_temporary_password' : 'company_without_initial_admin',
+      },
     })
 
     revalidatePath('/admin/companies')
     revalidatePath('/admin/users')
 
-    return { ok: true, message: initialAdminEmail ? `Elhandelsbolaget skapades. Bolagsansvarig kan logga in med det temporära lösenordet och måste byta lösenord vid första inloggning.${ownerInviteMailMessage}` : 'Elhandelsbolaget skapades.' }
+    return {
+      ok: true,
+      message: initialAdminEmail
+        ? 'Elhandelsbolaget skapades och bolagsansvarig kan logga in med det temporära lösenordet.'
+        : 'Elhandelsbolaget skapades.',
+    }
   } catch (error) {
-    return { ok: false, message: formatActionError(error, 'Bolaget kunde inte skapas.') }
+    if (createdCompanyId) {
+      await supabaseService.from('company_invitations').delete().eq('company_id', createdCompanyId)
+      await supabaseService.from('company_memberships').delete().eq('company_id', createdCompanyId)
+      await supabaseService.from('companies').delete().eq('id', createdCompanyId)
+    }
+
+    return { ok: false, message: errorMessage(error, 'Bolaget kunde inte skapas.') }
   }
 }
 
@@ -337,50 +363,95 @@ export async function inviteCompanyUserAction(
     const companyId = normalizeText(formData.get('company_id'))
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('full_name')) || null
+    const temporaryPassword = normalizeTemporaryPassword(formData.get('temporary_password'))
     const membershipRole = normalizeText(formData.get('membership_role')) || 'member'
     const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
-    const temporaryPassword = normalizeTemporaryPassword(formData.get('temporary_password'))
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!email) return { ok: false, message: 'E-post saknas.' }
-    if (!temporaryPassword) return { ok: false, message: 'Ange ett temporärt lösenord för användaren.' }
-    validateTemporaryPassword(temporaryPassword)
+
+    const temporaryPasswordError = assertTemporaryPasswordForUser(email, temporaryPassword)
+    if (temporaryPasswordError) return { ok: false, message: temporaryPasswordError }
 
     await requireCompanyOperationalForWrites(companyId)
-
     const company = await getCompanyById(companyId)
     if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
 
-    const invitation = await provisionCompanyInvitation({
-      companyId,
-      companyName: company.name,
+    const provisioned = await provisionDirectTemporaryPasswordUser({
       email,
       fullName,
-      membershipRole,
-      roleKey,
-      actorUserId,
-      source: 'admin_companies_invite_user',
-      issueTemporaryPassword: true,
       temporaryPassword,
-      sendEmail: false,
+      companyId,
+      companyName: company.name,
+      actorUserId,
     })
+
+    await insertActiveUserRole({ userId: provisioned.userId, roleId: await resolveRoleIdByKey(roleKey) })
+
+    const now = new Date().toISOString()
+    const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
+      {
+        company_id: companyId,
+        user_id: provisioned.userId,
+        membership_role: membershipRole,
+        status: 'active',
+        invited_email: email,
+        invited_by: actorUserId,
+        invited_at: now,
+        accepted_at: now,
+        disabled_at: null,
+        disabled_by: null,
+        removed_at: null,
+        removed_by: null,
+        status_reason: null,
+        metadata: {
+          account_flow: 'direct_temporary_password',
+          password_verified: provisioned.passwordVerified,
+          created_auth_user: provisioned.createdAuthUser,
+        },
+      },
+      { onConflict: 'company_id,user_id' }
+    )
+
+    if (membershipError) throw membershipError
+
+    const inviteInsert = await supabaseService.from('company_invitations').insert({
+      company_id: companyId,
+      email,
+      full_name: fullName,
+      membership_role: membershipRole,
+      role_key: roleKey,
+      status: 'accepted',
+      invited_by: actorUserId,
+      invited_user_id: provisioned.userId,
+      expires_at: null,
+      accepted_at: now,
+      metadata: {
+        account_flow: 'direct_temporary_password',
+        password_verified: provisioned.passwordVerified,
+      },
+    })
+
+    if (inviteInsert.error && !['42P01', 'PGRST205'].includes(inviteInsert.error.code ?? '')) {
+      throw inviteInsert.error
+    }
 
     await logTenantGovernanceEvent({
       action: 'SUPERADMIN_ROLE_CHANGED',
       actorUserId,
       companyId,
-      targetUserId: invitation.userId,
+      targetUserId: provisioned.userId,
       reason: 'Användare skapades/kopplades med temporärt lösenord',
-      metadata: { membershipRole, roleKey, email },
+      metadata: { membershipRole, roleKey, email, accountFlow: 'direct_temporary_password' },
     })
 
     revalidatePath('/admin/companies')
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
 
-    return { ok: true, message: 'Användaren skapades/kopplades och kan logga in direkt med e-post och temporärt lösenord.' }
+    return { ok: true, message: 'Användaren skapades/kopplades och kan logga in med det temporära lösenordet.' }
   } catch (error) {
-    return { ok: false, message: formatActionError(error, 'Inbjudan kunde inte skapas.') }
+    return { ok: false, message: errorMessage(error, 'Användaren kunde inte skapas eller kopplas till bolaget.') }
   }
 }
 
@@ -439,52 +510,6 @@ export async function requestCompanyDeletionAction(
   return setCompanyOperationalStatusAction(_prevState, cloned)
 }
 
-
-const OPTIONAL_COMPANY_METADATA_TABLES = [
-  'company_invitations',
-  'company_memberships',
-  'tenant_governance_events',
-  'auth_email_events',
-  'company_access_requests',
-  'company_user_invites',
-  'company_owner_invites',
-  'audit_logs',
-]
-
-async function deleteOptionalCompanyRows(table: string, companyId: string) {
-  const { error } = await supabaseService.from(table).delete().eq('company_id', companyId)
-  if (!error) return
-
-  const code = error.code ?? ''
-  const message = error.message ?? ''
-  if (['42P01', '42703', 'PGRST205'].includes(code) || /does not exist|schema cache|column .*company_id/i.test(message)) {
-    return
-  }
-
-  throw error
-}
-
-async function markOptionalCompanyRowsDeleted(table: string, companyId: string) {
-  const deletedAt = new Date().toISOString()
-  const { error } = await supabaseService
-    .from(table)
-    .update({
-      status: 'deleted_test_only',
-      deleted_at: deletedAt,
-    })
-    .eq('company_id', companyId)
-
-  if (!error) return
-
-  const code = error.code ?? ''
-  const message = error.message ?? ''
-  if (['42P01', '42703', 'PGRST205'].includes(code) || /does not exist|schema cache|column .*company_id|status|deleted_at/i.test(message)) {
-    return
-  }
-
-  throw error
-}
-
 export async function deleteTestCompanyAction(
   _prevState: CompanyActionState,
   formData: FormData
@@ -493,12 +518,12 @@ export async function deleteTestCompanyAction(
     await requireAdminActionAccess({ anyOf: ['tenants.write'] })
     const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
-    const reason = normalizeText(formData.get('reason')) || 'Radering av test-/felregistrerat bolag'
+    const reason = normalizeText(formData.get('reason')) || null
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
 
     const company = await getCompanyById(companyId)
-    if (!company) return { ok: true, message: 'Bolaget var redan raderat.' }
+    if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
 
     const blockers = await getCompanyDeleteBlockers(companyId)
     if (blockers.length > 0) {
@@ -512,62 +537,28 @@ export async function deleteTestCompanyAction(
 
       return {
         ok: false,
-        message: `Hård radering nekades. Bolaget har operativ historik: ${blockers
+        message: `Hård radering nekades. Bolaget har historik: ${blockers
           .map((blocker) => `${blocker.label} (${blocker.count})`)
-          .join(', ')}. Arkivera, pausa eller begär kontrollerad radering i stället.`,
+          .join(', ')}. Arkivera eller pausa bolaget i stället.`,
       }
     }
 
-    // Log first without making the governance/audit metadata a hard-delete blocker.
     await logTenantGovernanceEvent({
       action: 'SUPERADMIN_COMPANY_DELETED_TEST_ONLY',
       actorUserId,
       companyId,
       reason,
-      metadata: { companyName: company.name, deletedAsTestOnly: true },
+      metadata: { companyName: company.name },
     })
 
-    // Clean platform metadata and old invite/access rows. These are not business history.
-    for (const table of OPTIONAL_COMPANY_METADATA_TABLES) {
-      await deleteOptionalCompanyRows(table, companyId)
-    }
+    await supabaseService.from('company_invitations').delete().eq('company_id', companyId)
+    await supabaseService.from('company_memberships').delete().eq('company_id', companyId)
 
     const { error } = await supabaseService.from('companies').delete().eq('id', companyId)
-
-    if (error) {
-      // Some older installs have FK constraints that are not on-delete cascade/set-null.
-      // If the hard delete still fails, mark the tenant as deleted_test_only so it no longer
-      // appears as an active operational company, and show a clear message instead of doing nothing.
-      if ((error.code ?? '') === '23503' || /foreign key/i.test(error.message ?? '')) {
-        for (const table of OPTIONAL_COMPANY_METADATA_TABLES) {
-          await markOptionalCompanyRowsDeleted(table, companyId)
-        }
-
-        await supabaseService
-          .from('companies')
-          .update({
-            status: 'deleted_test_only',
-            status_reason: reason,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', companyId)
-
-        revalidatePath('/admin/companies')
-        revalidatePath('/admin/controltower')
-
-        return {
-          ok: true,
-          message:
-            'Bolaget markerades som raderat testbolag. Databasen har äldre externa kopplingar som hindrade fysisk delete, men bolaget är nu borttaget ur aktiv driftvy.',
-        }
-      }
-
-      throw error
-    }
+    if (error) throw error
 
     revalidatePath('/admin/companies')
-    revalidatePath('/admin/controltower')
-    return { ok: true, message: 'Testbolaget raderades och relaterad invite/governance-metadata rensades.' }
+    return { ok: true, message: 'Testbolaget raderades eftersom det saknade historik.' }
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Bolaget kunde inte raderas.' }
   }
@@ -636,6 +627,7 @@ export async function setCompanyUserRoleAction(
     const userId = normalizeText(formData.get('user_id'))
     const membershipRole = normalizeText(formData.get('membership_role')) || 'member'
     const roleKey = normalizeText(formData.get('role_key')) || 'company_admin'
+
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!userId) return { ok: false, message: 'Användare saknas.' }
 
@@ -666,134 +658,3 @@ export async function setCompanyUserRoleAction(
     return { ok: false, message: error instanceof Error ? error.message : 'Bolagsrollen kunde inte uppdateras.' }
   }
 }
-
-export async function transferCompanyOpenTasksAction(
-  _prevState: CompanyActionState,
-  formData: FormData
-): Promise<CompanyActionState> {
-  try {
-    await requireAdminActionAccess({ anyOf: ['tenants.write', 'users.write'] })
-    const actorUserId = await getCurrentUserId()
-    const companyId = normalizeText(formData.get('company_id'))
-    const fromUserId = normalizeText(formData.get('from_user_id'))
-    const toUserId = normalizeText(formData.get('to_user_id'))
-    const reason = normalizeText(formData.get('reason')) || null
-
-    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
-    if (!fromUserId) return { ok: false, message: 'Från-användare saknas.' }
-    if (!toUserId) return { ok: false, message: 'Mottagande användare saknas.' }
-    if (fromUserId === toUserId) return { ok: false, message: 'Välj en annan mottagare för öppna uppgifter.' }
-
-    await requireCompanyOperationalForWrites(companyId)
-
-    const { data, error } = await supabaseService
-      .from('customer_operation_tasks')
-      .update({
-        assigned_to: toUserId,
-        reassigned_at: new Date().toISOString(),
-        reassigned_by: actorUserId,
-        assignment_reason: reason,
-        updated_by: actorUserId,
-      })
-      .eq('company_id', companyId)
-      .eq('assigned_to', fromUserId)
-      .in('status', ['open', 'in_progress', 'blocked'])
-      .select('id')
-
-    if (error) {
-      if (['42P01', 'PGRST205', '42703'].includes(error.code ?? '')) {
-        return {
-          ok: false,
-          message: 'Task-flytt kräver migrationen för assigned_to/reassigned_at på customer_operation_tasks.',
-        }
-      }
-      throw error
-    }
-
-    const movedCount = (data ?? []).length
-
-    await logTenantGovernanceEvent({
-      action: 'SUPERADMIN_OPEN_TASKS_TRANSFERRED',
-      actorUserId,
-      companyId,
-      targetUserId: fromUserId,
-      reason,
-      metadata: { fromUserId, toUserId, movedCount },
-    })
-
-    revalidatePath('/admin/companies')
-    revalidatePath(`/admin/companies/${companyId}/users`)
-    revalidatePath('/admin/controltower')
-    revalidatePath('/admin/operations/tasks')
-
-    return { ok: true, message: `${movedCount} öppna uppgifter flyttades.` }
-  } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Öppna uppgifter kunde inte flyttas.' }
-  }
-}
-
-export async function anonymizeCompanyContactDetailsAction(
-  _prevState: CompanyActionState,
-  formData: FormData
-): Promise<CompanyActionState> {
-  try {
-    await requireAdminActionAccess({ anyOf: ['tenants.write'] })
-    const actorUserId = await getCurrentUserId()
-    const companyId = normalizeText(formData.get('company_id'))
-    const reason = normalizeText(formData.get('reason')) || null
-
-    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
-    if (!reason) return { ok: false, message: 'Ange anledning för anonymisering.' }
-
-    const company = await getCompanyById(companyId)
-    if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
-
-    const anonymizedAt = new Date().toISOString()
-    const { error } = await supabaseService
-      .from('companies')
-      .update({
-        primary_contact_email: null,
-        primary_contact_name: 'Anonymiserad kontakt',
-        phone: null,
-        website: null,
-        status_reason: reason,
-        updated_at: anonymizedAt,
-        metadata: {
-          anonymized_contact_details: true,
-          anonymized_at: anonymizedAt,
-          anonymized_by: actorUserId,
-          anonymization_reason: reason,
-        },
-      })
-      .eq('id', companyId)
-
-    if (error) throw error
-
-    await supabaseService
-      .from('company_invitations')
-      .update({ status: 'invitation_revoked', revoked_at: anonymizedAt })
-      .eq('company_id', companyId)
-      .eq('status', 'pending')
-
-    await logTenantGovernanceEvent({
-      action: 'SUPERADMIN_COMPANY_CONTACTS_ANONYMIZED',
-      actorUserId,
-      companyId,
-      reason,
-      metadata: {
-        companyName: company.name,
-        anonymizedFields: ['primary_contact_email', 'primary_contact_name', 'phone', 'website'],
-        revokedPendingInvitations: true,
-      },
-    })
-
-    revalidatePath('/admin/companies')
-    revalidatePath(`/admin/companies/${companyId}/users`)
-    revalidatePath('/admin/controltower')
-
-    return { ok: true, message: 'Bolagets kontaktuppgifter anonymiserades och öppna inbjudningar återkallades.' }
-  } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Kontaktuppgifter kunde inte anonymiseras.' }
-  }
-}
-

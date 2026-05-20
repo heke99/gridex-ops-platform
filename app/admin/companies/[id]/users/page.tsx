@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import {
@@ -13,50 +12,25 @@ import {
   inviteCompanyUserAction,
   removeUserFromCompanyAction,
   setCompanyUserRoleAction,
-  transferCompanyOpenTasksAction,
 } from '../../actions'
 
 export const dynamic = 'force-dynamic'
 
 const emptyActionState = { ok: false, message: '' }
 
-function redirectWithCompanyUsersActionResult(result: { ok: boolean; message: string }, companyId: string): never {
-  const params = new URLSearchParams()
-  params.set(result.ok ? 'message' : 'error', result.message)
-  redirect(`/admin/companies/${companyId}/users?${params.toString()}`)
-}
-
 async function inviteCompanyUserFormAction(formData: FormData) {
   'use server'
-  const companyId = String(formData.get('company_id') ?? '')
-  const result = await inviteCompanyUserAction(emptyActionState, formData)
-  redirectWithCompanyUsersActionResult(result, companyId)
+  await inviteCompanyUserAction(emptyActionState, formData)
 }
 
 async function removeUserFromCompanyFormAction(formData: FormData) {
   'use server'
-  const companyId = String(formData.get('company_id') ?? '')
-  const result = await removeUserFromCompanyAction(emptyActionState, formData)
-  redirectWithCompanyUsersActionResult(result, companyId)
+  await removeUserFromCompanyAction(emptyActionState, formData)
 }
 
 async function setCompanyUserRoleFormAction(formData: FormData) {
   'use server'
-  const companyId = String(formData.get('company_id') ?? '')
-  const result = await setCompanyUserRoleAction(emptyActionState, formData)
-  redirectWithCompanyUsersActionResult(result, companyId)
-}
-
-async function transferCompanyOpenTasksFormAction(formData: FormData) {
-  'use server'
-  const companyId = String(formData.get('company_id') ?? '')
-  const result = await transferCompanyOpenTasksAction(emptyActionState, formData)
-  redirectWithCompanyUsersActionResult(result, companyId)
-}
-
-function firstParam(value: string | string[] | undefined) {
-  if (Array.isArray(value)) return value[0] ?? ''
-  return value ?? ''
+  await setCompanyUserRoleAction(emptyActionState, formData)
 }
 
 function formatDate(value: string | null | undefined) {
@@ -81,15 +55,10 @@ function StatusBadge({ status }: { status: CompanyOperationalStatus }) {
 
 export default async function CompanyUsersPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams?: Promise<{ message?: string | string[]; error?: string | string[] }>
 }) {
   const admin = await requireAdminPageAccess({ anyOf: ['tenants.read', 'tenants.write', 'users.read'] })
-  const resolvedSearchParams = searchParams ? await searchParams : {}
-  const statusMessage = firstParam(resolvedSearchParams.message)
-  const errorMessage = firstParam(resolvedSearchParams.error)
   const { id } = await params
   const company = await getCompanyById(id)
 
@@ -117,18 +86,6 @@ export default async function CompanyUsersPage({
       />
 
       <div className="space-y-6 p-8">
-        {statusMessage ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-900">
-            {statusMessage}
-          </div>
-        ) : null}
-
-        {errorMessage ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-900">
-            {errorMessage}
-          </div>
-        ) : null}
-
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/admin/companies" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             Tillbaka till bolag
@@ -159,9 +116,8 @@ export default async function CompanyUsersPage({
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Lägg till användare i bolaget</h2>
-          <p className="mt-1 text-sm text-slate-700">Ange ett temporärt lösenord. Kontot skapas/kopplas direkt och användaren måste byta lösenord vid första inloggning. Ingen egen invite-mail krävs från appen.</p>
-          <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3 xl:grid-cols-[minmax(180px,1fr)_minmax(160px,1fr)_minmax(170px,220px)_180px_180px_140px]">
+          <h2 className="text-lg font-semibold text-slate-950">Bjud in användare till bolaget</h2>
+          <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_190px_180px_180px_140px]">
             <input type="hidden" name="company_id" value={company.id} />
             <input name="email" type="email" required placeholder="namn@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             <input name="full_name" placeholder="Namn" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
@@ -246,25 +202,6 @@ export default async function CompanyUsersPage({
                         </select>
                         <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
                           Uppdatera roll
-                        </button>
-                      </form>
-
-                      <form action={transferCompanyOpenTasksFormAction} className="grid gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3">
-                        <input type="hidden" name="company_id" value={company.id} />
-                        <input type="hidden" name="from_user_id" value={user.userId} />
-                        <select name="to_user_id" required className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs" defaultValue="">
-                          <option value="" disabled>Flytta öppna tasks till</option>
-                          {users
-                            .filter((candidate) => candidate.userId !== user.userId && candidate.status === 'active')
-                            .map((candidate) => (
-                              <option key={candidate.userId} value={candidate.userId}>
-                                {candidate.fullName ?? candidate.email ?? candidate.userId}
-                              </option>
-                            ))}
-                        </select>
-                        <input name="reason" placeholder="Anledning" className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs" />
-                        <button className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">
-                          Flytta öppna tasks
                         </button>
                       </form>
 
