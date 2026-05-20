@@ -305,6 +305,14 @@ const NAV_GROUPS: NavGroup[] = [
  pageKey: 'roles.catalog',
  platformOnly: true,
  },
+
+ {
+ href: '/admin/platform/usage',
+ label: 'Usage & SaaS-billing',
+ description: 'Volymer per tenant för framtida plattformsfakturering',
+ pageKey: 'platform.usage',
+ platformOnly: true,
+ },
  {
  href: '/admin/platform/ediel/rules',
  label: 'Globala Ediel-regler',

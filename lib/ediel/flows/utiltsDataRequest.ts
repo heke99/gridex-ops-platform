@@ -36,6 +36,7 @@ import {
 import type { GridOwnerDataRequestRow, MeteringValueRow, OutboundRequestRow } from '@/lib/cis/types'
 import type { EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/inboundEdielLinking'
 import {
   findMatchingGridOwnerDataRequest,
   matchMeteringPointForEdielMessage,
@@ -1123,6 +1124,98 @@ export async function processInboundUtiltsMessage(params: {
   }
 
   if (!canonicalLinks.matchedDataRequest) {
+    const matchedPermission = await findActiveMeteringPermissionForUtiltsMessage({
+      ...message,
+      parsed_payload: {
+        ...(message.parsed_payload ?? {}),
+        normalizedMeteringPayload: normalizedPayload,
+      },
+    })
+
+    if (matchedPermission) {
+      const permissionCustomerId = canonicalLinks.siteAndCustomer?.customerId ?? matchedPermission.customer_id ?? null
+      const permissionSiteId = canonicalLinks.siteAndCustomer?.siteId ?? matchedPermission.site_id ?? null
+      const permissionMeteringPointId = canonicalLinks.meteringPointId ?? matchedPermission.metering_point_id ?? null
+      const permissionGridOwnerId = canonicalLinks.siteAndCustomer?.gridOwnerId ?? matchedPermission.grid_owner_id ?? null
+
+      await linkEdielMessage({
+        actorUserId,
+        edielMessageId: message.id,
+        customerId: permissionCustomerId,
+        siteId: permissionSiteId,
+        meteringPointId: permissionMeteringPointId,
+        gridOwnerId: permissionGridOwnerId,
+        relatedMessageId: message.related_message_id,
+      })
+
+      const ingestedMeterValues = await maybeIngestMeteringValue({
+        actorUserId,
+        customerId: permissionCustomerId,
+        siteId: permissionSiteId,
+        meteringPointId: permissionMeteringPointId,
+        gridOwnerId: permissionGridOwnerId,
+        dataRequestId: null,
+        message,
+        normalizedPayload,
+      })
+
+      const ingestedMeterValueIds = ingestedMeterValues.map((row) => row.id)
+      const ackIds = await createUtiltsRuntimeAcks({
+        actorUserId,
+        sourceMessage: message,
+        ackPlan: runtime.ackPlan,
+        testCaseCode: runtimeTestCaseCode,
+      })
+
+      await updateEdielMessageStatus({
+        actorUserId,
+        edielMessageId: message.id,
+        status: 'validated',
+        parsedPayload: {
+          ...(message.parsed_payload ?? {}),
+          normalizedMeteringPayload: normalizedPayload,
+          utiltsRuntimeFacts: runtime.facts,
+          matchedMeteringPermissionId: matchedPermission.id,
+          ingestedMeterValueId: ingestedMeterValueIds[0] ?? null,
+          ingestedMeterValueIds,
+        },
+        validationReport: {
+          ...(message.validation_report ?? {}),
+          utiltsRuntime: {
+            validation: runtime.validation,
+            ackPlan: runtime.ackPlan,
+            createdAckMessageIds: ackIds,
+          },
+        },
+      })
+
+      await createEdielMessageEvent({
+        actorUserId,
+        edielMessageId: message.id,
+        eventType: 'validated',
+        eventStatus: 'success',
+        message: 'Inbound UTILTS matchades mot aktivt mätvärdestillstånd och mätvärden sparades utan att kräva separat data request.',
+        payload: {
+          matchedMeteringPermissionId: matchedPermission.id,
+          ingestedMeterValueIds,
+          normalizedMeteringPayload: normalizedPayload,
+          validation: runtime.validation,
+          ackPlan: runtime.ackPlan,
+          testCaseCode: runtimeTestCaseCode,
+        },
+      })
+
+      return {
+        message,
+        matchedDataRequest: null,
+        ackIds,
+        outboundRequestId: null,
+        ingestedMeterValueId: ingestedMeterValueIds[0] ?? null,
+        ingestedMeterValueIds,
+        billingUnderlayId: null,
+      }
+    }
+
     const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
       sourceMessage: message,
@@ -1136,7 +1229,7 @@ export async function processInboundUtiltsMessage(params: {
       eventType: 'validated',
       eventStatus: 'warning',
       message:
-        'Inbound UTILTS accepterades och kvitterades av produktionsruntime men saknar stark data request-koppling.',
+        'Inbound UTILTS accepterades och kvitterades av produktionsruntime men saknar stark data request- eller mätvärdestillståndskoppling.',
       payload: {
         createdAckMessageIds: ackIds,
         normalizedMeteringPayload: normalizedPayload,

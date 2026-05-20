@@ -113,7 +113,10 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       permissionStatus: cciCavValue(line.segments, 'Z23'),
       permissionPurpose: cciCavValue(line.segments, 'Z24'),
       permissionEndReason: cciCavValue(line.segments, 'Z25'),
-      permissionId: line.segments.map((segment) => segment.raw).find((raw) => raw.startsWith('RFF+Z07:'))?.replace(/^RFF\+Z07:/, '').split(':')[0]?.trim() ?? null,
+      permissionId:
+        line.segments.map((segment) => segment.raw).find((raw) => raw.startsWith('RFF+Z09:'))?.replace(/^RFF\+Z09:/, '').split(':')[0]?.trim() ??
+        line.segments.map((segment) => segment.raw).find((raw) => raw.startsWith('RFF+Z07:'))?.replace(/^RFF\+Z07:/, '').split(':')[0]?.trim() ??
+        null,
       permissionTimestamp: lineDateTimeValue(line.segments, ['265', '324', '597']),
       contractStartDate: lineDateTimeValue(line.segments, ['92', '157']),
       contractEndDate: lineDateTimeValue(line.segments, ['93', '157']),

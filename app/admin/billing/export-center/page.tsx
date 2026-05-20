@@ -5,7 +5,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { buildBillingReadinessMap } from '@/lib/cis/billingReadiness'
 import { getBillingExportCenterData } from '@/lib/billing/exportCenter'
-import { createBillingExportRunAction, queueReadyBillingExportRunItemsAction } from './actions'
+import { createBillingExportRunAction, queueReadyBillingExportRunItemsAction, sendBillingExportRunToPartnerApiAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,12 +95,23 @@ export default async function BillingExportCenterPage() {
                     <div>Blockerade: <span className="font-semibold text-red-800">{run.rows_blocked}</span></div>
                     <div>Köade: <span className="font-semibold text-slate-950">{run.rows_exported}</span></div>
                   </div>
-                  <form action={queueReadyBillingExportRunItemsAction} className="mt-4">
-                    <input type="hidden" name="export_run_id" value={run.id} />
-                    <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={run.rows_ready === 0}>
-                      Köa redo rader till partnerexport
-                    </button>
-                  </form>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <a href={`/admin/billing/export-center/${run.id}/download?format=json`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">JSON</a>
+                    <a href={`/admin/billing/export-center/${run.id}/download?format=csv`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">CSV</a>
+                    <a href={`/admin/billing/export-center/${run.id}/download?format=excel`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Excel</a>
+                    <form action={queueReadyBillingExportRunItemsAction}>
+                      <input type="hidden" name="export_run_id" value={run.id} />
+                      <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={run.rows_ready === 0}>
+                        Köa partnerexport
+                      </button>
+                    </form>
+                    <form action={sendBillingExportRunToPartnerApiAction}>
+                      <input type="hidden" name="export_run_id" value={run.id} />
+                      <button className="rounded-xl border border-emerald-300 bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50" disabled={run.rows_ready === 0}>
+                        Skicka via API
+                      </button>
+                    </form>
+                  </div>
                 </article>
               ))}
             </div>

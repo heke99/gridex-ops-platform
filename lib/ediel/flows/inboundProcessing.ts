@@ -25,6 +25,10 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 import { buildSafeMasterdataProposal } from '@/lib/ediel/operationalVerification'
 import { createOrUpdateInboundProdatCase } from '@/lib/ediel/inboundCases'
+import {
+  applyInboundProdatZ02ToCustomerInfoRequest,
+  applyInboundProdatZ14ToMeteringPermission,
+} from '@/lib/onboarding/inboundEdielLinking'
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -233,6 +237,16 @@ async function processInboundProdatMessage(params: {
     message: params.message,
   })
 
+  const customerInfoLink = await applyInboundProdatZ02ToCustomerInfoRequest({
+    actorUserId: params.actorUserId,
+    message: params.message,
+  })
+
+  const meteringPermissionLink = await applyInboundProdatZ14ToMeteringPermission({
+    actorUserId: params.actorUserId,
+    message: params.message,
+  })
+
   if (!canonicalLinks.matchedSwitch) {
     const safeApplyProposalChanges = ['Z06', 'Z10'].includes(String(params.message.message_code))
       ? await buildSafeMasterdataProposal(params.message)
@@ -252,6 +266,8 @@ async function processInboundProdatMessage(params: {
           proposedChanges: safeApplyProposalChanges,
           reviewRequired: true,
           inboundCaseId: inboundCase?.id ?? null,
+          customerInfoRequestLink: customerInfoLink,
+          meteringPermissionLink,
         },
       })
     }
@@ -275,6 +291,8 @@ async function processInboundProdatMessage(params: {
         ackMessages: ackSnapshot.ackMessages,
         safeApplyProposalChanges,
         inboundCaseId: inboundCase?.id ?? null,
+        customerInfoRequestLink: customerInfoLink,
+        meteringPermissionLink,
       },
     })
 
@@ -319,6 +337,8 @@ async function processInboundProdatMessage(params: {
         proposedChanges: safeApplyProposalChanges,
         reviewRequired: true,
         inboundCaseId: inboundCase?.id ?? null,
+        customerInfoRequestLink: customerInfoLink,
+        meteringPermissionLink,
       },
     })
   }
@@ -341,6 +361,8 @@ async function processInboundProdatMessage(params: {
       ackMessages: ackSnapshot.ackMessages,
       safeApplyProposalChanges,
       inboundCaseId: inboundCase?.id ?? null,
+      customerInfoRequestLink: customerInfoLink,
+      meteringPermissionLink,
     },
   })
 
