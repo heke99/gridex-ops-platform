@@ -443,13 +443,13 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
 
                         <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
                           <SectionTitle
-                            title="Bjud in användare"
-                            description="Skicka en inbjudan till bolaget. Personen får konto och bolagskoppling direkt. Ange ett temporärt lösenord som personen byter vid första inloggning."
+                            title="Lägg till användare"
+                            description="Skapa eller koppla ett konto direkt till bolaget. Ange ett temporärt lösenord som personen använder första gången och sedan måste byta."
                           />
                           <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3">
                             <input type="hidden" name="company_id" value={company.id} />
                             <div className="grid gap-3 xl:grid-cols-[minmax(220px,1.2fr)_minmax(180px,1fr)_minmax(170px,220px)_minmax(150px,180px)_minmax(150px,180px)]">
-                              <Input name="email" type="email" required placeholder="bjud in e-post" />
+                              <Input name="email" type="email" required placeholder="användarens e-post" />
                               <Input name="full_name" placeholder="namn" />
                               <Input name="temporary_password" type="text" minLength={8} required placeholder="temporärt lösenord" />
                               <Select name="membership_role" defaultValue="admin">
@@ -470,7 +470,7 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
                               <p className="text-xs leading-5 text-slate-600">
                                 Tips: dela det temporära lösenordet säkert. Använd Bolagsadmin för bolagsansvarig. Viewer ska bara kunna läsa historik och status.
                               </p>
-                              <Button>Bjud in användare</Button>
+                              <Button>Lägg till användare</Button>
                             </div>
                           </form>
                         </section>
@@ -491,7 +491,7 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
                           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
                             <SectionTitle
                               title="Anonymisera kontakt"
-                              description="Tar bort kontaktuppgifter och återkallar öppna inbjudningar utan att förstöra historik."
+                              description="Tar bort kontaktuppgifter och återkallar öppna åtkomster utan att förstöra historik."
                             />
                             <form action={anonymizeCompanyContactDetailsFormAction} className="mt-4 grid gap-3">
                               <input type="hidden" name="company_id" value={company.id} />
@@ -503,7 +503,7 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
                           <div className="rounded-3xl border border-red-200 bg-red-50 p-4 sm:p-5">
                             <SectionTitle
                               title="Radera testbolag"
-                              description="Hård radering används bara för test-/felregistrering utan operativ historik. Metadata som inbjudningar och governance-loggar rensas automatiskt."
+                              description="Hård radering används bara för test-/felregistrering utan operativ historik. Metadata som åtkomster och governance-loggar rensas automatiskt."
                             />
                             <form action={deleteTestCompanyFormAction} className="mt-4 grid gap-3">
                               <input type="hidden" name="company_id" value={company.id} />

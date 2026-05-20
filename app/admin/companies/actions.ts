@@ -270,7 +270,7 @@ export async function createCompanyAction(
 
     if (companyError) throw companyError
 
-    let ownerInviteMailMessage = ''
+    let ownerAccountMessage = ''
 
     if (initialAdminEmail) {
       try {
@@ -285,12 +285,12 @@ export async function createCompanyAction(
           source: 'admin_companies_create_company_owner',
           issueTemporaryPassword: true,
           temporaryPassword: initialAdminTemporaryPassword,
-          sendEmail: true,
+          sendEmail: false,
         })
 
-        ownerInviteMailMessage = invitation.emailSent
-          ? ' Mail skickades till bolagsansvarig.'
-          : ` Mail kunde inte skickas, men kontot är skapat och kan användas med det temporära lösenordet. SMTP-fel: ${invitation.emailError ?? 'okänt fel'}`
+        ownerAccountMessage = invitation.wasCreated
+          ? ' Bolagsansvarig skapades som nytt konto och kan logga in direkt med det temporära lösenordet.'
+          : ' Bolagsansvarig var redan användare och har kopplats till bolaget. Det temporära lösenordet har uppdaterats och måste bytas vid nästa inloggning.'
 
         await logTenantGovernanceEvent({
           action: 'SUPERADMIN_ROLE_CHANGED',
@@ -301,10 +301,10 @@ export async function createCompanyAction(
           metadata: { email: initialAdminEmail, membershipRole: 'owner', roleKey: 'company_admin' },
         })
       } catch (inviteError) {
-        const inviteMessage = inviteError instanceof Error ? inviteError.message : String(inviteError)
+        const inviteMessage = formatActionError(inviteError, 'Bolagsansvarig kunde inte skapas eller kopplas.')
         await rollbackNewCompanyAfterInviteFailure(
           company.id,
-          `Bolaget rullades tillbaka eftersom inbjudan till bolagsansvarig misslyckades: ${inviteMessage}`
+          `Bolaget rullades tillbaka eftersom bolagsansvarig inte kunde skapas eller kopplas: ${inviteMessage}`
         )
         revalidatePath('/admin/companies')
         revalidatePath('/admin/users')
@@ -323,7 +323,7 @@ export async function createCompanyAction(
     revalidatePath('/admin/companies')
     revalidatePath('/admin/users')
 
-    return { ok: true, message: initialAdminEmail ? `Elhandelsbolaget skapades. Bolagsansvarig kan logga in med det temporära lösenordet och måste byta lösenord vid första inloggning.${ownerInviteMailMessage}` : 'Elhandelsbolaget skapades.' }
+    return { ok: true, message: initialAdminEmail ? `Elhandelsbolaget skapades. Bolagsansvarig kan logga in direkt med e-post och temporärt lösenord. Lösenordet måste bytas vid första inloggning.${ownerAccountMessage}` : 'Elhandelsbolaget skapades.' }
   } catch (error) {
     return { ok: false, message: formatActionError(error, 'Bolaget kunde inte skapas.') }
   }
@@ -364,7 +364,7 @@ export async function inviteCompanyUserAction(
       source: 'admin_companies_invite_user',
       issueTemporaryPassword: true,
       temporaryPassword,
-      sendEmail: true,
+      sendEmail: false,
     })
 
     await logTenantGovernanceEvent({
@@ -380,7 +380,7 @@ export async function inviteCompanyUserAction(
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
 
-    return { ok: true, message: invitation.emailSent ? 'Användaren skapades/kopplades och mail skickades. Personen kan logga in med det temporära lösenordet.' : `Användaren skapades/kopplades och kan logga in med det temporära lösenordet. Mail kunde inte skickas: ${invitation.emailError ?? 'okänt SMTP-fel'}` }
+    return { ok: true, message: invitation.wasCreated ? 'Användaren skapades och kan logga in direkt med det temporära lösenordet. Lösenordet måste bytas vid första inloggning.' : 'Användaren var redan skapad, har kopplats till bolaget och kan logga in med det temporära lösenordet. Lösenordet måste bytas vid nästa inloggning.' }
   } catch (error) {
     return { ok: false, message: formatActionError(error, 'Inbjudan kunde inte skapas.') }
   }

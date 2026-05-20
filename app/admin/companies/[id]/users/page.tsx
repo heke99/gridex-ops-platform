@@ -159,8 +159,8 @@ export default async function CompanyUsersPage({
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Bjud in användare till bolaget</h2>
-          <p className="mt-1 text-sm text-slate-700">Ange ett temporärt lösenord. Kontot skapas/kopplas direkt och användaren måste byta lösenord vid första inloggning. Mail skickas om SMTP fungerar men blockerar inte åtkomsten.</p>
+          <h2 className="text-lg font-semibold text-slate-950">Lägg till användare i bolaget</h2>
+          <p className="mt-1 text-sm text-slate-700">Ange ett temporärt lösenord. Kontot skapas/kopplas direkt och användaren måste byta lösenord vid första inloggning. Ingen egen invite-mail krävs från appen.</p>
           <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3 xl:grid-cols-[minmax(180px,1fr)_minmax(160px,1fr)_minmax(170px,220px)_180px_180px_140px]">
             <input type="hidden" name="company_id" value={company.id} />
             <input name="email" type="email" required placeholder="namn@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
@@ -182,7 +182,7 @@ export default async function CompanyUsersPage({
               <option value="executive_readonly">Ledning läs</option>
             </select>
             <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800">
-              Bjud in
+              Lägg till
             </button>
           </form>
         </section>
