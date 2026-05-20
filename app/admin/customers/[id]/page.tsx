@@ -71,6 +71,7 @@ import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 import { getCustomerEdielDataBundle } from '@/lib/ediel/customerData'
 import CustomerPortalAccessCard from '@/components/admin/customers/CustomerPortalAccessCard'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { customerCaseStatusLabel, customerCaseTypeLabel, listCustomerCases } from '@/lib/customer-cases/db'
 import {
  listCustomerPortalAccountsByCustomerId,
  listCustomerPortalClaimsByCustomerId,
@@ -766,6 +767,95 @@ function OnboardingDataRequestsSection({
  )
 }
 
+function CustomerCasesSection({
+ customerId,
+ cases,
+}: {
+ customerId: string
+ cases: Array<{
+ id: string
+ company_id: string
+ title: string
+ case_type: string
+ status: string
+ created_at: string
+ withdrawal_deadline_at: string | null
+ withdrawal_scenario: string | null
+ cancellation_status: string | null
+ cancellation_ediel_message_id: string | null
+ billing_blocked: boolean
+ break_fee_flagged: boolean
+ next_action: string | null
+ }>
+}) {
+ const activeCases = cases.filter((item) => !['resolved', 'closed', 'cancelled'].includes(item.status))
+ const blockedBilling = cases.filter((item) => item.billing_blocked).length
+
+ return (
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="flex flex-wrap items-start justify-between gap-3">
+ <div>
+ <h2 className="text-lg font-semibold text-slate-900 ">Kundärenden</h2>
+ <p className="mt-1 text-sm text-slate-700 ">
+ Ånger, nekade kunder och avbrutna flöden ligger kvar som historik. Kunden eller avtalet raderas inte; ärendet stoppar rätt flöden och blockerar fakturering när det behövs.
+ </p>
+ </div>
+ <Link href={`/admin/customer-cases?customer=${customerId}`} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 ">
+ Öppna ärendeytan
+ </Link>
+ </div>
+
+ <div className="mt-5 grid gap-4 md:grid-cols-3">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="text-sm text-slate-700 ">Aktiva ärenden</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">{activeCases.length}</div>
+ </div>
+ <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+ <div className="text-sm text-red-800 ">Fakturering blockerad</div>
+ <div className="mt-1 text-2xl font-semibold text-red-950 ">{blockedBilling}</div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="text-sm text-slate-700 ">Totalt historik</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">{cases.length}</div>
+ </div>
+ </div>
+
+ {cases.length === 0 ? (
+ <div className="mt-5 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-700 ">
+ Inga ärenden finns på kunden ännu. Skapa ärende när kunden ångrar sig, nekas, har fel uppgifter eller när onboarding behöver stoppas utan att historiken tas bort.
+ </div>
+ ) : (
+ <div className="mt-5 grid gap-3">
+ {cases.slice(0, 6).map((item) => (
+ <article key={item.id} className="rounded-2xl border border-slate-200 p-4">
+ <div className="flex flex-wrap items-start justify-between gap-3">
+ <div>
+ <div className="font-semibold text-slate-950 ">{item.title}</div>
+ <div className="mt-1 text-xs text-slate-700 ">{customerCaseTypeLabel(item.case_type)} · {formatDateTime(item.created_at)}</div>
+ </div>
+ <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
+ {customerCaseStatusLabel(item.status)}
+ </span>
+ </div>
+ <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-3">
+ <div>Ångerfrist: {formatDateTime(item.withdrawal_deadline_at)}</div>
+ <div>Annullering: {item.cancellation_status ?? '—'}</div>
+ <div>{item.billing_blocked ? 'Fakturering blockerad' : 'Ingen faktureringsblockerare'}</div>
+ </div>
+ {item.next_action ? <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700 ">{item.next_action}</div> : null}
+ {item.cancellation_ediel_message_id ? (
+ <Link href={`/admin/ediel/messages/${item.cancellation_ediel_message_id}`} className="mt-3 inline-flex text-sm font-semibold text-emerald-800 hover:underline">
+ Öppna annulleringsutkast
+ </Link>
+ ) : null}
+ </article>
+ ))}
+ </div>
+ )}
+ </section>
+ )
+}
+
 function NotesSection({
  customerId,
  notes,
@@ -981,6 +1071,7 @@ export default async function CustomerAdminDetailPage({
  customerInfoRequests,
  authorizationScopes,
  meteringPermissions,
+ customerCases,
  ] = await Promise.all([
  getCustomer(supabase, id),
  listGridOwners(supabase),
@@ -1012,6 +1103,7 @@ export default async function CustomerAdminDetailPage({
  companyScope.companyId ? listCustomerInfoRequestsByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
  companyScope.companyId ? listAuthorizationScopesByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
  companyScope.companyId ? listMeteringPermissionsByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
+ companyScope.companyId ? listCustomerCases({ companyId: companyScope.companyId, customerId: id, limit: 20 }) : [],
  ])
 
  if (!customer) {
@@ -1732,19 +1824,7 @@ export default async function CustomerAdminDetailPage({
  title="Ärenden"
  description="Ånger, nekade kunder och manuell uppföljning kopplas till kundens drift- och avtalsarbete."
  >
- <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
- <div className="flex flex-wrap items-start justify-between gap-3">
- <div>
- <h2 className="text-lg font-semibold text-slate-900 ">Kundärenden</h2>
- <p className="mt-1 text-sm text-slate-700 ">
- Inga aktiva ånger- eller nekad-kund-ärenden är kopplade just nu. Nya ärenden ska kopplas till kund, avtal, anläggning, Ediel och fakturering så att uppföljningen ligger kvar på kundkortet.
- </p>
- </div>
- <Link href="/admin/customer-info-requests" className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 ">
- Öppna uppgiftsbegäran
- </Link>
- </div>
- </section>
+ <CustomerCasesSection customerId={id} cases={customerCases} />
  </SectionAnchor>
 
  <SectionAnchor

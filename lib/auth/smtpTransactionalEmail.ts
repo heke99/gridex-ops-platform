@@ -5,6 +5,8 @@ export type TransactionalEmailInput = {
   subject: string
   html: string
   text?: string
+  from?: string
+  replyTo?: string
 }
 
 type AuthSmtpConfig = {
@@ -79,7 +81,8 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput) {
   })
 
   return transporter.sendMail({
-    from: config.from,
+    from: input.from || config.from,
+    replyTo: input.replyTo,
     to: input.to,
     subject: input.subject,
     html: input.html,

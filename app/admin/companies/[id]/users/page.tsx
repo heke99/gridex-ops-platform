@@ -117,6 +117,7 @@ export default async function CompanyUsersPage({
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Bjud in användare till bolaget</h2>
+          <p className="mt-1 text-sm text-slate-700">Inbjudan skickas med bolagets varumärke, avsändare och supportuppgifter när e-postmiljön är konfigurerad.</p>
           <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_190px_180px_180px_140px]">
             <input type="hidden" name="company_id" value={company.id} />
             <input name="email" type="email" required placeholder="namn@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />

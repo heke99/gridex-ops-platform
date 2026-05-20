@@ -15,6 +15,7 @@ import {
   type CompanyOperationalStatus,
   type GovernanceEventAction,
 } from '@/lib/tenant/governance'
+import { getTenantEmailBranding, queueAndTrySendTenantEmail, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
 
 export type CompanyActionState = {
   ok: boolean
@@ -260,6 +261,48 @@ async function setCompanyStatus(input: {
   return data as { id: string; name: string; status: string }
 }
 
+function escapeEmailHtml(value: string) {
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\"', '&quot;')
+}
+
+async function trySendTenantInviteEmail(input: {
+  companyId: string
+  email: string
+  fullName?: string | null
+  temporaryPassword?: string | null
+  actorUserId?: string | null
+}) {
+  try {
+    const branding = await getTenantEmailBranding(input.companyId)
+    const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/login`
+    const html = renderTenantEmailLayout({
+      branding,
+      title: `Välkommen till ${branding.displayName}`,
+      intro: `Du har fått åtkomst till ${branding.displayName}s administrativa arbetsyta.`,
+      body: `
+        <p>Använd e-postadressen <strong>${escapeEmailHtml(input.email)}</strong> för att logga in.</p>
+        ${input.temporaryPassword ? `<p>Ditt temporära lösenord är:</p><p style="font-size:18px;font-weight:700;background:#f1f5f9;padding:12px;border-radius:12px;">${escapeEmailHtml(input.temporaryPassword)}</p><p>Byt lösenord efter första inloggning.</p>` : ''}
+        <p>Kontakta ${branding.supportEmail ?? branding.displayName} om något inte stämmer.</p>
+      `,
+      ctaLabel: 'Logga in',
+      ctaUrl: loginUrl,
+    })
+
+    await queueAndTrySendTenantEmail({
+      companyId: input.companyId,
+      emailType: 'company_invite',
+      toEmail: input.email,
+      subject: `Din åtkomst till ${branding.displayName}`,
+      htmlBody: html,
+      textBody: `Du har fått åtkomst till ${branding.displayName}. Logga in: ${loginUrl}${input.temporaryPassword ? `\nTemporärt lösenord: ${input.temporaryPassword}` : ''}`,
+      redirectUrl: loginUrl,
+      actorUserId: input.actorUserId ?? null,
+    })
+  } catch (error) {
+    console.warn('Tenant invite email could not be sent', error)
+  }
+}
+
 export async function createCompanyAction(
   _prevState: CompanyActionState,
   formData: FormData
@@ -368,6 +411,14 @@ export async function createCompanyAction(
       if (inviteInsert.error && !['42P01', 'PGRST205'].includes(inviteInsert.error.code ?? '')) {
         throw inviteInsert.error
       }
+
+      await trySendTenantInviteEmail({
+        companyId: company.id,
+        email: initialAdminEmail,
+        fullName: initialAdminName || null,
+        temporaryPassword,
+        actorUserId,
+      })
     }
 
     await logTenantGovernanceEvent({
@@ -484,6 +535,14 @@ export async function inviteCompanyUserAction(
     if (inviteInsert.error && !['42P01', 'PGRST205'].includes(inviteInsert.error.code ?? '')) {
       throw inviteInsert.error
     }
+
+    await trySendTenantInviteEmail({
+      companyId,
+      email,
+      fullName,
+      temporaryPassword,
+      actorUserId,
+    })
 
     await logTenantGovernanceEvent({
       action: 'SUPERADMIN_ROLE_CHANGED',

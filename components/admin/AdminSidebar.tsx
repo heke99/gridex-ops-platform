@@ -133,6 +133,12 @@ const NAV_GROUPS: NavGroup[] = [
  description: 'Z01/Z02, fullmakter och mätvärdestillstånd',
  pageKey: 'customer.info_requests',
  },
+ {
+ href: '/admin/customer-cases',
+ label: 'Kundärenden',
+ description: 'Ånger, nekade kunder och blockerade onboardingflöden',
+ pageKey: 'customer.cases',
+ },
  ],
  },
  {
