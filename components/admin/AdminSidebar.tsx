@@ -32,6 +32,41 @@ type AdminSidebarProps = {
 }
 
 const NAV_GROUPS: NavGroup[] = [
+
+ {
+ title: 'Plattform',
+ description: 'Superadmin-only styrning och säkerhetskontroll',
+ items: [
+ {
+ href: '/admin/platform/ediel/rules',
+ label: 'Globala Ediel-regler',
+ description: 'Versioner, message rules och runtime-regler',
+ pageKey: 'platform.ediel.rules',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/platform/ediel/versions',
+ label: 'Ediel-versioner',
+ description: 'Current, previous och accepted inbound versions',
+ pageKey: 'platform.ediel.versions',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/platform/ediel/routes',
+ label: 'Globala Ediel-rutter',
+ description: 'Route profiles och teknisk adressering över alla tenants',
+ pageKey: 'platform.ediel.routes',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/platform/security',
+ label: 'RBAC säkerhetskontroll',
+ description: 'Kontroller för server actions, routes och tenant-scope',
+ pageKey: 'platform.security',
+ platformOnly: true,
+ },
+ ],
+ },
  {
  title: 'Översikt',
  description: 'Daglig drift och prioriterade blockeringar',

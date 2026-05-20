@@ -65,6 +65,9 @@ function revalidateEdielPaths() {
   revalidatePath('/admin/ediel')
   revalidatePath('/admin/ediel/settings')
   revalidatePath('/admin/ediel/routes')
+  revalidatePath('/admin/platform/ediel/rules')
+  revalidatePath('/admin/platform/ediel/versions')
+  revalidatePath('/admin/platform/ediel/routes')
   revalidatePath('/admin/ediel/control-tower')
   revalidatePath('/admin/ediel/ai-list')
 }

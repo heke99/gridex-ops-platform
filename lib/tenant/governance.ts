@@ -100,6 +100,18 @@ type CompanyRow = {
   primary_contact_name?: string | null
   phone?: string | null
   website?: string | null
+  billing_contact_email?: string | null
+  support_email?: string | null
+  address_line_1?: string | null
+  address_line_2?: string | null
+  postal_code?: string | null
+  city?: string | null
+  country_code?: string | null
+  ediel_id?: string | null
+  actor_role?: string | null
+  sender_sub_address?: string | null
+  ediel_mailbox?: string | null
+  operating_environment?: string | null
   created_at?: string | null
   updated_at?: string | null
 }
@@ -234,7 +246,7 @@ async function latestTimestamp(table: string, companyId: string, column = 'creat
 export async function getCompanyById(companyId: string): Promise<CompanyRow | null> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, created_at, updated_at')
+    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, created_at, updated_at')
     .eq('id', companyId)
     .maybeSingle()
 
@@ -333,7 +345,7 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
 export async function listCompanyGovernanceSummaries(): Promise<GovernanceCompany[]> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, created_at, updated_at')
+    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, created_at, updated_at')
     .neq('status', 'deleted_test_only')
     .order('created_at', { ascending: false })
 

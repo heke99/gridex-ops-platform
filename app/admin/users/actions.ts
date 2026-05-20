@@ -4,7 +4,7 @@
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import {
   findAuthUserByEmail,
   getBaseAppUrl,
@@ -139,7 +139,7 @@ export async function inviteAdminUserAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('full_name')) || normalizeText(formData.get('fullName'))
@@ -219,7 +219,7 @@ export async function createDirectAdminUserAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('fullName')) || normalizeText(formData.get('full_name'))
@@ -283,7 +283,7 @@ export async function sendAdminPasswordResetAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
     const email = normalizeEmail(formData.get('email'))
     if (!email) return { ok: false, message: 'E-post saknas.' }
 
@@ -308,7 +308,7 @@ export async function sendAdminConfirmationEmailAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
     const email = normalizeEmail(formData.get('email'))
     if (!email) return { ok: false, message: 'E-post saknas.' }
 
@@ -333,7 +333,7 @@ export async function setUserRoleAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     const roleId = normalizeText(formData.get('roleId'))
@@ -369,7 +369,7 @@ export async function setUserPermissionOverridesAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     const allowRaw = normalizeText(formData.get('allow_permissions'))
@@ -442,7 +442,7 @@ export async function deactivateUserAccessAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     if (!userId) return { ok: false, message: 'Användar-id saknas.' }
@@ -485,7 +485,7 @@ export async function deleteUserCompletelyAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     if (!userId) return { ok: false, message: 'Användar-id saknas.' }

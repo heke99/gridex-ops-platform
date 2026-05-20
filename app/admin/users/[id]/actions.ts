@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 
 type ActionState = {
   ok: boolean
@@ -111,7 +111,7 @@ export async function updateUserRoleAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     const preserveOverrides = normalizeCheckbox(formData.get('preserve_overrides'))
@@ -170,7 +170,7 @@ export async function updateUserPermissionOverridesAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     const allowKeys = parsePermissionList(normalizeText(formData.get('allow_permissions')))
@@ -242,7 +242,7 @@ export async function clearUserPermissionOverridesAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     if (!userId) {
@@ -279,7 +279,7 @@ export async function disableUserInternalAccessAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     if (!userId) {
@@ -323,7 +323,7 @@ export async function addSecondaryRoleAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     if (!userId) {
@@ -365,7 +365,7 @@ export async function removeSecondaryRoleAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    await requireAdminActionAccess({ anyOf: ['users.write'] })
+    await requirePlatformAdminActionAccess()
 
     const userId = normalizeText(formData.get('user_id'))
     if (!userId) {
@@ -401,7 +401,7 @@ export async function removeSecondaryRoleAction(
  * Bakåtkompatibla exportnamn för dina befintliga pages.
  */
 export async function assignUserRoleAction(formData: FormData): Promise<void> {
-  await requireAdminActionAccess({ anyOf: ['users.write'] })
+  await requirePlatformAdminActionAccess()
 
   const userId = normalizeText(formData.get('user_id'))
   if (!userId) throw new Error('User ID saknas.')
@@ -426,7 +426,7 @@ export async function assignUserRoleAction(formData: FormData): Promise<void> {
 }
 
 export async function removeUserRoleAction(formData: FormData): Promise<void> {
-  await requireAdminActionAccess({ anyOf: ['users.write'] })
+  await requirePlatformAdminActionAccess()
 
   const userId = normalizeText(formData.get('user_id'))
   const userRoleId = normalizeText(formData.get('userRoleId')) || normalizeText(formData.get('user_role_id'))
@@ -457,7 +457,7 @@ export async function removeUserRoleAction(formData: FormData): Promise<void> {
 }
 
 export async function addUserPermissionOverrideAction(formData: FormData): Promise<void> {
-  await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
+  await requirePlatformAdminActionAccess()
 
   const userId = normalizeText(formData.get('user_id'))
   const effectRaw =
@@ -490,7 +490,7 @@ export async function addUserPermissionOverrideAction(formData: FormData): Promi
 export async function removeUserPermissionOverrideAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess({ anyOf: ['permissions.manage', 'users.write'] })
+  await requirePlatformAdminActionAccess()
 
   const userId = normalizeText(formData.get('user_id'))
   const overrideId = normalizeText(formData.get('overrideId')) || normalizeText(formData.get('override_id'))

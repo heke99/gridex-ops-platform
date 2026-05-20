@@ -90,6 +90,78 @@ export default async function CompanySettingsPage() {
                   <span className="font-medium text-slate-700">Webbplats</span>
                   <input name="website" defaultValue={company.website ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" />
                 </label>
+
+                <div className="lg:col-span-2 mt-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <h3 className="text-sm font-semibold text-slate-950">Fakturering och support</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-700">Kontaktuppgifter som används för plattformsadministration, kundkommunikation och framtida faktureringsunderlag.</p>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Faktura-/kontaktmail</span>
+                      <input name="billing_contact_email" type="email" defaultValue={company.billing_contact_email ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Supportmail</span>
+                      <input name="support_email" type="email" defaultValue={company.support_email ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <h3 className="text-sm font-semibold text-slate-950">Adress</h3>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Adressrad 1</span>
+                      <input name="address_line_1" defaultValue={company.address_line_1 ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Adressrad 2</span>
+                      <input name="address_line_2" defaultValue={company.address_line_2 ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Postnummer</span>
+                      <input name="postal_code" defaultValue={company.postal_code ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Ort</span>
+                      <input name="city" defaultValue={company.city ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Landkod</span>
+                      <input name="country_code" defaultValue={company.country_code ?? 'SE'} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+                  <h3 className="text-sm font-semibold text-slate-950">Ediel och driftmiljö</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-700">Bolagets egna aktörsuppgifter. Globala Ediel-versioner och runtime-regler hanteras av superadmin under plattformsinställningar.</p>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Ediel-id</span>
+                      <input name="ediel_id" defaultValue={company.ediel_id ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder="Ex. 21660" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Aktörsroll</span>
+                      <input name="actor_role" defaultValue={company.actor_role ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder="Ex. DDQ / ESP / BRP" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Sender subaddress</span>
+                      <input name="sender_sub_address" defaultValue={company.sender_sub_address ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder="T.ex. PRODAT, eller tom om ej registrerad" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Ediel-mailbox</span>
+                      <input name="ediel_mailbox" defaultValue={company.ediel_mailbox ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+                    </label>
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-slate-700">Miljö</span>
+                      <select name="operating_environment" defaultValue={company.operating_environment ?? 'test'} className="rounded-2xl border border-slate-300 bg-white px-4 py-3">
+                        <option value="test">Test</option>
+                        <option value="production">Produktion</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="lg:col-span-2 flex justify-end">
                   <button className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800">
                     Spara bolagsuppgifter

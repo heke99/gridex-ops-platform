@@ -17,6 +17,16 @@ function normalizeEmail(value: FormDataEntryValue | null) {
   return normalizeText(value).toLowerCase()
 }
 
+function normalizeUpper(value: FormDataEntryValue | null) {
+  const text = normalizeText(value)
+  return text ? text.toUpperCase() : null
+}
+
+function normalizeEnvironment(value: FormDataEntryValue | null) {
+  const text = normalizeText(value)
+  return text === 'production' ? 'production' : 'test'
+}
+
 const COMPANY_ASSIGNABLE_ROLE_KEYS = new Set([
   'company_admin',
   'operations_manager',
@@ -67,6 +77,18 @@ export async function updateCompanySettingsAction(
     const primaryContactEmail = normalizeEmail(formData.get('primary_contact_email')) || null
     const phone = normalizeText(formData.get('phone')) || null
     const website = normalizeText(formData.get('website')) || null
+    const billingContactEmail = normalizeEmail(formData.get('billing_contact_email')) || null
+    const supportEmail = normalizeEmail(formData.get('support_email')) || null
+    const addressLine1 = normalizeText(formData.get('address_line_1')) || null
+    const addressLine2 = normalizeText(formData.get('address_line_2')) || null
+    const postalCode = normalizeText(formData.get('postal_code')) || null
+    const city = normalizeText(formData.get('city')) || null
+    const countryCode = normalizeUpper(formData.get('country_code')) || 'SE'
+    const edielId = normalizeUpper(formData.get('ediel_id'))
+    const actorRole = normalizeUpper(formData.get('actor_role'))
+    const senderSubAddress = normalizeUpper(formData.get('sender_sub_address'))
+    const edielMailbox = normalizeText(formData.get('ediel_mailbox')) || null
+    const operatingEnvironment = normalizeEnvironment(formData.get('operating_environment'))
 
     if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
 
@@ -79,6 +101,18 @@ export async function updateCompanySettingsAction(
         primary_contact_email: primaryContactEmail,
         phone,
         website,
+        billing_contact_email: billingContactEmail,
+        support_email: supportEmail,
+        address_line_1: addressLine1,
+        address_line_2: addressLine2,
+        postal_code: postalCode,
+        city,
+        country_code: countryCode,
+        ediel_id: edielId,
+        actor_role: actorRole,
+        sender_sub_address: senderSubAddress,
+        ediel_mailbox: edielMailbox,
+        operating_environment: operatingEnvironment,
         updated_at: new Date().toISOString(),
       })
       .eq('id', companyId)
