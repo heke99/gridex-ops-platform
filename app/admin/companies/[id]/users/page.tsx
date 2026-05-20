@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import {
@@ -19,24 +20,43 @@ export const dynamic = 'force-dynamic'
 
 const emptyActionState = { ok: false, message: '' }
 
+function redirectWithCompanyUsersActionResult(result: { ok: boolean; message: string }, companyId: string): never {
+  const params = new URLSearchParams()
+  params.set(result.ok ? 'message' : 'error', result.message)
+  redirect(`/admin/companies/${companyId}/users?${params.toString()}`)
+}
+
 async function inviteCompanyUserFormAction(formData: FormData) {
   'use server'
-  await inviteCompanyUserAction(emptyActionState, formData)
+  const companyId = String(formData.get('company_id') ?? '')
+  const result = await inviteCompanyUserAction(emptyActionState, formData)
+  redirectWithCompanyUsersActionResult(result, companyId)
 }
 
 async function removeUserFromCompanyFormAction(formData: FormData) {
   'use server'
-  await removeUserFromCompanyAction(emptyActionState, formData)
+  const companyId = String(formData.get('company_id') ?? '')
+  const result = await removeUserFromCompanyAction(emptyActionState, formData)
+  redirectWithCompanyUsersActionResult(result, companyId)
 }
 
 async function setCompanyUserRoleFormAction(formData: FormData) {
   'use server'
-  await setCompanyUserRoleAction(emptyActionState, formData)
+  const companyId = String(formData.get('company_id') ?? '')
+  const result = await setCompanyUserRoleAction(emptyActionState, formData)
+  redirectWithCompanyUsersActionResult(result, companyId)
 }
 
 async function transferCompanyOpenTasksFormAction(formData: FormData) {
   'use server'
-  await transferCompanyOpenTasksAction(emptyActionState, formData)
+  const companyId = String(formData.get('company_id') ?? '')
+  const result = await transferCompanyOpenTasksAction(emptyActionState, formData)
+  redirectWithCompanyUsersActionResult(result, companyId)
+}
+
+function firstParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] ?? ''
+  return value ?? ''
 }
 
 function formatDate(value: string | null | undefined) {
@@ -61,10 +81,15 @@ function StatusBadge({ status }: { status: CompanyOperationalStatus }) {
 
 export default async function CompanyUsersPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams?: Promise<{ message?: string | string[]; error?: string | string[] }>
 }) {
   const admin = await requireAdminPageAccess({ anyOf: ['tenants.read', 'tenants.write', 'users.read'] })
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const statusMessage = firstParam(resolvedSearchParams.message)
+  const errorMessage = firstParam(resolvedSearchParams.error)
   const { id } = await params
   const company = await getCompanyById(id)
 
@@ -92,6 +117,18 @@ export default async function CompanyUsersPage({
       />
 
       <div className="space-y-6 p-8">
+        {statusMessage ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-900">
+            {statusMessage}
+          </div>
+        ) : null}
+
+        {errorMessage ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-900">
+            {errorMessage}
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/admin/companies" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             Tillbaka till bolag

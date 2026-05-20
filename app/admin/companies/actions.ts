@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { provisionCompanyInvitation } from '@/lib/auth/companyInvitationFlow'
 import {
   getCompanyById,
   getCompanyDeleteBlockers,
@@ -47,10 +48,6 @@ function slugify(value: string): string {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 120)
-}
-
-function getBaseAppUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'http://localhost:3000'
 }
 
 async function getCurrentUserId(): Promise<string> {
@@ -115,64 +112,6 @@ async function insertActiveUserRole(input: { userId: string; roleId: string }) {
   }
 
   throw first.error
-}
-
-async function upsertOptionalUserProfile(input: { userId: string; email: string; fullName: string | null }) {
-  const { error } = await supabaseService.from('user_profiles').upsert(
-    {
-      id: input.userId,
-      email: input.email,
-      full_name: input.fullName,
-      user_status: 'active',
-    },
-    { onConflict: 'id' }
-  )
-
-  if (error && (error.code === '42703' || /user_status/i.test(error.message ?? ''))) {
-    const retry = await supabaseService.from('user_profiles').upsert(
-      {
-        id: input.userId,
-        email: input.email,
-        full_name: input.fullName,
-      },
-      { onConflict: 'id' }
-    )
-
-    if (retry.error && !['42P01', 'PGRST205'].includes(retry.error.code ?? '')) {
-      throw retry.error
-    }
-    return
-  }
-
-  if (error && !['42P01', 'PGRST205'].includes(error.code ?? '')) {
-    throw error
-  }
-}
-
-async function resolveOrInviteUser(params: {
-  email: string
-  fullName: string | null
-  sendInvite: boolean
-}): Promise<string> {
-  if (params.sendInvite) {
-    const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(params.email, {
-      redirectTo: `${getBaseAppUrl()}/login`,
-      data: params.fullName ? { full_name: params.fullName } : undefined,
-    })
-
-    if (!error && data.user?.id) return data.user.id
-
-    if (error && !/already|registered|exists/i.test(error.message ?? '')) {
-      throw error
-    }
-  }
-
-  const { data, error } = await supabaseService.auth.admin.listUsers()
-  if (error) throw error
-
-  const user = (data.users ?? []).find((row) => (row.email ?? '').toLowerCase() === params.email)
-  if (!user?.id) throw new Error(`Ingen användare hittades med e-post ${params.email}.`)
-  return user.id
 }
 
 function parseCompanyStatus(value: string): CompanyOperationalStatus {
@@ -292,50 +231,32 @@ export async function createCompanyAction(
     if (companyError) throw companyError
 
     if (initialAdminEmail) {
-      const userId = await resolveOrInviteUser({
+      if (!sendInvite) {
+        return {
+          ok: false,
+          message: 'Första bolagsansvarig måste bjudas in så temporärt lösenord och accept-länk kan skickas säkert.',
+        }
+      }
+
+      const invitation = await provisionCompanyInvitation({
+        companyId: company.id,
+        companyName: name,
         email: initialAdminEmail,
         fullName: initialAdminName || null,
-        sendInvite,
+        membershipRole: 'owner',
+        roleKey: 'company_admin',
+        actorUserId,
+        source: 'admin_companies_create_company_owner',
+        issueTemporaryPassword: true,
       })
 
-      await upsertOptionalUserProfile({
-        userId,
-        email: initialAdminEmail,
-        fullName: initialAdminName || null,
-      })
-
-      const roleId = await resolveRoleIdByKey('company_admin')
-      await insertActiveUserRole({ userId, roleId })
-
-      const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-        {
-          company_id: company.id,
-          user_id: userId,
-          membership_role: 'owner',
-          status: 'active',
-          invited_email: initialAdminEmail,
-          invited_by: actorUserId,
-          invited_at: new Date().toISOString(),
-          accepted_at: sendInvite ? null : new Date().toISOString(),
-          metadata: {},
-        },
-        { onConflict: 'company_id,user_id' }
-      )
-
-      if (membershipError) throw membershipError
-
-      await supabaseService.from('company_invitations').insert({
-        company_id: company.id,
-        email: initialAdminEmail,
-        full_name: initialAdminName || null,
-        membership_role: 'owner',
-        role_key: 'company_admin',
-        status: sendInvite ? 'pending' : 'accepted',
-        invited_by: actorUserId,
-        invited_user_id: userId,
-        expires_at: sendInvite ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString() : null,
-        accepted_at: sendInvite ? null : new Date().toISOString(),
-        metadata: {},
+      await logTenantGovernanceEvent({
+        action: 'SUPERADMIN_ROLE_CHANGED',
+        actorUserId,
+        companyId: company.id,
+        targetUserId: invitation.userId,
+        reason: 'Första bolagsansvarig skapades och bjöds in med temporärt lösenord',
+        metadata: { email: initialAdminEmail, membershipRole: 'owner', roleKey: 'company_admin' },
       })
     }
 
@@ -350,7 +271,7 @@ export async function createCompanyAction(
     revalidatePath('/admin/companies')
     revalidatePath('/admin/users')
 
-    return { ok: true, message: 'Elhandelsbolaget skapades.' }
+    return { ok: true, message: initialAdminEmail ? 'Elhandelsbolaget skapades och bolagsansvarig bjöds in med temporärt lösenord.' : 'Elhandelsbolaget skapades.' }
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Bolaget kunde inte skapas.' }
   }
@@ -374,50 +295,26 @@ export async function inviteCompanyUserAction(
 
     await requireCompanyOperationalForWrites(companyId)
 
-    const userId = await resolveOrInviteUser({ email, fullName, sendInvite: true })
-    await upsertOptionalUserProfile({ userId, email, fullName })
-    await insertActiveUserRole({ userId, roleId: await resolveRoleIdByKey(roleKey) })
+    const company = await getCompanyById(companyId)
+    if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
 
-    const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-      {
-        company_id: companyId,
-        user_id: userId,
-        membership_role: membershipRole,
-        status: 'active',
-        invited_email: email,
-        invited_by: actorUserId,
-        invited_at: new Date().toISOString(),
-        accepted_at: null,
-        disabled_at: null,
-        disabled_by: null,
-        removed_at: null,
-        removed_by: null,
-        status_reason: null,
-        metadata: {},
-      },
-      { onConflict: 'company_id,user_id' }
-    )
-
-    if (membershipError) throw membershipError
-
-    await supabaseService.from('company_invitations').insert({
-      company_id: companyId,
+    const invitation = await provisionCompanyInvitation({
+      companyId,
+      companyName: company.name,
       email,
-      full_name: fullName,
-      membership_role: membershipRole,
-      role_key: roleKey,
-      status: 'pending',
-      invited_by: actorUserId,
-      invited_user_id: userId,
-      expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString(),
-      metadata: {},
+      fullName,
+      membershipRole,
+      roleKey,
+      actorUserId,
+      source: 'admin_companies_invite_user',
+      issueTemporaryPassword: true,
     })
 
     await logTenantGovernanceEvent({
       action: 'SUPERADMIN_ROLE_CHANGED',
       actorUserId,
       companyId,
-      targetUserId: userId,
+      targetUserId: invitation.userId,
       reason: 'Användare bjöds in och kopplades till bolag',
       metadata: { membershipRole, roleKey, email },
     })
@@ -426,7 +323,7 @@ export async function inviteCompanyUserAction(
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
 
-    return { ok: true, message: 'Inbjudan skapades och användaren kopplades till bolaget.' }
+    return { ok: true, message: 'Inbjudan skickades med accept-länk och temporärt lösenord.' }
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Inbjudan kunde inte skapas.' }
   }

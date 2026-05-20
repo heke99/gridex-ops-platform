@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -21,6 +22,13 @@ export const dynamic = 'force-dynamic'
 
 const emptyCompanyActionState = { ok: false, message: '' }
 
+function redirectWithCompanyActionResult(result: { ok: boolean; message: string }, companyId?: string | null): never {
+  const params = new URLSearchParams()
+  if (companyId) params.set('company', companyId)
+  params.set(result.ok ? 'message' : 'error', result.message)
+  redirect(`/admin/companies?${params.toString()}`)
+}
+
 type SearchParams = {
   company?: string | string[]
   status?: string | string[]
@@ -34,32 +42,38 @@ type CompaniesPageProps = {
 
 async function anonymizeCompanyContactDetailsFormAction(formData: FormData) {
   'use server'
-  await anonymizeCompanyContactDetailsAction(emptyCompanyActionState, formData)
+  const result = await anonymizeCompanyContactDetailsAction(emptyCompanyActionState, formData)
+  redirectWithCompanyActionResult(result, String(formData.get('company_id') ?? ''))
 }
 
 async function createCompanyFormAction(formData: FormData) {
   'use server'
-  await createCompanyAction(emptyCompanyActionState, formData)
+  const result = await createCompanyAction(emptyCompanyActionState, formData)
+  redirectWithCompanyActionResult(result)
 }
 
 async function inviteCompanyUserFormAction(formData: FormData) {
   'use server'
-  await inviteCompanyUserAction(emptyCompanyActionState, formData)
+  const result = await inviteCompanyUserAction(emptyCompanyActionState, formData)
+  redirectWithCompanyActionResult(result, String(formData.get('company_id') ?? ''))
 }
 
 async function setCompanyStatusFormAction(formData: FormData) {
   'use server'
-  await setCompanyOperationalStatusAction(emptyCompanyActionState, formData)
+  const result = await setCompanyOperationalStatusAction(emptyCompanyActionState, formData)
+  redirectWithCompanyActionResult(result, String(formData.get('company_id') ?? ''))
 }
 
 async function requestCompanyDeletionFormAction(formData: FormData) {
   'use server'
-  await requestCompanyDeletionAction(emptyCompanyActionState, formData)
+  const result = await requestCompanyDeletionAction(emptyCompanyActionState, formData)
+  redirectWithCompanyActionResult(result, String(formData.get('company_id') ?? ''))
 }
 
 async function deleteTestCompanyFormAction(formData: FormData) {
   'use server'
-  await deleteTestCompanyAction(emptyCompanyActionState, formData)
+  const result = await deleteTestCompanyAction(emptyCompanyActionState, formData)
+  redirectWithCompanyActionResult(result, result.ok ? null : String(formData.get('company_id') ?? ''))
 }
 
 function firstParam(value: string | string[] | undefined) {
@@ -276,10 +290,10 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
                 <div className="mt-4 grid gap-3">
                   <Input name="admin_name" className="rounded-2xl px-4 py-3" placeholder="Namn" />
                   <Input name="admin_email" type="email" className="rounded-2xl px-4 py-3" placeholder="namn@bolag.se" />
-                  <label className="flex items-start gap-3 text-sm text-slate-700">
-                    <input type="checkbox" name="send_invite" defaultChecked className="mt-1" />
-                    <span>Skicka inbjudan via e-post med temporärt lösenord.</span>
-                  </label>
+                  <input type="hidden" name="send_invite" value="on" />
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900">
+                    Inbjudan skickas alltid via e-post med accept-länk och temporärt lösenord när bolagsansvarig anges.
+                  </div>
                 </div>
               </div>
 

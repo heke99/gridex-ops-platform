@@ -7,9 +7,13 @@ export type TransactionalEmailInput = {
   text?: string
 }
 
-function requiredEnv(name: string, fallback?: string | null): string {
-  const value = process.env[name] ?? fallback ?? ''
-  if (!value.trim()) throw new Error(`Miljövariabel saknas: ${name}`)
+function requiredEnv(name: string): string {
+  const value = process.env[name] ?? ''
+  if (!value.trim()) {
+    throw new Error(
+      `Miljövariabel saknas för auth-mail: ${name}. Lägg in AUTH_SMTP_HOST, AUTH_SMTP_PORT, AUTH_SMTP_USER, AUTH_SMTP_PASS och AUTH_SMTP_FROM i Vercel.`
+    )
+  }
   return value.trim()
 }
 
@@ -21,20 +25,14 @@ function numberEnv(name: string, fallback: number): number {
 }
 
 export function getTransactionalEmailFromAddress() {
-  return (
-    process.env.AUTH_SMTP_FROM ??
-    process.env.AUTH_EMAIL_FROM ??
-    process.env.EDIEL_SMTP_FROM ??
-    process.env.EDIEL_SMTP_USER ??
-    'no-reply@gridex.se'
-  ).trim()
+  return (process.env.AUTH_SMTP_FROM ?? process.env.AUTH_EMAIL_FROM ?? 'no-reply@gridex.se').trim()
 }
 
 export async function sendTransactionalEmail(input: TransactionalEmailInput) {
-  const host = requiredEnv('AUTH_SMTP_HOST', process.env.EDIEL_SMTP_HOST)
-  const port = numberEnv('AUTH_SMTP_PORT', numberEnv('EDIEL_SMTP_PORT', 465))
-  const user = requiredEnv('AUTH_SMTP_USER', process.env.EDIEL_SMTP_USER)
-  const pass = requiredEnv('AUTH_SMTP_PASS', process.env.EDIEL_SMTP_PASS)
+  const host = requiredEnv('AUTH_SMTP_HOST')
+  const port = numberEnv('AUTH_SMTP_PORT', 465)
+  const user = requiredEnv('AUTH_SMTP_USER')
+  const pass = requiredEnv('AUTH_SMTP_PASS')
   const from = getTransactionalEmailFromAddress()
 
   const transporter = nodemailer.createTransport({
