@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   findAuthUserByEmail,
+  getBaseAppUrl,
   recordAuthEmailEvent,
   upsertAuthUserProfile,
 } from '@/lib/auth/authEmailFlow'
@@ -45,13 +46,6 @@ type CompanyInvitationRow = {
   company_name?: string | null
 }
 
-type SupabaseLikeError = {
-  code?: string
-  message?: string
-  details?: string | null
-  hint?: string | null
-}
-
 function normalizeEmail(value: string | null | undefined) {
   return String(value ?? '').trim().toLowerCase()
 }
@@ -60,35 +54,9 @@ function normalizeText(value: string | null | undefined) {
   return String(value ?? '').trim()
 }
 
-function isSupabaseLikeError(error: unknown): error is SupabaseLikeError {
-  return Boolean(error && typeof error === 'object' && ('message' in error || 'code' in error))
-}
-
-function errorMessage(error: unknown, fallback = 'Okänt fel') {
-  if (error instanceof Error && error.message) return error.message
-  if (typeof error === 'string' && error.trim()) return error
-  if (isSupabaseLikeError(error)) {
-    const parts = [error.message, error.details, error.hint, error.code ? `kod: ${error.code}` : null]
-      .filter((part): part is string => Boolean(part && String(part).trim()))
-    if (parts.length > 0) return parts.join(' · ')
-  }
-  try {
-    const json = JSON.stringify(error)
-    if (json && json !== '{}') return json
-  } catch {
-    // ignore
-  }
-  return fallback
-}
-
 function isIgnorableSchemaError(error: { code?: string; message?: string } | null | undefined) {
   if (!error) return false
   return ['42P01', '42703', 'PGRST205'].includes(error.code ?? '')
-}
-
-function isConflictTargetError(error: { code?: string; message?: string } | null | undefined) {
-  if (!error) return false
-  return error.code === '42P10' || /conflict/i.test(error.message ?? '')
 }
 
 function createTemporaryPassword() {
@@ -113,18 +81,15 @@ export function hashCompanyInvitationToken(token: string) {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
 
-
-function companyNameFromJoin(row: CompanyInvitationRow) {
-  return row.company_name ?? 'Gridex'
+function buildAcceptUrl(token: string) {
+  return `${getBaseAppUrl()}/auth/company-invite?token=${encodeURIComponent(token)}`
 }
 
-async function safeRecordAuthEvent(input: Parameters<typeof recordAuthEmailEvent>[0]) {
+async function safeRecordAuthEmailEvent(input: Parameters<typeof recordAuthEmailEvent>[0]) {
   try {
     await recordAuthEmailEvent(input)
   } catch (error) {
-    if (!isIgnorableSchemaError(error as SupabaseLikeError)) {
-      console.warn('Could not record auth email event', errorMessage(error))
-    }
+    console.warn('Could not record auth/company access event', error)
   }
 }
 
@@ -142,8 +107,6 @@ async function upsertUserProfileWithTemporaryState(input: {
     email: input.email,
     fullName: input.fullName,
     emailConfirmedAt: input.user.email_confirmed_at ?? now,
-    lastInviteSentAt: now,
-    lastAction: input.source,
   })
 
   const payload: Record<string, unknown> = {
@@ -160,7 +123,7 @@ async function upsertUserProfileWithTemporaryState(input: {
   }
 
   const { error } = await supabaseService.from('user_profiles').upsert(payload, { onConflict: 'id' })
-  if (error && !isIgnorableSchemaError(error)) throw new Error(`Kunde inte synka användarprofil: ${errorMessage(error)}`)
+  if (error && !isIgnorableSchemaError(error)) throw error
 }
 
 async function createOrUpdateAuthUser(input: {
@@ -197,7 +160,7 @@ async function createOrUpdateAuthUser(input: {
     }
 
     const { data, error } = await supabaseService.auth.admin.updateUserById(existing.id, updatePayload)
-    if (error) throw new Error(`Auth-kontot kunde inte uppdateras: ${errorMessage(error)}`)
+    if (error) throw error
 
     return { user: data.user ?? existing, temporaryPassword, wasCreated: false }
   }
@@ -214,202 +177,20 @@ async function createOrUpdateAuthUser(input: {
     },
   })
 
-  if (error) throw new Error(`Auth-kontot kunde inte skapas: ${errorMessage(error)}`)
+  if (error) throw error
   if (!data.user) throw new Error('Auth-kontot skapades inte korrekt.')
 
   return { user: data.user, temporaryPassword, wasCreated: true }
-}
-
-async function upsertActiveCompanyMembership(input: {
-  companyId: string
-  userId: string
-  email: string
-  membershipRole: string
-  actorUserId: string | null
-  source: string
-  temporaryPassword: string | null
-}) {
-  const now = new Date().toISOString()
-  const basePayload: Record<string, unknown> = {
-    company_id: input.companyId,
-    user_id: input.userId,
-    membership_role: input.membershipRole,
-    status: 'active',
-    invited_email: input.email,
-    invited_by: input.actorUserId,
-    invited_at: now,
-    accepted_at: now,
-    disabled_at: null,
-    disabled_by: null,
-    removed_at: null,
-    removed_by: null,
-    status_reason: null,
-    metadata: {
-      invite_source: input.source,
-      force_password_change: Boolean(input.temporaryPassword),
-      login_ready: true,
-      direct_account_flow: true,
-    },
-  }
-
-  const direct = await supabaseService.from('company_memberships').upsert(basePayload, {
-    onConflict: 'company_id,user_id',
-  })
-
-  if (!direct.error) return
-
-  if (isConflictTargetError(direct.error)) {
-    const { data: existing, error: findError } = await supabaseService
-      .from('company_memberships')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('user_id', input.userId)
-      .maybeSingle()
-
-    if (findError && !isIgnorableSchemaError(findError)) {
-      throw new Error(`Kunde inte kontrollera befintlig bolagskoppling: ${errorMessage(findError)}`)
-    }
-
-    if ((existing as { id?: string } | null)?.id) {
-      const { error: updateError } = await supabaseService
-        .from('company_memberships')
-        .update(basePayload)
-        .eq('id', (existing as { id: string }).id)
-      if (!updateError) return
-      throw new Error(`Bolagskopplingen kunde inte uppdateras: ${errorMessage(updateError)}`)
-    }
-
-    const { error: insertError } = await supabaseService.from('company_memberships').insert(basePayload)
-    if (!insertError) return
-    throw new Error(`Bolagskopplingen kunde inte skapas: ${errorMessage(insertError)}`)
-  }
-
-  if (direct.error.code === '42703') {
-    const minimalPayload = {
-      company_id: input.companyId,
-      user_id: input.userId,
-      membership_role: input.membershipRole,
-      status: 'active',
-    }
-    const retry = await supabaseService.from('company_memberships').upsert(minimalPayload, {
-      onConflict: 'company_id,user_id',
-    })
-    if (!retry.error) return
-
-    const insert = await supabaseService.from('company_memberships').insert(minimalPayload)
-    if (!insert.error) return
-
-    throw new Error(`Bolagskopplingen kunde inte sparas med förenklat schema: ${errorMessage(insert.error)}`)
-  }
-
-  throw new Error(`Bolagskopplingen kunde inte sparas: ${errorMessage(direct.error)}`)
-}
-
-async function upsertUserRole(input: { userId: string; roleKey: string }) {
-  const { data: role, error: roleError } = await supabaseService
-    .from('roles')
-    .select('id,key')
-    .eq('key', input.roleKey)
-    .maybeSingle()
-
-  if (roleError) {
-    if (isIgnorableSchemaError(roleError)) return
-    throw new Error(`Rollen kunde inte hämtas: ${errorMessage(roleError)}`)
-  }
-
-  if (!role?.id) {
-    throw new Error(`Rollen hittades inte i databasen: ${input.roleKey}. Lägg till rollen eller välj en befintlig roll.`)
-  }
-
-  const fullPayload = {
-    user_id: input.userId,
-    role_id: role.id,
-    status: 'active',
-    is_active: true,
-  }
-  const upsert = await supabaseService.from('user_roles').upsert(fullPayload, {
-    onConflict: 'user_id,role_id',
-  })
-
-  if (!upsert.error) return
-
-  if (upsert.error.code === '42703') {
-    const retry = await supabaseService.from('user_roles').upsert(
-      {
-        user_id: input.userId,
-        role_id: role.id,
-      },
-      { onConflict: 'user_id,role_id' }
-    )
-    if (!retry.error) return
-    throw new Error(`Användarrollen kunde inte sparas: ${errorMessage(retry.error)}`)
-  }
-
-  if (isConflictTargetError(upsert.error)) {
-    const insert = await supabaseService.from('user_roles').insert(fullPayload)
-    if (!insert.error) return
-    if (insert.error.code === '23505') return
-    throw new Error(`Användarrollen kunde inte skapas: ${errorMessage(insert.error)}`)
-  }
-
-  throw new Error(`Användarrollen kunde inte sparas: ${errorMessage(upsert.error)}`)
-}
-
-async function writeAcceptedCompanyInvitationSnapshot(input: {
-  companyId: string
-  email: string
-  fullName: string | null
-  membershipRole: string
-  roleKey: string
-  actorUserId: string | null
-  userId: string
-  temporaryPassword: string | null
-  source: string
-}) {
-  const now = new Date().toISOString()
-  const token = createInvitationToken()
-  const tokenHash = hashCompanyInvitationToken(token)
-
-  const payload: Record<string, unknown> = {
-    company_id: input.companyId,
-    email: input.email,
-    full_name: input.fullName,
-    membership_role: input.membershipRole,
-    role_key: input.roleKey,
-    status: 'accepted',
-    invited_by: input.actorUserId,
-    invited_user_id: input.userId,
-    accepted_at: now,
-    expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString(),
-    accept_token_hash: tokenHash,
-    temporary_password_issued_at: input.temporaryPassword ? now : null,
-    temporary_password_expires_at: input.temporaryPassword
-      ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString()
-      : null,
-    metadata: {
-      invite_source: input.source,
-      direct_account_flow: true,
-      force_password_change: Boolean(input.temporaryPassword),
-      login_ready: true,
-    },
-  }
-
-  const { error } = await supabaseService.from('company_invitations').insert(payload)
-  if (error && !isIgnorableSchemaError(error)) {
-    console.warn('Could not write company invitation snapshot', errorMessage(error))
-  }
 }
 
 export async function provisionCompanyInvitation(input: CompanyInviteInput): Promise<CompanyInviteProvisionResult> {
   const email = normalizeEmail(input.email)
   if (!email) throw new Error('E-post saknas.')
 
-  const companyQuery = await supabaseService.from('companies').select('id, name').eq('id', input.companyId).maybeSingle()
-  if (companyQuery.error) throw new Error(`Bolaget kunde inte hämtas: ${errorMessage(companyQuery.error)}`)
-  const companyName = input.companyName ?? (companyQuery.data as { name?: string | null } | null)?.name ?? 'Gridex'
-
   let createdAuthUserId: string | null = null
   let userId: string | null = null
+  let token = ''
+  let acceptUrl = ''
 
   try {
     const authResult = await createOrUpdateAuthUser({
@@ -431,31 +212,98 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       source: input.source,
     })
 
-    await upsertActiveCompanyMembership({
-      companyId: input.companyId,
-      userId: user.id,
+    token = createInvitationToken()
+    const tokenHash = hashCompanyInvitationToken(token)
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString()
+    const now = new Date().toISOString()
+
+    const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
+      {
+        company_id: input.companyId,
+        user_id: user.id,
+        membership_role: input.membershipRole,
+        status: 'active',
+        invited_email: email,
+        invited_by: input.actorUserId,
+        invited_at: now,
+        accepted_at: now,
+        disabled_at: null,
+        disabled_by: null,
+        removed_at: null,
+        removed_by: null,
+        status_reason: null,
+        metadata: {
+          invite_source: input.source,
+          force_password_change: Boolean(temporaryPassword),
+          login_ready: true,
+        },
+      },
+      { onConflict: 'company_id,user_id' }
+    )
+    if (membershipError) throw membershipError
+
+    const invitationPayload: Record<string, unknown> = {
+      company_id: input.companyId,
       email,
-      membershipRole: input.membershipRole,
-      actorUserId: input.actorUserId,
-      source: input.source,
-      temporaryPassword,
-    })
+      full_name: input.fullName ?? null,
+      membership_role: input.membershipRole,
+      role_key: input.roleKey,
+      status: 'accepted',
+      invited_by: input.actorUserId,
+      invited_user_id: user.id,
+      expires_at: expiresAt,
+      accepted_at: now,
+      revoked_at: null,
+      accept_token_hash: tokenHash,
+      temporary_password_issued_at: temporaryPassword ? now : null,
+      temporary_password_expires_at: temporaryPassword ? expiresAt : null,
+      metadata: {
+        invite_source: input.source,
+        access_source: 'direct_temporary_password',
+        force_password_change: Boolean(temporaryPassword),
+        login_ready: true,
+        invite_mail_skipped: true,
+        admin_supplied_temporary_password: Boolean(input.temporaryPassword),
+      },
+    }
 
-    await upsertUserRole({ userId: user.id, roleKey: input.roleKey })
+    const { error: inviteError } = await supabaseService.from('company_invitations').insert(invitationPayload)
+    if (inviteError && !isIgnorableSchemaError(inviteError) && inviteError.code !== '23514') throw inviteError
 
-    await writeAcceptedCompanyInvitationSnapshot({
-      companyId: input.companyId,
-      email,
-      fullName: input.fullName ?? null,
-      membershipRole: input.membershipRole,
-      roleKey: input.roleKey,
-      actorUserId: input.actorUserId,
-      userId: user.id,
-      temporaryPassword,
-      source: input.source,
-    })
+    const roleQuery = await supabaseService.from('roles').select('id,key').eq('key', input.roleKey).maybeSingle()
+    if (roleQuery.error) throw roleQuery.error
+    if (roleQuery.data?.id) {
+      const rolePayload = {
+        user_id: user.id,
+        role_id: roleQuery.data.id,
+        status: 'active',
+        is_active: true,
+      }
+      const roleInsert = await supabaseService.from('user_roles').upsert(rolePayload, {
+        onConflict: 'user_id,role_id',
+      })
 
-    await safeRecordAuthEvent({
+      if (roleInsert.error) {
+        if (roleInsert.error.code === '42703') {
+          const retry = await supabaseService.from('user_roles').upsert(
+            {
+              user_id: user.id,
+              role_id: roleQuery.data.id,
+            },
+            { onConflict: 'user_id,role_id' }
+          )
+          if (retry.error) throw retry.error
+        } else {
+          throw roleInsert.error
+        }
+      }
+    }
+
+    acceptUrl = buildAcceptUrl(token)
+    const emailSent = false
+    const emailError: string | null = null
+
+    await safeRecordAuthEmailEvent({
       userId: user.id,
       email,
       eventType: 'direct_user_created',
@@ -464,13 +312,12 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       actorUserId: input.actorUserId,
       companyId: input.companyId,
       metadata: {
-        companyName,
         membershipRole: input.membershipRole,
         roleKey: input.roleKey,
         temporaryPasswordIssued: Boolean(temporaryPassword),
         existingUser: !createdAuthUserId,
-        directAccountFlow: true,
-        emailSent: false,
+        loginReady: true,
+        inviteMailSkipped: true,
       },
     })
 
@@ -479,13 +326,13 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       email,
       temporaryPassword,
       wasCreated: Boolean(createdAuthUserId),
-      invitationToken: '',
-      acceptUrl: '',
-      emailSent: false,
-      emailError: null,
+      invitationToken: token,
+      acceptUrl,
+      emailSent,
+      emailError,
     }
   } catch (error) {
-    await safeRecordAuthEvent({
+    await safeRecordAuthEmailEvent({
       userId,
       email,
       eventType: 'direct_user_created',
@@ -493,10 +340,11 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       source: input.source,
       actorUserId: input.actorUserId,
       companyId: input.companyId,
-      metadata: { error: errorMessage(error), directAccountFlow: true },
+      metadata: { error: error instanceof Error ? error.message : String(error), loginReady: false },
     })
 
     if (userId) {
+      await supabaseService.from('company_invitations').delete().eq('company_id', input.companyId).eq('invited_user_id', userId)
       await supabaseService.from('company_memberships').delete().eq('company_id', input.companyId).eq('user_id', userId)
     }
 
@@ -506,7 +354,7 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       await supabaseService.auth.admin.deleteUser(createdAuthUserId)
     }
 
-    throw new Error(errorMessage(error, 'Bolagsansvarig eller användare kunde inte skapas/kopplas.'))
+    throw error
   }
 }
 
@@ -520,7 +368,7 @@ export async function getCompanyInvitationByToken(token: string): Promise<Compan
 
   if (error) {
     if (isIgnorableSchemaError(error)) return null
-    throw new Error(errorMessage(error))
+    throw error
   }
 
   if (!data) return null
@@ -553,7 +401,7 @@ export async function acceptCompanyInvitationByToken(token: string) {
     return {
       email,
       companyId: invitation.company_id,
-      companyName: companyNameFromJoin(invitation),
+      companyName: invitation.company_name ?? null,
     }
   }
 
@@ -582,39 +430,38 @@ export async function acceptCompanyInvitationByToken(token: string) {
     })
     .eq('id', invitation.id)
 
-  if (inviteUpdateError) throw new Error(errorMessage(inviteUpdateError))
+  if (inviteUpdateError) throw inviteUpdateError
 
-  await upsertActiveCompanyMembership({
-    companyId: invitation.company_id,
-    userId: authUser.id,
-    email,
-    membershipRole: invitation.membership_role ?? 'member',
-    actorUserId: null,
-    source: 'company_invite_token_accept',
-    temporaryPassword: null,
-  })
+  const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
+    {
+      company_id: invitation.company_id,
+      user_id: authUser.id,
+      membership_role: invitation.membership_role ?? 'member',
+      status: 'active',
+      invited_email: email,
+      accepted_at: now,
+      metadata: {
+        accepted_via: 'company_invite_token',
+        login_ready: true,
+      },
+    },
+    { onConflict: 'company_id,user_id' }
+  )
 
-  if (invitation.role_key) {
-    await upsertUserRole({ userId: authUser.id, roleKey: invitation.role_key })
-  }
+  if (membershipError) throw membershipError
 
-  await safeRecordAuthEvent({
+  await recordAuthEmailEvent({
     userId: authUser.id,
     email,
     eventType: 'company_invitation_accepted',
     status: 'accepted',
-    source: 'company_invite_token_accept',
+    source: 'company_invite_token',
     companyId: invitation.company_id,
-    metadata: {
-      invitationId: invitation.id,
-      membershipRole: invitation.membership_role,
-      roleKey: invitation.role_key,
-    },
   })
 
   return {
     email,
     companyId: invitation.company_id,
-    companyName: companyNameFromJoin(invitation),
+    companyName: invitation.company_name ?? null,
   }
 }

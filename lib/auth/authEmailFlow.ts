@@ -157,7 +157,21 @@ export async function upsertAuthUserProfile(input: {
     onConflict: 'id',
   })
 
-  if (error && !isIgnorableSchemaError(error)) throw error
+  if (!error) return
+
+  if (error.code === '23514' && 'last_auth_email_action' in payload) {
+    delete payload.last_auth_email_action
+    delete payload.last_auth_email_action_at
+
+    const retry = await supabaseService.from('user_profiles').upsert(payload, {
+      onConflict: 'id',
+    })
+
+    if (!retry.error || isIgnorableSchemaError(retry.error)) return
+    throw retry.error
+  }
+
+  if (!isIgnorableSchemaError(error)) throw error
 }
 
 export async function sendPasswordResetEmailForKnownUser(input: {
