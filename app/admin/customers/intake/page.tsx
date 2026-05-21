@@ -95,7 +95,9 @@ export default async function CustomerIntakePage() {
  </h2>
  <div className="mt-4 space-y-3 text-sm text-slate-700 ">
  <p>Servern stoppar ofullständiga kundtyper, flyttflöden och avtalsstatusar innan data sparas.</p>
- <p>Fel visas i arbetsflödet med tydlig information om vad som behöver rättas.</p>
+ <p>Om ett obligatoriskt fält saknas behålls ifyllda uppgifter och exakt fält markeras.</p>
+ <p>Dubbletter kontrolleras inom samma bolag för kund, anläggning och mätpunkt utan att läcka data mellan tenants.</p>
+ <p>Saknade driftuppgifter skapar uppgiftsbegäran och kundärende så kunden kan kompletteras utan omstart.</p>
  <p>Om ett senare steg fallerar rensas skapad kundkedja tillbaka i omvänd ordning.</p>
  <p>Importen använder samma validering som manuellt kundintag och kopplar all data till operativt bolag.</p>
  </div>

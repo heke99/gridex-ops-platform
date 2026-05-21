@@ -19,6 +19,7 @@ type IntakeOffer = {
 
 type Props = {
  offers: IntakeOffer[]
+ values?: Record<string, string | undefined>
 }
 
 function formatContractTypeLabel(value: IntakeOffer['contract_type']): string {
@@ -155,10 +156,20 @@ function syncDynamicForm(customerType: string, flowType: string) {
  syncDynamicLabels('data-label-for-flow', flowType)
 }
 
-export default function CustomerIntakeEnhancer({ offers }: Props) {
+export default function CustomerIntakeEnhancer({ offers, values = {} }: Props) {
  const [selectedOfferId, setSelectedOfferId] = useState('')
  const [flowType, setFlowType] = useState('switch')
  const [customerType, setCustomerType] = useState('private')
+
+
+ useEffect(() => {
+ if (Object.keys(values).length === 0) return
+
+ for (const [name, value] of Object.entries(values)) {
+ if (typeof value !== 'string') continue
+ setFieldValue(name, value)
+ }
+ }, [values])
 
  useEffect(() => {
  const contractSelect = document.querySelector<HTMLSelectElement>(
@@ -252,6 +263,15 @@ export default function CustomerIntakeEnhancer({ offers }: Props) {
  formatOptionalFeeLines(selectedOffer.optional_fee_lines)
  )
  }, [selectedOffer])
+
+ useEffect(() => {
+ if (Object.keys(values).length === 0) return
+
+ for (const [name, value] of Object.entries(values)) {
+ if (typeof value !== 'string') continue
+ setFieldValue(name, value)
+ }
+ }, [selectedOfferId, values])
 
  const intakeSummary = useMemo(() => {
  if (customerType === 'private') {

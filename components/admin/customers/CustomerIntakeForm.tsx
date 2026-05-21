@@ -107,7 +107,7 @@ export default function CustomerIntakeForm({
  <div className="mt-3 grid gap-4 md:grid-cols-2">
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">Kundtyp</span>
- <select name="customerType" defaultValue="private" className={inputClassName(state, 'customerType')}>
+ <select name="customerType" defaultValue={state.values.customerType ?? "private"} className={inputClassName(state, 'customerType')}>
  <option value="private">Privatkund</option>
  <option value="business">Företagskund</option>
  <option value="association">Förening</option>
@@ -117,7 +117,7 @@ export default function CustomerIntakeForm({
 
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">Flöde</span>
- <select name="intakeFlowType" defaultValue="switch" className={inputClassName(state, 'intakeFlowType')}>
+ <select name="intakeFlowType" defaultValue={state.values.intakeFlowType ?? "switch"} className={inputClassName(state, 'intakeFlowType')}>
  <option value="switch">Byte av leverantör</option>
  <option value="move_in">Inflytt / flytt</option>
  <option value="move_out_takeover">Övertag vid utflytt</option>
@@ -253,7 +253,7 @@ export default function CustomerIntakeForm({
 
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">Anläggningstyp</span>
- <select name="siteType" defaultValue="consumption" className={inputClassName(state, 'siteType')}>
+ <select name="siteType" defaultValue={state.values.siteType ?? "consumption"} className={inputClassName(state, 'siteType')}>
  <option value="consumption">Förbrukning</option>
  <option value="production">Produktion</option>
  <option value="mixed">Mixad</option>
@@ -283,7 +283,7 @@ export default function CustomerIntakeForm({
 
  <label className="grid gap-1 text-sm" data-flow-section="switch move_in move_out_takeover">
  <span className="text-slate-700 ">Land</span>
- <input name="country" defaultValue="SE" placeholder="SE" className={inputClassName(state, 'country')} />
+ <input name="country" defaultValue={state.values.country ?? "SE"} placeholder="SE" className={inputClassName(state, 'country')} />
  <FieldError state={state} name="country" />
  </label>
 
@@ -366,7 +366,7 @@ export default function CustomerIntakeForm({
 
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">Avtalsstatus</span>
- <select name="contractStatus" defaultValue="pending_signature" className={inputClassName(state, 'contractStatus')}>
+ <select name="contractStatus" defaultValue={state.values.contractStatus ?? "pending_signature"} className={inputClassName(state, 'contractStatus')}>
  <option value="draft">Förbereds</option>
  <option value="pending_signature">Väntar signering</option>
  <option value="signed">Signerat</option>
@@ -446,7 +446,7 @@ export default function CustomerIntakeForm({
  </div>
  </div>
 
- <CustomerIntakeEnhancer offers={contractOffers} />
+ <CustomerIntakeEnhancer offers={contractOffers} values={state.values} />
 
  <button disabled={isPending} className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60 ">
  {isPending ? 'Skapar kund...' : 'Skapa kund med avtal'}

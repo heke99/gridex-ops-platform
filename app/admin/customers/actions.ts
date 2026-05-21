@@ -12,7 +12,9 @@ import type {
   CustomerImportActionState,
   CustomerImportPreviewRow,
   IntakeActionState,
+  IntakeField,
   IntakeFieldErrors,
+  IntakeFormValues,
 } from './actionState'
 import {
   addCustomerContractEvent,
@@ -108,6 +110,96 @@ class IntakeValidationError extends Error {
     this.name = 'IntakeValidationError'
     this.fieldErrors = fieldErrors
   }
+}
+
+
+const INTAKE_VALUE_FIELDS: IntakeField[] = [
+  'customerType',
+  'intakeFlowType',
+  'firstName',
+  'lastName',
+  'companyName',
+  'contactTitle',
+  'email',
+  'phone',
+  'personalNumber',
+  'orgNumber',
+  'apartmentNumber',
+  'siteName',
+  'facilityId',
+  'meterPointId',
+  'siteType',
+  'gridOwnerId',
+  'priceAreaCode',
+  'moveInDate',
+  'annualConsumptionKwh',
+  'currentSupplierName',
+  'currentSupplierOrgNumber',
+  'street',
+  'postalCode',
+  'city',
+  'careOf',
+  'country',
+  'movedFromStreet',
+  'movedFromPostalCode',
+  'movedFromCity',
+  'movedFromSupplierName',
+  'contractOfferId',
+  'contractStartDate',
+  'contractStatus',
+  'overrideReason',
+  'contractTypeOverride',
+  'fixedPriceOrePerKwh',
+  'spotMarkupOrePerKwh',
+  'variableFeeOrePerKwh',
+  'monthlyFeeSek',
+  'greenFeeMode',
+  'greenFeeValue',
+  'bindingMonths',
+  'noticeMonths',
+  'optionalFeeLines',
+]
+
+function getFormValues(formData: FormData): IntakeFormValues {
+  const values: IntakeFormValues = { country: 'SE' }
+
+  for (const field of INTAKE_VALUE_FIELDS) {
+    const rawValue = formData.get(field)
+    if (typeof rawValue === 'string') {
+      values[field] = rawValue
+    }
+  }
+
+  if (!values.country?.trim()) {
+    values.country = 'SE'
+  }
+
+  return values
+}
+
+function onlyDigits(value: string | null | undefined): string {
+  return (value ?? '').replace(/\D/g, '')
+}
+
+function isSwedishIdentityNumber(value: string | null | undefined): boolean {
+  const digits = onlyDigits(value)
+  return digits.length === 10 || digits.length === 12
+}
+
+function isSwedishOrgNumber(value: string | null | undefined): boolean {
+  const digits = onlyDigits(value)
+  return digits.length === 10 || digits.length === 12
+}
+
+function isSwedishPhone(value: string | null | undefined): boolean {
+  if (!value) return true
+  const compact = value.replace(/[\s().-]/g, '')
+  return /^(\+46|0046|0)\d{7,12}$/.test(compact)
+}
+
+function isSwedishPostalCode(value: string | null | undefined): boolean {
+  if (!value) return true
+  return /^\d{3}\s?\d{2}$/.test(value.trim())
 }
 
 function getString(formData: FormData, key: string): string {
@@ -242,12 +334,19 @@ function validateCreateCustomerParams(
     if (!normalizeOptionalString(params.lastName)) {
       errors.lastName = 'Privatkund kräver efternamn.'
     }
+    if (!normalizeOptionalString(params.personalNumber)) {
+      errors.personalNumber = 'Privatkund kräver personnummer för säkert kundintag.'
+    } else if (!isSwedishIdentityNumber(params.personalNumber)) {
+      errors.personalNumber = 'Personnummer ska anges med 10 eller 12 siffror.'
+    }
   } else {
     if (!normalizeOptionalString(params.companyName)) {
       errors.companyName = 'Företag eller förening kräver namn.'
     }
     if (!normalizeOptionalString(params.orgNumber)) {
       errors.orgNumber = 'Företag eller förening kräver organisationsnummer.'
+    } else if (!isSwedishOrgNumber(params.orgNumber)) {
+      errors.orgNumber = 'Organisationsnummer ska anges med 10 eller 12 siffror.'
     }
     if (!normalizeOptionalString(params.firstName)) {
       errors.firstName = 'Kontaktpersonens förnamn krävs.'
@@ -257,8 +356,20 @@ function validateCreateCustomerParams(
     }
   }
 
+  if (!normalizeOptionalString(params.email) && !normalizeOptionalString(params.phone)) {
+    errors.email = 'Ange e-post eller telefonnummer så kunden kan kontaktas.'
+  }
+
   if (!isEmail(params.email)) {
     errors.email = 'E-postadressen har ogiltigt format.'
+  }
+
+  if (!isSwedishPhone(params.phone)) {
+    errors.phone = 'Telefonnummer ska vara ett svenskt nummer, till exempel 0701234567 eller +46701234567.'
+  }
+
+  if (!isSwedishPostalCode(params.postalCode)) {
+    errors.postalCode = 'Postnummer ska anges som 12345 eller 123 45.'
   }
 
   if (
@@ -722,12 +833,262 @@ async function cleanupCreatedGraph(context: CreationContext) {
   }
 }
 
-function mapUnknownErrorToIntakeState(error: unknown): IntakeActionState {
+
+function databaseObjectMissing(error: unknown): boolean {
+  const maybe = error as { code?: string; message?: string } | null
+  return Boolean(
+    maybe &&
+      (maybe.code === '42P01' ||
+        maybe.code === 'PGRST205' ||
+        /does not exist|schema cache|relation .* does not exist/i.test(maybe.message ?? ''))
+  )
+}
+
+async function maybeSingleExists(
+  table: string,
+  companyId: string,
+  column: string,
+  value: string | null
+): Promise<boolean> {
+  const normalized = normalizeOptionalString(value)
+  if (!normalized) return false
+
+  try {
+    const { data, error } = await supabaseService
+      .from(table)
+      .select('id')
+      .eq('company_id', companyId)
+      .eq(column, normalized)
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      if (databaseObjectMissing(error)) return false
+      throw error
+    }
+
+    return Boolean(data)
+  } catch (error) {
+    if (databaseObjectMissing(error)) return false
+    throw error
+  }
+}
+
+async function findIntakeDuplicates(
+  params: CreateCustomerGraphParams
+): Promise<IntakeFieldErrors> {
+  const errors: IntakeFieldErrors = {}
+
+  const checks = await Promise.all([
+    maybeSingleExists('customers', params.companyId, 'email', params.email),
+    maybeSingleExists('customers', params.companyId, 'personal_number', params.personalNumber),
+    maybeSingleExists('customers', params.companyId, 'org_number', params.orgNumber),
+    maybeSingleExists('customer_sites', params.companyId, 'facility_id', params.facilityId),
+    maybeSingleExists('metering_points', params.companyId, 'meter_point_id', params.meterPointId),
+  ])
+
+  if (checks[0]) {
+    errors.email = 'En kund med denna e-post finns redan i detta bolag.'
+  }
+  if (checks[1]) {
+    errors.personalNumber = 'En kund med detta personnummer finns redan i detta bolag.'
+  }
+  if (checks[2]) {
+    errors.orgNumber = 'En kund med detta organisationsnummer finns redan i detta bolag.'
+  }
+  if (checks[3]) {
+    errors.facilityId = 'Denna anläggning finns redan i detta bolag.'
+  }
+  if (checks[4]) {
+    errors.meterPointId = 'Denna mätpunkt finns redan i detta bolag.'
+  }
+
+  return errors
+}
+
+function buildMissingDataList(params: CreateCustomerGraphParams, switchRequestResult: unknown): string[] {
+  const missing: string[] = []
+
+  if (!normalizeOptionalString(params.facilityId)) missing.push('anläggnings-id')
+  if (!normalizeOptionalString(params.meterPointId)) missing.push('mätpunkts-id')
+  if (!normalizeOptionalString(params.gridOwnerId)) missing.push('nätägare')
+  if (!normalizeOptionalString(params.priceAreaCode)) missing.push('elområde')
+  if (!normalizeOptionalString(params.currentSupplierName)) missing.push('nuvarande elleverantör')
+  if (!normalizeOptionalString(params.contractStartDate)) missing.push('förväntat avtalsstartdatum')
+
+  const maybeSwitch = switchRequestResult as { created?: boolean; reason?: string } | null
+  if (params.intakeFlowType && maybeSwitch && !maybeSwitch.created && maybeSwitch.reason) {
+    missing.push(maybeSwitch.reason.toLowerCase())
+  }
+
+  return Array.from(new Set(missing))
+}
+
+
+function calculateIntakeQualityScore(params: CreateCustomerGraphParams, missingData: string[]): number {
+  let score = 100
+
+  const importantValues = [
+    params.firstName || params.companyName,
+    params.lastName || params.orgNumber,
+    params.email || params.phone,
+    params.facilityId,
+    params.meterPointId,
+    params.gridOwnerId,
+    params.contractOfferId || params.contractTypeOverride,
+    params.contractStartDate,
+  ]
+
+  score -= importantValues.filter((value) => !normalizeOptionalString(value as string | null | undefined)).length * 8
+  score -= missingData.length * 6
+
+  return Math.max(0, Math.min(100, score))
+}
+
+async function updateCustomerIntakeQuality(params: {
+  customerId: string
+  missingData: string[]
+  qualityScore: number
+}) {
+  try {
+    const { error } = await supabaseService
+      .from('customers')
+      .update({
+        intake_status: params.missingData.length > 0 ? 'needs_completion' : 'ready_for_operations',
+        intake_missing_fields: params.missingData,
+        intake_quality_score: params.qualityScore,
+      })
+      .eq('id', params.customerId)
+
+    if (error && !databaseObjectMissing(error) && error.code !== '42703') {
+      console.warn('Customer intake quality could not be updated', error)
+    }
+  } catch (error) {
+    if (!databaseObjectMissing(error)) {
+      console.warn('Customer intake quality could not be updated', error)
+    }
+  }
+}
+
+async function createIntakeFollowUps(params: {
+  companyId: string
+  actorUserId: string
+  customerId: string
+  siteId: string | null
+  meteringPointId: string | null
+  contractId: string | null
+  gridOwnerId: string | null
+  currentSupplierName: string | null
+  missingData: string[]
+}) {
+  if (params.missingData.length === 0) return
+
+  const blockerReason = `Kundintag kräver komplettering: ${params.missingData.join(', ')}.`
+  const requestedCategories = params.missingData.map((value) => ({ key: value }))
+
+  try {
+    const { error: requestError } = await supabaseService
+      .from('customer_info_requests')
+      .insert({
+        company_id: params.companyId,
+        customer_id: params.customerId,
+        site_id: params.siteId,
+        metering_point_id: params.meteringPointId,
+        request_type: 'customer_intake_completion',
+        target_party_type: params.gridOwnerId ? 'grid_owner' : 'customer_or_supplier',
+        target_party_name: params.currentSupplierName,
+        grid_owner_id: params.gridOwnerId,
+        current_supplier_name: params.currentSupplierName,
+        status: 'manual_review_required',
+        requested_data_categories: requestedCategories,
+        blocker_reason: blockerReason,
+        notes: 'Automatiskt skapad från kundintag när obligatoriska driftuppgifter saknades.',
+        created_by: params.actorUserId,
+        updated_by: params.actorUserId,
+      })
+
+    if (requestError && !databaseObjectMissing(requestError)) {
+      console.warn('Customer intake info request could not be created', requestError)
+    }
+  } catch (error) {
+    if (!databaseObjectMissing(error)) {
+      console.warn('Customer intake info request could not be created', error)
+    }
+  }
+
+  try {
+    const { data: createdCase, error: caseError } = await supabaseService
+      .from('customer_cases')
+      .insert({
+        company_id: params.companyId,
+        customer_id: params.customerId,
+        site_id: params.siteId,
+        metering_point_id: params.meteringPointId,
+        customer_contract_id: params.contractId,
+        case_type: params.missingData.some((value) => value.includes('fullmakt'))
+          ? 'missing_authorization'
+          : 'technical_blocker',
+        status: 'action_required',
+        priority: params.missingData.some((value) => value.includes('fullmakt') || value.includes('mätpunkt'))
+          ? 'high'
+          : 'normal',
+        title: 'Kundintag kräver komplettering',
+        description: blockerReason,
+        reason_category: 'customer_intake_missing_data',
+        billing_blocked: params.missingData.some((value) => value.includes('mätpunkt') || value.includes('startdatum')),
+        billing_manual_review: true,
+        source: 'customer_intake',
+        next_action: 'Komplettera saknade uppgifter innan leverantörsbyte eller fakturering går vidare.',
+        metadata: {
+          missingData: params.missingData,
+          createdFrom: 'createCustomerAction',
+        },
+        created_by: params.actorUserId,
+        updated_by: params.actorUserId,
+      })
+      .select('id')
+      .maybeSingle()
+
+    if (caseError) {
+      if (!databaseObjectMissing(caseError)) {
+        console.warn('Customer intake case could not be created', caseError)
+      }
+      return
+    }
+
+    if (createdCase?.id) {
+      const { error: eventError } = await supabaseService.from('customer_case_events').insert({
+        company_id: params.companyId,
+        customer_case_id: createdCase.id,
+        customer_id: params.customerId,
+        event_type: 'created_from_customer_intake',
+        event_status: 'warning',
+        message: blockerReason,
+        payload: { missingData: params.missingData },
+        created_by: params.actorUserId,
+      })
+
+      if (eventError && !databaseObjectMissing(eventError)) {
+        console.warn('Customer intake case event could not be created', eventError)
+      }
+    }
+  } catch (error) {
+    if (!databaseObjectMissing(error)) {
+      console.warn('Customer intake case could not be created', error)
+    }
+  }
+}
+
+function mapUnknownErrorToIntakeState(
+  error: unknown,
+  values: IntakeFormValues = {}
+): IntakeActionState {
   if (error instanceof IntakeValidationError) {
     return {
       status: 'error',
       message: error.message,
       fieldErrors: error.fieldErrors,
+      values,
       createdCustomerId: null,
     }
   }
@@ -749,6 +1110,7 @@ function mapUnknownErrorToIntakeState(error: unknown): IntakeActionState {
         fieldErrors: {
           country: 'Land saknas för anläggningen.',
         },
+        values,
         createdCustomerId: null,
       }
     }
@@ -760,6 +1122,7 @@ function mapUnknownErrorToIntakeState(error: unknown): IntakeActionState {
       maybeDatabaseError?.message ||
       'Kunden kunde inte skapas. Kontrollera fälten och försök igen.',
     fieldErrors: {},
+    values,
     createdCustomerId: null,
   }
 }
@@ -768,6 +1131,11 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
   const fieldErrors = validateCreateCustomerParams(params)
   if (Object.keys(fieldErrors).length > 0) {
     throw createValidationErrorFromFieldErrors(fieldErrors)
+  }
+
+  const duplicateErrors = await findIntakeDuplicates(params)
+  if (Object.keys(duplicateErrors).length > 0) {
+    throw createValidationErrorFromFieldErrors(duplicateErrors)
   }
 
   const normalizedFirstName = normalizeOptionalString(params.firstName)
@@ -1038,6 +1406,27 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         ? (switchRequestResult.requestId ?? null)
         : null
 
+    const missingData = buildMissingDataList(params, switchRequestResult)
+    const intakeQualityScore = calculateIntakeQualityScore(params, missingData)
+
+    await createIntakeFollowUps({
+      companyId: params.companyId,
+      actorUserId: params.actorUserId,
+      customerId: customer.id,
+      siteId,
+      meteringPointId: creationContext.meteringPointId,
+      contractId: creationContext.contractId,
+      gridOwnerId: normalizedGridOwnerId,
+      currentSupplierName: normalizedCurrentSupplierName,
+      missingData,
+    })
+
+    await updateCustomerIntakeQuality({
+      customerId: customer.id,
+      missingData,
+      qualityScore: intakeQualityScore,
+    })
+
     const batch2BAutomationResult = await runBatch2BAutomation({
       companyId: params.companyId,
       actorUserId: params.actorUserId,
@@ -1063,6 +1452,9 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         intakeFlowType: params.intakeFlowType,
         siteId,
         switchRequest: switchRequestResult ?? null,
+        missingData,
+        intakeFollowUpsCreated: missingData.length > 0,
+        intakeQualityScore,
         batch2BAutomation: batch2BAutomationResult,
         transactionReadyMode: 'server_validated_rollback',
       },
@@ -1095,10 +1487,11 @@ export async function createCustomerAction(
       status: 'success',
       message: `Kunden ${customer.customer_number ?? ''} skapades utan valideringsfel.`,
       fieldErrors: {},
+      values: { country: 'SE' },
       createdCustomerId: customer.id,
     }
   } catch (error) {
-    return mapUnknownErrorToIntakeState(error)
+    return mapUnknownErrorToIntakeState(error, getFormValues(formData))
   }
 }
 
@@ -1281,11 +1674,26 @@ function importRowWarnings(row: Record<string, string>): string[] {
   if (customerType === 'private' && (!row.first_name || !row.last_name)) {
     warnings.push('Privatkund bör ha för- och efternamn.')
   }
+  if (customerType === 'private' && !row.personal_number) {
+    warnings.push('Privatkund saknar personnummer.')
+  }
   if (customerType !== 'private' && (!row.company_name || !row.org_number)) {
     warnings.push('Företagskund bör ha bolagsnamn och organisationsnummer.')
   }
   if (!row.email && !row.personal_number && !row.org_number) {
     warnings.push('Saknar tydlig unik kundnyckel för dubblettkontroll.')
+  }
+  if (row.personal_number && !isSwedishIdentityNumber(row.personal_number)) {
+    warnings.push('Personnummer har ovanligt format.')
+  }
+  if (row.org_number && !isSwedishOrgNumber(row.org_number)) {
+    warnings.push('Organisationsnummer har ovanligt format.')
+  }
+  if (row.phone && !isSwedishPhone(row.phone)) {
+    warnings.push('Telefonnummer har ovanligt format.')
+  }
+  if (row.postal_code && !isSwedishPostalCode(row.postal_code)) {
+    warnings.push('Postnummer har ovanligt format.')
   }
   if (!row.facility_id && !row.meter_point_id) {
     warnings.push('Anläggnings-id eller mätpunkts-id saknas.')

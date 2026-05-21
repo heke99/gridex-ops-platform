@@ -46,10 +46,13 @@ export type IntakeField =
 
 export type IntakeFieldErrors = Partial<Record<IntakeField, string>>
 
+export type IntakeFormValues = Partial<Record<IntakeField, string>>
+
 export type IntakeActionState = {
   status: 'idle' | 'success' | 'error'
   message: string | null
   fieldErrors: IntakeFieldErrors
+  values: IntakeFormValues
   createdCustomerId: string | null
 }
 
@@ -57,6 +60,7 @@ export const initialIntakeActionState: IntakeActionState = {
   status: 'idle',
   message: null,
   fieldErrors: {},
+  values: { country: 'SE' },
   createdCustomerId: null,
 }
 export type CustomerImportPreviewRow = {
