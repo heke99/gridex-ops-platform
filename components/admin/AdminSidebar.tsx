@@ -195,6 +195,12 @@ const NAV_GROUPS: NavGroup[] = [
  pageKey: 'operations.ready_to_execute',
  },
  {
+ href: '/admin/operations/automation',
+ label: 'Automationsmotor',
+ description: 'Kund, avtal, mätvärden, blockers och ärenden',
+ pageKey: 'operations.automation',
+ },
+ {
  href: '/admin/outbound',
  label: 'Utskickskö',
  description: 'Extern kommunikation och uppföljning',
@@ -235,6 +241,12 @@ const NAV_GROUPS: NavGroup[] = [
  label: 'Exportcenter',
  description: 'Redo rader, blockerade rader och exporthistorik',
  pageKey: 'billing.export_center',
+ },
+ {
+ href: '/admin/billing/import',
+ label: 'Importera underlag',
+ description: 'Billingfiler, normalisering och importfel',
+ pageKey: 'billing.import',
  },
  {
  href: '/admin/outbound/missing-meter-values',

@@ -33,6 +33,7 @@ export type AdminPageKey =
   | 'operations.sync'
   | 'operations.integrity'
   | 'operations.tasks'
+  | 'operations.automation'
   | 'operations.switches'
   | 'operations.ready_to_execute'
   | 'operations.grid_owner_request_detail'
@@ -47,6 +48,7 @@ export type AdminPageKey =
   | 'metering.workspace'
   | 'billing.workspace'
   | 'billing.export_center'
+  | 'billing.import'
   | 'partner_exports.workspace'
   | 'integrations.routes'
   | 'ediel.workspace'
@@ -132,6 +134,9 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'operations.tasks': {
     anyOf: ['switching.read', 'metering.read', 'billing_underlay.read', 'poa.read'],
   },
+  'operations.automation': {
+    anyOf: ['customers.write', 'switching.write', 'metering.write', 'billing_underlay.export', 'cases.write'],
+  },
   'operations.switches': { anyOf: ['switching.read'] },
   'operations.ready_to_execute': { anyOf: ['switching.read'] },
   'operations.grid_owner_request_detail': {
@@ -158,6 +163,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'metering.workspace': { anyOf: ['metering.read'] },
   'billing.workspace': { anyOf: ['billing_underlay.read'] },
   'billing.export_center': { anyOf: ['billing_underlay.read', 'billing_underlay.export'] },
+  'billing.import': { anyOf: ['billing_underlay.read', 'billing_underlay.export'] },
   'partner_exports.workspace': { anyOf: ['partner_exports.read'] },
   'integrations.routes': {
     anyOf: ['communication.read', 'switching.read', 'metering.read', 'billing_underlay.read'],

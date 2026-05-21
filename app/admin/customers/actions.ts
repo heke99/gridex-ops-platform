@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { runBatch2BAutomation } from '@/lib/operations/batch2bAutomation'
 import { parseCustomerImportFormData } from '@/lib/customers/importParser'
 import type {
   CustomerImportActionState,
@@ -1036,6 +1037,13 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         ? (switchRequestResult.requestId ?? null)
         : null
 
+    const batch2BAutomationResult = await runBatch2BAutomation({
+      companyId: params.companyId,
+      actorUserId: params.actorUserId,
+    }).catch((error) => ({
+      error: error instanceof Error ? error.message : 'Automationsmotorn kunde inte köras efter kundintag.',
+    }))
+
     await insertAuditLog({
       actorUserId: params.actorUserId,
       entityType: 'customer',
@@ -1054,6 +1062,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         intakeFlowType: params.intakeFlowType,
         siteId,
         switchRequest: switchRequestResult ?? null,
+        batch2BAutomation: batch2BAutomationResult,
         transactionReadyMode: 'server_validated_rollback',
       },
     })

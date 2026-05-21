@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 import { listPlatformControlTowerAlerts } from '@/lib/tenant/controlTower'
+import { listBatch2BControlTower } from '@/lib/operations/batch2bAutomation'
 
 export const dynamic = 'force-dynamic'
 
@@ -160,7 +161,7 @@ export default async function AdminControlTowerPage() {
  const scope = await getOperationalCompanyScope(admin.userId)
  const scopeFilters = companyFilter(isPlatformAdmin ? null : scope.companyId)
 
- const [platformAlerts, [
+ const [batch2BRows, platformAlerts, [
  openTasks,
  blockedTasks,
  uploadedPoaDocs,
@@ -175,6 +176,7 @@ export default async function AdminControlTowerPage() {
  cancellationCustomerCases,
  movedCustomers,
  ]] = await Promise.all([
+ listBatch2BControlTower(isPlatformAdmin ? null : scope.companyId),
  isPlatformAdmin ? listPlatformControlTowerAlerts() : Promise.resolve([]),
  Promise.all([
  safeCount(supabase, 'customer_operation_tasks', [...scopeFilters, { column: 'status', op: 'in', value: ['open', 'in_progress'] }]),
@@ -242,6 +244,11 @@ export default async function AdminControlTowerPage() {
  created_at: string | null
  }>(supabase, 'customers', 'id, full_name, company_name, customer_number, status, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, created_at', [...scopeFilters, { column: 'status', op: 'in', value: ['moved', 'terminated'] }], 6),
  ])
+
+ const batch2B = batch2BRows[0] ?? null
+ const batch2BBlockedRows = Number(batch2B?.blocked_export_rows ?? 0)
+ const batch2BOpenOutbound = Number(batch2B?.open_outbound_count ?? 0)
+ const batch2BFailedImports = Number(batch2B?.failed_import_rows ?? 0)
 
  const queueRows: QueueRow[] = [
  ...taskRows.map((task) => ({
@@ -347,10 +354,15 @@ export default async function AdminControlTowerPage() {
  )}
 
  <section className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-5 text-sm leading-6 text-emerald-950 shadow-sm">
+ <div className="flex flex-wrap items-center justify-between gap-3">
+ <div>
  <h2 className="text-base font-semibold">Operationsprincip</h2>
  <p className="mt-2 max-w-5xl">
- Control Tower ska visa vad som stoppar flödet. Verkliga kunder ska inte raderas när de flyttar; de ska mjukt avslutas så att Ediel-historik, fullmakter, mätvärden, avtal och slutdebitering kan följas upp.
+ Control Tower ska visa vad som stoppar flödet. Verkliga kunder ska inte raderas när de flyttar; de ska mjukt avslutas så att Ediel-historik, fullmakter, mätvärden, avtal och slutdebitering kan följas upp. Batch 2B lägger även live-drift, importfel och exportradsblockerare i samma vy.
  </p>
+ </div>
+ <Link href="/admin/operations/automation" className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Öppna automationsmotor</Link>
+ </div>
  </section>
 
  <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -366,6 +378,9 @@ export default async function AdminControlTowerPage() {
  <KpiCard label="Kundärenden" value={openCustomerCases} description="Ånger, nekade kunder och ärenden som stoppar kundflödet." href="/admin/customer-cases" tone={openCustomerCases > 0 ? 'warning' : 'success'} />
  <KpiCard label="Ånger/annullering" value={cancellationCustomerCases} description="Ärenden där annullering eller kvittenskedja måste följas upp." href="/admin/customer-cases?type=withdrawal" tone={cancellationCustomerCases > 0 ? 'danger' : 'success'} />
  <KpiCard label="Faktureringsstopp" value={billingBlockedCases} description="Kunder där fakturering ska hållas blockerad tills ärendet är hanterat." href="/admin/customer-cases?status=billing_blocked" tone={billingBlockedCases > 0 ? 'danger' : 'success'} />
+ <KpiCard label="Blockerade exportrader" value={batch2BBlockedRows} description="Enskilda export-/underlagsrader som blockeras utan att stoppa hela perioden." href="/admin/billing/export-center" tone={batch2BBlockedRows > 0 ? 'danger' : 'success'} />
+ <KpiCard label="Live outbound" value={batch2BOpenOutbound} description="Köade, förberedda eller felande utskick i live-drift." href="/admin/outbound" tone={batch2BOpenOutbound > 0 ? 'warning' : 'success'} />
+ <KpiCard label="Importfel" value={batch2BFailedImports} description="Rader från billing/import som behöver rättas innan export." href="/admin/billing/import" tone={batch2BFailedImports > 0 ? 'danger' : 'success'} />
  <KpiCard label="Flyttade/avslutade" value={movedCustomers} description="Kunder som är mjukt stängda och ska slutuppföljas." href="/admin/customers?status=moved" tone="neutral" />
  </section>
 
