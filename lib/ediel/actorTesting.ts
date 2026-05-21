@@ -37,6 +37,9 @@ export type ActorTestResultRow = {
   failure_reason: string | null
   portal_status: string | null
   raw_payload: string | null
+  contrl_message_id?: string | null
+  aperak_message_id?: string | null
+  utilts_err_message_id?: string | null
   evidence: Record<string, unknown> | null
   ediel_test_run_id: string | null
   created_at: string | null
@@ -103,6 +106,7 @@ export type ActorTestingSummary = {
   hasVerifiedMailbox: boolean
   missingSetup: string[]
   goLiveBlockers: string[]
+  routeValidationIssues: string[]
   actorTestStatus: 'not_ready' | 'ready_for_tests' | 'in_progress' | 'approved' | 'blocked'
   productionReadiness: 'not_ready' | 'ready' | 'live' | 'blocked'
 }
@@ -390,6 +394,119 @@ async function countEnabledRoutes(companyId: string, environment: 'test' | 'prod
   ])
 }
 
+
+type RouteProfileLite = {
+  id: string
+  communication_route_id: string | null
+  is_enabled: boolean | null
+  sender_ediel_id: string | null
+  sender_sub_address: string | null
+  receiver_ediel_id: string | null
+  receiver_sub_address: string | null
+  application_reference: string | null
+  mailbox: string | null
+  environment: string | null
+  message_standard: string | null
+  payload_format: string | null
+  encryption_mode: string | null
+}
+
+async function listRouteProfilesForCompany(companyId: string, environment: 'test' | 'production'): Promise<RouteProfileLite[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from('ediel_route_profiles')
+      .select('id,communication_route_id,is_enabled,sender_ediel_id,sender_sub_address,receiver_ediel_id,receiver_sub_address,application_reference,mailbox,environment,message_standard,payload_format,encryption_mode')
+      .eq('company_id', companyId)
+      .eq('environment', environment)
+      .order('updated_at', { ascending: false })
+
+    if (error) {
+      if (isMissingRelationError(error)) return []
+      throw error
+    }
+
+    return (data ?? []) as unknown as RouteProfileLite[]
+  } catch (error) {
+    if (isMissingRelationError(error)) return []
+    throw error
+  }
+}
+
+function normalizeToken(value: string | null | undefined): string {
+  return String(value ?? '').trim().toUpperCase()
+}
+
+async function getDeepRouteValidationIssues(company: ActorTestingCompanyRow): Promise<string[]> {
+  const issues: string[] = []
+  const [testProfiles, productionProfiles] = await Promise.all([
+    listRouteProfilesForCompany(company.id, 'test'),
+    listRouteProfilesForCompany(company.id, 'production'),
+  ])
+
+  const testEdielId = normalizeToken(company.test_ediel_id ?? company.ediel_id)
+  const productionEdielId = normalizeToken(company.production_ediel_id ?? company.ediel_id)
+  const testApplicationReference = normalizeToken(company.test_application_reference)
+  const productionApplicationReference = normalizeToken(company.production_application_reference)
+  const testCounterparty = normalizeToken(company.test_counterparty_ediel_id)
+  const productionCounterparty = normalizeToken(company.production_counterparty_ediel_id)
+  const testMailbox = normalizeToken(company.test_mailbox ?? company.ediel_mailbox)
+  const productionMailbox = normalizeToken(company.production_mailbox ?? company.ediel_mailbox)
+
+  if (testProfiles.length === 0) {
+    issues.push('Djup route-kontroll: test-routeprofil saknas')
+  }
+  if (productionProfiles.length === 0) {
+    issues.push('Djup route-kontroll: produktionsrouteprofil saknas')
+  }
+
+  for (const profile of testProfiles) {
+    if (!profile.is_enabled) issues.push('Djup route-kontroll: test-routeprofil är avstängd')
+    if (normalizeToken(profile.environment) !== 'TEST') issues.push('Djup route-kontroll: test-routeprofil har inte environment=test')
+    if (testEdielId && normalizeToken(profile.sender_ediel_id) && normalizeToken(profile.sender_ediel_id) !== testEdielId) {
+      issues.push(`Djup route-kontroll: test-route sender ${profile.sender_ediel_id} matchar inte bolagets test Ediel-id ${testEdielId}`)
+    }
+    if (normalizeToken(profile.receiver_ediel_id) && normalizeToken(profile.receiver_ediel_id) !== '91100' && testCounterparty === '91100') {
+      issues.push('Djup route-kontroll: AGT-test-route ska peka mot Edielportalen 91100')
+    }
+  }
+
+  for (const profile of productionProfiles) {
+    if (!profile.is_enabled) issues.push('Djup route-kontroll: produktionsrouteprofil är avstängd')
+    if (normalizeToken(profile.environment) !== 'PRODUCTION') issues.push('Djup route-kontroll: produktionsrouteprofil har inte environment=production')
+    if (productionEdielId && normalizeToken(profile.sender_ediel_id) && normalizeToken(profile.sender_ediel_id) !== productionEdielId) {
+      issues.push(`Djup route-kontroll: produktionsroute sender ${profile.sender_ediel_id} matchar inte bolagets produktions Ediel-id ${productionEdielId}`)
+    }
+    if (normalizeToken(profile.receiver_ediel_id) === '91100' || productionCounterparty === '91100') {
+      issues.push('Djup route-kontroll: produktionsroute får inte peka mot Edielportalen 91100')
+    }
+    if (!normalizeToken(profile.receiver_ediel_id) && !productionCounterparty) {
+      issues.push('Djup route-kontroll: produktionsroute saknar mottagande Ediel-id')
+    }
+    if (!normalizeToken(profile.application_reference) && !productionApplicationReference) {
+      issues.push('Djup route-kontroll: produktionsroute saknar Application Reference')
+    }
+    if (!normalizeToken(profile.mailbox) && !productionMailbox) {
+      issues.push('Djup route-kontroll: produktionsroute saknar mailbox/SMTP')
+    }
+  }
+
+  const testRouteIds = new Set(testProfiles.map((profile) => profile.communication_route_id).filter(Boolean))
+  const reusedRoute = productionProfiles.some((profile) => profile.communication_route_id && testRouteIds.has(profile.communication_route_id))
+  if (reusedRoute) issues.push('Djup route-kontroll: samma communication_route används för test och produktion')
+
+  if (testApplicationReference && productionApplicationReference && testApplicationReference === productionApplicationReference) {
+    issues.push('Djup route-kontroll: test och produktion får inte dela Application Reference')
+  }
+  if (testCounterparty && productionCounterparty && testCounterparty === productionCounterparty) {
+    issues.push('Djup route-kontroll: test och produktion har samma motpart')
+  }
+  if (testMailbox && productionMailbox && testMailbox === productionMailbox && productionCounterparty !== '91100') {
+    issues.push('Djup route-kontroll: test och produktion delar mailbox; verifiera separat produktionsmailbox innan live')
+  }
+
+  return Array.from(new Set(issues))
+}
+
 function missingSetupForCompany(company: ActorTestingCompanyRow, hasActiveActorProfile: boolean, hasTestRoute: boolean): string[] {
   const missing: string[] = []
   if (!nonEmpty(company.org_number)) missing.push('Orgnummer saknas')
@@ -413,6 +530,7 @@ function goLiveBlockersForCompany(params: {
   prodatTotal: number
   utiltsPassed: number
   utiltsTotal: number
+  routeValidationIssues?: string[]
 }): string[] {
   const { company } = params
   const blockers: string[] = []
@@ -432,6 +550,7 @@ function goLiveBlockersForCompany(params: {
   if (!nonEmpty(company.production_mailbox ?? company.ediel_mailbox)) blockers.push('Produktionsmailbox saknas')
   if (!nonEmpty(company.production_application_reference)) blockers.push('Produktions Application Reference saknas')
   if (!nonEmpty(company.production_counterparty_ediel_id)) blockers.push('Produktionsmotpart saknas')
+  for (const issue of params.routeValidationIssues ?? []) blockers.push(issue)
 
   const testEdiel = company.test_ediel_id ?? company.ediel_id
   const productionEdiel = company.production_ediel_id ?? company.ediel_id
@@ -462,6 +581,7 @@ async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestR
   const hasProductionRoute = productionRoutes > 0
   const hasVerifiedMailbox = nonEmpty(company.production_mailbox ?? company.ediel_mailbox)
   const missingSetup = missingSetupForCompany(company, hasActiveActorProfile, hasTestRoute)
+  const routeValidationIssues = await getDeepRouteValidationIssues(company)
   const goLiveBlockers = goLiveBlockersForCompany({
     company,
     hasActiveActorProfile,
@@ -471,6 +591,7 @@ async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestR
     prodatTotal: PRODAT_TESTS.length,
     utiltsPassed,
     utiltsTotal: UTILTS_TESTS.length,
+    routeValidationIssues,
   })
 
   const actorTestStatus: ActorTestingSummary['actorTestStatus'] =
@@ -510,6 +631,7 @@ async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestR
     hasVerifiedMailbox,
     missingSetup,
     goLiveBlockers,
+    routeValidationIssues,
     actorTestStatus,
     productionReadiness,
   }

@@ -27,7 +27,12 @@ export default async function EvidencePage({ params }: { params: Promise<{ compa
     <div className="min-h-screen">
       <AdminHeader title={`Bevispaket · ${summary.company.name}`} subtitle="Underlag för aktörstest, portalstatus, payload och audit. Export kan tas från tabellen eller rå payload per rad." userEmail={admin.email} workspaceMode="platform" />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
-        <Link href={`/admin/platform/actor-testing/${summary.company.id}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tillbaka till bolagskort</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/admin/platform/actor-testing/${summary.company.id}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tillbaka till bolagskort</Link>
+          <Link href={`/admin/platform/actor-testing/${summary.company.id}/evidence/pdf`} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Ladda ner PDF</Link>
+          <Link href={`/admin/platform/actor-testing/${summary.company.id}/evidence/csv`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Ladda ner CSV</Link>
+          <Link href={`/admin/platform/actor-testing/${summary.company.id}/evidence/raw`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Rå JSON/payload</Link>
+        </div>
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-3 md:grid-cols-4">
             <Info label="Bolag" value={summary.company.name} />

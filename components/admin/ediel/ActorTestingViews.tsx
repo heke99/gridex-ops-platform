@@ -13,8 +13,10 @@ import {
 import {
   activateLiveEdielAction,
   prepareProductionAction,
+  saveActorProfileAction,
   saveActorTestResultAction,
   startActorTestAction,
+  syncActorTestsAction,
 } from '@/app/admin/platform/actor-testing/actions'
 
 function formatDate(value: string | null | undefined) {
@@ -179,6 +181,18 @@ export function ActorTestPackageCards({ summary, readonly = false }: { summary: 
 
   return (
     <section className="space-y-5">
+      {!readonly ? (
+        <form action={syncActorTestsAction} className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+          <input type="hidden" name="company_id" value={summary.company.id} />
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-emerald-950">Synka från verkliga Ediel-meddelanden</h2>
+              <p className="mt-1 text-sm leading-6 text-emerald-800">Läser inbound/outbound, kopplar CONTRL, APERAK och UTILTS_ERR till rätt testfall och uppdaterar bevispaketet.</p>
+            </div>
+            <button className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-800">Synka testmotor</button>
+          </div>
+        </form>
+      ) : null}
       {groupActorTestsByPackage().map((group) => (
         <div key={group.key} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -217,7 +231,7 @@ export function ActorTestPackageCards({ summary, readonly = false }: { summary: 
                       <form action={startActorTestAction}>
                         <input type="hidden" name="company_id" value={summary.company.id} />
                         <input type="hidden" name="test_key" value={testCase.key} />
-                        <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Starta / kör om</button>
+                        <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Kör automatiskt</button>
                       </form>
 
                       <form action={saveActorTestResultAction} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3">
@@ -259,6 +273,83 @@ export function ActorTestPackageCards({ summary, readonly = false }: { summary: 
         </div>
       ))}
     </section>
+  )
+}
+
+
+export function ActorProfileGuide({ summary }: { summary: ActorTestingSummary }) {
+  const c = summary.company
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-950">Aktörsprofil och test-/produktionsmiljö</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-700">Fyll i tenantens egna identiteter. Dessa värden används av AGT-motorn och go-live-spärrarna, inte Div3rsa eller global testdata.</p>
+      </div>
+      <form action={saveActorProfileAction} className="mt-5 grid gap-4">
+        <input type="hidden" name="company_id" value={c.id} />
+        <div className="grid gap-3 md:grid-cols-3">
+          <TextInput label="Orgnummer" name="org_number" value={c.org_number} />
+          <TextInput label="Marknadsroll" name="market_role" value={c.market_role ?? c.actor_role} />
+          <TextInput label="Actor role" name="actor_role" value={c.actor_role ?? c.market_role} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <TextInput label="Ediel-id bas" name="ediel_id" value={c.ediel_id} />
+          <TextInput label="Test Ediel-id" name="test_ediel_id" value={c.test_ediel_id ?? c.ediel_id} />
+          <TextInput label="Produktions Ediel-id" name="production_ediel_id" value={c.production_ediel_id ?? c.ediel_id} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <TextInput label="Test sender subaddress" name="test_sender_sub_address" value={c.test_sender_sub_address ?? c.sender_sub_address} />
+          <TextInput label="Produktion sender subaddress" name="production_sender_sub_address" value={c.production_sender_sub_address} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <TextInput label="Test mailbox/SMTP" name="test_mailbox" value={c.test_mailbox ?? c.ediel_mailbox} />
+          <TextInput label="Produktions mailbox/SMTP" name="production_mailbox" value={c.production_mailbox ?? c.ediel_mailbox} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <TextInput label="Test Application Reference" name="test_application_reference" value={c.test_application_reference} />
+          <TextInput label="Produktions Application Reference" name="production_application_reference" value={c.production_application_reference} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <TextInput label="Test motpart Ediel-id" name="test_counterparty_ediel_id" value={c.test_counterparty_ediel_id} />
+          <TextInput label="Produktionsmotpart Ediel-id" name="production_counterparty_ediel_id" value={c.production_counterparty_ediel_id} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          <TextInput label="BRP namn" name="brp_name" value={c.brp_name} />
+          <TextInput label="BRP Ediel-id" name="brp_ediel_id" value={c.brp_ediel_id} />
+          <SelectInput label="BRP-status" name="brp_status" value={c.brp_status} options={[['missing', 'Saknas'], ['pending', 'Väntar'], ['active', 'Aktiv']]} />
+          <SelectInput label="eSett-status" name="esett_status" value={c.esett_status} options={[['missing', 'Saknas'], ['pending', 'Väntar'], ['ready', 'Klar']]} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <TextInput label="Teknisk kontakt namn" name="technical_contact_name" value={c.technical_contact_name} />
+          <TextInput label="Teknisk kontakt email" name="technical_contact_email" value={c.technical_contact_email ?? c.primary_contact_email} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <TextInput label="Supportmail" name="support_email" value={c.support_email} />
+          <TextInput label="Fakturamail" name="billing_contact_email" value={c.billing_contact_email} />
+        </div>
+        <button className="w-fit rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">Spara aktörsprofil</button>
+      </form>
+    </section>
+  )
+}
+
+function TextInput({ label, name, value }: { label: string; name: string; value?: string | null }) {
+  return (
+    <label className="grid gap-1 text-xs font-semibold text-slate-700">
+      {label}
+      <input name={name} defaultValue={value ?? ''} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950" />
+    </label>
+  )
+}
+
+function SelectInput({ label, name, value, options }: { label: string; name: string; value?: string | null; options: Array<[string, string]> }) {
+  return (
+    <label className="grid gap-1 text-xs font-semibold text-slate-700">
+      {label}
+      <select name={name} defaultValue={value ?? options[0]?.[0]} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950">
+        {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
+      </select>
+    </label>
   )
 }
 
@@ -306,6 +397,15 @@ export function GoLiveChecklist({ summary, canActivateLive }: { summary: ActorTe
           <h3 className="font-semibold text-red-950">Live-spärrar</h3>
           <ul className="mt-2 space-y-1 text-sm leading-6 text-red-800">
             {summary.goLiveBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}
+          </ul>
+        </div>
+      ) : null}
+
+      {summary.routeValidationIssues.length > 0 ? (
+        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h3 className="font-semibold text-amber-950">Djup route-validering</h3>
+          <ul className="mt-2 space-y-1 text-sm leading-6 text-amber-900">
+            {summary.routeValidationIssues.map((issue) => <li key={issue}>{issue}</li>)}
           </ul>
         </div>
       ) : null}
@@ -358,7 +458,11 @@ export function EvidencePackage({
           <p className="mt-1 text-sm text-slate-700">Audit-underlag per testfall med payload, portalstatus och kvittensreferenser där de finns.</p>
         </div>
         {showEvidenceLink ? (
-          <Link href={`${basePath}/${summary.company.id}/evidence`} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Öppna bevisvy</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`${basePath}/${summary.company.id}/evidence/pdf`} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Ladda ner PDF</Link>
+            <Link href={`${basePath}/${summary.company.id}/evidence/csv`} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Ladda ner CSV</Link>
+            <Link href={`${basePath}/${summary.company.id}/evidence/raw`} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Rå payload/JSON</Link>
+          </div>
         ) : null}
       </div>
 

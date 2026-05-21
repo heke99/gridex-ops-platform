@@ -123,6 +123,7 @@ import {
 } from "@/lib/ediel/agtEngine";
 import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustomer";
 import { getEdielAgtSupplierRuntime } from "@/lib/ediel/agtRuntime";
+import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 import { createSafeMasterdataProposalForMessage } from "@/lib/ediel/operationalVerification";
 import {
   approveSafeMasterdataChanges,
@@ -1323,6 +1324,28 @@ export async function registerEdielFileAction(formData: FormData) {
       edielMessage: createdMessage,
       explicitTestCaseCode: formString(formData.get("agtTestCaseCode")),
     });
+
+    if (mode === "agt") {
+      await syncActorTestingForMessage({
+        actorUserId: context.userId,
+        edielMessage: createdMessage,
+        explicitTestCaseCode: formString(formData.get("agtTestCaseCode")),
+        autoRespond: true,
+        autoSend: true,
+      }).catch(async (error) => {
+        await createEdielMessageEvent({
+          actorUserId: context.userId,
+          edielMessageId: createdMessage.id,
+          eventType: "manual_note",
+          eventStatus: "warning",
+          message: "Aktörstest-synk kunde inte slutföras automatiskt.",
+          payload: {
+            actorTesting: true,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
+      });
+    }
   }
 
   await revalidateRelatedMessage(message.id);

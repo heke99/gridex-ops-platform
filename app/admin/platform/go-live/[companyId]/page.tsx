@@ -2,7 +2,8 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getActorTestingSummary } from '@/lib/ediel/actorTesting'
-import { ActorCompanyIdentityCard, EvidencePackage, GoLiveChecklist } from '@/components/admin/ediel/ActorTestingViews'
+import { ActorCompanyIdentityCard,
+  ActorProfileGuide, EvidencePackage, GoLiveChecklist } from '@/components/admin/ediel/ActorTestingViews'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,7 @@ export default async function PlatformGoLiveCompanyPage({ params }: { params: Pr
           <Link href={`/admin/platform/actor-testing/${summary.company.id}`} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Aktörstester</Link>
         </div>
         <ActorCompanyIdentityCard summary={summary} />
+        <ActorProfileGuide summary={summary} />
         <GoLiveChecklist summary={summary} canActivateLive />
         <EvidencePackage summary={summary} />
       </div>

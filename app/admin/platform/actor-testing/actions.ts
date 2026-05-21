@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { createEdielTestRun, updateEdielTestRunStatus } from '@/lib/ediel/db'
+import { updateEdielTestRunStatus } from '@/lib/ediel/db'
 import {
   buildActorTestResultEvidence,
   getActorTestingSummary,
@@ -13,6 +13,7 @@ import {
   type ActorTestStatus,
 } from '@/lib/ediel/actorTesting'
 import { logTenantGovernanceEvent } from '@/lib/tenant/governance'
+import { runActorTestAutomation, syncAllActorTestsForCompany } from '@/lib/ediel/actorTestingEngine'
 
 function readRequiredString(formData: FormData, key: string): string {
   const value = String(formData.get(key) ?? '').trim()
@@ -53,69 +54,83 @@ export async function startActorTestAction(formData: FormData) {
   if (!testCase) throw new Error('Okänt aktörstest.')
 
   const admin = await requireActorTestingWriteAccess(companyId)
-  const now = new Date().toISOString()
 
-  const run = await createEdielTestRun({
-    actorUserId: admin.userId,
-    companyId,
-    approvalVersion: 'AGT-2026A',
-    roleCode: 'supplier',
-    testSuite: testCase.suite,
-    testCaseCode: testCase.key,
-    title: testCase.label,
-    status: 'running',
-    startedAt: now,
-    notes: JSON.stringify({
-      actorTestingModule: true,
-      testId: testCase.testId,
-      messageFamily: testCase.messageFamily,
-      messageCode: testCase.messageCode,
-      direction: testCase.direction,
-    }),
-  })
-
-  const { error } = await supabaseService.from('actor_test_results').upsert(
-    {
-      company_id: companyId,
-      test_key: testCase.key,
-      test_name: testCase.label,
-      test_id: testCase.testId,
-      package_key: testCase.packageKey,
-      message_family: testCase.messageFamily,
-      message_code: testCase.messageCode,
-      direction: testCase.direction,
-      status: 'running',
-      latest_run_at: now,
-      failure_reason: null,
-      portal_status: null,
-      ediel_test_run_id: run.id,
-      evidence: buildActorTestResultEvidence({
-        testCase,
-        status: 'running',
-        actorUserId: admin.userId,
-      }),
-      created_by: admin.userId,
-      updated_by: admin.userId,
-      updated_at: now,
-    },
-    { onConflict: 'company_id,test_key' }
-  )
-
-  if (error) throw error
-
-  await logTenantGovernanceEvent({
-    action: 'SUPERADMIN_COMPANY_REACTIVATED',
-    actorUserId: admin.userId,
-    companyId,
-    reason: `Aktörstest startat: ${testCase.label}`,
-    metadata: {
-      actorTesting: true,
-      action: 'ACTOR_TEST_STARTED',
+  try {
+    const result = await runActorTestAutomation({
+      actorUserId: admin.userId,
+      companyId,
       testKey: testCase.key,
-      testId: testCase.testId,
-      edielTestRunId: run.id,
-    },
-  })
+      autoSend: true,
+    })
+
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_COMPANY_REACTIVATED',
+      actorUserId: admin.userId,
+      companyId,
+      reason: `Automatiserat aktörstest kördes: ${testCase.label}`,
+      metadata: {
+        actorTesting: true,
+        action: 'ACTOR_TEST_AUTOMATION_RAN',
+        testKey: testCase.key,
+        testId: testCase.testId,
+        edielTestRunId: result.testRun.id,
+        outboundMessageId: result.outboundMessage?.id ?? null,
+        createdAckMessageIds: result.createdAckMessages.map((message) => message.id),
+        syncedStatus: result.syncedStatus,
+        note: result.note,
+      },
+    })
+  } catch (error) {
+    const now = new Date().toISOString()
+    const message = error instanceof Error ? error.message : 'Aktörstestet kunde inte köras automatiskt.'
+
+    const { error: resultError } = await supabaseService.from('actor_test_results').upsert(
+      {
+        company_id: companyId,
+        test_key: testCase.key,
+        test_name: testCase.label,
+        test_id: testCase.testId,
+        package_key: testCase.packageKey,
+        message_family: testCase.messageFamily,
+        message_code: testCase.messageCode,
+        direction: testCase.direction,
+        status: 'blocked',
+        latest_run_at: now,
+        failure_reason: message,
+        portal_status: 'Automatiserad körning stoppades före komplett beviskedja.',
+        evidence: buildActorTestResultEvidence({
+          testCase,
+          status: 'blocked',
+          portalStatus: 'Automatiserad körning stoppades före komplett beviskedja.',
+          failureReason: message,
+          actorUserId: admin.userId,
+        }),
+        created_by: admin.userId,
+        updated_by: admin.userId,
+        updated_at: now,
+      },
+      { onConflict: 'company_id,test_key' }
+    )
+
+    if (resultError) throw resultError
+
+    await logTenantGovernanceEvent({
+      action: 'SUPERADMIN_COMPANY_PAUSED',
+      actorUserId: admin.userId,
+      companyId,
+      reason: `Automatiserat aktörstest blockerades: ${testCase.label}`,
+      metadata: {
+        actorTesting: true,
+        action: 'ACTOR_TEST_AUTOMATION_BLOCKED',
+        testKey: testCase.key,
+        testId: testCase.testId,
+        failureReason: message,
+      },
+    })
+
+    revalidateActorTestingViews(companyId)
+    throw error
+  }
 
   revalidateActorTestingViews(companyId)
 }
@@ -195,6 +210,87 @@ export async function saveActorTestResultAction(formData: FormData) {
       status,
       portalStatus,
       failureReason,
+    },
+  })
+
+  revalidateActorTestingViews(companyId)
+}
+
+
+export async function syncActorTestsAction(formData: FormData) {
+  const companyId = readRequiredString(formData, 'company_id')
+  const admin = await requireActorTestingWriteAccess(companyId)
+
+  const synced = await syncAllActorTestsForCompany({
+    actorUserId: admin.userId,
+    companyId,
+    autoRespond: true,
+    autoSend: true,
+  })
+
+  await logTenantGovernanceEvent({
+    action: 'SUPERADMIN_COMPANY_REACTIVATED',
+    actorUserId: admin.userId,
+    companyId,
+    reason: 'Aktörstestresultat synkades från verkliga Ediel-meddelanden.',
+    metadata: {
+      actorTesting: true,
+      action: 'ACTOR_TESTS_SYNCED_FROM_EDIEL_MESSAGES',
+      synced,
+    },
+  })
+
+  revalidateActorTestingViews(companyId)
+}
+
+export async function saveActorProfileAction(formData: FormData) {
+  const companyId = readRequiredString(formData, 'company_id')
+  const admin = await requireActorTestingWriteAccess(companyId)
+
+  const read = (key: string) => {
+    const value = String(formData.get(key) ?? '').trim()
+    return value.length > 0 ? value : null
+  }
+
+  const { error } = await supabaseService
+    .from('companies')
+    .update({
+      org_number: read('org_number'),
+      market_role: read('market_role'),
+      actor_role: read('actor_role'),
+      ediel_id: read('ediel_id'),
+      test_ediel_id: read('test_ediel_id'),
+      production_ediel_id: read('production_ediel_id'),
+      test_sender_sub_address: read('test_sender_sub_address'),
+      production_sender_sub_address: read('production_sender_sub_address'),
+      test_mailbox: read('test_mailbox'),
+      production_mailbox: read('production_mailbox'),
+      test_application_reference: read('test_application_reference'),
+      production_application_reference: read('production_application_reference'),
+      test_counterparty_ediel_id: read('test_counterparty_ediel_id'),
+      production_counterparty_ediel_id: read('production_counterparty_ediel_id'),
+      brp_name: read('brp_name'),
+      brp_ediel_id: read('brp_ediel_id'),
+      brp_status: read('brp_status') ?? 'missing',
+      esett_status: read('esett_status') ?? 'missing',
+      technical_contact_name: read('technical_contact_name'),
+      technical_contact_email: read('technical_contact_email'),
+      support_email: read('support_email'),
+      billing_contact_email: read('billing_contact_email'),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', companyId)
+
+  if (error) throw error
+
+  await logTenantGovernanceEvent({
+    action: 'SUPERADMIN_COMPANY_REACTIVATED',
+    actorUserId: admin.userId,
+    companyId,
+    reason: 'Aktörsprofil uppdaterad inför aktörstest/produktion.',
+    metadata: {
+      actorTesting: true,
+      action: 'ACTOR_PROFILE_UPDATED',
     },
   })
 

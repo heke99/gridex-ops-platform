@@ -41,6 +41,7 @@ import { pollEdielMailboxViaImap } from '@/lib/ediel/transport'
 import { registerEdielFile } from '@/lib/ediel/fileEngine'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
 import { sendQueuedEdielMessage } from '@/lib/ediel/orchestrator'
+import { syncActorTestingForMessage } from '@/lib/ediel/actorTestingEngine'
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key)
@@ -750,6 +751,14 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
     message,
   })
 
+  await syncActorTestingForMessage({
+    actorUserId,
+    edielMessage: message,
+    explicitTestCaseCode: testCase.testCaseCode,
+    autoRespond: true,
+    autoSend: true,
+  }).catch(() => null)
+
   revalidateAgt()
   redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
 }
@@ -788,6 +797,14 @@ export async function attachAgtInboundAndCreateResponsesAction(formData: FormDat
     testCase,
     message,
   })
+
+  await syncActorTestingForMessage({
+    actorUserId,
+    edielMessage: message,
+    explicitTestCaseCode: testCase.testCaseCode,
+    autoRespond: true,
+    autoSend: true,
+  }).catch(() => null)
 
   revalidateAgt()
   redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)

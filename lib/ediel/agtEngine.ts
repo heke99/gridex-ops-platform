@@ -155,18 +155,20 @@ function agtTransactionReference(definition: EdielAgtTestCaseDefinition): string
 async function resolveAgtActorRuntime(params?: {
   actorName?: string | null
   actorEdielId?: string | null
+  companyId?: string | null
+  balanceResponsibleEdielId?: string | null
 }): Promise<EdielAgtActorRuntime> {
   const explicitActorEdielId = trimOrNull(params?.actorEdielId)
   const explicitActorName = trimOrNull(params?.actorName)
   const [actor, agtRuntime] = await Promise.all([
     resolveCanonicalActorContext('test').catch(() => null),
-    getEdielAgtSupplierRuntime().catch(() => null),
+    getEdielAgtSupplierRuntime(params?.companyId ?? null).catch(() => null),
   ])
   const activeActor = agtRuntime?.actor ?? actor?.actor ?? null
   const agtNotes = parseAgtActorNotes(activeActor?.notes ?? null)
 
-  const actorEdielId = explicitActorEdielId ?? actor?.senderEdielId ?? activeActor?.actor_ediel_id ?? ''
-  const actorName = explicitActorName ?? actor?.senderName ?? activeActor?.sender_name ?? activeActor?.actor_name ?? 'Leverantör'
+  const actorEdielId = explicitActorEdielId ?? activeActor?.actor_ediel_id ?? actor?.senderEdielId ?? ''
+  const actorName = explicitActorName ?? activeActor?.sender_name ?? activeActor?.actor_name ?? actor?.senderName ?? 'Leverantör'
 
   return {
     actorEdielId,
@@ -176,15 +178,17 @@ async function resolveAgtActorRuntime(params?: {
     receiverEdielId: agtRuntime?.prodat.profile?.receiver_ediel_id ?? EDIEL_AGT_PORTAL_EDIEL_ID,
     receiverEmail: agtRuntime?.prodat.route?.target_email ?? EDIEL_AGT_PORTAL_SMTP,
     applicationReference: agtRuntime?.prodat.profile?.application_reference ?? '23-DDQ-PRODAT',
-    mailbox: actor?.mailbox ?? activeActor?.mailbox ?? 'agt-file-engine',
-    smtpFromEmail: actor?.smtpFromEmail ?? activeActor?.smtp_from_email ?? null,
-    balanceResponsibleEdielId: agtNotes.balanceResponsibleEdielId,
+    mailbox: activeActor?.mailbox ?? actor?.mailbox ?? 'agt-file-engine',
+    smtpFromEmail: activeActor?.smtp_from_email ?? actor?.smtpFromEmail ?? null,
+    balanceResponsibleEdielId: trimOrNull(params?.balanceResponsibleEdielId) ?? agtNotes.balanceResponsibleEdielId,
   }
 }
 
 export async function getEdielAgtReadiness(params?: {
   actorName?: string | null
   actorEdielId?: string | null
+  companyId?: string | null
+  balanceResponsibleEdielId?: string | null
 }): Promise<EdielAgtReadiness> {
   const actor = await resolveAgtActorRuntime(params)
   const issues: EdielAgtReadinessIssue[] = []
@@ -233,6 +237,8 @@ export async function createEdielSupplierAgtRun(params: {
   suite?: 'PRODAT' | 'UTILTS' | null
   actorName?: string | null
   actorEdielId?: string | null
+  companyId?: string | null
+  balanceResponsibleEdielId?: string | null
 }): Promise<EdielTestRunRow> {
   const definition = getEdielAgtTestCaseByCode({
     suite: params.suite ?? null,
@@ -247,6 +253,8 @@ export async function createEdielSupplierAgtRun(params: {
   const readiness = await getEdielAgtReadiness({
     actorName: params.actorName ?? null,
     actorEdielId: params.actorEdielId ?? null,
+    companyId: params.companyId ?? null,
+    balanceResponsibleEdielId: params.balanceResponsibleEdielId ?? null,
   })
 
   if (!readiness.isReadyForAgt) {
@@ -260,6 +268,7 @@ export async function createEdielSupplierAgtRun(params: {
 
   return createEdielTestRun({
     actorUserId: params.actorUserId,
+    companyId: params.companyId ?? null,
     approvalVersion: `${agtApprovalVersion()} · ${readiness.actor.actorName} · ${readiness.actor.actorEdielId}`,
     roleCode: definition.roleCode,
     testSuite: definition.suite,
@@ -525,6 +534,7 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
   actorName?: string | null
   actorEdielId?: string | null
   companyId?: string | null
+  balanceResponsibleEdielId?: string | null
 }): Promise<EdielMessageRow> {
   const definition = getEdielAgtTestCaseByCode({
     roleCode: 'supplier',
@@ -539,6 +549,8 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
   const readiness = await getEdielAgtReadiness({
     actorName: params.actorName ?? null,
     actorEdielId: params.actorEdielId ?? null,
+    companyId: params.companyId ?? null,
+    balanceResponsibleEdielId: params.balanceResponsibleEdielId ?? null,
   })
   if (!readiness.isReadyForAgt) {
     throw new Error(readiness.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.description).join(' | '))

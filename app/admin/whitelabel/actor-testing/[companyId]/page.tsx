@@ -2,7 +2,8 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { getActorTestingSummary, userCanManageActorTestingForCompany } from '@/lib/ediel/actorTesting'
-import { ActorCompanyIdentityCard, ActorTestPackageCards, EvidencePackage, GoLiveChecklist } from '@/components/admin/ediel/ActorTestingViews'
+import { ActorCompanyIdentityCard,
+  ActorProfileGuide, ActorTestPackageCards, EvidencePackage, GoLiveChecklist } from '@/components/admin/ediel/ActorTestingViews'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,8 +21,9 @@ export default async function WhiteLabelActorTestingCompanyPage({ params }: { pa
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <Link href="/admin/whitelabel/actor-testing" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tillbaka</Link>
         <ActorCompanyIdentityCard summary={summary} />
+        <ActorProfileGuide summary={summary} />
         <ActorTestPackageCards summary={summary} />
-        <EvidencePackage summary={summary} basePath="/admin/whitelabel/actor-testing" showEvidenceLink={false} />
+        <EvidencePackage summary={summary} basePath="/admin/whitelabel/actor-testing" />
         <GoLiveChecklist summary={summary} canActivateLive={false} />
       </div>
     </div>
