@@ -26,11 +26,10 @@ export default function SiteLifecycleSection({
  <div className="rounded-3xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <h2 className="text-lg font-semibold text-slate-900 ">
- Lifecycle per anläggning
+ Flödesstatus per anläggning
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Kundkortet visar nu var varje site faktiskt befinner sig i switchkedjan, om
- outbound skapades automatiskt och vilken arbetsyta som är rätt nästa steg.
+ Kundkortet visar var varje anläggning befinner sig i leverantörsbytet, om utskick skapades automatiskt och vilken arbetsyta som är rätt nästa steg.
  </p>
  </div>
 
@@ -93,9 +92,9 @@ export default function SiteLifecycleSection({
  : summary.outbound.status
  )}`}
  >
- outbound:{' '}
+ utskick:{' '}
  {summary.outbound.channel_type === 'unresolved'
- ? 'unresolved'
+ ? 'route saknas'
  : summary.outbound.status}
  </span>
  ) : null}
@@ -139,7 +138,7 @@ export default function SiteLifecycleSection({
  <div className="mt-4 grid gap-3 md:grid-cols-2">
  <div className="rounded-2xl border border-slate-200 p-4 ">
  <div className="text-sm font-semibold text-slate-900 ">
- Lifecycle reason
+ Flödesförklaring
  </div>
  <p className="mt-2 text-sm text-slate-700 ">
  {summary.lifecycle?.reason ??
@@ -160,7 +159,7 @@ export default function SiteLifecycleSection({
  {summary.validation ? (
  <div className="mt-4 rounded-2xl border border-slate-200 p-4 ">
  <div className="text-sm font-semibold text-slate-900 ">
- Validation snapshot
+ Valideringsöversikt
  </div>
  <div className="mt-2 grid gap-2 text-sm text-slate-700 md:grid-cols-3">
  <div>
@@ -174,7 +173,7 @@ export default function SiteLifecycleSection({
  </span>
  </div>
  <div>
- Issue count:{' '}
+ Antal avvikelser:{' '}
  <span className="font-medium">
  {summary.validation.issueCount}
  </span>
@@ -182,7 +181,7 @@ export default function SiteLifecycleSection({
  </div>
 
  <div className="mt-2 text-sm text-slate-700 ">
- Issue codes:{' '}
+ Avvikelsekoder:{' '}
  <span className="font-medium">
  {summary.validation.issueCodes.length > 0
  ? summary.validation.issueCodes.join(', ')
@@ -205,7 +204,7 @@ export default function SiteLifecycleSection({
  href={`/admin/operations/switches/${summary.latestRequest.id}`}
  className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 "
  >
- Öppna switch detail
+ Öppna leverantörsbyte
  </Link>
 
  {journeyLink ? (
@@ -222,7 +221,7 @@ export default function SiteLifecycleSection({
  href={`/admin/customers/${customerId}#masterdata`}
  className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 "
  >
- Kontrollera site/masterdata
+ Kontrollera anläggning och grunddata
  </Link>
  )}
 
@@ -230,21 +229,21 @@ export default function SiteLifecycleSection({
  href="/admin/operations/switches"
  className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 "
  >
- Öppna switchlistan
+ Öppna leverantörsbyten
  </Link>
 
  <Link
  href="/admin/outbound"
  className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 "
  >
- Öppna outbound
+ Öppna utskick
  </Link>
 
  <Link
  href="/admin/outbound/unresolved"
  className="block rounded-2xl border border-red-300 px-4 py-2.5 text-center text-sm font-semibold text-red-700 "
  >
- Öppna unresolved routes
+ Öppna saknade rutter
  </Link>
 
  <Link

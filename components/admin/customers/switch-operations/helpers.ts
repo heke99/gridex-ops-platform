@@ -153,15 +153,15 @@ export function nextActionLabel(params: {
   const { request, outboundRequest, validation, lifecycleLabel } = params
 
   if (request.status === 'completed') {
-    return 'Klar. Kontrollera kundkort, outbound och historik vid behov.'
+    return 'Klar. Kontrollera kundkort, utskick och historik vid behov.'
   }
 
   if (request.status === 'failed' || request.status === 'rejected') {
-    return 'Gå till detail view och avgör om ärendet ska rättas, retryas eller avslutas.'
+    return 'Öppna ärendet och avgör om det ska rättas, skickas igen eller avslutas.'
   }
 
   if (validation.isReady === false) {
-    return 'Öppna detail view, rätta blockerare och kör validering igen.'
+    return 'Öppna ärendet, rätta blockerare och kör validering igen.'
   }
 
   if (validation.isReady === null && request.status === 'draft') {
@@ -169,26 +169,26 @@ export function nextActionLabel(params: {
   }
 
   if (!outboundRequest && ['queued', 'submitted', 'accepted'].includes(request.status)) {
-    return 'Outbound saknas. Kontrollera route-resolution eller köa outbound manuellt.'
+    return 'Utskick saknas. Kontrollera route-koppling eller förbered utskick manuellt.'
   }
 
   if (outboundRequest?.channel_type === 'unresolved') {
-    return 'Route saknas. Gå till unresolved/outbound och koppla rätt route mot nätägaren.'
+    return 'Route saknas. Gå till ej matchade meddelanden och koppla rätt route mot nätägaren.'
   }
 
   if (outboundRequest && ['queued', 'prepared'].includes(outboundRequest.status)) {
-    return 'Outbound finns. Nästa steg är dispatch vidare till nätägaren.'
+    return 'Utskick finns. Nästa steg är att skicka vidare till nätägaren.'
   }
 
   if (outboundRequest?.status === 'sent') {
-    return 'Invänta kvittens eller följ upp från detail view / outbound.'
+    return 'Invänta kvittens eller följ upp från ärende- eller utskicksvyn.'
   }
 
   if (outboundRequest?.status === 'acknowledged') {
     return 'Switchen är kvitterad. Nästa steg är intern slutföring.'
   }
 
-  return `Nästa steg enligt lifecycle: ${lifecycleLabel}.`
+  return `Nästa steg enligt flödesstatus: ${lifecycleLabel}.`
 }
 
 export function customerJourneyHref(params: {
@@ -200,14 +200,14 @@ export function customerJourneyHref(params: {
   if (lifecycleStage === 'awaiting_dispatch') {
     return {
       href: '/admin/outbound',
-      label: 'Öppna outbound queue',
+      label: 'Öppna utskickskö',
     }
   }
 
   if (lifecycleStage === 'queued_for_outbound') {
     return {
       href: '/admin/operations/switches?stage=queued_for_outbound',
-      label: 'Öppna saknar outbound',
+      label: 'Visa ärenden som saknar utskick',
     }
   }
 

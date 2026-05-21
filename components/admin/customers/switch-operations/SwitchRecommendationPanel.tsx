@@ -289,13 +289,13 @@ export default function SwitchRecommendationPanel({
  </div>
  <div className="mt-3 space-y-2 text-sm text-slate-700 ">
  <div>
- unresolved routes:{' '}
+ saknade rutter:{' '}
  <span className="font-semibold text-slate-900 ">
  {recommendation.unresolvedCount}
  </span>
  </div>
  <div>
- auto-köade outbound:{' '}
+ automatiskt förberedda utskick:{' '}
  <span className="font-semibold text-slate-900 ">
  {recommendation.autoQueuedCount}
  </span>

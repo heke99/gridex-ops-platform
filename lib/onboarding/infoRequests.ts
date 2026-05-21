@@ -10,6 +10,35 @@ export type CustomerOption = {
   sublabel: string | null
 }
 
+export type CustomerInfoSiteOption = {
+  id: string
+  customerId: string
+  label: string
+  sublabel: string | null
+  gridOwnerId: string | null
+}
+
+export type CustomerInfoMeteringPointOption = {
+  id: string
+  siteId: string
+  customerId: string | null
+  label: string
+  sublabel: string | null
+  gridOwnerId: string | null
+}
+
+export type CustomerInfoGridOwnerOption = {
+  id: string
+  label: string
+  sublabel: string | null
+}
+
+export type CustomerInfoRequestResourceOptions = {
+  sites: CustomerInfoSiteOption[]
+  meteringPoints: CustomerInfoMeteringPointOption[]
+  gridOwners: CustomerInfoGridOwnerOption[]
+}
+
 export type CustomerInfoRequestRow = {
   id: string
   company_id: string
@@ -190,6 +219,147 @@ export async function listMeteringPermissions(companyId: string): Promise<Meteri
   }
 }
 
+
+function siteOptionLabel(row: Record<string, unknown>): string {
+  const siteName = String(row.site_name ?? '').trim()
+  const facilityId = String(row.facility_id ?? '').trim()
+  return siteName || facilityId || String(row.id)
+}
+
+function meteringPointOptionLabel(row: Record<string, unknown>): string {
+  const meterPointId = String(row.meter_point_id ?? '').trim()
+  const edielReference = String(row.ediel_reference ?? '').trim()
+  const facilityId = String(row.site_facility_id ?? '').trim()
+  return meterPointId || edielReference || facilityId || String(row.id)
+}
+
+export async function listCustomerInfoRequestResourceOptions(companyId: string): Promise<CustomerInfoRequestResourceOptions> {
+  try {
+    const [sitesResult, meteringPointsResult, gridOwnersResult] = await Promise.all([
+      supabaseService
+        .from('customer_sites')
+        .select('id, customer_id, site_name, facility_id, status, grid_owner_id, street, postal_code, city')
+        .eq('company_id', companyId)
+        .order('updated_at', { ascending: false })
+        .limit(250),
+      supabaseService
+        .from('metering_points')
+        .select('id, site_id, meter_point_id, site_facility_id, ediel_reference, status, grid_owner_id, price_area_code')
+        .eq('company_id', companyId)
+        .order('updated_at', { ascending: false })
+        .limit(250),
+      supabaseService
+        .from('grid_owners')
+        .select('id, name, owner_code, ediel_id, is_active')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+        .limit(250),
+    ])
+
+    if (sitesResult.error) {
+      if (!isMissingRelationError(sitesResult.error)) throw sitesResult.error
+    }
+    if (meteringPointsResult.error) {
+      if (!isMissingRelationError(meteringPointsResult.error)) throw meteringPointsResult.error
+    }
+    if (gridOwnersResult.error) {
+      if (!isMissingRelationError(gridOwnersResult.error)) throw gridOwnersResult.error
+    }
+
+    const siteRows = (sitesResult.data ?? []) as Array<Record<string, unknown>>
+    const siteCustomerById = new Map(siteRows.map((row) => [String(row.id), String(row.customer_id ?? '')]))
+
+    return {
+      sites: siteRows.map((row) => ({
+        id: String(row.id),
+        customerId: String(row.customer_id ?? ''),
+        label: siteOptionLabel(row),
+        sublabel: [row.facility_id, row.status, row.street, row.postal_code, row.city].filter(Boolean).join(' · ') || null,
+        gridOwnerId: typeof row.grid_owner_id === 'string' ? row.grid_owner_id : null,
+      })),
+      meteringPoints: ((meteringPointsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => {
+        const siteId = String(row.site_id ?? '')
+        return {
+          id: String(row.id),
+          siteId,
+          customerId: siteCustomerById.get(siteId) || null,
+          label: meteringPointOptionLabel(row),
+          sublabel: [row.status, row.site_facility_id, row.price_area_code].filter(Boolean).join(' · ') || null,
+          gridOwnerId: typeof row.grid_owner_id === 'string' ? row.grid_owner_id : null,
+        }
+      }),
+      gridOwners: ((gridOwnersResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+        id: String(row.id),
+        label: String(row.name ?? row.owner_code ?? row.id),
+        sublabel: [row.owner_code, row.ediel_id].filter(Boolean).join(' · ') || null,
+      })),
+    }
+  } catch (error) {
+    if (isMissingRelationError(error)) return { sites: [], meteringPoints: [], gridOwners: [] }
+    throw error
+  }
+}
+
+async function resolveCustomerInfoRequestAnchors(input: {
+  companyId: string
+  customerId: string
+  siteId?: string | null
+  meteringPointId?: string | null
+  gridOwnerId?: string | null
+}): Promise<{ siteId: string | null; meteringPointId: string | null; gridOwnerId: string | null }> {
+  const requestedSiteId = input.siteId ?? null
+  const requestedMeteringPointId = input.meteringPointId ?? null
+  let site: Record<string, unknown> | null = null
+  let meteringPoint: Record<string, unknown> | null = null
+
+  if (requestedMeteringPointId) {
+    const { data, error } = await supabaseService
+      .from('metering_points')
+      .select('id, site_id, grid_owner_id')
+      .eq('company_id', input.companyId)
+      .eq('id', requestedMeteringPointId)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data?.id) throw new Error('Mätpunkten hittades inte för valt bolag.')
+    meteringPoint = data as Record<string, unknown>
+  }
+
+  const effectiveSiteId = requestedSiteId ?? (typeof meteringPoint?.site_id === 'string' ? meteringPoint.site_id : null)
+
+  if (effectiveSiteId) {
+    const { data, error } = await supabaseService
+      .from('customer_sites')
+      .select('id, customer_id, grid_owner_id')
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('id', effectiveSiteId)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data?.id) throw new Error('Anläggningen hittades inte på vald kund och valt bolag.')
+    site = data as Record<string, unknown>
+  }
+
+  if (meteringPoint && effectiveSiteId && meteringPoint.site_id !== effectiveSiteId) {
+    throw new Error('Vald mätpunkt tillhör inte vald anläggning.')
+  }
+
+  const inferredGridOwnerId =
+    (typeof meteringPoint?.grid_owner_id === 'string' ? meteringPoint.grid_owner_id : null) ??
+    (typeof site?.grid_owner_id === 'string' ? site.grid_owner_id : null)
+
+  if (input.gridOwnerId && inferredGridOwnerId && input.gridOwnerId !== inferredGridOwnerId) {
+    throw new Error('Vald nätägare matchar inte anläggningens eller mätpunktens nätägare.')
+  }
+
+  return {
+    siteId: effectiveSiteId,
+    meteringPointId: requestedMeteringPointId,
+    gridOwnerId: input.gridOwnerId ?? inferredGridOwnerId ?? null,
+  }
+}
+
 async function assertCustomerBelongsToCompany(customerId: string, companyId: string) {
   const { data, error } = await supabaseService
     .from('customers')
@@ -211,11 +381,21 @@ export async function createCustomerInfoRequest(input: {
   targetPartyName?: string | null
   gridOwnerId?: string | null
   currentSupplierName?: string | null
+  siteId?: string | null
+  meteringPointId?: string | null
   requestedDataCategories: string[]
   notes?: string | null
+  externalReference?: string | null
 }) {
   await requireCompanyOperationalForWrites(input.companyId)
   await assertCustomerBelongsToCompany(input.customerId, input.companyId)
+  const anchors = await resolveCustomerInfoRequestAnchors({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.siteId ?? null,
+    meteringPointId: input.meteringPointId ?? null,
+    gridOwnerId: input.gridOwnerId ?? null,
+  })
 
   const normalizedCategories = Array.from(new Set(input.requestedDataCategories.map((value) => value.trim()).filter(Boolean)))
   if (normalizedCategories.length === 0) {
@@ -230,11 +410,13 @@ export async function createCustomerInfoRequest(input: {
       request_type: input.requestType,
       target_party_type: input.targetPartyType,
       target_party_name: input.targetPartyName ?? null,
-      grid_owner_id: input.gridOwnerId ?? null,
+      site_id: anchors.siteId,
+      metering_point_id: anchors.meteringPointId,
+      grid_owner_id: anchors.gridOwnerId,
       current_supplier_name: input.currentSupplierName ?? null,
       status: 'draft',
       requested_data_categories: normalizedCategories,
-      verified_payload: {},
+      verified_payload: input.externalReference ? { externalReference: input.externalReference } : {},
       notes: input.notes ?? null,
       created_by: input.actorUserId,
       updated_by: input.actorUserId,
@@ -250,7 +432,12 @@ export async function createCustomerInfoRequest(input: {
     customer_id: input.customerId,
     event_type: 'created',
     message: 'Uppgiftsbegäran skapades.',
-    payload: { requested_data_categories: normalizedCategories },
+    payload: {
+      requested_data_categories: normalizedCategories,
+      siteId: anchors.siteId,
+      meteringPointId: anchors.meteringPointId,
+      gridOwnerId: anchors.gridOwnerId,
+    },
     created_by: input.actorUserId,
   })
 
@@ -525,6 +712,59 @@ async function addCustomerInfoRequestEvent(input: {
   if (error && !isMissingRelationError(error)) throw error
 }
 
+
+async function blockCustomerInfoRequest(params: {
+  request: CustomerInfoRequestRow
+  companyId: string
+  actorUserId: string
+  status?: string
+  blockerReason: string
+  eventType: string
+}): Promise<InfoRequestDispatchResult> {
+  const { data, error } = await supabaseService
+    .from('customer_info_requests')
+    .update({
+      status: params.status ?? 'blocked',
+      blocker_reason: params.blockerReason,
+      updated_by: params.actorUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('company_id', params.companyId)
+    .eq('id', params.request.id)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  await addCustomerInfoRequestEvent({
+    companyId: params.companyId,
+    requestId: params.request.id,
+    customerId: params.request.customer_id,
+    actorUserId: params.actorUserId,
+    eventType: params.eventType,
+    message: params.blockerReason,
+  })
+
+  return {
+    customerInfoRequest: data as CustomerInfoRequestRow,
+    gridOwnerDataRequestId: null,
+    outboundRequestId: null,
+    status: params.status ?? 'blocked',
+    blockerReason: params.blockerReason,
+  }
+}
+
+function customerMasterdataAnchorsAreMissing(request: CustomerInfoRequestRow): string | null {
+  if (!requestNeedsGridOwnerAuthorization(request)) return null
+  if (!request.site_id && !request.metering_point_id) {
+    return 'Välj kundens anläggning och mätpunkt innan PRODAT Z01 kan förberedas.'
+  }
+  if (!request.grid_owner_id) {
+    return 'Välj eller koppla nätägare innan PRODAT Z01 kan förberedas.'
+  }
+  return null
+}
+
 export async function queueCustomerInfoRequestForDispatch(input: {
   companyId: string
   actorUserId: string
@@ -615,6 +855,17 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     }
   }
 
+  const anchorBlockerReason = customerMasterdataAnchorsAreMissing(request)
+  if (anchorBlockerReason) {
+    return blockCustomerInfoRequest({
+      request,
+      companyId: input.companyId,
+      actorUserId: input.actorUserId,
+      blockerReason: anchorBlockerReason,
+      eventType: 'blocked_missing_z01_anchors',
+    })
+  }
+
   const automationKey = `customer-info-request:${request.id}:z01`
   const gridOwnerDataRequest = await createGridOwnerDataRequest({
     actorUserId: input.actorUserId,
@@ -629,10 +880,22 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     automationKey,
   })
 
-  const z01 = await prepareAndQueueProdatZ01FromDataRequest({
-    actorUserId: input.actorUserId,
-    gridOwnerDataRequestId: gridOwnerDataRequest.id,
-  })
+  let z01: Awaited<ReturnType<typeof prepareAndQueueProdatZ01FromDataRequest>>
+  try {
+    z01 = await prepareAndQueueProdatZ01FromDataRequest({
+      actorUserId: input.actorUserId,
+      gridOwnerDataRequestId: gridOwnerDataRequest.id,
+    })
+  } catch (error) {
+    const blockerReason = error instanceof Error ? error.message : 'PRODAT Z01 kunde inte förberedas.'
+    return blockCustomerInfoRequest({
+      request,
+      companyId: input.companyId,
+      actorUserId: input.actorUserId,
+      blockerReason,
+      eventType: 'blocked_z01_prepare_failed',
+    })
+  }
 
   const nextStatus = z01.prepared ? 'z01_prepared' : 'route_missing'
   const blockerReason = z01.blockerReason

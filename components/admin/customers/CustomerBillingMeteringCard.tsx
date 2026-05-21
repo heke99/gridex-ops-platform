@@ -154,7 +154,7 @@ export default function CustomerBillingMeteringCard({
  <div className="space-y-6">
  <SectionCard
  title="Direktåtgärder för nätägare"
- description="Snabbaste vägen för att begära mätvärden, billingunderlag eller masterdata utan att fylla hela formuläret varje gång."
+ description="Snabbaste vägen för att begära mätvärden, faktureringsunderlag eller kund- och anläggningsdata utan att fylla hela formuläret varje gång."
  >
  <div className="grid gap-4">
  <div className="grid gap-3 sm:grid-cols-3">
@@ -185,10 +185,10 @@ export default function CustomerBillingMeteringCard({
  <input
  type="hidden"
  name="notes"
- value="Snabbåtgärd från kundkort: billingunderlag"
+ value="Snabbåtgärd från kundkort: faktureringsunderlag"
  />
  <QuickActionButton
- idleLabel="Begär billingunderlag"
+ idleLabel="Begär faktureringsunderlag"
  pendingLabel="Skapar..."
  tone="warning"
  />
@@ -203,10 +203,10 @@ export default function CustomerBillingMeteringCard({
  <input
  type="hidden"
  name="notes"
- value="Snabbåtgärd från kundkort: masterdata"
+ value="Snabbåtgärd från kundkort: kund- och anläggningsdata"
  />
  <QuickActionButton
- idleLabel="Begär masterdata"
+ idleLabel="Begär kund- och anläggningsdata"
  pendingLabel="Skapar..."
  tone="warning"
  />
@@ -267,8 +267,8 @@ export default function CustomerBillingMeteringCard({
  </SectionCard>
 
  <SectionCard
- title="Direktåtgärder för partnerexport"
- description="Köa partnerexporter utan att behöva fylla hela exportformuläret varje gång."
+ title="Direktåtgärder för export"
+ description="Förbered partnerexporter utan att fylla hela exportformuläret varje gång."
  >
  <div className="grid gap-3 sm:grid-cols-3">
  <form action={createPartnerExportAction} className="contents">
@@ -379,8 +379,8 @@ export default function CustomerBillingMeteringCard({
  </SectionCard>
 
  <SectionCard
- title="Köa partnerexport"
- description="Styrt formulär: billingunderlag filtreras hårt mot vald anläggning och mätpunkt."
+ title="Förbered partnerexport"
+ description="Styrt formulär: faktureringsunderlag filtreras hårt mot vald anläggning och mätpunkt."
  >
  <SmartPartnerExportForm
  customerId={customerId}

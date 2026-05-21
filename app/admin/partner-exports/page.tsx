@@ -88,9 +88,9 @@ export default async function AdminPartnerExportsPage({
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
  >
  <option value="all">Alla exporttyper</option>
- <option value="billing_underlay">Billing underlag</option>
+ <option value="billing_underlay">Faktureringsunderlag</option>
  <option value="meter_values">Mätvärden</option>
- <option value="customer_snapshot">Customer snapshot</option>
+ <option value="customer_snapshot">Kundöversikt</option>
  </select>
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white">
  Filtrera
@@ -136,7 +136,7 @@ export default async function AdminPartnerExportsPage({
  href={`/admin/operations/grid-owner-requests/${relatedUnderlay.source_request_id}`}
  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
  >
- Öppna source request
+ Öppna källbegäran
  </Link>
  ) : null}
 
@@ -144,18 +144,18 @@ export default async function AdminPartnerExportsPage({
  href="/admin/billing"
  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
  >
- Öppna billing
+ Öppna fakturering
  </Link>
  </div>
  </div>
 
  <div className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
  <div>Kund: <span className="font-medium">{exportRow.customer_id}</span></div>
- <div>Target system: <span className="font-medium">{exportRow.target_system}</span></div>
+ <div>Mottagande system: <span className="font-medium">{exportRow.target_system}</span></div>
  <div>Site: <span className="font-medium">{exportRow.site_id ?? '—'}</span></div>
  <div>Mätpunkt: <span className="font-medium">{exportRow.metering_point_id ?? '—'}</span></div>
- <div>Billing underlag: <span className="font-medium">{exportRow.billing_underlay_id ?? '—'}</span></div>
- <div>Source request: <span className="font-medium">{relatedUnderlay?.source_request_id ?? '—'}</span></div>
+ <div>Faktureringsunderlag: <span className="font-medium">{exportRow.billing_underlay_id ?? '—'}</span></div>
+ <div>Källbegäran: <span className="font-medium">{relatedUnderlay?.source_request_id ?? '—'}</span></div>
  <div>Extern referens: <span className="font-medium">{exportRow.external_reference ?? '—'}</span></div>
  <div>Köad: <span className="font-medium">{new Date(exportRow.queued_at).toLocaleString('sv-SE')}</span></div>
  <div>Felorsak: <span className="font-medium">{exportRow.failure_reason ?? '—'}</span></div>

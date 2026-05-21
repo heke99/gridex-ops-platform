@@ -342,7 +342,7 @@ export default async function AdminEdielSettingsPage() {
  <div className="space-y-6">
  <AdminHeader
  title="Ediel-inställningar"
- subtitle={isPlatformAdmin ? 'Plattformsöversikt för aktörsprofiler samt global regelhantering. Tenant-regler visas inte i vanliga bolagsvyer.' : `Bolagets Ediel-profil för ${companyScope.companyName ?? 'ditt bolag'}. Aktiva profiler sparas tenant-scopat så rätt Ediel-id används i routes, liveflöde och testmiljö.`}
+ subtitle={isPlatformAdmin ? 'Plattformsöversikt för aktörsprofiler samt global regelhantering. Tenant-regler visas inte i vanliga bolagsvyer.' : `Bolagets Ediel-profil för ${companyScope.companyName ?? 'ditt bolag'}. Aktiva profiler sparas tenant-scopat så rätt Ediel-id används i routes, liveflöde och godkännandemiljö.`}
  userEmail={context.email}
  workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
  workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}

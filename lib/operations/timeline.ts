@@ -104,7 +104,7 @@ export function buildCustomerTimeline(params: {
       id: `outbound:${request.id}`,
       occurredAt,
       category: 'outbound',
-      title: 'Outbound request',
+      title: 'Utskick',
       description: `${request.request_type} · ${request.channel_type}`,
       status: request.status,
       siteId: request.site_id,
@@ -116,10 +116,10 @@ export function buildCustomerTimeline(params: {
           ? `/admin/operations/switches/${request.source_id}`
           : '/admin/outbound',
       primaryLabel: isGridOwnerRequest
-        ? 'Öppna request-detail'
+        ? 'Öppna begäran'
         : isSwitchRequest
           ? 'Öppna switch-detail'
-          : 'Öppna outbound',
+          : 'Öppna utskick',
     })
   }
 
@@ -137,14 +137,14 @@ export function buildCustomerTimeline(params: {
       id: `data_request:${request.id}`,
       occurredAt,
       category: 'data_request',
-      title: 'Request mot nätägare',
+      title: 'Begäran till nätägare',
       description: request.request_scope,
       status: request.status,
       siteId: request.site_id,
       meteringPointId: request.metering_point_id,
       gridOwnerId: request.grid_owner_id,
       href: `/admin/operations/grid-owner-requests/${request.id}`,
-      primaryLabel: 'Öppna request-detail',
+      primaryLabel: 'Öppna begäran',
     })
   }
 
@@ -166,8 +166,8 @@ export function buildCustomerTimeline(params: {
         ? `/admin/operations/grid-owner-requests/${value.source_request_id}`
         : '/admin/metering',
       primaryLabel: value.source_request_id
-        ? 'Öppna source request'
-        : 'Öppna metering',
+        ? 'Öppna ursprungsbegäran'
+        : 'Öppna mätvärden',
     })
   }
 
@@ -184,7 +184,7 @@ export function buildCustomerTimeline(params: {
       id: `billing_underlay:${underlay.id}`,
       occurredAt,
       category: 'billing_underlay',
-      title: 'Billing underlag',
+      title: 'Faktureringsunderlag',
       description: `${underlay.underlay_year ?? '—'}-${String(
         underlay.underlay_month ?? ''
       ).padStart(2, '0')}`,
@@ -196,8 +196,8 @@ export function buildCustomerTimeline(params: {
         ? `/admin/operations/grid-owner-requests/${underlay.source_request_id}`
         : '/admin/billing',
       primaryLabel: underlay.source_request_id
-        ? 'Öppna source request'
-        : 'Öppna billing',
+        ? 'Öppna ursprungsbegäran'
+        : 'Öppna fakturering',
     })
   }
 
@@ -229,7 +229,7 @@ export function buildCustomerTimeline(params: {
         ? `/admin/operations/grid-owner-requests/${relatedUnderlay.source_request_id}`
         : '/admin/partner-exports',
       primaryLabel: relatedUnderlay?.source_request_id
-        ? 'Öppna source request'
+        ? 'Öppna ursprungsbegäran'
         : 'Öppna exportkö',
     })
   }

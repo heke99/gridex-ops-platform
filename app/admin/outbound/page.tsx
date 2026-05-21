@@ -229,7 +229,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  request.status === 'sent' &&
  ['email_manual', 'file_export'].includes(request.channel_type)
  )
- const retryableFailedRequests = failedRequests.filter(
+ const retryableMisslyckadRequests = failedRequests.filter(
  (request) => request.attempts_count < 3
  )
  const switchOutboundRequests = requests.filter(
@@ -248,7 +248,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  const switchRequestsWaitingAck = switchOutboundRequests.filter(
  (request) => request.status === 'sent'
  )
- const switchRequestsFailed = switchOutboundRequests.filter(
+ const switchRequestsMisslyckad = switchOutboundRequests.filter(
  (request) => request.status === 'failed'
  )
 
@@ -277,7 +277,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <section className="grid gap-4 xl:grid-cols-4">
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="text-sm font-medium text-slate-700 ">
- Unresolved routes
+ Saknar route routes
  </div>
  <div className="mt-3 text-3xl font-semibold text-slate-950 ">
  {unresolvedRequests.length}
@@ -345,7 +345,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  {autoAckCandidates.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Sent-requests på interna/manuella kanaler som sweepen kan kvittera.
+ Skickad-requests på interna/manuella kanaler som sweepen kan kvittera.
  </div>
  </div>
 
@@ -354,10 +354,10 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  Retrybara dispatch-fel
  </div>
  <div className="mt-3 text-3xl font-semibold text-slate-950 ">
- {retryableFailedRequests.length}
+ {retryableMisslyckadRequests.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Failed requests som fortfarande ligger under retry-taket.
+ Misslyckad requests som fortfarande ligger under retry-taket.
  </div>
  </div>
 
@@ -377,7 +377,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <section className="grid gap-4 xl:grid-cols-4">
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="text-sm font-medium text-slate-700 ">
- Supplier switch väntar på ack
+ Leverantörsbyte väntar på ack
  </div>
  <div className="mt-3 text-3xl font-semibold text-slate-950 ">
  {switchRequestsWaitingAck.length}
@@ -389,10 +389,10 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="text-sm font-medium text-slate-700 ">
- Supplier switch dispatch-fel
+ Leverantörsbyte dispatch-fel
  </div>
  <div className="mt-3 text-3xl font-semibold text-slate-950 ">
- {switchRequestsFailed.length}
+ {switchRequestsMisslyckad.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
  Switch-outbounds som stoppats och kräver manuell åtgärd.
@@ -438,12 +438,12 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
  <option value="all">Alla statusar</option>
- <option value="queued">Queued</option>
- <option value="prepared">Prepared</option>
- <option value="sent">Sent</option>
- <option value="acknowledged">Acknowledged</option>
- <option value="failed">Failed</option>
- <option value="cancelled">Cancelled</option>
+ <option value="queued">Köad</option>
+ <option value="prepared">Förberedd</option>
+ <option value="sent">Skickad</option>
+ <option value="acknowledged">Kvitterad</option>
+ <option value="failed">Misslyckad</option>
+ <option value="cancelled">Avbruten</option>
  </select>
 
  <select
@@ -451,11 +451,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  defaultValue={requestType}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
- <option value="all">Alla request-typer</option>
- <option value="supplier_switch">Supplier switch</option>
- <option value="customer_masterdata">Customer masterdata / Z01</option>
- <option value="meter_values">Meter values</option>
- <option value="billing_underlay">Billing underlay</option>
+ <option value="all">Alla begärantyper</option>
+ <option value="supplier_switch">Leverantörsbyte</option>
+ <option value="customer_masterdata">Kund- och anläggningskontroll / Z01</option>
+ <option value="meter_values">Mätvärden</option>
+ <option value="billing_underlay">Faktureringsunderlag</option>
  </select>
 
  <select
@@ -466,9 +466,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <option value="all">Alla kanaler</option>
  <option value="partner_api">Partner API</option>
  <option value="ediel_partner">Ediel partner</option>
- <option value="file_export">File export</option>
- <option value="email_manual">Email manual</option>
- <option value="unresolved">Unresolved</option>
+ <option value="file_export">Filexport</option>
+ <option value="email_manual">Manuell e-post</option>
+ <option value="unresolved">Saknar route</option>
  </select>
 
  <div className="flex gap-3">
@@ -487,13 +487,13 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <div className="flex flex-wrap items-start gap-3 xl:justify-end">
  <form action={runAutomationSweepFormAction}>
  <button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 ">
- Kör automation sweep 7.8
+ Kör automatisk kontroll
  </button>
  </form>
 
  <form action={queueReadyBillingExportsFormAction}>
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white ">
- Köa billing-exporter
+ Förbered fakturaexporter
  </button>
  </form>
  </div>
@@ -501,18 +501,18 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
  <TriageCard
- title="Unresolved outbound"
- description="Requests utan aktiv route eller kanal."
+ title="Saknar route outbound"
+ description="Begäran utan aktiv route eller kanal."
  href="/admin/outbound/unresolved"
  />
  <TriageCard
  title="Saknade mätvärden"
- description="Bulk-köa nätägarförfrågningar för meter values."
+ description="Förbered nätägarförfrågningar för saknade mätvärden."
  href="/admin/outbound/missing-meter-values"
  />
  <TriageCard
- title="Saknade billing-underlag"
- description="Bulk-köa nätägarförfrågningar för billing underlay."
+ title="Saknade faktureringsunderlag"
+ description="Förbered nätägarförfrågningar för saknade faktureringsunderlag."
  href="/admin/outbound/missing-billing-underlays"
  />
  </div>
@@ -780,12 +780,12 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  defaultValue={request.status}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
- <option value="queued">Queued</option>
- <option value="prepared">Prepared</option>
- <option value="sent">Sent</option>
- <option value="acknowledged">Acknowledged</option>
- <option value="failed">Failed</option>
- <option value="cancelled">Cancelled</option>
+ <option value="queued">Köad</option>
+ <option value="prepared">Förberedd</option>
+ <option value="sent">Skickad</option>
+ <option value="acknowledged">Kvitterad</option>
+ <option value="failed">Misslyckad</option>
+ <option value="cancelled">Avbruten</option>
  </select>
 
  <input
@@ -893,7 +893,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <div className="space-y-3 p-6">
  <div className="rounded-2xl border border-slate-200 p-4 ">
  <div className="text-sm font-semibold text-slate-900 ">
- Queued / Prepared
+ Köad / Förberedd
  </div>
  <div className="mt-1 text-sm text-slate-700 ">
  {queuedRequests.length} requests väntar på att dispatchas eller auto-förberedas.
@@ -902,7 +902,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  <div className="rounded-2xl border border-slate-200 p-4 ">
  <div className="text-sm font-semibold text-slate-900 ">
- Sent
+ Skickad
  </div>
  <div className="mt-1 text-sm text-slate-700 ">
  {waitingResponseRequests.length} requests väntar på extern återkoppling eller auto-ack.
@@ -911,7 +911,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  <div className="rounded-2xl border border-slate-200 p-4 ">
  <div className="text-sm font-semibold text-slate-900 ">
- Failed
+ Misslyckad
  </div>
  <div className="mt-1 text-sm text-slate-700 ">
  {failedRequests.length} requests kräver ny route, ny dispatch eller manuell åtgärd.
@@ -920,7 +920,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  <div className="rounded-2xl border border-slate-200 p-4 ">
  <div className="text-sm font-semibold text-slate-900 ">
- Acknowledged
+ Kvitterad
  </div>
  <div className="mt-1 text-sm text-slate-700 ">
  {requests.filter((request) => request.status === 'acknowledged').length} requests är klara.

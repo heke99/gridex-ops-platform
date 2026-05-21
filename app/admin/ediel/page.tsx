@@ -3,7 +3,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
 import { getActiveEdielActorSettings } from '@/lib/ediel/config'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
@@ -180,13 +180,14 @@ function ProfileField({
 }
 
 export default async function EdielPage() {
- const context = await requireAnyPermissionServer(['communication.read'])
+ const context = await requireAdminPageKeyAccess('ediel.workspace')
  const supabase = await createSupabaseServerClient()
+ const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)
 
  const [ediel, agtRuntime, activeProductionActor, activeTestActor] = await Promise.all([
  getEdielSummary(supabase).catch(() => EMPTY_EDIEL_SUMMARY),
- getEdielAgtSupplierRuntime(companyScope.companyId).catch(() => null),
+ isPlatformAdmin ? getEdielAgtSupplierRuntime(companyScope.companyId).catch(() => null) : Promise.resolve(null),
  getActiveEdielActorSettings('production', companyScope.companyId).catch(() => null),
  getActiveEdielActorSettings('test', companyScope.companyId).catch(() => null),
  ])
@@ -195,14 +196,14 @@ export default async function EdielPage() {
  const liveAttention = ediel.failedMessages + ediel.ackPendingMessages + ediel.ackOverdueMessages
  const agtErrors = agtRuntime?.issues.filter((issue) => issue.severity === 'error').length ?? 0
  const agtWarnings = agtRuntime?.issues.filter((issue) => issue.severity === 'warning').length ?? 0
- const outboundCases = EDIEL_AGT_SUPPLIER_2026A_CASES.filter((item) => item.direction === 'actor_to_portal')
- const inboundCases = EDIEL_AGT_SUPPLIER_2026A_CASES.filter((item) => item.direction === 'portal_to_actor')
+ const outboundCases = isPlatformAdmin ? EDIEL_AGT_SUPPLIER_2026A_CASES.filter((item) => item.direction === 'actor_to_portal') : []
+ const inboundCases = isPlatformAdmin ? EDIEL_AGT_SUPPLIER_2026A_CASES.filter((item) => item.direction === 'portal_to_actor') : []
 
  return (
  <div className="min-h-screen">
  <AdminHeader
  title="Ediel Live Center"
- subtitle="Produktion för PRODAT, UTILTS, CONTRL och APERAK. Testmiljö och AGT hålls låst och separat från vanliga leverantörsflöden."
+ subtitle="Produktion för PRODAT, UTILTS, CONTRL och APERAK. Kunddrift, routes och kvittenser hanteras tenant-säkert."
  userEmail={context.email}
  />
 
@@ -212,12 +213,10 @@ export default async function EdielPage() {
  <div>
  <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">Ediel Live</p>
  <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
- Liveflödet först. Testmiljö separat.
+ Liveflödet först.
  </h1>
  <p className="mt-3 max-w-4xl text-sm font-medium leading-6 text-slate-700">
- GridCore ska fungera som SaaS: varje bolag har egna aktörs-id, route-profiler och kvittensregler.
- Därför visas liveflöde, Ediel Control Tower och adressering tydligt här. AGT är bara en låst testmiljö
- för godkännande.
+ GridCore ska fungera som SaaS: varje bolag har egna aktörs-id, route-profiler och kvittensregler. Därför visas liveflöde, Ediel Control Tower och adressering tydligt här.
  </p>
  </div>
 
@@ -225,9 +224,11 @@ export default async function EdielPage() {
  <Pill tone={liveAttention > 0 ? 'amber' : 'emerald'}>
  {liveAttention > 0 ? `${liveAttention} live-ärenden` : 'Live ok'}
  </Pill>
+ {isPlatformAdmin ? (
  <Pill tone={agtRuntime?.isReady ? 'emerald' : agtErrors > 0 ? 'red' : 'amber'}>
- {agtRuntime?.isReady ? 'Testmiljö redo' : agtRuntime ? 'Testmiljö behöver kontroll' : 'Testmiljö ej laddad'}
+ {agtRuntime?.isReady ? 'Godkännande redo' : agtRuntime ? 'Godkännande behöver kontroll' : 'Godkännande ej laddat'}
  </Pill>
+ ) : null}
  </div>
  </div>
  </section>
@@ -301,7 +302,7 @@ export default async function EdielPage() {
  <ProfileField label="Application Reference" value={liveActor?.default_application_reference} />
  <ProfileField label="SMTP från" value={liveActor?.smtp_from_email} />
  <ProfileField label="Charset" value={liveActor?.default_charset} />
- <ProfileField label="Testmiljö readiness" value={agtRuntime?.isReady ? 'redo' : `${agtErrors} fel / ${agtWarnings} varningar`} />
+ {isPlatformAdmin ? <ProfileField label="Godkännandestatus" value={agtRuntime?.isReady ? 'redo' : `${agtErrors} fel / ${agtWarnings} varningar`} /> : null}
  </div>
 
  <div className="mt-5 flex flex-wrap gap-3">
@@ -347,8 +348,8 @@ export default async function EdielPage() {
  <div className="mt-5 grid gap-3">
  <FlowStep
  number="1"
- title="Se om det är live eller testmiljö"
- text="Kunddrift, switchar och mätvärden hanteras i liveflödet. AGT-run och portaltester hanteras i låst testmiljö."
+ title="Arbeta från rätt kundflöde"
+ text="Kunddrift, leverantörsbyten och mätvärden hanteras i liveflödet. Låsta godkännandeflöden visas bara för plattformsadmin."
  />
  <FlowStep
  number="2"
@@ -358,15 +359,16 @@ export default async function EdielPage() {
  <FlowStep
  number="3"
  title="Skicka bara från rätt kontext"
- text="Outbound draft ska komma från kundflöde eller låst testkörning. Manuella filgeneratorer ska inte vara primär arbetsväg."
+ text="Utgående meddelanden ska komma från kundflöde, leverantörsbyte eller behörig driftvy. Manuella filgeneratorer ska inte vara primär arbetsväg."
  />
  </div>
  </div>
 
+ {isPlatformAdmin ? (
  <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white p-6 shadow-sm">
  <div className="flex flex-wrap items-center justify-between gap-3">
  <div>
- <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-900">Testmiljö / AGT-tester</p>
+ <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-900">Aktörsgodkännande</p>
  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Låsta godkännandeflöden</h2>
  </div>
  <Pill tone={agtErrors > 0 ? 'red' : agtWarnings > 0 ? 'amber' : 'emerald'}>
@@ -384,12 +386,13 @@ export default async function EdielPage() {
  </div>
 
  <p className="mt-4 text-sm font-medium leading-6 text-slate-700">
- AGT används endast för aktörs- och leverantörsgodkännande. Vanliga SaaS-kunder ska arbeta i
- Live-meddelanden, Control Tower och Routes.
+ AGT används endast för aktörs- och leverantörsgodkännande. Vanliga bolagsvyer ska arbeta i live-meddelanden, Control Tower och routes.
  </p>
  </div>
+ ) : null}
  </section>
 
+ {isPlatformAdmin ? (
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-700">Separat från liveflödet</p>
  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Testverktyg ska inte styra daglig drift</h2>
@@ -400,13 +403,14 @@ export default async function EdielPage() {
  huvudväg för operatören.
  </div>
  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium leading-6 text-slate-700">
- TGT/AGT och portaldiagnostik hör hemma i låst testmiljö, inte i live Ediel Center.
+ TGT/AGT och portaldiagnostik hör hemma i låst godkännandeyta, inte i live Ediel Center.
  </div>
  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium leading-6 text-slate-700">
  Alla leverantörer ska kopplas via tenant-konfiguration: aktör, route, profil, mailbox och ack-policy.
  </div>
  </div>
  </section>
+ ) : null}
  </div>
  </div>
  )

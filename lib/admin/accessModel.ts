@@ -79,12 +79,12 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'pricing.engine': { anyOf: ['pricing.read'] },
   'companies.manage': { anyOf: ['tenants.write'] },
   'company.settings': { anyOf: ['tenants.invite', 'users.read', 'users.write'] },
-  'platform.security': { anyOf: ['tenants.write'] },
-  'platform.usage': { anyOf: ['tenants.write', 'reports.read'] },
-  'platform.ediel.rules': { anyOf: ['tenants.write'] },
-  'platform.ediel.versions': { anyOf: ['tenants.write'] },
-  'platform.ediel.routes': { anyOf: ['tenants.write'] },
-  'platform.ediel.runtime': { anyOf: ['tenants.write'] },
+  'platform.security': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
+  'platform.usage': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
+  'platform.ediel.rules': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
+  'platform.ediel.versions': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
+  'platform.ediel.routes': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
+  'platform.ediel.runtime': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'operations.control_tower': {
     anyOf: [
       'switching.read',

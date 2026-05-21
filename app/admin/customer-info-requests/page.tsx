@@ -6,6 +6,7 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
   listAuthorizationScopes,
   listCustomerInfoRequests,
+  listCustomerInfoRequestResourceOptions,
   listCustomersForInfoRequestSelector,
   listMeteringPermissions,
 } from '@/lib/onboarding/infoRequests'
@@ -27,6 +28,41 @@ function statusTone(status: string) {
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
+
+function statusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    draft: 'Utkast',
+    pending: 'Väntar',
+    z01_prepared: 'Z01 förberedd',
+    route_missing: 'Saknar route',
+    missing_authorization: 'Saknar fullmakt',
+    manual_review_required: 'Manuell kontroll',
+    waiting_for_z02: 'Väntar på Z02',
+    z02_received: 'Z02 mottagen',
+    negative_aperak: 'Negativ APERAK',
+    blocked: 'Blockerad',
+  }
+  return labels[status] ?? status
+}
+
+function requestTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    z01_customer_masterdata: 'Kund- och anläggningskontroll',
+    current_supplier_contract_check: 'Kontroll hos nuvarande elhandlare',
+    manual_customer_document_check: 'Manuell kunddokumentation',
+  }
+  return labels[type] ?? type
+}
+
+function targetPartyLabel(type: string): string {
+  const labels: Record<string, string> = {
+    grid_owner: 'Nätägare',
+    current_supplier: 'Nuvarande elhandlare',
+    customer: 'Kund',
+  }
+  return labels[type] ?? type
+}
+
 function SelectCustomer({ customers, name = 'customer_id' }: { customers: Array<{ id: string; label: string; sublabel: string | null }>; name?: string }) {
   return (
     <select name={name} required className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
@@ -34,6 +70,46 @@ function SelectCustomer({ customers, name = 'customer_id' }: { customers: Array<
       {customers.map((customer) => (
         <option key={customer.id} value={customer.id}>
           {customer.label}{customer.sublabel ? ` — ${customer.sublabel}` : ''}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+
+function SelectSite({ sites }: { sites: Array<{ id: string; customerId: string; label: string; sublabel: string | null }> }) {
+  return (
+    <select name="site_id" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+      <option value="">Välj anläggning för Z01/Z02</option>
+      {sites.map((site) => (
+        <option key={site.id} value={site.id}>
+          {site.label}{site.sublabel ? ` — ${site.sublabel}` : ''}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function SelectMeteringPoint({ meteringPoints }: { meteringPoints: Array<{ id: string; label: string; sublabel: string | null }> }) {
+  return (
+    <select name="metering_point_id" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+      <option value="">Välj mätpunkt för Z01/Z02</option>
+      {meteringPoints.map((point) => (
+        <option key={point.id} value={point.id}>
+          {point.label}{point.sublabel ? ` — ${point.sublabel}` : ''}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function SelectGridOwner({ gridOwners }: { gridOwners: Array<{ id: string; label: string; sublabel: string | null }> }) {
+  return (
+    <select name="grid_owner_id" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+      <option value="">Välj nätägare</option>
+      {gridOwners.map((owner) => (
+        <option key={owner.id} value={owner.id}>
+          {owner.label}{owner.sublabel ? ` — ${owner.sublabel}` : ''}
         </option>
       ))}
     </select>
@@ -49,14 +125,15 @@ export default async function CustomerInfoRequestsPage() {
   const scope = user ? await getOperationalCompanyScope(user.id) : null
   const companyId = scope?.companyId ?? null
 
-  const [customers, requests, authorizationScopes, permissions] = companyId
+  const [customers, requests, authorizationScopes, permissions, resourceOptions] = companyId
     ? await Promise.all([
         listCustomersForInfoRequestSelector(companyId),
         listCustomerInfoRequests(companyId),
         listAuthorizationScopes(companyId),
         listMeteringPermissions(companyId),
+        listCustomerInfoRequestResourceOptions(companyId),
       ])
-    : [[], [], [], []]
+    : [[], [], [], [], { sites: [], meteringPoints: [], gridOwners: [] }]
 
   const blockedRequests = requests.filter((request) => ['blocked', 'route_missing', 'negative_aperak', 'manual_review_required', 'missing_authorization'].includes(request.status))
   const activeScopes = authorizationScopes.filter((scopeRow) => scopeRow.status === 'active')
@@ -81,7 +158,7 @@ export default async function CustomerInfoRequestsPage() {
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="text-sm font-medium text-slate-700">Uppgiftsbegäran</div>
             <div className="mt-2 text-3xl font-semibold text-slate-950">{requests.length}</div>
-            <p className="mt-2 text-xs text-slate-600">Z01/Z02, manuell bindningskontroll och masterdata.</p>
+            <p className="mt-2 text-xs text-slate-600">Z01/Z02, manuell bindningskontroll och kund-/anläggningsdata.</p>
           </div>
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
             <div className="text-sm font-medium text-emerald-800">Aktiva fullmaktsomfattningar</div>
@@ -107,6 +184,12 @@ export default async function CustomerInfoRequestsPage() {
             <p className="mt-2 text-sm leading-6 text-slate-700">Använd för anläggningsuppgifter, nätområde, årsenergi och separat manuell kontroll av bindningstid/uppsägningstid.</p>
             <div className="mt-5 grid gap-4">
               <SelectCustomer customers={customers} />
+              <SelectSite sites={resourceOptions.sites} />
+              <SelectMeteringPoint meteringPoints={resourceOptions.meteringPoints} />
+              <SelectGridOwner gridOwners={resourceOptions.gridOwners} />
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
+                För Z01/Z02 ska anläggning, mätpunkt och nätägare vara valda eller kunna härledas från kundens data. Annars blockeras begäran med tydlig åtgärd.
+              </div>
               <select name="request_type" defaultValue="z01_customer_masterdata" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
                 <option value="z01_customer_masterdata">Z01/Z02 - kund och anläggningskontroll</option>
                 <option value="current_supplier_contract_check">Bindning/uppsägning hos nuvarande elhandlare</option>
@@ -204,16 +287,16 @@ export default async function CustomerInfoRequestsPage() {
               {requests.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga uppgiftsbegäran ännu.</div> : requests.slice(0, 12).map((request) => (
                 <div key={request.id} className="rounded-2xl border border-slate-200 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(request.status)}`}>{request.status}</span>
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(request.status)}`}>{statusLabel(request.status)}</span>
                     <Link href={`/admin/customers/${request.customer_id}`} className="text-xs font-semibold text-emerald-800 hover:underline">Öppna kund</Link>
                   </div>
-                  <div className="mt-3 text-sm font-semibold text-slate-950">{request.request_type}</div>
-                  <div className="mt-1 text-xs leading-5 text-slate-600">{request.target_party_type}{request.target_party_name ? ` · ${request.target_party_name}` : ''}</div>
+                  <div className="mt-3 text-sm font-semibold text-slate-950">{requestTypeLabel(request.request_type)}</div>
+                  <div className="mt-1 text-xs leading-5 text-slate-600">{targetPartyLabel(request.target_party_type)}{request.target_party_name ? ` · ${request.target_party_name}` : ''}</div>
                   {request.blocker_reason ? <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">{request.blocker_reason}</div> : null}
                   <form action={queueCustomerInfoRequestAction} className="mt-3">
                     <input type="hidden" name="request_id" value={request.id} />
                     <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
-                      Kontrollera fullmakt och köa Z01-flöde
+                      Kontrollera fullmakt och förbered Z01
                     </button>
                   </form>
                 </div>
@@ -257,7 +340,7 @@ export default async function CustomerInfoRequestsPage() {
                     <form action={queueMeteringPermissionZ13Action}>
                       <input type="hidden" name="permission_id" value={permission.id} />
                       <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
-                        Kontrollera fullmakt och köa Z13
+                        Kontrollera fullmakt och förbered Z13
                       </button>
                     </form>
                     <details className="rounded-xl border border-slate-200 bg-slate-50 p-3">

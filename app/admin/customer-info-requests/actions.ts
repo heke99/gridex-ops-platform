@@ -60,6 +60,8 @@ export async function createCustomerInfoRequestAction(formData: FormData) {
     targetPartyName: nullableText(formData, 'target_party_name'),
     gridOwnerId: nullableText(formData, 'grid_owner_id'),
     currentSupplierName: nullableText(formData, 'current_supplier_name'),
+    siteId: nullableText(formData, 'site_id'),
+    meteringPointId: nullableText(formData, 'metering_point_id'),
     requestedDataCategories: checkedValues(formData, 'requested_data_categories'),
     notes: nullableText(formData, 'notes'),
   })

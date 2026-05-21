@@ -154,7 +154,7 @@ export function SmartOutboundForm({
  <div className="grid gap-4">
  <label className="grid gap-2">
  <span className="text-sm font-medium text-slate-700 ">
- Requesttyp
+ Typ av begäran
  </span>
  <select
  name="request_type"
@@ -173,7 +173,7 @@ export function SmartOutboundForm({
  <option value="supplier_switch">Leverantörsbyte</option>
  <option value="customer_masterdata">Kund- och anläggningsdata (Z01)</option>
  <option value="meter_values">Mätvärden</option>
- <option value="billing_underlay">Billing underlag</option>
+ <option value="billing_underlay">Faktureringsunderlag</option>
  </select>
  </label>
 
@@ -230,7 +230,7 @@ export function SmartOutboundForm({
 
  <label className="grid gap-2">
  <span className="text-sm font-medium text-slate-700 ">
- Payload / notering
+ Meddelandenotering
  </span>
  <textarea
  name="payload_note"
@@ -241,7 +241,7 @@ export function SmartOutboundForm({
  </div>
 
  <div className="mt-6 flex justify-end">
- <SubmitButton idleLabel="Köa outbound" pendingLabel="Köar outbound..." />
+ <SubmitButton idleLabel="Förbered utskick" pendingLabel="Förbereder utskick..." />
  </div>
  </form>
  )
@@ -294,7 +294,7 @@ export function SmartDataRequestForm({
  <div className="grid gap-4">
  <label className="grid gap-2">
  <span className="text-sm font-medium text-slate-700 ">
- Scope
+ Typ av underlag
  </span>
  <select
  name="request_scope"
@@ -310,8 +310,8 @@ export function SmartDataRequestForm({
  className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm "
  >
  <option value="meter_values">Mätvärden</option>
- <option value="billing_underlay">Billing underlag</option>
- <option value="customer_masterdata">Masterdataunderlag</option>
+ <option value="billing_underlay">Faktureringsunderlag</option>
+ <option value="customer_masterdata">Kund- och anläggningsdata (Z01)</option>
  </select>
  </label>
 
@@ -379,7 +379,7 @@ export function SmartDataRequestForm({
  </div>
 
  <div className="mt-6 flex justify-end">
- <SubmitButton idleLabel="Köa request" pendingLabel="Skapar request..." />
+ <SubmitButton idleLabel="Skapa begäran" pendingLabel="Skapar begäran..." />
  </div>
  </form>
  )
@@ -441,15 +441,15 @@ export function SmartPartnerExportForm({
  defaultValue="billing_underlay"
  className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm "
  >
- <option value="billing_underlay">Billing underlag</option>
+ <option value="billing_underlay">Faktureringsunderlag</option>
  <option value="meter_values">Mätvärden</option>
- <option value="customer_snapshot">Customer snapshot</option>
+ <option value="customer_snapshot">Kundöversikt</option>
  </select>
  </label>
 
  <label className="grid gap-2">
  <span className="text-sm font-medium text-slate-700 ">
- Target system
+ Mottagande system
  </span>
  <input
  name="target_system"
@@ -473,7 +473,7 @@ export function SmartPartnerExportForm({
 
  <label className="grid gap-2">
  <span className="text-sm font-medium text-slate-700 ">
- Billing underlag
+ Faktureringsunderlag
  </span>
  <select
  name="billing_underlay_id"
@@ -514,7 +514,7 @@ export function SmartPartnerExportForm({
  </div>
 
  <div className="mt-6 flex justify-end">
- <SubmitButton idleLabel="Köa export" pendingLabel="Skapar export..." />
+ <SubmitButton idleLabel="Förbered export" pendingLabel="Skapar export..." />
  </div>
  </form>
  )

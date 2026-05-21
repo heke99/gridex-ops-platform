@@ -69,10 +69,10 @@ export default async function CommunicationRoutesPage({
  defaultValue="meter_values"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
- <option value="supplier_switch">Supplier switch</option>
- <option value="customer_masterdata">Customer masterdata / Z01</option>
- <option value="meter_values">Meter values</option>
- <option value="billing_underlay">Billing underlay</option>
+ <option value="supplier_switch">Leverantörsbyte</option>
+ <option value="customer_masterdata">Kund- och anläggningskontroll / Z01</option>
+ <option value="meter_values">Mätvärden</option>
+ <option value="billing_underlay">Faktureringsunderlag</option>
  </select>
 
  <select
@@ -134,7 +134,7 @@ export default async function CommunicationRoutesPage({
  <label className="inline-flex items-center gap-2 text-sm text-slate-700 ">
  <input
  type="checkbox"
- name="is_active"
+ name="is_aktiv"
  value="true"
  defaultChecked
  className="h-4 w-4"
@@ -179,7 +179,7 @@ export default async function CommunicationRoutesPage({
  {route.route_type}
  </span>
  <span className="text-xs text-slate-700 ">
- {route.is_active ? 'active' : 'inactive'}
+ {route.is_active ? 'aktiv' : 'inaktiv'}
  </span>
  </div>
 
@@ -189,13 +189,13 @@ export default async function CommunicationRoutesPage({
  <span className="font-medium">{route.route_name}</span>
  </div>
  <div>
- Target system:{' '}
+ Mottagande system:{' '}
  <span className="font-medium">{route.target_system}</span>
  </div>
  <div>
  Nätägare:{' '}
  <span className="font-medium">
- {route.grid_owner_id ?? 'global default'}
+ {route.grid_owner_id ?? 'global standard'}
  </span>
  </div>
  <div>

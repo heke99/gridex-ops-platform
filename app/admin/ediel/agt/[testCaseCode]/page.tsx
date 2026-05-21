@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
  listAckMessagesForSource,
  listEdielMessages,
@@ -215,21 +214,19 @@ export default async function AgtCasePage({
  params: Promise<{ testCaseCode: string }>
 }) {
  const { testCaseCode } = await params
- const context = await requireAdminPageKeyAccess('ediel.workspace')
- const isPlatformAdmin = isPlatformAdminContext(context)
- const companyScope = await getOperationalCompanyScope(context.userId)
- const companyId = isPlatformAdmin ? null : companyScope.companyId
+ const context = await requirePlatformAdminAccess()
+ const companyId = null
  const testCase = getEdielAgtSupplier2026ACase(String(testCaseCode).toUpperCase())
 
  if (!testCase) {
  return (
  <div className="space-y-6">
  <AdminHeader
- title="Testmiljö / AGT-test"
+ title="Aktörsgodkännande (AGT)"
  subtitle="Testfallet hittades inte."
  userEmail={context.email}
- workspaceName={isPlatformAdmin ? 'Platform Control' : companyScope.companyName}
- workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
+ workspaceName="Plattformskontroll"
+ workspaceMode="platform"
  />
  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-700">
  Okänt testfall: {testCaseCode}
@@ -285,19 +282,17 @@ export default async function AgtCasePage({
  <div className="space-y-6">
  <AdminHeader
  title={`${testCase.testCaseCode} · ${testCase.title}`}
- subtitle={isPlatformAdmin
- ? 'Plattformens AGT-testmotor. Inbound/outbound visas globalt för platform admin.'
- : 'Tenant-skopad AGT-testvy. Endast bolagets egna inbound/outbound-meddelanden visas.'}
+ subtitle="Plattformens låsta AGT-motor. Inbound och outbound visas globalt för platform admin."
  userEmail={context.email}
- workspaceName={isPlatformAdmin ? 'Platform Control' : companyScope.companyName}
- workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
+ workspaceName="Plattformskontroll"
+ workspaceMode="platform"
  />
 
  <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5">
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
  <div className="flex flex-wrap gap-2">
- <Badge tone="emerald">TESTLÄGE</Badge>
+ <Badge tone="emerald">GODKÄNNANDE</Badge>
  <Badge tone="slate">{testCase.suite}</Badge>
  <Badge tone="slate">{testCase.messageCode}</Badge>
  <Badge tone={actorToPortal ? 'amber' : 'emerald'}>{directionText(testCase)}</Badge>
@@ -307,7 +302,7 @@ export default async function AgtCasePage({
  </div>
  <div className="flex flex-wrap gap-2">
  <Link href="/admin/ediel/agt" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
- Till testmiljö
+ Till godkännandeyta
  </Link>
  <Link href="/admin/ediel/messages" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
  Meddelanden

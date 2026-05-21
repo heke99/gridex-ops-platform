@@ -298,7 +298,7 @@ export default async function AdminEdielRoutesPage() {
  <div className="space-y-6">
  <AdminHeader
  title="Ediel-adressering & aktörsregister"
- subtitle={isPlatformAdmin ? 'Global route-governance och runtimekontroll för plattformen. Tenant-vyer visar bara bolagets egna routes.' : `Spara route profiles för ${companyScope.companyName ?? 'ditt bolag'}: rätt Ediel-id, rätt motpart, rätt process och rätt kvittenspolicy.`}
+ subtitle={isPlatformAdmin ? 'Global route-governance och runtimekontroll för plattformen. Tenant-vyer visar bara bolagets egna routes.' : `Spara route-profiler för ${companyScope.companyName ?? 'ditt bolag'}: rätt Ediel-id, rätt motpart, rätt process och rätt kvittenspolicy.`}
  userEmail={context.email}
  workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
  workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
@@ -310,7 +310,7 @@ export default async function AdminEdielRoutesPage() {
  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Ediel Live setup</p>
  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Aktör, motpart och route måste vara tydligt separerade</h2>
  <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-700">
- Den här sidan ska användas för livekonfiguration: eget bolags Ediel-identitet, nätägares mottagning, leverantörers/BRP-uppgifter och route profiles för PRODAT, UTILTS, APERAK och CONTRL. Testmiljö får finnas, men produktion får aldrig bygga på hårdkodade AGT-värden.
+ Den här sidan ska användas för livekonfiguration: eget bolags Ediel-identitet, nätägares mottagning, leverantörers/BRP-uppgifter och route-profiler för PRODAT, UTILTS, APERAK och CONTRL. Godkännandemiljö får finnas för behöriga administratörer, men produktion får aldrig bygga på hårdkodade portalvärden.
  </p>
  </div>
  <div className="flex flex-wrap gap-2">
@@ -423,10 +423,10 @@ export default async function AdminEdielRoutesPage() {
  defaultValue="meter_values"
  className={selectClassName()}
  >
- <option value="meter_values">meter_values</option>
- <option value="customer_masterdata">customer_masterdata</option>
- <option value="supplier_switch">supplier_switch</option>
- <option value="billing_underlay">billing_underlay</option>
+ <option value="meter_values">Mätvärden</option>
+ <option value="customer_masterdata">Kund- och anläggningskontroll</option>
+ <option value="supplier_switch">Leverantörsbyte</option>
+ <option value="billing_underlay">Faktureringsunderlag</option>
  </select>
  <select
  name="environment"
@@ -440,24 +440,24 @@ export default async function AdminEdielRoutesPage() {
  name="target_system"
  defaultValue="ediel"
  className={textInputClassName()}
- placeholder="Target system"
+ placeholder="Mottagande system"
  />
  <input
  name="target_email"
  className={textInputClassName()}
- placeholder="Target email"
+ placeholder="Mottagande e-post"
  />
  <input
  name="endpoint"
  className={textInputClassName()}
- placeholder="Endpoint"
+ placeholder="Endpoint / URL"
  />
  <select
  name="grid_owner_id"
  defaultValue=""
  className={selectClassName()}
  >
- <option value="">Ingen specifik grid owner</option>
+ <option value="">Ingen specifik nätägare</option>
  {gridOwners.map((row) => (
  <option key={row.id} value={row.id}>
  {row.name}
@@ -467,7 +467,7 @@ export default async function AdminEdielRoutesPage() {
  <input
  name="supported_payload_version"
  className={textInputClassName()}
- placeholder="Supported payload version"
+ placeholder="Stödd payload-version"
  />
  </div>
  </div>
@@ -478,32 +478,32 @@ export default async function AdminEdielRoutesPage() {
  <input
  name="receiverEdielId"
  className={textInputClassName()}
- placeholder="Receiver Ediel-id"
+ placeholder="Mottagare Ediel-id"
  />
  <input
  name="receiverName"
  className={textInputClassName()}
- placeholder="Receiver name"
+ placeholder="Mottagarens namn"
  />
  <input
  name="receiverSubAddress"
  className={textInputClassName()}
- placeholder="Receiver subaddress"
+ placeholder="Mottagarens subadress"
  />
  <input
  name="mailbox"
  className={textInputClassName()}
- placeholder="Mailbox (blank = use actor default)"
+ placeholder="Mailbox (tomt = aktörens standard)"
  />
  <input
  name="applicationReference"
  className={textInputClassName()}
- placeholder="Application reference (blank = use actor default)"
+ placeholder="Application Reference (tomt = aktörens standard)"
  />
  <input
  name="defaultMessageVersion"
  className={textInputClassName()}
- placeholder="Default message version"
+ placeholder="Standardversion"
  />
  <select
  name="ackMode"
@@ -588,22 +588,22 @@ export default async function AdminEdielRoutesPage() {
  </div>
 
  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
- <Field label="Grid owner" value={gridOwner?.name ?? null} />
- <Field label="Grid owner Ediel-id" value={gridOwner?.ediel_id ?? null} />
- <Field label="Effective receiver Ediel-id" value={effectiveReceiver} />
- <Field label="Target email" value={route.target_email} />
+ <Field label="Nätägare" value={gridOwner?.name ?? null} />
+ <Field label="Nätägarens Ediel-id" value={gridOwner?.ediel_id ?? null} />
+ <Field label="Aktiv mottagare Ediel-id" value={effectiveReceiver} />
+ <Field label="Mottagande e-post" value={route.target_email} />
  <Field label="Mailbox" value={runtime?.mailbox ?? null} />
  <Field label="Sender Ediel-id" value={runtime?.sender_ediel_id ?? null} />
- <Field label="Receiver Ediel-id (profil)" value={runtime?.receiver_ediel_id ?? null} />
- <Field label="Application reference" value={runtime?.application_reference ?? null} />
+ <Field label="Mottagare Ediel-id (profil)" value={runtime?.receiver_ediel_id ?? null} />
+ <Field label="Application Reference" value={runtime?.application_reference ?? null} />
  <Field label="Ack-mode" value={runtime?.ack_mode ?? null} />
- <Field label="Message standard" value={runtime?.message_standard ?? null} />
- <Field label="Payload format" value={runtime?.payload_format ?? null} />
- <Field label="Encryption mode" value={runtime?.encryption_mode ?? null} />
- <Field label="Version override" value={runtime?.default_message_version ?? null} />
- <Field label="Target system" value={route.target_system} />
+ <Field label="Meddelandestandard" value={runtime?.message_standard ?? null} />
+ <Field label="Payload-format" value={runtime?.payload_format ?? null} />
+ <Field label="Kryptering" value={runtime?.encryption_mode ?? null} />
+ <Field label="Versionsstyrning" value={runtime?.default_message_version ?? null} />
+ <Field label="Mottagande system" value={route.target_system} />
  <Field label="Endpoint" value={route.endpoint} />
- <Field label="Supported payload version" value={route.supported_payload_version} />
+ <Field label="Stödd payload-version" value={route.supported_payload_version} />
  </div>
 
  <div className="mt-4">
@@ -647,10 +647,10 @@ export default async function AdminEdielRoutesPage() {
  <div className="grid gap-3 md:grid-cols-2">
  <input name="route_name" defaultValue={route.route_name} className={textInputClassName()} />
  <select name="route_scope" defaultValue={route.route_scope} className={selectClassName()}>
- <option value="supplier_switch">supplier_switch</option>
- <option value="customer_masterdata">customer_masterdata</option>
- <option value="meter_values">meter_values</option>
- <option value="billing_underlay">billing_underlay</option>
+ <option value="supplier_switch">Leverantörsbyte</option>
+ <option value="customer_masterdata">Kund- och anläggningskontroll</option>
+ <option value="meter_values">Mätvärden</option>
+ <option value="billing_underlay">Faktureringsunderlag</option>
  </select>
  <select name="route_type" defaultValue={route.route_type} className={selectClassName()}>
  <option value="ediel_partner">ediel_partner</option>
@@ -699,14 +699,14 @@ export default async function AdminEdielRoutesPage() {
 
  <div className="grid gap-3 md:grid-cols-2">
  <input name="senderEdielId" defaultValue={runtime?.sender_ediel_id ?? ''} placeholder="Sender Ediel-id" className={textInputClassName()} />
- <input name="receiverEdielId" defaultValue={runtime?.receiver_ediel_id ?? ''} placeholder="Receiver Ediel-id" className={textInputClassName()} />
+ <input name="receiverEdielId" defaultValue={runtime?.receiver_ediel_id ?? ''} placeholder="Mottagare Ediel-id" className={textInputClassName()} />
  <input name="senderName" defaultValue={runtime?.sender_name ?? ''} placeholder="Sender name" className={textInputClassName()} />
- <input name="receiverName" defaultValue={runtime?.receiver_name ?? ''} placeholder="Receiver name" className={textInputClassName()} />
+ <input name="receiverName" defaultValue={runtime?.receiver_name ?? ''} placeholder="Mottagarens namn" className={textInputClassName()} />
  <input name="senderSubAddress" defaultValue={runtime?.sender_sub_address ?? ''} placeholder="Sender subaddress" className={textInputClassName()} />
- <input name="receiverSubAddress" defaultValue={runtime?.receiver_sub_address ?? ''} placeholder="Receiver subaddress" className={textInputClassName()} />
+ <input name="receiverSubAddress" defaultValue={runtime?.receiver_sub_address ?? ''} placeholder="Mottagarens subadress" className={textInputClassName()} />
  <input name="mailbox" defaultValue={runtime?.mailbox ?? ''} placeholder="Mailbox" className={textInputClassName()} />
  <input name="applicationReference" defaultValue={runtime?.application_reference ?? ''} placeholder="Application reference" className={textInputClassName()} />
- <input name="defaultMessageVersion" defaultValue={runtime?.default_message_version ?? ''} placeholder="Default message version" className={textInputClassName()} />
+ <input name="defaultMessageVersion" defaultValue={runtime?.default_message_version ?? ''} placeholder="Standardversion" className={textInputClassName()} />
  <select name="ackMode" defaultValue={runtime?.ack_mode ?? 'default'} className={selectClassName()}>
  <option value="default">default</option>
  <option value="none">none</option>

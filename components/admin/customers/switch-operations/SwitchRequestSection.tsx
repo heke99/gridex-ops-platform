@@ -52,17 +52,17 @@ export default function SwitchRequestSection({
  <div className="rounded-3xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <h2 className="text-lg font-semibold text-slate-900 ">
- Switchärenden på kundkortet
+ Leverantörsbyten på kundkortet
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Detaljerad genomgång per switchärende, med validation, outbound och nästa steg.
+ Detaljerad genomgång per leverantörsbyte med validering, utskick och nästa steg.
  </p>
  </div>
 
  <div className="space-y-4 p-6">
  {switchRequests.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-700 ">
- Inga switchärenden ännu för kunden.
+ Inga leverantörsbyten ännu för kunden.
  </div>
  ) : (
  [...switchRequests]
@@ -145,7 +145,7 @@ export default function SwitchRequestSection({
  >
  {outbound.channel_type === 'unresolved'
  ? 'route saknas'
- : `outbound: ${outbound.status}`}
+ : `utskick: ${outbound.status}`}
  </span>
  ) : null}
  </div>
@@ -185,11 +185,11 @@ export default function SwitchRequestSection({
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Outbound</div>
+ <div className="text-slate-700 ">Utskick</div>
  <div className="mt-1 font-medium text-slate-900 ">
  {outbound
  ? outbound.channel_type === 'unresolved'
- ? 'unresolved'
+ ? 'saknad route'
  : outbound.status
  : 'saknas'}
  </div>
@@ -205,13 +205,13 @@ export default function SwitchRequestSection({
  {nextStep}
  </p>
  <p className="mt-2 text-xs text-slate-700 ">
- Lifecycle: {lifecycle.reason}
+ Flödesstatus: {lifecycle.reason}
  </p>
  </div>
 
  <div className="rounded-2xl border border-slate-200 p-4 ">
  <div className="text-sm font-semibold text-slate-900 ">
- Validation snapshot
+ Valideringsöversikt
  </div>
  <div className="mt-2 space-y-1 text-sm text-slate-700 ">
  <div>
@@ -221,11 +221,11 @@ export default function SwitchRequestSection({
  </span>
  </div>
  <div>
- Issue count:{' '}
+ Antal avvikelser:{' '}
  <span className="font-medium">{validation.issueCount}</span>
  </div>
  <div>
- Issue codes:{' '}
+ Avvikelsekoder:{' '}
  <span className="font-medium">
  {validation.issueCodes.length > 0
  ? validation.issueCodes.join(', ')
@@ -268,7 +268,7 @@ export default function SwitchRequestSection({
  <form action={queueSupplierSwitchOutboundAction}>
  <input type="hidden" name="request_id" value={request.id} />
  <button className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 ">
- Köa outbound nu
+ Förbered utskick nu
  </button>
  </form>
  ) : null}
@@ -282,7 +282,7 @@ export default function SwitchRequestSection({
  value={outbound.id}
  />
  <button className="rounded-2xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 ">
- Retry outbound
+ Försök skicka igen
  </button>
  </form>
  ) : null}
@@ -291,7 +291,7 @@ export default function SwitchRequestSection({
  href={`/admin/operations/switches/${request.id}`}
  className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 "
  >
- Gå till switch detail
+ Öppna leverantörsbyte
  </Link>
 
  <Link
@@ -305,7 +305,7 @@ export default function SwitchRequestSection({
  href="/admin/outbound"
  className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 "
  >
- Gå till outbound
+ Gå till utskick
  </Link>
 
  {outbound?.channel_type === 'unresolved' ? (
@@ -313,7 +313,7 @@ export default function SwitchRequestSection({
  href="/admin/outbound/unresolved"
  className="rounded-2xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 "
  >
- Gå till unresolved
+ Visa saknade rutter
  </Link>
  ) : null}
  </div>

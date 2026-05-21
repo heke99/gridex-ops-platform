@@ -68,6 +68,32 @@ mustContain('app/admin/platform/ediel/rules/page.tsx', 'requirePlatformAdminAcce
 mustContain('app/admin/platform/ediel/versions/page.tsx', 'requirePlatformAdminAccess')
 mustContain('app/admin/platform/ediel/routes/page.tsx', 'requirePlatformAdminAccess')
 
+const reviewedServiceClientFiles = new Set([
+  'app/admin/audit/page.tsx',
+  'app/admin/cis/actions.ts',
+  'app/admin/companies/actions.ts',
+  'app/admin/company-settings/actions.ts',
+  'app/admin/contracts/actions.ts',
+  'app/admin/customer-cases/actions.ts',
+  'app/admin/customer-cases/page.tsx',
+  'app/admin/customers/[id]/actions.ts',
+  'app/admin/customers/[id]/document-actions.ts',
+  'app/admin/customers/[id]/grid-owner-import-actions.ts',
+  'app/admin/customers/[id]/profile-actions.ts',
+  'app/admin/customers/[id]/switch-actions.ts',
+  'app/admin/customers/[id]/switch-create-actions.ts',
+  'app/admin/customers/actions.ts',
+  'app/admin/customers/page.tsx',
+  'app/admin/customers/segments/page.tsx',
+  'app/admin/ediel/actions.ts',
+  'app/admin/ediel/agt/actions.ts',
+  'app/admin/operations/actions.ts',
+  'app/admin/operations/control-actions.ts',
+  'app/admin/outbound/unresolved/actions.ts',
+  'app/admin/users/[id]/actions.ts',
+  'app/admin/users/actions.ts',
+])
+
 const serviceClientFiles = []
 function walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -82,8 +108,20 @@ function walk(dir) {
   }
 }
 walk(path.join(root, 'app'))
-if (serviceClientFiles.length > 0) {
-  warnings.push(`Manuell service-client tenant-review kvar: ${serviceClientFiles.length} adminfiler använder supabaseService.`)
+
+const unreviewedServiceClientFiles = serviceClientFiles
+  .filter((rel) => !reviewedServiceClientFiles.has(rel))
+  .sort((a, b) => a.localeCompare(b))
+const removedReviewedServiceClientFiles = [...reviewedServiceClientFiles]
+  .filter((rel) => !serviceClientFiles.includes(rel))
+  .sort((a, b) => a.localeCompare(b))
+
+if (unreviewedServiceClientFiles.length > 0) {
+  failures.push(`Ogranskad supabaseService i app/admin: ${unreviewedServiceClientFiles.join(', ')}`)
+}
+
+if (removedReviewedServiceClientFiles.length > 0) {
+  warnings.push(`Service-client review-listan innehåller filer som inte längre använder supabaseService: ${removedReviewedServiceClientFiles.join(', ')}`)
 }
 
 if (failures.length > 0) {

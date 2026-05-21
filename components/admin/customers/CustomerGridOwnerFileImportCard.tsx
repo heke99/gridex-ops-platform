@@ -12,7 +12,7 @@ export default function CustomerGridOwnerFileImportCard({
  Import från nätägarfil
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Ladda upp CSV, TSV, TXT eller JSON för inkomna mätvärden eller billing underlag.
+ Ladda upp CSV, TSV, TXT eller JSON för inkomna mätvärden eller faktureringsunderlag.
  Systemet parser filen, mappar mot kundens anläggningar och mätpunkter och registrerar raderna i databasen.
  </p>
  </div>
@@ -28,7 +28,7 @@ export default function CustomerGridOwnerFileImportCard({
  className="h-11 rounded-2xl border border-slate-300 bg-white px-4 "
  >
  <option value="meter_values">Mätvärden</option>
- <option value="billing_underlay">Billing underlag</option>
+ <option value="billing_underlay">Faktureringsunderlag</option>
  </select>
  </label>
 
@@ -48,7 +48,7 @@ export default function CustomerGridOwnerFileImportCard({
  <code>meter_point_id;value_kwh;read_at;reading_type;quality_code;period_start;period_end</code>
  <br />
  <br />
- Exempelkolumner för billing underlag: <br />
+ Exempelkolumner för faktureringsunderlag: <br />
  <code>meter_point_id;underlay_year;underlay_month;total_kwh;total_sek_ex_vat;status</code>
  </div>
 

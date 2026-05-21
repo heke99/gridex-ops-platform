@@ -340,7 +340,7 @@ export default function UnresolvedRequestsList({
  3. Outbound queue
  </div>
  <p className="mt-1">
- När route är löst går du tillbaka hit eller till outbound queue för att följa dispatchen vidare.
+ När route är löst går du tillbaka hit eller till utskickskön för att följa utskicket vidare.
  </p>
  </div>
  </div>

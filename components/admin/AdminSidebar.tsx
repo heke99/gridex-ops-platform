@@ -52,7 +52,7 @@ const NAV_GROUPS: NavGroup[] = [
  },
  {
  title: 'Ediel Center',
- description: 'Liveflöden, kvittenser, aktörer och testmiljö',
+ description: 'Liveflöden, kvittenser, aktörer och drift',
  items: [
  {
  href: '/admin/ediel',
@@ -86,10 +86,11 @@ const NAV_GROUPS: NavGroup[] = [
  },
  {
  href: '/admin/ediel/agt',
- label: 'Testmiljö / AGT-tester',
- description: 'Låst godkännandeyta för portaltester',
+ label: 'Aktörsgodkännande (AGT)',
+ description: 'Låst godkännandeyta för plattformsadmin',
  pageKey: 'ediel.workspace',
- badge: 'Låst',
+ badge: 'Admin',
+ platformOnly: true,
  },
  ],
  },
@@ -173,7 +174,7 @@ const NAV_GROUPS: NavGroup[] = [
  },
  {
  title: 'Operations',
- description: 'Leverantörsbyte, outbounds och uppföljning',
+ description: 'Leverantörsbyte, utskick och uppföljning',
  items: [
  {
  href: '/admin/operations',
@@ -207,7 +208,7 @@ const NAV_GROUPS: NavGroup[] = [
  },
  {
  href: '/admin/outbound/ready-switches',
- label: 'Redo outbounds',
+ label: 'Redo utskick',
  description: 'Switchar som kan köas och skickas',
  pageKey: 'outbound.ready_switches',
  },
@@ -244,7 +245,7 @@ const NAV_GROUPS: NavGroup[] = [
  {
  href: '/admin/outbound/missing-billing-underlays',
  label: 'Saknade underlag',
- description: 'Billingunderlag som blockerar export',
+ description: 'Faktureringsunderlag som blockerar export',
  pageKey: 'outbound.missing_billing_underlays',
  },
  {
@@ -314,7 +315,7 @@ const NAV_GROUPS: NavGroup[] = [
 
  {
  href: '/admin/platform/usage',
- label: 'Usage & SaaS-billing',
+ label: 'Usage & SaaS-fakturering',
  description: 'Volymer per tenant för framtida plattformsfakturering',
  pageKey: 'platform.usage',
  platformOnly: true,
@@ -335,7 +336,7 @@ const NAV_GROUPS: NavGroup[] = [
  },
  {
  href: '/admin/platform/ediel/routes',
- label: 'Platform routes',
+ label: 'Plattformsrutter',
  description: 'Global route-governance',
  pageKey: 'platform.ediel.routes',
  platformOnly: true,
@@ -376,7 +377,7 @@ function isActive(pathname: string, href: string) {
 }
 
 function canAccessNavItem(currentPermissions: string[], item: NavItem, isPlatformAdmin: boolean) {
- if (item.platformOnly && !isPlatformAdmin) return false
+ if (item.platformOnly) return isPlatformAdmin
  if (!item.pageKey) return true
  return hasPermissionRequirement(
  currentPermissions,
@@ -391,7 +392,7 @@ export default function AdminSidebar({
  workspaceSubtitle,
 }: AdminSidebarProps) {
  const pathname = usePathname()
- const displayName = workspaceName?.trim() || (isPlatformAdmin ? 'Gridex Platform' : 'Ditt bolag')
+ const displayName = workspaceName?.trim() || (isPlatformAdmin ? 'Gridex Plattform' : 'Ditt bolag')
  const displaySubtitle = workspaceSubtitle?.trim() || (isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta')
  const initial = displayName.charAt(0).toUpperCase()
 
@@ -419,7 +420,7 @@ export default function AdminSidebar({
 
  <div className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
  <div className="inline-flex rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
- {isPlatformAdmin ? 'Platform Control' : 'Bolagsyta'}
+ {isPlatformAdmin ? 'Plattformskontroll' : 'Bolagsyta'}
  </div>
  <h1 className="mt-3 text-lg font-semibold tracking-tight text-slate-950">
  {isPlatformAdmin ? 'Kontrollcenter' : 'Driftcenter'}

@@ -1050,8 +1050,17 @@ export default async function CustomerAdminDetailPage({
  const supabase = await createSupabaseServerClient()
  const companyScope = await getOperationalCompanyScope(access.userId)
 
+ const customer = await getCustomer(supabase, id)
+
+ if (!customer) {
+ notFound()
+ }
+
+ if (companyScope.companyId && customer.company_id && customer.company_id !== companyScope.companyId) {
+ notFound()
+ }
+
  const [
- customer,
  gridOwners,
  priceAreas,
  sites,
@@ -1073,7 +1082,6 @@ export default async function CustomerAdminDetailPage({
  meteringPermissions,
  customerCases,
  ] = await Promise.all([
- getCustomer(supabase, id),
  listGridOwners(supabase),
  listPriceAreas(supabase),
  listCustomerSitesByCustomerId(supabase, id),
@@ -1105,14 +1113,6 @@ export default async function CustomerAdminDetailPage({
  companyScope.companyId ? listMeteringPermissionsByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
  companyScope.companyId ? listCustomerCases({ companyId: companyScope.companyId, customerId: id, limit: 20 }) : [],
  ])
-
- if (!customer) {
- notFound()
- }
-
- if (companyScope.companyId && customer.company_id && customer.company_id !== companyScope.companyId) {
- notFound()
- }
 
  if (contactsResponse.error) throw contactsResponse.error
  if (addressesResponse.error) throw addressesResponse.error

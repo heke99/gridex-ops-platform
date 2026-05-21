@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { listEdielTestRuns } from '@/lib/ediel/db'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
 import {
@@ -137,10 +136,8 @@ function parseAgtActorNotes(notes?: string | null): { balanceResponsibleEdielId:
 }
 
 export default async function EdielAgtPage() {
- const context = await requireAdminPageKeyAccess('ediel.workspace')
- const isPlatformAdmin = isPlatformAdminContext(context)
- const companyScope = await getOperationalCompanyScope(context.userId)
- const companyId = isPlatformAdmin ? null : companyScope.companyId
+ const context = await requirePlatformAdminAccess()
+ const companyId = null
  const [runtime, testRuns] = await Promise.all([
  getEdielAgtSupplierRuntime(companyId),
  listEdielTestRuns(),
@@ -162,24 +159,24 @@ export default async function EdielAgtPage() {
  return (
  <div className="space-y-6">
  <AdminHeader
- title="Testmiljö / AGT-tester"
- subtitle="Låst godkännandeyta för Edielportalen. Vanliga leverantörer ska arbeta i Ediel Live Center; detta läge används bara vid aktörs- och leverantörsgodkännande."
+ title="Aktörsgodkännande (AGT)"
+ subtitle="Låst plattformsyta för aktörs- och leverantörsgodkännande mot Edielportalen."
  userEmail={context.email}
- workspaceName={isPlatformAdmin ? 'Platform Control' : companyScope.companyName}
- workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
+ workspaceName="Plattformskontroll"
+ workspaceMode="platform"
  />
 
  <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-5">
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
- <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Låst testmiljö</div>
- <h1 className="mt-1 text-2xl font-semibold text-slate-950">Först ska testmiljön vara redo</h1>
+ <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Låst godkännandeyta</div>
+ <h1 className="mt-1 text-2xl font-semibold text-slate-950">Först ska godkännandeytan vara redo</h1>
  <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
  Värdena i formuläret sparas i aktörskort, communication_routes och ediel_route_profiles. Nuvarande värden är bara förifyllda defaultvärden i formuläret. Runtime ska läsa från databasen så att samma SaaS-flöde fungerar för varje leverantör/tenant senare.
  </p>
  </div>
  <div className="flex flex-wrap gap-2">
- <Badge tone={runtime.isReady ? 'emerald' : 'red'}>{runtime.isReady ? 'testmiljö redo' : 'testmiljö blockerad'}</Badge>
+ <Badge tone={runtime.isReady ? 'emerald' : 'red'}>{runtime.isReady ? 'godkännande redo' : 'godkännande blockerat'}</Badge>
  <Badge tone={errorCount > 0 ? 'red' : 'emerald'}>fel {errorCount}</Badge>
  <Badge tone={warningCount > 0 ? 'amber' : 'emerald'}>varningar {warningCount}</Badge>
  <Link href="/admin/ediel" className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">

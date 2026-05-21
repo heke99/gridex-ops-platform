@@ -64,7 +64,7 @@ type ValidationSnapshotView = {
 type TimelineEntry = {
  id: string
  occurredAt: string
- source: 'switch_request' | 'switch_event' | 'outbound' | 'dispatch_event' | 'ediel_message'
+ source: 'switch_request' | 'switch_event' | 'outbound' | 'utskick_event' | 'ediel_message'
  title: string
  description: string
  status: string
@@ -175,7 +175,7 @@ function buildTimeline(params: {
  params.request.submitted_at ??
  params.request.created_at,
  source: 'switch_request',
- title: 'Switch request',
+ title: 'Leverantörsbyte request',
  description: `${params.request.request_type} · ${params.request.status}`,
  status: params.request.status,
  })
@@ -185,7 +185,7 @@ function buildTimeline(params: {
  id: `switch-event:${event.id}`,
  occurredAt: event.created_at,
  source: 'switch_event',
- title: 'Switch event',
+ title: 'Leverantörsbyte event',
  description: event.message ?? `${event.event_type} · ${event.event_status}`,
  status: event.event_status,
  })
@@ -221,9 +221,9 @@ function buildTimeline(params: {
 
  for (const event of params.outboundDispatchEvents) {
  rows.push({
- id: `dispatch-event:${event.id}`,
+ id: `utskick-event:${event.id}`,
  occurredAt: event.created_at,
- source: 'dispatch_event',
+ source: 'utskick_event',
  title: 'Dispatch event',
  description: event.message ?? `${event.event_type} · ${event.event_status}`,
  status: event.event_status,
@@ -236,7 +236,7 @@ function buildTimeline(params: {
  )
 }
 
-export default async function SwitchDetailPage({ params }: PageProps) {
+export default async function LeverantörsbyteDetailPage({ params }: PageProps) {
  await requirePermissionServer('masterdata.read')
 
  const { id } = await params
@@ -337,7 +337,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  outboundRequest,
  })
 
- const timeline = buildTimeline({
+ const tidslinje = buildTimeline({
  request,
  switchEvents,
  outboundRequest,
@@ -354,8 +354,8 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Switch detail"
- subtitle="Detail-vy för ett enskilt supplier switch-ärende med timeline, dispatch, validering och intern slutföring."
+ title="Leverantörsbyte"
+ subtitle="Detail-vy för ett enskilt leverantörsbytesärende med tidslinje, utskick, validering och intern slutföring."
  userEmail={user?.email ?? null}
  />
 
@@ -376,7 +376,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  </div>
 
  <h1 className="mt-3 text-2xl font-semibold text-slate-950 ">
- Switchärende {request.id}
+ Leverantörsbyteärende {request.id}
  </h1>
 
  <p className="mt-2 text-sm text-slate-700 ">
@@ -390,7 +390,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  href="/admin/operations/switches"
  className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 "
  >
- Tillbaka till switchar
+ Tillbaka till leverantörsbyten
  </Link>
  <Link
  href={`/admin/customers/${request.customer_id}`}
@@ -404,7 +404,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
 
  <section className="grid gap-4 xl:grid-cols-5">
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
- <div className="text-sm text-slate-700 ">Lifecycle</div>
+ <div className="text-sm text-slate-700 ">Flödesstatus</div>
  <div className="mt-2 text-lg font-semibold text-slate-950 ">
  {lifecycle.label}
  </div>
@@ -421,14 +421,14 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  </div>
 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
- <div className="text-sm text-slate-700 ">Senaste dispatchförsök</div>
+ <div className="text-sm text-slate-700 ">Senaste utskickförsök</div>
  <div className="mt-2 text-sm font-semibold text-slate-950 ">
  {summarizeDispatchAttempt(outboundRequest)}
  </div>
  </div>
 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
- <div className="text-sm text-slate-700 ">Readiness</div>
+ <div className="text-sm text-slate-700 ">Beredskap</div>
  <div className="mt-2 text-sm font-semibold text-slate-950 ">
  {readiness ? (readiness.isReady ? 'Redo för byte' : 'Ej redo') : 'Kunde inte beräkna'}
  </div>
@@ -447,8 +447,8 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  {validationSummary.isReady === null
  ? 'Inte körd ännu'
  : validationSummary.isReady
- ? 'Ready for processing'
- : 'Pending review'}
+ ? 'Redo för hantering'
+ : 'Kräver granskning'}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
  {validationSummary.validatedAt
@@ -513,7 +513,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  Identifierare
  </div>
  <div className="mt-3 space-y-2 text-sm text-slate-700 ">
- <div>Customer ID: <span className="font-medium">{request.customer_id}</span></div>
+ <div>Kund-id: <span className="font-medium">{request.customer_id}</span></div>
  <div>Site ID: <span className="font-medium">{request.site_id}</span></div>
  <div>Mätpunkt ID: <span className="font-medium">{request.metering_point_id}</span></div>
  <div>Extern referens: <span className="font-medium">{request.external_reference ?? '—'}</span></div>
@@ -556,8 +556,8 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  {validationSummary.isReady === null
  ? 'Inte körd ännu'
  : validationSummary.isReady
- ? 'Ready for processing'
- : 'Pending review'}
+ ? 'Redo för hantering'
+ : 'Kräver granskning'}
  </div>
  </div>
 
@@ -591,10 +591,10 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  Snapshotdetaljer
  </div>
  <div className="mt-3 space-y-2 text-sm text-slate-700 ">
- <div>Site status: <span className="font-medium">{validationSummary.siteStatus ?? '—'}</span></div>
+ <div>Anläggningsstatus: <span className="font-medium">{validationSummary.siteStatus ?? '—'}</span></div>
  <div>Prisområde: <span className="font-medium">{validationSummary.priceAreaCode ?? '—'}</span></div>
  <div>Fullmakt: <span className="font-medium">{validationSummary.latestPowerOfAttorneyStatus ?? '—'}</span></div>
- <div>Readiness live nu: <span className="font-medium">{readiness ? (readiness.isReady ? 'Ready for processing' : 'Pending review') : '—'}</span></div>
+ <div>Beredskap live nu: <span className="font-medium">{readiness ? (readiness.isReady ? 'Redo för hantering' : 'Kräver granskning') : '—'}</span></div>
  </div>
  </div>
 
@@ -614,7 +614,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  </div>
  ) : (
  <div className="rounded-2xl bg-emerald-50 px-3 py-2 text-emerald-700 ">
- Inga aktiva blockers. Ärendet kan gå vidare i processing-flödet.
+ Inga aktiva blockerare. Ärendet kan gå vidare i hanteringsflödet.
  </div>
  )}
  </div>
@@ -626,10 +626,10 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
  <h2 className="text-lg font-semibold text-slate-950 ">
- Execute / finalize switch
+ Slutför leverantörsbyte
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Steg 7.12 slutför switchen internt. Site får ny aktuell leverantör, mätpunkten synkas och requesten markeras completed.
+ Slutför leverantörsbytet internt. Anläggningen får ny aktuell leverantör, mätpunkten synkas och ärendet markeras som klart.
  </p>
  </div>
 
@@ -637,26 +637,26 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  <form action={finalizeSupplierSwitchExecutionAction}>
  <input type="hidden" name="request_id" value={request.id} />
  <button className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
- Slutför switch nu
+ Slutför byte nu
  </button>
  </form>
  ) : (
  <span className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 ">
- Väntar på accepted + kvitterad outbound
+ Väntar på accepterat svar och kvitterat utskick
  </span>
  )}
  </div>
 
  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Current lifecycle</div>
+ <div className="text-slate-700 ">Aktuell flödesstatus</div>
  <div className="mt-1 font-medium text-slate-900 ">
  {lifecycle.label}
  </div>
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Request status</div>
+ <div className="text-slate-700 ">Ärendestatus</div>
  <div className="mt-1 font-medium text-slate-900 ">
  {request.status}
  </div>
@@ -681,25 +681,25 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex items-center justify-between gap-4">
  <h2 className="text-lg font-semibold text-slate-950 ">
- Outbound & dispatch
+ Outbound & utskick
  </h2>
 
  <Link
  href="/admin/outbound"
  className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline "
  >
- Öppna outbound
+ Öppna utskick
  </Link>
  </div>
 
  {!outboundRequest ? (
  <div className="mt-5 rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-700 ">
- Ingen outbound-request finns ännu för det här switchärendet.
+ Inget utskick finns ännu för det här leverantörsbytet.
  <div className="mt-4">
  <form action={queueSupplierSwitchOutboundAction}>
  <input type="hidden" name="request_id" value={request.id} />
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white ">
- Köa outbound nu
+ Förbered utskick nu
  </button>
  </form>
  </div>
@@ -742,7 +742,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  <input type="hidden" name="outbound_request_id" value={outboundRequest.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
  <input type="hidden" name="status" value="prepared" />
- <input type="hidden" name="dispatch_step" value="prepare" />
+ <input type="hidden" name="utskick_step" value="prepare" />
  <button className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 ">
  Förbered
  </button>
@@ -754,7 +754,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  <input type="hidden" name="outbound_request_id" value={outboundRequest.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
  <input type="hidden" name="status" value="sent" />
- <input type="hidden" name="dispatch_step" value="send" />
+ <input type="hidden" name="utskick_step" value="send" />
  <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 ">
  Markera som skickad
  </button>
@@ -766,7 +766,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  <input type="hidden" name="outbound_request_id" value={outboundRequest.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
  <input type="hidden" name="status" value="acknowledged" />
- <input type="hidden" name="dispatch_step" value="ack" />
+ <input type="hidden" name="utskick_step" value="ack" />
  <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 ">
  Markera som kvitterad
  </button>
@@ -933,12 +933,12 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  </h2>
 
  <div className="mt-5 space-y-3">
- {timeline.length === 0 ? (
+ {tidslinje.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-700 ">
- Ingen timeline ännu.
+ Ingen tidslinje ännu.
  </div>
  ) : (
- timeline.map((entry) => (
+ tidslinje.map((entry) => (
  <div
  key={entry.id}
  className="rounded-2xl border border-slate-200 p-4 "
@@ -1062,7 +1062,7 @@ export default async function SwitchDetailPage({ params }: PageProps) {
  <div className="mt-5 space-y-3">
  {outboundDispatchEvents.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-700 ">
- Inga dispatch-events ännu.
+ Inga utskick-events ännu.
  </div>
  ) : (
  outboundDispatchEvents.map((event) => (

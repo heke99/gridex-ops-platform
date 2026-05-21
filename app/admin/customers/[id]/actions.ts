@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import {
   getCustomerSiteById,
@@ -41,6 +42,10 @@ import {
   findOpenOutboundBySource,
   updateGridOwnerDataRequestStatus,
 } from '@/lib/cis/db'
+import {
+  createCustomerInfoRequest,
+  queueCustomerInfoRequestForDispatch,
+} from '@/lib/onboarding/infoRequests'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -834,6 +839,45 @@ export async function updateOperationTaskStatusAction(
   revalidatePath('/admin/operations/tasks')
 }
 
+
+async function createAndQueueCustomerMasterdataZ01(params: {
+  actorUserId: string
+  customerId: string
+  siteId: string | null
+  meteringPointId: string | null
+  gridOwnerId: string | null
+  externalReference: string | null
+  notes: string | null
+}) {
+  const infoRequest = await createCustomerInfoRequest({
+    companyId: await requireOperationalCompanyId(params.actorUserId),
+    actorUserId: params.actorUserId,
+    customerId: params.customerId,
+    siteId: params.siteId,
+    meteringPointId: params.meteringPointId,
+    gridOwnerId: params.gridOwnerId,
+    requestType: 'z01_customer_masterdata',
+    targetPartyType: 'grid_owner',
+    targetPartyName: null,
+    currentSupplierName: null,
+    externalReference: params.externalReference,
+    requestedDataCategories: [
+      'facility_id',
+      'grid_area',
+      'annual_consumption',
+      'network_contract',
+      'customer_masterdata',
+    ],
+    notes: params.notes,
+  })
+
+  return queueCustomerInfoRequestForDispatch({
+    companyId: infoRequest.company_id,
+    actorUserId: params.actorUserId,
+    requestId: infoRequest.id,
+  })
+}
+
 export async function createGridOwnerDataRequestAction(
   formData: FormData
 ): Promise<void> {
@@ -861,6 +905,37 @@ export async function createGridOwnerDataRequestAction(
   )
   const externalReference = formValue(formData, 'external_reference') || null
   const notes = formValue(formData, 'notes') || null
+
+  if (requestScope === 'customer_masterdata') {
+    await createAndQueueCustomerMasterdataZ01({
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      meteringPointId,
+      gridOwnerId,
+      externalReference,
+      notes,
+    })
+
+    const syncSummary = await syncCustomerOperationsForCustomer(supabase, customerId)
+    await insertAuditLog({
+      actorUserId: actor.id,
+      entityType: 'customer_info_request',
+      entityId: customerId,
+      action: 'customer_masterdata_z01_prepared',
+      newValues: { customerId, siteId, meteringPointId, gridOwnerId, externalReference },
+      metadata: { syncSummary },
+    })
+
+    revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath('/admin/customer-info-requests')
+    revalidatePath('/admin/operations')
+    revalidatePath('/admin/operations/tasks')
+    revalidatePath('/admin/outbound')
+    revalidatePath('/admin/outbound/unresolved')
+    revalidatePath('/admin/ediel')
+    return
+  }
 
   const saved = await createGridOwnerDataRequest({
     actorUserId: actor.id,
@@ -1021,6 +1096,22 @@ export async function createAuthorizationRequestPackageAction(
     enabled: boolean
   ) => {
     if (!enabled) return
+
+    if (scope === 'customer_masterdata') {
+      const result = await createAndQueueCustomerMasterdataZ01({
+        actorUserId: actor.id,
+        customerId,
+        siteId,
+        meteringPointId: preferredMeteringPoint?.id ?? null,
+        gridOwnerId: preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
+        externalReference: requestReference,
+        notes: requestNotes
+          ? `${requestNotes}\n\nBilaga: ${authorizationDocument.file_path}`
+          : `Bilaga: ${authorizationDocument.file_path}`,
+      })
+      if (result.gridOwnerDataRequestId) createdGridOwnerRequests.push(result.gridOwnerDataRequestId)
+      return
+    }
 
     const saved = await createGridOwnerDataRequest({
       actorUserId: actor.id,

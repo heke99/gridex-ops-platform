@@ -245,14 +245,14 @@ export function BillingUnderlaysSection({
  return (
  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
  <div className="border-b border-slate-200 px-6 py-5">
- <h2 className="text-lg font-semibold text-slate-950">Billing underlag</h2>
+ <h2 className="text-lg font-semibold text-slate-950">Faktureringsunderlag</h2>
  <p className="mt-1 text-sm text-slate-700">{underlays.length} träffar.</p>
  </div>
 
  <div className="space-y-4 p-6">
  {underlays.length === 0 ? (
  <div className="rounded-2xl border border-dashed px-4 py-8 text-center text-sm text-slate-700">
- Inga billing underlag hittades.
+ Inga faktureringsunderlag hittades.
  </div>
  ) : (
  underlays.slice(0, 20).map((underlay) => {
@@ -285,7 +285,7 @@ export function BillingUnderlaysSection({
  href={`/admin/operations/grid-owner-requests/${sourceRequest.id}`}
  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
  >
- Öppna source request
+ Öppna källbegäran
  </Link>
  ) : null}
  </div>
@@ -311,7 +311,7 @@ export function BillingUnderlaysSection({
  </span>
  </div>
  <div>
- Source request:{' '}
+ Källbegäran:{' '}
  <span className="font-medium">
  {sourceRequest?.id ?? underlay.source_request_id ?? '—'}
  </span>
@@ -354,7 +354,7 @@ export function BillingExportsSection({
  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
  <div className="border-b border-slate-200 px-6 py-5">
  <h2 className="text-lg font-semibold text-slate-950">
- Billing-exporter till partner
+ Fakturaexporter till partner
  </h2>
  <p className="mt-1 text-sm text-slate-700">{exports.length} träffar.</p>
  </div>
@@ -362,7 +362,7 @@ export function BillingExportsSection({
  <div className="space-y-4 p-6">
  {exports.length === 0 ? (
  <div className="rounded-2xl border border-dashed px-4 py-8 text-center text-sm text-slate-700">
- Inga billing-exporter ännu.
+ Inga fakturaexporter ännu.
  </div>
  ) : (
  exports.slice(0, 12).map((exportRow) => {
@@ -392,7 +392,7 @@ export function BillingExportsSection({
  href={`/admin/operations/grid-owner-requests/${sourceRequest.id}`}
  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
  >
- Öppna source request
+ Öppna källbegäran
  </Link>
  ) : null}
  </div>
@@ -402,11 +402,11 @@ export function BillingExportsSection({
  Kund: <span className="font-medium">{exportRow.customer_id}</span>
  </div>
  <div>
- Target system:{' '}
+ Mottagande system:{' '}
  <span className="font-medium">{exportRow.target_system}</span>
  </div>
  <div>
- Billing underlag:{' '}
+ Faktureringsunderlag:{' '}
  <span className="font-medium">{exportRow.billing_underlay_id ?? '—'}</span>
  </div>
  <div>
@@ -414,7 +414,7 @@ export function BillingExportsSection({
  <span className="font-medium">{exportRow.external_reference ?? '—'}</span>
  </div>
  <div>
- Source request:{' '}
+ Källbegäran:{' '}
  <span className="font-medium">
  {sourceRequest?.id ?? relatedUnderlay?.source_request_id ?? '—'}
  </span>
