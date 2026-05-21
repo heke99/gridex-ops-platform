@@ -46,6 +46,13 @@ import { supabaseService } from '@/lib/supabase/service'
 
 const execFileAsync = promisify(execFile)
 
+type SmtpSendResult = {
+  accepted?: unknown[]
+  rejected?: unknown[]
+  messageId?: string
+  response?: string
+}
+
 function requireEnv(name: string, fallback?: string | null): string {
   const value = process.env[name] ?? fallback ?? ''
   if (!value) {
@@ -1121,7 +1128,7 @@ export async function sendEdielMessageViaSmtp(
     },
   })
 
-  let result: any
+  let result: SmtpSendResult
   let rawMimePreview: string | null = null
   let decodedPayloadPreview: string | null = null
   let encodedPayloadPreview: string | null = null

@@ -165,9 +165,14 @@ export default function PrepareSwitchPanels({
  const [aiBalanceResponsibleEdielId, setAiBalanceResponsibleEdielId] = useState('')
 
  useEffect(() => {
- setAiCustomerId(selectedSwitch?.customer_id ?? '')
- setAiSiteId(selectedSwitch?.site_id ?? '')
- setAiMeteringPointId(selectedSwitch?.metering_point_id ?? '')
+ const nextCustomerId = selectedSwitch?.customer_id ?? ''
+ const nextSiteId = selectedSwitch?.site_id ?? ''
+ const nextMeteringPointId = selectedSwitch?.metering_point_id ?? ''
+ queueMicrotask(() => {
+ setAiCustomerId(nextCustomerId)
+ setAiSiteId(nextSiteId)
+ setAiMeteringPointId(nextMeteringPointId)
+ })
  }, [selectedSwitch])
 
  const latestSwitchReference = selectedSwitch?.external_reference ?? 'ingen extern ref'

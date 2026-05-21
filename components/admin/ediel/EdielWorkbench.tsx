@@ -84,13 +84,13 @@ export default function EdielWorkbench({
 
  useEffect(() => {
  if (!selectedSwitchId && newestSwitchId) {
- setSelectedSwitchId(newestSwitchId)
+ queueMicrotask(() => setSelectedSwitchId(newestSwitchId))
  }
  }, [newestSwitchId, selectedSwitchId])
 
  useEffect(() => {
  if (!selectedRouteId && preferredRouteId) {
- setSelectedRouteId(preferredRouteId)
+ queueMicrotask(() => setSelectedRouteId(preferredRouteId))
  }
  }, [preferredRouteId, selectedRouteId])
 
@@ -110,33 +110,43 @@ export default function EdielWorkbench({
  )
 
  useEffect(() => {
- if (selectedRoute?.profile?.sender_ediel_id && !senderEdielId) {
- setSenderEdielId(selectedRoute.profile.sender_ediel_id)
+ const nextSenderEdielId = selectedRoute?.profile?.sender_ediel_id ?? ''
+ const nextReceiverEdielId = selectedRoute?.profile?.receiver_ediel_id ?? ''
+ const nextSenderSubAddress = selectedRoute?.profile?.sender_sub_address ?? ''
+ const nextReceiverSubAddress = selectedRoute?.profile?.receiver_sub_address ?? ''
+ const nextApplicationReference = selectedRoute?.profile?.application_reference ?? ''
+ const nextDispatchMailbox = selectedRoute?.profile?.mailbox ?? ''
+ const nextReceiverEmail = selectedRoute?.target_email ?? ''
+
+ queueMicrotask(() => {
+ if (nextSenderEdielId && !senderEdielId) {
+ setSenderEdielId(nextSenderEdielId)
  }
 
- if (selectedRoute?.profile?.receiver_ediel_id && !receiverEdielId) {
- setReceiverEdielId(selectedRoute.profile.receiver_ediel_id)
+ if (nextReceiverEdielId && !receiverEdielId) {
+ setReceiverEdielId(nextReceiverEdielId)
  }
 
- if (selectedRoute?.profile?.sender_sub_address) {
- setSenderSubAddress(selectedRoute.profile.sender_sub_address)
+ if (nextSenderSubAddress) {
+ setSenderSubAddress(nextSenderSubAddress)
  }
 
- if (selectedRoute?.profile?.receiver_sub_address) {
- setReceiverSubAddress(selectedRoute.profile.receiver_sub_address)
+ if (nextReceiverSubAddress) {
+ setReceiverSubAddress(nextReceiverSubAddress)
  }
 
- if (selectedRoute?.profile?.application_reference && !applicationReference) {
- setApplicationReference(selectedRoute.profile.application_reference)
+ if (nextApplicationReference && !applicationReference) {
+ setApplicationReference(nextApplicationReference)
  }
 
- if (selectedRoute?.profile?.mailbox && !dispatchMailbox) {
- setDispatchMailbox(selectedRoute.profile.mailbox)
+ if (nextDispatchMailbox && !dispatchMailbox) {
+ setDispatchMailbox(nextDispatchMailbox)
  }
 
- if (selectedRoute?.target_email && !receiverEmail) {
- setReceiverEmail(selectedRoute.target_email)
+ if (nextReceiverEmail && !receiverEmail) {
+ setReceiverEmail(nextReceiverEmail)
  }
+ })
  }, [
  selectedRoute,
  senderEdielId,
@@ -176,19 +186,19 @@ export default function EdielWorkbench({
 
  useEffect(() => {
  if (!selectedMessageId && sendableMessagesToShow.length > 0) {
- setSelectedMessageId(sendableMessagesToShow[0].id)
+ queueMicrotask(() => setSelectedMessageId(sendableMessagesToShow[0].id))
  }
  }, [sendableMessagesToShow, selectedMessageId])
 
  useEffect(() => {
  if (!selectedInboundUtiltsId && inboundUtiltsMessagesToShow.length > 0) {
- setSelectedInboundUtiltsId(inboundUtiltsMessagesToShow[0].id)
+ queueMicrotask(() => setSelectedInboundUtiltsId(inboundUtiltsMessagesToShow[0].id))
  }
  }, [inboundUtiltsMessagesToShow, selectedInboundUtiltsId])
 
  useEffect(() => {
  if (!selectedAckSourceId && ackableMessagesToShow.length > 0) {
- setSelectedAckSourceId(ackableMessagesToShow[0].id)
+ queueMicrotask(() => setSelectedAckSourceId(ackableMessagesToShow[0].id))
  }
  }, [ackableMessagesToShow, selectedAckSourceId])
 

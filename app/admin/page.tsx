@@ -52,7 +52,7 @@ async function safeCount(
  filters: CountFilter[] = []
 ) {
  try {
- let query = supabase.from(table).select('id', { count: 'exact', head: true }) as any
+ let query = supabase.from(table).select('id', { count: 'exact', head: true })
 
  if (companyId) {
  query = query.eq('company_id', companyId)

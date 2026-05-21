@@ -320,7 +320,7 @@ async function ensureSupplierRecord(params: {
     forceCreateIfMarkedAsOwn,
   } = params
 
-  let resolvedSupplierId = supplierId
+  const resolvedSupplierId = supplierId
   let resolvedSupplierName = supplierName
   let resolvedSupplierOrgNumber = supplierOrgNumber
 
