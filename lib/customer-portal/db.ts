@@ -11,6 +11,10 @@ import type {
   CustomerPortalMeteringValueRow,
   CustomerPortalSiteRow,
   CustomerConsumptionMonth,
+  CustomerPortalCaseRow,
+  CustomerPortalCompletionRow,
+  CustomerPortalContractRow,
+  CustomerPortalInfoRequestRow,
 } from '@/lib/customer-portal/types'
 
 type PortalAccountLookupRow = {
@@ -257,4 +261,123 @@ export async function getPortalDashboardData() {
     meteringValues,
     consumptionMonths: summarizeConsumptionByMonth(meteringValues),
   }
+}
+
+export async function listPortalContracts(
+  context: CustomerPortalContext
+): Promise<CustomerPortalContractRow[]> {
+  if (context.customerIds.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .select('id,company_id,customer_id,site_id,contract_name,contract_type,status,starts_at,ends_at,signed_at,monthly_fee_sek,spot_markup_ore_per_kwh,variable_fee_ore_per_kwh,fixed_price_ore_per_kwh,green_fee_mode,green_fee_value,binding_months,notice_months,created_at')
+    .in('customer_id', context.customerIds)
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error) throw error
+  return (data ?? []) as CustomerPortalContractRow[]
+}
+
+export async function listPortalCases(
+  context: CustomerPortalContext
+): Promise<CustomerPortalCaseRow[]> {
+  if (context.customerIds.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('customer_cases')
+    .select('id,customer_id,site_id,metering_point_id,case_type,status,priority,title,description,reason_category,next_action,created_at,updated_at')
+    .in('customer_id', context.customerIds)
+    .order('updated_at', { ascending: false })
+    .limit(100)
+
+  if (error) throw error
+  return (data ?? []) as CustomerPortalCaseRow[]
+}
+
+export async function listPortalInfoRequests(
+  context: CustomerPortalContext
+): Promise<CustomerPortalInfoRequestRow[]> {
+  if (context.customerIds.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('customer_info_requests')
+    .select('id,customer_id,site_id,metering_point_id,request_type,target_party_type,status,requested_data_categories,notes,created_at,updated_at')
+    .in('customer_id', context.customerIds)
+    .order('updated_at', { ascending: false })
+    .limit(100)
+
+  if (error) throw error
+  return (data ?? []) as CustomerPortalInfoRequestRow[]
+}
+
+export async function listPortalCompletions(
+  context: CustomerPortalContext
+): Promise<CustomerPortalCompletionRow[]> {
+  if (context.customerIds.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('customer_portal_completions')
+    .select('id,customer_id,completion_type,status,submitted_payload,created_at,updated_at')
+    .in('customer_id', context.customerIds)
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error) {
+    const maybe = error as { code?: string; message?: string }
+    if (maybe.code === '42P01' || maybe.code === 'PGRST205' || /schema cache|does not exist/i.test(maybe.message ?? '')) return []
+    throw error
+  }
+  return (data ?? []) as CustomerPortalCompletionRow[]
+}
+
+export async function submitPortalCompletion(input: {
+  context: CustomerPortalContext
+  customerId: string
+  completionType: string
+  payload: Record<string, unknown>
+  userId: string
+}): Promise<string> {
+  assertPortalAccessToCustomer(input.context, input.customerId)
+
+  const { data: customer, error: customerError } = await supabaseService
+    .from('customers')
+    .select('id,company_id')
+    .eq('id', input.customerId)
+    .maybeSingle()
+
+  if (customerError) throw customerError
+  const companyId = (customer as { company_id?: string | null } | null)?.company_id
+  if (!companyId) throw new Error('Kundens bolagskoppling saknas.')
+
+  const { data: completion, error } = await supabaseService
+    .from('customer_portal_completions')
+    .insert({
+      company_id: companyId,
+      customer_id: input.customerId,
+      completion_type: input.completionType,
+      status: 'submitted',
+      submitted_payload: input.payload,
+      created_by_user_id: input.userId,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+
+  await supabaseService.from('customer_cases').insert({
+    company_id: companyId,
+    customer_id: input.customerId,
+    case_type: 'technical_blocker',
+    status: 'action_required',
+    priority: 'normal',
+    title: 'Kund har kompletterat uppgifter i portalen',
+    description: 'Kunden har skickat in kompletterande uppgifter. Granska payload och uppdatera kund/anläggning/mätpunkt innan flödet fortsätter.',
+    reason_category: 'portal_completion',
+    next_action: 'Granska portalkompletteringen och uppdatera rätt masterdatafält.',
+    source: 'customer_portal',
+    metadata: { completionId: (completion as { id: string }).id, payload: input.payload },
+  })
+
+  return (completion as { id: string }).id
 }

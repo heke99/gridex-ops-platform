@@ -1,12 +1,16 @@
-import type { ReactNode } from 'react'
-import Link from 'next/link'
-import { logoutAction } from '@/lib/auth/logoutAction'
-import { getCustomerPortalContext } from '@/lib/customer-portal/db'
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { logoutAction } from "@/lib/auth/logoutAction";
+import { getCustomerPortalContext } from "@/lib/customer-portal/db";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
-export default async function PortalLayout({ children }: { children: ReactNode }) {
-  const context = await getCustomerPortalContext()
+export default async function PortalLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const context = await getCustomerPortalContext();
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-950">
@@ -23,25 +27,64 @@ export default async function PortalLayout({ children }: { children: ReactNode }
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <nav className="flex flex-wrap gap-2">
-              <Link className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" href="/portal">
+              <Link
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                href="/portal"
+              >
                 Översikt
               </Link>
-              <Link className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" href="/portal/fakturor">
+              <Link
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                href="/portal/fakturor"
+              >
                 Fakturor
               </Link>
-              <Link className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" href="/portal/forbrukning">
+              <Link
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                href="/portal/avtal"
+              >
+                Avtal
+              </Link>
+              <Link
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                href="/portal/status"
+              >
+                Status
+              </Link>
+              <Link
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                href="/portal/arenden"
+              >
+                Ärenden
+              </Link>
+              <Link
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                href="/portal/komplettera"
+              >
+                Komplettera
+              </Link>
+              <Link
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                href="/portal/forbrukning"
+              >
                 Förbrukning
               </Link>
-              <Link className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" href="/portal/anlaggningar">
+              <Link
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                href="/portal/anlaggningar"
+              >
                 Anläggningar
               </Link>
-              <Link className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" href="/portal/koppla-kund">
+              <Link
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                href="/portal/koppla-kund"
+              >
                 Koppla kund
               </Link>
             </nav>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-              {context.userEmail ?? 'Inloggad kund'}
+              {context.userEmail ?? "Inloggad kund"}
             </div>
 
             <form action={logoutAction}>
@@ -55,5 +98,5 @@ export default async function PortalLayout({ children }: { children: ReactNode }
 
       <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8">{children}</main>
     </div>
-  )
+  );
 }

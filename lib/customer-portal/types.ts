@@ -140,3 +140,65 @@ export type CustomerConsumptionMonth = {
   totalKwh: number
   valueCount: number
 }
+
+export type CustomerPortalContractRow = {
+  id: string
+  company_id: string | null
+  customer_id: string
+  site_id: string | null
+  contract_name: string | null
+  contract_type: string | null
+  status: string | null
+  starts_at: string | null
+  ends_at: string | null
+  signed_at: string | null
+  monthly_fee_sek: number | null
+  spot_markup_ore_per_kwh: number | null
+  variable_fee_ore_per_kwh: number | null
+  fixed_price_ore_per_kwh: number | null
+  green_fee_mode: string | null
+  green_fee_value: number | null
+  binding_months: number | null
+  notice_months: number | null
+  created_at: string
+}
+
+export type CustomerPortalCaseRow = {
+  id: string
+  customer_id: string
+  site_id: string | null
+  metering_point_id: string | null
+  case_type: string | null
+  status: string | null
+  priority: string | null
+  title: string | null
+  description: string | null
+  reason_category: string | null
+  next_action: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CustomerPortalInfoRequestRow = {
+  id: string
+  customer_id: string
+  site_id: string | null
+  metering_point_id: string | null
+  request_type: string | null
+  target_party_type: string | null
+  status: string | null
+  requested_data_categories: unknown
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CustomerPortalCompletionRow = {
+  id: string
+  customer_id: string
+  completion_type: string
+  status: string
+  submitted_payload: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}

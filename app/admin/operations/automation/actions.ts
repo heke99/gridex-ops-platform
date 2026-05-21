@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { runBatch2BAutomation, createBillingBlockerCasesForCompany } from '@/lib/operations/batch2bAutomation'
+import { createCasesForBatch2CQueues, runBatch2CPeriodMotor } from '@/lib/operations/batch2cAutomation'
 
 async function resolveCompanyId(userId: string): Promise<string> {
   const scope = await getOperationalCompanyScope(userId)
@@ -12,8 +13,14 @@ async function resolveCompanyId(userId: string): Promise<string> {
   return scope.companyId
 }
 
+function text(formData: FormData, key: string): string | null {
+  const value = String(formData.get(key) ?? '').trim()
+  return value || null
+}
+
 function revalidate() {
   revalidatePath('/admin/operations/automation')
+  revalidatePath('/admin/operations/perioder')
   revalidatePath('/admin/controltower')
   revalidatePath('/admin/customer-cases')
   revalidatePath('/admin/customer-info-requests')
@@ -38,6 +45,23 @@ export async function runBatch2BAutomationAction(_formData: FormData): Promise<v
   }
 }
 
+export async function runBatch2CPeriodMotorAction(formData: FormData): Promise<void> {
+  try {
+    const admin = await requireAdminActionAccess({ anyOf: ['metering.write', 'billing_underlay.export', 'cases.write'] })
+    const companyId = await resolveCompanyId(admin.userId)
+    const result = await runBatch2CPeriodMotor({
+      companyId,
+      actorUserId: admin.userId,
+      startMonth: text(formData, 'start_month'),
+      endMonth: text(formData, 'end_month'),
+    })
+    revalidate()
+    done('success', `Periodmotor körd för ${result.periodsChecked.length} perioder. ${result.gapsCreated} luckor, ${result.outboundRequestsCreated} requests och ${result.casesCreated} ärenden hanterades.`)
+  } catch (error) {
+    done('error', error instanceof Error ? error.message : 'Periodmotorn kunde inte köras.')
+  }
+}
+
 export async function createBillingBlockerCasesAction(_formData: FormData): Promise<void> {
   try {
     const admin = await requireAdminActionAccess({ anyOf: ['cases.write', 'billing_underlay.export'] })
@@ -47,5 +71,17 @@ export async function createBillingBlockerCasesAction(_formData: FormData): Prom
     done('success', `${result.casesCreated} ärenden skapades för ${result.blockersFound} blockerade export-/underlagsrader.`)
   } catch (error) {
     done('error', error instanceof Error ? error.message : 'Ärenden kunde inte skapas.')
+  }
+}
+
+export async function createBatch2CQueueCasesAction(_formData: FormData): Promise<void> {
+  try {
+    const admin = await requireAdminActionAccess({ anyOf: ['cases.write', 'billing_underlay.export', 'metering.write'] })
+    const companyId = await resolveCompanyId(admin.userId)
+    const result = await createCasesForBatch2CQueues({ companyId, actorUserId: admin.userId })
+    revalidate()
+    done('success', `${result.casesCreated} ärenden skapades/återanvändes från ${result.queuesScanned} driftköer.`)
+  } catch (error) {
+    done('error', error instanceof Error ? error.message : 'Driftköer kunde inte kopplas till ärenden.')
   }
 }
