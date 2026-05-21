@@ -7,6 +7,7 @@ import { saveContractOffer } from '@/lib/customer-contracts/db'
 import type { ContractType, GreenFeeMode } from '@/lib/customer-contracts/types'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -81,6 +82,7 @@ export async function saveContractOfferAction(formData: FormData) {
   }
 
   const companyId = await requireOperationalCompanyId(user.id)
+  await requireCompanyOperationalForWrites(companyId)
   const id = getString(formData, 'id') || undefined
   const name = getString(formData, 'name')
 

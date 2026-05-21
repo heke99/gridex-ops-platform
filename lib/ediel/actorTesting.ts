@@ -383,17 +383,10 @@ async function countActiveActorProfiles(companyId: string, environment?: 'test' 
 }
 
 async function countEnabledRoutes(companyId: string, environment: 'test' | 'production'): Promise<number> {
-  const routeProfiles = await safeCount('ediel_route_profiles', [
+  return safeCount('ediel_route_profiles', [
     { column: 'company_id', value: companyId },
     { column: 'environment', value: environment },
     { column: 'is_enabled', value: true },
-  ])
-
-  if (routeProfiles > 0) return routeProfiles
-
-  return safeCount('communication_routes', [
-    { column: 'company_id', value: companyId },
-    { column: 'is_active', value: true },
   ])
 }
 

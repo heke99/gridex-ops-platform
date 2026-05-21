@@ -115,6 +115,7 @@ import {
 } from "@/lib/ediel/tgtAutopilot";
 import { processEdielOperationalMessage } from "@/lib/ediel/operationalBridge";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
+import { assertCompanyLiveEdielForOutbound } from "@/lib/tenant/liveAccess";
 import {
   autoAttachImportedMessageToActiveAgtRun,
   createEdielSupplierAgtOutboundCommand,
@@ -170,6 +171,26 @@ function isAgtL7OutboundMessage(message: EdielMessageRow): boolean {
     String(message.message_code ?? "").toUpperCase() === "Z09" &&
     parsedPayload.agt === true &&
     String(parsedPayload.agtTestCaseCode ?? "").toUpperCase() === "L7"
+  );
+}
+
+function isTestOrCertificationEdielMessage(message: EdielMessageRow): boolean {
+  const receiverEdielId = String(message.receiver_ediel_id ?? "").trim();
+  const receiverEmail = String(message.receiver_email ?? "").trim().toLowerCase();
+  const applicationReference = String(message.application_reference ?? "").trim().toUpperCase();
+  const mailbox = String(message.mailbox ?? "").trim().toLowerCase();
+
+  return (
+    message.environment !== "production" ||
+    message.test_flag === 1 ||
+    receiverEdielId === "91100" ||
+    receiverEmail.endsWith("@ediel.se") ||
+    applicationReference.startsWith("23-DDQ") ||
+    applicationReference.includes("AGT") ||
+    applicationReference.includes("TGT") ||
+    mailbox.includes("test") ||
+    mailbox.includes("agt") ||
+    mailbox.includes("tgt")
   );
 }
 
@@ -1147,10 +1168,9 @@ export async function deleteAllEdielMessagesAction(_formData?: FormData) {
 }
 
 export async function sendEdielMessageAction(formData: FormData) {
-  const context = await requireAdminActionAccess([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requireAdminActionAccess({
+    anyOf: ["communication.send", "communication.write"],
+  });
   const edielMessageId = formString(formData.get("edielMessageId"));
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
@@ -1162,6 +1182,10 @@ export async function sendEdielMessageAction(formData: FormData) {
 
   if (message.direction === "outbound" && messageCompanyId) {
     await requireCompanyOperationalForWrites(messageCompanyId);
+
+    if (!isTestOrCertificationEdielMessage(message)) {
+      await assertCompanyLiveEdielForOutbound(messageCompanyId);
+    }
   }
 
   if (isAgtL7OutboundMessage(message)) {

@@ -361,10 +361,12 @@ function SelectInput({ label, name, value, options }: { label: string; name: str
 export function GoLiveChecklist({
   summary,
   canActivateLive,
+  canPrepareProduction = false,
   returnPath,
 }: {
   summary: ActorTestingSummary
   canActivateLive: boolean
+  canPrepareProduction?: boolean
   returnPath?: string
 }) {
   const c = summary.company
@@ -439,13 +441,19 @@ export function GoLiveChecklist({
       ) : null}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <form action={prepareProductionAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <input type="hidden" name="company_id" value={summary.company.id} />
-          <input type="hidden" name="redirect_to" value={redirectPath} />
-          <h3 className="font-semibold text-slate-950">Förbered produktion</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-700">White-label admin kan förbereda status. Om något saknas sätts bolaget som blockerat med tydlig orsak.</p>
-          <button className="mt-4 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Kontrollera och förbered</button>
-        </form>
+        {canPrepareProduction ? (
+          <form action={prepareProductionAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <input type="hidden" name="company_id" value={summary.company.id} />
+            <input type="hidden" name="redirect_to" value={redirectPath} />
+            <h3 className="font-semibold text-slate-950">Förbered produktion</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-700">Superadmin eller behörig white-label admin kan förbereda status. Om något saknas sätts bolaget som blockerat med tydlig orsak.</p>
+            <button className="mt-4 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Kontrollera och förbered</button>
+          </form>
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+            Produktionsförberedelse görs av superadmin eller behörig white-label admin. Bolaget kan följa status, komplettera aktörsprofilen och köra aktörstester tills live godkänns.
+          </div>
+        )}
 
         {canActivateLive ? (
           <form action={activateLiveEdielAction} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">

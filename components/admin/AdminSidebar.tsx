@@ -16,6 +16,7 @@ type NavItem = {
   pageKey?: AdminPageKey;
   badge?: string;
   platformOnly?: boolean;
+  requiresLiveCompany?: boolean;
 };
 
 type NavGroup = {
@@ -29,6 +30,7 @@ type AdminSidebarProps = {
   isPlatformAdmin: boolean;
   workspaceName?: string | null;
   workspaceSubtitle?: string | null;
+  isCompanyLiveEnabled?: boolean;
 };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -59,18 +61,21 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Ediel Live Center",
         description: "Produktion för PRODAT, UTILTS, CONTRL och APERAK",
         pageKey: "ediel.workspace",
+        requiresLiveCompany: true,
       },
       {
         href: "/admin/ediel/control-tower",
         label: "Ediel Control Tower",
         description: "Kvittenser, dubbletter, fel och regelkonflikter",
         pageKey: "ediel.workspace",
+        requiresLiveCompany: true,
       },
       {
         href: "/admin/ediel/messages",
         label: "Live-meddelanden",
         description: "Alla inkommande och utgående Ediel-meddelanden",
         pageKey: "ediel.workspace",
+        requiresLiveCompany: true,
       },
       {
         href: "/admin/ediel/routes",
@@ -83,6 +88,12 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Ediel-inställningar",
         description: "Bolagets aktörsidentitet och Edielförutsättningar",
         pageKey: "ediel.routes",
+      },
+      {
+        href: "/admin/company-actor-status",
+        label: "Live-status & godkännande",
+        description: "Se aktörsprofil, teststatus och om superadmin har aktiverat live",
+        pageKey: "company.actor_status",
       },
       {
         href: "/admin/ediel/agt",
@@ -454,8 +465,10 @@ function canAccessNavItem(
   currentPermissions: string[],
   item: NavItem,
   isPlatformAdmin: boolean,
+  isCompanyLiveEnabled: boolean,
 ) {
   if (item.platformOnly) return isPlatformAdmin;
+  if (item.requiresLiveCompany && !isPlatformAdmin && !isCompanyLiveEnabled) return false;
   if (!item.pageKey) return true;
   return hasPermissionRequirement(
     currentPermissions,
@@ -468,6 +481,7 @@ export default function AdminSidebar({
   isPlatformAdmin,
   workspaceName,
   workspaceSubtitle,
+  isCompanyLiveEnabled = false,
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const displayName =
@@ -481,7 +495,7 @@ export default function AdminSidebar({
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
     items: group.items.filter((item) =>
-      canAccessNavItem(permissions, item, isPlatformAdmin),
+      canAccessNavItem(permissions, item, isPlatformAdmin, isCompanyLiveEnabled),
     ),
   })).filter((group) => group.items.length > 0);
 
@@ -515,7 +529,9 @@ export default function AdminSidebar({
           <p className="mt-2 text-sm leading-6 text-slate-700">
             {isPlatformAdmin
               ? "Plattformsstyrning, tenants, Ediel och drift i samma arbetsyta."
-              : "Drift för kunder, Ediel, mätvärden och faktureringsunderlag i bolagets egen arbetsyta."}
+              : isCompanyLiveEnabled
+                ? "Live är aktiverat. Drift för kunder, Ediel, mätvärden och faktureringsunderlag i bolagets egen arbetsyta."
+                : "Live Ediel är inte aktiverat än. Arbeta med kundintag, aktörsprofil och go-live-status tills superadmin godkänner live."}
           </p>
         </div>
       </div>

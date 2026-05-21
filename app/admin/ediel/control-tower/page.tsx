@@ -4,6 +4,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
+import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import { listPlatformControlTowerAlerts } from '@/lib/tenant/controlTower'
 
 export const dynamic = 'force-dynamic'
@@ -158,6 +159,36 @@ export default async function AdminControlTowerPage() {
  const supabase = await createSupabaseServerClient()
  const isPlatformAdmin = isPlatformAdminContext(admin)
  const scope = await getOperationalCompanyScope(admin.userId)
+ const liveAccess = await getTenantLiveAccessForAdmin(admin)
+
+ if (!isPlatformAdmin && !liveAccess.canUseLiveEdiel) {
+ return (
+ <div className="space-y-6 p-6 xl:p-8">
+ <AdminHeader
+ title="Ediel Control Tower"
+ subtitle="Liveövervakning visas först när superadmin har godkänt bolagets go-live."
+ userEmail={admin.email}
+ workspaceName={scope.companyName}
+ workspaceMode="tenant"
+ />
+ <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm">
+ <h2 className="text-lg font-semibold">Live Ediel är inte aktiverat</h2>
+ <p className="mt-2 max-w-3xl text-sm leading-6">
+ {liveAccess.message ?? 'Superadmin måste godkänna go-live innan bolaget kan se liveflöden, liveköer och produktionsmeddelanden.'}
+ </p>
+ <div className="mt-4 flex flex-wrap gap-3">
+ <Link href="/admin/company-actor-status" className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
+ Visa live-status
+ </Link>
+ <Link href="/admin/ediel/agt" className="rounded-2xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100">
+ Öppna aktörstester
+ </Link>
+ </div>
+ </section>
+ </div>
+ )
+ }
+
  const scopeFilters = companyFilter(isPlatformAdmin ? null : scope.companyId)
 
  const [platformAlerts, [

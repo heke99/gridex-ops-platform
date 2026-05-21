@@ -8,6 +8,7 @@ import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
 import { getActiveEdielActorSettings } from '@/lib/ediel/config'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
+import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import { EDIEL_AGT_SUPPLIER_2026A_CASES } from '@/lib/ediel/agtRegistry'
 
 export const dynamic = 'force-dynamic'
@@ -184,6 +185,32 @@ export default async function EdielPage() {
  const supabase = await createSupabaseServerClient()
  const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)
+ const liveAccess = await getTenantLiveAccessForAdmin(context)
+
+ if (!isPlatformAdmin && !liveAccess.canUseLiveEdiel) {
+ return (
+ <div className="min-h-screen">
+ <AdminHeader
+ title="Ediel Live Center"
+ subtitle="Liveflöden visas först när superadmin har godkänt bolagets go-live."
+ userEmail={context.email}
+ workspaceName={companyScope.companyName}
+ workspaceMode="tenant"
+ />
+ <div className="space-y-6 p-8">
+ <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm">
+ <p className="text-xs font-black uppercase tracking-[0.18em]">Live spärrat</p>
+ <h1 className="mt-2 text-2xl font-black text-slate-950">Live Ediel är inte aktiverat för {liveAccess.companyName ?? 'bolaget'}.</h1>
+ <p className="mt-3 max-w-3xl text-sm font-semibold leading-6">{liveAccess.message}</p>
+ <div className="mt-5 flex flex-wrap gap-3">
+ <Link href="/admin/company-actor-status" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Öppna aktörsstatus</Link>
+ <Link href="/admin/ediel/settings" className="rounded-2xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-bold text-amber-900 hover:bg-amber-100">Kontrollera aktörsprofil</Link>
+ </div>
+ </section>
+ </div>
+ </div>
+ )
+ }
 
  const [ediel, agtRuntime, activeProductionActor, activeTestActor] = await Promise.all([
  getEdielSummary(supabase).catch(() => EMPTY_EDIEL_SUMMARY),

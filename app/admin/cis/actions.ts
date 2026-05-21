@@ -579,6 +579,13 @@ export async function ingestMeteringValueAction(
     throw new Error('customer_id, metering_point_id och value_kwh krävs')
   }
 
+  await assertEntityCompanyAccess({
+    actorUserId: actor.id,
+    table: 'customers',
+    id: customerId,
+    requiresOperationalWrite: true,
+  })
+
   const saved = await ingestMeteringValue({
     actorUserId: actor.id,
     customerId,
@@ -636,6 +643,13 @@ export async function ingestBillingUnderlayAction(
   if (!customerId) {
     throw new Error('customer_id krävs')
   }
+
+  await assertEntityCompanyAccess({
+    actorUserId: actor.id,
+    table: 'customers',
+    id: customerId,
+    requiresOperationalWrite: true,
+  })
 
   const saved = await ingestBillingUnderlay({
     actorUserId: actor.id,

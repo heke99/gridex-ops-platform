@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
+import { getCompanyById } from '@/lib/tenant/governance'
 
 export type CompanySettingsActionState = {
   ok: boolean
@@ -76,6 +77,8 @@ export async function updateCompanySettingsAction(
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
 
     await assertCanManageCompany(companyId)
+    const currentCompany = await getCompanyById(companyId)
+    if (!currentCompany) return { ok: false, message: 'Bolaget hittades inte.' }
 
     const name = normalizeText(formData.get('name'))
     const orgNumber = normalizeText(formData.get('org_number')) || null
@@ -94,7 +97,16 @@ export async function updateCompanySettingsAction(
     const actorRole = normalizeUpper(formData.get('actor_role'))
     const senderSubAddress = normalizeUpper(formData.get('sender_sub_address'))
     const edielMailbox = normalizeText(formData.get('ediel_mailbox')) || null
-    const operatingEnvironment = normalizeEnvironment(formData.get('operating_environment'))
+    const requestedOperatingEnvironment = normalizeEnvironment(formData.get('operating_environment'))
+    const isLiveApproved = Boolean(
+      currentCompany.live_ediel_enabled === true &&
+      currentCompany.production_status === 'live' &&
+      currentCompany.live_approved_at
+    )
+    if (requestedOperatingEnvironment === 'production' && !isLiveApproved) {
+      return { ok: false, message: 'Produktion kan bara aktiveras via superadmin go-live efter godkända tester, production route och live-godkännande.' }
+    }
+    const operatingEnvironment = isLiveApproved ? requestedOperatingEnvironment : 'test' 
     const branding = {
       display_name: normalizeText(formData.get('branding_display_name')) || null,
       logo_url: normalizeText(formData.get('branding_logo_url')) || null,

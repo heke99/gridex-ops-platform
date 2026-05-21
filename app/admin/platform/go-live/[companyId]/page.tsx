@@ -33,7 +33,7 @@ export default async function PlatformGoLiveCompanyPage({ params, searchParams }
         ) : null}
         <ActorCompanyIdentityCard summary={summary} />
         <ActorProfileGuide summary={summary} />
-        <GoLiveChecklist summary={summary} canActivateLive returnPath={`/admin/platform/go-live/${summary.company.id}`} />
+        <GoLiveChecklist summary={summary} canActivateLive canPrepareProduction returnPath={`/admin/platform/go-live/${summary.company.id}`} />
         <EvidencePackage summary={summary} />
       </div>
     </div>

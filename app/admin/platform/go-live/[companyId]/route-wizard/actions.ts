@@ -153,10 +153,9 @@ export async function createProductionRouteFromWizardAction(formData: FormData) 
     .update({
       production_ediel_id: senderEdielId,
       production_sender_sub_address: normalizeSubAddress(text(formData, 'sender_sub_address')),
-      production_mailbox: text(formData, 'mailbox') ?? targetEmail,
+      production_mailbox: targetEmail,
       production_application_reference: applicationReference,
       production_counterparty_ediel_id: receiverEdielId,
-      production_status: 'production_prepared',
       live_blocked_reason: null,
       updated_at: now,
     })

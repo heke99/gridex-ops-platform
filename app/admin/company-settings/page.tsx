@@ -44,6 +44,7 @@ export default async function CompanySettingsPage() {
   const users = companyId ? await listCompanyUsersForGovernance(companyId) : []
   const responsibleUsers = users.filter((user) => ['owner', 'admin', 'company_admin'].includes(user.membershipRole))
   const branding = company?.branding && typeof company.branding === 'object' ? company.branding : null
+  const isLiveApproved = Boolean(company?.live_ediel_enabled === true && company?.production_status === 'live' && company?.live_approved_at)
 
   return (
     <div className="min-h-screen">
@@ -188,10 +189,14 @@ export default async function CompanySettingsPage() {
                     </label>
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">Miljö</span>
-                      <select name="operating_environment" defaultValue={company.operating_environment ?? 'test'} className="rounded-2xl border border-slate-300 bg-white px-4 py-3">
+                      <input type="hidden" name="operating_environment" value={isLiveApproved ? (company.operating_environment ?? 'test') : 'test'} />
+                      <select disabled={!isLiveApproved} defaultValue={isLiveApproved ? (company.operating_environment ?? 'test') : 'test'} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 disabled:bg-slate-100 disabled:text-slate-500">
                         <option value="test">Test</option>
                         <option value="production">Produktion</option>
                       </select>
+                      {!isLiveApproved ? (
+                        <span className="text-xs leading-5 text-amber-700">Produktion visas först när superadmin har godkänt go-live. Bolaget kan inte själv slå på live.</span>
+                      ) : null}
                     </label>
                   </div>
                 </div>

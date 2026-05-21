@@ -112,6 +112,14 @@ type CompanyRow = {
   sender_sub_address?: string | null
   ediel_mailbox?: string | null
   operating_environment?: string | null
+  production_status?: string | null
+  live_ediel_enabled?: boolean | null
+  live_approved_at?: string | null
+  live_blocked_reason?: string | null
+  production_ediel_id?: string | null
+  production_mailbox?: string | null
+  production_application_reference?: string | null
+  production_counterparty_ediel_id?: string | null
   branding?: Record<string, unknown> | null
   created_at?: string | null
   updated_at?: string | null
@@ -247,7 +255,7 @@ async function latestTimestamp(table: string, companyId: string, column = 'creat
 export async function getCompanyById(companyId: string): Promise<CompanyRow | null> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, branding, created_at, updated_at')
+    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at')
     .eq('id', companyId)
     .maybeSingle()
 
@@ -346,7 +354,7 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
 export async function listCompanyGovernanceSummaries(): Promise<GovernanceCompany[]> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, branding, created_at, updated_at')
+    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at')
     .neq('status', 'deleted_test_only')
     .order('created_at', { ascending: false })
 

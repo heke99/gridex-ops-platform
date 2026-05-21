@@ -4,6 +4,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import {
  getEdielMessageById,
  getEdielMessageAckStateById,
@@ -270,6 +271,29 @@ export default async function AdminEdielMessageDetailPage({
  const context = await requireAdminPageKeyAccess('ediel.workspace')
  const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)
+ const liveAccess = await getTenantLiveAccessForAdmin(context)
+
+ if (!isPlatformAdmin && !liveAccess.canUseLiveEdiel) {
+ return (
+ <div className="min-h-screen bg-slate-50">
+ <AdminHeader
+ title="Ediel message"
+ subtitle="Live-meddelanden är låsta tills superadmin har aktiverat live."
+ userEmail={context.email}
+ workspaceName={companyScope.companyName}
+ workspaceMode="tenant"
+ />
+ <div className="p-8">
+ <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950">
+ <h1 className="text-xl font-bold text-slate-950">Live Ediel är inte aktiverat.</h1>
+ <p className="mt-2 text-sm font-semibold leading-6">{liveAccess.message}</p>
+ <Link href="/admin/company-actor-status" className="mt-5 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Öppna aktörsstatus</Link>
+ </section>
+ </div>
+ </div>
+ )
+ }
+
  const companyId = isPlatformAdmin ? null : companyScope.companyId
 
  const [message, ackState, events] = await Promise.all([

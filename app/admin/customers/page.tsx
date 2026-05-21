@@ -753,7 +753,7 @@ function formatCurrency(value: number | null | undefined): string {
 export default async function AdminCustomersPage({
  searchParams,
 }: CustomersPageProps) {
- const context = await requirePermissionServer('masterdata.read')
+ const context = await requirePermissionServer('customers.read')
 
  const resolvedSearchParams = await searchParams
  const query = (resolvedSearchParams.q ?? '').trim()

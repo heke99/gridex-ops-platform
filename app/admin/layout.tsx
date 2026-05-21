@@ -3,6 +3,7 @@ import { isPlatformAdminContext, requireAdminAccess } from '@/lib/admin/guards'
 import { logoutAction } from '@/lib/auth/logoutAction'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export default async function AdminLayout({
  const admin = await requireAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(admin)
  const scope = await getOperationalCompanyScope(admin.userId)
+ const liveAccess = await getTenantLiveAccessForAdmin(admin)
  const workspaceName = isPlatformAdmin ? 'Gridex Platform' : scope.companyName ?? 'Bolagsyta saknas'
  const workspaceSubtitle = isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta'
 
@@ -26,6 +28,7 @@ export default async function AdminLayout({
  isPlatformAdmin={isPlatformAdmin}
  workspaceName={workspaceName}
  workspaceSubtitle={workspaceSubtitle}
+ isCompanyLiveEnabled={isPlatformAdmin || liveAccess.canUseLiveEdiel}
  />
  </div>
 

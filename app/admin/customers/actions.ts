@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import { runBatch2BAutomation } from '@/lib/operations/batch2bAutomation'
 import { parseCustomerImportFormData } from '@/lib/customers/importParser'
 import type {
@@ -1082,6 +1083,7 @@ export async function createCustomerAction(
     await requireAdminActionAccess({ anyOf: ['customers.write', 'masterdata.write'] })
     const actorUserId = await getActorUserId()
     const companyId = await requireOperationalCompanyId(actorUserId)
+    await requireCompanyOperationalForWrites(companyId)
     const params = buildCreateCustomerParams(formData, actorUserId, companyId)
 
     const customer = await createCustomerGraph(params)
@@ -1104,6 +1106,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
   await requireAdminActionAccess({ anyOf: ['customers.write', 'masterdata.write'] })
   const actorUserId = await getActorUserId()
   const companyId = await requireOperationalCompanyId(actorUserId)
+  await requireCompanyOperationalForWrites(companyId)
 
   const parsedImport = await parseCustomerImportFormData(formData)
   const rows = parsedImport.rows
