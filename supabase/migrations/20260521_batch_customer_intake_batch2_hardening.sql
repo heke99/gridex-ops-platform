@@ -29,33 +29,77 @@ begin
       add constraint customers_intake_quality_score_check
       check (intake_quality_score is null or (intake_quality_score >= 0 and intake_quality_score <= 100)) not valid;
 
-    create index if not exists customers_company_intake_status_idx
-      on public.customers(company_id, intake_status, created_at desc);
-    create index if not exists customers_company_email_lower_idx
-      on public.customers(company_id, lower(email)) where email is not null;
-    create index if not exists customers_company_personal_number_idx
-      on public.customers(company_id, personal_number) where personal_number is not null;
-    create index if not exists customers_company_org_number_idx
-      on public.customers(company_id, org_number) where org_number is not null;
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customers' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customers' and column_name = 'created_at') then
+      create index if not exists customers_company_intake_status_idx
+        on public.customers(company_id, intake_status, created_at desc);
+    end if;
+
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customers' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customers' and column_name = 'email') then
+      create index if not exists customers_company_email_lower_idx
+        on public.customers(company_id, lower(email)) where email is not null;
+    end if;
+
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customers' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customers' and column_name = 'personal_number') then
+      create index if not exists customers_company_personal_number_idx
+        on public.customers(company_id, personal_number) where personal_number is not null;
+    end if;
+
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customers' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customers' and column_name = 'org_number') then
+      create index if not exists customers_company_org_number_idx
+        on public.customers(company_id, org_number) where org_number is not null;
+    end if;
   end if;
 
   if to_regclass('public.customer_sites') is not null then
     alter table public.customer_sites add column if not exists grid_area_code text null;
     alter table public.customer_sites add column if not exists address_quality_status text null;
     alter table public.customer_sites add column if not exists address_quality_warnings jsonb not null default '[]'::jsonb;
-    create index if not exists customer_sites_company_facility_id_idx
-      on public.customer_sites(company_id, facility_id) where facility_id is not null;
-    create index if not exists customer_sites_company_grid_area_idx
-      on public.customer_sites(company_id, grid_area_code) where grid_area_code is not null;
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_sites' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_sites' and column_name = 'facility_id') then
+      create index if not exists customer_sites_company_facility_id_idx
+        on public.customer_sites(company_id, facility_id) where facility_id is not null;
+    end if;
+
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_sites' and column_name = 'company_id') then
+      create index if not exists customer_sites_company_grid_area_idx
+        on public.customer_sites(company_id, grid_area_code) where grid_area_code is not null;
+    end if;
   end if;
 
   if to_regclass('public.metering_points') is not null then
     alter table public.metering_points add column if not exists grid_area_code text null;
-    create index if not exists metering_points_company_meter_point_id_idx
-      on public.metering_points(company_id, meter_point_id) where meter_point_id is not null;
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'metering_points' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'metering_points' and column_name = 'meter_point_id') then
+      create index if not exists metering_points_company_meter_point_id_idx
+        on public.metering_points(company_id, meter_point_id) where meter_point_id is not null;
+    end if;
   end if;
 
   if to_regclass('public.customer_contracts') is not null then
+    -- Older installs of Gridex can have customer_contracts without company_id.
+    -- Batch 2 needs company_id for tenant-safe contract filtering and billing sync,
+    -- so add it idempotently and backfill from customers when possible before indexing.
+    alter table public.customer_contracts add column if not exists company_id uuid null;
+
+    if exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'customer_contracts' and column_name = 'customer_id'
+    ) and exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'customers' and column_name = 'company_id'
+    ) then
+      update public.customer_contracts cc
+      set company_id = c.company_id
+      from public.customers c
+      where cc.customer_id = c.id
+        and cc.company_id is null
+        and c.company_id is not null;
+    end if;
+
     alter table public.customer_contracts add column if not exists expected_start_at date null;
     alter table public.customer_contracts add column if not exists confirmed_start_at date null;
     alter table public.customer_contracts add column if not exists actual_start_at date null;
@@ -63,9 +107,20 @@ begin
     alter table public.customer_contracts add column if not exists start_date_blocker_reason text null;
     create index if not exists customer_contracts_company_start_dates_idx
       on public.customer_contracts(company_id, expected_start_at, confirmed_start_at, actual_start_at);
+
+    -- Some older installs use a different customer reference column on customer_contracts.
+    -- Only create the customer_id index when the column exists, otherwise the migration must keep running.
+    if exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'customer_contracts' and column_name = 'customer_id'
+    ) then
+      create index if not exists customer_contracts_company_customer_idx
+        on public.customer_contracts(company_id, customer_id) where company_id is not null;
+    end if;
   end if;
 
   if to_regclass('public.customer_import_batches') is not null then
+    alter table public.customer_import_batches add column if not exists status text not null default 'previewed';
     alter table public.customer_import_batches add column if not exists source_kind text null;
     alter table public.customer_import_batches add column if not exists source_type text null;
     alter table public.customer_import_batches add column if not exists total_rows integer not null default 0;
@@ -84,11 +139,16 @@ begin
       add constraint customer_import_batches_status_check
       check (status in ('previewed', 'completed', 'failed', 'imported', 'partially_imported')) not valid;
 
-    create index if not exists customer_import_batches_company_status_created_idx
-      on public.customer_import_batches(company_id, status, created_at desc);
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_import_batches' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_import_batches' and column_name = 'status')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_import_batches' and column_name = 'created_at') then
+      create index if not exists customer_import_batches_company_status_created_idx
+        on public.customer_import_batches(company_id, status, created_at desc);
+    end if;
   end if;
 
   if to_regclass('public.customer_import_rows') is not null then
+    alter table public.customer_import_rows add column if not exists status text not null default 'pending';
     alter table public.customer_import_rows add column if not exists error_message text null;
     alter table public.customer_import_rows add column if not exists warnings jsonb not null default '[]'::jsonb;
     alter table public.customer_import_rows add column if not exists issues jsonb not null default '{}'::jsonb;
@@ -114,26 +174,59 @@ begin
       add constraint customer_import_rows_parser_confidence_check
       check (parser_confidence is null or (parser_confidence >= 0 and parser_confidence <= 100)) not valid;
 
-    create index if not exists customer_import_rows_company_status_created_idx
-      on public.customer_import_rows(company_id, status, created_at desc);
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_import_rows' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_import_rows' and column_name = 'status')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_import_rows' and column_name = 'created_at') then
+      create index if not exists customer_import_rows_company_status_created_idx
+        on public.customer_import_rows(company_id, status, created_at desc);
+    end if;
   end if;
 
   if to_regclass('public.customer_info_requests') is not null then
-    create index if not exists customer_info_requests_company_customer_type_status_idx
-      on public.customer_info_requests(company_id, customer_id, request_type, status, created_at desc);
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_info_requests' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_info_requests' and column_name = 'customer_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_info_requests' and column_name = 'request_type')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_info_requests' and column_name = 'status')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_info_requests' and column_name = 'created_at') then
+      create index if not exists customer_info_requests_company_customer_type_status_idx
+        on public.customer_info_requests(company_id, customer_id, request_type, status, created_at desc);
+    end if;
   end if;
 
   if to_regclass('public.customer_cases') is not null then
-    create index if not exists customer_cases_company_customer_source_status_idx
-      on public.customer_cases(company_id, customer_id, source, status, created_at desc);
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_cases' and column_name = 'company_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_cases' and column_name = 'customer_id')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_cases' and column_name = 'source')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_cases' and column_name = 'status')
+      and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'customer_cases' and column_name = 'created_at') then
+      create index if not exists customer_cases_company_customer_source_status_idx
+        on public.customer_cases(company_id, customer_id, source, status, created_at desc);
+    end if;
   end if;
 
   if to_regclass('public.powers_of_attorney') is not null then
     alter table public.powers_of_attorney add column if not exists company_id uuid null;
     alter table public.powers_of_attorney add column if not exists scope_summary jsonb not null default '{}'::jsonb;
     alter table public.powers_of_attorney add column if not exists evidence_note text null;
-    create index if not exists powers_of_attorney_company_customer_status_idx
-      on public.powers_of_attorney(company_id, customer_id, status, created_at desc);
+    if exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'powers_of_attorney' and column_name = 'customer_id'
+    ) then
+      if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'powers_of_attorney' and column_name = 'status')
+        and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'powers_of_attorney' and column_name = 'created_at') then
+        create index if not exists powers_of_attorney_company_customer_status_idx
+          on public.powers_of_attorney(company_id, customer_id, status, created_at desc);
+      end if;
+    elsif exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'powers_of_attorney' and column_name = 'customer_ids'
+    ) then
+      if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'powers_of_attorney' and column_name = 'status')
+        and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'powers_of_attorney' and column_name = 'created_at') then
+        create index if not exists powers_of_attorney_company_status_idx
+          on public.powers_of_attorney(company_id, status, created_at desc);
+      end if;
+    end if;
   end if;
 end $$;
 
