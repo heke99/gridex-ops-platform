@@ -1,7 +1,7 @@
 // components/admin/customers/billing-metering/forms.tsx
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type {
  BillingUnderlayRow,
  MeteringValueRow,
@@ -34,6 +34,84 @@ type BaseProps = {
  gridOwners: GridOwnerRow[]
 }
 
+type SelectionState = {
+ siteId: string
+ meteringPointId: string
+ gridOwnerId: string
+}
+
+function normalizeSelection(
+ selection: SelectionState,
+ sites: CustomerSiteRow[],
+ meteringPoints: MeteringPointRow[]
+): SelectionState {
+ const availableMeteringPoints = selection.siteId
+ ? meteringPoints.filter((point) => point.site_id === selection.siteId)
+ : meteringPoints
+
+ const meteringPointId =
+ selection.meteringPointId &&
+ availableMeteringPoints.some((point) => point.id === selection.meteringPointId)
+ ? selection.meteringPointId
+ : ''
+
+ const selectedMeteringPoint =
+ meteringPoints.find((point) => point.id === meteringPointId) ?? null
+ const selectedSite = sites.find((site) => site.id === selection.siteId) ?? null
+ const inferredGridOwnerIdValue =
+ selectedMeteringPoint?.grid_owner_id ?? selectedSite?.grid_owner_id ?? ''
+
+ return {
+ siteId: selection.siteId,
+ meteringPointId,
+ gridOwnerId: inferredGridOwnerIdValue || (selectedMeteringPoint || selectedSite ? selection.gridOwnerId : ''),
+ }
+}
+
+function useSmartSelectionState(
+ sites: CustomerSiteRow[],
+ meteringPoints: MeteringPointRow[]
+) {
+ const [siteId, setSiteId] = useState(latestSiteId(sites))
+ const [meteringPointId, setMeteringPointId] = useState(
+ latestMeteringPointId(meteringPoints)
+ )
+ const [gridOwnerId, setGridOwnerId] = useState(
+ inferredGridOwnerId(sites, meteringPoints)
+ )
+
+ const selection = useMemo(
+ () => normalizeSelection({ siteId, meteringPointId, gridOwnerId }, sites, meteringPoints),
+ [gridOwnerId, meteringPointId, meteringPoints, siteId, sites]
+ )
+
+ const applySelection = (nextSelection: SelectionState) => {
+ const normalized = normalizeSelection(nextSelection, sites, meteringPoints)
+ setSiteId(normalized.siteId)
+ setMeteringPointId(normalized.meteringPointId)
+ setGridOwnerId(normalized.gridOwnerId)
+ }
+
+ return {
+ ...selection,
+ setSiteId: (nextSiteId: string) =>
+ applySelection({
+ siteId: nextSiteId,
+ meteringPointId: selection.meteringPointId,
+ gridOwnerId: selection.gridOwnerId,
+ }),
+ setMeteringPointId: (nextMeteringPointId: string) =>
+ applySelection({
+ siteId: selection.siteId,
+ meteringPointId: nextMeteringPointId,
+ gridOwnerId: selection.gridOwnerId,
+ }),
+ setGridOwnerId: (nextGridOwnerId: string) => {
+ setGridOwnerId(nextGridOwnerId)
+ },
+ }
+}
+
 export function SmartOutboundForm({
  customerId,
  sites,
@@ -45,46 +123,17 @@ export function SmartOutboundForm({
  billingUnderlays: BillingUnderlayRow[]
  meteringValues: MeteringValueRow[]
 }) {
- const [siteId, setSiteId] = useState(latestSiteId(sites))
- const [meteringPointId, setMeteringPointId] = useState(
- latestMeteringPointId(meteringPoints)
- )
- const [gridOwnerId, setGridOwnerId] = useState(
- inferredGridOwnerId(sites, meteringPoints)
- )
+ const {
+ siteId,
+ meteringPointId,
+ gridOwnerId,
+ setSiteId,
+ setMeteringPointId,
+ setGridOwnerId,
+ } = useSmartSelectionState(sites, meteringPoints)
  const [requestType, setRequestType] = useState<
  'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
  >('meter_values')
-
- const filteredMeteringPoints = useMemo(() => {
- if (!siteId) return meteringPoints
- return meteringPoints.filter((point) => point.site_id === siteId)
- }, [meteringPoints, siteId])
-
- useEffect(() => {
- if (
- meteringPointId &&
- !filteredMeteringPoints.some((point) => point.id === meteringPointId)
- ) {
- setMeteringPointId('')
- }
- }, [filteredMeteringPoints, meteringPointId])
-
- useEffect(() => {
- const selectedMeteringPoint =
- meteringPoints.find((point) => point.id === meteringPointId) ?? null
- const selectedSite = sites.find((site) => site.id === siteId) ?? null
- const inferred =
- selectedMeteringPoint?.grid_owner_id ?? selectedSite?.grid_owner_id ?? ''
-
- if (inferred && inferred !== gridOwnerId) {
- setGridOwnerId(inferred)
- }
-
- if (!selectedMeteringPoint && !selectedSite && gridOwnerId) {
- setGridOwnerId('')
- }
- }, [siteId, meteringPointId, sites, meteringPoints, gridOwnerId])
 
  const recommendedPeriod = useMemo(
  () =>
@@ -209,46 +258,17 @@ export function SmartDataRequestForm({
  billingUnderlays: BillingUnderlayRow[]
  meteringValues: MeteringValueRow[]
 }) {
- const [siteId, setSiteId] = useState(latestSiteId(sites))
- const [meteringPointId, setMeteringPointId] = useState(
- latestMeteringPointId(meteringPoints)
- )
- const [gridOwnerId, setGridOwnerId] = useState(
- inferredGridOwnerId(sites, meteringPoints)
- )
+ const {
+ siteId,
+ meteringPointId,
+ gridOwnerId,
+ setSiteId,
+ setMeteringPointId,
+ setGridOwnerId,
+ } = useSmartSelectionState(sites, meteringPoints)
  const [scope, setScope] = useState<
  'meter_values' | 'billing_underlay' | 'customer_masterdata'
  >('meter_values')
-
- const filteredMeteringPoints = useMemo(() => {
- if (!siteId) return meteringPoints
- return meteringPoints.filter((point) => point.site_id === siteId)
- }, [meteringPoints, siteId])
-
- useEffect(() => {
- if (
- meteringPointId &&
- !filteredMeteringPoints.some((point) => point.id === meteringPointId)
- ) {
- setMeteringPointId('')
- }
- }, [filteredMeteringPoints, meteringPointId])
-
- useEffect(() => {
- const selectedMeteringPoint =
- meteringPoints.find((point) => point.id === meteringPointId) ?? null
- const selectedSite = sites.find((site) => site.id === siteId) ?? null
- const inferred =
- selectedMeteringPoint?.grid_owner_id ?? selectedSite?.grid_owner_id ?? ''
-
- if (inferred && inferred !== gridOwnerId) {
- setGridOwnerId(inferred)
- }
-
- if (!selectedMeteringPoint && !selectedSite && gridOwnerId) {
- setGridOwnerId('')
- }
- }, [siteId, meteringPointId, sites, meteringPoints, gridOwnerId])
 
  const recommendedPeriod = useMemo(
  () =>
@@ -374,18 +394,14 @@ export function SmartPartnerExportForm({
 }: BaseProps & {
  billingUnderlays: BillingUnderlayRow[]
 }) {
- const [siteId, setSiteId] = useState(latestSiteId(sites))
- const [meteringPointId, setMeteringPointId] = useState(
- latestMeteringPointId(meteringPoints)
- )
- const [gridOwnerId, setGridOwnerId] = useState(
- inferredGridOwnerId(sites, meteringPoints)
- )
-
- const filteredMeteringPoints = useMemo(() => {
- if (!siteId) return meteringPoints
- return meteringPoints.filter((point) => point.site_id === siteId)
- }, [meteringPoints, siteId])
+ const {
+ siteId,
+ meteringPointId,
+ gridOwnerId,
+ setSiteId,
+ setMeteringPointId,
+ setGridOwnerId,
+ } = useSmartSelectionState(sites, meteringPoints)
 
  const filteredBillingUnderlays = useMemo(() => {
  if (meteringPointId) {
@@ -398,31 +414,6 @@ export function SmartPartnerExportForm({
  }
  return billingUnderlays
  }, [billingUnderlays, meteringPointId, siteId])
-
- useEffect(() => {
- if (
- meteringPointId &&
- !filteredMeteringPoints.some((point) => point.id === meteringPointId)
- ) {
- setMeteringPointId('')
- }
- }, [filteredMeteringPoints, meteringPointId])
-
- useEffect(() => {
- const selectedMeteringPoint =
- meteringPoints.find((point) => point.id === meteringPointId) ?? null
- const selectedSite = sites.find((site) => site.id === siteId) ?? null
- const inferred =
- selectedMeteringPoint?.grid_owner_id ?? selectedSite?.grid_owner_id ?? ''
-
- if (inferred && inferred !== gridOwnerId) {
- setGridOwnerId(inferred)
- }
-
- if (!selectedMeteringPoint && !selectedSite && gridOwnerId) {
- setGridOwnerId('')
- }
- }, [siteId, meteringPointId, sites, meteringPoints, gridOwnerId])
 
  const recommendedPeriod = useMemo(
  () =>
