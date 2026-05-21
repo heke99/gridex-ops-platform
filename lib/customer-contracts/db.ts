@@ -334,6 +334,10 @@ export async function createCustomerContract(input: {
   noticeMonths?: number | null
   optionalFeeLines?: Array<Record<string, unknown>> | null
   startsAt?: string | null
+  expectedStartAt?: string | null
+  confirmedStartAt?: string | null
+  actualStartAt?: string | null
+  startDateSource?: string | null
   endsAt?: string | null
   signedAt?: string | null
   terminationNoticeDate?: string | null
@@ -365,6 +369,10 @@ export async function createCustomerContract(input: {
       notice_months: input.noticeMonths ?? null,
       optional_fee_lines: input.optionalFeeLines ?? [],
       starts_at: input.startsAt ?? null,
+      expected_start_at: input.expectedStartAt ?? null,
+      confirmed_start_at: input.confirmedStartAt ?? null,
+      actual_start_at: input.actualStartAt ?? null,
+      start_date_source: input.startDateSource ?? null,
       ends_at: deriveContractEndsAt({
         startsAt: input.startsAt ?? null,
         endsAt: input.endsAt ?? null,
@@ -407,6 +415,10 @@ export async function updateCustomerContract(input: {
   bindingMonths?: number | null
   noticeMonths?: number | null
   startsAt?: string | null
+  expectedStartAt?: string | null
+  confirmedStartAt?: string | null
+  actualStartAt?: string | null
+  startDateSource?: string | null
   endsAt?: string | null
   signedAt?: string | null
   terminationNoticeDate?: string | null
@@ -430,6 +442,10 @@ export async function updateCustomerContract(input: {
       binding_months: input.bindingMonths ?? null,
       notice_months: input.noticeMonths ?? null,
       starts_at: input.startsAt ?? null,
+      expected_start_at: input.expectedStartAt ?? null,
+      confirmed_start_at: input.confirmedStartAt ?? null,
+      actual_start_at: input.actualStartAt ?? null,
+      start_date_source: input.startDateSource ?? null,
       ends_at: deriveContractEndsAt({
         startsAt: input.startsAt ?? null,
         endsAt: input.endsAt ?? null,

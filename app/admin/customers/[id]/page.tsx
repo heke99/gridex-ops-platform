@@ -98,6 +98,10 @@ type CustomerRow = {
  moved_out_at: string | null
  lifecycle_closed_at: string | null
  lifecycle_status_reason: string | null
+ intake_status: string | null
+ intake_missing_fields: unknown
+ intake_quality_score: number | null
+ intake_warnings?: unknown
 }
 
 type CustomerPageProps = {
@@ -230,6 +234,51 @@ function statusTone(status: string | null): string {
  }
 }
 
+function normalizeJsonList(value: unknown): string[] {
+ if (Array.isArray(value)) {
+ return value.map((item) => String(item)).filter(Boolean)
+ }
+ if (typeof value === 'string' && value.trim()) return [value.trim()]
+ return []
+}
+
+function intakeStatusLabel(value: string | null | undefined): string {
+ switch (value) {
+ case 'draft':
+ return 'Utkast'
+ case 'incomplete':
+ return 'Ofullständig'
+ case 'needs_completion':
+ return 'Väntar på komplettering'
+ case 'ready_for_contract':
+ return 'Redo för avtal'
+ case 'ready_for_operations':
+ return 'Redo för drift'
+ case 'blocked':
+ return 'Blockerad'
+ case 'rejected':
+ return 'Avvisad/stoppad'
+ default:
+ return 'Ej klassad'
+ }
+}
+
+function intakeStatusTone(value: string | null | undefined): string {
+ switch (value) {
+ case 'ready_for_contract':
+ case 'ready_for_operations':
+ return 'border-emerald-200 bg-emerald-50 text-emerald-800 '
+ case 'needs_completion':
+ case 'incomplete':
+ return 'border-amber-200 bg-amber-50 text-amber-900 '
+ case 'blocked':
+ case 'rejected':
+ return 'border-red-200 bg-red-50 text-red-800 '
+ default:
+ return 'border-slate-200 bg-slate-50 text-slate-700 '
+ }
+}
+
 function lifecycleTone(stage: string): string {
  if (['ready_to_execute', 'completed'].includes(stage)) {
  return 'bg-emerald-100 text-emerald-700 '
@@ -293,7 +342,7 @@ async function getCustomer(
  const { data, error } = await supabase
  .from('customers')
  .select(
- 'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason'
+ 'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, intake_status, intake_missing_fields, intake_quality_score, intake_warnings'
  )
  .eq('id', id)
  .maybeSingle()
@@ -1331,6 +1380,30 @@ export default async function CustomerAdminDetailPage({
 
  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ">
  {customerTypeDescription(normalizedCustomerType)}
+ </div>
+
+ <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm ">
+ <div className="flex flex-wrap items-center justify-between gap-3">
+ <div>
+ <div className="text-sm font-semibold text-slate-900 ">Kundintag och datakvalitet</div>
+ <p className="mt-1 text-sm text-slate-700 ">Visar om kunden är redo för avtal, drift och fakturering utan att handläggaren behöver leta efter saknade uppgifter.</p>
+ </div>
+ <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${intakeStatusTone(customer.intake_status)}`}>
+ {intakeStatusLabel(customer.intake_status)} · {customer.intake_quality_score ?? 0}%
+ </span>
+ </div>
+ {normalizeJsonList(customer.intake_missing_fields).length > 0 ? (
+ <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 ">
+ <div className="font-semibold">Saknade uppgifter</div>
+ <p className="mt-1">{normalizeJsonList(customer.intake_missing_fields).join(', ')}</p>
+ </div>
+ ) : null}
+ {normalizeJsonList(customer.intake_warnings).length > 0 ? (
+ <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ">
+ <div className="font-semibold">Varningar att kontrollera</div>
+ <p className="mt-1">{normalizeJsonList(customer.intake_warnings).join(' ')}</p>
+ </div>
+ ) : null}
  </div>
 
  <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-3">

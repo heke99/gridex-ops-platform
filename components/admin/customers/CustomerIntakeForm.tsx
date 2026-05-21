@@ -246,6 +246,12 @@ export default function CustomerIntakeForm({
  </label>
 
  <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Nätområde / områdes-id</span>
+ <input name="gridAreaCode" placeholder="Ex. nätområde/RFF+Z05" className={inputClassName(state, 'gridAreaCode')} />
+ <FieldError state={state} name="gridAreaCode" />
+ </label>
+
+ <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">Årsförbrukning kWh</span>
  <input name="annualConsumptionKwh" placeholder="Årsförbrukning kWh" className={inputClassName(state, 'annualConsumptionKwh')} />
  <FieldError state={state} name="annualConsumptionKwh" />
@@ -305,6 +311,41 @@ export default function CustomerIntakeForm({
  <span className="text-slate-700 ">Nuvarande leverantör org.nr</span>
  <input name="currentSupplierOrgNumber" placeholder="Nuvarande leverantör org.nr" className={inputClassName(state, 'currentSupplierOrgNumber')} />
  <FieldError state={state} name="currentSupplierOrgNumber" />
+ </label>
+
+ <label className="grid gap-1 text-sm" data-flow-section="switch move_in move_out_takeover">
+ <span className="text-slate-700 ">Kundbekräftelse</span>
+ <select name="customerConfirmationStatus" defaultValue={state.values.customerConfirmationStatus ?? "missing"} className={inputClassName(state, 'customerConfirmationStatus')}>
+ <option value="missing">Saknas / behöver kompletteras</option>
+ <option value="confirmed">Mottagen och verifierad</option>
+ <option value="pending">Inväntar kund</option>
+ </select>
+ <FieldError state={state} name="customerConfirmationStatus" />
+ </label>
+
+ <label className="grid gap-1 text-sm" data-flow-section="switch move_in move_out_takeover">
+ <span className="text-slate-700 ">Fullmaktsstatus</span>
+ <select name="authorizationStatus" defaultValue={state.values.authorizationStatus ?? "missing"} className={inputClassName(state, 'authorizationStatus')}>
+ <option value="missing">Fullmakt saknas</option>
+ <option value="draft">Fullmakt skapad</option>
+ <option value="sent">Fullmakt skickad</option>
+ <option value="signed">Fullmakt signerad</option>
+ <option value="expired">Fullmakt utgången</option>
+ <option value="revoked">Fullmakt avvisad/återkallad</option>
+ </select>
+ <FieldError state={state} name="authorizationStatus" />
+ </label>
+
+ <label className="grid gap-1 text-sm" data-flow-section="switch move_in move_out_takeover">
+ <span className="text-slate-700 ">Fullmakt giltig från</span>
+ <input type="date" name="authorizationValidFrom" className={inputClassName(state, 'authorizationValidFrom')} />
+ <FieldError state={state} name="authorizationValidFrom" />
+ </label>
+
+ <label className="grid gap-1 text-sm" data-flow-section="switch move_in move_out_takeover">
+ <span className="text-slate-700 ">Fullmakt giltig till</span>
+ <input type="date" name="authorizationValidTo" className={inputClassName(state, 'authorizationValidTo')} />
+ <FieldError state={state} name="authorizationValidTo" />
  </label>
 
  <div className="md:col-span-2 grid gap-4 md:grid-cols-2" data-flow-section="move_in move_out_takeover">
@@ -373,6 +414,36 @@ export default function CustomerIntakeForm({
  <option value="active">Aktivt</option>
  </select>
  <FieldError state={state} name="contractStatus" />
+ </label>
+
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Förväntat startdatum</span>
+ <input type="date" name="expectedStartDate" className={inputClassName(state, 'expectedStartDate')} />
+ <FieldError state={state} name="expectedStartDate" />
+ </label>
+
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Bekräftat startdatum</span>
+ <input type="date" name="confirmedStartDate" className={inputClassName(state, 'confirmedStartDate')} />
+ <FieldError state={state} name="confirmedStartDate" />
+ </label>
+
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Faktiskt startdatum</span>
+ <input type="date" name="actualStartDate" className={inputClassName(state, 'actualStartDate')} />
+ <FieldError state={state} name="actualStartDate" />
+ </label>
+
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Källa för startdatum</span>
+ <select name="startDateSource" defaultValue={state.values.startDateSource ?? "customer_expected"} className={inputClassName(state, 'startDateSource')}>
+ <option value="customer_expected">Kundens önskemål/preliminärt</option>
+ <option value="current_supplier_response">Svar från gammal leverantör</option>
+ <option value="grid_owner_response">Svar från nätägare</option>
+ <option value="ediel_prodat">Ediel/PRODAT-svar</option>
+ <option value="manual_override">Manuell justering</option>
+ </select>
+ <FieldError state={state} name="startDateSource" />
  </label>
 
  <label className="grid gap-1 text-sm md:col-span-2">

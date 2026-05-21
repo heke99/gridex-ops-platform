@@ -11,6 +11,7 @@ import { parseCustomerImportFormData } from '@/lib/customers/importParser'
 import type {
   CustomerImportActionState,
   CustomerImportPreviewRow,
+  CustomerImportPreviewRowStatus,
   IntakeActionState,
   IntakeField,
   IntakeFieldErrors,
@@ -63,10 +64,19 @@ type CreateCustomerGraphParams = {
   siteType: SiteType
   gridOwnerId: string | null
   priceAreaCode: PriceAreaCode | null
+  gridAreaCode: string | null
   moveInDate: string | null
   annualConsumptionKwh: number | null
   currentSupplierName: string | null
   currentSupplierOrgNumber: string | null
+  customerConfirmationStatus: string | null
+  authorizationStatus: string | null
+  authorizationValidFrom: string | null
+  authorizationValidTo: string | null
+  expectedStartDate: string | null
+  confirmedStartDate: string | null
+  actualStartDate: string | null
+  startDateSource: string | null
   street: string | null
   postalCode: string | null
   city: string | null
@@ -100,6 +110,7 @@ type CreationContext = {
   meteringPointId: string | null
   contractId: string | null
   switchRequestId: string | null
+  powerOfAttorneyId: string | null
 }
 
 class IntakeValidationError extends Error {
@@ -131,10 +142,19 @@ const INTAKE_VALUE_FIELDS: IntakeField[] = [
   'siteType',
   'gridOwnerId',
   'priceAreaCode',
+  'gridAreaCode',
   'moveInDate',
   'annualConsumptionKwh',
   'currentSupplierName',
   'currentSupplierOrgNumber',
+  'customerConfirmationStatus',
+  'authorizationStatus',
+  'authorizationValidFrom',
+  'authorizationValidTo',
+  'expectedStartDate',
+  'confirmedStartDate',
+  'actualStartDate',
+  'startDateSource',
   'street',
   'postalCode',
   'city',
@@ -394,6 +414,18 @@ function validateCreateCustomerParams(
     errors.moveInDate = 'Datum måste anges som YYYY-MM-DD.'
   }
 
+  for (const [field, value, label] of [
+    ['authorizationValidFrom', params.authorizationValidFrom, 'Fullmakt giltig från'],
+    ['authorizationValidTo', params.authorizationValidTo, 'Fullmakt giltig till'],
+    ['expectedStartDate', params.expectedStartDate, 'Förväntat startdatum'],
+    ['confirmedStartDate', params.confirmedStartDate, 'Bekräftat startdatum'],
+    ['actualStartDate', params.actualStartDate, 'Faktiskt startdatum'],
+  ] as Array<[IntakeField, string | null, string]>) {
+    if (normalizeOptionalString(value) && !isIsoDate(value)) {
+      errors[field] = `${label} måste anges som YYYY-MM-DD.`
+    }
+  }
+
   if (normalizedCountry.length !== 2) {
     errors.country = 'Land ska anges som två tecken, till exempel SE.'
   }
@@ -479,10 +511,19 @@ function buildCreateCustomerParams(
     siteType: (getString(formData, 'siteType') || 'consumption') as SiteType,
     gridOwnerId: getNullableString(formData, 'gridOwnerId'),
     priceAreaCode: getNullableString(formData, 'priceAreaCode') as PriceAreaCode | null,
+    gridAreaCode: getNullableString(formData, 'gridAreaCode'),
     moveInDate: getNullableString(formData, 'moveInDate'),
     annualConsumptionKwh: parseNumber(getString(formData, 'annualConsumptionKwh')),
     currentSupplierName: getNullableString(formData, 'currentSupplierName'),
     currentSupplierOrgNumber: getNullableString(formData, 'currentSupplierOrgNumber'),
+    customerConfirmationStatus: getNullableString(formData, 'customerConfirmationStatus'),
+    authorizationStatus: getNullableString(formData, 'authorizationStatus'),
+    authorizationValidFrom: getNullableString(formData, 'authorizationValidFrom'),
+    authorizationValidTo: getNullableString(formData, 'authorizationValidTo'),
+    expectedStartDate: getNullableString(formData, 'expectedStartDate'),
+    confirmedStartDate: getNullableString(formData, 'confirmedStartDate'),
+    actualStartDate: getNullableString(formData, 'actualStartDate'),
+    startDateSource: getNullableString(formData, 'startDateSource'),
     street: getNullableString(formData, 'street'),
     postalCode: getNullableString(formData, 'postalCode'),
     city: getNullableString(formData, 'city'),
@@ -706,6 +747,60 @@ async function syncContractLifecycleEvents(params: {
   }
 }
 
+async function maybeCreatePowerOfAttorneyFromIntake(params: {
+  companyId: string
+  actorUserId: string
+  customerId: string
+  siteId: string | null
+  status: string | null
+  validFrom: string | null
+  validTo: string | null
+}) {
+  const normalizedStatus = params.status === 'signed' || params.status === 'sent' || params.status === 'expired' || params.status === 'revoked'
+    ? params.status
+    : params.status === 'missing'
+      ? null
+      : 'draft'
+
+  if (!normalizedStatus) return null
+
+  try {
+    const { data, error } = await supabaseService
+      .from('powers_of_attorney')
+      .insert({
+        company_id: params.companyId,
+        customer_id: params.customerId,
+        site_id: params.siteId,
+        scope: 'supplier_switch',
+        status: normalizedStatus,
+        signed_at: normalizedStatus === 'signed' ? new Date().toISOString() : null,
+        valid_from: params.validFrom,
+        valid_to: params.validTo,
+        document_path: null,
+        reference: `INTAKE-${params.customerId.slice(0, 8)}`,
+        notes: 'Skapad från kundintag. Dokument kan kompletteras på kundkortet.',
+        created_by: params.actorUserId,
+        updated_by: params.actorUserId,
+      })
+      .select('id')
+      .maybeSingle()
+
+    if (error) {
+      if (!databaseObjectMissing(error) && error.code !== '42703') {
+        console.warn('Power of attorney from intake could not be created', error)
+      }
+      return null
+    }
+
+    return data?.id ?? null
+  } catch (error) {
+    if (!databaseObjectMissing(error)) {
+      console.warn('Power of attorney from intake could not be created', error)
+    }
+    return null
+  }
+}
+
 async function maybeCreateSwitchRequestFromIntake(params: {
   customerId: string
   siteId: string | null
@@ -740,6 +835,7 @@ async function maybeCreateSwitchRequestFromIntake(params: {
   const hasRelevantPoa = powersOfAttorney.some(
     (poa) =>
       poa.scope === 'supplier_switch' &&
+      poa.status === 'signed' &&
       (poa.site_id === params.siteId || poa.site_id === null)
   )
 
@@ -787,6 +883,10 @@ async function cleanupCreatedGraph(context: CreationContext) {
         .from('supplier_switch_requests')
         .delete()
         .eq('id', context.switchRequestId)
+    }
+
+    if (context.powerOfAttorneyId) {
+      await supabaseService.from('powers_of_attorney').delete().eq('id', context.powerOfAttorneyId)
     }
 
     if (context.contractId) {
@@ -854,13 +954,17 @@ async function maybeSingleExists(
   if (!normalized) return false
 
   try {
-    const { data, error } = await supabaseService
+    let query = supabaseService
       .from(table)
       .select('id')
       .eq('company_id', companyId)
-      .eq(column, normalized)
       .limit(1)
-      .maybeSingle()
+
+    query = column === 'email'
+      ? query.ilike(column, normalized)
+      : query.eq(column, normalized)
+
+    const { data, error } = await query.maybeSingle()
 
     if (error) {
       if (databaseObjectMissing(error)) return false
@@ -912,9 +1016,26 @@ function buildMissingDataList(params: CreateCustomerGraphParams, switchRequestRe
   if (!normalizeOptionalString(params.facilityId)) missing.push('anläggnings-id')
   if (!normalizeOptionalString(params.meterPointId)) missing.push('mätpunkts-id')
   if (!normalizeOptionalString(params.gridOwnerId)) missing.push('nätägare')
+  if (!normalizeOptionalString(params.gridAreaCode)) missing.push('nätområde')
   if (!normalizeOptionalString(params.priceAreaCode)) missing.push('elområde')
   if (!normalizeOptionalString(params.currentSupplierName)) missing.push('nuvarande elleverantör')
-  if (!normalizeOptionalString(params.contractStartDate)) missing.push('förväntat avtalsstartdatum')
+  if (!normalizeOptionalString(params.customerConfirmationStatus) || params.customerConfirmationStatus !== 'confirmed') {
+    missing.push('kundbekräftelse')
+  }
+
+  const hasAnyStartDate = Boolean(
+    normalizeOptionalString(params.contractStartDate) ||
+      normalizeOptionalString(params.expectedStartDate) ||
+      normalizeOptionalString(params.confirmedStartDate) ||
+      normalizeOptionalString(params.actualStartDate) ||
+      normalizeOptionalString(params.moveInDate)
+  )
+
+  if (!hasAnyStartDate) missing.push('förväntat avtalsstartdatum')
+
+  if (params.intakeFlowType && params.authorizationStatus !== 'signed') {
+    missing.push(params.authorizationStatus === 'sent' ? 'fullmakt ej signerad' : 'fullmakt saknas')
+  }
 
   const maybeSwitch = switchRequestResult as { created?: boolean; reason?: string } | null
   if (params.intakeFlowType && maybeSwitch && !maybeSwitch.created && maybeSwitch.reason) {
@@ -922,6 +1043,44 @@ function buildMissingDataList(params: CreateCustomerGraphParams, switchRequestRe
   }
 
   return Array.from(new Set(missing))
+}
+
+function buildAddressWarnings(params: CreateCustomerGraphParams): string[] {
+  const warnings: string[] = []
+  const addressParts = [params.street, params.postalCode, params.city].map((value) => normalizeOptionalString(value))
+  const filledAddressParts = addressParts.filter(Boolean).length
+
+  if (filledAddressParts > 0 && filledAddressParts < 3) {
+    warnings.push('Anläggningsadressen är ofullständig. Kontrollera gata, postnummer och ort innan switch eller fakturering startas.')
+  }
+
+  const currentAddress = [params.street, params.postalCode, params.city]
+    .map((value) => normalizeOptionalString(value)?.toLowerCase() ?? '')
+    .join('|')
+  const movedFromAddress = [params.movedFromStreet, params.movedFromPostalCode, params.movedFromCity]
+    .map((value) => normalizeOptionalString(value)?.toLowerCase() ?? '')
+    .join('|')
+
+  if (params.intakeFlowType !== 'switch' && currentAddress.replace(/\|/g, '') && currentAddress === movedFromAddress) {
+    warnings.push('Flyttadress och ny anläggningsadress verkar vara samma. Kontrollera adressen innan flödet skickas vidare.')
+  }
+
+  return warnings
+}
+
+type IntakeStatus = 'draft' | 'incomplete' | 'needs_completion' | 'ready_for_contract' | 'ready_for_operations'
+
+function determineIntakeStatus(params: CreateCustomerGraphParams, missingData: string[], contractId: string | null): IntakeStatus {
+  const hasCoreIdentity = Boolean(
+    (params.customerType === 'private' && params.firstName && params.lastName && params.personalNumber) ||
+      (params.customerType !== 'private' && params.companyName && params.orgNumber)
+  )
+  const hasContact = Boolean(params.email || params.phone)
+
+  if (!hasCoreIdentity || !hasContact) return 'incomplete'
+  if (missingData.length > 0) return 'needs_completion'
+  if (!contractId) return 'ready_for_contract'
+  return 'ready_for_operations'
 }
 
 
@@ -949,14 +1108,17 @@ async function updateCustomerIntakeQuality(params: {
   customerId: string
   missingData: string[]
   qualityScore: number
+  intakeStatus: IntakeStatus
+  addressWarnings?: string[]
 }) {
   try {
     const { error } = await supabaseService
       .from('customers')
       .update({
-        intake_status: params.missingData.length > 0 ? 'needs_completion' : 'ready_for_operations',
+        intake_status: params.intakeStatus,
         intake_missing_fields: params.missingData,
         intake_quality_score: params.qualityScore,
+        intake_warnings: params.addressWarnings ?? [],
       })
       .eq('id', params.customerId)
 
@@ -980,10 +1142,14 @@ async function createIntakeFollowUps(params: {
   gridOwnerId: string | null
   currentSupplierName: string | null
   missingData: string[]
+  addressWarnings?: string[]
 }) {
-  if (params.missingData.length === 0) return
+  const warnings = params.addressWarnings ?? []
+  if (params.missingData.length === 0 && warnings.length === 0) return
 
-  const blockerReason = `Kundintag kräver komplettering: ${params.missingData.join(', ')}.`
+  const blockerReason = params.missingData.length > 0
+    ? `Kundintag kräver komplettering: ${params.missingData.join(', ')}.`
+    : `Kundintag kräver adresskontroll: ${warnings.join(' ')}`
   const requestedCategories = params.missingData.map((value) => ({ key: value }))
 
   try {
@@ -1041,6 +1207,7 @@ async function createIntakeFollowUps(params: {
         next_action: 'Komplettera saknade uppgifter innan leverantörsbyte eller fakturering går vidare.',
         metadata: {
           missingData: params.missingData,
+          addressWarnings: warnings,
           createdFrom: 'createCustomerAction',
         },
         created_by: params.actorUserId,
@@ -1149,11 +1316,20 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
   const normalizedFacilityId = normalizeOptionalString(params.facilityId)
   const normalizedMeterPointId = normalizeOptionalString(params.meterPointId)
   const normalizedGridOwnerId = normalizeOptionalString(params.gridOwnerId)
+  const normalizedGridAreaCode = normalizeOptionalString(params.gridAreaCode)
   const normalizedMoveInDate = normalizeOptionalString(params.moveInDate)
   const normalizedCurrentSupplierName = normalizeOptionalString(params.currentSupplierName)
   const normalizedCurrentSupplierOrgNumber = normalizeOptionalString(
     params.currentSupplierOrgNumber
   )
+  const normalizedCustomerConfirmationStatus = normalizeOptionalString(params.customerConfirmationStatus)
+  const normalizedAuthorizationStatus = normalizeOptionalString(params.authorizationStatus)
+  const normalizedAuthorizationValidFrom = normalizeOptionalString(params.authorizationValidFrom)
+  const normalizedAuthorizationValidTo = normalizeOptionalString(params.authorizationValidTo)
+  const normalizedExpectedStartDate = normalizeOptionalString(params.expectedStartDate)
+  const normalizedConfirmedStartDate = normalizeOptionalString(params.confirmedStartDate)
+  const normalizedActualStartDate = normalizeOptionalString(params.actualStartDate)
+  const normalizedStartDateSource = normalizeOptionalString(params.startDateSource)
   const normalizedStreet = normalizeOptionalString(params.street)
   const normalizedPostalCode = normalizeOptionalString(params.postalCode)
   const normalizedCity = normalizeOptionalString(params.city)
@@ -1209,6 +1385,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
     meteringPointId: null,
     contractId: null,
     switchRequestId: null,
+    powerOfAttorneyId: null,
   }
 
   try {
@@ -1264,6 +1441,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         normalizedFacilityId ||
         normalizedStreet ||
         normalizedGridOwnerId ||
+        normalizedGridAreaCode ||
         params.priceAreaCode ||
         normalizedMoveInDate
     )
@@ -1282,6 +1460,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
           status: 'draft',
           grid_owner_id: normalizedGridOwnerId,
           price_area_code: params.priceAreaCode ?? null,
+          grid_area_code: normalizedGridAreaCode,
           move_in_date: normalizedMoveInDate,
           annual_consumption_kwh: normalizedAnnualConsumptionKwh,
           current_supplier_name: normalizedCurrentSupplierName,
@@ -1319,6 +1498,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
           reading_frequency: 'hourly',
           grid_owner_id: normalizedGridOwnerId,
           price_area_code: params.priceAreaCode ?? null,
+          grid_area_code: normalizedGridAreaCode,
           is_settlement_relevant: true,
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
@@ -1332,7 +1512,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
 
     if (params.contractOfferId || params.contractTypeOverride) {
       const offer = params.contractOfferId
-        ? await getContractOfferById(params.contractOfferId)
+        ? await getContractOfferById(params.contractOfferId, params.companyId)
         : null
 
       const contract = await createCustomerContract({
@@ -1361,10 +1541,14 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
           normalizedOptionalFeeLines.length > 0
             ? normalizedOptionalFeeLines
             : ((offer?.optional_fee_lines as Array<Record<string, unknown>> | null) ?? []),
-        startsAt: normalizedContractStartDate,
+        startsAt: normalizedContractStartDate ?? normalizedConfirmedStartDate ?? normalizedExpectedStartDate,
+        expectedStartAt: normalizedExpectedStartDate,
+        confirmedStartAt: normalizedConfirmedStartDate,
+        actualStartAt: normalizedActualStartDate,
+        startDateSource: normalizedStartDateSource,
         signedAt:
           normalizedContractStatus === 'signed' || normalizedContractStatus === 'active'
-            ? normalizedContractStartDate || new Date().toISOString()
+            ? normalizedContractStartDate || normalizedConfirmedStartDate || new Date().toISOString()
             : null,
         overrideReason: normalizedOverrideReason,
         actorUserId: params.actorUserId,
@@ -1390,10 +1574,20 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         customerId: customer.id,
         contractId: contract.id,
         contractStatus: normalizedContractStatus,
-        contractStartDate: normalizedContractStartDate,
+        contractStartDate: normalizedContractStartDate ?? normalizedConfirmedStartDate ?? normalizedExpectedStartDate,
         actorUserId: params.actorUserId,
       })
     }
+
+    creationContext.powerOfAttorneyId = await maybeCreatePowerOfAttorneyFromIntake({
+      companyId: params.companyId,
+      actorUserId: params.actorUserId,
+      customerId: customer.id,
+      siteId,
+      status: normalizedAuthorizationStatus,
+      validFrom: normalizedAuthorizationValidFrom,
+      validTo: normalizedAuthorizationValidTo,
+    })
 
     const switchRequestResult = await maybeCreateSwitchRequestFromIntake({
       customerId: customer.id,
@@ -1407,7 +1601,9 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         : null
 
     const missingData = buildMissingDataList(params, switchRequestResult)
+    const addressWarnings = buildAddressWarnings(params)
     const intakeQualityScore = calculateIntakeQualityScore(params, missingData)
+    const intakeStatus = determineIntakeStatus(params, missingData, creationContext.contractId)
 
     await createIntakeFollowUps({
       companyId: params.companyId,
@@ -1419,12 +1615,15 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
       gridOwnerId: normalizedGridOwnerId,
       currentSupplierName: normalizedCurrentSupplierName,
       missingData,
+      addressWarnings,
     })
 
     await updateCustomerIntakeQuality({
       customerId: customer.id,
       missingData,
       qualityScore: intakeQualityScore,
+      intakeStatus,
+      addressWarnings,
     })
 
     const batch2BAutomationResult = await runBatch2BAutomation({
@@ -1453,8 +1652,19 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         siteId,
         switchRequest: switchRequestResult ?? null,
         missingData,
-        intakeFollowUpsCreated: missingData.length > 0,
+        addressWarnings,
+        intakeStatus,
+        intakeFollowUpsCreated: missingData.length > 0 || addressWarnings.length > 0,
         intakeQualityScore,
+        customerConfirmationStatus: normalizedCustomerConfirmationStatus,
+        authorizationStatus: normalizedAuthorizationStatus,
+        startDates: {
+          desired: normalizedMoveInDate,
+          expected: normalizedExpectedStartDate,
+          confirmed: normalizedConfirmedStartDate,
+          actual: normalizedActualStartDate,
+          source: normalizedStartDateSource,
+        },
         batch2BAutomation: batch2BAutomationResult,
         transactionReadyMode: 'server_validated_rollback',
       },
@@ -1495,6 +1705,71 @@ export async function createCustomerAction(
   }
 }
 
+async function resolveContractOfferIdForImport(params: {
+  companyId: string
+  row: Record<string, string>
+  fallbackContractOfferId: string | null
+  forceFallback: boolean
+}): Promise<string | null> {
+  if (params.forceFallback && params.fallbackContractOfferId) return params.fallbackContractOfferId
+  if (params.row.contract_offer_id?.trim()) return params.row.contract_offer_id.trim()
+  if (params.fallbackContractOfferId) return params.fallbackContractOfferId
+
+  const lookup = rowValue(params.row, 'contract_offer_name', 'campaign_name', 'campaign_code')
+  if (!lookup) return null
+
+  const { data, error } = await supabaseService
+    .from('contract_offers')
+    .select('id')
+    .eq('company_id', params.companyId)
+    .eq('is_active', true)
+    .or(`name.ilike.${lookup},campaign_name.ilike.${lookup},slug.ilike.${lookup}`)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    if (databaseObjectMissing(error)) return null
+    throw error
+  }
+
+  return data?.id ?? null
+}
+
+async function insertImportRow(params: {
+  importBatchId: string | null | undefined
+  companyId: string
+  rowNumber: number
+  status: CustomerImportPreviewRowStatus | 'failed'
+  row: Record<string, string>
+  customerId?: string | null
+  errorMessage?: string | null
+  warnings?: string[]
+  missingFields?: string[]
+  uncertainFields?: string[]
+  duplicateWarnings?: string[]
+  confidence?: number
+}) {
+  if (!params.importBatchId) return
+
+  await supabaseService.from('customer_import_rows').insert({
+    import_batch_id: params.importBatchId,
+    company_id: params.companyId,
+    row_number: params.rowNumber,
+    status: params.status,
+    normalized_payload: params.row,
+    customer_id: params.customerId ?? null,
+    error_message: params.errorMessage ?? null,
+    warnings: params.warnings ?? [],
+    issues: {
+      missingFields: params.missingFields ?? [],
+      uncertainFields: params.uncertainFields ?? [],
+      duplicateWarnings: params.duplicateWarnings ?? [],
+      confidence: params.confidence ?? null,
+    },
+    parser_confidence: params.confidence ?? null,
+  })
+}
+
 export async function bulkCreateCustomersAction(formData: FormData) {
   await requireAdminActionAccess({ anyOf: ['customers.write', 'masterdata.write'] })
   const actorUserId = await getActorUserId()
@@ -1507,6 +1782,8 @@ export async function bulkCreateCustomersAction(formData: FormData) {
     throw new Error(parsedImport.warnings[0] ?? 'Importunderlaget innehöll inga kundrader.')
   }
 
+  const fallbackContractOfferId = getNullableString(formData, 'fallbackContractOfferId')
+  const forceFallbackContract = formData.get('applyFallbackContractToAll') === 'on'
   const file = formData.get('bulkFile')
   const fileName = file && typeof file === 'object' && 'name' in file ? String((file as File).name) : null
   const importBatchResult = await supabaseService
@@ -1514,28 +1791,52 @@ export async function bulkCreateCustomersAction(formData: FormData) {
     .insert({
       company_id: companyId,
       source_kind: parsedImport.sourceKind,
+      source_type: parsedImport.sourceKind,
       file_name: fileName,
-      status: 'completed',
+      status: 'previewed',
       total_rows: rows.length,
+      rows_total: rows.length,
       created_rows: 0,
+      rows_created: 0,
       failed_rows: 0,
+      rows_failed: 0,
       warnings: parsedImport.warnings,
+      issues: parsedImport.warnings.map((warning) => ({ warning })),
+      metadata: {
+        fallbackContractOfferId,
+        forceFallbackContract,
+      },
       created_by: actorUserId,
     })
     .select('id')
     .maybeSingle()
 
-  if (importBatchResult.error && !['42P01', 'PGRST205'].includes(importBatchResult.error.code ?? '')) {
+  if (importBatchResult.error && !databaseObjectMissing(importBatchResult.error)) {
     throw importBatchResult.error
   }
 
   const importBatch = importBatchResult.data
 
   let created = 0
+  let review = 0
+  let failed = 0
   const errors: string[] = []
 
-  for (const [index, row] of rows.entries()) {
+  for (const [index, originalRow] of rows.entries()) {
+    const rowNumber = index + 2
+    const row: Record<string, string> = {
+      ...originalRow,
+      country: originalRow.country || 'SE',
+    }
+
     try {
+      row.contract_offer_id = await resolveContractOfferIdForImport({
+        companyId,
+        row,
+        fallbackContractOfferId,
+        forceFallback: forceFallbackContract,
+      }) ?? ''
+
       const params: CreateCustomerGraphParams = {
         actorUserId,
         companyId,
@@ -1556,10 +1857,19 @@ export async function bulkCreateCustomersAction(formData: FormData) {
         siteType: (row.site_type as SiteType) || 'consumption',
         gridOwnerId: row.grid_owner_id || null,
         priceAreaCode: (row.price_area_code as PriceAreaCode | undefined) ?? null,
-        moveInDate: row.move_in_date || null,
+        gridAreaCode: row.grid_area_code || row.grid_area_id || null,
+        moveInDate: row.move_in_date || row.start_date || null,
         annualConsumptionKwh: parseNumber(row.annual_consumption_kwh || ''),
         currentSupplierName: row.current_supplier_name || null,
         currentSupplierOrgNumber: row.current_supplier_org_number || null,
+        customerConfirmationStatus: row.customer_confirmation_status || row.customer_confirmation || null,
+        authorizationStatus: row.authorization_status || row.power_of_attorney_status || null,
+        authorizationValidFrom: row.authorization_valid_from || null,
+        authorizationValidTo: row.authorization_valid_to || null,
+        expectedStartDate: row.expected_start_date || row.contract_expected_start_date || null,
+        confirmedStartDate: row.confirmed_start_date || null,
+        actualStartDate: row.actual_start_date || null,
+        startDateSource: row.start_date_source || null,
         street: row.street || null,
         postalCode: row.postal_code || null,
         city: row.city || null,
@@ -1570,7 +1880,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
         movedFromCity: row.moved_from_city || null,
         movedFromSupplierName: row.moved_from_supplier_name || null,
         contractOfferId: row.contract_offer_id || null,
-        contractStartDate: row.contract_start_date || null,
+        contractStartDate: row.contract_start_date || row.expected_start_date || null,
         contractStatus: (row.contract_status as ContractStatus | undefined) ?? 'pending_signature',
         overrideReason: row.override_reason || null,
         contractTypeOverride: row.contract_type_override
@@ -1588,57 +1898,101 @@ export async function bulkCreateCustomersAction(formData: FormData) {
       }
 
       const validationErrors = validateCreateCustomerParams(params)
-      if (Object.keys(validationErrors).length > 0) {
-        throw createValidationErrorFromFieldErrors(validationErrors)
+      const duplicateErrors = await findIntakeDuplicates(params)
+      const missingFields = importRowMissingFields(row)
+      const uncertainFields = importRowUncertainFields(row)
+      const duplicateWarnings = Object.values(duplicateErrors).filter((value): value is string => Boolean(value))
+      const warnings = [...importRowWarnings(row), ...duplicateWarnings]
+      const confidence = calculateImportConfidence(row, missingFields, uncertainFields, duplicateWarnings)
+      const status = Object.keys(validationErrors).length > 0
+        ? 'missing_fields'
+        : classifyImportRow({ missingFields, uncertainFields, duplicateWarnings, confidence })
+
+      if (status !== 'ready_to_create') {
+        review += 1
+        await insertImportRow({
+          importBatchId: importBatch?.id,
+          companyId,
+          rowNumber,
+          status,
+          row,
+          warnings,
+          missingFields: [...missingFields, ...Object.values(validationErrors).filter((value): value is string => Boolean(value))],
+          uncertainFields,
+          duplicateWarnings,
+          confidence,
+        })
+        continue
       }
 
       const customer = await createCustomerGraph(params)
       created += 1
 
-      if (importBatch?.id) {
-        await supabaseService.from('customer_import_rows').insert({
-          import_batch_id: importBatch.id,
-          company_id: companyId,
-          row_number: index + 2,
-          status: 'created',
-          normalized_payload: row,
-          customer_id: customer.id,
-          warnings: [],
-        })
-      }
+      await insertImportRow({
+        importBatchId: importBatch?.id,
+        companyId,
+        rowNumber,
+        status: 'created',
+        row,
+        customerId: customer.id,
+        warnings,
+        missingFields,
+        uncertainFields,
+        duplicateWarnings,
+        confidence,
+      })
     } catch (error) {
+      failed += 1
       const intakeError = mapUnknownErrorToIntakeState(error)
-      errors.push(`Rad ${index + 2}: ${intakeError.message ?? 'Okänt fel'}`)
+      const message = `Rad ${rowNumber}: ${intakeError.message ?? 'Okänt fel'}`
+      errors.push(message)
 
-      if (importBatch?.id) {
-        await supabaseService.from('customer_import_rows').insert({
-          import_batch_id: importBatch.id,
-          company_id: companyId,
-          row_number: index + 2,
-          status: 'failed',
-          normalized_payload: row,
-          error_message: intakeError.message ?? 'Okänt fel',
-          warnings: [],
-        })
-      }
+      await insertImportRow({
+        importBatchId: importBatch?.id,
+        companyId,
+        rowNumber,
+        status: 'failed',
+        row,
+        errorMessage: intakeError.message ?? 'Okänt fel',
+        warnings: [],
+        missingFields: [],
+        uncertainFields: [],
+        duplicateWarnings: [],
+        confidence: 0,
+      })
     }
   }
 
   if (importBatch?.id) {
+    const finalStatus = failed > 0 || review > 0 ? 'partially_imported' : 'completed'
     await supabaseService
       .from('customer_import_batches')
-      .update({ created_rows: created, failed_rows: errors.length })
+      .update({
+        status: finalStatus,
+        created_rows: created,
+        rows_created: created,
+        failed_rows: failed + review,
+        rows_failed: failed + review,
+        imported_at: new Date().toISOString(),
+        metadata: {
+          fallbackContractOfferId,
+          forceFallbackContract,
+          reviewRows: review,
+          failedRows: failed,
+        },
+      })
       .eq('id', importBatch.id)
   }
 
   await insertAuditLog({
     actorUserId,
     entityType: 'customer_bulk_import',
-    entityId: actorUserId,
+    entityId: importBatch?.id ?? actorUserId,
     action: 'customer_bulk_import_completed',
     newValues: {
       created,
-      failed: errors.length,
+      review,
+      failed,
     },
     companyId,
     metadata: {
@@ -1651,12 +2005,9 @@ export async function bulkCreateCustomersAction(formData: FormData) {
 
   revalidatePath('/admin/customers')
   revalidatePath('/admin/customers/intake')
+  revalidatePath('/admin/customers/imports')
 
-  if (errors.length > 0) {
-    throw new Error(
-      `Importen slutfördes med ${created} skapade kunder och ${errors.length} rader som kräver kontroll. ${errors[0]}`
-    )
-  }
+  return { totalRows: rows.length, createdRows: created, reviewRows: review, failedRows: failed, warnings: parsedImport.warnings, firstError: errors[0] ?? null }
 }
 
 function importPreviewLabel(row: Record<string, string>): string {
@@ -1666,6 +2017,80 @@ function importPreviewLabel(row: Record<string, string>): string {
 
 function importUniqueKey(row: Record<string, string>): string {
   return row.org_number || row.personal_number || row.email || row.facility_id || row.meter_point_id || ''
+}
+
+function normalizeLookupValue(value: string | null | undefined): string {
+  return (value ?? '').trim().toLowerCase()
+}
+
+function rowValue(row: Record<string, string>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = row[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return ''
+}
+
+function importRowMissingFields(row: Record<string, string>): string[] {
+  const missing: string[] = []
+  const customerType = normalizeCustomerType(row.customer_type || 'private')
+
+  if (customerType === 'private') {
+    if (!rowValue(row, 'first_name')) missing.push('förnamn')
+    if (!rowValue(row, 'last_name')) missing.push('efternamn')
+    if (!rowValue(row, 'personal_number')) missing.push('personnummer')
+  } else {
+    if (!rowValue(row, 'company_name')) missing.push('företags-/föreningsnamn')
+    if (!rowValue(row, 'org_number')) missing.push('organisationsnummer')
+  }
+
+  if (!rowValue(row, 'email') && !rowValue(row, 'phone')) missing.push('e-post eller telefon')
+  if (!rowValue(row, 'facility_id')) missing.push('anläggnings-id')
+  if (!rowValue(row, 'meter_point_id')) missing.push('mätpunkts-id')
+  if (!rowValue(row, 'grid_owner_id', 'grid_owner_name')) missing.push('nätägare')
+  if (!rowValue(row, 'grid_area_code', 'grid_area_id')) missing.push('nätområde')
+  if (!rowValue(row, 'contract_offer_id', 'contract_offer_name', 'campaign_name')) missing.push('avtal/kampanj')
+  if (!rowValue(row, 'contract_start_date', 'expected_start_date', 'move_in_date', 'start_date')) missing.push('förväntat startdatum')
+  if (!rowValue(row, 'authorization_status', 'power_of_attorney_status')) missing.push('fullmaktsstatus')
+
+  return missing
+}
+
+function importRowUncertainFields(row: Record<string, string>): string[] {
+  const uncertain: string[] = []
+
+  if (row.personal_number && !isSwedishIdentityNumber(row.personal_number)) uncertain.push('personnummer')
+  if (row.org_number && !isSwedishOrgNumber(row.org_number)) uncertain.push('organisationsnummer')
+  if (row.email && !isEmail(row.email)) uncertain.push('e-post')
+  if (row.phone && !isSwedishPhone(row.phone)) uncertain.push('telefon')
+  if (row.postal_code && !isSwedishPostalCode(row.postal_code)) uncertain.push('postnummer')
+  if (row.price_area_code && !['SE1', 'SE2', 'SE3', 'SE4'].includes(row.price_area_code.toUpperCase())) uncertain.push('elområde')
+
+  return uncertain
+}
+
+function calculateImportConfidence(row: Record<string, string>, missingFields: string[], uncertainFields: string[], duplicateWarnings: string[]): number {
+  let score = 100
+  score -= missingFields.length * 10
+  score -= uncertainFields.length * 8
+  score -= duplicateWarnings.length * 20
+
+  if (row.source_kind === 'pdf' || row.parser_source === 'pdf') score -= 8
+  if (!rowValue(row, 'contract_offer_id', 'contract_offer_name', 'campaign_name')) score -= 8
+
+  return Math.max(0, Math.min(100, score))
+}
+
+function classifyImportRow(params: {
+  missingFields: string[]
+  uncertainFields: string[]
+  duplicateWarnings: string[]
+  confidence: number
+}): CustomerImportPreviewRowStatus {
+  if (params.duplicateWarnings.length > 0) return 'duplicate_warning'
+  if (params.missingFields.length > 0) return 'missing_fields'
+  if (params.uncertainFields.length > 0 || params.confidence < 85) return 'requires_review'
+  return 'ready_to_create'
 }
 
 function importRowWarnings(row: Record<string, string>): string[] {
@@ -1698,6 +2123,15 @@ function importRowWarnings(row: Record<string, string>): string[] {
   if (!row.facility_id && !row.meter_point_id) {
     warnings.push('Anläggnings-id eller mätpunkts-id saknas.')
   }
+  if (!row.grid_area_code && !row.grid_area_id) {
+    warnings.push('Nätområde/områdes-id saknas.')
+  }
+  if (!row.authorization_status && !row.power_of_attorney_status) {
+    warnings.push('Fullmaktsstatus saknas.')
+  }
+  if (!row.customer_confirmation_status && !row.customer_confirmation) {
+    warnings.push('Kundbekräftelse saknas.')
+  }
   return warnings
 }
 
@@ -1712,7 +2146,7 @@ export async function previewCustomerImportAction(
     const parsedImport = await parseCustomerImportFormData(formData)
 
     const duplicateKeys = parsedImport.rows
-      .map(importUniqueKey)
+      .map((row) => normalizeLookupValue(importUniqueKey(row)))
       .filter(Boolean)
       .slice(0, 200)
 
@@ -1725,7 +2159,7 @@ export async function previewCustomerImportAction(
         .or(
           duplicateKeys
             .flatMap((key) => [
-              `email.eq.${key}`,
+              `email.ilike.${key}`,
               `personal_number.eq.${key}`,
               `org_number.eq.${key}`,
             ])
@@ -1734,22 +2168,32 @@ export async function previewCustomerImportAction(
 
       for (const customer of existingCustomers ?? []) {
         for (const value of [customer.email, customer.personal_number, customer.org_number]) {
-          if (value) existingKeys.add(String(value))
+          if (value) existingKeys.add(normalizeLookupValue(String(value)))
         }
       }
     }
 
     const rows: CustomerImportPreviewRow[] = parsedImport.rows.slice(0, 50).map((row, index) => {
       const uniqueKey = importUniqueKey(row)
-      const warnings = importRowWarnings(row)
-      if (uniqueKey && existingKeys.has(uniqueKey)) {
-        warnings.push('Möjlig dubblett hittades i kundregistret.')
-      }
+      const duplicateWarnings = uniqueKey && existingKeys.has(normalizeLookupValue(uniqueKey))
+        ? ['Möjlig dubblett hittades i kundregistret.']
+        : []
+      const missingFields = importRowMissingFields(row)
+      const uncertainFields = importRowUncertainFields(row)
+      const warnings = [...importRowWarnings(row), ...duplicateWarnings]
+      const confidence = calculateImportConfidence(row, missingFields, uncertainFields, duplicateWarnings)
+      const status = classifyImportRow({ missingFields, uncertainFields, duplicateWarnings, confidence })
+
       return {
         rowNumber: index + 2,
         label: importPreviewLabel(row),
         uniqueKey,
+        status,
+        confidence,
         warnings,
+        missingFields,
+        uncertainFields,
+        duplicateWarnings,
         payload: row,
       }
     })
@@ -1760,6 +2204,7 @@ export async function previewCustomerImportAction(
       totalRows: parsedImport.rows.length,
       createdRows: 0,
       failedRows: 0,
+      reviewRows: rows.filter((row) => row.status !== 'ready_to_create').length,
       warnings: parsedImport.warnings,
       rows,
     }
@@ -1770,6 +2215,7 @@ export async function previewCustomerImportAction(
       totalRows: 0,
       createdRows: 0,
       failedRows: 0,
+      reviewRows: 0,
       warnings: [],
       rows: [],
     }
@@ -1781,14 +2227,18 @@ export async function commitCustomerImportAction(
   formData: FormData
 ): Promise<CustomerImportActionState> {
   try {
-    await bulkCreateCustomersAction(formData)
+    const result = await bulkCreateCustomersAction(formData)
     return {
-      status: 'success',
-      message: 'Importen slutfördes. Öppna kundregistret för att kontrollera skapade kunder.',
-      totalRows: 0,
-      createdRows: 0,
-      failedRows: 0,
-      warnings: [],
+      status: result.failedRows > 0 ? 'error' : 'success',
+      message:
+        result.reviewRows > 0 || result.failedRows > 0
+          ? `Importen skapade ${result.createdRows} kunder. ${result.reviewRows} rader ligger i granskningskö och ${result.failedRows} rader misslyckades.`
+          : `Importen slutfördes med ${result.createdRows} skapade kunder.`,
+      totalRows: result.totalRows,
+      createdRows: result.createdRows,
+      failedRows: result.failedRows,
+      reviewRows: result.reviewRows,
+      warnings: result.warnings,
       rows: [],
     }
   } catch (error) {
@@ -1798,6 +2248,7 @@ export async function commitCustomerImportAction(
       totalRows: 0,
       createdRows: 0,
       failedRows: 0,
+      reviewRows: 0,
       warnings: [],
       rows: [],
     }

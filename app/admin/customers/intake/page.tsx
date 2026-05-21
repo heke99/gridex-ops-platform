@@ -10,9 +10,9 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
-const bulkExample = `customer_type;intake_flow_type;first_name;last_name;contact_title;company_name;email;phone;personal_number;org_number;apartment_number;site_name;facility_id;meter_point_id;grid_owner_id;price_area_code;move_in_date;annual_consumption_kwh;street;postal_code;city;care_of;country;current_supplier_name;current_supplier_org_number;moved_from_street;moved_from_postal_code;moved_from_city;moved_from_supplier_name;contract_offer_id;contract_status;binding_months;notice_months
-private;switch;Anna;Svensson;;;anna@example.se;0700000000;199001011234;;1201;Anna Svensson - Lägenhet;735999111111111111;735999000000000001;REPLACE_GRID_OWNER_UUID;SE3;2026-06-01;12000;Storgatan 1;11122;Stockholm;;SE;Fortum;5560000000;;;;;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;1
-association;move_in;Sara;Ek;Ordförande;Brf Solrosen;sara@solrosen.se;0701111111;;769600-1234;;Brf Solrosen Huvudanläggning;735999111111111112;735999000000000002;REPLACE_GRID_OWNER_UUID;SE3;2026-08-01;54000;Föreningsgatan 4;11123;Stockholm;c/o Styrelsen;SE;E.ON;5561000000;Gamla vägen 9;11121;Stockholm;Vattenfall;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;3`
+const bulkExample = `customer_type;intake_flow_type;first_name;last_name;contact_title;company_name;email;phone;personal_number;org_number;apartment_number;site_name;facility_id;meter_point_id;grid_owner_id;grid_area_code;price_area_code;move_in_date;annual_consumption_kwh;street;postal_code;city;care_of;country;current_supplier_name;current_supplier_org_number;customer_confirmation_status;authorization_status;authorization_valid_from;authorization_valid_to;expected_start_date;confirmed_start_date;start_date_source;moved_from_street;moved_from_postal_code;moved_from_city;moved_from_supplier_name;contract_offer_id;contract_status;binding_months;notice_months
+private;switch;Anna;Svensson;;;anna@example.se;0700000000;199001011234;;1201;Anna Svensson - Lägenhet;735999111111111111;735999000000000001;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-06-01;12000;Storgatan 1;11122;Stockholm;;SE;Fortum;5560000000;confirmed;signed;2026-05-21;2027-05-21;2026-06-01;;customer_expected;;;;;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;1
+association;move_in;Sara;Ek;Ordförande;Brf Solrosen;sara@solrosen.se;0701111111;;769600-1234;;Brf Solrosen Huvudanläggning;735999111111111112;735999000000000002;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-08-01;54000;Föreningsgatan 4;11123;Stockholm;c/o Styrelsen;SE;E.ON;5561000000;confirmed;sent;2026-05-21;2027-05-21;2026-08-01;;customer_expected;Gamla vägen 9;11121;Stockholm;Vattenfall;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;3`
 
 export default async function CustomerIntakePage() {
  const access = await requireAdminPageAccess({ anyOf: ['customers.write', 'masterdata.read'] })
@@ -33,6 +33,7 @@ export default async function CustomerIntakePage() {
  const serializedOffers = contractOffers.map((offer) => ({
  id: offer.id,
  name: offer.name,
+ campaign_name: offer.campaign_name,
  contract_type: offer.contract_type,
  fixed_price_ore_per_kwh: offer.fixed_price_ore_per_kwh,
  spot_markup_ore_per_kwh: offer.spot_markup_ore_per_kwh,
@@ -87,7 +88,7 @@ export default async function CustomerIntakePage() {
  />
 
  <div className="space-y-6">
- <CustomerBulkImportPanel example={bulkExample} />
+ <CustomerBulkImportPanel example={bulkExample} contractOffers={serializedOffers.map((offer) => ({ id: offer.id, name: offer.name, campaign_name: offer.campaign_name }))} />
 
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <h2 className="text-lg font-semibold text-slate-950 ">

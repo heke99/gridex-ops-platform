@@ -122,6 +122,18 @@ const NAV_GROUPS: NavGroup[] = [
         pageKey: "customers.intake",
       },
       {
+        href: "/admin/customers/imports",
+        label: "Importgranskning",
+        description: "PDF/bulk-rader som kräver manuell kontroll",
+        pageKey: "customers.intake",
+      },
+      {
+        href: "/admin/customers/tenant-test",
+        label: "Tenant-/rolltest",
+        description: "Bolag A/B, roller och RLS-policyrapport",
+        pageKey: "customers.intake",
+      },
+      {
         href: "/admin/contracts",
         label: "Avtal och kampanjer",
         description: "Avtalskatalog och prissättning",

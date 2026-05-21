@@ -64,6 +64,50 @@ const HEADER_ALIASES: Record<string, string> = {
   city: 'city',
   avtal: 'contract_offer_name',
   kampanj: 'campaign_name',
+  natomrade: 'grid_area_code',
+  'nätområde': 'grid_area_code',
+  nat_omrade: 'grid_area_code',
+  'nätområdesid': 'grid_area_code',
+  natomradesid: 'grid_area_code',
+  grid_area: 'grid_area_code',
+  grid_area_code: 'grid_area_code',
+  grid_area_id: 'grid_area_code',
+  omradesid: 'grid_area_code',
+  'områdesid': 'grid_area_code',
+  matpunkt: 'meter_point_id',
+  kundbekraftelse: 'customer_confirmation_status',
+  'kundbekräftelse': 'customer_confirmation_status',
+  customer_confirmation: 'customer_confirmation_status',
+  customer_confirmation_status: 'customer_confirmation_status',
+  fullmakt: 'authorization_status',
+  fullmaktsstatus: 'authorization_status',
+  power_of_attorney_status: 'authorization_status',
+  authorization_status: 'authorization_status',
+  fullmakt_giltig_fran: 'authorization_valid_from',
+  'fullmakt_giltig_från': 'authorization_valid_from',
+  authorization_valid_from: 'authorization_valid_from',
+  fullmakt_giltig_till: 'authorization_valid_to',
+  authorization_valid_to: 'authorization_valid_to',
+  forvantat_startdatum: 'expected_start_date',
+  'förväntat_startdatum': 'expected_start_date',
+  expected_start_date: 'expected_start_date',
+  bekraftat_startdatum: 'confirmed_start_date',
+  'bekräftat_startdatum': 'confirmed_start_date',
+  confirmed_start_date: 'confirmed_start_date',
+  faktiskt_startdatum: 'actual_start_date',
+  actual_start_date: 'actual_start_date',
+  startdatum_kalla: 'start_date_source',
+  'startdatum_källa': 'start_date_source',
+  start_date_source: 'start_date_source',
+  avtalsform: 'contract_offer_name',
+  avtalstyp: 'contract_type_override',
+  bindningstid: 'binding_months',
+  uppsagningstid: 'notice_months',
+  'uppsägningstid': 'notice_months',
+  nuvarande_elleverantor: 'current_supplier_name',
+  'nuvarande_elleverantör': 'current_supplier_name',
+  nuvarande_leverantor: 'current_supplier_name',
+  'nuvarande_leverantör': 'current_supplier_name',
 }
 
 function normalizeHeader(value: string): string {
@@ -279,10 +323,30 @@ export function parseXlsxCustomerRows(buffer: Buffer): ParsedCustomerImport {
 
 function bestEffortPdfText(buffer: Buffer): string {
   const raw = buffer.toString('latin1')
-  const textParts = Array.from(raw.matchAll(/\(([^()]|\\.){2,}\)/g))
+  const textParts = Array.from<RegExpMatchArray>(raw.matchAll(/\(([^()]|\\.){2,}\)/g))
     .map((match) => match[0].slice(1, -1).replace(/\\([()\\])/g, '$1'))
     .join('\n')
   return textParts || raw.replace(/[^\x09\x0A\x0D\x20-\x7EÅÄÖåäö]/g, ' ')
+}
+
+function extractLabeledValue(text: string, labels: string[]): string {
+  for (const label of labels) {
+    const pattern = new RegExp(`${label}\\s*[:\\-]\\s*([^\\n\\r]+)`, 'i')
+    const match = text.match(pattern)
+    if (match?.[1]?.trim()) return match[1].trim().replace(/\s{2,}.*/, '').trim()
+  }
+  return ''
+}
+
+function normalizeAuthorizationStatus(value: string): string {
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return ''
+  if (/signerad|signed|ja|yes/.test(normalized)) return 'signed'
+  if (/skickad|sent/.test(normalized)) return 'sent'
+  if (/utgången|utgangen|expired/.test(normalized)) return 'expired'
+  if (/avvisad|revoked|återkallad|aterkallad/.test(normalized)) return 'revoked'
+  if (/saknas|nej|missing|no/.test(normalized)) return 'missing'
+  return normalized
 }
 
 export function parsePdfCustomerRows(buffer: Buffer): ParsedCustomerImport {
@@ -291,6 +355,7 @@ export function parsePdfCustomerRows(buffer: Buffer): ParsedCustomerImport {
   if (delimited.rows.length > 0) {
     return {
       ...delimited,
+      rows: delimited.rows.map((row) => ({ ...row, parser_source: 'pdf' })),
       sourceKind: 'pdf',
       warnings: [
         'PDF-underlag tolkas som förhandsgranskning. Kontrollera raderna innan import.',
@@ -299,25 +364,62 @@ export function parsePdfCustomerRows(buffer: Buffer): ParsedCustomerImport {
     }
   }
 
-  const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? ''
-  const orgNumber = text.match(/\b\d{6}[- ]?\d{4}\b/)?.[0] ?? ''
-  const facilityId = text.match(/\b735\d{15}\b/)?.[0] ?? ''
-  const priceArea = text.match(/\bSE[1-4]\b/i)?.[0]?.toUpperCase() ?? ''
-  const phone = text.match(/\b(?:\+46|0)\d[\d\s-]{6,}\b/)?.[0] ?? ''
+  const email = extractLabeledValue(text, ['E-post', 'Email', 'Mail']) || text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || ''
+  const phone = extractLabeledValue(text, ['Telefon', 'Mobil', 'Phone']) || text.match(/\b(?:\+46|0)\d[\d\s-]{6,}\b/)?.[0] || ''
+  const identityNumber = extractLabeledValue(text, ['Personnummer', 'Personnr', 'Orgnummer', 'Organisationsnummer']) || text.match(/\b\d{6}[- ]?\d{4}\b/)?.[0] || ''
+  const facilityId = extractLabeledValue(text, ['Anläggnings-ID', 'Anläggningsid', 'Facility ID']) || text.match(/\b735\d{15}\b/)?.[0] || ''
+  const meterPointId = extractLabeledValue(text, ['Mätpunkts-ID', 'Mätpunktsid', 'Metering point']) || text.match(/\b(?:735|SE)\d{10,}\b/)?.[0] || ''
+  const gridAreaCode = extractLabeledValue(text, ['Nätområde', 'Nätområdes-ID', 'Områdes-ID', 'Grid area'])
+  const priceArea = (extractLabeledValue(text, ['Elområde', 'Prisområde', 'Price area']) || text.match(/\bSE[1-4]\b/i)?.[0] || '').toUpperCase()
+  const gridOwnerName = extractLabeledValue(text, ['Nätägare', 'Grid owner'])
+  const currentSupplierName = extractLabeledValue(text, ['Nuvarande elleverantör', 'Nuvarande leverantör', 'Current supplier'])
+  const campaignName = extractLabeledValue(text, ['Kampanj', 'Campaign'])
+  const contractOfferName = extractLabeledValue(text, ['Avtalsform', 'Avtal', 'Contract'])
+  const bindingMonths = extractLabeledValue(text, ['Bindningstid'])
+  const noticeMonths = extractLabeledValue(text, ['Uppsägningstid', 'Uppsagningstid'])
+  const expectedStartDate = extractLabeledValue(text, ['Förväntat startdatum', 'Startdatum', 'Avtalsstart'])
+  const authStatus = normalizeAuthorizationStatus(extractLabeledValue(text, ['Fullmakt', 'Fullmaktsstatus']))
+  const customerConfirmation = extractLabeledValue(text, ['Kundbekräftelse', 'Kundbekraftelse'])
+  const street = extractLabeledValue(text, ['Adress', 'Gata'])
+  const postalCode = extractLabeledValue(text, ['Postnummer'])
+  const city = extractLabeledValue(text, ['Ort', 'Stad'])
+  const name = extractLabeledValue(text, ['Namn', 'Kundnamn', 'Customer'])
+  const [firstName, ...lastNameParts] = name.split(/\s+/).filter(Boolean)
 
+  const isOrg = /org/i.test(text) || /\b(AB|HB|KB|BRF)\b/i.test(name)
   const row: Record<string, string> = {
-    customer_type: orgNumber ? 'business' : 'private',
+    parser_source: 'pdf',
+    customer_type: isOrg ? 'business' : 'private',
+    first_name: isOrg ? '' : firstName || '',
+    last_name: isOrg ? '' : lastNameParts.join(' '),
+    company_name: isOrg ? name : '',
     email,
     phone,
-    org_number: orgNumber,
+    personal_number: isOrg ? '' : identityNumber,
+    org_number: isOrg ? identityNumber : '',
     facility_id: facilityId,
+    meter_point_id: meterPointId && meterPointId !== facilityId ? meterPointId : '',
+    grid_area_code: gridAreaCode,
+    grid_owner_name: gridOwnerName,
     price_area_code: priceArea,
+    current_supplier_name: currentSupplierName,
+    campaign_name: campaignName,
+    contract_offer_name: contractOfferName,
+    binding_months: bindingMonths.replace(/\D/g, ''),
+    notice_months: noticeMonths.replace(/\D/g, ''),
+    expected_start_date: expectedStartDate,
+    authorization_status: authStatus,
+    customer_confirmation_status: customerConfirmation ? 'confirmed' : '',
+    street,
+    postal_code: postalCode,
+    city,
+    country: 'SE',
   }
 
   return {
     rows: Object.values(row).some(Boolean) ? [row] : [],
     warnings: [
-      'PDF-underlag kunde inte läsas som tabell. En försiktig förhandsgranskning skapades från hittade nyckelvärden.',
+      'PDF-underlag kunde inte läsas som tabell. En försiktig granskningsrad skapades från hittade nyckelvärden. Kontrollera confidence och saknade fält innan import.',
     ],
     sourceKind: 'pdf',
   }

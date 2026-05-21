@@ -72,6 +72,10 @@ export type CustomerContractRow = {
   notice_months: number | null
   optional_fee_lines: Array<Record<string, unknown>> | null
   starts_at: string | null
+  expected_start_at?: string | null
+  confirmed_start_at?: string | null
+  actual_start_at?: string | null
+  start_date_source?: string | null
   ends_at: string | null
   signed_at: string | null
   termination_notice_date: string | null

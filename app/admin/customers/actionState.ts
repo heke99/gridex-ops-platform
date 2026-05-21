@@ -42,6 +42,15 @@ export type IntakeField =
   | 'greenFeeValue'
   | 'bindingMonths'
   | 'noticeMonths'
+  | 'gridAreaCode'
+  | 'customerConfirmationStatus'
+  | 'authorizationStatus'
+  | 'authorizationValidFrom'
+  | 'authorizationValidTo'
+  | 'expectedStartDate'
+  | 'confirmedStartDate'
+  | 'actualStartDate'
+  | 'startDateSource'
   | 'optionalFeeLines'
 
 export type IntakeFieldErrors = Partial<Record<IntakeField, string>>
@@ -63,11 +72,25 @@ export const initialIntakeActionState: IntakeActionState = {
   values: { country: 'SE' },
   createdCustomerId: null,
 }
+export type CustomerImportPreviewRowStatus =
+  | 'ready_to_create'
+  | 'requires_review'
+  | 'duplicate_warning'
+  | 'missing_fields'
+  | 'created'
+  | 'rejected'
+  | 'failed'
+
 export type CustomerImportPreviewRow = {
   rowNumber: number
   label: string
   uniqueKey: string
+  status: CustomerImportPreviewRowStatus
+  confidence: number
   warnings: string[]
+  missingFields: string[]
+  uncertainFields: string[]
+  duplicateWarnings: string[]
   payload: Record<string, string>
 }
 
@@ -77,6 +100,7 @@ export type CustomerImportActionState = {
   totalRows: number
   createdRows: number
   failedRows: number
+  reviewRows: number
   warnings: string[]
   rows: CustomerImportPreviewRow[]
 }
@@ -87,6 +111,7 @@ export const initialCustomerImportActionState: CustomerImportActionState = {
   totalRows: 0,
   createdRows: 0,
   failedRows: 0,
+  reviewRows: 0,
   warnings: [],
   rows: [],
 }
