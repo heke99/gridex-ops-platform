@@ -28,7 +28,6 @@ import {
   inferEdielAgtCaseForInboundMessage,
   type EdielAgtExpectedStep,
 } from '@/lib/ediel/agtRegistry'
-import { sendQueuedEdielMessage } from '@/lib/ediel/orchestrator'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 
 type MaybeString = string | null | undefined
@@ -356,6 +355,7 @@ async function sendMessageIfNeeded(actorUserId: string, message: EdielMessageRow
   if (message.direction !== 'outbound') return message
   if (message.status === 'sent' || message.status === 'acknowledged') return message
   if (!['draft', 'prepared', 'queued'].includes(message.status)) return message
+  const { sendQueuedEdielMessage } = await import('@/lib/ediel/orchestrator')
   return sendQueuedEdielMessage({ actorUserId, edielMessageId: message.id })
 }
 

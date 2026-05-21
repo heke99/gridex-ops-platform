@@ -15,6 +15,7 @@ import {
   resolveOutboundMessageVersion,
 } from '@/lib/ediel/core/kernel'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
+import { syncActorTestingForMessage } from '@/lib/ediel/actorTestingEngine'
 
 export const GRIDEX_TGT_EDIEL_ID = '92825'
 // Backwards-compatible alias used by the TGT/file-engine views only.
@@ -712,6 +713,48 @@ export async function registerEdielFile(params: RegisterFileParams): Promise<Edi
       errors: version.validationReport.errors ?? [],
     },
   })
+
+  if (params.direction === 'inbound' && mode === 'agt') {
+    try {
+      const synced = await syncActorTestingForMessage({
+        actorUserId: params.actorUserId,
+        edielMessage: message,
+        autoRespond: true,
+        autoSend: true,
+      })
+
+      if (synced) {
+        await createEdielMessageEvent({
+          actorUserId: params.actorUserId,
+          edielMessageId: message.id,
+          eventType: 'linked',
+          eventStatus: 'success',
+          message: 'Filimporten synkades automatiskt till Aktörstest & Produktionssättning.',
+          payload: {
+            actorTestingGlobalHook: true,
+            source: 'file_engine_register',
+            companyId: synced.companyId,
+            testKey: synced.testKey,
+            status: synced.status,
+            createdAckMessageIds: synced.createdAckMessages.map((ack) => ack.id),
+          },
+        })
+      }
+    } catch (error) {
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: message.id,
+        eventType: 'manual_note',
+        eventStatus: 'warning',
+        message: 'Aktörstest-synk kunde inte köras automatiskt efter filimport.',
+        payload: {
+          actorTestingGlobalHook: true,
+          source: 'file_engine_register',
+          error: error instanceof Error ? error.message : String(error),
+        },
+      }).catch(() => null)
+    }
+  }
 
   return {
     id: message.id,

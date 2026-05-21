@@ -25,6 +25,8 @@ import {
 } from '@/lib/operations/db'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import { syncCustomerCaseCancellationAck } from '@/lib/customer-cases/db'
+import { syncActorTestingForMessage } from '@/lib/ediel/actorTestingEngine'
+import { EDIEL_AGT_PORTAL_EDIEL_ID } from '@/lib/ediel/agtRegistry'
 
 type InboundAckFamily = Extract<EdielMessageFamily, 'CONTRL' | 'APERAK' | 'UTILTS_ERR'>
 type InboundAckOutcome = 'positive' | 'negative'
@@ -215,6 +217,76 @@ function readReferenceCandidates(message: EdielMessageRow): string[] {
       'messageReference'
     ),
   ])
+}
+
+function isActorTestingAckCandidate(message: EdielMessageRow): boolean {
+  const sender = String(message.sender_ediel_id ?? '').trim()
+  const receiver = String(message.receiver_ediel_id ?? '').trim()
+  const parsed = message.parsed_payload ?? {}
+  const report = message.validation_report ?? {}
+  const fileEngine = parsed.fileEngine as { mode?: unknown } | undefined
+
+  return (
+    message.direction === 'inbound' &&
+    message.environment === 'test' &&
+    (
+      sender === EDIEL_AGT_PORTAL_EDIEL_ID ||
+      receiver === EDIEL_AGT_PORTAL_EDIEL_ID ||
+      fileEngine?.mode === 'agt' ||
+      report.fileEngineMode === 'agt'
+    )
+  )
+}
+
+async function syncActorTestingAckSafely(params: {
+  actorUserId: string
+  message: EdielMessageRow
+  phase: 'unmatched_ack' | 'matched_ack'
+}) {
+  if (!isActorTestingAckCandidate(params.message)) return null
+
+  try {
+    const synced = await syncActorTestingForMessage({
+      actorUserId: params.actorUserId,
+      edielMessage: params.message,
+      autoRespond: false,
+      autoSend: false,
+    })
+
+    if (synced) {
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: params.message.id,
+        eventType: 'linked',
+        eventStatus: 'success',
+        message: 'Inbound kvittens synkades automatiskt till Aktörstest & Produktionssättning.',
+        payload: {
+          actorTestingGlobalHook: true,
+          phase: params.phase,
+          companyId: synced.companyId,
+          testKey: synced.testKey,
+          status: synced.status,
+        },
+      })
+    }
+
+    return synced
+  } catch (error) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.message.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Aktörstest-synk kunde inte köras automatiskt för inbound kvittens.',
+      payload: {
+        actorTestingGlobalHook: true,
+        phase: params.phase,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    }).catch(() => null)
+
+    return null
+  }
 }
 
 async function findOutboundSourceByColumn(params: {
@@ -725,6 +797,12 @@ export async function processInboundAckMessage(params: {
       },
     })
 
+    await syncActorTestingAckSafely({
+      actorUserId,
+      message: ackMessage,
+      phase: 'unmatched_ack',
+    })
+
     return {
       ackMessage,
       sourceMessage: null,
@@ -832,6 +910,12 @@ export async function processInboundAckMessage(params: {
       ackOutcome: outcome,
       finalAckReached: sourcePatch.finalAckReached,
     },
+  })
+
+  await syncActorTestingAckSafely({
+    actorUserId,
+    message: ackMessage,
+    phase: 'matched_ack',
   })
 
   return {

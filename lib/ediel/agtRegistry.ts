@@ -55,6 +55,7 @@ export const EDIEL_AGT_PORTAL_EDIEL_ID = '91100'
 export const EDIEL_AGT_PORTAL_SMTP = '91100@ediel.se'
 export const EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS = 'PRODAT'
 export const EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS: string | null = null
+export const EDIEL_AGT_PRODAT_APPLICATION_REFERENCE = '23-DDQ-PRODAT'
 // Backwards-compatible alias. In supplier AGT PRODAT this means the portal/receiver subaddress.
 export const EDIEL_AGT_PRODAT_SUB_ADDRESS = EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS
 export const EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID = '92825'

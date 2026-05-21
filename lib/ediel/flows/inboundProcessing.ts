@@ -23,6 +23,8 @@ import { buildContrlDraft, buildAperakDraft, buildUtiltsErrDraft, getAutomaticAc
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
+import { syncActorTestingForMessage } from '@/lib/ediel/actorTestingEngine'
+import { EDIEL_AGT_PORTAL_EDIEL_ID } from '@/lib/ediel/agtRegistry'
 import { buildSafeMasterdataProposal } from '@/lib/ediel/operationalVerification'
 import { createOrUpdateInboundProdatCase } from '@/lib/ediel/inboundCases'
 import {
@@ -121,6 +123,79 @@ async function readCanonicalAckSnapshot(sourceMessageId: string) {
       functionalCheckStatus: row.functional_check_status,
       syntaxCheckStatus: row.syntax_check_status,
     })),
+  }
+}
+
+function isActorTestingInboundCandidate(message: EdielMessageRow): boolean {
+  const sender = String(message.sender_ediel_id ?? '').trim()
+  const receiver = String(message.receiver_ediel_id ?? '').trim()
+  const parsed = message.parsed_payload ?? {}
+  const report = message.validation_report ?? {}
+  const fileEngine = parsed.fileEngine as { mode?: unknown } | undefined
+
+  return (
+    message.direction === 'inbound' &&
+    message.environment === 'test' &&
+    (
+      sender === EDIEL_AGT_PORTAL_EDIEL_ID ||
+      receiver === EDIEL_AGT_PORTAL_EDIEL_ID ||
+      fileEngine?.mode === 'agt' ||
+      report.fileEngineMode === 'agt'
+    )
+  )
+}
+
+async function syncActorTestingGlobally(params: {
+  actorUserId: string
+  message: EdielMessageRow
+  phase: 'pre_business_processing' | 'post_ack_processing' | 'post_generic_processing'
+  autoRespond?: boolean
+  autoSend?: boolean
+}): Promise<boolean> {
+  if (!isActorTestingInboundCandidate(params.message)) return false
+
+  try {
+    const synced = await syncActorTestingForMessage({
+      actorUserId: params.actorUserId,
+      edielMessage: params.message,
+      autoRespond: params.autoRespond,
+      autoSend: params.autoSend,
+    })
+
+    if (!synced) return false
+
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.message.id,
+      eventType: 'linked',
+      eventStatus: 'success',
+      message: 'Meddelandet synkades automatiskt till Aktörstest & Produktionssättning.',
+      payload: {
+        actorTestingGlobalHook: true,
+        phase: params.phase,
+        companyId: synced.companyId,
+        testKey: synced.testKey,
+        status: synced.status,
+        createdAckMessageIds: synced.createdAckMessages.map((message) => message.id),
+      },
+    })
+
+    return true
+  } catch (error) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.message.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Aktörstest-synk kunde inte köras automatiskt för inbound-meddelandet.',
+      payload: {
+        actorTestingGlobalHook: true,
+        phase: params.phase,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    }).catch(() => null)
+
+    return false
   }
 }
 
@@ -422,12 +497,33 @@ export async function processInboundEdielMessage(params: {
     return message
   }
 
+  if (message.message_family === 'PRODAT' || message.message_family === 'UTILTS') {
+    const handledByActorTesting = await syncActorTestingGlobally({
+      actorUserId,
+      message,
+      phase: 'pre_business_processing',
+      autoRespond: true,
+      autoSend: true,
+    })
+
+    if (handledByActorTesting) {
+      return message
+    }
+  }
+
   if (
     message.message_family === 'CONTRL' ||
     message.message_family === 'APERAK' ||
     message.message_family === 'UTILTS_ERR'
   ) {
     await processInboundAckMessage({ actorUserId, message })
+    await syncActorTestingGlobally({
+      actorUserId,
+      message,
+      phase: 'post_ack_processing',
+      autoRespond: false,
+      autoSend: false,
+    })
     return message
   }
 
@@ -481,83 +577,9 @@ export async function pollAndIngestEdielMailbox(params: {
   })
 
   for (const message of incoming) {
-    if (!isActiveEdielMessageFamily(message.message_family)) {
-      await createEdielMessageEvent({
-        actorUserId,
-        edielMessageId: message.id,
-        eventType: 'manual_note',
-        eventStatus: 'warning',
-        message:
-          'Inbound meddelande ligger utanför aktiv release och behandlas därför inte vidare.',
-        payload: {
-          messageFamily: message.message_family,
-          activeFamilies: ACTIVE_EDIEL_MESSAGE_FAMILIES,
-        },
-      })
-      continue
-    }
-
-    if (!shouldProcessInboundMessage(message)) {
-      await createEdielMessageEvent({
-        actorUserId,
-        edielMessageId: message.id,
-        eventType: 'manual_note',
-        eventStatus: 'warning',
-        message: 'Inbound meddelande ligger utanför canonical inbound-EDIFACT-flödet.',
-        payload: {
-          direction: message.direction,
-          standard: message.message_standard,
-        },
-      })
-      continue
-    }
-
-    if (
-      message.message_family === 'CONTRL' ||
-      message.message_family === 'APERAK' ||
-      message.message_family === 'UTILTS_ERR'
-    ) {
-      await processInboundAckMessage({
-        actorUserId,
-        message,
-      })
-      continue
-    }
-
-    if (message.message_family === 'PRODAT') {
-      await processInboundProdatMessage({
-        actorUserId,
-        message,
-      })
-      continue
-    }
-
-    if (message.message_family === 'UTILTS') {
-      await processInboundUtiltsMessage({
-        actorUserId,
-        edielMessageId: message.id,
-      })
-      continue
-    }
-
-    const ackIds = await createAutomaticPositiveAcks({
-      actorUserId,
-      sourceMessage: message,
-    })
-    const ackSnapshot = await readCanonicalAckSnapshot(message.id)
-
-    await createEdielMessageEvent({
+    await processInboundEdielMessage({
       actorUserId,
       edielMessageId: message.id,
-      eventType: 'validated',
-      eventStatus: 'warning',
-      message:
-        'Inbound meddelande kvitterades automatiskt men saknar ännu stark processkoppling.',
-      payload: {
-        createdAckMessageIds: ackIds,
-        canonicalAckState: ackSnapshot.canonicalAckState,
-        ackMessages: ackSnapshot.ackMessages,
-      },
     })
   }
 

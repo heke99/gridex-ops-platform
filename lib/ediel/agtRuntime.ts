@@ -4,12 +4,14 @@ import {
   EDIEL_AGT_PORTAL_EDIEL_ID,
   EDIEL_AGT_PORTAL_SMTP,
   EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID,
   getEdielAgtRouteName,
 } from '@/lib/ediel/agtRegistry'
 
 type CommunicationRouteLite = {
   id: string
+  company_id: string | null
   route_name: string
   is_active: boolean
   route_scope: string
@@ -91,7 +93,7 @@ async function getActiveTestSupplierActor(companyId?: string | null): Promise<Ed
 async function getRouteByName(routeName: string, companyId?: string | null): Promise<CommunicationRouteLite | null> {
   let query = supabaseService
     .from('communication_routes')
-    .select('id,route_name,is_active,route_scope,route_type,target_system,target_email,endpoint,supported_payload_version,notes,updated_at')
+    .select('id,company_id,route_name,is_active,route_scope,route_type,target_system,target_email,endpoint,supported_payload_version,notes,updated_at')
     .eq('route_name', routeName)
 
   if (companyId) {
@@ -190,7 +192,7 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
   return issues
 }
 
-function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsRow | null): EdielAgtReadinessIssue[] {
+function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsRow | null, companyId?: string | null): EdielAgtReadinessIssue[] {
   const issues: EdielAgtReadinessIssue[] = []
   const family = runtime.family
   const expectedRouteName = getEdielAgtRouteName(family)
@@ -211,6 +213,15 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
       code: `agt_${family.toLowerCase()}_route_inactive`,
       title: `${family}-route är inaktiv`,
       description: 'Aktivera communication route innan AGT startas.',
+    })
+  }
+
+  if (companyId && runtime.route.company_id !== companyId) {
+    issues.push({
+      severity: 'error',
+      code: `agt_${family.toLowerCase()}_route_not_tenant_scoped`,
+      title: `${family}-route är inte tenant-specifik`,
+      description: 'AGT får inte falla tillbaka på en global route. Skapa en aktiv test-route som ägs av bolaget/tenantens company_id.',
     })
   }
 
@@ -242,6 +253,33 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
     })
   }
 
+  if (companyId && runtime.profile.company_id !== companyId) {
+    issues.push({
+      severity: 'error',
+      code: `agt_${family.toLowerCase()}_profile_not_tenant_scoped`,
+      title: `${family}-runtimeprofil är inte tenant-specifik`,
+      description: 'AGT får inte falla tillbaka på en global runtimeprofil. Profilen ska ägas av samma company_id som bolaget.',
+    })
+  }
+
+  if (runtime.profile.environment !== 'test') {
+    issues.push({
+      severity: 'error',
+      code: `agt_${family.toLowerCase()}_profile_environment_not_test`,
+      title: `${family}-runtimeprofil är inte testmiljö`,
+      description: 'AGT ska köras mot Edielportalen i testläge i systemet. Produktionsprofil får inte användas.',
+    })
+  }
+
+  if (runtime.profile.default_test_flag !== 1) {
+    issues.push({
+      severity: 'error',
+      code: `agt_${family.toLowerCase()}_profile_test_flag_wrong`,
+      title: `${family}-runtimeprofil saknar testflagga`,
+      description: 'AGT-profilen ska ha default_test_flag = 1 så testtrafik aldrig blandas med produktion.',
+    })
+  }
+
   if (normalized(runtime.profile.receiver_ediel_id) !== EDIEL_AGT_PORTAL_EDIEL_ID) {
     issues.push({
       severity: 'error',
@@ -253,6 +291,15 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
 
   const senderFromProfile = normalized(runtime.profile.sender_ediel_id)
   const actorEdielId = normalized(actor?.actor_ediel_id)
+  if (blank(runtime.profile.sender_ediel_id)) {
+    issues.push({
+      severity: 'error',
+      code: `agt_${family.toLowerCase()}_sender_missing`,
+      title: `${family}-profil saknar avsändande Ediel-id`,
+      description: 'AGT-profilens sender_ediel_id ska vara tenantens egna Ediel-id. Testmotorn får inte använda fallback-värden.',
+    })
+  }
+
   if (senderFromProfile && actorEdielId && senderFromProfile !== actorEdielId) {
     issues.push({
       severity: 'error',
@@ -273,6 +320,24 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
 
   if (family === 'PRODAT') {
     // Sender subaddress is tenant specific; leave it blank only when Edielregistret has no subaddress for that actor.
+    if (normalized(runtime.profile.application_reference) !== EDIEL_AGT_PRODAT_APPLICATION_REFERENCE) {
+      issues.push({
+        severity: 'error',
+        code: 'agt_prodat_application_reference_wrong',
+        title: 'PRODAT Application Reference saknas/fel',
+        description: `Leverantörs-AGT PRODAT ska använda Application Reference ${EDIEL_AGT_PRODAT_APPLICATION_REFERENCE}.`,
+      })
+    }
+
+    if (blank(runtime.profile.mailbox) && blank(actor?.mailbox)) {
+      issues.push({
+        severity: 'error',
+        code: 'agt_prodat_mailbox_missing',
+        title: 'PRODAT test-mailbox saknas',
+        description: 'Fyll i mailbox på PRODAT runtimeprofilen eller aktörskortet innan L1/L7 skickas.',
+      })
+    }
+
     if (normalized(runtime.profile.receiver_sub_address) !== EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS) {
       issues.push({
         severity: 'error',
@@ -312,8 +377,8 @@ export async function getEdielAgtSupplierRuntime(companyId?: string | null): Pro
   const utilts = { family: 'UTILTS' as const, route: utiltsRoute, profile: utiltsProfile }
   const issues = [
     ...validateActor(actor),
-    ...validateRoute(prodat, actor),
-    ...validateRoute(utilts, actor),
+    ...validateRoute(prodat, actor, companyId),
+    ...validateRoute(utilts, actor, companyId),
   ]
 
   return {

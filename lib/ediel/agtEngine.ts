@@ -27,6 +27,7 @@ import {
   EDIEL_AGT_PORTAL_SMTP,
   EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS,
+  EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
   getEdielAgtTestCaseByCode,
   inferEdielAgtCaseForInboundMessage,
   isEdielAgtRunApprovalVersion,
@@ -527,6 +528,66 @@ function buildAgtProdatOutboundInput(params: {
   }
 }
 
+async function assertStrictAgtOutboundRoute(params: {
+  companyId?: string | null
+  actorEdielId?: string | null
+  testCaseCode: string
+}) {
+  const runtime = await getEdielAgtSupplierRuntime(params.companyId ?? null)
+  const actorEdielId = trimOrNull(params.actorEdielId) ?? trimOrNull(runtime.actor?.actor_ediel_id)
+  const prodat = runtime.prodat
+  const strictIssues: string[] = []
+
+  for (const issue of runtime.issues) {
+    const isBlockingActorIssue = issue.severity === 'error' && issue.code.startsWith('agt_actor')
+    const isBlockingProdatIssue = issue.severity === 'error' && issue.code.startsWith('agt_prodat')
+    if (isBlockingActorIssue || isBlockingProdatIssue) {
+      strictIssues.push(issue.description)
+    }
+  }
+
+  if (!prodat.route) {
+    strictIssues.push('AGT PRODAT-route saknas. Skapa tenantens route "AGT 2026A PRODAT Edielportalen" innan L1/L7 skickas.')
+  }
+
+  if (!prodat.profile) {
+    strictIssues.push('AGT PRODAT runtimeprofil saknas. L1/L7 får inte använda fallback-värden.')
+  }
+
+  if (params.companyId && prodat.route?.company_id !== params.companyId) {
+    strictIssues.push('AGT PRODAT-route måste ägas av samma company_id som bolaget. Global fallback-route blockeras.')
+  }
+
+  if (params.companyId && prodat.profile?.company_id !== params.companyId) {
+    strictIssues.push('AGT PRODAT-runtimeprofil måste ägas av samma company_id som bolaget. Global fallback-profil blockeras.')
+  }
+
+  if (prodat.profile && actorEdielId && upper(prodat.profile.sender_ediel_id) !== upper(actorEdielId)) {
+    strictIssues.push(`AGT PRODAT sender_ediel_id (${prodat.profile.sender_ediel_id ?? '-'}) matchar inte tenantens aktörs-Ediel-id (${actorEdielId}).`)
+  }
+
+  if (upper(prodat.profile?.receiver_ediel_id) !== EDIEL_AGT_PORTAL_EDIEL_ID) {
+    strictIssues.push(`AGT PRODAT receiver_ediel_id måste vara Edielportalen ${EDIEL_AGT_PORTAL_EDIEL_ID}.`)
+  }
+
+  if (upper(prodat.profile?.application_reference) !== EDIEL_AGT_PRODAT_APPLICATION_REFERENCE) {
+    strictIssues.push(`AGT PRODAT Application Reference måste vara ${EDIEL_AGT_PRODAT_APPLICATION_REFERENCE}.`)
+  }
+
+  if (upper(prodat.profile?.receiver_sub_address) !== EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS) {
+    strictIssues.push(`AGT PRODAT receiver_sub_address måste vara ${EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}.`)
+  }
+
+  if (!trimOrNull(prodat.profile?.mailbox) && !trimOrNull(runtime.actor?.mailbox)) {
+    strictIssues.push('AGT PRODAT test-mailbox saknas på runtimeprofilen eller aktörskortet.')
+  }
+
+  const uniqueIssues = Array.from(new Set(strictIssues.filter(Boolean)))
+  if (uniqueIssues.length > 0) {
+    throw new Error(`L1/L7 AGT preflight stoppade skick: ${uniqueIssues.join(' | ')}`)
+  }
+}
+
 export async function createEdielSupplierAgtOutboundCommand(params: {
   actorUserId: string
   testRunId?: string | null
@@ -559,6 +620,12 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
   if (!trimOrNull(readiness.actor.balanceResponsibleEdielId)) {
     throw new Error('Outbound AGT PRODAT kräver NAD+Z02. Fyll i balansansvarig/BRP Ediel-id i AGT-runtime innan du skickar L1/L7. Detta stoppar bara felaktig outbound-payload, inte L2-L5 inbound-testerna.')
   }
+
+  await assertStrictAgtOutboundRoute({
+    companyId: params.companyId ?? null,
+    actorEdielId: readiness.actor.actorEdielId,
+    testCaseCode: definition.testCaseCode,
+  })
 
   const input = buildAgtProdatOutboundInput({
     actorUserId: params.actorUserId,
