@@ -61,7 +61,7 @@ export async function startActorTestAction(formData: FormData) {
       actorUserId: admin.userId,
       companyId,
       testKey: testCase.key,
-      autoSend: true,
+      autoSend: false,
     })
 
     await logTenantGovernanceEvent({
@@ -71,7 +71,7 @@ export async function startActorTestAction(formData: FormData) {
       reason: `Automatiserat aktörstest kördes: ${testCase.label}`,
       metadata: {
         actorTesting: true,
-        action: 'ACTOR_TEST_AUTOMATION_RAN',
+        action: 'ACTOR_TEST_PREPARED_WITHOUT_SEND',
         testKey: testCase.key,
         testId: testCase.testId,
         edielTestRunId: result.testRun.id,
@@ -79,6 +79,7 @@ export async function startActorTestAction(formData: FormData) {
         createdAckMessageIds: result.createdAckMessages.map((message) => message.id),
         syncedStatus: result.syncedStatus,
         note: result.note,
+        sendPolicy: 'manual_review_required_before_send',
       },
     })
   } catch (error) {
@@ -226,7 +227,7 @@ export async function syncActorTestsAction(formData: FormData) {
     actorUserId: admin.userId,
     companyId,
     autoRespond: true,
-    autoSend: true,
+    autoSend: false,
   })
 
   await logTenantGovernanceEvent({

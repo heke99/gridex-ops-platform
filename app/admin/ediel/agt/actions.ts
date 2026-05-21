@@ -6,7 +6,7 @@ import { requireAnyPermissionServer } from '@/lib/auth/requirePermissionServer'
 import { isPlatformAdminContext, requireAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
-import { getOperationalCompanyScope, requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { saveCommunicationRoute } from '@/lib/cis/db'
 import {
   attachEdielMessageToTestRun,
@@ -40,7 +40,6 @@ import {
 import { pollEdielMailboxViaImap } from '@/lib/ediel/transport'
 import { registerEdielFile } from '@/lib/ediel/fileEngine'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
-import { sendQueuedEdielMessage } from '@/lib/ediel/orchestrator'
 import { syncActorTestingForMessage } from '@/lib/ediel/actorTestingEngine'
 
 function value(formData: FormData, key: string): string | null {
@@ -131,9 +130,10 @@ function messageTime(message: EdielMessageRow): number {
 async function ensureAgtRunForCase(params: {
   actorUserId: string
   testCase: EdielAgtTestCaseDefinition
+  companyId?: string | null
   testRunId?: string | null
 }): Promise<EdielTestRunRow> {
-  const runs = await listEdielTestRuns()
+  const runs = await listEdielTestRuns({ companyId: params.companyId ?? null })
   const explicitRun = params.testRunId
     ? runs.find((run) => run.id === params.testRunId)
     : null
@@ -154,6 +154,7 @@ async function ensureAgtRunForCase(params: {
 
   return createEdielTestRun({
     actorUserId: params.actorUserId,
+    companyId: params.companyId ?? null,
     testSuite: params.testCase.suite,
     roleCode: params.testCase.roleCode,
     testCaseCode: params.testCase.testCaseCode,
@@ -251,6 +252,26 @@ async function getCurrentUserId(): Promise<string> {
 
   if (!user) throw new Error('Unauthorized')
   return user.id
+}
+
+async function resolveAgtCompanyIdForAction(
+  context: { userId: string; roles: string[]; permissions: string[] },
+  formData: FormData
+): Promise<string | null> {
+  const explicitCompanyId = value(formData, 'company_id')
+  if (isPlatformAdminContext(context)) {
+    return explicitCompanyId
+  }
+
+  const scope = await getOperationalCompanyScope(context.userId)
+  return scope.companyId
+}
+
+function agtCaseRedirect(testCaseCode: string, companyId?: string | null): string {
+  const params = new URLSearchParams()
+  if (companyId) params.set('companyId', companyId)
+  const suffix = params.toString()
+  return `/admin/ediel/agt/${testCaseCode}${suffix ? `?${suffix}` : ''}`
 }
 
 async function saveActiveSupplierActor(input: {
@@ -470,9 +491,10 @@ async function upsertAgtRoute(input: {
 }
 
 export async function saveAgtSupplierRuntimeAction(formData: FormData) {
-  await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const actorUserId = await getCurrentUserId()
-  const companyId = await requireOperationalCompanyId(actorUserId)
+  const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
+  const actorUserId = context.userId
+  const companyId = await resolveAgtCompanyIdForAction(context, formData)
+  if (!companyId) throw new Error('Välj bolag innan AGT-runtime sparas.')
 
   const actorName = value(formData, 'actor_name') ?? ''
   const actorEdielId = upper(formData, 'actor_ediel_id') ?? ''
@@ -538,8 +560,9 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
 }
 
 export async function createAgtSupplierTestRunAction(formData: FormData) {
-  await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const actorUserId = await getCurrentUserId()
+  const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
+  const actorUserId = context.userId
+  const companyId = await resolveAgtCompanyIdForAction(context, formData)
   const testCaseCode = upper(formData, 'test_case_code') ?? ''
   const testCase = getEdielAgtSupplier2026ACase(testCaseCode)
 
@@ -547,7 +570,7 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
     throw new Error(`Okänt AGT 2026A leverantörstest: ${testCaseCode}`)
   }
 
-  const runs = await listEdielTestRuns()
+  const runs = await listEdielTestRuns({ companyId })
   for (const run of runs) {
     if (
       run.role_code === testCase.roleCode &&
@@ -568,6 +591,7 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
 
   await createEdielTestRun({
     actorUserId,
+    companyId,
     testSuite: testCase.suite,
     roleCode: testCase.roleCode,
     testCaseCode: testCase.testCaseCode,
@@ -584,8 +608,7 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
 export async function createAgtSupplierOutboundCommandAction(formData: FormData) {
   const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
   const actorUserId = context.userId
-  const scope = await getOperationalCompanyScope(actorUserId)
-  const companyId = isPlatformAdminContext(context) ? null : scope.companyId
+  const companyId = await resolveAgtCompanyIdForAction(context, formData)
   const testCaseCode = upper(formData, 'test_case_code') ?? ''
   const testRunId = value(formData, 'test_run_id')
 
@@ -598,17 +621,25 @@ export async function createAgtSupplierOutboundCommandAction(formData: FormData)
     testCaseCode,
   })
 
-  const sent = await sendQueuedEdielMessage({
+  await createEdielMessageEvent({
     actorUserId,
     edielMessageId: message.id,
-    smtpMimeMode: 'ediel-singlepart-base64',
+    eventType: 'manual_note',
+    eventStatus: 'info',
+    message: 'AGT outbound-payload förbereddes som draft/prepared. Kontrollera payloaden innan du skickar.',
+    payload: {
+      agt: true,
+      phase: 'manual_payload_review_required',
+      testCaseCode,
+      companyId: companyId ?? null,
+    },
   })
 
   revalidateAgt()
-  redirect(`/admin/ediel/messages/${sent.id}`)
+  redirect(`/admin/ediel/messages/${message.id}`)
 }
 
-// Backwards-compatible server action name for older imports. It does not create a long-lived draft.
+// Backwards-compatible server action name for older imports. It skapar endast draft/prepared; använd meddelandesidan för manuell payloadkontroll och skick.
 export const createAgtSupplierOutboundDraftAction = createAgtSupplierOutboundCommandAction
 
 export async function createAllAgtSupplierTestRunsAction(_formData: FormData) {
@@ -634,16 +665,16 @@ export async function createAllAgtSupplierTestRunsAction(_formData: FormData) {
 export async function pollAgtMailboxForCaseAction(formData: FormData) {
   const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
   const actorUserId = context.userId
-  const scope = await getOperationalCompanyScope(actorUserId)
-  const companyId = isPlatformAdminContext(context) ? null : scope.companyId
+  const companyId = await resolveAgtCompanyIdForAction(context, formData)
   const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
   const testRun = await ensureAgtRunForCase({
     actorUserId,
     testCase,
+    companyId,
     testRunId: value(formData, 'test_run_id'),
   })
 
-  const runtime = await getEdielAgtSupplierRuntime()
+  const runtime = await getEdielAgtSupplierRuntime(companyId)
   const routeId = testCase.suite === 'PRODAT' ? runtime.prodat.route?.id : runtime.utilts.route?.id
   const mailbox = value(formData, 'mailbox') ?? runtime.actor?.mailbox ?? 'INBOX'
   const limitRaw = value(formData, 'limit')
@@ -700,18 +731,18 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
   }
 
   revalidateAgt()
-  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
+  redirect(agtCaseRedirect(testCase.testCaseCode, companyId))
 }
 
 export async function importAgtRawInboundForCaseAction(formData: FormData) {
   const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
   const actorUserId = context.userId
-  const scope = await getOperationalCompanyScope(actorUserId)
-  const companyId = isPlatformAdminContext(context) ? null : scope.companyId
+  const companyId = await resolveAgtCompanyIdForAction(context, formData)
   const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
   const testRun = await ensureAgtRunForCase({
     actorUserId,
     testCase,
+    companyId,
     testRunId: value(formData, 'test_run_id'),
   })
 
@@ -758,22 +789,22 @@ export async function importAgtRawInboundForCaseAction(formData: FormData) {
     edielMessage: message,
     explicitTestCaseCode: testCase.testCaseCode,
     autoRespond: true,
-    autoSend: true,
+    autoSend: false,
   }).catch(() => null)
 
   revalidateAgt()
-  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
+  redirect(agtCaseRedirect(testCase.testCaseCode, companyId))
 }
 
 export async function attachAgtInboundAndCreateResponsesAction(formData: FormData) {
   const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
   const actorUserId = context.userId
-  const scope = await getOperationalCompanyScope(actorUserId)
-  const companyId = isPlatformAdminContext(context) ? null : scope.companyId
+  const companyId = await resolveAgtCompanyIdForAction(context, formData)
   const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
   const testRun = await ensureAgtRunForCase({
     actorUserId,
     testCase,
+    companyId,
     testRunId: value(formData, 'test_run_id'),
   })
   const sourceMessageId = value(formData, 'source_message_id')
@@ -805,22 +836,23 @@ export async function attachAgtInboundAndCreateResponsesAction(formData: FormDat
     edielMessage: message,
     explicitTestCaseCode: testCase.testCaseCode,
     autoRespond: true,
-    autoSend: true,
+    autoSend: false,
   }).catch(() => null)
 
   revalidateAgt()
-  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
+  redirect(agtCaseRedirect(testCase.testCaseCode, companyId))
 }
 
 
 
 export async function cleanupAgtCaseUnsentMessagesAction(formData: FormData) {
-  await requireAnyPermissionServer(['communication.write', 'communication.read'])
-  const actorUserId = await getCurrentUserId()
+  const context = await requireAdminActionAccess(['communication.write', 'communication.read'])
+  const actorUserId = context.userId
+  const companyId = await resolveAgtCompanyIdForAction(context, formData)
   const testCase = await getAgtCaseOrThrow(upper(formData, 'test_case_code'))
   const keepRunId = value(formData, 'test_run_id')
 
-  const runs = await listEdielTestRuns()
+  const runs = await listEdielTestRuns({ companyId })
   const sameCaseRuns = runs.filter((run) =>
     run.role_code === testCase.roleCode &&
     run.test_suite === testCase.suite &&
@@ -831,7 +863,7 @@ export async function cleanupAgtCaseUnsentMessagesAction(formData: FormData) {
 
   for (const run of sameCaseRuns) {
     const links = await listEdielTestRunMessages({ testRunId: run.id })
-    const messages = await listEdielMessagesByIds(links.map((link) => link.ediel_message_id))
+    const messages = await listEdielMessagesByIds(links.map((link) => link.ediel_message_id), { companyId })
 
     for (const message of messages) {
       const canCancel =
@@ -869,7 +901,7 @@ export async function cleanupAgtCaseUnsentMessagesAction(formData: FormData) {
   }
 
   revalidateAgt()
-  redirect(`/admin/ediel/agt/${testCase.testCaseCode}`)
+  redirect(agtCaseRedirect(testCase.testCaseCode, companyId))
 }
 
 // Backwards-compatible server action name for older imports. It cleans only unsent queued/prepared test commands.

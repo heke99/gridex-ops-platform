@@ -178,6 +178,7 @@ function Info({ label, value }: { label: string; value: string | null | undefine
 
 export function ActorTestPackageCards({ summary, readonly = false }: { summary: ActorTestingSummary; readonly?: boolean }) {
   const resultsByKey = new Map(summary.results.map((result) => [result.test_key, result]))
+  const agtHref = (testKey: string) => `/admin/ediel/agt/${testKey}?companyId=${summary.company.id}`
 
   return (
     <section className="space-y-5">
@@ -187,7 +188,7 @@ export function ActorTestPackageCards({ summary, readonly = false }: { summary: 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="font-semibold text-emerald-950">Synka från verkliga Ediel-meddelanden</h2>
-              <p className="mt-1 text-sm leading-6 text-emerald-800">Läser inbound/outbound, kopplar CONTRL, APERAK och UTILTS_ERR till rätt testfall och uppdaterar bevispaketet.</p>
+              <p className="mt-1 text-sm leading-6 text-emerald-800">Läser inbound/outbound, kopplar CONTRL, APERAK och UTILTS_ERR till rätt testfall och uppdaterar bevispaketet. Skick görs inte blint här; öppna testflödet för att förhandsgranska payload innan du skickar.</p>
             </div>
             <button className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-800">Synka testmotor</button>
           </div>
@@ -228,11 +229,14 @@ export function ActorTestPackageCards({ summary, readonly = false }: { summary: 
 
                   {!readonly ? (
                     <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4">
-                      <form action={startActorTestAction}>
-                        <input type="hidden" name="company_id" value={summary.company.id} />
-                        <input type="hidden" name="test_key" value={testCase.key} />
-                        <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Kör automatiskt</button>
-                      </form>
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={agtHref(testCase.key)} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Öppna testflöde</Link>
+                        <form action={startActorTestAction}>
+                          <input type="hidden" name="company_id" value={summary.company.id} />
+                          <input type="hidden" name="test_key" value={testCase.key} />
+                          <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Förbered/synka utan skick</button>
+                        </form>
+                      </div>
 
                       <form action={saveActorTestResultAction} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3">
                         <input type="hidden" name="company_id" value={summary.company.id} />
@@ -365,6 +369,17 @@ export function GoLiveChecklist({
 }) {
   const c = summary.company
   const redirectPath = returnPath ?? `/admin/platform/go-live/${summary.company.id}`
+  const productionCounterparty = String(c.production_counterparty_ediel_id ?? '').trim()
+  const testApplicationReference = String(c.test_application_reference ?? '').trim()
+  const productionApplicationReference = String(c.production_application_reference ?? '').trim()
+  const routesAreSeparated = Boolean(
+    summary.hasTestRoute &&
+    summary.hasProductionRoute &&
+    productionApplicationReference &&
+    (!testApplicationReference || testApplicationReference !== productionApplicationReference) &&
+    productionCounterparty &&
+    productionCounterparty !== '91100'
+  )
   const checks = [
     { label: 'Bolagsprofil komplett', ok: Boolean(c.name && c.org_number) },
     { label: 'Orgnummer verifierat', ok: Boolean(c.org_number) },
@@ -375,7 +390,7 @@ export function GoLiveChecklist({
     { label: 'eSett-status klar', ok: String(c.esett_status ?? '').toLowerCase() === 'ready' },
     { label: 'Produktionsaktör aktiv', ok: summary.hasProductionActorProfile },
     { label: 'Produktionsroutes skapade', ok: summary.hasProductionRoute },
-    { label: 'Test-routes separerade från produktionsroutes', ok: Boolean(c.production_application_reference && c.test_application_reference !== c.production_application_reference) },
+    { label: 'Test/AGT-routes separerade från production route', ok: routesAreSeparated },
     { label: 'Mailbox/SMTP verifierad', ok: summary.hasVerifiedMailbox },
     { label: 'Godkända PRODAT-tester', ok: summary.prodatPassed === summary.prodatTotal },
     { label: 'Godkända UTILTS-tester', ok: summary.utiltsPassed === summary.utiltsTotal },
@@ -392,6 +407,7 @@ export function GoLiveChecklist({
           <h2 className="text-lg font-semibold text-slate-950">Go-live checklista</h2>
           <p className="mt-1 text-sm leading-6 text-slate-700">Live aktiveras aldrig automatiskt. Superadmin måste göra sista bekräftelsen.</p>
           <p className="mt-2 text-sm leading-6 text-slate-700">Historiska externa godkännanden är endast evidens. Bolaget måste vara verifierat i aktuell Gridex-runtime via actor_test_results innan live kan aktiveras.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-700">“Test/AGT-routes separerade från production route” betyder att testflöden mot Edielportalen/TGT, exempelvis 91100, 23-DDQ och testmailbox, inte får återanvändas när live aktiveras. Production route ska ha egen motpart, egen Application Reference, egen mailbox och miljö production.</p>
         </div>
         <Badge tone={statusTone(summary.productionReadiness)}>{getProductionReadinessLabel(summary.productionReadiness)}</Badge>
       </div>

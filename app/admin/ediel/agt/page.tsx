@@ -312,7 +312,7 @@ export default async function EdielAgtPage() {
  <div>
  <h2 className="text-lg font-semibold text-slate-950">Testfall 2026A</h2>
  <p className="mt-1 text-sm text-slate-700">
- Kör ett test åt gången. L1/L7 skickas som outbound-kommandon direkt till portalen. L2–L5 ska vänta på inbound från Edielportalen.
+ Kör ett test åt gången. L1/L7 genererar först draft/prepared-payload som öppnas för kontroll innan du skickar. L2–L5 ska vänta på inbound från Edielportalen.
  </p>
  </div>
  <Badge tone="emerald">testläge separat från produktion</Badge>
@@ -377,7 +377,7 @@ export default async function EdielAgtPage() {
  disabled={!hasRun || runtime.issues.some((issue) => issue.severity === 'error')}
  className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
  >
- {hasRun ? 'Generera + skicka' : 'Skapa run först'}
+ {hasRun ? 'Generera draft / öppna payload' : 'Skapa run först'}
  </button>
  </form>
  ) : (
@@ -398,7 +398,7 @@ export default async function EdielAgtPage() {
  <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
  <h2 className="text-lg font-semibold text-slate-950">Praktisk körordning</h2>
  <p className="mt-2 text-sm leading-6 text-emerald-900">
- Spara AGT-runtime först. Starta L1 i Edielportalen, skapa L1-run här, fyll i balansansvarig/BRP Ediel-id och skicka L1 direkt från GridCore. L2-L5 är Portal → Aktör: starta testet i portalen, importera inbound PRODAT och skapa CONTRL + APERAK från inbound-raden. Kör L7 sist som outbound Z09-kommandot.
+ Spara AGT-runtime först. Starta L1 i Edielportalen, skapa L1-run här, fyll i balansansvarig/BRP Ediel-id och generera draften. Kontrollera payloaden på meddelandesidan innan du klickar Skicka. L2-L5 är Portal → Aktör: starta testet i portalen, importera inbound PRODAT och skapa CONTRL + APERAK från inbound-raden. Öppna även kvittenspayload innan skick. Kör L7 sist som outbound Z09-draft.
  </p>
  </section>
  </div>

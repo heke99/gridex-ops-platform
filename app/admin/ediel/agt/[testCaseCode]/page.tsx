@@ -210,12 +210,16 @@ function LinkedTimeline({
 
 export default async function AgtCasePage({
  params,
+ searchParams,
 }: {
  params: Promise<{ testCaseCode: string }>
+ searchParams?: Promise<{ companyId?: string }>
 }) {
  const { testCaseCode } = await params
  const context = await requirePlatformAdminAccess()
- const companyId = null
+ const query = searchParams ? await searchParams : {}
+ const companyId = typeof query.companyId === 'string' && query.companyId.trim().length > 0 ? query.companyId.trim() : null
+ const companyQuery = companyId ? `?companyId=${encodeURIComponent(companyId)}` : ''
  const testCase = getEdielAgtSupplier2026ACase(String(testCaseCode).toUpperCase())
 
  if (!testCase) {
@@ -237,7 +241,7 @@ export default async function AgtCasePage({
 
  const [runtime, runs, recentInbound] = await Promise.all([
  getEdielAgtSupplierRuntime(companyId),
- listEdielTestRuns(),
+ listEdielTestRuns({ companyId }),
  listEdielMessages({ direction: 'inbound', companyId, limit: 80 }),
  ])
 
@@ -282,7 +286,7 @@ export default async function AgtCasePage({
  <div className="space-y-6">
  <AdminHeader
  title={`${testCase.testCaseCode} · ${testCase.title}`}
- subtitle="Plattformens låsta AGT-motor. Inbound och outbound visas globalt för platform admin."
+ subtitle={companyId ? 'Tenantstyrd AGT-motor. Alla runs, routes och payloads är filtrerade till valt bolag.' : 'Plattformens AGT-motor. Välj bolag från aktörstestkortet för tenantstyrd körning.'}
  userEmail={context.email}
  workspaceName="Plattformskontroll"
  workspaceMode="platform"
@@ -301,8 +305,8 @@ export default async function AgtCasePage({
  <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">{testCase.purpose}</p>
  </div>
  <div className="flex flex-wrap gap-2">
- <Link href="/admin/ediel/agt" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
- Till godkännandeyta
+ <Link href={companyId ? `/admin/platform/actor-testing/${companyId}` : '/admin/ediel/agt'} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+ {companyId ? 'Till bolagets aktörstester' : 'Till godkännandeyta'}
  </Link>
  <Link href="/admin/ediel/messages" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
  Meddelanden
@@ -316,6 +320,7 @@ export default async function AgtCasePage({
  <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">Aktiv tenant/leverantör</div>
  <div className="mt-1 text-sm font-semibold text-slate-950">{runtime.actor?.actor_name ?? '—'}</div>
  <div className="mt-1 font-mono text-xs text-slate-700">{runtime.actor?.actor_ediel_id ?? 'saknas'}</div>
+ <div className="mt-1 font-mono text-[11px] text-slate-500">{companyId ? `company_id ${companyId}` : 'global vy'}</div>
  </div>
  <div className="rounded-2xl border border-slate-200 bg-white p-4">
  <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">Portal</div>
@@ -353,6 +358,7 @@ export default async function AgtCasePage({
  <div className="mt-4 flex flex-wrap gap-2">
  <form action={createAgtSupplierTestRunAction}>
  <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+ {companyId ? <input type="hidden" name="company_id" value={companyId} /> : null}
  <button className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
  {run ? 'Skapa ny run' : 'Skapa run'}
  </button>
@@ -361,14 +367,16 @@ export default async function AgtCasePage({
  {actorToPortal ? (
  <form action={createAgtSupplierOutboundCommandAction}>
  <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+ {companyId ? <input type="hidden" name="company_id" value={companyId} /> : null}
  <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
  <button disabled={!run} className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300">
- Generera + skicka
+ Generera draft / öppna payload
  </button>
  </form>
  ) : (
  <form action={pollAgtMailboxForCaseAction}>
  <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+ {companyId ? <input type="hidden" name="company_id" value={companyId} /> : null}
  <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
  <input type="hidden" name="mailbox" value={runtime.actor?.mailbox ?? 'INBOX'} />
  <input type="hidden" name="limit" value="20" />
@@ -382,6 +390,7 @@ export default async function AgtCasePage({
  {run ? (
  <form action={cleanupAgtCaseUnsentMessagesAction} className="mt-3">
  <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+ {companyId ? <input type="hidden" name="company_id" value={companyId} /> : null}
  <input type="hidden" name="test_run_id" value={run.id} />
  <button className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
  Makulera gamla oskickade testkommandon
@@ -390,7 +399,7 @@ export default async function AgtCasePage({
  ) : null}
 
  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
- För Aktör → Portal genererar GridCore outbound och skickar direkt; därefter sparas skickat meddelande som audit/logg och portalkvittenser importeras. För Portal → Aktör skapas kvittensförslag från inbound-raden. Produktion/live-flöden ska inte gå via den här testvyn.
+ För Aktör → Portal genererar GridCore nu endast ett prepared/draft-meddelande och öppnar meddelandesidan. Där kontrollerar du raw payload, UNB, BGM, NAD, CCI/CAV och referenser innan du klickar Skicka. För Portal → Aktör skapas kvittensförslag från inbound-raden, men även dessa ska öppnas som payload innan skick. Produktion/live-flöden ska inte gå via den här testvyn.
  </div>
  </div>
 
@@ -401,6 +410,7 @@ export default async function AgtCasePage({
  </p>
  <form action={importAgtRawInboundForCaseAction} className="mt-4 space-y-3">
  <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+ {companyId ? <input type="hidden" name="company_id" value={companyId} /> : null}
  <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
  <label className="block text-sm font-medium text-slate-700">
  Fil
@@ -449,6 +459,7 @@ export default async function AgtCasePage({
  {actorToPortal ? (
  <form action={pollAgtMailboxForCaseAction}>
  <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+ {companyId ? <input type="hidden" name="company_id" value={companyId} /> : null}
  <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
  <input type="hidden" name="mailbox" value={runtime.actor?.mailbox ?? 'INBOX'} />
  <input type="hidden" name="limit" value="20" />
@@ -483,6 +494,7 @@ export default async function AgtCasePage({
  </Link>
  <form action={attachAgtInboundAndCreateResponsesAction}>
  <input type="hidden" name="test_case_code" value={testCase.testCaseCode} />
+ {companyId ? <input type="hidden" name="company_id" value={companyId} /> : null}
  <input type="hidden" name="test_run_id" value={run?.id ?? ''} />
  <input type="hidden" name="source_message_id" value={message.id} />
  <button className="rounded-xl bg-white border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-50">
