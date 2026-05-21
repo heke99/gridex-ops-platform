@@ -32,6 +32,17 @@ export type ContractOfferRow = {
   status: ContractOfferStatus
   contract_type: ContractType
   campaign_name: string | null
+  campaign_code?: string | null
+  campaign_version?: string | null
+  price_version?: string | null
+  terms_version?: string | null
+  max_customers?: number | null
+  discount_value?: number | null
+  discount_unit?: string | null
+  start_fee_sek?: number | null
+  admin_fee_sek?: number | null
+  break_fee_sek?: number | null
+  vat_rate?: number | null
   description: string | null
   fixed_price_ore_per_kwh: number | null
   spot_markup_ore_per_kwh: number | null
@@ -62,6 +73,22 @@ export type CustomerContractRow = {
   contract_name: string
   contract_type: ContractType
   campaign_name: string | null
+  campaign_code?: string | null
+  campaign_version?: string | null
+  price_version?: string | null
+  terms_version?: string | null
+  price_snapshot?: Record<string, unknown> | null
+  campaign_snapshot?: Record<string, unknown> | null
+  billing_ready_status?: string | null
+  billing_blocker_reasons?: Array<Record<string, unknown>> | null
+  withdrawal_requested_at?: string | null
+  rejected_reason?: string | null
+  discount_value?: number | null
+  discount_unit?: string | null
+  start_fee_sek?: number | null
+  admin_fee_sek?: number | null
+  break_fee_sek?: number | null
+  vat_rate?: number | null
   fixed_price_ore_per_kwh: number | null
   spot_markup_ore_per_kwh: number | null
   variable_fee_ore_per_kwh: number | null

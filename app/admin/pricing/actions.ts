@@ -40,7 +40,7 @@ export async function createPricingComponentRuleAction(formData: FormData) {
 
   const companyId = await requireOperationalCompanyId(user.id)
 
-  await createPricingComponentRule({
+  const createdRule = await createPricingComponentRule({
     companyId,
     actorUserId: user.id,
     contractOfferId: nullableText(formData, 'contract_offer_id'),
@@ -59,6 +59,21 @@ export async function createPricingComponentRuleAction(formData: FormData) {
       note: nullableText(formData, 'note'),
     },
   })
+
+  await supabase
+    .from('audit_logs')
+    .insert({
+      company_id: companyId,
+      actor_user_id: user.id,
+      entity_type: 'pricing_component_rule',
+      entity_id: createdRule.id,
+      action: 'pricing_component_rule_created',
+      new_values: createdRule,
+      metadata: {
+        component_type: createdRule.component_type,
+        applies_to: createdRule.applies_to,
+      },
+    })
 
   revalidatePath('/admin/pricing')
   revalidatePath('/admin/contracts')

@@ -128,6 +128,12 @@ const NAV_GROUPS: NavGroup[] = [
         pageKey: "customers.intake",
       },
       {
+        href: "/admin/customers/duplicates",
+        label: "Dubblettkontroll",
+        description: "Möjliga dubbletter och manuell mergekontroll",
+        pageKey: "customers.list",
+      },
+      {
         href: "/admin/customers/tenant-test",
         label: "Tenant-/rolltest",
         description: "Bolag A/B, roller och RLS-policyrapport",

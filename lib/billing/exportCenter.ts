@@ -17,6 +17,8 @@ import {
   listPricingComponentRules,
 } from "@/lib/billing/pricingEngine";
 import { buildXlsxWorkbook } from "@/lib/billing/xlsx";
+import type { CustomerContractRow } from "@/lib/customer-contracts/types";
+import { createCustomerCase } from "@/lib/customer-cases/db";
 
 export type BillingExportRunRow = {
   id: string;
@@ -91,6 +93,102 @@ export async function getBillingExportCenterData(
   return { underlays, meterValues, partnerExports, exportRuns };
 }
 
+
+async function listLatestBillableContractsByCustomerIds(params: {
+  companyId: string;
+  customerIds: string[];
+}): Promise<Map<string, CustomerContractRow>> {
+  const map = new Map<string, CustomerContractRow>();
+  const customerIds = Array.from(new Set(params.customerIds.filter(Boolean)));
+  if (customerIds.length === 0) return map;
+
+  try {
+    const { data, error } = await supabaseService
+      .from("customer_contracts")
+      .select("*")
+      .eq("company_id", params.companyId)
+      .in("customer_id", customerIds)
+      .in("status", ["signed", "active", "pending_signature", "draft"])
+      .order("status", { ascending: true })
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      if (isMissingRelationError(error)) return map;
+      throw error;
+    }
+
+    for (const row of (data ?? []) as CustomerContractRow[]) {
+      if (!map.has(row.customer_id)) map.set(row.customer_id, row);
+    }
+  } catch (error) {
+    if (!isMissingRelationError(error)) throw error;
+  }
+
+  return map;
+}
+
+function isFirstContractPeriod(params: {
+  contract?: CustomerContractRow | null;
+  year: number | null;
+  month: number | null;
+}) {
+  if (!params.contract?.starts_at || !params.year || !params.month) return false;
+  const start = new Date(params.contract.starts_at);
+  if (Number.isNaN(start.getTime())) return false;
+  return start.getFullYear() === params.year && start.getMonth() + 1 === params.month;
+}
+
+async function createBlockedBillingCasesForItems(params: {
+  companyId: string;
+  actorUserId: string;
+  exportRunId: string;
+  items: BillingExportRunItemRow[];
+}) {
+  for (const item of params.items) {
+    if (item.status !== "blocked" || !item.customer_id || item.blocker_case_id) continue;
+    const issues = Array.isArray(item.blocker_reasons) ? item.blocker_reasons : [];
+    const firstIssue = issues.find((issue) => typeof issue === "object") as Record<string, unknown> | undefined;
+    const title = String(firstIssue?.title ?? "Faktureringsrad blockerad");
+    const description = String(
+      firstIssue?.description ??
+        "Faktureringsunderlaget kräver manuell granskning innan export.",
+    );
+
+    try {
+      const customerCase = await createCustomerCase({
+        companyId: params.companyId,
+        customerId: item.customer_id,
+        siteId: item.site_id,
+        meteringPointId: item.metering_point_id,
+        customerContractId: item.contract_id ?? null,
+        caseType: "technical_blocker",
+        priority: "high",
+        title,
+        description,
+        reasonCategory: "billing_export_blocker",
+        nextAction:
+          "Granska blockerad faktureringsrad, komplettera saknade mätvärden/avtal och öppna därefter exporten för retry.",
+        source: "billing_export_blocker",
+        actorUserId: params.actorUserId,
+        metadata: {
+          exportRunId: params.exportRunId,
+          exportRunItemId: item.id,
+          billingUnderlayId: item.billing_underlay_id,
+          blockerReasons: issues,
+        },
+      });
+
+      await supabaseService
+        .from("billing_export_run_items")
+        .update({ blocker_case_id: customerCase.id, updated_at: new Date().toISOString() })
+        .eq("company_id", params.companyId)
+        .eq("id", item.id);
+    } catch (error) {
+      console.warn("Billing blocker case could not be created", error);
+    }
+  }
+}
+
 export async function createBillingExportRun(input: {
   companyId: string;
   actorUserId: string;
@@ -116,6 +214,11 @@ export async function createBillingExportRun(input: {
     return underlay.underlay_year === year && underlay.underlay_month === month;
   });
 
+  const contractsByCustomer = await listLatestBillableContractsByCustomerIds({
+    companyId: input.companyId,
+    customerIds: periodUnderlays.map((underlay) => underlay.customer_id).filter(Boolean),
+  });
+
   const readiness = buildBillingReadinessMap({
     underlays: periodUnderlays,
     meterValues,
@@ -123,9 +226,16 @@ export async function createBillingExportRun(input: {
   });
   const items = periodUnderlays.map((underlay) => {
     const result = readiness.get(underlay.id);
+    const contract = underlay.customer_id ? contractsByCustomer.get(underlay.customer_id) ?? null : null;
     const pricing = calculatePricingForBillingUnderlay({
       underlay,
       rules: pricingRules,
+      contract,
+      isFirstPeriod: isFirstContractPeriod({
+        contract,
+        year: underlay.underlay_year,
+        month: underlay.underlay_month,
+      }),
     });
     const pricingWarnings = pricing.warnings.map((warning) => ({
       code: "pricing_warning",
@@ -133,19 +243,30 @@ export async function createBillingExportRun(input: {
       title: "Prismotor behöver granskning",
       description: warning,
     }));
-    const blockerReasons = [...(result?.issues ?? []), ...pricingWarnings];
+    const missingContractIssue = !contract
+      ? [{
+          code: "missing_contract",
+          severity: "blocked",
+          title: "Avtal saknas",
+          description: "Faktureringsraden saknar kopplat avtal/kampanj och får inte exporteras automatiskt.",
+        }]
+      : [];
+    const blockerReasons = [...(result?.issues ?? []), ...pricingWarnings, ...missingContractIssue];
 
     return {
       company_id: input.companyId,
       billing_underlay_id: underlay.id,
+      contract_id: contract?.id ?? null,
       customer_id: underlay.customer_id,
       site_id: underlay.site_id,
       metering_point_id: underlay.metering_point_id,
-      status: result?.isExportable ? "ready" : "blocked",
+      status: result?.isExportable && contract ? "ready" : "blocked",
       readiness_status: result?.status ?? "blocked",
       blocker_reasons: blockerReasons,
+      pricing_line_items: pricing.lines,
       payload_snapshot: {
         underlay,
+        contract,
         readiness: result,
         pricing,
         exportContract: {
@@ -189,13 +310,21 @@ export async function createBillingExportRun(input: {
   if (error) throw error;
 
   if (items.length > 0) {
-    const { error: itemError } = await supabaseService
+    const { data: insertedItems, error: itemError } = await supabaseService
       .from("billing_export_run_items")
       .insert(
         items.map((item) => ({ ...item, billing_export_run_id: run.id })),
-      );
+      )
+      .select("*");
 
     if (itemError) throw itemError;
+
+    await createBlockedBillingCasesForItems({
+      companyId: input.companyId,
+      actorUserId: input.actorUserId,
+      exportRunId: run.id,
+      items: (insertedItems ?? []) as BillingExportRunItemRow[],
+    });
   }
 
   return run as BillingExportRunRow;
@@ -351,12 +480,14 @@ export type BillingExportRunItemRow = {
   company_id: string;
   billing_export_run_id: string;
   billing_underlay_id: string | null;
+  contract_id?: string | null;
   customer_id: string | null;
   site_id: string | null;
   metering_point_id: string | null;
   status: string;
   readiness_status: string;
   blocker_reasons: Array<Record<string, unknown>>;
+  pricing_line_items?: Array<Record<string, unknown>> | null;
   payload_snapshot: Record<string, unknown>;
   export_status?: string | null;
   partner_export_id?: string | null;
@@ -410,6 +541,7 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
   return {
     export_run_item_id: item.id,
     billing_underlay_id: item.billing_underlay_id,
+    contract_id: item.contract_id ?? null,
     customer_id: item.customer_id,
     site_id: item.site_id,
     metering_point_id: item.metering_point_id,
@@ -427,6 +559,7 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
     total_sek_inc_vat:
       pricing.totalSekIncVat ??
       readSnapshotNumber(snapshot, ["pricing", "totalSekIncVat"]),
+    pricing_line_items: item.pricing_line_items ?? [],
     blocker_reasons: item.blocker_reasons ?? [],
   };
 }
@@ -475,6 +608,7 @@ export function buildBillingExportFile(params: {
     const headers = [
       "export_run_item_id",
       "billing_underlay_id",
+      "contract_id",
       "customer_id",
       "site_id",
       "metering_point_id",
@@ -508,6 +642,7 @@ export function buildBillingExportFile(params: {
     const headers = [
       "export_run_item_id",
       "billing_underlay_id",
+      "contract_id",
       "customer_id",
       "site_id",
       "metering_point_id",

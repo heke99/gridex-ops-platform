@@ -27,6 +27,7 @@ type CustomerCaseInput = {
   nextAction?: string | null
   assignedTo?: string | null
   source?: string | null
+  metadata?: Record<string, unknown> | null
   actorUserId?: string | null
 }
 
@@ -223,6 +224,7 @@ export async function createCustomerCase(input: CustomerCaseInput): Promise<Cust
     assigned_to: input.assignedTo ?? null,
     source: input.source ?? 'admin_customer_cases',
     metadata: {
+      ...(input.metadata ?? {}),
       prodatSentAt: input.prodatSentAt ?? null,
       assessment,
     },

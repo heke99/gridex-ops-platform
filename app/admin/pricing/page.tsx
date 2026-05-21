@@ -92,10 +92,15 @@ export default async function PricingPage() {
                 <option value="fixed_monthly_fee">Fast månadsavgift</option>
                 <option value="spot_markup">Spotpåslag</option>
                 <option value="fixed_markup">Fast påslag</option>
+                <option value="fixed_price">Fast pris</option>
                 <option value="variable_fee">Rörlig avgift</option>
                 <option value="green_electricity_fee">Grön el-avgift</option>
                 <option value="el_certificate">Elcertifikat</option>
                 <option value="custom_addon">Kundanpassad tilläggsavgift</option>
+                <option value="campaign_discount">Kampanjrabatt</option>
+                <option value="start_fee">Startavgift</option>
+                <option value="admin_fee">Administrativ avgift</option>
+                <option value="break_fee">Brytavgift</option>
               </select>
               <div className="grid gap-3 md:grid-cols-2">
                 <input name="value_amount" placeholder="Värde" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />

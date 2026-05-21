@@ -99,6 +99,17 @@ export async function saveContractOffer(input: {
   status: 'draft' | 'active' | 'inactive'
   contractType: ContractType
   campaignName?: string | null
+  campaignCode?: string | null
+  campaignVersion?: string | null
+  priceVersion?: string | null
+  termsVersion?: string | null
+  maxCustomers?: number | null
+  discountValue?: number | null
+  discountUnit?: string | null
+  startFeeSek?: number | null
+  adminFeeSek?: number | null
+  breakFeeSek?: number | null
+  vatRate?: number | null
   description?: string | null
   fixedPriceOrePerKwh?: number | null
   spotMarkupOrePerKwh?: number | null
@@ -121,6 +132,17 @@ export async function saveContractOffer(input: {
     status: input.status,
     contract_type: input.contractType,
     campaign_name: input.campaignName ?? null,
+    campaign_code: input.campaignCode ?? null,
+    campaign_version: input.campaignVersion ?? null,
+    price_version: input.priceVersion ?? null,
+    terms_version: input.termsVersion ?? null,
+    max_customers: input.maxCustomers ?? null,
+    discount_value: input.discountValue ?? null,
+    discount_unit: input.discountUnit ?? null,
+    start_fee_sek: input.startFeeSek ?? null,
+    admin_fee_sek: input.adminFeeSek ?? null,
+    break_fee_sek: input.breakFeeSek ?? null,
+    vat_rate: input.vatRate ?? null,
     description: input.description ?? null,
     fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
     spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
@@ -324,6 +346,22 @@ export async function createCustomerContract(input: {
   contractName: string
   contractType: ContractType
   campaignName?: string | null
+  campaignCode?: string | null
+  campaignVersion?: string | null
+  priceVersion?: string | null
+  termsVersion?: string | null
+  discountValue?: number | null
+  discountUnit?: string | null
+  startFeeSek?: number | null
+  adminFeeSek?: number | null
+  breakFeeSek?: number | null
+  vatRate?: number | null
+  priceSnapshot?: Record<string, unknown> | null
+  campaignSnapshot?: Record<string, unknown> | null
+  billingReadyStatus?: string | null
+  billingBlockerReasons?: Array<Record<string, unknown>> | null
+  withdrawalRequestedAt?: string | null
+  rejectedReason?: string | null
   fixedPriceOrePerKwh?: number | null
   spotMarkupOrePerKwh?: number | null
   variableFeeOrePerKwh?: number | null
@@ -359,6 +397,22 @@ export async function createCustomerContract(input: {
       contract_name: input.contractName,
       contract_type: input.contractType,
       campaign_name: input.campaignName ?? null,
+      campaign_code: input.campaignCode ?? null,
+      campaign_version: input.campaignVersion ?? null,
+      price_version: input.priceVersion ?? null,
+      terms_version: input.termsVersion ?? null,
+      discount_value: input.discountValue ?? null,
+      discount_unit: input.discountUnit ?? null,
+      start_fee_sek: input.startFeeSek ?? null,
+      admin_fee_sek: input.adminFeeSek ?? null,
+      break_fee_sek: input.breakFeeSek ?? null,
+      vat_rate: input.vatRate ?? null,
+      price_snapshot: input.priceSnapshot ?? null,
+      campaign_snapshot: input.campaignSnapshot ?? null,
+      billing_ready_status: input.billingReadyStatus ?? null,
+      billing_blocker_reasons: input.billingBlockerReasons ?? [],
+      withdrawal_requested_at: input.withdrawalRequestedAt ?? null,
+      rejected_reason: input.rejectedReason ?? null,
       fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
       spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
       variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
@@ -408,6 +462,23 @@ export async function updateCustomerContract(input: {
   companyId?: string | null
   contractName: string
   contractType: ContractType
+  campaignName?: string | null
+  campaignCode?: string | null
+  campaignVersion?: string | null
+  priceVersion?: string | null
+  termsVersion?: string | null
+  discountValue?: number | null
+  discountUnit?: string | null
+  startFeeSek?: number | null
+  adminFeeSek?: number | null
+  breakFeeSek?: number | null
+  vatRate?: number | null
+  priceSnapshot?: Record<string, unknown> | null
+  campaignSnapshot?: Record<string, unknown> | null
+  billingReadyStatus?: string | null
+  billingBlockerReasons?: Array<Record<string, unknown>> | null
+  withdrawalRequestedAt?: string | null
+  rejectedReason?: string | null
   fixedPriceOrePerKwh?: number | null
   spotMarkupOrePerKwh?: number | null
   variableFeeOrePerKwh?: number | null
@@ -435,6 +506,23 @@ export async function updateCustomerContract(input: {
       status: input.status,
       contract_name: input.contractName,
       contract_type: input.contractType,
+      campaign_name: input.campaignName ?? null,
+      campaign_code: input.campaignCode ?? null,
+      campaign_version: input.campaignVersion ?? null,
+      price_version: input.priceVersion ?? null,
+      terms_version: input.termsVersion ?? null,
+      discount_value: input.discountValue ?? null,
+      discount_unit: input.discountUnit ?? null,
+      start_fee_sek: input.startFeeSek ?? null,
+      admin_fee_sek: input.adminFeeSek ?? null,
+      break_fee_sek: input.breakFeeSek ?? null,
+      vat_rate: input.vatRate ?? null,
+      price_snapshot: input.priceSnapshot ?? null,
+      campaign_snapshot: input.campaignSnapshot ?? null,
+      billing_ready_status: input.billingReadyStatus ?? null,
+      billing_blocker_reasons: input.billingBlockerReasons ?? [],
+      withdrawal_requested_at: input.withdrawalRequestedAt ?? null,
+      rejected_reason: input.rejectedReason ?? null,
       fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
       spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
       variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,

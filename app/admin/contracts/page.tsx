@@ -150,6 +150,13 @@ Dessa värden används som standard i kundintaget men kan justeras per kund vid 
  </div>
  </div>
 
+ <div className="grid gap-4 md:grid-cols-4">
+ <input name="campaign_code" placeholder="Kampanjkod" className="rounded-2xl border border-slate-300 px-4 py-3 " />
+ <input name="campaign_version" placeholder="Kampanjversion" defaultValue="v1" className="rounded-2xl border border-slate-300 px-4 py-3 " />
+ <input name="price_version" placeholder="Prisversion" defaultValue="v1" className="rounded-2xl border border-slate-300 px-4 py-3 " />
+ <input name="terms_version" placeholder="Villkorsversion" defaultValue="v1" className="rounded-2xl border border-slate-300 px-4 py-3 " />
+ </div>
+
  <div>
  <label className="mb-2 block text-sm font-medium text-slate-700 ">
  Beskrivning
@@ -205,6 +212,20 @@ Dessa värden används som standard i kundintaget men kan justeras per kund vid 
  <input type="checkbox" name="is_active" defaultChecked />
  Aktiv i kundintag
  </label>
+ </div>
+
+ <div className="grid gap-4 md:grid-cols-4">
+ <input name="discount_value" placeholder="Rabattvärde" className="rounded-2xl border border-slate-300 px-4 py-3 " />
+ <select name="discount_unit" defaultValue="sek_month" className="rounded-2xl border border-slate-300 px-4 py-3 ">
+ <option value="sek_month">Rabatt kr/mån</option>
+ <option value="ore_per_kwh">Rabatt öre/kWh</option>
+ <option value="percent">Rabatt %</option>
+ </select>
+ <input name="start_fee_sek" placeholder="Startavgift kr" className="rounded-2xl border border-slate-300 px-4 py-3 " />
+ <input name="admin_fee_sek" placeholder="Administrativ avgift kr" className="rounded-2xl border border-slate-300 px-4 py-3 " />
+ <input name="break_fee_sek" placeholder="Brytavgift kr" className="rounded-2xl border border-slate-300 px-4 py-3 " />
+ <input name="max_customers" placeholder="Max antal kunder" className="rounded-2xl border border-slate-300 px-4 py-3 " />
+ <input name="vat_rate" placeholder="Moms, t.ex. 0.25" defaultValue="0.25" className="rounded-2xl border border-slate-300 px-4 py-3 " />
  </div>
 
  <div className="grid gap-4 md:grid-cols-2">

@@ -11,6 +11,13 @@ type SecurityReportRow = {
  policies: string[] | null
 }
 
+type Batch3RoleActionRow = {
+ role_key: string
+ test_area: string
+ expected_control: string
+ must_pass: boolean
+}
+
 const ROLE_TESTS = [
  {
  role: 'Superadmin',
@@ -48,12 +55,19 @@ export default async function CustomerTenantTestPage() {
  const supabase = await createSupabaseServerClient()
  const { data: authResult } = await supabase.auth.getUser()
 
- const { data, error } = await supabase
+ const [{ data, error }, { data: batch3Data, error: batch3Error }] = await Promise.all([
+ supabase
  .from('gridex_customer_intake_security_report_v')
  .select('*')
- .order('table_name')
+ .order('table_name'),
+ supabase
+ .from('gridex_batch3_role_action_security_v')
+ .select('*')
+ .order('role_key'),
+ ])
 
  const rows = error ? [] : ((data ?? []) as SecurityReportRow[])
+ const batch3Rows = batch3Error ? [] : ((batch3Data ?? []) as Batch3RoleActionRow[])
  const missingOrWeak = rows.filter((row) => !row.rls_enabled || Number(row.policy_count ?? 0) === 0)
 
  return (
@@ -106,6 +120,26 @@ export default async function CustomerTenantTestPage() {
  })}
  </tbody>
  </table>
+ </div>
+ </section>
+
+
+
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <h2 className="text-lg font-semibold text-slate-950 ">Batch 3 server-action kontroll</h2>
+ <p className="mt-1 text-sm text-slate-700 ">Denna rapport visar vilka roll-/server-action-kontroller som ska verifieras efter Batch 3: prismotor, fakturering, import, audit och bolagsscope.</p>
+ {batch3Error ? <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 ">Kör Batch 3-migrationen för att visa roll/action-rapporten: {batch3Error.message}</p> : null}
+ <div className="mt-5 grid gap-3 lg:grid-cols-2">
+ {batch3Rows.map((row) => (
+ <article key={`${row.role_key}-${row.test_area}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
+ <div className="flex items-center justify-between gap-3">
+ <h3 className="text-sm font-semibold text-slate-950 ">{row.role_key}</h3>
+ <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(Boolean(row.must_pass))}`}>{row.must_pass ? 'Måste passera' : 'Info'}</span>
+ </div>
+ <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 ">{row.test_area}</p>
+ <p className="mt-2 text-sm leading-6 text-slate-700 ">{row.expected_control}</p>
+ </article>
+ ))}
  </div>
  </section>
 

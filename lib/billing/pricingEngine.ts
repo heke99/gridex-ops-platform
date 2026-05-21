@@ -1,6 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
-import type { ContractOfferRow } from '@/lib/customer-contracts/types'
+import type { ContractOfferRow, CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { BillingUnderlayRow } from '@/lib/cis/types'
 
 export type PricingComponentRuleRow = {
@@ -158,7 +158,7 @@ export function evaluatePricingReadiness(input: {
   }
 
   const hasMonthlyFee = activeRules.some((rule) => rule.component_type === 'fixed_monthly_fee')
-  const hasMarkup = activeRules.some((rule) => ['spot_markup', 'variable_fee', 'fixed_markup'].includes(rule.component_type))
+  const hasMarkup = activeRules.some((rule) => ['spot_markup', 'variable_fee', 'fixed_markup', 'fixed_price'].includes(rule.component_type))
 
   if (!hasMonthlyFee) {
     issues.push({ code: 'missing_monthly_fee_component', label: 'Fast månadsavgift saknas som prismotorkomponent.', severity: 'warning' })
@@ -193,6 +193,8 @@ export type PricingCalculationResult = {
   totalSekIncVat: number
   lines: PricingCalculationLine[]
   warnings: string[]
+  contractId?: string | null
+  pricingVersion?: string | null
 }
 
 function roundMoney(value: number): number {
@@ -212,10 +214,138 @@ function periodDateFromUnderlay(underlay: BillingUnderlayRow): string | null {
   return `${underlay.underlay_year}-${String(underlay.underlay_month).padStart(2, '0')}-01`
 }
 
+
+function numberFromRecord(record: Record<string, unknown>, key: string): number | null {
+  const value = record[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function stringFromRecord(record: Record<string, unknown>, key: string): string | null {
+  const value = record[key]
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function addContractLine(params: {
+  lines: PricingCalculationLine[]
+  contractId: string | null
+  code: string
+  label: string
+  type: string
+  unit: string
+  value: number | null
+  quantity: number | null
+  amount: number
+  currency?: string | null
+}) {
+  if (params.value === null && params.amount === 0) return
+  params.lines.push({
+    componentRuleId: params.contractId ? `contract:${params.contractId}:${params.code}` : `contract:${params.code}`,
+    componentCode: params.code,
+    componentLabel: params.label,
+    componentType: params.type,
+    calculationUnit: params.unit,
+    valueAmount: params.value,
+    quantity: params.quantity,
+    amountSekExVat: roundMoney(params.amount),
+    currency: params.currency || 'SEK',
+    appliesTo: 'contract',
+  })
+}
+
+function addContractPricingLines(params: {
+  lines: PricingCalculationLine[]
+  warnings: string[]
+  contract?: (Partial<CustomerContractRow> & Record<string, unknown>) | null
+  totalKwh: number | null
+  isFirstPeriod?: boolean
+}) {
+  const contract = params.contract
+  if (!contract) {
+    params.warnings.push('Avtal saknas för faktureringsraden. Prismotor kan inte verifiera kampanj, påslag eller bindningstid.')
+    return
+  }
+
+  const contractId = typeof contract.id === 'string' ? contract.id : null
+  const totalKwh = params.totalKwh
+  const fixedPrice = typeof contract.fixed_price_ore_per_kwh === 'number' ? contract.fixed_price_ore_per_kwh : null
+  const spotMarkup = typeof contract.spot_markup_ore_per_kwh === 'number' ? contract.spot_markup_ore_per_kwh : null
+  const variableFee = typeof contract.variable_fee_ore_per_kwh === 'number' ? contract.variable_fee_ore_per_kwh : null
+  const monthlyFee = typeof contract.monthly_fee_sek === 'number' ? contract.monthly_fee_sek : null
+  const greenMode = typeof contract.green_fee_mode === 'string' ? contract.green_fee_mode : 'none'
+  const greenValue = typeof contract.green_fee_value === 'number' ? contract.green_fee_value : null
+  const record = contract as Record<string, unknown>
+  const discountValue = numberFromRecord(record, 'discount_value')
+  const discountUnit = stringFromRecord(record, 'discount_unit') ?? 'sek_month'
+  const startFee = numberFromRecord(record, 'start_fee_sek')
+  const adminFee = numberFromRecord(record, 'admin_fee_sek')
+
+  if (fixedPrice !== null) {
+    if (totalKwh === null) params.warnings.push('Fast pris kräver kWh för perioden.')
+    else addContractLine({ lines: params.lines, contractId, code: 'contract_fixed_price', label: 'Fast pris enligt avtal', type: 'fixed_price', unit: 'ore_per_kwh', value: fixedPrice, quantity: totalKwh, amount: (totalKwh * fixedPrice) / 100 })
+  }
+
+  if (spotMarkup !== null) {
+    if (totalKwh === null) params.warnings.push('Spotpåslag kräver kWh för perioden.')
+    else addContractLine({ lines: params.lines, contractId, code: 'contract_spot_markup', label: 'Spotpåslag enligt avtal', type: 'spot_markup', unit: 'ore_per_kwh', value: spotMarkup, quantity: totalKwh, amount: (totalKwh * spotMarkup) / 100 })
+  }
+
+  if (variableFee !== null) {
+    if (totalKwh === null) params.warnings.push('Rörlig avgift kräver kWh för perioden.')
+    else addContractLine({ lines: params.lines, contractId, code: 'contract_variable_fee', label: 'Rörlig avgift enligt avtal', type: 'variable_fee', unit: 'ore_per_kwh', value: variableFee, quantity: totalKwh, amount: (totalKwh * variableFee) / 100 })
+  }
+
+  if (monthlyFee !== null) {
+    addContractLine({ lines: params.lines, contractId, code: 'contract_monthly_fee', label: 'Fast månadsavgift enligt avtal', type: 'fixed_monthly_fee', unit: 'sek_month', value: monthlyFee, quantity: 1, amount: monthlyFee })
+  }
+
+  if (greenMode === 'sek_month' && greenValue !== null) {
+    addContractLine({ lines: params.lines, contractId, code: 'green_electricity_fee', label: 'Grön el enligt avtal', type: 'green_electricity_fee', unit: 'sek_month', value: greenValue, quantity: 1, amount: greenValue })
+  }
+  if (greenMode === 'ore_per_kwh' && greenValue !== null) {
+    if (totalKwh === null) params.warnings.push('Grön el-avgift kräver kWh för perioden.')
+    else addContractLine({ lines: params.lines, contractId, code: 'green_electricity_fee', label: 'Grön el enligt avtal', type: 'green_electricity_fee', unit: 'ore_per_kwh', value: greenValue, quantity: totalKwh, amount: (totalKwh * greenValue) / 100 })
+  }
+
+  if (discountValue !== null) {
+    if (discountUnit === 'ore_per_kwh') {
+      if (totalKwh === null) params.warnings.push('Kampanjrabatt öre/kWh kräver kWh för perioden.')
+      else addContractLine({ lines: params.lines, contractId, code: 'campaign_discount', label: 'Kampanjrabatt', type: 'campaign_discount', unit: 'ore_per_kwh', value: discountValue, quantity: totalKwh, amount: -((totalKwh * discountValue) / 100) })
+    } else {
+      addContractLine({ lines: params.lines, contractId, code: 'campaign_discount', label: 'Kampanjrabatt', type: 'campaign_discount', unit: discountUnit, value: discountValue, quantity: 1, amount: -discountValue })
+    }
+  }
+
+  if (params.isFirstPeriod && startFee !== null) {
+    addContractLine({ lines: params.lines, contractId, code: 'start_fee', label: 'Startavgift', type: 'start_fee', unit: 'sek_once', value: startFee, quantity: 1, amount: startFee })
+  }
+
+  if (adminFee !== null) {
+    addContractLine({ lines: params.lines, contractId, code: 'admin_fee', label: 'Administrativ avgift', type: 'admin_fee', unit: 'sek_month', value: adminFee, quantity: 1, amount: adminFee })
+  }
+
+  const optional = Array.isArray(contract.optional_fee_lines) ? contract.optional_fee_lines : []
+  for (const [index, line] of optional.entries()) {
+    if (!line || typeof line !== 'object') continue
+    const row = line as Record<string, unknown>
+    const label = typeof row.label === 'string' && row.label.trim() ? row.label.trim() : `Övrig avgift ${index + 1}`
+    const amount = typeof row.amount === 'number' && Number.isFinite(row.amount) ? row.amount : null
+    const unit = typeof row.unit === 'string' && row.unit.trim() ? row.unit.trim() : 'sek'
+    if (amount === null) continue
+    if (unit === 'ore_per_kwh') {
+      if (totalKwh === null) params.warnings.push(`${label} kräver kWh för perioden.`)
+      else addContractLine({ lines: params.lines, contractId, code: `optional_fee_${index + 1}`, label, type: 'custom_addon', unit, value: amount, quantity: totalKwh, amount: (totalKwh * amount) / 100 })
+    } else {
+      addContractLine({ lines: params.lines, contractId, code: `optional_fee_${index + 1}`, label, type: 'custom_addon', unit, value: amount, quantity: 1, amount })
+    }
+  }
+}
+
 export function calculatePricingForBillingUnderlay(params: {
   underlay: BillingUnderlayRow
   rules: PricingComponentRuleRow[]
   vatRate?: number
+  contract?: (Partial<CustomerContractRow> & Record<string, unknown>) | null
+  isFirstPeriod?: boolean
 }): PricingCalculationResult {
   const { underlay } = params
   const vatRate = params.vatRate ?? 0.25
@@ -262,6 +392,10 @@ export function calculatePricingForBillingUnderlay(params: {
       continue
     }
 
+    if (['campaign_discount', 'customer_discount', 'discount'].includes(rule.component_type)) {
+      amount = -Math.abs(amount)
+    }
+
     lines.push({
       componentRuleId: rule.id,
       componentCode: rule.component_code,
@@ -276,6 +410,14 @@ export function calculatePricingForBillingUnderlay(params: {
     })
   }
 
+  addContractPricingLines({
+    lines,
+    warnings,
+    contract: params.contract ?? null,
+    totalKwh,
+    isFirstPeriod: params.isFirstPeriod,
+  })
+
   const componentTotal = lines.reduce((sum, line) => sum + line.amountSekExVat, 0)
   const baseUnderlayAmount = typeof underlay.total_sek_ex_vat === 'number' ? underlay.total_sek_ex_vat : 0
   const subtotal = roundMoney(baseUnderlayAmount + componentTotal)
@@ -289,5 +431,7 @@ export function calculatePricingForBillingUnderlay(params: {
     totalSekIncVat: roundMoney(subtotal + vat),
     lines,
     warnings,
+    contractId: params.contract?.id ?? null,
+    pricingVersion: params.contract ? stringFromRecord(params.contract as Record<string, unknown>, 'price_version') : null,
   }
 }

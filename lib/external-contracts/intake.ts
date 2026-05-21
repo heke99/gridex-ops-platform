@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { supabaseService } from "@/lib/supabase/service";
-import { createCustomerContract } from "@/lib/customer-contracts/db";
+import { createCustomerContract, getContractOfferById } from "@/lib/customer-contracts/db";
 
 type ExternalContractInput = {
   companySlug: string;
@@ -276,18 +276,39 @@ export async function createExternalContractIntake(
       meteringPointId = String(point.id);
     }
 
+    const offer = input.contractOfferId ? await getContractOfferById(input.contractOfferId, companyId) : null;
+
     const contract = await createCustomerContract({
       companyId,
       customerId,
       siteId,
-      contractOfferId: input.contractOfferId,
-      sourceType: input.contractOfferId ? "catalog" : "manual_override",
+      contractOfferId: offer?.id ?? null,
+      sourceType: offer ? "catalog" : "manual_override",
       status: "pending_signature",
-      contractName: input.contractOfferId
-        ? "Avtal via extern ingång"
-        : "Kundspecifikt avtal via extern ingång",
-      contractType: "variable_hourly",
-      greenFeeMode: "none",
+      contractName: offer?.name ?? "Kundspecifikt avtal via extern ingång",
+      contractType: offer?.contract_type ?? "variable_hourly",
+      campaignName: offer?.campaign_name ?? null,
+      campaignCode: offer?.campaign_code ?? null,
+      campaignVersion: offer?.campaign_version ?? "v1",
+      priceVersion: offer?.price_version ?? "v1",
+      termsVersion: offer?.terms_version ?? "v1",
+      discountValue: offer?.discount_value ?? null,
+      discountUnit: offer?.discount_unit ?? null,
+      startFeeSek: offer?.start_fee_sek ?? null,
+      adminFeeSek: offer?.admin_fee_sek ?? null,
+      breakFeeSek: offer?.break_fee_sek ?? null,
+      vatRate: offer?.vat_rate ?? null,
+      fixedPriceOrePerKwh: offer?.fixed_price_ore_per_kwh ?? null,
+      spotMarkupOrePerKwh: offer?.spot_markup_ore_per_kwh ?? null,
+      variableFeeOrePerKwh: offer?.variable_fee_ore_per_kwh ?? null,
+      monthlyFeeSek: offer?.monthly_fee_sek ?? null,
+      greenFeeMode: offer?.green_fee_mode ?? "none",
+      greenFeeValue: offer?.green_fee_value ?? null,
+      bindingMonths: offer?.default_binding_months ?? null,
+      noticeMonths: offer?.default_notice_months ?? null,
+      optionalFeeLines: (offer?.optional_fee_lines as Array<Record<string, unknown>> | null) ?? [],
+      priceSnapshot: offer ? { offerId: offer.id, priceVersion: offer.price_version ?? "v1", monthlyFeeSek: offer.monthly_fee_sek ?? null, spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh ?? null } : null,
+      campaignSnapshot: offer ? { offerId: offer.id, campaignName: offer.campaign_name ?? null, campaignCode: offer.campaign_code ?? null, campaignVersion: offer.campaign_version ?? "v1" } : null,
       startsAt: input.requestedStartDate,
       actorUserId: null,
     });

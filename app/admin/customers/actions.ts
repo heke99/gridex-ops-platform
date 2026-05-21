@@ -1775,6 +1775,44 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
           offer?.contract_type ??
           "variable_hourly",
         campaignName: offer?.campaign_name ?? null,
+        campaignCode: offer?.campaign_code ?? null,
+        campaignVersion: offer?.campaign_version ?? 'v1',
+        priceVersion: offer?.price_version ?? 'v1',
+        termsVersion: offer?.terms_version ?? 'v1',
+        discountValue: offer?.discount_value ?? null,
+        discountUnit: offer?.discount_unit ?? null,
+        startFeeSek: offer?.start_fee_sek ?? null,
+        adminFeeSek: offer?.admin_fee_sek ?? null,
+        breakFeeSek: offer?.break_fee_sek ?? null,
+        vatRate: offer?.vat_rate ?? null,
+        campaignSnapshot: offer
+          ? {
+              offerId: offer.id,
+              campaignName: offer.campaign_name ?? null,
+              campaignCode: offer.campaign_code ?? null,
+              campaignVersion: offer.campaign_version ?? 'v1',
+              validFrom: offer.valid_from ?? null,
+              validTo: offer.valid_to ?? null,
+            }
+          : null,
+        priceSnapshot: offer
+          ? {
+              offerId: offer.id,
+              priceVersion: offer.price_version ?? 'v1',
+              termsVersion: offer.terms_version ?? 'v1',
+              monthlyFeeSek: offer.monthly_fee_sek ?? null,
+              spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh ?? null,
+              variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh ?? null,
+              greenFeeMode: offer.green_fee_mode ?? 'none',
+              greenFeeValue: offer.green_fee_value ?? null,
+              discountValue: offer.discount_value ?? null,
+              discountUnit: offer.discount_unit ?? null,
+              startFeeSek: offer.start_fee_sek ?? null,
+              adminFeeSek: offer.admin_fee_sek ?? null,
+              breakFeeSek: offer.break_fee_sek ?? null,
+              vatRate: offer.vat_rate ?? null,
+            }
+          : null,
         fixedPriceOrePerKwh:
           normalizedFixedPriceOrePerKwh ??
           offer?.fixed_price_ore_per_kwh ??

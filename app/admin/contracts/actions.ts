@@ -86,6 +86,18 @@ export async function saveContractOfferAction(formData: FormData) {
   const id = getString(formData, 'id') || undefined
   const name = getString(formData, 'name')
 
+  let previous: Record<string, unknown> | null = null
+  if (id) {
+    const { data: oldOffer, error: oldOfferError } = await supabaseService
+      .from('contract_offers')
+      .select('*')
+      .eq('id', id)
+      .eq('company_id', companyId)
+      .maybeSingle()
+    if (oldOfferError) throw oldOfferError
+    previous = (oldOffer as Record<string, unknown> | null) ?? null
+  }
+
   if (!name) {
     throw new Error('Avtalsnamn krävs')
   }
@@ -98,6 +110,17 @@ export async function saveContractOfferAction(formData: FormData) {
     status: (getString(formData, 'status') || 'active') as 'draft' | 'active' | 'inactive',
     contractType: parseContractType(getString(formData, 'contract_type')),
     campaignName: getString(formData, 'campaign_name') || null,
+    campaignCode: getString(formData, 'campaign_code') || null,
+    campaignVersion: getString(formData, 'campaign_version') || null,
+    priceVersion: getString(formData, 'price_version') || null,
+    termsVersion: getString(formData, 'terms_version') || null,
+    maxCustomers: getNullableInt(formData, 'max_customers'),
+    discountValue: getNullableNumber(formData, 'discount_value'),
+    discountUnit: getString(formData, 'discount_unit') || null,
+    startFeeSek: getNullableNumber(formData, 'start_fee_sek'),
+    adminFeeSek: getNullableNumber(formData, 'admin_fee_sek'),
+    breakFeeSek: getNullableNumber(formData, 'break_fee_sek'),
+    vatRate: getNullableNumber(formData, 'vat_rate'),
     description: getString(formData, 'description') || null,
     fixedPriceOrePerKwh: getNullableNumber(formData, 'fixed_price_ore_per_kwh'),
     spotMarkupOrePerKwh: getNullableNumber(formData, 'spot_markup_ore_per_kwh'),
@@ -120,7 +143,14 @@ export async function saveContractOfferAction(formData: FormData) {
     entity_id: saved.id,
     company_id: companyId,
     action: id ? 'contract_offer_updated' : 'contract_offer_created',
+    old_values: previous,
     new_values: saved,
+    metadata: {
+      campaign_code: (saved as Record<string, unknown>).campaign_code ?? null,
+      campaign_version: (saved as Record<string, unknown>).campaign_version ?? null,
+      price_version: (saved as Record<string, unknown>).price_version ?? null,
+      terms_version: (saved as Record<string, unknown>).terms_version ?? null,
+    },
   })
 
   revalidatePath('/admin/contracts')
