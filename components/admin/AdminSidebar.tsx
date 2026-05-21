@@ -286,6 +286,51 @@ const NAV_GROUPS: NavGroup[] = [
  },
  ],
  },
+ {
+ title: 'Aktörstest & produktion',
+ description: 'Tenantvis aktörsgodkännande, bevispaket och go-live',
+ items: [
+ {
+ href: '/admin/platform/actor-testing',
+ label: 'Aktörstester',
+ description: 'Alla bolags AGT-status och testpaket',
+ pageKey: 'platform.actor_testing',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/platform/go-live',
+ label: 'Produktionssättning',
+ description: 'Go-live checklistor och live-spärrar',
+ pageKey: 'platform.go_live',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/platform/white-labels',
+ label: 'White-label plattformar',
+ description: 'Plattformsägare, kopplade bolag och scope',
+ pageKey: 'platform.white_labels',
+ platformOnly: true,
+ },
+ {
+ href: '/admin/whitelabel/companies',
+ label: 'Mina bolag',
+ description: 'White-label-admins egna bolag',
+ pageKey: 'whitelabel.companies',
+ },
+ {
+ href: '/admin/whitelabel/actor-testing',
+ label: 'Mina aktörstester',
+ description: 'Aktörsteststatus för egna bolag',
+ pageKey: 'whitelabel.actor_testing',
+ },
+ {
+ href: '/admin/whitelabel/go-live',
+ label: 'Produktionsstatus',
+ description: 'Go-live status för egna bolag',
+ pageKey: 'whitelabel.go_live',
+ },
+ ],
+ },
 
  {
  title: 'Plattform',
@@ -359,6 +404,12 @@ const NAV_GROUPS: NavGroup[] = [
  label: 'Bolagsinställningar',
  description: 'Kontaktuppgifter, ansvariga och login-e-post',
  pageKey: 'company.settings',
+ },
+ {
+ href: '/admin/company-actor-status',
+ label: 'Aktörsinställningar',
+ description: 'Bolagets test- och produktionsstatus',
+ pageKey: 'company.actor_status',
  },
  {
  href: '/admin/audit',

@@ -287,6 +287,7 @@ export type EdielTestRunStatus =
 
 export type EdielTestRunRow = {
   id: string
+  company_id?: string | null
   approval_version: string | null
   role_code: EdielTestRoleCode
   test_suite: EdielTestSuite
@@ -491,6 +492,7 @@ export type CreateEdielMessageEventInput = {
 
 export type CreateEdielTestRunInput = {
   actorUserId: string
+  companyId?: string | null
   approvalVersion?: string | null
   roleCode: EdielTestRoleCode
   testSuite: EdielTestSuite

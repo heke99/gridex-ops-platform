@@ -8,6 +8,7 @@ import {
   normalizeCompanyStatus,
   type GovernanceCompany,
 } from '@/lib/tenant/governance'
+import { getActorTestingSummary, getActorTestingStatusLabel, getProductionReadinessLabel } from '@/lib/ediel/actorTesting'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,6 +49,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
   }
 
   const company = await getCompanyGovernanceSummary(row)
+  const actorSummary = await getActorTestingSummary(row.id)
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
 
@@ -88,6 +90,28 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
         </section>
+
+        {actorSummary ? (
+          <section className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Aktörstester</div>
+              <h2 className="mt-2 text-xl font-black text-emerald-950">{getActorTestingStatusLabel(actorSummary.actorTestStatus)}</h2>
+              <p className="mt-2 text-sm leading-6 text-emerald-800">PRODAT: {actorSummary.prodatPassed}/{actorSummary.prodatTotal} godkända · UTILTS: {actorSummary.utiltsPassed}/{actorSummary.utiltsTotal} godkända.</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href={`/admin/platform/actor-testing/${company.id}`} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Öppna tester</Link>
+                <Link href={`/admin/platform/actor-testing/${company.id}/evidence`} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Bevispaket</Link>
+              </div>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Produktionssättning</div>
+              <h2 className="mt-2 text-xl font-black text-slate-950">{getProductionReadinessLabel(actorSummary.productionReadiness)}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">BRP: {actorSummary.company.brp_status ?? '–'} · Routes: {actorSummary.hasProductionRoute ? 'Klara' : 'Saknas'} · Mailbox: {actorSummary.hasVerifiedMailbox ? 'Verifierad' : 'Saknas'}.</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href={`/admin/platform/go-live/${company.id}`} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Öppna go-live checklista</Link>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Aktiva användare" value={company.activeUsers} />

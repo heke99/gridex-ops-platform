@@ -826,6 +826,7 @@ export async function createEdielTestRun(
   input: CreateEdielTestRunInput
 ): Promise<EdielTestRunRow> {
   const payload = cleanObject({
+    company_id: input.companyId ?? null,
     approval_version: input.approvalVersion ?? null,
     role_code: input.roleCode,
     test_suite: input.testSuite,
@@ -854,10 +855,14 @@ export async function createEdielTestRun(
   return data as EdielTestRunRow
 }
 
-export async function listEdielTestRuns(): Promise<EdielTestRunRow[]> {
-  const { data, error } = await supabaseService
+export async function listEdielTestRuns(options?: { companyId?: string | null }): Promise<EdielTestRunRow[]> {
+  let query = supabaseService
     .from('ediel_test_runs')
     .select('*')
+
+  query = applyCompanyScope(query, options?.companyId)
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
 
   if (error) throw error

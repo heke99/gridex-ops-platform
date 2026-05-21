@@ -16,6 +16,13 @@ export type AdminPageKey =
   | 'pricing.engine'
   | 'companies.manage'
   | 'company.settings'
+  | 'company.actor_status'
+  | 'platform.actor_testing'
+  | 'platform.go_live'
+  | 'platform.white_labels'
+  | 'whitelabel.companies'
+  | 'whitelabel.actor_testing'
+  | 'whitelabel.go_live'
   | 'platform.security'
   | 'platform.usage'
   | 'platform.ediel.rules'
@@ -79,6 +86,13 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'pricing.engine': { anyOf: ['pricing.read'] },
   'companies.manage': { anyOf: ['tenants.write'] },
   'company.settings': { anyOf: ['tenants.invite', 'users.read', 'users.write'] },
+  'company.actor_status': { anyOf: ['communication.read', 'users.read'] },
+  'platform.actor_testing': { allOf: ['tenants.write'] },
+  'platform.go_live': { allOf: ['tenants.write'] },
+  'platform.white_labels': { allOf: ['tenants.write'] },
+  'whitelabel.companies': { anyOf: ['whitelabel.read'] },
+  'whitelabel.actor_testing': { anyOf: ['whitelabel.read'] },
+  'whitelabel.go_live': { anyOf: ['whitelabel.read'] },
   'platform.security': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'platform.usage': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'platform.ediel.rules': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
@@ -168,6 +182,8 @@ export const ROLE_PERMISSION_PROFILES: Record<string, RolePermissionProfile> = {
       'tenants.read',
       'tenants.write',
       'tenants.invite',
+      'whitelabel.read',
+      'whitelabel.write',
       'roles.manage',
       'permissions.manage',
       'customers.read',
@@ -201,6 +217,22 @@ export const ROLE_PERMISSION_PROFILES: Record<string, RolePermissionProfile> = {
       'pricing.publish',
       'reports.read',
       'audit.read',
+    ],
+  },
+  white_label_platform_admin: {
+    label: 'White-label platform admin',
+    description: 'Administrerar egna white-label-bolag, användare, aktörstester och produktionsförberedelser utan att se andra plattformar.',
+    permissions: [
+      'whitelabel.read',
+      'whitelabel.write',
+      'users.read',
+      'users.write',
+      'tenants.read',
+      'tenants.invite',
+      'communication.read',
+      'communication.send',
+      'audit.read',
+      'reports.read',
     ],
   },
   company_admin: {
