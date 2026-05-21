@@ -101,6 +101,7 @@ export type ActorTestingSummary = {
   blockedTests: number
   latestRunAt: string | null
   hasActiveActorProfile: boolean
+  hasProductionActorProfile: boolean
   hasTestRoute: boolean
   hasProductionRoute: boolean
   hasVerifiedMailbox: boolean
@@ -372,11 +373,13 @@ async function listResultsForCompanies(companyIds: string[]): Promise<ActorTestR
   }
 }
 
-async function countActiveActorProfiles(companyId: string): Promise<number> {
-  return safeCount('ediel_actor_settings', [
+async function countActiveActorProfiles(companyId: string, environment?: 'test' | 'production'): Promise<number> {
+  const filters: Array<{ column: string; value: string | boolean | string[]; op?: 'eq' | 'in' }> = [
     { column: 'company_id', value: companyId },
     { column: 'is_active', value: true },
-  ])
+  ]
+  if (environment) filters.push({ column: 'environment', value: environment })
+  return safeCount('ediel_actor_settings', filters)
 }
 
 async function countEnabledRoutes(companyId: string, environment: 'test' | 'production'): Promise<number> {
@@ -513,7 +516,7 @@ function missingSetupForCompany(company: ActorTestingCompanyRow, hasActiveActorP
   if (!nonEmpty(company.market_role ?? company.actor_role)) missing.push('Marknadsroll saknas')
   if (!nonEmpty(company.test_ediel_id ?? company.ediel_id)) missing.push('Test Ediel-id saknas')
   if (!nonEmpty(company.technical_contact_email ?? company.primary_contact_email)) missing.push('Teknisk kontakt saknas')
-  if (!nonEmpty(company.brp_ediel_id) && !nonEmpty(company.brp_name)) missing.push('BRP saknas')
+  if (!nonEmpty(company.brp_ediel_id)) missing.push('BRP Ediel-id saknas')
   if (!nonEmpty(company.test_mailbox ?? company.ediel_mailbox)) missing.push('Test mailbox/SMTP saknas')
   if (!hasActiveActorProfile) missing.push('Aktiv Ediel-aktörsprofil saknas')
   if (!hasTestRoute) missing.push('Test-route saknas')
@@ -524,6 +527,7 @@ function missingSetupForCompany(company: ActorTestingCompanyRow, hasActiveActorP
 function goLiveBlockersForCompany(params: {
   company: ActorTestingCompanyRow
   hasActiveActorProfile: boolean
+  hasProductionActorProfile: boolean
   hasProductionRoute: boolean
   hasVerifiedMailbox: boolean
   prodatPassed: number
@@ -538,10 +542,11 @@ function goLiveBlockersForCompany(params: {
   if (!nonEmpty(company.org_number)) blockers.push('Orgnummer saknas')
   if (!nonEmpty(company.production_ediel_id ?? company.ediel_id)) blockers.push('Produktions Ediel-id saknas')
   if (!nonEmpty(company.market_role ?? company.actor_role)) blockers.push('Marknadsroll saknas')
-  if (!nonEmpty(company.brp_ediel_id) && !nonEmpty(company.brp_name)) blockers.push('BRP saknas')
+  if (!nonEmpty(company.brp_ediel_id)) blockers.push('BRP Ediel-id saknas')
   if (String(company.brp_status ?? '').toLowerCase() !== 'active') blockers.push('BRP är inte markerad som aktiv')
   if (String(company.esett_status ?? '').toLowerCase() !== 'ready') blockers.push('eSett-status är inte klar')
   if (!params.hasActiveActorProfile) blockers.push('Aktiv Ediel-aktörsprofil saknas')
+  if (!params.hasProductionActorProfile) blockers.push('Aktiv produktionsaktörsprofil saknas')
   if (!params.hasProductionRoute) blockers.push('Produktionsroute saknas')
   if (!params.hasVerifiedMailbox) blockers.push('Produktionsmailbox/SMTP saknas')
   if (params.prodatPassed < params.prodatTotal) blockers.push(`PRODAT-tester ej kompletta (${params.prodatPassed}/${params.prodatTotal})`)
@@ -570,13 +575,15 @@ async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestR
   const hasRunning = REQUIRED_TEST_CASES.some((testCase) => normalizeStatus(resultsByKey.get(testCase.key)?.status) === 'running')
   const latestRunAt = latestDate(results.map((result) => result.latest_run_at ?? result.updated_at ?? result.created_at))
 
-  const [actorProfiles, testRoutes, productionRoutes] = await Promise.all([
+  const [actorProfiles, productionActorProfiles, testRoutes, productionRoutes] = await Promise.all([
     countActiveActorProfiles(company.id),
+    countActiveActorProfiles(company.id, 'production'),
     countEnabledRoutes(company.id, 'test'),
     countEnabledRoutes(company.id, 'production'),
   ])
 
   const hasActiveActorProfile = actorProfiles > 0 || nonEmpty(company.ediel_id)
+  const hasProductionActorProfile = productionActorProfiles > 0
   const hasTestRoute = testRoutes > 0
   const hasProductionRoute = productionRoutes > 0
   const hasVerifiedMailbox = nonEmpty(company.production_mailbox ?? company.ediel_mailbox)
@@ -585,6 +592,7 @@ async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestR
   const goLiveBlockers = goLiveBlockersForCompany({
     company,
     hasActiveActorProfile,
+    hasProductionActorProfile,
     hasProductionRoute,
     hasVerifiedMailbox,
     prodatPassed,
@@ -626,6 +634,7 @@ async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestR
     blockedTests,
     latestRunAt,
     hasActiveActorProfile,
+    hasProductionActorProfile,
     hasTestRoute,
     hasProductionRoute,
     hasVerifiedMailbox,

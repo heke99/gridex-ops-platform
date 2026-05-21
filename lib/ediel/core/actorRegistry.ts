@@ -15,6 +15,10 @@ export type CanonicalActorContext = {
   mailbox: string | null
   smtpFromEmail: string | null
   smtpReplyToEmail: string | null
+  brpEdielId: string | null
+  brpName: string | null
+  brpStatus: string | null
+  esettStatus: string | null
   environment: EdielEnvironment
   testFlag: 0 | 1
   charset: string
@@ -64,6 +68,10 @@ export async function resolveCanonicalActorContext(
     mailbox: trimOrNull(actor.mailbox),
     smtpFromEmail: trimOrNull(actor.smtp_from_email),
     smtpReplyToEmail: trimOrNull(actor.smtp_reply_to_email),
+    brpEdielId: trimOrNull(actor.brp_ediel_id),
+    brpName: trimOrNull(actor.brp_name),
+    brpStatus: trimOrNull(actor.brp_status),
+    esettStatus: trimOrNull(actor.esett_status),
     environment: actor.environment,
     testFlag: (actor.default_test_flag ?? 1) as 0 | 1,
     charset: actor.default_charset ?? 'UNOC',

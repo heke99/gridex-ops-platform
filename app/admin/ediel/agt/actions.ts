@@ -315,6 +315,8 @@ async function saveActiveSupplierActor(input: {
     smtp_from_email: input.smtpFromEmail,
     smtp_reply_to_email: input.smtpReplyToEmail,
     mailbox: input.mailbox,
+    brp_ediel_id: input.balanceResponsibleEdielId,
+    brp_status: input.balanceResponsibleEdielId ? 'active' : 'missing',
     notes: input.notes,
     updated_by: input.actorUserId,
   }

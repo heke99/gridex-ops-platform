@@ -24,7 +24,7 @@ export default async function WhiteLabelActorTestingCompanyPage({ params }: { pa
         <ActorProfileGuide summary={summary} />
         <ActorTestPackageCards summary={summary} />
         <EvidencePackage summary={summary} basePath="/admin/whitelabel/actor-testing" />
-        <GoLiveChecklist summary={summary} canActivateLive={false} />
+        <GoLiveChecklist summary={summary} canActivateLive={false} returnPath={`/admin/whitelabel/actor-testing/${summary.company.id}`} />
       </div>
     </div>
   )

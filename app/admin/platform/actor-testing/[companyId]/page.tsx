@@ -44,7 +44,7 @@ export default async function PlatformActorTestingCompanyPage({ params }: { para
         <ActorProfileGuide summary={summary} />
         <ActorTestPackageCards summary={summary} />
         <EvidencePackage summary={summary} />
-        <GoLiveChecklist summary={summary} canActivateLive />
+        <GoLiveChecklist summary={summary} canActivateLive returnPath={`/admin/platform/go-live/${summary.company.id}`} />
       </div>
     </div>
   )

@@ -53,8 +53,11 @@ function normalized(value?: string | null): string {
   return value?.trim().toUpperCase() ?? ''
 }
 
-function parseAgtActorNotes(notes?: string | null): { balanceResponsibleEdielId: string | null } {
-  const text = notes?.trim()
+function parseAgtActorNotes(actor?: Pick<EdielActorSettingsRow, 'notes' | 'brp_ediel_id'> | null): { balanceResponsibleEdielId: string | null } {
+  const directBrp = actor?.brp_ediel_id?.trim().toUpperCase() ?? null
+  if (directBrp) return { balanceResponsibleEdielId: directBrp }
+
+  const text = actor?.notes?.trim()
   if (!text) return { balanceResponsibleEdielId: null }
   try {
     const parsed = JSON.parse(text) as { balanceResponsibleEdielId?: unknown }
@@ -179,7 +182,7 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
     })
   }
 
-  const agtNotes = parseAgtActorNotes(actor.notes)
+  const agtNotes = parseAgtActorNotes(actor)
   if (blank(agtNotes.balanceResponsibleEdielId)) {
     issues.push({
       severity: 'warning',

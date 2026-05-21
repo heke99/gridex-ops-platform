@@ -37,6 +37,7 @@ import {
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import type {
   CreateEdielMessageInput,
+  EdielActorSettingsRow,
   EdielMessageRow,
   EdielTestRunRow,
 } from '@/lib/ediel/types'
@@ -85,8 +86,11 @@ function upper(value?: string | null): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
-function parseAgtActorNotes(notes?: string | null): { balanceResponsibleEdielId: string | null } {
-  const text = trimOrNull(notes)
+function parseAgtActorNotes(actor?: Pick<EdielActorSettingsRow, 'notes' | 'brp_ediel_id'> | null): { balanceResponsibleEdielId: string | null } {
+  const directBrp = trimOrNull(actor?.brp_ediel_id)?.toUpperCase() ?? null
+  if (directBrp) return { balanceResponsibleEdielId: directBrp }
+
+  const text = trimOrNull(actor?.notes)
   if (!text) return { balanceResponsibleEdielId: null }
 
   try {
@@ -162,11 +166,11 @@ async function resolveAgtActorRuntime(params?: {
   const explicitActorEdielId = trimOrNull(params?.actorEdielId)
   const explicitActorName = trimOrNull(params?.actorName)
   const [actor, agtRuntime] = await Promise.all([
-    resolveCanonicalActorContext('test').catch(() => null),
+    resolveCanonicalActorContext('test', params?.companyId ?? null).catch(() => null),
     getEdielAgtSupplierRuntime(params?.companyId ?? null).catch(() => null),
   ])
   const activeActor = agtRuntime?.actor ?? actor?.actor ?? null
-  const agtNotes = parseAgtActorNotes(activeActor?.notes ?? null)
+  const agtNotes = parseAgtActorNotes(activeActor)
 
   const actorEdielId = explicitActorEdielId ?? activeActor?.actor_ediel_id ?? actor?.senderEdielId ?? ''
   const actorName = explicitActorName ?? activeActor?.sender_name ?? activeActor?.actor_name ?? actor?.senderName ?? 'Leverantör'

@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { updateEdielTestRunStatus } from '@/lib/ediel/db'
@@ -243,6 +244,128 @@ export async function syncActorTestsAction(formData: FormData) {
   revalidateActorTestingViews(companyId)
 }
 
+function normalizeActorNotes(input: string | null | undefined, brpEdielId: string | null): string | null {
+  const cleanBrp = brpEdielId?.trim() || null
+  let base: Record<string, unknown> = {}
+
+  if (input?.trim()) {
+    try {
+      const parsed = JSON.parse(input) as unknown
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        base = parsed as Record<string, unknown>
+      } else {
+        base = { legacyNotes: input }
+      }
+    } catch {
+      base = { legacyNotes: input }
+    }
+  }
+
+  if (cleanBrp) {
+    base.balanceResponsibleEdielId = cleanBrp.toUpperCase()
+    base.brpEdielId = cleanBrp.toUpperCase()
+  }
+
+  base.updatedAt = new Date().toISOString()
+  return Object.keys(base).length > 0 ? JSON.stringify(base) : null
+}
+
+async function syncActorProfileRuntime(input: {
+  companyId: string
+  actorUserId: string
+  environment: 'test' | 'production'
+  actorName: string
+  actorRole: string | null
+  actorEdielId: string | null
+  senderSubAddress: string | null
+  applicationReference: string | null
+  mailbox: string | null
+  brpName: string | null
+  brpEdielId: string | null
+  brpStatus: string | null
+  esettStatus: string | null
+  smtpFromEmail: string | null
+}) {
+  const now = new Date().toISOString()
+  const allowedActorRoles = new Set(['supplier', 'grid_owner', 'balance_responsible', 'service_provider'])
+  const requestedActorRole = input.actorRole?.trim() || 'supplier'
+  const actorRole = allowedActorRoles.has(requestedActorRole) ? requestedActorRole : 'supplier'
+  const actorEdielId = input.actorEdielId?.trim() || null
+
+  if (!actorEdielId) return
+
+  const { data: existing, error: existingError } = await supabaseService
+    .from('ediel_actor_settings')
+    .select('id,notes')
+    .eq('company_id', input.companyId)
+    .eq('environment', input.environment)
+    .eq('actor_role', actorRole)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+
+  const payload = {
+    company_id: input.companyId,
+    actor_name: input.actorName,
+    sender_name: input.actorName,
+    actor_role: actorRole,
+    actor_ediel_id: actorEdielId,
+    environment: input.environment,
+    is_active: true,
+    sender_sub_address: input.senderSubAddress,
+    default_application_reference: input.applicationReference,
+    mailbox: input.mailbox,
+    default_charset: 'UNOC',
+    default_timezone: 1,
+    default_test_flag: input.environment === 'production' ? 0 : 1,
+    smtp_from_email: input.smtpFromEmail,
+    smtp_reply_to_email: input.smtpFromEmail,
+    brp_name: input.brpName,
+    brp_ediel_id: input.brpEdielId?.toUpperCase() ?? null,
+    brp_status: input.brpStatus ?? 'missing',
+    esett_status: input.esettStatus ?? 'missing',
+    notes: normalizeActorNotes((existing as { notes?: string | null } | null)?.notes ?? null, input.brpEdielId),
+    updated_by: input.actorUserId,
+    updated_at: now,
+  }
+
+  if (existing?.id) {
+    const { error } = await supabaseService
+      .from('ediel_actor_settings')
+      .update(payload)
+      .eq('id', existing.id)
+    if (error) throw error
+    return
+  }
+
+  const { error } = await supabaseService
+    .from('ediel_actor_settings')
+    .insert({
+      ...payload,
+      created_by: input.actorUserId,
+      created_at: now,
+    })
+
+  if (error) throw error
+}
+
+function readReturnPath(formData: FormData, companyId: string): string {
+  const requested = String(formData.get('redirect_to') ?? '').trim()
+  if (requested.startsWith('/admin/platform/go-live/') || requested.startsWith('/admin/platform/actor-testing/') || requested.startsWith('/admin/whitelabel/actor-testing/') || requested === '/admin/company-actor-status') {
+    return requested
+  }
+
+  return `/admin/platform/go-live/${companyId}`
+}
+
+function goLiveRedirect(companyId: string, status: 'blocked' | 'error' | 'prepared' | 'live', message: string, returnPath?: string): never {
+  const params = new URLSearchParams({ status, message })
+  const target = returnPath && returnPath.trim().startsWith('/admin/') ? returnPath.trim() : `/admin/platform/go-live/${companyId}`
+  redirect(`${target}?${params.toString()}`)
+}
+
 export async function saveActorProfileAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
   const admin = await requireActorTestingWriteAccess(companyId)
@@ -283,14 +406,57 @@ export async function saveActorProfileAction(formData: FormData) {
 
   if (error) throw error
 
+  const companyName = read('company_name') ?? 'Aktör'
+  const brpName = read('brp_name')
+  const brpEdielId = read('brp_ediel_id')
+  const brpStatus = read('brp_status') ?? 'missing'
+  const esettStatus = read('esett_status') ?? 'missing'
+  const smtpFromEmail = read('smtp_from_email') ?? 'ediel@gridex.se'
+
+  await Promise.all([
+    syncActorProfileRuntime({
+      companyId,
+      actorUserId: admin.userId,
+      environment: 'test',
+      actorName: companyName,
+      actorRole: read('actor_role'),
+      actorEdielId: read('test_ediel_id') ?? read('ediel_id'),
+      senderSubAddress: read('test_sender_sub_address'),
+      applicationReference: read('test_application_reference'),
+      mailbox: read('test_mailbox'),
+      brpName,
+      brpEdielId,
+      brpStatus,
+      esettStatus,
+      smtpFromEmail,
+    }),
+    syncActorProfileRuntime({
+      companyId,
+      actorUserId: admin.userId,
+      environment: 'production',
+      actorName: companyName,
+      actorRole: read('actor_role'),
+      actorEdielId: read('production_ediel_id') ?? read('ediel_id'),
+      senderSubAddress: read('production_sender_sub_address'),
+      applicationReference: read('production_application_reference'),
+      mailbox: read('production_mailbox'),
+      brpName,
+      brpEdielId,
+      brpStatus,
+      esettStatus,
+      smtpFromEmail,
+    }),
+  ])
+
   await logTenantGovernanceEvent({
     action: 'SUPERADMIN_COMPANY_REACTIVATED',
     actorUserId: admin.userId,
     companyId,
-    reason: 'Aktörsprofil uppdaterad inför aktörstest/produktion.',
+    reason: 'Aktörsprofil och Ediel-runtime uppdaterades inför aktörstest/produktion.',
     metadata: {
       actorTesting: true,
-      action: 'ACTOR_PROFILE_UPDATED',
+      action: 'ACTOR_PROFILE_AND_RUNTIME_UPDATED',
+      brpEdielId,
     },
   })
 
@@ -300,6 +466,7 @@ export async function saveActorProfileAction(formData: FormData) {
 export async function prepareProductionAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
   const admin = await requireActorTestingWriteAccess(companyId)
+  const returnPath = readReturnPath(formData, companyId)
   const summary = await getActorTestingSummary(companyId)
   if (!summary) throw new Error('Bolaget hittades inte.')
 
@@ -345,28 +512,51 @@ export async function prepareProductionAction(formData: FormData) {
   })
 
   revalidateActorTestingViews(companyId)
+  goLiveRedirect(
+    companyId,
+    status === 'production_prepared' ? 'prepared' : 'blocked',
+    status === 'production_prepared' ? 'Produktionsförberedelse klar. Slutlig live-aktivering kräver separat bekräftelse.' : `Produktionsförberedelsen är blockerad: ${reason ?? 'Kontrollera blockerlistan.'}`,
+    returnPath
+  )
 }
 
 export async function activateLiveEdielAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
   const confirmation = String(formData.get('confirmation') ?? '').trim()
   const admin = await requirePlatformAdminActionAccess()
+  const returnPath = readReturnPath(formData, companyId)
 
-  if (confirmation !== 'Jag bekräftar') {
-    throw new Error('Skriv exakt “Jag bekräftar” för att aktivera live Ediel.')
+  if (confirmation.toLocaleLowerCase('sv-SE') !== 'jag bekräftar') {
+    goLiveRedirect(companyId, 'error', 'Skriv “Jag bekräftar” för att aktivera live Ediel.', returnPath)
   }
 
   const summary = await getActorTestingSummary(companyId)
-  if (!summary) throw new Error('Bolaget hittades inte.')
+  if (!summary) {
+    goLiveRedirect(companyId, 'error', 'Bolaget hittades inte.', returnPath)
+  }
 
   if (summary.goLiveBlockers.length > 0) {
     const reason = summary.goLiveBlockers.join(' · ')
+    const now = new Date().toISOString()
     await supabaseService
       .from('companies')
-      .update({ production_status: 'blocked', live_ediel_enabled: false, live_blocked_reason: reason, updated_at: new Date().toISOString() })
+      .update({ production_status: 'blocked', live_ediel_enabled: false, live_blocked_reason: reason, updated_at: now })
       .eq('id', companyId)
+
+    try {
+      await supabaseService.from('company_go_live_reviews').insert({
+        company_id: companyId,
+        status: 'blocked',
+        blocker_summary: summary.goLiveBlockers,
+        reviewed_by: admin.userId,
+        metadata: { source: 'activateLiveEdielAction', blockedAt: now },
+      })
+    } catch (reviewError) {
+      console.warn('Could not store blocked live activation review', reviewError)
+    }
+
     revalidateActorTestingViews(companyId)
-    throw new Error(`Live är blockerat: ${reason}`)
+    goLiveRedirect(companyId, 'blocked', `Live är blockerat: ${reason}`, returnPath)
   }
 
   const now = new Date().toISOString()
@@ -414,4 +604,5 @@ export async function activateLiveEdielAction(formData: FormData) {
   })
 
   revalidateActorTestingViews(companyId)
+  goLiveRedirect(companyId, 'live', 'Live Ediel aktiverades.', returnPath)
 }

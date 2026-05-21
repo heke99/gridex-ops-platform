@@ -159,7 +159,7 @@ export function ActorCompanyIdentityCard({ summary }: { summary: ActorTestingSum
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
           <h3 className="font-semibold text-slate-950">Produktionssättning</h3>
-          <p className="mt-2 text-sm text-slate-700">BRP: {c.brp_status ?? '–'} · Routes: {summary.hasProductionRoute ? 'Klara' : 'Saknas'} · Mailbox: {summary.hasVerifiedMailbox ? 'Verifierad' : 'Saknas'}</p>
+          <p className="mt-2 text-sm text-slate-700">BRP: {c.brp_status ?? '–'} · Produktionsaktör: {summary.hasProductionActorProfile ? 'Aktiv' : 'Saknas'} · Routes: {summary.hasProductionRoute ? 'Klara' : 'Saknas'} · Mailbox: {summary.hasVerifiedMailbox ? 'Verifierad' : 'Saknas'}</p>
           <p className="mt-1 text-sm text-slate-700">Live-status: {c.live_ediel_enabled ? 'Aktiverad' : 'Ej aktiverad'}</p>
         </div>
       </div>
@@ -283,10 +283,11 @@ export function ActorProfileGuide({ summary }: { summary: ActorTestingSummary })
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
         <h2 className="text-lg font-semibold text-slate-950">Aktörsprofil och test-/produktionsmiljö</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-700">Fyll i tenantens egna identiteter. Dessa värden används av AGT-motorn och go-live-spärrarna, inte Div3rsa eller global testdata.</p>
+        <p className="mt-1 text-sm leading-6 text-slate-700">Fyll i tenantens egna identiteter. BRP Ediel-id sparas både på bolaget och aktörsprofilen och används som NAD+Z02 i relevanta PRODAT-flöden. Dessa värden används av AGT-motorn och go-live-spärrarna, inte Div3rsa eller global testdata.</p>
       </div>
       <form action={saveActorProfileAction} className="mt-5 grid gap-4">
         <input type="hidden" name="company_id" value={c.id} />
+        <input type="hidden" name="company_name" value={c.name} />
         <div className="grid gap-3 md:grid-cols-3">
           <TextInput label="Orgnummer" name="org_number" value={c.org_number} />
           <TextInput label="Marknadsroll" name="market_role" value={c.market_role ?? c.actor_role} />
@@ -315,7 +316,7 @@ export function ActorProfileGuide({ summary }: { summary: ActorTestingSummary })
         </div>
         <div className="grid gap-3 md:grid-cols-4">
           <TextInput label="BRP namn" name="brp_name" value={c.brp_name} />
-          <TextInput label="BRP Ediel-id" name="brp_ediel_id" value={c.brp_ediel_id} />
+          <TextInput label="BRP Ediel-id / balansansvarig" name="brp_ediel_id" value={c.brp_ediel_id} />
           <SelectInput label="BRP-status" name="brp_status" value={c.brp_status} options={[['missing', 'Saknas'], ['pending', 'Väntar'], ['active', 'Aktiv']]} />
           <SelectInput label="eSett-status" name="esett_status" value={c.esett_status} options={[['missing', 'Saknas'], ['pending', 'Väntar'], ['ready', 'Klar']]} />
         </div>
@@ -353,16 +354,26 @@ function SelectInput({ label, name, value, options }: { label: string; name: str
   )
 }
 
-export function GoLiveChecklist({ summary, canActivateLive }: { summary: ActorTestingSummary; canActivateLive: boolean }) {
+export function GoLiveChecklist({
+  summary,
+  canActivateLive,
+  returnPath,
+}: {
+  summary: ActorTestingSummary
+  canActivateLive: boolean
+  returnPath?: string
+}) {
   const c = summary.company
+  const redirectPath = returnPath ?? `/admin/platform/go-live/${summary.company.id}`
   const checks = [
     { label: 'Bolagsprofil komplett', ok: Boolean(c.name && c.org_number) },
     { label: 'Orgnummer verifierat', ok: Boolean(c.org_number) },
     { label: 'Ediel-id registrerat', ok: Boolean(c.production_ediel_id ?? c.ediel_id) },
     { label: 'Marknadsroll vald', ok: Boolean(c.market_role ?? c.actor_role) },
-    { label: 'BRP registrerad', ok: Boolean(c.brp_ediel_id ?? c.brp_name) },
+    { label: 'BRP Ediel-id registrerat', ok: Boolean(c.brp_ediel_id) },
     { label: 'BRP aktiv', ok: String(c.brp_status ?? '').toLowerCase() === 'active' },
     { label: 'eSett-status klar', ok: String(c.esett_status ?? '').toLowerCase() === 'ready' },
+    { label: 'Produktionsaktör aktiv', ok: summary.hasProductionActorProfile },
     { label: 'Produktionsroutes skapade', ok: summary.hasProductionRoute },
     { label: 'Test-routes separerade från produktionsroutes', ok: Boolean(c.production_application_reference && c.test_application_reference !== c.production_application_reference) },
     { label: 'Mailbox/SMTP verifierad', ok: summary.hasVerifiedMailbox },
@@ -380,6 +391,7 @@ export function GoLiveChecklist({ summary, canActivateLive }: { summary: ActorTe
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Go-live checklista</h2>
           <p className="mt-1 text-sm leading-6 text-slate-700">Live aktiveras aldrig automatiskt. Superadmin måste göra sista bekräftelsen.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-700">Historiska externa godkännanden är endast evidens. Bolaget måste vara verifierat i aktuell Gridex-runtime via actor_test_results innan live kan aktiveras.</p>
         </div>
         <Badge tone={statusTone(summary.productionReadiness)}>{getProductionReadinessLabel(summary.productionReadiness)}</Badge>
       </div>
@@ -413,6 +425,7 @@ export function GoLiveChecklist({ summary, canActivateLive }: { summary: ActorTe
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <form action={prepareProductionAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <input type="hidden" name="company_id" value={summary.company.id} />
+          <input type="hidden" name="redirect_to" value={redirectPath} />
           <h3 className="font-semibold text-slate-950">Förbered produktion</h3>
           <p className="mt-2 text-sm leading-6 text-slate-700">White-label admin kan förbereda status. Om något saknas sätts bolaget som blockerat med tydlig orsak.</p>
           <button className="mt-4 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Kontrollera och förbered</button>
@@ -421,13 +434,14 @@ export function GoLiveChecklist({ summary, canActivateLive }: { summary: ActorTe
         {canActivateLive ? (
           <form action={activateLiveEdielAction} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
             <input type="hidden" name="company_id" value={summary.company.id} />
+            <input type="hidden" name="redirect_to" value={redirectPath} />
             <h3 className="font-semibold text-emerald-950">Aktivera live Ediel</h3>
-            <p className="mt-2 text-sm leading-6 text-emerald-800">Du är på väg att aktivera riktiga marknadsmeddelanden för {summary.company.name}. Kontrollera Ediel-id, BRP, routes och produktionsmailbox.</p>
+            <p className="mt-2 text-sm leading-6 text-emerald-800">Du är på väg att aktivera riktiga marknadsmeddelanden för {summary.company.name}. Kontrollera Ediel-id, BRP Ediel-id, routes, actor_test_results och produktionsmailbox.</p>
             <label className="mt-4 grid gap-1 text-xs font-semibold text-emerald-900">
               Bekräftelse: skriv “Jag bekräftar”
               <input name="confirmation" className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm text-slate-900" />
             </label>
-            <button className="mt-4 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">Aktivera live Ediel</button>
+            <button disabled={summary.goLiveBlockers.length > 0} className="mt-4 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400">{summary.goLiveBlockers.length > 0 ? 'Live blockerat – åtgärda spärrar först' : 'Aktivera live Ediel'}</button>
           </form>
         ) : (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">

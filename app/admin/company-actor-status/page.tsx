@@ -21,7 +21,7 @@ export default async function CompanyActorStatusPage() {
           <>
             <ActorCompanyIdentityCard summary={summary} />
             <ActorTestPackageCards summary={summary} readonly />
-            <GoLiveChecklist summary={summary} canActivateLive={false} />
+            <GoLiveChecklist summary={summary} canActivateLive={false} returnPath="/admin/company-actor-status" />
           </>
         )}
       </div>

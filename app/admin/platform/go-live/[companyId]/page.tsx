@@ -7,9 +7,10 @@ import { ActorCompanyIdentityCard,
 
 export const dynamic = 'force-dynamic'
 
-export default async function PlatformGoLiveCompanyPage({ params }: { params: Promise<{ companyId: string }> }) {
+export default async function PlatformGoLiveCompanyPage({ params, searchParams }: { params: Promise<{ companyId: string }>; searchParams?: Promise<{ status?: string; message?: string }> }) {
   const admin = await requirePlatformAdminAccess()
   const { companyId } = await params
+  const notice = searchParams ? await searchParams : {}
   const summary = await getActorTestingSummary(companyId)
 
   if (!summary) {
@@ -24,9 +25,14 @@ export default async function PlatformGoLiveCompanyPage({ params }: { params: Pr
           <Link href="/admin/platform/go-live" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Alla go-live</Link>
           <Link href={`/admin/platform/actor-testing/${summary.company.id}`} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Aktörstester</Link>
         </div>
+        {notice?.message ? (
+          <div className={`rounded-3xl border p-5 text-sm font-semibold ${notice.status === 'live' || notice.status === 'prepared' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : notice.status === 'blocked' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
+            {notice.message}
+          </div>
+        ) : null}
         <ActorCompanyIdentityCard summary={summary} />
         <ActorProfileGuide summary={summary} />
-        <GoLiveChecklist summary={summary} canActivateLive />
+        <GoLiveChecklist summary={summary} canActivateLive returnPath={`/admin/platform/go-live/${summary.company.id}`} />
         <EvidencePackage summary={summary} />
       </div>
     </div>

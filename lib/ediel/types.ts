@@ -341,6 +341,12 @@ export type EdielActorSettingsRow = {
   smtp_from_email: string | null
   smtp_reply_to_email: string | null
   mailbox: string | null
+  brp_name?: string | null
+  brp_ediel_id?: string | null
+  brp_status?: string | null
+  esett_status?: string | null
+  valid_from?: string | null
+  valid_to?: string | null
   notes: string | null
   created_at: string
   updated_at: string

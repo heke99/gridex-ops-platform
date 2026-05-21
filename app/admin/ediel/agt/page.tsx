@@ -154,7 +154,7 @@ export default async function EdielAgtPage() {
 
  const errorCount = runtime.issues.filter((issue) => issue.severity === 'error').length
  const warningCount = runtime.issues.filter((issue) => issue.severity === 'warning').length
- const agtActorNotes = parseAgtActorNotes(runtime.actor?.notes)
+ const agtActorNotes = { balanceResponsibleEdielId: runtime.actor?.brp_ediel_id ?? parseAgtActorNotes(runtime.actor?.notes).balanceResponsibleEdielId }
 
  return (
  <div className="space-y-6">
