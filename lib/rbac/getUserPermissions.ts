@@ -1,6 +1,83 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { ROLE_PERMISSION_PROFILES } from '@/lib/admin/accessModel'
 
+
+
+type UserRoleRpcRow = {
+  role_key?: string | null
+  key?: string | null
+  code?: string | null
+}
+
+type CompanyMembershipPermissionRow = {
+  membership_role?: string | null
+  status?: string | null
+}
+
+const MEMBERSHIP_ROLE_PERMISSION_PROFILE: Record<string, string> = {
+  owner: 'company_admin',
+  admin: 'company_admin',
+  company_admin: 'company_admin',
+  operations: 'operations_manager',
+  operations_manager: 'operations_manager',
+  operations_agent: 'operations_agent',
+  support: 'customer_service_agent',
+  customer_service: 'customer_service_agent',
+  customer_service_agent: 'customer_service_agent',
+  finance: 'finance_readonly',
+  finance_readonly: 'finance_readonly',
+  viewer: 'executive_readonly',
+  member: 'customer_service_agent',
+  company_owner: 'company_admin',
+  tenant_admin: 'company_admin',
+  bolagsansvarig: 'company_admin',
+  kundservice: 'customer_service_agent',
+  ekonomi: 'finance_readonly',
+}
+
+function addRoleProfilePermissions(target: Set<string>, roleKey: string | null | undefined) {
+  if (!roleKey) return
+  const normalized = roleKey.trim()
+  const profileKey = ROLE_PERMISSION_PROFILES[normalized]
+    ? normalized
+    : MEMBERSHIP_ROLE_PERMISSION_PROFILE[normalized]
+
+  const profile = profileKey ? ROLE_PERMISSION_PROFILES[profileKey] : null
+  if (!profile) return
+
+  for (const permission of profile.permissions) {
+    target.add(permission)
+  }
+}
+
+async function addRoleFallbackPermissions(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  target: Set<string>
+) {
+  const { data: roleRows, error: rolesError } = await supabase.rpc('gridex_get_user_roles', {
+    p_user_id: userId,
+  })
+
+  if (!rolesError && Array.isArray(roleRows)) {
+    for (const row of roleRows as UserRoleRpcRow[]) {
+      addRoleProfilePermissions(target, row.role_key ?? row.key ?? row.code)
+    }
+  }
+
+  const { data: memberships, error: membershipsError } = await supabase
+    .from('company_memberships')
+    .select('membership_role, status')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+
+  if (!membershipsError && Array.isArray(memberships)) {
+    for (const membership of memberships as CompanyMembershipPermissionRow[]) {
+      addRoleProfilePermissions(target, membership.membership_role)
+    }
+  }
+}
+
 type OverrideRow =
   | {
       permission_key?: string | null
@@ -20,10 +97,6 @@ type PermissionRpcRow =
   | {
       gridex_get_user_permissions?: string[] | null
     }
-
-type UserRoleRpcRow = {
-  role_key?: string | null
-}
 
 function normalizePermissionRows(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -76,40 +149,23 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
     { p_user_id: userId }
   )
 
-  if (permissionsError) throw permissionsError
-
-  const { data: roleRows, error: rolesError } = await supabase.rpc(
-    'gridex_get_user_roles',
-    { p_user_id: userId }
-  )
-
-  if (rolesError) throw rolesError
+  const basePermissionRows = permissionsError ? [] : permissionRows
 
   const { data: overrideRows, error: overridesError } = await supabase.rpc(
     'gridex_get_user_permission_overrides',
     { p_user_id: userId }
   )
 
-  if (overridesError) throw overridesError
+  const safeOverrideRows = overridesError ? [] : overrideRows
 
-  const allowed = new Set(normalizePermissionRows(permissionRows))
+  const allowed = new Set(normalizePermissionRows(basePermissionRows))
 
-  // Defensive RBAC fallback: the database remains source of truth, but older tenants
-  // can have roles created before role_permissions were fully backfilled. Merge the
-  // code-level role profile first, then apply explicit allow/deny overrides below.
-  for (const row of ((roleRows as UserRoleRpcRow[] | null) ?? [])) {
-    const roleKey = row.role_key
-    if (!roleKey) continue
+  // DB permissions are the source of truth, but older tenants can miss role_permission rows
+  // after schema repairs. Use the coded role profiles as a safe allow-fallback, then apply
+  // explicit user overrides below so deny still wins.
+  await addRoleFallbackPermissions(supabase, userId, allowed)
 
-    const profile = ROLE_PERMISSION_PROFILES[roleKey]
-    if (!profile) continue
-
-    for (const permission of profile.permissions) {
-      allowed.add(permission)
-    }
-  }
-
-  for (const row of ((overrideRows as OverrideRow[] | null) ?? [])) {
+  for (const row of ((safeOverrideRows as OverrideRow[] | null) ?? [])) {
     const permissionKey = normalizeOverridePermissionKey(row)
     const effect = row.effect
 

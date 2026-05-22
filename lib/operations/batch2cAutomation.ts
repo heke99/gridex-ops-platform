@@ -80,7 +80,8 @@ export function isMissingRelationError(error: unknown): boolean {
       (maybe.code === '42P01' ||
         maybe.code === '42703' ||
         maybe.code === 'PGRST205' ||
-        /does not exist|schema cache|relation .* does not exist/i.test(maybe.message ?? ''))
+        maybe.code === 'PGRST204' ||
+        /does not exist|schema cache|relation .* does not exist|could not find/i.test(maybe.message ?? ''))
   )
 }
 

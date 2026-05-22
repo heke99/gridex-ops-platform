@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { isPlatformAdminContext, type GuardResult } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 
 export type TenantLiveAccess = {
   companyId: string | null
@@ -56,7 +56,23 @@ export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'user
     .eq('id', scope.companyId)
     .maybeSingle()
 
-  if (error) throw error
+  if (error) {
+    if (isMissingRelationError(error)) {
+      return {
+        companyId: scope.companyId,
+        companyName: scope.companyName,
+        canUseLiveEdiel: false,
+        isLiveApproved: false,
+        productionStatus: null,
+        liveApprovedAt: null,
+        liveBlockedReason: null,
+        message:
+          'Live Ediel-status kunde inte läsas från bolagstabellen. Kör senaste Supabase-migrationerna eller låt superadmin kontrollera bolagsprofilen.',
+      }
+    }
+
+    throw error
+  }
   const row = data as {
     id: string
     name: string | null

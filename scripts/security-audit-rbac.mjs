@@ -69,13 +69,13 @@ mustContain('app/admin/platform/ediel/versions/page.tsx', 'requirePlatformAdminA
 mustContain('app/admin/platform/ediel/routes/page.tsx', 'requirePlatformAdminAccess')
 
 const reviewedServiceClientFiles = new Set([
+  'app/admin/audit/page.tsx',
   'app/admin/billing/import/actions.ts',
   'app/admin/billing/import/page.tsx',
   'app/admin/customers/duplicates/actions.ts',
   'app/admin/platform/actor-testing/actions.ts',
   'app/admin/platform/go-live/[companyId]/route-wizard/actions.ts',
   'app/admin/platform/go-live/[companyId]/route-wizard/page.tsx',
-  'app/admin/audit/page.tsx',
   'app/admin/cis/actions.ts',
   'app/admin/companies/actions.ts',
   'app/admin/company-settings/actions.ts',

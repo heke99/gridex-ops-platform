@@ -74,6 +74,19 @@ export async function middleware(request: NextRequest) {
 
   const { pathname, search } = request.nextUrl
 
+  if (pathname.startsWith('/admin/admin/')) {
+    const redirectUrl = new URL(pathname.replace(/^\/admin\/admin/, '/admin') + search, request.url)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  if (pathname === '/admin/control-tower') {
+    return NextResponse.redirect(new URL(`/admin/controltower${search}`, request.url))
+  }
+
+  if (pathname === '/admin/ediel/controltower') {
+    return NextResponse.redirect(new URL(`/admin/ediel/control-tower${search}`, request.url))
+  }
+
   if (!user && isProtectedPath(pathname)) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('next', `${pathname}${search}`)
