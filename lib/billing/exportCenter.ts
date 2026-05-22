@@ -17,6 +17,12 @@ import {
   listPricingComponentRules,
 } from "@/lib/billing/pricingEngine";
 import { buildXlsxWorkbook } from "@/lib/billing/xlsx";
+import {
+  GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
+  GRIDEX_BILLING_PARTNER_PAYLOAD_VERSION,
+  buildBillingPartnerPayload,
+  buildBillingPartnerPayloadRow,
+} from "@/lib/billing/partnerAdapter";
 import type { CustomerContractRow } from "@/lib/customer-contracts/types";
 import { createCustomerCase } from "@/lib/customer-cases/db";
 
@@ -34,6 +40,13 @@ export type BillingExportRunRow = {
   blocker_summary: Array<Record<string, unknown>>;
   created_at: string;
   created_by: string | null;
+  updated_at?: string | null;
+  metadata?: Record<string, unknown> | null;
+  adapter_key?: string | null;
+  payload_version?: string | null;
+  retry_policy?: Record<string, unknown> | null;
+  partner_response_log?: Array<Record<string, unknown>> | null;
+  last_partner_response_at?: string | null;
 };
 
 export type BillingExportCenterData = {
@@ -299,6 +312,7 @@ export async function createBillingExportRun(input: {
       : [];
     const blockerReasons = [...(result?.issues ?? []), ...pricingWarnings, ...missingContractIssue];
     const invoiceSnapshot = buildInvoiceSnapshot({ underlay, contract });
+    const itemIdempotencySeed = `billing:${input.companyId}:${underlay.id}:${input.periodMonth}`;
 
     return {
       company_id: input.companyId,
@@ -319,6 +333,11 @@ export async function createBillingExportRun(input: {
       invoice_address_snapshot: invoiceSnapshot.invoiceAddress,
       site_address_snapshot: invoiceSnapshot.siteAddress,
       consolidated_invoice_group_key: invoiceSnapshot.groupKey,
+      adapter_key: GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
+      payload_version: "billing_export_item_v4c",
+      idempotency_key: itemIdempotencySeed,
+      external_reference: `BILLING-${input.periodMonth}-${underlay.id.slice(0, 8).toUpperCase()}`,
+      adapter_payload_snapshot: {},
       payload_snapshot: {
         underlay,
         contract,
@@ -326,7 +345,7 @@ export async function createBillingExportRun(input: {
         pricing,
         invoice: invoiceSnapshot,
         exportContract: {
-          version: "billing_export_v3_multisite_invoice_address",
+          version: "billing_export_v4c_partner_adapter",
           periodMonth: input.periodMonth,
           targetSystem: input.targetSystem,
           exportFormat: input.exportFormat,
@@ -359,6 +378,10 @@ export async function createBillingExportRun(input: {
       rows_exported: 0,
       blocker_summary: blockerSummary,
       created_by: input.actorUserId,
+      adapter_key: GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
+      payload_version: "billing_export_v4c",
+      retry_policy: { maxAttempts: 3, strategy: "manual_retry" },
+      metadata: { pricingRules: pricingRules.length, partnerAdapter: GRIDEX_BILLING_PARTNER_ADAPTER_KEY },
     })
     .select("*")
     .single();
@@ -375,11 +398,24 @@ export async function createBillingExportRun(input: {
 
     if (itemError) throw itemError;
 
+    const insertedRows = (insertedItems ?? []) as BillingExportRunItemRow[];
+    for (const item of insertedRows) {
+      const adapterPayload = buildBillingPartnerPayloadRow({
+        run: run as BillingExportRunRow,
+        item,
+      });
+      await supabaseService
+        .from("billing_export_run_items")
+        .update({ adapter_payload_snapshot: adapterPayload })
+        .eq("company_id", input.companyId)
+        .eq("id", item.id);
+    }
+
     await createBlockedBillingCasesForItems({
       companyId: input.companyId,
       actorUserId: input.actorUserId,
       exportRunId: run.id,
-      items: (insertedItems ?? []) as BillingExportRunItemRow[],
+      items: insertedRows,
     });
   }
 
@@ -459,8 +495,11 @@ export async function queueReadyBillingExportRunItems(input: {
         ),
         exportBatchKey: input.exportRunId,
         externalReference: `BILLING-${input.exportRunId.slice(0, 8).toUpperCase()}-${queued + 1}`,
+        idempotencyKey,
+        adapterKey: item.adapter_key ?? GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
+        payloadVersion: item.payload_version ?? "partner_export_v4c",
         payload: {
-          idempotencyKey,
+          adapterPayload: buildBillingPartnerPayloadRow({ run: run as BillingExportRunRow, item }),
           exportRunId: input.exportRunId,
           exportRunItemId: item.id,
           ...(item.payload_snapshot ?? {}),
@@ -474,6 +513,7 @@ export async function queueReadyBillingExportRunItems(input: {
           partner_export_id: partnerExport.id,
           idempotency_key: idempotencyKey,
           queued_at: now,
+          external_reference: partnerExport.external_reference ?? item.external_reference ?? null,
           failed_at: null,
           last_error: null,
           updated_at: now,
@@ -552,6 +592,12 @@ export type BillingExportRunItemRow = {
   invoice_address_snapshot?: Record<string, unknown> | null;
   site_address_snapshot?: Record<string, unknown> | null;
   consolidated_invoice_group_key?: string | null;
+  adapter_key?: string | null;
+  payload_version?: string | null;
+  adapter_payload_snapshot?: Record<string, unknown> | null;
+  external_reference?: string | null;
+  partner_response_log?: Array<Record<string, unknown>> | null;
+  last_partner_response_at?: string | null;
   payload_snapshot: Record<string, unknown>;
   export_status?: string | null;
   partner_export_id?: string | null;
@@ -563,6 +609,7 @@ export type BillingExportRunItemRow = {
   retry_count?: number | null;
   last_error?: string | null;
   blocker_case_id?: string | null;
+  sent_by?: string | null;
   created_at: string;
 };
 
@@ -604,6 +651,10 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
       : {};
   return {
     export_run_item_id: item.id,
+    idempotency_key: item.idempotency_key ?? null,
+    payload_version: item.payload_version ?? GRIDEX_BILLING_PARTNER_PAYLOAD_VERSION,
+    adapter_key: item.adapter_key ?? GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
+    external_reference: item.external_reference ?? null,
     billing_underlay_id: item.billing_underlay_id,
     contract_id: item.contract_id ?? null,
     customer_id: item.customer_id,
@@ -679,6 +730,10 @@ export function buildBillingExportFile(params: {
   if (format === "csv") {
     const headers = [
       "export_run_item_id",
+      "idempotency_key",
+      "payload_version",
+      "adapter_key",
+      "external_reference",
       "billing_underlay_id",
       "contract_id",
       "customer_id",
@@ -721,6 +776,10 @@ export function buildBillingExportFile(params: {
   if (format === "excel" || format === "xlsx") {
     const headers = [
       "export_run_item_id",
+      "idempotency_key",
+      "payload_version",
+      "adapter_key",
+      "external_reference",
       "billing_underlay_id",
       "contract_id",
       "customer_id",
@@ -825,6 +884,8 @@ export async function sendBillingExportRunToPartnerApi(input: {
         status: "failed",
         rows_exported: 0,
         blocker_summary: [...(run.blocker_summary ?? []), responsePayload],
+        partner_response_log: [responsePayload],
+        last_partner_response_at: now,
         updated_at: now,
       })
       .eq("company_id", input.companyId)
@@ -847,14 +908,7 @@ export async function sendBillingExportRunToPartnerApi(input: {
     return { sent: false, status: "failed", endpoint: null, responsePayload };
   }
 
-  const payload = {
-    exportRun: run,
-    rows: readyItems.map((item) => ({
-      idempotencyKey:
-        item.idempotency_key || `billing-export-run-item:${item.id}`,
-      ...exportRowFromItem(item),
-    })),
-  };
+  const payload = buildBillingPartnerPayload({ run, items: readyItems });
 
   try {
     const response = await fetch(endpoint, {
@@ -876,10 +930,13 @@ export async function sendBillingExportRunToPartnerApi(input: {
         status: response.ok ? "sent" : "failed",
         rows_exported: response.ok ? readyItems.length : 0,
         metadata: {
+          ...((run as { metadata?: Record<string, unknown> }).metadata ?? {}),
           partnerApi: responsePayload,
           sentAt: now,
           rowCount: readyItems.length,
         },
+        partner_response_log: [...(run.partner_response_log ?? []), responsePayload].slice(-20),
+        last_partner_response_at: now,
         updated_at: now,
       })
       .eq("company_id", input.companyId)
@@ -894,6 +951,9 @@ export async function sendBillingExportRunToPartnerApi(input: {
         last_error: response.ok
           ? null
           : `Partner-API svarade ${response.status}`,
+        partner_response_log: [responsePayload],
+        last_partner_response_at: now,
+        sent_by: input.actorUserId,
         updated_at: now,
       })
       .eq("company_id", input.companyId)
@@ -915,7 +975,13 @@ export async function sendBillingExportRunToPartnerApi(input: {
       .from("billing_export_runs")
       .update({
         status: "failed",
-        metadata: { partnerApi: responsePayload, failedAt: now },
+        metadata: {
+          ...((run as { metadata?: Record<string, unknown> }).metadata ?? {}),
+          partnerApi: responsePayload,
+          failedAt: now,
+        },
+        partner_response_log: [...(run.partner_response_log ?? []), responsePayload].slice(-20),
+        last_partner_response_at: now,
         updated_at: now,
       })
       .eq("company_id", input.companyId)
@@ -927,6 +993,8 @@ export async function sendBillingExportRunToPartnerApi(input: {
         export_status: "failed",
         failed_at: now,
         last_error: responsePayload.error,
+        partner_response_log: [responsePayload],
+        last_partner_response_at: now,
         updated_at: now,
       })
       .eq("company_id", input.companyId)

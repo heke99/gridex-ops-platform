@@ -278,6 +278,18 @@ const NAV_GROUPS: NavGroup[] = [
         pageKey: "billing.export_center",
       },
       {
+        href: "/admin/billing/quality",
+        label: "Datakvalitet & readiness",
+        description: "Kundredo-score för avtal, byte, fakturering och export",
+        pageKey: "billing.workspace",
+      },
+      {
+        href: "/admin/billing/ai-parser",
+        label: "AI/OCR-granskning",
+        description: "Manuell verifiering av scannade avtal och fullmakter",
+        pageKey: "billing.import",
+      },
+      {
         href: "/admin/billing/import",
         label: "Importera underlag",
         description: "Billingfiler, normalisering och importfel",

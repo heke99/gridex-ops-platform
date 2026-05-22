@@ -18,6 +18,8 @@ type Batch3RoleActionRow = {
  must_pass: boolean
 }
 
+type Batch4CRoleActionRow = Batch3RoleActionRow
+
 const ROLE_TESTS = [
  {
  role: 'Superadmin',
@@ -55,7 +57,11 @@ export default async function CustomerTenantTestPage() {
  const supabase = await createSupabaseServerClient()
  const { data: authResult } = await supabase.auth.getUser()
 
- const [{ data, error }, { data: batch3Data, error: batch3Error }] = await Promise.all([
+ const [
+ { data, error },
+ { data: batch3Data, error: batch3Error },
+ { data: batch4cData, error: batch4cError },
+ ] = await Promise.all([
  supabase
  .from('gridex_customer_intake_security_report_v')
  .select('*')
@@ -64,10 +70,15 @@ export default async function CustomerTenantTestPage() {
  .from('gridex_batch3_role_action_security_v')
  .select('*')
  .order('role_key'),
+ supabase
+ .from('gridex_batch4c_role_action_security_v')
+ .select('*')
+ .order('role_key'),
  ])
 
  const rows = error ? [] : ((data ?? []) as SecurityReportRow[])
  const batch3Rows = batch3Error ? [] : ((batch3Data ?? []) as Batch3RoleActionRow[])
+ const batch4cRows = batch4cError ? [] : ((batch4cData ?? []) as Batch4CRoleActionRow[])
  const missingOrWeak = rows.filter((row) => !row.rls_enabled || Number(row.policy_count ?? 0) === 0)
 
  return (
@@ -131,6 +142,24 @@ export default async function CustomerTenantTestPage() {
  {batch3Error ? <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 ">Kör Batch 3-migrationen för att visa roll/action-rapporten: {batch3Error.message}</p> : null}
  <div className="mt-5 grid gap-3 lg:grid-cols-2">
  {batch3Rows.map((row) => (
+ <article key={`${row.role_key}-${row.test_area}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
+ <div className="flex items-center justify-between gap-3">
+ <h3 className="text-sm font-semibold text-slate-950 ">{row.role_key}</h3>
+ <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(Boolean(row.must_pass))}`}>{row.must_pass ? 'Måste passera' : 'Info'}</span>
+ </div>
+ <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 ">{row.test_area}</p>
+ <p className="mt-2 text-sm leading-6 text-slate-700 ">{row.expected_control}</p>
+ </article>
+ ))}
+ </div>
+ </section>
+
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <h2 className="text-lg font-semibold text-slate-950 ">Batch 4C roll- och exportkontroller</h2>
+ <p className="mt-1 text-sm text-slate-700 ">Kontrollerar att fakturering, partnerexport, audit och server actions har rätt bolags- och rollgränser.</p>
+ {batch4cError ? <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 ">Kör Batch 4C-migrationen för att visa rapporten: {batch4cError.message}</p> : null}
+ <div className="mt-5 grid gap-3 lg:grid-cols-2">
+ {batch4cRows.map((row) => (
  <article key={`${row.role_key}-${row.test_area}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
  <div className="flex items-center justify-between gap-3">
  <h3 className="text-sm font-semibold text-slate-950 ">{row.role_key}</h3>

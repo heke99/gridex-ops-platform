@@ -259,6 +259,9 @@ export async function createPartnerExport(input: {
   targetSystem: string
   externalReference?: string | null
   exportBatchKey?: string | null
+  idempotencyKey?: string | null
+  adapterKey?: string | null
+  payloadVersion?: string | null
   payload?: Record<string, unknown>
   notes?: string | null
 }): Promise<PartnerExportRow> {
@@ -275,7 +278,9 @@ export async function createPartnerExport(input: {
     company_id: companyId,
     export_kind: input.exportKind,
     target_system: input.targetSystem,
-    payload_version: 'partner_export_v1',
+    payload_version: input.payloadVersion ?? 'partner_export_v4c',
+    adapter_key: input.adapterKey ?? 'gridex_billing_partner_v1',
+    idempotency_key: input.idempotencyKey ?? null,
     external_reference: input.externalReference ?? null,
     billing_underlay_id: input.billingUnderlayId ?? null,
     notes: input.notes ?? null,
@@ -298,6 +303,9 @@ export async function createPartnerExport(input: {
       status: 'queued',
       external_reference: input.externalReference ?? null,
       export_batch_key: input.exportBatchKey ?? null,
+      idempotency_key: input.idempotencyKey ?? null,
+      adapter_key: input.adapterKey ?? 'gridex_billing_partner_v1',
+      payload_version: input.payloadVersion ?? 'partner_export_v4c',
       payload: enrichedPayload,
       response_payload: {},
       created_by: input.actorUserId,
@@ -415,6 +423,7 @@ export async function updateGridOwnerDataRequestStatus(input: {
     external_reference: input.externalReference ?? null,
     failure_reason: input.failureReason ?? null,
     updated_by: input.actorUserId,
+    last_partner_response_at: now,
   }
 
   if (input.responsePayload !== undefined) {
@@ -591,6 +600,7 @@ export async function updatePartnerExportStatus(input: {
     external_reference: input.externalReference ?? null,
     failure_reason: input.failureReason ?? null,
     updated_by: input.actorUserId,
+    last_partner_response_at: now,
   }
 
   if (input.responsePayload !== undefined) {

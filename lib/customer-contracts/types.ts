@@ -36,6 +36,9 @@ export type ContractOfferRow = {
   campaign_version?: string | null
   price_version?: string | null
   terms_version?: string | null
+  offer_version?: string | null
+  terms_document_url?: string | null
+  version_snapshot?: Record<string, unknown> | null
   max_customers?: number | null
   discount_value?: number | null
   discount_unit?: string | null
@@ -77,6 +80,16 @@ export type CustomerContractRow = {
   campaign_version?: string | null
   price_version?: string | null
   terms_version?: string | null
+  contract_version?: string | null
+  signed_version?: string | null
+  terms_signed_version?: string | null
+  version_snapshot?: Record<string, unknown> | null
+  start_status?: string | null
+  old_supplier_start_at?: string | null
+  grid_owner_confirmed_start_at?: string | null
+  ediel_confirmed_start_at?: string | null
+  export_blocked?: boolean | null
+  export_block_reason?: string | null
   price_snapshot?: Record<string, unknown> | null
   campaign_snapshot?: Record<string, unknown> | null
   billing_ready_status?: string | null

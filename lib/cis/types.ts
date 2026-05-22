@@ -136,6 +136,12 @@ export type PartnerExportRow = {
   response_payload: Record<string, unknown>
   external_reference: string | null
   export_batch_key?: string | null
+  idempotency_key?: string | null
+  retry_count?: number | null
+  adapter_key?: string | null
+  payload_version?: string | null
+  partner_response_log?: Array<Record<string, unknown>> | null
+  last_partner_response_at?: string | null
   queued_at: string
   sent_at: string | null
   acknowledged_at: string | null
