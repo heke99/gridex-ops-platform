@@ -103,6 +103,16 @@ export default function CustomerIntakeForm({
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ">
             <p className="font-semibold">Klart.</p>
             <p className="mt-1">{state.message}</p>
+            {state.duplicateReviewRequired && state.duplicateWarnings?.length ? (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-900">
+                <div className="font-semibold">Möjlig dubblett behöver granskas.</div>
+                <ul className="mt-1 list-disc space-y-1 pl-4">
+                  {state.duplicateWarnings.slice(0, 3).map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {state.createdCustomerId ? (
               <Link
                 href={`/admin/customers/${state.createdCustomerId}`}
@@ -295,6 +305,62 @@ export default function CustomerIntakeForm({
               />
               <FieldError state={state} name="phone" />
             </label>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-amber-800 ">
+            Befintlig kund och dubblettbeslut
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-amber-900">
+            Om du inte vet om kunden redan finns kan du skapa kunden ändå. Systemet flaggar möjlig dubblett om personnummer, organisationsnummer, namn, e-post, telefon, anläggning eller mätpunkt matchar en befintlig kund i samma bolag.
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-700 ">Åtgärd vid möjlig/befintlig kund</span>
+              <select
+                name="duplicateResolution"
+                defaultValue={state.values.duplicateResolution ?? "create_new_pending_review"}
+                className={inputClassName(state, "duplicateResolution")}
+              >
+                <option value="create_new_pending_review">Skapa kund och flagga möjlig dubblett</option>
+                <option value="add_site_to_existing">Lägg till anläggning på befintlig kund</option>
+                <option value="add_contract_to_existing">Lägg till avtal på befintlig kund</option>
+                <option value="update_existing">Uppdatera befintlig kund och lägg till data</option>
+                <option value="create_separate_confirmed">Skapa separat kund trots varning</option>
+              </select>
+              <FieldError state={state} name="duplicateResolution" />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-700 ">Befintligt kund-id</span>
+              <input
+                name="existingCustomerId"
+                defaultValue={state.values.existingCustomerId ?? ""}
+                placeholder="Klistra in kund-id om kunden redan finns"
+                className={inputClassName(state, "existingCustomerId")}
+              />
+              <FieldError state={state} name="existingCustomerId" />
+            </label>
+
+            <label className="grid gap-1 text-sm md:col-span-2">
+              <span className="text-slate-700 ">Beslutsmotivering vid dubblett</span>
+              <input
+                name="duplicateOverrideReason"
+                defaultValue={state.values.duplicateOverrideReason ?? ""}
+                placeholder="Ex. samma kund får ny anläggning, separat juridisk relation, eller manuell kontroll krävs"
+                className={inputClassName(state, "duplicateOverrideReason", "full")}
+              />
+              <FieldError state={state} name="duplicateOverrideReason" />
+            </label>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3 text-sm">
+            <Link href="/admin/customers" className="rounded-xl border border-amber-300 bg-white px-3 py-2 font-semibold text-amber-900 hover:bg-amber-100">
+              Sök kund i registret
+            </Link>
+            <Link href="/admin/customers/duplicates" className="rounded-xl border border-amber-300 bg-white px-3 py-2 font-semibold text-amber-900 hover:bg-amber-100">
+              Öppna dubblettvy
+            </Link>
           </div>
         </div>
 
@@ -670,6 +736,92 @@ export default function CustomerIntakeForm({
                 <FieldError state={state} name="movedFromSupplierName" />
               </label>
             </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-700 ">
+            Fakturaadress och faktureringsnivå
+          </h3>
+          <p className="mt-2 text-sm text-slate-700 ">
+            Fakturaadressen kan vara samma som eladressen eller separat. En kund kan ha flera anläggningar på olika adresser men ändå få samlingsfaktura till samma fakturaadress.
+          </p>
+
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm md:col-span-2">
+              <input
+                type="checkbox"
+                name="billingAddressSameAsSite"
+                defaultChecked={state.values.billingAddressSameAsSite === "on" || state.values.billingAddressSameAsSite === "true"}
+                className="mt-1"
+                data-copy-billing-address
+              />
+              <span>
+                <span className="block font-semibold text-slate-900">Fakturaadress samma som eladress</span>
+                <span className="mt-1 block text-slate-700">När detta är markerat kopieras anläggningsadressen till fakturaadressen.</span>
+              </span>
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-700 ">Fakturamottagare</span>
+              <input name="invoiceRecipient" defaultValue={state.values.invoiceRecipient ?? ""} placeholder="Namn på fakturamottagare" className={inputClassName(state, "invoiceRecipient")} />
+              <FieldError state={state} name="invoiceRecipient" />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-700 ">Faktura-e-post</span>
+              <input type="email" name="invoiceEmail" defaultValue={state.values.invoiceEmail ?? ""} placeholder="faktura@kund.se" className={inputClassName(state, "invoiceEmail")} />
+              <FieldError state={state} name="invoiceEmail" />
+            </label>
+
+            <label className="grid gap-1 text-sm md:col-span-2">
+              <span className="text-slate-700 ">Fakturareferens</span>
+              <input name="invoiceReference" defaultValue={state.values.invoiceReference ?? ""} placeholder="Ex. kostnadsställe, referensperson eller objekt" className={inputClassName(state, "invoiceReference", "full")} />
+              <FieldError state={state} name="invoiceReference" />
+            </label>
+
+            <label className="grid gap-1 text-sm md:col-span-2">
+              <span className="text-slate-700 ">Fakturaadress</span>
+              <input name="billingStreet" defaultValue={state.values.billingStreet ?? ""} placeholder="Fakturaadress" className={inputClassName(state, "billingStreet", "full")} data-billing-copy-target="street" />
+              <FieldError state={state} name="billingStreet" />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-700 ">Postnummer faktura</span>
+              <input name="billingPostalCode" defaultValue={state.values.billingPostalCode ?? ""} placeholder="Postnummer" className={inputClassName(state, "billingPostalCode")} data-billing-copy-target="postalCode" />
+              <FieldError state={state} name="billingPostalCode" />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-700 ">Ort faktura</span>
+              <input name="billingCity" defaultValue={state.values.billingCity ?? ""} placeholder="Ort" className={inputClassName(state, "billingCity")} data-billing-copy-target="city" />
+              <FieldError state={state} name="billingCity" />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-700 ">Land faktura</span>
+              <input name="billingCountry" defaultValue={state.values.billingCountry ?? state.values.country ?? "SE"} placeholder="SE" className={inputClassName(state, "billingCountry")} data-billing-copy-target="country" />
+              <FieldError state={state} name="billingCountry" />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-700 ">Faktureringsnivå</span>
+              <select name="billingLevel" defaultValue={state.values.billingLevel ?? "customer"} className={inputClassName(state, "billingLevel")}>
+                <option value="customer">Samlingsfaktura per kund</option>
+                <option value="contract">Faktura per avtal</option>
+                <option value="site">Faktura per anläggning</option>
+                <option value="metering_point">Faktura per mätpunkt</option>
+              </select>
+              <FieldError state={state} name="billingLevel" />
+            </label>
+
+            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm md:col-span-2">
+              <input type="checkbox" name="consolidatedInvoice" defaultChecked={state.values.consolidatedInvoice === "on" || state.values.consolidatedInvoice === "true"} className="mt-1" />
+              <span>
+                <span className="block font-semibold text-slate-900">Samlingsfaktura</span>
+                <span className="mt-1 block text-slate-700">Samla flera anläggningar och mätpunkter på samma fakturaadress, med separata fakturarader.</span>
+              </span>
+            </label>
           </div>
         </div>
 

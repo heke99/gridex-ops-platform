@@ -376,6 +376,16 @@ export async function createCustomerContract(input: {
   confirmedStartAt?: string | null
   actualStartAt?: string | null
   startDateSource?: string | null
+  invoiceRecipient?: string | null
+  invoiceEmail?: string | null
+  invoiceReference?: string | null
+  billingStreet?: string | null
+  billingPostalCode?: string | null
+  billingCity?: string | null
+  billingCountry?: string | null
+  billingAddressSameAsSite?: boolean | null
+  billingLevel?: string | null
+  consolidatedInvoice?: boolean | null
   endsAt?: string | null
   signedAt?: string | null
   terminationNoticeDate?: string | null
@@ -427,6 +437,16 @@ export async function createCustomerContract(input: {
       confirmed_start_at: input.confirmedStartAt ?? null,
       actual_start_at: input.actualStartAt ?? null,
       start_date_source: input.startDateSource ?? null,
+      invoice_recipient: input.invoiceRecipient ?? null,
+      invoice_email: input.invoiceEmail ?? null,
+      invoice_reference: input.invoiceReference ?? null,
+      billing_street: input.billingStreet ?? null,
+      billing_postal_code: input.billingPostalCode ?? null,
+      billing_city: input.billingCity ?? null,
+      billing_country: input.billingCountry ?? null,
+      billing_address_same_as_site: input.billingAddressSameAsSite ?? false,
+      billing_level: input.billingLevel ?? 'customer',
+      consolidated_invoice: input.consolidatedInvoice ?? false,
       ends_at: deriveContractEndsAt({
         startsAt: input.startsAt ?? null,
         endsAt: input.endsAt ?? null,

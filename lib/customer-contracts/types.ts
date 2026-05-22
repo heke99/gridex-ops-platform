@@ -103,6 +103,16 @@ export type CustomerContractRow = {
   confirmed_start_at?: string | null
   actual_start_at?: string | null
   start_date_source?: string | null
+  invoice_recipient?: string | null
+  invoice_email?: string | null
+  invoice_reference?: string | null
+  billing_street?: string | null
+  billing_postal_code?: string | null
+  billing_city?: string | null
+  billing_country?: string | null
+  billing_address_same_as_site?: boolean | null
+  billing_level?: string | null
+  consolidated_invoice?: boolean | null
   ends_at: string | null
   signed_at: string | null
   termination_notice_date: string | null

@@ -41,6 +41,15 @@ import type { SupplierSwitchRequestType } from "@/lib/operations/types";
 type CustomerType = "private" | "business" | "association";
 type SiteType = "consumption" | "production" | "mixed";
 type PriceAreaCode = "SE1" | "SE2" | "SE3" | "SE4";
+type DuplicateResolution =
+  | "create_new_pending_review"
+  | "create_separate_confirmed"
+  | "add_site_to_existing"
+  | "add_contract_to_existing"
+  | "update_existing";
+
+type BillingLevel = "customer" | "contract" | "site" | "metering_point";
+
 type ContractStatus =
   | "draft"
   | "pending_signature"
@@ -106,6 +115,19 @@ type CreateCustomerGraphParams = {
   bindingMonths: number | null;
   noticeMonths: number | null;
   optionalFeeLines: Array<Record<string, unknown>>;
+  duplicateResolution: DuplicateResolution;
+  existingCustomerId: string | null;
+  duplicateOverrideReason: string | null;
+  invoiceRecipient: string | null;
+  invoiceEmail: string | null;
+  invoiceReference: string | null;
+  billingStreet: string | null;
+  billingPostalCode: string | null;
+  billingCity: string | null;
+  billingCountry: string | null;
+  billingAddressSameAsSite: boolean;
+  billingLevel: BillingLevel;
+  consolidatedInvoice: boolean;
 };
 
 type CreationContext = {
@@ -183,6 +205,19 @@ const INTAKE_VALUE_FIELDS: IntakeField[] = [
   "bindingMonths",
   "noticeMonths",
   "optionalFeeLines",
+  "duplicateResolution",
+  "existingCustomerId",
+  "duplicateOverrideReason",
+  "invoiceRecipient",
+  "invoiceEmail",
+  "invoiceReference",
+  "billingStreet",
+  "billingPostalCode",
+  "billingCity",
+  "billingCountry",
+  "billingAddressSameAsSite",
+  "billingLevel",
+  "consolidatedInvoice",
 ];
 
 function getFormValues(formData: FormData): IntakeFormValues {
@@ -290,6 +325,35 @@ function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
         unit: unitRaw || "sek",
       };
     });
+}
+
+
+function normalizeDuplicateResolution(value: string | null | undefined): DuplicateResolution {
+  switch (value) {
+    case "create_separate_confirmed":
+    case "add_site_to_existing":
+    case "add_contract_to_existing":
+    case "update_existing":
+      return value;
+    default:
+      return "create_new_pending_review";
+  }
+}
+
+function normalizeBillingLevel(value: string | null | undefined): BillingLevel {
+  switch (value) {
+    case "contract":
+    case "site":
+    case "metering_point":
+      return value;
+    default:
+      return "customer";
+  }
+}
+
+function formDataFlag(formData: FormData, key: string): boolean {
+  const value = formData.get(key);
+  return value === "on" || value === "true" || value === "1";
 }
 
 function normalizeCustomerType(value: string | null | undefined): CustomerType {
@@ -625,6 +689,24 @@ function buildCreateCustomerParams(
     optionalFeeLines: parseOptionalFeeLines(
       getString(formData, "optionalFeeLines"),
     ),
+    duplicateResolution: normalizeDuplicateResolution(
+      getNullableString(formData, "duplicateResolution"),
+    ),
+    existingCustomerId: getNullableString(formData, "existingCustomerId"),
+    duplicateOverrideReason: getNullableString(
+      formData,
+      "duplicateOverrideReason",
+    ),
+    invoiceRecipient: getNullableString(formData, "invoiceRecipient"),
+    invoiceEmail: getNullableString(formData, "invoiceEmail"),
+    invoiceReference: getNullableString(formData, "invoiceReference"),
+    billingStreet: getNullableString(formData, "billingStreet"),
+    billingPostalCode: getNullableString(formData, "billingPostalCode"),
+    billingCity: getNullableString(formData, "billingCity"),
+    billingCountry: getNullableString(formData, "billingCountry"),
+    billingAddressSameAsSite: formDataFlag(formData, "billingAddressSameAsSite"),
+    billingLevel: normalizeBillingLevel(getNullableString(formData, "billingLevel")),
+    consolidatedInvoice: formDataFlag(formData, "consolidatedInvoice"),
   };
 }
 
@@ -742,6 +824,193 @@ async function createFacilityAddress(params: {
 
   if (error) throw error;
   return data;
+}
+
+
+function buildBillingAddressSnapshot(params: CreateCustomerGraphParams) {
+  const billingStreet = params.billingAddressSameAsSite
+    ? normalizeOptionalString(params.street)
+    : normalizeOptionalString(params.billingStreet);
+  const billingPostalCode = params.billingAddressSameAsSite
+    ? normalizeOptionalString(params.postalCode)
+    : normalizeOptionalString(params.billingPostalCode);
+  const billingCity = params.billingAddressSameAsSite
+    ? normalizeOptionalString(params.city)
+    : normalizeOptionalString(params.billingCity);
+  const billingCountry = params.billingAddressSameAsSite
+    ? normalizeCountryCode(params.country)
+    : normalizeCountryCode(params.billingCountry);
+
+  return {
+    recipient: normalizeOptionalString(params.invoiceRecipient),
+    email: normalizeOptionalString(params.invoiceEmail),
+    reference: normalizeOptionalString(params.invoiceReference),
+    street: billingStreet,
+    postalCode: billingPostalCode,
+    city: billingCity,
+    country: billingCountry,
+    sameAsSite: params.billingAddressSameAsSite,
+    billingLevel: params.billingLevel,
+    consolidatedInvoice: params.consolidatedInvoice,
+  };
+}
+
+async function createBillingAddressFromIntake(params: {
+  companyId: string;
+  customerId: string;
+  billing: ReturnType<typeof buildBillingAddressSnapshot>;
+}) {
+  const hasAddress = Boolean(
+    params.billing.street ||
+      params.billing.postalCode ||
+      params.billing.city ||
+      params.billing.recipient ||
+      params.billing.email ||
+      params.billing.reference,
+  );
+
+  if (!hasAddress) return null;
+
+  const { data, error } = await supabaseService
+    .from("customer_addresses")
+    .insert({
+      company_id: params.companyId,
+      customer_id: params.customerId,
+      type: "billing",
+      recipient_name: params.billing.recipient,
+      invoice_email: params.billing.email,
+      invoice_reference: params.billing.reference,
+      street_1: params.billing.street ?? "",
+      postal_code: params.billing.postalCode,
+      city: params.billing.city,
+      country: params.billing.country,
+      is_active: true,
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    if (error.code === "42703") return null;
+    throw error;
+  }
+
+  return data;
+}
+
+async function updateCustomerBillingSettings(params: {
+  companyId: string;
+  customerId: string;
+  billing: ReturnType<typeof buildBillingAddressSnapshot>;
+}) {
+  try {
+    const { error } = await supabaseService
+      .from("customers")
+      .update({
+        invoice_recipient: params.billing.recipient,
+        invoice_email: params.billing.email,
+        invoice_reference: params.billing.reference,
+        billing_street: params.billing.street,
+        billing_postal_code: params.billing.postalCode,
+        billing_city: params.billing.city,
+        billing_country: params.billing.country,
+        billing_address_same_as_site: params.billing.sameAsSite,
+        billing_level: params.billing.billingLevel,
+        consolidated_invoice: params.billing.consolidatedInvoice,
+      })
+      .eq("company_id", params.companyId)
+      .eq("id", params.customerId);
+
+    if (error && !databaseObjectMissing(error) && error.code !== "42703") throw error;
+  } catch (error) {
+    if (!databaseObjectMissing(error)) {
+      console.warn("Customer billing settings could not be updated", error);
+    }
+  }
+}
+
+async function logDuplicateResolutionEvent(params: {
+  companyId: string;
+  actorUserId: string;
+  customerId: string;
+  existingCustomerId?: string | null;
+  duplicateMatches: IntakeDuplicateMatch[];
+  resolution: DuplicateResolution;
+  reason?: string | null;
+}) {
+  if (params.duplicateMatches.length === 0 && params.resolution === "create_new_pending_review") return;
+
+  try {
+    await supabaseService.from("customer_duplicate_resolution_events").insert({
+      company_id: params.companyId,
+      customer_id: params.customerId,
+      existing_customer_id: params.existingCustomerId ?? null,
+      resolution: params.resolution,
+      reason: params.reason ?? null,
+      match_payload: params.duplicateMatches,
+      created_by: params.actorUserId,
+    });
+  } catch (error) {
+    if (!databaseObjectMissing(error)) {
+      console.warn("Duplicate resolution event could not be logged", error);
+    }
+  }
+
+  await insertAuditLog({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    entityType: "customer_duplicate_resolution",
+    entityId: params.customerId,
+    action: "customer_duplicate_resolution_recorded",
+    newValues: {
+      resolution: params.resolution,
+      existingCustomerId: params.existingCustomerId ?? null,
+      duplicateMatches: params.duplicateMatches,
+    },
+    metadata: {
+      reason: params.reason ?? null,
+    },
+  }).catch((error) => console.warn("Duplicate resolution audit could not be logged", error));
+}
+
+async function createDuplicateReviewCase(params: {
+  companyId: string;
+  actorUserId: string;
+  customerId: string;
+  siteId: string | null;
+  meteringPointId: string | null;
+  duplicateMatches: IntakeDuplicateMatch[];
+}) {
+  if (params.duplicateMatches.length === 0) return;
+
+  const critical = params.duplicateMatches.some((match) => match.severity === "critical");
+  const description = duplicateWarningsFromMatches(params.duplicateMatches).join("\n");
+
+  try {
+    await supabaseService.from("customer_cases").insert({
+      company_id: params.companyId,
+      customer_id: params.customerId,
+      site_id: params.siteId,
+      metering_point_id: params.meteringPointId,
+      case_type: "technical_blocker",
+      status: "action_required",
+      priority: critical ? "high" : "normal",
+      title: critical ? "Kritisk dubblettkontroll krävs" : "Möjlig dubblett behöver granskas",
+      description,
+      reason_category: "possible_duplicate",
+      billing_blocked: critical,
+      billing_manual_review: true,
+      source: "customer_intake_duplicate_check",
+      next_action:
+        "Granska matchningen och välj om kunden ska kopplas till befintlig kund, behållas separat eller kompletteras med ny anläggning/avtal.",
+      metadata: { duplicateMatches: params.duplicateMatches },
+      created_by: params.actorUserId,
+      updated_by: params.actorUserId,
+    });
+  } catch (error) {
+    if (!databaseObjectMissing(error)) {
+      console.warn("Duplicate review case could not be created", error);
+    }
+  }
 }
 
 async function syncContractLifecycleEvents(params: {
@@ -1052,12 +1321,25 @@ function databaseObjectMissing(error: unknown): boolean {
   return Boolean(
     maybe &&
     (maybe.code === "42P01" ||
+      maybe.code === "42703" ||
       maybe.code === "PGRST205" ||
       /does not exist|schema cache|relation .* does not exist/i.test(
         maybe.message ?? "",
       )),
   );
 }
+
+type IntakeDuplicateSeverity = "info" | "warning" | "critical";
+
+type IntakeDuplicateMatch = {
+  field: IntakeField | "customer" | "site" | "meteringPoint";
+  severity: IntakeDuplicateSeverity;
+  customerId: string | null;
+  siteId?: string | null;
+  meteringPointId?: string | null;
+  matchType: string;
+  message: string;
+};
 
 async function maybeSingleExists(
   table: string,
@@ -1094,58 +1376,301 @@ async function maybeSingleExists(
   }
 }
 
+async function findMatchingCustomersByColumn(params: {
+  companyId: string;
+  column: string;
+  value: string | null;
+  severity: IntakeDuplicateSeverity;
+  field: IntakeDuplicateMatch["field"];
+  label: string;
+  fuzzy?: boolean;
+}): Promise<IntakeDuplicateMatch[]> {
+  const normalized = normalizeOptionalString(params.value);
+  if (!normalized) return [];
+
+  try {
+    let query = supabaseService
+      .from("customers")
+      .select("id, customer_number, full_name, company_name, email, phone")
+      .eq("company_id", params.companyId)
+      .limit(5);
+
+    query = params.fuzzy
+      ? query.ilike(params.column, `%${normalized}%`)
+      : params.column === "email"
+        ? query.ilike(params.column, normalized)
+        : query.eq(params.column, normalized);
+
+    const { data, error } = await query;
+    if (error) {
+      if (databaseObjectMissing(error) || error.code === "42703") return [];
+      throw error;
+    }
+
+    return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      field: params.field,
+      severity: params.severity,
+      customerId: typeof row.id === "string" ? row.id : null,
+      matchType: params.column,
+      message: `${params.label} matchar kund ${String(row.customer_number ?? row.full_name ?? row.company_name ?? row.email ?? row.id)} i detta bolag.`,
+    }));
+  } catch (error) {
+    if (databaseObjectMissing(error)) return [];
+    throw error;
+  }
+}
+
+async function findMatchingSites(params: {
+  companyId: string;
+  facilityId: string | null;
+}): Promise<IntakeDuplicateMatch[]> {
+  const facilityId = normalizeOptionalString(params.facilityId);
+  if (!facilityId) return [];
+
+  try {
+    const { data, error } = await supabaseService
+      .from("customer_sites")
+      .select("id, customer_id, facility_id, site_name")
+      .eq("company_id", params.companyId)
+      .eq("facility_id", facilityId)
+      .limit(5);
+
+    if (error) {
+      if (databaseObjectMissing(error) || error.code === "42703") return [];
+      throw error;
+    }
+
+    return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      field: "facilityId",
+      severity: "critical",
+      customerId: typeof row.customer_id === "string" ? row.customer_id : null,
+      siteId: typeof row.id === "string" ? row.id : null,
+      matchType: "facility_id",
+      message: `Anläggnings-id ${facilityId} finns redan i detta bolag och kräver manuell kontroll innan dubbel koppling används.`,
+    }));
+  } catch (error) {
+    if (databaseObjectMissing(error)) return [];
+    throw error;
+  }
+}
+
+async function findMatchingMeteringPoints(params: {
+  companyId: string;
+  meterPointId: string | null;
+}): Promise<IntakeDuplicateMatch[]> {
+  const meterPointId = normalizeOptionalString(params.meterPointId);
+  if (!meterPointId) return [];
+
+  try {
+    const { data, error } = await supabaseService
+      .from("metering_points")
+      .select("id, site_id, meter_point_id")
+      .eq("company_id", params.companyId)
+      .eq("meter_point_id", meterPointId)
+      .limit(5);
+
+    if (error) {
+      if (databaseObjectMissing(error) || error.code === "42703") return [];
+      throw error;
+    }
+
+    const siteIds = ((data ?? []) as Array<Record<string, unknown>>)
+      .map((row) => (typeof row.site_id === "string" ? row.site_id : null))
+      .filter((value): value is string => Boolean(value));
+    const customerBySiteId = new Map<string, string | null>();
+
+    if (siteIds.length > 0) {
+      const { data: sites } = await supabaseService
+        .from("customer_sites")
+        .select("id, customer_id")
+        .eq("company_id", params.companyId)
+        .in("id", siteIds);
+      for (const site of (sites ?? []) as Array<Record<string, unknown>>) {
+        if (typeof site.id === "string") {
+          customerBySiteId.set(site.id, typeof site.customer_id === "string" ? site.customer_id : null);
+        }
+      }
+    }
+
+    return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      field: "meterPointId",
+      severity: "critical",
+      customerId:
+        typeof row.site_id === "string"
+          ? customerBySiteId.get(row.site_id) ?? null
+          : null,
+      siteId: typeof row.site_id === "string" ? row.site_id : null,
+      meteringPointId: typeof row.id === "string" ? row.id : null,
+      matchType: "meter_point_id",
+      message: `Mätpunkts-id ${meterPointId} finns redan i detta bolag och kräver manuell kontroll innan dubbel koppling används.`,
+    }));
+  } catch (error) {
+    if (databaseObjectMissing(error)) return [];
+    throw error;
+  }
+}
+
+async function findIntakeDuplicateMatches(
+  params: CreateCustomerGraphParams,
+): Promise<IntakeDuplicateMatch[]> {
+  const personOrOrgMatches = await Promise.all([
+    findMatchingCustomersByColumn({
+      companyId: params.companyId,
+      column: "email",
+      value: params.email,
+      severity: "warning",
+      field: "email",
+      label: "E-post",
+    }),
+    findMatchingCustomersByColumn({
+      companyId: params.companyId,
+      column: "phone",
+      value: params.phone,
+      severity: "warning",
+      field: "phone",
+      label: "Telefonnummer",
+    }),
+    findMatchingCustomersByColumn({
+      companyId: params.companyId,
+      column: "personal_number",
+      value: params.personalNumber,
+      severity: "critical",
+      field: "personalNumber",
+      label: "Personnummer",
+    }),
+    findMatchingCustomersByColumn({
+      companyId: params.companyId,
+      column: "org_number",
+      value: params.orgNumber,
+      severity: "critical",
+      field: "orgNumber",
+      label: "Organisationsnummer",
+    }),
+  ]);
+
+  const nameMatches = await (async () => {
+    const displayName =
+      params.customerType === "private"
+        ? `${params.firstName ?? ""} ${params.lastName ?? ""}`.trim()
+        : normalizeOptionalString(params.companyName);
+    if (!displayName || displayName.length < 4) return [] as IntakeDuplicateMatch[];
+    return findMatchingCustomersByColumn({
+      companyId: params.companyId,
+      column: params.customerType === "private" ? "full_name" : "company_name",
+      value: displayName,
+      severity: "info",
+      field: "customer",
+      label: "Namn",
+      fuzzy: true,
+    });
+  })();
+
+  const siteMatches = await findMatchingSites({
+    companyId: params.companyId,
+    facilityId: params.facilityId,
+  });
+  const pointMatches = await findMatchingMeteringPoints({
+    companyId: params.companyId,
+    meterPointId: params.meterPointId,
+  });
+
+  const matches = [
+    ...personOrOrgMatches.flat(),
+    ...nameMatches,
+    ...siteMatches,
+    ...pointMatches,
+  ];
+
+  const unique = new Map<string, IntakeDuplicateMatch>();
+  for (const match of matches) {
+    const key = `${match.matchType}:${match.customerId ?? "none"}:${match.siteId ?? "none"}:${match.meteringPointId ?? "none"}`;
+    if (!unique.has(key)) unique.set(key, match);
+  }
+
+  return Array.from(unique.values());
+}
+
 async function findIntakeDuplicates(
   params: CreateCustomerGraphParams,
 ): Promise<IntakeFieldErrors> {
   const errors: IntakeFieldErrors = {};
+  const matches = await findIntakeDuplicateMatches(params);
 
-  const checks = await Promise.all([
-    maybeSingleExists("customers", params.companyId, "email", params.email),
-    maybeSingleExists(
-      "customers",
-      params.companyId,
-      "personal_number",
-      params.personalNumber,
-    ),
-    maybeSingleExists(
-      "customers",
-      params.companyId,
-      "org_number",
-      params.orgNumber,
-    ),
-    maybeSingleExists(
-      "customer_sites",
-      params.companyId,
-      "facility_id",
-      params.facilityId,
-    ),
-    maybeSingleExists(
-      "metering_points",
-      params.companyId,
-      "meter_point_id",
-      params.meterPointId,
-    ),
-  ]);
-
-  if (checks[0]) {
-    errors.email = "En kund med denna e-post finns redan i detta bolag.";
-  }
-  if (checks[1]) {
-    errors.personalNumber =
-      "En kund med detta personnummer finns redan i detta bolag.";
-  }
-  if (checks[2]) {
-    errors.orgNumber =
-      "En kund med detta organisationsnummer finns redan i detta bolag.";
-  }
-  if (checks[3]) {
-    errors.facilityId = "Denna anläggning finns redan i detta bolag.";
-  }
-  if (checks[4]) {
-    errors.meterPointId = "Denna mätpunkt finns redan i detta bolag.";
+  for (const match of matches) {
+    if (
+      match.field === "email" ||
+      match.field === "phone" ||
+      match.field === "personalNumber" ||
+      match.field === "orgNumber" ||
+      match.field === "facilityId" ||
+      match.field === "meterPointId"
+    ) {
+      errors[match.field] = match.message;
+    }
   }
 
   return errors;
+}
+
+async function loadExistingCustomerForIntake(params: {
+  companyId: string;
+  customerId: string | null;
+}) {
+  const id = normalizeOptionalString(params.customerId);
+  if (!id) return null;
+
+  const { data, error } = await supabaseService
+    .from("customers")
+    .select("*")
+    .eq("company_id", params.companyId)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as Record<string, unknown> | null;
+}
+
+async function updateExistingCustomerFromIntake(params: {
+  companyId: string;
+  customerId: string;
+  actorUserId: string;
+  intake: CreateCustomerGraphParams;
+}) {
+  const payload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+    updated_by: params.actorUserId,
+  };
+
+  const email = normalizeOptionalString(params.intake.email);
+  const phone = normalizeOptionalString(params.intake.phone);
+  const firstName = normalizeOptionalString(params.intake.firstName);
+  const lastName = normalizeOptionalString(params.intake.lastName);
+  const companyName = normalizeOptionalString(params.intake.companyName);
+
+  if (email) payload.email = email;
+  if (phone) payload.phone = phone;
+  if (firstName) payload.first_name = firstName;
+  if (lastName) payload.last_name = lastName;
+  if (companyName) payload.company_name = companyName;
+  if (firstName || lastName || companyName) {
+    payload.full_name = companyName ?? (`${firstName ?? ""} ${lastName ?? ""}`.trim() || null);
+  }
+
+  try {
+    const { error } = await supabaseService
+      .from("customers")
+      .update(payload)
+      .eq("company_id", params.companyId)
+      .eq("id", params.customerId);
+
+    if (error && !databaseObjectMissing(error) && error.code !== "42703") throw error;
+  } catch (error) {
+    if (!databaseObjectMissing(error)) console.warn("Existing customer could not be updated from intake", error);
+  }
+}
+
+function duplicateWarningsFromMatches(matches: IntakeDuplicateMatch[]): string[] {
+  return Array.from(new Set(matches.map((match) => match.message)));
 }
 
 function buildMissingDataList(
@@ -1507,16 +2032,18 @@ function mapUnknownErrorToIntakeState(
   };
 }
 
-async function createCustomerGraph(params: CreateCustomerGraphParams) {
+async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<Record<string, any> & { __duplicateWarnings: string[]; __duplicateReviewRequired: boolean; __createdNewCustomer: boolean }> {
   const fieldErrors = validateCreateCustomerParams(params);
   if (Object.keys(fieldErrors).length > 0) {
     throw createValidationErrorFromFieldErrors(fieldErrors);
   }
 
-  const duplicateErrors = await findIntakeDuplicates(params);
-  if (Object.keys(duplicateErrors).length > 0) {
-    throw createValidationErrorFromFieldErrors(duplicateErrors);
-  }
+  const duplicateMatches = await findIntakeDuplicateMatches(params);
+  const duplicateWarnings = duplicateWarningsFromMatches(duplicateMatches);
+  const duplicateReviewRequired =
+    duplicateMatches.length > 0 &&
+    params.duplicateResolution !== "create_separate_confirmed";
+
 
   const normalizedFirstName = normalizeOptionalString(params.firstName);
   const normalizedLastName = normalizeOptionalString(params.lastName);
@@ -1585,6 +2112,12 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
   const normalizedGreenFeeMode = params.greenFeeMode ?? null;
   const normalizedGreenFeeValue = params.greenFeeValue ?? null;
   const normalizedOptionalFeeLines = params.optionalFeeLines ?? [];
+  const billingSnapshot = buildBillingAddressSnapshot(params);
+  const duplicateResolution = params.duplicateResolution;
+  const shouldUseExistingCustomer = Boolean(
+    params.existingCustomerId &&
+      ["add_site_to_existing", "add_contract_to_existing", "update_existing"].includes(duplicateResolution),
+  );
 
   let normalizedPersonalNumber = normalizeOptionalString(params.personalNumber);
   let normalizedOrgNumber = normalizeOptionalString(params.orgNumber);
@@ -1632,40 +2165,88 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
   };
 
   try {
-    const { data: customer, error: customerError } = await supabaseService
-      .from("customers")
-      .insert({
-        company_id: params.companyId,
-        customer_type: params.customerType,
-        status: "draft",
-        first_name: normalizedFirstName,
-        last_name: normalizedLastName,
-        full_name: displayName || null,
-        company_name: normalizedCompanyName,
+    let customer = null as Record<string, any> | null;
+    let createdNewCustomer = false;
+
+    if (shouldUseExistingCustomer) {
+      customer = await loadExistingCustomerForIntake({
+        companyId: params.companyId,
+        customerId: params.existingCustomerId,
+      });
+
+      if (!customer?.id) {
+        throw new IntakeValidationError(
+          "Befintlig kund hittades inte i valt bolag.",
+          {
+            existingCustomerId:
+              "Befintlig kund hittades inte eller tillhör ett annat bolag.",
+          },
+        );
+      }
+
+      if (duplicateResolution === "update_existing") {
+        await updateExistingCustomerFromIntake({
+          companyId: params.companyId,
+          customerId: String(customer.id),
+          actorUserId: params.actorUserId,
+          intake: params,
+        });
+      }
+    } else {
+      const { data: createdCustomer, error: customerError } = await supabaseService
+        .from("customers")
+        .insert({
+          company_id: params.companyId,
+          customer_type: params.customerType,
+          status: "draft",
+          first_name: normalizedFirstName,
+          last_name: normalizedLastName,
+          full_name: displayName || null,
+          company_name: normalizedCompanyName,
+          email: normalizedEmail,
+          phone: normalizedPhone,
+          personal_number: normalizedPersonalNumber,
+          org_number: normalizedOrgNumber,
+          apartment_number: normalizedApartmentNumber,
+          possible_duplicate: duplicateMatches.length > 0,
+          duplicate_review_status:
+            duplicateMatches.length > 0
+              ? duplicateResolution === "create_separate_confirmed"
+                ? "created_separate"
+                : "pending_review"
+              : "clear",
+          duplicate_match_payload: duplicateMatches,
+        })
+        .select("*")
+        .single();
+
+      if (customerError) throw customerError;
+      customer = createdCustomer as Record<string, any>;
+      createdNewCustomer = true;
+      creationContext.customerId = String(customer.id);
+
+      const contact = await createPrimaryContact({
+        customerId: String(customer.id),
+        customerType: params.customerType,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        companyName: normalizedCompanyName,
+        title: normalizedContactTitle,
         email: normalizedEmail,
         phone: normalizedPhone,
-        personal_number: normalizedPersonalNumber,
-        org_number: normalizedOrgNumber,
-        apartment_number: normalizedApartmentNumber,
-      })
-      .select("*")
-      .single();
+        companyId: params.companyId,
+      });
+      creationContext.contactId = contact?.id ?? null;
+    }
 
-    if (customerError) throw customerError;
-    creationContext.customerId = customer.id;
+    if (!customer?.id) throw new Error("Kund kunde inte förberedas.");
+    const customerId = String(customer.id);
 
-    const contact = await createPrimaryContact({
-      customerId: customer.id,
-      customerType: params.customerType,
-      firstName: normalizedFirstName,
-      lastName: normalizedLastName,
-      companyName: normalizedCompanyName,
-      title: normalizedContactTitle,
-      email: normalizedEmail,
-      phone: normalizedPhone,
+    await updateCustomerBillingSettings({
       companyId: params.companyId,
+      customerId,
+      billing: billingSnapshot,
     });
-    creationContext.contactId = contact?.id ?? null;
 
     const address = await createFacilityAddress({
       customerId: customer.id,
@@ -1678,6 +2259,16 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
       companyId: params.companyId,
     });
     creationContext.addressId = address?.id ?? null;
+
+    const billingAddress = await createBillingAddressFromIntake({
+      companyId: params.companyId,
+      customerId,
+      billing: billingSnapshot,
+    });
+
+    if (!creationContext.addressId) {
+      creationContext.addressId = billingAddress?.id ?? null;
+    }
 
     const shouldCreateSite = Boolean(
       normalizedSiteName ||
@@ -1713,6 +2304,16 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
           city: normalizedCity,
           country: normalizedCountry,
           care_of: normalizedCareOf,
+          invoice_recipient: billingSnapshot.recipient,
+          invoice_email: billingSnapshot.email,
+          invoice_reference: billingSnapshot.reference,
+          billing_street: billingSnapshot.street,
+          billing_postal_code: billingSnapshot.postalCode,
+          billing_city: billingSnapshot.city,
+          billing_country: billingSnapshot.country,
+          billing_address_same_as_site: billingSnapshot.sameAsSite,
+          billing_level: billingSnapshot.billingLevel,
+          consolidated_invoice: billingSnapshot.consolidatedInvoice,
           moved_from_street: normalizedMovedFromStreet,
           moved_from_postal_code: normalizedMovedFromPostalCode,
           moved_from_city: normalizedMovedFromCity,
@@ -1848,6 +2449,16 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         confirmedStartAt: normalizedConfirmedStartDate,
         actualStartAt: normalizedActualStartDate,
         startDateSource: normalizedStartDateSource,
+        invoiceRecipient: billingSnapshot.recipient,
+        invoiceEmail: billingSnapshot.email,
+        invoiceReference: billingSnapshot.reference,
+        billingStreet: billingSnapshot.street,
+        billingPostalCode: billingSnapshot.postalCode,
+        billingCity: billingSnapshot.city,
+        billingCountry: billingSnapshot.country,
+        billingAddressSameAsSite: billingSnapshot.sameAsSite,
+        billingLevel: billingSnapshot.billingLevel,
+        consolidatedInvoice: billingSnapshot.consolidatedInvoice,
         signedAt:
           normalizedContractStatus === "signed" ||
           normalizedContractStatus === "active"
@@ -1912,7 +2523,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         : null;
 
     const missingData = buildMissingDataList(params, switchRequestResult);
-    const addressWarnings = buildAddressWarnings(params);
+    const addressWarnings = [...buildAddressWarnings(params), ...duplicateWarnings];
     const intakeQualityScore = calculateIntakeQualityScore(params, missingData);
     const intakeStatus = determineIntakeStatus(
       params,
@@ -1940,6 +2551,27 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
       intakeStatus,
       addressWarnings,
     });
+
+    if (duplicateMatches.length > 0) {
+      await createDuplicateReviewCase({
+        companyId: params.companyId,
+        actorUserId: params.actorUserId,
+        customerId: customer.id,
+        siteId,
+        meteringPointId: creationContext.meteringPointId,
+        duplicateMatches,
+      });
+
+      await logDuplicateResolutionEvent({
+        companyId: params.companyId,
+        actorUserId: params.actorUserId,
+        customerId: customer.id,
+        existingCustomerId: params.existingCustomerId,
+        duplicateMatches,
+        resolution: duplicateResolution,
+        reason: params.duplicateOverrideReason,
+      });
+    }
 
     const batch2BAutomationResult = await runBatch2BAutomation({
       companyId: params.companyId,
@@ -1975,6 +2607,12 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
         intakeFollowUpsCreated:
           missingData.length > 0 || addressWarnings.length > 0,
         intakeQualityScore,
+        duplicateWarnings,
+        duplicateReviewRequired,
+        duplicateResolution,
+        existingCustomerId: params.existingCustomerId,
+        createdNewCustomer,
+        billing: billingSnapshot,
         customerConfirmationStatus: normalizedCustomerConfirmationStatus,
         authorizationStatus: normalizedAuthorizationStatus,
         startDates: {
@@ -1989,7 +2627,12 @@ async function createCustomerGraph(params: CreateCustomerGraphParams) {
       },
     });
 
-    return customer;
+    return {
+      ...customer,
+      __duplicateWarnings: duplicateWarnings,
+      __duplicateReviewRequired: duplicateReviewRequired,
+      __createdNewCustomer: createdNewCustomer,
+    };
   } catch (error) {
     await cleanupCreatedGraph(creationContext);
     throw error;
@@ -2014,12 +2657,22 @@ export async function createCustomerAction(
     revalidatePath("/admin/customers");
     revalidatePath("/admin/customers/intake");
 
+    const duplicateWarnings = Array.isArray(customer.__duplicateWarnings)
+      ? (customer.__duplicateWarnings as string[])
+      : [];
+    const usedExistingCustomer = customer.__createdNewCustomer === false;
+
     return {
       status: "success",
-      message: `Kunden ${customer.customer_number ?? ""} skapades utan valideringsfel.`,
+      message:
+        duplicateWarnings.length > 0
+          ? `${usedExistingCustomer ? "Befintlig kund uppdaterades" : "Kunden skapades"}, men systemet hittade möjlig dubblett som behöver granskas: ${duplicateWarnings.slice(0, 2).join(" ")}`
+          : `${usedExistingCustomer ? "Befintlig kund uppdaterades" : `Kunden ${customer.customer_number ?? ""} skapades`} utan valideringsfel.`,
       fieldErrors: {},
       values: { country: "SE" },
       createdCustomerId: customer.id,
+      duplicateWarnings,
+      duplicateReviewRequired: Boolean(customer.__duplicateReviewRequired),
     };
   } catch (error) {
     return mapUnknownErrorToIntakeState(error, getFormValues(formData));
@@ -2234,6 +2887,25 @@ async function buildCustomerParamsFromImportRow(params: {
     bindingMonths: parseIntOrNull(row.binding_months || ""),
     noticeMonths: parseIntOrNull(row.notice_months || ""),
     optionalFeeLines: parseOptionalFeeLines(row.optional_fee_lines || ""),
+    duplicateResolution: normalizeDuplicateResolution(row.duplicate_resolution || null),
+    existingCustomerId: row.existing_customer_id || null,
+    duplicateOverrideReason: row.duplicate_override_reason || null,
+    invoiceRecipient: row.invoice_recipient || row.billing_recipient || null,
+    invoiceEmail: row.invoice_email || row.billing_email || row.email || null,
+    invoiceReference: row.invoice_reference || row.billing_reference || null,
+    billingStreet: row.billing_street || row.invoice_street || row.street || null,
+    billingPostalCode: row.billing_postal_code || row.invoice_postal_code || row.postal_code || null,
+    billingCity: row.billing_city || row.invoice_city || row.city || null,
+    billingCountry: row.billing_country || row.invoice_country || row.country || "SE",
+    billingAddressSameAsSite:
+      row.billing_address_same_as_site === "true" ||
+      row.billing_address_same_as_site === "1" ||
+      row.billing_address_same_as_site === "yes",
+    billingLevel: normalizeBillingLevel(row.billing_level || null),
+    consolidatedInvoice:
+      row.consolidated_invoice === "true" ||
+      row.consolidated_invoice === "1" ||
+      row.consolidated_invoice === "yes",
   };
 }
 
@@ -2399,6 +3071,88 @@ export async function createCustomerFromImportRowAction(formData: FormData) {
     revalidatePath("/admin/customers/imports");
     throw error;
   }
+}
+
+export async function linkCustomerImportRowToExistingCustomerAction(formData: FormData) {
+  const rowId = getString(formData, "importRowId");
+  const existingCustomerId = getString(formData, "existingCustomerId");
+  const resolution = normalizeDuplicateResolution(
+    getString(formData, "duplicateResolution") || "add_site_to_existing",
+  );
+
+  if (!rowId) throw new Error("Import-rad saknas.");
+  if (!existingCustomerId) throw new Error("Välj befintlig kund innan raden kopplas.");
+
+  const importRow = await loadImportRowForAction(rowId);
+  await requireCompanyScopedActionAccess(importRow.company_id, {
+    anyOf: ["customers.write"],
+  });
+  const actorUserId = await getActorUserId();
+  await requireCompanyOperationalForWrites(importRow.company_id);
+
+  if (importRow.customer_id || importRow.status === "created") {
+    throw new Error("Importraden är redan kopplad till en kund.");
+  }
+
+  const normalizedPayload =
+    importRow.normalized_payload ?? importRow.raw_payload ?? null;
+  if (!normalizedPayload || typeof normalizedPayload !== "object") {
+    throw new Error("Importraden saknar normaliserad payload.");
+  }
+
+  const params = await buildCustomerParamsFromImportRow({
+    actorUserId,
+    companyId: importRow.company_id,
+    row: {
+      ...(normalizedPayload as Record<string, string>),
+      existing_customer_id: existingCustomerId,
+      duplicate_resolution: resolution,
+    },
+  });
+
+  params.existingCustomerId = existingCustomerId;
+  params.duplicateResolution =
+    resolution === "create_new_pending_review" || resolution === "create_separate_confirmed"
+      ? "add_site_to_existing"
+      : resolution;
+
+  const customer = await createCustomerGraph(params);
+
+  const { error: updateError } = await supabaseService
+    .from("customer_import_rows")
+    .update({
+      status: "created",
+      customer_id: customer.id,
+      error_message: null,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: actorUserId,
+      resolution: params.duplicateResolution,
+    })
+    .eq("id", importRow.id);
+
+  if (updateError && updateError.code !== "42703") throw updateError;
+
+  await insertAuditLog({
+    actorUserId,
+    companyId: importRow.company_id,
+    entityType: "customer_import_row",
+    entityId: importRow.id,
+    action: "customer_import_row_linked_existing_customer",
+    newValues: {
+      customerId: customer.id,
+      existingCustomerId,
+      resolution: params.duplicateResolution,
+    },
+    metadata: {
+      importBatchId: importRow.import_batch_id,
+      rowNumber: importRow.row_number,
+    },
+  });
+
+  await recalculateImportBatchCounters(importRow.import_batch_id);
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/customers/imports");
+  revalidatePath(`/admin/customers/${customer.id}`);
 }
 
 export async function rejectCustomerImportRowAction(formData: FormData) {

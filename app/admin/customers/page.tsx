@@ -7,6 +7,8 @@ import {
  listCustomersPage,
  type CustomerListRow,
  type CustomerStatusFilter,
+ type CustomerTypeFilter,
+ type CustomerFlagFilter,
 } from '@/lib/customers/getCustomers'
 import { supabaseService } from '@/lib/supabase/service'
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
@@ -27,6 +29,8 @@ type CustomersPageProps = {
  ops?: string
  status?: string
  contract?: string
+ customerType?: string
+ flag?: string
  page?: string
  }>
 }
@@ -434,6 +438,29 @@ function normalizeContractFilter(value: string | undefined): ContractFilterKey {
  }
 }
 
+function normalizeCustomerTypeFilter(value: string | undefined): CustomerTypeFilter {
+ switch (value) {
+ case 'private':
+ case 'business':
+ case 'association':
+ return value
+ default:
+ return 'all'
+ }
+}
+
+function normalizeCustomerFlagFilter(value: string | undefined): CustomerFlagFilter {
+ switch (value) {
+ case 'possible_duplicate':
+ case 'multi_site':
+ case 'multi_contract':
+ case 'consolidated_invoice':
+ return value
+ default:
+ return 'all'
+ }
+}
+
 function normalizePage(value: string | undefined): number {
  const parsed = Number.parseInt(value ?? '1', 10)
  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
@@ -499,6 +526,8 @@ function buildCustomersHref(params: {
  ops: OperationsFilterKey
  status: CustomerStatusFilter
  contract: ContractFilterKey
+ customerType: CustomerTypeFilter
+ flag: CustomerFlagFilter
  page: number
 }): string {
  const searchParams = new URLSearchParams()
@@ -517,6 +546,14 @@ function buildCustomersHref(params: {
 
  if (params.contract !== 'all') {
  searchParams.set('contract', params.contract)
+ }
+
+ if (params.customerType !== 'all') {
+ searchParams.set('customerType', params.customerType)
+ }
+
+ if (params.flag !== 'all') {
+ searchParams.set('flag', params.flag)
  }
 
  if (params.page > 1) {
@@ -578,6 +615,7 @@ function PaginationLink({
  href: string
  disabled?: boolean
  active?: boolean
+ key?: string | number
 }) {
  if (disabled) {
  return (
@@ -656,6 +694,29 @@ function customerTypeLabel(value: string | null): string {
  if (value === 'business') return 'Företag'
  if (value === 'association') return 'Förening'
  return 'Privat'
+}
+
+function customerTypeFilterLabel(value: CustomerTypeFilter): string {
+ if (value === 'business') return 'företag'
+ if (value === 'association') return 'föreningar'
+ if (value === 'private') return 'privatkunder'
+ return 'alla kundtyper'
+}
+
+function customerFlagFilterLabel(value: CustomerFlagFilter): string {
+ switch (value) {
+ case 'possible_duplicate':
+ return 'möjliga dubbletter'
+ case 'multi_site':
+ return 'flera anläggningar'
+ case 'multi_contract':
+ return 'flera avtal'
+ case 'consolidated_invoice':
+ return 'samlingsfaktura'
+ case 'all':
+ default:
+ return 'alla kundflaggor'
+ }
 }
 
 function customerStatusLabel(value: string | null): string {
@@ -760,6 +821,8 @@ export default async function AdminCustomersPage({
  const opsFilter = normalizeOperationsFilter(resolvedSearchParams.ops)
  const statusFilter = normalizeStatusFilter(resolvedSearchParams.status)
  const contractFilter = normalizeContractFilter(resolvedSearchParams.contract)
+ const customerTypeFilter = normalizeCustomerTypeFilter(resolvedSearchParams.customerType)
+ const flagFilter = normalizeCustomerFlagFilter(resolvedSearchParams.flag)
  const page = normalizePage(resolvedSearchParams.page)
 
  const companyScope = await getOperationalCompanyScope(context.userId)
@@ -770,6 +833,8 @@ export default async function AdminCustomersPage({
  pageSize: PAGE_SIZE,
  status: statusFilter,
  contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  companyId: companyScope.companyId,
  })
 
@@ -883,7 +948,7 @@ export default async function AdminCustomersPage({
  (customer) => customer.operations.activeOpen === 0
  ).length
 
- const latestContracts = Array.from(latestContractsByCustomerId.values())
+ const latestContracts = Array.from(latestContractsByCustomerId.values()) as LatestCustomerContractSummary[]
  const noContractCustomers = customersMatchingOps.filter(
  (customer) => !latestContractsByCustomerId.get(customer.id)
  ).length
@@ -1035,6 +1100,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  {query ? ` för sökning "${query}"` : ''}
  {statusFilter !== 'all' ? ` med kundstatus "${customerStatusLabel(statusFilter)}"` : ''}
  {contractFilter !== 'all' ? ` i avtalsfiltret "${contractFilterLabel(contractFilter)}"` : ''}
+ {customerTypeFilter !== 'all' ? ` med kundtyp "${customerTypeFilterLabel(customerTypeFilter)}"` : ''}
+ {flagFilter !== 'all' ? ` med flaggan "${customerFlagFilterLabel(flagFilter)}"` : ''}
  {opsFilter !== 'all' ? ` i operationsfiltret "${filterLabel(opsFilter)}"` : ''}.
  </p>
  <p className="mt-2 text-xs text-slate-700 ">
@@ -1047,6 +1114,7 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
 
  <form method="get" className="flex w-full flex-wrap gap-3 lg:max-w-4xl">
  <input type="hidden" name="ops" value={opsFilter === 'all' ? '' : opsFilter} />
+ <input type="hidden" name="flag" value={flagFilter === 'all' ? '' : flagFilter} />
  <input
  name="q"
  defaultValue={query}
@@ -1068,6 +1136,16 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  <option value="blocked">Blockerad</option>
  </select>
  <select
+ name="customerType"
+ defaultValue={customerTypeFilter}
+ className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ >
+ <option value="all">Alla kundtyper</option>
+ <option value="private">Privatperson</option>
+ <option value="business">Företag</option>
+ <option value="association">Förening</option>
+ </select>
+ <select
  name="contract"
  defaultValue={contractFilter}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
@@ -1082,7 +1160,7 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
  Sök
  </button>
- {query || opsFilter !== 'all' || statusFilter !== 'all' || contractFilter !== 'all' ? (
+ {query || opsFilter !== 'all' || statusFilter !== 'all' || contractFilter !== 'all' || customerTypeFilter !== 'all' || flagFilter !== 'all' ? (
  <Link
  href="/admin/customers"
  className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
@@ -1097,13 +1175,13 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  <FilterChip
  label="Alla kunder"
  count={pageResult.counts.all}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: 'all', contract: contractFilter, page: 1 })}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: 'all', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
  active={statusFilter === 'all'}
  />
  <FilterChip
  label="Förbereds"
  count={pageResult.counts.draft}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: 'draft', contract: contractFilter, page: 1 })}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: 'draft', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
  active={statusFilter === 'draft'}
  tone="warning"
  />
@@ -1115,6 +1193,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: 'pending_verification',
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: 1,
  })}
  active={statusFilter === 'pending_verification'}
@@ -1123,20 +1203,20 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  <FilterChip
  label="Aktiva"
  count={pageResult.counts.active}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: 'active', contract: contractFilter, page: 1 })}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: 'active', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
  active={statusFilter === 'active'}
  tone="success"
  />
  <FilterChip
  label="Inaktiva"
  count={pageResult.counts.inactive}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: 'inactive', contract: contractFilter, page: 1 })}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: 'inactive', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
  active={statusFilter === 'inactive'}
  />
  <FilterChip
  label="Flyttade"
  count={pageResult.counts.moved}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: 'moved', contract: contractFilter, page: 1 })}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: 'moved', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
  active={statusFilter === 'moved'}
  />
  <FilterChip
@@ -1147,6 +1227,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: 'terminated',
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: 1,
  })}
  active={statusFilter === 'terminated'}
@@ -1160,10 +1242,146 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: 'blocked',
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: 1,
  })}
  active={statusFilter === 'blocked'}
  tone="danger"
+ />
+ </div>
+
+ <div className="mt-5 flex flex-wrap gap-3">
+ <FilterChip
+ label="Alla kundtyper"
+ count={pageResult.total}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: statusFilter,
+ contract: contractFilter,
+ customerType: 'all',
+ flag: flagFilter,
+ page: 1,
+ })}
+ active={customerTypeFilter === 'all'}
+ />
+ <FilterChip
+ label="Privatpersoner"
+ count={filteredCustomers.filter((customer) => customer.customer_type === 'private' || !customer.customer_type).length}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: statusFilter,
+ contract: contractFilter,
+ customerType: 'private',
+ flag: flagFilter,
+ page: 1,
+ })}
+ active={customerTypeFilter === 'private'}
+ />
+ <FilterChip
+ label="Företag"
+ count={filteredCustomers.filter((customer) => customer.customer_type === 'business').length}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: statusFilter,
+ contract: contractFilter,
+ customerType: 'business',
+ flag: flagFilter,
+ page: 1,
+ })}
+ active={customerTypeFilter === 'business'}
+ />
+ <FilterChip
+ label="Föreningar"
+ count={filteredCustomers.filter((customer) => customer.customer_type === 'association').length}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: statusFilter,
+ contract: contractFilter,
+ customerType: 'association',
+ flag: flagFilter,
+ page: 1,
+ })}
+ active={customerTypeFilter === 'association'}
+ />
+ </div>
+
+ <div className="mt-5 flex flex-wrap gap-3">
+ <FilterChip
+ label="Alla flaggor"
+ count={sortedCustomers.length}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: statusFilter,
+ contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: 'all',
+ page: 1,
+ })}
+ active={flagFilter === 'all'}
+ />
+ <FilterChip
+ label="Möjliga dubbletter"
+ count={sortedCustomers.filter((customer) => Boolean(customer.possible_duplicate)).length}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: statusFilter,
+ contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: 'possible_duplicate',
+ page: 1,
+ })}
+ active={flagFilter === 'possible_duplicate'}
+ tone="warning"
+ />
+ <FilterChip
+ label="Flera anläggningar"
+ count={sortedCustomers.filter((customer) => customer.site_count > 1).length}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: statusFilter,
+ contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: 'multi_site',
+ page: 1,
+ })}
+ active={flagFilter === 'multi_site'}
+ />
+ <FilterChip
+ label="Flera avtal"
+ count={sortedCustomers.filter((customer) => customer.contract_count > 1).length}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: statusFilter,
+ contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: 'multi_contract',
+ page: 1,
+ })}
+ active={flagFilter === 'multi_contract'}
+ />
+ <FilterChip
+ label="Samlingsfaktura"
+ count={sortedCustomers.filter((customer) => Boolean(customer.consolidated_invoice)).length}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: statusFilter,
+ contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: 'consolidated_invoice',
+ page: 1,
+ })}
+ active={flagFilter === 'consolidated_invoice'}
+ tone="info"
  />
  </div>
 
@@ -1176,6 +1394,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: 'all',
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={contractFilter === 'all'}
@@ -1188,6 +1408,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: 'none',
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={contractFilter === 'none'}
@@ -1200,6 +1422,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: 'pending_signature',
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={contractFilter === 'pending_signature'}
@@ -1213,6 +1437,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: 'signed',
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={contractFilter === 'signed'}
@@ -1226,6 +1452,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: 'active',
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={contractFilter === 'active'}
@@ -1239,6 +1467,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: 'closed',
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={contractFilter === 'closed'}
@@ -1255,6 +1485,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: 'all',
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={opsFilter === 'all'}
@@ -1267,6 +1499,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: 'blocked',
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={opsFilter === 'blocked'}
@@ -1280,6 +1514,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: 'ready_to_execute',
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={opsFilter === 'ready_to_execute'}
@@ -1293,6 +1529,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: 'awaiting_response',
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={opsFilter === 'awaiting_response'}
@@ -1306,6 +1544,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: 'awaiting_dispatch',
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={opsFilter === 'awaiting_dispatch'}
@@ -1319,6 +1559,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: 'queued_for_outbound',
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={opsFilter === 'queued_for_outbound'}
@@ -1332,6 +1574,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: 'failed',
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={opsFilter === 'failed'}
@@ -1345,6 +1589,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: 'active_open',
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={opsFilter === 'active_open'}
@@ -1358,6 +1604,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: 'no_signal',
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageResult.page,
  })}
  active={opsFilter === 'no_signal'}
@@ -1372,6 +1620,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: Math.max(1, pageResult.page - 1),
  })}
  disabled={pageResult.page <= 1}
@@ -1386,6 +1636,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: pageNumber,
  })}
  active={pageNumber === pageResult.page}
@@ -1399,6 +1651,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: Math.min(pageResult.totalPages, pageResult.page + 1),
  })}
  disabled={pageResult.page >= pageResult.totalPages}
@@ -1481,6 +1735,16 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  <p className="mt-1 text-xs text-slate-700 ">
  {customer.id}
  </p>
+ {customer.possible_duplicate ? (
+ <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+ Möjlig dubblett · {customer.duplicate_review_status ?? 'granskning krävs'}
+ </span>
+ ) : null}
+ {customer.consolidated_invoice ? (
+ <span className="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+ Samlingsfaktura
+ </span>
+ ) : null}
  </div>
  </td>
 
@@ -1683,6 +1947,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: Math.max(1, pageResult.page - 1),
  })}
  disabled={pageResult.page <= 1}
@@ -1695,6 +1961,8 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  ops: opsFilter,
  status: statusFilter,
  contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
  page: Math.min(pageResult.totalPages, pageResult.page + 1),
  })}
  disabled={pageResult.page >= pageResult.totalPages}

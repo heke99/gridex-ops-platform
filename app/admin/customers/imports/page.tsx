@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
 import {
   createCustomerFromImportRowAction,
+  linkCustomerImportRowToExistingCustomerAction,
   rejectCustomerImportRowAction,
 } from "@/app/admin/customers/actions";
 
@@ -337,6 +338,33 @@ export default async function CustomerImportQueuePage() {
                                   />
                                   <button className="w-full rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
                                     Skapa kund från rad
+                                  </button>
+                                </form>
+                                <form
+                                  action={linkCustomerImportRowToExistingCustomerAction}
+                                  className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-2"
+                                >
+                                  <input
+                                    type="hidden"
+                                    name="importRowId"
+                                    value={row.id}
+                                  />
+                                  <input
+                                    name="existingCustomerId"
+                                    placeholder="Befintligt kund-id"
+                                    className="w-full rounded-xl border border-amber-300 px-3 py-2 text-xs"
+                                  />
+                                  <select
+                                    name="duplicateResolution"
+                                    defaultValue="add_site_to_existing"
+                                    className="w-full rounded-xl border border-amber-300 px-3 py-2 text-xs"
+                                  >
+                                    <option value="add_site_to_existing">Koppla: lägg till anläggning</option>
+                                    <option value="add_contract_to_existing">Koppla: lägg till avtal</option>
+                                    <option value="update_existing">Uppdatera befintlig kund</option>
+                                  </select>
+                                  <button className="w-full rounded-xl bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">
+                                    Koppla till befintlig kund
                                   </button>
                                 </form>
                                 <form

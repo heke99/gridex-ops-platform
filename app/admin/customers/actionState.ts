@@ -52,6 +52,19 @@ export type IntakeField =
   | 'actualStartDate'
   | 'startDateSource'
   | 'optionalFeeLines'
+  | 'consolidatedInvoice'
+  | 'billingLevel'
+  | 'billingAddressSameAsSite'
+  | 'billingCountry'
+  | 'billingCity'
+  | 'billingPostalCode'
+  | 'billingStreet'
+  | 'invoiceReference'
+  | 'invoiceEmail'
+  | 'invoiceRecipient'
+  | 'duplicateOverrideReason'
+  | 'existingCustomerId'
+  | 'duplicateResolution'
 
 export type IntakeFieldErrors = Partial<Record<IntakeField, string>>
 
@@ -63,6 +76,8 @@ export type IntakeActionState = {
   fieldErrors: IntakeFieldErrors
   values: IntakeFormValues
   createdCustomerId: string | null
+  duplicateWarnings?: string[]
+  duplicateReviewRequired?: boolean
 }
 
 export const initialIntakeActionState: IntakeActionState = {
@@ -71,6 +86,8 @@ export const initialIntakeActionState: IntakeActionState = {
   fieldErrors: {},
   values: { country: 'SE' },
   createdCustomerId: null,
+  duplicateWarnings: [],
+  duplicateReviewRequired: false,
 }
 export type CustomerImportPreviewRowStatus =
   | 'ready_to_create'

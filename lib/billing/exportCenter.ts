@@ -138,6 +138,52 @@ function isFirstContractPeriod(params: {
   return start.getFullYear() === params.year && start.getMonth() + 1 === params.month;
 }
 
+function contractTextField(contract: CustomerContractRow | null, key: string): string | null {
+  if (!contract) return null;
+  const value = (contract as unknown as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function contractBooleanField(contract: CustomerContractRow | null, key: string): boolean {
+  if (!contract) return false;
+  return Boolean((contract as unknown as Record<string, unknown>)[key]);
+}
+
+function buildInvoiceSnapshot(params: {
+  underlay: BillingUnderlayRow;
+  contract: CustomerContractRow | null;
+}) {
+  const invoiceAddress = {
+    recipient: contractTextField(params.contract, "invoice_recipient"),
+    email: contractTextField(params.contract, "invoice_email"),
+    reference: contractTextField(params.contract, "invoice_reference"),
+    street: contractTextField(params.contract, "billing_street"),
+    postalCode: contractTextField(params.contract, "billing_postal_code"),
+    city: contractTextField(params.contract, "billing_city"),
+    country: contractTextField(params.contract, "billing_country") ?? "SE",
+  };
+
+  const siteAddress = {
+    street: (params.underlay as unknown as Record<string, unknown>).site_street ?? null,
+    postalCode: (params.underlay as unknown as Record<string, unknown>).site_postal_code ?? null,
+    city: (params.underlay as unknown as Record<string, unknown>).site_city ?? null,
+    country: (params.underlay as unknown as Record<string, unknown>).site_country ?? "SE",
+  };
+
+  return {
+    invoiceRecipient: invoiceAddress.recipient,
+    invoiceEmail: invoiceAddress.email,
+    invoiceReference: invoiceAddress.reference,
+    billingLevel: contractTextField(params.contract, "billing_level") ?? "customer",
+    consolidatedInvoice: contractBooleanField(params.contract, "consolidated_invoice"),
+    invoiceAddress,
+    siteAddress,
+    groupKey: contractBooleanField(params.contract, "consolidated_invoice")
+      ? `customer:${params.underlay.customer_id ?? "unknown"}`
+      : `underlay:${params.underlay.id}`,
+  };
+}
+
 async function createBlockedBillingCasesForItems(params: {
   companyId: string;
   actorUserId: string;
@@ -252,6 +298,7 @@ export async function createBillingExportRun(input: {
         }]
       : [];
     const blockerReasons = [...(result?.issues ?? []), ...pricingWarnings, ...missingContractIssue];
+    const invoiceSnapshot = buildInvoiceSnapshot({ underlay, contract });
 
     return {
       company_id: input.companyId,
@@ -264,13 +311,22 @@ export async function createBillingExportRun(input: {
       readiness_status: result?.status ?? "blocked",
       blocker_reasons: blockerReasons,
       pricing_line_items: pricing.lines,
+      invoice_recipient: invoiceSnapshot.invoiceRecipient,
+      invoice_email: invoiceSnapshot.invoiceEmail,
+      invoice_reference: invoiceSnapshot.invoiceReference,
+      billing_level: invoiceSnapshot.billingLevel,
+      consolidated_invoice: invoiceSnapshot.consolidatedInvoice,
+      invoice_address_snapshot: invoiceSnapshot.invoiceAddress,
+      site_address_snapshot: invoiceSnapshot.siteAddress,
+      consolidated_invoice_group_key: invoiceSnapshot.groupKey,
       payload_snapshot: {
         underlay,
         contract,
         readiness: result,
         pricing,
+        invoice: invoiceSnapshot,
         exportContract: {
-          version: "billing_export_v2",
+          version: "billing_export_v3_multisite_invoice_address",
           periodMonth: input.periodMonth,
           targetSystem: input.targetSystem,
           exportFormat: input.exportFormat,
@@ -488,6 +544,14 @@ export type BillingExportRunItemRow = {
   readiness_status: string;
   blocker_reasons: Array<Record<string, unknown>>;
   pricing_line_items?: Array<Record<string, unknown>> | null;
+  invoice_recipient?: string | null;
+  invoice_email?: string | null;
+  invoice_reference?: string | null;
+  billing_level?: string | null;
+  consolidated_invoice?: boolean | null;
+  invoice_address_snapshot?: Record<string, unknown> | null;
+  site_address_snapshot?: Record<string, unknown> | null;
+  consolidated_invoice_group_key?: string | null;
   payload_snapshot: Record<string, unknown>;
   export_status?: string | null;
   partner_export_id?: string | null;
@@ -560,6 +624,14 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
       pricing.totalSekIncVat ??
       readSnapshotNumber(snapshot, ["pricing", "totalSekIncVat"]),
     pricing_line_items: item.pricing_line_items ?? [],
+    invoice_recipient: item.invoice_recipient ?? null,
+    invoice_email: item.invoice_email ?? null,
+    invoice_reference: item.invoice_reference ?? null,
+    billing_level: item.billing_level ?? null,
+    consolidated_invoice: Boolean(item.consolidated_invoice),
+    consolidated_invoice_group_key: item.consolidated_invoice_group_key ?? null,
+    invoice_address_snapshot: item.invoice_address_snapshot ?? null,
+    site_address_snapshot: item.site_address_snapshot ?? null,
     blocker_reasons: item.blocker_reasons ?? [],
   };
 }
@@ -621,6 +693,14 @@ export function buildBillingExportFile(params: {
       "calculated_amount_sek_ex_vat",
       "vat_sek",
       "total_sek_inc_vat",
+      "invoice_recipient",
+      "invoice_email",
+      "invoice_reference",
+      "billing_level",
+      "consolidated_invoice",
+      "consolidated_invoice_group_key",
+      "invoice_address_snapshot",
+      "site_address_snapshot",
       "blocker_reasons",
     ];
     const body = [
@@ -655,6 +735,14 @@ export function buildBillingExportFile(params: {
       "calculated_amount_sek_ex_vat",
       "vat_sek",
       "total_sek_inc_vat",
+      "invoice_recipient",
+      "invoice_email",
+      "invoice_reference",
+      "billing_level",
+      "consolidated_invoice",
+      "consolidated_invoice_group_key",
+      "invoice_address_snapshot",
+      "site_address_snapshot",
       "blocker_reasons",
     ];
     return {

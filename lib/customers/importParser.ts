@@ -108,6 +108,29 @@ const HEADER_ALIASES: Record<string, string> = {
   'nuvarande_elleverantör': 'current_supplier_name',
   nuvarande_leverantor: 'current_supplier_name',
   'nuvarande_leverantör': 'current_supplier_name',
+  fakturamottagare: 'invoice_recipient',
+  invoice_recipient: 'invoice_recipient',
+  fakturaepost: 'invoice_email',
+  'faktura-e-post': 'invoice_email',
+  invoice_email: 'invoice_email',
+  fakturareferens: 'invoice_reference',
+  invoice_reference: 'invoice_reference',
+  fakturaadress: 'billing_street',
+  billing_address: 'billing_street',
+  billing_street: 'billing_street',
+  faktura_postnummer: 'billing_postal_code',
+  billing_postal_code: 'billing_postal_code',
+  faktura_ort: 'billing_city',
+  billing_city: 'billing_city',
+  faktura_land: 'billing_country',
+  billing_country: 'billing_country',
+  samlingsfaktura: 'consolidated_invoice',
+  consolidated_invoice: 'consolidated_invoice',
+  faktureringsniva: 'billing_level',
+  'faktureringsnivå': 'billing_level',
+  billing_level: 'billing_level',
+  befintlig_kund_id: 'existing_customer_id',
+  existing_customer_id: 'existing_customer_id',
 }
 
 function normalizeHeader(value: string): string {
@@ -383,6 +406,13 @@ export function parsePdfCustomerRows(buffer: Buffer): ParsedCustomerImport {
   const street = extractLabeledValue(text, ['Adress', 'Gata'])
   const postalCode = extractLabeledValue(text, ['Postnummer'])
   const city = extractLabeledValue(text, ['Ort', 'Stad'])
+  const invoiceRecipient = extractLabeledValue(text, ['Fakturamottagare', 'Invoice recipient'])
+  const invoiceEmail = extractLabeledValue(text, ['Faktura-e-post', 'Faktura e-post', 'Invoice email'])
+  const invoiceReference = extractLabeledValue(text, ['Fakturareferens', 'Invoice reference', 'Referens'])
+  const billingStreet = extractLabeledValue(text, ['Fakturaadress', 'Billing address'])
+  const billingPostalCode = extractLabeledValue(text, ['Faktura postnummer', 'Billing postal code'])
+  const billingCity = extractLabeledValue(text, ['Faktura ort', 'Billing city'])
+  const consolidatedInvoice = /samlingsfaktura\s*[:\-]\s*(ja|yes|true)/i.test(text) ? 'true' : ''
   const name = extractLabeledValue(text, ['Namn', 'Kundnamn', 'Customer'])
   const [firstName, ...lastNameParts] = name.split(/\s+/).filter(Boolean)
 
@@ -414,6 +444,15 @@ export function parsePdfCustomerRows(buffer: Buffer): ParsedCustomerImport {
     postal_code: postalCode,
     city,
     country: 'SE',
+    invoice_recipient: invoiceRecipient,
+    invoice_email: invoiceEmail,
+    invoice_reference: invoiceReference,
+    billing_street: billingStreet,
+    billing_postal_code: billingPostalCode,
+    billing_city: billingCity,
+    billing_country: 'SE',
+    billing_address_same_as_site: billingStreet ? '' : 'true',
+    consolidated_invoice: consolidatedInvoice,
   }
 
   return {

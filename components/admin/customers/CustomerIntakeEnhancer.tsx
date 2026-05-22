@@ -147,6 +147,25 @@ function syncDynamicLabels(attribute: string, selectedValue: string) {
  })
 }
 
+
+function copySiteAddressToBillingAddress() {
+ const mapping: Array<[string, string]> = [
+ ['street', 'billingStreet'],
+ ['postalCode', 'billingPostalCode'],
+ ['city', 'billingCity'],
+ ['country', 'billingCountry'],
+ ]
+
+ for (const [sourceName, targetName] of mapping) {
+ const source = document.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${sourceName}"]`)
+ const target = document.querySelector<HTMLInputElement>(`[name="${targetName}"]`)
+ if (!target) continue
+ target.value = source?.value || (targetName === 'billingCountry' ? 'SE' : '')
+ target.dispatchEvent(new Event('input', { bubbles: true }))
+ target.dispatchEvent(new Event('change', { bubbles: true }))
+ }
+}
+
 function syncDynamicForm(customerType: string, flowType: string) {
  toggleSectionVisibility('data-customer-section', customerType)
  toggleSectionVisibility('data-flow-section', flowType)
@@ -203,6 +222,31 @@ export default function CustomerIntakeEnhancer({ offers, values = {} }: Props) {
  contractSelect.removeEventListener('change', syncState)
  flowSelect.removeEventListener('change', syncState)
  customerTypeSelect.removeEventListener('change', syncState)
+ }
+ }, [])
+
+
+ useEffect(() => {
+ const checkbox = document.querySelector<HTMLInputElement>('[data-copy-billing-address]')
+ if (!checkbox) return
+
+ const sync = () => {
+ if (checkbox.checked) copySiteAddressToBillingAddress()
+ }
+
+ const sources = ['street', 'postalCode', 'city', 'country']
+ .map((name) => document.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${name}"]`))
+ .filter((field): field is HTMLInputElement | HTMLSelectElement => Boolean(field))
+
+ checkbox.addEventListener('change', sync)
+ sources.forEach((field) => field.addEventListener('input', sync))
+ sources.forEach((field) => field.addEventListener('change', sync))
+ sync()
+
+ return () => {
+ checkbox.removeEventListener('change', sync)
+ sources.forEach((field) => field.removeEventListener('input', sync))
+ sources.forEach((field) => field.removeEventListener('change', sync))
  }
  }, [])
 

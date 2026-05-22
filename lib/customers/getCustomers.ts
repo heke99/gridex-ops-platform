@@ -8,6 +8,10 @@ export type CustomerListRow = {
   id: string
   customer_type: string | null
   status: string | null
+  possible_duplicate?: boolean | null
+  duplicate_review_status?: string | null
+  consolidated_invoice?: boolean | null
+  billing_level?: string | null
   first_name: string | null
   last_name: string | null
   full_name: string | null
@@ -23,12 +27,17 @@ export type CustomerListRow = {
   active_site_count: number
   metering_point_count: number
   active_metering_point_count: number
+  contract_count: number
 }
 
 type CustomerBaseRow = {
   id: string
   customer_type: string | null
   status: string | null
+  possible_duplicate?: boolean | null
+  duplicate_review_status?: string | null
+  consolidated_invoice?: boolean | null
+  billing_level?: string | null
   first_name: string | null
   last_name: string | null
   full_name: string | null
@@ -70,9 +79,20 @@ type MeteringPointCountRow = {
   status: string | null
 }
 
+export type CustomerTypeFilter = 'all' | 'private' | 'business' | 'association'
+
+export type CustomerFlagFilter =
+  | 'all'
+  | 'possible_duplicate'
+  | 'multi_site'
+  | 'multi_contract'
+  | 'consolidated_invoice'
+
 type GetCustomersOptions = {
   query?: string | null
   companyId?: string | null
+  customerType?: CustomerTypeFilter
+  flag?: CustomerFlagFilter
 }
 
 export type CustomerStatusFilter =
@@ -109,6 +129,8 @@ type SearchContext = {
   query: string
   relatedCustomerIds: string[]
   companyId?: string | null
+  customerType?: CustomerTypeFilter
+  flag?: CustomerFlagFilter
 }
 
 function sanitizeSearchTerm(value: string): string {
@@ -253,11 +275,27 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: st
 
   const typedPoints = (pointRows ?? []) as MeteringPointCountRow[]
 
+  const { data: contractRows, error: contractError } = await supabaseService
+    .from('customer_contracts')
+    .select('id, customer_id, status')
+    .in('customer_id', customerIds)
+
+  if (contractError && !['42P01', '42703', 'PGRST205'].includes(String((contractError as { code?: string }).code ?? ''))) {
+    throw contractError
+  }
+
+  const typedContracts = (contractRows ?? []) as Array<{
+    id: string
+    customer_id: string | null
+    status: string | null
+  }>
+
   const siteCountByCustomer = new Map<string, number>()
   const activeSiteCountByCustomer = new Map<string, number>()
   const customerIdBySiteId = new Map<string, string>()
   const meteringPointCountByCustomer = new Map<string, number>()
   const activeMeteringPointCountByCustomer = new Map<string, number>()
+  const contractCountByCustomer = new Map<string, number>()
 
   for (const site of typedSites) {
     customerIdBySiteId.set(site.id, site.customer_id)
@@ -292,6 +330,14 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: st
     }
   }
 
+  for (const contract of typedContracts) {
+    if (!contract.customer_id) continue
+    contractCountByCustomer.set(
+      contract.customer_id,
+      (contractCountByCustomer.get(contract.customer_id) ?? 0) + 1
+    )
+  }
+
   return customerRows.map((customer) => ({
     ...customer,
     site_count: siteCountByCustomer.get(customer.id) ?? 0,
@@ -299,7 +345,35 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: st
     metering_point_count: meteringPointCountByCustomer.get(customer.id) ?? 0,
     active_metering_point_count:
       activeMeteringPointCountByCustomer.get(customer.id) ?? 0,
+    contract_count: contractCountByCustomer.get(customer.id) ?? 0,
   }))
+}
+
+function applyCustomerTypeFilter<T>(
+  query: T,
+  customerType: CustomerTypeFilter = 'all'
+): T {
+  if (customerType === 'all') return query
+  return (query as { eq: (column: string, value: string) => T }).eq('customer_type', customerType)
+}
+
+function applyCustomerFlagFilter<T>(
+  query: T,
+  flag: CustomerFlagFilter = 'all'
+): T {
+  if (flag === 'possible_duplicate') {
+    return (query as { eq: (column: string, value: boolean) => T }).eq('possible_duplicate', true)
+  }
+  if (flag === 'consolidated_invoice') {
+    return (query as { eq: (column: string, value: boolean) => T }).eq('consolidated_invoice', true)
+  }
+  return query
+}
+
+function filterRowsByDerivedFlag(rows: CustomerListRow[], flag: CustomerFlagFilter = 'all') {
+  if (flag === 'multi_site') return rows.filter((row) => row.site_count > 1)
+  if (flag === 'multi_contract') return rows.filter((row) => Number((row as { contract_count?: number }).contract_count ?? 0) > 1)
+  return rows
 }
 
 async function countCustomersByStatus(
@@ -319,6 +393,9 @@ async function countCustomersByStatus(
     query = query.eq('company_id', context.companyId)
   }
 
+  query = applyCustomerTypeFilter(query, context.customerType ?? 'all')
+  query = applyCustomerFlagFilter(query, context.flag ?? 'all')
+
   if (status) {
     query = query.eq('status', status)
   }
@@ -336,12 +413,16 @@ export async function listCustomersPage(options: {
   status?: CustomerStatusFilter
   contractFilter?: LatestContractBucketFilter
   companyId?: string | null
+  customerType?: CustomerTypeFilter
+  flag?: CustomerFlagFilter
 } = {}): Promise<CustomerListPageResult> {
   const query = sanitizeSearchTerm(options.query ?? '')
   const page = Math.max(options.page ?? 1, 1)
   const pageSize = Math.min(Math.max(options.pageSize ?? 100, 1), 100)
   const status = options.status ?? 'all'
   const contractFilter = options.contractFilter ?? 'all'
+  const customerType = options.customerType ?? 'all'
+  const flag = options.flag ?? 'all'
 
   const companyId = options.companyId ?? null
   const relatedCustomerIds = await resolveRelatedCustomerIds(query, companyId)
@@ -349,6 +430,8 @@ export async function listCustomersPage(options: {
     query,
     relatedCustomerIds,
     companyId,
+    customerType,
+    flag,
   }
 
   let customerRows: CustomerBaseRow[] = []
@@ -367,19 +450,24 @@ export async function listCustomersPage(options: {
     total = contractFiltered.total
 
     if (contractFiltered.customerIds.length > 0) {
-      const { data, error } = await supabaseService
+      let contractRowsQuery = supabaseService
         .from('customers')
         .select(
-          'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
+          'id, customer_type, status, possible_duplicate, duplicate_review_status, consolidated_invoice, billing_level, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
         )
         .in('id', contractFiltered.customerIds)
+
+      contractRowsQuery = applyCustomerTypeFilter(contractRowsQuery, customerType)
+      contractRowsQuery = applyCustomerFlagFilter(contractRowsQuery, flag)
+
+      const { data, error } = await contractRowsQuery
 
       // customer ids already come from a tenant-scoped RPC when companyId is present.
       if (error) throw error
 
       const rows = (data ?? []) as CustomerBaseRow[]
-      const rank = new Map(
-        contractFiltered.customerIds.map((id, index) => [id, index])
+      const rank = new Map<string, number>(
+        contractFiltered.customerIds.map((id, index) => [id, index] as [string, number])
       )
 
       customerRows = rows.sort(
@@ -390,7 +478,7 @@ export async function listCustomersPage(options: {
     let rowsQuery = supabaseService
       .from('customers')
       .select(
-        'id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at',
+        'id, customer_type, status, possible_duplicate, duplicate_review_status, consolidated_invoice, billing_level, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at',
         { count: 'exact' }
       )
       .order('created_at', { ascending: false })
@@ -398,6 +486,9 @@ export async function listCustomersPage(options: {
     if (companyId) {
       rowsQuery = rowsQuery.eq('company_id', companyId)
     }
+
+    rowsQuery = applyCustomerTypeFilter(rowsQuery, customerType)
+    rowsQuery = applyCustomerFlagFilter(rowsQuery, flag)
 
     const orFilter = buildCustomerOrFilter(context)
     if (orFilter) {
@@ -418,7 +509,7 @@ export async function listCustomersPage(options: {
     total = count ?? 0
   }
 
-  const rows = await buildCustomerRows(customerRows, companyId)
+  const rows = filterRowsByDerivedFlag(await buildCustomerRows(customerRows, companyId), flag)
 
   const counts: CustomerStatusCounts = {
     all: await countCustomersByStatus(context),
@@ -453,6 +544,8 @@ export async function getCustomers(
     status: 'all',
     contractFilter: 'all',
     companyId: options.companyId ?? null,
+    customerType: options.customerType ?? 'all',
+    flag: options.flag ?? 'all',
   })
 
   return result.rows
