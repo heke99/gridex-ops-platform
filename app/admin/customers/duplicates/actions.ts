@@ -1,8 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requireAdminActionAccess, requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 
 type Json = Record<string, unknown>
@@ -37,16 +36,6 @@ function isDatabaseShapeError(error: unknown): boolean {
         maybe.code === 'PGRST205' ||
         /does not exist|schema cache|relation .* does not exist/i.test(maybe.message ?? ''))
   )
-}
-
-async function getActorUserId(): Promise<string> {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error('Unauthorized')
-  return user.id
 }
 
 async function loadCustomer(customerId: string): Promise<CustomerForMerge> {
@@ -244,7 +233,6 @@ async function mergeSingleCustomer(params: {
 
 export async function mergeCustomersAction(formData: FormData) {
   await requireAdminActionAccess({ allOf: ['customers.write'] })
-  const actorUserId = await getActorUserId()
   const primaryCustomerId = getString(formData, 'primaryCustomerId')
   const reason = getString(formData, 'reason') || null
   const rawSourceIds = getStrings(formData, 'sourceCustomerIds')
@@ -257,7 +245,17 @@ export async function mergeCustomersAction(formData: FormData) {
   if (!reason) throw new Error('Ange orsak. Merge påverkar avtal, anläggningar, fullmakter, ärenden och fakturering.')
 
   const primary = await loadCustomer(primaryCustomerId)
+  if (!primary.company_id) throw new Error('Huvudkunden saknar bolagskoppling och kan inte användas för säker merge.')
+
+  const admin = await requireCompanyScopedActionAccess(primary.company_id, { allOf: ['customers.write'] })
+  const actorUserId = admin.userId
   const sources = await Promise.all(sourceCustomerIds.map((id) => loadCustomer(id)))
+
+  for (const source of sources) {
+    if (source.company_id !== primary.company_id) {
+      throw new Error('Merge mellan olika bolag/tenants är blockerad.')
+    }
+  }
 
   for (const source of sources) {
     await mergeSingleCustomer({ primary, source, actorUserId, reason })

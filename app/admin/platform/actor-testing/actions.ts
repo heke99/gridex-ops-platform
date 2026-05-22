@@ -29,7 +29,13 @@ function normalizeResultStatus(value: string): ActorTestStatus {
 
 async function requireActorTestingWriteAccess(companyId: string) {
   const admin = await requireAdminActionAccess({ anyOf: ['tenants.write', 'whitelabel.write'] })
-  const allowed = await userCanManageActorTestingForCompany(admin.userId, companyId, isPlatformAdminContext(admin))
+  const isPlatformAdmin = isPlatformAdminContext(admin)
+
+  if (!isPlatformAdmin && !admin.permissions.includes('whitelabel.write')) {
+    throw new Error('Endast plattformsadmin eller white-label-admin kan hantera aktörstester för andra bolag.')
+  }
+
+  const allowed = await userCanManageActorTestingForCompany(admin.userId, companyId, isPlatformAdmin)
 
   if (!allowed) {
     throw new Error('Du saknar behörighet att hantera aktörstester för detta bolag.')
@@ -337,6 +343,7 @@ async function syncActorProfileRuntime(input: {
       .from('ediel_actor_settings')
       .update(payload)
       .eq('id', existing.id)
+      .eq('company_id', input.companyId)
     if (error) throw error
     return
   }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requireAdminActionAccess, requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 import { parseBillingUnderlayText, type BillingImportIssue } from '@/lib/billing/importParser'
@@ -27,9 +27,10 @@ function summarizeIssues(issues: BillingImportIssue[]) {
 
 export async function importBillingUnderlayFileAction(formData: FormData): Promise<void> {
   try {
-    const admin = await requireAdminActionAccess({ anyOf: ['billing_underlay.export', 'billing_underlay.read'] })
+    const admin = await requireAdminActionAccess({ anyOf: ['billing_underlay.write', 'billing_underlay.export'] })
     const scope = await getOperationalCompanyScope(admin.userId)
     if (!scope.companyId) throw new Error(scope.message ?? 'Bolagskoppling saknas.')
+    await requireCompanyScopedActionAccess(scope.companyId, { anyOf: ['billing_underlay.write', 'billing_underlay.export'] })
 
     const uploaded = formData.get('billing_file')
     const pasted = String(formData.get('billing_text') ?? '').trim()

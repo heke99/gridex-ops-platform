@@ -26,6 +26,17 @@ function normalizeSubAddress(value: string | null): string | null {
   return clean ? clean.toUpperCase() : null
 }
 
+async function assertPlatformCompanyExists(companyId: string): Promise<void> {
+  const { data, error } = await supabaseService
+    .from('companies')
+    .select('id')
+    .eq('id', companyId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) throw new Error('Bolaget hittades inte eller är inte åtkomligt.')
+}
+
 function validateProductionRoute(input: {
   senderEdielId: string | null
   receiverEdielId: string | null
@@ -47,6 +58,7 @@ export async function createProductionRouteFromWizardAction(formData: FormData) 
   const admin = await requirePlatformAdminActionAccess()
   const companyId = text(formData, 'company_id')
   if (!companyId) throw new Error('Bolag saknas.')
+  await assertPlatformCompanyExists(companyId)
 
   const senderEdielId = text(formData, 'sender_ediel_id')
   const receiverEdielId = text(formData, 'receiver_ediel_id')
@@ -148,7 +160,7 @@ export async function createProductionRouteFromWizardAction(formData: FormData) 
 
   if (profileError) throw profileError
 
-  await supabaseService
+  const { error: companyUpdateError } = await supabaseService
     .from('companies')
     .update({
       production_ediel_id: senderEdielId,
@@ -160,6 +172,8 @@ export async function createProductionRouteFromWizardAction(formData: FormData) 
       updated_at: now,
     })
     .eq('id', companyId)
+
+  if (companyUpdateError) throw companyUpdateError
 
   try {
     const { error: wizardRunError } = await supabaseService.from('production_route_wizard_runs').insert({
