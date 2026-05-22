@@ -1,10 +1,9 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
-import { isMissingRelationError } from '@/lib/tenant/scope'
-import { supabaseService } from '@/lib/supabase/service'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import CustomerEdielOperationsCard from '@/components/admin/customers/CustomerEdielOperationsCard'
 import {
  getCustomerSiteById,
@@ -125,6 +124,7 @@ type CustomerPageProps = {
  searchParams: Promise<{
  editSite?: string
  editMeteringPoint?: string
+ tab?: string
  }>
 }
 
@@ -351,101 +351,137 @@ function compactJson(value: Record<string, unknown> | null): string {
  .join(' • ')
 }
 
-function isOptionalRuntimeDbError(error: unknown): boolean {
- const code = String((error as { code?: string } | null)?.code ?? '')
- return isMissingRelationError(error) || ['42703', '42P01', 'PGRST204', 'PGRST205'].includes(code)
+
+type CustomerWorkspaceTab =
+ | 'overview'
+ | 'profile'
+ | 'portal-access'
+ | 'grid-owner-import'
+ | 'data-requests'
+ | 'authorization-documents'
+ | 'switch-operations'
+ | 'ediel-operations'
+ | 'billing-metering'
+ | 'contracts'
+ | 'contacts-addresses'
+ | 'sites'
+ | 'metering-points'
+ | 'notes'
+ | 'lifecycle-decisions'
+ | 'cases'
+ | 'audit'
+
+const CUSTOMER_WORKSPACE_TABS: Array<{
+ id: CustomerWorkspaceTab
+ label: string
+ description: string
+ group: 'Start' | 'Drift' | 'Kunddata' | 'Historik'
+}> = [
+ { id: 'overview', label: 'Översikt', description: 'Status, readiness och rekommenderad nästa åtgärd.', group: 'Start' },
+ { id: 'authorization-documents', label: 'Fullmakt / avtal', description: 'Dokument, signerad fullmakt och scope.', group: 'Drift' },
+ { id: 'switch-operations', label: 'Leverantörsbyte', description: 'Starta och följ switchärenden.', group: 'Drift' },
+ { id: 'ediel-operations', label: 'Ediel', description: 'Skapa, validera och följ Ediel-meddelanden.', group: 'Drift' },
+ { id: 'billing-metering', label: 'Nätägaruppgifter', description: 'Mätvärden, billingunderlag och partnerexporter.', group: 'Drift' },
+ { id: 'data-requests', label: 'Uppgiftsbegäran', description: 'Z01/Z02 och mätvärdestillstånd.', group: 'Drift' },
+ { id: 'contracts', label: 'Avtal', description: 'Kundens avtal och avtalsläge.', group: 'Kunddata' },
+ { id: 'profile', label: 'Profil', description: 'Kundprofil och erbjudanden.', group: 'Kunddata' },
+ { id: 'contacts-addresses', label: 'Kontakter / adresser', description: 'Kontaktpersoner och faktura-/kundadresser.', group: 'Kunddata' },
+ { id: 'sites', label: 'Anläggningar', description: 'Anläggningar, nätägare och elområden.', group: 'Kunddata' },
+ { id: 'metering-points', label: 'Mätpunkter', description: 'Mätpunkter och mätpunktsdata.', group: 'Kunddata' },
+ { id: 'portal-access', label: 'Kundportal', description: 'Portalaccess och kundkoppling.', group: 'Kunddata' },
+ { id: 'grid-owner-import', label: 'Nätägarsynk', description: 'Import från nätägarsida.', group: 'Kunddata' },
+ { id: 'notes', label: 'Anteckningar', description: 'Interna anteckningar.', group: 'Historik' },
+ { id: 'lifecycle-decisions', label: 'Ånger / avvisning', description: 'Stoppa flöden utan att radera historik.', group: 'Historik' },
+ { id: 'cases', label: 'Ärenden', description: 'Kundärenden och supportproblem.', group: 'Historik' },
+ { id: 'audit', label: 'Audit', description: 'Senaste ändringar och spårbarhet.', group: 'Historik' },
+]
+
+const CUSTOMER_WORKSPACE_TAB_IDS = new Set<CustomerWorkspaceTab>(
+ CUSTOMER_WORKSPACE_TABS.map((tab) => tab.id)
+)
+
+function normalizeWorkspaceTab(value: string | null | undefined): CustomerWorkspaceTab {
+ if (value && CUSTOMER_WORKSPACE_TAB_IDS.has(value as CustomerWorkspaceTab)) {
+ return value as CustomerWorkspaceTab
+ }
+
+ return 'overview'
 }
 
-async function safeList<T>(loader: () => Promise<T[]>): Promise<T[]> {
- try {
- return await loader()
- } catch (error) {
- if (isOptionalRuntimeDbError(error)) return []
- throw error
- }
+function customerTabHref(customerId: string, tab: CustomerWorkspaceTab): string {
+ return `/admin/customers/${customerId}?tab=${tab}`
 }
 
-async function safeSupabaseRows<T>(
- loader: () => PromiseLike<{ data: T[] | null; error: unknown }>
-): Promise<T[]> {
- try {
- const { data, error } = await loader()
- if (error) throw error
- return data ?? []
- } catch (error) {
- if (isOptionalRuntimeDbError(error)) return []
- throw error
- }
-}
+function CustomerWorkspaceTabNav({
+ customerId,
+ activeTab,
+}: {
+ customerId: string
+ activeTab: CustomerWorkspaceTab
+}) {
+ const groups = ['Start', 'Drift', 'Kunddata', 'Historik'] as const
 
-async function safeNullable<T>(loader: () => Promise<T | null>): Promise<T | null> {
- try {
- return await loader()
- } catch (error) {
- if (isOptionalRuntimeDbError(error)) return null
- throw error
- }
+ return (
+ <section className="sticky top-3 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur ">
+ <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+ <div>
+ <h2 className="text-base font-semibold text-slate-950 ">Kundens arbetsyta</h2>
+ <p className="mt-1 max-w-3xl text-sm text-slate-700 ">
+ Välj arbetsflöde i knapparna nedan. Kundkortet visar bara vald del, så handläggaren slipper en lång sida som bara fortsätter nedåt.
+ </p>
+ </div>
+ <Link href="/admin/customers" className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 ">
+ Till kundregister
+ </Link>
+ </div>
+
+ <div className="mt-4 space-y-3">
+ {groups.map((group) => {
+ const tabs = CUSTOMER_WORKSPACE_TABS.filter((tab) => tab.group === group)
+ return (
+ <div key={group} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+ <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 ">{group}</div>
+ <div className="flex flex-wrap gap-2">
+ {tabs.map((tab) => {
+ const isActive = tab.id === activeTab
+ return (
+ <Link
+ key={tab.id}
+ href={customerTabHref(customerId, tab.id)}
+ title={tab.description}
+ className={`rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${
+ isActive
+ ? 'border-emerald-300 bg-emerald-700 text-white shadow-sm '
+ : 'border-slate-300 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 '
+ }`}
+ >
+ {tab.label}
+ </Link>
+ )
+ })}
+ </div>
+ </div>
+ )
+ })}
+ </div>
+ </section>
+ )
 }
 
 async function getCustomer(
- supabase: SupabaseClient,
+ supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
  id: string
 ): Promise<CustomerRow | null> {
- const preferredColumns =
+ const { data, error } = await supabase
+ .from('customers')
+ .select(
  'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, intake_status, intake_missing_fields, intake_quality_score, intake_warnings'
-
- const fallbackColumns =
- 'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
-
- const preferred = await supabase
- .from('customers')
- .select(preferredColumns)
+ )
  .eq('id', id)
  .maybeSingle()
 
- if (!preferred.error) {
- return (preferred.data as CustomerRow | null) ?? null
- }
-
- if (!isOptionalRuntimeDbError(preferred.error)) {
- throw preferred.error
- }
-
- const fallback = await supabase
- .from('customers')
- .select(fallbackColumns)
- .eq('id', id)
- .maybeSingle()
-
- if (fallback.error) throw fallback.error
-
- const row = (fallback.data as Partial<CustomerRow> | null) ?? null
- if (!row) return null
-
- return {
- id: String(row.id),
- company_id: row.company_id ?? null,
- customer_type: row.customer_type ?? null,
- status: row.status ?? null,
- first_name: row.first_name ?? null,
- last_name: row.last_name ?? null,
- full_name: row.full_name ?? null,
- company_name: row.company_name ?? null,
- email: row.email ?? null,
- phone: row.phone ?? null,
- personal_number: row.personal_number ?? null,
- org_number: row.org_number ?? null,
- customer_number: row.customer_number ?? null,
- apartment_number: row.apartment_number ?? null,
- created_at: row.created_at ?? new Date(0).toISOString(),
- moved_out_at: row.moved_out_at ?? null,
- lifecycle_closed_at: row.lifecycle_closed_at ?? null,
- lifecycle_status_reason: row.lifecycle_status_reason ?? null,
- intake_status: row.intake_status ?? null,
- intake_missing_fields: row.intake_missing_fields ?? null,
- intake_quality_score: row.intake_quality_score ?? null,
- intake_warnings: row.intake_warnings ?? null,
- }
+ if (error) throw error
+ return (data as CustomerRow | null) ?? null
 }
 
 function ActorCell({
@@ -1358,14 +1394,19 @@ export default async function CustomerAdminDetailPage({
  params,
  searchParams,
 }: CustomerPageProps) {
- const access = await requireAdminPageKeyAccess('customers.detail')
+ const access = await requireAdminPageAccess({ anyOf: ['customers.read', MASTERDATA_PERMISSIONS.READ] })
 
  const { id } = await params
  const resolvedSearchParams = await searchParams
  const editSiteId = resolvedSearchParams.editSite ?? null
  const editMeteringPointId = resolvedSearchParams.editMeteringPoint ?? null
+ const activeTab: CustomerWorkspaceTab = editSiteId
+ ? 'sites'
+ : editMeteringPointId
+ ? 'metering-points'
+ : normalizeWorkspaceTab(resolvedSearchParams.tab)
 
- const supabase = supabaseService
+ const supabase = await createSupabaseServerClient()
  const tenantScope = await resolveAdminTenantReadScope(access)
 
  if (!tenantScope.isPlatformAdmin && !tenantScope.companyId) {
@@ -1395,8 +1436,8 @@ export default async function CustomerAdminDetailPage({
  partnerExports,
  outboundRequests,
  switchRequests,
- contacts,
- addresses,
+ contactsResponse,
+ addressesResponse,
  contractOffers,
  customerContracts,
  powersOfAttorney,
@@ -1406,42 +1447,43 @@ export default async function CustomerAdminDetailPage({
  meteringPermissions,
  customerCases,
  ] = await Promise.all([
- safeList(() => listGridOwners(supabase)),
- safeList(() => listPriceAreas(supabase)),
- safeList(() => listCustomerSitesByCustomerId(supabase, id)),
- safeList(() => listCustomerInternalNotesByCustomerId(id)),
- safeList(() => listGridOwnerDataRequestsByCustomerId(id)),
- safeList(() => listMeteringValuesByCustomerId(id)),
- safeList(() => listBillingUnderlaysByCustomerId(id)),
- safeList(() => listPartnerExportsByCustomerId(id)),
- safeList(() => listOutboundRequestsByCustomerId(id)),
- safeList(() => listSupplierSwitchRequestsByCustomerId(supabase, id)),
- safeSupabaseRows<CustomerContactRow>(() =>
+ listGridOwners(supabase),
+ listPriceAreas(supabase),
+ listCustomerSitesByCustomerId(supabase, id),
+ listCustomerInternalNotesByCustomerId(id),
+ listGridOwnerDataRequestsByCustomerId(id),
+ listMeteringValuesByCustomerId(id),
+ listBillingUnderlaysByCustomerId(id),
+ listPartnerExportsByCustomerId(id),
+ listOutboundRequestsByCustomerId(id),
+ listSupplierSwitchRequestsByCustomerId(supabase, id),
  supabase
  .from('customer_contacts')
  .select('*')
  .eq('customer_id', id)
  .order('is_primary', { ascending: false })
- .order('created_at', { ascending: false })
- ),
- safeSupabaseRows<CustomerAddressRow>(() =>
+ .order('created_at', { ascending: false }),
  supabase
  .from('customer_addresses')
  .select('*')
  .eq('customer_id', id)
  .order('is_active', { ascending: false })
- .order('created_at', { ascending: false })
- ),
- safeList(() => listContractOffers({ activeOnly: true, companyId: customerCompanyId })),
- safeList(() => listCustomerContractsByCustomerId(id)),
- safeList(() => listPowersOfAttorneyByCustomerId(supabase, id)),
- safeList(() => listCustomerAuthorizationDocumentsByCustomerId(supabase, id)),
- customerCompanyId ? safeList(() => listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id })) : [],
- customerCompanyId ? safeList(() => listAuthorizationScopesByCustomerId({ companyId: customerCompanyId, customerId: id })) : [],
- customerCompanyId ? safeList(() => listMeteringPermissionsByCustomerId({ companyId: customerCompanyId, customerId: id })) : [],
- customerCompanyId ? safeList(() => listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 })) : [],
+ .order('created_at', { ascending: false }),
+ listContractOffers({ activeOnly: true, companyId: customerCompanyId }),
+ listCustomerContractsByCustomerId(id),
+ listPowersOfAttorneyByCustomerId(supabase, id),
+ listCustomerAuthorizationDocumentsByCustomerId(supabase, id),
+ customerCompanyId ? listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
+ customerCompanyId ? listAuthorizationScopesByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
+ customerCompanyId ? listMeteringPermissionsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
+ customerCompanyId ? listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 }) : [],
  ])
 
+ if (contactsResponse.error) throw contactsResponse.error
+ if (addressesResponse.error) throw addressesResponse.error
+
+ const contacts = (contactsResponse.data ?? []) as CustomerContactRow[]
+ const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[]
  const poaRows = powersOfAttorney as PowerOfAttorneyRow[]
  const documentRows = authorizationDocuments as CustomerAuthorizationDocumentRow[]
  const { data: powerScopeRows, error: powerScopeError } = await supabase
@@ -1452,43 +1494,30 @@ export default async function CustomerAdminDetailPage({
  if (powerScopeError && !['42P01', '42703', 'PGRST205'].includes(String((powerScopeError as { code?: string }).code ?? ''))) throw powerScopeError
  const poaScopeRows = (powerScopeRows ?? []) as PowerOfAttorneyScopeRow[]
 
- const [meteringPoints, switchEvents, rawEdielData, portalAccounts, portalClaims] = await Promise.all([
- safeList(() =>
+ const [meteringPoints, switchEvents, edielData, portalAccounts, portalClaims] = await Promise.all([
  listMeteringPointsBySiteIds(
  supabase,
  sites.map((site) => site.id)
- )
  ),
- safeList(() =>
  listSupplierSwitchEventsByRequestIds(
  supabase,
  switchRequests.map((request) => request.id)
- )
  ),
- safeNullable(() =>
  getCustomerEdielDataBundle({
- supabase: supabase as never,
+ supabase,
  customerId: id,
  gridOwners,
- })
- ),
- safeList(() => listCustomerPortalAccountsByCustomerId(id)),
- safeList(() => listCustomerPortalClaimsByCustomerId(id)),
+ }),
+ listCustomerPortalAccountsByCustomerId(id),
+ listCustomerPortalClaimsByCustomerId(id),
  ])
 
- const edielData = rawEdielData ?? {
- communicationRoutes: [],
- routeProfiles: [],
- edielMessages: [],
- recommendationRoutes: [],
- }
-
  const selectedSite = editSiteId
- ? await safeNullable(() => getCustomerSiteById(supabase, editSiteId))
+ ? await getCustomerSiteById(supabase, editSiteId)
  : null
 
  const selectedMeteringPoint = editMeteringPointId
- ? await safeNullable(() => getMeteringPointById(supabase, editMeteringPointId))
+ ? await getMeteringPointById(supabase, editMeteringPointId)
  : null
 
  const safeSelectedSite =
@@ -1500,14 +1529,12 @@ export default async function CustomerAdminDetailPage({
  ? selectedMeteringPoint
  : null
 
- const auditLogs = await safeList(() =>
- listMasterdataAuditLogsForCustomer({
+ const auditLogs = await listMasterdataAuditLogsForCustomer({
  customerId: id,
  siteIds: sites.map((site) => site.id),
  meteringPointIds: meteringPoints.map((point) => point.id),
  limit: 30,
  })
- )
 
  const customerName = formatCustomerName(customer)
  const activeSites = sites.filter((site) => site.status === 'active').length
@@ -1813,58 +1840,18 @@ export default async function CustomerAdminDetailPage({
  </div>
  </div>
 
- <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-5 ">
- <div className="flex flex-wrap items-center justify-between gap-3">
- <div>
- <div className="text-sm font-semibold text-slate-900 ">
- Kundens arbetsyta
- </div>
- <p className="mt-1 text-sm text-slate-700 ">
- Härifrån går du direkt till det operativa arbetet: fullmakt, leverantörsbyte, nätägaruppgifter, Ediel och avtal.
- </p>
- </div>
+ </section>
 
- <div className="flex flex-wrap gap-2">
- <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" tone="success" />
- <QuickJumpLink href="#switch-operations" label="Starta leverantörsbyte" tone="success" />
- <QuickJumpLink href="#billing-metering" label="Nätägaruppgifter" tone="warning" />
- <QuickJumpLink href="#ediel-operations" label="Öppna Ediel" tone="info" />
- <QuickJumpLink href="#contracts" label="Avtal" />
- </div>
- </div>
+ <CustomerWorkspaceTabNav customerId={id} activeTab={activeTab} />
 
- <div className="mt-4 flex flex-wrap gap-2">
- <QuickJumpLink href="#profile" label="Profil" />
- <QuickJumpLink href="#portal-access" label="Kundportal" tone="info" />
- <QuickJumpLink href="#grid-owner-import" label="Nätägarsynk" />
- <QuickJumpLink href="#data-requests" label="Uppgiftsbegäran" tone="warning" />
- <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" />
- <QuickJumpLink href="#switch-operations" label="Leverantörsbyte" />
- <QuickJumpLink href="#ediel-operations" label="Ediel" />
- <QuickJumpLink href="#billing-metering" label="Mätvärden / billing" />
- <QuickJumpLink href="#contracts" label="Avtal" />
- <QuickJumpLink href="#contacts-addresses" label="Kontakter / adresser" />
- <QuickJumpLink href="#sites" label="Anläggningar" />
- <QuickJumpLink href="#metering-points" label="Mätpunkter" />
- <QuickJumpLink href="#notes" label="Anteckningar" />
- <QuickJumpLink href="#cases" label="Ärenden" tone="warning" />
- <QuickJumpLink href="#audit" label="Audit" />
- </div>
- </div>
-
- <div className="mt-6">
- <StickyActionBar
- lifecycleSummary={lifecycleSummary}
- dataRequestsCount={dataRequests.length}
- />
- </div>
-
- <div className="mt-6">
- <CustomerOperationsReadinessStrip items={readinessItems} />
- </div>
-
- <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
- <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 ">
+ {activeTab === 'overview' ? (
+ <SectionAnchor
+ id="overview"
+ title="Översikt"
+ description="Samlad status för kundens operativa läge och rekommenderad nästa åtgärd."
+ >
+ <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+ <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex flex-wrap items-center gap-3">
  <div className="text-sm font-semibold text-slate-900 ">
  Operations summary
@@ -1892,29 +1879,26 @@ export default async function CustomerAdminDetailPage({
  {lifecycleSummary.primaryDescription}
  </p>
 
- <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
- <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm ">
+ <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Aktiva öppna</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
  {lifecycleSummary.activeOpen}
  </div>
  </div>
-
- <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Ready to execute</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
  {lifecycleSummary.readyToExecute}
  </div>
  </div>
-
- <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Väntar svar</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
  {lifecycleSummary.awaitingResponse}
  </div>
  </div>
-
- <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Blockerade</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
  {lifecycleSummary.blocked}
@@ -1922,314 +1906,159 @@ export default async function CustomerAdminDetailPage({
  </div>
  </div>
 
- <div className="mt-4 flex flex-wrap gap-3">
+ <div className="mt-5 flex flex-wrap gap-3">
  <Link
  href={lifecycleSummary.primaryHref}
  className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 "
  >
  Öppna rekommenderad arbetsyta
  </Link>
-
- <Link
- href="#switch-operations"
- className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 "
- >
- Gå till leverantörsbyte
+ <Link href={customerTabHref(id, 'switch-operations')} className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 ">
+ Leverantörsbyte
  </Link>
-
- <Link
- href="#billing-metering"
- className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 "
- >
- Gå till nätägarbegäran
+ <Link href={customerTabHref(id, 'billing-metering')} className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 ">
+ Nätägaruppgifter
  </Link>
-
- <Link
- href="#ediel-operations"
- className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 "
- >
- Gå till Ediel
+ <Link href={customerTabHref(id, 'ediel-operations')} className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 ">
+ Ediel
  </Link>
  </div>
  </div>
 
- <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
- <Link
- href="/admin/operations/switches?stage=queued_for_outbound"
- className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 "
- >
+ <div className="space-y-6">
+ <CustomerOperationsReadinessStrip items={readinessItems} />
+
+ <div className="grid gap-3 sm:grid-cols-2">
+ <Link href="/admin/operations/switches?stage=queued_for_outbound" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 ">
  <div className="text-sm text-slate-700 ">Saknar outbound</div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">
- {lifecycleSummary.queuedForOutbound}
- </div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">{lifecycleSummary.queuedForOutbound}</div>
  </Link>
-
- <Link
- href="/admin/operations/switches?stage=awaiting_dispatch"
- className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 "
- >
+ <Link href="/admin/operations/switches?stage=awaiting_dispatch" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 ">
  <div className="text-sm text-slate-700 ">Väntar dispatch</div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">
- {lifecycleSummary.awaitingDispatch}
- </div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">{lifecycleSummary.awaitingDispatch}</div>
  </Link>
-
- <Link
- href="/admin/operations/switches?stage=failed"
- className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 "
- >
+ <Link href="/admin/operations/switches?stage=failed" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 ">
  <div className="text-sm text-slate-700 ">Failed / rejected</div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">
- {lifecycleSummary.failed}
- </div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">{lifecycleSummary.failed}</div>
  </Link>
-
- <Link
- href="/admin/operations/ready-to-execute"
- className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm transition hover:bg-emerald-50 "
- >
+ <Link href="/admin/operations/ready-to-execute" className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm transition hover:bg-emerald-50 ">
  <div className="text-sm text-slate-700 ">Completed / ready view</div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">
- {lifecycleSummary.completed + lifecycleSummary.readyToExecute}
- </div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">{lifecycleSummary.completed + lifecycleSummary.readyToExecute}</div>
  </Link>
  </div>
  </div>
- </section>
+ </div>
+ </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="profile"
- title="Profil och erbjudanden"
- description="Kundens profil, status och kvalificerade avtalsmöjligheter."
- >
+ {activeTab === 'profile' ? (
+ <SectionAnchor id="profile" title="Profil och erbjudanden" description="Kundens profil, status och kvalificerade avtalsmöjligheter.">
  <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
  <CustomerProfileCard customer={customer} />
- <CustomerContractOfferEligibilityCard
- customerType={normalizedCustomerType}
- offers={contractOffers}
- />
+ <CustomerContractOfferEligibilityCard customerType={normalizedCustomerType} offers={contractOffers} />
  </section>
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="portal-access"
- title="Kundportal"
- description="Koppling mellan kundens login på gridex.se och rätt kundkort. Kräver matchning på personnummer, e-post, namn och anläggnings-ID."
- >
- <CustomerPortalAccessCard
- customerId={id}
- accounts={portalAccounts}
- claims={portalClaims}
- />
+ {activeTab === 'portal-access' ? (
+ <SectionAnchor id="portal-access" title="Kundportal" description="Koppling mellan kundens login på gridex.se och rätt kundkort. Kräver matchning på personnummer, e-post, namn och anläggnings-ID.">
+ <CustomerPortalAccessCard customerId={id} accounts={portalAccounts} claims={portalClaims} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="grid-owner-import"
- title="Nätägarsynk"
- description="Importera eller synka underlag från nätägarsidan för kunden."
- >
+ {activeTab === 'grid-owner-import' ? (
+ <SectionAnchor id="grid-owner-import" title="Nätägarsynk" description="Importera eller synka underlag från nätägarsidan för kunden.">
  <CustomerGridOwnerFileImportCard customerId={id} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="data-requests"
- title="Uppgiftsbegäran och mätvärdestillstånd"
- description="Z01/Z02, fullmaktsomfattning och Z13/Z14 kopplat direkt till kunden."
- >
- <OnboardingDataRequestsSection
- customerId={id}
- infoRequests={customerInfoRequests}
- authorizationScopes={authorizationScopes}
- meteringPermissions={meteringPermissions}
- />
+ {activeTab === 'data-requests' ? (
+ <SectionAnchor id="data-requests" title="Uppgiftsbegäran och mätvärdestillstånd" description="Z01/Z02, fullmaktsomfattning och Z13/Z14 kopplat direkt till kunden.">
+ <OnboardingDataRequestsSection customerId={id} infoRequests={customerInfoRequests} authorizationScopes={authorizationScopes} meteringPermissions={meteringPermissions} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="authorization-documents"
- title="Fullmakt och komplett avtal"
- description="Ladda upp dokument på kundkortet och skapa request-paket mot nätägare och nuvarande leverantör."
- >
- <CustomerAuthorizationDocumentsCard
- customerId={id}
- sites={sites}
- meteringPoints={meteringPoints}
- documents={documentRows}
- powersOfAttorney={poaRows}
- />
+ {activeTab === 'authorization-documents' ? (
+ <SectionAnchor id="authorization-documents" title="Fullmakt och komplett avtal" description="Ladda upp dokument på kundkortet och skapa request-paket mot nätägare och nuvarande leverantör.">
+ <CustomerAuthorizationDocumentsCard customerId={id} sites={sites} meteringPoints={meteringPoints} documents={documentRows} powersOfAttorney={poaRows} />
  <div className="mt-6">
- <PowerOfAttorneyScopesSection
- customerId={id}
- sites={sites}
- meteringPoints={meteringPoints}
- contracts={customerContracts as CustomerContractRow[]}
- powersOfAttorney={poaRows}
- scopes={poaScopeRows}
- />
+ <PowerOfAttorneyScopesSection customerId={id} sites={sites} meteringPoints={meteringPoints} contracts={customerContracts as CustomerContractRow[]} powersOfAttorney={poaRows} scopes={poaScopeRows} />
  </div>
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="switch-operations"
- title="Leverantörsbyte"
- description="Här startar du nytt leverantörsbyte och följer kundens switchflöde."
- >
- <CustomerSwitchOperationsCard
- customerId={id}
- sites={sites}
- meteringPoints={meteringPoints}
- switchRequests={switchRequests}
- switchEvents={switchEvents}
- outboundRequests={outboundRequests}
- edielMessages={edielData.edielMessages}
- edielRecommendationRoutes={edielData.recommendationRoutes}
- />
+ {activeTab === 'switch-operations' ? (
+ <SectionAnchor id="switch-operations" title="Leverantörsbyte" description="Här startar du nytt leverantörsbyte och följer kundens switchflöde.">
+ <CustomerSwitchOperationsCard customerId={id} sites={sites} meteringPoints={meteringPoints} switchRequests={switchRequests} switchEvents={switchEvents} outboundRequests={outboundRequests} edielMessages={edielData.edielMessages} edielRecommendationRoutes={edielData.recommendationRoutes} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="ediel-operations"
- title="Ediel"
- description="Skapa, validera och följ Ediel-flödet för kundens switchar och nätägarrelaterade meddelanden."
- >
- <CustomerEdielOperationsCard
- customerId={id}
- sites={sites}
- meteringPoints={meteringPoints}
- gridOwners={gridOwners}
- switchRequests={switchRequests}
- dataRequests={dataRequests}
- communicationRoutes={edielData.communicationRoutes}
- routeProfiles={edielData.routeProfiles}
- edielMessages={edielData.edielMessages}
- recommendationRoutes={edielData.recommendationRoutes}
- />
+ {activeTab === 'ediel-operations' ? (
+ <SectionAnchor id="ediel-operations" title="Ediel" description="Skapa, validera och följ Ediel-flödet för kundens switchar och nätägarrelaterade meddelanden.">
+ <CustomerEdielOperationsCard customerId={id} sites={sites} meteringPoints={meteringPoints} gridOwners={gridOwners} switchRequests={switchRequests} dataRequests={dataRequests} communicationRoutes={edielData.communicationRoutes} routeProfiles={edielData.routeProfiles} edielMessages={edielData.edielMessages} recommendationRoutes={edielData.recommendationRoutes} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="billing-metering"
- title="Nätägaruppgifter"
- description="Här begär du mätvärden, billingunderlag och övrigt underlag från nätägaren."
- >
- <CustomerBillingMeteringCard
- customerId={id}
- sites={sites}
- meteringPoints={meteringPoints}
- gridOwners={gridOwners}
- dataRequests={dataRequests}
- meteringValues={meteringValues}
- billingUnderlays={billingUnderlays}
- partnerExports={partnerExports}
- outboundRequests={outboundRequests}
- />
+ {activeTab === 'billing-metering' ? (
+ <SectionAnchor id="billing-metering" title="Nätägaruppgifter" description="Här begär du mätvärden, billingunderlag och övrigt underlag från nätägaren.">
+ <CustomerBillingMeteringCard customerId={id} sites={sites} meteringPoints={meteringPoints} gridOwners={gridOwners} dataRequests={dataRequests} meteringValues={meteringValues} billingUnderlays={billingUnderlays} partnerExports={partnerExports} outboundRequests={outboundRequests} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="contracts"
- title="Avtal"
- description="Visa, hantera och uppdatera kundens avtal."
- >
+ {activeTab === 'contracts' ? (
+ <SectionAnchor id="contracts" title="Avtal" description="Visa, hantera och uppdatera kundens avtal.">
  <CustomerContractsCard customerId={id} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="contacts-addresses"
- title="Kontakter och adresser"
- description="Primära kontaktpersoner, adresser och kundens kontaktstruktur."
- >
- <CustomerContactsAddressesCard
- customerId={id}
- customerType={normalizedCustomerType}
- contacts={contacts}
- addresses={addresses}
- />
+ {activeTab === 'contacts-addresses' ? (
+ <SectionAnchor id="contacts-addresses" title="Kontakter och adresser" description="Primära kontaktpersoner, adresser och kundens kontaktstruktur.">
+ <CustomerContactsAddressesCard customerId={id} customerType={normalizedCustomerType} contacts={contacts} addresses={addresses} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="sites"
- title="Anläggningar"
- description="Skapa eller redigera kundens anläggningar."
- >
+ {activeTab === 'sites' ? (
+ <SectionAnchor id="sites" title="Anläggningar" description="Skapa eller redigera kundens anläggningar.">
  <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
- <CustomerSiteForm
- customerId={id}
- gridOwners={gridOwners}
- priceAreas={priceAreas}
- site={safeSelectedSite}
- cancelHref={`/admin/customers/${id}`}
- />
- <CustomerSitesTable
- customerId={id}
- sites={sites}
- gridOwners={gridOwners}
- meteringPoints={meteringPoints}
- selectedSiteId={safeSelectedSite?.id ?? null}
- />
+ <CustomerSiteForm customerId={id} gridOwners={gridOwners} priceAreas={priceAreas} site={safeSelectedSite} cancelHref={`/admin/customers/${id}?tab=sites`} />
+ <CustomerSitesTable customerId={id} sites={sites} gridOwners={gridOwners} meteringPoints={meteringPoints} selectedSiteId={safeSelectedSite?.id ?? null} />
  </section>
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="metering-points"
- title="Mätpunkter"
- description="Skapa eller redigera kundens mätpunkter."
- >
+ {activeTab === 'metering-points' ? (
+ <SectionAnchor id="metering-points" title="Mätpunkter" description="Skapa eller redigera kundens mätpunkter.">
  <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
- <MeteringPointForm
- customerId={id}
- sites={sites}
- gridOwners={gridOwners}
- priceAreas={priceAreas}
- meteringPoint={safeSelectedMeteringPoint}
- cancelHref={`/admin/customers/${id}`}
- />
- <MeteringPointsTable
- customerId={id}
- meteringPoints={meteringPoints}
- sites={sites}
- gridOwners={gridOwners}
- selectedMeteringPointId={safeSelectedMeteringPoint?.id ?? null}
- />
+ <MeteringPointForm customerId={id} sites={sites} gridOwners={gridOwners} priceAreas={priceAreas} meteringPoint={safeSelectedMeteringPoint} cancelHref={`/admin/customers/${id}?tab=metering-points`} />
+ <MeteringPointsTable customerId={id} meteringPoints={meteringPoints} sites={sites} gridOwners={gridOwners} selectedMeteringPointId={safeSelectedMeteringPoint?.id ?? null} />
  </section>
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="notes"
- title="Anteckningar"
- description="Intern support- och driftlogg för kunden."
- >
+ {activeTab === 'notes' ? (
+ <SectionAnchor id="notes" title="Anteckningar" description="Intern support- och driftlogg för kunden.">
  <NotesSection customerId={id} notes={notes} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="lifecycle-decisions"
- title="Ånger och avvisning"
- description="Stoppa leverantörsbyte och fakturering på kund-, avtals-, anläggnings- eller mätpunktsnivå."
- >
- <LifecycleDecisionSection
- customerId={id}
- sites={sites}
- meteringPoints={meteringPoints}
- contracts={customerContracts as CustomerContractRow[]}
- />
+ {activeTab === 'lifecycle-decisions' ? (
+ <SectionAnchor id="lifecycle-decisions" title="Ånger och avvisning" description="Stoppa leverantörsbyte och fakturering på kund-, avtals-, anläggnings- eller mätpunktsnivå.">
+ <LifecycleDecisionSection customerId={id} sites={sites} meteringPoints={meteringPoints} contracts={customerContracts as CustomerContractRow[]} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="cases"
- title="Ärenden"
- description="Ånger, nekade kunder och manuell uppföljning kopplas till kundens drift- och avtalsarbete."
- >
+ {activeTab === 'cases' ? (
+ <SectionAnchor id="cases" title="Ärenden" description="Ånger, nekade kunder och manuell uppföljning kopplas till kundens drift- och avtalsarbete.">
  <CustomerCasesSection customerId={id} cases={customerCases} />
  </SectionAnchor>
+ ) : null}
 
- <SectionAnchor
- id="audit"
- title="Audit"
- description="Senaste ändringar i kund, anläggningar och mätpunkter."
- >
- <AuditSection
- auditLogs={auditLogs}
- sites={sites}
- meteringPoints={meteringPoints}
- />
+ {activeTab === 'audit' ? (
+ <SectionAnchor id="audit" title="Audit" description="Senaste ändringar i kund, anläggningar och mätpunkter.">
+ <AuditSection auditLogs={auditLogs} sites={sites} meteringPoints={meteringPoints} />
  </SectionAnchor>
+ ) : null}
+
  </div>
  )
 }
