@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
-import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { isMissingRelationError } from '@/lib/tenant/scope'
+import { supabaseService } from '@/lib/supabase/service'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import CustomerEdielOperationsCard from '@/components/admin/customers/CustomerEdielOperationsCard'
 import {
  getCustomerSiteById,
@@ -350,20 +351,101 @@ function compactJson(value: Record<string, unknown> | null): string {
  .join(' • ')
 }
 
+function isOptionalRuntimeDbError(error: unknown): boolean {
+ const code = String((error as { code?: string } | null)?.code ?? '')
+ return isMissingRelationError(error) || ['42703', '42P01', 'PGRST204', 'PGRST205'].includes(code)
+}
+
+async function safeList<T>(loader: () => Promise<T[]>): Promise<T[]> {
+ try {
+ return await loader()
+ } catch (error) {
+ if (isOptionalRuntimeDbError(error)) return []
+ throw error
+ }
+}
+
+async function safeSupabaseRows<T>(
+ loader: () => PromiseLike<{ data: T[] | null; error: unknown }>
+): Promise<T[]> {
+ try {
+ const { data, error } = await loader()
+ if (error) throw error
+ return data ?? []
+ } catch (error) {
+ if (isOptionalRuntimeDbError(error)) return []
+ throw error
+ }
+}
+
+async function safeNullable<T>(loader: () => Promise<T | null>): Promise<T | null> {
+ try {
+ return await loader()
+ } catch (error) {
+ if (isOptionalRuntimeDbError(error)) return null
+ throw error
+ }
+}
+
 async function getCustomer(
- supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+ supabase: SupabaseClient,
  id: string
 ): Promise<CustomerRow | null> {
- const { data, error } = await supabase
- .from('customers')
- .select(
+ const preferredColumns =
  'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, intake_status, intake_missing_fields, intake_quality_score, intake_warnings'
- )
+
+ const fallbackColumns =
+ 'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
+
+ const preferred = await supabase
+ .from('customers')
+ .select(preferredColumns)
  .eq('id', id)
  .maybeSingle()
 
- if (error) throw error
- return (data as CustomerRow | null) ?? null
+ if (!preferred.error) {
+ return (preferred.data as CustomerRow | null) ?? null
+ }
+
+ if (!isOptionalRuntimeDbError(preferred.error)) {
+ throw preferred.error
+ }
+
+ const fallback = await supabase
+ .from('customers')
+ .select(fallbackColumns)
+ .eq('id', id)
+ .maybeSingle()
+
+ if (fallback.error) throw fallback.error
+
+ const row = (fallback.data as Partial<CustomerRow> | null) ?? null
+ if (!row) return null
+
+ return {
+ id: String(row.id),
+ company_id: row.company_id ?? null,
+ customer_type: row.customer_type ?? null,
+ status: row.status ?? null,
+ first_name: row.first_name ?? null,
+ last_name: row.last_name ?? null,
+ full_name: row.full_name ?? null,
+ company_name: row.company_name ?? null,
+ email: row.email ?? null,
+ phone: row.phone ?? null,
+ personal_number: row.personal_number ?? null,
+ org_number: row.org_number ?? null,
+ customer_number: row.customer_number ?? null,
+ apartment_number: row.apartment_number ?? null,
+ created_at: row.created_at ?? new Date(0).toISOString(),
+ moved_out_at: row.moved_out_at ?? null,
+ lifecycle_closed_at: row.lifecycle_closed_at ?? null,
+ lifecycle_status_reason: row.lifecycle_status_reason ?? null,
+ intake_status: row.intake_status ?? null,
+ intake_missing_fields: row.intake_missing_fields ?? null,
+ intake_quality_score: row.intake_quality_score ?? null,
+ intake_warnings: row.intake_warnings ?? null,
+ }
 }
 
 function ActorCell({
@@ -1276,14 +1358,14 @@ export default async function CustomerAdminDetailPage({
  params,
  searchParams,
 }: CustomerPageProps) {
- const access = await requireAdminPageAccess({ anyOf: ['customers.read', MASTERDATA_PERMISSIONS.READ] })
+ const access = await requireAdminPageKeyAccess('customers.detail')
 
  const { id } = await params
  const resolvedSearchParams = await searchParams
  const editSiteId = resolvedSearchParams.editSite ?? null
  const editMeteringPointId = resolvedSearchParams.editMeteringPoint ?? null
 
- const supabase = await createSupabaseServerClient()
+ const supabase = supabaseService
  const tenantScope = await resolveAdminTenantReadScope(access)
 
  if (!tenantScope.isPlatformAdmin && !tenantScope.companyId) {
@@ -1313,8 +1395,8 @@ export default async function CustomerAdminDetailPage({
  partnerExports,
  outboundRequests,
  switchRequests,
- contactsResponse,
- addressesResponse,
+ contacts,
+ addresses,
  contractOffers,
  customerContracts,
  powersOfAttorney,
@@ -1324,43 +1406,42 @@ export default async function CustomerAdminDetailPage({
  meteringPermissions,
  customerCases,
  ] = await Promise.all([
- listGridOwners(supabase),
- listPriceAreas(supabase),
- listCustomerSitesByCustomerId(supabase, id),
- listCustomerInternalNotesByCustomerId(id),
- listGridOwnerDataRequestsByCustomerId(id),
- listMeteringValuesByCustomerId(id),
- listBillingUnderlaysByCustomerId(id),
- listPartnerExportsByCustomerId(id),
- listOutboundRequestsByCustomerId(id),
- listSupplierSwitchRequestsByCustomerId(supabase, id),
+ safeList(() => listGridOwners(supabase)),
+ safeList(() => listPriceAreas(supabase)),
+ safeList(() => listCustomerSitesByCustomerId(supabase, id)),
+ safeList(() => listCustomerInternalNotesByCustomerId(id)),
+ safeList(() => listGridOwnerDataRequestsByCustomerId(id)),
+ safeList(() => listMeteringValuesByCustomerId(id)),
+ safeList(() => listBillingUnderlaysByCustomerId(id)),
+ safeList(() => listPartnerExportsByCustomerId(id)),
+ safeList(() => listOutboundRequestsByCustomerId(id)),
+ safeList(() => listSupplierSwitchRequestsByCustomerId(supabase, id)),
+ safeSupabaseRows<CustomerContactRow>(() =>
  supabase
  .from('customer_contacts')
  .select('*')
  .eq('customer_id', id)
  .order('is_primary', { ascending: false })
- .order('created_at', { ascending: false }),
+ .order('created_at', { ascending: false })
+ ),
+ safeSupabaseRows<CustomerAddressRow>(() =>
  supabase
  .from('customer_addresses')
  .select('*')
  .eq('customer_id', id)
  .order('is_active', { ascending: false })
- .order('created_at', { ascending: false }),
- listContractOffers({ activeOnly: true, companyId: customerCompanyId }),
- listCustomerContractsByCustomerId(id),
- listPowersOfAttorneyByCustomerId(supabase, id),
- listCustomerAuthorizationDocumentsByCustomerId(supabase, id),
- customerCompanyId ? listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
- customerCompanyId ? listAuthorizationScopesByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
- customerCompanyId ? listMeteringPermissionsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
- customerCompanyId ? listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 }) : [],
+ .order('created_at', { ascending: false })
+ ),
+ safeList(() => listContractOffers({ activeOnly: true, companyId: customerCompanyId })),
+ safeList(() => listCustomerContractsByCustomerId(id)),
+ safeList(() => listPowersOfAttorneyByCustomerId(supabase, id)),
+ safeList(() => listCustomerAuthorizationDocumentsByCustomerId(supabase, id)),
+ customerCompanyId ? safeList(() => listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id })) : [],
+ customerCompanyId ? safeList(() => listAuthorizationScopesByCustomerId({ companyId: customerCompanyId, customerId: id })) : [],
+ customerCompanyId ? safeList(() => listMeteringPermissionsByCustomerId({ companyId: customerCompanyId, customerId: id })) : [],
+ customerCompanyId ? safeList(() => listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 })) : [],
  ])
 
- if (contactsResponse.error) throw contactsResponse.error
- if (addressesResponse.error) throw addressesResponse.error
-
- const contacts = (contactsResponse.data ?? []) as CustomerContactRow[]
- const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[]
  const poaRows = powersOfAttorney as PowerOfAttorneyRow[]
  const documentRows = authorizationDocuments as CustomerAuthorizationDocumentRow[]
  const { data: powerScopeRows, error: powerScopeError } = await supabase
@@ -1371,30 +1452,43 @@ export default async function CustomerAdminDetailPage({
  if (powerScopeError && !['42P01', '42703', 'PGRST205'].includes(String((powerScopeError as { code?: string }).code ?? ''))) throw powerScopeError
  const poaScopeRows = (powerScopeRows ?? []) as PowerOfAttorneyScopeRow[]
 
- const [meteringPoints, switchEvents, edielData, portalAccounts, portalClaims] = await Promise.all([
+ const [meteringPoints, switchEvents, rawEdielData, portalAccounts, portalClaims] = await Promise.all([
+ safeList(() =>
  listMeteringPointsBySiteIds(
  supabase,
  sites.map((site) => site.id)
+ )
  ),
+ safeList(() =>
  listSupplierSwitchEventsByRequestIds(
  supabase,
  switchRequests.map((request) => request.id)
+ )
  ),
+ safeNullable(() =>
  getCustomerEdielDataBundle({
- supabase,
+ supabase: supabase as never,
  customerId: id,
  gridOwners,
- }),
- listCustomerPortalAccountsByCustomerId(id),
- listCustomerPortalClaimsByCustomerId(id),
+ })
+ ),
+ safeList(() => listCustomerPortalAccountsByCustomerId(id)),
+ safeList(() => listCustomerPortalClaimsByCustomerId(id)),
  ])
 
+ const edielData = rawEdielData ?? {
+ communicationRoutes: [],
+ routeProfiles: [],
+ edielMessages: [],
+ recommendationRoutes: [],
+ }
+
  const selectedSite = editSiteId
- ? await getCustomerSiteById(supabase, editSiteId)
+ ? await safeNullable(() => getCustomerSiteById(supabase, editSiteId))
  : null
 
  const selectedMeteringPoint = editMeteringPointId
- ? await getMeteringPointById(supabase, editMeteringPointId)
+ ? await safeNullable(() => getMeteringPointById(supabase, editMeteringPointId))
  : null
 
  const safeSelectedSite =
@@ -1406,12 +1500,14 @@ export default async function CustomerAdminDetailPage({
  ? selectedMeteringPoint
  : null
 
- const auditLogs = await listMasterdataAuditLogsForCustomer({
+ const auditLogs = await safeList(() =>
+ listMasterdataAuditLogsForCustomer({
  customerId: id,
  siteIds: sites.map((site) => site.id),
  meteringPointIds: meteringPoints.map((point) => point.id),
  limit: 30,
  })
+ )
 
  const customerName = formatCustomerName(customer)
  const activeSites = sites.filter((site) => site.status === 'active').length

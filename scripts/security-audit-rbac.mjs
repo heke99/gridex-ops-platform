@@ -85,6 +85,7 @@ const reviewedServiceClientFiles = new Set([
   'app/admin/customers/[id]/actions.ts',
   'app/admin/customers/[id]/document-actions.ts',
   'app/admin/customers/[id]/grid-owner-import-actions.ts',
+  'app/admin/customers/[id]/page.tsx',
   'app/admin/customers/[id]/profile-actions.ts',
   'app/admin/customers/[id]/switch-actions.ts',
   'app/admin/customers/[id]/switch-create-actions.ts',
