@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
+  ROLE_PERMISSION_PROFILES,
   getAdminPageRequirement,
   hasPermissionRequirement,
   type AdminPageKey,
@@ -25,8 +26,8 @@ type UserRoleRpcRow = {
 }
 
 const PLATFORM_ADMIN_ROLES = new Set(['super_admin', 'superadmin', 'platform_admin'])
-const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set(['owner', 'admin', 'company_admin'])
-const COMPANY_READ_MEMBERSHIP_ROLES = new Set(['owner', 'admin', 'company_admin', 'operations', 'support', 'viewer', 'member'])
+const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set(['owner', 'admin'])
+const COMPANY_READ_MEMBERSHIP_ROLES = new Set(['owner', 'admin', 'operations', 'support', 'viewer', 'member'])
 
 function normalizeRequirement(
   input: string[] | PermissionRequirement
@@ -36,6 +37,43 @@ function normalizeRequirement(
   }
 
   return input
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter((value) => value.length > 0)))
+}
+
+function tenantMembershipFallbackRole(membershipRole: string | null | undefined): string | null {
+  switch (membershipRole) {
+    case 'owner':
+    case 'admin':
+    case 'company_admin':
+      return 'company_admin'
+    case 'operations':
+      return 'operations_manager'
+    case 'support':
+      return 'customer_service_agent'
+    case 'viewer':
+    case 'member':
+      return 'executive_readonly'
+    default:
+      return null
+  }
+}
+
+function mergeCodeProfilePermissions(permissions: string[], roleKeys: string[]): string[] {
+  const next = new Set(permissions)
+
+  for (const roleKey of roleKeys) {
+    const profile = ROLE_PERMISSION_PROFILES[roleKey]
+    if (!profile) continue
+
+    for (const permission of profile.permissions) {
+      next.add(permission)
+    }
+  }
+
+  return Array.from(next)
 }
 
 export function isPlatformAdminContext(input: Pick<GuardResult, 'roles' | 'permissions'>): boolean {
@@ -57,7 +95,7 @@ async function loadBaseAdminContext(): Promise<GuardResult> {
     redirect('/login')
   }
 
-  const permissions = await getUserPermissions(user.id)
+  const permissionRows = await getUserPermissions(user.id)
 
   const { data: rolesData, error: rolesError } = await supabase.rpc(
     'gridex_get_user_roles',
@@ -70,9 +108,21 @@ async function loadBaseAdminContext(): Promise<GuardResult> {
     throw rolesError
   }
 
-  const roles = ((rolesData ?? []) as UserRoleRpcRow[])
+  const rpcRoles = ((rolesData ?? []) as UserRoleRpcRow[])
     .map((row) => row.role_key ?? null)
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
+
+  // Production safety fallback: some existing tenants can have company_memberships
+  // backfilled before role_permissions/user_roles were fully normalized. A user who
+  // is active owner/admin/company_admin for a tenant must still be treated as a
+  // tenant admin for tenant-scoped pages such as /admin/customers and control tower.
+  const memberships = await listOperationalCompaniesForUser(user.id)
+  const membershipRoles = memberships
+    .map((membership) => tenantMembershipFallbackRole(membership.membershipRole))
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+
+  const roles = uniqueStrings([...rpcRoles, ...membershipRoles])
+  const permissions = mergeCodeProfilePermissions(permissionRows, roles)
 
   const isAdmin =
     permissions.length > 0 &&
@@ -130,6 +180,13 @@ export async function requireAdminPageAccess(
 
   if (!base.isAdmin) {
     redirect('/login')
+  }
+
+  // Superadmin/platform-admin can access tenant operation pages for support/debug
+  // even if an older DB has stale role_permissions. Platform-only pages are still
+  // gated separately by requirePlatformAdminAccess through requireAdminPageKeyAccess.
+  if (isPlatformAdminContext(base)) {
+    return base
   }
 
   const requirement = normalizeRequirement(requiredPermissions)

@@ -1,8 +1,26 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+  async redirects() {
+    return [
+      {
+        source: '/admin/admin/:path*',
+        destination: '/admin/:path*',
+        permanent: false,
+      },
+      {
+        source: '/admin/control-tower',
+        destination: '/admin/controltower',
+        permanent: false,
+      },
+      {
+        source: '/admin/ediel/controltower',
+        destination: '/admin/ediel/control-tower',
+        permanent: false,
+      },
+    ]
+  },
 };
 
 export default nextConfig;
