@@ -2644,9 +2644,7 @@ export async function createCustomerAction(
   formData: FormData,
 ): Promise<IntakeActionState> {
   try {
-    await requireAdminActionAccess({
-      anyOf: ["customers.write", "masterdata.write"],
-    });
+    await requireAdminActionAccess({ allOf: ["customers.write"] });
     const actorUserId = await getActorUserId();
     const companyId = await requireOperationalCompanyId(actorUserId);
     await requireCompanyOperationalForWrites(companyId);
@@ -2751,6 +2749,64 @@ async function insertImportRow(params: {
     },
     parser_confidence: params.confidence ?? null,
   });
+}
+
+async function recordDocumentAiExtractionForImport(params: {
+  companyId: string;
+  actorUserId: string;
+  fileName: string | null;
+  importBatchId?: string | null;
+  parsedImport: Awaited<ReturnType<typeof parseCustomerImportFormData>>;
+}) {
+  if (params.parsedImport.sourceKind !== "pdf") return;
+  if (!params.parsedImport.rawText && !params.parsedImport.documentAiPayload) return;
+
+  const firstRow = params.parsedImport.rows[0] ?? {};
+  const detectedSites = params.parsedImport.rows
+    .map((row, index) => ({
+      rowNumber: index + 2,
+      facilityId: row.facility_id ?? null,
+      meterPointId: row.meter_point_id ?? null,
+      gridAreaCode: row.grid_area_code ?? null,
+      gridOwnerName: row.grid_owner_name ?? null,
+    }))
+    .filter((row) => row.facilityId || row.meterPointId || row.gridAreaCode || row.gridOwnerName);
+
+  const status = params.parsedImport.ocrStatus === "needs_ocr" ? "needs_ocr" : "needs_review";
+
+  const { error } = await supabaseService.from("document_ai_extractions").insert({
+    company_id: params.companyId,
+    customer_id: null,
+    source_file_name: params.fileName,
+    extraction_type: "customer_import_pdf",
+    status,
+    raw_text: params.parsedImport.rawText?.slice(0, 200000) ?? null,
+    extracted_fields: {
+      rows: params.parsedImport.rows.slice(0, 100),
+      parser: params.parsedImport.documentAiPayload ?? {},
+      importBatchId: params.importBatchId ?? null,
+    },
+    field_confidence: {
+      parserVersion: params.parsedImport.parserVersion ?? null,
+      ocrStatus: params.parsedImport.ocrStatus ?? null,
+      warnings: params.parsedImport.warnings,
+    },
+    detected_sites: detectedSites,
+    detected_invoice_address: {
+      invoiceRecipient: firstRow.invoice_recipient ?? null,
+      invoiceEmail: firstRow.invoice_email ?? null,
+      billingStreet: firstRow.billing_street ?? null,
+      billingPostalCode: firstRow.billing_postal_code ?? null,
+      billingCity: firstRow.billing_city ?? null,
+    },
+    review_notes:
+      params.parsedImport.ocrStatus === "needs_ocr"
+        ? "PDF saknar maskinläsbar text och behöver OCR/AI-granskning innan import."
+        : "PDF tolkad maskinellt. Granska rader och confidence innan kund skapas.",
+    created_by: params.actorUserId,
+  });
+
+  if (error && !databaseObjectMissing(error)) throw error;
 }
 
 type CustomerImportRowRecord = {
@@ -3201,9 +3257,7 @@ export async function rejectCustomerImportRowAction(formData: FormData) {
 }
 
 export async function bulkCreateCustomersAction(formData: FormData) {
-  await requireAdminActionAccess({
-    anyOf: ["customers.write", "masterdata.write"],
-  });
+  await requireAdminActionAccess({ allOf: ["customers.write"] });
   const actorUserId = await getActorUserId();
   const companyId = await requireOperationalCompanyId(actorUserId);
   await requireCompanyOperationalForWrites(companyId);
@@ -3260,6 +3314,14 @@ export async function bulkCreateCustomersAction(formData: FormData) {
   }
 
   const importBatch = importBatchResult.data;
+
+  await recordDocumentAiExtractionForImport({
+    companyId,
+    actorUserId,
+    fileName,
+    importBatchId: importBatch?.id ?? null,
+    parsedImport,
+  });
 
   let created = 0;
   let review = 0;
@@ -3605,12 +3667,22 @@ export async function previewCustomerImportAction(
   formData: FormData,
 ): Promise<CustomerImportActionState> {
   try {
-    await requireAdminActionAccess({
-      anyOf: ["customers.write", "masterdata.read"],
-    });
+    await requireAdminActionAccess({ allOf: ["customers.write"] });
     const actorUserId = await getActorUserId();
     const companyId = await requireOperationalCompanyId(actorUserId);
     const parsedImport = await parseCustomerImportFormData(formData);
+    const previewFile = formData.get("bulkFile");
+    const previewFileName =
+      previewFile && typeof previewFile === "object" && "name" in previewFile
+        ? String((previewFile as File).name)
+        : null;
+
+    await recordDocumentAiExtractionForImport({
+      companyId,
+      actorUserId,
+      fileName: previewFileName,
+      parsedImport,
+    });
 
     const duplicateKeys = parsedImport.rows
       .map((row) => normalizeLookupValue(importUniqueKey(row)))

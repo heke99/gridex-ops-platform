@@ -1,10 +1,16 @@
-import { inflateRawSync } from 'node:zlib'
+import { inflateRawSync, inflateSync } from 'node:zlib'
 
 export type ParsedCustomerImport = {
   rows: Array<Record<string, string>>
   warnings: string[]
   sourceKind: 'text' | 'csv' | 'excel' | 'pdf'
+  rawText?: string
+  parserVersion?: string
+  ocrStatus?: 'text_extracted' | 'table_extracted' | 'needs_ocr' | 'ai_review_ready'
+  documentAiPayload?: Record<string, unknown>
 }
+
+const CUSTOMER_IMPORT_PARSER_VERSION = 'customer-import-pdf-ai-v2'
 
 const HEADER_ALIASES: Record<string, string> = {
   kundtyp: 'customer_type',
@@ -181,26 +187,35 @@ function splitDelimitedLine(line: string, delimiter: string): string[] {
 }
 
 function detectDelimiter(headerLine: string): string {
-  const candidates = [';', '\t', ',']
+  const candidates = [';', '\t', '|', ',']
   return candidates
     .map((delimiter) => ({ delimiter, count: headerLine.split(delimiter).length }))
     .sort((a, b) => b.count - a.count)[0]?.delimiter ?? ';'
 }
 
 export function parseDelimitedCustomerRows(raw: string): ParsedCustomerImport {
-  const lines = raw
+  if (looksLikeUiOnlyText(raw)) {
+    return {
+      rows: [],
+      warnings: ['Texten verkar vara sidans egen hjälpinformation, inte kunddata. Klistra in CSV/tabellrader eller ladda upp filen igen.'],
+      sourceKind: 'text',
+    }
+  }
+
+  const cleaned = stripKnownUiBoilerplate(raw)
+  const lines = cleaned.text
     .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
 
   if (lines.length < 2) {
-    return { rows: [], warnings: ['Underlaget behöver en rubrikrad och minst en kundrad.'], sourceKind: 'text' }
+    return { rows: [], warnings: [...cleaned.warnings, 'Underlaget behöver en rubrikrad och minst en kundrad.'], sourceKind: 'text' }
   }
 
   const delimiter = detectDelimiter(lines[0])
   const headers = splitDelimitedLine(lines[0], delimiter).map(normalizeHeader)
-  const warnings: string[] = []
+  const warnings: string[] = [...cleaned.warnings]
   const rows = lines.slice(1).map((line) => {
     const cols = splitDelimitedLine(line, delimiter)
     const row: Record<string, string> = {}
@@ -344,12 +359,221 @@ export function parseXlsxCustomerRows(buffer: Buffer): ParsedCustomerImport {
   return { rows, warnings: [], sourceKind: 'excel' }
 }
 
+function decodePdfString(value: string): string {
+  let decoded = ''
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index]
+    if (char !== '\\') {
+      decoded += char
+      continue
+    }
+
+    const next = value[index + 1]
+    if (!next) continue
+    index += 1
+
+    switch (next) {
+      case 'n':
+        decoded += '\n'
+        break
+      case 'r':
+        decoded += '\n'
+        break
+      case 't':
+        decoded += '\t'
+        break
+      case 'b':
+      case 'f':
+        decoded += ' '
+        break
+      case '(':
+      case ')':
+      case '\\':
+        decoded += next
+        break
+      default: {
+        if (/^[0-7]$/.test(next)) {
+          const octal = `${next}${value.slice(index + 1, index + 3)}`.match(/^[0-7]{1,3}/)?.[0] ?? next
+          decoded += String.fromCharCode(Number.parseInt(octal, 8))
+          index += octal.length - 1
+        } else {
+          decoded += next
+        }
+      }
+    }
+  }
+
+  return decoded
+}
+
+function decodePdfHexString(value: string): string {
+  const clean = value.replace(/[^0-9a-f]/gi, '')
+  if (!clean) return ''
+  const even = clean.length % 2 === 0 ? clean : `${clean}0`
+  const bytes = Buffer.from(even, 'hex')
+  if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+    const chars: string[] = []
+    for (let index = 2; index + 1 < bytes.length; index += 2) {
+      chars.push(String.fromCharCode(bytes.readUInt16BE(index)))
+    }
+    return chars.join('')
+  }
+  return bytes.toString('latin1')
+}
+
+function extractPdfTextFromContentStream(stream: string): string {
+  const parts: string[] = []
+  const textObjects = Array.from(stream.matchAll(/BT([\s\S]*?)ET/g)).map((match) => match[1] ?? stream)
+  const candidates = textObjects.length > 0 ? textObjects : [stream]
+
+  for (const candidate of candidates) {
+    for (const match of candidate.matchAll(/\((?:\\.|[^\\()])*\)\s*Tj/g)) {
+      parts.push(decodePdfString(match[0].replace(/\)\s*Tj$/, '').slice(1)))
+    }
+
+    for (const match of candidate.matchAll(/<([0-9a-fA-F\s]+)>\s*Tj/g)) {
+      parts.push(decodePdfHexString(match[1] ?? ''))
+    }
+
+    for (const arrayMatch of candidate.matchAll(/\[([\s\S]*?)\]\s*TJ/g)) {
+      const body = arrayMatch[1] ?? ''
+      const arrayParts: string[] = []
+      for (const stringMatch of body.matchAll(/\((?:\\.|[^\\()])*\)|<([0-9a-fA-F\s]+)>/g)) {
+        const token = stringMatch[0]
+        if (token.startsWith('(')) arrayParts.push(decodePdfString(token.slice(1, -1)))
+        else arrayParts.push(decodePdfHexString(token.slice(1, -1)))
+      }
+      if (arrayParts.length > 0) parts.push(arrayParts.join(''))
+    }
+
+    for (const match of candidate.matchAll(/\((?:\\.|[^\\()])*\)\s*'/g)) {
+      parts.push(decodePdfString(match[0].replace(/\)\s*'$/, '').slice(1)))
+    }
+
+    for (const match of candidate.matchAll(/\((?:\\.|[^\\()])*\)\s+\d+(?:\.\d+)?\s+\d+(?:\.\d+)?\s+\"/g)) {
+      parts.push(decodePdfString(match[0].replace(/\)\s+\d+(?:\.\d+)?\s+\d+(?:\.\d+)?\s+\"$/, '').slice(1)))
+    }
+  }
+
+  return parts.join('\n')
+}
+
+function inflatePdfStream(rawStream: Buffer): string {
+  try {
+    return inflateSync(rawStream).toString('latin1')
+  } catch {
+    try {
+      return inflateRawSync(rawStream).toString('latin1')
+    } catch {
+      return rawStream.toString('latin1')
+    }
+  }
+}
+
 function bestEffortPdfText(buffer: Buffer): string {
   const raw = buffer.toString('latin1')
-  const textParts = Array.from<RegExpMatchArray>(raw.matchAll(/\(([^()]|\\.){2,}\)/g))
-    .map((match) => match[0].slice(1, -1).replace(/\\([()\\])/g, '$1'))
+  const streamTexts: string[] = []
+
+  for (const match of raw.matchAll(/<<(?:[\s\S]{0,1200}?)>>\s*stream\r?\n?([\s\S]*?)\r?\n?endstream/g)) {
+    const objectHeader = match[0].slice(0, Math.min(match[0].indexOf('stream'), 1200))
+    const rawStream = Buffer.from(match[1] ?? '', 'latin1')
+    const decoded = /\/Filter\s*\/FlateDecode/i.test(objectHeader)
+      ? inflatePdfStream(rawStream)
+      : rawStream.toString('latin1')
+    const text = extractPdfTextFromContentStream(decoded)
+    if (text.trim()) streamTexts.push(text)
+  }
+
+  const literalText = Array.from<RegExpMatchArray>(raw.matchAll(/\((?:\\.|[^\\()]){2,}\)/g))
+    .map((match) => decodePdfString(match[0].slice(1, -1)))
     .join('\n')
-  return textParts || raw.replace(/[^\x09\x0A\x0D\x20-\x7EÅÄÖåäö]/g, ' ')
+
+  const fallback = raw.replace(/[^\x09\x0A\x0D\x20-\x7EÅÄÖåäö]/g, ' ')
+  return normalizePdfExtractedText([streamTexts.join('\n'), literalText, fallback].filter(Boolean).join('\n'))
+}
+
+function normalizePdfExtractedText(text: string): string {
+  return text
+    .replace(/\r/g, '\n')
+    .replace(/\u0000/g, '')
+    .replace(/\s+\n/g, '\n')
+    .replace(/\n\s+/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function stripKnownUiBoilerplate(raw: string): { text: string; warnings: string[] } {
+  const warnings: string[] = []
+  const boilerplatePatterns = [
+    /Bulkimport och PDF-intag\s+Ladda upp CSV, Excel eller PDF-underlag, eller klistra in tabelltext\. Osäkra rader skapas inte direkt utan hamnar i granskningskön\.?/gi,
+    /Öppna granskningskö/gi,
+    /Importfil\s+Fallback-avtal\/kampanj\s+Ingen fallback/gi,
+  ]
+
+  let text = raw
+  for (const pattern of boilerplatePatterns) {
+    const before = text
+    text = text.replace(pattern, '\n')
+    if (before !== text) {
+      warnings.push('Sidtext från importvyn filtrerades bort innan parsern kördes.')
+    }
+  }
+
+  return {
+    text: text.replace(/\n{3,}/g, '\n\n').trim(),
+    warnings: Array.from(new Set(warnings)),
+  }
+}
+
+function looksLikeUiOnlyText(raw: string): boolean {
+  const text = raw.trim()
+  if (!text) return false
+  const hasImportHeader = /Bulkimport och PDF-intag/i.test(text)
+  const hasCustomerHeaders = /(?:personnummer|organisationsnummer|anläggnings|mätpunkts|email|e-post|kundtyp|customer_type)/i.test(text)
+  const hasDelimiter = /[;\t,|]/.test(text)
+  return hasImportHeader && !hasCustomerHeaders && !hasDelimiter
+}
+
+function splitPdfLines(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+function parsePdfPipeOrWhitespaceTable(text: string): ParsedCustomerImport | null {
+  const lines = splitPdfLines(text)
+  const tableLines = lines.filter((line) => /[;\t|,]/.test(line))
+  if (tableLines.length >= 2) {
+    const tableText = tableLines.join('\n')
+    const parsed = parseDelimitedCustomerRows(tableText.replace(/\s+\|\s+/g, '|'))
+    if (parsed.rows.length > 0) return parsed
+  }
+
+  const headerIndex = lines.findIndex((line) =>
+    /kund|namn|personnummer|org|e-post|email|anläggnings|mätpunkt|nätägare/i.test(line) &&
+    /\s{2,}/.test(line)
+  )
+
+  if (headerIndex >= 0 && lines[headerIndex + 1]) {
+    const headerParts = lines[headerIndex].split(/\s{2,}/).map(normalizeHeader)
+    const rows = lines.slice(headerIndex + 1, headerIndex + 15)
+      .map((line) => line.split(/\s{2,}/))
+      .filter((cols) => cols.length >= Math.min(3, headerParts.length))
+      .map((cols) => {
+        const row: Record<string, string> = {}
+        headerParts.forEach((header, index) => {
+          if (header) row[header] = String(cols[index] ?? '').trim()
+        })
+        return row
+      })
+      .filter((row) => Object.values(row).some(Boolean))
+
+    if (rows.length > 0) return { rows, warnings: [], sourceKind: 'pdf', rawText: text }
+  }
+
+  return null
 }
 
 function extractLabeledValue(text: string, labels: string[]): string {
@@ -374,16 +598,70 @@ function normalizeAuthorizationStatus(value: string): string {
 
 export function parsePdfCustomerRows(buffer: Buffer): ParsedCustomerImport {
   const text = bestEffortPdfText(buffer)
+  if (!text.trim() || text.replace(/\s/g, '').length < 40) {
+    return {
+      rows: [],
+      warnings: [
+        'PDF-filen verkar vara en bild/skannad PDF utan maskinläsbar text. Den stoppas i granskningsflödet och behöver extern OCR/AI-tolkning innan kundrader skapas.',
+      ],
+      sourceKind: 'pdf',
+      rawText: text,
+      parserVersion: CUSTOMER_IMPORT_PARSER_VERSION,
+      ocrStatus: 'needs_ocr',
+      documentAiPayload: {
+        parserVersion: CUSTOMER_IMPORT_PARSER_VERSION,
+        extractionMode: 'scanned_pdf_needs_ocr',
+      },
+    }
+  }
+
+  const table = parsePdfPipeOrWhitespaceTable(text)
+  if (table?.rows.length) {
+    return {
+      ...table,
+      rows: table.rows.map((row) => ({
+        ...row,
+        parser_source: 'pdf',
+        parser_version: CUSTOMER_IMPORT_PARSER_VERSION,
+      })),
+      sourceKind: 'pdf',
+      rawText: text,
+      parserVersion: CUSTOMER_IMPORT_PARSER_VERSION,
+      ocrStatus: 'table_extracted',
+      warnings: [
+        'PDF-tabell lästes maskinellt. Kontrollera förhandsgranskningen innan import.',
+        ...(table.warnings ?? []),
+      ],
+      documentAiPayload: {
+        parserVersion: CUSTOMER_IMPORT_PARSER_VERSION,
+        extractionMode: 'pdf_text_table',
+        rowCount: table.rows.length,
+      },
+    }
+  }
+
   const delimited = parseDelimitedCustomerRows(text)
   if (delimited.rows.length > 0) {
     return {
       ...delimited,
-      rows: delimited.rows.map((row) => ({ ...row, parser_source: 'pdf' })),
+      rows: delimited.rows.map((row) => ({
+        ...row,
+        parser_source: 'pdf',
+        parser_version: CUSTOMER_IMPORT_PARSER_VERSION,
+      })),
       sourceKind: 'pdf',
+      rawText: text,
+      parserVersion: CUSTOMER_IMPORT_PARSER_VERSION,
+      ocrStatus: 'text_extracted',
       warnings: [
-        'PDF-underlag tolkas som förhandsgranskning. Kontrollera raderna innan import.',
+        'PDF-underlag tolkas som maskinläsbar text. Kontrollera raderna innan import.',
         ...delimited.warnings,
       ],
+      documentAiPayload: {
+        parserVersion: CUSTOMER_IMPORT_PARSER_VERSION,
+        extractionMode: 'pdf_delimited_text',
+        rowCount: delimited.rows.length,
+      },
     }
   }
 
@@ -419,6 +697,7 @@ export function parsePdfCustomerRows(buffer: Buffer): ParsedCustomerImport {
   const isOrg = /org/i.test(text) || /\b(AB|HB|KB|BRF)\b/i.test(name)
   const row: Record<string, string> = {
     parser_source: 'pdf',
+    parser_version: CUSTOMER_IMPORT_PARSER_VERSION,
     customer_type: isOrg ? 'business' : 'private',
     first_name: isOrg ? '' : firstName || '',
     last_name: isOrg ? '' : lastNameParts.join(' '),
@@ -455,12 +734,27 @@ export function parsePdfCustomerRows(buffer: Buffer): ParsedCustomerImport {
     consolidated_invoice: consolidatedInvoice,
   }
 
+  const extractedValues = Object.entries(row).filter(
+    ([key, value]) => !['parser_source', 'parser_version', 'country', 'billing_country', 'billing_address_same_as_site'].includes(key) && Boolean(value)
+  )
+
   return {
-    rows: Object.values(row).some(Boolean) ? [row] : [],
+    rows: extractedValues.length > 0 ? [row] : [],
     warnings: [
-      'PDF-underlag kunde inte läsas som tabell. En försiktig granskningsrad skapades från hittade nyckelvärden. Kontrollera confidence och saknade fält innan import.',
+      extractedValues.length > 0
+        ? 'PDF-underlag kunde inte läsas som tabell. En AI/OCR-granskningsrad skapades från hittade nyckelvärden. Kontrollera saknade fält innan import.'
+        : 'PDF-underlag innehöll text men inga säkra kundfält hittades. Skicka underlaget vidare till manuell AI/OCR-granskning.',
     ],
     sourceKind: 'pdf',
+    rawText: text,
+    parserVersion: CUSTOMER_IMPORT_PARSER_VERSION,
+    ocrStatus: extractedValues.length > 0 ? 'ai_review_ready' : 'needs_ocr',
+    documentAiPayload: {
+      parserVersion: CUSTOMER_IMPORT_PARSER_VERSION,
+      extractionMode: 'pdf_labeled_fields',
+      extractedFields: extractedValues.map(([key]) => key),
+      rawTextSample: text.slice(0, 4000),
+    },
   }
 }
 

@@ -5,6 +5,11 @@ import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { renderProdat26A } from '@/lib/ediel/prodat/engine'
 import type { ProdatEngineProductionContext } from '@/lib/ediel/prodat/types'
 import type { CustomerCaseRow, WithdrawalScenario } from './types'
+import {
+  createLifecycleDecisionFromCase,
+  pauseOpenSupplierSwitchesForLifecycleBlock,
+  switchLifecycleBlockFromCase,
+} from '@/lib/operations/switchLifecycleBlocks'
 
 export type WithdrawalAssessmentInput = {
   caseType: string
@@ -421,24 +426,43 @@ export async function applyCustomerCaseOperationalStops(caseRow: CustomerCaseRow
     )
   }
 
-  if (caseRow.supplier_switch_request_id) {
-    await updateTableSafely(
-      'supplier_switch_requests',
+  const lifecycleDecisionId = await createLifecycleDecisionFromCase(
+    supabaseService,
+    caseRow,
+    actorUserId
+  )
+  const lifecycleBlock = switchLifecycleBlockFromCase(caseRow)
+  if (lifecycleBlock) {
+    const pausedSwitches = await pauseOpenSupplierSwitchesForLifecycleBlock(
+      supabaseService,
       {
-        status: caseRow.withdrawal_scenario === 'before_prodat_sent'
-          ? 'cancelled_before_start'
-          : caseRow.cancellation_required
-            ? 'cancellation_requested'
-            : 'manual_followup_required',
-        failure_reason: `Stoppat av kundärende ${caseRow.id}: ${caseRow.title}`,
-        updated_by: actorUserId,
-        updated_at: now,
-      },
-      [
-        { column: 'id', value: caseRow.supplier_switch_request_id },
-        { column: 'company_id', value: caseRow.company_id },
-      ]
+        block: lifecycleDecisionId
+          ? {
+              ...lifecycleBlock,
+              source: 'customer_lifecycle_decision',
+              id: lifecycleDecisionId,
+            }
+          : lifecycleBlock,
+        actorUserId,
+        customerCaseId: caseRow.id,
+      }
     )
+
+    if (pausedSwitches.paused > 0) {
+      await supabaseService.from('customer_case_events').insert({
+        company_id: caseRow.company_id,
+        customer_case_id: caseRow.id,
+        customer_id: caseRow.customer_id,
+        event_type: 'supplier_switches_paused',
+        event_status: 'warning',
+        message: `${pausedSwitches.paused} leverantörsbyte stoppades eller pausades av ärendet.`,
+        payload: {
+          requestIds: pausedSwitches.requestIds,
+          lifecycleDecisionId,
+        },
+        created_by: actorUserId,
+      })
+    }
   }
 }
 

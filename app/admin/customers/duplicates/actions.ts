@@ -134,19 +134,36 @@ async function mergeSingleCustomer(params: {
 
   const tables = [
     'customer_sites',
+    'metering_points',
     'customer_contacts',
     'customer_addresses',
     'customer_contracts',
     'customer_contract_events',
     'powers_of_attorney',
+    'power_of_attorney_scopes',
+    'authorization_scopes',
     'customer_authorization_documents',
     'customer_cases',
+    'customer_case_events',
     'customer_info_requests',
+    'customer_info_request_events',
     'customer_internal_notes',
+    'customer_operation_tasks',
+    'customer_lifecycle_decisions',
+    'customer_lifecycle_events',
+    'customer_duplicate_resolution_events',
+    'customer_readiness_snapshots',
+    'document_ai_extractions',
     'supplier_switch_requests',
+    'supplier_switch_events',
     'grid_owner_data_requests',
+    'outbound_requests',
+    'outbound_dispatch_events',
     'billing_underlays',
+    'billing_export_run_items',
     'partner_exports',
+    'tenant_email_outbox',
+    'ediel_messages',
     'customer_import_rows',
   ]
 
@@ -226,7 +243,7 @@ async function mergeSingleCustomer(params: {
 }
 
 export async function mergeCustomersAction(formData: FormData) {
-  await requireAdminActionAccess({ anyOf: ['customers.write', 'masterdata.write'] })
+  await requireAdminActionAccess({ allOf: ['customers.write'] })
   const actorUserId = await getActorUserId()
   const primaryCustomerId = getString(formData, 'primaryCustomerId')
   const reason = getString(formData, 'reason') || null

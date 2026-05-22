@@ -117,6 +117,10 @@ export type SupplierSwitchRequestStatus =
   | 'rejected'
   | 'completed'
   | 'failed'
+  | 'cancellation_requested'
+  | 'cancellation_sent'
+  | 'cancelled_before_start'
+  | 'manual_followup_required'
 
 export type SupplierSwitchRequestRow = {
   id: string
@@ -147,6 +151,12 @@ export type SupplierSwitchRequestRow = {
   updated_by: string | null
   automation_origin: string | null
   automation_key: string | null
+  paused_at?: string | null
+  paused_by?: string | null
+  pause_reason?: string | null
+  lifecycle_blocked?: boolean | null
+  lifecycle_block_source?: string | null
+  lifecycle_block_id?: string | null
 }
 
 export type SupplierSwitchEventRow = {

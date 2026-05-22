@@ -132,12 +132,20 @@ export default function CustomerBulkImportPanel({ example, contractOffers }: Cus
  </label>
  </div>
 
+ <label className="grid gap-2 text-sm text-slate-700 ">
+ <span className="font-medium">Klistra in tabelltext</span>
  <textarea
  name="bulkPayload"
- rows={18}
- defaultValue={example}
+ rows={10}
+ placeholder="Klistra in CSV/tabelltext här. Texten i sidhuvudet används inte längre som standardvärde."
  className="w-full rounded-2xl border border-slate-300 px-4 py-3 font-mono text-xs "
  />
+ </label>
+
+ <details className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ">
+ <summary className="cursor-pointer font-semibold text-slate-800">Visa exempel på importformat</summary>
+ <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-xl bg-white p-3 font-mono text-xs text-slate-700 ">{example}</pre>
+ </details>
 
  <div className="grid gap-3 sm:grid-cols-2">
  <button

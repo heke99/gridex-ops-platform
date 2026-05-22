@@ -21,6 +21,7 @@ import {
   listPowersOfAttorneyByCustomerId,
   syncOperationTasksFromReadiness,
 } from '@/lib/operations/db'
+import { assertNoActiveSwitchLifecycleBlock } from '@/lib/operations/switchLifecycleBlocks'
 
 type SwitchRequestType = 'switch' | 'move_in' | 'move_out_takeover'
 type SwitchDirection = 'to_us' | 'from_us' | 'manual'
@@ -97,12 +98,14 @@ async function insertAuditLog(params: {
   entityType: string
   entityId: string
   action: string
+  companyId?: string | null
   metadata?: unknown
   newValues?: unknown
 }) {
   const { error } = await supabaseService.from('audit_logs').insert({
     actor_user_id: params.actorUserId,
     entity_type: params.entityType,
+    company_id: params.companyId ?? null,
     entity_id: params.entityId,
     action: params.action,
     metadata: params.metadata ?? null,
@@ -163,6 +166,7 @@ async function ensureOutboundForSwitch(params: {
     incoming_supplier_name: string | null
     incoming_supplier_org_number: string | null
     price_area_code: string | null
+    company_id?: string | null
   }
 }): Promise<{
   outboundId: string | null
@@ -214,6 +218,7 @@ async function ensureOutboundForSwitch(params: {
   const { data: outboundRow, error: outboundError } = await supabase
     .from('outbound_requests')
     .insert({
+      company_id: requestRow.company_id ?? null,
       customer_id: requestRow.customer_id,
       site_id: requestRow.site_id,
       metering_point_id: requestRow.metering_point_id,
@@ -389,7 +394,7 @@ async function ensureSupplierRecord(params: {
 export async function createDynamicSupplierSwitchRequestAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess(['switching.write', 'masterdata.write'])
+  await requireAdminActionAccess({ allOf: ['switching.write'] })
 
   const { supabase, user } = await getActor()
 
@@ -421,6 +426,11 @@ export async function createDynamicSupplierSwitchRequestAction(
 
   const saveNewCurrentSupplier = checkboxValue(formData, 'save_new_current_supplier')
   const saveNewIncomingSupplier = checkboxValue(formData, 'save_new_incoming_supplier')
+
+  if (saveNewCurrentSupplier || saveNewIncomingSupplier) {
+    await requireAdminActionAccess({ allOf: ['masterdata.write'] })
+  }
+
   const markCurrentSupplierAsOwn = checkboxValue(
     formData,
     'mark_current_supplier_as_own'
@@ -429,6 +439,10 @@ export async function createDynamicSupplierSwitchRequestAction(
     formData,
     'mark_incoming_supplier_as_own'
   )
+
+  if (markCurrentSupplierAsOwn || markIncomingSupplierAsOwn) {
+    await requireAdminActionAccess({ allOf: ['masterdata.write'] })
+  }
 
   let currentSupplierName = formValue(formData, 'current_supplier_name')
   let currentSupplierOrgNumber = formValue(formData, 'current_supplier_org_number')
@@ -533,6 +547,12 @@ export async function createDynamicSupplierSwitchRequestAction(
     throw new Error('Kunde inte läsa uppdaterad anläggning')
   }
 
+  await assertNoActiveSwitchLifecycleBlock(supabase, {
+    companyId: refreshedSite.company_id ?? site.company_id ?? null,
+    customerId,
+    siteId,
+  })
+
   const existingOpenRequest = await findOpenSupplierSwitchRequestForSite(supabase, {
     customerId,
     siteId,
@@ -562,6 +582,7 @@ export async function createDynamicSupplierSwitchRequestAction(
       entityType: 'customer_site',
       entityId: siteId,
       action: 'dynamic_switch_request_blocked',
+      companyId: refreshedSite.company_id ?? site.company_id ?? null,
       metadata: {
         customerId,
         siteId,
@@ -621,6 +642,7 @@ export async function createDynamicSupplierSwitchRequestAction(
       validation_snapshot: validationSnapshot,
       created_by: user.id,
       updated_by: user.id,
+      company_id: refreshedSite.company_id ?? meteringPoint.company_id ?? null,
     })
     .select('*')
     .single()
@@ -660,6 +682,7 @@ export async function createDynamicSupplierSwitchRequestAction(
     entityType: 'supplier_switch_request',
     entityId: requestRow.id,
     action: 'dynamic_supplier_switch_request_created',
+    companyId: requestRow.company_id ?? refreshedSite.company_id ?? null,
     newValues: requestRow,
     metadata: {
       customerId,

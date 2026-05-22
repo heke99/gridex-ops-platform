@@ -145,7 +145,7 @@ export async function createCustomerCaseAction(
   formData: FormData
 ): Promise<CustomerCaseActionState> {
   try {
-    const context = await requireAdminActionAccess({ anyOf: ['cases.write', 'customers.write'] })
+    const context = await requireAdminActionAccess({ allOf: ['cases.write'] })
     const customerId = text(formData.get('customer_id'))
     if (!customerId) return { ok: false, message: 'Kund saknas.' }
 
@@ -205,7 +205,7 @@ export async function updateCustomerCaseStatusAction(
   formData: FormData
 ): Promise<CustomerCaseActionState> {
   try {
-    const context = await requireAdminActionAccess({ anyOf: ['cases.write', 'customers.write'] })
+    const context = await requireAdminActionAccess({ allOf: ['cases.write'] })
     const caseId = text(formData.get('case_id'))
     const companyId = text(formData.get('company_id'))
     const customerId = text(formData.get('customer_id'))

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
  listCustomersPage,
@@ -833,7 +833,7 @@ function formatCurrency(value: number | null | undefined): string {
 export default async function AdminCustomersPage({
  searchParams,
 }: CustomersPageProps) {
- const context = await requirePermissionServer('customers.read')
+ const context = await requireAdminPageKeyAccess('customers.list')
 
  const resolvedSearchParams = await searchParams
  const query = (resolvedSearchParams.q ?? '').trim()

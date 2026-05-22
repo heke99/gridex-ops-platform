@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { resolveOwnElectricitySupplier } from '@/lib/masterdata/selfSupplier'
+import { assertNoActiveSwitchLifecycleBlock, OPEN_SUPPLIER_SWITCH_STATUSES } from '@/lib/operations/switchLifecycleBlocks'
 import type {
   CustomerAuthorizationDocumentRow,
   CustomerOperationTaskRow,
@@ -1216,7 +1217,7 @@ export async function findOpenSupplierSwitchRequestForSite(
     .select('*')
     .eq('customer_id', params.customerId)
     .eq('site_id', params.siteId)
-    .in('status', ['draft', 'queued', 'submitted', 'accepted'])
+    .in('status', OPEN_SUPPLIER_SWITCH_STATUSES)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -1240,6 +1241,14 @@ export async function createSupplierSwitchRequest(
   }
 ): Promise<SupplierSwitchRequestRow> {
   const actorId = await getActorId(supabase)
+
+  await assertNoActiveSwitchLifecycleBlock(supabase, {
+    companyId: params.companyId ?? params.site.company_id ?? params.meteringPoint.company_id ?? null,
+    customerId: params.readiness.customerId,
+    siteId: params.site.id,
+    meteringPointId: params.meteringPoint.id,
+  })
+
   const ownSupplierLookup = await resolveOwnElectricitySupplier(supabase)
   const ownSupplier = ownSupplierLookup.supplier
 
