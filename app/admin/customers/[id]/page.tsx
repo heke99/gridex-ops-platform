@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import CustomerEdielOperationsCard from '@/components/admin/customers/CustomerEdielOperationsCard'
 import {
  getCustomerSiteById,
@@ -70,7 +71,6 @@ import {
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 import { getCustomerEdielDataBundle } from '@/lib/ediel/customerData'
 import CustomerPortalAccessCard from '@/components/admin/customers/CustomerPortalAccessCard'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { customerCaseStatusLabel, customerCaseTypeLabel, listCustomerCases } from '@/lib/customer-cases/db'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import {
@@ -1276,7 +1276,7 @@ export default async function CustomerAdminDetailPage({
  params,
  searchParams,
 }: CustomerPageProps) {
- const access = await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
+ const access = await requireAdminPageAccess({ anyOf: ['customers.read', MASTERDATA_PERMISSIONS.READ] })
 
  const { id } = await params
  const resolvedSearchParams = await searchParams
@@ -1284,7 +1284,11 @@ export default async function CustomerAdminDetailPage({
  const editMeteringPointId = resolvedSearchParams.editMeteringPoint ?? null
 
  const supabase = await createSupabaseServerClient()
- const companyScope = await getOperationalCompanyScope(access.userId)
+ const tenantScope = await resolveAdminTenantReadScope(access)
+
+ if (!tenantScope.isPlatformAdmin && !tenantScope.companyId) {
+ notFound()
+ }
 
  const customer = await getCustomer(supabase, id)
 
@@ -1292,9 +1296,11 @@ export default async function CustomerAdminDetailPage({
  notFound()
  }
 
- if (companyScope.companyId && customer.company_id && customer.company_id !== companyScope.companyId) {
+ if (!tenantScope.isPlatformAdmin && customer.company_id !== tenantScope.companyId) {
  notFound()
  }
+
+ const customerCompanyId = tenantScope.isPlatformAdmin ? customer.company_id : tenantScope.companyId
 
  const [
  gridOwners,
@@ -1340,14 +1346,14 @@ export default async function CustomerAdminDetailPage({
  .eq('customer_id', id)
  .order('is_active', { ascending: false })
  .order('created_at', { ascending: false }),
- listContractOffers({ activeOnly: true, companyId: companyScope.companyId }),
+ listContractOffers({ activeOnly: true, companyId: customerCompanyId }),
  listCustomerContractsByCustomerId(id),
  listPowersOfAttorneyByCustomerId(supabase, id),
  listCustomerAuthorizationDocumentsByCustomerId(supabase, id),
- companyScope.companyId ? listCustomerInfoRequestsByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
- companyScope.companyId ? listAuthorizationScopesByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
- companyScope.companyId ? listMeteringPermissionsByCustomerId({ companyId: companyScope.companyId, customerId: id }) : [],
- companyScope.companyId ? listCustomerCases({ companyId: companyScope.companyId, customerId: id, limit: 20 }) : [],
+ customerCompanyId ? listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
+ customerCompanyId ? listAuthorizationScopesByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
+ customerCompanyId ? listMeteringPermissionsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
+ customerCompanyId ? listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 }) : [],
  ])
 
  if (contactsResponse.error) throw contactsResponse.error

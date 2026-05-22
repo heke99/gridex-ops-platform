@@ -499,6 +499,7 @@ function canAccessNavItem(
 ) {
   if (item.platformOnly) return isPlatformAdmin;
   if (item.requiresLiveCompany && !isPlatformAdmin && !isCompanyLiveEnabled) return false;
+  if (isPlatformAdmin) return true;
   if (!item.pageKey) return true;
   return hasPermissionRequirement(
     currentPermissions,

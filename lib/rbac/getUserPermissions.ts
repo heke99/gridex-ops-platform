@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { ROLE_PERMISSION_PROFILES } from '@/lib/admin/accessModel'
 
 type OverrideRow =
   | {
@@ -19,6 +20,10 @@ type PermissionRpcRow =
   | {
       gridex_get_user_permissions?: string[] | null
     }
+
+type UserRoleRpcRow = {
+  role_key?: string | null
+}
 
 function normalizePermissionRows(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -73,6 +78,13 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
 
   if (permissionsError) throw permissionsError
 
+  const { data: roleRows, error: rolesError } = await supabase.rpc(
+    'gridex_get_user_roles',
+    { p_user_id: userId }
+  )
+
+  if (rolesError) throw rolesError
+
   const { data: overrideRows, error: overridesError } = await supabase.rpc(
     'gridex_get_user_permission_overrides',
     { p_user_id: userId }
@@ -81,6 +93,21 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
   if (overridesError) throw overridesError
 
   const allowed = new Set(normalizePermissionRows(permissionRows))
+
+  // Defensive RBAC fallback: the database remains source of truth, but older tenants
+  // can have roles created before role_permissions were fully backfilled. Merge the
+  // code-level role profile first, then apply explicit allow/deny overrides below.
+  for (const row of ((roleRows as UserRoleRpcRow[] | null) ?? [])) {
+    const roleKey = row.role_key
+    if (!roleKey) continue
+
+    const profile = ROLE_PERMISSION_PROFILES[roleKey]
+    if (!profile) continue
+
+    for (const permission of profile.permissions) {
+      allowed.add(permission)
+    }
+  }
 
   for (const row of ((overrideRows as OverrideRow[] | null) ?? [])) {
     const permissionKey = normalizeOverridePermissionKey(row)

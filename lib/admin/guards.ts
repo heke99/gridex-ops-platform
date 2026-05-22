@@ -25,8 +25,8 @@ type UserRoleRpcRow = {
 }
 
 const PLATFORM_ADMIN_ROLES = new Set(['super_admin', 'superadmin', 'platform_admin'])
-const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set(['owner', 'admin'])
-const COMPANY_READ_MEMBERSHIP_ROLES = new Set(['owner', 'admin', 'operations', 'support', 'viewer', 'member'])
+const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set(['owner', 'admin', 'company_admin'])
+const COMPANY_READ_MEMBERSHIP_ROLES = new Set(['owner', 'admin', 'company_admin', 'operations', 'support', 'viewer', 'member'])
 
 function normalizeRequirement(
   input: string[] | PermissionRequirement

@@ -3,6 +3,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import {
  listCustomersPage,
  type CustomerListRow,
@@ -845,6 +846,33 @@ export default async function AdminCustomersPage({
  const page = normalizePage(resolvedSearchParams.page)
 
  const companyScope = await getOperationalCompanyScope(context.userId)
+ const tenantScope = await resolveAdminTenantReadScope(context)
+ const scopedCompanyId = tenantScope.companyId
+
+ if (!tenantScope.isPlatformAdmin && !scopedCompanyId) {
+ return (
+ <div className="min-h-screen">
+ <AdminHeader
+ title="Kundregister"
+ subtitle="Kundregistret kräver en aktiv bolagskoppling för tenant-användare."
+ userEmail={context.email}
+ workspaceName={tenantScope.isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+ workspaceMode={tenantScope.isPlatformAdmin ? 'platform' : 'tenant'}
+ />
+ <div className="p-8">
+ <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm">
+ <h2 className="text-lg font-semibold">Bolagskoppling saknas</h2>
+ <p className="mt-2 text-sm leading-6">
+ Kontot har kundbehörighet men saknar aktiv koppling till ett elhandelsbolag. Koppla användaren till rätt bolag innan kundregistret visas.
+ </p>
+ <Link href="/admin/company-settings" className="mt-4 inline-flex rounded-2xl bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-800">
+ Öppna bolagsinställningar
+ </Link>
+ </section>
+ </div>
+ </div>
+ )
+ }
 
  const pageResult = await listCustomersPage({
  query,
@@ -854,7 +882,7 @@ export default async function AdminCustomersPage({
  contractFilter,
  customerType: customerTypeFilter,
  flag: flagFilter,
- companyId: companyScope.companyId,
+ companyId: scopedCompanyId,
  })
 
  const customers = pageResult.rows
@@ -874,7 +902,7 @@ export default async function AdminCustomersPage({
  .from('customer_sites')
  .select('*')
  .in('customer_id', customerIds)
- if (companyScope.companyId) query = query.eq('company_id', companyScope.companyId)
+ if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
  return query
  })(),
  (() => {
@@ -882,7 +910,7 @@ export default async function AdminCustomersPage({
  .from('supplier_switch_requests')
  .select('*')
  .in('customer_id', customerIds)
- if (companyScope.companyId) query = query.eq('company_id', companyScope.companyId)
+ if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
  return query
  })(),
  (() => {
@@ -891,10 +919,10 @@ export default async function AdminCustomersPage({
  .select('*')
  .eq('request_type', 'supplier_switch')
  .in('customer_id', customerIds)
- if (companyScope.companyId) query = query.eq('company_id', companyScope.companyId)
+ if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
  return query
  })(),
- listLatestCustomerContractsByCustomerIds(customerIds, { companyId: companyScope.companyId }),
+ listLatestCustomerContractsByCustomerIds(customerIds, { companyId: scopedCompanyId }),
  ])
  : [
  { data: [], error: null },
