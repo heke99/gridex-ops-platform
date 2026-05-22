@@ -12,6 +12,10 @@ export type CustomerListRow = {
   duplicate_review_status?: string | null
   consolidated_invoice?: boolean | null
   billing_level?: string | null
+  intake_status?: string | null
+  intake_missing_fields?: unknown
+  has_missing_grid_owner?: boolean
+  has_signed_power_of_attorney?: boolean
   first_name: string | null
   last_name: string | null
   full_name: string | null
@@ -38,6 +42,10 @@ type CustomerBaseRow = {
   duplicate_review_status?: string | null
   consolidated_invoice?: boolean | null
   billing_level?: string | null
+  intake_status?: string | null
+  intake_missing_fields?: unknown
+  has_missing_grid_owner?: boolean
+  has_signed_power_of_attorney?: boolean
   first_name: string | null
   last_name: string | null
   full_name: string | null
@@ -65,6 +73,7 @@ type CustomerSiteCountRow = {
   id: string
   customer_id: string
   status: string | null
+  grid_owner_id?: string | null
 }
 
 type MeteringPointSearchRow = {
@@ -87,6 +96,11 @@ export type CustomerFlagFilter =
   | 'multi_site'
   | 'multi_contract'
   | 'consolidated_invoice'
+  | 'missing_authorization'
+  | 'missing_grid_owner'
+  | 'ready_for_switch'
+  | 'cancelled'
+  | 'rejected'
 
 type GetCustomersOptions = {
   query?: string | null
@@ -250,7 +264,7 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: st
 
   let sitesQuery = supabaseService
     .from('customer_sites')
-    .select('id, customer_id, status')
+    .select('id, customer_id, status, grid_owner_id')
     .in('customer_id', customerIds)
 
   if (companyId) {
@@ -277,7 +291,7 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: st
 
   const { data: contractRows, error: contractError } = await supabaseService
     .from('customer_contracts')
-    .select('id, customer_id, status')
+    .select('id, customer_id, status, grid_owner_id')
     .in('customer_id', customerIds)
 
   if (contractError && !['42P01', '42703', 'PGRST205'].includes(String((contractError as { code?: string }).code ?? ''))) {
@@ -290,12 +304,29 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: st
     status: string | null
   }>
 
+  const { data: powerRows, error: powerError } = await supabaseService
+    .from('powers_of_attorney')
+    .select('id, customer_id, status')
+    .in('customer_id', customerIds)
+
+  if (powerError && !['42P01', '42703', 'PGRST205'].includes(String((powerError as { code?: string }).code ?? ''))) {
+    throw powerError
+  }
+
+  const typedPowers = (powerRows ?? []) as Array<{
+    id: string
+    customer_id: string | null
+    status: string | null
+  }>
+
   const siteCountByCustomer = new Map<string, number>()
   const activeSiteCountByCustomer = new Map<string, number>()
   const customerIdBySiteId = new Map<string, string>()
   const meteringPointCountByCustomer = new Map<string, number>()
   const activeMeteringPointCountByCustomer = new Map<string, number>()
   const contractCountByCustomer = new Map<string, number>()
+  const missingGridOwnerByCustomer = new Map<string, boolean>()
+  const signedPowerByCustomer = new Map<string, boolean>()
 
   for (const site of typedSites) {
     customerIdBySiteId.set(site.id, site.customer_id)
@@ -304,6 +335,10 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: st
       site.customer_id,
       (siteCountByCustomer.get(site.customer_id) ?? 0) + 1
     )
+
+    if (!site.grid_owner_id) {
+      missingGridOwnerByCustomer.set(site.customer_id, true)
+    }
 
     if (site.status === 'active') {
       activeSiteCountByCustomer.set(
@@ -338,6 +373,11 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: st
     )
   }
 
+  for (const power of typedPowers) {
+    if (!power.customer_id) continue
+    if (power.status === 'signed') signedPowerByCustomer.set(power.customer_id, true)
+  }
+
   return customerRows.map((customer) => ({
     ...customer,
     site_count: siteCountByCustomer.get(customer.id) ?? 0,
@@ -346,6 +386,8 @@ async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: st
     active_metering_point_count:
       activeMeteringPointCountByCustomer.get(customer.id) ?? 0,
     contract_count: contractCountByCustomer.get(customer.id) ?? 0,
+    has_missing_grid_owner: missingGridOwnerByCustomer.get(customer.id) ?? false,
+    has_signed_power_of_attorney: signedPowerByCustomer.get(customer.id) ?? false,
   }))
 }
 
@@ -367,12 +409,23 @@ function applyCustomerFlagFilter<T>(
   if (flag === 'consolidated_invoice') {
     return (query as { eq: (column: string, value: boolean) => T }).eq('consolidated_invoice', true)
   }
+  if (flag === 'cancelled') {
+    return (query as { eq: (column: string, value: string) => T }).eq('status', 'cancelled')
+  }
+  if (flag === 'rejected') {
+    return (query as { eq: (column: string, value: string) => T }).eq('status', 'rejected')
+  }
   return query
 }
 
 function filterRowsByDerivedFlag(rows: CustomerListRow[], flag: CustomerFlagFilter = 'all') {
   if (flag === 'multi_site') return rows.filter((row) => row.site_count > 1)
   if (flag === 'multi_contract') return rows.filter((row) => Number((row as { contract_count?: number }).contract_count ?? 0) > 1)
+  if (flag === 'missing_grid_owner') return rows.filter((row) => Boolean(row.has_missing_grid_owner))
+  if (flag === 'missing_authorization') return rows.filter((row) => !row.has_signed_power_of_attorney)
+  if (flag === 'ready_for_switch') {
+    return rows.filter((row) => row.site_count > 0 && row.metering_point_count > 0 && Boolean(row.has_signed_power_of_attorney) && !row.has_missing_grid_owner)
+  }
   return rows
 }
 
@@ -453,7 +506,7 @@ export async function listCustomersPage(options: {
       let contractRowsQuery = supabaseService
         .from('customers')
         .select(
-          'id, customer_type, status, possible_duplicate, duplicate_review_status, consolidated_invoice, billing_level, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
+          'id, customer_type, status, possible_duplicate, duplicate_review_status, consolidated_invoice, billing_level, intake_status, intake_missing_fields, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
         )
         .in('id', contractFiltered.customerIds)
 
@@ -478,7 +531,7 @@ export async function listCustomersPage(options: {
     let rowsQuery = supabaseService
       .from('customers')
       .select(
-        'id, customer_type, status, possible_duplicate, duplicate_review_status, consolidated_invoice, billing_level, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at',
+        'id, customer_type, status, possible_duplicate, duplicate_review_status, consolidated_invoice, billing_level, intake_status, intake_missing_fields, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at',
         { count: 'exact' }
       )
       .order('created_at', { ascending: false })

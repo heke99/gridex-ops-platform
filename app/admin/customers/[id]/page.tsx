@@ -22,7 +22,7 @@ import CustomerSiteForm from '@/components/admin/masterdata/CustomerSiteForm'
 import CustomerSitesTable from '@/components/admin/masterdata/CustomerSitesTable'
 import MeteringPointForm from '@/components/admin/masterdata/MeteringPointForm'
 import MeteringPointsTable from '@/components/admin/masterdata/MeteringPointsTable'
-import { createCustomerInternalNoteAction } from './actions'
+import { createCustomerInternalNoteAction, registerCustomerLifecycleDecisionAction, savePowerOfAttorneyScopeAction } from './actions'
 import type {
  AuditLogRow,
  CustomerInternalNoteRow,
@@ -72,6 +72,7 @@ import { getCustomerEdielDataBundle } from '@/lib/ediel/customerData'
 import CustomerPortalAccessCard from '@/components/admin/customers/CustomerPortalAccessCard'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { customerCaseStatusLabel, customerCaseTypeLabel, listCustomerCases } from '@/lib/customer-cases/db'
+import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import {
  listCustomerPortalAccountsByCustomerId,
  listCustomerPortalClaimsByCustomerId,
@@ -102,6 +103,20 @@ type CustomerRow = {
  intake_missing_fields: unknown
  intake_quality_score: number | null
  intake_warnings?: unknown
+}
+
+
+type PowerOfAttorneyScopeRow = {
+ id: string
+ power_of_attorney_id: string
+ scope_type: string
+ site_id: string | null
+ metering_point_id: string | null
+ customer_contract_id: string | null
+ status: string | null
+ valid_from: string | null
+ valid_to: string | null
+ created_at: string | null
 }
 
 type CustomerPageProps = {
@@ -816,6 +831,178 @@ function OnboardingDataRequestsSection({
  )
 }
 
+
+function LifecycleDecisionSection({
+ customerId,
+ sites,
+ meteringPoints,
+ contracts,
+}: {
+ customerId: string
+ sites: CustomerSiteRow[]
+ meteringPoints: MeteringPointRow[]
+ contracts: CustomerContractRow[]
+}) {
+ return (
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div>
+ <h2 className="text-lg font-semibold text-slate-900 ">Ånger och avvisad kund</h2>
+ <p className="mt-1 text-sm text-slate-700 ">
+ Registrera ånger eller nekad kund på rätt nivå. Beslutet skapar ärende, audit och kan blockera fakturering utan att radera historik.
+ </p>
+ </div>
+ <form action={registerCustomerLifecycleDecisionAction} className="mt-5 grid gap-4 md:grid-cols-2">
+ <input type="hidden" name="customer_id" value={customerId} />
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Beslut</span>
+ <select name="decision_type" defaultValue="withdrawal" className="rounded-2xl border border-slate-300 px-4 py-3">
+ <option value="withdrawal">Ånger / avbrutet av kund</option>
+ <option value="rejected">Nekad / avvisad kund</option>
+ </select>
+ </label>
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Nivå</span>
+ <select name="scope_type" defaultValue="customer" className="rounded-2xl border border-slate-300 px-4 py-3">
+ <option value="customer">Hela kunden</option>
+ <option value="contract">Specifikt avtal</option>
+ <option value="site">Specifik anläggning</option>
+ <option value="metering_point">Specifik mätpunkt</option>
+ </select>
+ </label>
+ <label className="grid gap-1 text-sm md:col-span-2">
+ <span className="text-slate-700 ">Välj avtal/anläggning/mätpunkt om beslutet inte gäller hela kunden</span>
+ <select name="scope_id" defaultValue="" className="rounded-2xl border border-slate-300 px-4 py-3">
+ <option value="">Hela kunden eller välj relevant objekt</option>
+ <optgroup label="Avtal">
+ {contracts.map((contract) => (
+ <option key={`contract-${contract.id}`} value={contract.id}>{contract.contract_name} · {contract.status}</option>
+ ))}
+ </optgroup>
+ <optgroup label="Anläggningar">
+ {sites.map((site) => (
+ <option key={`site-${site.id}`} value={site.id}>{site.site_name} · {site.facility_id ?? 'utan anläggnings-id'}</option>
+ ))}
+ </optgroup>
+ <optgroup label="Mätpunkter">
+ {meteringPoints.map((point) => (
+ <option key={`point-${point.id}`} value={point.id}>{point.meter_point_id} · {point.status}</option>
+ ))}
+ </optgroup>
+ </select>
+ </label>
+ <label className="grid gap-1 text-sm md:col-span-2">
+ <span className="text-slate-700 ">Orsak</span>
+ <textarea name="reason" rows={3} required placeholder="Beskriv varför flödet stoppas, t.ex. ånger efter signering, bindningstid hos gammal leverantör eller fel anläggningsdata." className="rounded-2xl border border-slate-300 px-4 py-3" />
+ </label>
+ <label className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900 md:col-span-2">
+ <input type="checkbox" name="block_billing" defaultChecked className="mt-1" />
+ <span>Blockera fakturering/export på vald nivå tills ärendet är löst.</span>
+ </label>
+ <button className="rounded-2xl bg-red-700 px-4 py-3 text-sm font-semibold text-white hover:bg-red-800 md:col-span-2">
+ Registrera beslut och skapa ärende
+ </button>
+ </form>
+ </section>
+ )
+}
+
+function PowerOfAttorneyScopesSection({
+ customerId,
+ sites,
+ meteringPoints,
+ contracts,
+ powersOfAttorney,
+ scopes,
+}: {
+ customerId: string
+ sites: CustomerSiteRow[]
+ meteringPoints: MeteringPointRow[]
+ contracts: CustomerContractRow[]
+ powersOfAttorney: PowerOfAttorneyRow[]
+ scopes: PowerOfAttorneyScopeRow[]
+}) {
+ return (
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div>
+ <h2 className="text-lg font-semibold text-slate-900 ">Fullmaktens omfattning</h2>
+ <p className="mt-1 text-sm text-slate-700 ">
+ Koppla en signerad fullmakt till kund, anläggning, mätpunkt eller avtal så leverantörsbyte och uppgiftsbegäran kan valideras per objekt.
+ </p>
+ </div>
+ {scopes.length > 0 ? (
+ <div className="mt-5 grid gap-3 md:grid-cols-2">
+ {scopes.map((scope) => {
+ const site = sites.find((row) => row.id === scope.site_id)
+ const point = meteringPoints.find((row) => row.id === scope.metering_point_id)
+ const contract = contracts.find((row) => row.id === scope.customer_contract_id)
+ return (
+ <div key={scope.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+ <div className="font-semibold text-slate-950">{scope.scope_type}</div>
+ <div className="mt-1">Fullmakt: {scope.power_of_attorney_id}</div>
+ <div>Anläggning: {site?.site_name ?? scope.site_id ?? '—'}</div>
+ <div>Mätpunkt: {point?.meter_point_id ?? scope.metering_point_id ?? '—'}</div>
+ <div>Avtal: {contract?.contract_name ?? scope.customer_contract_id ?? '—'}</div>
+ <div>Status: {scope.status ?? 'active'} · giltig {scope.valid_from ?? '—'} – {scope.valid_to ?? '—'}</div>
+ </div>
+ )
+ })}
+ </div>
+ ) : (
+ <div className="mt-5 rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-700">Inga detaljerade fullmaktsscope är sparade ännu.</div>
+ )}
+ <form action={savePowerOfAttorneyScopeAction} className="mt-5 grid gap-4 md:grid-cols-2">
+ <input type="hidden" name="customer_id" value={customerId} />
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Fullmakt</span>
+ <select name="power_of_attorney_id" required className="rounded-2xl border border-slate-300 px-4 py-3">
+ <option value="">Välj fullmakt</option>
+ {powersOfAttorney.map((power) => (
+ <option key={power.id} value={power.id}>{power.reference ?? power.id} · {power.status}</option>
+ ))}
+ </select>
+ </label>
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Scope-typ</span>
+ <select name="scope_type" defaultValue="site" className="rounded-2xl border border-slate-300 px-4 py-3">
+ <option value="customer">Kund</option>
+ <option value="site">Anläggning</option>
+ <option value="metering_point">Mätpunkt</option>
+ <option value="contract">Avtal</option>
+ </select>
+ </label>
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Anläggning</span>
+ <select name="site_id" defaultValue="" className="rounded-2xl border border-slate-300 px-4 py-3">
+ <option value="">Ingen/alla</option>
+ {sites.map((site) => <option key={site.id} value={site.id}>{site.site_name}</option>)}
+ </select>
+ </label>
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Mätpunkt</span>
+ <select name="metering_point_id" defaultValue="" className="rounded-2xl border border-slate-300 px-4 py-3">
+ <option value="">Ingen/alla</option>
+ {meteringPoints.map((point) => <option key={point.id} value={point.id}>{point.meter_point_id}</option>)}
+ </select>
+ </label>
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Avtal</span>
+ <select name="contract_id" defaultValue="" className="rounded-2xl border border-slate-300 px-4 py-3">
+ <option value="">Inget specifikt avtal</option>
+ {contracts.map((contract) => <option key={contract.id} value={contract.id}>{contract.contract_name}</option>)}
+ </select>
+ </label>
+ <div className="grid gap-4 md:grid-cols-2">
+ <label className="grid gap-1 text-sm"><span className="text-slate-700 ">Giltig från</span><input name="valid_from" type="date" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+ <label className="grid gap-1 text-sm"><span className="text-slate-700 ">Giltig till</span><input name="valid_to" type="date" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+ </div>
+ <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 md:col-span-2">
+ Spara fullmaktsscope
+ </button>
+ </form>
+ </section>
+ )
+}
+
 function CustomerCasesSection({
  customerId,
  cases,
@@ -1170,6 +1357,13 @@ export default async function CustomerAdminDetailPage({
  const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[]
  const poaRows = powersOfAttorney as PowerOfAttorneyRow[]
  const documentRows = authorizationDocuments as CustomerAuthorizationDocumentRow[]
+ const { data: powerScopeRows, error: powerScopeError } = await supabase
+ .from('power_of_attorney_scopes')
+ .select('*')
+ .eq('customer_id', id)
+ .order('created_at', { ascending: false })
+ if (powerScopeError && !['42P01', '42703', 'PGRST205'].includes(String((powerScopeError as { code?: string }).code ?? ''))) throw powerScopeError
+ const poaScopeRows = (powerScopeRows ?? []) as PowerOfAttorneyScopeRow[]
 
  const [meteringPoints, switchEvents, edielData, portalAccounts, portalClaims] = await Promise.all([
  listMeteringPointsBySiteIds(
@@ -1760,6 +1954,16 @@ export default async function CustomerAdminDetailPage({
  documents={documentRows}
  powersOfAttorney={poaRows}
  />
+ <div className="mt-6">
+ <PowerOfAttorneyScopesSection
+ customerId={id}
+ sites={sites}
+ meteringPoints={meteringPoints}
+ contracts={customerContracts as CustomerContractRow[]}
+ powersOfAttorney={poaRows}
+ scopes={poaScopeRows}
+ />
+ </div>
  </SectionAnchor>
 
  <SectionAnchor
@@ -1890,6 +2094,19 @@ export default async function CustomerAdminDetailPage({
  description="Intern support- och driftlogg för kunden."
  >
  <NotesSection customerId={id} notes={notes} />
+ </SectionAnchor>
+
+ <SectionAnchor
+ id="lifecycle-decisions"
+ title="Ånger och avvisning"
+ description="Stoppa leverantörsbyte och fakturering på kund-, avtals-, anläggnings- eller mätpunktsnivå."
+ >
+ <LifecycleDecisionSection
+ customerId={id}
+ sites={sites}
+ meteringPoints={meteringPoints}
+ contracts={customerContracts as CustomerContractRow[]}
+ />
  </SectionAnchor>
 
  <SectionAnchor

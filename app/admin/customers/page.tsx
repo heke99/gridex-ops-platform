@@ -455,6 +455,11 @@ function normalizeCustomerFlagFilter(value: string | undefined): CustomerFlagFil
  case 'multi_site':
  case 'multi_contract':
  case 'consolidated_invoice':
+ case 'missing_authorization':
+ case 'missing_grid_owner':
+ case 'ready_for_switch':
+ case 'cancelled':
+ case 'rejected':
  return value
  default:
  return 'all'
@@ -713,6 +718,16 @@ function customerFlagFilterLabel(value: CustomerFlagFilter): string {
  return 'flera avtal'
  case 'consolidated_invoice':
  return 'samlingsfaktura'
+ case 'missing_authorization':
+ return 'saknar fullmakt'
+ case 'missing_grid_owner':
+ return 'saknar nätägare'
+ case 'ready_for_switch':
+ return 'redo för leverantörsbyte'
+ case 'cancelled':
+ return 'ångrade kunder'
+ case 'rejected':
+ return 'nekade kunder'
  case 'all':
  default:
  return 'alla kundflaggor'
@@ -735,6 +750,10 @@ function customerStatusLabel(value: string | null): string {
  return 'Avslutad'
  case 'blocked':
  return 'Blockerad'
+ case 'cancelled':
+ return 'Ångrad'
+ case 'rejected':
+ return 'Nekad'
  default:
  return value ?? 'Okänd'
  }
@@ -1382,6 +1401,41 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  })}
  active={flagFilter === 'consolidated_invoice'}
  tone="info"
+ />
+ <FilterChip
+ label="Saknar fullmakt"
+ count={sortedCustomers.filter((customer) => !customer.has_signed_power_of_attorney).length}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'missing_authorization', page: 1 })}
+ active={flagFilter === 'missing_authorization'}
+ tone="warning"
+ />
+ <FilterChip
+ label="Saknar nätägare"
+ count={sortedCustomers.filter((customer) => Boolean(customer.has_missing_grid_owner)).length}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'missing_grid_owner', page: 1 })}
+ active={flagFilter === 'missing_grid_owner'}
+ tone="warning"
+ />
+ <FilterChip
+ label="Redo för byte"
+ count={sortedCustomers.filter((customer) => customer.site_count > 0 && customer.metering_point_count > 0 && Boolean(customer.has_signed_power_of_attorney) && !customer.has_missing_grid_owner).length}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'ready_for_switch', page: 1 })}
+ active={flagFilter === 'ready_for_switch'}
+ tone="success"
+ />
+ <FilterChip
+ label="Ångrade"
+ count={sortedCustomers.filter((customer) => customer.status === 'cancelled').length}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'cancelled', page: 1 })}
+ active={flagFilter === 'cancelled'}
+ tone="danger"
+ />
+ <FilterChip
+ label="Nekade"
+ count={sortedCustomers.filter((customer) => customer.status === 'rejected').length}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'rejected', page: 1 })}
+ active={flagFilter === 'rejected'}
+ tone="danger"
  />
  </div>
 

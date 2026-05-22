@@ -479,6 +479,7 @@ export async function createPowerOfAttorneyAction(
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
+  const customer = await loadCustomerForAction(customerId)
 
   const saved = await savePowerOfAttorney(supabase, {
     id: formValue(formData, 'id') || undefined,
@@ -505,6 +506,7 @@ export async function createPowerOfAttorneyAction(
     document_path: formValue(formData, 'document_path') || null,
     reference: formValue(formData, 'reference') || null,
     notes: formValue(formData, 'notes') || null,
+    companyId: customer.company_id,
   })
 
   const syncSummary = saved.site_id
@@ -1274,4 +1276,297 @@ export async function createPartnerExportAction(
   revalidatePath('/admin/partner-exports')
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
+}
+function isDatabaseShapeError(error: unknown): boolean {
+  const maybe = error as { code?: string; message?: string } | null
+  return Boolean(
+    maybe &&
+      (maybe.code === '42P01' ||
+        maybe.code === '42703' ||
+        maybe.code === 'PGRST205' ||
+        /does not exist|schema cache|relation .* does not exist/i.test(maybe.message ?? ''))
+  )
+}
+
+async function loadCustomerForAction(customerId: string): Promise<{ id: string; company_id: string | null; status: string | null }> {
+  const { data, error } = await supabaseService
+    .from('customers')
+    .select('id, company_id, status')
+    .eq('id', customerId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) throw new Error('Kunden hittades inte.')
+  return data as { id: string; company_id: string | null; status: string | null }
+}
+
+async function insertCustomerCaseForLifecycle(params: {
+  actorUserId: string
+  companyId: string | null
+  customerId: string
+  scopeType: string
+  scopeId: string | null
+  decisionType: 'withdrawal' | 'rejected'
+  reason: string
+  billingBlocked: boolean
+}) {
+  try {
+    await supabaseService.from('customer_cases').insert({
+      company_id: params.companyId,
+      customer_id: params.customerId,
+      site_id: params.scopeType === 'site' ? params.scopeId : null,
+      metering_point_id: params.scopeType === 'metering_point' ? params.scopeId : null,
+      customer_contract_id: params.scopeType === 'contract' ? params.scopeId : null,
+      case_type: params.decisionType === 'withdrawal' ? 'withdrawal' : 'rejected_customer',
+      status: 'action_required',
+      priority: 'high',
+      title: params.decisionType === 'withdrawal' ? 'Kund har ångrat flödet' : 'Kund nekad eller avvisad',
+      description: params.reason,
+      reason_category: params.decisionType === 'withdrawal' ? 'customer_withdrawal' : 'customer_rejected',
+      billing_blocked: params.billingBlocked,
+      billing_manual_review: params.billingBlocked,
+      source: 'customer_lifecycle_decision',
+      next_action: 'Kontrollera att leverantörsbyte, fakturering och export är stoppade på rätt nivå.',
+      metadata: {
+        scopeType: params.scopeType,
+        scopeId: params.scopeId,
+        decisionType: params.decisionType,
+      },
+      created_by: params.actorUserId,
+      updated_by: params.actorUserId,
+    })
+  } catch (error) {
+    if (!isDatabaseShapeError(error)) throw error
+  }
+}
+
+async function blockBillingForLifecycleDecision(params: {
+  companyId: string | null
+  customerId: string
+  scopeType: string
+  scopeId: string | null
+  reason: string
+  actorUserId: string
+}) {
+  const blocker = {
+    code: 'customer_lifecycle_blocked',
+    reason: params.reason,
+    scopeType: params.scopeType,
+    scopeId: params.scopeId,
+    blockedAt: new Date().toISOString(),
+    blockedBy: params.actorUserId,
+  }
+
+  const scopedUpdates: Array<{ table: string; column: string; value: string }> = []
+  if (params.scopeType === 'contract' && params.scopeId) {
+    scopedUpdates.push({ table: 'customer_contracts', column: 'id', value: params.scopeId })
+  }
+  if (params.scopeType === 'site' && params.scopeId) {
+    scopedUpdates.push({ table: 'billing_underlays', column: 'site_id', value: params.scopeId })
+  }
+  if (params.scopeType === 'metering_point' && params.scopeId) {
+    scopedUpdates.push({ table: 'billing_underlays', column: 'metering_point_id', value: params.scopeId })
+  }
+  if (params.scopeType === 'customer') {
+    scopedUpdates.push({ table: 'billing_underlays', column: 'customer_id', value: params.customerId })
+  }
+
+  for (const update of scopedUpdates) {
+    try {
+      let query = supabaseService
+        .from(update.table)
+        .update({
+          export_status: 'blocked',
+          status: update.table === 'billing_underlays' ? 'blocked' : undefined,
+          blocker_reasons: [blocker],
+          billing_blocker_reasons: [blocker],
+          updated_by: params.actorUserId,
+        })
+        .eq(update.column, update.value)
+
+      if (params.companyId) query = query.eq('company_id', params.companyId)
+      const { error } = await query
+      if (error && !isDatabaseShapeError(error)) throw error
+    } catch (error) {
+      if (!isDatabaseShapeError(error)) throw error
+    }
+  }
+}
+
+export async function savePowerOfAttorneyScopeAction(formData: FormData): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = await getActor()
+  const customerId = formValue(formData, 'customer_id') ?? ''
+  const powerOfAttorneyId = formValue(formData, 'power_of_attorney_id') ?? ''
+  const siteId = formValue(formData, 'site_id') || null
+  const meteringPointId = formValue(formData, 'metering_point_id') || null
+  const contractId = formValue(formData, 'contract_id') || null
+  const scopeType = formValue(formData, 'scope_type') || (meteringPointId ? 'metering_point' : siteId ? 'site' : contractId ? 'contract' : 'customer')
+  const validFrom = normalizeDateOrNull(formValue(formData, 'valid_from'))
+  const validTo = normalizeDateOrNull(formValue(formData, 'valid_to'))
+
+  if (!customerId || !powerOfAttorneyId) throw new Error('Kund och fullmakt krävs.')
+  const customer = await loadCustomerForAction(customerId)
+
+  const { data: poa, error: poaError } = await supabaseService
+    .from('powers_of_attorney')
+    .select('id, customer_id, company_id, status')
+    .eq('id', powerOfAttorneyId)
+    .eq('customer_id', customerId)
+    .maybeSingle()
+
+  if (poaError) throw poaError
+  if (!poa) throw new Error('Fullmakten hittades inte på kunden.')
+
+  const payload = {
+    company_id: customer.company_id,
+    customer_id: customerId,
+    power_of_attorney_id: powerOfAttorneyId,
+    scope_type: scopeType,
+    site_id: siteId,
+    metering_point_id: meteringPointId,
+    customer_contract_id: contractId,
+    status: 'active',
+    valid_from: validFrom,
+    valid_to: validTo,
+    created_by: actor.id,
+    updated_by: actor.id,
+  }
+
+  const { data, error } = await supabaseService
+    .from('power_of_attorney_scopes')
+    .insert(payload)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'power_of_attorney_scope',
+    entityId: data.id,
+    action: 'power_of_attorney_scope_created',
+    newValues: data,
+    metadata: { customerId, powerOfAttorneyId, scopeType, siteId, meteringPointId, contractId },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+}
+
+export async function registerCustomerLifecycleDecisionAction(formData: FormData): Promise<void> {
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = await getActor()
+  const customerId = formValue(formData, 'customer_id') ?? ''
+  const decisionType = formValue(formData, 'decision_type') === 'rejected' ? 'rejected' : 'withdrawal'
+  const scopeType = formValue(formData, 'scope_type') || 'customer'
+  const scopeId = formValue(formData, 'scope_id') || null
+  const reason = formValue(formData, 'reason')?.trim() || (decisionType === 'withdrawal' ? 'Kunden har ångrat flödet.' : 'Kunden är nekad/avvisad.')
+  const blockBilling = toBoolean(formData, 'block_billing')
+
+  if (!customerId) throw new Error('Kund saknas.')
+  const customer = await loadCustomerForAction(customerId)
+  const nextStatus = decisionType === 'withdrawal' ? 'cancelled' : 'rejected'
+  const now = new Date().toISOString()
+
+  if (scopeType === 'customer') {
+    const { error } = await supabaseService
+      .from('customers')
+      .update({
+        status: nextStatus,
+        lifecycle_status_reason: reason,
+        lifecycle_closed_at: now,
+        updated_by: actor.id,
+      })
+      .eq('id', customerId)
+      .eq('company_id', customer.company_id)
+    if (error) throw error
+  } else if (scopeType === 'contract' && scopeId) {
+    const { error } = await supabaseService
+      .from('customer_contracts')
+      .update({
+        status: decisionType === 'withdrawal' ? 'cancelled' : 'cancelled',
+        rejected_reason: decisionType === 'rejected' ? reason : null,
+        termination_reason: decisionType === 'withdrawal' ? 'customer_request' : 'other',
+        ends_at: now,
+        updated_by: actor.id,
+      })
+      .eq('id', scopeId)
+      .eq('customer_id', customerId)
+      .eq('company_id', customer.company_id)
+    if (error && !isDatabaseShapeError(error)) throw error
+  } else if (scopeType === 'site' && scopeId) {
+    const { error } = await supabaseService
+      .from('customer_sites')
+      .update({
+        status: 'closed',
+        closed_at: now,
+        closed_reason: reason,
+        updated_by: actor.id,
+      })
+      .eq('id', scopeId)
+      .eq('customer_id', customerId)
+      .eq('company_id', customer.company_id)
+    if (error && !isDatabaseShapeError(error)) throw error
+  } else if (scopeType === 'metering_point' && scopeId) {
+    const { error } = await supabaseService
+      .from('metering_points')
+      .update({
+        status: 'closed',
+        closed_at: now,
+        closed_reason: reason,
+        updated_by: actor.id,
+      })
+      .eq('id', scopeId)
+      .eq('company_id', customer.company_id)
+    if (error && !isDatabaseShapeError(error)) throw error
+  }
+
+  if (blockBilling) {
+    await blockBillingForLifecycleDecision({
+      companyId: customer.company_id,
+      customerId,
+      scopeType,
+      scopeId,
+      reason,
+      actorUserId: actor.id,
+    })
+  }
+
+  await insertCustomerCaseForLifecycle({
+    actorUserId: actor.id,
+    companyId: customer.company_id,
+    customerId,
+    scopeType,
+    scopeId,
+    decisionType,
+    reason,
+    billingBlocked: blockBilling,
+  })
+
+  await supabaseService.from('customer_lifecycle_decisions').insert({
+    company_id: customer.company_id,
+    customer_id: customerId,
+    decision_type: decisionType,
+    scope_type: scopeType,
+    scope_id: scopeId,
+    reason,
+    billing_blocked: blockBilling,
+    created_by: actor.id,
+  }).then(({ error }) => {
+    if (error && !isDatabaseShapeError(error)) throw error
+  })
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'customer_lifecycle_decision',
+    entityId: customerId,
+    action: decisionType === 'withdrawal' ? 'customer_withdrawal_registered' : 'customer_rejection_registered',
+    oldValues: customer,
+    newValues: { decisionType, scopeType, scopeId, reason, blockBilling },
+    metadata: { customerId, scopeType, scopeId },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/customers')
+  revalidatePath('/admin/billing/export-center')
 }

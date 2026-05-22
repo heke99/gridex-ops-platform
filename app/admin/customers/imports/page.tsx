@@ -29,6 +29,18 @@ type ImportBatchRow = {
   imported_at?: string | null;
 };
 
+type CustomerPickRow = {
+  id: string;
+  customer_number: string | null;
+  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  company_name: string | null;
+  email: string | null;
+  personal_number: string | null;
+  org_number: string | null;
+};
+
 type ImportRow = {
   id: string;
   import_batch_id: string;
@@ -155,6 +167,22 @@ export default async function CustomerImportQueuePage() {
   if (rowsError) throw rowsError;
 
   const importRows = (rows ?? []) as ImportRow[];
+
+  let customerPickQuery = supabase
+    .from("customers")
+    .select("id, customer_number, full_name, first_name, last_name, company_name, email, personal_number, org_number")
+    .order("created_at", { ascending: false })
+    .limit(250);
+
+  if (companyScope.companyId) {
+    customerPickQuery = customerPickQuery.eq("company_id", companyScope.companyId);
+  }
+
+  const { data: customerPickRows, error: customerPickError } = await customerPickQuery;
+  if (customerPickError) throw customerPickError;
+
+  const customerOptions = (customerPickRows ?? []) as CustomerPickRow[];
+
   const rowsByBatch = new Map<string, ImportRow[]>();
   for (const row of importRows) {
     const bucket = rowsByBatch.get(row.import_batch_id) ?? [];
@@ -349,11 +377,22 @@ export default async function CustomerImportQueuePage() {
                                     name="importRowId"
                                     value={row.id}
                                   />
-                                  <input
+                                  <select
                                     name="existingCustomerId"
-                                    placeholder="Befintligt kund-id"
                                     className="w-full rounded-xl border border-amber-300 px-3 py-2 text-xs"
-                                  />
+                                    defaultValue=""
+                                  >
+                                    <option value="">Välj befintlig kund</option>
+                                    {customerOptions.map((customer) => {
+                                      const name = customer.full_name || [customer.first_name, customer.last_name].filter(Boolean).join(" ").trim() || customer.company_name || customer.email || customer.customer_number || customer.id;
+                                      const identity = customer.personal_number || customer.org_number || customer.email || "saknar id";
+                                      return (
+                                        <option key={customer.id} value={customer.id}>
+                                          {name} · {customer.customer_number ?? "kund"} · {identity}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
                                   <select
                                     name="duplicateResolution"
                                     defaultValue="add_site_to_existing"

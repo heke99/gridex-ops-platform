@@ -3,6 +3,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listDuplicateCustomerGroups } from '@/lib/customers/duplicates'
+import { mergeCustomersAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,9 +60,25 @@ export default async function CustomerDuplicatesPage() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                  Rekommenderad åtgärd: välj huvudkund, koppla eventuell ny anläggning/mätpunkt till huvudkunden och stäng eller markera den andra som separat. Hård merge ska alltid göras manuellt med audit.
-                </div>
+                <form action={mergeCustomersAction} className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                  <div className="font-semibold">Merge-arbetsyta</div>
+                  <p className="mt-1">Välj en huvudkund och markera vilka kunder som ska slås ihop. Systemet blockerar merge mellan olika bolag och loggar före/efter med flyttade anläggningar, mätpunkter, avtal, fullmakter och ärenden.</p>
+                  <div className="mt-3 space-y-2">
+                    {group.candidates.map((candidate, index) => (
+                      <label key={`${group.groupKey}:merge:${candidate.id}`} className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-slate-800">
+                        <input type="radio" name="primaryCustomerId" value={candidate.id} defaultChecked={index === 0} />
+                        <span className="font-semibold">Huvudkund</span>
+                        <input type="checkbox" name="sourceCustomerIds" value={candidate.id} defaultChecked={index !== 0} />
+                        <span>Slå ihop denna om den inte är huvudkund:</span>
+                        <span className="font-semibold">{customerName(candidate)}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <input name="reason" required placeholder="Orsak, t.ex. samma person/företag – ny anläggning ska ligga på huvudkund" className="mt-3 w-full rounded-xl border border-amber-300 px-3 py-2 text-xs text-slate-900" />
+                  <button className="mt-3 rounded-xl bg-amber-700 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-800">
+                    Slå ihop markerade kunder
+                  </button>
+                </form>
               </article>
             ))}
           </section>
