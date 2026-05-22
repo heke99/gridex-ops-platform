@@ -23,7 +23,22 @@ function isPlatformAdminPath(pathname: string) {
   )
 }
 
-type RpcRoleRow = { role_key?: string | null }
+type RpcRoleRow = {
+  role_key?: string | null
+  key?: string | null
+  code?: string | null
+  name?: string | null
+}
+
+function normalizeRoleKey(value: string | null | undefined): string | null {
+  if (!value) return null
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
+  if (!normalized) return null
+  if (normalized === 'superadmin' || normalized === 'super_admin') return 'super_admin'
+  if (normalized === 'platformadmin' || normalized === 'platform_admin') return 'platform_admin'
+  return normalized
+}
+
 async function isPlatformAdminSession(supabase: ReturnType<typeof createServerClient>, userId: string) {
   const { data: roleRows, error: rolesError } = await supabase.rpc('gridex_get_user_roles', {
     p_user_id: userId,
@@ -32,10 +47,10 @@ async function isPlatformAdminSession(supabase: ReturnType<typeof createServerCl
   if (rolesError) return false
 
   const roles = ((roleRows ?? []) as RpcRoleRow[])
-    .map((row) => row.role_key ?? null)
+    .map((row) => normalizeRoleKey(row.role_key ?? row.key ?? row.code ?? row.name ?? null))
     .filter((role): role is string => typeof role === 'string' && role.length > 0)
 
-  return roles.includes('super_admin') || roles.includes('superadmin') || roles.includes('platform_admin')
+  return roles.includes('super_admin') || roles.includes('platform_admin')
 }
 
 function normalizeNextPath(value: string | null) {

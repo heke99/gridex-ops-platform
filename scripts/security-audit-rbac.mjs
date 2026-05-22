@@ -90,6 +90,8 @@ const reviewedServiceClientFiles = new Set([
   'app/admin/customers/[id]/switch-create-actions.ts',
   'app/admin/customers/actions.ts',
   'app/admin/customers/page.tsx',
+  'app/admin/controltower/page.tsx',
+  'app/admin/ediel/control-tower/page.tsx',
   'app/admin/customers/segments/page.tsx',
   'app/admin/ediel/actions.ts',
   'app/admin/ediel/agt/actions.ts',

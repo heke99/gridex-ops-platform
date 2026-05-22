@@ -1,8 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
-import {
-  listCustomerIdsByLatestContractBucket,
-  type LatestContractBucketFilter,
-} from '@/lib/customer-contracts/db'
+import type { LatestContractBucketFilter } from '@/lib/customer-contracts/db'
+import { isMissingRelationError } from '@/lib/tenant/scope'
 
 export type CustomerListRow = {
   id: string
@@ -34,57 +32,18 @@ export type CustomerListRow = {
   contract_count: number
 }
 
-type CustomerBaseRow = {
-  id: string
-  customer_type: string | null
-  status: string | null
-  possible_duplicate?: boolean | null
-  duplicate_review_status?: string | null
-  consolidated_invoice?: boolean | null
-  billing_level?: string | null
-  intake_status?: string | null
-  intake_missing_fields?: unknown
-  has_missing_grid_owner?: boolean
-  has_signed_power_of_attorney?: boolean
-  first_name: string | null
-  last_name: string | null
-  full_name: string | null
-  company_name: string | null
-  email: string | null
-  phone: string | null
-  personal_number: string | null
-  org_number: string | null
-  customer_number: string | null
-  apartment_number: string | null
-  created_at: string
-}
-
-type CustomerSiteSearchRow = {
-  id: string
-  customer_id: string | null
-  site_name: string | null
-  facility_id: string | null
-  street: string | null
-  postal_code: string | null
-  city: string | null
-}
+type RawCustomerRow = Record<string, unknown> & { id?: string }
 
 type CustomerSiteCountRow = {
   id: string
-  customer_id: string
+  customer_id: string | null
   status: string | null
   grid_owner_id?: string | null
 }
 
-type MeteringPointSearchRow = {
-  id: string
-  site_id: string | null
-  meter_point_id: string | null
-}
-
 type MeteringPointCountRow = {
   id: string
-  site_id: string
+  site_id: string | null
   status: string | null
 }
 
@@ -139,324 +98,241 @@ export type CustomerListPageResult = {
   counts: CustomerStatusCounts
 }
 
-type SearchContext = {
-  query: string
-  relatedCustomerIds: string[]
-  companyId?: string | null
-  customerType?: CustomerTypeFilter
-  flag?: CustomerFlagFilter
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
 }
 
-function sanitizeSearchTerm(value: string): string {
-  return value.replace(/[%_,]/g, ' ').trim()
+function booleanOrFalse(value: unknown): boolean {
+  return value === true
 }
 
-async function resolveRelatedCustomerIds(query: string, companyId?: string | null): Promise<string[]> {
-  if (!query) return []
+function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
+  const firstName = stringOrNull(row.first_name)
+  const lastName = stringOrNull(row.last_name)
+  const fallbackFullName = [firstName, lastName].filter(Boolean).join(' ').trim()
+  const fullName = stringOrNull(row.full_name) ?? (fallbackFullName.length > 0 ? fallbackFullName : null)
 
-  let siteSearchQuery = supabaseService
-    .from('customer_sites')
-    .select('id, customer_id, site_name, facility_id, street, postal_code, city')
-    .or(
-      [
-        `site_name.ilike.%${query}%`,
-        `facility_id.ilike.%${query}%`,
-        `street.ilike.%${query}%`,
-        `postal_code.ilike.%${query}%`,
-        `city.ilike.%${query}%`,
-      ].join(',')
-    )
-    .limit(250)
-
-  if (companyId) {
-    siteSearchQuery = siteSearchQuery.eq('company_id', companyId)
+  return {
+    id: String(row.id),
+    customer_type: stringOrNull(row.customer_type) ?? 'private',
+    status: stringOrNull(row.status) ?? 'draft',
+    possible_duplicate: booleanOrFalse(row.possible_duplicate),
+    duplicate_review_status: stringOrNull(row.duplicate_review_status),
+    consolidated_invoice: booleanOrFalse(row.consolidated_invoice),
+    billing_level: stringOrNull(row.billing_level),
+    intake_status: stringOrNull(row.intake_status),
+    intake_missing_fields: row.intake_missing_fields ?? null,
+    has_missing_grid_owner: false,
+    has_signed_power_of_attorney: false,
+    first_name: firstName,
+    last_name: lastName,
+    full_name: fullName,
+    company_name: stringOrNull(row.company_name),
+    email: stringOrNull(row.email),
+    phone: stringOrNull(row.phone),
+    personal_number: stringOrNull(row.personal_number),
+    org_number: stringOrNull(row.org_number),
+    customer_number: stringOrNull(row.customer_number),
+    apartment_number: stringOrNull(row.apartment_number),
+    created_at: stringOrNull(row.created_at) ?? new Date(0).toISOString(),
+    site_count: 0,
+    active_site_count: 0,
+    metering_point_count: 0,
+    active_metering_point_count: 0,
+    contract_count: 0,
   }
-
-  const { data: matchingSites, error: siteSearchError } = await siteSearchQuery
-  if (siteSearchError) throw siteSearchError
-
-  const typedMatchingSites = (matchingSites ?? []) as CustomerSiteSearchRow[]
-
-  const directCustomerIds = typedMatchingSites
-    .map((row) => row.customer_id)
-    .filter((value): value is string => Boolean(value))
-
-  let pointSearchQuery = supabaseService
-    .from('metering_points')
-    .select('id, site_id, meter_point_id')
-    .or(`meter_point_id.ilike.%${query}%`)
-    .limit(250)
-
-  if (companyId) {
-    pointSearchQuery = pointSearchQuery.eq('company_id', companyId)
-  }
-
-  const { data: matchingPoints, error: pointSearchError } = await pointSearchQuery
-  if (pointSearchError) throw pointSearchError
-
-  const typedMatchingPoints = (matchingPoints ?? []) as MeteringPointSearchRow[]
-  const siteIds = new Set<string>()
-
-  for (const site of typedMatchingSites) {
-    if (site.id) siteIds.add(String(site.id))
-  }
-
-  for (const point of typedMatchingPoints) {
-    if (point.site_id) siteIds.add(String(point.site_id))
-  }
-
-  if (siteIds.size === 0) {
-    return Array.from(new Set(directCustomerIds))
-  }
-
-  let relatedSitesQuery = supabaseService
-    .from('customer_sites')
-    .select('id, customer_id')
-    .in('id', Array.from(siteIds))
-
-  if (companyId) {
-    relatedSitesQuery = relatedSitesQuery.eq('company_id', companyId)
-  }
-
-  const { data: relatedSites, error: relatedSitesError } = await relatedSitesQuery
-  if (relatedSitesError) throw relatedSitesError
-
-  const typedRelatedSites = (relatedSites ?? []) as Array<{
-    id: string
-    customer_id: string | null
-  }>
-
-  const meteringLinkedCustomerIds = typedRelatedSites
-    .map((row) => row.customer_id)
-    .filter((value): value is string => Boolean(value))
-
-  return Array.from(new Set([...directCustomerIds, ...meteringLinkedCustomerIds]))
 }
 
-function buildCustomerOrFilter(context: SearchContext): string | null {
-  if (!context.query) return null
-
-  const parts = [
-    `full_name.ilike.%${context.query}%`,
-    `company_name.ilike.%${context.query}%`,
-    `email.ilike.%${context.query}%`,
-    `phone.ilike.%${context.query}%`,
-    `personal_number.ilike.%${context.query}%`,
-    `org_number.ilike.%${context.query}%`,
-    `customer_number.ilike.%${context.query}%`,
-    `first_name.ilike.%${context.query}%`,
-    `last_name.ilike.%${context.query}%`,
+function matchesText(row: CustomerListRow, query: string): boolean {
+  if (!query) return true
+  const normalized = query.toLowerCase()
+  return [
+    row.full_name,
+    row.company_name,
+    row.email,
+    row.phone,
+    row.personal_number,
+    row.org_number,
+    row.customer_number,
+    row.first_name,
+    row.last_name,
   ]
-
-  if (context.relatedCustomerIds.length > 0) {
-    parts.push(`id.in.(${context.relatedCustomerIds.join(',')})`)
-  }
-
-  return parts.join(',')
+    .filter(Boolean)
+    .some((value) => String(value).toLowerCase().includes(normalized))
 }
 
-async function buildCustomerRows(customerRows: CustomerBaseRow[], companyId?: string | null): Promise<CustomerListRow[]> {
-  const customerIds = customerRows.map((row) => row.id)
-
-  if (customerIds.length === 0) {
-    return []
-  }
-
-  let sitesQuery = supabaseService
-    .from('customer_sites')
-    .select('id, customer_id, status, grid_owner_id')
-    .in('customer_id', customerIds)
-
-  if (companyId) {
-    sitesQuery = sitesQuery.eq('company_id', companyId)
-  }
-
-  const { data: siteRows, error: siteError } = await sitesQuery
-  if (siteError) throw siteError
-
-  const typedSites = (siteRows ?? []) as CustomerSiteCountRow[]
-  const siteIds = typedSites.map((row) => row.id)
-
-  const { data: pointRows, error: pointError } =
-    siteIds.length > 0
-      ? await supabaseService
-          .from('metering_points')
-          .select('id, site_id, status')
-          .in('site_id', siteIds)
-      : { data: [], error: null }
-
-  if (pointError) throw pointError
-
-  const typedPoints = (pointRows ?? []) as MeteringPointCountRow[]
-
-  const { data: contractRows, error: contractError } = await supabaseService
-    .from('customer_contracts')
-    .select('id, customer_id, status, grid_owner_id')
-    .in('customer_id', customerIds)
-
-  if (contractError && !['42P01', '42703', 'PGRST205'].includes(String((contractError as { code?: string }).code ?? ''))) {
-    throw contractError
-  }
-
-  const typedContracts = (contractRows ?? []) as Array<{
-    id: string
-    customer_id: string | null
-    status: string | null
-  }>
-
-  const { data: powerRows, error: powerError } = await supabaseService
-    .from('powers_of_attorney')
-    .select('id, customer_id, status')
-    .in('customer_id', customerIds)
-
-  if (powerError && !['42P01', '42703', 'PGRST205'].includes(String((powerError as { code?: string }).code ?? ''))) {
-    throw powerError
-  }
-
-  const typedPowers = (powerRows ?? []) as Array<{
-    id: string
-    customer_id: string | null
-    status: string | null
-  }>
-
-  const siteCountByCustomer = new Map<string, number>()
-  const activeSiteCountByCustomer = new Map<string, number>()
-  const customerIdBySiteId = new Map<string, string>()
-  const meteringPointCountByCustomer = new Map<string, number>()
-  const activeMeteringPointCountByCustomer = new Map<string, number>()
-  const contractCountByCustomer = new Map<string, number>()
-  const missingGridOwnerByCustomer = new Map<string, boolean>()
-  const signedPowerByCustomer = new Map<string, boolean>()
-
-  for (const site of typedSites) {
-    customerIdBySiteId.set(site.id, site.customer_id)
-
-    siteCountByCustomer.set(
-      site.customer_id,
-      (siteCountByCustomer.get(site.customer_id) ?? 0) + 1
-    )
-
-    if (!site.grid_owner_id) {
-      missingGridOwnerByCustomer.set(site.customer_id, true)
-    }
-
-    if (site.status === 'active') {
-      activeSiteCountByCustomer.set(
-        site.customer_id,
-        (activeSiteCountByCustomer.get(site.customer_id) ?? 0) + 1
-      )
-    }
-  }
-
-  for (const point of typedPoints) {
-    const customerId = customerIdBySiteId.get(point.site_id)
-    if (!customerId) continue
-
-    meteringPointCountByCustomer.set(
-      customerId,
-      (meteringPointCountByCustomer.get(customerId) ?? 0) + 1
-    )
-
-    if (point.status === 'active') {
-      activeMeteringPointCountByCustomer.set(
-        customerId,
-        (activeMeteringPointCountByCustomer.get(customerId) ?? 0) + 1
-      )
-    }
-  }
-
-  for (const contract of typedContracts) {
-    if (!contract.customer_id) continue
-    contractCountByCustomer.set(
-      contract.customer_id,
-      (contractCountByCustomer.get(contract.customer_id) ?? 0) + 1
-    )
-  }
-
-  for (const power of typedPowers) {
-    if (!power.customer_id) continue
-    if (power.status === 'signed') signedPowerByCustomer.set(power.customer_id, true)
-  }
-
-  return customerRows.map((customer) => ({
-    ...customer,
-    site_count: siteCountByCustomer.get(customer.id) ?? 0,
-    active_site_count: activeSiteCountByCustomer.get(customer.id) ?? 0,
-    metering_point_count: meteringPointCountByCustomer.get(customer.id) ?? 0,
-    active_metering_point_count:
-      activeMeteringPointCountByCustomer.get(customer.id) ?? 0,
-    contract_count: contractCountByCustomer.get(customer.id) ?? 0,
-    has_missing_grid_owner: missingGridOwnerByCustomer.get(customer.id) ?? false,
-    has_signed_power_of_attorney: signedPowerByCustomer.get(customer.id) ?? false,
-  }))
+function matchesCustomerType(row: CustomerListRow, customerType: CustomerTypeFilter): boolean {
+  if (customerType === 'all') return true
+  if (customerType === 'private') return row.customer_type === 'private' || !row.customer_type
+  return row.customer_type === customerType
 }
 
-function applyCustomerTypeFilter<T>(
-  query: T,
-  customerType: CustomerTypeFilter = 'all'
-): T {
-  if (customerType === 'all') return query
-  return (query as { eq: (column: string, value: string) => T }).eq('customer_type', customerType)
+function matchesStatus(row: CustomerListRow, status: CustomerStatusFilter): boolean {
+  return status === 'all' || row.status === status
 }
 
-function applyCustomerFlagFilter<T>(
-  query: T,
-  flag: CustomerFlagFilter = 'all'
-): T {
-  if (flag === 'possible_duplicate') {
-    return (query as { eq: (column: string, value: boolean) => T }).eq('possible_duplicate', true)
-  }
-  if (flag === 'consolidated_invoice') {
-    return (query as { eq: (column: string, value: boolean) => T }).eq('consolidated_invoice', true)
-  }
-  if (flag === 'cancelled') {
-    return (query as { eq: (column: string, value: string) => T }).eq('status', 'cancelled')
-  }
-  if (flag === 'rejected') {
-    return (query as { eq: (column: string, value: string) => T }).eq('status', 'rejected')
-  }
-  return query
+function matchesContract(row: CustomerListRow, filter: LatestContractBucketFilter): boolean {
+  if (filter === 'all') return true
+  if (filter === 'none') return row.contract_count === 0
+  return row.contract_count > 0
 }
 
-function filterRowsByDerivedFlag(rows: CustomerListRow[], flag: CustomerFlagFilter = 'all') {
-  if (flag === 'multi_site') return rows.filter((row) => row.site_count > 1)
-  if (flag === 'multi_contract') return rows.filter((row) => Number((row as { contract_count?: number }).contract_count ?? 0) > 1)
-  if (flag === 'missing_grid_owner') return rows.filter((row) => Boolean(row.has_missing_grid_owner))
-  if (flag === 'missing_authorization') return rows.filter((row) => !row.has_signed_power_of_attorney)
+function matchesFlag(row: CustomerListRow, flag: CustomerFlagFilter): boolean {
+  if (flag === 'all') return true
+  if (flag === 'possible_duplicate') return Boolean(row.possible_duplicate)
+  if (flag === 'multi_site') return row.site_count > 1
+  if (flag === 'multi_contract') return row.contract_count > 1
+  if (flag === 'consolidated_invoice') return Boolean(row.consolidated_invoice)
+  if (flag === 'missing_grid_owner') return Boolean(row.has_missing_grid_owner)
+  if (flag === 'missing_authorization') return !row.has_signed_power_of_attorney
   if (flag === 'ready_for_switch') {
-    return rows.filter((row) => row.site_count > 0 && row.metering_point_count > 0 && Boolean(row.has_signed_power_of_attorney) && !row.has_missing_grid_owner)
+    return row.site_count > 0 && row.metering_point_count > 0 && Boolean(row.has_signed_power_of_attorney) && !row.has_missing_grid_owner
   }
-  return rows
+  if (flag === 'cancelled') return row.status === 'cancelled'
+  if (flag === 'rejected') return row.status === 'rejected'
+  return true
 }
 
-async function countCustomersByStatus(
-  context: SearchContext,
-  status?: Exclude<CustomerStatusFilter, 'all'>
-): Promise<number> {
-  let query = supabaseService
-    .from('customers')
-    .select('id', { count: 'exact', head: true })
+async function loadCustomerRows(companyId: string | null): Promise<CustomerListRow[]> {
+  try {
+    let query = supabaseService
+      .from('customers')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1000)
 
-  const orFilter = buildCustomerOrFilter(context)
-  if (orFilter) {
-    query = query.or(orFilter)
+    if (companyId) query = query.eq('company_id', companyId)
+
+    const { data, error } = await query
+    if (error) throw error
+
+    return ((data ?? []) as RawCustomerRow[])
+      .filter((row) => typeof row.id === 'string')
+      .map(normalizeCustomerRow)
+  } catch (error) {
+    if (isMissingRelationError(error)) return []
+    throw error
+  }
+}
+
+async function hydrateDerivedCustomerData(rows: CustomerListRow[], companyId: string | null): Promise<CustomerListRow[]> {
+  if (rows.length === 0) return rows
+
+  const customerIds = rows.map((row) => row.id)
+  const byCustomerId = new Map(rows.map((row) => [row.id, row]))
+
+  try {
+    let siteQuery = supabaseService
+      .from('customer_sites')
+      .select('id, customer_id, status, grid_owner_id')
+      .in('customer_id', customerIds)
+
+    if (companyId) siteQuery = siteQuery.eq('company_id', companyId)
+
+    const { data, error } = await siteQuery
+    if (error) throw error
+
+    const sites = (data ?? []) as CustomerSiteCountRow[]
+    const customerIdBySiteId = new Map<string, string>()
+    const siteIds: string[] = []
+
+    for (const site of sites) {
+      if (!site.id || !site.customer_id) continue
+      const customer = byCustomerId.get(site.customer_id)
+      if (!customer) continue
+      siteIds.push(site.id)
+      customerIdBySiteId.set(site.id, site.customer_id)
+      customer.site_count += 1
+      if (site.status === 'active') customer.active_site_count += 1
+      if (!site.grid_owner_id) customer.has_missing_grid_owner = true
+    }
+
+    if (siteIds.length > 0) {
+      const { data: pointRows, error: pointError } = await supabaseService
+        .from('metering_points')
+        .select('id, site_id, status')
+        .in('site_id', siteIds)
+
+      if (pointError) throw pointError
+
+      for (const point of (pointRows ?? []) as MeteringPointCountRow[]) {
+        if (!point.site_id) continue
+        const customerId = customerIdBySiteId.get(point.site_id)
+        if (!customerId) continue
+        const customer = byCustomerId.get(customerId)
+        if (!customer) continue
+        customer.metering_point_count += 1
+        if (point.status === 'active') customer.active_metering_point_count += 1
+      }
+    }
+  } catch (error) {
+    if (!isMissingRelationError(error)) throw error
   }
 
-  if (context.companyId) {
-    query = query.eq('company_id', context.companyId)
+  try {
+    const { data, error } = await supabaseService
+      .from('customer_contracts')
+      .select('id, customer_id')
+      .in('customer_id', customerIds)
+
+    if (error) throw error
+
+    for (const contract of (data ?? []) as Array<{ customer_id: string | null }>) {
+      if (!contract.customer_id) continue
+      const customer = byCustomerId.get(contract.customer_id)
+      if (!customer) continue
+      customer.contract_count += 1
+    }
+  } catch (error) {
+    if (!isMissingRelationError(error)) throw error
   }
 
-  query = applyCustomerTypeFilter(query, context.customerType ?? 'all')
-  query = applyCustomerFlagFilter(query, context.flag ?? 'all')
+  try {
+    const { data, error } = await supabaseService
+      .from('powers_of_attorney')
+      .select('id, customer_id, status')
+      .in('customer_id', customerIds)
 
-  if (status) {
-    query = query.eq('status', status)
+    if (error) throw error
+
+    for (const poa of (data ?? []) as Array<{ customer_id: string | null; status: string | null }>) {
+      if (!poa.customer_id || poa.status !== 'signed') continue
+      const customer = byCustomerId.get(poa.customer_id)
+      if (customer) customer.has_signed_power_of_attorney = true
+    }
+  } catch (error) {
+    if (!isMissingRelationError(error)) throw error
   }
 
-  const { count, error } = await query
-  if (error) throw error
+  return Array.from(byCustomerId.values())
+}
 
-  return count ?? 0
+function emptyCounts(): CustomerStatusCounts {
+  return {
+    all: 0,
+    draft: 0,
+    pending_verification: 0,
+    active: 0,
+    inactive: 0,
+    moved: 0,
+    terminated: 0,
+    blocked: 0,
+  }
+}
+
+function buildCounts(rows: CustomerListRow[]): CustomerStatusCounts {
+  const counts = emptyCounts()
+  counts.all = rows.length
+  for (const row of rows) {
+    if (row.status === 'draft') counts.draft += 1
+    if (row.status === 'pending_verification') counts.pending_verification += 1
+    if (row.status === 'active') counts.active += 1
+    if (row.status === 'inactive') counts.inactive += 1
+    if (row.status === 'moved') counts.moved += 1
+    if (row.status === 'terminated') counts.terminated += 1
+    if (row.status === 'blocked') counts.blocked += 1
+  }
+  return counts
 }
 
 export async function listCustomersPage(options: {
@@ -469,116 +345,32 @@ export async function listCustomersPage(options: {
   customerType?: CustomerTypeFilter
   flag?: CustomerFlagFilter
 } = {}): Promise<CustomerListPageResult> {
-  const query = sanitizeSearchTerm(options.query ?? '')
+  const query = (options.query ?? '').trim()
   const page = Math.max(options.page ?? 1, 1)
   const pageSize = Math.min(Math.max(options.pageSize ?? 100, 1), 100)
   const status = options.status ?? 'all'
   const contractFilter = options.contractFilter ?? 'all'
   const customerType = options.customerType ?? 'all'
   const flag = options.flag ?? 'all'
-
   const companyId = options.companyId ?? null
-  const relatedCustomerIds = await resolveRelatedCustomerIds(query, companyId)
-  const context: SearchContext = {
-    query,
-    relatedCustomerIds,
-    companyId,
-    customerType,
-    flag,
-  }
 
-  let customerRows: CustomerBaseRow[] = []
-  let total = 0
+  const allRows = await hydrateDerivedCustomerData(await loadCustomerRows(companyId), companyId)
+  const searchedRows = allRows.filter((row) => matchesText(row, query))
+  const counts = buildCounts(searchedRows.filter((row) => matchesCustomerType(row, customerType) && matchesFlag(row, flag)))
+  const filteredRows = searchedRows.filter(
+    (row) =>
+      matchesStatus(row, status) &&
+      matchesCustomerType(row, customerType) &&
+      matchesContract(row, contractFilter) &&
+      matchesFlag(row, flag)
+  )
 
-  if (contractFilter !== 'all') {
-    const contractFiltered = await listCustomerIdsByLatestContractBucket({
-      query,
-      customerStatus: status === 'all' ? null : status,
-      bucket: contractFilter,
-      page,
-      pageSize,
-      companyId,
-    })
-
-    total = contractFiltered.total
-
-    if (contractFiltered.customerIds.length > 0) {
-      let contractRowsQuery = supabaseService
-        .from('customers')
-        .select(
-          'id, customer_type, status, possible_duplicate, duplicate_review_status, consolidated_invoice, billing_level, intake_status, intake_missing_fields, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at'
-        )
-        .in('id', contractFiltered.customerIds)
-
-      contractRowsQuery = applyCustomerTypeFilter(contractRowsQuery, customerType)
-      contractRowsQuery = applyCustomerFlagFilter(contractRowsQuery, flag)
-
-      const { data, error } = await contractRowsQuery
-
-      // customer ids already come from a tenant-scoped RPC when companyId is present.
-      if (error) throw error
-
-      const rows = (data ?? []) as CustomerBaseRow[]
-      const rank = new Map<string, number>(
-        contractFiltered.customerIds.map((id, index) => [id, index] as [string, number])
-      )
-
-      customerRows = rows.sort(
-        (a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0)
-      )
-    }
-  } else {
-    let rowsQuery = supabaseService
-      .from('customers')
-      .select(
-        'id, customer_type, status, possible_duplicate, duplicate_review_status, consolidated_invoice, billing_level, intake_status, intake_missing_fields, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at',
-        { count: 'exact' }
-      )
-      .order('created_at', { ascending: false })
-
-    if (companyId) {
-      rowsQuery = rowsQuery.eq('company_id', companyId)
-    }
-
-    rowsQuery = applyCustomerTypeFilter(rowsQuery, customerType)
-    rowsQuery = applyCustomerFlagFilter(rowsQuery, flag)
-
-    const orFilter = buildCustomerOrFilter(context)
-    if (orFilter) {
-      rowsQuery = rowsQuery.or(orFilter)
-    }
-
-    if (status !== 'all') {
-      rowsQuery = rowsQuery.eq('status', status)
-    }
-
-    const from = (page - 1) * pageSize
-    const to = from + pageSize - 1
-
-    const { data, error, count } = await rowsQuery.range(from, to)
-    if (error) throw error
-
-    customerRows = (data ?? []) as CustomerBaseRow[]
-    total = count ?? 0
-  }
-
-  const rows = filterRowsByDerivedFlag(await buildCustomerRows(customerRows, companyId), flag)
-
-  const counts: CustomerStatusCounts = {
-    all: await countCustomersByStatus(context),
-    draft: await countCustomersByStatus(context, 'draft'),
-    pending_verification: await countCustomersByStatus(context, 'pending_verification'),
-    active: await countCustomersByStatus(context, 'active'),
-    inactive: await countCustomersByStatus(context, 'inactive'),
-    moved: await countCustomersByStatus(context, 'moved'),
-    terminated: await countCustomersByStatus(context, 'terminated'),
-    blocked: await countCustomersByStatus(context, 'blocked'),
-  }
-
+  const total = filteredRows.length
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const from = (page - 1) * pageSize
 
   return {
-    rows,
+    rows: filteredRows.slice(from, from + pageSize),
     total,
     page,
     pageSize,
@@ -587,9 +379,7 @@ export async function listCustomersPage(options: {
   }
 }
 
-export async function getCustomers(
-  options: GetCustomersOptions = {}
-): Promise<CustomerListRow[]> {
+export async function getCustomers(options: GetCustomersOptions = {}): Promise<CustomerListRow[]> {
   const result = await listCustomersPage({
     query: options.query,
     page: 1,

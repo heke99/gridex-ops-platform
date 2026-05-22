@@ -22,11 +22,70 @@ export type GuardResult = {
 type UserRoleRpcRow = {
   role_id?: string | null
   role_key?: string | null
+  key?: string | null
+  code?: string | null
+  name?: string | null
 }
 
 const PLATFORM_ADMIN_ROLES = new Set(['super_admin', 'superadmin', 'platform_admin'])
-const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set(['owner', 'admin', 'company_admin'])
-const COMPANY_READ_MEMBERSHIP_ROLES = new Set(['owner', 'admin', 'company_admin', 'operations', 'operations_manager', 'operations_agent', 'support', 'customer_service', 'customer_service_agent', 'finance', 'finance_readonly', 'viewer', 'member'])
+const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set([
+  'owner',
+  'admin',
+  'company_admin',
+  'company_owner',
+  'tenant_admin',
+  'bolagsansvarig',
+])
+const COMPANY_READ_MEMBERSHIP_ROLES = new Set([
+  'owner',
+  'admin',
+  'company_admin',
+  'company_owner',
+  'tenant_admin',
+  'bolagsansvarig',
+  'operations',
+  'operations_manager',
+  'operations_agent',
+  'support',
+  'customer_service',
+  'customer_service_agent',
+  'kundservice',
+  'finance',
+  'finance_readonly',
+  'ekonomi',
+  'viewer',
+  'member',
+])
+
+
+function normalizeRoleKey(value: string | null | undefined): string | null {
+  if (!value) return null
+
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_')
+
+  if (!normalized) return null
+  if (normalized === 'super_admin' || normalized === 'superadmin') return 'super_admin'
+  if (normalized === 'platform_admin' || normalized === 'platformadmin') return 'platform_admin'
+  if (
+    normalized === 'company_admin' ||
+    normalized === 'companyadmin' ||
+    normalized === 'company_owner' ||
+    normalized === 'tenant_admin' ||
+    normalized === 'bolagsansvarig'
+  ) {
+    return 'company_admin'
+  }
+
+  return normalized
+}
+
+function roleFromRpcRow(row: UserRoleRpcRow): string | null {
+  return normalizeRoleKey(row.role_key ?? row.key ?? row.code ?? row.name ?? null)
+}
 
 function normalizeRequirement(
   input: string[] | PermissionRequirement
@@ -42,7 +101,10 @@ export function isPlatformAdminContext(input: Pick<GuardResult, 'roles' | 'permi
   // Platform access must be based on explicit platform roles, not broad permissions.
   // Some company-level roles may carry tenant/user permissions for their own company,
   // but that must never unlock /admin/companies, /admin/users, /admin/roles or /admin/platform/*.
-  return input.roles.some((role) => PLATFORM_ADMIN_ROLES.has(role))
+  return input.roles.some((role) => {
+    const normalized = normalizeRoleKey(role)
+    return Boolean(normalized && PLATFORM_ADMIN_ROLES.has(normalized))
+  })
 }
 
 async function loadBaseAdminContext(): Promise<GuardResult> {
@@ -71,11 +133,11 @@ async function loadBaseAdminContext(): Promise<GuardResult> {
   }
 
   const roles = ((rolesData ?? []) as UserRoleRpcRow[])
-    .map((row) => row.role_key ?? null)
+    .map(roleFromRpcRow)
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
 
   const isAdmin =
-    permissions.length > 0 &&
+    (permissions.length > 0 || roles.some((role) => PLATFORM_ADMIN_ROLES.has(role))) &&
     !(roles.length === 1 && roles[0] === 'customer')
 
   const base = {
@@ -191,7 +253,7 @@ export async function requireCompanyScopedAdminAccess(
   const allowed = memberships.some(
     (membership) =>
       membership.companyId === companyId &&
-      COMPANY_READ_MEMBERSHIP_ROLES.has(membership.membershipRole)
+      Boolean(normalizeRoleKey(membership.membershipRole) && COMPANY_READ_MEMBERSHIP_ROLES.has(normalizeRoleKey(membership.membershipRole) as string))
   )
 
   if (!allowed) {
@@ -215,7 +277,7 @@ export async function requireCompanyScopedActionAccess(
   const allowed = memberships.some(
     (membership) =>
       membership.companyId === companyId &&
-      COMPANY_ADMIN_MEMBERSHIP_ROLES.has(membership.membershipRole)
+      Boolean(normalizeRoleKey(membership.membershipRole) && COMPANY_ADMIN_MEMBERSHIP_ROLES.has(normalizeRoleKey(membership.membershipRole) as string))
   )
 
   if (!allowed) {

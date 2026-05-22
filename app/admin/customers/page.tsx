@@ -2,7 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import {
  listCustomersPage,
@@ -77,6 +77,42 @@ type ContractFilterKey =
  | 'closed'
 
 const PAGE_SIZE = 100
+
+type QueryLikeResult<T> = {
+ data: T[] | null
+ error: unknown
+}
+
+function isNonBlockingRuntimeDbError(error: unknown): boolean {
+ const code = String((error as { code?: string } | null)?.code ?? '')
+ return isMissingRelationError(error) || ['42703', '42P01', 'PGRST204', 'PGRST205'].includes(code)
+}
+
+async function safeQueryRows<T>(queryFactory: () => PromiseLike<QueryLikeResult<T>>): Promise<T[]> {
+ try {
+ const { data, error } = await queryFactory()
+ if (error) throw error
+ return data ?? []
+ } catch (error) {
+ if (isNonBlockingRuntimeDbError(error)) return []
+ throw error
+ }
+}
+
+async function safeLatestContractsByCustomerIds(
+ customerIds: string[],
+ companyId: string | null
+): Promise<Map<string, LatestCustomerContractSummary>> {
+ try {
+ return await listLatestCustomerContractsByCustomerIds(customerIds, { companyId })
+ } catch (error) {
+ if (isNonBlockingRuntimeDbError(error)) {
+ return new Map<string, LatestCustomerContractSummary>()
+ }
+ throw error
+ }
+}
+
 
 function StatusBadge({ status }: { status: string | null }) {
  const styles: Record<string, string> = {
@@ -894,26 +930,26 @@ export default async function AdminCustomersPage({
 
  const customerIds = customers.map((customer) => customer.id)
 
- const [sitesQuery, switchRequestsQuery, outboundRequestsQuery, latestContractsByCustomerId] =
+ const [sites, switchRequests, outboundRequests, latestContractsByCustomerId] =
  customerIds.length > 0
  ? await Promise.all([
- (() => {
+ safeQueryRows<CustomerSiteRow>(() => {
  let query = supabaseService
  .from('customer_sites')
  .select('*')
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
  return query
- })(),
- (() => {
+ }),
+ safeQueryRows<SupplierSwitchRequestRow>(() => {
  let query = supabaseService
  .from('supplier_switch_requests')
  .select('*')
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
  return query
- })(),
- (() => {
+ }),
+ safeQueryRows<OutboundRequestRow>(() => {
  let query = supabaseService
  .from('outbound_requests')
  .select('*')
@@ -921,25 +957,15 @@ export default async function AdminCustomersPage({
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
  return query
- })(),
- listLatestCustomerContractsByCustomerIds(customerIds, { companyId: scopedCompanyId }),
+ }),
+ safeLatestContractsByCustomerIds(customerIds, scopedCompanyId),
  ])
  : [
- { data: [], error: null },
- { data: [], error: null },
- { data: [], error: null },
+ [] as CustomerSiteRow[],
+ [] as SupplierSwitchRequestRow[],
+ [] as OutboundRequestRow[],
  new Map<string, LatestCustomerContractSummary>(),
  ]
-
- if (sitesQuery.error) throw sitesQuery.error
- if (switchRequestsQuery.error) throw switchRequestsQuery.error
- if (outboundRequestsQuery.error) throw outboundRequestsQuery.error
-
- const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
- const switchRequests =
- (switchRequestsQuery.data ?? []) as SupplierSwitchRequestRow[]
- const outboundRequests =
- (outboundRequestsQuery.data ?? []) as OutboundRequestRow[]
 
  const customersWithOperations: CustomerWithOperations[] = customers.map(
  (customer) => ({

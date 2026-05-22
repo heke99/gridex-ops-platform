@@ -7,6 +7,7 @@ type UserRoleRpcRow = {
   role_key?: string | null
   key?: string | null
   code?: string | null
+  name?: string | null
 }
 
 type CompanyMembershipPermissionRow = {
@@ -35,9 +36,20 @@ const MEMBERSHIP_ROLE_PERMISSION_PROFILE: Record<string, string> = {
   ekonomi: 'finance_readonly',
 }
 
+function normalizeRoleKey(value: string | null | undefined): string | null {
+  if (!value) return null
+
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
+  if (!normalized) return null
+  if (normalized === 'superadmin' || normalized === 'super_admin') return 'super_admin'
+  if (normalized === 'platformadmin' || normalized === 'platform_admin') return 'super_admin'
+  if (normalized === 'companyadmin' || normalized === 'company_owner' || normalized === 'tenant_admin' || normalized === 'bolagsansvarig') return 'company_admin'
+  return normalized
+}
+
 function addRoleProfilePermissions(target: Set<string>, roleKey: string | null | undefined) {
-  if (!roleKey) return
-  const normalized = roleKey.trim()
+  const normalized = normalizeRoleKey(roleKey)
+  if (!normalized) return
   const profileKey = ROLE_PERMISSION_PROFILES[normalized]
     ? normalized
     : MEMBERSHIP_ROLE_PERMISSION_PROFILE[normalized]
@@ -61,7 +73,7 @@ async function addRoleFallbackPermissions(
 
   if (!rolesError && Array.isArray(roleRows)) {
     for (const row of roleRows as UserRoleRpcRow[]) {
-      addRoleProfilePermissions(target, row.role_key ?? row.key ?? row.code)
+      addRoleProfilePermissions(target, row.role_key ?? row.key ?? row.code ?? row.name)
     }
   }
 
