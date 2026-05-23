@@ -83,12 +83,18 @@ export async function saveCommunicationRoute(input: {
   }
 
   if (input.id) {
-    const { data, error } = await supabaseService
+    let query = supabaseService
       .from('communication_routes')
       .update(payload)
       .eq('id', input.id)
-      .select('*')
-      .single()
+
+    // Company-scoped admins must never update platform/global routes.
+    // Platform admins may pass null companyId for global routes.
+    if (input.companyId) {
+      query = query.eq('company_id', input.companyId)
+    }
+
+    const { data, error } = await query.select('*').single()
 
     if (error) throw error
     return data as CommunicationRouteRow

@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listGridOwners, listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import {
  listOutboundDispatchEventsByRequestIds,
@@ -209,7 +210,8 @@ function buildTimeline(params: {
 }
 
 export default async function GridOwnerRequestDetailPage({ params }: PageProps) {
- await requirePermissionServer('masterdata.read')
+ const access = await requireAdminPageKeyAccess('operations.grid_owner_request_detail')
+ const tenantScope = await resolveAdminTenantReadScope(access)
 
  const { id } = await params
  const supabase = await createSupabaseServerClient()
@@ -227,6 +229,11 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  const request = (requestQuery.data as GridOwnerDataRequestRow | null) ?? null
 
  if (!request) notFound()
+
+ const requestCompanyId = typeof request.company_id === 'string' ? request.company_id : null
+ if (!tenantScope.isPlatformAdmin && (!requestCompanyId || requestCompanyId !== tenantScope.companyId)) {
+ notFound()
+ }
 
  const [
  siteQuery,

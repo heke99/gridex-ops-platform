@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listMeteringPointsBySiteIds, listGridOwners } from '@/lib/masterdata/db'
 import {
  listPowersOfAttorneyByCustomerId,
@@ -237,7 +238,8 @@ function buildTimeline(params: {
 }
 
 export default async function LeverantörsbyteDetailPage({ params }: PageProps) {
- await requirePermissionServer('masterdata.read')
+ const access = await requireAdminPageKeyAccess('operations.switches')
+ const tenantScope = await resolveAdminTenantReadScope(access)
 
  const { id } = await params
  const supabase = await createSupabaseServerClient()
@@ -256,6 +258,11 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  const request = (requestQuery.data as SupplierSwitchRequestRow | null) ?? null
 
  if (!request) {
+ notFound()
+ }
+
+ const requestCompanyId = typeof request.company_id === 'string' ? request.company_id : null
+ if (!tenantScope.isPlatformAdmin && (!requestCompanyId || requestCompanyId !== tenantScope.companyId)) {
  notFound()
  }
 
@@ -278,6 +285,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  requestType: 'supplier_switch',
  channelType: 'all',
  query: '',
+ companyId: tenantScope.isPlatformAdmin ? null : requestCompanyId,
  }),
  listSupplierSwitchEventsByRequestIds(supabase, [request.id]),
  listPowersOfAttorneyByCustomerId(supabase, request.customer_id),

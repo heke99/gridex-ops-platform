@@ -1,8 +1,10 @@
 // app/admin/customers/segments/page.tsx
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getCustomers } from '@/lib/customers/getCustomers'
 import { supabaseService } from '@/lib/supabase/service'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
@@ -126,13 +128,20 @@ function countForSegment(
 }
 
 export default async function CustomerSegmentsPage({ searchParams }: PageProps) {
- await requirePermissionServer('masterdata.read')
+ const access = await requireAdminPageKeyAccess('customers.segments')
+ const tenantScope = await resolveAdminTenantReadScope(access)
+ if (!tenantScope.isPlatformAdmin && !tenantScope.companyId) {
+  redirect('/admin/company-settings')
+ }
 
  const resolvedSearchParams = await searchParams
  const query = (resolvedSearchParams.q ?? '').trim()
  const segment = normalizeSegment(resolvedSearchParams.segment)
 
- const customers = await getCustomers({ query })
+ const customers = await getCustomers({
+  query,
+  companyId: tenantScope.isPlatformAdmin ? null : tenantScope.companyId,
+ })
  const customerIds = customers.map((customer) => customer.id)
 
  const [

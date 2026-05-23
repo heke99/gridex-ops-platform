@@ -1,6 +1,8 @@
+import { redirect } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { listCommunicationRoutes } from '@/lib/cis/db'
 import { listGridOwners } from '@/lib/masterdata/db'
 import { saveCommunicationRouteAction } from '@/app/admin/cis/actions'
@@ -17,7 +19,12 @@ type PageProps = {
 export default async function CommunicationRoutesPage({
  searchParams,
 }: PageProps) {
- await requirePermissionServer('masterdata.read')
+ const access = await requireAdminPageKeyAccess('integrations.routes')
+ const isPlatformAdmin = isPlatformAdminContext(access)
+ const companyScope = await getOperationalCompanyScope(access.userId)
+ if (!isPlatformAdmin && !companyScope.companyId) {
+  redirect('/admin/company-settings')
+ }
 
  const params = await searchParams
  const scope = (params.scope ?? 'all').trim()
@@ -32,6 +39,7 @@ export default async function CommunicationRoutesPage({
  listCommunicationRoutes({
  routeScope: scope,
  query,
+ companyId: isPlatformAdmin ? null : companyScope.companyId,
  }),
  listGridOwners(supabase),
  ])
@@ -56,6 +64,9 @@ export default async function CommunicationRoutesPage({
 
  <div className="mt-5 grid gap-4">
  <input name="id" type="hidden" />
+ {!isPlatformAdmin && companyScope.companyId ? (
+ <input name="company_id" type="hidden" value={companyScope.companyId} />
+ ) : null}
 
  <input
  name="route_name"

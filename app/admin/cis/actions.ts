@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   bulkQueueMissingBillingUnderlays,
@@ -33,7 +33,7 @@ import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/orchestrator'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 import { bulkQueueReadyBillingExportsAction } from '@/app/admin/operations/control-actions'
-import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
+import { assertUserCanOperateCompany, getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 
 function formValue(formData: FormData, key: string): string | null {
@@ -254,16 +254,26 @@ async function syncSwitchRequestFromOutbound(params: {
 export async function saveCommunicationRouteAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([
+  const access = await requireAdminActionAccess([
     'switching.write',
     'metering.write',
     'billing_underlay.write',
   ])
 
   const actor = await getActor()
+  const companyScope = await getOperationalCompanyScope(access.userId)
+  const formCompanyId = formValue(formData, 'company_id')
+  const companyId = isPlatformAdminContext(access)
+    ? formCompanyId || companyScope.companyId
+    : companyScope.companyId
+
+  if (!isPlatformAdminContext(access) && !companyId) {
+    throw new Error('Aktiv bolagskoppling saknas. Route kan inte sparas utan tenant-scope.')
+  }
 
   const saved = await saveCommunicationRoute({
     actorUserId: actor.id,
+    companyId,
     id: formValue(formData, 'id') || undefined,
     routeName: formValue(formData, 'route_name') ?? '',
     isActive: normalizeBoolean(formValue(formData, 'is_active')),

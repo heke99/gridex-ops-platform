@@ -444,9 +444,36 @@ export async function createCompanyAction(
     }
   } catch (error) {
     if (createdCompanyId) {
-      await supabaseService.from('company_invitations').delete().eq('company_id', createdCompanyId)
-      await supabaseService.from('company_memberships').delete().eq('company_id', createdCompanyId)
-      await supabaseService.from('companies').delete().eq('id', createdCompanyId)
+      await supabaseService
+        .from('company_invitations')
+        .update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString(),
+          metadata: { db3_create_company_rollback: true, reason: errorMessage(error, 'Bolaget kunde inte skapas.') },
+        })
+        .eq('company_id', createdCompanyId)
+
+      await supabaseService
+        .from('company_memberships')
+        .update({
+          status: 'removed_from_company',
+          is_active: false,
+          status_reason: 'Bolagsskapande avbröts innan flödet blev komplett.',
+          removed_at: new Date().toISOString(),
+        })
+        .eq('company_id', createdCompanyId)
+
+      await supabaseService
+        .from('companies')
+        .update({
+          status: 'archived',
+          is_active: false,
+          is_paused: true,
+          pause_reason: 'Bolagsskapande avbröts innan flödet blev komplett.',
+          metadata: { db3_create_company_rollback: true },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', createdCompanyId)
     }
 
     return { ok: false, message: errorMessage(error, 'Bolaget kunde inte skapas.') }
@@ -626,7 +653,7 @@ export async function deleteTestCompanyAction(
     await requirePlatformAdminActionAccess()
     const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
-    const reason = normalizeText(formData.get('reason')) || null
+    const reason = normalizeText(formData.get('reason')) || 'Arkiverad av superadmin'
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
 
@@ -634,41 +661,33 @@ export async function deleteTestCompanyAction(
     if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
 
     const blockers = await getCompanyDeleteBlockers(companyId)
-    if (blockers.length > 0) {
-      await logTenantGovernanceEvent({
-        action: 'SUPERADMIN_DELETE_BLOCKED_DUE_TO_HISTORY',
-        actorUserId,
-        companyId,
-        reason,
-        metadata: { blockers, companyName: company.name },
-      })
-
-      return {
-        ok: false,
-        message: `Hård radering nekades. Bolaget har historik: ${blockers
-          .map((blocker) => `${blocker.label} (${blocker.count})`)
-          .join(', ')}. Arkivera eller pausa bolaget i stället.`,
-      }
-    }
 
     await logTenantGovernanceEvent({
-      action: 'SUPERADMIN_COMPANY_DELETED_TEST_ONLY',
+      action: blockers.length > 0 ? 'SUPERADMIN_DELETE_BLOCKED_DUE_TO_HISTORY' : 'SUPERADMIN_COMPANY_DELETION_REQUESTED',
       actorUserId,
       companyId,
       reason,
-      metadata: { companyName: company.name },
+      metadata: { blockers, companyName: company.name, db3HardDeleteDisabled: true },
     })
 
-    await supabaseService.from('company_invitations').delete().eq('company_id', companyId)
-    await supabaseService.from('company_memberships').delete().eq('company_id', companyId)
-
-    const { error } = await supabaseService.from('companies').delete().eq('id', companyId)
-    if (error) throw error
+    await setCompanyStatus({
+      companyId,
+      status: 'archived',
+      actorUserId,
+      reason,
+    })
 
     revalidatePath('/admin/companies')
-    return { ok: true, message: 'Testbolaget raderades eftersom det saknade historik.' }
+    revalidatePath(`/admin/companies/${companyId}/users`)
+
+    return {
+      ok: true,
+      message: blockers.length > 0
+        ? 'Hård radering är avstängd. Bolaget arkiverades och all historik behölls.'
+        : 'Bolaget arkiverades säkert utan att radera historik.',
+    }
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Bolaget kunde inte raderas.' }
+    return { ok: false, message: error instanceof Error ? error.message : 'Bolaget kunde inte arkiveras.' }
   }
 }
 

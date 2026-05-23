@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminActionAccess, type GuardResult } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   getOutboundRequestById,
@@ -11,10 +11,32 @@ import {
   refreshOutboundRequestRouteResolution,
 } from '@/lib/cis/db'
 import { createSupplierSwitchEvent } from '@/lib/operations/db'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
   return typeof value === 'string' ? value : null
+}
+
+
+async function resolveActionCompanyScope(access: GuardResult): Promise<string | null> {
+  if (isPlatformAdminContext(access)) return null
+  const scope = await getOperationalCompanyScope(access.userId)
+  if (!scope.companyId) {
+    throw new Error('Aktiv bolagskoppling saknas. Åtgärden kan inte köras utan tenant-scope.')
+  }
+  return scope.companyId
+}
+
+function assertOutboundTenantAccess(params: {
+  access: GuardResult
+  companyId: string | null | undefined
+}) {
+  if (isPlatformAdminContext(params.access)) return
+  const companyId = params.companyId ?? null
+  if (!companyId) {
+    throw new Error('Outbound-raden saknar company_id och kan inte hanteras av tenant-användare.')
+  }
 }
 
 async function getActor() {
@@ -106,7 +128,7 @@ async function revalidateAll(customerId: string) {
 export async function rerunUnresolvedRouteResolutionAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([
+  const access = await requireAdminActionAccess([
     'switching.write',
     'metering.write',
     'billing_underlay.write',
@@ -125,6 +147,12 @@ export async function rerunUnresolvedRouteResolutionAction(
   if (!before) {
     throw new Error('Outbound request hittades inte')
   }
+
+  const scopedCompanyId = await resolveActionCompanyScope(access)
+  if (!isPlatformAdminContext(access) && before.company_id !== scopedCompanyId) {
+    throw new Error('Du saknar åtkomst till denna outbound request.')
+  }
+  assertOutboundTenantAccess({ access, companyId: before.company_id })
 
   const refreshed = await refreshOutboundRequestRouteResolution({
     actorUserId: actor.id,
@@ -178,7 +206,7 @@ export async function rerunUnresolvedRouteResolutionAction(
 export async function assignRouteToUnresolvedOutboundAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([
+  const access = await requireAdminActionAccess([
     'switching.write',
     'metering.write',
     'billing_underlay.write',
@@ -199,12 +227,23 @@ export async function assignRouteToUnresolvedOutboundAction(
     throw new Error('Outbound request hittades inte')
   }
 
-  const routeQuery = await supabaseService
+  const scopedCompanyId = await resolveActionCompanyScope(access)
+  if (!isPlatformAdminContext(access) && before.company_id !== scopedCompanyId) {
+    throw new Error('Du saknar åtkomst till denna outbound request.')
+  }
+  assertOutboundTenantAccess({ access, companyId: before.company_id })
+
+  let routeBuilder = supabaseService
     .from('communication_routes')
     .select('*')
     .eq('id', communicationRouteId)
     .eq('is_active', true)
-    .maybeSingle()
+
+  if (!isPlatformAdminContext(access)) {
+    routeBuilder = routeBuilder.or(`company_id.eq.${scopedCompanyId},company_id.is.null`)
+  }
+
+  const routeQuery = await routeBuilder.maybeSingle()
 
   if (routeQuery.error) throw routeQuery.error
 
@@ -306,14 +345,15 @@ export async function assignRouteToUnresolvedOutboundAction(
 }
 
 export async function rerunAllUnresolvedRouteResolutionsAction(): Promise<void> {
-  await requireAdminActionAccess([
+  const access = await requireAdminActionAccess([
     'switching.write',
     'metering.write',
     'billing_underlay.write',
   ])
 
   const actor = await getActor()
-  const unresolved = await listUnresolvedOutboundRequests()
+  const scopedCompanyId = await resolveActionCompanyScope(access)
+  const unresolved = await listUnresolvedOutboundRequests({ companyId: scopedCompanyId })
 
   let resolvedCount = 0
   let stillUnresolvedCount = 0
