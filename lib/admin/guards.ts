@@ -19,7 +19,7 @@ export type GuardResult = {
   isPlatformAdmin: boolean
 }
 
-type UserRoleRpcRow = {
+type UserRoleRpcRow = string | {
   role_id?: string | null
   role_key?: string | null
   key?: string | null
@@ -84,6 +84,8 @@ function normalizeRoleKey(value: string | null | undefined): string | null {
 }
 
 function roleFromRpcRow(row: UserRoleRpcRow): string | null {
+  if (typeof row === 'string') return normalizeRoleKey(row)
+  if (!row || typeof row !== 'object') return null
   return normalizeRoleKey(row.role_key ?? row.key ?? row.code ?? row.name ?? null)
 }
 
@@ -132,7 +134,7 @@ async function loadBaseAdminContext(): Promise<GuardResult> {
     throw rolesError
   }
 
-  const roles = ((rolesData ?? []) as UserRoleRpcRow[])
+  const roles = (Array.isArray(rolesData) ? (rolesData as UserRoleRpcRow[]) : [])
     .map(roleFromRpcRow)
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
 

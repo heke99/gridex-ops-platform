@@ -3,7 +3,7 @@ import { ROLE_PERMISSION_PROFILES } from '@/lib/admin/accessModel'
 
 
 
-type UserRoleRpcRow = {
+type UserRoleRpcRow = string | {
   role_key?: string | null
   key?: string | null
   code?: string | null
@@ -73,7 +73,11 @@ async function addRoleFallbackPermissions(
 
   if (!rolesError && Array.isArray(roleRows)) {
     for (const row of roleRows as UserRoleRpcRow[]) {
-      addRoleProfilePermissions(target, row.role_key ?? row.key ?? row.code ?? row.name)
+      if (typeof row === 'string') {
+        addRoleProfilePermissions(target, row)
+      } else if (row && typeof row === 'object') {
+        addRoleProfilePermissions(target, row.role_key ?? row.key ?? row.code ?? row.name)
+      }
     }
   }
 

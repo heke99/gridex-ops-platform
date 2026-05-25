@@ -1239,7 +1239,7 @@ async function cleanupCreatedGraph(context: CreationContext) {
       await supabaseService
         .from("supplier_switch_events")
         .delete()
-        .eq("supplier_switch_request_id", context.switchRequestId);
+        .eq("switch_request_id", context.switchRequestId);
 
       await supabaseService
         .from("supplier_switch_requests")

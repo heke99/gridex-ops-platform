@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 const PLATFORM_ADMIN_ROLE_KEYS = new Set(['super_admin', 'superadmin', 'platform_admin'])
 
-type RpcRoleRow = { role_key?: string | null }
+type RpcRoleRow = string | { role_key?: string | null; key?: string | null; code?: string | null; name?: string | null }
 
 function DashboardCard({
   title,
@@ -58,9 +58,14 @@ async function userHasPlatformRole(userId: string) {
 
   if (error) return false
 
-  return ((data ?? []) as RpcRoleRow[]).some((row) => {
-    const roleKey = row.role_key ?? null
-    return typeof roleKey === 'string' && PLATFORM_ADMIN_ROLE_KEYS.has(roleKey)
+  return (Array.isArray(data) ? (data as RpcRoleRow[]) : []).some((row) => {
+    const roleKey =
+      typeof row === 'string'
+        ? row
+        : row.role_key ?? row.key ?? row.code ?? row.name ?? null
+    if (typeof roleKey !== 'string') return false
+    const normalized = roleKey.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
+    return PLATFORM_ADMIN_ROLE_KEYS.has(normalized)
   })
 }
 
