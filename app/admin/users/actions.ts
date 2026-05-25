@@ -47,47 +47,49 @@ async function getCurrentActorUserId(): Promise<string | null> {
 }
 
 async function insertActiveUserRole(input: { userId: string; roleId: string }) {
-  const first = await supabaseService.from('user_roles').upsert(
-    {
-      user_id: input.userId,
-      role_id: input.roleId,
-      status: 'active',
-      is_active: true,
-    },
-    { onConflict: 'user_id,role_id' }
-  )
+  const { data: roleRow, error: roleError } = await supabaseService
+    .from('roles')
+    .select('key,name')
+    .eq('id', input.roleId)
+    .maybeSingle()
 
-  if (!first.error) return
+  if (roleError) throw roleError
 
-  if ((first.error.message ?? '').includes('status') || first.error.code === '42703') {
-    const second = await supabaseService.from('user_roles').upsert(
-      {
-        user_id: input.userId,
-        role_id: input.roleId,
-        is_active: true,
-      },
-      { onConflict: 'user_id,role_id' }
-    )
+  const roleKey = String(roleRow?.key ?? roleRow?.name ?? '').trim() || null
 
-    if (!second.error) return
+  const existing = await supabaseService
+    .from('user_roles')
+    .select('id')
+    .eq('user_id', input.userId)
+    .eq('role_id', input.roleId)
+    .limit(1)
+    .maybeSingle()
 
-    if ((second.error.message ?? '').includes('is_active') || second.error.code === '42703') {
-      const third = await supabaseService.from('user_roles').upsert(
-        {
-          user_id: input.userId,
-          role_id: input.roleId,
-        },
-        { onConflict: 'user_id,role_id' }
-      )
-      if (third.error) throw third.error
-      return
-    }
+  if (existing.error) throw existing.error
 
-    throw second.error
+  if (existing.data?.id) {
+    const { error } = await supabaseService
+      .from('user_roles')
+      .update({ role_id: input.roleId, role: roleKey, status: 'active', is_active: true })
+      .eq('id', existing.data.id)
+
+    if (error) throw error
+    return
   }
 
-  throw first.error
+  const { error } = await supabaseService
+    .from('user_roles')
+    .insert({
+      user_id: input.userId,
+      role_id: input.roleId,
+      role: roleKey,
+      status: 'active',
+      is_active: true,
+    })
+
+  if (error) throw error
 }
+
 
 async function resolveRoleId(input: { roleId?: string; roleKey?: string }) {
   if (input.roleId) {
@@ -383,38 +385,40 @@ export async function setUserPermissionOverridesAction(
 
     const { data: allPermissions, error: permissionsError } = await supabaseService
       .from('permissions')
-      .select('id,key')
+      .select('key')
 
     if (permissionsError) throw permissionsError
 
-    const byKey = new Map((allPermissions ?? []).map((row) => [row.key as string, row.id as string]))
-
-    const allowIds = allowKeys.map((key) => {
-      const id = byKey.get(key)
-      if (!id) throw new Error(`Behörigheten hittades inte: ${key}`)
-      return id
-    })
-
-    const denyIds = denyKeys.map((key) => {
-      const id = byKey.get(key)
-      if (!id) throw new Error(`Behörigheten hittades inte: ${key}`)
-      return id
-    })
+    const existingKeys = new Set((allPermissions ?? []).map((row) => String(row.key)))
+    const missing = [...allowKeys, ...denyKeys].filter((key) => !existingKeys.has(key))
+    if (missing.length > 0) {
+      throw new Error(`Behörigheten hittades inte: ${missing.join(', ')}`)
+    }
 
     const { error: deleteError } = await supabaseService
-      .from('user_permissions')
+      .from('user_permission_overrides')
       .delete()
       .eq('user_id', userId)
 
     if (deleteError) throw deleteError
 
     const rows = [
-      ...allowIds.map((permissionId) => ({ user_id: userId, permission_id: permissionId, is_allowed: true })),
-      ...denyIds.map((permissionId) => ({ user_id: userId, permission_id: permissionId, is_allowed: false })),
+      ...allowKeys.map((permissionKey) => ({
+        user_id: userId,
+        permission_key: permissionKey,
+        effect: 'allow',
+        is_active: true,
+      })),
+      ...denyKeys.map((permissionKey) => ({
+        user_id: userId,
+        permission_key: permissionKey,
+        effect: 'deny',
+        is_active: true,
+      })),
     ]
 
     if (rows.length > 0) {
-      const { error: insertError } = await supabaseService.from('user_permissions').insert(rows)
+      const { error: insertError } = await supabaseService.from('user_permission_overrides').insert(rows)
       if (insertError) throw insertError
     }
 
@@ -444,7 +448,7 @@ export async function deactivateUserAccessAction(
     if (roleDeleteError) throw roleDeleteError
 
     const { error: permissionDeleteError } = await supabaseService
-      .from('user_permissions')
+      .from('user_permission_overrides')
       .delete()
       .eq('user_id', userId)
 
@@ -489,6 +493,7 @@ export async function deleteUserCompletelyAction(
     }
 
     const deleteSteps: Array<{ table: string; column: string }> = [
+      { table: 'user_permission_overrides', column: 'user_id' },
       { table: 'user_permissions', column: 'user_id' },
       { table: 'user_roles', column: 'user_id' },
       { table: 'company_memberships', column: 'user_id' },

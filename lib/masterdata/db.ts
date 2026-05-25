@@ -337,13 +337,19 @@ export async function saveElectricitySupplier(
 
 export async function listCustomerSitesByCustomerId(
   supabase: SupabaseClient,
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null } = {}
 ): Promise<CustomerSiteRow[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('customer_sites')
     .select('*')
     .eq('customer_id', customerId)
-    .order('created_at', { ascending: false })
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) throw error
   return (data ?? []) as CustomerSiteRow[]

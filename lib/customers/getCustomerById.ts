@@ -35,8 +35,8 @@ export async function getCustomerById(
     .select(
       `
       *,
-      grid_owners(id, name, code),
-      price_areas(id, code, name)
+      grid_owners(id, name, owner_code),
+      price_areas(code, name)
     `
     )
     .eq('customer_id', customerId)

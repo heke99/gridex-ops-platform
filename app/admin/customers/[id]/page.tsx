@@ -1529,7 +1529,7 @@ export default async function CustomerAdminDetailPage({
  ] = await Promise.all([
  listGridOwners(supabase),
  listPriceAreas(supabase),
- listCustomerSitesByCustomerId(supabase, id),
+ listCustomerSitesByCustomerId(supabase, id, { companyId: customerCompanyId }),
  listCustomerInternalNotesByCustomerId(id),
  listGridOwnerDataRequestsByCustomerId(id),
  listMeteringValuesByCustomerId(id),
@@ -1541,16 +1541,18 @@ export default async function CustomerAdminDetailPage({
  .from('customer_contacts')
  .select('*')
  .eq('customer_id', id)
+ .eq('company_id', customerCompanyId)
  .order('is_primary', { ascending: false })
  .order('created_at', { ascending: false }),
  supabase
  .from('customer_addresses')
  .select('*')
  .eq('customer_id', id)
+ .eq('company_id', customerCompanyId)
  .order('is_active', { ascending: false })
  .order('created_at', { ascending: false }),
  listContractOffers({ activeOnly: true, companyId: customerCompanyId }),
- listCustomerContractsByCustomerId(id),
+ listCustomerContractsByCustomerId(id, { companyId: customerCompanyId }),
  listPowersOfAttorneyByCustomerId(supabase, id),
  listCustomerAuthorizationDocumentsByCustomerId(supabase, id),
  customerCompanyId ? listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
@@ -1577,7 +1579,8 @@ export default async function CustomerAdminDetailPage({
  const [meteringPoints, switchEvents, edielData, portalAccounts, portalClaims] = await Promise.all([
  listMeteringPointsBySiteIds(
  supabase,
- sites.map((site) => site.id)
+ sites.map((site) => site.id),
+ { companyId: customerCompanyId }
  ),
  listSupplierSwitchEventsByRequestIds(
  supabase,

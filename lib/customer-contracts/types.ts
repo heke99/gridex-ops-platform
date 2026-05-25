@@ -70,6 +70,8 @@ export type CustomerContractRow = {
   company_id?: string | null
   customer_id: string
   site_id: string | null
+  customer_site_id?: string | null
+  metering_point_id?: string | null
   contract_offer_id: string | null
   source_type: 'catalog' | 'manual_override'
   status: CustomerContractStatus

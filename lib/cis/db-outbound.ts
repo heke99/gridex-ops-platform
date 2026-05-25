@@ -625,6 +625,7 @@ export async function listOutboundRequestsByCustomerId(
     .select('*')
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })
+    .limit(100)
 
   if (error) throw error
   return (data ?? []) as OutboundRequestRow[]

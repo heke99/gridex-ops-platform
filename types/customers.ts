@@ -133,13 +133,12 @@ export type CustomerSiteRow = {
   grid_owners?: {
     id: string
     name: string
-    code: string | null
+    owner_code: string | null
   } | null
 
   company_id?: string | null
 
   price_areas?: {
-    id: string
     code: string
     name: string
   } | null

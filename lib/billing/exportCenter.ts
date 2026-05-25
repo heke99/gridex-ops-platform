@@ -107,12 +107,60 @@ export async function getBillingExportCenterData(
 }
 
 
-async function listLatestBillableContractsByCustomerIds(params: {
+function contractSiteId(contract: CustomerContractRow | null): string | null {
+  if (!contract) return null;
+  return (
+    (contract as unknown as Record<string, unknown>).metering_point_id ? null :
+    String((contract as unknown as Record<string, unknown>).customer_site_id ?? contract.site_id ?? '').trim() || null
+  );
+}
+
+function contractMeteringPointId(contract: CustomerContractRow | null): string | null {
+  if (!contract) return null;
+  return String((contract as unknown as Record<string, unknown>).metering_point_id ?? '').trim() || null;
+}
+
+function contractMatchesUnderlayScope(contract: CustomerContractRow, underlay: BillingUnderlayRow): boolean {
+  if (contract.company_id && underlay.company_id && contract.company_id !== underlay.company_id) return false;
+  if (contract.customer_id !== underlay.customer_id) return false;
+
+  const contractPointId = contractMeteringPointId(contract);
+  if (contractPointId) return Boolean(underlay.metering_point_id && contractPointId === underlay.metering_point_id);
+
+  const contractSite = String((contract as unknown as Record<string, unknown>).customer_site_id ?? contract.site_id ?? '').trim();
+  if (contractSite) return Boolean(underlay.site_id && contractSite === underlay.site_id);
+
+  return true;
+}
+
+function contractScopeRank(contract: CustomerContractRow, underlay: BillingUnderlayRow): number {
+  const contractPointId = contractMeteringPointId(contract);
+  if (contractPointId && underlay.metering_point_id && contractPointId === underlay.metering_point_id) return 3;
+
+  const siteId = contractSiteId(contract);
+  if (siteId && underlay.site_id && siteId === underlay.site_id) return 2;
+
+  if (!contractPointId && !siteId && contract.customer_id === underlay.customer_id) return 1;
+  return 0;
+}
+
+function contractSortTime(contract: CustomerContractRow): number {
+  return new Date(
+    contract.actual_start_at ??
+      contract.confirmed_start_at ??
+      contract.starts_at ??
+      contract.signed_at ??
+      contract.updated_at ??
+      contract.created_at
+  ).getTime();
+}
+
+async function listLatestBillableContractsByUnderlayIds(params: {
   companyId: string;
-  customerIds: string[];
+  underlays: BillingUnderlayRow[];
 }): Promise<Map<string, CustomerContractRow>> {
   const map = new Map<string, CustomerContractRow>();
-  const customerIds = Array.from(new Set(params.customerIds.filter(Boolean)));
+  const customerIds = Array.from(new Set(params.underlays.map((underlay) => underlay.customer_id).filter(Boolean)));
   if (customerIds.length === 0) return map;
 
   try {
@@ -121,17 +169,25 @@ async function listLatestBillableContractsByCustomerIds(params: {
       .select("*")
       .eq("company_id", params.companyId)
       .in("customer_id", customerIds)
-      .in("status", ["signed", "active", "pending_signature", "draft"])
-      .order("status", { ascending: true })
-      .order("updated_at", { ascending: false });
+      .in("status", ["signed", "active", "pending_signature", "draft"]);
 
     if (error) {
       if (isMissingRelationError(error)) return map;
       throw error;
     }
 
-    for (const row of (data ?? []) as CustomerContractRow[]) {
-      if (!map.has(row.customer_id)) map.set(row.customer_id, row);
+    const contracts = ((data ?? []) as CustomerContractRow[]).sort((a, b) => contractSortTime(b) - contractSortTime(a));
+
+    for (const underlay of params.underlays) {
+      const matches = contracts
+        .filter((contract) => contractMatchesUnderlayScope(contract, underlay))
+        .sort((a, b) => {
+          const rankDelta = contractScopeRank(b, underlay) - contractScopeRank(a, underlay);
+          if (rankDelta !== 0) return rankDelta;
+          return contractSortTime(b) - contractSortTime(a);
+        });
+
+      if (matches[0]) map.set(underlay.id, matches[0]);
     }
   } catch (error) {
     if (!isMissingRelationError(error)) throw error;
@@ -139,6 +195,7 @@ async function listLatestBillableContractsByCustomerIds(params: {
 
   return map;
 }
+
 
 function isFirstContractPeriod(params: {
   contract?: CustomerContractRow | null;
@@ -273,9 +330,9 @@ export async function createBillingExportRun(input: {
     return underlay.underlay_year === year && underlay.underlay_month === month;
   });
 
-  const contractsByCustomer = await listLatestBillableContractsByCustomerIds({
+  const contractsByUnderlay = await listLatestBillableContractsByUnderlayIds({
     companyId: input.companyId,
-    customerIds: periodUnderlays.map((underlay) => underlay.customer_id).filter(Boolean),
+    underlays: periodUnderlays,
   });
 
   const readiness = buildBillingReadinessMap({
@@ -285,7 +342,7 @@ export async function createBillingExportRun(input: {
   });
   const items = periodUnderlays.map((underlay) => {
     const result = readiness.get(underlay.id);
-    const contract = underlay.customer_id ? contractsByCustomer.get(underlay.customer_id) ?? null : null;
+    const contract = contractsByUnderlay.get(underlay.id) ?? null;
     const pricing = calculatePricingForBillingUnderlay({
       underlay,
       rules: pricingRules,
