@@ -1,3 +1,4 @@
+//lib/rbac/getAllRoles.ts
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveRoleKey } from '@/lib/rbac/roleKeys'
 
