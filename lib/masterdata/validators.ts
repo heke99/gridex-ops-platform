@@ -105,6 +105,7 @@ export type PriceAreaLocalityInput = z.infer<typeof priceAreaLocalityInputSchema
 
 export const customerSiteInputSchema = z.object({
   id: z.string().uuid().optional(),
+  company_id: z.string().uuid(),
   customer_id: z.string().uuid(),
   site_name: requiredTrimmedString,
   facility_id: nullableTrimmedString,
@@ -141,6 +142,8 @@ export type CustomerSiteInput = z.infer<typeof customerSiteInputSchema>
 
 export const meteringPointInputSchema = z.object({
   id: z.string().uuid().optional(),
+  company_id: z.string().uuid(),
+  customer_id: z.string().uuid(),
   site_id: z.string().uuid(),
   meter_point_id: requiredTrimmedString,
   site_facility_id: nullableTrimmedString,
@@ -158,6 +161,7 @@ export const meteringPointInputSchema = z.object({
 export type MeteringPointInput = z.infer<typeof meteringPointInputSchema>
 
 export const customerInternalNoteInputSchema = z.object({
+  company_id: z.string().uuid(),
   customer_id: z.string().uuid(),
   body: requiredTrimmedString,
 })

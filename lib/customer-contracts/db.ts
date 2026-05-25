@@ -182,7 +182,7 @@ export async function saveContractOffer(input: {
 
 export async function listCustomerContractsByCustomerId(
   customerId: string,
-  options: { companyId?: string | null } = {}
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<CustomerContractRow[]> {
   let query = supabaseService
     .from('customer_contracts')
@@ -193,7 +193,9 @@ export async function listCustomerContractsByCustomerId(
     query = query.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false })
+  const { data, error } = await query
+    .order('created_at', { ascending: false })
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as CustomerContractRow[]

@@ -102,13 +102,21 @@ export async function findExistingCustomerAuthorizationDocumentByFingerprint(
 
 export async function listPowersOfAttorneyByCustomerId(
   supabase: SupabaseClient,
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<PowerOfAttorneyRow[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('powers_of_attorney')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as PowerOfAttorneyRow[]
@@ -256,13 +264,21 @@ export async function restorePowerOfAttorneyIfRevoked(
 
 export async function listCustomerAuthorizationDocumentsByCustomerId(
   supabase: SupabaseClient,
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<CustomerAuthorizationDocumentRow[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('customer_authorization_documents')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('uploaded_at', { ascending: false })
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as CustomerAuthorizationDocumentRow[]
@@ -868,13 +884,21 @@ export async function listAllOperationTasks(
 
 export async function listSupplierSwitchRequestsByCustomerId(
   supabase: SupabaseClient,
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<SupplierSwitchRequestRow[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('supplier_switch_requests')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as SupplierSwitchRequestRow[]
@@ -956,16 +980,24 @@ export async function listAllSupplierSwitchRequests(
 
 export async function listSupplierSwitchEventsByRequestIds(
   supabase: SupabaseClient,
-  requestIds: string[]
+  requestIds: string[],
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<SupplierSwitchEventRow[]> {
   if (requestIds.length === 0) return []
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('supplier_switch_events')
     .select('*')
     .in('switch_request_id', requestIds)
     .is('archived_at', null)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as SupplierSwitchEventRow[]

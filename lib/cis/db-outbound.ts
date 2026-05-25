@@ -618,14 +618,21 @@ export async function findOpenOutboundBySource(params: {
 }
 
 export async function listOutboundRequestsByCustomerId(
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<OutboundRequestRow[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('outbound_requests')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(100)
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as OutboundRequestRow[]

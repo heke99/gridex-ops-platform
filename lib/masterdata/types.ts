@@ -117,6 +117,8 @@ export type CustomerSiteRow = {
 
 export type MeteringPointRow = {
   id: string
+  company_id?: string | null
+  customer_id?: string | null
   site_id: string
   meter_point_id: string
   site_facility_id: string | null
@@ -131,7 +133,6 @@ export type MeteringPointRow = {
   closed_at?: string | null
   closed_reason?: string | null
   is_settlement_relevant: boolean
-  company_id?: string | null
   created_at: string
   updated_at: string
   created_by: string | null
@@ -140,6 +141,7 @@ export type MeteringPointRow = {
 
 export type CustomerInternalNoteRow = {
   id: string
+  company_id?: string | null
   customer_id: string
   body: string
   created_at: string

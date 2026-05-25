@@ -1530,13 +1530,13 @@ export default async function CustomerAdminDetailPage({
  listGridOwners(supabase),
  listPriceAreas(supabase),
  listCustomerSitesByCustomerId(supabase, id, { companyId: customerCompanyId }),
- listCustomerInternalNotesByCustomerId(id),
- listGridOwnerDataRequestsByCustomerId(id),
- listMeteringValuesByCustomerId(id),
- listBillingUnderlaysByCustomerId(id),
- listPartnerExportsByCustomerId(id),
- listOutboundRequestsByCustomerId(id),
- listSupplierSwitchRequestsByCustomerId(supabase, id),
+ listCustomerInternalNotesByCustomerId(id, { companyId: customerCompanyId }),
+ listGridOwnerDataRequestsByCustomerId(id, { companyId: customerCompanyId, limit: 50 }),
+ listMeteringValuesByCustomerId(id, { companyId: customerCompanyId, limit: 100 }),
+ listBillingUnderlaysByCustomerId(id, { companyId: customerCompanyId, limit: 100 }),
+ listPartnerExportsByCustomerId(id, { companyId: customerCompanyId, limit: 50 }),
+ listOutboundRequestsByCustomerId(id, { companyId: customerCompanyId, limit: 50 }),
+ listSupplierSwitchRequestsByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
  supabase
  .from('customer_contacts')
  .select('*')
@@ -1553,8 +1553,8 @@ export default async function CustomerAdminDetailPage({
  .order('created_at', { ascending: false }),
  listContractOffers({ activeOnly: true, companyId: customerCompanyId }),
  listCustomerContractsByCustomerId(id, { companyId: customerCompanyId }),
- listPowersOfAttorneyByCustomerId(supabase, id),
- listCustomerAuthorizationDocumentsByCustomerId(supabase, id),
+ listPowersOfAttorneyByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
+ listCustomerAuthorizationDocumentsByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
  customerCompanyId ? listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
  customerCompanyId ? listAuthorizationScopesByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
  customerCompanyId ? listMeteringPermissionsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
@@ -1572,6 +1572,7 @@ export default async function CustomerAdminDetailPage({
  .from('power_of_attorney_scopes')
  .select('*')
  .eq('customer_id', id)
+ .eq('company_id', customerCompanyId)
  .order('created_at', { ascending: false })
  if (powerScopeError && !['42P01', '42703', 'PGRST205'].includes(String((powerScopeError as { code?: string }).code ?? ''))) throw powerScopeError
  const poaScopeRows = (powerScopeRows ?? []) as PowerOfAttorneyScopeRow[]
@@ -1584,23 +1585,25 @@ export default async function CustomerAdminDetailPage({
  ),
  listSupplierSwitchEventsByRequestIds(
  supabase,
- switchRequests.map((request) => request.id)
+ switchRequests.map((request) => request.id),
+ { companyId: customerCompanyId, limit: 100 }
  ),
  getCustomerEdielDataBundle({
  supabase,
  customerId: id,
+ companyId: customerCompanyId,
  gridOwners,
  }),
- listCustomerPortalAccountsByCustomerId(id),
- listCustomerPortalClaimsByCustomerId(id),
+ listCustomerPortalAccountsByCustomerId(id, { companyId: customerCompanyId, limit: 20 }),
+ listCustomerPortalClaimsByCustomerId(id, { companyId: customerCompanyId, limit: 20 }),
  ])
 
  const selectedSite = editSiteId
- ? await getCustomerSiteById(supabase, editSiteId)
+ ? await getCustomerSiteById(supabase, editSiteId, { companyId: customerCompanyId })
  : null
 
  const selectedMeteringPoint = editMeteringPointId
- ? await getMeteringPointById(supabase, editMeteringPointId)
+ ? await getMeteringPointById(supabase, editMeteringPointId, { companyId: customerCompanyId })
  : null
 
  const safeSelectedSite =

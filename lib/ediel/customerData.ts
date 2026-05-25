@@ -40,17 +40,25 @@ export async function getCustomerEdielDataBundle(params: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
   customerId: string
   gridOwners: GridOwnerRow[]
+  companyId?: string | null
 }): Promise<CustomerEdielDataBundle> {
+  let edielMessagesQuery = params.supabase
+    .from('ediel_messages')
+    .select(
+      'id,direction,message_family,message_code,status,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,external_reference,correlation_reference,transaction_reference,switch_request_id,grid_owner_data_request_id,communication_route_id,outbound_request_id,related_message_id,receiver_email,created_at,message_received_at'
+    )
+    .eq('customer_id', params.customerId)
+
+  if (params.companyId) {
+    edielMessagesQuery = edielMessagesQuery.eq('company_id', params.companyId)
+  }
+
   const [communicationRoutes, edielMessagesRaw] = await Promise.all([
     listCommunicationRoutes({
       routeType: 'ediel_partner',
+      companyId: params.companyId ?? null,
     }),
-    params.supabase
-      .from('ediel_messages')
-      .select(
-        'id,direction,message_family,message_code,status,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,external_reference,correlation_reference,transaction_reference,switch_request_id,grid_owner_data_request_id,communication_route_id,outbound_request_id,related_message_id,receiver_email,created_at,message_received_at'
-      )
-      .eq('customer_id', params.customerId)
+    edielMessagesQuery
       .order('created_at', { ascending: false })
       .limit(50),
   ])

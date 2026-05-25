@@ -246,15 +246,18 @@ async function insertAuditLog(params: {
 }
 
 export async function saveCustomerSiteAction(formData: FormData): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const siteId = formValue(formData, 'id') || undefined
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
   const siteFlowType = normalizeSwitchRequestType(formValue(formData, 'site_flow_type'))
 
-  const before = siteId ? await getCustomerSiteById(supabase, siteId) : null
+  const before = siteId ? await getCustomerSiteById(supabase, siteId, { companyId }) : null
+  if (siteId && (!before || before.customer_id !== customerId)) {
+    throw new Error('Anläggningen tillhör inte kunden eller bolaget.')
+  }
 
   const moveInDate = normalizeDateOrNull(formValue(formData, 'move_in_date'))
   const street = formValue(formData, 'street') || undefined
@@ -292,6 +295,7 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
 
   const parsed = customerSiteInputSchema.parse({
     id: siteId,
+    company_id: companyId,
     customer_id: customerId,
     site_name: formValue(formData, 'site_name') ?? '',
     facility_id: formValue(formData, 'facility_id') || undefined,
@@ -332,6 +336,7 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
     newValues: savedSite,
     metadata: {
       customerId,
+      companyId,
       siteId: savedSite.id,
       siteFlowType,
       readiness,
@@ -344,16 +349,19 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
 }
 
 export async function saveMeteringPointAction(formData: FormData): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const meteringPointRowId = formValue(formData, 'id') || undefined
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
 
   const before = meteringPointRowId
-    ? await getMeteringPointById(supabase, meteringPointRowId)
+    ? await getMeteringPointById(supabase, meteringPointRowId, { companyId })
     : null
+  if (meteringPointRowId && !before) {
+    throw new Error('Mätpunkten tillhör inte kunden eller bolaget.')
+  }
 
   const meterPointIdentifier =
     formValue(formData, 'meter_point_id')?.trim() ||
@@ -361,9 +369,18 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
     ''
 
   const siteId = formValue(formData, 'site_id') || before?.site_id || ''
+  const site = siteId ? await getCustomerSiteById(supabase, siteId, { companyId }) : null
+  if (!site || site.customer_id !== customerId) {
+    throw new Error('Vald anläggning tillhör inte kunden eller bolaget.')
+  }
+  if (before && before.site_id !== siteId) {
+    throw new Error('Mätpunkten kan inte flyttas till en annan anläggning via detta formulär.')
+  }
 
   const parsedResult = meteringPointInputSchema.safeParse({
     id: meteringPointRowId,
+    company_id: companyId,
+    customer_id: customerId,
     site_id: siteId,
     meter_point_id: meterPointIdentifier,
     site_facility_id: formValue(formData, 'site_facility_id') || undefined,
@@ -387,12 +404,7 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
 
   const parsed = parsedResult.data
 
-  const savePayload = {
-    ...parsed,
-    metering_point_id: meterPointIdentifier,
-  }
-
-  const savedMeteringPoint = await saveMeteringPoint(supabase, savePayload as never)
+  const savedMeteringPoint = await saveMeteringPoint(supabase, parsed)
 
   const edielMeteringMethod = normalizeEdielMeteringMethod(formValue(formData, 'ediel_metering_method'))
   const edielMeteringMethodSync = await applyEdielMeteringMethodToSwitchSnapshots({
@@ -417,6 +429,7 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
     newValues: savedMeteringPoint,
     metadata: {
       customerId,
+      companyId,
       siteId: savedMeteringPoint.site_id,
       meteringPointId: savedMeteringPoint.id,
       meterPointIdentifier,
@@ -434,9 +447,8 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
 export async function createCustomerInternalNoteAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const customerId = formValue(formData, 'customer_id') ?? ''
   const body = (formValue(formData, 'body') ?? '').trim()
 
@@ -444,9 +456,12 @@ export async function createCustomerInternalNoteAction(
     throw new Error('Customer ID eller anteckning saknas')
   }
 
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+
   const { data, error } = await supabaseService
     .from('customer_internal_notes')
     .insert({
+      company_id: companyId,
       customer_id: customerId,
       body,
       created_by: actor.id,
@@ -465,6 +480,7 @@ export async function createCustomerInternalNoteAction(
     newValues: data,
     metadata: {
       customerId,
+      companyId,
     },
   })
 
@@ -1298,6 +1314,29 @@ async function loadCustomerForAction(customerId: string): Promise<{ id: string; 
   if (error) throw error
   if (!data) throw new Error('Kunden hittades inte.')
   return data as { id: string; company_id: string | null; status: string | null }
+}
+
+async function requireCustomerMutationContext(
+  customerId: string,
+  guard: { userId: string; isPlatformAdmin: boolean }
+): Promise<{ customer: { id: string; company_id: string; status: string | null }; companyId: string }> {
+  const customer = await loadCustomerForAction(customerId)
+  const companyId = customer.company_id
+  if (!companyId) {
+    throw new Error('Kunden saknar bolagskoppling och kan därför inte ändras säkert.')
+  }
+
+  if (!guard.isPlatformAdmin) {
+    const operationalCompanyId = await requireOperationalCompanyId(guard.userId)
+    if (operationalCompanyId !== companyId) {
+      throw new Error('Du saknar behörighet för kundens bolag.')
+    }
+  }
+
+  return {
+    customer: { ...customer, company_id: companyId },
+    companyId,
+  }
 }
 
 async function insertCustomerCaseForLifecycle(params: {

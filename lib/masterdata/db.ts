@@ -338,7 +338,7 @@ export async function saveElectricitySupplier(
 export async function listCustomerSitesByCustomerId(
   supabase: SupabaseClient,
   customerId: string,
-  options: { companyId?: string | null } = {}
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<CustomerSiteRow[]> {
   let query = supabase
     .from('customer_sites')
@@ -349,7 +349,9 @@ export async function listCustomerSitesByCustomerId(
     query = query.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false })
+  const { data, error } = await query
+    .order('created_at', { ascending: false })
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as CustomerSiteRow[]
@@ -357,13 +359,19 @@ export async function listCustomerSitesByCustomerId(
 
 export async function getCustomerSiteById(
   supabase: SupabaseClient,
-  siteId: string
+  siteId: string,
+  options: { companyId?: string | null } = {}
 ): Promise<CustomerSiteRow | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('customer_sites')
     .select('*')
     .eq('id', siteId)
-    .maybeSingle()
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return (data as CustomerSiteRow | null) ?? null
@@ -376,6 +384,7 @@ export async function saveCustomerSite(
   const actorId = await getActorId(supabase)
 
   const payload = {
+    company_id: input.company_id,
     customer_id: input.customer_id,
     site_name: input.site_name,
     facility_id: input.facility_id,
@@ -405,6 +414,7 @@ export async function saveCustomerSite(
       .from('customer_sites')
       .update(payload)
       .eq('id', input.id)
+      .eq('company_id', input.company_id)
       .select('*')
       .single()
 
@@ -449,13 +459,19 @@ export async function listMeteringPointsBySiteIds(
 
 export async function getMeteringPointById(
   supabase: SupabaseClient,
-  id: string
+  id: string,
+  options: { companyId?: string | null } = {}
 ): Promise<MeteringPointRow | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('metering_points')
     .select('*')
     .eq('id', id)
-    .maybeSingle()
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return (data as MeteringPointRow | null) ?? null
@@ -468,6 +484,8 @@ export async function saveMeteringPoint(
   const actorId = await getActorId(supabase)
 
   const payload = {
+    company_id: input.company_id,
+    customer_id: input.customer_id,
     site_id: input.site_id,
     meter_point_id: input.meter_point_id,
     site_facility_id: input.site_facility_id,
@@ -488,6 +506,7 @@ export async function saveMeteringPoint(
       .from('metering_points')
       .update(payload)
       .eq('id', input.id)
+      .eq('company_id', input.company_id)
       .select('*')
       .single()
 
@@ -510,26 +529,42 @@ export async function saveMeteringPoint(
 
 export async function listCustomerInternalNotes(
   supabase: SupabaseClient,
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<CustomerInternalNoteRow[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('customer_internal_notes')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
+    .limit(options.limit ?? 50)
 
   if (error) throw error
   return (data ?? []) as CustomerInternalNoteRow[]
 }
 
 export async function listCustomerInternalNotesByCustomerId(
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<CustomerInternalNoteRow[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('customer_internal_notes')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
+    .limit(options.limit ?? 50)
 
   if (error) throw error
   return (data ?? []) as CustomerInternalNoteRow[]
@@ -544,6 +579,7 @@ export async function addCustomerInternalNote(
   const { data, error } = await supabase
     .from('customer_internal_notes')
     .insert({
+      company_id: input.company_id,
       customer_id: input.customer_id,
       body: input.body,
       created_by: actorId,

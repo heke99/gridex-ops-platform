@@ -33,14 +33,21 @@ import {
 } from './billingReadiness'
 
 export async function listGridOwnerDataRequestsByCustomerId(
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<GridOwnerDataRequestRow[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('grid_owner_data_requests')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(100)
+    .limit(options.limit ?? 50)
 
   if (error) throw error
   return (data ?? []) as GridOwnerDataRequestRow[]
@@ -95,14 +102,21 @@ export async function listAllGridOwnerDataRequests(options: {
 }
 
 export async function listMeteringValuesByCustomerId(
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<MeteringValueRow[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('metering_values')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('read_at', { ascending: false })
-    .limit(100)
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as MeteringValueRow[]
@@ -147,28 +161,42 @@ export async function listAllMeteringValues(options: {
 }
 
 export async function listBillingUnderlaysByCustomerId(
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<BillingUnderlayRow[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('billing_underlays')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(100)
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as BillingUnderlayRow[]
 }
 
 export async function listPartnerExportsByCustomerId(
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<PartnerExportRow[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('partner_exports')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(100)
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as PartnerExportRow[]

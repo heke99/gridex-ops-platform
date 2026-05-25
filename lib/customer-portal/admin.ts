@@ -40,31 +40,46 @@ export type AdminCustomerPortalClaimRow = {
 }
 
 export async function listCustomerPortalAccountsByCustomerId(
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<AdminCustomerPortalAccountRow[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('customer_portal_accounts')
     .select(
       'id,user_id,user_email,customer_id,role,is_active,invited_at,activated_at,verified_at,last_seen_at,match_method,verified_identity_snapshot,notes,created_at,updated_at'
     )
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
+    .limit(options.limit ?? 50)
 
   if (error) throw error
   return (data ?? []) as AdminCustomerPortalAccountRow[]
 }
 
 export async function listCustomerPortalClaimsByCustomerId(
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<AdminCustomerPortalClaimRow[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('customer_portal_claims')
     .select(
       'id,user_id,user_email,customer_id,status,match_method,personal_number_last4,email_matched,name_matched,personal_number_matched,installation_matched,matched_site_id,matched_metering_point_id,failure_reason,input_snapshot,match_snapshot,created_at,updated_at'
     )
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(20)
+    .limit(options.limit ?? 20)
 
   if (error) throw error
   return (data ?? []) as AdminCustomerPortalClaimRow[]
