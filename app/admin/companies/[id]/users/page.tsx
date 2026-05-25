@@ -166,8 +166,9 @@ export default async function CompanyUsersPage({
                   <tr key={user.membershipId} className="border-b border-slate-100 align-top">
                     <td className="px-6 py-4">
                       <p className="font-semibold text-slate-950">{user.fullName ?? user.email ?? 'Användare'}</p>
-                      <p className="mt-1 text-xs text-slate-700">{user.email ?? user.userId}</p>
-                      <p className="mt-1 text-xs text-slate-500">{user.userId}</p>
+                      <p className="mt-1 text-xs text-slate-700">{user.email ?? user.invitedEmail ?? 'E-post saknas'}</p>
+                      <p className="mt-1 text-xs text-slate-500">Auth-ID: {user.userId}</p>
+                      <p className="mt-1 text-xs text-slate-400">Koppling-ID: {user.membershipId}</p>
                     </td>
                     <td className="px-6 py-4 text-slate-700">{user.membershipRole}</td>
                     <td className="px-6 py-4">
