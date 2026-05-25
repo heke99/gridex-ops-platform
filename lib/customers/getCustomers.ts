@@ -30,6 +30,7 @@ export type CustomerListRow = {
   metering_point_count: number
   active_metering_point_count: number
   contract_count: number
+  source: string | null
 }
 
 type RawCustomerRow = Record<string, unknown> & { id?: string }
@@ -134,6 +135,7 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
     org_number: stringOrNull(row.org_number),
     customer_number: stringOrNull(row.customer_number),
     apartment_number: stringOrNull(row.apartment_number),
+    source: stringOrNull(row.source),
     created_at: stringOrNull(row.created_at) ?? new Date(0).toISOString(),
     site_count: 0,
     active_site_count: 0,
@@ -198,6 +200,9 @@ async function loadCustomerRows(companyId: string | null): Promise<CustomerListR
     let query = supabaseService
       .from('customers')
       .select('*')
+      .not('company_id', 'is', null)
+      .or('source.is.null,source.neq.ediel_portal_test')
+      .or('status.is.null,status.neq.archived')
       .order('created_at', { ascending: false })
       .limit(1000)
 

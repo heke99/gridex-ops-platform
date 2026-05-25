@@ -3369,9 +3369,15 @@ export async function createEdielPortalTestCustomerAction(formData: FormData) {
 
   if (!testCaseCode) throw new Error("testCaseCode saknas");
 
+  const companyId = await assertUserCanOperateCompany(
+    context.userId,
+    formString(formData.get("companyId")),
+  );
+
   const supabase = await makeServerClient();
   const result = await createEdielPortalTestCustomerGraph(supabase, {
     actorUserId: context.userId,
+    companyId,
     testSuite,
     roleCode,
     testCaseCode,

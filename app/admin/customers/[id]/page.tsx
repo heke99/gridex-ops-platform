@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
@@ -94,6 +93,7 @@ type CustomerRow = {
  personal_number: string | null
  org_number: string | null
  customer_number: string | null
+ source: string | null
  apartment_number: string | null
  created_at: string
  moved_out_at: string | null
@@ -412,6 +412,38 @@ function customerTabHref(customerId: string, tab: CustomerWorkspaceTab): string 
  return `/admin/customers/${customerId}?tab=${tab}`
 }
 
+
+function CustomerLookupProblem({
+ title,
+ description,
+ lookupId,
+}: {
+ title: string
+ description: string
+ lookupId: string
+}) {
+ return (
+ <div className="space-y-6">
+ <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm ">
+ <p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-800 ">Kundkort</p>
+ <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 ">{title}</h1>
+ <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-700 ">{description}</p>
+ <div className="mt-4 rounded-2xl border border-amber-200 bg-white px-4 py-3 font-mono text-xs text-slate-700 ">
+ Lookup-id: {lookupId}
+ </div>
+ <div className="mt-5 flex flex-wrap gap-3">
+ <Link href="/admin/customers" className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 ">
+ Till kundregistret
+ </Link>
+ <Link href="/admin/ediel" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 ">
+ Till Ediel
+ </Link>
+ </div>
+ </section>
+ </div>
+ )
+}
+
 function CustomerWorkspaceTabNav({
  customerId,
  activeTab,
@@ -475,7 +507,7 @@ async function getCustomer(
  const { data, error } = await supabase
  .from('customers')
  .select(
- 'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, intake_status, intake_missing_fields, intake_quality_score, intake_warnings'
+ 'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, source, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, intake_status, intake_missing_fields, intake_quality_score, intake_warnings'
  )
  .eq('id', id)
  .maybeSingle()
@@ -1410,17 +1442,65 @@ export default async function CustomerAdminDetailPage({
  const tenantScope = await resolveAdminTenantReadScope(access)
 
  if (!tenantScope.isPlatformAdmin && !tenantScope.companyId) {
- notFound()
+ return (
+ <CustomerLookupProblem
+ title="Bolagskoppling saknas"
+ description="Kontot saknar aktiv bolagskoppling. Kundkort kan bara öppnas när användaren har ett aktivt bolag eller platform-behörighet."
+ lookupId={id}
+ />
+ )
  }
 
  const customer = await getCustomer(supabase, id)
 
  if (!customer) {
- notFound()
+ return (
+ <CustomerLookupProblem
+ title="Kunden finns inte i kundregistret"
+ description="Det här id:t finns inte som canonical kund i public.customers. Om raden fortfarande syns i kundlistan kommer den från gammal cache, annan miljö eller Ediel-testdata som inte ska öppnas som riktigt kundkort."
+ lookupId={id}
+ />
+ )
+ }
+
+ if (!customer.company_id) {
+ return (
+ <CustomerLookupProblem
+ title="Kunden saknar tenant-koppling"
+ description="Den här raden saknar company_id och är därför inte ett giltigt SaaS-kundkort. Arkivera eller koppla raden via kontrollerad backfill innan den används."
+ lookupId={id}
+ />
+ )
+ }
+
+ if (customer.status === 'archived') {
+ return (
+ <CustomerLookupProblem
+ title="Kunden är arkiverad"
+ description="Den här kunden har arkiverats och visas därför inte i det aktiva kundregistret."
+ lookupId={id}
+ />
+ )
+ }
+
+ if (customer.source === 'ediel_portal_test') {
+ return (
+ <CustomerLookupProblem
+ title="Ediel-testkund visas inte som vanlig kund"
+ description="Den här raden är skapad från Edielportalens testdata. Testkunder ska hanteras från Ediel/testflödet och ska inte ligga kvar i det vanliga kundregistret."
+ lookupId={id}
+ />
+ )
  }
 
  if (!tenantScope.isPlatformAdmin && customer.company_id !== tenantScope.companyId) {
- notFound()
+ return (
+ <CustomerLookupProblem
+ title="Kunden tillhör ett annat bolag"
+ description="Tenant-isoleringen blockerar kundkortet eftersom kunden inte tillhör ditt aktiva bolag."
+ lookupId={id}
+ />
+ )
  }
 
  const customerCompanyId = tenantScope.isPlatformAdmin ? customer.company_id : tenantScope.companyId

@@ -24,6 +24,7 @@ type PortalRegister = {
 
 export type CreateEdielPortalTestCustomerInput = {
   actorUserId: string
+  companyId: string
   testSuite: EdielTestSuite
   roleCode: EdielTestRoleCode
   testCaseCode: string
@@ -528,6 +529,7 @@ async function maybeSingle<T = AnyRow>(query: PromiseLike<{ data: unknown; error
 async function ensureGridOwner(
   supabase: SupabaseClient,
   data: PortalTestCustomerData,
+  companyId: string,
   actorUserId: string
 ): Promise<AnyRow> {
   const existing = await maybeSingle<AnyRow>(
@@ -535,6 +537,7 @@ async function ensureGridOwner(
       .from('grid_owners')
       .select('*')
       .eq('name', `Edielportal testnät ${data.gridAreaId}`)
+      .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -562,6 +565,7 @@ async function ensureGridOwner(
   const { data: inserted, error } = await supabase
     .from('grid_owners')
     .insert({
+      company_id: companyId,
       name: `Edielportal testnät ${data.gridAreaId}`,
       owner_code: data.gridAreaId,
       ediel_id: EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
@@ -589,6 +593,7 @@ async function ensureGridOwner(
 async function ensureTgtRouteProfile(
   supabase: SupabaseClient,
   communicationRouteId: string,
+  companyId: string,
   actorUserId: string,
   roleCode: EdielTestRoleCode
 ): Promise<void> {
@@ -596,6 +601,7 @@ async function ensureTgtRouteProfile(
     ? EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE
     : EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
   const payload = {
+    company_id: companyId,
     communication_route_id: communicationRouteId,
     is_enabled: true,
     sender_ediel_id: GRIDEX_TGT_EDIEL_ID,
@@ -627,6 +633,7 @@ async function ensureTgtRouteProfile(
     .from('ediel_route_profiles')
     .select('id')
     .eq('communication_route_id', communicationRouteId)
+    .eq('company_id', companyId)
     .maybeSingle()
 
   if (existingError) throw existingError
@@ -655,6 +662,7 @@ async function ensureRoute(
   supabase: SupabaseClient,
   gridOwner: AnyRow,
   data: PortalTestCustomerData,
+  companyId: string,
   actorUserId: string
 ): Promise<AnyRow> {
   const existing = await maybeSingle<AnyRow>(
@@ -663,6 +671,7 @@ async function ensureRoute(
       .select('*')
       .eq('route_scope', 'supplier_switch')
       .eq('grid_owner_id', String(gridOwner.id))
+      .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -685,6 +694,7 @@ async function ensureRoute(
       const { data: updated, error } = await supabase
         .from('communication_routes')
         .update({
+          company_id: companyId,
           is_active: true,
           route_type: 'ediel_partner',
           target_system: 'ediel_portal_tgt',
@@ -705,6 +715,7 @@ async function ensureRoute(
     const { data: inserted, error } = await supabase
       .from('communication_routes')
       .insert({
+        company_id: companyId,
         route_name: `Edielportal TGT · ${data.gridAreaId}`,
         is_active: true,
         route_scope: 'supplier_switch',
@@ -726,13 +737,14 @@ async function ensureRoute(
     route = inserted as AnyRow
   }
 
-  await ensureTgtRouteProfile(supabase, String(route.id), actorUserId, data.roleCode)
+  await ensureTgtRouteProfile(supabase, String(route.id), companyId, actorUserId, data.roleCode)
   return route
 }
 
 async function ensureCustomer(
   supabase: SupabaseClient,
   data: PortalTestCustomerData,
+  companyId: string,
   actorUserId: string
 ): Promise<AnyRow> {
   const existing = await maybeSingle<AnyRow>(
@@ -740,6 +752,7 @@ async function ensureCustomer(
       .from('customers')
       .select('*')
       .eq('personal_number', data.customerId)
+      .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -751,6 +764,7 @@ async function ensureCustomer(
   const { data: inserted, error } = await supabase
     .from('customers')
     .insert({
+      company_id: companyId,
       customer_type: 'private',
       status: 'draft',
       first_name: firstName,
@@ -776,6 +790,7 @@ async function ensureCustomer(
 async function ensureCustomerAddress(
   supabase: SupabaseClient,
   params: {
+    companyId: string
     customerId: string
     type: 'registered' | 'billing' | 'facility'
     street: string | null
@@ -791,6 +806,7 @@ async function ensureCustomerAddress(
       .from('customer_addresses')
       .select('id')
       .eq('customer_id', params.customerId)
+      .eq('company_id', params.companyId)
       .eq('type', params.type)
       .eq('street_1', params.street ?? '')
       .order('created_at', { ascending: false })
@@ -803,6 +819,7 @@ async function ensureCustomerAddress(
   const { error } = await supabase
     .from('customer_addresses')
     .insert({
+      company_id: params.companyId,
       customer_id: params.customerId,
       type: params.type,
       street_1: params.street ?? '',
@@ -822,6 +839,7 @@ async function ensureCustomerAddress(
 async function ensureBillingContact(
   supabase: SupabaseClient,
   data: PortalTestCustomerData,
+  companyId: string,
   customerId: string
 ): Promise<void> {
   if (!data.billingRecipientName && !data.billingRecipientId) return
@@ -831,6 +849,7 @@ async function ensureBillingContact(
       .from('customer_contacts')
       .select('id')
       .eq('customer_id', customerId)
+      .eq('company_id', companyId)
       .eq('type', 'billing')
       .eq('name', data.billingRecipientName ?? data.billingRecipientId ?? '')
       .order('created_at', { ascending: false })
@@ -843,6 +862,7 @@ async function ensureBillingContact(
   const { error } = await supabase
     .from('customer_contacts')
     .insert({
+      company_id: companyId,
       customer_id: customerId,
       type: 'billing',
       name: data.billingRecipientName ?? data.billingRecipientId,
@@ -858,6 +878,7 @@ async function ensureBillingContact(
 async function ensureSite(
   supabase: SupabaseClient,
   data: PortalTestCustomerData,
+  companyId: string,
   customerId: string,
   gridOwnerId: string,
   actorUserId: string
@@ -867,6 +888,7 @@ async function ensureSite(
       .from('customer_sites')
       .select('*')
       .eq('customer_id', customerId)
+      .eq('company_id', companyId)
       .eq('facility_id', data.facilityId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -874,6 +896,7 @@ async function ensureSite(
   )
 
   const payload = {
+    company_id: companyId,
     site_name: `Edielportal ${data.testCaseCode} · ${data.facilityId}`,
     site_type: inferSiteType(data.testCaseCode),
     status: 'draft',
@@ -907,9 +930,9 @@ async function ensureSite(
   const { data: inserted, error } = await supabase
     .from('customer_sites')
     .insert({
+      ...payload,
       customer_id: customerId,
       facility_id: data.facilityId,
-      ...payload,
       moved_from_street: null,
       moved_from_postal_code: null,
       moved_from_city: null,
@@ -926,6 +949,8 @@ async function ensureSite(
 async function ensureMeteringPoint(
   supabase: SupabaseClient,
   data: PortalTestCustomerData,
+  companyId: string,
+  customerId: string,
   siteId: string,
   gridOwnerId: string,
   actorUserId: string
@@ -935,6 +960,7 @@ async function ensureMeteringPoint(
       .from('metering_points')
       .select('*')
       .eq('site_id', siteId)
+      .eq('company_id', companyId)
       .eq('meter_point_id', data.facilityId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -942,6 +968,8 @@ async function ensureMeteringPoint(
   )
 
   const payload = {
+    company_id: companyId,
+    customer_id: customerId,
     site_facility_id: data.facilityId,
     ediel_reference: data.facilityId,
     status: 'draft',
@@ -970,9 +998,9 @@ async function ensureMeteringPoint(
   const { data: inserted, error } = await supabase
     .from('metering_points')
     .insert({
+      ...payload,
       site_id: siteId,
       meter_point_id: data.facilityId,
-      ...payload,
       created_by: actorUserId,
     })
     .select('*')
@@ -985,6 +1013,7 @@ async function ensureMeteringPoint(
 async function ensurePowerOfAttorney(
   supabase: SupabaseClient,
   data: PortalTestCustomerData,
+  companyId: string,
   customerId: string,
   siteId: string,
   actorUserId: string
@@ -994,6 +1023,7 @@ async function ensurePowerOfAttorney(
       .from('powers_of_attorney')
       .select('*')
       .eq('customer_id', customerId)
+      .eq('company_id', companyId)
       .eq('site_id', siteId)
       .eq('scope', 'supplier_switch')
       .eq('reference', data.powerOfAttorneyReference)
@@ -1008,6 +1038,7 @@ async function ensurePowerOfAttorney(
     const { data: updated, error } = await supabase
       .from('powers_of_attorney')
       .update({
+        company_id: companyId,
         status: data.powerOfAttorneyStatus,
         signed_at: data.powerOfAttorneyStatus === 'signed' ? new Date().toISOString() : null,
         valid_from: data.agreementStartDate,
@@ -1025,6 +1056,7 @@ async function ensurePowerOfAttorney(
   const { data: inserted, error } = await supabase
     .from('powers_of_attorney')
     .insert({
+      company_id: companyId,
       customer_id: customerId,
       site_id: siteId,
       scope: 'supplier_switch',
@@ -1049,6 +1081,7 @@ async function ensureSwitchRequest(
   supabase: SupabaseClient,
   params: {
     data: PortalTestCustomerData
+    companyId: string
     customerId: string
     siteId: string
     meteringPointId: string
@@ -1071,6 +1104,7 @@ async function ensureSwitchRequest(
       .from('supplier_switch_requests')
       .select('*')
       .eq('automation_key', automationKey)
+      .eq('company_id', params.companyId)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false })
       .limit(1)
@@ -1157,6 +1191,7 @@ async function ensureSwitchRequest(
   const { data: inserted, error } = await supabase
     .from('supplier_switch_requests')
     .insert({
+      company_id: params.companyId,
       customer_id: params.customerId,
       site_id: params.siteId,
       metering_point_id: params.meteringPointId,
@@ -1204,12 +1239,14 @@ export async function createEdielPortalTestCustomerGraph(
   input: CreateEdielPortalTestCustomerInput
 ): Promise<CreateEdielPortalTestCustomerResult> {
   const data = buildPortalTestData(input)
-  const gridOwner = await ensureGridOwner(supabase, data, input.actorUserId)
-  const route = await ensureRoute(supabase, gridOwner, data, input.actorUserId)
-  const customer = await ensureCustomer(supabase, data, input.actorUserId)
+  const companyId = input.companyId
+  const gridOwner = await ensureGridOwner(supabase, data, companyId, input.actorUserId)
+  const route = await ensureRoute(supabase, gridOwner, data, companyId, input.actorUserId)
+  const customer = await ensureCustomer(supabase, data, companyId, input.actorUserId)
   const customerId = String(customer.id)
 
   await ensureCustomerAddress(supabase, {
+    companyId,
     customerId,
     type: 'registered',
     street: data.customerAddress,
@@ -1218,6 +1255,7 @@ export async function createEdielPortalTestCustomerGraph(
     country: data.customerCountry,
   })
   await ensureCustomerAddress(supabase, {
+    companyId,
     customerId,
     type: 'billing',
     street: data.billingRecipientAddress,
@@ -1225,13 +1263,14 @@ export async function createEdielPortalTestCustomerGraph(
     city: data.billingRecipientCity,
     country: data.billingRecipientCountry,
   })
-  await ensureBillingContact(supabase, data, customerId)
+  await ensureBillingContact(supabase, data, companyId, customerId)
 
-  const site = await ensureSite(supabase, data, customerId, String(gridOwner.id), input.actorUserId)
-  const meteringPoint = await ensureMeteringPoint(supabase, data, String(site.id), String(gridOwner.id), input.actorUserId)
-  const poa = await ensurePowerOfAttorney(supabase, data, customerId, String(site.id), input.actorUserId)
+  const site = await ensureSite(supabase, data, companyId, customerId, String(gridOwner.id), input.actorUserId)
+  const meteringPoint = await ensureMeteringPoint(supabase, data, companyId, customerId, String(site.id), String(gridOwner.id), input.actorUserId)
+  const poa = await ensurePowerOfAttorney(supabase, data, companyId, customerId, String(site.id), input.actorUserId)
   const switchRequest = await ensureSwitchRequest(supabase, {
     data,
+    companyId,
     customerId,
     siteId: String(site.id),
     meteringPointId: String(meteringPoint.id),
