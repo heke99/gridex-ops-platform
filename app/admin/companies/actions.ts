@@ -268,6 +268,57 @@ async function upsertAcceptedCompanyInvitation(input: {
   if (third.error && !isIgnorableSchemaError(third.error)) throw third.error
 }
 
+async function assertDashboardUserProvisioned(input: {
+  companyId: string
+  userId: string
+  email: string
+  roleKey: string
+}) {
+  const authUser = await supabaseService.auth.admin.getUserById(input.userId)
+  if (authUser.error || !authUser.data.user?.id) {
+    throw new Error(`Auth-kontot skapades inte korrekt för ${input.email}.`)
+  }
+
+  const membership = await supabaseService
+    .from('company_memberships')
+    .select('id,status,is_active,role,role_key,membership_role')
+    .eq('company_id', input.companyId)
+    .eq('user_id', input.userId)
+    .limit(1)
+    .maybeSingle()
+
+  if (membership.error && !isIgnorableSchemaError(membership.error)) throw membership.error
+  if (!membership.data) {
+    throw new Error(`Användaren skapades i Auth men kopplades inte till bolaget (${input.email}).`)
+  }
+
+  const membershipRecord = membership.data as Record<string, unknown>
+  if (membershipRecord.status !== 'active' || membershipRecord.is_active === false) {
+    throw new Error(`Användaren kopplades till bolaget men medlemskapet är inte aktivt (${input.email}).`)
+  }
+
+  const userRole = await supabaseService
+    .from('user_roles')
+    .select('id,role,role_id,company_id,status,is_active')
+    .eq('user_id', input.userId)
+    .eq('company_id', input.companyId)
+    .limit(1)
+    .maybeSingle()
+
+  if (userRole.error && !isIgnorableSchemaError(userRole.error)) throw userRole.error
+  if (!userRole.data) {
+    throw new Error(`Användaren kopplades till bolaget men saknar aktiv systemroll (${input.email}).`)
+  }
+
+  const userRoleRecord = userRole.data as Record<string, unknown>
+  if (userRoleRecord.status && userRoleRecord.status !== 'active') {
+    throw new Error(`Användarens systemroll är inte aktiv (${input.email}).`)
+  }
+  if (userRoleRecord.is_active === false) {
+    throw new Error(`Användarens systemroll är avaktiverad (${input.email}).`)
+  }
+}
+
 function parseCompanyStatus(value: string): CompanyOperationalStatus {
   const normalized = normalizeCompanyStatus(value)
   if (!GOVERNANCE_COMPANY_STATUSES.includes(normalized)) {
@@ -288,6 +339,15 @@ function parseCompanyAssignableMembershipRole(value: string): string {
     throw new Error('Bolagsrollen är inte tillåten på bolagsnivå.')
   }
   return value
+}
+
+function toDatabaseMembershipRole(membershipRole: string, roleKey: string): string {
+  // Live DB kan ha company_membership_role som enum. För dashboard-provisionering
+  // använder vi bara värden som är säkra i nuvarande databas: company_admin/member.
+  // Den mer detaljerade behörigheten ligger i role_key + user_roles.
+  if (membershipRole === 'owner' || membershipRole === 'admin' || membershipRole === 'company_admin') return 'company_admin'
+  if (roleKey === 'company_admin') return 'company_admin'
+  return 'member'
 }
 
 
@@ -480,8 +540,11 @@ export async function createCompanyAction(
         {
           company_id: company.id,
           user_id: provisioned.userId,
-          membership_role: 'owner',
+          role: 'company_admin',
+          role_key: 'company_admin',
+          membership_role: toDatabaseMembershipRole('owner', 'company_admin'),
           status: 'active',
+          is_active: true,
           invited_email: initialAdminEmail,
           invited_by: actorUserId,
           invited_at: now,
@@ -495,6 +558,8 @@ export async function createCompanyAction(
             account_flow: 'direct_temporary_password',
             password_verified: provisioned.passwordVerified,
             created_auth_user: provisioned.createdAuthUser,
+            selected_membership_role: 'owner',
+            assigned_role_key: 'company_admin',
           },
         },
         { onConflict: 'company_id,user_id' }
@@ -506,11 +571,18 @@ export async function createCompanyAction(
         companyId: company.id,
         email: initialAdminEmail,
         fullName: initialAdminName || null,
-        membershipRole: 'owner',
+        membershipRole: toDatabaseMembershipRole('owner', 'company_admin'),
         roleKey: 'company_admin',
         actorUserId,
         userId: provisioned.userId,
         passwordVerified: provisioned.passwordVerified,
+      })
+
+      await assertDashboardUserProvisioned({
+        companyId: company.id,
+        userId: provisioned.userId,
+        email: initialAdminEmail,
+        roleKey: 'company_admin',
       })
 
       await trySendTenantInviteEmail({
@@ -593,6 +665,7 @@ export async function inviteCompanyUserAction(
     const temporaryPassword = normalizeTemporaryPassword(formData.get('temporary_password'))
     const membershipRole = parseCompanyAssignableMembershipRole(normalizeText(formData.get('membership_role')) || 'member')
     const roleKey = parseCompanyAssignableRoleKey(normalizeText(formData.get('role_key')) || 'company_admin')
+    const databaseMembershipRole = toDatabaseMembershipRole(membershipRole, roleKey)
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     await assertCanManageCompanyUsers(companyId)
@@ -621,8 +694,11 @@ export async function inviteCompanyUserAction(
       {
         company_id: companyId,
         user_id: provisioned.userId,
-        membership_role: membershipRole,
+        role: roleKey,
+        role_key: roleKey,
+        membership_role: databaseMembershipRole,
         status: 'active',
+        is_active: true,
         invited_email: email,
         invited_by: actorUserId,
         invited_at: now,
@@ -636,6 +712,8 @@ export async function inviteCompanyUserAction(
           account_flow: 'direct_temporary_password',
           password_verified: provisioned.passwordVerified,
           created_auth_user: provisioned.createdAuthUser,
+          selected_membership_role: membershipRole,
+          assigned_role_key: roleKey,
         },
       },
       { onConflict: 'company_id,user_id' }
@@ -647,11 +725,18 @@ export async function inviteCompanyUserAction(
       companyId,
       email,
       fullName,
-      membershipRole,
+      membershipRole: databaseMembershipRole,
       roleKey,
       actorUserId,
       userId: provisioned.userId,
       passwordVerified: provisioned.passwordVerified,
+    })
+
+    await assertDashboardUserProvisioned({
+      companyId,
+      userId: provisioned.userId,
+      email,
+      roleKey,
     })
 
     await trySendTenantInviteEmail({
@@ -844,6 +929,7 @@ export async function setCompanyUserRoleAction(
     const userId = normalizeText(formData.get('user_id'))
     const membershipRole = parseCompanyAssignableMembershipRole(normalizeText(formData.get('membership_role')) || 'member')
     const roleKey = parseCompanyAssignableRoleKey(normalizeText(formData.get('role_key')) || 'company_admin')
+    const databaseMembershipRole = toDatabaseMembershipRole(membershipRole, roleKey)
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     await assertCanManageCompanyUsers(companyId)
@@ -851,7 +937,14 @@ export async function setCompanyUserRoleAction(
 
     const { error } = await supabaseService
       .from('company_memberships')
-      .update({ membership_role: membershipRole, status: 'active', status_reason: null })
+      .update({
+        role: roleKey,
+        role_key: roleKey,
+        membership_role: databaseMembershipRole,
+        status: 'active',
+        is_active: true,
+        status_reason: null,
+      })
       .eq('company_id', companyId)
       .eq('user_id', userId)
 
