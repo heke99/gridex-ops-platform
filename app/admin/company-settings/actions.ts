@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { getCompanyById } from '@/lib/tenant/governance'
-import { resolveRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
+import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
 
 export type CompanySettingsActionState = {
   ok: boolean
@@ -57,11 +57,6 @@ const COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES = new Set([
 async function assertCanManageCompany(companyId: string) {
   return requireCompanyScopedActionAccess(companyId, { anyOf: ['tenants.invite', 'users.write'] })
 }
-
-async function resolveRoleIdByKey(roleKey: string): Promise<string | null> {
-  return resolveRoleIdByKeyOrName(roleKey)
-}
-
 
 export async function updateCompanySettingsAction(
   _prevState: CompanySettingsActionState,
@@ -217,32 +212,15 @@ export async function updateCompanyResponsibleUserAction(
 
     if (profileError && !['42P01', '42703', 'PGRST205'].includes(profileError.code ?? '')) throw profileError
 
-    const { error: membershipError } = await supabaseService
-      .from('company_memberships')
-      .update({
-        membership_role: membershipRole,
-        status: 'active',
-        invited_email: email,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('company_id', companyId)
-      .eq('user_id', userId)
-
-    if (membershipError) throw membershipError
-
-    const roleId = await resolveRoleIdByKey(roleKey)
-    if (roleId) {
-      const { error: roleError } = await supabaseService.from('user_roles').upsert(
-        {
-          user_id: userId,
-          role_id: roleId,
-          status: 'active',
-          is_active: true,
-        },
-        { onConflict: 'user_id,role_id' }
-      )
-      if (roleError && roleError.code !== '42703') throw roleError
-    }
+    await grantCompanyUserAccess({
+      companyId,
+      userId,
+      email,
+      fullName,
+      membershipRole,
+      roleKey,
+      source: 'company_settings_responsible_user_update',
+    })
 
     revalidatePath('/admin/company-settings')
     revalidatePath(`/admin/companies/${companyId}/users`)

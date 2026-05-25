@@ -5,7 +5,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
-import { provisionDirectTemporaryPasswordUser } from '@/lib/auth/directAccountProvisioning'
+import {
+  deactivateCompanyUserAccess,
+  grantCompanyUserAccess,
+  provisionCompanyUserWithTemporaryPassword,
+} from '@/lib/auth/companyUserAccess'
 import {
   getCompanyById,
   getCompanyDeleteBlockers,
@@ -101,217 +105,6 @@ async function getCurrentUserId(): Promise<string> {
 
   if (!user) throw new Error('Inloggning krävs.')
   return user.id
-}
-
-function isIgnorableSchemaError(error: { code?: string | null; message?: string | null } | null | undefined) {
-  if (!error) return false
-  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')
-}
-
-function isUniqueViolationError(error: { code?: string | null; message?: string | null } | null | undefined) {
-  return (error?.code ?? '') === '23505'
-}
-
-async function resolveRoleIdByKey(roleKey: string): Promise<string> {
-  const normalized = roleKey.trim()
-  if (!normalized) throw new Error('Roll saknas.')
-
-  const byKey = await supabaseService
-    .from('roles')
-    .select('id,key,name')
-    .eq('key', normalized)
-    .maybeSingle()
-
-  if (byKey.error && !isIgnorableSchemaError(byKey.error)) throw byKey.error
-  if (byKey.data?.id) return byKey.data.id as string
-
-  const byName = await supabaseService
-    .from('roles')
-    .select('id,key,name')
-    .eq('name', normalized)
-    .maybeSingle()
-
-  if (byName.error) throw byName.error
-  if (byName.data?.id) return byName.data.id as string
-
-  throw new Error(`Rollen hittades inte: ${roleKey}`)
-}
-
-async function insertActiveUserRole(input: { userId: string; roleId: string; roleKey: string; companyId?: string | null }) {
-  async function findExistingByRoleId() {
-    const selectExisting = supabaseService
-      .from('user_roles')
-      .select('id')
-      .eq('user_id', input.userId)
-      .eq('role_id', input.roleId)
-      .limit(1)
-
-    const existingQuery = input.companyId
-      ? selectExisting.eq('company_id', input.companyId)
-      : selectExisting.is('company_id', null)
-
-    const existing = await existingQuery.maybeSingle()
-    if (existing.error && !isIgnorableSchemaError(existing.error)) throw existing.error
-    return existing.data?.id ? String(existing.data.id) : null
-  }
-
-  async function findExistingByRoleKey() {
-    const selectExisting = supabaseService
-      .from('user_roles')
-      .select('id')
-      .eq('user_id', input.userId)
-      .eq('role', input.roleKey)
-      .limit(1)
-
-    const existingQuery = input.companyId
-      ? selectExisting.eq('company_id', input.companyId)
-      : selectExisting.is('company_id', null)
-
-    const existing = await existingQuery.maybeSingle()
-    if (existing.error && !isIgnorableSchemaError(existing.error)) throw existing.error
-    return existing.data?.id ? String(existing.data.id) : null
-  }
-
-  async function reactivateExisting(id: string) {
-    const update = await supabaseService
-      .from('user_roles')
-      .update({ role_id: input.roleId, role: input.roleKey, company_id: input.companyId ?? null, status: 'active', is_active: true })
-      .eq('id', id)
-
-    if (update.error && !isIgnorableSchemaError(update.error)) throw update.error
-  }
-
-  const existingId = await findExistingByRoleId() ?? await findExistingByRoleKey()
-  if (existingId) {
-    await reactivateExisting(existingId)
-    return
-  }
-
-  const fullPayload: Record<string, unknown> = {
-    user_id: input.userId,
-    role_id: input.roleId,
-    role: input.roleKey,
-    company_id: input.companyId ?? null,
-    status: 'active',
-    is_active: true,
-  }
-
-  const first = await supabaseService.from('user_roles').insert(fullPayload)
-  if (!first.error) return
-
-  if (isUniqueViolationError(first.error)) {
-    const retryExistingId = await findExistingByRoleId() ?? await findExistingByRoleKey()
-    if (retryExistingId) {
-      await reactivateExisting(retryExistingId)
-      return
-    }
-  }
-
-  if (!isIgnorableSchemaError(first.error)) throw first.error
-
-  const fallbackPayloads: Record<string, unknown>[] = [
-    { user_id: input.userId, role_id: input.roleId, role: input.roleKey, status: 'active', is_active: true },
-    { user_id: input.userId, role_id: input.roleId, status: 'active', is_active: true },
-    { user_id: input.userId, role_id: input.roleId },
-    { user_id: input.userId, role: input.roleKey, status: 'active', is_active: true, company_id: input.companyId ?? null },
-    { user_id: input.userId, role: input.roleKey, is_active: true },
-  ]
-
-  let lastError: unknown = first.error
-  for (const payload of fallbackPayloads) {
-    const attempt = await supabaseService.from('user_roles').insert(payload)
-    if (!attempt.error) return
-
-    if (isUniqueViolationError(attempt.error)) {
-      const retryExistingId = await findExistingByRoleId() ?? await findExistingByRoleKey()
-      if (retryExistingId) {
-        await reactivateExisting(retryExistingId)
-        return
-      }
-    }
-
-    lastError = attempt.error
-    if (!isIgnorableSchemaError(attempt.error)) throw attempt.error
-  }
-
-  throw lastError
-}
-
-async function upsertAcceptedCompanyInvitation(input: {
-  companyId: string
-  email: string
-  fullName: string | null
-  membershipRole: string
-  roleKey: string
-  actorUserId: string
-  userId: string
-  passwordVerified: boolean
-}) {
-  const now = new Date().toISOString()
-  const updatePayload: Record<string, unknown> = {
-    full_name: input.fullName,
-    membership_role: input.membershipRole,
-    role_key: input.roleKey,
-    status: 'accepted',
-    invited_by: input.actorUserId,
-    invited_user_id: input.userId,
-    expires_at: null,
-    accepted_at: now,
-    revoked_at: null,
-    updated_at: now,
-    metadata: {
-      account_flow: 'direct_temporary_password',
-      password_verified: input.passwordVerified,
-      accepted_from_existing_pending_invitation: true,
-    },
-  }
-
-  for (const emailColumn of ['email', 'invited_email']) {
-    const updated = await supabaseService
-      .from('company_invitations')
-      .update(updatePayload)
-      .eq('company_id', input.companyId)
-      .eq(emailColumn, input.email)
-      .select('id')
-      .limit(1)
-      .maybeSingle()
-
-    if (updated.data?.id) return
-    if (updated.error && !isIgnorableSchemaError(updated.error)) throw updated.error
-  }
-
-  const insertPayload: Record<string, unknown> = {
-    company_id: input.companyId,
-    email: input.email,
-    invited_email: input.email,
-    full_name: input.fullName,
-    membership_role: input.membershipRole,
-    role_key: input.roleKey,
-    status: 'accepted',
-    invited_by: input.actorUserId,
-    invited_user_id: input.userId,
-    expires_at: null,
-    accepted_at: now,
-    metadata: {
-      account_flow: 'direct_temporary_password',
-      password_verified: input.passwordVerified,
-    },
-  }
-
-  const first = await supabaseService.from('company_invitations').insert(insertPayload)
-  if (!first.error) return
-
-  if (!isIgnorableSchemaError(first.error)) throw first.error
-
-  const { invited_email: _ignoredInvitedEmail, ...withoutInvitedEmail } = insertPayload
-  const second = await supabaseService.from('company_invitations').insert(withoutInvitedEmail)
-  if (!second.error) return
-
-  if (!isIgnorableSchemaError(second.error)) throw second.error
-
-  const { email: _ignoredEmail, ...withoutEmail } = insertPayload
-  const third = await supabaseService.from('company_invitations').insert(withoutEmail)
-  if (third.error && !isIgnorableSchemaError(third.error)) throw third.error
 }
 
 function parseCompanyStatus(value: string): CompanyOperationalStatus {
@@ -493,7 +286,7 @@ export async function createCompanyAction(
         name,
         slug,
         org_number: orgNumber,
-        status: 'active',
+        status: 'onboarding',
         primary_contact_email: primaryContactEmail,
         primary_contact_name: primaryContactName,
         phone,
@@ -509,54 +302,16 @@ export async function createCompanyAction(
     createdCompanyId = company.id as string
 
     if (initialAdminEmail) {
-      const provisioned = await provisionDirectTemporaryPasswordUser({
+      const provisioned = await provisionCompanyUserWithTemporaryPassword({
+        companyId: company.id,
+        companyName: name,
         email: initialAdminEmail,
         fullName: initialAdminName || null,
         temporaryPassword,
-        companyId: company.id,
-        companyName: name,
-        actorUserId,
-      })
-
-      const roleId = await resolveRoleIdByKey('company_admin')
-      await insertActiveUserRole({ userId: provisioned.userId, roleId, roleKey: 'company_admin', companyId: company.id })
-
-      const now = new Date().toISOString()
-      const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-        {
-          company_id: company.id,
-          user_id: provisioned.userId,
-          membership_role: 'owner',
-          status: 'active',
-          invited_email: initialAdminEmail,
-          invited_by: actorUserId,
-          invited_at: now,
-          accepted_at: now,
-          disabled_at: null,
-          disabled_by: null,
-          removed_at: null,
-          removed_by: null,
-          status_reason: null,
-          metadata: {
-            account_flow: 'direct_temporary_password',
-            password_verified: provisioned.passwordVerified,
-            created_auth_user: provisioned.createdAuthUser,
-          },
-        },
-        { onConflict: 'company_id,user_id' }
-      )
-
-      if (membershipError) throw membershipError
-
-      await upsertAcceptedCompanyInvitation({
-        companyId: company.id,
-        email: initialAdminEmail,
-        fullName: initialAdminName || null,
-        membershipRole: 'owner',
+        membershipRole: 'company_admin',
         roleKey: 'company_admin',
         actorUserId,
-        userId: provisioned.userId,
-        passwordVerified: provisioned.passwordVerified,
+        source: 'create_company_initial_admin',
       })
 
       await trySendTenantInviteEmail({
@@ -586,8 +341,8 @@ export async function createCompanyAction(
     return {
       ok: true,
       message: initialAdminEmail
-        ? 'Elhandelsbolaget skapades och bolagsansvarig kan logga in med det temporära lösenordet.'
-        : 'Elhandelsbolaget skapades.',
+        ? 'Elhandelsbolaget skapades i onboarding och bolagsansvarig kan logga in med det temporära lösenordet.'
+        : 'Elhandelsbolaget skapades i onboarding.',
     }
   } catch (error) {
     if (createdCompanyId) {
@@ -651,53 +406,16 @@ export async function inviteCompanyUserAction(
     const company = await getCompanyById(companyId)
     if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
 
-    const provisioned = await provisionDirectTemporaryPasswordUser({
+    const provisioned = await provisionCompanyUserWithTemporaryPassword({
+      companyId,
+      companyName: company.name,
       email,
       fullName,
       temporaryPassword,
-      companyId,
-      companyName: company.name,
-      actorUserId,
-    })
-
-    await insertActiveUserRole({ userId: provisioned.userId, roleId: await resolveRoleIdByKey(roleKey), roleKey, companyId })
-
-    const now = new Date().toISOString()
-    const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-      {
-        company_id: companyId,
-        user_id: provisioned.userId,
-        membership_role: membershipRole,
-        status: 'active',
-        invited_email: email,
-        invited_by: actorUserId,
-        invited_at: now,
-        accepted_at: now,
-        disabled_at: null,
-        disabled_by: null,
-        removed_at: null,
-        removed_by: null,
-        status_reason: null,
-        metadata: {
-          account_flow: 'direct_temporary_password',
-          password_verified: provisioned.passwordVerified,
-          created_auth_user: provisioned.createdAuthUser,
-        },
-      },
-      { onConflict: 'company_id,user_id' }
-    )
-
-    if (membershipError) throw membershipError
-
-    await upsertAcceptedCompanyInvitation({
-      companyId,
-      email,
-      fullName,
       membershipRole,
       roleKey,
       actorUserId,
-      userId: provisioned.userId,
-      passwordVerified: provisioned.passwordVerified,
+      source: 'company_users_dashboard',
     })
 
     await trySendTenantInviteEmail({
@@ -855,6 +573,8 @@ export async function removeUserFromCompanyAction(
 
     if (error) throw error
 
+    await deactivateCompanyUserAccess({ companyId, userId, actorUserId, reason })
+
     await supabaseService
       .from('company_invitations')
       .update({ status: 'invitation_revoked', revoked_at: new Date().toISOString() })
@@ -895,15 +615,14 @@ export async function setCompanyUserRoleAction(
     await assertCanManageCompanyUsers(companyId)
     if (!userId) return { ok: false, message: 'Användare saknas.' }
 
-    const { error } = await supabaseService
-      .from('company_memberships')
-      .update({ membership_role: membershipRole, status: 'active', status_reason: null })
-      .eq('company_id', companyId)
-      .eq('user_id', userId)
-
-    if (error) throw error
-
-    await insertActiveUserRole({ userId, roleId: await resolveRoleIdByKey(roleKey), roleKey, companyId })
+    await grantCompanyUserAccess({
+      companyId,
+      userId,
+      membershipRole,
+      roleKey,
+      actorUserId,
+      source: 'company_user_role_update',
+    })
 
     await logTenantGovernanceEvent({
       action: 'SUPERADMIN_ROLE_CHANGED',

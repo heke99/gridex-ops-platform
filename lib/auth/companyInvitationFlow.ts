@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import type { User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
+import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
 import {
   findAuthUserByEmail,
   getBaseAppUrl,
@@ -217,31 +218,6 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString()
     const now = new Date().toISOString()
 
-    const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-      {
-        company_id: input.companyId,
-        user_id: user.id,
-        membership_role: input.membershipRole,
-        status: 'active',
-        invited_email: email,
-        invited_by: input.actorUserId,
-        invited_at: now,
-        accepted_at: now,
-        disabled_at: null,
-        disabled_by: null,
-        removed_at: null,
-        removed_by: null,
-        status_reason: null,
-        metadata: {
-          invite_source: input.source,
-          force_password_change: Boolean(temporaryPassword),
-          login_ready: true,
-        },
-      },
-      { onConflict: 'company_id,user_id' }
-    )
-    if (membershipError) throw membershipError
-
     const invitationPayload: Record<string, unknown> = {
       company_id: input.companyId,
       email,
@@ -267,37 +243,29 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       },
     }
 
-    const { error: inviteError } = await supabaseService.from('company_invitations').insert(invitationPayload)
-    if (inviteError && !isIgnorableSchemaError(inviteError) && inviteError.code !== '23514') throw inviteError
+    const inviteInsert = await supabaseService
+      .from('company_invitations')
+      .insert(invitationPayload)
+      .select('id')
+      .single()
 
-    const roleQuery = await supabaseService.from('roles').select('id,key').eq('key', input.roleKey).maybeSingle()
-    if (roleQuery.error) throw roleQuery.error
-    if (roleQuery.data?.id) {
-      const rolePayload = {
-        user_id: user.id,
-        role_id: roleQuery.data.id,
-        status: 'active',
-        is_active: true,
-      }
-      const roleInsert = await supabaseService.from('user_roles').upsert(rolePayload, {
-        onConflict: 'user_id,role_id',
-      })
-
-      if (roleInsert.error) {
-        if (roleInsert.error.code === '42703') {
-          const retry = await supabaseService.from('user_roles').upsert(
-            {
-              user_id: user.id,
-              role_id: roleQuery.data.id,
-            },
-            { onConflict: 'user_id,role_id' }
-          )
-          if (retry.error) throw retry.error
-        } else {
-          throw roleInsert.error
-        }
-      }
+    if (inviteInsert.error && !isIgnorableSchemaError(inviteInsert.error) && inviteInsert.error.code !== '23514') {
+      throw inviteInsert.error
     }
+
+    await grantCompanyUserAccess({
+      companyId: input.companyId,
+      userId: user.id,
+      email,
+      fullName: input.fullName ?? null,
+      membershipRole: input.membershipRole,
+      roleKey: input.roleKey,
+      actorUserId: input.actorUserId,
+      source: input.source,
+      passwordVerified: Boolean(temporaryPassword),
+      createdAuthUser: Boolean(createdAuthUserId),
+      invitationId: inviteInsert.data?.id ? String(inviteInsert.data.id) : null,
+    })
 
     acceptUrl = buildAcceptUrl(token)
     const emailSent = false
@@ -418,37 +386,17 @@ export async function acceptCompanyInvitationByToken(token: string) {
 
   const now = new Date().toISOString()
 
-  const { error: inviteUpdateError } = await supabaseService
-    .from('company_invitations')
-    .update({
-      status: 'accepted',
-      accepted_at: now,
-      invited_user_id: authUser.id,
-      metadata: {
-        accepted_via: 'company_invite_token',
-      },
-    })
-    .eq('id', invitation.id)
-
-  if (inviteUpdateError) throw inviteUpdateError
-
-  const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
-    {
-      company_id: invitation.company_id,
-      user_id: authUser.id,
-      membership_role: invitation.membership_role ?? 'member',
-      status: 'active',
-      invited_email: email,
-      accepted_at: now,
-      metadata: {
-        accepted_via: 'company_invite_token',
-        login_ready: true,
-      },
-    },
-    { onConflict: 'company_id,user_id' }
-  )
-
-  if (membershipError) throw membershipError
+  await grantCompanyUserAccess({
+    companyId: invitation.company_id,
+    userId: authUser.id,
+    email,
+    fullName: null,
+    membershipRole: invitation.membership_role ?? 'member',
+    roleKey: invitation.role_key ?? 'customer_service_agent',
+    actorUserId: null,
+    source: 'company_invite_token',
+    invitationId: invitation.id,
+  })
 
   await recordAuthEmailEvent({
     userId: authUser.id,
