@@ -9,6 +9,7 @@ import {
 } from '@/lib/admin/accessModel'
 import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
 import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
+import { normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 
 export type GuardResult = {
   userId: string
@@ -58,35 +59,10 @@ const COMPANY_READ_MEMBERSHIP_ROLES = new Set([
 ])
 
 
-function normalizeRoleKey(value: string | null | undefined): string | null {
-  if (!value) return null
-
-  const normalized = value
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/-/g, '_')
-
-  if (!normalized) return null
-  if (normalized === 'super_admin' || normalized === 'superadmin') return 'super_admin'
-  if (normalized === 'platform_admin' || normalized === 'platformadmin') return 'platform_admin'
-  if (
-    normalized === 'company_admin' ||
-    normalized === 'companyadmin' ||
-    normalized === 'company_owner' ||
-    normalized === 'tenant_admin' ||
-    normalized === 'bolagsansvarig'
-  ) {
-    return 'company_admin'
-  }
-
-  return normalized
-}
-
 function roleFromRpcRow(row: UserRoleRpcRow): string | null {
   if (typeof row === 'string') return normalizeRoleKey(row)
   if (!row || typeof row !== 'object') return null
-  return normalizeRoleKey(row.role_key ?? row.key ?? row.code ?? row.name ?? null)
+  return resolveRoleKey(row)
 }
 
 function normalizeRequirement(

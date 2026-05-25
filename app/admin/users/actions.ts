@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import { requireRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
 import {
   findAuthUserByEmail,
   getBaseAppUrl,
@@ -101,15 +102,7 @@ async function resolveRoleId(input: { roleId?: string; roleKey?: string }) {
   }
 
   if (input.roleKey) {
-    const { data, error } = await supabaseService
-      .from('roles')
-      .select('id,key')
-      .eq('key', input.roleKey)
-      .maybeSingle()
-
-    if (error) throw error
-    if (data?.id) return data.id as string
-    throw new Error(`Rollen hittades inte: ${input.roleKey}`)
+    return requireRoleIdByKeyOrName(input.roleKey)
   }
 
   throw new Error('Roll saknas.')

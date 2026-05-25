@@ -103,58 +103,169 @@ async function getCurrentUserId(): Promise<string> {
   return user.id
 }
 
-async function resolveRoleIdByKey(roleKey: string): Promise<string> {
-  const { data, error } = await supabaseService
-    .from('roles')
-    .select('id,key')
-    .eq('key', roleKey)
-    .maybeSingle()
-
-  if (error) throw error
-  if (!data?.id) throw new Error(`Rollen hittades inte: ${roleKey}`)
-  return data.id as string
+function isIgnorableSchemaError(error: { code?: string | null; message?: string | null } | null | undefined) {
+  if (!error) return false
+  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')
 }
 
-async function insertActiveUserRole(input: { userId: string; roleId: string }) {
-  const first = await supabaseService.from('user_roles').upsert(
-    {
-      user_id: input.userId,
-      role_id: input.roleId,
-      status: 'active',
-    },
-    { onConflict: 'user_id,role_id' }
-  )
+async function resolveRoleIdByKey(roleKey: string): Promise<string> {
+  const normalized = roleKey.trim()
+  if (!normalized) throw new Error('Roll saknas.')
 
-  if (!first.error) return
+  const byKey = await supabaseService
+    .from('roles')
+    .select('id,key,name')
+    .eq('key', normalized)
+    .maybeSingle()
 
-  if (first.error.code === '42703' || /status/i.test(first.error.message ?? '')) {
-    const second = await supabaseService.from('user_roles').upsert(
-      {
-        user_id: input.userId,
-        role_id: input.roleId,
-        is_active: true,
-      },
-      { onConflict: 'user_id,role_id' }
-    )
+  if (byKey.error && !isIgnorableSchemaError(byKey.error)) throw byKey.error
+  if (byKey.data?.id) return byKey.data.id as string
 
-    if (!second.error) return
+  const byName = await supabaseService
+    .from('roles')
+    .select('id,key,name')
+    .eq('name', normalized)
+    .maybeSingle()
 
-    if (second.error.code === '42703' || /is_active/i.test(second.error.message ?? '')) {
-      const third = await supabaseService.from('user_roles').upsert(
-        {
-          user_id: input.userId,
-          role_id: input.roleId,
-        },
-        { onConflict: 'user_id,role_id' }
-      )
-      if (third.error) throw third.error
-      return
-    }
+  if (byName.error) throw byName.error
+  if (byName.data?.id) return byName.data.id as string
 
-    throw second.error
+  throw new Error(`Rollen hittades inte: ${roleKey}`)
+}
+
+async function insertActiveUserRole(input: { userId: string; roleId: string; roleKey: string; companyId?: string | null }) {
+  const selectExisting = supabaseService
+    .from('user_roles')
+    .select('id')
+    .eq('user_id', input.userId)
+    .eq('role_id', input.roleId)
+    .limit(1)
+
+  const existingQuery = input.companyId
+    ? selectExisting.eq('company_id', input.companyId)
+    : selectExisting.is('company_id', null)
+
+  const existing = await existingQuery.maybeSingle()
+  if (existing.error && !isIgnorableSchemaError(existing.error)) throw existing.error
+
+  const fullPayload: Record<string, unknown> = {
+    user_id: input.userId,
+    role_id: input.roleId,
+    role: input.roleKey,
+    company_id: input.companyId ?? null,
+    status: 'active',
+    is_active: true,
   }
 
-  throw first.error
+  if (existing.data?.id) {
+    const update = await supabaseService
+      .from('user_roles')
+      .update({ role: input.roleKey, company_id: input.companyId ?? null, status: 'active', is_active: true })
+      .eq('id', existing.data.id)
+
+    if (!update.error) return
+    if (!isIgnorableSchemaError(update.error)) throw update.error
+  }
+
+  const first = await supabaseService.from('user_roles').insert(fullPayload)
+  if (!first.error) return
+
+  if (!isIgnorableSchemaError(first.error)) throw first.error
+
+  const fallbackPayloads: Record<string, unknown>[] = [
+    { user_id: input.userId, role_id: input.roleId, role: input.roleKey, status: 'active', is_active: true },
+    { user_id: input.userId, role_id: input.roleId, status: 'active', is_active: true },
+    { user_id: input.userId, role_id: input.roleId },
+    { user_id: input.userId, role: input.roleKey, status: 'active', is_active: true, company_id: input.companyId ?? null },
+    { user_id: input.userId, role: input.roleKey, is_active: true },
+  ]
+
+  let lastError: unknown = first.error
+  for (const payload of fallbackPayloads) {
+    const attempt = await supabaseService.from('user_roles').insert(payload)
+    if (!attempt.error) return
+    lastError = attempt.error
+    if (!isIgnorableSchemaError(attempt.error)) throw attempt.error
+  }
+
+  throw lastError
+}
+
+async function upsertAcceptedCompanyInvitation(input: {
+  companyId: string
+  email: string
+  fullName: string | null
+  membershipRole: string
+  roleKey: string
+  actorUserId: string
+  userId: string
+  passwordVerified: boolean
+}) {
+  const now = new Date().toISOString()
+  const updatePayload: Record<string, unknown> = {
+    full_name: input.fullName,
+    membership_role: input.membershipRole,
+    role_key: input.roleKey,
+    status: 'accepted',
+    invited_by: input.actorUserId,
+    invited_user_id: input.userId,
+    expires_at: null,
+    accepted_at: now,
+    revoked_at: null,
+    updated_at: now,
+    metadata: {
+      account_flow: 'direct_temporary_password',
+      password_verified: input.passwordVerified,
+      accepted_from_existing_pending_invitation: true,
+    },
+  }
+
+  for (const emailColumn of ['email', 'invited_email']) {
+    const updated = await supabaseService
+      .from('company_invitations')
+      .update(updatePayload)
+      .eq('company_id', input.companyId)
+      .eq(emailColumn, input.email)
+      .select('id')
+      .limit(1)
+      .maybeSingle()
+
+    if (updated.data?.id) return
+    if (updated.error && !isIgnorableSchemaError(updated.error)) throw updated.error
+  }
+
+  const insertPayload: Record<string, unknown> = {
+    company_id: input.companyId,
+    email: input.email,
+    invited_email: input.email,
+    full_name: input.fullName,
+    membership_role: input.membershipRole,
+    role_key: input.roleKey,
+    status: 'accepted',
+    invited_by: input.actorUserId,
+    invited_user_id: input.userId,
+    expires_at: null,
+    accepted_at: now,
+    metadata: {
+      account_flow: 'direct_temporary_password',
+      password_verified: input.passwordVerified,
+    },
+  }
+
+  const first = await supabaseService.from('company_invitations').insert(insertPayload)
+  if (!first.error) return
+
+  if (!isIgnorableSchemaError(first.error)) throw first.error
+
+  const { invited_email: _ignoredInvitedEmail, ...withoutInvitedEmail } = insertPayload
+  const second = await supabaseService.from('company_invitations').insert(withoutInvitedEmail)
+  if (!second.error) return
+
+  if (!isIgnorableSchemaError(second.error)) throw second.error
+
+  const { email: _ignoredEmail, ...withoutEmail } = insertPayload
+  const third = await supabaseService.from('company_invitations').insert(withoutEmail)
+  if (third.error && !isIgnorableSchemaError(third.error)) throw third.error
 }
 
 function parseCompanyStatus(value: string): CompanyOperationalStatus {
@@ -362,7 +473,7 @@ export async function createCompanyAction(
       })
 
       const roleId = await resolveRoleIdByKey('company_admin')
-      await insertActiveUserRole({ userId: provisioned.userId, roleId })
+      await insertActiveUserRole({ userId: provisioned.userId, roleId, roleKey: 'company_admin', companyId: company.id })
 
       const now = new Date().toISOString()
       const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
@@ -391,26 +502,16 @@ export async function createCompanyAction(
 
       if (membershipError) throw membershipError
 
-      const inviteInsert = await supabaseService.from('company_invitations').insert({
-        company_id: company.id,
+      await upsertAcceptedCompanyInvitation({
+        companyId: company.id,
         email: initialAdminEmail,
-        full_name: initialAdminName || null,
-        membership_role: 'owner',
-        role_key: 'company_admin',
-        status: 'accepted',
-        invited_by: actorUserId,
-        invited_user_id: provisioned.userId,
-        expires_at: null,
-        accepted_at: now,
-        metadata: {
-          account_flow: 'direct_temporary_password',
-          password_verified: provisioned.passwordVerified,
-        },
+        fullName: initialAdminName || null,
+        membershipRole: 'owner',
+        roleKey: 'company_admin',
+        actorUserId,
+        userId: provisioned.userId,
+        passwordVerified: provisioned.passwordVerified,
       })
-
-      if (inviteInsert.error && !['42P01', 'PGRST205'].includes(inviteInsert.error.code ?? '')) {
-        throw inviteInsert.error
-      }
 
       await trySendTenantInviteEmail({
         companyId: company.id,
@@ -513,7 +614,7 @@ export async function inviteCompanyUserAction(
       actorUserId,
     })
 
-    await insertActiveUserRole({ userId: provisioned.userId, roleId: await resolveRoleIdByKey(roleKey) })
+    await insertActiveUserRole({ userId: provisioned.userId, roleId: await resolveRoleIdByKey(roleKey), roleKey, companyId })
 
     const now = new Date().toISOString()
     const { error: membershipError } = await supabaseService.from('company_memberships').upsert(
@@ -542,26 +643,16 @@ export async function inviteCompanyUserAction(
 
     if (membershipError) throw membershipError
 
-    const inviteInsert = await supabaseService.from('company_invitations').insert({
-      company_id: companyId,
+    await upsertAcceptedCompanyInvitation({
+      companyId,
       email,
-      full_name: fullName,
-      membership_role: membershipRole,
-      role_key: roleKey,
-      status: 'accepted',
-      invited_by: actorUserId,
-      invited_user_id: provisioned.userId,
-      expires_at: null,
-      accepted_at: now,
-      metadata: {
-        account_flow: 'direct_temporary_password',
-        password_verified: provisioned.passwordVerified,
-      },
+      fullName,
+      membershipRole,
+      roleKey,
+      actorUserId,
+      userId: provisioned.userId,
+      passwordVerified: provisioned.passwordVerified,
     })
-
-    if (inviteInsert.error && !['42P01', 'PGRST205'].includes(inviteInsert.error.code ?? '')) {
-      throw inviteInsert.error
-    }
 
     await trySendTenantInviteEmail({
       companyId,
@@ -766,7 +857,7 @@ export async function setCompanyUserRoleAction(
 
     if (error) throw error
 
-    await insertActiveUserRole({ userId, roleId: await resolveRoleIdByKey(roleKey) })
+    await insertActiveUserRole({ userId, roleId: await resolveRoleIdByKey(roleKey), roleKey, companyId })
 
     await logTenantGovernanceEvent({
       action: 'SUPERADMIN_ROLE_CHANGED',

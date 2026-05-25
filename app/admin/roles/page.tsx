@@ -2,6 +2,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
+import { resolveRoleKey } from '@/lib/rbac/roleKeys'
 import {
  ROLE_PERMISSION_PROFILES,
  getRoleProfilePermissions,
@@ -9,7 +10,7 @@ import {
 
 type RoleRow = {
  id: string
- key: string
+ key: string | null
  name: string | null
  description: string | null
  is_system: boolean | null
@@ -92,8 +93,9 @@ export default async function AdminRolesPage() {
  )
 
  const rows = roles.map((role) => {
+ const roleKey = resolveRoleKey(role) ?? String(role.key ?? role.name ?? role.id)
  const actualPermissions = uniqueSorted(permissionsByRoleId.get(role.id) ?? [])
- const recommendedPermissions = getRoleProfilePermissions(role.key)
+ const recommendedPermissions = getRoleProfilePermissions(roleKey)
 
  const actualSet = new Set(actualPermissions)
  const recommendedSet = new Set(recommendedPermissions)
@@ -101,10 +103,11 @@ export default async function AdminRolesPage() {
  const missingFromDb = recommendedPermissions.filter((key) => !actualSet.has(key))
  const extraInDb = actualPermissions.filter((key) => !recommendedSet.has(key))
 
- const profile = ROLE_PERMISSION_PROFILES[role.key]
+ const profile = ROLE_PERMISSION_PROFILES[roleKey]
 
  return {
  role,
+ roleKey,
  profile,
  actualPermissions,
  recommendedPermissions,
@@ -197,6 +200,7 @@ export default async function AdminRolesPage() {
  {rows.map(
  ({
  role,
+ roleKey,
  profile,
  actualPermissions,
  recommendedPermissions,
@@ -215,7 +219,7 @@ export default async function AdminRolesPage() {
  {role.name ?? role.key}
  </h3>
  <span className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">
- {role.key}
+ {roleKey}
  </span>
  {role.is_system ? (
  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">

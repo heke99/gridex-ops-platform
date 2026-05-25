@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { getCompanyById } from '@/lib/tenant/governance'
+import { resolveRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
 
 export type CompanySettingsActionState = {
   ok: boolean
@@ -58,15 +59,9 @@ async function assertCanManageCompany(companyId: string) {
 }
 
 async function resolveRoleIdByKey(roleKey: string): Promise<string | null> {
-  const { data, error } = await supabaseService
-    .from('roles')
-    .select('id,key')
-    .eq('key', roleKey)
-    .maybeSingle()
-
-  if (error) throw error
-  return data?.id ? String(data.id) : null
+  return resolveRoleIdByKeyOrName(roleKey)
 }
+
 
 export async function updateCompanySettingsAction(
   _prevState: CompanySettingsActionState,

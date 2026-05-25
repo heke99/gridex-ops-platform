@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { resolveRoleKey } from '@/lib/rbac/roleKeys'
 
 type UserRoleRow = {
   user_id: string
@@ -6,8 +7,8 @@ type UserRoleRow = {
   is_active?: boolean | null
   status?: string | null
   roles: {
-    key: string
-    name: string
+    key?: string | null
+    name?: string | null
   } | null
 }
 
@@ -81,7 +82,8 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
     if (!isActive) continue
 
     const list = groupedRoles.get(row.user_id) ?? []
-    if (row.roles?.key) list.push(row.roles.key)
+    const roleKey = resolveRoleKey(row.roles)
+    if (roleKey) list.push(roleKey)
     groupedRoles.set(row.user_id, list)
   }
 

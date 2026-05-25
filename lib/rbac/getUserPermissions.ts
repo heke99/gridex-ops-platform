@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { ROLE_PERMISSION_PROFILES } from '@/lib/admin/accessModel'
+import { normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 
 
 
@@ -36,17 +37,6 @@ const MEMBERSHIP_ROLE_PERMISSION_PROFILE: Record<string, string> = {
   ekonomi: 'finance_readonly',
 }
 
-function normalizeRoleKey(value: string | null | undefined): string | null {
-  if (!value) return null
-
-  const normalized = value.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
-  if (!normalized) return null
-  if (normalized === 'superadmin' || normalized === 'super_admin') return 'super_admin'
-  if (normalized === 'platformadmin' || normalized === 'platform_admin') return 'super_admin'
-  if (normalized === 'companyadmin' || normalized === 'company_owner' || normalized === 'tenant_admin' || normalized === 'bolagsansvarig') return 'company_admin'
-  return normalized
-}
-
 function addRoleProfilePermissions(target: Set<string>, roleKey: string | null | undefined) {
   const normalized = normalizeRoleKey(roleKey)
   if (!normalized) return
@@ -76,7 +66,7 @@ async function addRoleFallbackPermissions(
       if (typeof row === 'string') {
         addRoleProfilePermissions(target, row)
       } else if (row && typeof row === 'object') {
-        addRoleProfilePermissions(target, row.role_key ?? row.key ?? row.code ?? row.name)
+        addRoleProfilePermissions(target, resolveRoleKey(row))
       }
     }
   }
