@@ -447,8 +447,8 @@ export async function createCompanyAction(
       await supabaseService
         .from('company_invitations')
         .update({
-          status: 'cancelled',
-          cancelled_at: new Date().toISOString(),
+          status: 'invitation_revoked',
+          revoked_at: new Date().toISOString(),
           metadata: { db3_create_company_rollback: true, reason: errorMessage(error, 'Bolaget kunde inte skapas.') },
         })
         .eq('company_id', createdCompanyId)
