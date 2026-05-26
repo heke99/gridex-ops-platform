@@ -9,7 +9,6 @@ import DocumentHistoryList from '@/components/admin/customers/document-card/Docu
 export default function CustomerAuthorizationDocumentsCard({
  customerId,
  sites,
- meteringPoints,
  documents,
  powersOfAttorney,
 }: CustomerAuthorizationDocumentsCardProps) {

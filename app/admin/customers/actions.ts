@@ -230,6 +230,8 @@ const INTAKE_VALUE_FIELDS: IntakeField[] = [
   "billingAddressSameAsSite",
   "billingLevel",
   "consolidatedInvoice",
+  "postCreateAction",
+  "postCreateRequestTarget",
 ];
 
 function getFormValues(formData: FormData): IntakeFormValues {

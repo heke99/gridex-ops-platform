@@ -53,7 +53,7 @@ function statusTone(ok: boolean): string {
 }
 
 export default async function CustomerTenantTestPage() {
- const access = await requireAdminPageAccess({ anyOf: ['customers.read', 'customers.write', 'platform.security'] })
+ await requireAdminPageAccess({ anyOf: ['customers.read', 'customers.write', 'platform.security'] })
  const supabase = await createSupabaseServerClient()
  const { data: authResult } = await supabase.auth.getUser()
 

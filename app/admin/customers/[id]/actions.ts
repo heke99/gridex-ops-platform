@@ -3,7 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import {
+  assertBillingUnderlayTenant,
+  assertContractTenant,
+  assertCustomerSiteTenant,
+  assertMeteringPointTenant,
+  assertPowerOfAttorneyTenant,
+  loadCustomerTenantContext,
+} from '@/lib/tenant/entityGuards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import {
   getCustomerSiteById,
@@ -153,6 +160,7 @@ function normalizeEdielMeteringMethod(value: string | null): 'Z01' | 'Z02' | 'Z0
 
 async function applyEdielMeteringMethodToSwitchSnapshots(params: {
   actorUserId: string
+  companyId: string
   customerId: string
   siteId: string
   meteringPointId: string
@@ -163,6 +171,7 @@ async function applyEdielMeteringMethodToSwitchSnapshots(params: {
   const { data: requests, error } = await supabaseService
     .from('supplier_switch_requests')
     .select('id,validation_snapshot')
+    .eq('company_id', params.companyId)
     .eq('customer_id', params.customerId)
     .eq('site_id', params.siteId)
     .eq('metering_point_id', params.meteringPointId)
@@ -251,19 +260,6 @@ function formatDocumentReference(doc: CustomerAuthorizationDocumentRow): Record<
     reference: doc.reference,
     uploadedAt: doc.uploaded_at,
   }
-}
-
-async function getActor() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error('Unauthorized')
-  }
-
-  return user
 }
 
 async function insertAuditLog(params: {
@@ -452,6 +448,7 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
   const edielMeteringMethod = normalizeEdielMeteringMethod(formValue(formData, 'ediel_metering_method'))
   const edielMeteringMethodSync = await applyEdielMeteringMethodToSwitchSnapshots({
     actorUserId: actor.id,
+    companyId,
     customerId,
     siteId: savedMeteringPoint.site_id,
     meteringPointId: savedMeteringPoint.id,
@@ -533,17 +530,21 @@ export async function createCustomerInternalNoteAction(
 export async function createPowerOfAttorneyAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
-  const customer = await loadCustomerForAction(customerId)
+  const powerOfAttorneyId = formValue(formData, 'id') || undefined
+  const siteId = formValue(formData, 'site_id') || null
+
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  await assertPowerOfAttorneyTenant({ companyId, customerId, powerOfAttorneyId })
 
   const saved = await savePowerOfAttorney(supabase, {
-    id: formValue(formData, 'id') || undefined,
+    id: powerOfAttorneyId,
     customer_id: customerId,
-    site_id: formValue(formData, 'site_id') || null,
+    site_id: siteId,
     scope:
       (formValue(formData, 'scope') as
         | 'supplier_switch'
@@ -565,7 +566,7 @@ export async function createPowerOfAttorneyAction(
     document_path: formValue(formData, 'document_path') || null,
     reference: formValue(formData, 'reference') || null,
     notes: formValue(formData, 'notes') || null,
-    companyId: customer.company_id,
+    companyId,
   })
 
   const syncSummary = saved.site_id
@@ -596,12 +597,13 @@ export async function createPowerOfAttorneyAction(
 export async function uploadCustomerAuthorizationDocumentAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const siteId = formValue(formData, 'site_id') || null
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
   const documentType =
     (formValue(formData, 'document_type') as 'power_of_attorney' | 'complete_agreement' | null) ??
     'power_of_attorney'
@@ -653,12 +655,14 @@ export async function uploadCustomerAuthorizationDocumentAction(
       document_path: filePath,
       reference,
       notes,
+      companyId,
     })
 
     savedPowerOfAttorneyId = savedPowerOfAttorney.id
   }
 
   const savedDocument = await saveCustomerAuthorizationDocument(supabase, {
+    companyId,
     customer_id: customerId,
     site_id: siteId,
     power_of_attorney_id: savedPowerOfAttorneyId,
@@ -704,9 +708,8 @@ export async function uploadCustomerAuthorizationDocumentAction(
 export async function runSwitchReadinessAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const siteId = formValue(formData, 'site_id') ?? ''
@@ -715,9 +718,11 @@ export async function runSwitchReadinessAction(
     throw new Error('Customer ID eller site ID saknas')
   }
 
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
   const site = await findCustomerSiteById(supabase, siteId)
 
-  if (!site) {
+  if (!site || site.company_id !== companyId || site.customer_id !== customerId) {
     throw new Error('Anläggningen kunde inte hittas')
   }
 
@@ -754,9 +759,8 @@ export async function runSwitchReadinessAction(
 export async function createSupplierSwitchRequestAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const siteId = formValue(formData, 'site_id') ?? ''
@@ -771,15 +775,18 @@ export async function createSupplierSwitchRequestAction(
     throw new Error('Customer ID eller site ID saknas')
   }
 
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
   const site = await findCustomerSiteById(supabase, siteId)
 
-  if (!site) {
+  if (!site || site.company_id !== companyId || site.customer_id !== customerId) {
     throw new Error('Anläggningen kunde inte hittas')
   }
 
   const existingOpenRequest = await findOpenSupplierSwitchRequestForSite(supabase, {
     customerId,
     siteId,
+    companyId,
   })
 
   if (existingOpenRequest) {
@@ -855,12 +862,27 @@ export async function createSupplierSwitchRequestAction(
 export async function updateOperationTaskStatusAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const customerId = formValue(formData, 'customer_id') ?? ''
   const taskId = formValue(formData, 'task_id') ?? ''
   const status = formValue(formData, 'status') ?? 'open'
+
+  if (!customerId || !taskId) {
+    throw new Error('Kund eller uppgift saknas.')
+  }
+
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  const { data: task, error: taskError } = await supabaseService
+    .from('customer_operation_tasks')
+    .select('id, company_id, customer_id')
+    .eq('id', taskId)
+    .eq('company_id', companyId)
+    .eq('customer_id', customerId)
+    .maybeSingle()
+
+  if (taskError) throw taskError
+  if (!task) throw new Error('Uppgiften tillhör inte kunden eller bolaget.')
 
   const payload: Record<string, unknown> = {
     status,
@@ -877,6 +899,8 @@ export async function updateOperationTaskStatusAction(
     .from('customer_operation_tasks')
     .update(payload)
     .eq('id', taskId)
+    .eq('company_id', companyId)
+    .eq('customer_id', customerId)
     .select('*')
     .single()
 
@@ -903,6 +927,7 @@ export async function updateOperationTaskStatusAction(
 
 async function createAndQueueCustomerMasterdataZ01(params: {
   actorUserId: string
+  companyId: string
   customerId: string
   siteId: string | null
   meteringPointId: string | null
@@ -911,7 +936,7 @@ async function createAndQueueCustomerMasterdataZ01(params: {
   notes: string | null
 }) {
   const infoRequest = await createCustomerInfoRequest({
-    companyId: await requireOperationalCompanyId(params.actorUserId),
+    companyId: params.companyId,
     actorUserId: params.actorUserId,
     customerId: params.customerId,
     siteId: params.siteId,
@@ -942,9 +967,8 @@ async function createAndQueueCustomerMasterdataZ01(params: {
 export async function createGridOwnerDataRequestAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
 
@@ -952,8 +976,11 @@ export async function createGridOwnerDataRequestAction(
     throw new Error('Customer ID saknas')
   }
 
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
   const siteId = formValue(formData, 'site_id') || null
   const meteringPointId = formValue(formData, 'metering_point_id') || null
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
   const gridOwnerId = formValue(formData, 'grid_owner_id') || null
   const requestScope = normalizeGridOwnerRequestScope(
     formValue(formData, 'request_scope')
@@ -970,6 +997,7 @@ export async function createGridOwnerDataRequestAction(
   if (requestScope === 'customer_masterdata') {
     await createAndQueueCustomerMasterdataZ01({
       actorUserId: actor.id,
+      companyId,
       customerId,
       siteId,
       meteringPointId,
@@ -1089,9 +1117,8 @@ export async function createGridOwnerDataRequestAction(
 export async function createAuthorizationRequestPackageAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const siteId = formValue(formData, 'site_id') || null
@@ -1101,13 +1128,15 @@ export async function createAuthorizationRequestPackageAction(
     throw new Error('Customer eller anläggning saknas för request-paketet')
   }
 
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
   const site = await findCustomerSiteById(supabase, siteId)
-  if (!site) {
+  if (!site || site.company_id !== companyId || site.customer_id !== customerId) {
     throw new Error('Anläggningen kunde inte hittas')
   }
 
   const [documents, meteringPoints] = await Promise.all([
-    listCustomerAuthorizationDocumentsByCustomerId(supabase, customerId),
+    listCustomerAuthorizationDocumentsByCustomerId(supabase, customerId, { companyId }),
     listMeteringPointsForSite(supabase, siteId),
   ])
 
@@ -1161,6 +1190,7 @@ export async function createAuthorizationRequestPackageAction(
     if (scope === 'customer_masterdata') {
       const result = await createAndQueueCustomerMasterdataZ01({
         actorUserId: actor.id,
+        companyId,
         customerId,
         siteId,
         meteringPointId: preferredMeteringPoint?.id ?? null,
@@ -1307,6 +1337,13 @@ export async function createCustomerDataRequestPackageAction(
   const externalReference = formValue(formData, 'external_reference') || null
   const notes = formValue(formData, 'notes') || null
   const selectedPowerOfAttorneyId = formValue(formData, 'power_of_attorney_id') || null
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
+  await assertPowerOfAttorneyTenant({
+    companyId,
+    customerId,
+    powerOfAttorneyId: selectedPowerOfAttorneyId,
+  })
 
   const signedPowerOfAttorney = selectedPowerOfAttorneyId
     ? await supabaseService
@@ -1499,9 +1536,8 @@ export async function createCustomerDataRequestPackageAction(
 export async function createPartnerExportAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
 
@@ -1509,12 +1545,20 @@ export async function createPartnerExportAction(
     throw new Error('Customer ID saknas')
   }
 
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  const siteId = formValue(formData, 'site_id') || null
+  const meteringPointId = formValue(formData, 'metering_point_id') || null
+  const billingUnderlayId = formValue(formData, 'billing_underlay_id') || null
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
+  await assertBillingUnderlayTenant({ companyId, customerId, billingUnderlayId })
+
   const saved = await createPartnerExport({
     actorUserId: actor.id,
     customerId,
-    siteId: formValue(formData, 'site_id') || null,
-    meteringPointId: formValue(formData, 'metering_point_id') || null,
-    billingUnderlayId: formValue(formData, 'billing_underlay_id') || null,
+    siteId,
+    meteringPointId,
+    billingUnderlayId,
     exportKind: normalizePartnerExportKind(formValue(formData, 'export_kind')),
     targetSystem: formValue(formData, 'target_system') || 'billing_partner',
     externalReference: formValue(formData, 'external_reference') || null,
@@ -1555,39 +1599,11 @@ function isDatabaseShapeError(error: unknown): boolean {
   )
 }
 
-async function loadCustomerForAction(customerId: string): Promise<{ id: string; company_id: string | null; status: string | null }> {
-  const { data, error } = await supabaseService
-    .from('customers')
-    .select('id, company_id, status')
-    .eq('id', customerId)
-    .maybeSingle()
-
-  if (error) throw error
-  if (!data) throw new Error('Kunden hittades inte.')
-  return data as { id: string; company_id: string | null; status: string | null }
-}
-
 async function requireCustomerMutationContext(
   customerId: string,
-  guard: { userId: string; isPlatformAdmin: boolean }
+  guard: Awaited<ReturnType<typeof requireAdminActionAccess>>
 ): Promise<{ customer: { id: string; company_id: string; status: string | null }; companyId: string }> {
-  const customer = await loadCustomerForAction(customerId)
-  const companyId = customer.company_id
-  if (!companyId) {
-    throw new Error('Kunden saknar bolagskoppling och kan därför inte ändras säkert.')
-  }
-
-  if (!guard.isPlatformAdmin) {
-    const operationalCompanyId = await requireOperationalCompanyId(guard.userId)
-    if (operationalCompanyId !== companyId) {
-      throw new Error('Du saknar behörighet för kundens bolag.')
-    }
-  }
-
-  return {
-    customer: { ...customer, company_id: companyId },
-    companyId,
-  }
+  return loadCustomerTenantContext(customerId, guard)
 }
 
 async function insertCustomerCaseForLifecycle(params: {
@@ -1684,8 +1700,8 @@ async function blockBillingForLifecycleDecision(params: {
 }
 
 export async function savePowerOfAttorneyScopeAction(formData: FormData): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const customerId = formValue(formData, 'customer_id') ?? ''
   const powerOfAttorneyId = formValue(formData, 'power_of_attorney_id') ?? ''
   const siteId = formValue(formData, 'site_id') || null
@@ -1696,20 +1712,14 @@ export async function savePowerOfAttorneyScopeAction(formData: FormData): Promis
   const validTo = normalizeDateOrNull(formValue(formData, 'valid_to'))
 
   if (!customerId || !powerOfAttorneyId) throw new Error('Kund och fullmakt krävs.')
-  const customer = await loadCustomerForAction(customerId)
-
-  const { data: poa, error: poaError } = await supabaseService
-    .from('powers_of_attorney')
-    .select('id, customer_id, company_id, status')
-    .eq('id', powerOfAttorneyId)
-    .eq('customer_id', customerId)
-    .maybeSingle()
-
-  if (poaError) throw poaError
-  if (!poa) throw new Error('Fullmakten hittades inte på kunden.')
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  await assertPowerOfAttorneyTenant({ companyId, customerId, powerOfAttorneyId })
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
+  await assertContractTenant({ companyId, customerId, contractId })
 
   const payload = {
-    company_id: customer.company_id,
+    company_id: companyId,
     customer_id: customerId,
     power_of_attorney_id: powerOfAttorneyId,
     scope_type: scopeType,
@@ -1744,8 +1754,8 @@ export async function savePowerOfAttorneyScopeAction(formData: FormData): Promis
 }
 
 export async function registerCustomerLifecycleDecisionAction(formData: FormData): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = await getActor()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
   const customerId = formValue(formData, 'customer_id') ?? ''
   const decisionType = formValue(formData, 'decision_type') === 'rejected' ? 'rejected' : 'withdrawal'
   const scopeType = formValue(formData, 'scope_type') || 'customer'
@@ -1754,7 +1764,14 @@ export async function registerCustomerLifecycleDecisionAction(formData: FormData
   const blockBilling = toBoolean(formData, 'block_billing')
 
   if (!customerId) throw new Error('Kund saknas.')
-  const customer = await loadCustomerForAction(customerId)
+  const { customer, companyId } = await requireCustomerMutationContext(customerId, guard)
+  if (scopeType === 'site') {
+    await assertCustomerSiteTenant({ companyId, customerId, siteId: scopeId })
+  } else if (scopeType === 'metering_point') {
+    await assertMeteringPointTenant({ companyId, customerId, meteringPointId: scopeId })
+  } else if (scopeType === 'contract') {
+    await assertContractTenant({ companyId, customerId, contractId: scopeId })
+  }
   const nextStatus = decisionType === 'withdrawal' ? 'cancelled' : 'rejected'
   const now = new Date().toISOString()
 
