@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
-import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getGridOwnerById, listGridOwners } from '@/lib/masterdata/db'
 import GridOwnerForm from '@/components/admin/masterdata/GridOwnerForm'
 import GridOwnersTable from '@/components/admin/masterdata/GridOwnersTable'
@@ -17,7 +16,7 @@ type NetworkOwnersPageProps = {
 export default async function NetworkOwnersPage({
  searchParams,
 }: NetworkOwnersPageProps) {
- await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
+ await requirePlatformAdminAccess()
 
  const supabase = await createSupabaseServerClient()
  const params = await searchParams

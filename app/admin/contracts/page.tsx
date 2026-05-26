@@ -47,7 +47,7 @@ function statusTone(status: string, isActive: boolean): string {
 }
 
 export default async function AdminContractsPage() {
- await requireAdminPageAccess(['pricing.read'])
+ await requireAdminPageAccess({ anyOf: ['contracts.write', 'pricing.write'] })
 
  const supabase = await createSupabaseServerClient()
  const { data: authResult } = await supabase.auth.getUser()

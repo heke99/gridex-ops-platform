@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
-import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
  getElectricitySupplierById,
  listElectricitySuppliers,
@@ -20,7 +19,7 @@ type PageProps = {
 export default async function ElectricitySuppliersPage({
  searchParams,
 }: PageProps) {
- await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
+ await requirePlatformAdminAccess()
 
  const supabase = await createSupabaseServerClient()
  const params = await searchParams

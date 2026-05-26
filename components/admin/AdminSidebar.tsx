@@ -23,6 +23,7 @@ type NavGroup = {
   title: string;
   description: string;
   items: NavItem[];
+  platformOnly?: boolean;
 };
 
 type AdminSidebarProps = {
@@ -40,14 +41,14 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         href: "/admin",
-        label: "Driftöversikt",
-        description: "Kunddrift, Ediel, mätvärden och åtgärder",
+        label: "Start",
+        description: "Dagens arbete, kunder, uppgifter och fakturering",
         pageKey: "dashboard",
       },
       {
         href: "/admin/controltower",
-        label: "System Control Tower",
-        description: "Fullmakter, switchar, mätvärden och handoff",
+        label: "Arbetsöversikt",
+        description: "Blockeringar, switchar, mätvärden och handoff",
         pageKey: "operations.control_tower",
       },
     ],
@@ -55,6 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Ediel Center",
     description: "Liveflöden, kvittenser, aktörer och drift",
+    platformOnly: true,
     items: [
       {
         href: "/admin/ediel",
@@ -136,8 +138,9 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: "/admin/customers/tenant-test",
         label: "Tenant-/rolltest",
-        description: "Bolag A/B, roller och RLS-policyrapport",
+        description: "Intern testyta för plattformens RLS- och rollkontroll",
         pageKey: "customers.intake",
+        platformOnly: true,
       },
       {
         href: "/admin/contracts",
@@ -318,6 +321,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Masterdata",
     description: "Aktörs- och grunddata som driver automationen",
+    platformOnly: true,
     items: [
       {
         href: "/admin/network-owners",
@@ -467,8 +471,8 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: "/admin/company-actor-status",
-        label: "Aktörsinställningar",
-        description: "Bolagets test- och produktionsstatus",
+        label: "Driftstatus",
+        description: "Lässtatus för bolagets aktörsprofil och live-läge",
         pageKey: "company.actor_status",
       },
       {
@@ -523,12 +527,14 @@ export default function AdminSidebar({
     (isPlatformAdmin ? "SaaS-plattform" : "Bolagsyta");
   const initial = displayName.charAt(0).toUpperCase();
 
-  const visibleGroups = NAV_GROUPS.map((group) => ({
-    ...group,
-    items: group.items.filter((item) =>
-      canAccessNavItem(permissions, item, isPlatformAdmin, isCompanyLiveEnabled),
-    ),
-  })).filter((group) => group.items.length > 0);
+  const visibleGroups = NAV_GROUPS.filter((group) => !group.platformOnly || isPlatformAdmin)
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        canAccessNavItem(permissions, item, isPlatformAdmin, isCompanyLiveEnabled),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <aside className="flex h-screen w-full flex-col border-r border-emerald-100/80 bg-gradient-to-b from-white via-[#fbfdfb] to-[#f7fbf8] text-slate-900 shadow-sm shadow-emerald-950/5">

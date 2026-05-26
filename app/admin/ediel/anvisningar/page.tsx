@@ -1,5 +1,5 @@
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
  EDIEL_INSTRUCTION_SPECS,
  buildInstructionCoverage,
@@ -38,7 +38,7 @@ function getAckDeadline(spec: InstructionSpecRow): string {
 }
 
 export default async function AdminEdielAnvisningarPage() {
- await requirePermissionServer('operations.read')
+ await requirePlatformAdminAccess()
 
  const coverage = buildInstructionCoverage()
  const readyCount = EDIEL_INSTRUCTION_SPECS.filter(
@@ -55,7 +55,7 @@ export default async function AdminEdielAnvisningarPage() {
  <div className="space-y-6">
  <AdminHeader
  title="Ediel anvisningskarta"
- subtitle="Praktisk driftvy över vilka anvisningar som är runtime-scope, delvis klara, parkerade eller senare scope. Den här sidan är till för att bygga klart systemet, inte för self-test."
+ subtitle="Plattformsintern driftvy över vilka anvisningar som är runtime-scope, delvis klara, parkerade eller senare scope."
  />
 
  <section className="grid gap-4 md:grid-cols-4">

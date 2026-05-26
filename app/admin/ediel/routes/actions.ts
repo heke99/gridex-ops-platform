@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
@@ -238,11 +238,7 @@ async function upsertEdielRouteProfileLocal(input: {
 }
 
 export async function saveEdielRouteProfileAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePlatformAdminActionAccess()
 
   const communicationRouteId = stringValue(formData, 'communicationRouteId')
   if (!communicationRouteId) {
@@ -289,11 +285,7 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
 }
 
 export async function saveEdielCommunicationRouteAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePlatformAdminActionAccess()
 
   const { supabase, userId, companyId } = await getActorContext()
 
@@ -341,11 +333,7 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
 }
 
 export async function createEdielBootstrapRouteAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePlatformAdminActionAccess()
 
   const { userId, companyId } = await getActorContext()
   const environment =
@@ -409,11 +397,7 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
 }
 
 export async function quickFixEdielTargetEmailAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePlatformAdminActionAccess()
 
   const routeId = stringValue(formData, 'routeId')
   const targetEmail = stringValue(formData, 'targetEmail')
@@ -440,11 +424,7 @@ export async function quickFixEdielTargetEmailAction(formData: FormData) {
 }
 
 export async function quickFixEdielRouteActivationAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePlatformAdminActionAccess()
 
   const routeId = stringValue(formData, 'routeId')
   const customerId = stringValue(formData, 'customerId')
@@ -504,11 +484,7 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
 }
 
 export async function quickFixEdielProfileBasicsAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePlatformAdminActionAccess()
 
   const routeId = stringValue(formData, 'routeId')
   const customerId = stringValue(formData, 'customerId')
@@ -557,11 +533,7 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
 }
 
 export async function quickFixGridOwnerEdielIdAction(formData: FormData) {
-  await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  await requirePlatformAdminActionAccess()
 
   const gridOwnerId = stringValue(formData, 'gridOwnerId')
   const customerId = stringValue(formData, 'customerId')

@@ -1,6 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
-import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
  getPriceAreaLocalityById,
  listPriceAreaLocalities,
@@ -19,7 +18,7 @@ type PageProps = {
 export default async function PriceAreaLocalitiesPage({
  searchParams,
 }: PageProps) {
- await requireAdminPageAccess([MASTERDATA_PERMISSIONS.READ])
+ await requirePlatformAdminAccess()
 
  const supabase = await createSupabaseServerClient()
  const params = await searchParams

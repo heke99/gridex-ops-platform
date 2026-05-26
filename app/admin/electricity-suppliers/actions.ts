@@ -2,8 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
-import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { saveElectricitySupplier } from '@/lib/masterdata/db'
 import {
   electricitySupplierInputSchema,
@@ -19,7 +18,7 @@ function formValue(formData: FormData, key: string): string | null {
 export async function saveElectricitySupplierAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  await requirePlatformAdminActionAccess()
 
   const supabase = await createSupabaseServerClient()
 

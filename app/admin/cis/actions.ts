@@ -3,14 +3,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isPlatformAdminContext, requireAdminActionAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   bulkQueueMissingBillingUnderlays,
   bulkQueueMissingMeterValues,
   bulkQueueReadySupplierSwitches,
   createOutboundRequest,
-  findOpenOutboundBySource,
   ingestBillingUnderlay,
   ingestMeteringValue,
   saveCommunicationRoute,
@@ -254,11 +253,7 @@ async function syncSwitchRequestFromOutbound(params: {
 export async function saveCommunicationRouteAction(
   formData: FormData
 ): Promise<void> {
-  const access = await requireAdminActionAccess([
-    'switching.write',
-    'metering.write',
-    'billing_underlay.write',
-  ])
+  const access = await requirePlatformAdminActionAccess()
 
   const actor = await getActor()
   const companyScope = await getOperationalCompanyScope(access.userId)

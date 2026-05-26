@@ -3,7 +3,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
 import { getActiveEdielActorSettings } from '@/lib/ediel/config'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
@@ -181,7 +181,7 @@ function ProfileField({
 }
 
 export default async function EdielPage() {
- const context = await requireAdminPageKeyAccess('ediel.workspace')
+ const context = await requirePlatformAdminAccess()
  const supabase = await createSupabaseServerClient()
  const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)

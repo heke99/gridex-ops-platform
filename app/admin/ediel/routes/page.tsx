@@ -1,6 +1,6 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
  explainEdielRouteRuntime,
@@ -207,7 +207,7 @@ function buildReceiverPresets(params: {
 }
 
 export default async function AdminEdielRoutesPage() {
- const context = await requireAdminPageKeyAccess('ediel.routes')
+ const context = await requirePlatformAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)
 
@@ -279,9 +279,6 @@ export default async function AdminEdielRoutesPage() {
  const readyCount = sortedRoutes.filter((row) => row.ready).length
  const blockedCount = sortedRoutes.length - readyCount
  const missingRuntimeCount = sortedRoutes.filter((row) => !row.runtime).length
- const missingTargetEmailCount = sortedRoutes.filter(
- (row) => !row.route.target_email?.trim()
- ).length
  const missingReceiverCount = sortedRoutes.filter((row) => {
  const effectiveReceiver =
  row.explanation?.effectiveReceiverEdielId ??

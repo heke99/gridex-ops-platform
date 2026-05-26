@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
@@ -89,7 +89,7 @@ function revalidateEdielPaths() {
 }
 
 export async function saveEdielActorSettingsAction(formData: FormData) {
-  await requireAdminActionAccess(['communication.read', 'communication.send'])
+  await requirePlatformAdminActionAccess()
 
   const { supabase, userId, companyId } = await getActorContext()
 

@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { listEdielMessages } from '@/lib/ediel/db'
 import {
@@ -71,7 +71,7 @@ function customerLabel(row: CustomerRow) {
 }
 
 export default async function AdminEdielAiListPage() {
- const context = await requireAdminPageKeyAccess('ediel.workspace')
+ const context = await requirePlatformAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)
  const companyId = isPlatformAdmin ? null : companyScope.companyId

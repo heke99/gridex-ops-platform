@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { listCommunicationRoutes } from '@/lib/cis/db'
 import { listGridOwners } from '@/lib/masterdata/db'
@@ -19,7 +19,7 @@ type PageProps = {
 export default async function CommunicationRoutesPage({
  searchParams,
 }: PageProps) {
- const access = await requireAdminPageKeyAccess('integrations.routes')
+ const access = await requirePlatformAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(access)
  const companyScope = await getOperationalCompanyScope(access.userId)
  if (!isPlatformAdmin && !companyScope.companyId) {
@@ -47,8 +47,8 @@ export default async function CommunicationRoutesPage({
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Communication routes"
- subtitle="Styr hur supplier switch, mätvärden och billing-underlag routas ut från CIS."
+ title="Kommunikationsrutter"
+ subtitle="Plattformsstyrd routing för leverantörsbyte, mätvärden och faktureringsunderlag. Vanliga elbolag ser bara driftstatus."
  userEmail={user?.email ?? null}
  />
 

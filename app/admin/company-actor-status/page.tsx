@@ -20,7 +20,7 @@ export default async function CompanyActorStatusPage({
 
   return (
     <div className="min-h-screen">
-      <AdminHeader title="Aktörsstatus" subtitle="Bolagets egen översikt över aktörstest och produktionsstatus. Tekniska AGT-verktyg visas inte här." userEmail={admin.email} workspaceName={scope.companyName} />
+      <AdminHeader title="Driftstatus" subtitle="Läsöversikt för bolagets aktörsprofil och live-läge. Tekniska Ediel-inställningar hanteras av superadmin." userEmail={admin.email} workspaceName={scope.companyName} />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         {params.message ? (
           <section className={`rounded-3xl border p-5 text-sm font-semibold ${params.status === 'blocked' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>
@@ -28,7 +28,7 @@ export default async function CompanyActorStatusPage({
           </section>
         ) : null}
         {!summary ? (
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-900">Kontot saknar aktiv bolagskoppling eller aktörsprofilen är inte skapad ännu.</div>
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-900">Kontot saknar aktiv bolagskoppling eller aktörsprofilen är inte skapad ännu. Kontakta support eller superadmin för ändringar.</div>
         ) : (
           <>
             <ActorCompanyIdentityCard summary={summary} />

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import { listAckMessagesForSource, listEdielMessages } from '@/lib/ediel/db'
@@ -140,7 +140,7 @@ export default async function AdminEdielMessagesPage({
 }: {
  searchParams?: Promise<SearchParams> | SearchParams
 }) {
- const context = await requireAdminPageKeyAccess('ediel.workspace')
+ const context = await requirePlatformAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)
  const liveAccess = await getTenantLiveAccessForAdmin(context)

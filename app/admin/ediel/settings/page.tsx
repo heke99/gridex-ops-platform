@@ -5,7 +5,7 @@ import EdielRuleGroups, {
 } from '@/components/admin/ediel/EdielRuleGroups'
 import EdielRuleTemplateModals from '@/components/admin/ediel/EdielRuleTemplateModals'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
  saveEdielActorSettingsAction,
@@ -192,7 +192,7 @@ function pickPreviousRule(
 }
 
 export default async function AdminEdielSettingsPage() {
- const context = await requireAdminPageKeyAccess('ediel.workspace')
+ const context = await requirePlatformAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)
 

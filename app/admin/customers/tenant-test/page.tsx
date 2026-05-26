@@ -1,5 +1,5 @@
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -53,7 +53,7 @@ function statusTone(ok: boolean): string {
 }
 
 export default async function CustomerTenantTestPage() {
- await requireAdminPageAccess({ anyOf: ['customers.read', 'customers.write', 'platform.security'] })
+ await requirePlatformAdminAccess()
  const supabase = await createSupabaseServerClient()
  const { data: authResult } = await supabase.auth.getUser()
 
@@ -84,8 +84,8 @@ export default async function CustomerTenantTestPage() {
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Tenant- och rolltest för kundintag"
- subtitle="Kontrollerar RLS/policyrapport och visar exakt testmatris för Bolag A/B, superadmin, bolagsadmin, kundservice och ekonomi."
+ title="Intern tenant- och rolltest"
+ subtitle="Plattformsintern kontroll av RLS, policyrapport och rollmatris. Vanliga elbolag ser inte den här sidan."
  userEmail={authResult.user?.email ?? null}
  />
 
