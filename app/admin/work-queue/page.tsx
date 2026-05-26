@@ -1,467 +1,452 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
-type WorkQueuePageProps = {
- searchParams: Promise<{
- type?: string
- q?: string
- }>
+type ActiveCustomer = {
+  id: string
+  company_id: string | null
+  customer_number: string | null
+  full_name: string | null
+  first_name: string | null
+  last_name: string | null
+  company_name: string | null
+  email: string | null
+  status: string | null
+  source: string | null
+  created_at: string | null
 }
 
-type RawRow = Record<string, unknown>
-
-type WorkItem = {
- id: string
- type: 'fullmakt' | 'uppgiftsbegaran' | 'kundarende' | 'leverantorsbyte' | 'blockerare'
- customerId: string | null
- title: string
- description: string
- status: string
- priority: string
- createdAt: string | null
- href: string
+type QueueItem = {
+  id: string
+  source: string
+  customerId: string
+  customerLabel: string
+  title: string
+  description: string
+  status: string
+  priority: 'low' | 'normal' | 'high' | 'critical'
+  createdAt: string | null
+  href: string
+  actionLabel: string
 }
 
-type CustomerLabel = {
- id: string
- label: string
+type CountFilter = {
+  column: string
+  value: string | string[] | null
+  op?: 'eq' | 'in' | 'is'
 }
 
-function stringValue(value: unknown): string {
- return typeof value === 'string' ? value : ''
+const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
+const ACTIVE_TASK_STATUSES = ['open', 'new', 'pending', 'pending_review', 'action_required', 'missing_authorization', 'blocked', 'route_missing', 'manual_review_required', 'failed', 'sent', 'waiting_for_z02', 'waiting_response']
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return '—'
+  try {
+    return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+  } catch {
+    return '—'
+  }
+}
+
+function customerLabel(customer: ActiveCustomer): string {
+  const name =
+    customer.company_name?.trim() ||
+    customer.full_name?.trim() ||
+    [customer.first_name, customer.last_name].filter(Boolean).join(' ').trim() ||
+    customer.email?.trim() ||
+    customer.customer_number?.trim()
+
+  return name || 'Kund utan namn'
+}
+
+function normalizePriority(value: unknown): QueueItem['priority'] {
+  const normalized = String(value ?? '').toLowerCase()
+  if (normalized === 'critical' || normalized === 'high' || normalized === 'low') return normalized
+  return 'normal'
+}
+
+function priorityTone(priority: QueueItem['priority']) {
+  if (priority === 'critical') return 'border-red-200 bg-red-50 text-red-800'
+  if (priority === 'high') return 'border-amber-200 bg-amber-50 text-amber-900'
+  if (priority === 'low') return 'border-slate-200 bg-slate-50 text-slate-700'
+  return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+}
+
+function statusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    open: 'Öppen',
+    new: 'Ny',
+    pending: 'Väntar',
+    pending_review: 'Kräver granskning',
+    action_required: 'Kräver åtgärd',
+    missing_authorization: 'Saknar fullmakt',
+    blocked: 'Blockerad',
+    route_missing: 'Saknar route',
+    manual_review_required: 'Manuell kontroll',
+    failed: 'Misslyckad',
+    sent: 'Skickad',
+    waiting_for_z02: 'Väntar på nätägare',
+    waiting_response: 'Väntar på svar',
+    draft: 'Utkast',
+    ready_to_send: 'Redo att skickas',
+    ready: 'Redo',
+    queued: 'Köad',
+    submitted: 'Skickad',
+    accepted: 'Accepterad',
+  }
+  return labels[status] ?? status
+}
+
+
+function textValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
 }
 
 function dateValue(value: unknown): string | null {
- return typeof value === 'string' && value.trim() ? value : null
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
 }
 
-function uiStatus(value: string): string {
- switch (value) {
- case 'open':
- return 'Öppen'
- case 'in_progress':
- return 'Pågår'
- case 'blocked':
- return 'Blockerad'
- case 'draft':
- return 'Utkast'
- case 'ready_to_send':
- return 'Redo att skickas'
- case 'sent':
- return 'Skickad'
- case 'waiting_response':
- return 'Väntar svar'
- case 'partially_received':
- return 'Delvis mottaget'
- case 'received':
- return 'Svar mottaget'
- case 'rejected':
- return 'Nekad'
- case 'failed':
- return 'Fel'
- default:
- return value || 'Okänd'
- }
+function taskTypeLabel(value: unknown): string {
+  const labels: Record<string, string> = {
+    missing_power_of_attorney: 'Saknar fullmakt',
+    missing_metering_point_id: 'Saknar mätpunkt',
+    missing_facility_id: 'Saknar anläggnings-ID',
+    missing_grid_owner: 'Saknar nätägare',
+    possible_duplicate: 'Möjlig dubblett',
+    customer_data_request: 'Uppgiftsbegäran',
+    grid_owner_request: 'Begäran till nätägare',
+    supplier_switch: 'Leverantörsbyte',
+  }
+  const key = String(value ?? '').trim()
+  return labels[key] ?? (key.replaceAll('_', ' ') || 'Åtgärd')
 }
 
-function typeLabel(type: WorkItem['type']): string {
- switch (type) {
- case 'fullmakt':
- return 'Fullmakt'
- case 'uppgiftsbegaran':
- return 'Uppgiftsbegäran'
- case 'kundarende':
- return 'Kundärende'
- case 'leverantorsbyte':
- return 'Leverantörsbyte'
- case 'blockerare':
- return 'Blockerare'
- default:
- return type
- }
+function isSafeDbError(error: unknown): boolean {
+  const code = String((error as { code?: string } | null)?.code ?? '')
+  return isMissingRelationError(error) || ['42703', '42P01', 'PGRST204', 'PGRST205'].includes(code)
 }
 
-function priorityTone(priority: string): string {
- if (['critical', 'high', 'kritisk', 'hög'].includes(priority)) {
- return 'border-red-200 bg-red-50 text-red-700'
- }
- if (['normal', 'medium', 'medel'].includes(priority)) {
- return 'border-amber-200 bg-amber-50 text-amber-700'
- }
- return 'border-slate-200 bg-slate-50 text-slate-700'
+async function loadActiveCustomers(supabase: SupabaseClient, companyId: string | null, isPlatformAdmin: boolean): Promise<ActiveCustomer[]> {
+  try {
+    let query = supabase
+      .from('customers')
+      .select('id, company_id, customer_number, full_name, first_name, last_name, company_name, email, status, source, created_at')
+      .not('company_id', 'is', null)
+      .or('source.is.null,source.neq.ediel_portal_test')
+      .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
+      .order('created_at', { ascending: false })
+      .limit(isPlatformAdmin ? 1000 : 500)
+
+    if (companyId && !isPlatformAdmin) query = query.eq('company_id', companyId)
+
+    const { data, error } = await query
+    if (error) throw error
+    return (data ?? []) as ActiveCustomer[]
+  } catch (error) {
+    if (isSafeDbError(error)) return []
+    throw error
+  }
 }
 
-function itemTone(status: string): string {
- if (['blocked', 'failed', 'rejected'].includes(status)) {
- return 'border-red-200 bg-red-50'
- }
- if (['waiting_response', 'sent', 'ready_to_send', 'open', 'in_progress', 'draft'].includes(status)) {
- return 'border-amber-200 bg-amber-50'
- }
- return 'border-slate-200 bg-white'
+async function safeRows<T>(
+  supabase: SupabaseClient,
+  table: string,
+  companyId: string | null,
+  select: string,
+  filters: CountFilter[],
+  customerIds: string[],
+  limit = 50,
+): Promise<T[]> {
+  if (customerIds.length === 0) return []
+
+  try {
+    let query = supabase
+      .from(table)
+      .select(select)
+      .in('customer_id', customerIds)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (companyId) query = query.eq('company_id', companyId)
+    for (const filter of filters) {
+      if (filter.op === 'in') {
+        query = query.in(filter.column, Array.isArray(filter.value) ? filter.value : [])
+      } else if (filter.op === 'is') {
+        query = query.is(filter.column, filter.value)
+      } else {
+        query = query.eq(filter.column, filter.value)
+      }
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return (data ?? []) as T[]
+  } catch (error) {
+    if (isSafeDbError(error)) return []
+    throw error
+  }
 }
 
-function customerDisplayName(row: RawRow): string {
- const companyName = stringValue(row.company_name).trim()
- if (companyName) return companyName
- const fullName = stringValue(row.full_name).trim()
- if (fullName) return fullName
- const firstName = stringValue(row.first_name).trim()
- const lastName = stringValue(row.last_name).trim()
- const personName = [firstName, lastName].filter(Boolean).join(' ').trim()
- if (personName) return personName
- const number = stringValue(row.customer_number).trim()
- if (number) return number
- return 'Kund utan namn'
+export default async function AdminWorkQueuePage() {
+  const context = await requireAdminPageKeyAccess('operations.tasks')
+  const companyScope = await getOperationalCompanyScope(context.userId)
+  const isPlatformAdmin = isPlatformAdminContext(context)
+  const supabase = await createSupabaseServerClient()
+  const companyId = isPlatformAdmin ? null : companyScope.companyId
+  const activeCustomers = await loadActiveCustomers(supabase, companyId, isPlatformAdmin)
+  const customerIds = activeCustomers.map((customer) => customer.id)
+  const customersById = new Map(activeCustomers.map((customer) => [customer.id, customer]))
+
+  const [blockers, infoRequests, gridOwnerRequests, operationTasks, switchRequests] = await Promise.all([
+    safeRows<Record<string, unknown>>(
+      supabase,
+      'customer_blockers',
+      companyId,
+      'id, customer_id, blocker_type, severity, status, title, description, created_at',
+      [{ column: 'status', op: 'in', value: ['open', 'pending_review', 'action_required'] }],
+      customerIds,
+      80,
+    ),
+    safeRows<Record<string, unknown>>(
+      supabase,
+      'customer_info_requests',
+      companyId,
+      'id, customer_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, created_at',
+      [{ column: 'status', op: 'in', value: ACTIVE_TASK_STATUSES }],
+      customerIds,
+      80,
+    ),
+    safeRows<Record<string, unknown>>(
+      supabase,
+      'grid_owner_data_requests',
+      companyId,
+      'id, customer_id, request_scope, status, failure_reason, notes, created_at',
+      [{ column: 'status', op: 'in', value: ['pending', 'sent', 'failed'] }],
+      customerIds,
+      50,
+    ),
+    safeRows<Record<string, unknown>>(
+      supabase,
+      'customer_operation_tasks',
+      companyId,
+      'id, customer_id, task_type, status, priority, title, description, created_at',
+      [{ column: 'status', op: 'in', value: ['open', 'new', 'pending', 'action_required'] }],
+      customerIds,
+      80,
+    ),
+    safeRows<Record<string, unknown>>(
+      supabase,
+      'supplier_switch_requests',
+      companyId,
+      'id, customer_id, status, request_type, created_at',
+      [{ column: 'status', op: 'in', value: ['draft', 'ready', 'queued', 'submitted', 'accepted', 'pending', 'open'] }],
+      customerIds,
+      50,
+    ),
+  ])
+
+  const items: QueueItem[] = []
+
+  for (const row of blockers) {
+    const customer = customersById.get(String(row.customer_id ?? ''))
+    if (!customer) continue
+    items.push({
+      id: String(row.id),
+      source: 'Blockerare',
+      customerId: customer.id,
+      customerLabel: customerLabel(customer),
+      title: textValue(row.title) ?? taskTypeLabel(row.blocker_type),
+      description: textValue(row.description) ?? taskTypeLabel(row.blocker_type),
+      status: String(row.status ?? 'open'),
+      priority: normalizePriority(row.severity === 'critical' ? 'critical' : row.severity === 'warning' ? 'high' : 'normal'),
+      createdAt: dateValue(row.created_at),
+      href: `/admin/customers/${customer.id}`,
+      actionLabel: 'Öppna kundkort',
+    })
+  }
+
+  for (const row of infoRequests) {
+    const customer = customersById.get(String(row.customer_id ?? ''))
+    if (!customer) continue
+    const target = row.target_party_type === 'current_supplier' ? 'nuvarande leverantör' : row.target_party_type === 'grid_owner' ? 'nätägare' : 'kund'
+    items.push({
+      id: String(row.id),
+      source: 'Uppgiftsbegäran',
+      customerId: customer.id,
+      customerLabel: customerLabel(customer),
+      title: `Väntar på ${target}`,
+      description: textValue(row.blocker_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_type),
+      status: String(row.status ?? 'pending'),
+      priority: ['missing_authorization', 'blocked', 'negative_aperak', 'route_missing'].includes(String(row.status)) ? 'high' : 'normal',
+      createdAt: dateValue(row.created_at),
+      href: `/admin/customers/${customer.id}?tab=data-requests`,
+      actionLabel: 'Öppna uppgiftsbegäran',
+    })
+  }
+
+  for (const row of gridOwnerRequests) {
+    const customer = customersById.get(String(row.customer_id ?? ''))
+    if (!customer) continue
+    items.push({
+      id: String(row.id),
+      source: 'Nätägare',
+      customerId: customer.id,
+      customerLabel: customerLabel(customer),
+      title: 'Begäran till nätägare',
+      description: textValue(row.failure_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_scope),
+      status: String(row.status ?? 'pending'),
+      priority: row.status === 'failed' ? 'high' : 'normal',
+      createdAt: dateValue(row.created_at),
+      href: `/admin/customers/${customer.id}?tab=data-requests`,
+      actionLabel: 'Öppna kundkort',
+    })
+  }
+
+  for (const row of operationTasks) {
+    const customer = customersById.get(String(row.customer_id ?? ''))
+    if (!customer) continue
+    items.push({
+      id: String(row.id),
+      source: 'Ärende',
+      customerId: customer.id,
+      customerLabel: customerLabel(customer),
+      title: textValue(row.title) ?? taskTypeLabel(row.task_type),
+      description: textValue(row.description) ?? taskTypeLabel(row.task_type),
+      status: String(row.status ?? 'open'),
+      priority: normalizePriority(row.priority),
+      createdAt: dateValue(row.created_at),
+      href: `/admin/customers/${customer.id}`,
+      actionLabel: 'Öppna kundkort',
+    })
+  }
+
+  for (const row of switchRequests) {
+    const customer = customersById.get(String(row.customer_id ?? ''))
+    if (!customer) continue
+    items.push({
+      id: String(row.id),
+      source: 'Leverantörsbyte',
+      customerId: customer.id,
+      customerLabel: customerLabel(customer),
+      title: 'Leverantörsbyte behöver uppföljning',
+      description: taskTypeLabel(row.request_type),
+      status: String(row.status ?? 'pending'),
+      priority: ['accepted', 'ready'].includes(String(row.status)) ? 'high' : 'normal',
+      createdAt: dateValue(row.created_at),
+      href: `/admin/customers/${customer.id}?tab=supplier-switch`,
+      actionLabel: 'Öppna leverantörsbyte',
+    })
+  }
+
+  const sortedItems = items.sort((a, b) => {
+    const priorityRank = { critical: 4, high: 3, normal: 2, low: 1 }
+    const byPriority = priorityRank[b.priority] - priorityRank[a.priority]
+    if (byPriority !== 0) return byPriority
+    return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+  })
+
+  const visibleCustomerCount = activeCustomers.length
+  const staleHint = visibleCustomerCount === 0
+    ? 'Arbetskön visar bara ärenden kopplade till synliga kunder. Gamla testkunder, arkiverade kunder och orphans filtreras bort.'
+    : `${visibleCustomerCount} synliga kunder används som grund för kön.`
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <AdminHeader
+        title="Arbetskö"
+        subtitle="Kunder och ärenden som kräver nästa åtgärd. Kön filtrerar bort gamla testkunder och ärenden utan synlig kund."
+        userEmail={context.email}
+        workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+        workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
+      />
+
+      <main className="space-y-6 p-6 lg:p-8">
+        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold text-emerald-950 shadow-sm">
+          {staleHint}
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-4">
+          <StatCard label="Synliga kunder" value={visibleCustomerCount} />
+          <StatCard label="Ärenden i kö" value={sortedItems.length} />
+          <StatCard label="Hög prioritet" value={sortedItems.filter((item) => item.priority === 'high' || item.priority === 'critical').length} />
+          <StatCard label="Saknar fullmakt" value={sortedItems.filter((item) => item.status === 'missing_authorization' || item.title.toLowerCase().includes('fullmakt')).length} />
+        </section>
+
+        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-6 py-5">
+            <h2 className="text-lg font-bold text-slate-950">Nästa åtgärder</h2>
+            <p className="mt-1 text-sm text-slate-600">Visar bara aktiva rader som går att koppla till en kund som finns i kundregistret.</p>
+          </div>
+
+          {sortedItems.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <h3 className="text-lg font-bold text-slate-950">Inga aktiva ärenden hittades</h3>
+              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                Det betyder att det inte finns öppna blockerare, uppgiftsbegäran eller switchärenden kopplade till synliga kunder.
+                Gamla testdata och orphans visas inte här.
+              </p>
+              <div className="mt-6 flex justify-center gap-3">
+                <Link href="/admin/customers" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">Öppna kundregister</Link>
+                <Link href="/admin/customers/intake" className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800">Skapa kund</Link>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50 text-left text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                  <tr>
+                    <th className="px-6 py-4">Kund</th>
+                    <th className="px-6 py-4">Ärende</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Prioritet</th>
+                    <th className="px-6 py-4">Skapad</th>
+                    <th className="px-6 py-4">Åtgärd</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {sortedItems.map((item) => (
+                    <tr key={`${item.source}-${item.id}`} className="hover:bg-slate-50">
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-950">{item.customerLabel}</div>
+                        <div className="mt-1 text-xs text-slate-500">{item.customerId}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-800">{item.source}</div>
+                        <div className="mt-1 font-semibold text-slate-900">{item.title}</div>
+                        <div className="mt-1 max-w-xl text-xs leading-5 text-slate-600">{item.description}</div>
+                      </td>
+                      <td className="px-6 py-4 text-slate-700">{statusLabel(item.status)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{item.priority}</span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-700">{formatDate(item.createdAt)}</td>
+                      <td className="px-6 py-4">
+                        <Link href={item.href} className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
+                          {item.actionLabel}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  )
 }
 
-async function safeSelectRows(
- table: string,
- select: string,
- companyId: string | null,
- statusValues: string[],
- limit = 50
-): Promise<RawRow[]> {
- const supabase = await createSupabaseServerClient()
- try {
- let query = supabase.from(table).select(select)
- if (companyId) query = query.eq('company_id', companyId)
- if (statusValues.length > 0) query = query.in('status', statusValues)
- const { data, error } = await query.order('created_at', { ascending: false }).limit(limit)
- if (error) return []
- return (data ?? []) as unknown as RawRow[]
- } catch {
- return []
- }
-}
-
-async function loadCustomerLabels(companyId: string | null, customerIds: string[]): Promise<Map<string, CustomerLabel>> {
- const uniqueIds = Array.from(new Set(customerIds.filter(Boolean)))
- const labels = new Map<string, CustomerLabel>()
- if (uniqueIds.length === 0) return labels
-
- const supabase = await createSupabaseServerClient()
- try {
- let query = supabase
- .from('customers')
- .select('id, full_name, first_name, last_name, company_name, customer_number')
- .in('id', uniqueIds)
- if (companyId) query = query.eq('company_id', companyId)
- const { data, error } = await query
- if (error) return labels
- for (const row of (data ?? []) as RawRow[]) {
- const id = stringValue(row.id)
- if (id) labels.set(id, { id, label: customerDisplayName(row) })
- }
- return labels
- } catch {
- return labels
- }
-}
-
-function blockerTitle(type: string, fallback: string): string {
- if (fallback) return fallback
- switch (type) {
- case 'missing_power_of_attorney':
- return 'Saknar fullmakt'
- case 'missing_metering_point_id':
- return 'Saknar mätpunkts-ID'
- case 'missing_facility_id':
- return 'Saknar anläggnings-ID'
- case 'possible_duplicate':
- return 'Möjlig dubblett'
- default:
- return 'Kund behöver kompletteras'
- }
-}
-
-function buildWorkItems(rows: {
- blockers: RawRow[]
- infoRequests: RawRow[]
- cases: RawRow[]
- switches: RawRow[]
- tasks: RawRow[]
-}): WorkItem[] {
- const blockerItems = rows.blockers.map((row) => {
- const customerId = stringValue(row.customer_id) || null
- const blockerType = stringValue(row.blocker_type)
- return {
- id: `blocker-${stringValue(row.id)}`,
- type: blockerType === 'missing_power_of_attorney' ? 'fullmakt' : 'blockerare',
- customerId,
- title: blockerTitle(blockerType, stringValue(row.title)),
- description: stringValue(row.description) || 'Komplettera kunden innan nästa steg kan slutföras.',
- status: stringValue(row.status) || 'open',
- priority: stringValue(row.severity) || 'normal',
- createdAt: dateValue(row.created_at),
- href: customerId ? `/admin/customers/${customerId}` : '/admin/customers',
- } satisfies WorkItem
- })
-
- const requestItems = rows.infoRequests.map((row) => {
- const customerId = stringValue(row.customer_id) || null
- const targetName = stringValue(row.target_party_name)
- const targetType = stringValue(row.target_party_type)
- return {
- id: `info-${stringValue(row.id)}`,
- type: 'uppgiftsbegaran',
- customerId,
- title: targetName ? `Väntar uppgifter från ${targetName}` : 'Uppgiftsbegäran kräver uppföljning',
- description: targetType ? `Mottagare: ${targetType}` : 'Följ upp begäran och registrera svar när det kommer.',
- status: stringValue(row.status) || 'waiting_response',
- priority: 'normal',
- createdAt: dateValue(row.created_at),
- href: customerId ? `/admin/customers/${customerId}?tab=data-requests` : '/admin/customer-info-requests',
- } satisfies WorkItem
- })
-
- const caseItems = rows.cases.map((row) => {
- const customerId = stringValue(row.customer_id) || null
- return {
- id: `case-${stringValue(row.id)}`,
- type: 'kundarende',
- customerId,
- title: stringValue(row.title) || 'Kundärende kräver åtgärd',
- description: stringValue(row.next_action) || stringValue(row.description) || 'Öppna ärendet och följ nästa åtgärd.',
- status: stringValue(row.status) || 'open',
- priority: stringValue(row.priority) || 'normal',
- createdAt: dateValue(row.created_at),
- href: customerId ? `/admin/customers/${customerId}?tab=cases` : '/admin/customer-cases',
- } satisfies WorkItem
- })
-
- const switchItems = rows.switches.map((row) => {
- const customerId = stringValue(row.customer_id) || null
- return {
- id: `switch-${stringValue(row.id)}`,
- type: 'leverantorsbyte',
- customerId,
- title: 'Leverantörsbyte kräver uppföljning',
- description: stringValue(row.status) ? `Status: ${uiStatus(stringValue(row.status))}` : 'Kontrollera status och nästa steg.',
- status: stringValue(row.status) || 'open',
- priority: 'normal',
- createdAt: dateValue(row.created_at),
- href: customerId ? `/admin/customers/${customerId}?tab=switch-operations` : '/admin/operations/switches',
- } satisfies WorkItem
- })
-
- const taskItems = rows.tasks.map((row) => {
- const customerId = stringValue(row.customer_id) || null
- const taskType = stringValue(row.task_type)
- return {
- id: `task-${stringValue(row.id)}`,
- type: taskType.includes('power') || taskType.includes('fullmakt') ? 'fullmakt' : 'blockerare',
- customerId,
- title: stringValue(row.title) || 'Driftuppgift kräver åtgärd',
- description: stringValue(row.description) || 'Öppna kundkortet och komplettera det som saknas.',
- status: stringValue(row.status) || 'open',
- priority: stringValue(row.priority) || 'normal',
- createdAt: dateValue(row.created_at),
- href: customerId ? `/admin/customers/${customerId}` : '/admin/operations/tasks',
- } satisfies WorkItem
- })
-
- return [...blockerItems, ...requestItems, ...caseItems, ...switchItems, ...taskItems].sort((a, b) => {
- const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0
- const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0
- return createdB - createdA
- })
-}
-
-function formatDate(value: string | null): string {
- if (!value) return '—'
- return new Intl.DateTimeFormat('sv-SE', {
- dateStyle: 'medium',
- timeStyle: 'short',
- }).format(new Date(value))
-}
-
-export default async function AdminWorkQueuePage({ searchParams }: WorkQueuePageProps) {
- const context = await requireAdminPageKeyAccess('operations.tasks')
- const tenantScope = await resolveAdminTenantReadScope(context)
- const companyId = tenantScope.companyId
- const resolvedSearchParams = await searchParams
- const selectedType = (resolvedSearchParams.type ?? 'all').trim()
- const query = (resolvedSearchParams.q ?? '').trim().toLowerCase()
- const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
-
- const [blockers, infoRequests, cases, switches, tasks] = await Promise.all([
- safeSelectRows(
- 'customer_blockers',
- 'id, customer_id, blocker_type, severity, status, title, description, created_at',
- companyId,
- ['open', 'in_progress', 'blocked', 'pending'],
- 80
- ),
- safeSelectRows(
- 'customer_info_requests',
- 'id, customer_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, created_at',
- companyId,
- ['draft', 'ready_to_send', 'sent', 'waiting_response', 'partially_received', 'failed', 'rejected'],
- 80
- ),
- safeSelectRows(
- 'customer_cases',
- 'id, customer_id, case_type, priority, status, title, description, next_action, created_at',
- companyId,
- ['open', 'in_progress', 'blocked'],
- 80
- ),
- safeSelectRows(
- 'supplier_switch_requests',
- 'id, customer_id, request_type, status, created_at',
- companyId,
- ['open', 'draft', 'queued', 'sent', 'waiting_response', 'accepted', 'blocked', 'failed', 'rejected'],
- 80
- ),
- safeSelectRows(
- 'customer_operation_tasks',
- 'id, customer_id, task_type, priority, status, title, description, created_at',
- companyId,
- ['open', 'in_progress', 'blocked'],
- 80
- ),
- ])
-
- const allItems = buildWorkItems({ blockers, infoRequests, cases, switches, tasks })
- const labels = await loadCustomerLabels(
- companyId,
- allItems.map((item) => item.customerId).filter((value): value is string => Boolean(value))
- )
- const filteredItems = allItems.filter((item) => {
- const customerName = item.customerId ? labels.get(item.customerId)?.label ?? '' : ''
- const matchesType = selectedType === 'all' || item.type === selectedType
- const haystack = [item.title, item.description, item.status, item.priority, customerName].join(' ').toLowerCase()
- const matchesQuery = !query || haystack.includes(query)
- return matchesType && matchesQuery
- })
- const countsByType = allItems.reduce<Record<string, number>>((acc, item) => {
- acc[item.type] = (acc[item.type] ?? 0) + 1
- return acc
- }, {})
-
- const filterItems: Array<{ id: string; label: string }> = [
- { id: 'all', label: 'Alla' },
- { id: 'fullmakt', label: 'Saknar fullmakt' },
- { id: 'uppgiftsbegaran', label: 'Uppgiftsbegäran' },
- { id: 'leverantorsbyte', label: 'Leverantörsbyte' },
- { id: 'kundarende', label: 'Kundärenden' },
- { id: 'blockerare', label: 'Blockerare' },
- ]
-
- return (
- <div className="min-h-screen">
- <AdminHeader
- title="Arbetskö"
- subtitle="Samlad lista över kunder, blockerare, fullmakter, uppgiftsbegäran och ärenden som kräver nästa åtgärd."
- userEmail={user?.email ?? null}
- />
-
- <div className="space-y-6 p-8">
- <section className="rounded-[2rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white p-6 shadow-sm">
- <div className="flex flex-wrap items-start justify-between gap-5">
- <div>
- <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-900">Dagens arbete</p>
- <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Vad behöver åtgärdas?</h1>
- <p className="mt-3 max-w-4xl text-sm font-bold leading-6 text-slate-700">
- Här samlas uppgifter från kundkort, fullmakter, uppgiftsbegäran, leverantörsbyte och kundärenden. Målet är att handläggaren snabbt ska se nästa praktiska steg.
- </p>
- </div>
- <Link href="/admin/customers/intake" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
- Skapa kund
- </Link>
- </div>
- </section>
-
- <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
- {filterItems.map((filter) => {
- const count = filter.id === 'all' ? allItems.length : countsByType[filter.id] ?? 0
- const active = selectedType === filter.id
- return (
- <Link
- key={filter.id}
- href={`/admin/work-queue?type=${filter.id}`}
- className={`rounded-2xl border px-4 py-4 text-sm shadow-sm ${
- active ? 'border-emerald-300 bg-emerald-50 text-emerald-950' : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50'
- }`}
- >
- <div className="font-black">{filter.label}</div>
- <div className="mt-2 text-2xl font-black">{count}</div>
- </Link>
- )
- })}
- </section>
-
- <form className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
- <input type="hidden" name="type" value={selectedType} />
- <label className="text-sm font-black text-slate-800" htmlFor="work-queue-search">
- Sök i arbetskön
- </label>
- <div className="mt-2 flex flex-col gap-3 md:flex-row">
- <input
- id="work-queue-search"
- name="q"
- defaultValue={resolvedSearchParams.q ?? ''}
- placeholder="Sök kund, status, ärende eller problem"
- className="min-h-12 flex-1 rounded-2xl border border-slate-300 px-4 text-sm"
- />
- <button className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white hover:bg-emerald-800">
- Sök
- </button>
- </div>
- </form>
-
- <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
- <div className="border-b border-slate-200 px-6 py-5">
- <h2 className="text-lg font-black text-slate-950">Uppgifter</h2>
- <p className="mt-1 text-sm font-bold text-slate-700">{filteredItems.length} träffar utifrån valt filter.</p>
- </div>
- {filteredItems.length === 0 ? (
- <div className="p-10 text-center text-sm text-slate-700">
- <div className="text-base font-black text-slate-950">Inget kräver åtgärd just nu</div>
- <div className="mx-auto mt-2 max-w-xl">När kunder saknar fullmakt, uppgiftsbegäran väntar på svar eller ärenden skapas visas de här.</div>
- </div>
- ) : (
- <div className="divide-y divide-slate-200">
- {filteredItems.map((item) => {
- const customerLabel = item.customerId ? labels.get(item.customerId)?.label ?? 'Kund' : 'Ingen kund kopplad'
- return (
- <article key={item.id} className="grid gap-4 px-6 py-5 lg:grid-cols-[minmax(0,1fr)_180px_160px_auto] lg:items-center">
- <div>
- <div className="flex flex-wrap items-center gap-2">
- <span className={`rounded-full border px-3 py-1 text-xs font-black ${itemTone(item.status)}`}>{typeLabel(item.type)}</span>
- <span className={`rounded-full border px-3 py-1 text-xs font-black ${priorityTone(item.priority)}`}>{item.priority || 'normal'}</span>
- </div>
- <h3 className="mt-3 text-base font-black text-slate-950">{item.title}</h3>
- <p className="mt-1 text-sm font-bold leading-6 text-slate-700">{item.description}</p>
- <div className="mt-2 text-xs font-bold text-slate-600">Kund: {customerLabel}</div>
- </div>
- <div className="text-sm font-bold text-slate-700">
- <div className="text-xs uppercase tracking-[0.14em] text-slate-500">Status</div>
- <div className="mt-1">{uiStatus(item.status)}</div>
- </div>
- <div className="text-sm font-bold text-slate-700">
- <div className="text-xs uppercase tracking-[0.14em] text-slate-500">Skapad</div>
- <div className="mt-1">{formatDate(item.createdAt)}</div>
- </div>
- <Link href={item.href} className="inline-flex justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-900 hover:bg-slate-50">
- Öppna
- </Link>
- </article>
- )
- })}
- </div>
- )}
- </section>
- </div>
- </div>
- )
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="text-sm font-bold text-slate-700">{label}</div>
+      <div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div>
+    </div>
+  )
 }

@@ -23,7 +23,6 @@ type NavGroup = {
   title: string;
   description: string;
   items: NavItem[];
-  platformOnly?: boolean;
 };
 
 type AdminSidebarProps = {
@@ -41,28 +40,33 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         href: "/admin",
-        label: "Start",
-        description: "Dagens arbete, kunder, uppgifter och fakturering",
+        label: "Driftöversikt",
+        description: "Kunddrift, Ediel, mätvärden och åtgärder",
         pageKey: "dashboard",
+      },
+      {
+        href: "/admin/controltower",
+        label: "System Control Tower",
+        description: "Fullmakter, switchar, mätvärden och handoff",
+        pageKey: "operations.control_tower",
       },
       {
         href: "/admin/work-queue",
         label: "Arbetskö",
-        description: "Allt som kräver nästa åtgärd",
+        description: "Kunder och ärenden som kräver nästa åtgärd",
         pageKey: "operations.tasks",
       },
       {
-        href: "/admin/controltower",
-        label: "Arbetsöversikt",
-        description: "Blockeringar, switchar, mätvärden och handoff",
-        pageKey: "operations.control_tower",
+        href: "/admin/ediel/control-tower",
+        label: "Ediel Control Tower",
+        description: "Kvittenser, fel, dubbletter och route-problem",
+        pageKey: "ediel.workspace",
       },
     ],
   },
   {
     title: "Ediel Center",
     description: "Liveflöden, kvittenser, aktörer och drift",
-    platformOnly: true,
     items: [
       {
         href: "/admin/ediel",
@@ -76,7 +80,6 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Ediel Control Tower",
         description: "Kvittenser, dubbletter, fel och regelkonflikter",
         pageKey: "ediel.workspace",
-        requiresLiveCompany: true,
       },
       {
         href: "/admin/ediel/messages",
@@ -90,12 +93,14 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Adressering & routes",
         description: "Nätägare, leverantörer, BRP och route profiles",
         pageKey: "ediel.routes",
+        platformOnly: true,
       },
       {
         href: "/admin/ediel/settings",
         label: "Ediel-inställningar",
         description: "Bolagets aktörsidentitet och Edielförutsättningar",
         pageKey: "ediel.routes",
+        platformOnly: true,
       },
       {
         href: "/admin/company-actor-status",
@@ -144,7 +149,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: "/admin/customers/tenant-test",
         label: "Tenant-/rolltest",
-        description: "Intern testyta för plattformens RLS- och rollkontroll",
+        description: "Bolag A/B, roller och RLS-policyrapport",
         pageKey: "customers.intake",
         platformOnly: true,
       },
@@ -181,8 +186,8 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Fullmakter och uppgifter",
-    description: "Fullmakt, uppgiftsbegäran och komplettering",
+    title: "Fullmakter & onboarding",
+    description: "Från signerad fullmakt till begärda uppgifter",
     items: [
       {
         href: "/admin/customers/intake",
@@ -191,9 +196,9 @@ const NAV_GROUPS: NavGroup[] = [
         pageKey: "customers.intake",
       },
       {
-        href: "/admin/work-queue",
-        label: "Arbetskö",
-        description: "Blockerade fullmakter, saknade uppgifter och väntande svar",
+        href: "/admin/operations/tasks",
+        label: "Operationsuppgifter",
+        description: "Blockerade fullmakter och saknade uppgifter",
         pageKey: "operations.tasks",
       },
       {
@@ -211,7 +216,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Drift & leverantörsbyte",
+    title: "Operations",
     description: "Leverantörsbyte, utskick och uppföljning",
     items: [
       {
@@ -265,8 +270,8 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Fakturering & export",
-    description: "Mätvärden, faktureringsunderlag och partnerhandoff",
+    title: "Mätvärden & fakturaunderlag",
+    description: "UTILTS, mätvärden och partnerhandoff",
     items: [
       {
         href: "/admin/metering",
@@ -327,31 +332,34 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Masterdata",
     description: "Aktörs- och grunddata som driver automationen",
-    platformOnly: true,
     items: [
       {
         href: "/admin/network-owners",
         label: "Nätägare",
         description: "Elnätsägare, nätområden och teknisk adressdata",
         pageKey: "masterdata.network_owners",
+        platformOnly: true,
       },
       {
         href: "/admin/electricity-suppliers",
         label: "Elleverantörer",
         description: "Leverantörsregister och motparter",
         pageKey: "masterdata.electricity_suppliers",
+        platformOnly: true,
       },
       {
         href: "/admin/price-area-localities",
         label: "Elområden",
         description: "Orter och SE1–SE4",
         pageKey: "masterdata.price_area_localities",
+        platformOnly: true,
       },
       {
         href: "/admin/integrations/routes",
         label: "Kommunikationsrutter",
         description: "Generell routing utanför Ediel",
         pageKey: "integrations.routes",
+        platformOnly: true,
       },
     ],
   },
@@ -429,13 +437,6 @@ const NAV_GROUPS: NavGroup[] = [
       },
 
       {
-        href: "/admin/platform/work-queue",
-        label: "Plattformsarbetskö",
-        description: "Tenants som kräver aktörstest, go-live, usage eller supportåtgärd",
-        pageKey: "platform.work_queue",
-        platformOnly: true,
-      },
-      {
         href: "/admin/platform/usage",
         label: "Usage & SaaS-fakturering",
         description: "Volymer per tenant för framtida plattformsfakturering",
@@ -484,8 +485,8 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: "/admin/company-actor-status",
-        label: "Driftstatus",
-        description: "Lässtatus för bolagets aktörsprofil och live-läge",
+        label: "Aktörsinställningar",
+        description: "Bolagets test- och produktionsstatus",
         pageKey: "company.actor_status",
       },
       {
@@ -540,14 +541,12 @@ export default function AdminSidebar({
     (isPlatformAdmin ? "SaaS-plattform" : "Bolagsyta");
   const initial = displayName.charAt(0).toUpperCase();
 
-  const visibleGroups = NAV_GROUPS.filter((group) => !group.platformOnly || isPlatformAdmin)
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) =>
-        canAccessNavItem(permissions, item, isPlatformAdmin, isCompanyLiveEnabled),
-      ),
-    }))
-    .filter((group) => group.items.length > 0);
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) =>
+      canAccessNavItem(permissions, item, isPlatformAdmin, isCompanyLiveEnabled),
+    ),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <aside className="flex h-screen w-full flex-col border-r border-emerald-100/80 bg-gradient-to-b from-white via-[#fbfdfb] to-[#f7fbf8] text-slate-900 shadow-sm shadow-emerald-950/5">

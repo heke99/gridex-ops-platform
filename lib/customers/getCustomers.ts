@@ -35,6 +35,8 @@ export type CustomerListRow = {
 
 type RawCustomerRow = Record<string, unknown> & { id?: string }
 
+const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
+
 type CustomerSiteCountRow = {
   id: string
   customer_id: string | null
@@ -202,7 +204,7 @@ async function loadCustomerRows(companyId: string | null): Promise<CustomerListR
       .select('*')
       .not('company_id', 'is', null)
       .or('source.is.null,source.neq.ediel_portal_test')
-      .or('status.is.null,status.neq.archived')
+      .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
       .order('created_at', { ascending: false })
       .limit(1000)
 
