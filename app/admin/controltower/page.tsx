@@ -23,6 +23,16 @@ type CountFilter = {
   op?: 'eq' | 'in' | 'is' | 'neq'
 }
 
+type SafeSupabaseQuery = {
+  eq: (column: string, value: unknown) => SafeSupabaseQuery
+  neq: (column: string, value: unknown) => SafeSupabaseQuery
+  in: (column: string, values: readonly unknown[]) => SafeSupabaseQuery
+  is: (column: string, value: unknown) => SafeSupabaseQuery
+  limit: (count: number) => SafeSupabaseQuery
+  order: (column: string, options?: { ascending?: boolean }) => SafeSupabaseQuery
+  then: PromiseLike<{ data?: unknown; count?: number | null; error?: unknown }>['then']
+}
+
 type RecentCaseRow = {
   id: string
   title: string | null
@@ -41,7 +51,7 @@ type QueueRow = {
   created_at: string | null
 }
 
-function applyFilter(query: any, filter: CountFilter): any {
+function applyFilter(query: SafeSupabaseQuery, filter: CountFilter): SafeSupabaseQuery {
   if (filter.op === 'in') return query.in(filter.column, Array.isArray(filter.value) ? filter.value : [])
   if (filter.op === 'is') return query.is(filter.column, filter.value)
   if (filter.op === 'neq') return query.neq(filter.column, filter.value)
@@ -55,7 +65,7 @@ function isSafeDbError(error: unknown): boolean {
 
 async function safeCount(table: string, companyId: string | null, filters: CountFilter[] = []): Promise<number> {
   try {
-    let query: any = supabaseService.from(table).select('*', { count: 'exact', head: true })
+    let query = supabaseService.from(table).select('*', { count: 'exact', head: true }) as unknown as SafeSupabaseQuery
     if (companyId) query = query.eq('company_id', companyId)
     for (const filter of filters) query = applyFilter(query, filter)
     const { count, error } = await query
@@ -75,7 +85,7 @@ async function safeRows<T>(
   limit = 8
 ): Promise<T[]> {
   try {
-    let query: any = supabaseService.from(table).select(select).limit(limit)
+    let query = supabaseService.from(table).select(select).limit(limit) as unknown as SafeSupabaseQuery
     if (companyId) query = query.eq('company_id', companyId)
     for (const filter of filters) query = applyFilter(query, filter)
     query = query.order('created_at', { ascending: false })

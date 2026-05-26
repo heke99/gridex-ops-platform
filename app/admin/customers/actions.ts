@@ -1570,41 +1570,6 @@ type IntakeDuplicateMatch = {
   message: string;
 };
 
-async function maybeSingleExists(
-  table: string,
-  companyId: string,
-  column: string,
-  value: string | null,
-): Promise<boolean> {
-  const normalized = normalizeOptionalString(value);
-  if (!normalized) return false;
-
-  try {
-    let query = supabaseService
-      .from(table)
-      .select("id")
-      .eq("company_id", companyId)
-      .limit(1);
-
-    query =
-      column === "email"
-        ? query.ilike(column, normalized)
-        : query.eq(column, normalized);
-
-    const { data, error } = await query.maybeSingle();
-
-    if (error) {
-      if (databaseObjectMissing(error)) return false;
-      throw error;
-    }
-
-    return Boolean(data);
-  } catch (error) {
-    if (databaseObjectMissing(error)) return false;
-    throw error;
-  }
-}
-
 async function findMatchingCustomersByColumn(params: {
   companyId: string;
   column: string;
@@ -2464,18 +2429,28 @@ function mapUnknownErrorToIntakeState(
   };
 }
 
-async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<
-  Record<string, any> & {
-    __duplicateWarnings: string[];
-    __duplicateReviewRequired: boolean;
-    __createdNewCustomer: boolean;
-    __createdSiteId: string | null;
-    __createdMeteringPointId: string | null;
-    __createdGridOwnerId: string | null;
-    __createdPowerOfAttorneyId: string | null;
-    __createdCurrentSupplierName: string | null;
-  }
-> {
+type CustomerGraphRow = Record<string, unknown> & {
+  id: string
+  customer_number?: string | null
+  customer_type?: string | null
+  full_name?: string | null
+  company_name?: string | null
+  email?: string | null
+  phone?: string | null
+}
+
+type CustomerGraphResult = CustomerGraphRow & {
+  __duplicateWarnings: string[]
+  __duplicateReviewRequired: boolean
+  __createdNewCustomer: boolean
+  __createdSiteId: string | null
+  __createdMeteringPointId: string | null
+  __createdGridOwnerId: string | null
+  __createdPowerOfAttorneyId: string | null
+  __createdCurrentSupplierName: string | null
+}
+
+async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<CustomerGraphResult> {
   const fieldErrors = validateCreateCustomerParams(params);
   if (Object.keys(fieldErrors).length > 0) {
     throw createValidationErrorFromFieldErrors(fieldErrors);
@@ -2619,14 +2594,14 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<
   };
 
   try {
-    let customer = null as Record<string, any> | null;
+    let customer = null as CustomerGraphRow | null;
     let createdNewCustomer = false;
 
     if (shouldUseExistingCustomer) {
-      customer = await loadExistingCustomerForIntake({
+      customer = (await loadExistingCustomerForIntake({
         companyId: params.companyId,
         customerId: params.existingCustomerId,
-      });
+      })) as CustomerGraphRow | null;
 
       if (!customer?.id) {
         throw new IntakeValidationError(
@@ -2678,7 +2653,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<
           .single();
 
       if (customerError) throw customerError;
-      customer = createdCustomer as Record<string, any>;
+      customer = createdCustomer as CustomerGraphRow;
       createdNewCustomer = true;
       creationContext.customerId = String(customer.id);
 
@@ -3390,7 +3365,7 @@ async function resolveGridOwnerIdForImport(params: {
   if (!name) return null;
 
   try {
-    let query = supabaseService
+    const query = supabaseService
       .from("grid_owners")
       .select("id")
       .ilike("name", `%${name}%`)

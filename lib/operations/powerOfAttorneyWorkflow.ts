@@ -29,7 +29,7 @@ export async function getLatestSignedPowerOfAttorneyForCustomer(params: {
   customerId: string
   siteId?: string | null
 }): Promise<PowerOfAttorneyRow | null> {
-  let query = supabaseService
+  const query = supabaseService
     .from('powers_of_attorney')
     .select('*')
     .eq('company_id', params.companyId)

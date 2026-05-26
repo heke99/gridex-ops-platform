@@ -291,7 +291,7 @@ export async function runBatch2BAutomation(input: {
   let tasksCreated = 0
   let requestsCreated = 0
   let casesCreated = 0
-  let exportsCreated = 0
+  const exportsCreated = 0
   let blockersFound = 0
 
   const { data: contracts, error: contractsError } = await supabaseService

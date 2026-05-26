@@ -58,11 +58,7 @@ import {
  listOutboundRequestsByCustomerId,
  listPartnerExportsByCustomerId,
 } from '@/lib/cis/db'
-import {
- listAuthorizationScopesByCustomerId,
- listCustomerInfoRequestsByCustomerId,
- listMeteringPermissionsByCustomerId,
-} from '@/lib/onboarding/infoRequests'
+import { listCustomerInfoRequestsByCustomerId } from '@/lib/onboarding/infoRequests'
 import {
  listCustomerAuthorizationDocumentsByCustomerId,
  listCustomerBlockersByCustomerId,
@@ -71,7 +67,7 @@ import {
  listSupplierSwitchRequestsByCustomerId,
 } from '@/lib/operations/db'
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
-import { getCustomerEdielDataBundle } from '@/lib/ediel/customerData'
+import { getCustomerEdielDataBundle, type CustomerEdielDataBundle } from '@/lib/ediel/customerData'
 import CustomerPortalAccessCard from '@/components/admin/customers/CustomerPortalAccessCard'
 import { customerCaseStatusLabel, customerCaseTypeLabel, listCustomerCases } from '@/lib/customer-cases/db'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
@@ -814,100 +810,6 @@ function SectionAnchor({
  )
 }
 
-function QuickJumpLink({
- href,
- label,
- tone = 'default',
-}: {
- href: string
- label: string
- tone?: 'default' | 'success' | 'info' | 'warning' | 'danger'
-}) {
- const toneClass =
- tone === 'success'
- ? 'border-emerald-300 bg-emerald-50 text-emerald-700 '
- : tone === 'info'
- ? 'border-emerald-300 bg-emerald-50 text-emerald-700 '
- : tone === 'warning'
- ? 'border-amber-300 bg-amber-50 text-amber-700 '
- : tone === 'danger'
- ? 'border-red-300 bg-red-50 text-red-700 '
- : 'border-slate-300 bg-white text-slate-700 '
-
- return (
- <Link
- href={href}
- className={`inline-flex items-center rounded-2xl border px-4 py-2.5 text-sm font-semibold transition hover:opacity-90 ${toneClass}`}
- >
- {label}
- </Link>
- )
-}
-
-function StickyActionBar({
- lifecycleSummary,
- dataRequestsCount,
-}: {
- lifecycleSummary: CustomerLifecycleSummary
- dataRequestsCount: number
-}) {
- return (
- <div className="sticky top-3 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur ">
- <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
- <div>
- <div className="text-sm font-semibold text-slate-900 ">
- Snabbåtgärder
- </div>
- <p className="mt-1 text-sm text-slate-700 ">
- Starta leverantörsbyte, begär uppgifter från nätägare eller hoppa direkt till Ediel utan att leta i kundkortet.
- </p>
- </div>
-
- <div className="flex flex-wrap gap-2">
- <QuickJumpLink href="#authorization-documents" label="Fullmakt / avtal" tone="success" />
- <QuickJumpLink href="#switch-operations" label="Nytt leverantörsbyte" tone="success" />
- <QuickJumpLink href="#billing-metering" label="Begär mätvärden" tone="warning" />
- <QuickJumpLink href="#billing-metering" label="Begär billingunderlag" tone="warning" />
- <QuickJumpLink href="#ediel-operations" label="Öppna Ediel" tone="info" />
- <QuickJumpLink href="#contracts" label="Avtal" />
- </div>
- </div>
-
- <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Primär signal</div>
- <div className="mt-1 font-semibold text-slate-950 ">
- {lifecycleSummary.primaryLabel}
- </div>
- </div>
-
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Öppna switchflöden</div>
- <div className="mt-1 font-semibold text-slate-950 ">
- {lifecycleSummary.activeOpen}
- </div>
- </div>
-
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Ready to execute</div>
- <div className="mt-1 font-semibold text-slate-950 ">
- {lifecycleSummary.readyToExecute}
- </div>
- </div>
-
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Nätägarbegäran</div>
- <div className="mt-1 font-semibold text-slate-950 ">
- {dataRequestsCount}
- </div>
- </div>
- </div>
- </div>
- )
-}
-
-
-
 function blockerToneClass(blocker: CustomerBlockerRow): string {
  if (blocker.severity === 'critical' || blocker.severity === 'blocking') return 'border-red-200 bg-red-50 text-red-900'
  if (blocker.severity === 'warning') return 'border-amber-200 bg-amber-50 text-amber-900'
@@ -961,84 +863,6 @@ function CustomerBlockersBanner({ blockers }: { blockers: CustomerBlockerRow[] }
  </section>
  )
 }
-
-function OnboardingDataRequestsSection({
- customerId,
- infoRequests,
- authorizationScopes,
- meteringPermissions,
-}: {
- customerId: string
- infoRequests: Array<{ id: string; status: string; request_type: string; blocker_reason: string | null; created_at: string }>
- authorizationScopes: Array<{ id: string; status: string; scope_type: string; covers_grid_owner_data: boolean; covers_current_supplier_contract: boolean; covers_metering_data: boolean }>
- meteringPermissions: Array<{ id: string; status: string; case_reference: string | null; permission_reference: string | null; last_blocker: string | null; created_at: string }>
-}) {
- const activeScopes = authorizationScopes.filter((scopeRow) => scopeRow.status === 'active')
- const blockedRequests = infoRequests.filter((request) => ['missing_authorization', 'route_missing', 'negative_aperak', 'blocked'].includes(request.status)).length
- const activePermissions = meteringPermissions.filter((permission) => ['approved', 'z14_received', 'active', 'partially_approved'].includes(permission.status)).length
-
- return (
- <section className="rounded-3xl border border-slate-200 bg-white shadow-sm ">
- <div className="border-b border-slate-200 px-6 py-5 ">
- <div className="flex flex-wrap items-start justify-between gap-3">
- <div>
- <h2 className="text-lg font-semibold text-slate-900 ">Uppgiftsbegäran och mätvärdestillstånd</h2>
- <p className="mt-1 text-sm text-slate-700 ">
- Z01/Z02, fullmaktsomfattning och Z13/Z14 är kopplade till kundens arbetsyta så att mätvärden senare kan matchas till rätt anläggning och faktureringsunderlag.
- </p>
- </div>
- <Link href={`/admin/customer-info-requests?customer=${customerId}`} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 ">
- Öppna uppgiftsflöde
- </Link>
- </div>
- </div>
- <div className="grid gap-4 p-6 lg:grid-cols-3">
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
- <div className="text-sm text-slate-700 ">Uppgiftsbegäran</div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">{infoRequests.length}</div>
- <div className="mt-1 text-xs text-slate-700 ">{blockedRequests} blockerade/kräver åtgärd</div>
- </div>
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
- <div className="text-sm text-slate-700 ">Aktiva fullmaktsscope</div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">{activeScopes.length}</div>
- <div className="mt-1 text-xs text-slate-700 ">
- {activeScopes.some((scopeRow) => scopeRow.covers_metering_data) ? 'Mätvärden täcks' : 'Mätvärden saknar scope'}
- </div>
- </div>
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
- <div className="text-sm text-slate-700 ">Mätvärdestillstånd</div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">{meteringPermissions.length}</div>
- <div className="mt-1 text-xs text-slate-700 ">{activePermissions} godkända/aktiva</div>
- </div>
- </div>
- <div className="grid gap-4 px-6 pb-6 xl:grid-cols-2">
- {[...infoRequests.slice(0, 3), ...meteringPermissions.slice(0, 3)].length === 0 ? (
- <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600 xl:col-span-2">
- Inga uppgiftsbegäran eller mätvärdestillstånd finns ännu.
- </div>
- ) : (
- <>
- {infoRequests.slice(0, 3).map((request) => (
- <div key={request.id} className="rounded-2xl border border-slate-200 p-4 text-sm">
- <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(request.status)}`}>{request.status}</span>
- <div className="mt-3 font-semibold text-slate-950 ">{request.request_type}</div>
- {request.blocker_reason ? <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">{request.blocker_reason}</div> : null}
- </div>
- ))}
- {meteringPermissions.slice(0, 3).map((permission) => (
- <div key={permission.id} className="rounded-2xl border border-slate-200 p-4 text-sm">
- <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(permission.status)}`}>{permission.status}</span>
- <div className="mt-3 font-semibold text-slate-950 ">{permission.case_reference ?? permission.permission_reference ?? 'Z13/Z14-tillstånd'}</div>
- {permission.last_blocker ? <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{permission.last_blocker}</div> : null}
- </div>
- ))}
- </>
- )}
- </div>
- </section>
- )
-}
-
 
 function LifecycleDecisionSection({
  customerId,
@@ -1562,6 +1386,21 @@ export default async function CustomerAdminDetailPage({
  }
 
  const customerCompanyId = tenantScope.isPlatformAdmin ? customer.company_id : tenantScope.companyId
+ const needsEdielData = ['overview', 'switch-operations', 'ediel-operations'].includes(activeTab)
+ const needsGridOwners = needsEdielData || ['data-requests', 'billing-metering', 'sites', 'metering-points'].includes(activeTab)
+ const needsPriceAreas = ['sites', 'metering-points'].includes(activeTab)
+ const needsContractOffers = activeTab === 'profile'
+ const needsBillingMeteringData = activeTab === 'overview' || activeTab === 'billing-metering'
+ const needsPortalAccessData = activeTab === 'portal-access'
+ const needsSwitchEvents = activeTab === 'switch-operations'
+ const needsAuditLogs = activeTab === 'audit'
+ const needsPowerScopes = activeTab === 'authorization-documents'
+ const emptyEdielData: CustomerEdielDataBundle = {
+ communicationRoutes: [],
+ routeProfiles: [],
+ edielMessages: [],
+ recommendationRoutes: [],
+ }
 
  const [
  gridOwners,
@@ -1581,21 +1420,19 @@ export default async function CustomerAdminDetailPage({
  powersOfAttorney,
  authorizationDocuments,
  customerInfoRequests,
- authorizationScopes,
- meteringPermissions,
  customerCases,
  customerBlockers,
  ] = await Promise.all([
- listGridOwners(supabase),
- listPriceAreas(supabase),
+ needsGridOwners ? listGridOwners(supabase) : Promise.resolve([]),
+ needsPriceAreas ? listPriceAreas(supabase) : Promise.resolve([]),
  listCustomerSitesByCustomerId(supabase, id, { companyId: customerCompanyId }),
  listCustomerInternalNotesByCustomerId(id, { companyId: customerCompanyId }),
- listGridOwnerDataRequestsByCustomerId(id, { companyId: customerCompanyId, limit: 50 }),
- listMeteringValuesByCustomerId(id, { companyId: customerCompanyId, limit: 100 }),
- listBillingUnderlaysByCustomerId(id, { companyId: customerCompanyId, limit: 100 }),
- listPartnerExportsByCustomerId(id, { companyId: customerCompanyId, limit: 50 }),
- listOutboundRequestsByCustomerId(id, { companyId: customerCompanyId, limit: 50 }),
- listSupplierSwitchRequestsByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
+ listGridOwnerDataRequestsByCustomerId(id, { companyId: customerCompanyId, limit: needsBillingMeteringData || activeTab === 'ediel-operations' ? 50 : 10 }),
+ needsBillingMeteringData ? listMeteringValuesByCustomerId(id, { companyId: customerCompanyId, limit: activeTab === 'billing-metering' ? 100 : 20 }) : Promise.resolve([]),
+ needsBillingMeteringData ? listBillingUnderlaysByCustomerId(id, { companyId: customerCompanyId, limit: activeTab === 'billing-metering' ? 100 : 20 }) : Promise.resolve([]),
+ needsBillingMeteringData ? listPartnerExportsByCustomerId(id, { companyId: customerCompanyId, limit: activeTab === 'billing-metering' ? 50 : 10 }) : Promise.resolve([]),
+ ['overview', 'billing-metering', 'switch-operations'].includes(activeTab) ? listOutboundRequestsByCustomerId(id, { companyId: customerCompanyId, limit: activeTab === 'overview' ? 20 : 50 }) : Promise.resolve([]),
+ listSupplierSwitchRequestsByCustomerId(supabase, id, { companyId: customerCompanyId, limit: activeTab === 'switch-operations' ? 50 : 20 }),
  supabase
  .from('customer_contacts')
  .select('*')
@@ -1610,14 +1447,12 @@ export default async function CustomerAdminDetailPage({
  .eq('company_id', customerCompanyId)
  .order('is_active', { ascending: false })
  .order('created_at', { ascending: false }),
- listContractOffers({ activeOnly: true, companyId: customerCompanyId }),
+ needsContractOffers ? listContractOffers({ activeOnly: true, companyId: customerCompanyId }) : Promise.resolve([]),
  listCustomerContractsByCustomerId(id, { companyId: customerCompanyId }),
  listPowersOfAttorneyByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
  listCustomerAuthorizationDocumentsByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
- customerCompanyId ? listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
- customerCompanyId ? listAuthorizationScopesByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
- customerCompanyId ? listMeteringPermissionsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
- customerCompanyId ? listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 }) : [],
+ customerCompanyId ? listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id }) : Promise.resolve([]),
+ activeTab === 'cases' ? listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 }) : Promise.resolve([]),
  listCustomerBlockersByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
  ])
 
@@ -1628,12 +1463,14 @@ export default async function CustomerAdminDetailPage({
  const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[]
  const poaRows = powersOfAttorney as PowerOfAttorneyRow[]
  const documentRows = authorizationDocuments as CustomerAuthorizationDocumentRow[]
- const { data: powerScopeRows, error: powerScopeError } = await supabase
+ const { data: powerScopeRows, error: powerScopeError } = needsPowerScopes
+ ? await supabase
  .from('power_of_attorney_scopes')
  .select('*')
  .eq('customer_id', id)
  .eq('company_id', customerCompanyId)
  .order('created_at', { ascending: false })
+ : { data: [], error: null }
  if (powerScopeError && !['42P01', '42703', 'PGRST205'].includes(String((powerScopeError as { code?: string }).code ?? ''))) throw powerScopeError
  const poaScopeRows = (powerScopeRows ?? []) as PowerOfAttorneyScopeRow[]
 
@@ -1643,19 +1480,23 @@ export default async function CustomerAdminDetailPage({
  sites.map((site) => site.id),
  { companyId: customerCompanyId }
  ),
- listSupplierSwitchEventsByRequestIds(
+ needsSwitchEvents
+ ? listSupplierSwitchEventsByRequestIds(
  supabase,
  switchRequests.map((request) => request.id),
  { companyId: customerCompanyId, limit: 100 }
- ),
- getCustomerEdielDataBundle({
+ )
+ : Promise.resolve([]),
+ needsEdielData
+ ? getCustomerEdielDataBundle({
  supabase,
  customerId: id,
  companyId: customerCompanyId,
  gridOwners,
- }),
- listCustomerPortalAccountsByCustomerId(id, { companyId: customerCompanyId, limit: 20 }),
- listCustomerPortalClaimsByCustomerId(id, { companyId: customerCompanyId, limit: 20 }),
+ })
+ : Promise.resolve(emptyEdielData),
+ needsPortalAccessData ? listCustomerPortalAccountsByCustomerId(id, { companyId: customerCompanyId, limit: 20 }) : Promise.resolve([]),
+ needsPortalAccessData ? listCustomerPortalClaimsByCustomerId(id, { companyId: customerCompanyId, limit: 20 }) : Promise.resolve([]),
  ])
 
  const selectedSite = editSiteId
@@ -1675,12 +1516,14 @@ export default async function CustomerAdminDetailPage({
  ? selectedMeteringPoint
  : null
 
- const auditLogs = await listMasterdataAuditLogsForCustomer({
+ const auditLogs = needsAuditLogs
+ ? await listMasterdataAuditLogsForCustomer({
  customerId: id,
  siteIds: sites.map((site) => site.id),
  meteringPointIds: meteringPoints.map((point) => point.id),
  limit: 30,
  })
+ : []
 
  const customerName = formatCustomerName(customer)
  const activeSites = sites.filter((site) => site.status === 'active').length
