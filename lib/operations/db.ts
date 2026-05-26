@@ -8,6 +8,7 @@ import {
 } from "@/lib/operations/switchLifecycleBlocks";
 import type {
   CustomerAuthorizationDocumentRow,
+  CustomerBlockerRow,
   CustomerOperationTaskRow,
   CustomerOperationTaskStatus,
   PowerOfAttorneyRow,
@@ -24,6 +25,29 @@ async function getActorId(supabase: SupabaseClient): Promise<string | null> {
   } = await supabase.auth.getUser();
 
   return user?.id ?? null;
+}
+
+
+async function resolveCustomerCompanyId(
+  supabase: SupabaseClient,
+  customerId: string,
+  providedCompanyId?: string | null,
+): Promise<string> {
+  if (providedCompanyId) return providedCompanyId;
+
+  const { data, error } = await supabase
+    .from("customers")
+    .select("company_id")
+    .eq("id", customerId)
+    .maybeSingle();
+
+  if (error) throw error;
+  const companyId = (data as { company_id?: string | null } | null)?.company_id ?? null;
+  if (!companyId) {
+    throw new Error("Kunden saknar bolagskoppling och kan därför inte ändras säkert.");
+  }
+
+  return companyId;
 }
 
 function appendNote(
@@ -103,6 +127,41 @@ export async function findExistingCustomerAuthorizationDocumentByFingerprint(
   return (data as CustomerAuthorizationDocumentRow | null) ?? null;
 }
 
+
+export async function listCustomerBlockersByCustomerId(
+  supabase: SupabaseClient,
+  customerId: string,
+  options: { companyId?: string | null; includeResolved?: boolean; limit?: number } = {},
+): Promise<CustomerBlockerRow[]> {
+  let query = supabase
+    .from("customer_blockers")
+    .select("*")
+    .eq("customer_id", customerId);
+
+  if (options.companyId) {
+    query = query.eq("company_id", options.companyId);
+  }
+
+  if (!options.includeResolved) {
+    query = query.in("status", ["open", "pending_review"]);
+  }
+
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(options.limit ?? 50);
+
+  if (error) {
+    const code = findPostgresErrorCode(error);
+    const message = (error as { message?: string }).message ?? "";
+    if (code === "42P01" || code === "42703" || code === "PGRST205" || /schema cache|does not exist/i.test(message)) {
+      return [];
+    }
+    throw error;
+  }
+
+  return (data ?? []) as CustomerBlockerRow[];
+}
+
 export async function listPowersOfAttorneyByCustomerId(
   supabase: SupabaseClient,
   customerId: string,
@@ -157,6 +216,7 @@ export async function savePowerOfAttorney(
   },
 ): Promise<PowerOfAttorneyRow> {
   const actorId = await getActorId(supabase);
+  const companyId = await resolveCustomerCompanyId(supabase, input.customer_id, input.companyId);
 
   const payload = {
     customer_id: input.customer_id,
@@ -170,7 +230,7 @@ export async function savePowerOfAttorney(
     reference: input.reference ?? null,
     notes: input.notes ?? null,
     updated_by: actorId,
-    company_id: input.companyId ?? null,
+    company_id: companyId,
   };
 
   if (input.id) {
@@ -630,9 +690,10 @@ export async function saveCustomerAuthorizationDocument(
   },
 ): Promise<CustomerAuthorizationDocumentRow> {
   const actorId = await getActorId(supabase);
+  const companyId = await resolveCustomerCompanyId(supabase, input.customer_id, input.companyId);
 
   const payload = {
-    company_id: input.companyId ?? null,
+    company_id: companyId,
     customer_id: input.customer_id,
     site_id: input.site_id ?? null,
     metering_point_id: input.metering_point_id ?? null,

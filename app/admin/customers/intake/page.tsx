@@ -85,9 +85,7 @@ export default async function CustomerIntakePage() {
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-700 ">
             Kundintag sparar kund, anläggning, mätpunkt, avtal, dokument och
-            fullmakt i detta bolag. Saknade uppgifter skapas som blockerare och
-            stoppar bara senare utskick, leverantörsbyte eller export när det
-            behövs.
+            fullmakt i detta bolag.
           </p>
           {companyScope.message ? (
             <p className="mt-3 text-sm font-semibold text-amber-700 ">

@@ -386,6 +386,8 @@ export async function createCustomerInfoRequest(input: {
   requestedDataCategories: string[]
   notes?: string | null
   externalReference?: string | null
+  requestedPeriodStart?: string | null
+  requestedPeriodEnd?: string | null
 }) {
   await requireCompanyOperationalForWrites(input.companyId)
   await assertCustomerBelongsToCompany(input.customerId, input.companyId)
@@ -416,6 +418,8 @@ export async function createCustomerInfoRequest(input: {
       current_supplier_name: input.currentSupplierName ?? null,
       status: 'draft',
       requested_data_categories: normalizedCategories,
+      requested_period_start: input.requestedPeriodStart ?? null,
+      requested_period_end: input.requestedPeriodEnd ?? null,
       verified_payload: input.externalReference ? { externalReference: input.externalReference } : {},
       notes: input.notes ?? null,
       created_by: input.actorUserId,

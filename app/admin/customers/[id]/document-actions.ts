@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   archiveCustomerAuthorizationDocument,
@@ -40,6 +41,11 @@ import {
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
 import { resolveFullmaktAutomationPolicy } from '@/lib/operations/fullmaktAutomation'
+import {
+  FULL_POWER_OF_ATTORNEY_COVERAGE,
+  ensureAuthorizationScopeFromPowerOfAttorney,
+  resolveCustomerBlockersAfterSignedPowerOfAttorney,
+} from '@/lib/operations/powerOfAttorneyWorkflow'
 import type {
   CustomerAuthorizationDocumentRow,
   SupplierSwitchRequestType,
@@ -57,6 +63,41 @@ import {
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
   return typeof value === 'string' ? value : null
+}
+
+
+type CustomerDocumentActionContext = {
+  customer: { id: string; company_id: string; status: string | null }
+  companyId: string
+}
+
+async function requireCustomerDocumentActionContext(
+  customerId: string,
+  guard: { userId: string; isPlatformAdmin: boolean }
+): Promise<CustomerDocumentActionContext> {
+  const { data, error } = await supabaseService
+    .from('customers')
+    .select('id, company_id, status')
+    .eq('id', customerId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) throw new Error('Kunden hittades inte.')
+  if (!data.company_id) {
+    throw new Error('Kunden saknar bolagskoppling och kan därför inte ändras säkert.')
+  }
+
+  if (!guard.isPlatformAdmin) {
+    const operationalCompanyId = await requireOperationalCompanyId(guard.userId)
+    if (operationalCompanyId !== data.company_id) {
+      throw new Error('Du saknar behörighet för kundens bolag.')
+    }
+  }
+
+  return {
+    customer: data as { id: string; company_id: string; status: string | null },
+    companyId: data.company_id,
+  }
 }
 
 function sanitizeFileName(value: string): string {
@@ -903,9 +944,9 @@ export async function uploadCustomerAuthorizationDocumentAction(
   _previousState: UploadCustomerAuthorizationDocumentActionState,
   formData: FormData
 ): Promise<UploadCustomerAuthorizationDocumentActionState> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
-  const actor = await getActor()
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
 
   const customerId = formValue(formData, 'customer_id') ?? ''
@@ -970,6 +1011,18 @@ export async function uploadCustomerAuthorizationDocumentAction(
     return {
       status: 'error',
       message: 'Customer ID saknas.',
+      documentId: null,
+      duplicateDocumentId: null,
+    }
+  }
+
+  let actionContext: CustomerDocumentActionContext
+  try {
+    actionContext = await requireCustomerDocumentActionContext(customerId, guard)
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Kunden kunde inte verifieras mot bolaget.',
       documentId: null,
       duplicateDocumentId: null,
     }
@@ -1092,6 +1145,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
       document_path: filePath,
       reference,
       notes,
+      companyId: actionContext.companyId,
     })
 
     savedPowerOfAttorneyId = savedPowerOfAttorney.id
@@ -1113,7 +1167,35 @@ export async function uploadCustomerAuthorizationDocumentAction(
     upload_idempotency_key: uploadIdempotencyKey,
     reference,
     notes,
+    companyId: actionContext.companyId,
   })
+
+  let authorizationScopeId: string | null = null
+  let resolvedPowerOfAttorneyBlockers = 0
+
+  if (markAsSigned && savedPowerOfAttorneyId) {
+    authorizationScopeId = await ensureAuthorizationScopeFromPowerOfAttorney({
+      companyId: actionContext.companyId,
+      actorUserId: actor.id,
+      customerId,
+      powerOfAttorneyId: savedPowerOfAttorneyId,
+      authorizationDocumentId: savedDocument.id,
+      coverage: FULL_POWER_OF_ATTORNEY_COVERAGE,
+      validFrom,
+      validTo,
+      evidenceNote: 'Signerad fullmakt uppladdad och verifierad i kundkortet.',
+    })
+
+    const blockerResult = await resolveCustomerBlockersAfterSignedPowerOfAttorney({
+      companyId: actionContext.companyId,
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      powerOfAttorneyId: savedPowerOfAttorneyId,
+      authorizationDocumentId: savedDocument.id,
+    })
+    resolvedPowerOfAttorneyBlockers = blockerResult.resolved
+  }
 
   const automationDecision = await resolveUploadAutomationDecision({
     supabase,
@@ -1266,6 +1348,8 @@ export async function uploadCustomerAuthorizationDocumentAction(
       siteId,
       documentType,
       linkedPowerOfAttorneyId: savedPowerOfAttorneyId,
+      authorizationScopeId,
+      resolvedPowerOfAttorneyBlockers,
       archivedDocumentIds,
       revokedPowerOfAttorneyIds,
       createdGridOwnerRequestIds,
@@ -1340,9 +1424,9 @@ export async function uploadCustomerAuthorizationDocumentAction(
 export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
-  const actor = await getActor()
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const documentId = formValue(formData, 'document_id') ?? ''
@@ -1359,6 +1443,8 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
   if (!customerId || !documentId) {
     throw new Error('customer_id och document_id krävs')
   }
+
+  const actionContext = await requireCustomerDocumentActionContext(customerId, guard)
 
   if (isIsoDateBefore(requestedPeriodEnd, requestedPeriodStart)) {
     throw new Error('Begär period till kan inte vara tidigare än begär period från')
@@ -1400,6 +1486,7 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
       notes: existingDocument.notes
         ? `${existingDocument.notes}\n\nVerifierad manuellt från kundkortet.`
         : 'Verifierad manuellt från kundkortet.',
+      companyId: actionContext.companyId,
     })
     powerOfAttorneyId = linkedPowerOfAttorney.id
   } else if (linkedPowerOfAttorney.status !== 'signed') {
@@ -1417,6 +1504,7 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
       notes: linkedPowerOfAttorney.notes
         ? `${linkedPowerOfAttorney.notes}\n\nVerifierad manuellt från kundkortet.`
         : 'Verifierad manuellt från kundkortet.',
+      companyId: actionContext.companyId,
     })
   }
 
@@ -1438,6 +1526,23 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
 
   const document = updatedDocument as CustomerAuthorizationDocumentRow
   const siteId = document.site_id
+  const authorizationScopeId = await ensureAuthorizationScopeFromPowerOfAttorney({
+    companyId: actionContext.companyId,
+    actorUserId: actor.id,
+    customerId,
+    powerOfAttorneyId,
+    authorizationDocumentId: document.id,
+    coverage: FULL_POWER_OF_ATTORNEY_COVERAGE,
+    evidenceNote: 'Fullmakt verifierad manuellt och upplåser uppgiftsbegäran.',
+  })
+  const blockerResult = await resolveCustomerBlockersAfterSignedPowerOfAttorney({
+    companyId: actionContext.companyId,
+    actorUserId: actor.id,
+    customerId,
+    siteId,
+    powerOfAttorneyId,
+    authorizationDocumentId: document.id,
+  })
   const automationDecision = await resolveUploadAutomationDecision({
     supabase,
     customerId,
@@ -1549,6 +1654,8 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
       customerId,
       siteId,
       linkedPowerOfAttorneyId: powerOfAttorneyId,
+      authorizationScopeId,
+      resolvedPowerOfAttorneyBlockers: blockerResult.resolved,
       createdGridOwnerRequestIds,
       createdGridOwnerOutboundIds,
       switchRequestId,

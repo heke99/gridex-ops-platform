@@ -46,6 +46,12 @@ import {
   createCustomerInfoRequest,
   queueCustomerInfoRequestForDispatch,
 } from '@/lib/onboarding/infoRequests'
+import {
+  createMissingPowerOfAttorneyBlocker,
+  ensureAuthorizationScopeFromPowerOfAttorney,
+  getLatestSignedPowerOfAttorneyForCustomer,
+  resolveCustomerBlockersAfterSignedPowerOfAttorney,
+} from '@/lib/operations/powerOfAttorneyWorkflow'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -87,6 +93,43 @@ function normalizeGridOwnerRequestScope(
   if (value === 'billing_underlay') return 'billing_underlay'
   if (value === 'customer_masterdata') return 'customer_masterdata'
   return 'meter_values'
+}
+
+
+function normalizeDataRequestTarget(value: string | null): 'grid_owner' | 'current_supplier' | 'both' {
+  if (value === 'current_supplier') return 'current_supplier'
+  if (value === 'both') return 'both'
+  return 'grid_owner'
+}
+
+function normalizeSimpleRequestStatus(value: string): string {
+  switch (value) {
+    case 'z01_prepared':
+    case 'ready_to_send':
+      return 'ready_to_send'
+    case 'sent_to_grid_owner':
+    case 'sent':
+      return 'sent'
+    case 'waiting_for_contrl':
+    case 'waiting_for_aperak':
+    case 'waiting_for_z02':
+    case 'manual_review_required':
+      return 'waiting_response'
+    case 'z02_received':
+    case 'completed':
+      return 'received'
+    case 'negative_aperak':
+    case 'rejected':
+      return 'rejected'
+    case 'route_missing':
+    case 'blocked':
+    case 'missing_authorization':
+      return 'failed'
+    case 'cancelled':
+      return 'cancelled'
+    default:
+      return 'draft'
+  }
 }
 
 function normalizePartnerExportKind(
@@ -490,12 +533,12 @@ export async function createCustomerInternalNoteAction(
 export async function createPowerOfAttorneyAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
-  const actor = await getActor()
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
-  const customer = await loadCustomerForAction(customerId)
+  const { customer, companyId } = await requireCustomerMutationContext(customerId, guard)
 
   const saved = await savePowerOfAttorney(supabase, {
     id: formValue(formData, 'id') || undefined,
@@ -522,8 +565,38 @@ export async function createPowerOfAttorneyAction(
     document_path: formValue(formData, 'document_path') || null,
     reference: formValue(formData, 'reference') || null,
     notes: formValue(formData, 'notes') || null,
-    companyId: customer.company_id,
+    companyId,
   })
+
+  let authorizationScopeId: string | null = null
+  let resolvedPowerOfAttorneyBlockers = 0
+
+  if (saved.status === 'signed') {
+    authorizationScopeId = await ensureAuthorizationScopeFromPowerOfAttorney({
+      companyId,
+      actorUserId: actor.id,
+      customerId,
+      powerOfAttorneyId: saved.id,
+      authorizationDocumentId: null,
+      coverage: {
+        coversGridOwnerData: true,
+        coversCurrentSupplierContract: true,
+        coversMeteringData: saved.scope === 'meter_data' || saved.scope === 'supplier_switch',
+      },
+      validFrom: saved.valid_from,
+      validTo: saved.valid_to,
+      evidenceNote: 'Signerad fullmakt registrerad manuellt i kundkortet.',
+    })
+
+    const blockerResult = await resolveCustomerBlockersAfterSignedPowerOfAttorney({
+      companyId,
+      actorUserId: actor.id,
+      customerId,
+      siteId: saved.site_id,
+      powerOfAttorneyId: saved.id,
+    })
+    resolvedPowerOfAttorneyBlockers = blockerResult.resolved
+  }
 
   const syncSummary = saved.site_id
     ? await syncCustomerOperationsForSite(supabase, {
@@ -542,6 +615,8 @@ export async function createPowerOfAttorneyAction(
       customerId,
       siteId: saved.site_id,
       syncSummary,
+      authorizationScopeId,
+      resolvedPowerOfAttorneyBlockers,
     },
   })
 
@@ -1243,6 +1318,221 @@ export async function createAuthorizationRequestPackageAction(
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/unresolved')
+}
+
+
+export async function createCustomerDataRequestPackageAction(
+  formData: FormData
+): Promise<void> {
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
+  const customerId = formValue(formData, 'customer_id') ?? ''
+
+  if (!customerId) {
+    throw new Error('Kund saknas.')
+  }
+
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  const target = normalizeDataRequestTarget(formValue(formData, 'request_target'))
+  const siteId = formValue(formData, 'site_id') || null
+  const meteringPointId = formValue(formData, 'metering_point_id') || null
+  const gridOwnerId = formValue(formData, 'grid_owner_id') || null
+  const externalReference = formValue(formData, 'external_reference') || null
+  const notes = formValue(formData, 'notes') || null
+  const requestedPeriodStart = normalizeDateOrNull(formValue(formData, 'requested_period_start'))
+  const requestedPeriodEnd = normalizeDateOrNull(formValue(formData, 'requested_period_end'))
+  const selectedPowerOfAttorneyId = formValue(formData, 'power_of_attorney_id') || null
+
+  const signedPowerOfAttorney = selectedPowerOfAttorneyId
+    ? await supabaseService
+        .from('powers_of_attorney')
+        .select('*')
+        .eq('id', selectedPowerOfAttorneyId)
+        .eq('company_id', companyId)
+        .eq('customer_id', customerId)
+        .eq('status', 'signed')
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error) throw error
+          return data
+        })
+    : await getLatestSignedPowerOfAttorneyForCustomer({
+        companyId,
+        customerId,
+        siteId,
+      })
+
+  if (!signedPowerOfAttorney) {
+    const blockerId = await createMissingPowerOfAttorneyBlocker({
+      companyId,
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      meteringPointId,
+      title: 'Saknar signerad fullmakt',
+      description:
+        'Begäran är stoppad. Ladda upp eller verifiera signerad fullmakt innan uppgifter begärs från nätägare eller nuvarande leverantör.',
+      metadata: {
+        requestedTarget: target,
+        requestedAt: new Date().toISOString(),
+      },
+    })
+
+    await insertAuditLog({
+      actorUserId: actor.id,
+      entityType: 'customer_info_request',
+      entityId: customerId,
+      action: 'customer_data_request_blocked_missing_power_of_attorney',
+      metadata: {
+        customerId,
+        companyId,
+        siteId,
+        meteringPointId,
+        target,
+        blockerId,
+      },
+    })
+
+    revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath('/admin/customer-info-requests')
+    return
+  }
+
+  const coversGridOwnerData = target === 'grid_owner' || target === 'both'
+  const coversCurrentSupplierContract = target === 'current_supplier' || target === 'both'
+
+  const authorizationScopeId = await ensureAuthorizationScopeFromPowerOfAttorney({
+    companyId,
+    actorUserId: actor.id,
+    customerId,
+    powerOfAttorneyId: String(signedPowerOfAttorney.id),
+    authorizationDocumentId: null,
+    coverage: {
+      coversGridOwnerData,
+      coversCurrentSupplierContract,
+      coversMeteringData: coversGridOwnerData,
+    },
+    validFrom: (signedPowerOfAttorney as { valid_from?: string | null }).valid_from ?? null,
+    validTo: (signedPowerOfAttorney as { valid_to?: string | null }).valid_to ?? null,
+    evidenceNote: 'Signerad fullmakt användes för uppgiftsbegäran från kundkortet.',
+  })
+
+  const blockerResult = await resolveCustomerBlockersAfterSignedPowerOfAttorney({
+    companyId,
+    actorUserId: actor.id,
+    customerId,
+    siteId,
+    powerOfAttorneyId: String(signedPowerOfAttorney.id),
+  })
+
+  const createdRequestIds: string[] = []
+  const dispatchResults: Array<{ requestId: string; status: string; blockerReason: string | null }> = []
+
+  if (coversGridOwnerData) {
+    const request = await createCustomerInfoRequest({
+      companyId,
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      meteringPointId,
+      gridOwnerId,
+      requestType: 'z01_customer_masterdata',
+      targetPartyType: 'grid_owner',
+      requestedDataCategories: [
+        'facility_id',
+        'grid_area',
+        'annual_consumption',
+        'network_contract',
+        'customer_masterdata',
+      ],
+      externalReference,
+      requestedPeriodStart,
+      requestedPeriodEnd,
+      notes:
+        notes ??
+        'Begäran om kund- och anläggningsuppgifter från nätägare. Systemet förbereder PRODAT Z01 när route finns.',
+    })
+
+    createdRequestIds.push(request.id)
+    const dispatch = await queueCustomerInfoRequestForDispatch({
+      companyId,
+      actorUserId: actor.id,
+      requestId: request.id,
+    })
+    dispatchResults.push({
+      requestId: request.id,
+      status: normalizeSimpleRequestStatus(dispatch.status),
+      blockerReason: dispatch.blockerReason,
+    })
+  }
+
+  if (coversCurrentSupplierContract) {
+    const request = await createCustomerInfoRequest({
+      companyId,
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      meteringPointId,
+      gridOwnerId,
+      requestType: 'current_supplier_contract_info',
+      targetPartyType: 'current_supplier',
+      targetPartyName: formValue(formData, 'current_supplier_name') || null,
+      currentSupplierName: formValue(formData, 'current_supplier_name') || null,
+      requestedDataCategories: [
+        'current_supplier',
+        'binding_period',
+        'termination_notice',
+        'contract_end_date',
+        'break_fee',
+      ],
+      externalReference,
+      requestedPeriodStart,
+      requestedPeriodEnd,
+      notes:
+        notes ??
+        'Manuell begäran till nuvarande leverantör. Fullmakt ska bifogas vid kontakt.',
+    })
+
+    createdRequestIds.push(request.id)
+    const dispatch = await queueCustomerInfoRequestForDispatch({
+      companyId,
+      actorUserId: actor.id,
+      requestId: request.id,
+    })
+    dispatchResults.push({
+      requestId: request.id,
+      status: normalizeSimpleRequestStatus(dispatch.status),
+      blockerReason: dispatch.blockerReason,
+    })
+  }
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'customer_info_request',
+    entityId: customerId,
+    action: 'customer_data_request_package_created',
+    newValues: {
+      target,
+      requestIds: createdRequestIds,
+      dispatchResults,
+    },
+    metadata: {
+      companyId,
+      customerId,
+      siteId,
+      meteringPointId,
+      gridOwnerId,
+      authorizationScopeId,
+      powerOfAttorneyId: String(signedPowerOfAttorney.id),
+      resolvedPowerOfAttorneyBlockers: blockerResult.resolved,
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/customer-info-requests')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/ediel')
 }
 
 export async function createPartnerExportAction(

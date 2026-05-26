@@ -34,6 +34,7 @@ import type {
  PowerOfAttorneyRow,
  SupplierSwitchRequestRow,
  CustomerAuthorizationDocumentRow,
+ CustomerBlockerRow,
 } from '@/lib/operations/types'
 import type {
  CustomerAddressRow,
@@ -49,6 +50,7 @@ import CustomerGridOwnerFileImportCard from '@/components/admin/customers/Custom
 import CustomerContractOfferEligibilityCard from '@/components/admin/customers/CustomerContractOfferEligibilityCard'
 import CustomerOperationsReadinessStrip from '@/components/admin/customers/CustomerOperationsReadinessStrip'
 import CustomerAuthorizationDocumentsCard from '@/components/admin/customers/CustomerAuthorizationDocumentsCard'
+import CustomerDataRequestsCard from '@/components/admin/customers/CustomerDataRequestsCard'
 import {
  listBillingUnderlaysByCustomerId,
  listGridOwnerDataRequestsByCustomerId,
@@ -63,6 +65,7 @@ import {
 } from '@/lib/onboarding/infoRequests'
 import {
  listCustomerAuthorizationDocumentsByCustomerId,
+ listCustomerBlockersByCustomerId,
  listPowersOfAttorneyByCustomerId,
  listSupplierSwitchEventsByRequestIds,
  listSupplierSwitchRequestsByCustomerId,
@@ -904,6 +907,61 @@ function StickyActionBar({
 }
 
 
+
+function blockerToneClass(blocker: CustomerBlockerRow): string {
+ if (blocker.severity === 'critical' || blocker.severity === 'blocking') return 'border-red-200 bg-red-50 text-red-900'
+ if (blocker.severity === 'warning') return 'border-amber-200 bg-amber-50 text-amber-900'
+ return 'border-slate-200 bg-slate-50 text-slate-700'
+}
+
+function blockerSimpleLabel(type: string): string {
+ switch (type) {
+ case 'missing_power_of_attorney':
+ case 'pending_power_of_attorney':
+ case 'missing_authorization':
+ return 'Saknar fullmakt'
+ case 'possible_duplicate':
+ return 'Möjlig dubblett'
+ case 'missing_metering_point_id':
+ return 'Saknar mätpunkt'
+ case 'missing_facility_id':
+ return 'Saknar anläggnings-ID'
+ case 'missing_grid_owner':
+ return 'Saknar nätägare'
+ case 'missing_contract':
+ return 'Saknar avtal'
+ default:
+ return type.replaceAll('_', ' ')
+ }
+}
+
+function CustomerBlockersBanner({ blockers }: { blockers: CustomerBlockerRow[] }) {
+ if (blockers.length === 0) return null
+
+ return (
+ <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+ <div className="flex flex-wrap items-start justify-between gap-3">
+ <div>
+ <h2 className="text-base font-semibold text-amber-950">Saker att lösa innan nästa steg</h2>
+ <p className="mt-1 text-sm text-amber-900">
+ Kunden är sparad, men vissa flöden stoppas tills uppgifterna är klara. Det här stoppar inte kundkortet eller avtalshanteringen.
+ </p>
+ </div>
+ <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-900">{blockers.length} öppna</span>
+ </div>
+ <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+ {blockers.slice(0, 6).map((blocker) => (
+ <div key={blocker.id} className={`rounded-2xl border px-4 py-3 text-sm ${blockerToneClass(blocker)}`}>
+ <div className="font-semibold">{blocker.title || blockerSimpleLabel(blocker.blocker_type)}</div>
+ <div className="mt-1 text-xs opacity-80">{blockerSimpleLabel(blocker.blocker_type)} · {blocker.status}</div>
+ {blocker.description ? <p className="mt-2 leading-5">{blocker.description}</p> : null}
+ </div>
+ ))}
+ </div>
+ </section>
+ )
+}
+
 function OnboardingDataRequestsSection({
  customerId,
  infoRequests,
@@ -1526,6 +1584,7 @@ export default async function CustomerAdminDetailPage({
  authorizationScopes,
  meteringPermissions,
  customerCases,
+ customerBlockers,
  ] = await Promise.all([
  listGridOwners(supabase),
  listPriceAreas(supabase),
@@ -1559,6 +1618,7 @@ export default async function CustomerAdminDetailPage({
  customerCompanyId ? listAuthorizationScopesByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
  customerCompanyId ? listMeteringPermissionsByCustomerId({ companyId: customerCompanyId, customerId: id }) : [],
  customerCompanyId ? listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 }) : [],
+ listCustomerBlockersByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
  ])
 
  if (contactsResponse.error) throw contactsResponse.error
@@ -1928,6 +1988,8 @@ export default async function CustomerAdminDetailPage({
 
  </section>
 
+ <CustomerBlockersBanner blockers={customerBlockers as CustomerBlockerRow[]} />
+
  <CustomerWorkspaceTabNav customerId={id} activeTab={activeTab} />
 
  {activeTab === 'overview' ? (
@@ -2059,8 +2121,8 @@ export default async function CustomerAdminDetailPage({
  ) : null}
 
  {activeTab === 'data-requests' ? (
- <SectionAnchor id="data-requests" title="Uppgiftsbegäran och mätvärdestillstånd" description="Z01/Z02, fullmaktsomfattning och Z13/Z14 kopplat direkt till kunden.">
- <OnboardingDataRequestsSection customerId={id} infoRequests={customerInfoRequests} authorizationScopes={authorizationScopes} meteringPermissions={meteringPermissions} />
+ <SectionAnchor id="data-requests" title="Uppgiftsbegäran" description="Begär uppgifter från nätägare eller nuvarande leverantör med enkla handläggarord. Systemet sköter tekniken i bakgrunden.">
+ <CustomerDataRequestsCard customerId={id} sites={sites} meteringPoints={meteringPoints} gridOwners={gridOwners} infoRequests={customerInfoRequests} powersOfAttorney={poaRows} documents={documentRows} />
  </SectionAnchor>
  ) : null}
 

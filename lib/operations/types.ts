@@ -1,4 +1,29 @@
 // lib/operations/types.ts
+
+export type CustomerBlockerSeverity = 'info' | 'warning' | 'blocking' | 'critical';
+
+export type CustomerBlockerStatus = 'open' | 'pending_review' | 'resolved' | 'dismissed' | 'cancelled';
+
+export type CustomerBlockerRow = {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  customer_site_id: string | null;
+  metering_point_id: string | null;
+  contract_id: string | null;
+  blocker_type: string;
+  severity: CustomerBlockerSeverity;
+  status: CustomerBlockerStatus;
+  title: string;
+  description: string | null;
+  metadata: Record<string, unknown>;
+  created_by: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type PowerOfAttorneyScope =
   | "supplier_switch"
   | "meter_data"
@@ -13,6 +38,7 @@ export type PowerOfAttorneyStatus =
 
 export type PowerOfAttorneyRow = {
   id: string;
+  company_id?: string | null;
   customer_id: string;
   site_id: string | null;
   scope: PowerOfAttorneyScope;
