@@ -429,6 +429,13 @@ const NAV_GROUPS: NavGroup[] = [
       },
 
       {
+        href: "/admin/platform/work-queue",
+        label: "Plattformsarbetskö",
+        description: "Tenants som kräver aktörstest, go-live, usage eller supportåtgärd",
+        pageKey: "platform.work_queue",
+        platformOnly: true,
+      },
+      {
         href: "/admin/platform/usage",
         label: "Usage & SaaS-fakturering",
         description: "Volymer per tenant för framtida plattformsfakturering",

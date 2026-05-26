@@ -37,6 +37,8 @@ export default async function PlatformActorTestingCompanyPage({ params }: { para
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/platform/actor-testing" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Alla aktörstester</Link>
+          <Link href="/admin/platform/work-queue" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Plattformsarbetskö</Link>
+          <Link href={`/admin/platform/usage`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Usage</Link>
           <Link href={`/admin/platform/go-live/${summary.company.id}`} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Produktionssättning</Link>
           <Link href={`/admin/companies/${summary.company.id}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Bolagsöversikt</Link>
         </div>

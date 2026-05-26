@@ -22,7 +22,16 @@ export type TenantUsageStatsRow = {
   billingUnderlays: number
   billingExportRuns: number
   partnerExports: number
+  authorizationScopes: number
+  powerOfAttorneys: number
+  customerBlockers: number
+  openCustomerCases: number
+  waitingInfoRequests: number
+  openSupplierSwitches: number
+  blockedBillingRows: number
   users: number
+  activeUsers: number
+  lastActivityAt: string | null
 }
 
 function isMissingRelationError(error: unknown): boolean {
@@ -52,6 +61,44 @@ async function safeCount(table: string, filters: Array<{ column: string; value: 
     if (isMissingRelationError(error)) return 0
     throw error
   }
+}
+
+
+async function safeLatestTimestamp(
+  table: string,
+  companyId: string,
+  column = 'updated_at'
+): Promise<string | null> {
+  try {
+    const { data, error } = await supabaseService
+      .from(table)
+      .select(column)
+      .eq('company_id', companyId)
+      .order(column, { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      if (isMissingRelationError(error)) return null
+      throw error
+    }
+
+    const value = (data as Record<string, unknown> | null)?.[column]
+    return typeof value === 'string' && value.trim().length > 0 ? value : null
+  } catch (error) {
+    if (isMissingRelationError(error)) return null
+    return null
+  }
+}
+
+function latestTimestamp(values: Array<string | null | undefined>): string | null {
+  const dates = values
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map((value) => ({ value, time: Date.parse(value) }))
+    .filter((item) => !Number.isNaN(item.time))
+    .sort((a, b) => b.time - a.time)
+
+  return dates[0]?.value ?? null
 }
 
 async function listCompanies(): Promise<Array<{ id: string; name: string | null; status: string | null }>> {
@@ -90,7 +137,19 @@ export async function listTenantUsageStats(): Promise<TenantUsageStatsRow[]> {
         billingUnderlays,
         billingExportRuns,
         partnerExports,
+        authorizationScopes,
+        powerOfAttorneys,
+        customerBlockers,
+        openCustomerCases,
+        waitingInfoRequests,
+        openSupplierSwitches,
+        blockedBillingRows,
         users,
+        activeUsers,
+        latestCustomerAt,
+        latestContractAt,
+        latestEdielAt,
+        latestExportAt,
       ] = await Promise.all([
         safeCount('customers', [{ column: 'company_id', value: companyId }]),
         safeCount('customers', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'active' }]),
@@ -110,7 +169,19 @@ export async function listTenantUsageStats(): Promise<TenantUsageStatsRow[]> {
         safeCount('billing_underlays', [{ column: 'company_id', value: companyId }]),
         safeCount('billing_export_runs', [{ column: 'company_id', value: companyId }]),
         safeCount('partner_exports', [{ column: 'company_id', value: companyId }]),
+        safeCount('authorization_scopes', [{ column: 'company_id', value: companyId }]),
+        safeCount('powers_of_attorney', [{ column: 'company_id', value: companyId }]),
+        safeCount('customer_blockers', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'open' }]),
+        safeCount('customer_cases', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'open' }]),
+        safeCount('customer_info_requests', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'waiting_response' }]),
+        safeCount('supplier_switch_requests', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'waiting_response' }]),
+        safeCount('billing_export_run_items', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'blocked' }]),
         safeCount('company_memberships', [{ column: 'company_id', value: companyId }]),
+        safeCount('company_memberships', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'active' }]),
+        safeLatestTimestamp('customers', companyId),
+        safeLatestTimestamp('customer_contracts', companyId),
+        safeLatestTimestamp('ediel_messages', companyId),
+        safeLatestTimestamp('billing_export_runs', companyId),
       ])
 
       return {
@@ -135,7 +206,16 @@ export async function listTenantUsageStats(): Promise<TenantUsageStatsRow[]> {
         billingUnderlays,
         billingExportRuns,
         partnerExports,
+        authorizationScopes,
+        powerOfAttorneys,
+        customerBlockers,
+        openCustomerCases,
+        waitingInfoRequests,
+        openSupplierSwitches,
+        blockedBillingRows,
         users,
+        activeUsers,
+        lastActivityAt: latestTimestamp([latestCustomerAt, latestContractAt, latestEdielAt, latestExportAt]),
       }
     })
   )

@@ -231,10 +231,11 @@ export default async function AdminDashboardPage() {
             <MetricCard label="Fakturaunderlag" value={billingUnderlays} hint="Underlag på plattformen" href="/admin/billing" />
           </section>
 
-          <section className="grid gap-5 xl:grid-cols-4">
-            <ActionCard title="Bolag och användare" text="Skapa, pausa och administrera tenants, användare och rolltilldelningar." href="/admin/companies" cta="Öppna bolag" />
-            <ActionCard title="Ediel och routes" text="Hantera aktörsprofiler, routes, regler och teknisk Ediel-governance." href="/admin/ediel" cta="Öppna Ediel Center" tone="slate" />
-            <ActionCard title="Masterdata" text="Styr nätägare, elleverantörer, elområden och kommunikationsrutter centralt." href="/admin/network-owners" cta="Öppna masterdata" tone="slate" />
+          <section className="grid gap-5 xl:grid-cols-5">
+            <ActionCard title="Plattformsarbetskö" text="Se tenants som kräver aktörsprofil, aktörstest, go-live, usage eller faktureringsuppföljning." href="/admin/platform/work-queue" cta="Öppna arbetskö" />
+            <ActionCard title="Bolag och användare" text="Skapa, pausa och administrera tenants, användare och rolltilldelningar." href="/admin/companies" cta="Öppna bolag" tone="slate" />
+            <ActionCard title="Aktörstester" text="Kontrollera tenantvis teststatus, bevispaket och Ediel-godkännande." href="/admin/platform/actor-testing" cta="Öppna tester" tone="slate" />
+            <ActionCard title="Usage" text="Kontrollera statistik per tenant för framtida SaaS-fakturering och support." href="/admin/platform/usage" cta="Öppna usage" tone="slate" />
             <ActionCard title="Säkerhet och audit" text="Kontrollera roller, revision, tenant-isolering och plattformsvarningar." href="/admin/platform/security" cta="Öppna säkerhet" tone="amber" />
           </section>
         </div>

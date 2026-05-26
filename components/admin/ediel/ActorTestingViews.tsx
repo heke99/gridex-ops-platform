@@ -289,6 +289,17 @@ export function ActorProfileGuide({ summary }: { summary: ActorTestingSummary })
         <h2 className="text-lg font-semibold text-slate-950">Aktörsprofil och test-/produktionsmiljö</h2>
         <p className="mt-1 text-sm leading-6 text-slate-700">Fyll i tenantens egna identiteter. BRP Ediel-id sparas både på bolaget och aktörsprofilen och används som NAD+Z02 i relevanta PRODAT-flöden. Dessa värden används av AGT-motorn och go-live-spärrarna, inte Div3rsa eller global testdata.</p>
       </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700">
+          Testmiljö: {summary.hasActiveActorProfile ? 'aktörsprofil finns' : 'saknar aktörsprofil'} · {summary.hasTestRoute ? 'test-route finns' : 'test-route saknas'}
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700">
+          Produktion: {summary.hasProductionActorProfile ? 'aktörsprofil finns' : 'saknar aktörsprofil'} · {summary.hasProductionRoute ? 'route finns' : 'route saknas'}
+        </div>
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-900">
+          Nästa steg: spara profil, synka testmotor och kontrollera go-live-spärrar per bolag.
+        </div>
+      </div>
       <form action={saveActorProfileAction} className="mt-5 grid gap-4">
         <input type="hidden" name="company_id" value={c.id} />
         <input type="hidden" name="company_name" value={c.name} />
@@ -317,6 +328,10 @@ export function ActorProfileGuide({ summary }: { summary: ActorTestingSummary })
         <div className="grid gap-3 md:grid-cols-2">
           <TextInput label="Test motpart Ediel-id" name="test_counterparty_ediel_id" value={c.test_counterparty_ediel_id} />
           <TextInput label="Produktionsmotpart Ediel-id" name="production_counterparty_ediel_id" value={c.production_counterparty_ediel_id} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <TextInput label="SMTP avsändare" name="smtp_from_email" value={c.support_email ?? c.technical_contact_email ?? c.primary_contact_email} />
+          <Info label="Synk till runtime" value={summary.hasActiveActorProfile ? 'Test/aktörsprofil finns' : 'Saknas – spara profilen'} />
         </div>
         <div className="grid gap-3 md:grid-cols-4">
           <TextInput label="BRP namn" name="brp_name" value={c.brp_name} />

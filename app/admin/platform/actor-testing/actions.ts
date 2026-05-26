@@ -48,6 +48,8 @@ function revalidateActorTestingViews(companyId: string) {
   revalidatePath('/admin/platform/actor-testing')
   revalidatePath(`/admin/platform/actor-testing/${companyId}`)
   revalidatePath('/admin/platform/go-live')
+  revalidatePath('/admin/platform/work-queue')
+  revalidatePath('/admin/platform/usage')
   revalidatePath(`/admin/platform/go-live/${companyId}`)
   revalidatePath('/admin/whitelabel/actor-testing')
   revalidatePath('/admin/whitelabel/go-live')

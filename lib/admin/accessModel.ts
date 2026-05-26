@@ -25,6 +25,7 @@ export type AdminPageKey =
   | 'whitelabel.go_live'
   | 'platform.security'
   | 'platform.usage'
+  | 'platform.work_queue'
   | 'platform.ediel.rules'
   | 'platform.ediel.versions'
   | 'platform.ediel.routes'
@@ -97,6 +98,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'whitelabel.go_live': { anyOf: ['whitelabel.read'] },
   'platform.security': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'platform.usage': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
+  'platform.work_queue': { allOf: ['tenants.write'] },
   'platform.ediel.rules': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'platform.ediel.versions': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'platform.ediel.routes': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
