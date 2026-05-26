@@ -341,7 +341,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   }
 }
 
-async function maybeFindExistingCustomer(parsed: ParsedInboundProdat): Promise<{
+async function maybeFindExistingCustomer(parsed: ParsedInboundProdat, companyId?: string | null): Promise<{
   customerId: string | null
   siteId: string | null
   meteringPointId: string | null
@@ -356,10 +356,16 @@ async function maybeFindExistingCustomer(parsed: ParsedInboundProdat): Promise<{
   const meterPointId = trimOrNull(parsed.meteringPoint.meterPointId)
 
   if (meterPointId) {
-    const { data, error } = await supabaseService
+    let meteringPointQuery = supabaseService
       .from('metering_points')
       .select('id,site_id,meter_point_id,ediel_reference')
       .or(`meter_point_id.eq.${meterPointId},ediel_reference.eq.${meterPointId},site_facility_id.eq.${meterPointId}`)
+
+    if (companyId) {
+      meteringPointQuery = meteringPointQuery.eq('company_id', companyId)
+    }
+
+    const { data, error } = await meteringPointQuery
       .limit(1)
       .maybeSingle()
 
@@ -372,20 +378,31 @@ async function maybeFindExistingCustomer(parsed: ParsedInboundProdat): Promise<{
   }
 
   if (siteId) {
-    const { data, error } = await supabaseService
+    let siteQuery = supabaseService
       .from('customer_sites')
       .select('id,customer_id')
       .eq('id', siteId)
-      .maybeSingle()
+
+    if (companyId) {
+      siteQuery = siteQuery.eq('company_id', companyId)
+    }
+
+    const { data, error } = await siteQuery.maybeSingle()
     if (error) throw error
     customerId = (data as { customer_id?: string | null } | null)?.customer_id ?? null
   }
 
   if (!customerId && orgNumber) {
-    const { data, error } = await supabaseService
+    let customerByOrgQuery = supabaseService
       .from('customers')
       .select('id')
       .eq('org_number', orgNumber)
+
+    if (companyId) {
+      customerByOrgQuery = customerByOrgQuery.eq('company_id', companyId)
+    }
+
+    const { data, error } = await customerByOrgQuery
       .limit(1)
       .maybeSingle()
     if (error) throw error
@@ -394,10 +411,16 @@ async function maybeFindExistingCustomer(parsed: ParsedInboundProdat): Promise<{
   }
 
   if (!customerId && personalNumber) {
-    const { data, error } = await supabaseService
+    let customerByPersonQuery = supabaseService
       .from('customers')
       .select('id')
       .eq('personal_number', personalNumber)
+
+    if (companyId) {
+      customerByPersonQuery = customerByPersonQuery.eq('company_id', companyId)
+    }
+
+    const { data, error } = await customerByPersonQuery
       .limit(1)
       .maybeSingle()
     if (error) throw error
@@ -423,10 +446,11 @@ export async function createOrUpdateInboundProdatCase(params: {
   message: EdielMessageRow
 }): Promise<EdielInboundCaseRow | null> {
   const parsed = parseInboundProdatBusinessData(params.message)
-  const match = await maybeFindExistingCustomer(parsed)
+  const companyId = params.message.company_id ?? null
+  const match = await maybeFindExistingCustomer(parsed, companyId)
 
   const payload = {
-    company_id: null,
+    company_id: companyId,
     ediel_message_id: params.message.id,
     case_type: parsed.caseType,
     message_family: params.message.message_family,
@@ -557,6 +581,7 @@ async function getGridOwnerIdByGridArea(gridAreaCode: string | null): Promise<st
 
 async function insertAuditLog(params: {
   actorUserId: string
+  companyId?: string | null
   entityType: string
   entityId: string
   action: string
@@ -564,6 +589,7 @@ async function insertAuditLog(params: {
   metadata?: JsonRecord
 }) {
   await supabaseService.from('audit_logs').insert({
+    company_id: params.companyId ?? null,
     actor_user_id: params.actorUserId,
     entity_type: params.entityType,
     entity_id: params.entityId,
@@ -584,6 +610,12 @@ async function createOrUpdateCustomer(params: {
   const customerType = trimOrNull(customer.customerType) === 'business' ? 'business' : 'private'
   const fullName = trimOrNull(customer.fullName) ?? trimOrNull(customer.companyName) ?? 'Ediel inbound-kund'
 
+  const companyId = params.inboundCase.company_id
+
+  if (!companyId) {
+    throw new Error('Inbound-caset saknar company_id och kan inte appliceras säkert i SaaS-läge.')
+  }
+
   if (params.mode === 'link_existing_only' && !selectedCustomerId) {
     throw new Error('Välj en befintlig kund eller byt godkänn-läge. Link existing only får inte skapa ny kund.')
   }
@@ -603,6 +635,7 @@ async function createOrUpdateCustomer(params: {
         updated_by: params.actorUserId,
       })
       .eq('id', selectedCustomerId)
+      .eq('company_id', companyId)
 
     if (error) throw error
     return selectedCustomerId
@@ -611,6 +644,7 @@ async function createOrUpdateCustomer(params: {
   const { data, error } = await supabaseService
     .from('customers')
     .insert({
+      company_id: companyId,
       customer_type: customerType,
       status: 'draft',
       first_name: customerType === 'private' ? trimOrNull(customer.firstName) : null,
@@ -653,7 +687,13 @@ async function createOrUpdateSite(params: {
     proposedAction: params.inboundCase.proposed_action,
   })
 
+  const companyId = params.inboundCase.company_id
+  if (!companyId) {
+    throw new Error('Inbound-caset saknar company_id och kan inte skapa eller uppdatera anläggning.')
+  }
+
   const payload = {
+    company_id: companyId,
     customer_id: params.customerId,
     site_name: trimOrNull(site.siteName) ?? trimOrNull(site.facilityId) ?? 'Ediel inbound-anläggning',
     facility_id: trimOrNull(site.facilityId),
@@ -672,7 +712,7 @@ async function createOrUpdateSite(params: {
   }
 
   if (siteId) {
-    const { error } = await supabaseService.from('customer_sites').update(payload).eq('id', siteId)
+    const { error } = await supabaseService.from('customer_sites').update(payload).eq('id', siteId).eq('company_id', companyId).eq('customer_id', params.customerId)
     if (error) throw error
     return siteId
   }
@@ -682,13 +722,14 @@ async function createOrUpdateSite(params: {
     const { data: existing, error: existingError } = await supabaseService
       .from('customer_sites')
       .select('id')
+      .eq('company_id', companyId)
       .eq('facility_id', facilityId)
       .limit(1)
       .maybeSingle()
     if (existingError) throw existingError
     if (existing) {
       const existingId = (existing as { id: string }).id
-      const { error } = await supabaseService.from('customer_sites').update(payload).eq('id', existingId)
+      const { error } = await supabaseService.from('customer_sites').update(payload).eq('id', existingId).eq('company_id', companyId)
       if (error) throw error
       return existingId
     }
@@ -706,6 +747,7 @@ async function createOrUpdateSite(params: {
 async function createOrUpdateMeteringPoint(params: {
   actorUserId: string
   inboundCase: EdielInboundCaseRow
+  customerId: string
   siteId: string
   selectedMeteringPointId?: string | null
 }): Promise<string> {
@@ -718,7 +760,14 @@ async function createOrUpdateMeteringPoint(params: {
     throw new Error('Mätpunkt/anläggnings-id saknas i inbound-caset.')
   }
 
+  const companyId = params.inboundCase.company_id
+  if (!companyId) {
+    throw new Error('Inbound-caset saknar company_id och kan inte skapa eller uppdatera mätpunkt.')
+  }
+
   const payload = {
+    company_id: companyId,
+    customer_id: params.customerId,
     site_id: params.siteId,
     meter_point_id: meterPointId,
     site_facility_id: meterPointId,
@@ -734,7 +783,7 @@ async function createOrUpdateMeteringPoint(params: {
   }
 
   if (selectedId) {
-    const { error } = await supabaseService.from('metering_points').update(payload).eq('id', selectedId)
+    const { error } = await supabaseService.from('metering_points').update(payload).eq('id', selectedId).eq('company_id', companyId).eq('customer_id', params.customerId)
     if (error) throw error
     return selectedId
   }
@@ -742,13 +791,14 @@ async function createOrUpdateMeteringPoint(params: {
   const { data: existing, error: existingError } = await supabaseService
     .from('metering_points')
     .select('id')
+    .eq('company_id', companyId)
     .eq('meter_point_id', meterPointId)
     .limit(1)
     .maybeSingle()
   if (existingError) throw existingError
   if (existing) {
     const existingId = (existing as { id: string }).id
-    const { error } = await supabaseService.from('metering_points').update(payload).eq('id', existingId)
+    const { error } = await supabaseService.from('metering_points').update(payload).eq('id', existingId).eq('company_id', companyId)
     if (error) throw error
     return existingId
   }
@@ -794,6 +844,7 @@ export async function approveEdielInboundCase(params: {
     const meteringPointId = await createOrUpdateMeteringPoint({
       actorUserId: params.actorUserId,
       inboundCase,
+      customerId,
       siteId,
       selectedMeteringPointId: params.selectedMeteringPointId,
     })
@@ -839,6 +890,7 @@ export async function approveEdielInboundCase(params: {
 
     await insertAuditLog({
       actorUserId: params.actorUserId,
+      companyId: inboundCase.company_id,
       entityType: 'ediel_inbound_case',
       entityId: inboundCase.id,
       action: 'ediel_inbound_case_applied',

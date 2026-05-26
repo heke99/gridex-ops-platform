@@ -2335,6 +2335,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
           .from("metering_points")
           .insert({
             company_id: params.companyId,
+            customer_id: customer.id,
             site_id: siteId,
             meter_point_id: normalizedMeterPointId,
             site_facility_id: normalizedFacilityId,

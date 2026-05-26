@@ -258,6 +258,7 @@ export async function createExternalContractIntake(
         .from("metering_points")
         .insert({
           company_id: companyId,
+          customer_id: customerId,
           site_id: siteId,
           meter_point_id: input.meterPointId,
           site_facility_id: input.facilityId,

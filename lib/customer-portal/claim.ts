@@ -7,6 +7,7 @@ import { supabaseService } from '@/lib/supabase/service'
 
 type CustomerCandidate = {
   id: string
+  company_id: string | null
   customer_type: string | null
   first_name: string | null
   last_name: string | null
@@ -181,6 +182,7 @@ function personalNumbersMatch(input: string, customer: CustomerCandidate): boole
 
 async function findMatchingInstallation(params: {
   customerId: string
+  companyId?: string | null
   installationId: string
 }): Promise<{
   ok: boolean
@@ -194,6 +196,7 @@ async function findMatchingInstallation(params: {
     .from('customer_sites')
     .select('id,customer_id,facility_id,site_name,street,postal_code,city')
     .eq('customer_id', params.customerId)
+    .eq('company_id', params.companyId ?? '')
     .in('facility_id', variants)
     .limit(1)
 
@@ -206,6 +209,7 @@ async function findMatchingInstallation(params: {
     .from('customer_sites')
     .select('id,customer_id,facility_id,site_name,street,postal_code,city')
     .eq('customer_id', params.customerId)
+    .eq('company_id', params.companyId ?? '')
 
   if (allSitesError) throw allSitesError
 
@@ -232,6 +236,7 @@ async function findMatchingInstallation(params: {
 async function insertClaim(params: {
   userId: string
   userEmail: string | null
+  companyId?: string | null
   customerId?: string | null
   status: 'approved' | 'rejected'
   personalNumber: string
@@ -251,6 +256,7 @@ async function insertClaim(params: {
 
   const { error } = await supabaseService.from('customer_portal_claims').insert({
     user_id: params.userId,
+    company_id: params.companyId ?? null,
     user_email: params.userEmail,
     customer_id: params.customerId ?? null,
     status: params.status,
@@ -273,6 +279,7 @@ async function insertClaim(params: {
 
 async function insertPortalEvent(params: {
   customerId: string
+  companyId?: string | null
   userId: string
   userEmail: string | null
   eventType: string
@@ -280,6 +287,7 @@ async function insertPortalEvent(params: {
   metadata?: Record<string, unknown>
 }) {
   const { error } = await supabaseService.from('customer_portal_events').insert({
+    company_id: params.companyId ?? null,
     customer_id: params.customerId,
     user_id: params.userId,
     event_type: params.eventType,
@@ -330,7 +338,7 @@ export async function claimPortalCustomerAction(
 
   const { data: candidates, error: candidateError } = await supabaseService
     .from('customers')
-    .select('id,customer_type,first_name,last_name,full_name,company_name,email,personal_number,customer_number')
+    .select('id,company_id,customer_type,first_name,last_name,full_name,company_name,email,personal_number,customer_number')
     .in('personal_number', pnVariants)
     .limit(5)
 
@@ -363,6 +371,7 @@ export async function claimPortalCustomerAction(
       .from('customer_contacts')
       .select('id,customer_id,name,email,is_primary')
       .eq('customer_id', customer.id)
+      .eq('company_id', customer.company_id ?? '')
 
     if (contactsError) throw contactsError
 
@@ -384,6 +393,7 @@ export async function claimPortalCustomerAction(
     const personalNumberMatched = personalNumbersMatch(personalNumber, customer)
     const installationMatch = await findMatchingInstallation({
       customerId: customer.id,
+      companyId: customer.company_id,
       installationId,
     })
 
@@ -405,6 +415,7 @@ export async function claimPortalCustomerAction(
         .from('customer_portal_accounts')
         .upsert(
           {
+            company_id: customer.company_id,
             user_id: user.id,
             user_email: authEmail,
             customer_id: customer.id,
@@ -430,6 +441,7 @@ export async function claimPortalCustomerAction(
       await insertClaim({
         userId: user.id,
         userEmail: authEmail,
+        companyId: customer.company_id,
         customerId: customer.id,
         status: 'approved',
         personalNumber,
@@ -447,6 +459,7 @@ export async function claimPortalCustomerAction(
 
       await insertPortalEvent({
         customerId: customer.id,
+        companyId: customer.company_id,
         userId: user.id,
         userEmail: authEmail,
         eventType: 'portal_account_verified',
@@ -464,6 +477,7 @@ export async function claimPortalCustomerAction(
     await insertClaim({
       userId: user.id,
       userEmail: authEmail,
+      companyId: customer.company_id,
       customerId: customer.id,
       status: 'rejected',
       personalNumber,
