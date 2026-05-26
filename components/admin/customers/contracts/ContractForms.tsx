@@ -138,6 +138,156 @@ function AutoRenewFields({
  )
 }
 
+
+function CampaignVersionFields({
+ contract,
+}: {
+ contract?: CustomerContractRow
+}) {
+ return (
+ <SectionCard
+ title="Kampanj och prisversion"
+ description="Här kopplas avtalet till kampanj, prisversion och villkor så att kundkort och fakturering använder rätt underlag."
+ >
+ <div className="grid gap-4 md:grid-cols-2">
+ <Field label="Kampanjnamn">
+ <input
+ name="campaign_name"
+ defaultValue={contract?.campaign_name ?? ''}
+ placeholder="Ex. Vårkampanj 2026"
+ className={inputClassName()}
+ />
+ </Field>
+
+ <Field label="Kampanjkod">
+ <input
+ name="campaign_code"
+ defaultValue={contract?.campaign_code ?? ''}
+ placeholder="Ex. VAR-2026"
+ className={inputClassName()}
+ />
+ </Field>
+
+ <Field label="Kampanjversion">
+ <input
+ name="campaign_version"
+ defaultValue={contract?.campaign_version ?? ''}
+ placeholder="Ex. 2026-01"
+ className={inputClassName()}
+ />
+ </Field>
+
+ <Field label="Prisversion">
+ <input
+ name="price_version"
+ defaultValue={contract?.price_version ?? ''}
+ placeholder="Ex. RÖRLIG-2026-01"
+ className={inputClassName()}
+ />
+ </Field>
+
+ <Field label="Villkorsversion">
+ <input
+ name="terms_version"
+ defaultValue={contract?.terms_version ?? ''}
+ placeholder="Ex. AVTAL-2026-A"
+ className={inputClassName()}
+ />
+ </Field>
+ </div>
+ </SectionCard>
+ )
+}
+
+function ExtraPriceFields({
+ contract,
+}: {
+ contract?: CustomerContractRow
+}) {
+ return (
+ <SectionCard
+ title="Tillägg, rabatter och moms"
+ description="Används när avtalet har grönt el-tillägg, kampanjrabatt, startavgift eller andra avtalsavgifter."
+ >
+ <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+ <Field label="Grön avgift">
+ <select
+ name="green_fee_mode"
+ defaultValue={contract?.green_fee_mode ?? 'none'}
+ className={inputClassName()}
+ >
+ <option value="none">Ingen</option>
+ <option value="sek_month">SEK/mån</option>
+ <option value="ore_per_kwh">öre/kWh</option>
+ </select>
+ </Field>
+
+ <Field label="Grön avgift värde">
+ <input
+ name="green_fee_value"
+ defaultValue={contract?.green_fee_value ?? ''}
+ className={inputClassName()}
+ />
+ </Field>
+
+ <Field label="Rabattvärde">
+ <input
+ name="discount_value"
+ defaultValue={contract?.discount_value ?? ''}
+ className={inputClassName()}
+ />
+ </Field>
+
+ <Field label="Rabattenhet">
+ <select
+ name="discount_unit"
+ defaultValue={contract?.discount_unit ?? ''}
+ className={inputClassName()}
+ >
+ <option value="">Ingen</option>
+ <option value="sek_month">SEK/mån</option>
+ <option value="ore_per_kwh">öre/kWh</option>
+ <option value="percent">Procent</option>
+ </select>
+ </Field>
+
+ <Field label="Startavgift (SEK)">
+ <input
+ name="start_fee_sek"
+ defaultValue={contract?.start_fee_sek ?? ''}
+ className={inputClassName()}
+ />
+ </Field>
+
+ <Field label="Administrationsavgift (SEK)">
+ <input
+ name="admin_fee_sek"
+ defaultValue={contract?.admin_fee_sek ?? ''}
+ className={inputClassName()}
+ />
+ </Field>
+
+ <Field label="Brytavgift (SEK)">
+ <input
+ name="break_fee_sek"
+ defaultValue={contract?.break_fee_sek ?? ''}
+ className={inputClassName()}
+ />
+ </Field>
+
+ <Field label="Moms (%)">
+ <input
+ name="vat_rate"
+ defaultValue={contract?.vat_rate ?? ''}
+ placeholder="25"
+ className={inputClassName()}
+ />
+ </Field>
+ </div>
+ </SectionCard>
+ )
+}
+
 function TerminationFields({
  terminationNoticeDate,
  terminationReason,
@@ -333,7 +483,7 @@ function CoreContractFields({
  defaultValue={contract.status}
  className={inputClassName()}
  >
- <option value="draft">Draft</option>
+ <option value="draft">Utkast</option>
  <option value="pending_signature">Väntar signering</option>
  <option value="signed">Signerat</option>
  <option value="active">Aktivt</option>
@@ -480,7 +630,7 @@ function ManualCoreFields({
  defaultValue="draft"
  className={inputClassName()}
  >
- <option value="draft">Draft</option>
+ <option value="draft">Utkast</option>
  <option value="pending_signature">Väntar signering</option>
  <option value="signed">Signerat</option>
  <option value="active">Aktivt</option>
@@ -558,22 +708,6 @@ function ManualPriceFields() {
  <Field label="Månadsavgift (SEK)">
  <input name="monthly_fee_sek" className={inputClassName()} />
  </Field>
-
- <Field label="Grön avgift">
- <select
- name="green_fee_mode"
- defaultValue="none"
- className={inputClassName()}
- >
- <option value="none">Ingen</option>
- <option value="sek_month">SEK/mån</option>
- <option value="ore_per_kwh">öre/kWh</option>
- </select>
- </Field>
-
- <Field label="Grön avgift värde">
- <input name="green_fee_value" className={inputClassName()} />
- </Field>
  </div>
  </SectionCard>
  )
@@ -628,7 +762,9 @@ export function EditContractForm({
  <input type="hidden" name="customer_contract_id" value={contract.id} />
 
  <CoreContractFields contract={contract} siteOptions={siteOptions} />
+ <CampaignVersionFields contract={contract} />
  <PriceFields contract={contract} />
+ <ExtraPriceFields contract={contract} />
  <TerminationFields
  terminationNoticeDate={contract.termination_notice_date}
  terminationReason={contract.termination_reason}
@@ -727,6 +863,11 @@ export function CreateFromOfferForm({
 
  <div className="mt-3 grid gap-2 text-xs text-slate-700 md:grid-cols-2">
  <div>Typ: {contractTypeLabel(offer.contract_type)}</div>
+ <div>Kampanj: {offer.campaign_name ?? 'Ingen kampanj'}</div>
+ <div>Kampanjkod: {offer.campaign_code ?? '—'}</div>
+ <div>Kampanjversion: {offer.campaign_version ?? '—'}</div>
+ <div>Prisversion: {offer.price_version ?? '—'}</div>
+ <div>Villkor: {offer.terms_version ?? '—'}</div>
  <div>Månadsavgift: {offer.monthly_fee_sek ?? '—'} SEK</div>
  <div>Fast pris: {offer.fixed_price_ore_per_kwh ?? '—'} öre/kWh</div>
  <div>Påslag: {offer.spot_markup_ore_per_kwh ?? '—'} öre/kWh</div>
@@ -750,7 +891,7 @@ export function CreateFromOfferForm({
  defaultValue="pending_signature"
  className={inputClassName()}
  >
- <option value="draft">Draft</option>
+ <option value="draft">Utkast</option>
  <option value="pending_signature">Väntar signering</option>
  <option value="signed">Signerat</option>
  <option value="active">Aktivt</option>
@@ -830,7 +971,9 @@ export function CreateManualContractForm({
  <input type="hidden" name="customer_id" value={customerId} />
 
  <ManualCoreFields siteOptions={siteOptions} />
+ <CampaignVersionFields />
  <ManualPriceFields />
+ <ExtraPriceFields />
  <TerminationFields />
  <AutoRenewFields />
 

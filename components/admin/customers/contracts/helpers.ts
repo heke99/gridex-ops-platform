@@ -85,7 +85,7 @@ export function statusTone(status: string): string {
 export function statusLabel(status: CustomerContractRow['status']): string {
   switch (status) {
     case 'draft':
-      return 'Draft'
+      return 'Utkast'
     case 'pending_signature':
       return 'Väntar signering'
     case 'signed':

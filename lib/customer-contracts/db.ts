@@ -339,14 +339,22 @@ export async function getCustomerContractById(
 }
 
 export async function listCustomerContractEventsByCustomerId(
-  customerId: string
+  customerId: string,
+  options: { companyId?: string | null; limit?: number } = {}
 ): Promise<CustomerContractEventRow[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('customer_contract_events')
     .select('*')
     .eq('customer_id', customerId)
+
+  if (options.companyId) {
+    query = query.eq('company_id', options.companyId)
+  }
+
+  const { data, error } = await query
     .order('happened_at', { ascending: false })
     .order('created_at', { ascending: false })
+    .limit(options.limit ?? 100)
 
   if (error) throw error
   return (data ?? []) as CustomerContractEventRow[]
@@ -529,6 +537,8 @@ export async function updateCustomerContract(input: {
   spotMarkupOrePerKwh?: number | null
   variableFeeOrePerKwh?: number | null
   monthlyFeeSek?: number | null
+  greenFeeMode?: GreenFeeMode | null
+  greenFeeValue?: number | null
   bindingMonths?: number | null
   noticeMonths?: number | null
   startsAt?: string | null
@@ -583,6 +593,8 @@ export async function updateCustomerContract(input: {
       spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
       variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
       monthly_fee_sek: input.monthlyFeeSek ?? null,
+      green_fee_mode: input.greenFeeMode ?? 'none',
+      green_fee_value: input.greenFeeValue ?? null,
       binding_months: input.bindingMonths ?? null,
       notice_months: input.noticeMonths ?? null,
       starts_at: input.startsAt ?? null,

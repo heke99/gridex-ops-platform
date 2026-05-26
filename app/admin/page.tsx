@@ -273,19 +273,20 @@ export default async function AdminDashboardPage() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <MetricCard label="Saknar fullmakt" value={missingPowerOfAttorney} hint="Kunder eller objekt där fullmakt behöver kompletteras" href="/admin/operations/tasks" tone={missingPowerOfAttorney > 0 ? 'amber' : 'emerald'} />
+          <MetricCard label="Saknar fullmakt" value={missingPowerOfAttorney} hint="Kunder eller objekt där fullmakt behöver kompletteras" href="/admin/work-queue" tone={missingPowerOfAttorney > 0 ? 'amber' : 'emerald'} />
           <MetricCard label="Väntar svar" value={waitingInfoRequests} hint="Uppgiftsbegäran där svar saknas" href="/admin/customer-info-requests" tone={waitingInfoRequests > 0 ? 'amber' : 'emerald'} />
           <MetricCard label="Redo / pågående byte" value={openSwitches} hint="Leverantörsbyten som behöver följas upp" href="/admin/operations/switches" tone={openSwitches > 0 ? 'amber' : 'emerald'} />
           <MetricCard label="Blockerade kunder" value={blockedCustomers} hint="Kundflöden som behöver åtgärdas" href="/admin/customers" tone={blockedCustomers > 0 ? 'red' : 'emerald'} />
           <MetricCard label="Öppna ärenden" value={openCases} hint="Kundärenden och avvikelser" href="/admin/customer-cases" tone={openCases > 0 ? 'amber' : 'emerald'} />
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-5">
+        <section className="grid gap-5 xl:grid-cols-6">
           <ActionCard title="Skapa kund" text="Registrera kund, avtal, dokument och fullmakt utan att ofullständiga uppgifter stoppar intaget." href="/admin/customers/intake" cta="Nytt kundintag" />
           <ActionCard title="Importera kunder" text="Granska fil- och PDF-rader innan osäker data blir riktiga kunder." href="/admin/customers/imports" cta="Öppna import" tone="slate" />
           <ActionCard title="Begär uppgifter" text="Skapa uppgiftsbegäran när signerad fullmakt finns." href="/admin/customer-info-requests" cta="Öppna begäran" tone="slate" />
+          <ActionCard title="Avtal och kampanjer" text="Hantera avtalsmallar, kampanjer och prisversioner som kopplas till kundavtal." href="/admin/contracts" cta="Öppna avtal" tone="slate" />
           <ActionCard title="Fakturering" text="Följ faktureringsunderlag, blockerade rader och exportstatus." href="/admin/billing" cta="Öppna fakturering" tone="slate" />
-          <ActionCard title="Arbetskö" text="Samla fullmakter, blockerare och uppgifter som kräver åtgärd." href="/admin/operations/tasks" cta="Öppna arbetskö" tone="amber" />
+          <ActionCard title="Arbetskö" text="Samla fullmakter, blockerare och uppgifter som kräver åtgärd." href="/admin/work-queue" cta="Öppna arbetskö" tone="amber" />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">

@@ -46,6 +46,12 @@ const NAV_GROUPS: NavGroup[] = [
         pageKey: "dashboard",
       },
       {
+        href: "/admin/work-queue",
+        label: "Arbetskö",
+        description: "Allt som kräver nästa åtgärd",
+        pageKey: "operations.tasks",
+      },
+      {
         href: "/admin/controltower",
         label: "Arbetsöversikt",
         description: "Blockeringar, switchar, mätvärden och handoff",
@@ -175,8 +181,8 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Fullmakter & onboarding",
-    description: "Från signerad fullmakt till begärda uppgifter",
+    title: "Fullmakter och uppgifter",
+    description: "Fullmakt, uppgiftsbegäran och komplettering",
     items: [
       {
         href: "/admin/customers/intake",
@@ -185,9 +191,9 @@ const NAV_GROUPS: NavGroup[] = [
         pageKey: "customers.intake",
       },
       {
-        href: "/admin/operations/tasks",
-        label: "Operationsuppgifter",
-        description: "Blockerade fullmakter och saknade uppgifter",
+        href: "/admin/work-queue",
+        label: "Arbetskö",
+        description: "Blockerade fullmakter, saknade uppgifter och väntande svar",
         pageKey: "operations.tasks",
       },
       {
@@ -205,7 +211,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Operations",
+    title: "Drift & leverantörsbyte",
     description: "Leverantörsbyte, utskick och uppföljning",
     items: [
       {
@@ -259,8 +265,8 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Mätvärden & fakturaunderlag",
-    description: "UTILTS, mätvärden och partnerhandoff",
+    title: "Fakturering & export",
+    description: "Mätvärden, faktureringsunderlag och partnerhandoff",
     items: [
       {
         href: "/admin/metering",

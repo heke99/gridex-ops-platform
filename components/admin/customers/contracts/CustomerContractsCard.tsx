@@ -91,20 +91,32 @@ function RecommendationCard({
  )
 }
 
+
+function sourceTypeLabel(value: CustomerContractRow['source_type']): string {
+ return value === 'catalog' ? 'Avtalsmall' : 'Manuellt avtal'
+}
+
+function valueOrDash(value: string | null | undefined): string {
+ const trimmed = value?.trim()
+ return trimmed ? trimmed : '—'
+}
+
 export default async function CustomerContractsCard({
  customerId,
+ companyId,
 }: {
  customerId: string
+ companyId?: string | null
 }) {
  const supabase = await createSupabaseServerClient()
 
  const [contracts, events, sites, offers, switchRequests, outboundRequests] = await Promise.all([
- listCustomerContractsByCustomerId(customerId),
- listCustomerContractEventsByCustomerId(customerId),
- listCustomerSitesByCustomerId(supabase, customerId),
- listContractOffers(),
- listSupplierSwitchRequestsByCustomerId(supabase, customerId),
- listOutboundRequestsByCustomerId(customerId),
+ listCustomerContractsByCustomerId(customerId, { companyId }),
+ listCustomerContractEventsByCustomerId(customerId, { companyId, limit: 100 }),
+ listCustomerSitesByCustomerId(supabase, customerId, { companyId }),
+ listContractOffers({ activeOnly: false, companyId }),
+ listSupplierSwitchRequestsByCustomerId(supabase, customerId, { companyId }),
+ listOutboundRequestsByCustomerId(customerId, { companyId }),
  ])
 
  const activeOffers = offers.filter((offer) => offer.is_active && offer.status === 'active')
@@ -163,6 +175,13 @@ export default async function CustomerContractsCard({
  >
  {statusLabel(currentContract.status)}
  </span>
+ </div>
+
+ <div className="mt-3 grid gap-2 text-xs text-slate-700 md:grid-cols-2 xl:grid-cols-4">
+ <span className="rounded-2xl bg-slate-50 px-3 py-2">Kampanj: {valueOrDash(currentContract.campaign_name)}</span>
+ <span className="rounded-2xl bg-slate-50 px-3 py-2">Kampanjversion: {valueOrDash(currentContract.campaign_version)}</span>
+ <span className="rounded-2xl bg-slate-50 px-3 py-2">Prisversion: {valueOrDash(currentContract.price_version)}</span>
+ <span className="rounded-2xl bg-slate-50 px-3 py-2">Villkor: {valueOrDash(currentContract.terms_version)}</span>
  </div>
  </div>
 
@@ -275,15 +294,18 @@ export default async function CustomerContractsCard({
  ) : null}
  </div>
  ) : (
- <div className="text-sm text-slate-700 ">
- Inget aktuellt kundavtal.
+ <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-700 ">
+ <div className="font-semibold text-slate-900">Inget aktuellt kundavtal</div>
+ <div className="mt-1">Skapa ett avtal för att koppla kunden till kampanj, prisversion, startdatum och faktureringsunderlag.</div>
  </div>
  )}
  </div>
 
  {contracts.length === 0 ? (
  <div className="p-10 text-center text-sm text-slate-700 ">
- Inget kundavtal registrerat ännu.
+ <div className="text-base font-semibold text-slate-900">Inget avtal är registrerat ännu</div>
+ <div className="mx-auto mt-2 max-w-xl">Skapa ett avtal för att koppla kunden till kampanj, prisversion, startdatum och nästa steg i leverantörsbytet.</div>
+ <div className="mt-4 text-xs text-slate-600">Du kan skapa avtal från en aktiv avtalsmall eller registrera ett manuellt avtal i panelen till höger.</div>
  </div>
  ) : (
  <div className="divide-y divide-slate-200 ">
@@ -305,7 +327,7 @@ export default async function CustomerContractsCard({
  </div>
 
  <div className="mt-1 text-xs text-slate-700 ">
- {contractTypeLabel(contract.contract_type)} • {contract.source_type} •{' '}
+ {contractTypeLabel(contract.contract_type)} • {sourceTypeLabel(contract.source_type)} •{' '}
  {getSiteLabel(contract.site_id, siteLabelsById)}
  </div>
 
@@ -335,6 +357,13 @@ export default async function CustomerContractsCard({
  <div>Påslag: {formatNumber(contract.spot_markup_ore_per_kwh)}</div>
  <div>Rörlig: {formatNumber(contract.variable_fee_ore_per_kwh)}</div>
  <div>Mån: {formatNumber(contract.monthly_fee_sek)}</div>
+ </div>
+
+ <div className="rounded-2xl bg-slate-50 px-4 py-3 ">
+ <div>Kampanj: {valueOrDash(contract.campaign_name)}</div>
+ <div>Kampanjkod: {valueOrDash(contract.campaign_code)}</div>
+ <div>Prisversion: {valueOrDash(contract.price_version)}</div>
+ <div>Villkor: {valueOrDash(contract.terms_version)}</div>
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 ">

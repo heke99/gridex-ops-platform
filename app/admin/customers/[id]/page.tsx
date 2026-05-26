@@ -235,6 +235,27 @@ function maskSensitiveValue(value: string | null): string {
  return `${'*'.repeat(Math.max(0, value.length - 4))}${value.slice(-4)}`
 }
 
+function contractStatusUiLabel(status: string | null | undefined): string {
+ switch (status) {
+ case 'draft':
+ return 'Utkast'
+ case 'pending_signature':
+ return 'Väntar signering'
+ case 'signed':
+ return 'Signerat'
+ case 'active':
+ return 'Aktivt'
+ case 'terminated':
+ return 'Avslutat'
+ case 'cancelled':
+ return 'Avbrutet'
+ case 'expired':
+ return 'Utgånget'
+ default:
+ return status ?? 'Saknas'
+ }
+}
+
 function statusTone(status: string | null): string {
  switch (status) {
  case 'active':
@@ -731,7 +752,7 @@ function buildCustomerLifecycleSummary(params: {
  failed,
  completed,
  activeOpen,
- primaryLabel: 'Failed / rejected',
+ primaryLabel: 'Fel eller avvisat',
  primaryHref: '/admin/operations/switches?stage=failed',
  primaryDescription:
  'Minst ett ärende har brutit flödet och behöver manuell bedömning, retry eller korrigering.',
@@ -1654,6 +1675,35 @@ export default async function CustomerAdminDetailPage({
  normalizedCustomerType
  )
 
+ const openCustomerBlockers = (customerBlockers as CustomerBlockerRow[]).filter(
+ (blocker) => !['resolved', 'closed', 'dismissed'].includes(String(blocker.status ?? '').toLowerCase())
+ )
+ const activeCustomerContract =
+ customerContracts.find((contract) => ['active', 'signed', 'pending_signature'].includes(contract.status)) ??
+ customerContracts[0] ??
+ null
+ const pendingCustomerInfoRequests = customerInfoRequests.filter((request) =>
+ ['draft', 'ready_to_send', 'sent', 'waiting_response', 'partially_received'].includes(
+ String(request.status ?? '').toLowerCase()
+ )
+ )
+ const nextCustomerStep = !hasUsablePowerOfAttorney
+ ? { label: 'Ladda upp fullmakt', href: customerTabHref(id, 'authorization-documents') }
+ : pendingCustomerInfoRequests.length === 0
+ ? { label: 'Begär uppgifter', href: customerTabHref(id, 'data-requests') }
+ : !activeCustomerContract
+ ? { label: 'Skapa avtal', href: customerTabHref(id, 'contracts') }
+ : lifecycleSummary.readyToExecute > 0
+ ? { label: 'Fortsätt leverantörsbyte', href: customerTabHref(id, 'switch-operations') }
+ : { label: 'Öppna arbetsläge', href: customerTabHref(id, 'overview') }
+ const customerTopStatusCards = [
+ { label: 'Fullmakt', value: hasUsablePowerOfAttorney ? 'Signerad' : 'Saknas', href: customerTabHref(id, 'authorization-documents') },
+ { label: 'Uppgiftsbegäran', value: pendingCustomerInfoRequests.length > 0 ? 'Väntar svar' : 'Ej skickad', href: customerTabHref(id, 'data-requests') },
+ { label: 'Avtal', value: activeCustomerContract ? contractStatusUiLabel(activeCustomerContract.status) : 'Saknas', href: customerTabHref(id, 'contracts') },
+ { label: 'Leverantörsbyte', value: lifecycleSummary.primaryLabel, href: customerTabHref(id, 'switch-operations') },
+ { label: 'Blockerare', value: openCustomerBlockers.length > 0 ? `${openCustomerBlockers.length} öppna` : 'Inga öppna', href: customerTabHref(id, 'overview') },
+ ]
+
  return (
  <div className="space-y-6">
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
@@ -1808,12 +1858,12 @@ export default async function CustomerAdminDetailPage({
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Nätägar-requests</div>
+ <div className="text-slate-700 ">Uppgiftsbegäran</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
  {dataRequests.length}
  </div>
  <div className="mt-1 text-xs text-slate-700 ">
- billing + metering
+ fakturering och mätvärden
  </div>
  </div>
 
@@ -1833,6 +1883,33 @@ export default async function CustomerAdminDetailPage({
 
  <CustomerBlockersBanner blockers={customerBlockers as CustomerBlockerRow[]} />
 
+ <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+ <div>
+ <div className="text-sm font-semibold text-slate-900">Snabbstatus</div>
+ <p className="mt-1 text-sm text-slate-700">Samlad bild av nästa steg för kunden utan att handläggaren behöver leta i alla flikar.</p>
+ </div>
+ <Link
+ href={nextCustomerStep.href}
+ className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
+ >
+ Nästa steg: {nextCustomerStep.label}
+ </Link>
+ </div>
+ <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+ {customerTopStatusCards.map((item) => (
+ <Link
+ key={item.label}
+ href={item.href}
+ className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm hover:bg-slate-100"
+ >
+ <div className="text-xs uppercase tracking-[0.12em] text-slate-600">{item.label}</div>
+ <div className="mt-1 font-semibold text-slate-950">{item.value}</div>
+ </Link>
+ ))}
+ </div>
+ </section>
+
  <CustomerWorkspaceTabNav customerId={id} activeTab={activeTab} />
 
  {activeTab === 'overview' ? (
@@ -1845,7 +1922,7 @@ export default async function CustomerAdminDetailPage({
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex flex-wrap items-center gap-3">
  <div className="text-sm font-semibold text-slate-900 ">
- Operations summary
+ Arbetsläge
  </div>
  <span
  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
@@ -1855,7 +1932,7 @@ export default async function CustomerAdminDetailPage({
  ? 'ready_to_execute'
  : lifecycleSummary.primaryLabel === 'Väntar på kvittens'
  ? 'awaiting_response'
- : lifecycleSummary.primaryLabel === 'Failed / rejected'
+ : lifecycleSummary.primaryLabel === 'Fel eller avvisat'
  ? 'failed'
  : lifecycleSummary.primaryLabel === 'Inga akuta switchblockerare'
  ? 'completed'
@@ -1878,7 +1955,7 @@ export default async function CustomerAdminDetailPage({
  </div>
  </div>
  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Ready to execute</div>
+ <div className="text-slate-700 ">Redo att slutföra</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
  {lifecycleSummary.readyToExecute}
  </div>
@@ -1929,11 +2006,11 @@ export default async function CustomerAdminDetailPage({
  <div className="mt-1 text-2xl font-semibold text-slate-950 ">{lifecycleSummary.awaitingDispatch}</div>
  </Link>
  <Link href="/admin/operations/switches?stage=failed" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 ">
- <div className="text-sm text-slate-700 ">Failed / rejected</div>
+ <div className="text-sm text-slate-700 ">Fel eller avvisat</div>
  <div className="mt-1 text-2xl font-semibold text-slate-950 ">{lifecycleSummary.failed}</div>
  </Link>
  <Link href="/admin/operations/ready-to-execute" className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm transition hover:bg-emerald-50 ">
- <div className="text-sm text-slate-700 ">Completed / ready view</div>
+ <div className="text-sm text-slate-700 ">Klart eller redo</div>
  <div className="mt-1 text-2xl font-semibold text-slate-950 ">{lifecycleSummary.completed + lifecycleSummary.readyToExecute}</div>
  </Link>
  </div>
@@ -1998,7 +2075,7 @@ export default async function CustomerAdminDetailPage({
 
  {activeTab === 'contracts' ? (
  <SectionAnchor id="contracts" title="Avtal" description="Visa, hantera och uppdatera kundens avtal.">
- <CustomerContractsCard customerId={id} />
+ <CustomerContractsCard customerId={id} companyId={customerCompanyId} />
  </SectionAnchor>
  ) : null}
 
