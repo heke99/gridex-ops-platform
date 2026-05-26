@@ -1,8 +1,11 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
-import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
-import { resolveOwnElectricitySupplier } from '@/lib/masterdata/selfSupplier'
-import { assertNoActiveSwitchLifecycleBlock, OPEN_SUPPLIER_SWITCH_STATUSES } from '@/lib/operations/switchLifecycleBlocks'
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types";
+import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness";
+import { resolveOwnElectricitySupplier } from "@/lib/masterdata/selfSupplier";
+import {
+  assertNoActiveSwitchLifecycleBlock,
+  OPEN_SUPPLIER_SWITCH_STATUSES,
+} from "@/lib/operations/switchLifecycleBlocks";
 import type {
   CustomerAuthorizationDocumentRow,
   CustomerOperationTaskRow,
@@ -13,52 +16,52 @@ import type {
   SupplierSwitchRequestStatus,
   SupplierSwitchRequestType,
   SwitchReadinessResult,
-} from '@/lib/operations/types'
+} from "@/lib/operations/types";
 
 async function getActorId(supabase: SupabaseClient): Promise<string | null> {
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-  return user?.id ?? null
+  return user?.id ?? null;
 }
 
 function appendNote(
   existing: string | null | undefined,
-  extra: string
+  extra: string,
 ): string {
-  const base = (existing ?? '').trim()
-  if (!base) return extra
-  if (base.includes(extra)) return base
-  return `${base}\n\n${extra}`
+  const base = (existing ?? "").trim();
+  if (!base) return extra;
+  if (base.includes(extra)) return base;
+  return `${base}\n\n${extra}`;
 }
 
-const EMPTY_UUID = '00000000-0000-0000-0000-000000000000'
+const EMPTY_UUID = "00000000-0000-0000-0000-000000000000";
 
 export function buildDocumentUploadIdempotencyKey(params: {
-  customerId: string
-  siteId?: string | null
-  documentType: 'power_of_attorney' | 'complete_agreement'
-  fileChecksum: string
+  customerId: string;
+  siteId?: string | null;
+  documentType: "power_of_attorney" | "complete_agreement";
+  fileChecksum: string;
 }): string {
-  return `cust:${params.customerId}|site:${params.siteId ?? EMPTY_UUID}|type:${params.documentType}|sha:${params.fileChecksum}`
+  return `cust:${params.customerId}|site:${params.siteId ?? EMPTY_UUID}|type:${params.documentType}|sha:${params.fileChecksum}`;
 }
 
 export async function createAuditLogEntry(
   supabase: SupabaseClient,
   input: {
-    actorUserId?: string | null
-    entityType: string
-    entityId: string
-    action: string
-    oldValues?: unknown
-    newValues?: unknown
-    metadata?: unknown
-  }
+    actorUserId?: string | null;
+    entityType: string;
+    entityId: string;
+    action: string;
+    oldValues?: unknown;
+    newValues?: unknown;
+    metadata?: unknown;
+  },
 ): Promise<void> {
-  const actorId = input.actorUserId ?? (await getActorId(supabase))
+  const actorId = input.actorUserId ?? (await getActorId(supabase));
 
-  const { error } = await supabase.from('audit_logs').insert({
+  const { error } = await supabase.from("audit_logs").insert({
     actor_user_id: actorId,
     entity_type: input.entityType,
     entity_id: input.entityId,
@@ -66,94 +69,94 @@ export async function createAuditLogEntry(
     old_values: input.oldValues ?? null,
     new_values: input.newValues ?? null,
     metadata: input.metadata ?? null,
-  })
+  });
 
-  if (error) throw error
+  if (error) throw error;
 }
 
 export async function findExistingCustomerAuthorizationDocumentByFingerprint(
   supabase: SupabaseClient,
   params: {
-    customerId: string
-    siteId?: string | null
-    documentType: 'power_of_attorney' | 'complete_agreement'
-    fileChecksum: string
-  }
+    customerId: string;
+    siteId?: string | null;
+    documentType: "power_of_attorney" | "complete_agreement";
+    fileChecksum: string;
+  },
 ): Promise<CustomerAuthorizationDocumentRow | null> {
   let query = supabase
-    .from('customer_authorization_documents')
-    .select('*')
-    .eq('customer_id', params.customerId)
-    .eq('document_type', params.documentType)
-    .eq('file_checksum', params.fileChecksum)
-    .neq('status', 'archived')
-    .order('uploaded_at', { ascending: false })
-    .limit(1)
+    .from("customer_authorization_documents")
+    .select("*")
+    .eq("customer_id", params.customerId)
+    .eq("document_type", params.documentType)
+    .eq("file_checksum", params.fileChecksum)
+    .neq("status", "archived")
+    .order("uploaded_at", { ascending: false })
+    .limit(1);
 
   query = params.siteId
-    ? query.eq('site_id', params.siteId)
-    : query.is('site_id', null)
+    ? query.eq("site_id", params.siteId)
+    : query.is("site_id", null);
 
-  const { data, error } = await query.maybeSingle()
+  const { data, error } = await query.maybeSingle();
 
-  if (error) throw error
-  return (data as CustomerAuthorizationDocumentRow | null) ?? null
+  if (error) throw error;
+  return (data as CustomerAuthorizationDocumentRow | null) ?? null;
 }
 
 export async function listPowersOfAttorneyByCustomerId(
   supabase: SupabaseClient,
   customerId: string,
-  options: { companyId?: string | null; limit?: number } = {}
+  options: { companyId?: string | null; limit?: number } = {},
 ): Promise<PowerOfAttorneyRow[]> {
   let query = supabase
-    .from('powers_of_attorney')
-    .select('*')
-    .eq('customer_id', customerId)
+    .from("powers_of_attorney")
+    .select("*")
+    .eq("customer_id", customerId);
 
   if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
+    query = query.eq("company_id", options.companyId);
   }
 
   const { data, error } = await query
-    .order('created_at', { ascending: false })
-    .limit(options.limit ?? 100)
+    .order("created_at", { ascending: false })
+    .limit(options.limit ?? 100);
 
-  if (error) throw error
-  return (data ?? []) as PowerOfAttorneyRow[]
+  if (error) throw error;
+  return (data ?? []) as PowerOfAttorneyRow[];
 }
 
 export async function getPowerOfAttorneyById(
   supabase: SupabaseClient,
-  powerOfAttorneyId: string
+  powerOfAttorneyId: string,
 ): Promise<PowerOfAttorneyRow | null> {
   const { data, error } = await supabase
-    .from('powers_of_attorney')
-    .select('*')
-    .eq('id', powerOfAttorneyId)
-    .maybeSingle()
+    .from("powers_of_attorney")
+    .select("*")
+    .eq("id", powerOfAttorneyId)
+    .maybeSingle();
 
-  if (error) throw error
-  return (data as PowerOfAttorneyRow | null) ?? null
+  if (error) throw error;
+  return (data as PowerOfAttorneyRow | null) ?? null;
 }
 
 export async function savePowerOfAttorney(
   supabase: SupabaseClient,
   input: {
-    id?: string
-    customer_id: string
-    site_id?: string | null
-    scope: 'supplier_switch' | 'meter_data' | 'billing_handoff'
-    status: 'draft' | 'sent' | 'signed' | 'expired' | 'revoked'
-    signed_at?: string | null
-    valid_from?: string | null
-    valid_to?: string | null
-    document_path?: string | null
-    reference?: string | null
-    notes?: string | null
-    companyId?: string | null
-  }
+    id?: string;
+    customer_id: string;
+    site_id?: string | null;
+    scope: "supplier_switch" | "meter_data" | "billing_handoff";
+    status: "draft" | "sent" | "signed" | "expired" | "revoked";
+    signed_at?: string | null;
+    valid_from?: string | null;
+    valid_to?: string | null;
+    document_path?: string | null;
+    reference?: string | null;
+    notes?: string | null;
+    companyId?: string | null;
+  },
 ): Promise<PowerOfAttorneyRow> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
 
   const payload = {
     customer_id: input.customer_id,
@@ -168,237 +171,248 @@ export async function savePowerOfAttorney(
     notes: input.notes ?? null,
     updated_by: actorId,
     company_id: input.companyId ?? null,
-  }
+  };
 
   if (input.id) {
     const { data, error } = await supabase
-      .from('powers_of_attorney')
+      .from("powers_of_attorney")
       .update(payload)
-      .eq('id', input.id)
-      .select('*')
-      .single()
+      .eq("id", input.id)
+      .select("*")
+      .single();
 
-    if (error) throw error
-    return data as PowerOfAttorneyRow
+    if (error) throw error;
+    return data as PowerOfAttorneyRow;
   }
 
   const { data, error } = await supabase
-    .from('powers_of_attorney')
+    .from("powers_of_attorney")
     .insert({
       ...payload,
       created_by: actorId,
     })
-    .select('*')
-    .single()
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as PowerOfAttorneyRow
+  if (error) throw error;
+  return data as PowerOfAttorneyRow;
 }
 
 export async function revokePowerOfAttorney(
   supabase: SupabaseClient,
   params: {
-    powerOfAttorneyId: string
-    reason?: string | null
-  }
+    powerOfAttorneyId: string;
+    reason?: string | null;
+  },
 ): Promise<PowerOfAttorneyRow> {
-  const actorId = await getActorId(supabase)
-  const existing = await getPowerOfAttorneyById(supabase, params.powerOfAttorneyId)
+  const actorId = await getActorId(supabase);
+  const existing = await getPowerOfAttorneyById(
+    supabase,
+    params.powerOfAttorneyId,
+  );
 
   if (!existing) {
-    throw new Error('Fullmakten hittades inte')
+    throw new Error("Fullmakten hittades inte");
   }
 
   const { data, error } = await supabase
-    .from('powers_of_attorney')
+    .from("powers_of_attorney")
     .update({
-      status: 'revoked',
+      status: "revoked",
       notes: params.reason
         ? appendNote(existing.notes, params.reason)
-        : existing.notes ?? null,
+        : (existing.notes ?? null),
       updated_by: actorId,
     })
-    .eq('id', params.powerOfAttorneyId)
-    .select('*')
-    .single()
+    .eq("id", params.powerOfAttorneyId)
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as PowerOfAttorneyRow
+  if (error) throw error;
+  return data as PowerOfAttorneyRow;
 }
 
 export async function restorePowerOfAttorneyIfRevoked(
   supabase: SupabaseClient,
   params: {
-    powerOfAttorneyId: string
-    note?: string | null
-  }
+    powerOfAttorneyId: string;
+    note?: string | null;
+  },
 ): Promise<PowerOfAttorneyRow> {
-  const actorId = await getActorId(supabase)
-  const existing = await getPowerOfAttorneyById(supabase, params.powerOfAttorneyId)
+  const actorId = await getActorId(supabase);
+  const existing = await getPowerOfAttorneyById(
+    supabase,
+    params.powerOfAttorneyId,
+  );
 
   if (!existing) {
-    throw new Error('Fullmakten hittades inte')
+    throw new Error("Fullmakten hittades inte");
   }
 
-  if (existing.status !== 'revoked') {
-    return existing
+  if (existing.status !== "revoked") {
+    return existing;
   }
 
-  const restoredStatus: PowerOfAttorneyRow['status'] =
-    existing.signed_at ? 'signed' : 'sent'
+  const restoredStatus: PowerOfAttorneyRow["status"] = existing.signed_at
+    ? "signed"
+    : "sent";
 
   const { data, error } = await supabase
-    .from('powers_of_attorney')
+    .from("powers_of_attorney")
     .update({
       status: restoredStatus,
-      notes: params.note ? appendNote(existing.notes, params.note) : existing.notes ?? null,
+      notes: params.note
+        ? appendNote(existing.notes, params.note)
+        : (existing.notes ?? null),
       updated_by: actorId,
     })
-    .eq('id', params.powerOfAttorneyId)
-    .select('*')
-    .single()
+    .eq("id", params.powerOfAttorneyId)
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as PowerOfAttorneyRow
+  if (error) throw error;
+  return data as PowerOfAttorneyRow;
 }
 
 export async function listCustomerAuthorizationDocumentsByCustomerId(
   supabase: SupabaseClient,
   customerId: string,
-  options: { companyId?: string | null; limit?: number } = {}
+  options: { companyId?: string | null; limit?: number } = {},
 ): Promise<CustomerAuthorizationDocumentRow[]> {
   let query = supabase
-    .from('customer_authorization_documents')
-    .select('*')
-    .eq('customer_id', customerId)
+    .from("customer_authorization_documents")
+    .select("*")
+    .eq("customer_id", customerId);
 
   if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
+    query = query.eq("company_id", options.companyId);
   }
 
   const { data, error } = await query
-    .order('uploaded_at', { ascending: false })
-    .limit(options.limit ?? 100)
+    .order("uploaded_at", { ascending: false })
+    .limit(options.limit ?? 100);
 
-  if (error) throw error
-  return (data ?? []) as CustomerAuthorizationDocumentRow[]
+  if (error) throw error;
+  return (data ?? []) as CustomerAuthorizationDocumentRow[];
 }
 
 export async function getCustomerAuthorizationDocumentById(
   supabase: SupabaseClient,
-  documentId: string
+  documentId: string,
 ): Promise<CustomerAuthorizationDocumentRow | null> {
   const { data, error } = await supabase
-    .from('customer_authorization_documents')
-    .select('*')
-    .eq('id', documentId)
-    .maybeSingle()
+    .from("customer_authorization_documents")
+    .select("*")
+    .eq("id", documentId)
+    .maybeSingle();
 
-  if (error) throw error
-  return (data as CustomerAuthorizationDocumentRow | null) ?? null
+  if (error) throw error;
+  return (data as CustomerAuthorizationDocumentRow | null) ?? null;
 }
 
-
 function findPostgresErrorCode(error: unknown): string | null {
-  if (!error || typeof error !== 'object') return null
-  const maybeCode = (error as { code?: unknown }).code
-  return typeof maybeCode === 'string' ? maybeCode : null
+  if (!error || typeof error !== "object") return null;
+  const maybeCode = (error as { code?: unknown }).code;
+  return typeof maybeCode === "string" ? maybeCode : null;
 }
 
 export function buildGridOwnerDataRequestAutomationKey(params: {
-  documentId: string
-  requestScope: 'meter_values' | 'billing_underlay' | 'customer_masterdata'
+  documentId: string;
+  requestScope: "meter_values" | "billing_underlay" | "customer_masterdata";
 }): string {
-  return `doc:${params.documentId}|gor_scope:${params.requestScope}`
+  return `doc:${params.documentId}|gor_scope:${params.requestScope}`;
 }
 
 export function buildOutboundRequestAutomationKey(params: {
-  documentId: string
-  requestType: 'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
+  documentId: string;
+  requestType:
+    | "supplier_switch"
+    | "customer_masterdata"
+    | "meter_values"
+    | "billing_underlay";
   sourceType?:
-    | 'supplier_switch_request'
-    | 'grid_owner_data_request'
-    | 'bulk_generation'
-    | 'manual'
-    | null
+    | "supplier_switch_request"
+    | "grid_owner_data_request"
+    | "bulk_generation"
+    | "manual"
+    | null;
 }): string {
-  return `doc:${params.documentId}|out_req:${params.requestType}|src:${params.sourceType ?? 'none'}`
+  return `doc:${params.documentId}|out_req:${params.requestType}|src:${params.sourceType ?? "none"}`;
 }
 
 export function buildSupplierSwitchRequestAutomationKey(
-  documentId: string
+  documentId: string,
 ): string {
-  return `doc:${documentId}|switch`
+  return `doc:${documentId}|switch`;
 }
 
 async function getSupplierSwitchRequestByAutomationKey(
   supabase: SupabaseClient,
-  automationKey: string
+  automationKey: string,
 ): Promise<SupplierSwitchRequestRow | null> {
   const { data, error } = await supabase
-    .from('supplier_switch_requests')
-    .select('*')
-    .eq('automation_key', automationKey)
-    .maybeSingle()
+    .from("supplier_switch_requests")
+    .select("*")
+    .eq("automation_key", automationKey)
+    .maybeSingle();
 
-  if (error) throw error
-  return (data as SupplierSwitchRequestRow | null) ?? null
+  if (error) throw error;
+  return (data as SupplierSwitchRequestRow | null) ?? null;
 }
-
 
 export async function assignAuthorizationDocumentToGridOwnerRequest(
   supabase: SupabaseClient,
   params: {
-    requestId: string
-    documentId: string
-  }
+    requestId: string;
+    documentId: string;
+  },
 ): Promise<void> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
   const { data: existing, error: existingError } = await supabase
-    .from('grid_owner_data_requests')
-    .select('id, request_scope')
-    .eq('id', params.requestId)
-    .single()
+    .from("grid_owner_data_requests")
+    .select("id, request_scope")
+    .eq("id", params.requestId)
+    .single();
 
-  if (existingError) throw existingError
+  if (existingError) throw existingError;
 
   const { error } = await supabase
-    .from('grid_owner_data_requests')
+    .from("grid_owner_data_requests")
     .update({
       authorization_document_id: params.documentId,
-      automation_origin: 'document_upload',
+      automation_origin: "document_upload",
       automation_key: buildGridOwnerDataRequestAutomationKey({
         documentId: params.documentId,
         requestScope: existing.request_scope,
       }),
       updated_by: actorId,
     })
-    .eq('id', params.requestId)
+    .eq("id", params.requestId);
 
-  if (error) throw error
+  if (error) throw error;
 }
 
 export async function assignAuthorizationDocumentToOutboundRequest(
   supabase: SupabaseClient,
   params: {
-    outboundRequestId: string
-    documentId: string
-  }
+    outboundRequestId: string;
+    documentId: string;
+  },
 ): Promise<void> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
   const { data: existing, error: existingError } = await supabase
-    .from('outbound_requests')
-    .select('id, request_type, source_type')
-    .eq('id', params.outboundRequestId)
-    .single()
+    .from("outbound_requests")
+    .select("id, request_type, source_type")
+    .eq("id", params.outboundRequestId)
+    .single();
 
-  if (existingError) throw existingError
+  if (existingError) throw existingError;
 
   const { error } = await supabase
-    .from('outbound_requests')
+    .from("outbound_requests")
     .update({
       authorization_document_id: params.documentId,
-      automation_origin: 'document_upload',
+      automation_origin: "document_upload",
       automation_key: buildOutboundRequestAutomationKey({
         documentId: params.documentId,
         requestType: existing.request_type,
@@ -406,205 +420,226 @@ export async function assignAuthorizationDocumentToOutboundRequest(
       }),
       updated_by: actorId,
     })
-    .eq('id', params.outboundRequestId)
+    .eq("id", params.outboundRequestId);
 
-  if (error) throw error
+  if (error) throw error;
 }
 
 export async function assignAuthorizationDocumentToSwitchRequest(
   supabase: SupabaseClient,
   params: {
-    requestId: string
-    documentId: string
-  }
+    requestId: string;
+    documentId: string;
+  },
 ): Promise<void> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
 
   const { error } = await supabase
-    .from('supplier_switch_requests')
+    .from("supplier_switch_requests")
     .update({
       authorization_document_id: params.documentId,
-      automation_origin: 'document_upload',
-      automation_key: buildSupplierSwitchRequestAutomationKey(params.documentId),
+      automation_origin: "document_upload",
+      automation_key: buildSupplierSwitchRequestAutomationKey(
+        params.documentId,
+      ),
       updated_by: actorId,
     })
-    .eq('id', params.requestId)
+    .eq("id", params.requestId);
 
-  if (error) throw error
+  if (error) throw error;
 }
 
 export async function findOpenGridOwnerDataRequestByDocument(
   supabase: SupabaseClient,
   params: {
-    customerId: string
-    siteId?: string | null
-    meteringPointId?: string | null
-    requestScope: 'meter_values' | 'billing_underlay' | 'customer_masterdata'
-    documentId: string
-  }
+    customerId: string;
+    siteId?: string | null;
+    meteringPointId?: string | null;
+    requestScope: "meter_values" | "billing_underlay" | "customer_masterdata";
+    documentId: string;
+  },
 ) {
   const automationKey = buildGridOwnerDataRequestAutomationKey({
     documentId: params.documentId,
     requestScope: params.requestScope,
-  })
+  });
 
   const { data: automated, error: automatedError } = await supabase
-    .from('grid_owner_data_requests')
-    .select('*')
-    .eq('automation_key', automationKey)
-    .in('status', ['pending', 'sent', 'received'])
-    .order('created_at', { ascending: false })
+    .from("grid_owner_data_requests")
+    .select("*")
+    .eq("automation_key", automationKey)
+    .in("status", ["pending", "sent", "received"])
+    .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle()
+    .maybeSingle();
 
-  if (automatedError) throw automatedError
-  if (automated) return automated
+  if (automatedError) throw automatedError;
+  if (automated) return automated;
 
   let query = supabase
-    .from('grid_owner_data_requests')
-    .select('*')
-    .eq('customer_id', params.customerId)
-    .eq('request_scope', params.requestScope)
-    .eq('authorization_document_id', params.documentId)
-    .in('status', ['pending', 'sent', 'received'])
+    .from("grid_owner_data_requests")
+    .select("*")
+    .eq("customer_id", params.customerId)
+    .eq("request_scope", params.requestScope)
+    .eq("authorization_document_id", params.documentId)
+    .in("status", ["pending", "sent", "received"]);
 
-  query = params.siteId ? query.eq('site_id', params.siteId) : query.is('site_id', null)
+  query = params.siteId
+    ? query.eq("site_id", params.siteId)
+    : query.is("site_id", null);
   query = params.meteringPointId
-    ? query.eq('metering_point_id', params.meteringPointId)
-    : query.is('metering_point_id', null)
+    ? query.eq("metering_point_id", params.meteringPointId)
+    : query.is("metering_point_id", null);
 
   const { data, error } = await query
-    .order('created_at', { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle()
+    .maybeSingle();
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 
 export async function findOpenOutboundRequestByDocument(
   supabase: SupabaseClient,
   params: {
-    customerId: string
-    siteId?: string | null
-    meteringPointId?: string | null
-    requestType: 'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
-    documentId: string
+    customerId: string;
+    siteId?: string | null;
+    meteringPointId?: string | null;
+    requestType:
+      | "supplier_switch"
+      | "customer_masterdata"
+      | "meter_values"
+      | "billing_underlay";
+    documentId: string;
     sourceType?:
-      | 'supplier_switch_request'
-      | 'grid_owner_data_request'
-      | 'bulk_generation'
-      | 'manual'
-      | null
-    sourceId?: string | null
-  }
+      | "supplier_switch_request"
+      | "grid_owner_data_request"
+      | "bulk_generation"
+      | "manual"
+      | null;
+    sourceId?: string | null;
+  },
 ) {
   const automationKey = buildOutboundRequestAutomationKey({
     documentId: params.documentId,
     requestType: params.requestType,
     sourceType: params.sourceType ?? null,
-  })
+  });
 
   const { data: automated, error: automatedError } = await supabase
-    .from('outbound_requests')
-    .select('*')
-    .eq('automation_key', automationKey)
-    .in('status', ['queued', 'prepared', 'sent', 'acknowledged'])
-    .order('created_at', { ascending: false })
+    .from("outbound_requests")
+    .select("*")
+    .eq("automation_key", automationKey)
+    .in("status", ["queued", "prepared", "sent", "acknowledged"])
+    .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle()
+    .maybeSingle();
 
-  if (automatedError) throw automatedError
-  if (automated) return automated
+  if (automatedError) throw automatedError;
+  if (automated) return automated;
 
   let query = supabase
-    .from('outbound_requests')
-    .select('*')
-    .eq('customer_id', params.customerId)
-    .eq('request_type', params.requestType)
-    .eq('authorization_document_id', params.documentId)
-    .in('status', ['queued', 'prepared', 'sent', 'acknowledged'])
+    .from("outbound_requests")
+    .select("*")
+    .eq("customer_id", params.customerId)
+    .eq("request_type", params.requestType)
+    .eq("authorization_document_id", params.documentId)
+    .in("status", ["queued", "prepared", "sent", "acknowledged"]);
 
-  query = params.siteId ? query.eq('site_id', params.siteId) : query.is('site_id', null)
+  query = params.siteId
+    ? query.eq("site_id", params.siteId)
+    : query.is("site_id", null);
   query = params.meteringPointId
-    ? query.eq('metering_point_id', params.meteringPointId)
-    : query.is('metering_point_id', null)
+    ? query.eq("metering_point_id", params.meteringPointId)
+    : query.is("metering_point_id", null);
 
   if (params.sourceType) {
-    query = query.eq('source_type', params.sourceType)
+    query = query.eq("source_type", params.sourceType);
   }
 
   if (params.sourceId) {
-    query = query.eq('source_id', params.sourceId)
+    query = query.eq("source_id", params.sourceId);
   }
 
   const { data, error } = await query
-    .order('created_at', { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle()
+    .maybeSingle();
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 
 export async function listActiveCustomerAuthorizationDocumentsByScope(
   supabase: SupabaseClient,
   params: {
-    customerId: string
-    siteId?: string | null
-    documentType: 'power_of_attorney' | 'complete_agreement'
-    excludeDocumentId?: string | null
-  }
+    customerId: string;
+    siteId?: string | null;
+    documentType: "power_of_attorney" | "complete_agreement";
+    excludeDocumentId?: string | null;
+  },
 ): Promise<CustomerAuthorizationDocumentRow[]> {
   let query = supabase
-    .from('customer_authorization_documents')
-    .select('*')
-    .eq('customer_id', params.customerId)
-    .eq('document_type', params.documentType)
-    .eq('status', 'active')
+    .from("customer_authorization_documents")
+    .select("*")
+    .eq("customer_id", params.customerId)
+    .eq("document_type", params.documentType)
+    .eq("status", "active");
 
-  query = params.siteId ? query.eq('site_id', params.siteId) : query.is('site_id', null)
+  query = params.siteId
+    ? query.eq("site_id", params.siteId)
+    : query.is("site_id", null);
 
-  const { data, error } = await query.order('uploaded_at', { ascending: false })
+  const { data, error } = await query.order("uploaded_at", {
+    ascending: false,
+  });
 
-  if (error) throw error
+  if (error) throw error;
 
-  const rows = (data ?? []) as CustomerAuthorizationDocumentRow[]
-  const excludedId = params.excludeDocumentId ?? null
+  const rows = (data ?? []) as CustomerAuthorizationDocumentRow[];
+  const excludedId = params.excludeDocumentId ?? null;
 
-  return excludedId ? rows.filter((row) => row.id !== excludedId) : rows
+  return excludedId ? rows.filter((row) => row.id !== excludedId) : rows;
 }
 
 export async function saveCustomerAuthorizationDocument(
   supabase: SupabaseClient,
   input: {
-    id?: string
-    customer_id: string
-    site_id?: string | null
-    power_of_attorney_id?: string | null
-    document_type: 'power_of_attorney' | 'complete_agreement'
-    status?: 'uploaded' | 'active' | 'archived'
-    title?: string | null
-    file_name?: string | null
-    mime_type?: string | null
-    file_size_bytes?: number | null
-    storage_bucket?: string | null
-    file_path: string
-    file_checksum?: string | null
-    upload_idempotency_key?: string | null
-    reference?: string | null
-    notes?: string | null
-    uploaded_at?: string | null
-  }
+    id?: string;
+    companyId?: string | null;
+    customer_id: string;
+    site_id?: string | null;
+    metering_point_id?: string | null;
+    customer_contract_id?: string | null;
+    power_of_attorney_id?: string | null;
+    document_type: "power_of_attorney" | "complete_agreement";
+    status?: "uploaded" | "active" | "archived";
+    title?: string | null;
+    file_name?: string | null;
+    mime_type?: string | null;
+    file_size_bytes?: number | null;
+    storage_bucket?: string | null;
+    file_path: string;
+    file_checksum?: string | null;
+    upload_idempotency_key?: string | null;
+    reference?: string | null;
+    notes?: string | null;
+    metadata?: Record<string, unknown> | null;
+    uploaded_at?: string | null;
+  },
 ): Promise<CustomerAuthorizationDocumentRow> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
 
   const payload = {
+    company_id: input.companyId ?? null,
     customer_id: input.customer_id,
     site_id: input.site_id ?? null,
+    metering_point_id: input.metering_point_id ?? null,
+    customer_contract_id: input.customer_contract_id ?? null,
     power_of_attorney_id: input.power_of_attorney_id ?? null,
     document_type: input.document_type,
-    status: input.status ?? 'uploaded',
+    status: input.status ?? "uploaded",
     title: input.title ?? null,
     file_name: input.file_name ?? null,
     mime_type: input.mime_type ?? null,
@@ -615,103 +650,110 @@ export async function saveCustomerAuthorizationDocument(
     upload_idempotency_key: input.upload_idempotency_key ?? null,
     reference: input.reference ?? null,
     notes: input.notes ?? null,
+    metadata: input.metadata ?? {},
     uploaded_at: input.uploaded_at ?? new Date().toISOString(),
     updated_by: actorId,
-  }
+  };
 
   if (input.id) {
     const { data, error } = await supabase
-      .from('customer_authorization_documents')
+      .from("customer_authorization_documents")
       .update(payload)
-      .eq('id', input.id)
-      .select('*')
-      .single()
+      .eq("id", input.id)
+      .select("*")
+      .single();
 
-    if (error) throw error
-    return data as CustomerAuthorizationDocumentRow
+    if (error) throw error;
+    return data as CustomerAuthorizationDocumentRow;
   }
 
   const { data, error } = await supabase
-    .from('customer_authorization_documents')
+    .from("customer_authorization_documents")
     .insert({
       ...payload,
       created_by: actorId,
     })
-    .select('*')
-    .single()
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as CustomerAuthorizationDocumentRow
+  if (error) throw error;
+  return data as CustomerAuthorizationDocumentRow;
 }
 
 export async function updateCustomerAuthorizationDocumentStatus(
   supabase: SupabaseClient,
   params: {
-    documentId: string
-    status: 'uploaded' | 'active' | 'archived'
-    notesAppend?: string | null
-    archivedReason?: string | null
-    replacedDocumentId?: string | null
-  }
+    documentId: string;
+    status: "uploaded" | "active" | "archived";
+    notesAppend?: string | null;
+    archivedReason?: string | null;
+    replacedDocumentId?: string | null;
+  },
 ): Promise<CustomerAuthorizationDocumentRow> {
-  const actorId = await getActorId(supabase)
-  const existing = await getCustomerAuthorizationDocumentById(supabase, params.documentId)
+  const actorId = await getActorId(supabase);
+  const existing = await getCustomerAuthorizationDocumentById(
+    supabase,
+    params.documentId,
+  );
 
   if (!existing) {
-    throw new Error('Dokumentet hittades inte')
+    throw new Error("Dokumentet hittades inte");
   }
 
   const { data, error } = await supabase
-    .from('customer_authorization_documents')
+    .from("customer_authorization_documents")
     .update({
       status: params.status,
       notes: params.notesAppend
         ? appendNote(existing.notes, params.notesAppend)
-        : existing.notes ?? null,
+        : (existing.notes ?? null),
       archived_reason:
-        params.status === 'archived' ? params.archivedReason ?? null : null,
+        params.status === "archived" ? (params.archivedReason ?? null) : null,
       replaced_document_id: params.replacedDocumentId ?? null,
       updated_by: actorId,
     })
-    .eq('id', params.documentId)
-    .select('*')
-    .single()
+    .eq("id", params.documentId)
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as CustomerAuthorizationDocumentRow
+  if (error) throw error;
+  return data as CustomerAuthorizationDocumentRow;
 }
 
 export async function archiveCustomerAuthorizationDocument(
   supabase: SupabaseClient,
   params: {
-    documentId: string
-    reason?: string | null
-    revokeLinkedPowerOfAttorney?: boolean
-    replacementDocumentId?: string | null
-  }
+    documentId: string;
+    reason?: string | null;
+    revokeLinkedPowerOfAttorney?: boolean;
+    replacementDocumentId?: string | null;
+  },
 ): Promise<{
-  documentBefore: CustomerAuthorizationDocumentRow
-  documentAfter: CustomerAuthorizationDocumentRow
-  revokedPowerOfAttorney: PowerOfAttorneyRow | null
+  documentBefore: CustomerAuthorizationDocumentRow;
+  documentAfter: CustomerAuthorizationDocumentRow;
+  revokedPowerOfAttorney: PowerOfAttorneyRow | null;
 }> {
   const documentBefore = await getCustomerAuthorizationDocumentById(
     supabase,
-    params.documentId
-  )
+    params.documentId,
+  );
 
   if (!documentBefore) {
-    throw new Error('Dokumentet hittades inte')
+    throw new Error("Dokumentet hittades inte");
   }
 
-  const documentAfter = await updateCustomerAuthorizationDocumentStatus(supabase, {
-    documentId: params.documentId,
-    status: 'archived',
-    notesAppend: params.reason ?? 'Dokumentet arkiverades.',
-    archivedReason: params.reason ?? 'Dokumentet arkiverades.',
-    replacedDocumentId: params.replacementDocumentId ?? null,
-  })
+  const documentAfter = await updateCustomerAuthorizationDocumentStatus(
+    supabase,
+    {
+      documentId: params.documentId,
+      status: "archived",
+      notesAppend: params.reason ?? "Dokumentet arkiverades.",
+      archivedReason: params.reason ?? "Dokumentet arkiverades.",
+      replacedDocumentId: params.replacementDocumentId ?? null,
+    },
+  );
 
-  let revokedPowerOfAttorney: PowerOfAttorneyRow | null = null
+  let revokedPowerOfAttorney: PowerOfAttorneyRow | null = null;
 
   if (
     params.revokeLinkedPowerOfAttorney !== false &&
@@ -719,85 +761,84 @@ export async function archiveCustomerAuthorizationDocument(
   ) {
     revokedPowerOfAttorney = await revokePowerOfAttorney(supabase, {
       powerOfAttorneyId: documentAfter.power_of_attorney_id,
-      reason:
-        params.reason
-          ? `Fullmakten revokerades eftersom dokumentet arkiverades. Orsak: ${params.reason}`
-          : 'Fullmakten revokerades eftersom dokumentet arkiverades.',
-    })
+      reason: params.reason
+        ? `Fullmakten revokerades eftersom dokumentet arkiverades. Orsak: ${params.reason}`
+        : "Fullmakten revokerades eftersom dokumentet arkiverades.",
+    });
   }
 
   return {
     documentBefore,
     documentAfter,
     revokedPowerOfAttorney,
-  }
+  };
 }
 
 export async function setCustomerAuthorizationDocumentAsActive(
   supabase: SupabaseClient,
   params: {
-    documentId: string
-    archiveOtherActiveDocuments?: boolean
-  }
+    documentId: string;
+    archiveOtherActiveDocuments?: boolean;
+  },
 ): Promise<{
-  targetBefore: CustomerAuthorizationDocumentRow
-  targetAfter: CustomerAuthorizationDocumentRow
-  archivedDocuments: CustomerAuthorizationDocumentRow[]
-  revokedPowerOfAttorneyIds: string[]
-  restoredPowerOfAttorney: PowerOfAttorneyRow | null
+  targetBefore: CustomerAuthorizationDocumentRow;
+  targetAfter: CustomerAuthorizationDocumentRow;
+  archivedDocuments: CustomerAuthorizationDocumentRow[];
+  revokedPowerOfAttorneyIds: string[];
+  restoredPowerOfAttorney: PowerOfAttorneyRow | null;
 }> {
   const targetBefore = await getCustomerAuthorizationDocumentById(
     supabase,
-    params.documentId
-  )
+    params.documentId,
+  );
 
   if (!targetBefore) {
-    throw new Error('Dokumentet hittades inte')
+    throw new Error("Dokumentet hittades inte");
   }
 
-  const archivedDocuments: CustomerAuthorizationDocumentRow[] = []
-  const revokedPowerOfAttorneyIds: string[] = []
+  const archivedDocuments: CustomerAuthorizationDocumentRow[] = [];
+  const revokedPowerOfAttorneyIds: string[] = [];
 
   if (params.archiveOtherActiveDocuments !== false) {
-    const activeConflicts = await listActiveCustomerAuthorizationDocumentsByScope(
-      supabase,
-      {
+    const activeConflicts =
+      await listActiveCustomerAuthorizationDocumentsByScope(supabase, {
         customerId: targetBefore.customer_id,
         siteId: targetBefore.site_id,
         documentType: targetBefore.document_type,
         excludeDocumentId: targetBefore.id,
-      }
-    )
+      });
 
     for (const conflict of activeConflicts) {
       const archived = await archiveCustomerAuthorizationDocument(supabase, {
         documentId: conflict.id,
         reason: `Arkiverat automatiskt eftersom dokument ${targetBefore.id} sattes som aktivt standarddokument.`,
         revokeLinkedPowerOfAttorney: true,
-      })
+      });
 
-      archivedDocuments.push(archived.documentAfter)
+      archivedDocuments.push(archived.documentAfter);
 
       if (archived.revokedPowerOfAttorney?.id) {
-        revokedPowerOfAttorneyIds.push(archived.revokedPowerOfAttorney.id)
+        revokedPowerOfAttorneyIds.push(archived.revokedPowerOfAttorney.id);
       }
     }
   }
 
-  const targetAfter = await updateCustomerAuthorizationDocumentStatus(supabase, {
-    documentId: targetBefore.id,
-    status: 'active',
-    notesAppend: 'Satt som aktivt standarddokument.',
-  })
+  const targetAfter = await updateCustomerAuthorizationDocumentStatus(
+    supabase,
+    {
+      documentId: targetBefore.id,
+      status: "active",
+      notesAppend: "Satt som aktivt standarddokument.",
+    },
+  );
 
-  let restoredPowerOfAttorney: PowerOfAttorneyRow | null = null
+  let restoredPowerOfAttorney: PowerOfAttorneyRow | null = null;
 
   if (targetAfter.power_of_attorney_id) {
     restoredPowerOfAttorney = await restorePowerOfAttorneyIfRevoked(supabase, {
       powerOfAttorneyId: targetAfter.power_of_attorney_id,
-      note:
-        'Fullmakten återaktiverades eftersom dokumentet sattes som aktivt standarddokument.',
-    })
+      note: "Fullmakten återaktiverades eftersom dokumentet sattes som aktivt standarddokument.",
+    });
   }
 
   return {
@@ -806,59 +847,59 @@ export async function setCustomerAuthorizationDocumentAsActive(
     archivedDocuments,
     revokedPowerOfAttorneyIds,
     restoredPowerOfAttorney,
-  }
+  };
 }
 
 export async function listCustomerOperationTasks(
   supabase: SupabaseClient,
-  customerId: string
+  customerId: string,
 ): Promise<CustomerOperationTaskRow[]> {
   const { data, error } = await supabase
-    .from('customer_operation_tasks')
-    .select('*')
-    .eq('customer_id', customerId)
-    .order('created_at', { ascending: false })
+    .from("customer_operation_tasks")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
 
-  if (error) throw error
-  return (data ?? []) as CustomerOperationTaskRow[]
+  if (error) throw error;
+  return (data ?? []) as CustomerOperationTaskRow[];
 }
 
 export async function listAllOperationTasks(
   supabase: SupabaseClient,
   options: {
-    status?: string | null
-    priority?: string | null
-    query?: string | null
-    companyId?: string | null
-  } = {}
+    status?: string | null;
+    priority?: string | null;
+    query?: string | null;
+    companyId?: string | null;
+  } = {},
 ): Promise<CustomerOperationTaskRow[]> {
   let taskQuery = supabase
-    .from('customer_operation_tasks')
-    .select('*')
-    .order('created_at', { ascending: false })
+    .from("customer_operation_tasks")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-  if (options.status && options.status !== 'all') {
-    taskQuery = taskQuery.eq('status', options.status)
+  if (options.status && options.status !== "all") {
+    taskQuery = taskQuery.eq("status", options.status);
   }
 
-  if (options.priority && options.priority !== 'all') {
-    taskQuery = taskQuery.eq('priority', options.priority)
+  if (options.priority && options.priority !== "all") {
+    taskQuery = taskQuery.eq("priority", options.priority);
   }
 
   if (options.companyId) {
-    taskQuery = taskQuery.eq('company_id', options.companyId)
+    taskQuery = taskQuery.eq("company_id", options.companyId);
   }
 
-  const { data, error } = await taskQuery
+  const { data, error } = await taskQuery;
 
-  if (error) throw error
+  if (error) throw error;
 
-  let tasks = (data ?? []) as CustomerOperationTaskRow[]
+  let tasks = (data ?? []) as CustomerOperationTaskRow[];
 
-  const normalizedQuery = (options.query ?? '').trim().toLowerCase()
+  const normalizedQuery = (options.query ?? "").trim().toLowerCase();
 
   if (!normalizedQuery) {
-    return tasks
+    return tasks;
   }
 
   tasks = tasks.filter((task) => {
@@ -873,86 +914,86 @@ export async function listAllOperationTasks(
       task.metering_point_id,
     ]
       .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
+      .join(" ")
+      .toLowerCase();
 
-    return haystack.includes(normalizedQuery)
-  })
+    return haystack.includes(normalizedQuery);
+  });
 
-  return tasks
+  return tasks;
 }
 
 export async function listSupplierSwitchRequestsByCustomerId(
   supabase: SupabaseClient,
   customerId: string,
-  options: { companyId?: string | null; limit?: number } = {}
+  options: { companyId?: string | null; limit?: number } = {},
 ): Promise<SupplierSwitchRequestRow[]> {
   let query = supabase
-    .from('supplier_switch_requests')
-    .select('*')
-    .eq('customer_id', customerId)
+    .from("supplier_switch_requests")
+    .select("*")
+    .eq("customer_id", customerId);
 
   if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
+    query = query.eq("company_id", options.companyId);
   }
 
   const { data, error } = await query
-    .order('created_at', { ascending: false })
-    .limit(options.limit ?? 100)
+    .order("created_at", { ascending: false })
+    .limit(options.limit ?? 100);
 
-  if (error) throw error
-  return (data ?? []) as SupplierSwitchRequestRow[]
+  if (error) throw error;
+  return (data ?? []) as SupplierSwitchRequestRow[];
 }
 
 export async function getSupplierSwitchRequestById(
   supabase: SupabaseClient,
-  requestId: string
+  requestId: string,
 ): Promise<SupplierSwitchRequestRow | null> {
   const { data, error } = await supabase
-    .from('supplier_switch_requests')
-    .select('*')
-    .eq('id', requestId)
-    .maybeSingle()
+    .from("supplier_switch_requests")
+    .select("*")
+    .eq("id", requestId)
+    .maybeSingle();
 
-  if (error) throw error
-  return (data as SupplierSwitchRequestRow | null) ?? null
+  if (error) throw error;
+  return (data as SupplierSwitchRequestRow | null) ?? null;
 }
 
 export async function listAllSupplierSwitchRequests(
   supabase: SupabaseClient,
   options: {
-    status?: string | null
-    requestType?: string | null
-    query?: string | null
-    companyId?: string | null
-  } = {}
+    status?: string | null;
+    requestType?: string | null;
+    query?: string | null;
+    companyId?: string | null;
+  } = {},
 ): Promise<SupplierSwitchRequestRow[]> {
   let requestQuery = supabase
-    .from('supplier_switch_requests')
-    .select('*')
-    .order('created_at', { ascending: false })
+    .from("supplier_switch_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-  if (options.status && options.status !== 'all') {
-    requestQuery = requestQuery.eq('status', options.status)
+  if (options.status && options.status !== "all") {
+    requestQuery = requestQuery.eq("status", options.status);
   }
 
-  if (options.requestType && options.requestType !== 'all') {
-    requestQuery = requestQuery.eq('request_type', options.requestType)
+  if (options.requestType && options.requestType !== "all") {
+    requestQuery = requestQuery.eq("request_type", options.requestType);
   }
 
   if (options.companyId) {
-    requestQuery = requestQuery.eq('company_id', options.companyId)
+    requestQuery = requestQuery.eq("company_id", options.companyId);
   }
 
-  const { data, error } = await requestQuery
+  const { data, error } = await requestQuery;
 
-  if (error) throw error
+  if (error) throw error;
 
-  let requests = (data ?? []) as SupplierSwitchRequestRow[]
-  const normalizedQuery = (options.query ?? '').trim().toLowerCase()
+  let requests = (data ?? []) as SupplierSwitchRequestRow[];
+  const normalizedQuery = (options.query ?? "").trim().toLowerCase();
 
   if (!normalizedQuery) {
-    return requests
+    return requests;
   }
 
   requests = requests.filter((request) => {
@@ -969,104 +1010,104 @@ export async function listAllSupplierSwitchRequests(
       request.failure_reason,
     ]
       .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
+      .join(" ")
+      .toLowerCase();
 
-    return haystack.includes(normalizedQuery)
-  })
+    return haystack.includes(normalizedQuery);
+  });
 
-  return requests
+  return requests;
 }
 
 export async function listSupplierSwitchEventsByRequestIds(
   supabase: SupabaseClient,
   requestIds: string[],
-  options: { companyId?: string | null; limit?: number } = {}
+  options: { companyId?: string | null; limit?: number } = {},
 ): Promise<SupplierSwitchEventRow[]> {
-  if (requestIds.length === 0) return []
+  if (requestIds.length === 0) return [];
 
   let query = supabase
-    .from('supplier_switch_events')
-    .select('*')
-    .in('switch_request_id', requestIds)
-    .is('archived_at', null)
+    .from("supplier_switch_events")
+    .select("*")
+    .in("switch_request_id", requestIds)
+    .is("archived_at", null);
 
   if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
+    query = query.eq("company_id", options.companyId);
   }
 
   const { data, error } = await query
-    .order('created_at', { ascending: false })
-    .limit(options.limit ?? 100)
+    .order("created_at", { ascending: false })
+    .limit(options.limit ?? 100);
 
-  if (error) throw error
-  return (data ?? []) as SupplierSwitchEventRow[]
+  if (error) throw error;
+  return (data ?? []) as SupplierSwitchEventRow[];
 }
 
 export async function listRecentSupplierSwitchEvents(
   supabase: SupabaseClient,
-  limit = 50
+  limit = 50,
 ): Promise<SupplierSwitchEventRow[]> {
   const { data, error } = await supabase
-    .from('supplier_switch_events')
-    .select('*')
-    .is('archived_at', null)
-    .order('created_at', { ascending: false })
-    .limit(limit)
+    .from("supplier_switch_events")
+    .select("*")
+    .is("archived_at", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
 
-  if (error) throw error
-  return (data ?? []) as SupplierSwitchEventRow[]
+  if (error) throw error;
+  return (data ?? []) as SupplierSwitchEventRow[];
 }
 
 async function findExistingOpenTask(
   supabase: SupabaseClient,
   params: {
-    customerId: string
-    siteId: string
-    taskType: string
-  }
+    customerId: string;
+    siteId: string;
+    taskType: string;
+  },
 ): Promise<CustomerOperationTaskRow | null> {
   const { data, error } = await supabase
-    .from('customer_operation_tasks')
-    .select('*')
-    .eq('customer_id', params.customerId)
-    .eq('site_id', params.siteId)
-    .eq('task_type', params.taskType)
-    .in('status', ['open', 'in_progress', 'blocked'])
-    .order('created_at', { ascending: false })
+    .from("customer_operation_tasks")
+    .select("*")
+    .eq("customer_id", params.customerId)
+    .eq("site_id", params.siteId)
+    .eq("task_type", params.taskType)
+    .in("status", ["open", "in_progress", "blocked"])
+    .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle()
+    .maybeSingle();
 
-  if (error) throw error
-  return (data as CustomerOperationTaskRow | null) ?? null
+  if (error) throw error;
+  return (data as CustomerOperationTaskRow | null) ?? null;
 }
 
 export async function syncOperationTasksFromReadiness(
   supabase: SupabaseClient,
-  readiness: SwitchReadinessResult
+  readiness: SwitchReadinessResult,
 ): Promise<void> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
   const activeTaskTypes = new Set<string>(
-    readiness.issues.map((issue) => issue.taskType)
-  )
+    readiness.issues.map((issue) => issue.taskType),
+  );
 
   for (const issue of readiness.issues) {
     const existing = await findExistingOpenTask(supabase, {
       customerId: readiness.customerId,
       siteId: readiness.siteId,
       taskType: issue.taskType,
-    })
+    });
 
     if (existing) {
-      continue
+      continue;
     }
 
-    const { error } = await supabase.from('customer_operation_tasks').insert({
+    const { error } = await supabase.from("customer_operation_tasks").insert({
       customer_id: readiness.customerId,
       site_id: readiness.siteId,
       metering_point_id: readiness.candidateMeteringPointId,
       task_type: issue.taskType,
-      status: issue.priority === 'critical' ? 'blocked' : 'open',
+      status: issue.priority === "critical" ? "blocked" : "open",
       priority: issue.priority,
       title: issue.title,
       description: issue.description,
@@ -1075,95 +1116,95 @@ export async function syncOperationTasksFromReadiness(
       },
       created_by: actorId,
       updated_by: actorId,
-    })
+    });
 
-    if (error) throw error
+    if (error) throw error;
   }
 
   const { data: existingOpenTasks, error: fetchOpenTasksError } = await supabase
-    .from('customer_operation_tasks')
-    .select('*')
-    .eq('customer_id', readiness.customerId)
-    .eq('site_id', readiness.siteId)
-    .in('status', ['open', 'in_progress', 'blocked'])
+    .from("customer_operation_tasks")
+    .select("*")
+    .eq("customer_id", readiness.customerId)
+    .eq("site_id", readiness.siteId)
+    .in("status", ["open", "in_progress", "blocked"]);
 
-  if (fetchOpenTasksError) throw fetchOpenTasksError
+  if (fetchOpenTasksError) throw fetchOpenTasksError;
 
-  const tasks = (existingOpenTasks ?? []) as CustomerOperationTaskRow[]
+  const tasks = (existingOpenTasks ?? []) as CustomerOperationTaskRow[];
 
   for (const task of tasks) {
     if (activeTaskTypes.has(task.task_type)) {
-      continue
+      continue;
     }
 
     const { error } = await supabase
-      .from('customer_operation_tasks')
+      .from("customer_operation_tasks")
       .update({
-        status: 'done',
+        status: "done",
         resolved_at: new Date().toISOString(),
         updated_by: actorId,
       })
-      .eq('id', task.id)
+      .eq("id", task.id);
 
-    if (error) throw error
+    if (error) throw error;
   }
 }
 
 export async function syncCustomerOperationsForSite(
   supabase: SupabaseClient,
   params: {
-    customerId: string
-    siteId: string
-  }
+    customerId: string;
+    siteId: string;
+  },
 ): Promise<SwitchReadinessResult> {
-  const site = await findCustomerSiteById(supabase, params.siteId)
+  const site = await findCustomerSiteById(supabase, params.siteId);
 
   if (!site || site.customer_id !== params.customerId) {
-    throw new Error('Kunde inte hitta anläggningen för operations-sync')
+    throw new Error("Kunde inte hitta anläggningen för operations-sync");
   }
 
   const [meteringPoints, powersOfAttorney] = await Promise.all([
     listMeteringPointsForSite(supabase, params.siteId),
     listPowersOfAttorneyByCustomerId(supabase, params.customerId),
-  ])
+  ]);
 
   const readiness = evaluateSiteSwitchReadiness({
     site,
     meteringPoints,
     powersOfAttorney,
-  })
+  });
 
-  await syncOperationTasksFromReadiness(supabase, readiness)
-  return readiness
+  await syncOperationTasksFromReadiness(supabase, readiness);
+  return readiness;
 }
 
 export async function syncCustomerOperationsForCustomer(
   supabase: SupabaseClient,
-  customerId: string
+  customerId: string,
 ): Promise<{
-  siteCount: number
-  readyCount: number
-  blockedCount: number
-  results: SwitchReadinessResult[]
+  siteCount: number;
+  readyCount: number;
+  blockedCount: number;
+  results: SwitchReadinessResult[];
 }> {
   const { data, error } = await supabase
-    .from('customer_sites')
-    .select('*')
-    .eq('customer_id', customerId)
-    .order('created_at', { ascending: false })
+    .from("customer_sites")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
 
-  if (error) throw error
+  if (error) throw error;
 
-  const sites = (data ?? []) as CustomerSiteRow[]
-  const results: SwitchReadinessResult[] = []
+  const sites = (data ?? []) as CustomerSiteRow[];
+  const results: SwitchReadinessResult[] = [];
 
   for (const site of sites) {
     const readiness = await syncCustomerOperationsForSite(supabase, {
       customerId,
       siteId: site.id,
-    })
+    });
 
-    results.push(readiness)
+    results.push(readiness);
   }
 
   return {
@@ -1171,121 +1212,125 @@ export async function syncCustomerOperationsForCustomer(
     readyCount: results.filter((row) => row.isReady).length,
     blockedCount: results.filter((row) => !row.isReady).length,
     results,
-  }
+  };
 }
 
 export async function updateOperationTaskStatus(
   supabase: SupabaseClient,
   params: {
-    taskId: string
-    status: CustomerOperationTaskStatus
-  }
+    taskId: string;
+    status: CustomerOperationTaskStatus;
+  },
 ): Promise<CustomerOperationTaskRow> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
 
   const updatePayload: {
-    status: CustomerOperationTaskStatus
-    updated_by: string | null
-    resolved_at?: string | null
+    status: CustomerOperationTaskStatus;
+    updated_by: string | null;
+    resolved_at?: string | null;
   } = {
     status: params.status,
     updated_by: actorId,
-  }
+  };
 
-  if (params.status === 'done') {
-    updatePayload.resolved_at = new Date().toISOString()
+  if (params.status === "done") {
+    updatePayload.resolved_at = new Date().toISOString();
   } else {
-    updatePayload.resolved_at = null
+    updatePayload.resolved_at = null;
   }
 
   const { data, error } = await supabase
-    .from('customer_operation_tasks')
+    .from("customer_operation_tasks")
     .update(updatePayload)
-    .eq('id', params.taskId)
-    .select('*')
-    .single()
+    .eq("id", params.taskId)
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as CustomerOperationTaskRow
+  if (error) throw error;
+  return data as CustomerOperationTaskRow;
 }
 
 export async function findCustomerSiteById(
   supabase: SupabaseClient,
-  siteId: string
+  siteId: string,
 ): Promise<CustomerSiteRow | null> {
   const { data, error } = await supabase
-    .from('customer_sites')
-    .select('*')
-    .eq('id', siteId)
-    .maybeSingle()
+    .from("customer_sites")
+    .select("*")
+    .eq("id", siteId)
+    .maybeSingle();
 
-  if (error) throw error
-  return (data as CustomerSiteRow | null) ?? null
+  if (error) throw error;
+  return (data as CustomerSiteRow | null) ?? null;
 }
 
 export async function listMeteringPointsForSite(
   supabase: SupabaseClient,
-  siteId: string
+  siteId: string,
 ): Promise<MeteringPointRow[]> {
   const { data, error } = await supabase
-    .from('metering_points')
-    .select('*')
-    .eq('site_id', siteId)
-    .order('created_at', { ascending: false })
+    .from("metering_points")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("created_at", { ascending: false });
 
-  if (error) throw error
-  return (data ?? []) as MeteringPointRow[]
+  if (error) throw error;
+  return (data ?? []) as MeteringPointRow[];
 }
 
 export async function findOpenSupplierSwitchRequestForSite(
   supabase: SupabaseClient,
   params: {
-    customerId: string
-    siteId: string
-  }
+    customerId: string;
+    siteId: string;
+  },
 ): Promise<SupplierSwitchRequestRow | null> {
   const { data, error } = await supabase
-    .from('supplier_switch_requests')
-    .select('*')
-    .eq('customer_id', params.customerId)
-    .eq('site_id', params.siteId)
-    .in('status', OPEN_SUPPLIER_SWITCH_STATUSES)
-    .order('created_at', { ascending: false })
+    .from("supplier_switch_requests")
+    .select("*")
+    .eq("customer_id", params.customerId)
+    .eq("site_id", params.siteId)
+    .in("status", OPEN_SUPPLIER_SWITCH_STATUSES)
+    .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle()
+    .maybeSingle();
 
-  if (error) throw error
-  return (data as SupplierSwitchRequestRow | null) ?? null
+  if (error) throw error;
+  return (data as SupplierSwitchRequestRow | null) ?? null;
 }
 
 export async function createSupplierSwitchRequest(
   supabase: SupabaseClient,
   params: {
-    readiness: SwitchReadinessResult
-    site: CustomerSiteRow
-    meteringPoint: MeteringPointRow
-    requestType: SupplierSwitchRequestType
-    requestedStartDate: string | null
-    authorizationDocumentId?: string | null
-    automationOrigin?: string | null
-    automationKey?: string | null
-    companyId?: string | null
-  }
+    readiness: SwitchReadinessResult;
+    site: CustomerSiteRow;
+    meteringPoint: MeteringPointRow;
+    requestType: SupplierSwitchRequestType;
+    requestedStartDate: string | null;
+    authorizationDocumentId?: string | null;
+    automationOrigin?: string | null;
+    automationKey?: string | null;
+    companyId?: string | null;
+  },
 ): Promise<SupplierSwitchRequestRow> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
 
   await assertNoActiveSwitchLifecycleBlock(supabase, {
-    companyId: params.companyId ?? params.site.company_id ?? params.meteringPoint.company_id ?? null,
+    companyId:
+      params.companyId ??
+      params.site.company_id ??
+      params.meteringPoint.company_id ??
+      null,
     customerId: params.readiness.customerId,
     siteId: params.site.id,
     meteringPointId: params.meteringPoint.id,
-  })
+  });
 
-  const ownSupplierLookup = await resolveOwnElectricitySupplier(supabase)
-  const ownSupplier = ownSupplierLookup.supplier
+  const ownSupplierLookup = await resolveOwnElectricitySupplier(supabase);
+  const ownSupplier = ownSupplierLookup.supplier;
 
-  const incomingSupplierName = ownSupplier?.name ?? 'Gridex'
-  const incomingSupplierOrgNumber = ownSupplier?.org_number ?? null
+  const incomingSupplierName = ownSupplier?.name ?? "Gridex";
+  const incomingSupplierOrgNumber = ownSupplier?.org_number ?? null;
 
   const insertPayload = {
     customer_id: params.readiness.customerId,
@@ -1294,7 +1339,7 @@ export async function createSupplierSwitchRequest(
     power_of_attorney_id: params.readiness.latestPowerOfAttorneyId,
     authorization_document_id: params.authorizationDocumentId ?? null,
     request_type: params.requestType,
-    status: 'queued' as const,
+    status: "queued" as const,
     requested_start_date: params.requestedStartDate,
     current_supplier_name: params.site.current_supplier_name,
     current_supplier_org_number: params.site.current_supplier_org_number,
@@ -1303,7 +1348,9 @@ export async function createSupplierSwitchRequest(
     grid_owner_id:
       params.meteringPoint.grid_owner_id ?? params.site.grid_owner_id ?? null,
     price_area_code:
-      params.meteringPoint.price_area_code ?? params.site.price_area_code ?? null,
+      params.meteringPoint.price_area_code ??
+      params.site.price_area_code ??
+      null,
     validation_snapshot: {
       isReady: params.readiness.isReady,
       issues: params.readiness.issues,
@@ -1316,39 +1363,36 @@ export async function createSupplierSwitchRequest(
     created_by: actorId,
     updated_by: actorId,
     company_id: params.companyId ?? null,
-  }
+  };
 
   const { data, error } = await supabase
-    .from('supplier_switch_requests')
+    .from("supplier_switch_requests")
     .insert(insertPayload)
-    .select('*')
-    .single()
+    .select("*")
+    .single();
 
   if (error) {
-    if (
-      findPostgresErrorCode(error) === '23505' &&
-      params.automationKey
-    ) {
+    if (findPostgresErrorCode(error) === "23505" && params.automationKey) {
       const existing = await getSupplierSwitchRequestByAutomationKey(
         supabase,
-        params.automationKey
-      )
+        params.automationKey,
+      );
 
       if (existing) {
-        return existing
+        return existing;
       }
     }
 
-    throw error
+    throw error;
   }
 
-  const request = data as SupplierSwitchRequestRow
+  const request = data as SupplierSwitchRequestRow;
 
   await createSupplierSwitchEvent(supabase, {
     switchRequestId: request.id,
-    eventType: 'created',
-    eventStatus: 'success',
-    message: 'Switchärende skapat och köat för vidare handläggning.',
+    eventType: "created",
+    eventStatus: "success",
+    message: "Switchärende skapat och köat för vidare handläggning.",
     payload: {
       requestType: params.requestType,
       requestedStartDate: params.requestedStartDate,
@@ -1357,142 +1401,142 @@ export async function createSupplierSwitchRequest(
       ownSupplierResolution: ownSupplierLookup.resolution,
     },
     companyId: params.companyId ?? null,
-  })
+  });
 
-  return request
+  return request;
 }
 
 export async function updateSupplierSwitchValidationSnapshot(
   supabase: SupabaseClient,
   params: {
-    requestId: string
-    validationSnapshot: Record<string, unknown>
-  }
+    requestId: string;
+    validationSnapshot: Record<string, unknown>;
+  },
 ): Promise<SupplierSwitchRequestRow> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
 
   const { data, error } = await supabase
-    .from('supplier_switch_requests')
+    .from("supplier_switch_requests")
     .update({
       validation_snapshot: params.validationSnapshot,
       updated_by: actorId,
     })
-    .eq('id', params.requestId)
-    .select('*')
-    .single()
+    .eq("id", params.requestId)
+    .select("*")
+    .single();
 
-  if (error) throw error
+  if (error) throw error;
 
-  return data as SupplierSwitchRequestRow
+  return data as SupplierSwitchRequestRow;
 }
 
 export async function updateSupplierSwitchRequestStatus(
   supabase: SupabaseClient,
   params: {
-    requestId: string
-    status: SupplierSwitchRequestStatus
-    failureReason?: string | null
-    externalReference?: string | null
-  }
+    requestId: string;
+    status: SupplierSwitchRequestStatus;
+    failureReason?: string | null;
+    externalReference?: string | null;
+  },
 ): Promise<SupplierSwitchRequestRow> {
-  const actorId = await getActorId(supabase)
-  const nowIso = new Date().toISOString()
+  const actorId = await getActorId(supabase);
+  const nowIso = new Date().toISOString();
 
   const updatePayload: {
-    status: SupplierSwitchRequestStatus
-    updated_by: string | null
-    submitted_at?: string | null
-    completed_at?: string | null
-    failed_at?: string | null
-    failure_reason?: string | null
-    external_reference?: string | null
+    status: SupplierSwitchRequestStatus;
+    updated_by: string | null;
+    submitted_at?: string | null;
+    completed_at?: string | null;
+    failed_at?: string | null;
+    failure_reason?: string | null;
+    external_reference?: string | null;
   } = {
     status: params.status,
     updated_by: actorId,
     failure_reason: params.failureReason ?? null,
     external_reference: params.externalReference ?? null,
+  };
+
+  if (params.status === "submitted") {
+    updatePayload.submitted_at = nowIso;
   }
 
-  if (params.status === 'submitted') {
-    updatePayload.submitted_at = nowIso
+  if (params.status === "completed") {
+    updatePayload.completed_at = nowIso;
   }
 
-  if (params.status === 'completed') {
-    updatePayload.completed_at = nowIso
-  }
-
-  if (params.status === 'failed' || params.status === 'rejected') {
-    updatePayload.failed_at = nowIso
+  if (params.status === "failed" || params.status === "rejected") {
+    updatePayload.failed_at = nowIso;
   }
 
   const { data, error } = await supabase
-    .from('supplier_switch_requests')
+    .from("supplier_switch_requests")
     .update(updatePayload)
-    .eq('id', params.requestId)
-    .select('*')
-    .single()
+    .eq("id", params.requestId)
+    .select("*")
+    .single();
 
-  if (error) throw error
+  if (error) throw error;
 
-  const saved = data as SupplierSwitchRequestRow
+  const saved = data as SupplierSwitchRequestRow;
 
   await createSupplierSwitchEvent(supabase, {
     switchRequestId: saved.id,
-    eventType: 'status_updated',
+    eventType: "status_updated",
     eventStatus: saved.status,
     message:
-      saved.status === 'failed' || saved.status === 'rejected'
-        ? params.failureReason ?? 'Status uppdaterad med felorsak.'
+      saved.status === "failed" || saved.status === "rejected"
+        ? (params.failureReason ?? "Status uppdaterad med felorsak.")
         : `Switchärende uppdaterat till status ${saved.status}.`,
     payload: {
       status: saved.status,
       externalReference: saved.external_reference,
       failureReason: saved.failure_reason,
     },
-  })
+  });
 
-  return saved
+  return saved;
 }
-
 
 export async function archiveSupplierSwitchEvent(
   supabase: SupabaseClient,
   params: {
-    eventId: string
-    actorUserId: string
-    reason?: string | null
-  }
+    eventId: string;
+    actorUserId: string;
+    reason?: string | null;
+  },
 ): Promise<SupplierSwitchEventRow> {
   const { data, error } = await supabase
-    .from('supplier_switch_events')
+    .from("supplier_switch_events")
     .update({
       archived_at: new Date().toISOString(),
       archived_by: params.actorUserId,
-      archive_reason: params.reason?.trim() || 'Arkiverad från operationsöversikten.',
+      archive_reason:
+        params.reason?.trim() || "Arkiverad från operationsöversikten.",
     })
-    .eq('id', params.eventId)
-    .select('*')
-    .single()
+    .eq("id", params.eventId)
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as SupplierSwitchEventRow
+  if (error) throw error;
+  return data as SupplierSwitchEventRow;
 }
 
 export async function createSupplierSwitchEvent(
   supabase: SupabaseClient,
   params: {
-    switchRequestId: string
-    eventType: string
-    eventStatus: string
-    message?: string | null
-    payload?: Record<string, unknown>
-    companyId?: string | null
-  }
+    switchRequestId: string;
+    eventType: string;
+    eventStatus: string;
+    message?: string | null;
+    payload?: Record<string, unknown>;
+    companyId?: string | null;
+  },
 ): Promise<SupplierSwitchEventRow> {
-  const actorId = await getActorId(supabase)
+  const actorId = await getActorId(supabase);
 
   const { data, error } = await supabase
-    .from('supplier_switch_events')
+    .from("supplier_switch_events")
     .insert({
       switch_request_id: params.switchRequestId,
       event_type: params.eventType,
@@ -1502,63 +1546,66 @@ export async function createSupplierSwitchEvent(
       company_id: params.companyId ?? null,
       created_by: actorId,
     })
-    .select('*')
-    .single()
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as SupplierSwitchEventRow
+  if (error) throw error;
+  return data as SupplierSwitchEventRow;
 }
 
 export async function finalizeSupplierSwitchExecution(
   supabase: SupabaseClient,
   params: {
-    requestId: string
-    actorUserId: string
+    requestId: string;
+    actorUserId: string;
     executionSource:
-      | 'manual_admin'
-      | 'automation_sweep'
-      | 'bulk_admin_ready_queue'
-    executionNotes?: string | null
-  }
+      | "manual_admin"
+      | "automation_sweep"
+      | "bulk_admin_ready_queue";
+    executionNotes?: string | null;
+  },
 ): Promise<{
-  requestBefore: SupplierSwitchRequestRow
-  request: SupplierSwitchRequestRow
-  siteBefore: CustomerSiteRow
-  siteAfter: CustomerSiteRow
-  meteringPointBefore: MeteringPointRow | null
-  meteringPointAfter: MeteringPointRow | null
+  requestBefore: SupplierSwitchRequestRow;
+  request: SupplierSwitchRequestRow;
+  siteBefore: CustomerSiteRow;
+  siteAfter: CustomerSiteRow;
+  meteringPointBefore: MeteringPointRow | null;
+  meteringPointAfter: MeteringPointRow | null;
 }> {
   const requestBefore = await getSupplierSwitchRequestById(
     supabase,
-    params.requestId
-  )
+    params.requestId,
+  );
 
   if (!requestBefore) {
-    throw new Error('Switchärendet hittades inte')
+    throw new Error("Switchärendet hittades inte");
   }
 
-  const siteBefore = await findCustomerSiteById(supabase, requestBefore.site_id)
+  const siteBefore = await findCustomerSiteById(
+    supabase,
+    requestBefore.site_id,
+  );
 
   if (!siteBefore) {
-    throw new Error('Anläggningen för switchärendet hittades inte')
+    throw new Error("Anläggningen för switchärendet hittades inte");
   }
 
   const pointQuery = requestBefore.metering_point_id
     ? await supabase
-        .from('metering_points')
-        .select('*')
-        .eq('id', requestBefore.metering_point_id)
+        .from("metering_points")
+        .select("*")
+        .eq("id", requestBefore.metering_point_id)
         .maybeSingle()
-    : null
+    : null;
 
   if (pointQuery?.error) {
-    throw pointQuery.error
+    throw pointQuery.error;
   }
 
   const meteringPointBefore =
-    (pointQuery?.data as MeteringPointRow | null | undefined) ?? null
+    (pointQuery?.data as MeteringPointRow | null | undefined) ?? null;
 
-  if (requestBefore.status === 'completed') {
+  if (requestBefore.status === "completed") {
     return {
       requestBefore,
       request: requestBefore,
@@ -1566,72 +1613,77 @@ export async function finalizeSupplierSwitchExecution(
       siteAfter: siteBefore,
       meteringPointBefore,
       meteringPointAfter: meteringPointBefore,
-    }
+    };
   }
 
-  if (requestBefore.status !== 'accepted') {
-    throw new Error('Switchärendet måste vara accepted innan det kan slutföras')
+  if (requestBefore.status !== "accepted") {
+    throw new Error(
+      "Switchärendet måste vara accepted innan det kan slutföras",
+    );
   }
 
   const siteUpdatePayload = {
     current_supplier_name: requestBefore.incoming_supplier_name,
     current_supplier_org_number: requestBefore.incoming_supplier_org_number,
-    status: siteBefore.status === 'closed' ? 'closed' : 'active',
-    grid_owner_id: siteBefore.grid_owner_id ?? requestBefore.grid_owner_id ?? null,
+    status: siteBefore.status === "closed" ? "closed" : "active",
+    grid_owner_id:
+      siteBefore.grid_owner_id ?? requestBefore.grid_owner_id ?? null,
     price_area_code:
       siteBefore.price_area_code ?? requestBefore.price_area_code ?? null,
     updated_by: params.actorUserId,
-  }
+  };
 
   const siteUpdate = await supabase
-    .from('customer_sites')
+    .from("customer_sites")
     .update(siteUpdatePayload)
-    .eq('id', siteBefore.id)
-    .select('*')
-    .single()
+    .eq("id", siteBefore.id)
+    .select("*")
+    .single();
 
-  if (siteUpdate.error) throw siteUpdate.error
-  const siteAfter = siteUpdate.data as CustomerSiteRow
+  if (siteUpdate.error) throw siteUpdate.error;
+  const siteAfter = siteUpdate.data as CustomerSiteRow;
 
-  let meteringPointAfter: MeteringPointRow | null = meteringPointBefore
+  let meteringPointAfter: MeteringPointRow | null = meteringPointBefore;
 
   if (meteringPointBefore) {
     const pointUpdate = await supabase
-      .from('metering_points')
+      .from("metering_points")
       .update({
-        status: meteringPointBefore.status === 'closed' ? 'closed' : 'active',
+        status: meteringPointBefore.status === "closed" ? "closed" : "active",
         grid_owner_id:
-          meteringPointBefore.grid_owner_id ?? requestBefore.grid_owner_id ?? null,
+          meteringPointBefore.grid_owner_id ??
+          requestBefore.grid_owner_id ??
+          null,
         price_area_code:
           meteringPointBefore.price_area_code ??
           requestBefore.price_area_code ??
           null,
         updated_by: params.actorUserId,
       })
-      .eq('id', meteringPointBefore.id)
-      .select('*')
-      .single()
+      .eq("id", meteringPointBefore.id)
+      .select("*")
+      .single();
 
-    if (pointUpdate.error) throw pointUpdate.error
-    meteringPointAfter = pointUpdate.data as MeteringPointRow
+    if (pointUpdate.error) throw pointUpdate.error;
+    meteringPointAfter = pointUpdate.data as MeteringPointRow;
   }
 
   const request = await updateSupplierSwitchRequestStatus(supabase, {
     requestId: requestBefore.id,
-    status: 'completed',
+    status: "completed",
     externalReference: requestBefore.external_reference,
-  })
+  });
 
   await createSupplierSwitchEvent(supabase, {
     switchRequestId: request.id,
-    eventType: 'execution_completed',
-    eventStatus: 'completed',
+    eventType: "execution_completed",
+    eventStatus: "completed",
     message:
-      params.executionSource === 'automation_sweep'
-        ? 'Switchen slutfördes automatiskt efter kvitterad outbound.'
-        : params.executionSource === 'bulk_admin_ready_queue'
-          ? 'Switchen slutfördes från bulk-kön för ready-to-execute.'
-          : 'Switchen slutfördes manuellt från operations.',
+      params.executionSource === "automation_sweep"
+        ? "Switchen slutfördes automatiskt efter kvitterad outbound."
+        : params.executionSource === "bulk_admin_ready_queue"
+          ? "Switchen slutfördes från bulk-kön för ready-to-execute."
+          : "Switchen slutfördes manuellt från operations.",
     payload: {
       executionSource: params.executionSource,
       executionNotes: params.executionNotes ?? null,
@@ -1642,7 +1694,7 @@ export async function finalizeSupplierSwitchExecution(
       meteringPointStatusBefore: meteringPointBefore?.status ?? null,
       meteringPointStatusAfter: meteringPointAfter?.status ?? null,
     },
-  })
+  });
 
   return {
     requestBefore,
@@ -1651,5 +1703,5 @@ export async function finalizeSupplierSwitchExecution(
     siteAfter,
     meteringPointBefore,
     meteringPointAfter,
-  }
+  };
 }

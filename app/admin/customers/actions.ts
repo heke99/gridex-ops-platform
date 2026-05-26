@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   requireAdminActionAccess,
@@ -34,6 +35,8 @@ import {
   findCustomerSiteById,
   listMeteringPointsForSite,
   listPowersOfAttorneyByCustomerId,
+  saveCustomerAuthorizationDocument,
+  savePowerOfAttorney,
   syncCustomerOperationsForSite,
 } from "@/lib/operations/db";
 import type { SupplierSwitchRequestType } from "@/lib/operations/types";
@@ -49,6 +52,7 @@ type DuplicateResolution =
   | "update_existing";
 
 type BillingLevel = "customer" | "contract" | "site" | "metering_point";
+type IntakeCreateMode = "create" | "create_blocked";
 
 type ContractStatus =
   | "draft"
@@ -128,6 +132,9 @@ type CreateCustomerGraphParams = {
   billingAddressSameAsSite: boolean;
   billingLevel: BillingLevel;
   consolidatedInvoice: boolean;
+  intakeCreateMode: IntakeCreateMode;
+  signedAgreementFile: File | null;
+  signedPowerOfAttorneyFile: File | null;
 };
 
 type CreationContext = {
@@ -139,6 +146,7 @@ type CreationContext = {
   contractId: string | null;
   switchRequestId: string | null;
   powerOfAttorneyId: string | null;
+  documentIds: string[];
 };
 
 class IntakeValidationError extends Error {
@@ -327,8 +335,47 @@ function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
     });
 }
 
+function normalizeIntakeCreateMode(
+  value: string | null | undefined,
+): IntakeCreateMode {
+  return value === "create_blocked" ? "create_blocked" : "create";
+}
 
-function normalizeDuplicateResolution(value: string | null | undefined): DuplicateResolution {
+function getFileValue(formData: FormData, key: string): File | null {
+  const value = formData.get(key);
+  if (!(value instanceof File) || value.size <= 0) return null;
+  return value;
+}
+
+function sanitizeFileName(value: string): string {
+  return (
+    value
+      .normalize("NFKD")
+      .replace(/[^a-zA-Z0-9._-]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "") || "document"
+  );
+}
+
+function buildCustomerDocumentPath(params: {
+  customerId: string;
+  siteId: string | null;
+  documentType: "power_of_attorney" | "complete_agreement";
+  fileName: string;
+}): string {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const scope = params.siteId ? `site-${params.siteId}` : "customer";
+  return `${params.customerId}/${scope}/${params.documentType}/${stamp}_${sanitizeFileName(params.fileName)}`;
+}
+
+async function checksumFile(file: File): Promise<string> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return createHash("sha256").update(buffer).digest("hex");
+}
+
+function normalizeDuplicateResolution(
+  value: string | null | undefined,
+): DuplicateResolution {
   switch (value) {
     case "create_separate_confirmed":
     case "add_site_to_existing":
@@ -379,8 +426,13 @@ function normalizeOptionalString(
 }
 
 function normalizeCountryCode(value: string | null | undefined): string {
-  const normalized = value?.trim().toUpperCase();
-  return normalized || "SE";
+  const normalized = value?.trim();
+  if (!normalized) return "SE";
+
+  const lower = normalized.toLowerCase();
+  if (lower === "sweden" || lower === "sverige") return "SE";
+
+  return normalized.toUpperCase();
 }
 
 function isIsoDate(value: string | null | undefined): boolean {
@@ -399,67 +451,51 @@ function validateCreateCustomerParams(
   const errors: IntakeFieldErrors = {};
 
   const normalizedCountry = normalizeCountryCode(params.country);
+  const normalizedBillingCountry = normalizeCountryCode(params.billingCountry);
   const annualConsumptionKwh = params.annualConsumptionKwh ?? null;
   const bindingMonths = params.bindingMonths ?? null;
   const noticeMonths = params.noticeMonths ?? null;
   const fixedPriceOrePerKwh = params.fixedPriceOrePerKwh ?? null;
+  const spotMarkupOrePerKwh = params.spotMarkupOrePerKwh ?? null;
+  const variableFeeOrePerKwh = params.variableFeeOrePerKwh ?? null;
+  const monthlyFeeSek = params.monthlyFeeSek ?? null;
   const greenFeeValue = params.greenFeeValue ?? null;
 
-  const hasContractInput = Boolean(
-    params.contractOfferId ||
-    params.contractTypeOverride ||
-    params.overrideReason ||
-    params.contractStartDate ||
-    fixedPriceOrePerKwh !== null ||
-    (params.spotMarkupOrePerKwh ?? null) !== null ||
-    (params.variableFeeOrePerKwh ?? null) !== null ||
-    (params.monthlyFeeSek ?? null) !== null ||
-    greenFeeValue !== null ||
-    bindingMonths !== null ||
-    noticeMonths !== null ||
-    (params.optionalFeeLines?.length ?? 0) > 0,
+  const hasAnyCustomerSignal = Boolean(
+    normalizeOptionalString(params.firstName) ||
+    normalizeOptionalString(params.lastName) ||
+    normalizeOptionalString(params.companyName) ||
+    normalizeOptionalString(params.email) ||
+    normalizeOptionalString(params.phone) ||
+    normalizeOptionalString(params.personalNumber) ||
+    normalizeOptionalString(params.orgNumber),
   );
 
-  if (params.customerType === "private") {
-    if (!normalizeOptionalString(params.firstName)) {
-      errors.firstName = "Privatkund kräver förnamn.";
-    }
-    if (!normalizeOptionalString(params.lastName)) {
-      errors.lastName = "Privatkund kräver efternamn.";
-    }
-    if (!normalizeOptionalString(params.personalNumber)) {
-      errors.personalNumber =
-        "Privatkund kräver personnummer för säkert kundintag.";
-    } else if (!isSwedishIdentityNumber(params.personalNumber)) {
-      errors.personalNumber = "Personnummer ska anges med 10 eller 12 siffror.";
-    }
-  } else {
-    if (!normalizeOptionalString(params.companyName)) {
-      errors.companyName = "Företag eller förening kräver namn.";
-    }
-    if (!normalizeOptionalString(params.orgNumber)) {
-      errors.orgNumber = "Företag eller förening kräver organisationsnummer.";
-    } else if (!isSwedishOrgNumber(params.orgNumber)) {
-      errors.orgNumber =
-        "Organisationsnummer ska anges med 10 eller 12 siffror.";
-    }
-    if (!normalizeOptionalString(params.firstName)) {
-      errors.firstName = "Kontaktpersonens förnamn krävs.";
-    }
-    if (!normalizeOptionalString(params.lastName)) {
-      errors.lastName = "Kontaktpersonens efternamn krävs.";
-    }
+  if (!hasAnyCustomerSignal) {
+    errors.firstName =
+      "Ange minst namn, bolagsnamn, e-post, telefon, personnummer eller organisationsnummer.";
   }
 
   if (
-    !normalizeOptionalString(params.email) &&
-    !normalizeOptionalString(params.phone)
+    normalizeOptionalString(params.personalNumber) &&
+    !isSwedishIdentityNumber(params.personalNumber)
   ) {
-    errors.email = "Ange e-post eller telefonnummer så kunden kan kontaktas.";
+    errors.personalNumber = "Personnummer ska anges med 10 eller 12 siffror.";
+  }
+
+  if (
+    normalizeOptionalString(params.orgNumber) &&
+    !isSwedishOrgNumber(params.orgNumber)
+  ) {
+    errors.orgNumber = "Organisationsnummer ska anges med 10 eller 12 siffror.";
   }
 
   if (!isEmail(params.email)) {
     errors.email = "E-postadressen har ogiltigt format.";
+  }
+
+  if (!isEmail(params.invoiceEmail)) {
+    errors.invoiceEmail = "Faktura-e-post har ogiltigt format.";
   }
 
   if (!isSwedishPhone(params.phone)) {
@@ -471,32 +507,13 @@ function validateCreateCustomerParams(
     errors.postalCode = "Postnummer ska anges som 12345 eller 123 45.";
   }
 
-  if (
-    params.intakeFlowType === "move_in" ||
-    params.intakeFlowType === "move_out_takeover"
-  ) {
-    if (!normalizeOptionalString(params.moveInDate)) {
-      errors.moveInDate = "Inflytt eller övertag kräver datum.";
-    }
-    if (!normalizeOptionalString(params.street)) {
-      errors.street = "Adress krävs för inflytt eller övertag.";
-    }
-    if (!normalizeOptionalString(params.postalCode)) {
-      errors.postalCode = "Postnummer krävs för inflytt eller övertag.";
-    }
-    if (!normalizeOptionalString(params.city)) {
-      errors.city = "Stad krävs för inflytt eller övertag.";
-    }
-  }
-
-  if (
-    normalizeOptionalString(params.moveInDate) &&
-    !isIsoDate(params.moveInDate ?? null)
-  ) {
-    errors.moveInDate = "Datum måste anges som YYYY-MM-DD.";
+  if (!isSwedishPostalCode(params.billingPostalCode)) {
+    errors.billingPostalCode =
+      "Fakturapostnummer ska anges som 12345 eller 123 45.";
   }
 
   for (const [field, value, label] of [
+    ["moveInDate", params.moveInDate, "Önskat startdatum"],
     [
       "authorizationValidFrom",
       params.authorizationValidFrom,
@@ -510,6 +527,7 @@ function validateCreateCustomerParams(
     ["expectedStartDate", params.expectedStartDate, "Förväntat startdatum"],
     ["confirmedStartDate", params.confirmedStartDate, "Bekräftat startdatum"],
     ["actualStartDate", params.actualStartDate, "Faktiskt startdatum"],
+    ["contractStartDate", params.contractStartDate, "Avtalsstart"],
   ] as Array<[IntakeField, string | null, string]>) {
     if (normalizeOptionalString(value) && !isIsoDate(value)) {
       errors[field] = `${label} måste anges som YYYY-MM-DD.`;
@@ -517,7 +535,12 @@ function validateCreateCustomerParams(
   }
 
   if (normalizedCountry.length !== 2) {
-    errors.country = "Land ska anges som två tecken, till exempel SE.";
+    errors.country = "Land ska sparas som ISO-kod, till exempel SE.";
+  }
+
+  if (normalizedBillingCountry.length !== 2) {
+    errors.billingCountry =
+      "Fakturaland ska sparas som ISO-kod, till exempel SE.";
   }
 
   if (annualConsumptionKwh !== null && annualConsumptionKwh < 0) {
@@ -532,52 +555,15 @@ function validateCreateCustomerParams(
     errors.noticeMonths = "Uppsägningstid kan inte vara negativ.";
   }
 
-  if (
-    params.contractStatus === "active" ||
-    params.contractStatus === "signed"
-  ) {
-    if (
-      (params.contractOfferId ||
-        params.contractTypeOverride ||
-        hasContractInput) &&
-      !params.contractStartDate
-    ) {
-      errors.contractStartDate =
-        "Avtalsstart krävs när avtalet sätts som signerat eller aktivt.";
-    }
-  }
-
-  if (
-    params.contractStartDate &&
-    !isIsoDate(params.contractStartDate ?? null)
-  ) {
-    errors.contractStartDate = "Avtalsstart måste anges som YYYY-MM-DD.";
-  }
-
-  if (
-    (params.contractOfferId ||
-      params.contractTypeOverride ||
-      hasContractInput) &&
-    !params.contractStatus
-  ) {
-    errors.contractStatus = "Avtalsstatus måste anges när avtal skapas.";
-  }
-
-  if (
-    params.contractTypeOverride === "fixed" &&
-    fixedPriceOrePerKwh === null &&
-    !params.contractOfferId
-  ) {
-    errors.fixedPriceOrePerKwh =
-      "Fast pris kräver prisnivå när ingen avtalsmall valts.";
-  }
-
-  if (
-    params.greenFeeMode === "sek_month" ||
-    params.greenFeeMode === "ore_per_kwh"
-  ) {
-    if (greenFeeValue === null) {
-      errors.greenFeeValue = "Ange värde för vald grön el-avgift.";
+  for (const [field, value, label] of [
+    ["fixedPriceOrePerKwh", fixedPriceOrePerKwh, "Fast pris"],
+    ["spotMarkupOrePerKwh", spotMarkupOrePerKwh, "Spotpåslag"],
+    ["variableFeeOrePerKwh", variableFeeOrePerKwh, "Rörlig avgift"],
+    ["monthlyFeeSek", monthlyFeeSek, "Månadsavgift"],
+    ["greenFeeValue", greenFeeValue, "Grön el-avgift"],
+  ] as Array<[IntakeField, number | null, string]>) {
+    if (value !== null && value < 0) {
+      errors[field] = `${label} kan inte vara negativ.`;
     }
   }
 
@@ -704,9 +690,22 @@ function buildCreateCustomerParams(
     billingPostalCode: getNullableString(formData, "billingPostalCode"),
     billingCity: getNullableString(formData, "billingCity"),
     billingCountry: getNullableString(formData, "billingCountry"),
-    billingAddressSameAsSite: formDataFlag(formData, "billingAddressSameAsSite"),
-    billingLevel: normalizeBillingLevel(getNullableString(formData, "billingLevel")),
+    billingAddressSameAsSite: formDataFlag(
+      formData,
+      "billingAddressSameAsSite",
+    ),
+    billingLevel: normalizeBillingLevel(
+      getNullableString(formData, "billingLevel"),
+    ),
     consolidatedInvoice: formDataFlag(formData, "consolidatedInvoice"),
+    intakeCreateMode: normalizeIntakeCreateMode(
+      getNullableString(formData, "intakeCreateMode"),
+    ),
+    signedAgreementFile: getFileValue(formData, "signedAgreementFile"),
+    signedPowerOfAttorneyFile: getFileValue(
+      formData,
+      "signedPowerOfAttorneyFile",
+    ),
   };
 }
 
@@ -826,7 +825,6 @@ async function createFacilityAddress(params: {
   return data;
 }
 
-
 function buildBillingAddressSnapshot(params: CreateCustomerGraphParams) {
   const billingStreet = params.billingAddressSameAsSite
     ? normalizeOptionalString(params.street)
@@ -862,11 +860,11 @@ async function createBillingAddressFromIntake(params: {
 }) {
   const hasAddress = Boolean(
     params.billing.street ||
-      params.billing.postalCode ||
-      params.billing.city ||
-      params.billing.recipient ||
-      params.billing.email ||
-      params.billing.reference,
+    params.billing.postalCode ||
+    params.billing.city ||
+    params.billing.recipient ||
+    params.billing.email ||
+    params.billing.reference,
   );
 
   if (!hasAddress) return null;
@@ -920,7 +918,8 @@ async function updateCustomerBillingSettings(params: {
       .eq("company_id", params.companyId)
       .eq("id", params.customerId);
 
-    if (error && !databaseObjectMissing(error) && error.code !== "42703") throw error;
+    if (error && !databaseObjectMissing(error) && error.code !== "42703")
+      throw error;
   } catch (error) {
     if (!databaseObjectMissing(error)) {
       console.warn("Customer billing settings could not be updated", error);
@@ -937,7 +936,11 @@ async function logDuplicateResolutionEvent(params: {
   resolution: DuplicateResolution;
   reason?: string | null;
 }) {
-  if (params.duplicateMatches.length === 0 && params.resolution === "create_new_pending_review") return;
+  if (
+    params.duplicateMatches.length === 0 &&
+    params.resolution === "create_new_pending_review"
+  )
+    return;
 
   try {
     await supabaseService.from("customer_duplicate_resolution_events").insert({
@@ -969,7 +972,9 @@ async function logDuplicateResolutionEvent(params: {
     metadata: {
       reason: params.reason ?? null,
     },
-  }).catch((error) => console.warn("Duplicate resolution audit could not be logged", error));
+  }).catch((error) =>
+    console.warn("Duplicate resolution audit could not be logged", error),
+  );
 }
 
 async function createDuplicateReviewCase(params: {
@@ -982,8 +987,12 @@ async function createDuplicateReviewCase(params: {
 }) {
   if (params.duplicateMatches.length === 0) return;
 
-  const critical = params.duplicateMatches.some((match) => match.severity === "critical");
-  const description = duplicateWarningsFromMatches(params.duplicateMatches).join("\n");
+  const critical = params.duplicateMatches.some(
+    (match) => match.severity === "critical",
+  );
+  const description = duplicateWarningsFromMatches(
+    params.duplicateMatches,
+  ).join("\n");
 
   try {
     await supabaseService.from("customer_cases").insert({
@@ -994,7 +1003,9 @@ async function createDuplicateReviewCase(params: {
       case_type: "technical_blocker",
       status: "action_required",
       priority: critical ? "high" : "normal",
-      title: critical ? "Kritisk dubblettkontroll krävs" : "Möjlig dubblett behöver granskas",
+      title: critical
+        ? "Kritisk dubblettkontroll krävs"
+        : "Möjlig dubblett behöver granskas",
       description,
       reason_category: "possible_duplicate",
       billing_blocked: critical,
@@ -1161,6 +1172,185 @@ async function maybeCreatePowerOfAttorneyFromIntake(params: {
   }
 }
 
+type IntakeDocumentUploadResult = {
+  uploadedDocumentIds: string[];
+  powerOfAttorneyId: string | null;
+  uploadedLabels: string[];
+};
+
+async function uploadCustomerIntakeDocuments(params: {
+  companyId: string;
+  actorUserId: string;
+  customerId: string;
+  siteId: string | null;
+  meteringPointId: string | null;
+  contractId: string | null;
+  signedAgreementFile: File | null;
+  signedPowerOfAttorneyFile: File | null;
+  authorizationValidFrom: string | null;
+  authorizationValidTo: string | null;
+}): Promise<IntakeDocumentUploadResult> {
+  const result: IntakeDocumentUploadResult = {
+    uploadedDocumentIds: [],
+    powerOfAttorneyId: null,
+    uploadedLabels: [],
+  };
+
+  if (!params.signedAgreementFile && !params.signedPowerOfAttorneyFile) {
+    return result;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const bucket = "customer-documents";
+
+  async function uploadFile(
+    file: File,
+    documentType: "power_of_attorney" | "complete_agreement",
+  ) {
+    const filePath = buildCustomerDocumentPath({
+      customerId: params.customerId,
+      siteId: params.siteId,
+      documentType,
+      fileName: file.name || "document.pdf",
+    });
+
+    const uploadResult = await supabaseService.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
+      });
+
+    if (uploadResult.error) throw uploadResult.error;
+
+    return {
+      filePath,
+      checksum: await checksumFile(file),
+    };
+  }
+
+  if (params.signedPowerOfAttorneyFile) {
+    const uploaded = await uploadFile(
+      params.signedPowerOfAttorneyFile,
+      "power_of_attorney",
+    );
+
+    const poa = await savePowerOfAttorney(supabase, {
+      companyId: params.companyId,
+      customer_id: params.customerId,
+      site_id: params.siteId,
+      scope: "supplier_switch",
+      status: "signed",
+      signed_at: new Date().toISOString(),
+      valid_from: params.authorizationValidFrom,
+      valid_to: params.authorizationValidTo,
+      document_path: uploaded.filePath,
+      reference: `INTAKE-POA-${params.customerId.slice(0, 8)}`,
+      notes:
+        "Signerad fullmakt uppladdad direkt i kundintaget. Fullmakten kan användas för uppgiftsbegäran när övrig data är komplett.",
+    });
+
+    result.powerOfAttorneyId = poa.id;
+
+    const document = await saveCustomerAuthorizationDocument(supabase, {
+      companyId: params.companyId,
+      customer_id: params.customerId,
+      site_id: params.siteId,
+      metering_point_id: params.meteringPointId,
+      customer_contract_id: params.contractId,
+      power_of_attorney_id: poa.id,
+      document_type: "power_of_attorney",
+      status: "active",
+      title: "Signerad fullmakt från kundintag",
+      file_name: params.signedPowerOfAttorneyFile.name || null,
+      mime_type: params.signedPowerOfAttorneyFile.type || null,
+      file_size_bytes: params.signedPowerOfAttorneyFile.size || null,
+      storage_bucket: bucket,
+      file_path: uploaded.filePath,
+      file_checksum: uploaded.checksum,
+      reference: poa.reference,
+      notes: "Uppladdad vid kundskapande.",
+      metadata: {
+        source: "customer_intake",
+        documentRole: "signed_power_of_attorney",
+      },
+    });
+
+    result.uploadedDocumentIds.push(document.id);
+    result.uploadedLabels.push("signerad fullmakt");
+
+    await insertAuditLog({
+      actorUserId: params.actorUserId,
+      companyId: params.companyId,
+      entityType: "customer_authorization_document",
+      entityId: document.id,
+      action: "customer_intake_document_uploaded",
+      newValues: document as unknown as Record<string, unknown>,
+      metadata: {
+        customerId: params.customerId,
+        siteId: params.siteId,
+        meteringPointId: params.meteringPointId,
+        contractId: params.contractId,
+        linkedPowerOfAttorneyId: poa.id,
+        documentType: "power_of_attorney",
+      },
+    });
+  }
+
+  if (params.signedAgreementFile) {
+    const uploaded = await uploadFile(
+      params.signedAgreementFile,
+      "complete_agreement",
+    );
+
+    const document = await saveCustomerAuthorizationDocument(supabase, {
+      companyId: params.companyId,
+      customer_id: params.customerId,
+      site_id: params.siteId,
+      metering_point_id: params.meteringPointId,
+      customer_contract_id: params.contractId,
+      document_type: "complete_agreement",
+      status: "active",
+      title: "Signerat avtal från kundintag",
+      file_name: params.signedAgreementFile.name || null,
+      mime_type: params.signedAgreementFile.type || null,
+      file_size_bytes: params.signedAgreementFile.size || null,
+      storage_bucket: bucket,
+      file_path: uploaded.filePath,
+      file_checksum: uploaded.checksum,
+      reference: params.contractId
+        ? `CONTRACT-${params.contractId.slice(0, 8)}`
+        : null,
+      notes: "Uppladdat vid kundskapande.",
+      metadata: {
+        source: "customer_intake",
+        documentRole: "signed_agreement",
+      },
+    });
+
+    result.uploadedDocumentIds.push(document.id);
+    result.uploadedLabels.push("signerat avtal");
+
+    await insertAuditLog({
+      actorUserId: params.actorUserId,
+      companyId: params.companyId,
+      entityType: "customer_authorization_document",
+      entityId: document.id,
+      action: "customer_intake_document_uploaded",
+      newValues: document as unknown as Record<string, unknown>,
+      metadata: {
+        customerId: params.customerId,
+        siteId: params.siteId,
+        meteringPointId: params.meteringPointId,
+        contractId: params.contractId,
+        documentType: "complete_agreement",
+      },
+    });
+  }
+
+  return result;
+}
+
 async function maybeCreateSwitchRequestFromIntake(params: {
   customerId: string;
   siteId: string | null;
@@ -1247,6 +1437,13 @@ async function cleanupCreatedGraph(context: CreationContext) {
         .eq("id", context.switchRequestId);
     }
 
+    if (context.documentIds.length > 0) {
+      await supabaseService
+        .from("customer_authorization_documents")
+        .delete()
+        .in("id", context.documentIds);
+    }
+
     if (context.powerOfAttorneyId) {
       await supabaseService
         .from("powers_of_attorney")
@@ -1300,6 +1497,11 @@ async function cleanupCreatedGraph(context: CreationContext) {
     }
 
     if (context.customerId) {
+      await supabaseService
+        .from("customer_blockers")
+        .delete()
+        .eq("customer_id", context.customerId);
+
       await supabaseService
         .from("audit_logs")
         .delete()
@@ -1487,7 +1689,10 @@ async function findMatchingMeteringPoints(params: {
         .in("id", siteIds);
       for (const site of (sites ?? []) as Array<Record<string, unknown>>) {
         if (typeof site.id === "string") {
-          customerBySiteId.set(site.id, typeof site.customer_id === "string" ? site.customer_id : null);
+          customerBySiteId.set(
+            site.id,
+            typeof site.customer_id === "string" ? site.customer_id : null,
+          );
         }
       }
     }
@@ -1497,7 +1702,7 @@ async function findMatchingMeteringPoints(params: {
       severity: "critical",
       customerId:
         typeof row.site_id === "string"
-          ? customerBySiteId.get(row.site_id) ?? null
+          ? (customerBySiteId.get(row.site_id) ?? null)
           : null,
       siteId: typeof row.site_id === "string" ? row.site_id : null,
       meteringPointId: typeof row.id === "string" ? row.id : null,
@@ -1553,7 +1758,8 @@ async function findIntakeDuplicateMatches(
       params.customerType === "private"
         ? `${params.firstName ?? ""} ${params.lastName ?? ""}`.trim()
         : normalizeOptionalString(params.companyName);
-    if (!displayName || displayName.length < 4) return [] as IntakeDuplicateMatch[];
+    if (!displayName || displayName.length < 4)
+      return [] as IntakeDuplicateMatch[];
     return findMatchingCustomersByColumn({
       companyId: params.companyId,
       column: params.customerType === "private" ? "full_name" : "company_name",
@@ -1653,7 +1859,8 @@ async function updateExistingCustomerFromIntake(params: {
   if (lastName) payload.last_name = lastName;
   if (companyName) payload.company_name = companyName;
   if (firstName || lastName || companyName) {
-    payload.full_name = companyName ?? (`${firstName ?? ""} ${lastName ?? ""}`.trim() || null);
+    payload.full_name =
+      companyName ?? (`${firstName ?? ""} ${lastName ?? ""}`.trim() || null);
   }
 
   try {
@@ -1663,13 +1870,17 @@ async function updateExistingCustomerFromIntake(params: {
       .eq("company_id", params.companyId)
       .eq("id", params.customerId);
 
-    if (error && !databaseObjectMissing(error) && error.code !== "42703") throw error;
+    if (error && !databaseObjectMissing(error) && error.code !== "42703")
+      throw error;
   } catch (error) {
-    if (!databaseObjectMissing(error)) console.warn("Existing customer could not be updated from intake", error);
+    if (!databaseObjectMissing(error))
+      console.warn("Existing customer could not be updated from intake", error);
   }
 }
 
-function duplicateWarningsFromMatches(matches: IntakeDuplicateMatch[]): string[] {
+function duplicateWarningsFromMatches(
+  matches: IntakeDuplicateMatch[],
+): string[] {
   return Array.from(new Set(matches.map((match) => match.message)));
 }
 
@@ -1770,28 +1981,29 @@ type IntakeStatus =
   | "draft"
   | "incomplete"
   | "needs_completion"
+  | "pending_information"
+  | "pending_power_of_attorney"
+  | "pending_duplicate_review"
+  | "blocked"
   | "ready_for_contract"
   | "ready_for_operations";
 
-function determineIntakeStatus(
-  params: CreateCustomerGraphParams,
-  missingData: string[],
-  contractId: string | null,
-): IntakeStatus {
-  const hasCoreIdentity = Boolean(
-    (params.customerType === "private" &&
-      params.firstName &&
-      params.lastName &&
-      params.personalNumber) ||
-    (params.customerType !== "private" &&
-      params.companyName &&
-      params.orgNumber),
-  );
-  const hasContact = Boolean(params.email || params.phone);
-
-  if (!hasCoreIdentity || !hasContact) return "incomplete";
-  if (missingData.length > 0) return "needs_completion";
-  if (!contractId) return "ready_for_contract";
+function determineIntakeStatus(params: {
+  intakeCreateMode: IntakeCreateMode;
+  hasCoreIdentity: boolean;
+  hasContact: boolean;
+  missingData: string[];
+  contractId: string | null;
+  duplicateReviewRequired: boolean;
+}): IntakeStatus {
+  if (params.intakeCreateMode === "create_blocked") return "blocked";
+  if (params.duplicateReviewRequired) return "pending_duplicate_review";
+  if (!params.hasCoreIdentity || !params.hasContact) return "incomplete";
+  if (params.missingData.some((value) => value.includes("fullmakt"))) {
+    return "pending_power_of_attorney";
+  }
+  if (params.missingData.length > 0) return "pending_information";
+  if (!params.contractId) return "ready_for_contract";
   return "ready_for_operations";
 }
 
@@ -1829,14 +2041,20 @@ async function updateCustomerIntakeQuality(params: {
   addressWarnings?: string[];
 }) {
   try {
+    const payload: Record<string, unknown> = {
+      intake_status: params.intakeStatus,
+      intake_missing_fields: params.missingData,
+      intake_quality_score: params.qualityScore,
+      intake_warnings: params.addressWarnings ?? [],
+    };
+
+    if (params.intakeStatus === "blocked") {
+      payload.status = "blocked";
+    }
+
     const { error } = await supabaseService
       .from("customers")
-      .update({
-        intake_status: params.intakeStatus,
-        intake_missing_fields: params.missingData,
-        intake_quality_score: params.qualityScore,
-        intake_warnings: params.addressWarnings ?? [],
-      })
+      .update(payload)
       .eq("id", params.customerId);
 
     if (error && !databaseObjectMissing(error) && error.code !== "42703") {
@@ -1984,6 +2202,193 @@ async function createIntakeFollowUps(params: {
   }
 }
 
+type CustomerBlockerDraft = {
+  blockerType: string;
+  severity: "info" | "warning" | "blocking" | "critical";
+  status: "open" | "pending_review" | "resolved" | "dismissed";
+  title: string;
+  description: string;
+  metadata: Record<string, unknown>;
+  relatedField?: string | null;
+};
+
+function blockerTypeFromMissingLabel(label: string): string {
+  const lower = label.toLowerCase();
+  if (lower.includes("fullmakt")) return "missing_power_of_attorney";
+  if (lower.includes("mätpunkt")) return "missing_metering_point_id";
+  if (lower.includes("anläggnings")) return "missing_facility_id";
+  if (lower.includes("nätägare")) return "missing_grid_owner";
+  if (lower.includes("startdatum")) return "missing_start_date";
+  if (lower.includes("avtal")) return "missing_contract";
+  return "missing_required_data";
+}
+
+function blockerSeverityFromMissingLabel(
+  label: string,
+): CustomerBlockerDraft["severity"] {
+  const lower = label.toLowerCase();
+  if (lower.includes("fullmakt") || lower.includes("mätpunkt"))
+    return "blocking";
+  if (lower.includes("anläggnings") || lower.includes("nätägare"))
+    return "warning";
+  return "warning";
+}
+
+function buildCustomerBlockerDrafts(params: {
+  missingData: string[];
+  addressWarnings: string[];
+  duplicateMatches: IntakeDuplicateMatch[];
+  forceBlocked: boolean;
+}): CustomerBlockerDraft[] {
+  const drafts: CustomerBlockerDraft[] = [];
+
+  for (const label of params.missingData) {
+    const blockerType = blockerTypeFromMissingLabel(label);
+    drafts.push({
+      blockerType,
+      severity: blockerSeverityFromMissingLabel(label),
+      status: "open",
+      title: `Saknas: ${label}`,
+      description:
+        "Kunden är sparad, men detta måste kompletteras innan berört utskick, leverantörsbyte eller fakturering går vidare.",
+      relatedField: label,
+      metadata: {
+        source: "customer_intake",
+        missingField: label,
+        stopsCustomerCreation: false,
+      },
+    });
+  }
+
+  if (params.duplicateMatches.length > 0) {
+    drafts.push({
+      blockerType: "possible_duplicate",
+      severity: params.duplicateMatches.some(
+        (match) => match.severity === "critical",
+      )
+        ? "blocking"
+        : "warning",
+      status: "pending_review",
+      title: "Möjlig dubblett",
+      description:
+        "Systemet hittade en möjlig dubblett. Kunden är skapad, men bör granskas innan merge, export eller känsliga driftsteg.",
+      metadata: {
+        source: "customer_intake_duplicate_check",
+        duplicateMatches: params.duplicateMatches,
+        stopsCustomerCreation: false,
+      },
+    });
+  }
+
+  for (const warning of params.addressWarnings.filter(
+    (value) => !value.toLowerCase().includes("matchar kund"),
+  )) {
+    drafts.push({
+      blockerType: "missing_required_data",
+      severity: "warning",
+      status: "open",
+      title: "Adress eller intagsdata behöver kontrolleras",
+      description: warning,
+      metadata: {
+        source: "customer_intake_address_warning",
+        warning,
+        stopsCustomerCreation: false,
+      },
+    });
+  }
+
+  if (params.forceBlocked) {
+    drafts.push({
+      blockerType: "manual_admin_block",
+      severity: "blocking",
+      status: "open",
+      title: "Kunden markerades som blockerad vid intag",
+      description:
+        "Admin valde att skapa kunden men hålla den blockerad tills uppgifterna har granskats.",
+      metadata: {
+        source: "customer_intake",
+        stopsCustomerCreation: false,
+      },
+    });
+  }
+
+  const keySet = new Set<string>();
+  return drafts.filter((draft) => {
+    const key = `${draft.blockerType}:${draft.title}:${draft.description}`;
+    if (keySet.has(key)) return false;
+    keySet.add(key);
+    return true;
+  });
+}
+
+async function createCustomerBlockers(params: {
+  companyId: string;
+  actorUserId: string;
+  customerId: string;
+  siteId: string | null;
+  meteringPointId: string | null;
+  contractId: string | null;
+  missingData: string[];
+  addressWarnings: string[];
+  duplicateMatches: IntakeDuplicateMatch[];
+  forceBlocked: boolean;
+}) {
+  const drafts = buildCustomerBlockerDrafts(params);
+  if (drafts.length === 0) return [];
+
+  try {
+    const { data, error } = await supabaseService
+      .from("customer_blockers")
+      .insert(
+        drafts.map((draft) => ({
+          company_id: params.companyId,
+          customer_id: params.customerId,
+          customer_site_id: params.siteId,
+          metering_point_id: params.meteringPointId,
+          contract_id: params.contractId,
+          blocker_type: draft.blockerType,
+          severity: draft.severity,
+          status: draft.status,
+          title: draft.title,
+          description: draft.description,
+          metadata: draft.metadata,
+          created_by: params.actorUserId,
+        })),
+      )
+      .select("id, blocker_type, severity, status, title");
+
+    if (error) {
+      if (!databaseObjectMissing(error)) {
+        console.warn("Customer blockers could not be created", error);
+      }
+      return [];
+    }
+
+    await insertAuditLog({
+      actorUserId: params.actorUserId,
+      companyId: params.companyId,
+      entityType: "customer_blockers",
+      entityId: params.customerId,
+      action: "customer_intake_blockers_created",
+      newValues: { blockers: data ?? [] },
+      metadata: {
+        missingData: params.missingData,
+        duplicateCount: params.duplicateMatches.length,
+        forceBlocked: params.forceBlocked,
+      },
+    }).catch((error) =>
+      console.warn("Customer blocker audit could not be logged", error),
+    );
+
+    return data ?? [];
+  } catch (error) {
+    if (!databaseObjectMissing(error)) {
+      console.warn("Customer blockers could not be created", error);
+    }
+    return [];
+  }
+}
+
 function mapUnknownErrorToIntakeState(
   error: unknown,
   values: IntakeFormValues = {},
@@ -2013,7 +2418,7 @@ function mapUnknownErrorToIntakeState(
         status: "error",
         message: "Land saknas för anläggningen.",
         fieldErrors: {
-          country: "Land saknas för anläggningen.",
+          country: "Land måste sparas som ISO-kod, till exempel SE.",
         },
         values,
         createdCustomerId: null,
@@ -2025,14 +2430,20 @@ function mapUnknownErrorToIntakeState(
     status: "error",
     message:
       maybeDatabaseError?.message ||
-      "Kunden kunde inte skapas. Kontrollera fälten och försök igen.",
+      "Kunden kunde inte skapas. Kontrollera formatfel eller tekniskt fel och försök igen.",
     fieldErrors: {},
     values,
     createdCustomerId: null,
   };
 }
 
-async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<Record<string, any> & { __duplicateWarnings: string[]; __duplicateReviewRequired: boolean; __createdNewCustomer: boolean }> {
+async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<
+  Record<string, any> & {
+    __duplicateWarnings: string[];
+    __duplicateReviewRequired: boolean;
+    __createdNewCustomer: boolean;
+  }
+> {
   const fieldErrors = validateCreateCustomerParams(params);
   if (Object.keys(fieldErrors).length > 0) {
     throw createValidationErrorFromFieldErrors(fieldErrors);
@@ -2043,7 +2454,6 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
   const duplicateReviewRequired =
     duplicateMatches.length > 0 &&
     params.duplicateResolution !== "create_separate_confirmed";
-
 
   const normalizedFirstName = normalizeOptionalString(params.firstName);
   const normalizedLastName = normalizeOptionalString(params.lastName);
@@ -2098,7 +2508,14 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
   const normalizedContractStartDate = normalizeOptionalString(
     params.contractStartDate,
   );
-  const normalizedContractStatus = params.contractStatus ?? null;
+  const hasSignedAgreementUpload = Boolean(params.signedAgreementFile);
+  const normalizedContractStatus =
+    hasSignedAgreementUpload &&
+    (!params.contractStatus ||
+      params.contractStatus === "draft" ||
+      params.contractStatus === "pending_signature")
+      ? "signed"
+      : (params.contractStatus ?? null);
   const normalizedOverrideReason = normalizeOptionalString(
     params.overrideReason,
   );
@@ -2116,7 +2533,11 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
   const duplicateResolution = params.duplicateResolution;
   const shouldUseExistingCustomer = Boolean(
     params.existingCustomerId &&
-      ["add_site_to_existing", "add_contract_to_existing", "update_existing"].includes(duplicateResolution),
+    [
+      "add_site_to_existing",
+      "add_contract_to_existing",
+      "update_existing",
+    ].includes(duplicateResolution),
   );
 
   let normalizedPersonalNumber = normalizeOptionalString(params.personalNumber);
@@ -2162,6 +2583,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
     contractId: null,
     switchRequestId: null,
     powerOfAttorneyId: null,
+    documentIds: [],
   };
 
   try {
@@ -2193,32 +2615,35 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
         });
       }
     } else {
-      const { data: createdCustomer, error: customerError } = await supabaseService
-        .from("customers")
-        .insert({
-          company_id: params.companyId,
-          customer_type: params.customerType,
-          status: "draft",
-          first_name: normalizedFirstName,
-          last_name: normalizedLastName,
-          full_name: displayName || null,
-          company_name: normalizedCompanyName,
-          email: normalizedEmail,
-          phone: normalizedPhone,
-          personal_number: normalizedPersonalNumber,
-          org_number: normalizedOrgNumber,
-          apartment_number: normalizedApartmentNumber,
-          possible_duplicate: duplicateMatches.length > 0,
-          duplicate_review_status:
-            duplicateMatches.length > 0
-              ? duplicateResolution === "create_separate_confirmed"
-                ? "created_separate"
-                : "pending_review"
-              : "clear",
-          duplicate_match_payload: duplicateMatches,
-        })
-        .select("*")
-        .single();
+      const { data: createdCustomer, error: customerError } =
+        await supabaseService
+          .from("customers")
+          .insert({
+            company_id: params.companyId,
+            customer_type: params.customerType,
+            status:
+              params.intakeCreateMode === "create_blocked"
+                ? "blocked"
+                : "draft",
+            first_name: normalizedFirstName,
+            last_name: normalizedLastName,
+            full_name: displayName || null,
+            company_name: normalizedCompanyName,
+            email: normalizedEmail,
+            phone: normalizedPhone,
+            personal_number: normalizedPersonalNumber,
+            org_number: normalizedOrgNumber,
+            apartment_number: normalizedApartmentNumber,
+            possible_duplicate: duplicateMatches.length > 0,
+            duplicate_review_status:
+              duplicateMatches.length > 0
+                ? duplicateResolution === "create_separate_confirmed"
+                  ? "created_separate"
+                  : "pending_review"
+                : "clear",
+          })
+          .select("*")
+          .single();
 
       if (customerError) throw customerError;
       customer = createdCustomer as Record<string, any>;
@@ -2378,9 +2803,9 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
           "variable_hourly",
         campaignName: offer?.campaign_name ?? null,
         campaignCode: offer?.campaign_code ?? null,
-        campaignVersion: offer?.campaign_version ?? 'v1',
-        priceVersion: offer?.price_version ?? 'v1',
-        termsVersion: offer?.terms_version ?? 'v1',
+        campaignVersion: offer?.campaign_version ?? "v1",
+        priceVersion: offer?.price_version ?? "v1",
+        termsVersion: offer?.terms_version ?? "v1",
         discountValue: offer?.discount_value ?? null,
         discountUnit: offer?.discount_unit ?? null,
         startFeeSek: offer?.start_fee_sek ?? null,
@@ -2392,7 +2817,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
               offerId: offer.id,
               campaignName: offer.campaign_name ?? null,
               campaignCode: offer.campaign_code ?? null,
-              campaignVersion: offer.campaign_version ?? 'v1',
+              campaignVersion: offer.campaign_version ?? "v1",
               validFrom: offer.valid_from ?? null,
               validTo: offer.valid_to ?? null,
             }
@@ -2400,12 +2825,12 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
         priceSnapshot: offer
           ? {
               offerId: offer.id,
-              priceVersion: offer.price_version ?? 'v1',
-              termsVersion: offer.terms_version ?? 'v1',
+              priceVersion: offer.price_version ?? "v1",
+              termsVersion: offer.terms_version ?? "v1",
               monthlyFeeSek: offer.monthly_fee_sek ?? null,
               spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh ?? null,
               variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh ?? null,
-              greenFeeMode: offer.green_fee_mode ?? 'none',
+              greenFeeMode: offer.green_fee_mode ?? "none",
               greenFeeValue: offer.green_fee_value ?? null,
               discountValue: offer.discount_value ?? null,
               discountUnit: offer.discount_unit ?? null,
@@ -2501,16 +2926,34 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
       });
     }
 
-    creationContext.powerOfAttorneyId =
-      await maybeCreatePowerOfAttorneyFromIntake({
-        companyId: params.companyId,
-        actorUserId: params.actorUserId,
-        customerId: customer.id,
-        siteId,
-        status: normalizedAuthorizationStatus,
-        validFrom: normalizedAuthorizationValidFrom,
-        validTo: normalizedAuthorizationValidTo,
-      });
+    const intakeDocumentUpload = await uploadCustomerIntakeDocuments({
+      companyId: params.companyId,
+      actorUserId: params.actorUserId,
+      customerId: customer.id,
+      siteId,
+      meteringPointId: creationContext.meteringPointId,
+      contractId: creationContext.contractId,
+      signedAgreementFile: params.signedAgreementFile,
+      signedPowerOfAttorneyFile: params.signedPowerOfAttorneyFile,
+      authorizationValidFrom: normalizedAuthorizationValidFrom,
+      authorizationValidTo: normalizedAuthorizationValidTo,
+    });
+
+    creationContext.documentIds = intakeDocumentUpload.uploadedDocumentIds;
+    creationContext.powerOfAttorneyId = intakeDocumentUpload.powerOfAttorneyId;
+
+    if (!creationContext.powerOfAttorneyId) {
+      creationContext.powerOfAttorneyId =
+        await maybeCreatePowerOfAttorneyFromIntake({
+          companyId: params.companyId,
+          actorUserId: params.actorUserId,
+          customerId: customer.id,
+          siteId,
+          status: normalizedAuthorizationStatus,
+          validFrom: normalizedAuthorizationValidFrom,
+          validTo: normalizedAuthorizationValidTo,
+        });
+    }
 
     const switchRequestResult = await maybeCreateSwitchRequestFromIntake({
       customerId: customer.id,
@@ -2523,14 +2966,43 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
         ? (switchRequestResult.requestId ?? null)
         : null;
 
-    const missingData = buildMissingDataList(params, switchRequestResult);
-    const addressWarnings = [...buildAddressWarnings(params), ...duplicateWarnings];
-    const intakeQualityScore = calculateIntakeQualityScore(params, missingData);
-    const intakeStatus = determineIntakeStatus(
-      params,
-      missingData,
-      creationContext.contractId,
+    const effectiveAuthorizationStatus = creationContext.powerOfAttorneyId
+      ? "signed"
+      : normalizedAuthorizationStatus;
+    const readinessParams: CreateCustomerGraphParams = {
+      ...params,
+      authorizationStatus: effectiveAuthorizationStatus,
+      contractStatus: normalizedContractStatus,
+    };
+    const missingData = buildMissingDataList(
+      readinessParams,
+      switchRequestResult,
     );
+    const addressWarnings = [
+      ...buildAddressWarnings(params),
+      ...duplicateWarnings,
+    ];
+    const intakeQualityScore = calculateIntakeQualityScore(
+      readinessParams,
+      missingData,
+    );
+    const hasCoreIdentity = Boolean(
+      (params.customerType === "private" &&
+        (normalizedFirstName ||
+          normalizedLastName ||
+          normalizedPersonalNumber)) ||
+      (params.customerType !== "private" &&
+        (normalizedCompanyName || normalizedOrgNumber)),
+    );
+    const hasContact = Boolean(normalizedEmail || normalizedPhone);
+    const intakeStatus = determineIntakeStatus({
+      intakeCreateMode: params.intakeCreateMode,
+      hasCoreIdentity,
+      hasContact,
+      missingData,
+      contractId: creationContext.contractId,
+      duplicateReviewRequired,
+    });
 
     await createIntakeFollowUps({
       companyId: params.companyId,
@@ -2543,6 +3015,19 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
       currentSupplierName: normalizedCurrentSupplierName,
       missingData,
       addressWarnings,
+    });
+
+    const customerBlockers = await createCustomerBlockers({
+      companyId: params.companyId,
+      actorUserId: params.actorUserId,
+      customerId: customer.id,
+      siteId,
+      meteringPointId: creationContext.meteringPointId,
+      contractId: creationContext.contractId,
+      missingData,
+      addressWarnings,
+      duplicateMatches,
+      forceBlocked: params.intakeCreateMode === "create_blocked",
     });
 
     await updateCustomerIntakeQuality({
@@ -2610,6 +3095,8 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
         intakeQualityScore,
         duplicateWarnings,
         duplicateReviewRequired,
+        uploadedDocuments: intakeDocumentUpload.uploadedLabels,
+        customerBlockers,
         duplicateResolution,
         existingCustomerId: params.existingCustomerId,
         createdNewCustomer,
@@ -2633,6 +3120,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<R
       __duplicateWarnings: duplicateWarnings,
       __duplicateReviewRequired: duplicateReviewRequired,
       __createdNewCustomer: createdNewCustomer,
+      __uploadedDocumentLabels: intakeDocumentUpload.uploadedLabels,
     };
   } catch (error) {
     await cleanupCreatedGraph(creationContext);
@@ -2660,13 +3148,22 @@ export async function createCustomerAction(
       ? (customer.__duplicateWarnings as string[])
       : [];
     const usedExistingCustomer = customer.__createdNewCustomer === false;
+    const uploadedDocumentLabels = Array.isArray(
+      customer.__uploadedDocumentLabels,
+    )
+      ? (customer.__uploadedDocumentLabels as string[])
+      : [];
+    const documentSummary =
+      uploadedDocumentLabels.length > 0
+        ? ` Dokument sparade: ${uploadedDocumentLabels.join(", ")}.`
+        : "";
 
     return {
       status: "success",
       message:
         duplicateWarnings.length > 0
-          ? `${usedExistingCustomer ? "Befintlig kund uppdaterades" : "Kunden skapades"}, men systemet hittade möjlig dubblett som behöver granskas: ${duplicateWarnings.slice(0, 2).join(" ")}`
-          : `${usedExistingCustomer ? "Befintlig kund uppdaterades" : `Kunden ${customer.customer_number ?? ""} skapades`} utan valideringsfel.`,
+          ? `${usedExistingCustomer ? "Befintlig kund uppdaterades" : "Kunden skapades"}, men systemet hittade möjlig dubblett som behöver granskas: ${duplicateWarnings.slice(0, 2).join(" ")}${documentSummary}`
+          : `${usedExistingCustomer ? "Befintlig kund uppdaterades" : `Kunden ${customer.customer_number ?? ""} skapades`} och eventuella saknade uppgifter ligger som blockerare/varningar.${documentSummary}`,
       fieldErrors: {},
       values: { country: "SE" },
       createdCustomerId: customer.id,
@@ -2760,7 +3257,8 @@ async function recordDocumentAiExtractionForImport(params: {
   parsedImport: Awaited<ReturnType<typeof parseCustomerImportFormData>>;
 }) {
   if (params.parsedImport.sourceKind !== "pdf") return;
-  if (!params.parsedImport.rawText && !params.parsedImport.documentAiPayload) return;
+  if (!params.parsedImport.rawText && !params.parsedImport.documentAiPayload)
+    return;
 
   const firstRow = params.parsedImport.rows[0] ?? {};
   const detectedSites = params.parsedImport.rows
@@ -2771,41 +3269,52 @@ async function recordDocumentAiExtractionForImport(params: {
       gridAreaCode: row.grid_area_code ?? null,
       gridOwnerName: row.grid_owner_name ?? null,
     }))
-    .filter((row) => row.facilityId || row.meterPointId || row.gridAreaCode || row.gridOwnerName);
+    .filter(
+      (row) =>
+        row.facilityId ||
+        row.meterPointId ||
+        row.gridAreaCode ||
+        row.gridOwnerName,
+    );
 
-  const status = params.parsedImport.ocrStatus === "needs_ocr" ? "needs_ocr" : "needs_review";
+  const status =
+    params.parsedImport.ocrStatus === "needs_ocr"
+      ? "needs_ocr"
+      : "needs_review";
 
-  const { error } = await supabaseService.from("document_ai_extractions").insert({
-    company_id: params.companyId,
-    customer_id: null,
-    source_file_name: params.fileName,
-    extraction_type: "customer_import_pdf",
-    status,
-    raw_text: params.parsedImport.rawText?.slice(0, 200000) ?? null,
-    extracted_fields: {
-      rows: params.parsedImport.rows.slice(0, 100),
-      parser: params.parsedImport.documentAiPayload ?? {},
-      importBatchId: params.importBatchId ?? null,
-    },
-    field_confidence: {
-      parserVersion: params.parsedImport.parserVersion ?? null,
-      ocrStatus: params.parsedImport.ocrStatus ?? null,
-      warnings: params.parsedImport.warnings,
-    },
-    detected_sites: detectedSites,
-    detected_invoice_address: {
-      invoiceRecipient: firstRow.invoice_recipient ?? null,
-      invoiceEmail: firstRow.invoice_email ?? null,
-      billingStreet: firstRow.billing_street ?? null,
-      billingPostalCode: firstRow.billing_postal_code ?? null,
-      billingCity: firstRow.billing_city ?? null,
-    },
-    review_notes:
-      params.parsedImport.ocrStatus === "needs_ocr"
-        ? "PDF saknar maskinläsbar text och behöver OCR/AI-granskning innan import."
-        : "PDF tolkad maskinellt. Granska rader och confidence innan kund skapas.",
-    created_by: params.actorUserId,
-  });
+  const { error } = await supabaseService
+    .from("document_ai_extractions")
+    .insert({
+      company_id: params.companyId,
+      customer_id: null,
+      source_file_name: params.fileName,
+      extraction_type: "customer_import_pdf",
+      status,
+      raw_text: params.parsedImport.rawText?.slice(0, 200000) ?? null,
+      extracted_fields: {
+        rows: params.parsedImport.rows.slice(0, 100),
+        parser: params.parsedImport.documentAiPayload ?? {},
+        importBatchId: params.importBatchId ?? null,
+      },
+      field_confidence: {
+        parserVersion: params.parsedImport.parserVersion ?? null,
+        ocrStatus: params.parsedImport.ocrStatus ?? null,
+        warnings: params.parsedImport.warnings,
+      },
+      detected_sites: detectedSites,
+      detected_invoice_address: {
+        invoiceRecipient: firstRow.invoice_recipient ?? null,
+        invoiceEmail: firstRow.invoice_email ?? null,
+        billingStreet: firstRow.billing_street ?? null,
+        billingPostalCode: firstRow.billing_postal_code ?? null,
+        billingCity: firstRow.billing_city ?? null,
+      },
+      review_notes:
+        params.parsedImport.ocrStatus === "needs_ocr"
+          ? "PDF saknar maskinläsbar text och behöver OCR/AI-granskning innan import."
+          : "PDF tolkad maskinellt. Granska rader och confidence innan kund skapas.",
+      created_by: params.actorUserId,
+    });
 
   if (error && !databaseObjectMissing(error)) throw error;
 }
@@ -2944,16 +3453,24 @@ async function buildCustomerParamsFromImportRow(params: {
     bindingMonths: parseIntOrNull(row.binding_months || ""),
     noticeMonths: parseIntOrNull(row.notice_months || ""),
     optionalFeeLines: parseOptionalFeeLines(row.optional_fee_lines || ""),
-    duplicateResolution: normalizeDuplicateResolution(row.duplicate_resolution || null),
+    duplicateResolution: normalizeDuplicateResolution(
+      row.duplicate_resolution || null,
+    ),
     existingCustomerId: row.existing_customer_id || null,
     duplicateOverrideReason: row.duplicate_override_reason || null,
     invoiceRecipient: row.invoice_recipient || row.billing_recipient || null,
     invoiceEmail: row.invoice_email || row.billing_email || row.email || null,
     invoiceReference: row.invoice_reference || row.billing_reference || null,
-    billingStreet: row.billing_street || row.invoice_street || row.street || null,
-    billingPostalCode: row.billing_postal_code || row.invoice_postal_code || row.postal_code || null,
+    billingStreet:
+      row.billing_street || row.invoice_street || row.street || null,
+    billingPostalCode:
+      row.billing_postal_code ||
+      row.invoice_postal_code ||
+      row.postal_code ||
+      null,
     billingCity: row.billing_city || row.invoice_city || row.city || null,
-    billingCountry: row.billing_country || row.invoice_country || row.country || "SE",
+    billingCountry:
+      row.billing_country || row.invoice_country || row.country || "SE",
     billingAddressSameAsSite:
       row.billing_address_same_as_site === "true" ||
       row.billing_address_same_as_site === "1" ||
@@ -2963,6 +3480,9 @@ async function buildCustomerParamsFromImportRow(params: {
       row.consolidated_invoice === "true" ||
       row.consolidated_invoice === "1" ||
       row.consolidated_invoice === "yes",
+    intakeCreateMode: "create",
+    signedAgreementFile: null,
+    signedPowerOfAttorneyFile: null,
   };
 }
 
@@ -3130,7 +3650,9 @@ export async function createCustomerFromImportRowAction(formData: FormData) {
   }
 }
 
-export async function linkCustomerImportRowToExistingCustomerAction(formData: FormData) {
+export async function linkCustomerImportRowToExistingCustomerAction(
+  formData: FormData,
+) {
   const rowId = getString(formData, "importRowId");
   const existingCustomerId = getString(formData, "existingCustomerId");
   const resolution = normalizeDuplicateResolution(
@@ -3138,7 +3660,8 @@ export async function linkCustomerImportRowToExistingCustomerAction(formData: Fo
   );
 
   if (!rowId) throw new Error("Import-rad saknas.");
-  if (!existingCustomerId) throw new Error("Välj befintlig kund innan raden kopplas.");
+  if (!existingCustomerId)
+    throw new Error("Välj befintlig kund innan raden kopplas.");
 
   const importRow = await loadImportRowForAction(rowId);
   await requireCompanyScopedActionAccess(importRow.company_id, {
@@ -3169,7 +3692,8 @@ export async function linkCustomerImportRowToExistingCustomerAction(formData: Fo
 
   params.existingCustomerId = existingCustomerId;
   params.duplicateResolution =
-    resolution === "create_new_pending_review" || resolution === "create_separate_confirmed"
+    resolution === "create_new_pending_review" ||
+    resolution === "create_separate_confirmed"
       ? "add_site_to_existing"
       : resolution;
 

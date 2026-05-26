@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import Link from "next/link";
 import CustomerIntakeEnhancer from "@/components/admin/customers/CustomerIntakeEnhancer";
 import { createCustomerAction } from "@/app/admin/customers/actions";
@@ -64,7 +64,29 @@ function FieldError({
   const error = state.fieldErrors[name as keyof typeof state.fieldErrors];
   if (!error) return null;
 
-  return <span className="text-xs font-medium text-red-600 ">{error}</span>;
+  return <span className="text-xs font-medium text-red-600">{error}</span>;
+}
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-700">
+        {title}
+      </h3>
+      {description ? (
+        <p className="mt-2 text-sm leading-6 text-slate-700">{description}</p>
+      ) : null}
+      <div className="mt-4 grid gap-4 md:grid-cols-2">{children}</div>
+    </section>
+  );
 }
 
 export default function CustomerIntakeForm({
@@ -78,34 +100,40 @@ export default function CustomerIntakeForm({
   );
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
-      <h2 className="text-lg font-semibold text-slate-950 ">Registrera kund</h2>
-      <p className="mt-1 text-sm text-slate-700 ">
-        Skapar kund, kontaktperson, anläggning, eventuell mätpunkt och kundavtal
-        i ett sammanhållet flöde.
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-slate-950">Registrera kund</h2>
+      <p className="mt-1 text-sm leading-6 text-slate-700">
+        Skapa kunden även när data saknas. Systemet sparar kunden och lägger
+        saknade uppgifter, möjliga dubbletter och spärrar som blockerare på
+        kundkortet.
       </p>
 
       <form
         action={formAction}
         className="mt-6 space-y-6"
         data-customer-intake-form
+        encType="multipart/form-data"
       >
         {state.status === "error" && state.message ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 ">
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
             <p className="font-semibold">
-              Intaget stoppades innan ofullständig data sparades.
+              Kunden kunde inte sparas på grund av ett tekniskt eller
+              formatmässigt fel.
             </p>
             <p className="mt-1">{state.message}</p>
           </div>
         ) : null}
 
         {state.status === "success" && state.message ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
             <p className="font-semibold">Klart.</p>
             <p className="mt-1">{state.message}</p>
-            {state.duplicateReviewRequired && state.duplicateWarnings?.length ? (
+            {state.duplicateReviewRequired &&
+            state.duplicateWarnings?.length ? (
               <div className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-900">
-                <div className="font-semibold">Möjlig dubblett behöver granskas.</div>
+                <div className="font-semibold">
+                  Möjlig dubblett behöver granskas.
+                </div>
                 <ul className="mt-1 list-disc space-y-1 pl-4">
                   {state.duplicateWarnings.slice(0, 3).map((warning) => (
                     <li key={warning}>{warning}</li>
@@ -116,7 +144,7 @@ export default function CustomerIntakeForm({
             {state.createdCustomerId ? (
               <Link
                 href={`/admin/customers/${state.createdCustomerId}`}
-                className="mt-3 inline-flex rounded-xl border border-emerald-300 px-3 py-2 font-semibold hover:bg-emerald-100 "
+                className="mt-3 inline-flex rounded-xl border border-emerald-300 px-3 py-2 font-semibold hover:bg-emerald-100"
               >
                 Öppna kundkort
               </Link>
@@ -124,952 +152,915 @@ export default function CustomerIntakeForm({
           </div>
         ) : null}
 
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-700 ">
-            Kunddata
-          </h3>
-
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Kundtyp</span>
-              <select
-                name="customerType"
-                defaultValue={state.values.customerType ?? "private"}
-                className={inputClassName(state, "customerType")}
-              >
-                <option value="private">Privatkund</option>
-                <option value="business">Företagskund</option>
-                <option value="association">Förening</option>
-              </select>
-              <FieldError state={state} name="customerType" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Flöde</span>
-              <select
-                name="intakeFlowType"
-                defaultValue={state.values.intakeFlowType ?? "switch"}
-                className={inputClassName(state, "intakeFlowType")}
-              >
-                <option value="switch">Byte av leverantör</option>
-                <option value="move_in">Inflytt / flytt</option>
-                <option value="move_out_takeover">Övertag vid utflytt</option>
-              </select>
-              <FieldError state={state} name="intakeFlowType" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm"
-              data-customer-section="private"
-            >
-              <span className="text-slate-700 ">Lägenhetsnummer</span>
-              <input
-                name="apartmentNumber"
-                defaultValue={state.values.apartmentNumber ?? ""}
-                placeholder="Lägenhetsnummer"
-                className={inputClassName(state, "apartmentNumber")}
-              />
-              <FieldError state={state} name="apartmentNumber" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm"
-              data-customer-section="private business association"
-            >
-              <span
-                className="text-slate-700 "
-                data-label-for-customer
-                data-label-private="Förnamn"
-                data-label-business="Kontaktperson förnamn"
-                data-label-association="Kontaktperson förnamn"
-              >
-                Förnamn
-              </span>
-              <input
-                name="firstName"
-                defaultValue={state.values.firstName ?? ""}
-                placeholder="Förnamn"
-                className={inputClassName(state, "firstName")}
-                data-required-customer="private business association"
-              />
-              <FieldError state={state} name="firstName" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm"
-              data-customer-section="private business association"
-            >
-              <span
-                className="text-slate-700 "
-                data-label-for-customer
-                data-label-private="Efternamn"
-                data-label-business="Kontaktperson efternamn"
-                data-label-association="Kontaktperson efternamn"
-              >
-                Efternamn
-              </span>
-              <input
-                name="lastName"
-                defaultValue={state.values.lastName ?? ""}
-                placeholder="Efternamn"
-                className={inputClassName(state, "lastName")}
-                data-required-customer="private business association"
-              />
-              <FieldError state={state} name="lastName" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm"
-              data-customer-section="business association"
-            >
-              <span className="text-slate-700 ">Kontaktperson titel</span>
-              <input
-                name="contactTitle"
-                defaultValue={state.values.contactTitle ?? ""}
-                placeholder="Ex. VD, administratör, ordförande"
-                className={inputClassName(state, "contactTitle")}
-              />
-              <FieldError state={state} name="contactTitle" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm md:col-span-2"
-              data-customer-section="business association"
-            >
-              <span
-                className="text-slate-700 "
-                data-label-for-customer
-                data-label-business="Företagsnamn"
-                data-label-association="Föreningsnamn"
-              >
-                Företags- / föreningsnamn
-              </span>
-              <input
-                name="companyName"
-                defaultValue={state.values.companyName ?? ""}
-                placeholder="Företags- eller föreningsnamn"
-                className={inputClassName(state, "companyName", "full")}
-                data-required-customer="business association"
-              />
-              <FieldError state={state} name="companyName" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm"
-              data-customer-section="private"
-            >
-              <span className="text-slate-700 ">Personnummer</span>
-              <input
-                name="personalNumber"
-                defaultValue={state.values.personalNumber ?? ""}
-                placeholder="Personnummer"
-                className={inputClassName(state, "personalNumber")}
-              />
-              <FieldError state={state} name="personalNumber" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm"
-              data-customer-section="business association"
-            >
-              <span className="text-slate-700 ">Organisationsnummer</span>
-              <input
-                name="orgNumber"
-                defaultValue={state.values.orgNumber ?? ""}
-                placeholder="Organisationsnummer"
-                className={inputClassName(state, "orgNumber")}
-                data-required-customer="business association"
-              />
-              <FieldError state={state} name="orgNumber" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">E-post</span>
-              <input
-                name="email"
-                defaultValue={state.values.email ?? ""}
-                type="email"
-                placeholder="E-post"
-                className={inputClassName(state, "email")}
-              />
-              <FieldError state={state} name="email" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Mobilnummer</span>
-              <input
-                name="phone"
-                defaultValue={state.values.phone ?? ""}
-                placeholder="Mobilnummer"
-                className={inputClassName(state, "phone")}
-              />
-              <FieldError state={state} name="phone" />
-            </label>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-amber-800 ">
-            Befintlig kund och dubblettbeslut
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-amber-900">
-            Om du inte vet om kunden redan finns kan du skapa kunden ändå. Systemet flaggar möjlig dubblett om personnummer, organisationsnummer, namn, e-post, telefon, anläggning eller mätpunkt matchar en befintlig kund i samma bolag.
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">Operativt intag</p>
+          <p className="mt-1">
+            Ofullständiga kunder, avtal och dokument får sparas. Blockerare
+            stoppar senare utskick, leverantörsbyte eller export när kritisk
+            data saknas.
           </p>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Åtgärd vid möjlig/befintlig kund</span>
-              <select
-                name="duplicateResolution"
-                defaultValue={state.values.duplicateResolution ?? "create_new_pending_review"}
-                className={inputClassName(state, "duplicateResolution")}
-              >
-                <option value="create_new_pending_review">Skapa kund och flagga möjlig dubblett</option>
-                <option value="add_site_to_existing">Lägg till anläggning på befintlig kund</option>
-                <option value="add_contract_to_existing">Lägg till avtal på befintlig kund</option>
-                <option value="update_existing">Uppdatera befintlig kund och lägg till data</option>
-                <option value="create_separate_confirmed">Skapa separat kund trots varning</option>
-              </select>
-              <FieldError state={state} name="duplicateResolution" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Befintligt kund-id</span>
-              <input
-                name="existingCustomerId"
-                defaultValue={state.values.existingCustomerId ?? ""}
-                placeholder="Klistra in kund-id om kunden redan finns"
-                className={inputClassName(state, "existingCustomerId")}
-              />
-              <FieldError state={state} name="existingCustomerId" />
-            </label>
-
-            <label className="grid gap-1 text-sm md:col-span-2">
-              <span className="text-slate-700 ">Beslutsmotivering vid dubblett</span>
-              <input
-                name="duplicateOverrideReason"
-                defaultValue={state.values.duplicateOverrideReason ?? ""}
-                placeholder="Ex. samma kund får ny anläggning, separat juridisk relation, eller manuell kontroll krävs"
-                className={inputClassName(state, "duplicateOverrideReason", "full")}
-              />
-              <FieldError state={state} name="duplicateOverrideReason" />
-            </label>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3 text-sm">
-            <Link href="/admin/customers" className="rounded-xl border border-amber-300 bg-white px-3 py-2 font-semibold text-amber-900 hover:bg-amber-100">
-              Sök kund i registret
-            </Link>
-            <Link href="/admin/customers/duplicates" className="rounded-xl border border-amber-300 bg-white px-3 py-2 font-semibold text-amber-900 hover:bg-amber-100">
-              Öppna dubblettvy
-            </Link>
-          </div>
         </div>
 
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-700 ">
-            Anläggning och flytt
-          </h3>
-
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Anläggningsnamn / etikett</span>
-              <input
-                name="siteName"
-                defaultValue={state.values.siteName ?? ""}
-                placeholder="Anläggningsnamn / etikett"
-                className={inputClassName(state, "siteName")}
-              />
-              <FieldError state={state} name="siteName" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Anläggnings-id</span>
-              <input
-                name="facilityId"
-                defaultValue={state.values.facilityId ?? ""}
-                placeholder="Anläggnings-id"
-                className={inputClassName(state, "facilityId")}
-              />
-              <FieldError state={state} name="facilityId" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Mätpunkts-id</span>
-              <input
-                name="meterPointId"
-                defaultValue={state.values.meterPointId ?? ""}
-                placeholder="Mätpunkts-id"
-                className={inputClassName(state, "meterPointId")}
-              />
-              <FieldError state={state} name="meterPointId" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span
-                className="text-slate-700 "
-                data-label-for-flow
-                data-label-switch="Önskat startdatum"
-                data-label-move_in="Inflyttningsdatum"
-                data-label-move_out_takeover="Övertagsdatum"
-              >
-                Önskat startdatum
-              </span>
-              <input
-                type="date"
-                name="moveInDate"
-                defaultValue={state.values.moveInDate ?? ""}
-                className={inputClassName(state, "moveInDate")}
-                data-required-flow="move_in move_out_takeover"
-              />
-              <FieldError state={state} name="moveInDate" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Nätägare</span>
-              <select
-                name="gridOwnerId"
-                defaultValue={state.values.gridOwnerId ?? ""}
-                className={inputClassName(state, "gridOwnerId")}
-              >
-                <option value="">Välj nätägare</option>
-                {gridOwners.map((owner) => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.name}
-                  </option>
-                ))}
-              </select>
-              <FieldError state={state} name="gridOwnerId" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Elområde</span>
-              <select
-                name="priceAreaCode"
-                defaultValue={state.values.priceAreaCode ?? ""}
-                className={inputClassName(state, "priceAreaCode")}
-              >
-                <option value="">Välj elområde</option>
-                {priceAreas.map((area) => (
-                  <option key={area.code} value={area.code}>
-                    {area.code} • {area.name}
-                  </option>
-                ))}
-              </select>
-              <FieldError state={state} name="priceAreaCode" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Nätområde / områdes-id</span>
-              <input
-                name="gridAreaCode"
-                defaultValue={state.values.gridAreaCode ?? ""}
-                placeholder="Ex. nätområde/RFF+Z05"
-                className={inputClassName(state, "gridAreaCode")}
-              />
-              <FieldError state={state} name="gridAreaCode" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Årsförbrukning kWh</span>
-              <input
-                name="annualConsumptionKwh"
-                defaultValue={state.values.annualConsumptionKwh ?? ""}
-                placeholder="Årsförbrukning kWh"
-                className={inputClassName(state, "annualConsumptionKwh")}
-              />
-              <FieldError state={state} name="annualConsumptionKwh" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Anläggningstyp</span>
-              <select
-                name="siteType"
-                defaultValue={state.values.siteType ?? "consumption"}
-                className={inputClassName(state, "siteType")}
-              >
-                <option value="consumption">Förbrukning</option>
-                <option value="production">Produktion</option>
-                <option value="mixed">Mixad</option>
-              </select>
-              <FieldError state={state} name="siteType" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm md:col-span-2"
-              data-flow-section="switch move_in move_out_takeover"
+        <Section
+          title="1. Kund"
+          description="Minsta möjliga kunddata. Saknas något skapas blockerare i stället för totalstopp."
+        >
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Kundtyp</span>
+            <select
+              name="customerType"
+              defaultValue={state.values.customerType ?? "private"}
+              className={inputClassName(state, "customerType")}
             >
-              <span
-                className="text-slate-700 "
-                data-label-for-flow
-                data-label-switch="Anläggningsadress"
-                data-label-move_in="Ny adress kunden flyttar till"
-                data-label-move_out_takeover="Adress som tas över"
-              >
-                Anläggningsadress
-              </span>
-              <input
-                name="street"
-                defaultValue={state.values.street ?? ""}
-                placeholder="Gatuadress"
-                className={inputClassName(state, "street", "full")}
-                data-required-flow="move_in move_out_takeover"
-              />
-              <FieldError state={state} name="street" />
-            </label>
+              <option value="private">Privatkund</option>
+              <option value="business">Företagskund</option>
+              <option value="association">Förening</option>
+            </select>
+            <FieldError state={state} name="customerType" />
+          </label>
 
-            <label
-              className="grid gap-1 text-sm"
-              data-flow-section="switch move_in move_out_takeover"
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Flöde</span>
+            <select
+              name="intakeFlowType"
+              defaultValue={state.values.intakeFlowType ?? "switch"}
+              className={inputClassName(state, "intakeFlowType")}
             >
-              <span className="text-slate-700 ">Postnummer</span>
-              <input
-                name="postalCode"
-                defaultValue={state.values.postalCode ?? ""}
-                placeholder="Postnummer"
-                className={inputClassName(state, "postalCode")}
-                data-required-flow="move_in move_out_takeover"
-              />
-              <FieldError state={state} name="postalCode" />
-            </label>
+              <option value="switch">Byte av leverantör</option>
+              <option value="move_in">Inflytt / flytt</option>
+              <option value="move_out_takeover">Övertag vid utflytt</option>
+            </select>
+            <FieldError state={state} name="intakeFlowType" />
+          </label>
 
-            <label
-              className="grid gap-1 text-sm"
-              data-flow-section="switch move_in move_out_takeover"
+          <label
+            className="grid gap-1 text-sm"
+            data-customer-section="private business association"
+          >
+            <span
+              className="text-slate-700"
+              data-label-for-customer
+              data-label-private="Förnamn"
+              data-label-business="Kontaktperson förnamn"
+              data-label-association="Kontaktperson förnamn"
             >
-              <span className="text-slate-700 ">Stad</span>
-              <input
-                name="city"
-                defaultValue={state.values.city ?? ""}
-                placeholder="Stad"
-                className={inputClassName(state, "city")}
-                data-required-flow="move_in move_out_takeover"
-              />
-              <FieldError state={state} name="city" />
-            </label>
+              Förnamn
+            </span>
+            <input
+              name="firstName"
+              defaultValue={state.values.firstName ?? ""}
+              placeholder="Förnamn"
+              className={inputClassName(state, "firstName")}
+            />
+            <FieldError state={state} name="firstName" />
+          </label>
 
-            <label
-              className="grid gap-1 text-sm"
-              data-flow-section="switch move_in move_out_takeover"
+          <label
+            className="grid gap-1 text-sm"
+            data-customer-section="private business association"
+          >
+            <span
+              className="text-slate-700"
+              data-label-for-customer
+              data-label-private="Efternamn"
+              data-label-business="Kontaktperson efternamn"
+              data-label-association="Kontaktperson efternamn"
             >
-              <span className="text-slate-700 ">Land</span>
-              <input
-                name="country"
-                defaultValue={state.values.country ?? "SE"}
-                placeholder="SE"
-                className={inputClassName(state, "country")}
-              />
-              <FieldError state={state} name="country" />
-            </label>
+              Efternamn
+            </span>
+            <input
+              name="lastName"
+              defaultValue={state.values.lastName ?? ""}
+              placeholder="Efternamn"
+              className={inputClassName(state, "lastName")}
+            />
+            <FieldError state={state} name="lastName" />
+          </label>
 
-            <label
-              className="grid gap-1 text-sm md:col-span-2"
-              data-flow-section="switch move_in move_out_takeover"
+          <label
+            className="grid gap-1 text-sm md:col-span-2"
+            data-customer-section="business association"
+          >
+            <span
+              className="text-slate-700"
+              data-label-for-customer
+              data-label-business="Företagsnamn"
+              data-label-association="Föreningsnamn"
             >
-              <span className="text-slate-700 ">c/o</span>
-              <input
-                name="careOf"
-                defaultValue={state.values.careOf ?? ""}
-                placeholder="c/o"
-                className={inputClassName(state, "careOf", "full")}
-              />
-              <FieldError state={state} name="careOf" />
-            </label>
+              Företags- / föreningsnamn
+            </span>
+            <input
+              name="companyName"
+              defaultValue={state.values.companyName ?? ""}
+              placeholder="Företags- eller föreningsnamn"
+              className={inputClassName(state, "companyName", "full")}
+            />
+            <FieldError state={state} name="companyName" />
+          </label>
 
-            <label
-              className="grid gap-1 text-sm"
-              data-flow-section="switch move_in move_out_takeover"
+          <label
+            className="grid gap-1 text-sm"
+            data-customer-section="business association"
+          >
+            <span className="text-slate-700">Kontaktperson titel</span>
+            <input
+              name="contactTitle"
+              defaultValue={state.values.contactTitle ?? ""}
+              placeholder="Ex. VD, administratör, ordförande"
+              className={inputClassName(state, "contactTitle")}
+            />
+            <FieldError state={state} name="contactTitle" />
+          </label>
+
+          <label className="grid gap-1 text-sm" data-customer-section="private">
+            <span className="text-slate-700">Lägenhetsnummer</span>
+            <input
+              name="apartmentNumber"
+              defaultValue={state.values.apartmentNumber ?? ""}
+              placeholder="Lägenhetsnummer"
+              className={inputClassName(state, "apartmentNumber")}
+            />
+            <FieldError state={state} name="apartmentNumber" />
+          </label>
+
+          <label className="grid gap-1 text-sm" data-customer-section="private">
+            <span className="text-slate-700">Personnummer</span>
+            <input
+              name="personalNumber"
+              defaultValue={state.values.personalNumber ?? ""}
+              placeholder="Personnummer"
+              className={inputClassName(state, "personalNumber")}
+            />
+            <FieldError state={state} name="personalNumber" />
+          </label>
+
+          <label
+            className="grid gap-1 text-sm"
+            data-customer-section="business association"
+          >
+            <span className="text-slate-700">Organisationsnummer</span>
+            <input
+              name="orgNumber"
+              defaultValue={state.values.orgNumber ?? ""}
+              placeholder="Organisationsnummer"
+              className={inputClassName(state, "orgNumber")}
+            />
+            <FieldError state={state} name="orgNumber" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">E-post</span>
+            <input
+              type="email"
+              name="email"
+              defaultValue={state.values.email ?? ""}
+              placeholder="kund@exempel.se"
+              className={inputClassName(state, "email")}
+            />
+            <FieldError state={state} name="email" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Telefon</span>
+            <input
+              name="phone"
+              defaultValue={state.values.phone ?? ""}
+              placeholder="0701234567"
+              className={inputClassName(state, "phone")}
+            />
+            <FieldError state={state} name="phone" />
+          </label>
+        </Section>
+
+        <Section
+          title="2. Anläggning"
+          description="Anläggning och mätpunkt skapas om information finns. Saknade uppgifter blir blockerare."
+        >
+          <label
+            className="grid gap-1 text-sm md:col-span-2"
+            data-flow-section="switch move_in move_out_takeover"
+          >
+            <span
+              className="text-slate-700"
+              data-label-for-flow
+              data-label-switch="Anläggningsadress"
+              data-label-move_in="Ny adress kunden flyttar till"
+              data-label-move_out_takeover="Adress som tas över"
             >
-              <span
-                className="text-slate-700 "
-                data-label-for-flow
-                data-label-switch="Nuvarande elleverantör"
-                data-label-move_in="Nuvarande elleverantör på nya anläggningen"
-                data-label-move_out_takeover="Nuvarande elleverantör på anläggningen"
-              >
-                Nuvarande elleverantör
-              </span>
-              <input
-                name="currentSupplierName"
-                defaultValue={state.values.currentSupplierName ?? ""}
-                placeholder="Nuvarande elleverantör"
-                className={inputClassName(state, "currentSupplierName")}
-              />
-              <FieldError state={state} name="currentSupplierName" />
-            </label>
+              Anläggningsadress
+            </span>
+            <input
+              name="street"
+              defaultValue={state.values.street ?? ""}
+              placeholder="Gatuadress"
+              className={inputClassName(state, "street", "full")}
+            />
+            <FieldError state={state} name="street" />
+          </label>
 
-            <label
-              className="grid gap-1 text-sm"
-              data-flow-section="switch move_in move_out_takeover"
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Postnummer</span>
+            <input
+              name="postalCode"
+              defaultValue={state.values.postalCode ?? ""}
+              placeholder="123 45"
+              className={inputClassName(state, "postalCode")}
+            />
+            <FieldError state={state} name="postalCode" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Ort</span>
+            <input
+              name="city"
+              defaultValue={state.values.city ?? ""}
+              placeholder="Ort"
+              className={inputClassName(state, "city")}
+            />
+            <FieldError state={state} name="city" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Land</span>
+            <select
+              name="country"
+              defaultValue={state.values.country ?? "SE"}
+              className={inputClassName(state, "country")}
             >
-              <span className="text-slate-700 ">
-                Nuvarande leverantör org.nr
-              </span>
-              <input
-                name="currentSupplierOrgNumber"
-                defaultValue={state.values.currentSupplierOrgNumber ?? ""}
-                placeholder="Nuvarande leverantör org.nr"
-                className={inputClassName(state, "currentSupplierOrgNumber")}
-              />
-              <FieldError state={state} name="currentSupplierOrgNumber" />
-            </label>
+              <option value="SE">Sverige</option>
+            </select>
+            <FieldError state={state} name="country" />
+          </label>
 
-            <label
-              className="grid gap-1 text-sm"
-              data-flow-section="switch move_in move_out_takeover"
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">c/o</span>
+            <input
+              name="careOf"
+              defaultValue={state.values.careOf ?? ""}
+              placeholder="c/o"
+              className={inputClassName(state, "careOf")}
+            />
+            <FieldError state={state} name="careOf" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Anläggningsnamn</span>
+            <input
+              name="siteName"
+              defaultValue={state.values.siteName ?? ""}
+              placeholder="Ex. Hem, kontor, butik"
+              className={inputClassName(state, "siteName")}
+            />
+            <FieldError state={state} name="siteName" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Anläggningstyp</span>
+            <select
+              name="siteType"
+              defaultValue={state.values.siteType ?? "consumption"}
+              className={inputClassName(state, "siteType")}
             >
-              <span className="text-slate-700 ">Kundbekräftelse</span>
-              <select
-                name="customerConfirmationStatus"
-                defaultValue={
-                  state.values.customerConfirmationStatus ?? "missing"
-                }
-                className={inputClassName(state, "customerConfirmationStatus")}
-              >
-                <option value="missing">Saknas / behöver kompletteras</option>
-                <option value="confirmed">Mottagen och verifierad</option>
-                <option value="pending">Inväntar kund</option>
-              </select>
-              <FieldError state={state} name="customerConfirmationStatus" />
-            </label>
+              <option value="consumption">Förbrukning</option>
+              <option value="production">Produktion</option>
+              <option value="mixed">Förbrukning och produktion</option>
+            </select>
+            <FieldError state={state} name="siteType" />
+          </label>
 
-            <label
-              className="grid gap-1 text-sm"
-              data-flow-section="switch move_in move_out_takeover"
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Nätägare</span>
+            <select
+              name="gridOwnerId"
+              defaultValue={state.values.gridOwnerId ?? ""}
+              className={inputClassName(state, "gridOwnerId")}
             >
-              <span className="text-slate-700 ">Fullmaktsstatus</span>
-              <select
-                name="authorizationStatus"
-                defaultValue={state.values.authorizationStatus ?? "missing"}
-                className={inputClassName(state, "authorizationStatus")}
-              >
-                <option value="missing">Fullmakt saknas</option>
-                <option value="draft">Fullmakt skapad</option>
-                <option value="sent">Fullmakt skickad</option>
-                <option value="signed">Fullmakt signerad</option>
-                <option value="expired">Fullmakt utgången</option>
-                <option value="revoked">Fullmakt avvisad/återkallad</option>
-              </select>
-              <FieldError state={state} name="authorizationStatus" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm"
-              data-flow-section="switch move_in move_out_takeover"
-            >
-              <span className="text-slate-700 ">Fullmakt giltig från</span>
-              <input
-                type="date"
-                name="authorizationValidFrom"
-                defaultValue={state.values.authorizationValidFrom ?? ""}
-                className={inputClassName(state, "authorizationValidFrom")}
-              />
-              <FieldError state={state} name="authorizationValidFrom" />
-            </label>
-
-            <label
-              className="grid gap-1 text-sm"
-              data-flow-section="switch move_in move_out_takeover"
-            >
-              <span className="text-slate-700 ">Fullmakt giltig till</span>
-              <input
-                type="date"
-                name="authorizationValidTo"
-                defaultValue={state.values.authorizationValidTo ?? ""}
-                className={inputClassName(state, "authorizationValidTo")}
-              />
-              <FieldError state={state} name="authorizationValidTo" />
-            </label>
-
-            <div
-              className="md:col-span-2 grid gap-4 md:grid-cols-2"
-              data-flow-section="move_in move_out_takeover"
-            >
-              <div className="md:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 ">
-                Fyll i var kunden flyttar från när det är relevant. Fälten
-                skickas bara med för inflytt och övertag.
-              </div>
-
-              <label className="grid gap-1 text-sm md:col-span-2">
-                <span className="text-slate-700 ">Flyttar från adress</span>
-                <input
-                  name="movedFromStreet"
-                  defaultValue={state.values.movedFromStreet ?? ""}
-                  placeholder="Flyttar från adress"
-                  className={inputClassName(state, "movedFromStreet", "full")}
-                />
-                <FieldError state={state} name="movedFromStreet" />
-              </label>
-
-              <label className="grid gap-1 text-sm">
-                <span className="text-slate-700 ">Flyttar från postnummer</span>
-                <input
-                  name="movedFromPostalCode"
-                  defaultValue={state.values.movedFromPostalCode ?? ""}
-                  placeholder="Flyttar från postnummer"
-                  className={inputClassName(state, "movedFromPostalCode")}
-                />
-                <FieldError state={state} name="movedFromPostalCode" />
-              </label>
-
-              <label className="grid gap-1 text-sm">
-                <span className="text-slate-700 ">Flyttar från stad</span>
-                <input
-                  name="movedFromCity"
-                  defaultValue={state.values.movedFromCity ?? ""}
-                  placeholder="Flyttar från stad"
-                  className={inputClassName(state, "movedFromCity")}
-                />
-                <FieldError state={state} name="movedFromCity" />
-              </label>
-
-              <label className="grid gap-1 text-sm md:col-span-2">
-                <span className="text-slate-700 ">Flyttar från leverantör</span>
-                <input
-                  name="movedFromSupplierName"
-                  defaultValue={state.values.movedFromSupplierName ?? ""}
-                  placeholder="Flyttar från leverantör"
-                  className={inputClassName(
-                    state,
-                    "movedFromSupplierName",
-                    "full",
-                  )}
-                />
-                <FieldError state={state} name="movedFromSupplierName" />
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-700 ">
-            Fakturaadress och faktureringsnivå
-          </h3>
-          <p className="mt-2 text-sm text-slate-700 ">
-            Fakturaadressen kan vara samma som eladressen eller separat. En kund kan ha flera anläggningar på olika adresser men ändå få samlingsfaktura till samma fakturaadress.
-          </p>
-
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm md:col-span-2">
-              <input
-                type="checkbox"
-                name="billingAddressSameAsSite"
-                defaultChecked={state.values.billingAddressSameAsSite === "on" || state.values.billingAddressSameAsSite === "true"}
-                className="mt-1"
-                data-copy-billing-address
-              />
-              <span>
-                <span className="block font-semibold text-slate-900">Fakturaadress samma som eladress</span>
-                <span className="mt-1 block text-slate-700">När detta är markerat kopieras anläggningsadressen till fakturaadressen.</span>
-              </span>
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Fakturamottagare</span>
-              <input name="invoiceRecipient" defaultValue={state.values.invoiceRecipient ?? ""} placeholder="Namn på fakturamottagare" className={inputClassName(state, "invoiceRecipient")} />
-              <FieldError state={state} name="invoiceRecipient" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Faktura-e-post</span>
-              <input type="email" name="invoiceEmail" defaultValue={state.values.invoiceEmail ?? ""} placeholder="faktura@kund.se" className={inputClassName(state, "invoiceEmail")} />
-              <FieldError state={state} name="invoiceEmail" />
-            </label>
-
-            <label className="grid gap-1 text-sm md:col-span-2">
-              <span className="text-slate-700 ">Fakturareferens</span>
-              <input name="invoiceReference" defaultValue={state.values.invoiceReference ?? ""} placeholder="Ex. kostnadsställe, referensperson eller objekt" className={inputClassName(state, "invoiceReference", "full")} />
-              <FieldError state={state} name="invoiceReference" />
-            </label>
-
-            <label className="grid gap-1 text-sm md:col-span-2">
-              <span className="text-slate-700 ">Fakturaadress</span>
-              <input name="billingStreet" defaultValue={state.values.billingStreet ?? ""} placeholder="Fakturaadress" className={inputClassName(state, "billingStreet", "full")} data-billing-copy-target="street" />
-              <FieldError state={state} name="billingStreet" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Postnummer faktura</span>
-              <input name="billingPostalCode" defaultValue={state.values.billingPostalCode ?? ""} placeholder="Postnummer" className={inputClassName(state, "billingPostalCode")} data-billing-copy-target="postalCode" />
-              <FieldError state={state} name="billingPostalCode" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Ort faktura</span>
-              <input name="billingCity" defaultValue={state.values.billingCity ?? ""} placeholder="Ort" className={inputClassName(state, "billingCity")} data-billing-copy-target="city" />
-              <FieldError state={state} name="billingCity" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Land faktura</span>
-              <input name="billingCountry" defaultValue={state.values.billingCountry ?? state.values.country ?? "SE"} placeholder="SE" className={inputClassName(state, "billingCountry")} data-billing-copy-target="country" />
-              <FieldError state={state} name="billingCountry" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Faktureringsnivå</span>
-              <select name="billingLevel" defaultValue={state.values.billingLevel ?? "customer"} className={inputClassName(state, "billingLevel")}>
-                <option value="customer">Samlingsfaktura per kund</option>
-                <option value="contract">Faktura per avtal</option>
-                <option value="site">Faktura per anläggning</option>
-                <option value="metering_point">Faktura per mätpunkt</option>
-              </select>
-              <FieldError state={state} name="billingLevel" />
-            </label>
-
-            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm md:col-span-2">
-              <input type="checkbox" name="consolidatedInvoice" defaultChecked={state.values.consolidatedInvoice === "on" || state.values.consolidatedInvoice === "true"} className="mt-1" />
-              <span>
-                <span className="block font-semibold text-slate-900">Samlingsfaktura</span>
-                <span className="mt-1 block text-slate-700">Samla flera anläggningar och mätpunkter på samma fakturaadress, med separata fakturarader.</span>
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-700 ">
-            Avtal
-          </h3>
-
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <label className="grid gap-1 text-sm md:col-span-2">
-              <span className="text-slate-700 ">Avtalsmall</span>
-              <select
-                name="contractOfferId"
-                defaultValue={state.values.contractOfferId ?? ""}
-                className={inputClassName(state, "contractOfferId", "full")}
-              >
-                <option value="">Välj avtal eller kampanj</option>
-                {contractOffers.map((offer) => (
-                  <option key={offer.id} value={offer.id}>
-                    {offer.name}
-                  </option>
-                ))}
-              </select>
-              <FieldError state={state} name="contractOfferId" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Avtalsstart</span>
-              <input
-                type="date"
-                name="contractStartDate"
-                defaultValue={state.values.contractStartDate ?? ""}
-                className={inputClassName(state, "contractStartDate")}
-              />
-              <FieldError state={state} name="contractStartDate" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Avtalsstatus</span>
-              <select
-                name="contractStatus"
-                defaultValue={
-                  state.values.contractStatus ?? "pending_signature"
-                }
-                className={inputClassName(state, "contractStatus")}
-              >
-                <option value="draft">Förbereds</option>
-                <option value="pending_signature">Väntar signering</option>
-                <option value="signed">Signerat</option>
-                <option value="active">Aktivt</option>
-              </select>
-              <FieldError state={state} name="contractStatus" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Förväntat startdatum</span>
-              <input
-                type="date"
-                name="expectedStartDate"
-                defaultValue={state.values.expectedStartDate ?? ""}
-                className={inputClassName(state, "expectedStartDate")}
-              />
-              <FieldError state={state} name="expectedStartDate" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Bekräftat startdatum</span>
-              <input
-                type="date"
-                name="confirmedStartDate"
-                defaultValue={state.values.confirmedStartDate ?? ""}
-                className={inputClassName(state, "confirmedStartDate")}
-              />
-              <FieldError state={state} name="confirmedStartDate" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Faktiskt startdatum</span>
-              <input
-                type="date"
-                name="actualStartDate"
-                defaultValue={state.values.actualStartDate ?? ""}
-                className={inputClassName(state, "actualStartDate")}
-              />
-              <FieldError state={state} name="actualStartDate" />
-            </label>
-
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Källa för startdatum</span>
-              <select
-                name="startDateSource"
-                defaultValue={
-                  state.values.startDateSource ?? "customer_expected"
-                }
-                className={inputClassName(state, "startDateSource")}
-              >
-                <option value="customer_expected">
-                  Kundens önskemål/preliminärt
+              <option value="">Välj nätägare</option>
+              {gridOwners.map((owner) => (
+                <option key={owner.id} value={owner.id}>
+                  {owner.name}
                 </option>
-                <option value="current_supplier_response">
-                  Svar från gammal leverantör
+              ))}
+            </select>
+            <FieldError state={state} name="gridOwnerId" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Anläggnings-ID</span>
+            <input
+              name="facilityId"
+              defaultValue={state.values.facilityId ?? ""}
+              placeholder="735999..."
+              className={inputClassName(state, "facilityId")}
+            />
+            <FieldError state={state} name="facilityId" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Mätpunkts-ID</span>
+            <input
+              name="meterPointId"
+              defaultValue={state.values.meterPointId ?? ""}
+              placeholder="Mätpunkts-ID"
+              className={inputClassName(state, "meterPointId")}
+            />
+            <FieldError state={state} name="meterPointId" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Elområde</span>
+            <select
+              name="priceAreaCode"
+              defaultValue={state.values.priceAreaCode ?? ""}
+              className={inputClassName(state, "priceAreaCode")}
+            >
+              <option value="">Välj elområde</option>
+              {priceAreas.map((area) => (
+                <option key={area.code} value={area.code}>
+                  {area.code} — {area.name}
                 </option>
-                <option value="grid_owner_response">Svar från nätägare</option>
-                <option value="ediel_prodat">Ediel/PRODAT-svar</option>
-                <option value="manual_override">Manuell justering</option>
-              </select>
-              <FieldError state={state} name="startDateSource" />
-            </label>
+              ))}
+            </select>
+            <FieldError state={state} name="priceAreaCode" />
+          </label>
 
-            <label className="grid gap-1 text-sm md:col-span-2">
-              <span className="text-slate-700 ">
-                Orsak till kundspecifik justering
-              </span>
-              <input
-                name="overrideReason"
-                defaultValue={state.values.overrideReason ?? ""}
-                placeholder="Orsak till kundspecifik justering"
-                className={inputClassName(state, "overrideReason", "full")}
-              />
-              <FieldError state={state} name="overrideReason" />
-            </label>
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Nätområde</span>
+            <input
+              name="gridAreaCode"
+              defaultValue={state.values.gridAreaCode ?? ""}
+              placeholder="Nätområdeskod"
+              className={inputClassName(state, "gridAreaCode")}
+            />
+            <FieldError state={state} name="gridAreaCode" />
+          </label>
 
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">Kundspecifik avtalstyp</span>
-              <select
-                name="contractTypeOverride"
-                defaultValue={state.values.contractTypeOverride ?? ""}
-                className={inputClassName(state, "contractTypeOverride")}
-              >
-                <option value="">Behåll katalogens avtalstyp</option>
-                <option value="fixed">Fast</option>
-                <option value="variable_monthly">Rörlig månad</option>
-                <option value="variable_hourly">Rörlig tim</option>
-                <option value="portfolio">Portfölj</option>
-              </select>
-              <FieldError state={state} name="contractTypeOverride" />
-            </label>
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Beräknad årsförbrukning</span>
+            <input
+              name="annualConsumptionKwh"
+              defaultValue={state.values.annualConsumptionKwh ?? ""}
+              placeholder="kWh/år"
+              className={inputClassName(state, "annualConsumptionKwh")}
+            />
+            <FieldError state={state} name="annualConsumptionKwh" />
+          </label>
 
-            <label className="grid gap-1 text-sm">
-              <span className="text-slate-700 ">
-                Kundspecifik grön el-avgift
-              </span>
-              <select
-                name="greenFeeMode"
-                defaultValue={state.values.greenFeeMode ?? ""}
-                className={inputClassName(state, "greenFeeMode")}
-              >
-                <option value="">Behåll katalogens grön el-avgift</option>
-                <option value="none">Ingen</option>
-                <option value="sek_month">kr/mån</option>
-                <option value="ore_per_kwh">öre/kWh</option>
-              </select>
-              <FieldError state={state} name="greenFeeMode" />
-            </label>
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Önskat startdatum</span>
+            <input
+              type="date"
+              name="moveInDate"
+              defaultValue={state.values.moveInDate ?? ""}
+              className={inputClassName(state, "moveInDate")}
+            />
+            <FieldError state={state} name="moveInDate" />
+          </label>
 
-            <div className="grid gap-1 text-sm">
-              <input
-                name="fixedPriceOrePerKwh"
-                defaultValue={state.values.fixedPriceOrePerKwh ?? ""}
-                placeholder="Kundspecifikt fast pris öre/kWh"
-                className={inputClassName(state, "fixedPriceOrePerKwh")}
-              />
-              <FieldError state={state} name="fixedPriceOrePerKwh" />
-            </div>
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Nuvarande leverantör</span>
+            <input
+              name="currentSupplierName"
+              defaultValue={state.values.currentSupplierName ?? ""}
+              placeholder="Nuvarande elleverantör"
+              className={inputClassName(state, "currentSupplierName")}
+            />
+            <FieldError state={state} name="currentSupplierName" />
+          </label>
 
-            <div className="grid gap-1 text-sm">
-              <input
-                name="spotMarkupOrePerKwh"
-                defaultValue={state.values.spotMarkupOrePerKwh ?? ""}
-                placeholder="Kundspecifikt påslag öre/kWh"
-                className={inputClassName(state, "spotMarkupOrePerKwh")}
-              />
-              <FieldError state={state} name="spotMarkupOrePerKwh" />
-            </div>
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Nuvarande leverantör org.nr</span>
+            <input
+              name="currentSupplierOrgNumber"
+              defaultValue={state.values.currentSupplierOrgNumber ?? ""}
+              placeholder="Organisationsnummer"
+              className={inputClassName(state, "currentSupplierOrgNumber")}
+            />
+            <FieldError state={state} name="currentSupplierOrgNumber" />
+          </label>
 
-            <div className="grid gap-1 text-sm">
-              <input
-                name="variableFeeOrePerKwh"
-                defaultValue={state.values.variableFeeOrePerKwh ?? ""}
-                placeholder="Kundspecifik rörlig avgift öre/kWh"
-                className={inputClassName(state, "variableFeeOrePerKwh")}
-              />
-              <FieldError state={state} name="variableFeeOrePerKwh" />
-            </div>
-
-            <div className="grid gap-1 text-sm">
-              <input
-                name="monthlyFeeSek"
-                defaultValue={state.values.monthlyFeeSek ?? ""}
-                placeholder="Kundspecifik månadsavgift kr"
-                className={inputClassName(state, "monthlyFeeSek")}
-              />
-              <FieldError state={state} name="monthlyFeeSek" />
-            </div>
-
-            <div className="grid gap-1 text-sm">
-              <input
-                name="greenFeeValue"
-                defaultValue={state.values.greenFeeValue ?? ""}
-                placeholder="Kundspecifikt värde för grön el"
-                className={inputClassName(state, "greenFeeValue")}
-              />
-              <FieldError state={state} name="greenFeeValue" />
-            </div>
-
-            <div className="grid gap-1 text-sm">
-              <input
-                name="bindingMonths"
-                defaultValue={state.values.bindingMonths ?? ""}
-                placeholder="Bindningstid månader"
-                className={inputClassName(state, "bindingMonths")}
-              />
-              <FieldError state={state} name="bindingMonths" />
-            </div>
-
-            <div className="grid gap-1 text-sm">
-              <input
-                name="noticeMonths"
-                defaultValue={state.values.noticeMonths ?? ""}
-                placeholder="Uppsägningstid månader"
-                className={inputClassName(state, "noticeMonths")}
-              />
-              <FieldError state={state} name="noticeMonths" />
-            </div>
-
-            <label className="grid gap-1 text-sm md:col-span-2">
-              <textarea
-                name="optionalFeeLines"
-                defaultValue={state.values.optionalFeeLines ?? ""}
-                rows={4}
-                placeholder={
-                  "Extra avgifter\nEtablering | 395 | sek\nNattillägg | 1.2 | ore_per_kwh"
-                }
-                className={inputClassName(state, "optionalFeeLines", "full")}
-              />
-              <FieldError state={state} name="optionalFeeLines" />
-            </label>
+          <div
+            className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2 md:grid-cols-2"
+            data-flow-section="move_in move_out_takeover"
+          >
+            <p className="text-sm font-semibold text-slate-900 md:col-span-2">
+              Flyttar från
+            </p>
+            <input
+              name="movedFromStreet"
+              defaultValue={state.values.movedFromStreet ?? ""}
+              placeholder="Flyttar från adress"
+              className={inputClassName(state, "movedFromStreet", "full")}
+            />
+            <input
+              name="movedFromPostalCode"
+              defaultValue={state.values.movedFromPostalCode ?? ""}
+              placeholder="Flyttar från postnummer"
+              className={inputClassName(state, "movedFromPostalCode")}
+            />
+            <input
+              name="movedFromCity"
+              defaultValue={state.values.movedFromCity ?? ""}
+              placeholder="Flyttar från ort"
+              className={inputClassName(state, "movedFromCity")}
+            />
+            <input
+              name="movedFromSupplierName"
+              defaultValue={state.values.movedFromSupplierName ?? ""}
+              placeholder="Flyttar från leverantör"
+              className={inputClassName(state, "movedFromSupplierName", "full")}
+            />
           </div>
-        </div>
+        </Section>
+
+        <Section
+          title="3. Avtal"
+          description="Avtal får sparas även om kunden inte är redo för leverantörsbyte."
+        >
+          <label className="grid gap-1 text-sm md:col-span-2">
+            <span className="text-slate-700">Avtalsmall</span>
+            <select
+              name="contractOfferId"
+              defaultValue={state.values.contractOfferId ?? ""}
+              className={inputClassName(state, "contractOfferId", "full")}
+            >
+              <option value="">Välj avtal eller kampanj</option>
+              {contractOffers.map((offer) => (
+                <option key={offer.id} value={offer.id}>
+                  {offer.name}
+                </option>
+              ))}
+            </select>
+            <FieldError state={state} name="contractOfferId" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Avtalsstart</span>
+            <input
+              type="date"
+              name="contractStartDate"
+              defaultValue={state.values.contractStartDate ?? ""}
+              className={inputClassName(state, "contractStartDate")}
+            />
+            <FieldError state={state} name="contractStartDate" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Avtalsstatus</span>
+            <select
+              name="contractStatus"
+              defaultValue={state.values.contractStatus ?? "pending_signature"}
+              className={inputClassName(state, "contractStatus")}
+            >
+              <option value="draft">Förbereds</option>
+              <option value="pending_signature">Väntar signering</option>
+              <option value="signed">Signerat</option>
+              <option value="active">Aktivt</option>
+            </select>
+            <FieldError state={state} name="contractStatus" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Förväntat startdatum</span>
+            <input
+              type="date"
+              name="expectedStartDate"
+              defaultValue={state.values.expectedStartDate ?? ""}
+              className={inputClassName(state, "expectedStartDate")}
+            />
+            <FieldError state={state} name="expectedStartDate" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Bekräftat startdatum</span>
+            <input
+              type="date"
+              name="confirmedStartDate"
+              defaultValue={state.values.confirmedStartDate ?? ""}
+              className={inputClassName(state, "confirmedStartDate")}
+            />
+            <FieldError state={state} name="confirmedStartDate" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Faktiskt startdatum</span>
+            <input
+              type="date"
+              name="actualStartDate"
+              defaultValue={state.values.actualStartDate ?? ""}
+              className={inputClassName(state, "actualStartDate")}
+            />
+            <FieldError state={state} name="actualStartDate" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Källa för startdatum</span>
+            <select
+              name="startDateSource"
+              defaultValue={state.values.startDateSource ?? "customer_expected"}
+              className={inputClassName(state, "startDateSource")}
+            >
+              <option value="customer_expected">
+                Kundens önskemål/preliminärt
+              </option>
+              <option value="current_supplier_response">
+                Svar från gammal leverantör
+              </option>
+              <option value="grid_owner_response">Svar från nätägare</option>
+              <option value="ediel_prodat">Ediel/PRODAT-svar</option>
+              <option value="manual_override">Manuell justering</option>
+            </select>
+            <FieldError state={state} name="startDateSource" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Kundspecifik avtalstyp</span>
+            <select
+              name="contractTypeOverride"
+              defaultValue={state.values.contractTypeOverride ?? ""}
+              className={inputClassName(state, "contractTypeOverride")}
+            >
+              <option value="">Behåll katalogens avtalstyp</option>
+              <option value="fixed">Fast</option>
+              <option value="variable_monthly">Rörlig månad</option>
+              <option value="variable_hourly">Rörlig tim</option>
+              <option value="portfolio">Portfölj</option>
+            </select>
+            <FieldError state={state} name="contractTypeOverride" />
+          </label>
+
+          <label className="grid gap-1 text-sm md:col-span-2">
+            <span className="text-slate-700">
+              Orsak till kundspecifik justering
+            </span>
+            <input
+              name="overrideReason"
+              defaultValue={state.values.overrideReason ?? ""}
+              placeholder="Orsak till kundspecifik justering"
+              className={inputClassName(state, "overrideReason", "full")}
+            />
+            <FieldError state={state} name="overrideReason" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Grön el-avgift</span>
+            <select
+              name="greenFeeMode"
+              defaultValue={state.values.greenFeeMode ?? ""}
+              className={inputClassName(state, "greenFeeMode")}
+            >
+              <option value="">Behåll katalogens grön el-avgift</option>
+              <option value="none">Ingen</option>
+              <option value="sek_month">kr/mån</option>
+              <option value="ore_per_kwh">öre/kWh</option>
+            </select>
+            <FieldError state={state} name="greenFeeMode" />
+          </label>
+
+          <input
+            name="fixedPriceOrePerKwh"
+            defaultValue={state.values.fixedPriceOrePerKwh ?? ""}
+            placeholder="Fast pris öre/kWh"
+            className={inputClassName(state, "fixedPriceOrePerKwh")}
+          />
+          <input
+            name="spotMarkupOrePerKwh"
+            defaultValue={state.values.spotMarkupOrePerKwh ?? ""}
+            placeholder="Spotpåslag öre/kWh"
+            className={inputClassName(state, "spotMarkupOrePerKwh")}
+          />
+          <input
+            name="variableFeeOrePerKwh"
+            defaultValue={state.values.variableFeeOrePerKwh ?? ""}
+            placeholder="Rörlig avgift öre/kWh"
+            className={inputClassName(state, "variableFeeOrePerKwh")}
+          />
+          <input
+            name="monthlyFeeSek"
+            defaultValue={state.values.monthlyFeeSek ?? ""}
+            placeholder="Månadsavgift kr"
+            className={inputClassName(state, "monthlyFeeSek")}
+          />
+          <input
+            name="greenFeeValue"
+            defaultValue={state.values.greenFeeValue ?? ""}
+            placeholder="Värde för grön el"
+            className={inputClassName(state, "greenFeeValue")}
+          />
+          <input
+            name="bindingMonths"
+            defaultValue={state.values.bindingMonths ?? ""}
+            placeholder="Bindningstid månader"
+            className={inputClassName(state, "bindingMonths")}
+          />
+          <input
+            name="noticeMonths"
+            defaultValue={state.values.noticeMonths ?? ""}
+            placeholder="Uppsägningstid månader"
+            className={inputClassName(state, "noticeMonths")}
+          />
+
+          <label className="grid gap-1 text-sm md:col-span-2">
+            <span className="text-slate-700">Extra avgifter</span>
+            <textarea
+              name="optionalFeeLines"
+              defaultValue={state.values.optionalFeeLines ?? ""}
+              rows={4}
+              placeholder={
+                "Etablering | 395 | sek\nNattillägg | 1.2 | ore_per_kwh"
+              }
+              className={inputClassName(state, "optionalFeeLines", "full")}
+            />
+            <FieldError state={state} name="optionalFeeLines" />
+          </label>
+        </Section>
+
+        <Section
+          title="4. Faktura"
+          description="Fakturaadress kan kopieras från anläggning eller anges separat."
+        >
+          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm md:col-span-2">
+            <input
+              type="checkbox"
+              name="billingAddressSameAsSite"
+              defaultChecked={
+                state.values.billingAddressSameAsSite === "on" ||
+                state.values.billingAddressSameAsSite === "true"
+              }
+              className="mt-1"
+              data-copy-billing-address
+            />
+            <span>
+              <span className="block font-semibold text-slate-900">
+                Fakturaadress samma som eladress
+              </span>
+              <span className="mt-1 block text-slate-700">
+                Kopierar adress, postnummer, ort och land från anläggningen.
+              </span>
+            </span>
+          </label>
+
+          <input
+            name="invoiceRecipient"
+            defaultValue={state.values.invoiceRecipient ?? ""}
+            placeholder="Fakturamottagare"
+            className={inputClassName(state, "invoiceRecipient")}
+          />
+          <input
+            type="email"
+            name="invoiceEmail"
+            defaultValue={state.values.invoiceEmail ?? ""}
+            placeholder="faktura@kund.se"
+            className={inputClassName(state, "invoiceEmail")}
+          />
+          <input
+            name="invoiceReference"
+            defaultValue={state.values.invoiceReference ?? ""}
+            placeholder="Fakturareferens"
+            className={inputClassName(state, "invoiceReference", "full")}
+          />
+          <input
+            name="billingStreet"
+            defaultValue={state.values.billingStreet ?? ""}
+            placeholder="Fakturaadress"
+            className={inputClassName(state, "billingStreet", "full")}
+          />
+          <input
+            name="billingPostalCode"
+            defaultValue={state.values.billingPostalCode ?? ""}
+            placeholder="Postnummer faktura"
+            className={inputClassName(state, "billingPostalCode")}
+          />
+          <input
+            name="billingCity"
+            defaultValue={state.values.billingCity ?? ""}
+            placeholder="Ort faktura"
+            className={inputClassName(state, "billingCity")}
+          />
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Land faktura</span>
+            <select
+              name="billingCountry"
+              defaultValue={
+                state.values.billingCountry ?? state.values.country ?? "SE"
+              }
+              className={inputClassName(state, "billingCountry")}
+            >
+              <option value="SE">Sverige</option>
+            </select>
+            <FieldError state={state} name="billingCountry" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Faktureringsnivå</span>
+            <select
+              name="billingLevel"
+              defaultValue={state.values.billingLevel ?? "customer"}
+              className={inputClassName(state, "billingLevel")}
+            >
+              <option value="customer">Samlingsfaktura per kund</option>
+              <option value="contract">Faktura per avtal</option>
+              <option value="site">Faktura per anläggning</option>
+              <option value="metering_point">Faktura per mätpunkt</option>
+            </select>
+            <FieldError state={state} name="billingLevel" />
+          </label>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm md:col-span-2">
+            <input
+              type="checkbox"
+              name="consolidatedInvoice"
+              defaultChecked={
+                state.values.consolidatedInvoice === "on" ||
+                state.values.consolidatedInvoice === "true"
+              }
+              className="mt-1"
+            />
+            <span>
+              <span className="block font-semibold text-slate-900">
+                Samlingsfaktura
+              </span>
+              <span className="mt-1 block text-slate-700">
+                Samla flera anläggningar och mätpunkter på samma fakturaadress.
+              </span>
+            </span>
+          </label>
+        </Section>
+
+        <Section
+          title="5. Dokument och fullmakt"
+          description="Ladda upp signerat avtal och signerad fullmakt direkt vid kundskapande."
+        >
+          <label className="grid gap-1 text-sm md:col-span-2">
+            <span className="text-slate-700">Signerat avtal</span>
+            <input
+              type="file"
+              name="signedAgreementFile"
+              accept="application/pdf,image/png,image/jpeg,image/webp"
+              className="rounded-2xl border border-slate-300 px-4 py-3"
+            />
+            <span className="text-xs text-slate-600">
+              Kopplas till kund, anläggning, mätpunkt och avtal om dessa finns.
+            </span>
+          </label>
+
+          <label className="grid gap-1 text-sm md:col-span-2">
+            <span className="text-slate-700">Signerad fullmakt</span>
+            <input
+              type="file"
+              name="signedPowerOfAttorneyFile"
+              accept="application/pdf,image/png,image/jpeg,image/webp"
+              className="rounded-2xl border border-slate-300 px-4 py-3"
+            />
+            <span className="text-xs text-slate-600">
+              Skapar signerad fullmakt och tar bort blockerare för saknad
+              fullmakt i nästa steg.
+            </span>
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Fullmaktsstatus</span>
+            <select
+              name="authorizationStatus"
+              defaultValue={state.values.authorizationStatus ?? "missing"}
+              className={inputClassName(state, "authorizationStatus")}
+            >
+              <option value="missing">Fullmakt saknas</option>
+              <option value="draft">Fullmakt skapad</option>
+              <option value="sent">Fullmakt skickad</option>
+              <option value="signed">Fullmakt signerad</option>
+              <option value="expired">Fullmakt utgången</option>
+              <option value="revoked">Fullmakt avvisad/återkallad</option>
+            </select>
+            <FieldError state={state} name="authorizationStatus" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Kundbekräftelse</span>
+            <select
+              name="customerConfirmationStatus"
+              defaultValue={
+                state.values.customerConfirmationStatus ?? "pending"
+              }
+              className={inputClassName(state, "customerConfirmationStatus")}
+            >
+              <option value="pending">Väntar</option>
+              <option value="confirmed">Bekräftad</option>
+              <option value="rejected">Nekad</option>
+            </select>
+            <FieldError state={state} name="customerConfirmationStatus" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Fullmakt giltig från</span>
+            <input
+              type="date"
+              name="authorizationValidFrom"
+              defaultValue={state.values.authorizationValidFrom ?? ""}
+              className={inputClassName(state, "authorizationValidFrom")}
+            />
+            <FieldError state={state} name="authorizationValidFrom" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Fullmakt giltig till</span>
+            <input
+              type="date"
+              name="authorizationValidTo"
+              defaultValue={state.values.authorizationValidTo ?? ""}
+              className={inputClassName(state, "authorizationValidTo")}
+            />
+            <FieldError state={state} name="authorizationValidTo" />
+          </label>
+        </Section>
+
+        <Section
+          title="6. Dubblett och granskning"
+          description="Möjlig dubblett sparas som blockerare och stoppar inte kundskapandet."
+        >
+          <label className="grid gap-1 text-sm md:col-span-2">
+            <span className="text-slate-700">
+              Åtgärd vid möjlig/befintlig kund
+            </span>
+            <select
+              name="duplicateResolution"
+              defaultValue={
+                state.values.duplicateResolution ?? "create_new_pending_review"
+              }
+              className={inputClassName(state, "duplicateResolution", "full")}
+            >
+              <option value="create_new_pending_review">
+                Skapa kund och flagga möjlig dubblett
+              </option>
+              <option value="add_site_to_existing">
+                Lägg till anläggning på befintlig kund
+              </option>
+              <option value="add_contract_to_existing">
+                Lägg till avtal på befintlig kund
+              </option>
+              <option value="update_existing">
+                Uppdatera befintlig kund och lägg till data
+              </option>
+              <option value="create_separate_confirmed">
+                Skapa separat kund trots varning
+              </option>
+            </select>
+            <FieldError state={state} name="duplicateResolution" />
+          </label>
+
+          <label className="grid gap-1 text-sm md:col-span-2">
+            <span className="text-slate-700">Befintligt kund-ID</span>
+            <input
+              name="existingCustomerId"
+              defaultValue={state.values.existingCustomerId ?? ""}
+              placeholder="Används bara om du väljer att koppla till befintlig kund"
+              className={inputClassName(state, "existingCustomerId", "full")}
+            />
+            <FieldError state={state} name="existingCustomerId" />
+          </label>
+
+          <label className="grid gap-1 text-sm md:col-span-2">
+            <span className="text-slate-700">
+              Kommentar till dubblettbeslut
+            </span>
+            <textarea
+              name="duplicateOverrideReason"
+              defaultValue={state.values.duplicateOverrideReason ?? ""}
+              rows={3}
+              placeholder="Ex. Kunden ska skapas separat trots match på telefonnummer."
+              className={inputClassName(
+                state,
+                "duplicateOverrideReason",
+                "full",
+              )}
+            />
+            <FieldError state={state} name="duplicateOverrideReason" />
+          </label>
+        </Section>
 
         <CustomerIntakeEnhancer offers={contractOffers} values={state.values} />
 
-        <button
-          disabled={isPending}
-          className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60 "
-        >
-          {isPending ? "Skapar kund..." : "Skapa kund med avtal"}
-        </button>
+        <div className="grid gap-3 md:grid-cols-2">
+          <button
+            type="submit"
+            name="intakeCreateMode"
+            value="create"
+            disabled={isPending}
+            className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isPending ? "Skapar..." : "Skapa ändå"}
+          </button>
+          <button
+            type="submit"
+            name="intakeCreateMode"
+            value="create_blocked"
+            disabled={isPending}
+            className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Skapa och markera som blockerad
+          </button>
+        </div>
       </form>
     </div>
   );
