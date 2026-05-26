@@ -1,8 +1,8 @@
 // lib/operations/types.ts
 
-export type CustomerBlockerSeverity = 'info' | 'warning' | 'blocking' | 'critical';
+export type CustomerBlockerSeverity = "info" | "warning" | "blocking" | "critical";
 
-export type CustomerBlockerStatus = 'open' | 'pending_review' | 'resolved' | 'dismissed' | 'cancelled';
+export type CustomerBlockerStatus = "open" | "pending_review" | "resolved" | "dismissed" | "cancelled";
 
 export type CustomerBlockerRow = {
   id: string;
@@ -38,7 +38,6 @@ export type PowerOfAttorneyStatus =
 
 export type PowerOfAttorneyRow = {
   id: string;
-  company_id?: string | null;
   customer_id: string;
   site_id: string | null;
   scope: PowerOfAttorneyScope;

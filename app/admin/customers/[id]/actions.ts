@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
@@ -86,13 +85,6 @@ function normalizeSwitchRequestType(
   if (value === 'move_in') return 'move_in'
   if (value === 'move_out_takeover') return 'move_out_takeover'
   return 'switch'
-}
-
-
-function redirectAfterCustomerDataRequestIfRequested(formData: FormData, customerId: string): void {
-  if (formValue(formData, 'redirect_after_submit') === 'customer_data_requests') {
-    redirect(`/admin/customers/${customerId}?tab=data-requests#data-requests`)
-  }
 }
 
 function normalizeGridOwnerRequestScope(
@@ -541,12 +533,12 @@ export async function createCustomerInternalNoteAction(
 export async function createPowerOfAttorneyAction(
   formData: FormData
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
-  const actor = { id: guard.userId }
+  const actor = await getActor()
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
-  const { customer, companyId } = await requireCustomerMutationContext(customerId, guard)
+  const customer = await loadCustomerForAction(customerId)
 
   const saved = await savePowerOfAttorney(supabase, {
     id: formValue(formData, 'id') || undefined,
@@ -573,38 +565,8 @@ export async function createPowerOfAttorneyAction(
     document_path: formValue(formData, 'document_path') || null,
     reference: formValue(formData, 'reference') || null,
     notes: formValue(formData, 'notes') || null,
-    companyId,
+    companyId: customer.company_id,
   })
-
-  let authorizationScopeId: string | null = null
-  let resolvedPowerOfAttorneyBlockers = 0
-
-  if (saved.status === 'signed') {
-    authorizationScopeId = await ensureAuthorizationScopeFromPowerOfAttorney({
-      companyId,
-      actorUserId: actor.id,
-      customerId,
-      powerOfAttorneyId: saved.id,
-      authorizationDocumentId: null,
-      coverage: {
-        coversGridOwnerData: true,
-        coversCurrentSupplierContract: true,
-        coversMeteringData: saved.scope === 'meter_data' || saved.scope === 'supplier_switch',
-      },
-      validFrom: saved.valid_from,
-      validTo: saved.valid_to,
-      evidenceNote: 'Signerad fullmakt registrerad manuellt i kundkortet.',
-    })
-
-    const blockerResult = await resolveCustomerBlockersAfterSignedPowerOfAttorney({
-      companyId,
-      actorUserId: actor.id,
-      customerId,
-      siteId: saved.site_id,
-      powerOfAttorneyId: saved.id,
-    })
-    resolvedPowerOfAttorneyBlockers = blockerResult.resolved
-  }
 
   const syncSummary = saved.site_id
     ? await syncCustomerOperationsForSite(supabase, {
@@ -623,8 +585,6 @@ export async function createPowerOfAttorneyAction(
       customerId,
       siteId: saved.site_id,
       syncSummary,
-      authorizationScopeId,
-      resolvedPowerOfAttorneyBlockers,
     },
   })
 
@@ -1328,7 +1288,6 @@ export async function createAuthorizationRequestPackageAction(
   revalidatePath('/admin/outbound/unresolved')
 }
 
-
 export async function createCustomerDataRequestPackageAction(
   formData: FormData
 ): Promise<void> {
@@ -1347,8 +1306,6 @@ export async function createCustomerDataRequestPackageAction(
   const gridOwnerId = formValue(formData, 'grid_owner_id') || null
   const externalReference = formValue(formData, 'external_reference') || null
   const notes = formValue(formData, 'notes') || null
-  const requestedPeriodStart = normalizeDateOrNull(formValue(formData, 'requested_period_start'))
-  const requestedPeriodEnd = normalizeDateOrNull(formValue(formData, 'requested_period_end'))
   const selectedPowerOfAttorneyId = formValue(formData, 'power_of_attorney_id') || null
 
   const signedPowerOfAttorney = selectedPowerOfAttorneyId
@@ -1403,7 +1360,6 @@ export async function createCustomerDataRequestPackageAction(
 
     revalidatePath(`/admin/customers/${customerId}`)
     revalidatePath('/admin/customer-info-requests')
-    redirectAfterCustomerDataRequestIfRequested(formData, customerId)
     return
   }
 
@@ -1455,8 +1411,6 @@ export async function createCustomerDataRequestPackageAction(
         'customer_masterdata',
       ],
       externalReference,
-      requestedPeriodStart,
-      requestedPeriodEnd,
       notes:
         notes ??
         'Begäran om kund- och anläggningsuppgifter från nätägare. Systemet förbereder PRODAT Z01 när route finns.',
@@ -1495,8 +1449,6 @@ export async function createCustomerDataRequestPackageAction(
         'break_fee',
       ],
       externalReference,
-      requestedPeriodStart,
-      requestedPeriodEnd,
       notes:
         notes ??
         'Manuell begäran till nuvarande leverantör. Fullmakt ska bifogas vid kontakt.',
@@ -1542,7 +1494,6 @@ export async function createCustomerDataRequestPackageAction(
   revalidatePath('/admin/operations')
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/ediel')
-  redirectAfterCustomerDataRequestIfRequested(formData, customerId)
 }
 
 export async function createPartnerExportAction(

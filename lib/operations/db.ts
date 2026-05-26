@@ -1344,17 +1344,23 @@ export async function findOpenSupplierSwitchRequestForSite(
   params: {
     customerId: string;
     siteId: string;
+    companyId?: string | null;
   },
 ): Promise<SupplierSwitchRequestRow | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("supplier_switch_requests")
     .select("*")
     .eq("customer_id", params.customerId)
     .eq("site_id", params.siteId)
     .in("status", OPEN_SUPPLIER_SWITCH_STATUSES)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (params.companyId) {
+    query = query.eq("company_id", params.companyId);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) throw error;
   return (data as SupplierSwitchRequestRow | null) ?? null;
