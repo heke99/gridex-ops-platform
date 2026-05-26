@@ -4,6 +4,7 @@ import { useActionState, type ReactNode } from "react";
 import Link from "next/link";
 import CustomerIntakeEnhancer from "@/components/admin/customers/CustomerIntakeEnhancer";
 import { createCustomerAction } from "@/app/admin/customers/actions";
+import { createCustomerDataRequestPackageAction } from "@/app/admin/customers/[id]/actions";
 import {
   initialIntakeActionState,
   type IntakeActionState,
@@ -67,6 +68,117 @@ function FieldError({
   return <span className="text-xs font-medium text-red-600">{error}</span>;
 }
 
+
+function postCreateActionLabel(value: IntakeActionState["postCreateAction"]): string {
+  switch (value) {
+    case "request_data":
+      return "Begär uppgifter direkt";
+    case "create_new":
+      return "Skapa ny kund efteråt";
+    default:
+      return "Öppna kundkort";
+  }
+}
+
+function requestTargetLabel(value: IntakeActionState["postCreateRequestTarget"]): string {
+  switch (value) {
+    case "grid_owner":
+      return "Nätägare";
+    case "current_supplier":
+      return "Nuvarande leverantör";
+    default:
+      return "Nätägare och nuvarande leverantör";
+  }
+}
+
+function CreatedCustomerNextSteps({ state }: { state: IntakeActionState }) {
+  if (!state.createdCustomerId) return null;
+
+  const customerHref = `/admin/customers/${state.createdCustomerId}`;
+  const dataRequestsHref = `${customerHref}?tab=data-requests#data-requests`;
+  const defaultRequestTarget = state.postCreateRequestTarget ?? "both";
+  const showRequestFirst = state.postCreateAction === "request_data";
+
+  return (
+    <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4 text-sm text-slate-800">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-950">Nästa steg</p>
+          <p className="mt-1 text-slate-700">
+            Valt flöde: {postCreateActionLabel(state.postCreateAction)}.
+          </p>
+        </div>
+        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+          Kund skapad
+        </span>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link
+          href={customerHref}
+          className="inline-flex rounded-xl border border-emerald-300 px-3 py-2 font-semibold text-emerald-900 hover:bg-emerald-50"
+        >
+          Öppna kundkort
+        </Link>
+        <Link
+          href="/admin/customers/intake?new=1"
+          className="inline-flex rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-800 hover:bg-slate-50"
+        >
+          Skapa ny kund
+        </Link>
+        <Link
+          href={dataRequestsHref}
+          className="inline-flex rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-800 hover:bg-slate-50"
+        >
+          Gå till uppgiftsbegäran
+        </Link>
+      </div>
+
+      <div className={`mt-4 rounded-2xl border p-4 ${showRequestFirst ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+        <p className="font-semibold text-slate-950">Begär uppgifter direkt</p>
+        <p className="mt-1 text-xs leading-5 text-slate-700">
+          Välj mottagare och skapa begäran utan att leta i kundkortet. Saknas signerad fullmakt stoppar systemet utskicket och lägger en tydlig blockerare på kunden.
+        </p>
+
+        <form action={createCustomerDataRequestPackageAction} className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+          <input type="hidden" name="customer_id" value={state.createdCustomerId} />
+          <input type="hidden" name="redirect_after_submit" value="customer_data_requests" />
+          <input type="hidden" name="site_id" value={state.createdSiteId ?? ""} />
+          <input type="hidden" name="metering_point_id" value={state.createdMeteringPointId ?? ""} />
+          <input type="hidden" name="grid_owner_id" value={state.createdGridOwnerId ?? ""} />
+          <input type="hidden" name="power_of_attorney_id" value={state.createdPowerOfAttorneyId ?? ""} />
+          <input type="hidden" name="current_supplier_name" value={state.createdCurrentSupplierName ?? ""} />
+          <input type="hidden" name="external_reference" value="Direkt efter kundskapande" />
+          <input type="hidden" name="notes" value="Uppgiftsbegäran skapad direkt efter kundintag." />
+
+          <label className="grid gap-1">
+            <span className="text-xs font-semibold text-slate-700">Begär från</span>
+            <select
+              name="request_target"
+              defaultValue={defaultRequestTarget}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950"
+            >
+              <option value="grid_owner">Nätägare</option>
+              <option value="current_supplier">Nuvarande leverantör</option>
+              <option value="both">Båda</option>
+            </select>
+            <span className="text-xs text-slate-600">
+              Standard: {requestTargetLabel(defaultRequestTarget)}.
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            className="self-end rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+          >
+            Skapa begäran
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function Section({
   title,
   description,
@@ -108,6 +220,25 @@ export default function CustomerIntakeForm({
         kundkortet.
       </p>
 
+
+      {state.status === "success" && state.message ? (
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <p className="font-semibold">Klart.</p>
+          <p className="mt-1">{state.message}</p>
+          {state.duplicateReviewRequired && state.duplicateWarnings?.length ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-900">
+              <div className="font-semibold">Möjlig dubblett behöver granskas.</div>
+              <ul className="mt-1 list-disc space-y-1 pl-4">
+                {state.duplicateWarnings.slice(0, 3).map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <CreatedCustomerNextSteps state={state} />
+        </div>
+      ) : null}
+
       <form
         action={formAction}
         className="mt-6 space-y-6"
@@ -121,34 +252,6 @@ export default function CustomerIntakeForm({
               formatmässigt fel.
             </p>
             <p className="mt-1">{state.message}</p>
-          </div>
-        ) : null}
-
-        {state.status === "success" && state.message ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-            <p className="font-semibold">Klart.</p>
-            <p className="mt-1">{state.message}</p>
-            {state.duplicateReviewRequired &&
-            state.duplicateWarnings?.length ? (
-              <div className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-900">
-                <div className="font-semibold">
-                  Möjlig dubblett behöver granskas.
-                </div>
-                <ul className="mt-1 list-disc space-y-1 pl-4">
-                  {state.duplicateWarnings.slice(0, 3).map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            {state.createdCustomerId ? (
-              <Link
-                href={`/admin/customers/${state.createdCustomerId}`}
-                className="mt-3 inline-flex rounded-xl border border-emerald-300 px-3 py-2 font-semibold hover:bg-emerald-100"
-              >
-                Öppna kundkort
-              </Link>
-            ) : null}
           </div>
         ) : null}
 
@@ -1039,9 +1142,49 @@ export default function CustomerIntakeForm({
           </label>
         </Section>
 
+        <Section
+          title="7. Nästa steg"
+          description="Välj vad handläggaren ska göra direkt efter att kunden sparats. Det här ändrar bara arbetsflödet efter skapande, inte själva kundsparningen."
+        >
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Efter kundskapande</span>
+            <select
+              name="postCreateAction"
+              defaultValue={state.values.postCreateAction ?? "open_customer"}
+              className={inputClassName(state, "postCreateAction")}
+            >
+              <option value="open_customer">Öppna kundkort</option>
+              <option value="request_data">Skapa kund och begär uppgifter direkt</option>
+              <option value="create_new">Skapa kund och registrera ny kund</option>
+            </select>
+            <FieldError state={state} name="postCreateAction" />
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Standardval för uppgiftsbegäran</span>
+            <select
+              name="postCreateRequestTarget"
+              defaultValue={state.values.postCreateRequestTarget ?? "both"}
+              className={inputClassName(state, "postCreateRequestTarget")}
+            >
+              <option value="grid_owner">Nätägare</option>
+              <option value="current_supplier">Nuvarande leverantör</option>
+              <option value="both">Båda</option>
+            </select>
+            <FieldError state={state} name="postCreateRequestTarget" />
+          </label>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:col-span-2">
+            <p className="font-semibold text-slate-950">Så fungerar det</p>
+            <p className="mt-1">
+              Kunden sparas alltid först. Om du begär uppgifter direkt kontrollerar systemet signerad fullmakt. Saknas fullmakt skapas en blockerare i stället för att något skickas.
+            </p>
+          </div>
+        </Section>
+
         <CustomerIntakeEnhancer offers={contractOffers} values={state.values} />
 
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 lg:grid-cols-3">
           <button
             type="submit"
             name="intakeCreateMode"
@@ -1049,7 +1192,16 @@ export default function CustomerIntakeForm({
             disabled={isPending}
             className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isPending ? "Skapar..." : "Skapa ändå"}
+            {isPending ? "Skapar..." : "Skapa kund"}
+          </button>
+          <button
+            type="submit"
+            name="postCreateActionOverride"
+            value="request_data"
+            disabled={isPending}
+            className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Skapa kund och begär uppgifter
           </button>
           <button
             type="submit"

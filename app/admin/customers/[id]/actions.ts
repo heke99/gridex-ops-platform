@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
@@ -85,6 +86,13 @@ function normalizeSwitchRequestType(
   if (value === 'move_in') return 'move_in'
   if (value === 'move_out_takeover') return 'move_out_takeover'
   return 'switch'
+}
+
+
+function redirectAfterCustomerDataRequestIfRequested(formData: FormData, customerId: string): void {
+  if (formValue(formData, 'redirect_after_submit') === 'customer_data_requests') {
+    redirect(`/admin/customers/${customerId}?tab=data-requests#data-requests`)
+  }
 }
 
 function normalizeGridOwnerRequestScope(
@@ -1395,6 +1403,7 @@ export async function createCustomerDataRequestPackageAction(
 
     revalidatePath(`/admin/customers/${customerId}`)
     revalidatePath('/admin/customer-info-requests')
+    redirectAfterCustomerDataRequestIfRequested(formData, customerId)
     return
   }
 
@@ -1533,6 +1542,7 @@ export async function createCustomerDataRequestPackageAction(
   revalidatePath('/admin/operations')
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/ediel')
+  redirectAfterCustomerDataRequestIfRequested(formData, customerId)
 }
 
 export async function createPartnerExportAction(

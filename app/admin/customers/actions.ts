@@ -53,6 +53,8 @@ type DuplicateResolution =
 
 type BillingLevel = "customer" | "contract" | "site" | "metering_point";
 type IntakeCreateMode = "create" | "create_blocked";
+type PostCreateAction = "open_customer" | "request_data" | "create_new";
+type PostCreateRequestTarget = "grid_owner" | "current_supplier" | "both";
 
 type ContractStatus =
   | "draft"
@@ -135,6 +137,8 @@ type CreateCustomerGraphParams = {
   intakeCreateMode: IntakeCreateMode;
   signedAgreementFile: File | null;
   signedPowerOfAttorneyFile: File | null;
+  postCreateAction: PostCreateAction;
+  postCreateRequestTarget: PostCreateRequestTarget;
 };
 
 type CreationContext = {
@@ -339,6 +343,22 @@ function normalizeIntakeCreateMode(
   value: string | null | undefined,
 ): IntakeCreateMode {
   return value === "create_blocked" ? "create_blocked" : "create";
+}
+
+function normalizePostCreateAction(
+  value: string | null | undefined,
+): PostCreateAction {
+  if (value === "request_data") return "request_data";
+  if (value === "create_new") return "create_new";
+  return "open_customer";
+}
+
+function normalizePostCreateRequestTarget(
+  value: string | null | undefined,
+): PostCreateRequestTarget {
+  if (value === "grid_owner") return "grid_owner";
+  if (value === "current_supplier") return "current_supplier";
+  return "both";
 }
 
 function getFileValue(formData: FormData, key: string): File | null {
@@ -705,6 +725,13 @@ function buildCreateCustomerParams(
     signedPowerOfAttorneyFile: getFileValue(
       formData,
       "signedPowerOfAttorneyFile",
+    ),
+    postCreateAction: normalizePostCreateAction(
+      getNullableString(formData, "postCreateActionOverride") ??
+        getNullableString(formData, "postCreateAction"),
+    ),
+    postCreateRequestTarget: normalizePostCreateRequestTarget(
+      getNullableString(formData, "postCreateRequestTarget"),
     ),
   };
 }
@@ -2442,6 +2469,11 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<
     __duplicateWarnings: string[];
     __duplicateReviewRequired: boolean;
     __createdNewCustomer: boolean;
+    __createdSiteId: string | null;
+    __createdMeteringPointId: string | null;
+    __createdGridOwnerId: string | null;
+    __createdPowerOfAttorneyId: string | null;
+    __createdCurrentSupplierName: string | null;
   }
 > {
   const fieldErrors = validateCreateCustomerParams(params);
@@ -3121,6 +3153,11 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<
       __duplicateReviewRequired: duplicateReviewRequired,
       __createdNewCustomer: createdNewCustomer,
       __uploadedDocumentLabels: intakeDocumentUpload.uploadedLabels,
+      __createdSiteId: creationContext.siteId,
+      __createdMeteringPointId: creationContext.meteringPointId,
+      __createdGridOwnerId: normalizedGridOwnerId,
+      __createdPowerOfAttorneyId: creationContext.powerOfAttorneyId,
+      __createdCurrentSupplierName: normalizedCurrentSupplierName,
     };
   } catch (error) {
     await cleanupCreatedGraph(creationContext);
@@ -3165,8 +3202,19 @@ export async function createCustomerAction(
           ? `${usedExistingCustomer ? "Befintlig kund uppdaterades" : "Kunden skapades"}, men systemet hittade möjlig dubblett som behöver granskas: ${duplicateWarnings.slice(0, 2).join(" ")}${documentSummary}`
           : `${usedExistingCustomer ? "Befintlig kund uppdaterades" : `Kunden ${customer.customer_number ?? ""} skapades`} och eventuella saknade uppgifter ligger som blockerare/varningar.${documentSummary}`,
       fieldErrors: {},
-      values: { country: "SE" },
+      values: {
+        country: "SE",
+        postCreateAction: params.postCreateAction,
+        postCreateRequestTarget: params.postCreateRequestTarget,
+      },
       createdCustomerId: customer.id,
+      createdSiteId: customer.__createdSiteId ?? null,
+      createdMeteringPointId: customer.__createdMeteringPointId ?? null,
+      createdGridOwnerId: customer.__createdGridOwnerId ?? null,
+      createdPowerOfAttorneyId: customer.__createdPowerOfAttorneyId ?? null,
+      createdCurrentSupplierName: customer.__createdCurrentSupplierName ?? null,
+      postCreateAction: params.postCreateAction,
+      postCreateRequestTarget: params.postCreateRequestTarget,
       duplicateWarnings,
       duplicateReviewRequired: Boolean(customer.__duplicateReviewRequired),
     };
@@ -3483,6 +3531,8 @@ async function buildCustomerParamsFromImportRow(params: {
     intakeCreateMode: "create",
     signedAgreementFile: null,
     signedPowerOfAttorneyFile: null,
+    postCreateAction: "open_customer",
+    postCreateRequestTarget: "both",
   };
 }
 

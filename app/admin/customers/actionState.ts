@@ -65,6 +65,8 @@ export type IntakeField =
   | 'duplicateOverrideReason'
   | 'existingCustomerId'
   | 'duplicateResolution'
+  | 'postCreateAction'
+  | 'postCreateRequestTarget'
 
 export type IntakeFieldErrors = Partial<Record<IntakeField, string>>
 
@@ -76,6 +78,13 @@ export type IntakeActionState = {
   fieldErrors: IntakeFieldErrors
   values: IntakeFormValues
   createdCustomerId: string | null
+  createdSiteId?: string | null
+  createdMeteringPointId?: string | null
+  createdGridOwnerId?: string | null
+  createdPowerOfAttorneyId?: string | null
+  createdCurrentSupplierName?: string | null
+  postCreateAction?: 'open_customer' | 'request_data' | 'create_new'
+  postCreateRequestTarget?: 'grid_owner' | 'current_supplier' | 'both'
   duplicateWarnings?: string[]
   duplicateReviewRequired?: boolean
 }
@@ -84,8 +93,15 @@ export const initialIntakeActionState: IntakeActionState = {
   status: 'idle',
   message: null,
   fieldErrors: {},
-  values: { country: 'SE' },
+  values: { country: 'SE', postCreateAction: 'open_customer', postCreateRequestTarget: 'both' },
   createdCustomerId: null,
+  createdSiteId: null,
+  createdMeteringPointId: null,
+  createdGridOwnerId: null,
+  createdPowerOfAttorneyId: null,
+  createdCurrentSupplierName: null,
+  postCreateAction: 'open_customer',
+  postCreateRequestTarget: 'both',
   duplicateWarnings: [],
   duplicateReviewRequired: false,
 }
