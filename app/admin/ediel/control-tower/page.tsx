@@ -117,7 +117,7 @@ function StatCard({ label, value, href, tone = 'info' }: { label: string; value:
 }
 
 export default async function EdielControlTowerPage() {
-  const context = await requireAdminPageKeyAccess('operations.control_tower')
+  const context = await requireAdminPageKeyAccess('ediel.control_tower')
   const tenantScope = await resolveAdminTenantReadScope(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
   const companyId = tenantScope.companyId
