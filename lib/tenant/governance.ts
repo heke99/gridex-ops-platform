@@ -577,7 +577,7 @@ export async function listCompanyUsersForGovernance(companyId: string): Promise<
 
         if (error) continue
 
-        for (const profile of ((data ?? []) as Array<Record<string, unknown>>)) {
+        for (const profile of (((data ?? []) as unknown as Array<Record<string, unknown>>)) ) {
           profileById.set(String(profile.id), {
             email: stringOrNull(profile.email),
             fullName: stringOrNull(profile.full_name),
