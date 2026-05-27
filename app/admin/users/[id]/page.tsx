@@ -42,10 +42,15 @@ export default async function AdminUserDetailPage({
  const current = await requirePlatformAdminAccess()
  const { id } = await params
 
- const user = await getAdminUserById(id)
- const roles = getInternalRoleOptions(await getAllRoles())
- const permissions = sortPermissions(await getAllPermissions())
- const effectivePermissions = new Set(await getUserPermissions(id))
+ const [user, allRoles, allPermissions, effectivePermissionList] = await Promise.all([
+  getAdminUserById(id),
+  getAllRoles(),
+  getAllPermissions(),
+  getUserPermissions(id),
+ ])
+ const roles = getInternalRoleOptions(allRoles)
+ const permissions = sortPermissions(allPermissions)
+ const effectivePermissions = new Set(effectivePermissionList)
 
  const canManageRoles = current.permissions.includes('roles.manage')
  const canManagePermissionOverrides = current.permissions.includes('permissions.manage')

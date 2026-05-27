@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
 import { getAdminUsers } from "@/lib/rbac/getAdminUsers";
 import { getAllRoles } from "@/lib/rbac/getAllRoles";
@@ -23,10 +24,45 @@ function formatDate(value: string | null | undefined) {
   return date.toLocaleString("sv-SE");
 }
 
-export default async function AdminUsersPage() {
+type ActionSearchParams = Record<string, string | string[] | undefined>;
+
+function firstSearchValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function buildUsersActionRedirect(result: { ok: boolean; message: string }) {
+  const key = result.ok ? "success" : "error";
+  const message = result.message || (result.ok ? "Åtgärden sparades." : "Åtgärden misslyckades.");
+  return `/admin/users?${key}=${encodeURIComponent(message)}`;
+}
+
+function ActionBanner({ success, error }: { success?: string; error?: string }) {
+  if (!success && !error) return null;
+
+  const isSuccess = Boolean(success);
+  return (
+    <div
+      className={
+        isSuccess
+          ? "rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-medium text-emerald-800"
+          : "rounded-3xl border border-red-200 bg-red-50 p-5 text-sm font-medium text-red-800"
+      }
+    >
+      {success ?? error}
+    </div>
+  );
+}
+
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams?: Promise<ActionSearchParams>;
+}) {
   const context = await requirePlatformAdminAccess();
-  const users = await getAdminUsers();
-  const allRoles = await getAllRoles();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const actionSuccess = firstSearchValue(resolvedSearchParams.success);
+  const actionError = firstSearchValue(resolvedSearchParams.error);
+  const [users, allRoles] = await Promise.all([getAdminUsers(), getAllRoles()]);
   const assignableRoles = getInternalRoleOptions(allRoles);
 
   const canWriteUsers = context.permissions.includes("users.write");
@@ -39,42 +75,47 @@ export default async function AdminUsersPage() {
 
   async function inviteUserFormAction(formData: FormData) {
     "use server";
-    await inviteUserAction(
+    const result = await inviteUserAction(
       {} as Parameters<typeof inviteUserAction>[0],
       formData,
     );
+    redirect(buildUsersActionRedirect(result));
   }
 
   async function createUserFormAction(formData: FormData) {
     "use server";
-    await createUserAction(
+    const result = await createUserAction(
       {} as Parameters<typeof createUserAction>[0],
       formData,
     );
+    redirect(buildUsersActionRedirect(result));
   }
 
   async function sendPasswordResetFormAction(formData: FormData) {
     "use server";
-    await sendAdminPasswordResetAction(
+    const result = await sendAdminPasswordResetAction(
       {} as Parameters<typeof sendAdminPasswordResetAction>[0],
       formData,
     );
+    redirect(buildUsersActionRedirect(result));
   }
 
   async function sendConfirmationEmailFormAction(formData: FormData) {
     "use server";
-    await sendAdminConfirmationEmailAction(
+    const result = await sendAdminConfirmationEmailAction(
       {} as Parameters<typeof sendAdminConfirmationEmailAction>[0],
       formData,
     );
+    redirect(buildUsersActionRedirect(result));
   }
 
   async function deleteUserCompletelyFormAction(formData: FormData) {
     "use server";
-    await deleteUserCompletelyAction(
+    const result = await deleteUserCompletelyAction(
       {} as Parameters<typeof deleteUserCompletelyAction>[0],
       formData,
     );
+    redirect(buildUsersActionRedirect(result));
   }
 
   return (
@@ -86,6 +127,8 @@ export default async function AdminUsersPage() {
       />
 
       <div className="space-y-6 p-8">
+        <ActionBanner success={actionSuccess} error={actionError} />
+
         <section className="grid gap-4 xl:grid-cols-3">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-700">Interna konton</p>

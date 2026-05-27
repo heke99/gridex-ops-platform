@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
@@ -18,24 +19,56 @@ export const dynamic = 'force-dynamic'
 
 const emptyCompanyActionState = { ok: false, message: '' }
 
+type ActionSearchParams = Record<string, string | string[] | undefined>
+
+function firstSearchValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function buildCompaniesActionRedirect(result: { ok: boolean; message: string }) {
+  const key = result.ok ? 'success' : 'error'
+  const message = result.message || (result.ok ? 'Åtgärden sparades.' : 'Åtgärden kunde inte sparas.')
+  return `/admin/companies?${key}=${encodeURIComponent(message)}`
+}
+
+function ActionBanner({ success, error }: { success?: string; error?: string }) {
+  if (!success && !error) return null
+
+  return (
+    <div
+      className={
+        success
+          ? 'rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900'
+          : 'rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-900'
+      }
+    >
+      {success ?? error}
+    </div>
+  )
+}
+
 async function createCompanyFormAction(formData: FormData) {
   'use server'
-  await createCompanyAction(emptyCompanyActionState, formData)
+  const result = await createCompanyAction(emptyCompanyActionState, formData)
+  redirect(buildCompaniesActionRedirect(result))
 }
 
 async function setCompanyStatusFormAction(formData: FormData) {
   'use server'
-  await setCompanyOperationalStatusAction(emptyCompanyActionState, formData)
+  const result = await setCompanyOperationalStatusAction(emptyCompanyActionState, formData)
+  redirect(buildCompaniesActionRedirect(result))
 }
 
 async function requestCompanyDeletionFormAction(formData: FormData) {
   'use server'
-  await requestCompanyDeletionAction(emptyCompanyActionState, formData)
+  const result = await requestCompanyDeletionAction(emptyCompanyActionState, formData)
+  redirect(buildCompaniesActionRedirect(result))
 }
 
 async function deleteTestCompanyFormAction(formData: FormData) {
   'use server'
-  await deleteTestCompanyAction(emptyCompanyActionState, formData)
+  const result = await deleteTestCompanyAction(emptyCompanyActionState, formData)
+  redirect(buildCompaniesActionRedirect(result))
 }
 
 function formatDate(value: string | null | undefined) {
@@ -95,7 +128,15 @@ function GovernanceActionForm({
   )
 }
 
-export default async function CompaniesPage() {
+export default async function CompaniesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<ActionSearchParams>
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const actionSuccess = firstSearchValue(resolvedSearchParams.success)
+  const actionError = firstSearchValue(resolvedSearchParams.error)
+
   const admin = await requirePlatformAdminAccess()
   const supabase = await createSupabaseServerClient()
   const [companies, { data: auth }] = await Promise.all([
@@ -116,6 +157,8 @@ export default async function CompaniesPage() {
       />
 
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
+        <ActionBanner success={actionSuccess} error={actionError} />
+
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatBox label="Bolag" value={companies.length} />
           <StatBox label="Aktiva/onboarding" value={activeCount} />

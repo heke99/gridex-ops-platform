@@ -451,6 +451,36 @@ function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value : null
 }
 
+function chunkStrings(values: string[], size: number): string[][] {
+  const chunks: string[][] = []
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size))
+  }
+  return chunks
+}
+
+async function loadAuthEmailsById(userIds: string[]): Promise<Map<string, string | null>> {
+  const authEmailById = new Map<string, string | null>()
+  const uniqueIds = Array.from(new Set(userIds.filter((value) => value.length > 0 && !value.includes('@'))))
+
+  for (const idChunk of chunkStrings(uniqueIds, 10)) {
+    await Promise.all(
+      idChunk.map(async (userId) => {
+        try {
+          const { data, error } = await supabaseService.auth.admin.getUserById(userId)
+          if (!error && data.user?.id) {
+            authEmailById.set(userId, data.user.email ?? null)
+          }
+        } catch {
+          // Auth lookup is best effort and must never crash the company users page.
+        }
+      })
+    )
+  }
+
+  return authEmailById
+}
+
 function normalizeMembershipRole(row: Record<string, unknown>): string {
   const direct = stringOrNull(row.membership_role)
   if (direct) return direct
@@ -577,7 +607,7 @@ export async function listCompanyUsersForGovernance(companyId: string): Promise<
 
         if (error) continue
 
-        for (const profile of (((data ?? []) as unknown as Array<Record<string, unknown>>)) ) {
+        for (const profile of ((data ?? []) as unknown as Array<Record<string, unknown>>)) {
           profileById.set(String(profile.id), {
             email: stringOrNull(profile.email),
             fullName: stringOrNull(profile.full_name),
@@ -591,15 +621,10 @@ export async function listCompanyUsersForGovernance(companyId: string): Promise<
     }
   }
 
-  const authEmailById = new Map<string, string | null>()
-  try {
-    const { data: authUsers } = await supabaseService.auth.admin.listUsers()
-    for (const user of authUsers.users ?? []) {
-      if (userIds.includes(user.id)) authEmailById.set(user.id, user.email ?? null)
-    }
-  } catch {
-    // Auth lookup is best effort and must never crash the company users page.
-  }
+  const missingAuthEmailIds = userIds.filter((userId) => !profileById.get(userId)?.email)
+  const authEmailById = missingAuthEmailIds.length > 0
+    ? await loadAuthEmailsById(missingAuthEmailIds)
+    : new Map<string, string | null>()
 
   return memberships.map((row) => {
     const profile = profileById.get(row.userId)

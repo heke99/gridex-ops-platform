@@ -48,8 +48,10 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
     )
   }
 
-  const company = await getCompanyGovernanceSummary(row)
-  const actorSummary = await getActorTestingSummary(row.id)
+  const [company, actorSummary] = await Promise.all([
+    getCompanyGovernanceSummary(row),
+    getActorTestingSummary(row.id),
+  ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
 
