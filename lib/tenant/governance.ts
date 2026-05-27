@@ -235,47 +235,6 @@ async function safeCount(table: string, filters: CountFilter[] = []): Promise<nu
   }
 }
 
-
-function isIgnorableSchemaError(error: { code?: string | null; message?: string | null } | null | undefined) {
-  if (!error) return false
-  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')
-}
-
-function asStringOrNull(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null
-}
-
-function inferCompanyUserRoleKey(value: string | null | undefined): string | null {
-  if (!value) return null
-  const normalized = value.trim()
-  if (!normalized) return null
-  if (normalized === 'owner' || normalized === 'admin' || normalized === 'company_admin') return 'company_admin'
-  if (normalized === 'operations') return 'operations_manager'
-  if (normalized === 'support') return 'customer_service_agent'
-  if (normalized === 'viewer') return 'executive_readonly'
-  return normalized
-}
-
-async function listCompanyMembershipRowsForGovernance(companyId: string): Promise<Array<Record<string, unknown>>> {
-  const full = await supabaseService
-    .from('company_memberships')
-    .select('id, company_id, user_id, membership_role, role_key, role, status, invited_email, invited_at, accepted_at, disabled_at, removed_at, joined_at, created_at')
-    .eq('company_id', companyId)
-    .order('invited_at', { ascending: false })
-
-  if (!full.error) return (full.data ?? []) as Array<Record<string, unknown>>
-  if (!isIgnorableSchemaError(full.error)) throw full.error
-
-  const fallback = await supabaseService
-    .from('company_memberships')
-    .select('id, company_id, user_id, role, status, invited_email, joined_at, created_at')
-    .eq('company_id', companyId)
-    .order('created_at', { ascending: false })
-
-  if (fallback.error) throw fallback.error
-  return (fallback.data ?? []) as Array<Record<string, unknown>>
-}
-
 async function latestTimestamp(table: string, companyId: string, column = 'created_at'): Promise<string | null> {
   try {
     const { data, error } = await supabaseService
@@ -294,15 +253,29 @@ async function latestTimestamp(table: string, companyId: string, column = 'creat
   }
 }
 
-export async function getCompanyById(companyId: string): Promise<CompanyRow | null> {
-  const { data, error } = await supabaseService
+const COMPANY_FULL_SELECT = 'id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at'
+const COMPANY_SAFE_SELECT = 'id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, created_at, updated_at'
+const COMPANY_MINIMAL_SELECT = 'id, name, status'
+
+async function selectCompanyById(companyId: string, select: string) {
+  return supabaseService
     .from('companies')
-    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at')
+    .select(select)
     .eq('id', companyId)
     .maybeSingle()
+}
 
-  if (error) throw error
-  return (data as CompanyRow | null) ?? null
+export async function getCompanyById(companyId: string): Promise<CompanyRow | null> {
+  const attempts = [COMPANY_FULL_SELECT, COMPANY_SAFE_SELECT, COMPANY_MINIMAL_SELECT]
+  let lastError: unknown = null
+
+  for (const select of attempts) {
+    const { data, error } = await selectCompanyById(companyId, select)
+    if (!error) return (data as CompanyRow | null) ?? null
+    lastError = error
+  }
+
+  throw lastError
 }
 
 export async function getCompanyDeleteBlockers(companyId: string): Promise<GovernanceCount[]> {
@@ -460,54 +433,161 @@ export async function logTenantGovernanceEvent(input: {
   }
 }
 
+type RawCompanyMembership = {
+  membershipId: string
+  companyId: string
+  userId: string
+  membershipRole: string
+  roleKey: string | null
+  status: string
+  invitedEmail: string | null
+  invitedAt: string | null
+  acceptedAt: string | null
+  disabledAt: string | null
+  removedAt: string | null
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
+}
+
+function normalizeMembershipRole(row: Record<string, unknown>): string {
+  const direct = stringOrNull(row.membership_role)
+  if (direct) return direct
+
+  const legacyRole = stringOrNull(row.role)
+  if (!legacyRole) return 'member'
+  if (legacyRole === 'company_admin') return 'admin'
+  if (legacyRole === 'operations_manager' || legacyRole === 'operations_agent') return 'operations'
+  if (legacyRole === 'customer_service_agent' || legacyRole === 'support') return 'support'
+  if (legacyRole === 'finance_readonly' || legacyRole === 'executive_readonly') return 'viewer'
+  return legacyRole
+}
+
+function normalizeRoleKeyFromMembership(row: Record<string, unknown>): string | null {
+  const direct = stringOrNull(row.role_key)
+  if (direct) return direct
+
+  const legacyRole = stringOrNull(row.role)
+  if (!legacyRole) return null
+  if (legacyRole === 'owner' || legacyRole === 'admin' || legacyRole === 'company_admin') return 'company_admin'
+  if (legacyRole === 'operations') return 'operations_manager'
+  if (legacyRole === 'support' || legacyRole === 'customer_service') return 'customer_service_agent'
+  if (legacyRole === 'finance') return 'finance_readonly'
+  return legacyRole
+}
+
+function normalizeCompanyMembershipRow(row: Record<string, unknown>): RawCompanyMembership {
+  const membershipId = String(row.id ?? `${row.company_id ?? 'company'}-${row.user_id ?? row.invited_email ?? 'unknown'}`)
+  const userId = String(row.user_id ?? row.invited_user_id ?? row.email ?? row.invited_email ?? membershipId)
+
+  return {
+    membershipId,
+    companyId: String(row.company_id ?? ''),
+    userId,
+    membershipRole: normalizeMembershipRole(row),
+    roleKey: normalizeRoleKeyFromMembership(row),
+    status: String(row.status ?? 'active'),
+    invitedEmail: stringOrNull(row.invited_email) ?? stringOrNull(row.email),
+    invitedAt: stringOrNull(row.invited_at) ?? stringOrNull(row.created_at),
+    acceptedAt: stringOrNull(row.accepted_at) ?? stringOrNull(row.joined_at) ?? stringOrNull(row.created_at),
+    disabledAt: stringOrNull(row.disabled_at),
+    removedAt: stringOrNull(row.removed_at),
+  }
+}
+
+async function loadCompanyMembershipRows(companyId: string): Promise<RawCompanyMembership[]> {
+  const attempts = [
+    {
+      select: 'id, company_id, user_id, membership_role, role_key, status, invited_email, invited_at, accepted_at, disabled_at, removed_at',
+      orderColumn: 'invited_at',
+    },
+    {
+      select: 'id, company_id, user_id, membership_role, status, invited_at, accepted_at',
+      orderColumn: 'invited_at',
+    },
+    {
+      select: 'id, company_id, user_id, role, status, created_at, updated_at',
+      orderColumn: 'created_at',
+    },
+    {
+      select: 'id, company_id, user_id, role',
+      orderColumn: null,
+    },
+  ]
+
+  let lastError: unknown = null
+
+  for (const attempt of attempts) {
+    let query = supabaseService
+      .from('company_memberships')
+      .select(attempt.select)
+      .eq('company_id', companyId)
+
+    if (attempt.orderColumn) {
+      query = query.order(attempt.orderColumn, { ascending: false })
+    }
+
+    const { data, error } = await query
+    if (!error) {
+      return ((data ?? []) as unknown as Array<Record<string, unknown>>).map(normalizeCompanyMembershipRow)
+    }
+
+    lastError = error
+  }
+
+  // Some older installs had invitations but no stable membership query shape. Do not let the
+  // superadmin users page crash; show pending invitations as rows instead.
+  try {
+    const { data, error } = await supabaseService
+      .from('company_invitations')
+      .select('id, company_id, invited_user_id, invited_email, email, role_key, membership_role, status, created_at, accepted_at')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+
+    if (!error) return ((data ?? []) as unknown as Array<Record<string, unknown>>).map(normalizeCompanyMembershipRow)
+  } catch {
+    // Keep throwing the original membership error below.
+  }
+
+  throw lastError
+}
+
 export async function listCompanyUsersForGovernance(companyId: string): Promise<CompanyUserGovernanceRow[]> {
-  const rows = await listCompanyMembershipRowsForGovernance(companyId)
+  const memberships = await loadCompanyMembershipRows(companyId)
+  const userIds = memberships
+    .map((row) => row.userId)
+    .filter((value) => value.length > 0 && !value.includes('@'))
 
-  const memberships = rows
-    .map((row) => {
-      const userId = asStringOrNull(row.user_id)
-      const membershipRole = asStringOrNull(row.membership_role) ?? asStringOrNull(row.role) ?? 'member'
-      const invitedAt = asStringOrNull(row.invited_at) ?? asStringOrNull(row.joined_at) ?? asStringOrNull(row.created_at)
-      const status = asStringOrNull(row.status) ?? 'active'
-      const acceptedAt = asStringOrNull(row.accepted_at) ?? (status === 'active' ? invitedAt : null)
-
-      if (!userId) return null
-
-      return {
-        membershipId: String(row.id),
-        companyId: String(row.company_id),
-        userId,
-        membershipRole,
-        roleKey: asStringOrNull(row.role_key) ?? inferCompanyUserRoleKey(membershipRole),
-        status,
-        invitedEmail: asStringOrNull(row.invited_email),
-        invitedAt,
-        acceptedAt,
-        disabledAt: asStringOrNull(row.disabled_at),
-        removedAt: asStringOrNull(row.removed_at),
-      }
-    })
-    .filter((row): row is Omit<CompanyUserGovernanceRow, 'email' | 'fullName' | 'userStatus'> => Boolean(row))
-
-  const userIds = memberships.map((row) => row.userId)
   const profileById = new Map<string, { email: string | null; fullName: string | null; userStatus: UserOperationalStatus | null }>()
 
   if (userIds.length > 0) {
-    try {
-      const { data: profiles } = await supabaseService
-        .from('user_profiles')
-        .select('id, email, full_name, user_status')
-        .in('id', userIds)
+    const profileAttempts = [
+      'id, email, full_name, user_status',
+      'id, email, full_name',
+      'id, email',
+    ]
 
-      for (const profile of ((profiles ?? []) as Array<Record<string, unknown>>)) {
-        profileById.set(String(profile.id), {
-          email: typeof profile.email === 'string' ? profile.email : null,
-          fullName: typeof profile.full_name === 'string' ? profile.full_name : null,
-          userStatus: typeof profile.user_status === 'string' ? (profile.user_status as UserOperationalStatus) : null,
-        })
+    for (const select of profileAttempts) {
+      try {
+        const { data, error } = await supabaseService
+          .from('user_profiles')
+          .select(select)
+          .in('id', userIds)
+
+        if (error) continue
+
+        for (const profile of ((data ?? []) as Array<Record<string, unknown>>)) {
+          profileById.set(String(profile.id), {
+            email: stringOrNull(profile.email),
+            fullName: stringOrNull(profile.full_name),
+            userStatus: typeof profile.user_status === 'string' ? (profile.user_status as UserOperationalStatus) : null,
+          })
+        }
+        break
+      } catch {
+        // Try next profile shape.
       }
-    } catch {
-      // Profiles are optional.
     }
   }
 
@@ -518,7 +598,7 @@ export async function listCompanyUsersForGovernance(companyId: string): Promise<
       if (userIds.includes(user.id)) authEmailById.set(user.id, user.email ?? null)
     }
   } catch {
-    // Auth lookup is best effort.
+    // Auth lookup is best effort and must never crash the company users page.
   }
 
   return memberships.map((row) => {
