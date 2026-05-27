@@ -13,6 +13,7 @@ type UserRoleRpcRow = string | {
 
 type CompanyMembershipPermissionRow = {
   membership_role?: string | null
+  role_key?: string | null
   status?: string | null
 }
 
@@ -73,12 +74,13 @@ async function addRoleFallbackPermissions(
 
   const { data: memberships, error: membershipsError } = await supabase
     .from('company_memberships')
-    .select('membership_role, status')
+    .select('membership_role, role_key, status')
     .eq('user_id', userId)
     .eq('status', 'active')
 
   if (!membershipsError && Array.isArray(memberships)) {
     for (const membership of memberships as CompanyMembershipPermissionRow[]) {
+      addRoleProfilePermissions(target, membership.role_key)
       addRoleProfilePermissions(target, membership.membership_role)
     }
   }

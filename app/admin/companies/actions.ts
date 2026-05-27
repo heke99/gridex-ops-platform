@@ -20,6 +20,10 @@ import {
   type GovernanceEventAction,
 } from '@/lib/tenant/governance'
 import { getTenantEmailBranding, queueAndTrySendTenantEmail, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
+import {
+  parseCompanyAssignableMembershipRole,
+  parseCompanyAssignableRoleKey,
+} from '@/lib/tenant/companyUserRoles'
 
 export type CompanyActionState = {
   ok: boolean
@@ -27,24 +31,6 @@ export type CompanyActionState = {
 }
 
 const ACTIVE_COMPANY_STATUSES: CompanyOperationalStatus[] = ['active', 'onboarding']
-const COMPANY_ASSIGNABLE_ROLE_KEYS = new Set([
-  'company_admin',
-  'operations_manager',
-  'operations_agent',
-  'customer_service_manager',
-  'customer_service_agent',
-  'finance_readonly',
-  'executive_readonly',
-])
-const COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES = new Set([
-  'owner',
-  'admin',
-  'company_admin',
-  'operations',
-  'support',
-  'viewer',
-  'member',
-])
 const GOVERNANCE_COMPANY_STATUSES: CompanyOperationalStatus[] = [
   'active',
   'paused',
@@ -114,21 +100,6 @@ function parseCompanyStatus(value: string): CompanyOperationalStatus {
   }
   return normalized
 }
-
-function parseCompanyAssignableRoleKey(value: string): string {
-  if (!COMPANY_ASSIGNABLE_ROLE_KEYS.has(value)) {
-    throw new Error('Systemrollen är inte tillåten på bolagsnivå.')
-  }
-  return value
-}
-
-function parseCompanyAssignableMembershipRole(value: string): string {
-  if (!COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES.has(value)) {
-    throw new Error('Bolagsrollen är inte tillåten på bolagsnivå.')
-  }
-  return value
-}
-
 
 function governanceActionForStatus(status: CompanyOperationalStatus): GovernanceEventAction {
   if (status === 'active') return 'SUPERADMIN_COMPANY_REACTIVATED'
@@ -302,7 +273,7 @@ export async function createCompanyAction(
     createdCompanyId = company.id as string
 
     if (initialAdminEmail) {
-      const provisioned = await provisionCompanyUserWithTemporaryPassword({
+      await provisionCompanyUserWithTemporaryPassword({
         companyId: company.id,
         companyName: name,
         email: initialAdminEmail,
@@ -438,8 +409,10 @@ export async function inviteCompanyUserAction(
     revalidatePath('/admin/companies')
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
+    revalidatePath('/admin/company-settings')
+    revalidatePath('/admin')
 
-    return { ok: true, message: 'Användaren skapades/kopplades och kan logga in med det temporära lösenordet.' }
+    return { ok: true, message: 'Användaren skapades/kopplades och visas nu i bolagets användarlista.' }
   } catch (error) {
     return { ok: false, message: errorMessage(error, 'Användaren kunde inte skapas eller kopplas till bolaget.') }
   }
@@ -593,6 +566,8 @@ export async function removeUserFromCompanyAction(
     revalidatePath('/admin/companies')
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
+    revalidatePath('/admin/company-settings')
+    revalidatePath('/admin')
 
     return { ok: true, message: 'Användaren togs bort från bolaget utan att historik raderades.' }
   } catch (error) {

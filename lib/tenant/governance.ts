@@ -74,6 +74,7 @@ export type CompanyUserGovernanceRow = {
   email: string | null
   fullName: string | null
   membershipRole: string
+  roleKey: string | null
   status: string
   invitedEmail: string | null
   invitedAt: string | null
@@ -421,7 +422,7 @@ export async function logTenantGovernanceEvent(input: {
 export async function listCompanyUsersForGovernance(companyId: string): Promise<CompanyUserGovernanceRow[]> {
   const { data, error } = await supabaseService
     .from('company_memberships')
-    .select('id, company_id, user_id, membership_role, status, invited_email, invited_at, accepted_at, disabled_at, removed_at')
+    .select('id, company_id, user_id, membership_role, role_key, status, invited_email, invited_at, accepted_at, disabled_at, removed_at')
     .eq('company_id', companyId)
     .order('invited_at', { ascending: false })
 
@@ -432,6 +433,7 @@ export async function listCompanyUsersForGovernance(companyId: string): Promise<
     companyId: String(row.company_id),
     userId: String(row.user_id),
     membershipRole: String(row.membership_role ?? 'member'),
+    roleKey: typeof row.role_key === 'string' ? row.role_key : null,
     status: String(row.status ?? 'active'),
     invitedEmail: typeof row.invited_email === 'string' ? row.invited_email : null,
     invitedAt: typeof row.invited_at === 'string' ? row.invited_at : null,

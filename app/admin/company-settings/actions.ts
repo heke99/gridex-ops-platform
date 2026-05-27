@@ -5,6 +5,10 @@ import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { getCompanyById } from '@/lib/tenant/governance'
 import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
+import {
+  COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES,
+  COMPANY_ASSIGNABLE_ROLE_KEYS,
+} from '@/lib/tenant/companyUserRoles'
 
 export type CompanySettingsActionState = {
   ok: boolean
@@ -34,25 +38,6 @@ function normalizeHexColor(value: FormDataEntryValue | null) {
   if (!text) return null
   return /^#[0-9a-fA-F]{6}$/.test(text) ? text.toUpperCase() : text
 }
-
-const COMPANY_ASSIGNABLE_ROLE_KEYS = new Set([
-  'company_admin',
-  'operations_manager',
-  'operations_agent',
-  'customer_service_manager',
-  'customer_service_agent',
-  'finance_readonly',
-  'executive_readonly',
-])
-
-const COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES = new Set([
-  'owner',
-  'admin',
-  'company_admin',
-  'operations',
-  'support',
-  'viewer',
-])
 
 async function assertCanManageCompany(companyId: string) {
   return requireCompanyScopedActionAccess(companyId, { anyOf: ['tenants.invite', 'users.write'] })
@@ -225,6 +210,7 @@ export async function updateCompanyResponsibleUserAction(
     revalidatePath('/admin/company-settings')
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
+    revalidatePath('/admin')
 
     return { ok: true, message: 'Bolagsansvarig/användaruppgifter uppdaterades.' }
   } catch (error) {

@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+export { COMPANY_USER_ROLE_OPTIONS } from '@/lib/tenant/companyUserRoles'
 
 type SupabaseClientLike = typeof supabaseService
 
@@ -55,19 +56,8 @@ export type TenantCompanyPageData = {
   isPlatformAdmin: boolean
 }
 
-export const COMPANY_USER_ROLE_OPTIONS = [
-  { value: 'company_admin', label: 'Bolagsansvarig' },
-  { value: 'operations_manager', label: 'Operationsansvarig' },
-  { value: 'operations_agent', label: 'Operationshandläggare' },
-  { value: 'customer_service_manager', label: 'Kundtjänstansvarig' },
-  { value: 'customer_service_agent', label: 'Kundtjänst' },
-  { value: 'sales_manager', label: 'Säljansvarig' },
-  { value: 'pricing_manager', label: 'Prisansvarig' },
-  { value: 'finance_readonly', label: 'Ekonomi läsbehörighet' },
-  { value: 'executive_readonly', label: 'Ledning läsbehörighet' },
-]
-
 export function userIsPlatformAdmin(roles: string[], _permissions: string[]) {
+  void _permissions
   // Platform context must come from explicit platform roles, not broad tenant permissions.
   return roles.some((role) => role === 'super_admin' || role === 'superadmin' || role === 'platform_admin')
 }

@@ -1,8 +1,15 @@
 import AdminHeader from '@/components/admin/AdminHeader'
+import CompanyUserInviteForm from '@/components/admin/companies/CompanyUserInviteForm'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getCompanyById, listCompanyUsersForGovernance } from '@/lib/tenant/governance'
 import { updateCompanyResponsibleUserAction, updateCompanySettingsAction } from './actions'
+import {
+  COMPANY_MEMBERSHIP_ROLE_OPTIONS,
+  COMPANY_USER_ROLE_OPTIONS,
+  getCompanyMembershipRoleLabel,
+  getCompanyUserRoleLabel,
+} from '@/lib/tenant/companyUserRoles'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,15 +32,7 @@ function getBrandingValue(branding: Record<string, unknown> | null | undefined, 
 }
 
 function roleLabel(value: string) {
-  const labels: Record<string, string> = {
-    owner: 'Ägare',
-    admin: 'Admin',
-    company_admin: 'Bolagsansvarig',
-    operations: 'Operations',
-    support: 'Support',
-    viewer: 'Viewer',
-  }
-  return labels[value] ?? value
+  return getCompanyMembershipRoleLabel(value)
 }
 
 export default async function CompanySettingsPage() {
@@ -42,7 +41,6 @@ export default async function CompanySettingsPage() {
   const companyId = scope.companyId
   const company = companyId ? await getCompanyById(companyId) : null
   const users = companyId ? await listCompanyUsersForGovernance(companyId) : []
-  const responsibleUsers = users.filter((user) => ['owner', 'admin', 'company_admin'].includes(user.membershipRole))
   const branding = company?.branding && typeof company.branding === 'object' ? company.branding : null
   const isLiveApproved = Boolean(company?.live_ediel_enabled === true && company?.production_status === 'live' && company?.live_approved_at)
 
@@ -209,18 +207,26 @@ export default async function CompanySettingsPage() {
               </form>
             </section>
 
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-950">Bjud in användare</h2>
+              <p className="mt-1 text-sm text-slate-700">
+                Lägg till en ny användare i bolaget och välj roll direkt. Användaren visas i listan efter att kontot har skapats/kopplats.
+              </p>
+              <CompanyUserInviteForm companyId={companyId} />
+            </section>
+
             <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-6 py-5">
-                <h2 className="text-lg font-semibold text-slate-950">Bolagsansvariga och roller</h2>
-                <p className="mt-1 text-sm text-slate-700">Ändra namn, telefon, login-e-post och bolagsroll för ägare/admin.</p>
+                <h2 className="text-lg font-semibold text-slate-950">Bolagets användare och roller</h2>
+                <p className="mt-1 text-sm text-slate-700">Ändra namn, telefon, login-e-post och roll för alla användare i bolaget.</p>
               </div>
 
               <div className="divide-y divide-slate-100">
-                {responsibleUsers.length === 0 ? (
-                  <p className="px-6 py-8 text-sm text-slate-700">Ingen ägare eller bolagsansvarig hittades.</p>
+                {users.length === 0 ? (
+                  <p className="px-6 py-8 text-sm text-slate-700">Ingen användare är kopplad till bolaget ännu.</p>
                 ) : (
-                  responsibleUsers.map((user) => (
-                    <form key={user.membershipId} action={updateResponsibleUserFormAction} className="grid gap-4 px-6 py-6 xl:grid-cols-[1fr_1fr_150px_160px_160px]">
+                  users.map((user) => (
+                    <form key={user.membershipId} action={updateResponsibleUserFormAction} className="grid gap-4 px-6 py-6 xl:grid-cols-[1fr_1fr_150px_160px_190px]">
                       <input type="hidden" name="company_id" value={companyId} />
                       <input type="hidden" name="user_id" value={user.userId} />
                       <label className="grid gap-2 text-sm">
@@ -238,26 +244,21 @@ export default async function CompanySettingsPage() {
                       <label className="grid gap-2 text-sm">
                         <span className="font-medium text-slate-700">Bolagsroll</span>
                         <select name="membership_role" defaultValue={user.membershipRole} className="rounded-2xl border border-slate-300 px-4 py-3">
-                          <option value="owner">Ägare</option>
-                          <option value="admin">Admin</option>
-                          <option value="operations">Operations</option>
-                          <option value="support">Support</option>
-                          <option value="viewer">Viewer</option>
+                          {COMPANY_MEMBERSHIP_ROLE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
                         </select>
                       </label>
                       <label className="grid gap-2 text-sm">
                         <span className="font-medium text-slate-700">Systemroll</span>
-                        <select name="role_key" defaultValue="company_admin" className="rounded-2xl border border-slate-300 px-4 py-3">
-                          <option value="company_admin">Bolagsansvarig</option>
-                          <option value="operations_manager">Operationsansvarig</option>
-                          <option value="operations_agent">Operations</option>
-                          <option value="customer_service_agent">Kundtjänst</option>
-                          <option value="finance_readonly">Ekonomi läs</option>
-                          <option value="executive_readonly">Ledning läs</option>
+                        <select name="role_key" defaultValue={user.roleKey ?? 'company_admin'} className="rounded-2xl border border-slate-300 px-4 py-3">
+                          {COMPANY_USER_ROLE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
                         </select>
                       </label>
                       <div className="xl:col-span-5 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                        <span>{roleLabel(user.membershipRole)} · {user.email ?? user.userId}</span>
+                        <span>{roleLabel(user.membershipRole)} · {getCompanyUserRoleLabel(user.roleKey)} · {user.email ?? user.userId}</span>
                         <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-black">
                           Uppdatera ansvarig
                         </button>

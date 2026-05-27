@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
+import CompanyUserInviteForm from '@/components/admin/companies/CompanyUserInviteForm'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
   getCompanyById,
@@ -9,7 +10,12 @@ import {
   type CompanyOperationalStatus,
 } from '@/lib/tenant/governance'
 import {
-  inviteCompanyUserAction,
+  COMPANY_MEMBERSHIP_ROLE_OPTIONS,
+  COMPANY_USER_ROLE_OPTIONS,
+  getCompanyMembershipRoleLabel,
+  getCompanyUserRoleLabel,
+} from '@/lib/tenant/companyUserRoles'
+import {
   removeUserFromCompanyAction,
   setCompanyUserRoleAction,
 } from '../../actions'
@@ -17,11 +23,6 @@ import {
 export const dynamic = 'force-dynamic'
 
 const emptyActionState = { ok: false, message: '' }
-
-async function inviteCompanyUserFormAction(formData: FormData) {
-  'use server'
-  await inviteCompanyUserAction(emptyActionState, formData)
-}
 
 async function removeUserFromCompanyFormAction(formData: FormData) {
   'use server'
@@ -117,31 +118,10 @@ export default async function CompanyUsersPage({
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Bjud in användare till bolaget</h2>
-          <p className="mt-1 text-sm text-slate-700">Inbjudan skickas med bolagets varumärke, avsändare och supportuppgifter när e-postmiljön är konfigurerad.</p>
-          <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_190px_180px_180px_140px]">
-            <input type="hidden" name="company_id" value={company.id} />
-            <input name="email" type="email" required placeholder="namn@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-            <input name="full_name" placeholder="Namn" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-            <input name="temporary_password" type="text" minLength={8} required placeholder="Temporärt lösenord" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-            <select name="membership_role" defaultValue="admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
-              <option value="owner">Ägare</option>
-              <option value="admin">Admin</option>
-              <option value="operations">Operations</option>
-              <option value="support">Support</option>
-              <option value="viewer">Viewer</option>
-            </select>
-            <select name="role_key" defaultValue="company_admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
-              <option value="company_admin">Bolagsansvarig</option>
-              <option value="operations_manager">Operationsansvarig</option>
-              <option value="operations_agent">Operations</option>
-              <option value="customer_service_agent">Kundtjänst</option>
-              <option value="finance_readonly">Ekonomi läs</option>
-              <option value="executive_readonly">Ledning läs</option>
-            </select>
-            <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800">
-              Lägg till
-            </button>
-          </form>
+          <p className="mt-1 text-sm text-slate-700">
+            Skapa eller koppla en användare till bolaget med rätt bolagsroll och systemroll. Resultatet visas direkt i användarlistan.
+          </p>
+          <CompanyUserInviteForm companyId={company.id} />
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -170,7 +150,10 @@ export default async function CompanyUsersPage({
                       <p className="mt-1 text-xs text-slate-500">Auth-ID: {user.userId}</p>
                       <p className="mt-1 text-xs text-slate-400">Koppling-ID: {user.membershipId}</p>
                     </td>
-                    <td className="px-6 py-4 text-slate-700">{user.membershipRole}</td>
+                    <td className="px-6 py-4 text-slate-700">
+                      <p className="font-semibold text-slate-900">{getCompanyMembershipRoleLabel(user.membershipRole)}</p>
+                      <p className="mt-1 text-xs text-slate-500">{getCompanyUserRoleLabel(user.roleKey)}</p>
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${membershipStatusTone(user.status)}`}>
                         {user.status}
@@ -188,19 +171,14 @@ export default async function CompanyUsersPage({
                         <input type="hidden" name="company_id" value={company.id} />
                         <input type="hidden" name="user_id" value={user.userId} />
                         <select name="membership_role" defaultValue={user.membershipRole} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
-                          <option value="owner">Ägare</option>
-                          <option value="admin">Admin</option>
-                          <option value="operations">Operations</option>
-                          <option value="support">Support</option>
-                          <option value="viewer">Viewer</option>
+                          {COMPANY_MEMBERSHIP_ROLE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
                         </select>
-                        <select name="role_key" defaultValue="company_admin" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
-                          <option value="company_admin">Bolagsansvarig</option>
-                          <option value="operations_manager">Operationsansvarig</option>
-                          <option value="operations_agent">Operations</option>
-                          <option value="customer_service_agent">Kundtjänst</option>
-                          <option value="finance_readonly">Ekonomi läs</option>
-                          <option value="executive_readonly">Ledning läs</option>
+                        <select name="role_key" defaultValue={user.roleKey ?? 'company_admin'} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+                          {COMPANY_USER_ROLE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
                         </select>
                         <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
                           Uppdatera roll

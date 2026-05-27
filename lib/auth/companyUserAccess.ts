@@ -5,16 +5,9 @@ import {
 } from '@/lib/auth/directAccountProvisioning'
 import { requireRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
 import { normalizeRoleKey } from '@/lib/rbac/roleKeys'
+import { COMPANY_PRIMARY_USER_ROLE_KEYS } from '@/lib/tenant/companyUserRoles'
 
-const PRIMARY_COMPANY_ROLE_KEYS = [
-  'company_admin',
-  'operations_manager',
-  'operations_agent',
-  'customer_service_manager',
-  'customer_service_agent',
-  'finance_readonly',
-  'executive_readonly',
-]
+const PRIMARY_COMPANY_ROLE_KEYS = COMPANY_PRIMARY_USER_ROLE_KEYS
 
 export type GrantCompanyUserAccessInput = {
   companyId: string
