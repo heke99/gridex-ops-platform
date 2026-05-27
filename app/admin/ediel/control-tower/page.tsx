@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requirePlatformAdminAccess } from '@/lib/admin/guards'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -117,7 +117,7 @@ function StatCard({ label, value, href, tone = 'info' }: { label: string; value:
 }
 
 export default async function EdielControlTowerPage() {
-  const context = await requirePlatformAdminAccess()
+  const context = await requireAdminPageKeyAccess('operations.control_tower')
   const tenantScope = await resolveAdminTenantReadScope(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
   const companyId = tenantScope.companyId
@@ -185,7 +185,12 @@ export default async function EdielControlTowerPage() {
           <StatCard label="Dubblett/blockerat" value={duplicateBlocked} href="/admin/ediel/messages" tone={duplicateBlocked > 0 ? 'warning' : 'success'} />
           <StatCard label="Outbound köad" value={outboundQueued} href="/admin/ediel/messages?direction=outbound" tone={outboundQueued > 0 ? 'warning' : 'success'} />
           <StatCard label="Outbound saknar route" value={unresolvedRoutes} href="/admin/outbound/unresolved" tone={unresolvedRoutes > 0 ? 'danger' : 'success'} />
-          <StatCard label="Inaktiva route-profiler" value={disabledRoutes.length} href="/admin/ediel/routes" tone={disabledRoutes.length > 0 ? 'warning' : 'success'} />
+          <StatCard
+            label="Inaktiva route-profiler"
+            value={disabledRoutes.length}
+            href={tenantScope.isPlatformAdmin ? '/admin/ediel/routes' : '/admin/company-actor-status'}
+            tone={disabledRoutes.length > 0 ? 'warning' : 'success'}
+          />
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
@@ -232,8 +237,12 @@ export default async function EdielControlTowerPage() {
           <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Snabblänkar</h2>
             <Link href="/admin/ediel/messages" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Live-meddelanden</Link>
-            <Link href="/admin/ediel/routes" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Adressering & routes</Link>
-            <Link href="/admin/ediel/settings" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Ediel-inställningar</Link>
+            {tenantScope.isPlatformAdmin ? (
+              <>
+                <Link href="/admin/ediel/routes" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Adressering & routes</Link>
+                <Link href="/admin/ediel/settings" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Ediel-inställningar</Link>
+              </>
+            ) : null}
             <Link href="/admin/company-actor-status" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Live-status & godkännande</Link>
 
             {disabledRoutes.length > 0 ? (

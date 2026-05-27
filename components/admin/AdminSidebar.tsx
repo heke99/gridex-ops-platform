@@ -60,7 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/admin/ediel/control-tower",
         label: "Ediel Control Tower",
         description: "Kvittenser, fel, dubbletter och route-problem",
-        pageKey: "ediel.workspace",
+        pageKey: "operations.control_tower",
       },
     ],
   },
@@ -79,7 +79,7 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/admin/ediel/control-tower",
         label: "Ediel Control Tower",
         description: "Kvittenser, dubbletter, fel och regelkonflikter",
-        pageKey: "ediel.workspace",
+        pageKey: "operations.control_tower",
       },
       {
         href: "/admin/ediel/messages",
