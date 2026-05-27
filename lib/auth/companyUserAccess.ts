@@ -210,7 +210,6 @@ async function upsertCompanyMembership(input: GrantCompanyUserAccessInput & { ro
         role_key: input.roleKey,
         membership_role: input.membershipRole,
         status: 'active',
-        is_active: true,
         invited_email: input.email,
         invited_by: input.actorUserId ?? null,
         invited_at: now,
@@ -416,7 +415,7 @@ export async function verifyCompanyUserAccess(input: {
 
   const membership = await supabaseService
     .from('company_memberships')
-    .select('id,status,is_active,role_key,membership_role,invited_email')
+    .select('id,status,role_key,membership_role,invited_email')
     .eq('company_id', input.companyId)
     .eq('user_id', input.userId)
     .eq('status', 'active')

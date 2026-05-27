@@ -330,7 +330,6 @@ export async function createCompanyAction(
         .from('company_memberships')
         .update({
           status: 'removed_from_company',
-          is_active: false,
           status_reason: 'Bolagsskapande avbröts innan flödet blev komplett.',
           removed_at: new Date().toISOString(),
         })
