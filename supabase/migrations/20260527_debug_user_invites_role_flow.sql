@@ -35,8 +35,7 @@ begin
        set name = r.name,
            description = coalesce(public.roles.description, r.description),
            scope = coalesce(public.roles.scope, r.scope),
-           is_system = true,
-           updated_at = now()
+           is_system = true
      where key = r.key;
 
     if not found then
