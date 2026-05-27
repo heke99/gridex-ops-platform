@@ -31,7 +31,6 @@ export type AdminPageKey =
   | 'platform.ediel.routes'
   | 'platform.ediel.runtime'
   | 'operations.control_tower'
-  | 'ediel.control_tower'
   | 'operations.sync'
   | 'operations.integrity'
   | 'operations.tasks'
@@ -53,6 +52,7 @@ export type AdminPageKey =
   | 'billing.import'
   | 'partner_exports.workspace'
   | 'integrations.routes'
+  | 'ediel.control_tower'
   | 'ediel.workspace'
   | 'ediel.routes'
   | 'users.list'
@@ -114,18 +114,6 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
       'poa.read',
     ],
   },
-  'ediel.control_tower': {
-    anyOf: [
-      'customers.read',
-      'communication.read',
-      'switching.read',
-      'metering.read',
-      'billing_underlay.read',
-      'partner_exports.read',
-      'poa.read',
-      'cases.read',
-    ],
-  },
   'operations.sync': {
     anyOf: [
       'customers.read',
@@ -182,6 +170,17 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'partner_exports.workspace': { anyOf: ['partner_exports.read'] },
   'integrations.routes': {
     anyOf: ['communication.read', 'switching.read', 'metering.read', 'billing_underlay.read'],
+  },
+  'ediel.control_tower': {
+    anyOf: [
+      'customers.read',
+      'communication.read',
+      'switching.read',
+      'metering.read',
+      'billing_underlay.read',
+      'partner_exports.read',
+      'poa.read',
+    ],
   },
   'ediel.workspace': { anyOf: ['communication.read'] },
   'ediel.routes': {

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
-import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 type CountFilter = {
   column: string
   value: string | string[] | boolean | null
-  op?: 'eq' | 'in' | 'is' | 'neq'
+  op?: 'eq' | 'in' | 'is' | 'neq' | 'notIs'
 }
 
 type SafeSupabaseQuery = {
@@ -18,6 +18,7 @@ type SafeSupabaseQuery = {
   neq: (column: string, value: unknown) => SafeSupabaseQuery
   in: (column: string, values: readonly unknown[]) => SafeSupabaseQuery
   is: (column: string, value: unknown) => SafeSupabaseQuery
+  not: (column: string, operator: string, value: unknown) => SafeSupabaseQuery
   limit: (count: number) => SafeSupabaseQuery
   order: (column: string, options?: { ascending?: boolean }) => SafeSupabaseQuery
   then: PromiseLike<{ data?: unknown; count?: number | null; error?: unknown }>['then']
@@ -50,14 +51,16 @@ type RouteIssueRow = {
 function applyFilter(query: SafeSupabaseQuery, filter: CountFilter): SafeSupabaseQuery {
   if (filter.op === 'in') return query.in(filter.column, Array.isArray(filter.value) ? filter.value : [])
   if (filter.op === 'is') return query.is(filter.column, filter.value)
-  if (filter.op === 'neq') return query.neq(filter.column, filter.value)
+  if (filter.op === 'notIs') return query.not(filter.column, 'is', filter.value)
+  if (filter.op === 'neq') {
+    // PostgREST does not handle neq null the same way SQL does. Use not(is.null) so
+    // Control Tower does not crash when checking overdue/queued Ediel items.
+    if (filter.value === null) return query.not(filter.column, 'is', null)
+    return query.neq(filter.column, filter.value)
+  }
   return query.eq(filter.column, filter.value)
 }
 
-function isSafeDbError(error: unknown): boolean {
-  const code = String((error as { code?: string } | null)?.code ?? '')
-  return isMissingRelationError(error) || ['42703', '42P01', 'PGRST204', 'PGRST205'].includes(code)
-}
 
 async function safeCount(table: string, companyId: string | null, filters: CountFilter[] = []): Promise<number> {
   try {
@@ -68,8 +71,8 @@ async function safeCount(table: string, companyId: string | null, filters: Count
     if (error) throw error
     return count ?? 0
   } catch (error) {
-    if (isSafeDbError(error)) return 0
-    throw error
+    console.warn(`[ediel-control-tower] Kunde inte räkna ${table}`, error)
+    return 0
   }
 }
 
@@ -90,14 +93,16 @@ async function safeRows<T>(
     if (error) throw error
     return (data ?? []) as T[]
   } catch (error) {
-    if (isSafeDbError(error)) return []
-    throw error
+    console.warn(`[ediel-control-tower] Kunde inte hämta rader från ${table}`, error)
+    return []
   }
 }
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
-  return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
 }
 
 function toneClass(tone: 'danger' | 'warning' | 'success' | 'info') {
