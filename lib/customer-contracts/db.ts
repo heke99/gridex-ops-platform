@@ -363,6 +363,7 @@ export async function listCustomerContractEventsByCustomerId(
 export async function createCustomerContract(input: {
   customerId: string
   siteId?: string | null
+  meteringPointId?: string | null
   contractOfferId?: string | null
   sourceType: 'catalog' | 'manual_override'
   status?: CustomerContractRow['status']
@@ -425,6 +426,8 @@ export async function createCustomerContract(input: {
       company_id: input.companyId ?? null,
       customer_id: input.customerId,
       site_id: input.siteId ?? null,
+      customer_site_id: input.siteId ?? null,
+      metering_point_id: input.meteringPointId ?? null,
       contract_offer_id: input.contractOfferId ?? null,
       source_type: input.sourceType,
       status: input.status ?? 'draft',
@@ -512,6 +515,7 @@ export async function updateCustomerContract(input: {
   id: string
   customerId: string
   siteId?: string | null
+  meteringPointId?: string | null
   status: CustomerContractRow['status']
   companyId?: string | null
   contractName: string
@@ -559,6 +563,8 @@ export async function updateCustomerContract(input: {
     .from('customer_contracts')
     .update({
       site_id: input.siteId ?? null,
+      customer_site_id: input.siteId ?? null,
+      metering_point_id: input.meteringPointId ?? null,
       status: input.status,
       contract_name: input.contractName,
       contract_type: input.contractType,
@@ -623,6 +629,7 @@ export async function updateCustomerContract(input: {
     })
     .eq('id', input.id)
     .eq('customer_id', input.customerId)
+    .eq('company_id', input.companyId ?? null)
     .select('*')
     .single()
 

@@ -8,7 +8,7 @@ import {
  listCustomerContractsByCustomerId,
 } from '@/lib/customer-contracts/db'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
-import { listCustomerSitesByCustomerId } from '@/lib/masterdata/db'
+import { listCustomerSitesByCustomerId, listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import { listSupplierSwitchRequestsByCustomerId } from '@/lib/operations/db'
 import {
  contractTypeLabel,
@@ -119,6 +119,12 @@ export default async function CustomerContractsCard({
  listOutboundRequestsByCustomerId(customerId, { companyId }),
  ])
 
+ const meteringPoints = await listMeteringPointsBySiteIds(
+ supabase,
+ sites.map((site) => site.id),
+ { companyId }
+ )
+
  const activeOffers = offers.filter((offer) => offer.is_active && offer.status === 'active')
 
  const siteOptions = sites.map((site) => ({
@@ -127,6 +133,15 @@ export default async function CustomerContractsCard({
  }))
 
  const siteLabelsById = new Map(siteOptions.map((site) => [site.id, site.label] as const))
+ const meteringPointOptions = meteringPoints.map((point) => {
+ const siteLabel = point.site_id ? siteLabelsById.get(point.site_id) : null
+ return {
+ id: point.id,
+ siteId: point.site_id,
+ label: [point.meter_point_id || 'Mätpunkt utan ID', siteLabel].filter(Boolean).join(' • '),
+ }
+ })
+ const meteringPointLabelsById = new Map(meteringPointOptions.map((point) => [point.id, point.label] as const))
  const currentContract = getCurrentContract(contracts)
  const currentLifecycle = currentContract ? getLifecycleSummary(currentContract) : null
  const currentSituation = currentContract ? getContractSituation(currentContract) : null
@@ -168,6 +183,11 @@ export default async function CustomerContractsCard({
  <span className="rounded-full bg-slate-100 px-3 py-1 ">
  {getSiteLabel(currentContract.site_id, siteLabelsById)}
  </span>
+ {currentContract.metering_point_id ? (
+ <span className="rounded-full bg-slate-100 px-3 py-1 ">
+ {meteringPointLabelsById.get(currentContract.metering_point_id) ?? 'Mätpunkt kopplad'}
+ </span>
+ ) : null}
  <span
  className={`rounded-full border px-3 py-1 ${statusTone(
  currentContract.status
@@ -328,7 +348,7 @@ export default async function CustomerContractsCard({
 
  <div className="mt-1 text-xs text-slate-700 ">
  {contractTypeLabel(contract.contract_type)} • {sourceTypeLabel(contract.source_type)} •{' '}
- {getSiteLabel(contract.site_id, siteLabelsById)}
+ {getSiteLabel(contract.site_id, siteLabelsById)}{contract.metering_point_id ? ` • ${meteringPointLabelsById.get(contract.metering_point_id) ?? 'Mätpunkt kopplad'}` : ''}
  </div>
 
  <div className="mt-2 text-xs font-medium text-slate-700 ">
@@ -448,6 +468,7 @@ export default async function CustomerContractsCard({
  contract={contract}
  customerId={customerId}
  siteOptions={siteOptions}
+ meteringPointOptions={meteringPointOptions}
  switchRequests={switchRequests}
  outboundRequests={outboundRequests}
  />
@@ -476,13 +497,14 @@ export default async function CustomerContractsCard({
  customerId={customerId}
  offer={offer}
  siteOptions={siteOptions}
+ meteringPointOptions={meteringPointOptions}
  />
  ))
  )}
  </div>
  </div>
 
- <CreateManualContractForm customerId={customerId} siteOptions={siteOptions} />
+ <CreateManualContractForm customerId={customerId} siteOptions={siteOptions} meteringPointOptions={meteringPointOptions} />
  </div>
  </section>
  )

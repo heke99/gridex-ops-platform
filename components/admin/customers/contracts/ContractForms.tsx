@@ -21,6 +21,7 @@ import {
 } from './actions'
 
 type SiteOption = { id: string; label: string }
+type MeteringPointOption = { id: string; siteId: string | null; label: string }
 
 function SectionCard({
  title,
@@ -462,9 +463,11 @@ function ContractOperationalActions({
 function CoreContractFields({
  contract,
  siteOptions,
+ meteringPointOptions,
 }: {
  contract: CustomerContractRow
  siteOptions: SiteOption[]
+ meteringPointOptions: MeteringPointOption[]
 }) {
  return (
  <SectionCard title="Grunduppgifter">
@@ -503,6 +506,21 @@ function CoreContractFields({
  {siteOptions.map((site) => (
  <option key={site.id} value={site.id}>
  {site.label}
+ </option>
+ ))}
+ </select>
+ </Field>
+
+ <Field label="Mätpunkt">
+ <select
+ name="metering_point_id"
+ defaultValue={contract.metering_point_id ?? ''}
+ className={inputClassName()}
+ >
+ <option value="">Ingen specifik mätpunkt</option>
+ {meteringPointOptions.map((point) => (
+ <option key={point.id} value={point.id}>
+ {point.label}
  </option>
  ))}
  </select>
@@ -614,8 +632,10 @@ function PriceFields({
 
 function ManualCoreFields({
  siteOptions,
+ meteringPointOptions,
 }: {
  siteOptions: SiteOption[]
+ meteringPointOptions: MeteringPointOption[]
 }) {
  return (
  <SectionCard title="Grunduppgifter">
@@ -647,6 +667,21 @@ function ManualCoreFields({
  {siteOptions.map((site) => (
  <option key={site.id} value={site.id}>
  {site.label}
+ </option>
+ ))}
+ </select>
+ </Field>
+
+ <Field label="Mätpunkt">
+ <select
+ name="metering_point_id"
+ defaultValue=""
+ className={inputClassName()}
+ >
+ <option value="">Ingen specifik mätpunkt</option>
+ {meteringPointOptions.map((point) => (
+ <option key={point.id} value={point.id}>
+ {point.label}
  </option>
  ))}
  </select>
@@ -717,12 +752,14 @@ export function EditContractForm({
  contract,
  customerId,
  siteOptions,
+ meteringPointOptions,
  switchRequests = [],
  outboundRequests = [],
 }: {
  contract: CustomerContractRow
  customerId: string
  siteOptions: SiteOption[]
+ meteringPointOptions: MeteringPointOption[]
  switchRequests?: SupplierSwitchRequestRow[]
  outboundRequests?: OutboundRequestRow[]
 }) {
@@ -761,7 +798,7 @@ export function EditContractForm({
  <input type="hidden" name="customer_id" value={customerId} />
  <input type="hidden" name="customer_contract_id" value={contract.id} />
 
- <CoreContractFields contract={contract} siteOptions={siteOptions} />
+ <CoreContractFields contract={contract} siteOptions={siteOptions} meteringPointOptions={meteringPointOptions} />
  <CampaignVersionFields contract={contract} />
  <PriceFields contract={contract} />
  <ExtraPriceFields contract={contract} />
@@ -850,10 +887,12 @@ export function CreateFromOfferForm({
  customerId,
  offer,
  siteOptions,
+ meteringPointOptions,
 }: {
  customerId: string
  offer: ContractOfferRow
  siteOptions: SiteOption[]
+ meteringPointOptions: MeteringPointOption[]
 }) {
  return (
  <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
@@ -913,6 +952,21 @@ export function CreateFromOfferForm({
  </select>
  </Field>
 
+ <Field label="Mätpunkt">
+ <select
+ name="metering_point_id"
+ defaultValue=""
+ className={inputClassName()}
+ >
+ <option value="">Ingen specifik mätpunkt</option>
+ {meteringPointOptions.map((point) => (
+ <option key={point.id} value={point.id}>
+ {point.label}
+ </option>
+ ))}
+ </select>
+ </Field>
+
  <Field label="Startdatum">
  <input type="date" name="starts_at" className={inputClassName()} />
  </Field>
@@ -957,9 +1011,11 @@ export function CreateFromOfferForm({
 export function CreateManualContractForm({
  customerId,
  siteOptions,
+ meteringPointOptions,
 }: {
  customerId: string
  siteOptions: SiteOption[]
+ meteringPointOptions: MeteringPointOption[]
 }) {
  return (
  <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ">
@@ -970,7 +1026,7 @@ export function CreateManualContractForm({
  <form action={createContractAction} className="mt-4 space-y-4">
  <input type="hidden" name="customer_id" value={customerId} />
 
- <ManualCoreFields siteOptions={siteOptions} />
+ <ManualCoreFields siteOptions={siteOptions} meteringPointOptions={meteringPointOptions} />
  <CampaignVersionFields />
  <ManualPriceFields />
  <ExtraPriceFields />

@@ -285,7 +285,7 @@ async function insertAuditLog(params: {
 }
 
 export async function saveCustomerSiteAction(formData: FormData): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const guard = await requireAdminActionAccess({ anyOf: ['sites.write', 'customers.write'] })
   const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
@@ -388,7 +388,7 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
 }
 
 export async function saveMeteringPointAction(formData: FormData): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const guard = await requireAdminActionAccess({ anyOf: ['metering_points.write', 'metering.write', 'customers.write'] })
   const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''

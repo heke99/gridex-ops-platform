@@ -18,6 +18,7 @@ import type {
 import {
   assertContractTenant,
   assertCustomerSiteTenant,
+  assertMeteringPointTenant,
   loadCustomerTenantContext,
 } from '@/lib/tenant/entityGuards'
 import {
@@ -70,6 +71,7 @@ function buildCampaignSnapshot(input: {
   campaignVersion?: string | null
   priceVersion?: string | null
   termsVersion?: string | null
+  meteringPointId?: string | null
   offer?: ContractOfferRow | null
 }) {
   return {
@@ -78,6 +80,7 @@ function buildCampaignSnapshot(input: {
     campaignVersion: input.campaignVersion ?? null,
     priceVersion: input.priceVersion ?? null,
     termsVersion: input.termsVersion ?? null,
+    meteringPointId: input.meteringPointId ?? null,
     offerId: input.offer?.id ?? null,
     offerName: input.offer?.name ?? null,
     offerVersion: input.offer?.offer_version ?? null,
@@ -253,7 +256,9 @@ export async function createContractFromOfferAction(formData: FormData) {
 
   const status = (getString(formData, 'status') || 'pending_signature') as CustomerContractRow['status']
   const siteId = parseStringOrNull(formData.get('site_id'))
+  const meteringPointId = parseStringOrNull(formData.get('metering_point_id'))
   await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
 
   const startsAt = parseStringOrNull(formData.get('starts_at'))
   const signedAt = parseStringOrNull(formData.get('signed_at'))
@@ -284,6 +289,7 @@ export async function createContractFromOfferAction(formData: FormData) {
     campaignVersion: offer.campaign_version ?? null,
     priceVersion: offer.price_version ?? null,
     termsVersion: offer.terms_version ?? null,
+    meteringPointId,
     offer,
   })
 
@@ -291,6 +297,7 @@ export async function createContractFromOfferAction(formData: FormData) {
     companyId,
     customerId,
     siteId,
+    meteringPointId,
     contractOfferId: offer.id,
     sourceType: 'catalog',
     status,
@@ -346,6 +353,7 @@ export async function createContractFromOfferAction(formData: FormData) {
       campaignVersion: offer.campaign_version ?? null,
       priceVersion: offer.price_version ?? null,
       termsVersion: offer.terms_version ?? null,
+      meteringPointId,
     },
     actorUserId: user.id,
   })
@@ -392,7 +400,9 @@ export async function createContractAction(formData: FormData) {
 
   const status = (getString(formData, 'status') || 'draft') as CustomerContractRow['status']
   const siteId = parseStringOrNull(formData.get('site_id'))
+  const meteringPointId = parseStringOrNull(formData.get('metering_point_id'))
   await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
 
   const contractType = parseContractType(formData.get('contract_type'))
   const startsAt = parseStringOrNull(formData.get('starts_at'))
@@ -426,6 +436,7 @@ export async function createContractAction(formData: FormData) {
     companyId,
     customerId,
     siteId,
+    meteringPointId,
     contractOfferId: null,
     sourceType: 'manual_override',
     status,
@@ -462,6 +473,7 @@ export async function createContractAction(formData: FormData) {
       campaignVersion,
       priceVersion,
       termsVersion,
+      meteringPointId,
     }),
     fixedPriceOrePerKwh,
     spotMarkupOrePerKwh,
@@ -547,7 +559,9 @@ export async function updateContractAction(formData: FormData) {
 
   const nextStatus = (getString(formData, 'status') || before.status) as CustomerContractRow['status']
   const siteId = parseStringOrNull(formData.get('site_id'))
+  const meteringPointId = parseStringOrNull(formData.get('metering_point_id'))
   await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
 
   const signedAt = parseStringOrNull(formData.get('signed_at'))
   const startsAt = parseStringOrNull(formData.get('starts_at'))
@@ -579,6 +593,7 @@ export async function updateContractAction(formData: FormData) {
     id: contractId,
     customerId,
     siteId,
+    meteringPointId,
     companyId,
     status: nextStatus,
     contractName: getString(formData, 'contract_name') || before.contract_name,
@@ -614,6 +629,7 @@ export async function updateContractAction(formData: FormData) {
       campaignVersion,
       priceVersion,
       termsVersion,
+      meteringPointId,
     }),
     fixedPriceOrePerKwh,
     spotMarkupOrePerKwh,
@@ -645,6 +661,8 @@ export async function updateContractAction(formData: FormData) {
       nextStatus: updated.status,
       previousSiteId: before.site_id,
       nextSiteId: updated.site_id,
+      previousMeteringPointId: before.metering_point_id ?? null,
+      nextMeteringPointId: updated.metering_point_id ?? null,
       previousTerminationReason: before.termination_reason ?? null,
       nextTerminationReason: updated.termination_reason ?? null,
       previousAutoRenewEnabled: before.auto_renew_enabled,
