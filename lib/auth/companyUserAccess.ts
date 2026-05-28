@@ -1,251 +1,471 @@
-import { supabaseService } from '@/lib/supabase/service'
+import { supabaseService } from "@/lib/supabase/service";
 import {
   provisionDirectTemporaryPasswordUser,
   type ProvisionDirectTemporaryPasswordUserResult,
-} from '@/lib/auth/directAccountProvisioning'
-import { requireRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
-import { normalizeRoleKey } from '@/lib/rbac/roleKeys'
-import { COMPANY_PRIMARY_USER_ROLE_KEYS } from '@/lib/tenant/companyUserRoles'
+} from "@/lib/auth/directAccountProvisioning";
+import { requireRoleIdByKeyOrName } from "@/lib/rbac/resolveRoleId";
+import { normalizeRoleKey } from "@/lib/rbac/roleKeys";
+import { COMPANY_PRIMARY_USER_ROLE_KEYS } from "@/lib/tenant/companyUserRoles";
 
-const PRIMARY_COMPANY_ROLE_KEYS = COMPANY_PRIMARY_USER_ROLE_KEYS
+const PRIMARY_COMPANY_ROLE_KEYS = COMPANY_PRIMARY_USER_ROLE_KEYS;
 
 export type GrantCompanyUserAccessInput = {
-  companyId: string
-  userId: string
-  email?: string | null
-  fullName?: string | null
-  membershipRole: string
-  roleKey: string
-  actorUserId?: string | null
-  source: string
-  passwordVerified?: boolean
-  createdAuthUser?: boolean
-  invitationId?: string | null
-}
+  companyId: string;
+  userId: string;
+  email?: string | null;
+  fullName?: string | null;
+  membershipRole: string;
+  roleKey: string;
+  actorUserId?: string | null;
+  source: string;
+  passwordVerified?: boolean;
+  createdAuthUser?: boolean;
+  invitationId?: string | null;
+};
 
 export type ProvisionCompanyUserWithTemporaryPasswordInput = Omit<
   GrantCompanyUserAccessInput,
-  'userId' | 'passwordVerified' | 'createdAuthUser' | 'source'
+  "userId" | "passwordVerified" | "createdAuthUser" | "source"
 > & {
-  email: string
-  temporaryPassword: string
-  companyName?: string | null
-  source?: string
-}
+  email: string;
+  temporaryPassword: string;
+  companyName?: string | null;
+  source?: string;
+};
 
-export type ProvisionCompanyUserResult = ProvisionDirectTemporaryPasswordUserResult & {
-  companyId: string
-  membershipId: string
-  roleId: string
-  invitationId: string | null
-}
+export type ProvisionCompanyUserResult =
+  ProvisionDirectTemporaryPasswordUserResult & {
+    companyId: string;
+    membershipId: string;
+    roleId: string;
+    invitationId: string | null;
+  };
 
 function normalizeEmail(value: string | null | undefined) {
-  return String(value ?? '').trim().toLowerCase()
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
-function isIgnorableSchemaError(error: { code?: string | null; message?: string | null } | null | undefined) {
-  if (!error) return false
-  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')
+function isIgnorableSchemaError(
+  error: { code?: string | null; message?: string | null } | null | undefined,
+) {
+  if (!error) return false;
+  return ["42P01", "42703", "PGRST204", "PGRST205"].includes(error.code ?? "");
 }
 
-function isUniqueViolationError(error: { code?: string | null } | null | undefined) {
-  return error?.code === '23505'
+function isUniqueViolationError(
+  error: { code?: string | null } | null | undefined,
+) {
+  return error?.code === "23505";
+}
+
+function missingColumnFromSchemaError(
+  error: { code?: string | null; message?: string | null } | null | undefined,
+) {
+  if (!error || !isIgnorableSchemaError(error)) return null;
+  const message = error.message ?? "";
+  const quoted = message.match(/'([^']+)' column of '[^']+'/i);
+  if (quoted?.[1]) return quoted[1];
+  const plain = message.match(
+    /column\s+\"?([a-zA-Z0-9_]+)\"?\s+does not exist/i,
+  );
+  return plain?.[1] ?? null;
+}
+
+function normalizeMembershipRoleForLegacyConstraints(
+  value: string | null | undefined,
+) {
+  const normalized = String(value ?? "").trim();
+  if (["owner", "admin", "company_admin"].includes(normalized))
+    return "company_admin";
+  if (["viewer", "executive_readonly", "finance_readonly"].includes(normalized))
+    return "viewer";
+  return "member";
+}
+
+function buildMembershipMetadata(input: GrantCompanyUserAccessInput) {
+  return {
+    account_flow: input.source,
+    password_verified: Boolean(input.passwordVerified),
+    created_auth_user: Boolean(input.createdAuthUser),
+    requested_membership_role: input.membershipRole,
+    requested_role_key: input.roleKey,
+    login_ready: true,
+  };
+}
+
+async function findCompanyMembershipId(input: {
+  companyId: string;
+  userId: string;
+}) {
+  const { data, error } = await supabaseService
+    .from("company_memberships")
+    .select("id")
+    .eq("company_id", input.companyId)
+    .eq("user_id", input.userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error && !isIgnorableSchemaError(error)) throw error;
+  return data?.id ? String(data.id) : null;
+}
+
+async function updateCompanyMembershipWithSchemaFallback(input: {
+  membershipId: string;
+  payload: Record<string, unknown>;
+}) {
+  const payload = { ...input.payload };
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const { data, error } = await supabaseService
+      .from("company_memberships")
+      .update(payload)
+      .eq("id", input.membershipId)
+      .select("id")
+      .maybeSingle();
+
+    if (!error) return data?.id ? String(data.id) : input.membershipId;
+
+    const missingColumn = missingColumnFromSchemaError(error);
+    if (
+      missingColumn &&
+      Object.prototype.hasOwnProperty.call(payload, missingColumn)
+    ) {
+      delete payload[missingColumn];
+      continue;
+    }
+
+    throw error;
+  }
+
+  throw new Error(
+    "Bolagskopplingen kunde inte uppdateras: databasens company_memberships-schema matchar inte runtime.",
+  );
+}
+
+async function insertCompanyMembershipWithSchemaFallback(
+  payloadInput: Record<string, unknown>,
+) {
+  const payload = { ...payloadInput };
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const { data, error } = await supabaseService
+      .from("company_memberships")
+      .insert(payload)
+      .select("id")
+      .single();
+
+    if (!error) return String(data.id);
+
+    const missingColumn = missingColumnFromSchemaError(error);
+    if (
+      missingColumn &&
+      Object.prototype.hasOwnProperty.call(payload, missingColumn)
+    ) {
+      delete payload[missingColumn];
+      continue;
+    }
+
+    throw error;
+  }
+
+  throw new Error(
+    "Bolagskopplingen kunde inte skapas: databasens company_memberships-schema matchar inte runtime.",
+  );
 }
 
 async function getAuthEmail(userId: string): Promise<string | null> {
-  const { data, error } = await supabaseService.auth.admin.getUserById(userId)
-  if (error) throw new Error(`Auth-användaren kunde inte läsas: ${error.message}`)
-  return data.user?.email ? normalizeEmail(data.user.email) : null
+  const { data, error } = await supabaseService.auth.admin.getUserById(userId);
+  if (error)
+    throw new Error(`Auth-användaren kunde inte läsas: ${error.message}`);
+  return data.user?.email ? normalizeEmail(data.user.email) : null;
 }
 
 async function resolvePrimaryCompanyRoleRows() {
   const { data, error } = await supabaseService
-    .from('roles')
-    .select('id,key,name')
+    .from("roles")
+    .select("id,key,name");
 
   if (error) {
-    if (isIgnorableSchemaError(error)) return []
-    throw error
+    if (isIgnorableSchemaError(error)) return [];
+    throw error;
   }
 
-  return ((data ?? []) as Array<{ id?: string | null; key?: string | null; name?: string | null }>)
-    .map((row) => ({ id: row.id ? String(row.id) : null, key: normalizeRoleKey(row.key ?? row.name) }))
-    .filter((row): row is { id: string; key: string } => Boolean(row.id && row.key && PRIMARY_COMPANY_ROLE_KEYS.includes(row.key)))
+  return (
+    (data ?? []) as Array<{
+      id?: string | null;
+      key?: string | null;
+      name?: string | null;
+    }>
+  )
+    .map((row) => ({
+      id: row.id ? String(row.id) : null,
+      key: normalizeRoleKey(row.key ?? row.name),
+    }))
+    .filter((row): row is { id: string; key: string } =>
+      Boolean(row.id && row.key && PRIMARY_COMPANY_ROLE_KEYS.includes(row.key)),
+    );
 }
 
 async function deactivateOtherPrimaryCompanyRoles(input: {
-  companyId: string
-  userId: string
-  keepRoleId: string
-  keepRoleKey: string
-  actorUserId?: string | null
+  companyId: string;
+  userId: string;
+  keepRoleId: string;
+  keepRoleKey: string;
+  actorUserId?: string | null;
 }) {
-  const roleRows = await resolvePrimaryCompanyRoleRows()
+  const roleRows = await resolvePrimaryCompanyRoleRows();
   const roleIdsToDisable = roleRows
     .filter((row) => row.id !== input.keepRoleId)
-    .map((row) => row.id)
+    .map((row) => row.id);
 
-  const roleKeysToDisable = PRIMARY_COMPANY_ROLE_KEYS.filter((key) => key !== input.keepRoleKey)
-  const now = new Date().toISOString()
+  const roleKeysToDisable = PRIMARY_COMPANY_ROLE_KEYS.filter(
+    (key) => key !== input.keepRoleKey,
+  );
+  const now = new Date().toISOString();
 
   if (roleIdsToDisable.length > 0) {
     const byRoleId = await supabaseService
-      .from('user_roles')
+      .from("user_roles")
       .update({
-        status: 'disabled',
+        status: "disabled",
         is_active: false,
         disabled_at: now,
         disabled_by: input.actorUserId ?? null,
-        status_reason: 'Ersatt av ny bolagsroll i dashboardflöde.',
+        status_reason: "Ersatt av ny bolagsroll i dashboardflöde.",
       })
-      .eq('company_id', input.companyId)
-      .eq('user_id', input.userId)
-      .eq('status', 'active')
-      .in('role_id', roleIdsToDisable)
+      .eq("company_id", input.companyId)
+      .eq("user_id", input.userId)
+      .eq("status", "active")
+      .in("role_id", roleIdsToDisable);
 
-    if (byRoleId.error && !isIgnorableSchemaError(byRoleId.error)) throw byRoleId.error
+    if (byRoleId.error && !isIgnorableSchemaError(byRoleId.error))
+      throw byRoleId.error;
   }
 
   const byRoleKey = await supabaseService
-    .from('user_roles')
+    .from("user_roles")
     .update({
-      status: 'disabled',
+      status: "disabled",
       is_active: false,
       disabled_at: now,
       disabled_by: input.actorUserId ?? null,
-      status_reason: 'Ersatt av ny bolagsroll i dashboardflöde.',
+      status_reason: "Ersatt av ny bolagsroll i dashboardflöde.",
     })
-    .eq('company_id', input.companyId)
-    .eq('user_id', input.userId)
-    .eq('status', 'active')
-    .in('role', roleKeysToDisable)
+    .eq("company_id", input.companyId)
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .in("role", roleKeysToDisable);
 
-  if (byRoleKey.error && !isIgnorableSchemaError(byRoleKey.error)) throw byRoleKey.error
+  if (byRoleKey.error && !isIgnorableSchemaError(byRoleKey.error))
+    throw byRoleKey.error;
 }
 
 async function upsertActiveUserRole(input: {
-  companyId: string
-  userId: string
-  roleId: string
-  roleKey: string
+  companyId: string;
+  userId: string;
+  roleId: string;
+  roleKey: string;
 }) {
   async function findExisting() {
     const byRoleId = await supabaseService
-      .from('user_roles')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('user_id', input.userId)
-      .eq('role_id', input.roleId)
+      .from("user_roles")
+      .select("id")
+      .eq("company_id", input.companyId)
+      .eq("user_id", input.userId)
+      .eq("role_id", input.roleId)
       .limit(1)
-      .maybeSingle()
+      .maybeSingle();
 
-    if (byRoleId.error && !isIgnorableSchemaError(byRoleId.error)) throw byRoleId.error
-    if (byRoleId.data?.id) return String(byRoleId.data.id)
+    if (byRoleId.error && !isIgnorableSchemaError(byRoleId.error))
+      throw byRoleId.error;
+    if (byRoleId.data?.id) return String(byRoleId.data.id);
 
     const byRole = await supabaseService
-      .from('user_roles')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('user_id', input.userId)
-      .eq('role', input.roleKey)
+      .from("user_roles")
+      .select("id")
+      .eq("company_id", input.companyId)
+      .eq("user_id", input.userId)
+      .eq("role", input.roleKey)
       .limit(1)
-      .maybeSingle()
+      .maybeSingle();
 
-    if (byRole.error && !isIgnorableSchemaError(byRole.error)) throw byRole.error
-    return byRole.data?.id ? String(byRole.data.id) : null
+    if (byRole.error && !isIgnorableSchemaError(byRole.error))
+      throw byRole.error;
+    return byRole.data?.id ? String(byRole.data.id) : null;
   }
 
-  const existingId = await findExisting()
+  const existingId = await findExisting();
   if (existingId) {
     const update = await supabaseService
-      .from('user_roles')
+      .from("user_roles")
       .update({
         role_id: input.roleId,
         role: input.roleKey,
         company_id: input.companyId,
-        status: 'active',
+        status: "active",
         is_active: true,
       })
-      .eq('id', existingId)
+      .eq("id", existingId);
 
-    if (update.error && !isIgnorableSchemaError(update.error)) throw update.error
-    return existingId
+    if (update.error && !isIgnorableSchemaError(update.error))
+      throw update.error;
+    return existingId;
   }
 
   const insert = await supabaseService
-    .from('user_roles')
+    .from("user_roles")
     .insert({
       user_id: input.userId,
       role_id: input.roleId,
       role: input.roleKey,
       company_id: input.companyId,
-      status: 'active',
+      status: "active",
       is_active: true,
     })
-    .select('id')
-    .single()
+    .select("id")
+    .single();
 
   if (insert.error) {
     if (isUniqueViolationError(insert.error)) {
-      const retryExistingId = await findExisting()
-      if (retryExistingId) return retryExistingId
+      const retryExistingId = await findExisting();
+      if (retryExistingId) return retryExistingId;
     }
-    throw insert.error
+    throw insert.error;
   }
 
-  return String(insert.data.id)
+  return String(insert.data.id);
 }
 
-async function upsertCompanyMembership(input: GrantCompanyUserAccessInput & { roleId: string; email: string | null }) {
-  const now = new Date().toISOString()
-  const { data, error } = await supabaseService
-    .from('company_memberships')
-    .upsert(
-      {
-        company_id: input.companyId,
-        user_id: input.userId,
-        role: input.membershipRole,
-        role_id: input.roleId,
-        role_key: input.roleKey,
-        membership_role: input.membershipRole,
-        status: 'active',
-        invited_email: input.email,
-        invited_by: input.actorUserId ?? null,
-        invited_at: now,
-        accepted_at: now,
-        disabled_at: null,
-        disabled_by: null,
-        removed_at: null,
-        removed_by: null,
-        status_reason: null,
-        metadata: {
-          account_flow: input.source,
-          password_verified: Boolean(input.passwordVerified),
-          created_auth_user: Boolean(input.createdAuthUser),
-          login_ready: true,
-        },
-      },
-      { onConflict: 'company_id,user_id' }
-    )
-    .select('id')
-    .single()
+async function upsertCompanyMembership(
+  input: GrantCompanyUserAccessInput & { roleId: string; email: string | null },
+) {
+  const now = new Date().toISOString();
+  const membershipRoleForDb = normalizeMembershipRoleForLegacyConstraints(
+    input.membershipRole,
+  );
+  const basePayload: Record<string, unknown> = {
+    membership_role: membershipRoleForDb,
+    role_key: input.roleKey,
+    status: "active",
+    invited_email: input.email,
+    invited_by: input.actorUserId ?? null,
+    invited_at: now,
+    accepted_at: now,
+    metadata: buildMembershipMetadata(input),
+  };
 
-  if (error) throw error
-  return String(data.id)
+  const existingId = await findCompanyMembershipId({
+    companyId: input.companyId,
+    userId: input.userId,
+  });
+  if (existingId) {
+    return updateCompanyMembershipWithSchemaFallback({
+      membershipId: existingId,
+      payload: basePayload,
+    });
+  }
+
+  try {
+    return await insertCompanyMembershipWithSchemaFallback({
+      company_id: input.companyId,
+      user_id: input.userId,
+      ...basePayload,
+    });
+  } catch (error) {
+    if (isUniqueViolationError(error as { code?: string | null })) {
+      const retryExistingId = await findCompanyMembershipId({
+        companyId: input.companyId,
+        userId: input.userId,
+      });
+      if (retryExistingId) {
+        return updateCompanyMembershipWithSchemaFallback({
+          membershipId: retryExistingId,
+          payload: basePayload,
+        });
+      }
+    }
+    throw error;
+  }
 }
 
-async function upsertAcceptedInvitation(input: GrantCompanyUserAccessInput & { email: string | null }) {
-  if (!input.email) return null
+async function updateCompanyInvitationWithSchemaFallback(input: {
+  invitationId: string;
+  payload: Record<string, unknown>;
+}) {
+  const payload = { ...input.payload };
 
-  const now = new Date().toISOString()
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const { data, error } = await supabaseService
+      .from("company_invitations")
+      .update(payload)
+      .eq("id", input.invitationId)
+      .select("id")
+      .maybeSingle();
+
+    if (!error) return data?.id ? String(data.id) : null;
+
+    const missingColumn = missingColumnFromSchemaError(error);
+    if (
+      missingColumn &&
+      Object.prototype.hasOwnProperty.call(payload, missingColumn)
+    ) {
+      delete payload[missingColumn];
+      continue;
+    }
+
+    throw error;
+  }
+
+  return null;
+}
+
+async function insertCompanyInvitationWithSchemaFallback(
+  payloadInput: Record<string, unknown>,
+) {
+  const payload = { ...payloadInput };
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const { data, error } = await supabaseService
+      .from("company_invitations")
+      .insert(payload)
+      .select("id")
+      .single();
+
+    if (!error) return String(data.id);
+
+    const missingColumn = missingColumnFromSchemaError(error);
+    if (
+      missingColumn &&
+      Object.prototype.hasOwnProperty.call(payload, missingColumn)
+    ) {
+      delete payload[missingColumn];
+      continue;
+    }
+
+    if (isUniqueViolationError(error)) return null;
+    throw error;
+  }
+
+  return null;
+}
+
+async function upsertAcceptedInvitation(
+  input: GrantCompanyUserAccessInput & { email: string | null },
+) {
+  if (!input.email) return null;
+
+  const now = new Date().toISOString();
   const payload: Record<string, unknown> = {
     email: input.email,
     invited_email: input.email,
     full_name: input.fullName ?? null,
-    membership_role: input.membershipRole,
+    membership_role: normalizeMembershipRoleForLegacyConstraints(
+      input.membershipRole,
+    ),
     role_key: input.roleKey,
-    status: 'accepted',
+    status: "accepted",
     invited_by: input.actorUserId ?? null,
     invited_user_id: input.userId,
     expires_at: null,
@@ -258,62 +478,55 @@ async function upsertAcceptedInvitation(input: GrantCompanyUserAccessInput & { e
       created_auth_user: Boolean(input.createdAuthUser),
       login_ready: true,
     },
-  }
+  };
 
   if (input.invitationId) {
-    const byId = await supabaseService
-      .from('company_invitations')
-      .update(payload)
-      .eq('id', input.invitationId)
-      .select('id')
-      .maybeSingle()
+    const byId = await updateCompanyInvitationWithSchemaFallback({
+      invitationId: input.invitationId,
+      payload,
+    });
 
-    if (byId.data?.id) return String(byId.data.id)
-    if (byId.error && !isIgnorableSchemaError(byId.error)) throw byId.error
+    if (byId) return byId;
   }
 
-  for (const emailColumn of ['email', 'invited_email']) {
+  for (const emailColumn of ["email", "invited_email"]) {
     const existing = await supabaseService
-      .from('company_invitations')
-      .select('id')
-      .eq('company_id', input.companyId)
+      .from("company_invitations")
+      .select("id")
+      .eq("company_id", input.companyId)
       .eq(emailColumn, input.email)
-      .order('created_at', { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle();
 
-    if (existing.error && !isIgnorableSchemaError(existing.error)) throw existing.error
+    if (existing.error && !isIgnorableSchemaError(existing.error))
+      throw existing.error;
 
     if (existing.data?.id) {
-      const updated = await supabaseService
-        .from('company_invitations')
-        .update(payload)
-        .eq('id', existing.data.id)
-        .select('id')
-        .maybeSingle()
+      const updated = await updateCompanyInvitationWithSchemaFallback({
+        invitationId: String(existing.data.id),
+        payload,
+      });
 
-      if (updated.error && !isIgnorableSchemaError(updated.error)) throw updated.error
-      if (updated.data?.id) return String(updated.data.id)
+      if (updated) return updated;
     }
   }
 
-  const insert = await supabaseService
-    .from('company_invitations')
-    .insert({ company_id: input.companyId, ...payload })
-    .select('id')
-    .single()
-
-  if (insert.error) throw insert.error
-  return String(insert.data.id)
+  return insertCompanyInvitationWithSchemaFallback({
+    company_id: input.companyId,
+    ...payload,
+  });
 }
 
-export async function grantCompanyUserAccess(input: GrantCompanyUserAccessInput) {
-  const roleKey = normalizeRoleKey(input.roleKey)
-  if (!roleKey) throw new Error('Systemrollen saknas.')
+export async function grantCompanyUserAccess(
+  input: GrantCompanyUserAccessInput,
+) {
+  const roleKey = normalizeRoleKey(input.roleKey);
+  if (!roleKey) throw new Error("Systemrollen saknas.");
 
-  const suppliedEmail = normalizeEmail(input.email)
-  const email = suppliedEmail || (await getAuthEmail(input.userId))
-  const roleId = await requireRoleIdByKeyOrName(roleKey)
+  const suppliedEmail = normalizeEmail(input.email);
+  const email = suppliedEmail || (await getAuthEmail(input.userId));
+  const roleId = await requireRoleIdByKeyOrName(roleKey);
 
   await deactivateOtherPrimaryCompanyRoles({
     companyId: input.companyId,
@@ -321,11 +534,25 @@ export async function grantCompanyUserAccess(input: GrantCompanyUserAccessInput)
     keepRoleId: roleId,
     keepRoleKey: roleKey,
     actorUserId: input.actorUserId ?? null,
-  })
+  });
 
-  const membershipId = await upsertCompanyMembership({ ...input, roleKey, roleId, email })
-  const roleRowId = await upsertActiveUserRole({ companyId: input.companyId, userId: input.userId, roleId, roleKey })
-  const invitationId = await upsertAcceptedInvitation({ ...input, roleKey, email })
+  const membershipId = await upsertCompanyMembership({
+    ...input,
+    roleKey,
+    roleId,
+    email,
+  });
+  const roleRowId = await upsertActiveUserRole({
+    companyId: input.companyId,
+    userId: input.userId,
+    roleId,
+    roleKey,
+  });
+  const invitationId = await upsertAcceptedInvitation({
+    ...input,
+    roleKey,
+    email,
+  });
 
   await verifyCompanyUserAccess({
     companyId: input.companyId,
@@ -336,13 +563,13 @@ export async function grantCompanyUserAccess(input: GrantCompanyUserAccessInput)
     roleId,
     roleRowId,
     invitationId,
-  })
+  });
 
-  return { membershipId, roleId, roleRowId, invitationId }
+  return { membershipId, roleId, roleRowId, invitationId };
 }
 
 export async function provisionCompanyUserWithTemporaryPassword(
-  input: ProvisionCompanyUserWithTemporaryPasswordInput
+  input: ProvisionCompanyUserWithTemporaryPasswordInput,
 ): Promise<ProvisionCompanyUserResult> {
   const provisioned = await provisionDirectTemporaryPasswordUser({
     email: input.email,
@@ -351,7 +578,7 @@ export async function provisionCompanyUserWithTemporaryPassword(
     companyId: input.companyId,
     companyName: input.companyName ?? null,
     actorUserId: input.actorUserId ?? null,
-  })
+  });
 
   const access = await grantCompanyUserAccess({
     companyId: input.companyId,
@@ -361,87 +588,102 @@ export async function provisionCompanyUserWithTemporaryPassword(
     membershipRole: input.membershipRole,
     roleKey: input.roleKey,
     actorUserId: input.actorUserId ?? null,
-    source: input.source ?? 'direct_temporary_password',
+    source: input.source ?? "direct_temporary_password",
     passwordVerified: provisioned.passwordVerified,
     createdAuthUser: provisioned.createdAuthUser,
-  })
+  });
 
-  return { ...provisioned, companyId: input.companyId, ...access }
+  return { ...provisioned, companyId: input.companyId, ...access };
 }
 
 export async function deactivateCompanyUserAccess(input: {
-  companyId: string
-  userId: string
-  actorUserId?: string | null
-  reason?: string | null
+  companyId: string;
+  userId: string;
+  actorUserId?: string | null;
+  reason?: string | null;
 }) {
-  const now = new Date().toISOString()
+  const now = new Date().toISOString();
   const payload = {
-    status: 'removed_from_company',
+    status: "removed_from_company",
     is_active: false,
     disabled_at: now,
     disabled_by: input.actorUserId ?? null,
-    status_reason: input.reason ?? 'Användaren togs bort från bolaget.',
-  }
+    status_reason: input.reason ?? "Användaren togs bort från bolaget.",
+  };
 
   const byCompany = await supabaseService
-    .from('user_roles')
+    .from("user_roles")
     .update(payload)
-    .eq('company_id', input.companyId)
-    .eq('user_id', input.userId)
-    .eq('status', 'active')
+    .eq("company_id", input.companyId)
+    .eq("user_id", input.userId)
+    .eq("status", "active");
 
-  if (byCompany.error && !isIgnorableSchemaError(byCompany.error)) throw byCompany.error
+  if (byCompany.error && !isIgnorableSchemaError(byCompany.error))
+    throw byCompany.error;
 }
 
 export async function verifyCompanyUserAccess(input: {
-  companyId: string
-  userId: string
-  email: string | null
-  roleKey: string
-  membershipId?: string | null
-  roleId: string
-  roleRowId?: string | null
-  invitationId?: string | null
+  companyId: string;
+  userId: string;
+  email: string | null;
+  roleKey: string;
+  membershipId?: string | null;
+  roleId: string;
+  roleRowId?: string | null;
+  invitationId?: string | null;
 }) {
-  const authUser = await supabaseService.auth.admin.getUserById(input.userId)
+  const authUser = await supabaseService.auth.admin.getUserById(input.userId);
   if (authUser.error || !authUser.data.user?.id) {
-    throw new Error('Verifiering misslyckades: Auth-användaren finns inte efter skapande.')
+    throw new Error(
+      "Verifiering misslyckades: Auth-användaren finns inte efter skapande.",
+    );
   }
 
   if (input.email && normalizeEmail(authUser.data.user.email) !== input.email) {
-    throw new Error('Verifiering misslyckades: Auth-användarens e-post matchar inte dashboardflödet.')
+    throw new Error(
+      "Verifiering misslyckades: Auth-användarens e-post matchar inte dashboardflödet.",
+    );
   }
 
   const membership = await supabaseService
-    .from('company_memberships')
-    .select('id,status,role_key,membership_role,invited_email')
-    .eq('company_id', input.companyId)
-    .eq('user_id', input.userId)
-    .eq('status', 'active')
-    .maybeSingle()
+    .from("company_memberships")
+    .select("id,status")
+    .eq("company_id", input.companyId)
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .maybeSingle();
 
-  if (membership.error) throw membership.error
+  if (membership.error) throw membership.error;
   if (!membership.data?.id) {
-    throw new Error('Verifiering misslyckades: aktiv bolagskoppling saknas efter skapande.')
+    throw new Error(
+      "Verifiering misslyckades: aktiv bolagskoppling saknas efter skapande.",
+    );
   }
 
   const roleRows = await supabaseService
-    .from('user_roles')
-    .select('id,role,role_id,status,is_active')
-    .eq('company_id', input.companyId)
-    .eq('user_id', input.userId)
-    .eq('status', 'active')
-    .eq('is_active', true)
+    .from("user_roles")
+    .select("id,role,role_id,status,is_active")
+    .eq("company_id", input.companyId)
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .eq("is_active", true);
 
-  if (roleRows.error) throw roleRows.error
+  if (roleRows.error) throw roleRows.error;
 
-  const roleKey = normalizeRoleKey(input.roleKey)
-  const hasRole = ((roleRows.data ?? []) as Array<Record<string, unknown>>).some((row) => {
-    const normalizedRole = normalizeRoleKey(typeof row.role === 'string' ? row.role : null)
-    return normalizedRole === roleKey || String(row.role_id ?? '') === input.roleId
-  })
+  const roleKey = normalizeRoleKey(input.roleKey);
+  const hasRole = (
+    (roleRows.data ?? []) as Array<Record<string, unknown>>
+  ).some((row) => {
+    const normalizedRole = normalizeRoleKey(
+      typeof row.role === "string" ? row.role : null,
+    );
+    return (
+      normalizedRole === roleKey || String(row.role_id ?? "") === input.roleId
+    );
+  });
   if (!hasRole) {
-    throw new Error('Verifiering misslyckades: aktiv tenant-scopad systemroll saknas efter skapande.')
+    throw new Error(
+      "Verifiering misslyckades: aktiv tenant-scopad systemroll saknas efter skapande.",
+    );
   }
 }
