@@ -312,6 +312,22 @@ export default function CustomerSiteForm({
  ) : null}
  </select>
 
+ <details className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-3 text-sm text-slate-700">
+ <summary className="cursor-pointer font-semibold text-emerald-800">Lägg till ny nätägare direkt</summary>
+ <div className="mt-3 grid gap-3 md:grid-cols-2">
+ <Input name="new_grid_owner_name" label="Namn" />
+ <Input name="new_grid_owner_org_number" label="Organisationsnummer" />
+ <Input name="new_grid_owner_ediel_id" label="Ediel-ID" />
+ <Input name="new_grid_owner_email" label="Kontaktmail" type="email" />
+ <Input name="new_grid_owner_phone" label="Telefon" />
+ <label className="grid gap-2 md:col-span-2">
+ <span className="text-sm font-medium text-slate-700 ">Kommentar</span>
+ <textarea name="new_grid_owner_notes" rows={2} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 " />
+ </label>
+ </div>
+ <p className="mt-3 text-xs text-slate-700">Om Ediel-ID eller organisationsnummer redan finns kopplar systemet befintlig nätägare istället för att skapa dubblett.</p>
+ </details>
+
  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 ">
  {selectedGridOwner ? (
  <>

@@ -53,6 +53,7 @@ export type RouteDecisionInput = {
   siteId?: string | null
   meteringPointId?: string | null
   gridOwnerId?: string | null
+  currentSupplierId?: string | null
   businessProcess: BusinessProcess
   requestedAction?: string | null
   messageFamily?: EdielMessageFamily | string | null
@@ -97,6 +98,7 @@ export type RouteDecisionDbRow = {
   site_id: string | null
   metering_point_id: string | null
   grid_owner_id: string | null
+  current_supplier_id?: string | null
   business_process: string | null
   requested_action: string | null
   message_family: string | null

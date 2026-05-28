@@ -207,6 +207,7 @@ export async function logRouteDecision(input: RouteDecisionInput, decision: Rout
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
     grid_owner_id: input.gridOwnerId ?? null,
+    current_supplier_id: input.currentSupplierId ?? null,
     business_process: input.businessProcess,
     requested_action: input.requestedAction ?? null,
     message_family: decision.messageFamily,

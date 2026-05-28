@@ -89,6 +89,22 @@ function normalizeDateOrNull(value: string | null): string | null {
   return value
 }
 
+function normalizeNumberOrNull(value: string | null): number | null {
+  if (!value) return null
+  const parsed = Number(value.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function normalizeSupplierResponseStatus(value: string | null): string {
+  if (value === 'free_to_switch') return 'free_to_switch'
+  if (value === 'binding_period') return 'binding_period'
+  if (value === 'termination_fee') return 'termination_fee'
+  if (value === 'blocked') return 'blocked'
+  if (value === 'waiting_response') return 'waiting_response'
+  return 'manual_review'
+}
+
+
 function normalizeSwitchRequestType(
   value: string | null
 ): SupplierSwitchRequestType {
@@ -193,6 +209,7 @@ async function auditRouteDecisionForCustomerAction(params: {
   siteId: string | null
   meteringPointId: string | null
   gridOwnerId: string | null
+  currentSupplierId?: string | null
   businessProcess: BusinessProcess
   requestedAction: string
   messageCode?: string | null
@@ -204,6 +221,7 @@ async function auditRouteDecisionForCustomerAction(params: {
     siteId: params.siteId,
     meteringPointId: params.meteringPointId,
     gridOwnerId: params.gridOwnerId,
+    currentSupplierId: params.currentSupplierId ?? null,
     businessProcess: params.businessProcess,
     requestedAction: params.requestedAction,
     messageFamily: params.businessProcess === 'meter_values' || params.businessProcess === 'billing_underlay' ? 'UTILTS' : 'PRODAT',
@@ -225,6 +243,7 @@ async function auditRouteDecisionForCustomerAction(params: {
       siteId: params.siteId,
       meteringPointId: params.meteringPointId,
       gridOwnerId: params.gridOwnerId,
+      currentSupplierId: params.currentSupplierId ?? null,
       requestedAction: params.requestedAction,
       businessProcess: params.businessProcess,
     },
@@ -306,14 +325,87 @@ async function applyEdielMeteringMethodToSwitchSnapshots(params: {
 }
 
 
-function mapGridOwnerRequestScopeToOutboundType(value: string | null | undefined): OutboundRequestType {
+function mapGridOwnerRequestScopeToOutboundType(
+  value: string | null | undefined,
+  action?: string | null
+): OutboundRequestType {
   if (value === 'billing_underlay') return 'billing_underlay'
   if (value === 'customer_masterdata') return 'customer_masterdata'
-  if (value === 'metering_access') return 'metering_access_request'
+  if (value === 'metering_access') {
+    return action === 'terminate_metering_access' ? 'metering_access_termination' : 'metering_access_request'
+  }
   if (value === 'supplier_switch') return 'switch_information_request'
   if (value === 'partner_export') return 'partner_export'
   if (value === 'ediel_ack') return 'ediel_ack'
-  return 'meter_values'
+  return 'meter_values_request'
+}
+
+async function customerHasMeterValuesAccess(params: {
+  companyId: string
+  customerId: string
+  siteId: string | null
+  meteringPointId: string | null
+}): Promise<{ ok: boolean; reason: string | null }> {
+  const switchQuery = supabaseService
+    .from('supplier_switch_requests')
+    .select('id,status')
+    .eq('company_id', params.companyId)
+    .eq('customer_id', params.customerId)
+    .in('status', ['accepted', 'completed'])
+    .limit(1)
+
+  if (params.siteId) switchQuery.eq('site_id', params.siteId)
+  if (params.meteringPointId) switchQuery.eq('metering_point_id', params.meteringPointId)
+
+  const { data: switchRows, error: switchError } = await switchQuery
+  if (switchError && !['42P01', '42703', 'PGRST205'].includes(String((switchError as { code?: string }).code ?? ''))) throw switchError
+  if ((switchRows ?? []).length > 0) return { ok: true, reason: null }
+
+  const permissionQuery = supabaseService
+    .from('metering_permissions')
+    .select('id,status')
+    .eq('company_id', params.companyId)
+    .eq('customer_id', params.customerId)
+    .in('status', ['approved', 'active', 'partially_approved', 'z14_received'])
+    .limit(1)
+
+  if (params.siteId) permissionQuery.eq('site_id', params.siteId)
+  if (params.meteringPointId) permissionQuery.eq('metering_point_id', params.meteringPointId)
+
+  const { data: permissionRows, error: permissionError } = await permissionQuery
+  if (permissionError && !['42P01', '42703', 'PGRST205'].includes(String((permissionError as { code?: string }).code ?? ''))) throw permissionError
+  if ((permissionRows ?? []).length > 0) return { ok: true, reason: null }
+
+  return { ok: false, reason: 'Saknar godkänd mätvärdesåtkomst eller aktiv leveransrelation.' }
+}
+
+async function createCustomerActionTask(params: {
+  actorUserId: string
+  companyId: string
+  customerId: string
+  siteId: string | null
+  meteringPointId: string | null
+  taskType: string
+  title: string
+  description: string
+  metadata?: Record<string, unknown>
+}) {
+  const { error } = await supabaseService.from('customer_operation_tasks').insert({
+    company_id: params.companyId,
+    customer_id: params.customerId,
+    site_id: params.siteId,
+    metering_point_id: params.meteringPointId,
+    task_type: params.taskType,
+    status: 'open',
+    priority: 'high',
+    title: params.title,
+    description: params.description,
+    metadata: params.metadata ?? {},
+    created_by: params.actorUserId,
+    updated_by: params.actorUserId,
+  })
+
+  if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
 }
 
 function sanitizeFileName(value: string): string {
@@ -420,6 +512,61 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
     movedFromSupplierName = undefined
   }
 
+  let selectedGridOwnerId = normalizeUuidOrNull(formValue(formData, 'grid_owner_id'))
+  const newGridOwnerName = (formValue(formData, 'new_grid_owner_name') ?? '').trim()
+  const newGridOwnerEdielId = (formValue(formData, 'new_grid_owner_ediel_id') ?? '').trim() || null
+  const newGridOwnerOrgNumber = (formValue(formData, 'new_grid_owner_org_number') ?? '').trim() || null
+
+  if (!selectedGridOwnerId && newGridOwnerName) {
+    let existingGridOwner: { id: string } | null = null
+
+    if (newGridOwnerEdielId) {
+      const { data, error } = await supabaseService
+        .from('grid_owners')
+        .select('id')
+        .eq('ediel_id', newGridOwnerEdielId)
+        .limit(1)
+        .maybeSingle()
+      if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
+      existingGridOwner = (data as { id: string } | null) ?? null
+    }
+
+    if (!existingGridOwner && newGridOwnerOrgNumber) {
+      const { data, error } = await supabaseService
+        .from('grid_owners')
+        .select('id')
+        .eq('org_number', newGridOwnerOrgNumber)
+        .limit(1)
+        .maybeSingle()
+      if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
+      existingGridOwner = (data as { id: string } | null) ?? null
+    }
+
+    if (!existingGridOwner) {
+      const { data, error } = await supabaseService
+        .from('grid_owners')
+        .insert({
+          company_id: companyId,
+          name: newGridOwnerName,
+          owner_code: newGridOwnerEdielId ?? `NY-${Date.now()}`,
+          org_number: newGridOwnerOrgNumber,
+          ediel_id: newGridOwnerEdielId,
+          email: formValue(formData, 'new_grid_owner_email') || null,
+          phone: formValue(formData, 'new_grid_owner_phone') || null,
+          notes: formValue(formData, 'new_grid_owner_notes') || 'Skapad från kundkort/anläggning.',
+          is_active: true,
+          created_by: actor.id,
+          updated_by: actor.id,
+        })
+        .select('id')
+        .single()
+      if (error) throw error
+      existingGridOwner = data as { id: string }
+    }
+
+    selectedGridOwnerId = existingGridOwner.id
+  }
+
   const parsed = customerSiteInputSchema.parse({
     id: siteId,
     company_id: companyId,
@@ -428,7 +575,7 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
     facility_id: formValue(formData, 'facility_id') || undefined,
     site_type: formValue(formData, 'site_type') ?? 'consumption',
     status: formValue(formData, 'status') ?? 'draft',
-    grid_owner_id: normalizeUuidOrNull(formValue(formData, 'grid_owner_id')),
+    grid_owner_id: selectedGridOwnerId,
     price_area_code: normalizePriceAreaOrNull(formValue(formData, 'price_area_code')),
     move_in_date: moveInDate || undefined,
     annual_consumption_kwh: formValue(formData, 'annual_consumption_kwh'),
@@ -929,6 +1076,7 @@ export async function createSupplierSwitchRequestAction(
     siteId,
     meteringPointId: meteringPoint.id,
     gridOwnerId: meteringPoint.grid_owner_id ?? site.grid_owner_id ?? null,
+    currentSupplierId: site.current_supplier_id ?? null,
     businessProcess: 'supplier_switch',
     requestedAction: 'start_supplier_switch',
     messageCode: 'Z03',
@@ -1118,6 +1266,7 @@ export async function startAutomaticOnboardingAction(
     siteId,
     meteringPointId: meteringPoint.id,
     gridOwnerId: meteringPoint.grid_owner_id ?? site.grid_owner_id ?? null,
+    currentSupplierId: site.current_supplier_id ?? null,
     businessProcess: 'supplier_switch',
     requestedAction: 'automatic_onboarding_direct_z03',
     messageCode: 'Z03',
@@ -1354,6 +1503,34 @@ export async function createGridOwnerDataRequestAction(
     return
   }
 
+  if (requestScope === 'meter_values') {
+    const access = await customerHasMeterValuesAccess({ companyId, customerId, siteId, meteringPointId })
+    if (!access.ok) {
+      await createCustomerActionTask({
+        actorUserId: actor.id,
+        companyId,
+        customerId,
+        siteId,
+        meteringPointId,
+        taskType: 'meter_values_access_missing',
+        title: 'Saknar godkänd mätvärdesåtkomst',
+        description: access.reason ?? 'Mätvärden kan inte hämtas utan aktiv leveransrelation eller godkänd mätvärdesåtkomst.',
+        metadata: { requestScope, requestedAction, routeDecision: routeDecisionPayload(routeDecision) },
+      })
+      await insertAuditLog({
+        actorUserId: actor.id,
+        entityType: 'customer',
+        entityId: customerId,
+        action: 'meter_values_request_blocked_missing_access',
+        metadata: { customerId, siteId, meteringPointId, gridOwnerId, reason: access.reason },
+      })
+      revalidatePath(`/admin/customers/${customerId}`)
+      revalidatePath('/admin/operations')
+      revalidatePath('/admin/operations/tasks')
+      return
+    }
+  }
+
   if (requestScope === 'customer_masterdata') {
     await createAndQueueCustomerMasterdataZ01({
       actorUserId: actor.id,
@@ -1402,7 +1579,7 @@ export async function createGridOwnerDataRequestAction(
   const existingOutbound = await findOpenOutboundBySource({
     sourceType: 'grid_owner_data_request',
     sourceId: saved.id,
-    requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope),
+    requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope, requestedAction),
   })
 
   let outbound = existingOutbound
@@ -1414,7 +1591,7 @@ export async function createGridOwnerDataRequestAction(
       siteId: saved.site_id,
       meteringPointId: saved.metering_point_id,
       gridOwnerId: saved.grid_owner_id,
-      requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope),
+      requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope, requestedAction),
       sourceType: 'grid_owner_data_request',
       sourceId: saved.id,
       payload: {
@@ -1585,7 +1762,7 @@ export async function createAuthorizationRequestPackageAction(
       siteId: saved.site_id,
       meteringPointId: saved.metering_point_id,
       gridOwnerId: saved.grid_owner_id,
-      requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope),
+      requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope, null),
       sourceType: 'grid_owner_data_request',
       sourceId: saved.id,
       payload: {
@@ -1636,7 +1813,7 @@ export async function createAuthorizationRequestPackageAction(
       siteId,
       meteringPointId: preferredMeteringPoint?.id ?? null,
       gridOwnerId: preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
-      requestType: 'supplier_switch',
+      requestType: 'current_supplier_contract_information_request',
       sourceType: 'manual',
       payload: {
         ...requestPayload,
@@ -1891,6 +2068,153 @@ export async function createCustomerDataRequestPackageAction(
   revalidatePath('/admin/operations')
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/ediel')
+}
+
+
+export async function registerCurrentSupplierResponseAction(formData: FormData): Promise<void> {
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
+  const customerId = formValue(formData, 'customer_id') ?? ''
+  const siteId = formValue(formData, 'site_id') ?? ''
+  const requestId = formValue(formData, 'customer_info_request_id') || null
+
+  if (!customerId || !siteId) {
+    throw new Error('Kund och anläggning krävs för leverantörssvar.')
+  }
+
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
+
+  const responseStatus = normalizeSupplierResponseStatus(formValue(formData, 'response_status'))
+  const contractEndDate = normalizeDateOrNull(formValue(formData, 'contract_end_date'))
+  const noticePeriod = formValue(formData, 'notice_period') || null
+  const terminationFee = normalizeNumberOrNull(formValue(formData, 'termination_fee'))
+  const recommendedSwitchDate = normalizeDateOrNull(formValue(formData, 'recommended_switch_date'))
+  const responseNotes = formValue(formData, 'response_notes') || null
+
+  const updatePayload: Record<string, unknown> = {
+    current_supplier_response_status: responseStatus,
+    current_supplier_contract_status: responseStatus,
+    current_supplier_contract_end_date: contractEndDate,
+    current_supplier_notice_period: noticePeriod,
+    current_supplier_termination_fee: terminationFee,
+    updated_by: actor.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { data: site, error: siteError } = await supabaseService
+    .from('customer_sites')
+    .update(updatePayload)
+    .eq('company_id', companyId)
+    .eq('customer_id', customerId)
+    .eq('id', siteId)
+    .select('*')
+    .single()
+
+  if (siteError) throw siteError
+
+  const responsePayload = {
+    responseStatus,
+    contractEndDate,
+    noticePeriod,
+    terminationFee,
+    recommendedSwitchDate,
+    responseNotes,
+    registeredAt: new Date().toISOString(),
+    registeredBy: actor.id,
+  }
+
+  if (requestId) {
+    const { data: request, error: requestError } = await supabaseService
+      .from('customer_info_requests')
+      .select('id, verified_payload, target_party_type, request_type')
+      .eq('company_id', companyId)
+      .eq('customer_id', customerId)
+      .eq('id', requestId)
+      .maybeSingle()
+
+    if (requestError) throw requestError
+    if (!request) throw new Error('Uppgiftsbegäran tillhör inte kunden eller bolaget.')
+
+    const requestPayload = objectValue((request as JsonObject).verified_payload)
+    const nextStatus = responseStatus === 'waiting_response' ? 'manual_review_required' : 'completed'
+    const blockerReason = responseStatus === 'blocked'
+      ? 'Nuvarande leverantör har svarat att bytet kräver manuell kontroll.'
+      : responseStatus === 'binding_period'
+      ? 'Bindningstid finns. Kontrollera bytesdatum innan Z03 skickas.'
+      : responseStatus === 'termination_fee'
+      ? 'Brytavgift finns. Informera kund och kontrollera beslut innan Z03 skickas.'
+      : null
+
+    const { error: updateRequestError } = await supabaseService
+      .from('customer_info_requests')
+      .update({
+        status: nextStatus,
+        received_at: new Date().toISOString(),
+        blocker_reason: blockerReason,
+        verified_payload: {
+          ...requestPayload,
+          currentSupplierResponse: responsePayload,
+        },
+        updated_by: actor.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', companyId)
+      .eq('id', requestId)
+
+    if (updateRequestError) throw updateRequestError
+
+    await supabaseService.from('customer_info_request_events').insert({
+      company_id: companyId,
+      customer_info_request_id: requestId,
+      customer_id: customerId,
+      event_type: 'current_supplier_response_registered',
+      message: 'Svar från nuvarande leverantör registrerades och preflight uppdaterades.',
+      payload: responsePayload,
+      created_by: actor.id,
+    })
+  }
+
+  const syncSummary = await syncCustomerOperationsForSite(supabaseService, { customerId, siteId })
+
+  if (['binding_period', 'termination_fee', 'blocked'].includes(responseStatus)) {
+    await createCustomerActionTask({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      meteringPointId: null,
+      taskType: 'current_supplier_contract_risk',
+      title: 'Kontrollera nuvarande leverantör före byte',
+      description:
+        responseStatus === 'blocked'
+          ? 'Nuvarande leverantör har markerat att bytet kräver manuell kontroll.'
+          : responseStatus === 'termination_fee'
+          ? 'Brytavgift finns. Säkerställ kundens godkännande innan leverantörsbyte skickas.'
+          : 'Bindningstid finns. Kontrollera bytesdatum innan leverantörsbyte skickas.',
+      metadata: responsePayload,
+    })
+  }
+
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: 'customer_site',
+    entityId: siteId,
+    action: 'current_supplier_response_registered',
+    newValues: site,
+    metadata: {
+      customerId,
+      companyId,
+      requestId,
+      response: responsePayload,
+      syncSummary,
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/customer-info-requests')
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/tasks')
 }
 
 export async function createPartnerExportAction(

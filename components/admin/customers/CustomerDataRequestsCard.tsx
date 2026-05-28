@@ -1,4 +1,7 @@
-import { createCustomerDataRequestPackageAction } from '@/app/admin/customers/[id]/actions'
+import {
+  createCustomerDataRequestPackageAction,
+  registerCurrentSupplierResponseAction,
+} from '@/app/admin/customers/[id]/actions'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { CustomerInfoRequestRow } from '@/lib/onboarding/infoRequests'
 import type { PowerOfAttorneyRow, CustomerAuthorizationDocumentRow } from '@/lib/operations/types'
@@ -86,6 +89,11 @@ export default function CustomerDataRequestsCard({
 }) {
   const signedPowers = powersOfAttorney.filter((row) => row.status === 'signed')
   const activePowerDocuments = documents.filter((row) => row.document_type === 'power_of_attorney' && row.status !== 'archived')
+  const currentSupplierRequests = infoRequests.filter((request) =>
+    request.target_party_type === 'current_supplier' || request.request_type === 'current_supplier_contract_info'
+  )
+  const defaultCurrentSupplierRequest = currentSupplierRequests.find((request) => !['completed', 'cancelled', 'rejected'].includes(request.status)) ?? currentSupplierRequests[0] ?? null
+  const defaultSite = sites.find((site) => site.status === 'active') ?? sites[0] ?? null
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -217,6 +225,67 @@ export default function CustomerDataRequestsCard({
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Registrera leverantörssvar</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-700">Spara bindningstid, brytavgift och rekommenderat bytesdatum. Svaret uppdaterar kundens preflight och får aldrig skapa ett leverantörsbyte.</p>
+          <form action={registerCurrentSupplierResponseAction} className="mt-4 space-y-4">
+            <input type="hidden" name="customer_id" value={customerId} />
+            <label className="grid gap-1 text-sm">
+              <span className="font-medium text-slate-700">Anläggning</span>
+              <select name="site_id" defaultValue={defaultSite?.id ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+                <option value="">Välj anläggning</option>
+                {sites.map((site) => (
+                  <option key={site.id} value={site.id}>{site.site_name} · {site.facility_id ?? 'saknar anläggnings-id'}</option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span className="font-medium text-slate-700">Koppla till uppgiftsbegäran</span>
+              <select name="customer_info_request_id" defaultValue={defaultCurrentSupplierRequest?.id ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+                <option value="">Ingen / manuell registrering</option>
+                {currentSupplierRequests.map((request) => (
+                  <option key={request.id} value={request.id}>{simpleRequestLabel(request.request_type)} · {simpleStatus(request.status).label} · {formatDateTime(request.created_at)}</option>
+                ))}
+              </select>
+            </label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-slate-700">Svar från leverantör</span>
+                <select name="response_status" defaultValue="free_to_switch" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+                  <option value="free_to_switch">Kunden kan byta</option>
+                  <option value="binding_period">Bindningstid finns</option>
+                  <option value="termination_fee">Brytavgift finns</option>
+                  <option value="blocked">Leverantören avråder/blockerar</option>
+                  <option value="waiting_response">Väntar svar</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-slate-700">Bindning/slutdatum</span>
+                <input name="contract_end_date" type="date" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" />
+              </label>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-slate-700">Uppsägningstid</span>
+                <input name="notice_period" placeholder="T.ex. 1 månad" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-slate-700">Brytavgift</span>
+                <input name="termination_fee" type="number" step="0.01" placeholder="0" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" />
+              </label>
+            </div>
+            <label className="grid gap-1 text-sm">
+              <span className="font-medium text-slate-700">Rekommenderat bytesdatum</span>
+              <input name="recommended_switch_date" type="date" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span className="font-medium text-slate-700">Kommentar</span>
+              <textarea name="response_notes" rows={3} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Sammanfatta svaret från leverantören." />
+            </label>
+            <SubmitButton idleLabel="Spara leverantörssvar" pendingLabel="Sparar..." />
+          </form>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

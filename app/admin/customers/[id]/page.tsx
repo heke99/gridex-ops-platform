@@ -1920,7 +1920,14 @@ export default async function CustomerAdminDetailPage({
  title="Översikt"
  description="Samlad status för kundens operativa läge och rekommenderad nästa åtgärd."
  >
- <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+ <CustomerBusinessActionsCard
+ customerId={id}
+ sites={sites}
+ meteringPoints={meteringPoints}
+ powersOfAttorney={poaRows}
+ infoRequests={customerInfoRequests}
+ />
+ <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex flex-wrap items-center gap-3">
  <div className="text-sm font-semibold text-slate-900 ">

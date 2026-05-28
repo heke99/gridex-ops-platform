@@ -3,6 +3,16 @@ import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { MeteringPermissionRow } from '@/lib/onboarding/infoRequests'
+import {
+  createSupplierSwitchRequest,
+  findCustomerSiteById,
+  findOpenSupplierSwitchRequestForSite,
+  listMeteringPointsForSite,
+  listPowersOfAttorneyByCustomerId,
+  syncOperationTasksFromReadiness,
+} from '@/lib/operations/db'
+import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
+import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 
 type JsonRecord = Record<string, unknown>
 
@@ -183,6 +193,68 @@ function z14ApprovedSitesFromMessage(message: EdielMessageRow): Array<{
   }))
 }
 
+
+async function tryQueueSupplierSwitchAfterZ02(params: {
+  actorUserId: string
+  companyId: string
+  request: Record<string, unknown>
+  z02Payload: JsonRecord
+}): Promise<{ queued: boolean; reason: string | null; switchRequestId: string | null }> {
+  const customerId = stringOrNull(params.request.customer_id)
+  const siteId = stringOrNull(params.request.site_id)
+  if (!customerId || !siteId) return { queued: false, reason: 'missing_customer_or_site', switchRequestId: null }
+
+  const site = await findCustomerSiteById(supabaseService, siteId)
+  if (!site || site.company_id !== params.companyId || site.customer_id !== customerId) {
+    return { queued: false, reason: 'site_not_found_or_wrong_tenant', switchRequestId: null }
+  }
+
+  const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, {
+    customerId,
+    siteId,
+    companyId: params.companyId,
+  })
+  if (existing) return { queued: false, reason: 'open_supplier_switch_exists', switchRequestId: existing.id }
+
+  const [meteringPoints, powersOfAttorney] = await Promise.all([
+    listMeteringPointsForSite(supabaseService, siteId),
+    listPowersOfAttorneyByCustomerId(supabaseService, customerId),
+  ])
+  const readiness = evaluateSiteSwitchReadiness({ site, meteringPoints, powersOfAttorney })
+  await syncOperationTasksFromReadiness(supabaseService, readiness)
+
+  if (!readiness.isReady || !readiness.candidateMeteringPointId) {
+    return { queued: false, reason: 'switch_preflight_not_ready', switchRequestId: null }
+  }
+
+  const meteringPoint = meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ?? null
+  if (!meteringPoint) return { queued: false, reason: 'candidate_metering_point_not_found', switchRequestId: null }
+
+  const requestType: SupplierSwitchRequestType = site.move_in_date ? 'move_in' : 'switch'
+  const saved = await createSupplierSwitchRequest(supabaseService, {
+    readiness,
+    site,
+    meteringPoint,
+    requestType,
+    requestedStartDate: site.move_in_date ?? null,
+    companyId: params.companyId,
+    automationOrigin: 'z02_customer_masterdata_received',
+    automationKey: `z02-to-z03:${customerId}:${siteId}:${meteringPoint.id}`,
+  })
+
+  await supabaseService.from('supplier_switch_events').insert({
+    company_id: params.companyId,
+    switch_request_id: saved.id,
+    event_type: 'z02_preflight_queued_z03',
+    event_status: 'success',
+    message: 'PRODAT Z02 uppdaterade kund-/anläggningsdata och systemet köade Z03 eftersom preflight blev grön.',
+    payload: { z02: params.z02Payload, customerInfoRequestId: params.request.id ?? null },
+    created_by: params.actorUserId,
+  })
+
+  return { queued: true, reason: null, switchRequestId: saved.id }
+}
+
 export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
   actorUserId: string
   message: EdielMessageRow
@@ -204,6 +276,9 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     return { applied: false, targetId: null, reason: 'no_matching_customer_info_request' }
   }
 
+  const companyId = params.message.company_id
+  if (!companyId) return { applied: false, targetId: null, reason: 'missing_company_id' }
+
   const currentPayload = readJson(request.verified_payload)
   const z02Payload = prodatPayloadSnapshot(params.message)
 
@@ -222,7 +297,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
       updated_by: params.actorUserId,
       updated_at: new Date().toISOString(),
     })
-    .eq('company_id', params.message.company_id)
+    .eq('company_id', companyId)
     .eq('id', request.id)
 
   if (error) throw error
@@ -238,12 +313,31 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
   })
 
   await supabaseService.from('customer_info_request_events').insert({
-    company_id: params.message.company_id,
+    company_id: companyId,
     customer_info_request_id: request.id,
     customer_id: request.customer_id,
     event_type: 'z02_received',
     message: 'PRODAT Z02 kopplades automatiskt till uppgiftsbegäran och verifierade uppgifter sparades.',
     payload: z02Payload,
+    created_by: params.actorUserId,
+  })
+
+  const autoSwitch = await tryQueueSupplierSwitchAfterZ02({
+    actorUserId: params.actorUserId,
+    companyId,
+    request,
+    z02Payload,
+  })
+
+  await supabaseService.from('customer_info_request_events').insert({
+    company_id: companyId,
+    customer_info_request_id: request.id,
+    customer_id: request.customer_id,
+    event_type: autoSwitch.queued ? 'z03_auto_queued_after_z02' : 'z03_auto_not_queued_after_z02',
+    message: autoSwitch.queued
+      ? 'Efter Z02 blev preflight grön och systemet köade leverantörsbyte/Z03.'
+      : 'Z02 mottogs men leverantörsbyte/Z03 köades inte automatiskt.',
+    payload: autoSwitch,
     created_by: params.actorUserId,
   })
 
@@ -280,6 +374,9 @@ export async function applyInboundProdatZ14ToMeteringPermission(params: {
     return { applied: false, targetId: null, reason: 'no_matching_metering_permission' }
   }
 
+  const companyId = params.message.company_id
+  if (!companyId) return { applied: false, targetId: null, reason: 'missing_company_id' }
+
   const parsedProdat = parseProdatMessage(params.message)
   const approvedSites = z14ApprovedSitesFromMessage(params.message)
   const hasApproved = approvedSites.some((site) => site.status === 'approved')
@@ -310,14 +407,14 @@ export async function applyInboundProdatZ14ToMeteringPermission(params: {
       updated_by: params.actorUserId,
       updated_at: new Date().toISOString(),
     })
-    .eq('company_id', params.message.company_id)
+    .eq('company_id', companyId)
     .eq('id', permission.id)
 
   if (error) throw error
 
   if (approvedSites.length > 0) {
     const rows = approvedSites.map((site) => ({
-      company_id: params.message.company_id,
+      company_id: companyId,
       metering_permission_id: permission.id,
       customer_id: permission.customer_id,
       site_id: site.siteId ?? permission.site_id,
@@ -333,7 +430,7 @@ export async function applyInboundProdatZ14ToMeteringPermission(params: {
     const deleteExisting = await supabaseService
       .from('metering_permission_sites')
       .delete()
-      .eq('company_id', params.message.company_id)
+      .eq('company_id', companyId)
       .eq('metering_permission_id', permission.id)
 
     if (deleteExisting.error && !isMissingRelationError(deleteExisting.error)) throw deleteExisting.error
