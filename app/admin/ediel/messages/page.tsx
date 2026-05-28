@@ -138,7 +138,7 @@ function shouldShowAsOwnMessageCard(message: EdielMessageRow, explicitFamilyFilt
 export default async function AdminEdielMessagesPage({
  searchParams,
 }: {
- searchParams?: Promise<SearchParams> | SearchParams
+ searchParams?: Promise<SearchParams>
 }) {
  const context = await requirePlatformAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(context)

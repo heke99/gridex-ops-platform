@@ -195,6 +195,7 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/ediel/agt/actions.ts",
   "app/admin/operations/actions.ts",
   "app/admin/operations/control-actions.ts",
+  "app/admin/system/auth-diagnostics/page.tsx",
   "app/admin/outbound/unresolved/actions.ts",
   "app/admin/users/[id]/actions.ts",
   "app/admin/users/actions.ts",
