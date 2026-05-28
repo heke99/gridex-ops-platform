@@ -12,6 +12,14 @@ import {
   getBusinessProcessForMessage,
   listFieldRules,
 } from '@/lib/ediel/rulebook'
+import {
+  activateEdielRuleVersionAction,
+  cloneEdielRuleVersionAction,
+  importEdielRulebookTestDataAction,
+  runEdielRulebookRegressionAction,
+  syncRulebookStaticRulesAction,
+  validateEdielRulebookPayloadAction,
+} from '@/app/admin/ediel/system-tests/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,9 +27,11 @@ type RecentRun = {
   id: string
   test_suite: string | null
   test_case_code: string | null
+  title: string | null
   role_code: string | null
   status: string | null
   created_at: string | null
+  failure_reason?: string | null
 }
 
 type RuleVersionRow = {
@@ -33,6 +43,24 @@ type RuleVersionRow = {
   valid_to: string | null
   message_family: string | null
   message_code: string | null
+}
+
+type ArtifactRow = {
+  id: string
+  artifact_type: string | null
+  title: string | null
+  validation_report: Record<string, unknown> | null
+  created_at: string | null
+}
+
+type DataSetRow = {
+  id: string
+  dataset_key: string | null
+  name: string | null
+  source_file_name: string | null
+  status: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string | null
 }
 
 async function countRows(table: string): Promise<number> {
@@ -49,7 +77,7 @@ async function recentRuns(): Promise<RecentRun[]> {
   try {
     const { data, error } = await supabaseService
       .from('ediel_test_runs')
-      .select('id,test_suite,test_case_code,role_code,status,created_at')
+      .select('id,test_suite,test_case_code,title,role_code,status,created_at,failure_reason')
       .order('created_at', { ascending: false })
       .limit(8)
     if (error) throw error
@@ -65,9 +93,37 @@ async function ruleVersions(): Promise<RuleVersionRow[]> {
       .from('ediel_rule_versions')
       .select('id,rulebook_key,version_code,status,valid_from,valid_to,message_family,message_code')
       .order('valid_from', { ascending: false })
-      .limit(12)
+      .limit(30)
     if (error) throw error
     return Array.isArray(data) ? data as RuleVersionRow[] : []
+  } catch {
+    return []
+  }
+}
+
+async function recentArtifacts(): Promise<ArtifactRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from('ediel_test_artifacts')
+      .select('id,artifact_type,title,validation_report,created_at')
+      .order('created_at', { ascending: false })
+      .limit(8)
+    if (error) throw error
+    return Array.isArray(data) ? data as ArtifactRow[] : []
+  } catch {
+    return []
+  }
+}
+
+async function dataSets(): Promise<DataSetRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from('ediel_test_data_sets')
+      .select('id,dataset_key,name,source_file_name,status,metadata,created_at')
+      .order('created_at', { ascending: false })
+      .limit(8)
+    if (error) throw error
+    return Array.isArray(data) ? data as DataSetRow[] : []
   } catch {
     return []
   }
@@ -117,15 +173,22 @@ function statusTone(status?: string | null): 'emerald' | 'amber' | 'red' | 'slat
   return 'slate'
 }
 
+function jsonStatus(value: Record<string, unknown> | null): string {
+  const status = value?.status
+  return typeof status === 'string' ? status : '—'
+}
+
 export default async function EdielSystemTestsPage() {
   const context = await requirePlatformAdminAccess()
-  const [dbTestCases, dbRuns, dbVersions, dbFieldRules, recent, versions] = await Promise.all([
+  const [dbTestCases, dbRuns, dbVersions, dbFieldRules, recent, versions, artifacts, importedSets] = await Promise.all([
     countRows('ediel_test_cases'),
     countRows('ediel_test_runs'),
     countRows('ediel_rule_versions'),
     countRows('ediel_field_rules'),
     recentRuns(),
     ruleVersions(),
+    recentArtifacts(),
+    dataSets(),
   ])
 
   const activeRuleCount = RULEBOOK_MESSAGE_RULES.filter((item) => item.runtimeStatus === 'runtime_ready').length
@@ -133,16 +196,17 @@ export default async function EdielSystemTestsPage() {
   const escoCases = RULEBOOK_TEST_CASES.filter((item) => item.actorRole === 'energy_service_company')
   const supplierCases = RULEBOOK_TEST_CASES.filter((item) => item.actorRole === 'supplier')
   const ackSamples = [
-    deriveRulebookAckDecision({ family: 'PRODAT', code: 'Z03' }),
-    deriveRulebookAckDecision({ family: 'APERAK', code: 'APERAK' }),
-    deriveRulebookAckDecision({ family: 'UTILTS', code: 'E66', utiltsFunctionalError: true }),
+    { label: 'PRODAT Z03', decision: deriveRulebookAckDecision({ family: 'PRODAT', code: 'Z03' }) },
+    { label: 'APERAK', decision: deriveRulebookAckDecision({ family: 'APERAK', code: 'APERAK' }) },
+    { label: 'UTILTS E66 funktionsfel', decision: deriveRulebookAckDecision({ family: 'UTILTS', code: 'E66', utiltsFunctionalError: true }) },
   ]
+  const activeOrReviewVersions = versions.filter((item) => ['active', 'review', 'draft'].includes(String(item.status ?? '').toLowerCase()))
 
   return (
     <div className="space-y-6 p-6">
       <AdminHeader
         title="Ediel Systemtest & Regelcenter"
-        subtitle="Superadmin-yta för rulebook, testfall, fältmatris, parser, ACK-regler, ESCO och regression. Kundkortets befintliga testflöde ska använda samma regelmotor bakom kulisserna."
+        subtitle="Superadmin-yta för rulebook, testfall, fältmatris, parser, ACK-regler, ESCO och regression. Kundkortets befintliga testflöde använder samma regelmotor bakom kulisserna."
         userEmail={context.email}
         workspaceName="Plattformskontroll"
         workspaceMode="platform"
@@ -154,7 +218,7 @@ export default async function EdielSystemTestsPage() {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">Batch 2 rulebook</p>
             <h1 className="mt-2 text-2xl font-black text-slate-950">Gemensam regelmotor före fler specialflöden</h1>
             <p className="mt-3 max-w-5xl text-sm font-semibold leading-6 text-slate-700">
-              Den här ytan visar det nya rulebook-lagret för PRODAT, UTILTS, CONTRL, APERAK, UTILTS_ERR, AI-lista och ESCO. Den är avsiktligt platform-only så vanliga bolag inte ser rå Ediel-teknik.
+              Den här ytan hanterar regelversioner, regression, parser/validering, testdata och ESCO/berättigad part. Den är platform-only så vanliga bolag inte ser rå Ediel-teknik.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -167,26 +231,91 @@ export default async function EdielSystemTestsPage() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric label="Runtime-regler" value={activeRuleCount} hint="Kända aktiva regler i rulebook-lagret." />
-        <Metric label="Delvisa regler" value={partialRuleCount} hint="Regler där fältimport/komplett segmentvalidering ska kunna byggas på." />
+        <Metric label="Delvisa regler" value={partialRuleCount} hint="Regler där fältimport/komplett segmentvalidering byggs på." />
         <Metric label="Testfall" value={dbTestCases || RULEBOOK_TEST_CASES.length} hint="Databasens testfall eller statisk fallback från rulebook." />
-        <Metric label="Körningar" value={dbRuns} hint="Sparade system-/AGT-/TGT-körningar i ediel_test_runs." />
+        <Metric label="Körningar" value={dbRuns} hint="Sparade system-/AGT-/TGT-körningar." />
       </section>
 
-      <Card title="Översikt" subtitle="Snabb status för regelmotor, testsviter och kända flöden.">
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-black text-slate-950">Leverantör</div>
-            <p className="mt-1 text-sm font-semibold text-slate-600">{supplierCases.length} leverantörsfall finns i rulebook.</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-black text-slate-950">Energitjänsteföretag</div>
-            <p className="mt-1 text-sm font-semibold text-slate-600">{escoCases.length} ESCO/berättigad part-fall finns.</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-black text-slate-950">Fältmatris</div>
-            <p className="mt-1 text-sm font-semibold text-slate-600">{dbFieldRules || RULEBOOK_FIELD_MATRIX.length} fältregler kan visas/importeras.</p>
-          </div>
+      <Card title="Regelstyrning" subtitle="Synka kodens rulebook, klona aktiv regel, kör regression och aktivera först när regressionen är grön.">
+        <div className="grid gap-4 xl:grid-cols-4">
+          <form action={syncRulebookStaticRulesAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-sm font-black text-slate-950">Synka statiska regler</div>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">Skriver rulebook, ACK-regler och fältmatris från kod till databasen utan att ta bort historik.</p>
+            <button className="mt-4 rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white">Synka regler</button>
+          </form>
+
+          <form action={cloneEdielRuleVersionAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-sm font-black text-slate-950">Klona regelversion</div>
+            <select name="ruleVersionId" className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">
+              {activeOrReviewVersions.map((item) => <option key={item.id} value={item.id}>{item.message_family}/{item.message_code} · {item.version_code} · {item.status}</option>)}
+            </select>
+            <input name="newVersionCode" placeholder="Ny version, t.ex. 26A-draft-2" className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <button className="mt-3 rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white">Skapa draft</button>
+          </form>
+
+          <form action={runEdielRulebookRegressionAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-sm font-black text-slate-950">Kör regression</div>
+            <select name="ruleVersionId" className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">
+              <option value="">Alla aktiva regler</option>
+              {activeOrReviewVersions.map((item) => <option key={item.id} value={item.id}>{item.message_family}/{item.message_code} · {item.version_code}</option>)}
+            </select>
+            <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">Kör PRODAT, UTILTS, ACK, ESCO och AI-lista regression innan aktivering.</p>
+            <button className="mt-3 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white">Kör regression</button>
+          </form>
+
+          <form action={activateEdielRuleVersionAction} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div className="text-sm font-black text-amber-950">Aktivera regel</div>
+            <select name="ruleVersionId" className="mt-3 w-full rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-semibold">
+              {versions.filter((item) => String(item.status ?? '').toLowerCase() !== 'active').map((item) => <option key={item.id} value={item.id}>{item.message_family}/{item.message_code} · {item.version_code} · {item.status}</option>)}
+            </select>
+            <p className="mt-2 text-xs font-semibold leading-5 text-amber-800">Kräver minst en grön RULEBOOK_REGRESSION.</p>
+            <button className="mt-3 rounded-xl bg-amber-700 px-3 py-2 text-xs font-black text-white">Aktivera</button>
+          </form>
         </div>
+      </Card>
+
+      <Card title="Parser & validering" subtitle="Klistra in raw EDIFACT/AI/BI. Resultatet sparas som testkörning och artifact.">
+        <form action={validateEdielRulebookPayloadAction} className="grid gap-3">
+          <input name="title" placeholder="Rubrik, valfritt" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+          <textarea name="rawPayload" rows={8} placeholder="UNA:+.? 'UNB+..." className="w-full rounded-2xl border border-slate-300 p-4 font-mono text-xs" />
+          <button className="w-fit rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white">Parse & validera</button>
+        </form>
+        {artifacts.length > 0 ? (
+          <div className="mt-5 grid gap-2">
+            {artifacts.map((item) => (
+              <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-black text-slate-950">{item.title ?? item.artifact_type ?? 'Artifact'}</div>
+                    <div className="text-xs font-semibold text-slate-500">{item.artifact_type} · {item.created_at ?? '—'}</div>
+                  </div>
+                  <Badge tone={statusTone(jsonStatus(item.validation_report))}>{jsonStatus(item.validation_report)}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </Card>
+
+      <Card title="Testdata-import" subtitle="Importera Excel/PDF-export som text/CSV eller klistra in tabell. Data sparas som dataset, inte som hårdkod i generatorn.">
+        <form action={importEdielRulebookTestDataAction} className="grid gap-3 md:grid-cols-2">
+          <input name="datasetKey" placeholder="Dataset key, t.ex. agt-prodat-2026" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+          <input name="name" placeholder="Namn" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+          <input name="testDataFile" type="file" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+          <textarea name="rawText" rows={4} placeholder="Eller klistra in semikolon-/CSV-/tabelltext" className="rounded-xl border border-slate-300 p-3 text-sm" />
+          <button className="w-fit rounded-xl bg-emerald-700 px-4 py-2 text-sm font-black text-white">Importera testdata</button>
+        </form>
+        {importedSets.length > 0 ? (
+          <div className="mt-5 grid gap-2 md:grid-cols-2">
+            {importedSets.map((item) => (
+              <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-black text-slate-950">{item.name ?? item.dataset_key}</div>
+                <div className="mt-1 text-xs font-semibold text-slate-500">{item.dataset_key} · {item.source_file_name ?? 'inklistrad data'} · {item.created_at ?? '—'}</div>
+                <div className="mt-2"><Badge tone={statusTone(item.status)}>{item.status ?? '—'}</Badge></div>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </Card>
 
       <Card title="Regelversioner" subtitle="Produktion ska bara använda active. Systemtest kan läsa draft/review för regression.">
@@ -221,7 +350,7 @@ export default async function EdielSystemTestsPage() {
       <Card title="Testsviter & testfall" subtitle="Leverantörstester behålls. ESCO/berättigad part läggs ovanpå samma testmotor.">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {RULEBOOK_TEST_CASES.map((item) => (
-            <div key={`${item.suite}-${item.testCaseCode}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <Link key={`${item.suite}-${item.testCaseCode}`} href={`/admin/ediel/system-tests/cases/${encodeURIComponent(item.testCaseCode)}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-emerald-300">
               <div className="flex flex-wrap gap-2">
                 <Badge tone={item.actorRole === 'energy_service_company' ? 'blue' : 'slate'}>{item.actorRole === 'energy_service_company' ? 'Energitjänsteföretag' : item.actorRole}</Badge>
                 <Badge tone="emerald">{item.family} {item.messageCode}</Badge>
@@ -233,7 +362,7 @@ export default async function EdielSystemTestsPage() {
                 <Badge tone={item.expectedAperak === 'negative' ? 'red' : item.expectedAperak === 'positive' ? 'emerald' : 'amber'}>APERAK {item.expectedAperak}</Badge>
                 <Badge tone={item.expectedUtiltsErr === 'expected' ? 'red' : 'slate'}>UTILTS_ERR {item.expectedUtiltsErr}</Badge>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </Card>
@@ -245,7 +374,7 @@ export default async function EdielSystemTestsPage() {
               <tr><th className="px-4 py-3">Meddelande</th><th className="px-4 py-3">Fält</th><th className="px-4 py-3">Segment</th><th className="px-4 py-3">Krav</th><th className="px-4 py-3">Villkor</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {listFieldRules().slice(0, 18).map((item) => (
+              {listFieldRules().slice(0, 22).map((item) => (
                 <tr key={`${item.family}-${item.code}-${item.fieldKey}-${item.segmentPath}`}>
                   <td className="px-4 py-3 font-bold text-slate-950">{item.family}/{item.code}</td>
                   <td className="px-4 py-3 text-slate-700">{item.label}</td>
@@ -274,22 +403,17 @@ export default async function EdielSystemTestsPage() {
         </div>
       </Card>
 
-      <Card title="Parser & validering" subtitle="Parsern returnerar canonical object: familj, kod, referenser, process, parter, mätpunkt, tillstånd och period.">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700">
-          Parsern finns i <span className="font-mono text-slate-950">lib/ediel/rulebook/messageParser.ts</span> och valideringen i <span className="font-mono text-slate-950">lib/ediel/rulebook/validator.ts</span>. Den kontrollerar bland annat fel Application Reference, fel processgrupp och om undertyp felaktigt hamnar i BGM.
-        </div>
-      </Card>
-
       <Card title="ACK-regler" subtitle="CONTRL, APERAK och UTILTS_ERR hålls isär.">
         <div className="grid gap-3 md:grid-cols-3">
-          {ackSamples.map((item, index) => (
-            <div key={index} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex flex-wrap gap-2">
-                <Badge tone={item.requiresContrl ? 'emerald' : 'slate'}>CONTRL {item.contrlStatus}</Badge>
-                <Badge tone={item.requiresAperak ? 'emerald' : 'slate'}>APERAK {item.aperakStatus}</Badge>
-                <Badge tone={item.utiltsErrStatus === 'pending' ? 'red' : 'slate'}>UTILTS_ERR {item.utiltsErrStatus}</Badge>
+          {ackSamples.map((item) => (
+            <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-sm font-black text-slate-950">{item.label}</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge tone={item.decision.requiresContrl ? 'emerald' : 'slate'}>CONTRL {item.decision.contrlStatus}</Badge>
+                <Badge tone={item.decision.requiresAperak ? 'emerald' : 'slate'}>APERAK {item.decision.aperakStatus}</Badge>
+                <Badge tone={item.decision.utiltsErrStatus === 'pending' ? 'red' : 'slate'}>UTILTS_ERR {item.decision.utiltsErrStatus}</Badge>
               </div>
-              <p className="mt-3 text-sm font-semibold text-slate-700">Deadline: {item.ackDueMinutes ? `${item.ackDueMinutes} min` : 'ingen'}</p>
+              <p className="mt-3 text-sm font-semibold text-slate-700">Deadline: {item.decision.ackDueMinutes ? `${item.decision.ackDueMinutes} min` : 'ingen'}</p>
             </div>
           ))}
         </div>
@@ -314,8 +438,9 @@ export default async function EdielSystemTestsPage() {
             {recent.map((run) => (
               <div key={run.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
                 <div>
-                  <div className="text-sm font-black text-slate-950">{run.test_suite ?? '—'} · {run.test_case_code ?? '—'}</div>
+                  <div className="text-sm font-black text-slate-950">{run.title ?? `${run.test_suite ?? '—'} · ${run.test_case_code ?? '—'}`}</div>
                   <div className="text-xs font-semibold text-slate-500">{run.role_code ?? '—'} · {run.created_at ?? '—'}</div>
+                  {run.failure_reason ? <div className="mt-1 text-xs font-semibold text-red-700">{run.failure_reason}</div> : null}
                 </div>
                 <Badge tone={statusTone(run.status)}>{run.status ?? '—'}</Badge>
               </div>

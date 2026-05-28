@@ -141,6 +141,10 @@ import {
   rejectEdielInboundCase,
   type EdielInboundCaseActionMode,
 } from "@/lib/ediel/inboundCases";
+import {
+  createRulebookPayloadValidationRun,
+  createRulebookTestRun,
+} from "@/lib/ediel/rulebook/testRunner";
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
@@ -1012,6 +1016,7 @@ function revalidateEdiel(messageId?: string | null) {
   revalidatePath("/admin/ediel/agt");
   revalidatePath("/admin/ediel/ai-list");
   revalidatePath("/admin/ediel/control-tower");
+  revalidatePath("/admin/ediel/system-tests");
   revalidatePath("/admin/ediel/routes");
   revalidatePath("/admin/ediel/settings");
   revalidatePath("/admin/ediel/messages");
@@ -1349,6 +1354,25 @@ export async function registerEdielFileAction(formData: FormData) {
       explicitTestCaseCode: formString(formData.get("agtTestCaseCode")),
     });
 
+    await createRulebookPayloadValidationRun({
+      rawPayload,
+      createdBy: context.userId,
+      companyId,
+      title: `Rulebook-validering ${createdMessage.message_family}/${createdMessage.message_code ?? "—"}`,
+    }).catch(async (error) => {
+      await createEdielMessageEvent({
+        actorUserId: context.userId,
+        edielMessageId: createdMessage.id,
+        eventType: "manual_note",
+        eventStatus: "warning",
+        message: "Rulebook-validering kunde inte sparas automatiskt.",
+        payload: {
+          rulebook: true,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    });
+
     if (mode === "agt") {
       await syncActorTestingForMessage({
         actorUserId: context.userId,
@@ -1397,6 +1421,15 @@ export async function createEdielAgtRunAction(formData: FormData) {
     actorName,
     actorEdielId,
   });
+
+  await createRulebookTestRun({
+    testCaseCode,
+    createdBy: context.userId,
+    environment: "test",
+    status: "running",
+    title: `Rulebook-kopplad AGT ${testCaseCode}`,
+    notes: { source: "createEdielAgtRunAction", suite },
+  }).catch(() => null);
 
   revalidateEdiel();
 }
@@ -1500,6 +1533,15 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     actorUserId: context.userId,
     testRunId: testRun.id,
   });
+
+  await createRulebookTestRun({
+    testCaseCode,
+    createdBy: context.userId,
+    environment: "test",
+    status: "running",
+    title: `Rulebook-kopplad TGT ${testCaseCode}`,
+    notes: { source: "createEdielTgtRunFromTemplateAction", suite: testSuite, roleCode },
+  }).catch(() => null);
 
   revalidateEdiel();
 }
