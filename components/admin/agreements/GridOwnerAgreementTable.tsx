@@ -10,6 +10,11 @@ type Props = {
   routeById: Lookup
 }
 
+function documentDownloadHref(documentPath: string | null | undefined): string | null {
+  if (!documentPath) return null
+  return `/admin/agreements/grid-owners/documents?path=${encodeURIComponent(documentPath)}`
+}
+
 function statusTone(status: string) {
   if (status === 'active') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
   if (status === 'blocked') return 'border-red-200 bg-red-50 text-red-800'
@@ -64,6 +69,11 @@ export default function GridOwnerAgreementTable({ agreements, companyById, gridO
                 <td className="px-4 py-4 text-slate-700">
                   <div>{agreement.agreement_reference ?? 'Saknas'}</div>
                   <div className="mt-1 text-xs text-slate-500">{agreement.preferred_application_reference ?? 'App ref ej satt'}</div>
+                  {documentDownloadHref(agreement.document_path) ? (
+                    <a href={documentDownloadHref(agreement.document_path) ?? '#'} className="mt-2 inline-flex text-xs font-semibold text-emerald-800 hover:text-emerald-900" target="_blank" rel="noreferrer">
+                      Öppna dokument
+                    </a>
+                  ) : null}
                 </td>
                 <td className="px-4 py-4 text-slate-700">
                   {agreement.preferred_route_id ? routeById[agreement.preferred_route_id] ?? agreement.preferred_route_id : 'Automatiskt'}

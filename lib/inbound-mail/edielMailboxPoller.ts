@@ -1,4 +1,5 @@
 import { ImapFlow } from 'imapflow'
+import { extractEdifactPayload } from '@/lib/inbound-mail/edielEmailParser'
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
 import { createInboundOverdueTasks } from '@/lib/inbound-mail/inboundOverdueMonitor'
 import { supabaseService } from '@/lib/supabase/service'
@@ -27,6 +28,15 @@ export type EdielMailboxRow = {
   updated_at: string
 }
 
+export type InboundEmailAttachmentInput = {
+  filename?: string | null
+  mimeType?: string | null
+  sizeBytes?: number | null
+  rawText?: string | null
+  isEdifactCandidate?: boolean
+  metadata?: Record<string, unknown>
+}
+
 export type StoreInboundEmailInput = {
   mailboxId: string
   companyId?: string | null
@@ -40,6 +50,7 @@ export type StoreInboundEmailInput = {
   bodyText?: string | null
   bodyHtml?: string | null
   hasAttachments?: boolean
+  attachments?: InboundEmailAttachmentInput[]
 }
 
 export type InboundProcessingJobRow = {
@@ -129,6 +140,115 @@ function envInt(name: string, fallback: number): number {
   return Number.isFinite(value) && value > 0 ? value : fallback
 }
 
+function decodeQuotedPrintable(input: string): string {
+  return input
+    .replace(/=\r?\n/g, '')
+    .replace(/=([0-9A-F]{2})/gi, (_match, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)))
+}
+
+function decodeMimePart(body: string, transferEncoding: string | null): string {
+  const encoding = transferEncoding?.toLowerCase()
+  if (encoding === 'base64') {
+    try {
+      return Buffer.from(body.replace(/\s+/g, ''), 'base64').toString('utf8')
+    } catch {
+      return body
+    }
+  }
+
+  if (encoding === 'quoted-printable') return decodeQuotedPrintable(body)
+  return body
+}
+
+function parseHeaderBlock(block: string): Record<string, string> {
+  const headers: Record<string, string> = {}
+  const unfolded = block.replace(/\r?\n[\t ]+/g, ' ')
+  for (const line of unfolded.split(/\r?\n/)) {
+    const index = line.indexOf(':')
+    if (index <= 0) continue
+    headers[line.slice(0, index).trim().toLowerCase()] = line.slice(index + 1).trim()
+  }
+  return headers
+}
+
+function headerParam(header: string | null | undefined, name: string): string | null {
+  if (!header) return null
+  const regex = new RegExp(`${name}\\*?=(?:UTF-8''|\")?([^\";]+)`, 'i')
+  const match = header.match(regex)
+  if (!match?.[1]) return null
+  try {
+    return decodeURIComponent(match[1].replace(/"/g, '').trim())
+  } catch {
+    return match[1].replace(/"/g, '').trim()
+  }
+}
+
+function splitMimeParts(rawEmail: string | null): { bodyText: string | null; bodyHtml: string | null; attachments: InboundEmailAttachmentInput[]; rawEdifactPayload: string | null } {
+  if (!rawEmail) return { bodyText: null, bodyHtml: null, attachments: [], rawEdifactPayload: null }
+
+  const firstBlank = rawEmail.search(/\r?\n\r?\n/)
+  const rootHeader = firstBlank >= 0 ? rawEmail.slice(0, firstBlank) : ''
+  const rootHeaders = parseHeaderBlock(rootHeader)
+  const boundary = headerParam(rootHeaders['content-type'], 'boundary')
+
+  const bodies: string[] = []
+  const htmlBodies: string[] = []
+  const attachments: InboundEmailAttachmentInput[] = []
+
+  if (!boundary) {
+    const body = firstBlank >= 0 ? rawEmail.slice(firstBlank).trim() : rawEmail
+    const decoded = decodeMimePart(body, extractHeader(rawEmail, 'Content-Transfer-Encoding'))
+    const payload = extractEdifactPayload(decoded)
+    return { bodyText: decoded, bodyHtml: null, attachments: [], rawEdifactPayload: payload }
+  }
+
+  const delimiter = `--${boundary}`
+  const rawParts = rawEmail.split(delimiter).slice(1).filter((part) => !part.trim().startsWith('--'))
+
+  for (const rawPart of rawParts) {
+    const part = rawPart.replace(/^\r?\n/, '')
+    const separator = part.search(/\r?\n\r?\n/)
+    if (separator < 0) continue
+
+    const headerBlock = part.slice(0, separator)
+    const bodyBlock = part.slice(separator).replace(/^\r?\n\r?\n/, '').replace(/\r?\n--$/, '').trim()
+    const headers = parseHeaderBlock(headerBlock)
+    const contentType = headers['content-type'] ?? ''
+    const disposition = headers['content-disposition'] ?? ''
+    const transferEncoding = headers['content-transfer-encoding'] ?? null
+    const filename = headerParam(disposition, 'filename') ?? headerParam(contentType, 'name')
+    const decoded = decodeMimePart(bodyBlock, transferEncoding)
+    const lowerFilename = filename?.toLowerCase() ?? ''
+    const isAttachment = /attachment/i.test(disposition) || Boolean(filename)
+    const isEdifactCandidate = Boolean(extractEdifactPayload(decoded)) || /\.(edi|edifact|txt|dat)$/i.test(lowerFilename)
+
+    if (isAttachment) {
+      attachments.push({
+        filename,
+        mimeType: contentType.split(';')[0]?.trim() || null,
+        sizeBytes: Buffer.byteLength(decoded, 'utf8'),
+        rawText: decoded,
+        isEdifactCandidate,
+        metadata: { contentType, disposition, transferEncoding },
+      })
+      continue
+    }
+
+    if (/text\/html/i.test(contentType)) htmlBodies.push(decoded)
+    else bodies.push(decoded)
+  }
+
+  const allText = [...attachments.filter((a) => a.isEdifactCandidate).map((a) => a.rawText ?? ''), ...bodies, ...htmlBodies, rawEmail]
+  const rawEdifactPayload = allText.map((value) => extractEdifactPayload(value)).find((value): value is string => Boolean(value)) ?? null
+
+  return {
+    bodyText: bodies.join('\n\n') || null,
+    bodyHtml: htmlBodies.join('\n\n') || null,
+    attachments,
+    rawEdifactPayload,
+  }
+}
+
 export async function listDueEdielMailboxes(options: { environment?: string | null; includeLockedOlderThanMinutes?: number } = {}): Promise<EdielMailboxRow[]> {
   let query = supabaseService
     .from('ediel_mailboxes')
@@ -196,7 +316,7 @@ export async function storeInboundEmail(input: StoreInboundEmailInput): Promise<
       raw_edifact_payload: input.rawEdifactPayload ?? null,
       body_text: input.bodyText ?? null,
       body_html: input.bodyHtml ?? null,
-      has_attachments: input.hasAttachments ?? false,
+      has_attachments: input.hasAttachments ?? Boolean(input.attachments?.length),
       processing_status: 'received',
       dedupe_key: dedupeKey,
       match_status: 'not_checked',
@@ -224,13 +344,28 @@ export async function storeInboundEmail(input: StoreInboundEmailInput): Promise<
 
   const id = (data as { id: string }).id
 
+  const attachments = input.attachments ?? []
+  if (attachments.length > 0) {
+    const { error: attachmentError } = await supabaseService.from('inbound_email_attachments').insert(attachments.map((attachment) => ({
+      company_id: input.companyId ?? null,
+      inbound_email_message_id: id,
+      filename: attachment.filename ?? null,
+      mime_type: attachment.mimeType ?? null,
+      size_bytes: attachment.sizeBytes ?? null,
+      raw_text: attachment.rawText ?? null,
+      is_edifact_candidate: attachment.isEdifactCandidate ?? false,
+      metadata: attachment.metadata ?? {},
+    })))
+    if (attachmentError) console.warn('[inbound-mail] Kunde inte spara bilagor', attachmentError)
+  }
+
   await supabaseService.from('inbound_processing_jobs').insert({
     company_id: input.companyId ?? null,
     mailbox_id: input.mailboxId,
     inbound_email_message_id: id,
     status: 'queued',
     step: 'received',
-    payload: { dedupeKey },
+    payload: { dedupeKey, hasRawEdifactPayload: Boolean(input.rawEdifactPayload), attachmentCount: attachments.length },
   })
 
   return { id, deduped: false }
@@ -257,6 +392,7 @@ async function storeMailboxFetchMessage(input: {
 
   const subject = stringOrNull(envelope?.subject) ?? extractHeader(rawEmail, 'Subject')
   const internalDate = input.message.internalDate instanceof Date ? input.message.internalDate.toISOString() : null
+  const parsedMime = splitMimeParts(rawEmail)
 
   return storeInboundEmail({
     mailboxId: input.mailbox.id,
@@ -267,8 +403,11 @@ async function storeMailboxFetchMessage(input: {
     subject,
     receivedAt: internalDate,
     rawEmail,
-    bodyText: rawEmail,
-    hasAttachments: false,
+    rawEdifactPayload: parsedMime.rawEdifactPayload,
+    bodyText: parsedMime.bodyText ?? rawEmail,
+    bodyHtml: parsedMime.bodyHtml,
+    hasAttachments: parsedMime.attachments.length > 0,
+    attachments: parsedMime.attachments,
   })
 }
 
@@ -312,7 +451,8 @@ export async function pollEdielMailbox(input: {
     })
 
     await client.connect()
-    const lock = await client.getMailboxLock('INBOX')
+    const folder = stringOrNull(input.mailbox.metadata?.imap_folder) ?? stringOrNull(input.mailbox.metadata?.folder) ?? 'INBOX'
+    const lock = await client.getMailboxLock(folder)
 
     try {
       let fetched = 0
@@ -346,19 +486,23 @@ export async function pollEdielMailbox(input: {
 }
 
 export async function listQueuedInboundProcessingJobs(limit = 50): Promise<InboundProcessingJobRow[]> {
+  const staleLockCutoff = new Date(Date.now() - envInt('EDIEL_INBOUND_STALE_JOB_LOCK_MINUTES', 15) * 60_000).toISOString()
   const { data, error } = await supabaseService
     .from('inbound_processing_jobs')
     .select('*')
-    .in('status', ['queued', 'retry'])
+    .in('status', ['queued', 'retry', 'processing'])
+    .or(`locked_at.is.null,locked_at.lt.${staleLockCutoff}`)
     .order('created_at', { ascending: true })
     .limit(limit)
 
   if (error) throw error
-  return (data ?? []) as InboundProcessingJobRow[]
+  const maxAttempts = envInt('EDIEL_INBOUND_MAX_JOB_ATTEMPTS', 5)
+  return ((data ?? []) as InboundProcessingJobRow[]).filter((job) => Number(job.attempts_count ?? 0) < maxAttempts)
 }
 
-async function markInboundProcessingJobStarted(jobId: string, workerId: string): Promise<void> {
-  const { error } = await supabaseService
+async function markInboundProcessingJobStarted(job: InboundProcessingJobRow, workerId: string): Promise<boolean> {
+  const nextAttempts = Number(job.attempts_count ?? 0) + 1
+  const { data, error } = await supabaseService
     .from('inbound_processing_jobs')
     .update({
       status: 'processing',
@@ -366,18 +510,22 @@ async function markInboundProcessingJobStarted(jobId: string, workerId: string):
       locked_at: nowIso(),
       locked_by: workerId,
       started_at: nowIso(),
-      attempts_count: 1,
+      finished_at: null,
+      attempts_count: nextAttempts,
       error_message: null,
       updated_at: nowIso(),
     })
-    .eq('id', jobId)
+    .eq('id', job.id)
+    .select('id')
+    .maybeSingle()
 
   if (error) throw error
+  return Boolean(data)
 }
 
 async function markInboundProcessingJobFinished(input: {
   jobId: string
-  status: 'processed' | 'manual_review' | 'failed'
+  status: 'done' | 'manual_review' | 'retry' | 'failed'
   step?: string | null
   errorMessage?: string | null
 }): Promise<void> {
@@ -404,6 +552,7 @@ export async function processQueuedInboundProcessingJobs(input: {
 } = {}): Promise<{ processed: number; failed: number }> {
   const workerId = input.workerId ?? 'inbound-mail-engine'
   const jobs = await listQueuedInboundProcessingJobs(input.limit ?? 50)
+  const maxAttempts = envInt('EDIEL_INBOUND_MAX_JOB_ATTEMPTS', 5)
   let processed = 0
   let failed = 0
 
@@ -415,17 +564,20 @@ export async function processQueuedInboundProcessingJobs(input: {
     }
 
     try {
-      await markInboundProcessingJobStarted(job.id, workerId)
+      const locked = await markInboundProcessingJobStarted(job, workerId)
+      if (!locked) continue
       const outcome = await processInboundEmailMessage({ inboundEmailMessageId: job.inbound_email_message_id, actorUserId: input.actorUserId ?? null })
       await markInboundProcessingJobFinished({
         jobId: job.id,
-        status: outcome.status === 'processed' ? 'processed' : 'manual_review',
+        status: outcome.status === 'processed' ? 'done' : 'manual_review',
         step: outcome.status,
       })
       processed += 1
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Okänt processfel.'
-      await markInboundProcessingJobFinished({ jobId: job.id, status: 'failed', step: 'processor_failed', errorMessage: message })
+      const nextAttempts = Number(job.attempts_count ?? 0) + 1
+      const shouldRetry = nextAttempts < maxAttempts
+      await markInboundProcessingJobFinished({ jobId: job.id, status: shouldRetry ? 'retry' : 'failed', step: 'processor_failed', errorMessage: message })
       failed += 1
     }
   }

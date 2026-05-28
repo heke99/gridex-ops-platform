@@ -18,7 +18,7 @@ type Props = {
 
 export default function GridOwnerAgreementForm({ companies, gridOwners, routes }: Props) {
   return (
-    <form action={saveGridOwnerAgreementAction} className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
+    <form action={saveGridOwnerAgreementAction} encType="multipart/form-data" className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Nytt nätägaravtal</p>
         <h2 className="mt-2 text-lg font-semibold text-slate-950">Avtal och referenskrav</h2>
@@ -120,8 +120,14 @@ export default function GridOwnerAgreementForm({ companies, gridOwners, routes }
         </label>
 
         <label className="text-sm font-medium text-slate-800">
+          Dokument/PDF
+          <input name="document_file" type="file" accept="application/pdf,.pdf,.txt,.doc,.docx" className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm" />
+          <span className="mt-1 block text-xs font-normal text-slate-500">Laddas upp till skyddad Supabase Storage-bucket.</span>
+        </label>
+
+        <label className="text-sm font-medium text-slate-800">
           Dokument/PDF-path
-          <input name="document_path" className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm" placeholder="storage path eller dokumentreferens" />
+          <input name="document_path" className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm" placeholder="Fyll bara i om dokument redan finns i storage" />
         </label>
 
         <label className="text-sm font-medium text-slate-800 md:col-span-2">

@@ -152,6 +152,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Mailboxar, parser och matchningskö',
     items: [
       { key: 'inbound_mail.workspace', label: 'Mailboxar', href: '/admin/inbound-mail', description: 'Inkommande mail, parserresultat och osäkra matchningar', platformOnly: true },
+      { key: 'inbound_mail.diagnostics', label: 'Diagnostics', href: '/admin/inbound-mail/diagnostics', description: 'Smoke tests för parser, tabeller och cron-secret', platformOnly: true },
       { key: 'outbound_unresolved', label: 'Osäkra matchningar', href: '/admin/outbound/unresolved', description: 'Meddelanden som kräver manuell granskning', pageKey: 'outbound.unresolved' },
     ],
   },

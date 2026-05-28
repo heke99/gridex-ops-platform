@@ -12,6 +12,10 @@ export type ParsedEdifactEnvelope = {
   bgmReference: string | null
   references: Record<string, string[]>
   parties: Record<string, string[]>
+  dates: Record<string, string[]>
+  quantities: Array<{ qualifier: string | null; value: number | null; rawValue: string | null; unit: string | null }>
+  errorCodes: string[]
+  freeText: string[]
   segments: string[]
 }
 
@@ -36,25 +40,47 @@ function pushRecord(record: Record<string, string[]>, key: string | null, value:
   record[key] = [...(record[key] ?? []), value]
 }
 
+function normalizeMimeText(input: string): string {
+  return input
+    .replace(/=\r?\n/g, '')
+    .replace(/=27/g, "'")
+    .replace(/=2B/gi, '+')
+    .replace(/=3A/gi, ':')
+    .replace(/=0D=0A/gi, '\n')
+}
+
 export function extractEdifactPayload(input: string | null | undefined): string | null {
   const raw = cleanText(input)
   if (!raw) return null
 
-  const unaIndex = raw.indexOf('UNA')
-  const unbIndex = raw.indexOf('UNB')
-  const start = unaIndex >= 0 ? unaIndex : unbIndex
+  const candidates = [raw, normalizeMimeText(raw)]
 
-  if (start < 0) return null
+  for (const candidate of candidates) {
+    const unaIndex = candidate.indexOf('UNA')
+    const unbIndex = candidate.indexOf('UNB')
+    const start = unaIndex >= 0 ? unaIndex : unbIndex
 
-  const fromStart = raw.slice(start)
-  const unzIndex = fromStart.lastIndexOf('UNZ+')
-  if (unzIndex < 0) return fromStart.trim()
+    if (start < 0) continue
 
-  const afterUnz = fromStart.slice(unzIndex)
-  const endQuote = afterUnz.indexOf("'")
-  if (endQuote < 0) return fromStart.trim()
+    const fromStart = candidate.slice(start)
+    const unzIndex = fromStart.lastIndexOf('UNZ+')
+    if (unzIndex < 0) return fromStart.trim()
 
-  return fromStart.slice(0, unzIndex + endQuote + 1).trim()
+    const afterUnz = fromStart.slice(unzIndex)
+    const endQuote = afterUnz.indexOf("'")
+    if (endQuote < 0) return fromStart.trim()
+
+    return fromStart.slice(0, unzIndex + endQuote + 1).trim()
+  }
+
+  return null
+}
+
+function parseNumeric(value: string | null): number | null {
+  if (!value) return null
+  const normalized = value.replace(',', '.')
+  const parsed = Number.parseFloat(normalized)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
@@ -67,6 +93,10 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
 
   const references: Record<string, string[]> = {}
   const parties: Record<string, string[]> = {}
+  const dates: Record<string, string[]> = {}
+  const quantities: ParsedEdifactEnvelope['quantities'] = []
+  const errorCodes: string[] = []
+  const freeText: string[] = []
   let messageFamily: ParsedEdifactEnvelope['messageFamily'] = 'OTHER'
   let messageCode: string | null = null
   let interchangeReference: string | null = null
@@ -116,6 +146,32 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
       pushRecord(references, cleanText(qualifier), cleanText(value))
     }
 
+    if (tag === 'DTM') {
+      const [qualifier, value] = String(elements[1] ?? '').split(':')
+      pushRecord(dates, cleanText(qualifier), cleanText(value))
+    }
+
+    if (tag === 'QTY') {
+      const [qualifier, value, unit] = String(elements[1] ?? '').split(':')
+      quantities.push({ qualifier: cleanText(qualifier), rawValue: cleanText(value), value: parseNumeric(cleanText(value)), unit: cleanText(unit) })
+    }
+
+    if (tag === 'ERC') {
+      const code = cleanText(String(elements[1] ?? '').split(':')[0] ?? null)
+      if (code) errorCodes.push(code)
+    }
+
+    if (tag === 'FTX') {
+      const text = elements
+        .slice(3)
+        .join(' ')
+        .split(':')
+        .map((part) => cleanText(part))
+        .filter((part): part is string => Boolean(part))
+        .join(' ')
+      if (text) freeText.push(text)
+    }
+
     if (tag === 'NAD') {
       const qualifier = cleanText(elements[1])
       const value = cleanText(elements[2]?.split(':')[0] ?? null)
@@ -137,6 +193,10 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
     bgmReference,
     references,
     parties,
+    dates,
+    quantities,
+    errorCodes,
+    freeText,
     segments,
   }
 }

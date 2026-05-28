@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import { supabaseService } from '@/lib/supabase/service'
 import {
   archiveGridOwnerAccessAgreement,
   saveGridOwnerAccessAgreement,
@@ -16,6 +17,44 @@ function text(formData: FormData, key: string): string | null {
 
 function bool(formData: FormData, key: string): boolean {
   return formData.get(key) === 'on' || formData.get(key) === 'true'
+}
+
+
+function fileFromFormData(formData: FormData, key: string): File | null {
+  const value = formData.get(key)
+  if (!value || typeof value !== 'object' || !('arrayBuffer' in value) || !('size' in value)) return null
+  const file = value as File
+  return file.size > 0 ? file : null
+}
+
+function safeFileName(name: string): string {
+  const cleaned = name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+  return cleaned || 'agreement.pdf'
+}
+
+async function uploadAgreementDocument(input: {
+  formData: FormData
+  companyId: string | null
+  gridOwnerId: string | null
+}): Promise<string | null> {
+  const file = fileFromFormData(input.formData, 'document_file')
+  if (!file) return null
+
+  const bucket = process.env.GRID_OWNER_AGREEMENTS_BUCKET ?? 'grid-owner-agreements'
+  const ownerPart = input.gridOwnerId ?? 'unknown-grid-owner'
+  const companyPart = input.companyId ?? 'platform'
+  const path = `${companyPart}/${ownerPart}/${Date.now()}-${safeFileName(file.name)}`
+
+  const uploadResult = await supabaseService.storage
+    .from(bucket)
+    .upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || 'application/pdf',
+    })
+
+  if (uploadResult.error) throw uploadResult.error
+  return `${bucket}:${path}`
 }
 
 function parseJson(value: string | null, fallback: Record<string, unknown>) {
@@ -34,11 +73,15 @@ export async function saveGridOwnerAgreementAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess()
   const id = text(formData, 'id')
 
+  const companyId = text(formData, 'company_id')
+  const gridOwnerId = text(formData, 'grid_owner_id')
+  const uploadedDocumentPath = await uploadAgreementDocument({ formData, companyId, gridOwnerId })
+
   await saveGridOwnerAccessAgreement({
     id,
     actorUserId: admin.userId,
-    companyId: text(formData, 'company_id'),
-    gridOwnerId: text(formData, 'grid_owner_id'),
+    companyId,
+    gridOwnerId,
     agreementType: text(formData, 'agreement_type') ?? 'metering_access',
     agreementScope: text(formData, 'agreement_scope') ?? 'metering_access',
     status: text(formData, 'status') ?? 'draft',
@@ -47,7 +90,7 @@ export async function saveGridOwnerAgreementAction(formData: FormData) {
     validFrom: text(formData, 'valid_from'),
     validTo: text(formData, 'valid_to'),
     signedAt: text(formData, 'signed_at'),
-    documentPath: text(formData, 'document_path'),
+    documentPath: uploadedDocumentPath ?? text(formData, 'document_path'),
     requiresCustomerAuthorization: bool(formData, 'requires_customer_authorization'),
     requiresMeteringPointId: bool(formData, 'requires_metering_point_id'),
     requiresFacilityId: bool(formData, 'requires_facility_id'),

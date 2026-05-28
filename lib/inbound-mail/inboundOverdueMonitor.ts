@@ -57,6 +57,12 @@ async function createOverdueTask(input: {
     return false
   }
 
+  await supabaseService
+    .from('outbound_requests')
+    .update({ status: 'waiting_attention', updated_at: nowIso(), failure_reason: input.title })
+    .eq('id', input.sourceId)
+    .eq('company_id', input.companyId)
+
   return true
 }
 
@@ -82,7 +88,7 @@ export async function createInboundOverdueTasks(input: {
   const { data: ackRows, error: ackError } = await supabaseService
     .from('outbound_requests')
     .select('id, company_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, message_family, message_code, sent_at, status, external_reference')
-    .eq('status', 'sent')
+    .in('status', ['sent', 'prepared', 'queued'])
     .not('company_id', 'is', null)
     .lt('sent_at', ackCutoff)
     .limit(limit)
@@ -113,7 +119,7 @@ export async function createInboundOverdueTasks(input: {
   const { data: z04Rows, error: z04Error } = await supabaseService
     .from('outbound_requests')
     .select('id, company_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, message_family, message_code, sent_at, status, external_reference')
-    .eq('status', 'acknowledged')
+    .in('status', ['syntax_accepted', 'application_accepted', 'acknowledged'])
     .eq('message_code', 'Z03')
     .not('company_id', 'is', null)
     .lt('acknowledged_at', z04Cutoff)
@@ -145,7 +151,7 @@ export async function createInboundOverdueTasks(input: {
   const { data: z14Rows, error: z14Error } = await supabaseService
     .from('outbound_requests')
     .select('id, company_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, message_family, message_code, sent_at, status, external_reference')
-    .eq('status', 'acknowledged')
+    .in('status', ['syntax_accepted', 'application_accepted', 'acknowledged'])
     .eq('message_code', 'Z13')
     .not('company_id', 'is', null)
     .lt('acknowledged_at', z14Cutoff)

@@ -1,3 +1,4 @@
+// app/api/internal/inbound-mail/cron/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { runInboundEdielMailEngine } from '@/lib/inbound-mail/edielMailboxPoller'
 

@@ -24,10 +24,24 @@ export async function processInboundEmailMessage(input: {
   const row = data as Record<string, unknown> | null
   if (!row) throw new Error('Inbound email hittades inte.')
 
+  const attachmentResult = await supabaseService
+    .from('inbound_email_attachments')
+    .select('raw_text,is_edifact_candidate,filename')
+    .eq('inbound_email_message_id', input.inboundEmailMessageId)
+    .order('is_edifact_candidate', { ascending: false })
+    .limit(10)
+
+  if (attachmentResult.error) throw attachmentResult.error
+  const attachmentText = [
+    typeof row.raw_edifact_payload === 'string' ? row.raw_edifact_payload : null,
+    ...((attachmentResult.data ?? []) as Array<Record<string, unknown>>)
+      .map((attachment) => typeof attachment.raw_text === 'string' ? attachment.raw_text : null),
+  ].filter((value): value is string => Boolean(value)).join('\n\n')
+
   const parsed = parseInboundEmailContent({
     rawEmail: typeof row.raw_email === 'string' ? row.raw_email : null,
     bodyText: typeof row.body_text === 'string' ? row.body_text : null,
-    attachmentText: typeof row.raw_edifact_payload === 'string' ? row.raw_edifact_payload : null,
+    attachmentText,
   })
 
   if (!parsed) {

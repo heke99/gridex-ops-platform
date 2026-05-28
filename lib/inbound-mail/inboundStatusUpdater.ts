@@ -21,6 +21,12 @@ function isPositiveAperak(parsed: ParsedEdifactEnvelope): boolean {
   return parsed.messageFamily === 'APERAK' && !isNegativeAperak(parsed)
 }
 
+function isRejectedZ14(parsed: ParsedEdifactEnvelope): boolean {
+  if (parsed.messageFamily !== 'PRODAT' || String(parsed.messageCode ?? '').toUpperCase() !== 'Z14') return false
+  const raw = parsed.rawPayload.toUpperCase()
+  return raw.includes('Z14N') || raw.includes('S18') || raw.includes('E18') || parsed.segments.some((segment) => segment.startsWith('STS+') && /\+(?:E18|S18|39|41)(?::|\+|$)/.test(segment))
+}
+
 function eventMessageForParsed(parsed: ParsedEdifactEnvelope): string {
   if (parsed.messageFamily === 'CONTRL') return isNegativeContrL(parsed) ? 'Negativ CONTRL mottagen.' : 'Positiv CONTRL mottagen.'
   if (parsed.messageFamily === 'APERAK') return isNegativeAperak(parsed) ? 'Negativ APERAK mottagen.' : 'Positiv APERAK mottagen.'
@@ -39,6 +45,7 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'CONTRL') {
     return {
       contrl_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
+      syntax_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
       syntax_check_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
       ack_outcome: isNegativeContrL(parsed) ? 'negative' : 'positive',
       failed_at: isNegativeContrL(parsed) ? nowIso() : null,
@@ -50,6 +57,7 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'APERAK') {
     return {
       aperak_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
+      application_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
       functional_check_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
       ack_outcome: isNegativeAperak(parsed) ? 'negative' : 'positive',
       failed_at: isNegativeAperak(parsed) ? nowIso() : null,
@@ -61,6 +69,7 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'UTILTS_ERR') {
     return {
       utilts_err_status: 'received',
+      application_status: 'rejected',
       functional_check_status: 'rejected',
       ack_outcome: 'negative',
       failed_at: nowIso(),
@@ -88,9 +97,66 @@ function payloadForInbound(input: {
     bgmReference: input.parsed.bgmReference,
     references: input.parsed.references,
     parties: input.parsed.parties,
+    dates: input.parsed.dates,
+    quantities: input.parsed.quantities,
+    errorCodes: input.parsed.errorCodes,
+    freeText: input.parsed.freeText,
     outboundMatch: input.outboundMatch ?? null,
     meteringPointMatch: input.meteringPointMatch ?? null,
   }
+}
+
+function matchedOutboundRow(match: InboundEntityMatch): Record<string, unknown> {
+  return match.candidates?.[0] ?? {}
+}
+
+function matchedContext(input: { outboundMatch: InboundEntityMatch; meteringPointMatch: InboundEntityMatch }) {
+  const outbound = matchedOutboundRow(input.outboundMatch)
+  const metering = input.meteringPointMatch.status === 'matched' ? input.meteringPointMatch.candidates?.[0] ?? {} : {}
+  return {
+    customerId: typeof outbound.customer_id === 'string' ? outbound.customer_id : typeof metering.customer_id === 'string' ? metering.customer_id : null,
+    siteId: typeof outbound.site_id === 'string' ? outbound.site_id : typeof metering.site_id === 'string' ? metering.site_id : null,
+    meteringPointId: typeof outbound.metering_point_id === 'string' ? outbound.metering_point_id : input.meteringPointMatch.status === 'matched' ? input.meteringPointMatch.entityId : null,
+    gridOwnerId: typeof outbound.grid_owner_id === 'string' ? outbound.grid_owner_id : typeof metering.grid_owner_id === 'string' ? metering.grid_owner_id : null,
+  }
+}
+
+function parseEdielDate(value: string | null | undefined): string | null {
+  if (!value) return null
+  const digits = value.replace(/\D/g, '')
+  if (digits.length < 8) return null
+  const year = digits.slice(0, 4)
+  const month = digits.slice(4, 6)
+  const day = digits.slice(6, 8)
+  const hour = digits.slice(8, 10) || '00'
+  const minute = digits.slice(10, 12) || '00'
+  const second = digits.slice(12, 14) || '00'
+  const iso = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+function firstDate(parsed: ParsedEdifactEnvelope, keys: string[]): string | null {
+  for (const key of keys) {
+    const date = parseEdielDate(parsed.dates[key]?.[0])
+    if (date) return date
+  }
+  return null
+}
+
+async function updateInboundEmailStatusOnly(input: {
+  inboundEmailMessageId?: string | null
+  status: string
+  matchStatus?: string | null
+  errorMessage?: string | null
+}) {
+  if (!input.inboundEmailMessageId) return
+  await supabaseService.from('inbound_email_messages').update({
+    processing_status: input.status,
+    match_status: input.matchStatus ?? undefined,
+    error_message: input.errorMessage ?? null,
+    updated_at: nowIso(),
+  }).eq('id', input.inboundEmailMessageId)
 }
 
 export async function updateInboundEmailProcessingStatus(input: {
@@ -137,7 +203,7 @@ export async function createParseResult(input: {
       application_reference: input.parsed.applicationReference,
       parse_status: 'parsed',
       parsed_payload: input.parsed,
-      validation_report: { status: 'parsed_by_batch_7a_engine' },
+      validation_report: { status: 'parsed_by_batch_7a1_engine' },
       raw_payload: input.parsed.rawPayload,
     })
     .select('id')
@@ -185,7 +251,7 @@ export async function createInboundEdielMessage(input: {
     original_message_id: input.parsed.bgmReference,
     raw_payload: input.parsed.rawPayload,
     parsed_payload: input.parsed,
-    validation_report: { status: 'parsed_by_batch_7a_inbound_mail_engine' },
+    validation_report: { status: 'parsed_by_batch_7a1_inbound_mail_engine' },
     inbound_email_message_id: input.inboundEmailMessageId,
     outbound_request_id: matchedOutboundId,
     metering_point_id: matchedMeteringPointId,
@@ -296,17 +362,236 @@ async function updateOutboundEdielAckState(input: {
   })))
 }
 
+async function createAckProblemTask(input: {
+  companyId: string
+  parsed: ParsedEdifactEnvelope
+  outboundMatch: InboundEntityMatch
+  meteringPointMatch: InboundEntityMatch
+  responsePayload: Record<string, unknown>
+  title: string
+  description: string
+  taskType: string
+  actorUserId?: string | null
+}) {
+  const context = matchedContext({ outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch })
+  await createInboundMailTask({
+    companyId: input.companyId,
+    customerId: context.customerId,
+    siteId: context.siteId,
+    meteringPointId: context.meteringPointId,
+    title: input.title,
+    description: input.description,
+    priority: 'urgent',
+    taskType: input.taskType,
+    metadata: {
+      ...input.responsePayload,
+      sourceId: input.outboundMatch.entityId ?? input.responsePayload.inboundEmailMessageId ?? input.parsed.interchangeReference ?? input.parsed.transactionReference ?? input.taskType,
+      messageFamily: input.parsed.messageFamily,
+      messageCode: input.parsed.messageCode,
+      errorCodes: input.parsed.errorCodes,
+      errorText: input.parsed.freeText,
+      gridOwnerId: context.gridOwnerId,
+    },
+    actorUserId: input.actorUserId ?? null,
+  })
+}
+
+async function updateMeteringPermissionFromZ14(input: {
+  companyId: string
+  parsed: ParsedEdifactEnvelope
+  outbound: Record<string, unknown>
+  responsePayload: Record<string, unknown>
+  actorUserId?: string | null
+}) {
+  const sourceType = typeof input.outbound.source_type === 'string' ? input.outbound.source_type : null
+  const sourceId = typeof input.outbound.source_id === 'string' ? input.outbound.source_id : null
+  const status = isRejectedZ14(input.parsed) ? 'rejected_active' : 'z14_received'
+  const permissionReference = input.parsed.references.Z12?.[0] ?? input.parsed.references.Z13?.[0] ?? input.parsed.references.ACW?.[0] ?? input.parsed.bgmReference
+  const approvedStart = parseEdielDate(input.parsed.dates['157']?.[0]) ?? parseEdielDate(input.parsed.dates['194']?.[0])
+  const approvedEnd = parseEdielDate(input.parsed.dates['36']?.[0]) ?? parseEdielDate(input.parsed.dates['206']?.[0])
+
+  if (sourceType === 'metering_permission' && sourceId) {
+    const { error } = await supabaseService
+      .from('metering_permissions')
+      .update({
+        status,
+        permission_reference: permissionReference ?? undefined,
+        approved_start_date: approvedStart ? approvedStart.slice(0, 10) : undefined,
+        approved_end_date: approvedEnd ? approvedEnd.slice(0, 10) : undefined,
+        last_blocker: status === 'rejected_active' ? 'Z14 markerade begäran som nekad.' : null,
+        metadata: input.responsePayload,
+        updated_by: input.actorUserId ?? null,
+        updated_at: nowIso(),
+      })
+      .eq('company_id', input.companyId)
+      .eq('id', sourceId)
+    if (error) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission från Z14', error)
+    return
+  }
+
+  if (sourceType === 'grid_owner_data_request' && sourceId) {
+    const { data, error } = await supabaseService
+      .from('metering_permissions')
+      .select('id')
+      .eq('company_id', input.companyId)
+      .contains('metadata', { z13: { gridOwnerDataRequestId: sourceId } })
+      .limit(5)
+
+    if (error) {
+      console.warn('[inbound-mail] Kunde inte leta metering_permission via grid_owner_data_request', error)
+      return
+    }
+
+    const rows = (data ?? []) as Array<{ id: string }>
+    if (rows.length !== 1) return
+
+    const { error: updateError } = await supabaseService
+      .from('metering_permissions')
+      .update({
+        status,
+        permission_reference: permissionReference ?? undefined,
+        approved_start_date: approvedStart ? approvedStart.slice(0, 10) : undefined,
+        approved_end_date: approvedEnd ? approvedEnd.slice(0, 10) : undefined,
+        last_blocker: status === 'rejected_active' ? 'Z14 markerade begäran som nekad.' : null,
+        metadata: input.responsePayload,
+        updated_by: input.actorUserId ?? null,
+        updated_at: nowIso(),
+      })
+      .eq('company_id', input.companyId)
+      .eq('id', rows[0].id)
+    if (updateError) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission via grid_owner_data_request', updateError)
+  }
+}
+
+async function importUtiltsMeteringValue(input: {
+  companyId: string
+  parsed: ParsedEdifactEnvelope
+  outboundMatch: InboundEntityMatch
+  meteringPointMatch: InboundEntityMatch
+  inboundEdielMessageId?: string | null
+  responsePayload: Record<string, unknown>
+  actorUserId?: string | null
+}) {
+  if (input.parsed.messageFamily !== 'UTILTS') return
+
+  const context = matchedContext({ outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch })
+  if (input.meteringPointMatch.status !== 'matched' || !context.meteringPointId) {
+    await createInboundMailTask({
+      companyId: input.companyId,
+      title: 'UTILTS mottagen men mätpunkt kunde inte matchas säkert',
+      description: 'Mätvärden importeras inte automatiskt utan säker mätpunkt. Matcha manuellt i Inbound Mail Engine.',
+      priority: 'high',
+      taskType: 'ediel_utilts_meter_value_review',
+      metadata: { ...input.responsePayload, sourceId: input.outboundMatch.entityId ?? input.parsed.interchangeReference ?? input.parsed.transactionReference ?? 'utilts_missing_metering_point' },
+      actorUserId: input.actorUserId ?? null,
+    })
+    return
+  }
+
+  const quantity = input.parsed.quantities.find((item) => item.value !== null)
+  if (!quantity) {
+    await createInboundMailTask({
+      companyId: input.companyId,
+      customerId: context.customerId,
+      siteId: context.siteId,
+      meteringPointId: context.meteringPointId,
+      title: 'UTILTS mottagen utan läsbart mätvärde',
+      description: 'Parsern hittade ingen QTY-rad med numeriskt värde. Kontrollera raw UTILTS innan import.',
+      priority: 'high',
+      taskType: 'ediel_utilts_meter_value_review',
+      metadata: { ...input.responsePayload, sourceId: input.outboundMatch.entityId ?? input.parsed.interchangeReference ?? input.parsed.transactionReference ?? 'utilts_missing_qty' },
+      actorUserId: input.actorUserId ?? null,
+    })
+    return
+  }
+
+  const periodStart = firstDate(input.parsed, ['163', '194', '356', '324', '238']) ?? nowIso()
+  const periodEnd = firstDate(input.parsed, ['164', '206', '357', '265']) ?? periodStart
+  const readAt = firstDate(input.parsed, ['354', '597', '137', '238']) ?? periodEnd
+  const canonicalDedupeKey = [
+    input.parsed.interchangeReference,
+    input.parsed.transactionReference,
+    input.parsed.messageCode,
+    context.meteringPointId,
+    quantity.qualifier,
+    quantity.rawValue,
+    periodStart,
+    periodEnd,
+  ].filter(Boolean).join('|')
+
+  const existing = await supabaseService
+    .from('metering_values')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('canonical_dedupe_key', canonicalDedupeKey)
+    .maybeSingle()
+  if (existing.error) console.warn('[inbound-mail] Kunde inte kontrollera UTILTS dedupe', existing.error)
+  if ((existing.data as { id?: string } | null)?.id) return
+
+  const outbound = matchedOutboundRow(input.outboundMatch)
+  const { error } = await supabaseService.from('metering_values').insert({
+    company_id: input.companyId,
+    customer_id: context.customerId,
+    site_id: context.siteId,
+    metering_point_id: context.meteringPointId,
+    source_request_id: input.outboundMatch.entityId ?? null,
+    grid_owner_id: context.gridOwnerId,
+    reading_type: quantity.qualifier ?? 'consumption',
+    value_kwh: quantity.value,
+    quality_code: input.parsed.references.Z30?.[0] ?? input.parsed.references.Z31?.[0] ?? null,
+    read_at: readAt,
+    period_start: periodStart,
+    period_end: periodEnd,
+    source_system: 'ediel_utilts_inbound_mail',
+    raw_payload: input.responsePayload,
+    source_ediel_message_id: input.inboundEdielMessageId ?? null,
+    canonical_dedupe_key: canonicalDedupeKey,
+    is_current: true,
+    value_status: 'current',
+    created_by: input.actorUserId ?? null,
+  })
+
+  if (error) {
+    await createInboundMailTask({
+      companyId: input.companyId,
+      customerId: context.customerId,
+      siteId: context.siteId,
+      meteringPointId: context.meteringPointId,
+      title: 'UTILTS kunde inte importeras till mätvärden',
+      description: error.message,
+      priority: 'high',
+      taskType: 'ediel_utilts_meter_value_review',
+      metadata: { ...input.responsePayload, sourceId: input.outboundMatch.entityId ?? canonicalDedupeKey, outbound },
+      actorUserId: input.actorUserId ?? null,
+    })
+  }
+}
+
 async function updateBusinessStatusFromInbound(input: {
   companyId: string
   parsed: ParsedEdifactEnvelope
   outboundMatch: InboundEntityMatch
+  meteringPointMatch: InboundEntityMatch
+  inboundEdielMessageId?: string | null
   responsePayload: Record<string, unknown>
+  actorUserId?: string | null
 }): Promise<void> {
-  const outbound = input.outboundMatch.candidates?.[0] ?? {}
+  const outbound = matchedOutboundRow(input.outboundMatch)
   const sourceType = typeof outbound.source_type === 'string' ? outbound.source_type : null
   const sourceId = typeof outbound.source_id === 'string' ? outbound.source_id : null
 
-  if (!sourceId) return
+  if (!sourceId) {
+    await importUtiltsMeteringValue({
+      companyId: input.companyId,
+      parsed: input.parsed,
+      outboundMatch: input.outboundMatch,
+      meteringPointMatch: input.meteringPointMatch,
+      inboundEdielMessageId: input.inboundEdielMessageId,
+      responsePayload: input.responsePayload,
+      actorUserId: input.actorUserId ?? null,
+    })
+    return
+  }
 
   if (sourceType === 'supplier_switch_request') {
     if (input.parsed.messageFamily === 'PRODAT' && input.parsed.messageCode === 'Z04') {
@@ -317,7 +602,7 @@ async function updateBusinessStatusFromInbound(input: {
         .eq('company_id', input.companyId)
     }
 
-    if (isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR') {
+    if (isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' || isNegativeContrL(input.parsed)) {
       await supabaseService
         .from('supplier_switch_requests')
         .update({ status: 'rejected', failed_at: nowIso(), failure_reason: eventMessageForParsed(input.parsed), metadata: input.responsePayload, updated_at: nowIso() })
@@ -330,7 +615,7 @@ async function updateBusinessStatusFromInbound(input: {
     if (input.parsed.messageFamily === 'PRODAT' && ['Z02', 'Z14'].includes(String(input.parsed.messageCode ?? '').toUpperCase())) {
       await supabaseService
         .from('grid_owner_data_requests')
-        .update({ status: 'received', response_payload: input.responsePayload, updated_at: nowIso() })
+        .update({ status: 'received', response_payload: input.responsePayload, received_at: nowIso(), updated_at: nowIso() })
         .eq('id', sourceId)
         .eq('company_id', input.companyId)
     }
@@ -338,12 +623,12 @@ async function updateBusinessStatusFromInbound(input: {
     if (input.parsed.messageFamily === 'UTILTS') {
       await supabaseService
         .from('grid_owner_data_requests')
-        .update({ status: 'received', response_payload: input.responsePayload, updated_at: nowIso() })
+        .update({ status: 'received', response_payload: input.responsePayload, received_at: nowIso(), updated_at: nowIso() })
         .eq('id', sourceId)
         .eq('company_id', input.companyId)
     }
 
-    if (isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR') {
+    if (isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' || isNegativeContrL(input.parsed)) {
       await supabaseService
         .from('grid_owner_data_requests')
         .update({ status: 'failed', failure_reason: eventMessageForParsed(input.parsed), response_payload: input.responsePayload, failed_at: nowIso(), updated_at: nowIso() })
@@ -351,6 +636,26 @@ async function updateBusinessStatusFromInbound(input: {
         .eq('company_id', input.companyId)
     }
   }
+
+  if (input.parsed.messageFamily === 'PRODAT' && String(input.parsed.messageCode ?? '').toUpperCase() === 'Z14') {
+    await updateMeteringPermissionFromZ14({
+      companyId: input.companyId,
+      parsed: input.parsed,
+      outbound,
+      responsePayload: input.responsePayload,
+      actorUserId: input.actorUserId ?? null,
+    })
+  }
+
+  await importUtiltsMeteringValue({
+    companyId: input.companyId,
+    parsed: input.parsed,
+    outboundMatch: input.outboundMatch,
+    meteringPointMatch: input.meteringPointMatch,
+    inboundEdielMessageId: input.inboundEdielMessageId,
+    responsePayload: input.responsePayload,
+    actorUserId: input.actorUserId ?? null,
+  })
 }
 
 export async function applySafeInboundStatusUpdate(input: {
@@ -386,26 +691,32 @@ export async function applySafeInboundStatusUpdate(input: {
     await supabaseService
       .from('outbound_requests')
       .update({
-        status: isNegative ? 'failed' : 'acknowledged',
+        status: isNegative ? 'syntax_rejected' : 'syntax_accepted',
         response_payload: responsePayload,
         failure_reason: isNegative ? 'Negativ CONTRL mottagen via inbound mail engine.' : null,
         acknowledged_at: isNegative ? null : nowIso(),
         failed_at: isNegative ? nowIso() : null,
+        updated_at: nowIso(),
       })
       .eq('id', input.outboundMatch.entityId)
       .eq('company_id', input.companyId)
 
     await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
+    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
 
     if (isNegative) {
-      await createInboundMailTask({
+      await createAckProblemTask({
         companyId: input.companyId,
+        parsed: input.parsed,
+        outboundMatch: input.outboundMatch,
+        meteringPointMatch: input.meteringPointMatch,
+        responsePayload,
         title: 'Negativ CONTRL mottagen',
         description: 'Syntaxkvittensen var negativ. Stoppa flödet och kontrollera raw EDIFACT innan omsändning.',
-        priority: 'urgent',
-        metadata: responsePayload,
+        taskType: 'ediel_negative_contrl',
         actorUserId: input.actorUserId ?? null,
       })
+      await updateInboundEmailStatusOnly({ inboundEmailMessageId: input.inboundEmailMessageId, status: 'manual_review', matchStatus: 'negative_contrl' })
     }
     return
   }
@@ -415,27 +726,32 @@ export async function applySafeInboundStatusUpdate(input: {
     await supabaseService
       .from('outbound_requests')
       .update({
-        status: isNegative ? 'failed' : 'acknowledged',
+        status: isNegative ? 'application_rejected' : 'application_accepted',
         response_payload: responsePayload,
         failure_reason: isNegative ? 'Negativ APERAK mottagen via inbound mail engine.' : null,
         acknowledged_at: isNegative ? null : nowIso(),
         failed_at: isNegative ? nowIso() : null,
+        updated_at: nowIso(),
       })
       .eq('id', input.outboundMatch.entityId)
       .eq('company_id', input.companyId)
 
     await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
-    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, responsePayload })
+    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
 
     if (isNegative) {
-      await createInboundMailTask({
+      await createAckProblemTask({
         companyId: input.companyId,
+        parsed: input.parsed,
+        outboundMatch: input.outboundMatch,
+        meteringPointMatch: input.meteringPointMatch,
+        responsePayload,
         title: 'Negativ APERAK mottagen',
         description: 'Applikationskvittensen var negativ. Korrigera felorsak och skapa ny preflight innan eventuell omsändning.',
-        priority: 'urgent',
-        metadata: responsePayload,
+        taskType: 'ediel_negative_aperak',
         actorUserId: input.actorUserId ?? null,
       })
+      await updateInboundEmailStatusOnly({ inboundEmailMessageId: input.inboundEmailMessageId, status: 'manual_review', matchStatus: 'negative_aperak' })
     }
     return
   }
@@ -444,35 +760,41 @@ export async function applySafeInboundStatusUpdate(input: {
     await supabaseService
       .from('outbound_requests')
       .update({
-        status: 'failed',
+        status: 'functional_rejected',
         response_payload: responsePayload,
         failure_reason: 'UTILTS_ERR mottagen via inbound mail engine.',
         failed_at: nowIso(),
+        updated_at: nowIso(),
       })
       .eq('id', input.outboundMatch.entityId)
       .eq('company_id', input.companyId)
 
     await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
-    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, responsePayload })
-    await createInboundMailTask({
+    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
+    await createAckProblemTask({
       companyId: input.companyId,
+      parsed: input.parsed,
+      outboundMatch: input.outboundMatch,
+      meteringPointMatch: input.meteringPointMatch,
+      responsePayload,
       title: 'UTILTS_ERR mottagen',
       description: 'UTILTS-flödet fick funktionsfel. Kontrollera STS/reason och korrigera innan nytt flöde.',
-      priority: 'urgent',
-      metadata: responsePayload,
+      taskType: 'ediel_utilts_err',
       actorUserId: input.actorUserId ?? null,
     })
+    await updateInboundEmailStatusOnly({ inboundEmailMessageId: input.inboundEmailMessageId, status: 'manual_review', matchStatus: 'utilts_err' })
     return
   }
 
   if (input.parsed.messageFamily === 'PRODAT' || input.parsed.messageFamily === 'UTILTS') {
+    const nextStatus = input.parsed.messageFamily === 'UTILTS' ? 'business_response_received' : String(input.parsed.messageCode ?? '').toUpperCase() === 'Z04' ? 'confirmed' : 'business_response_received'
     await supabaseService
       .from('outbound_requests')
-      .update({ status: 'acknowledged', response_payload: responsePayload, acknowledged_at: nowIso() })
+      .update({ status: nextStatus, response_payload: responsePayload, acknowledged_at: nowIso(), updated_at: nowIso() })
       .eq('id', input.outboundMatch.entityId)
       .eq('company_id', input.companyId)
 
-    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, responsePayload })
+    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
   }
 }
 

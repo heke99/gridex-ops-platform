@@ -96,6 +96,9 @@ export default async function InboundMailPage() {
               <form action={processInboundMailQueueAction}>
                 <button className="rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Processa kö</button>
               </form>
+              <Link href="/admin/inbound-mail/diagnostics" className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                Diagnostics
+              </Link>
             </div>
           </div>
         </section>
