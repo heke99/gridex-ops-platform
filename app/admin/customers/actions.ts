@@ -88,8 +88,10 @@ type CreateCustomerGraphParams = {
   gridAreaCode: string | null;
   moveInDate: string | null;
   annualConsumptionKwh: number | null;
+  currentSupplierId: string | null;
   currentSupplierName: string | null;
   currentSupplierOrgNumber: string | null;
+  currentSupplierUnknown: boolean;
   customerConfirmationStatus: string | null;
   authorizationStatus: string | null;
   authorizationValidFrom: string | null;
@@ -180,12 +182,26 @@ const INTAKE_VALUE_FIELDS: IntakeField[] = [
   "meterPointId",
   "siteType",
   "gridOwnerId",
+  "newGridOwnerName",
+  "newGridOwnerOrgNumber",
+  "newGridOwnerEdielId",
+  "newGridOwnerEmail",
+  "newGridOwnerPhone",
   "priceAreaCode",
   "gridAreaCode",
   "moveInDate",
   "annualConsumptionKwh",
+  "currentSupplierId",
   "currentSupplierName",
   "currentSupplierOrgNumber",
+  "currentSupplierUnknown",
+  "newCurrentSupplierName",
+  "newCurrentSupplierOrgNumber",
+  "newCurrentSupplierEdielId",
+  "newCurrentSupplierSwitchingEmail",
+  "newCurrentSupplierContractEmail",
+  "newCurrentSupplierCustomerServiceEmail",
+  "newCurrentSupplierPhone",
   "customerConfirmationStatus",
   "authorizationStatus",
   "authorizationValidFrom",
@@ -457,6 +473,190 @@ function normalizeCountryCode(value: string | null | undefined): string {
   return normalized.toUpperCase();
 }
 
+
+function normalizeInlineCreateChoice(value: string | null | undefined): string | null {
+  const normalized = normalizeOptionalString(value);
+  if (!normalized || normalized === "__new__" || normalized === "__unknown__") return null;
+  return normalized;
+}
+
+function normalizeComparable(value: string | null | undefined): string | null {
+  const normalized = normalizeOptionalString(value);
+  return normalized ? normalized.toLowerCase().replace(/\s+/g, " ") : null;
+}
+
+async function resolveOrCreateGridOwnerForIntake(params: {
+  formData: FormData;
+  companyId: string;
+  actorUserId: string;
+  selectedGridOwnerId: string | null;
+}): Promise<{ gridOwnerId: string | null; warnings: string[] }> {
+  const selectedGridOwnerId = normalizeInlineCreateChoice(params.selectedGridOwnerId);
+  const newName = normalizeOptionalString(getString(params.formData, "newGridOwnerName"));
+  const newOrgNumber = normalizeOptionalString(getString(params.formData, "newGridOwnerOrgNumber"));
+  const newEdielId = normalizeOptionalString(getString(params.formData, "newGridOwnerEdielId"));
+  const newEmail = normalizeOptionalString(getString(params.formData, "newGridOwnerEmail"));
+  const newPhone = normalizeOptionalString(getString(params.formData, "newGridOwnerPhone"));
+
+  if (selectedGridOwnerId || !newName) {
+    return { gridOwnerId: selectedGridOwnerId, warnings: [] };
+  }
+
+  const { data: rows, error } = await supabaseService
+    .from("grid_owners")
+    .select("id,name,org_number,ediel_id")
+    .or(`company_id.is.null,company_id.eq.${params.companyId}`)
+    .limit(500);
+
+  if (error) throw error;
+
+  const nameKey = normalizeComparable(newName);
+  const orgKey = normalizeComparable(newOrgNumber);
+  const edielKey = normalizeComparable(newEdielId);
+  const matches = ((rows ?? []) as Array<Record<string, unknown>>).filter((row) => {
+    const rowName = normalizeComparable(String(row.name ?? ""));
+    const rowOrg = normalizeComparable(String(row.org_number ?? ""));
+    const rowEdiel = normalizeComparable(String(row.ediel_id ?? ""));
+    return Boolean(
+      (edielKey && rowEdiel === edielKey) ||
+        (orgKey && rowOrg === orgKey) ||
+        (nameKey && rowName === nameKey),
+    );
+  });
+
+  if (matches[0]?.id) {
+    return {
+      gridOwnerId: String(matches[0].id),
+      warnings: [`Möjlig dubblett på nätägare hittades. Befintlig nätägare används: ${String(matches[0].name ?? matches[0].id)}.`],
+    };
+  }
+
+  const { data: created, error: insertError } = await supabaseService
+    .from("grid_owners")
+    .insert({
+      company_id: params.companyId,
+      name: newName,
+      owner_code: newEdielId ?? newOrgNumber ?? newName.slice(0, 24),
+      ediel_id: newEdielId,
+      org_number: newOrgNumber,
+      email: newEmail,
+      phone: newPhone,
+      country: "SE",
+      notes: "Skapad direkt från kundintag. Kontrollera route och nätägaravtal innan Ediel-utskick.",
+      is_active: true,
+      created_by: params.actorUserId,
+      updated_by: params.actorUserId,
+    })
+    .select("id")
+    .single();
+
+  if (insertError) throw insertError;
+  return { gridOwnerId: String(created.id), warnings: [`Ny nätägare skapades från kundintag: ${newName}.`] };
+}
+
+async function resolveOrCreateCurrentSupplierForIntake(params: {
+  formData: FormData;
+  companyId: string;
+  actorUserId: string;
+  selectedSupplierId: string | null;
+  currentSupplierName: string | null;
+  currentSupplierOrgNumber: string | null;
+  unknown: boolean;
+}): Promise<{ supplierId: string | null; name: string | null; orgNumber: string | null; warnings: string[] }> {
+  if (params.unknown) {
+    return {
+      supplierId: null,
+      name: "Okänd nuvarande leverantör",
+      orgNumber: null,
+      warnings: ["Nuvarande leverantör markerades som okänd. Kommersiella uppgifter behöver kontrolleras innan säkert byte."],
+    };
+  }
+
+  const selectedSupplierId = normalizeInlineCreateChoice(params.selectedSupplierId);
+  if (selectedSupplierId) {
+    const { data, error } = await supabaseService
+      .from("electricity_suppliers")
+      .select("id,name,org_number")
+      .eq("id", selectedSupplierId)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) {
+      return {
+        supplierId: String(data.id),
+        name: String(data.name ?? params.currentSupplierName ?? ""),
+        orgNumber: typeof data.org_number === "string" ? data.org_number : params.currentSupplierOrgNumber,
+        warnings: [],
+      };
+    }
+  }
+
+  const newName = normalizeOptionalString(getString(params.formData, "newCurrentSupplierName")) ?? params.currentSupplierName;
+  const newOrgNumber = normalizeOptionalString(getString(params.formData, "newCurrentSupplierOrgNumber")) ?? params.currentSupplierOrgNumber;
+  const newEdielId = normalizeOptionalString(getString(params.formData, "newCurrentSupplierEdielId"));
+  const switchingEmail = normalizeOptionalString(getString(params.formData, "newCurrentSupplierSwitchingEmail"));
+  const contractEmail = normalizeOptionalString(getString(params.formData, "newCurrentSupplierContractEmail"));
+  const customerServiceEmail = normalizeOptionalString(getString(params.formData, "newCurrentSupplierCustomerServiceEmail"));
+  const newPhone = normalizeOptionalString(getString(params.formData, "newCurrentSupplierPhone"));
+
+  if (!newName) {
+    return { supplierId: null, name: params.currentSupplierName, orgNumber: params.currentSupplierOrgNumber, warnings: [] };
+  }
+
+  const { data: rows, error } = await supabaseService
+    .from("electricity_suppliers")
+    .select("id,name,org_number,ediel_id")
+    .or(`company_id.is.null,company_id.eq.${params.companyId}`)
+    .limit(500);
+  if (error) throw error;
+
+  const nameKey = normalizeComparable(newName);
+  const orgKey = normalizeComparable(newOrgNumber);
+  const edielKey = normalizeComparable(newEdielId);
+  const matches = ((rows ?? []) as Array<Record<string, unknown>>).filter((row) => {
+    const rowName = normalizeComparable(String(row.name ?? ""));
+    const rowOrg = normalizeComparable(String(row.org_number ?? ""));
+    const rowEdiel = normalizeComparable(String(row.ediel_id ?? ""));
+    return Boolean(
+      (edielKey && rowEdiel === edielKey) ||
+        (orgKey && rowOrg === orgKey) ||
+        (nameKey && rowName === nameKey),
+    );
+  });
+
+  if (matches[0]?.id) {
+    return {
+      supplierId: String(matches[0].id),
+      name: String(matches[0].name ?? newName),
+      orgNumber: typeof matches[0].org_number === "string" ? String(matches[0].org_number) : newOrgNumber,
+      warnings: [`Möjlig dubblett på leverantör hittades. Befintlig leverantör används: ${String(matches[0].name ?? matches[0].id)}.`],
+    };
+  }
+
+  const email = switchingEmail ?? contractEmail ?? customerServiceEmail;
+  const { data: created, error: insertError } = await supabaseService
+    .from("electricity_suppliers")
+    .insert({
+      company_id: params.companyId,
+      name: newName,
+      org_number: newOrgNumber,
+      ediel_id: newEdielId,
+      email,
+      switching_email: switchingEmail,
+      contract_email: contractEmail,
+      customer_service_email: customerServiceEmail,
+      phone: newPhone,
+      notes: "Skapad direkt från kundintag. Mail till nuvarande leverantör får endast användas för informationshämtning, inte för att starta byte.",
+      is_active: true,
+      created_by: params.actorUserId,
+      updated_by: params.actorUserId,
+    })
+    .select("id")
+    .single();
+  if (insertError) throw insertError;
+
+  return { supplierId: String(created.id), name: newName, orgNumber: newOrgNumber, warnings: [`Ny nuvarande leverantör skapades från kundintag: ${newName}.`] };
+}
+
 function isIsoDate(value: string | null | undefined): boolean {
   if (!value) return false;
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -640,11 +840,13 @@ function buildCreateCustomerParams(
     annualConsumptionKwh: parseNumber(
       getString(formData, "annualConsumptionKwh"),
     ),
+    currentSupplierId: getNullableString(formData, "currentSupplierId"),
     currentSupplierName: getNullableString(formData, "currentSupplierName"),
     currentSupplierOrgNumber: getNullableString(
       formData,
       "currentSupplierOrgNumber",
     ),
+    currentSupplierUnknown: formDataFlag(formData, "currentSupplierUnknown") || getString(formData, "currentSupplierId") === "__unknown__",
     customerConfirmationStatus: getNullableString(
       formData,
       "customerConfirmationStatus",
@@ -2479,12 +2681,17 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
   const normalizedGridOwnerId = normalizeOptionalString(params.gridOwnerId);
   const normalizedGridAreaCode = normalizeOptionalString(params.gridAreaCode);
   const normalizedMoveInDate = normalizeOptionalString(params.moveInDate);
-  const normalizedCurrentSupplierName = normalizeOptionalString(
-    params.currentSupplierName,
-  );
-  const normalizedCurrentSupplierOrgNumber = normalizeOptionalString(
-    params.currentSupplierOrgNumber,
-  );
+  const normalizedCurrentSupplierId = normalizeOptionalString(params.currentSupplierId);
+  const normalizedCurrentSupplierName = params.currentSupplierUnknown
+    ? "Okänd nuvarande leverantör"
+    : normalizeOptionalString(
+        params.currentSupplierName,
+      );
+  const normalizedCurrentSupplierOrgNumber = params.currentSupplierUnknown
+    ? null
+    : normalizeOptionalString(
+        params.currentSupplierOrgNumber,
+      );
   const normalizedCustomerConfirmationStatus = normalizeOptionalString(
     params.customerConfirmationStatus,
   );
@@ -2731,8 +2938,10 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
           grid_area_code: normalizedGridAreaCode,
           move_in_date: normalizedMoveInDate,
           annual_consumption_kwh: normalizedAnnualConsumptionKwh,
+          current_supplier_id: normalizedCurrentSupplierId,
           current_supplier_name: normalizedCurrentSupplierName,
           current_supplier_org_number: normalizedCurrentSupplierOrgNumber,
+          current_supplier_unknown: params.currentSupplierUnknown,
           street: normalizedStreet,
           postal_code: normalizedPostalCode,
           city: normalizedCity,
@@ -2752,6 +2961,15 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
           moved_from_postal_code: normalizedMovedFromPostalCode,
           moved_from_city: normalizedMovedFromCity,
           moved_from_supplier_name: normalizedMovedFromSupplierName,
+          metadata: {
+            currentSupplier: {
+              id: normalizedCurrentSupplierId,
+              name: normalizedCurrentSupplierName,
+              orgNumber: normalizedCurrentSupplierOrgNumber,
+              unknown: params.currentSupplierUnknown,
+              source: "customer_intake",
+            },
+          },
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
         })
@@ -3151,7 +3369,32 @@ export async function createCustomerAction(
     const actorUserId = await getActorUserId();
     const companyId = await requireOperationalCompanyId(actorUserId);
     await requireCompanyOperationalForWrites(companyId);
-    const params = buildCreateCustomerParams(formData, actorUserId, companyId);
+    let params = buildCreateCustomerParams(formData, actorUserId, companyId);
+
+    const gridOwnerResolution = await resolveOrCreateGridOwnerForIntake({
+      formData,
+      companyId,
+      actorUserId,
+      selectedGridOwnerId: params.gridOwnerId,
+    });
+
+    const supplierResolution = await resolveOrCreateCurrentSupplierForIntake({
+      formData,
+      companyId,
+      actorUserId,
+      selectedSupplierId: params.currentSupplierId,
+      currentSupplierName: params.currentSupplierName,
+      currentSupplierOrgNumber: params.currentSupplierOrgNumber,
+      unknown: params.currentSupplierUnknown,
+    });
+
+    params = {
+      ...params,
+      gridOwnerId: gridOwnerResolution.gridOwnerId,
+      currentSupplierId: supplierResolution.supplierId,
+      currentSupplierName: supplierResolution.name,
+      currentSupplierOrgNumber: supplierResolution.orgNumber,
+    };
 
     const customer = await createCustomerGraph(params);
 
@@ -3161,6 +3404,11 @@ export async function createCustomerAction(
     const duplicateWarnings = Array.isArray(customer.__duplicateWarnings)
       ? (customer.__duplicateWarnings as string[])
       : [];
+    const masterdataWarnings = [
+      ...gridOwnerResolution.warnings,
+      ...supplierResolution.warnings,
+    ];
+    const allWarnings = [...duplicateWarnings, ...masterdataWarnings];
     const usedExistingCustomer = customer.__createdNewCustomer === false;
     const uploadedDocumentLabels = Array.isArray(
       customer.__uploadedDocumentLabels,
@@ -3175,8 +3423,8 @@ export async function createCustomerAction(
     return {
       status: "success",
       message:
-        duplicateWarnings.length > 0
-          ? `${usedExistingCustomer ? "Befintlig kund uppdaterades" : "Kunden skapades"}, men systemet hittade möjlig dubblett som behöver granskas: ${duplicateWarnings.slice(0, 2).join(" ")}${documentSummary}`
+        allWarnings.length > 0
+          ? `${usedExistingCustomer ? "Befintlig kund uppdaterades" : "Kunden skapades"}. Kontrollera varningar: ${allWarnings.slice(0, 3).join(" ")}${documentSummary}`
           : `${usedExistingCustomer ? "Befintlig kund uppdaterades" : `Kunden ${customer.customer_number ?? ""} skapades`} och eventuella saknade uppgifter ligger som blockerare/varningar.${documentSummary}`,
       fieldErrors: {},
       values: {
@@ -3192,8 +3440,8 @@ export async function createCustomerAction(
       createdCurrentSupplierName: customer.__createdCurrentSupplierName ?? null,
       postCreateAction: params.postCreateAction,
       postCreateRequestTarget: params.postCreateRequestTarget,
-      duplicateWarnings,
-      duplicateReviewRequired: Boolean(customer.__duplicateReviewRequired),
+      duplicateWarnings: allWarnings,
+      duplicateReviewRequired: Boolean(customer.__duplicateReviewRequired || masterdataWarnings.length > 0),
     };
   } catch (error) {
     return mapUnknownErrorToIntakeState(error, getFormValues(formData));
@@ -3435,6 +3683,8 @@ async function buildCustomerParamsFromImportRow(params: {
     gridAreaCode: row.grid_area_code || row.grid_area_id || null,
     moveInDate: row.move_in_date || row.start_date || null,
     annualConsumptionKwh: parseNumber(row.annual_consumption_kwh || ""),
+    currentSupplierId: row.current_supplier_id || null,
+    currentSupplierUnknown: row.current_supplier_unknown === "true" || row.current_supplier_unknown === "1",
     currentSupplierName: row.current_supplier_name || null,
     currentSupplierOrgNumber: row.current_supplier_org_number || null,
     customerConfirmationStatus:

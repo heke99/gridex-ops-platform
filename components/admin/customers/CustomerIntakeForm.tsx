@@ -35,8 +35,17 @@ type ContractOfferOption = {
   optional_fee_lines: Array<Record<string, unknown>> | null;
 };
 
+type SupplierOption = {
+  id: string;
+  name: string;
+  org_number: string | null;
+  ediel_id: string | null;
+  email: string | null;
+};
+
 type Props = {
   gridOwners: GridOwnerOption[];
+  electricitySuppliers: SupplierOption[];
   priceAreas: PriceAreaOption[];
   contractOffers: ContractOfferOption[];
 };
@@ -203,6 +212,7 @@ function Section({
 
 export default function CustomerIntakeForm({
   gridOwners,
+  electricitySuppliers,
   priceAreas,
   contractOffers,
 }: Props) {
@@ -539,6 +549,7 @@ export default function CustomerIntakeForm({
               className={inputClassName(state, "gridOwnerId")}
             >
               <option value="">Välj nätägare</option>
+              <option value="__new__">+ Lägg till ny nätägare nedan</option>
               {gridOwners.map((owner) => (
                 <option key={owner.id} value={owner.id}>
                   {owner.name}
@@ -547,6 +558,20 @@ export default function CustomerIntakeForm({
             </select>
             <FieldError state={state} name="gridOwnerId" />
           </label>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+            <p className="text-sm font-semibold text-slate-950">Lägg till ny nätägare direkt</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              Fyll bara i detta om nätägaren saknas i listan. Systemet kontrollerar möjlig dubblett på namn, organisationsnummer och Ediel-ID och använder befintlig nätägare om den redan finns.
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <input name="newGridOwnerName" defaultValue={state.values.newGridOwnerName ?? ""} placeholder="Namn på ny nätägare" className={inputClassName(state, "newGridOwnerName")} />
+              <input name="newGridOwnerOrgNumber" defaultValue={state.values.newGridOwnerOrgNumber ?? ""} placeholder="Organisationsnummer" className={inputClassName(state, "newGridOwnerOrgNumber")} />
+              <input name="newGridOwnerEdielId" defaultValue={state.values.newGridOwnerEdielId ?? ""} placeholder="Ediel-ID" className={inputClassName(state, "newGridOwnerEdielId")} />
+              <input name="newGridOwnerEmail" defaultValue={state.values.newGridOwnerEmail ?? ""} placeholder="Kontaktmail" className={inputClassName(state, "newGridOwnerEmail")} />
+              <input name="newGridOwnerPhone" defaultValue={state.values.newGridOwnerPhone ?? ""} placeholder="Telefon" className={inputClassName(state, "newGridOwnerPhone")} />
+            </div>
+          </div>
 
           <label className="grid gap-1 text-sm">
             <span className="text-slate-700">Anläggnings-ID</span>
@@ -622,10 +647,37 @@ export default function CustomerIntakeForm({
 
           <label className="grid gap-1 text-sm">
             <span className="text-slate-700">Nuvarande leverantör</span>
+            <select
+              name="currentSupplierId"
+              defaultValue={state.values.currentSupplierId ?? ""}
+              className={inputClassName(state, "currentSupplierId")}
+            >
+              <option value="">Välj befintlig eller fyll i manuellt</option>
+              <option value="__unknown__">Okänd nuvarande leverantör</option>
+              <option value="__new__">+ Lägg till ny leverantör nedan</option>
+              {electricitySuppliers.map((supplier) => (
+                <option key={supplier.id} value={supplier.id}>
+                  {supplier.name}{supplier.org_number ? ` · ${supplier.org_number}` : ""}
+                </option>
+              ))}
+            </select>
+            <FieldError state={state} name="currentSupplierId" />
+          </label>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <input type="checkbox" name="currentSupplierUnknown" className="mt-1" />
+            <span>
+              <span className="font-semibold">Nuvarande leverantör är okänd</span>
+              <span className="mt-1 block text-xs leading-5">Det stoppar inte kundskapandet, men preflight varnar innan ett säkert byte körs.</span>
+            </span>
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Nuvarande leverantör namn</span>
             <input
               name="currentSupplierName"
               defaultValue={state.values.currentSupplierName ?? ""}
-              placeholder="Nuvarande elleverantör"
+              placeholder="Fritext om leverantören saknas i listan"
               className={inputClassName(state, "currentSupplierName")}
             />
             <FieldError state={state} name="currentSupplierName" />
@@ -641,6 +693,22 @@ export default function CustomerIntakeForm({
             />
             <FieldError state={state} name="currentSupplierOrgNumber" />
           </label>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+            <p className="text-sm font-semibold text-slate-950">Lägg till ny nuvarande leverantör direkt</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              Detta används bara för informationshämtning inför byte. Mail till nuvarande leverantör får aldrig starta själva leverantörsbytet; Z03 går alltid till nätägaren via Ediel.
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <input name="newCurrentSupplierName" defaultValue={state.values.newCurrentSupplierName ?? ""} placeholder="Leverantörsnamn" className={inputClassName(state, "newCurrentSupplierName")} />
+              <input name="newCurrentSupplierOrgNumber" defaultValue={state.values.newCurrentSupplierOrgNumber ?? ""} placeholder="Organisationsnummer" className={inputClassName(state, "newCurrentSupplierOrgNumber")} />
+              <input name="newCurrentSupplierEdielId" defaultValue={state.values.newCurrentSupplierEdielId ?? ""} placeholder="Ediel-ID" className={inputClassName(state, "newCurrentSupplierEdielId")} />
+              <input name="newCurrentSupplierSwitchingEmail" defaultValue={state.values.newCurrentSupplierSwitchingEmail ?? ""} placeholder="Fullmakts-/bytesfrågor mail" className={inputClassName(state, "newCurrentSupplierSwitchingEmail")} />
+              <input name="newCurrentSupplierContractEmail" defaultValue={state.values.newCurrentSupplierContractEmail ?? ""} placeholder="Avtalsfrågor mail" className={inputClassName(state, "newCurrentSupplierContractEmail")} />
+              <input name="newCurrentSupplierCustomerServiceEmail" defaultValue={state.values.newCurrentSupplierCustomerServiceEmail ?? ""} placeholder="Kundservice mail" className={inputClassName(state, "newCurrentSupplierCustomerServiceEmail")} />
+              <input name="newCurrentSupplierPhone" defaultValue={state.values.newCurrentSupplierPhone ?? ""} placeholder="Telefon" className={inputClassName(state, "newCurrentSupplierPhone")} />
+            </div>
+          </div>
 
           <div
             className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2 md:grid-cols-2"

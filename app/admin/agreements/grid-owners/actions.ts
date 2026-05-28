@@ -19,6 +19,92 @@ function bool(formData: FormData, key: string): boolean {
   return formData.get(key) === 'on' || formData.get(key) === 'true'
 }
 
+function normalizedSelectId(value: string | null): string | null {
+  if (!value || value === '__new__') return null
+  return value
+}
+
+function scopeFromUsage(value: string | null): string {
+  if (value === 'supplier_switch') return 'supplier_switch'
+  if (value === 'customer_masterdata') return 'customer_masterdata'
+  if (value === 'meter_values') return 'meter_values'
+  if (value === 'billing_underlay') return 'billing_underlay'
+  if (value === 'general_ediel') return 'general_ediel'
+  return 'metering_access'
+}
+
+function defaultApplicationReference(scope: string): string | null {
+  if (scope === 'metering_access') return '23-DGI-PRODAT'
+  if (scope === 'supplier_switch' || scope === 'customer_masterdata') return '23-DDQ-PRODAT'
+  return null
+}
+
+function normalizeComparable(value: string | null): string | null {
+  return value ? value.trim().toLowerCase().replace(/\s+/g, ' ') : null
+}
+
+async function resolveOrCreateAgreementGridOwner(params: {
+  formData: FormData
+  companyId: string | null
+  actorUserId: string
+  selectedGridOwnerId: string | null
+}): Promise<{ gridOwnerId: string | null; warning: string | null }> {
+  const selectedGridOwnerId = normalizedSelectId(params.selectedGridOwnerId)
+  const newName = text(params.formData, 'new_grid_owner_name')
+  const newOrgNumber = text(params.formData, 'new_grid_owner_org_number')
+  const newEdielId = text(params.formData, 'new_grid_owner_ediel_id')
+  const newEmail = text(params.formData, 'new_grid_owner_email')
+  const newPhone = text(params.formData, 'new_grid_owner_phone')
+
+  if (selectedGridOwnerId || !newName) return { gridOwnerId: selectedGridOwnerId, warning: null }
+
+  let query = supabaseService.from('grid_owners').select('id,name,org_number,ediel_id').limit(500)
+  if (params.companyId) query = query.or(`company_id.is.null,company_id.eq.${params.companyId}`)
+  const { data, error } = await query
+  if (error) throw error
+
+  const nameKey = normalizeComparable(newName)
+  const orgKey = normalizeComparable(newOrgNumber)
+  const edielKey = normalizeComparable(newEdielId)
+  const match = ((data ?? []) as Array<Record<string, unknown>>).find((row) => {
+    const rowName = normalizeComparable(typeof row.name === 'string' ? row.name : null)
+    const rowOrg = normalizeComparable(typeof row.org_number === 'string' ? row.org_number : null)
+    const rowEdiel = normalizeComparable(typeof row.ediel_id === 'string' ? row.ediel_id : null)
+    return Boolean(
+      (edielKey && rowEdiel === edielKey) ||
+      (orgKey && rowOrg === orgKey) ||
+      (nameKey && rowName === nameKey)
+    )
+  })
+
+  if (match?.id) {
+    return {
+      gridOwnerId: String(match.id),
+      warning: `Möjlig dubblett på nätägare hittades. Befintlig nätägare används: ${String(match.name ?? match.id)}.`,
+    }
+  }
+
+  const { data: created, error: insertError } = await supabaseService
+    .from('grid_owners')
+    .insert({
+      company_id: params.companyId,
+      name: newName,
+      owner_code: newEdielId ?? newOrgNumber ?? newName.slice(0, 24),
+      ediel_id: newEdielId,
+      org_number: newOrgNumber,
+      email: newEmail,
+      phone: newPhone,
+      country: 'SE',
+      notes: 'Skapad direkt från nätägaravtalet. Kontrollera route och Ediel-profil innan liveflöde skickas.',
+      is_active: true,
+      created_by: params.actorUserId,
+      updated_by: params.actorUserId,
+    })
+    .select('id')
+    .single()
+  if (insertError) throw insertError
+  return { gridOwnerId: String(created.id), warning: `Ny nätägare skapades från avtalsformuläret: ${newName}.` }
+}
 
 function fileFromFormData(formData: FormData, key: string): File | null {
   const value = formData.get(key)
@@ -74,7 +160,14 @@ export async function saveGridOwnerAgreementAction(formData: FormData) {
   const id = text(formData, 'id')
 
   const companyId = text(formData, 'company_id')
-  const gridOwnerId = text(formData, 'grid_owner_id')
+  const agreementScope = scopeFromUsage(text(formData, 'agreement_scope') ?? text(formData, 'agreement_type'))
+  const gridOwnerResolution = await resolveOrCreateAgreementGridOwner({
+    formData,
+    companyId,
+    actorUserId: admin.userId,
+    selectedGridOwnerId: text(formData, 'grid_owner_id'),
+  })
+  const gridOwnerId = gridOwnerResolution.gridOwnerId
   const uploadedDocumentPath = await uploadAgreementDocument({ formData, companyId, gridOwnerId })
 
   await saveGridOwnerAccessAgreement({
@@ -82,8 +175,8 @@ export async function saveGridOwnerAgreementAction(formData: FormData) {
     actorUserId: admin.userId,
     companyId,
     gridOwnerId,
-    agreementType: text(formData, 'agreement_type') ?? 'metering_access',
-    agreementScope: text(formData, 'agreement_scope') ?? 'metering_access',
+    agreementType: text(formData, 'agreement_type') ?? agreementScope,
+    agreementScope,
     status: text(formData, 'status') ?? 'draft',
     agreementReference: text(formData, 'agreement_reference'),
     externalAgreementNumber: text(formData, 'external_agreement_number'),
@@ -96,13 +189,17 @@ export async function saveGridOwnerAgreementAction(formData: FormData) {
     requiresFacilityId: bool(formData, 'requires_facility_id'),
     requiresCustomerPersonalNumber: bool(formData, 'requires_customer_personal_number'),
     requiresReportPeriod: bool(formData, 'requires_report_period'),
-    preferredApplicationReference: text(formData, 'preferred_application_reference'),
+    preferredApplicationReference: text(formData, 'preferred_application_reference') ?? defaultApplicationReference(agreementScope),
     preferredMessageVersion: text(formData, 'preferred_message_version'),
     preferredReceiverEdielId: text(formData, 'preferred_receiver_ediel_id'),
     preferredReceiverSubAddress: text(formData, 'preferred_receiver_sub_address'),
     preferredRouteId: text(formData, 'preferred_route_id'),
     referenceRequirements: parseJson(text(formData, 'reference_requirements'), {}),
-    metadata: parseJson(text(formData, 'metadata'), {}),
+    metadata: {
+      ...parseJson(text(formData, 'metadata'), {}),
+      businessLabel: text(formData, 'agreement_scope_label'),
+      gridOwnerResolutionWarning: gridOwnerResolution.warning,
+    },
   })
 
   revalidatePath('/admin/agreements/grid-owners')

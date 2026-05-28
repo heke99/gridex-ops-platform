@@ -2,6 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type {
   BillingUnderlayRow,
   GridOwnerDataRequestRow,
+  GridOwnerDataRequestScope,
   MeteringValueRow,
   OutboundRequestRow,
   PartnerExportRow,
@@ -208,7 +209,7 @@ export async function createGridOwnerDataRequest(input: {
   siteId?: string | null
   meteringPointId?: string | null
   gridOwnerId?: string | null
-  requestScope: 'meter_values' | 'billing_underlay' | 'customer_masterdata'
+  requestScope: GridOwnerDataRequestScope
   requestedPeriodStart?: string | null
   requestedPeriodEnd?: string | null
   externalReference?: string | null

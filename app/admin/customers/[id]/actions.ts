@@ -60,6 +60,8 @@ import {
   getLatestSignedPowerOfAttorneyForCustomer,
   resolveCustomerBlockersAfterSignedPowerOfAttorney,
 } from '@/lib/operations/powerOfAttorneyWorkflow'
+import { decideCommunicationRoute, routeDecisionPayload } from '@/lib/routes/routeDecisionEngine'
+import type { BusinessProcess } from '@/lib/routes/routeDecisionTypes'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -97,9 +99,12 @@ function normalizeSwitchRequestType(
 
 function normalizeGridOwnerRequestScope(
   value: string | null
-): 'meter_values' | 'billing_underlay' | 'customer_masterdata' {
+): BusinessProcess {
   if (value === 'billing_underlay') return 'billing_underlay'
   if (value === 'customer_masterdata') return 'customer_masterdata'
+  if (value === 'metering_access') return 'metering_access'
+  if (value === 'supplier_switch') return 'supplier_switch'
+  if (value === 'partner_export') return 'partner_export'
   return 'meter_values'
 }
 
@@ -146,6 +151,86 @@ function normalizePartnerExportKind(
   if (value === 'meter_values') return 'meter_values'
   if (value === 'customer_snapshot') return 'customer_snapshot'
   return 'billing_underlay'
+}
+
+async function resolveActionGridOwnerId(params: {
+  companyId: string
+  customerId: string
+  siteId: string | null
+  meteringPointId: string | null
+  explicitGridOwnerId: string | null
+}): Promise<string | null> {
+  if (params.explicitGridOwnerId) return params.explicitGridOwnerId
+
+  if (params.meteringPointId) {
+    const point = await getMeteringPointById(supabaseService, params.meteringPointId, {
+      companyId: params.companyId,
+    })
+    if (point?.grid_owner_id) return point.grid_owner_id
+  }
+
+  if (params.siteId) {
+    const site = await getCustomerSiteById(supabaseService, params.siteId, {
+      companyId: params.companyId,
+    })
+    if (site?.grid_owner_id) return site.grid_owner_id
+  }
+
+  return null
+}
+
+function messageCodeForBusinessProcess(process: BusinessProcess, action?: string | null): string | null {
+  if (process === 'customer_masterdata') return 'Z01'
+  if (process === 'supplier_switch') return 'Z03'
+  if (process === 'metering_access') return action === 'terminate_metering_access' ? 'Z18' : 'Z13'
+  return null
+}
+
+async function auditRouteDecisionForCustomerAction(params: {
+  actorUserId: string
+  companyId: string
+  customerId: string
+  siteId: string | null
+  meteringPointId: string | null
+  gridOwnerId: string | null
+  businessProcess: BusinessProcess
+  requestedAction: string
+  messageCode?: string | null
+  payload?: Record<string, unknown>
+}) {
+  const decision = await decideCommunicationRoute({
+    companyId: params.companyId,
+    customerId: params.customerId,
+    siteId: params.siteId,
+    meteringPointId: params.meteringPointId,
+    gridOwnerId: params.gridOwnerId,
+    businessProcess: params.businessProcess,
+    requestedAction: params.requestedAction,
+    messageFamily: params.businessProcess === 'meter_values' || params.businessProcess === 'billing_underlay' ? 'UTILTS' : 'PRODAT',
+    messageCode: params.messageCode ?? messageCodeForBusinessProcess(params.businessProcess, params.requestedAction),
+    environment: 'test',
+    payload: params.payload ?? {},
+    actorUserId: params.actorUserId,
+  })
+
+  await insertAuditLog({
+    actorUserId: params.actorUserId,
+    entityType: 'customer',
+    entityId: params.customerId,
+    action: 'customer_business_route_decision',
+    newValues: routeDecisionPayload(decision),
+    metadata: {
+      customerId: params.customerId,
+      companyId: params.companyId,
+      siteId: params.siteId,
+      meteringPointId: params.meteringPointId,
+      gridOwnerId: params.gridOwnerId,
+      requestedAction: params.requestedAction,
+      businessProcess: params.businessProcess,
+    },
+  })
+
+  return decision
 }
 
 type JsonObject = Record<string, unknown>
@@ -837,6 +922,44 @@ export async function createSupplierSwitchRequestAction(
     throw new Error('Kunde inte hitta kandidat-mätpunkt för switchärendet')
   }
 
+  const routeDecision = await auditRouteDecisionForCustomerAction({
+    actorUserId: actor.id,
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId: meteringPoint.id,
+    gridOwnerId: meteringPoint.grid_owner_id ?? site.grid_owner_id ?? null,
+    businessProcess: 'supplier_switch',
+    requestedAction: 'start_supplier_switch',
+    messageCode: 'Z03',
+    payload: {
+      requestType,
+      requestedStartDate,
+      move_in: requestType === 'move_in' || requestType === 'move_out_takeover',
+      customer_change: requestType === 'move_in' || requestType === 'move_out_takeover',
+    },
+  })
+
+  if (routeDecision.decisionStatus === 'blocked') {
+    await insertAuditLog({
+      actorUserId: actor.id,
+      entityType: 'customer_site',
+      entityId: siteId,
+      action: 'supplier_switch_route_blocked',
+      metadata: {
+        customerId,
+        siteId,
+        meteringPointId: meteringPoint.id,
+        decision: routeDecisionPayload(routeDecision),
+      },
+    })
+
+    revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath('/admin/operations')
+    revalidatePath('/admin/operations/tasks')
+    return
+  }
+
   const savedRequest = await createSupplierSwitchRequest(supabase, {
     readiness,
     site,
@@ -856,6 +979,207 @@ export async function createSupplierSwitchRequestAction(
       siteId,
     },
   })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath('/admin/operations')
+  revalidatePath('/admin/operations/switches')
+}
+
+
+export async function startAutomaticOnboardingAction(
+  formData: FormData
+): Promise<void> {
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const actor = { id: guard.userId }
+  const supabase = await createSupabaseServerClient()
+  const customerId = formValue(formData, 'customer_id') ?? ''
+  const siteId = formValue(formData, 'site_id') ?? ''
+
+  if (!customerId || !siteId) {
+    throw new Error('Kund eller anläggning saknas för automatisk onboarding.')
+  }
+
+  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  const site = await findCustomerSiteById(supabase, siteId)
+
+  if (!site || site.company_id !== companyId || site.customer_id !== customerId) {
+    throw new Error('Anläggningen kunde inte hittas för automatisk onboarding.')
+  }
+
+  const [meteringPoints, powersOfAttorney] = await Promise.all([
+    listMeteringPointsForSite(supabase, siteId),
+    listPowersOfAttorneyByCustomerId(supabase, customerId),
+  ])
+
+  const candidateMeteringPoint =
+    meteringPoints.find((point) => point.status === 'active') ??
+    meteringPoints.find((point) => point.status === 'pending_validation') ??
+    meteringPoints[0] ??
+    null
+
+  const missingMasterdata =
+    !site.facility_id?.trim() ||
+    !candidateMeteringPoint?.meter_point_id?.trim() ||
+    !(candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id) ||
+    !(candidateMeteringPoint?.price_area_code ?? site.price_area_code)
+
+  if (missingMasterdata) {
+    const gridOwnerId = candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null
+    const decision = await auditRouteDecisionForCustomerAction({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      meteringPointId: candidateMeteringPoint?.id ?? null,
+      gridOwnerId,
+      businessProcess: 'customer_masterdata',
+      requestedAction: 'automatic_onboarding_z01_first',
+      messageCode: 'Z01',
+      payload: {
+        reason: 'missing_masterdata_before_supplier_switch',
+        facilityId: site.facility_id,
+        meterPointId: candidateMeteringPoint?.meter_point_id ?? null,
+      },
+    })
+
+    if (decision.decisionStatus !== 'blocked') {
+      await createAndQueueCustomerMasterdataZ01({
+        actorUserId: actor.id,
+        companyId,
+        customerId,
+        siteId,
+        meteringPointId: candidateMeteringPoint?.id ?? null,
+        gridOwnerId,
+        externalReference: null,
+        notes: 'Automatisk onboarding valde Z01 först eftersom kund-/anläggningsuppgifter saknas.',
+      })
+    }
+
+    await insertAuditLog({
+      actorUserId: actor.id,
+      entityType: 'customer_site',
+      entityId: siteId,
+      action: decision.decisionStatus === 'blocked' ? 'automatic_onboarding_blocked' : 'automatic_onboarding_z01_prepared',
+      metadata: {
+        customerId,
+        siteId,
+        meteringPointId: candidateMeteringPoint?.id ?? null,
+        decision: routeDecisionPayload(decision),
+      },
+    })
+
+    revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath('/admin/customer-info-requests')
+    revalidatePath('/admin/operations')
+    revalidatePath('/admin/operations/tasks')
+    revalidatePath('/admin/outbound')
+    return
+  }
+
+  const readiness = evaluateSiteSwitchReadiness({
+    site,
+    meteringPoints,
+    powersOfAttorney,
+  })
+  await syncOperationTasksFromReadiness(supabase, readiness)
+
+  if (!readiness.isReady || !readiness.candidateMeteringPointId) {
+    await insertAuditLog({
+      actorUserId: actor.id,
+      entityType: 'customer_site',
+      entityId: siteId,
+      action: 'automatic_onboarding_switch_blocked_by_readiness',
+      metadata: {
+        customerId,
+        siteId,
+        readiness,
+      },
+    })
+    revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath('/admin/operations')
+    revalidatePath('/admin/operations/tasks')
+    return
+  }
+
+  const meteringPoint =
+    meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ??
+    null
+
+  if (!meteringPoint) {
+    throw new Error('Kunde inte hitta kandidat-mätpunkt för automatisk onboarding.')
+  }
+
+  const requestType: SupplierSwitchRequestType = site.move_in_date ? 'move_in' : 'switch'
+  const decision = await auditRouteDecisionForCustomerAction({
+    actorUserId: actor.id,
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId: meteringPoint.id,
+    gridOwnerId: meteringPoint.grid_owner_id ?? site.grid_owner_id ?? null,
+    businessProcess: 'supplier_switch',
+    requestedAction: 'automatic_onboarding_direct_z03',
+    messageCode: 'Z03',
+    payload: {
+      requestType,
+      requestedStartDate: site.move_in_date ?? null,
+      move_in: requestType === 'move_in',
+      customer_change: requestType === 'move_in',
+    },
+  })
+
+  if (decision.decisionStatus === 'blocked') {
+    await insertAuditLog({
+      actorUserId: actor.id,
+      entityType: 'customer_site',
+      entityId: siteId,
+      action: 'automatic_onboarding_route_blocked',
+      metadata: {
+        customerId,
+        siteId,
+        meteringPointId: meteringPoint.id,
+        decision: routeDecisionPayload(decision),
+      },
+    })
+    revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath('/admin/operations')
+    revalidatePath('/admin/operations/tasks')
+    return
+  }
+
+  const existingOpenRequest = await findOpenSupplierSwitchRequestForSite(supabase, {
+    customerId,
+    siteId,
+    companyId,
+  })
+
+  if (!existingOpenRequest) {
+    const savedRequest = await createSupplierSwitchRequest(supabase, {
+      readiness,
+      site,
+      meteringPoint,
+      requestType,
+      requestedStartDate: site.move_in_date ?? null,
+      companyId,
+      automationOrigin: 'customer_card_automatic_onboarding',
+      automationKey: `automatic-onboarding:${customerId}:${siteId}:${meteringPoint.id}`,
+    })
+
+    await insertAuditLog({
+      actorUserId: actor.id,
+      entityType: 'supplier_switch_request',
+      entityId: savedRequest.id,
+      action: 'automatic_onboarding_z03_queued',
+      newValues: savedRequest,
+      metadata: {
+        customerId,
+        siteId,
+        meteringPointId: meteringPoint.id,
+        decision: routeDecisionPayload(decision),
+      },
+    })
+  }
 
   revalidatePath(`/admin/customers/${customerId}`)
   revalidatePath('/admin/operations')
@@ -984,10 +1308,17 @@ export async function createGridOwnerDataRequestAction(
   const meteringPointId = formValue(formData, 'metering_point_id') || null
   await assertCustomerSiteTenant({ companyId, customerId, siteId })
   await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
-  const gridOwnerId = formValue(formData, 'grid_owner_id') || null
+  const rawGridOwnerId = formValue(formData, 'grid_owner_id') || null
   const requestScope = normalizeGridOwnerRequestScope(
     formValue(formData, 'request_scope')
   )
+  const gridOwnerId = await resolveActionGridOwnerId({
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId,
+    explicitGridOwnerId: rawGridOwnerId,
+  })
   const requestedPeriodStart = normalizeDateOrNull(
     formValue(formData, 'requested_period_start')
   )
@@ -996,6 +1327,32 @@ export async function createGridOwnerDataRequestAction(
   )
   const externalReference = formValue(formData, 'external_reference') || null
   const notes = formValue(formData, 'notes') || null
+  const requestedAction = formValue(formData, 'business_action') || (requestScope === 'customer_masterdata' ? 'request_customer_masterdata' : `request_${requestScope}`)
+
+  const routeDecision = await auditRouteDecisionForCustomerAction({
+    actorUserId: actor.id,
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId,
+    gridOwnerId,
+    businessProcess: requestScope,
+    requestedAction,
+    messageCode: messageCodeForBusinessProcess(requestScope, requestedAction),
+    payload: {
+      requestedPeriodStart,
+      requestedPeriodEnd,
+      externalReference,
+      notes,
+    },
+  })
+
+  if (routeDecision.decisionStatus === 'blocked') {
+    revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath('/admin/operations')
+    revalidatePath('/admin/operations/tasks')
+    return
+  }
 
   if (requestScope === 'customer_masterdata') {
     await createAndQueueCustomerMasterdataZ01({

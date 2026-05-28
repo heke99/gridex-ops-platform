@@ -23,7 +23,7 @@ export default function GridOwnerAgreementForm({ companies, gridOwners, routes }
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Nytt nätägaravtal</p>
         <h2 className="mt-2 text-lg font-semibold text-slate-950">Avtal och referenskrav</h2>
         <p className="mt-1 text-sm leading-6 text-slate-700">
-          Används av route engine för att blockera Z13/Z18 när aktivt nätägaravtal eller referenskrav saknas.
+          Används för att koppla nätägare, avtal, fullmaktskrav och rätt Ediel-spår utan att handläggaren behöver välja tekniska route-värden.
         </p>
       </div>
 
@@ -47,27 +47,41 @@ export default function GridOwnerAgreementForm({ companies, gridOwners, routes }
         </label>
 
         <label className="text-sm font-medium text-slate-800">
-          Avtalstyp
+          Vad gäller avtalet?
           <select name="agreement_type" defaultValue="metering_access" className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900">
             <option value="metering_access">Mätvärdesåtkomst</option>
             <option value="customer_masterdata">Kund-/anläggningsuppgifter</option>
             <option value="supplier_switch">Leverantörsbyte</option>
+            <option value="meter_values">Mätvärden</option>
             <option value="billing_underlay">Faktureringsunderlag</option>
-            <option value="general_ediel">Generellt Ediel</option>
+            <option value="general_ediel">Generellt Ediel-avtal</option>
           </select>
+          <span className="mt-1 block text-xs font-normal text-slate-500">Systemet mappar valet till rätt route_scope och föreslår rätt Application Reference (fylls automatiskt om tomt).</span>
         </label>
 
         <label className="text-sm font-medium text-slate-800">
-          Route scope
+          Hur ska avtalet användas i systemet?
           <select name="agreement_scope" defaultValue="metering_access" className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900">
-            <option value="metering_access">metering_access</option>
-            <option value="customer_masterdata">customer_masterdata</option>
-            <option value="supplier_switch">supplier_switch</option>
-            <option value="meter_values">meter_values</option>
-            <option value="billing_underlay">billing_underlay</option>
-            <option value="partner_export">partner_export</option>
+            <option value="metering_access">Mätvärdesåtkomst</option>
+            <option value="customer_masterdata">Kund-/anläggningsuppgifter</option>
+            <option value="supplier_switch">Leverantörsbyte</option>
+            <option value="meter_values">Mätvärden</option>
+            <option value="billing_underlay">Faktureringsunderlag</option>
+            <option value="general_ediel">Generellt Ediel-avtal</option>
           </select>
         </label>
+
+        <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 p-4 md:col-span-2">
+          <div className="text-sm font-semibold text-slate-900">Lägg till ny nätägare direkt</div>
+          <p className="mt-1 text-xs leading-5 text-slate-600">Systemet kontrollerar möjlig dubblett på namn, organisationsnummer och Ediel-ID. Dubblett varnar men stoppar inte flödet.</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <input name="new_grid_owner_name" placeholder="Namn" className="rounded-2xl border border-emerald-100 px-3 py-2 text-sm" />
+            <input name="new_grid_owner_org_number" placeholder="Organisationsnummer" className="rounded-2xl border border-emerald-100 px-3 py-2 text-sm" />
+            <input name="new_grid_owner_ediel_id" placeholder="Ediel-ID" className="rounded-2xl border border-emerald-100 px-3 py-2 text-sm" />
+            <input name="new_grid_owner_email" placeholder="Kontaktmail" className="rounded-2xl border border-emerald-100 px-3 py-2 text-sm" />
+            <input name="new_grid_owner_phone" placeholder="Telefon" className="rounded-2xl border border-emerald-100 px-3 py-2 text-sm" />
+          </div>
+        </div>
 
         <label className="text-sm font-medium text-slate-800">
           Status
@@ -95,22 +109,22 @@ export default function GridOwnerAgreementForm({ companies, gridOwners, routes }
         </label>
 
         <label className="text-sm font-medium text-slate-800">
-          Receiver Ediel-id
+          Mottagarens Ediel-id
           <input name="preferred_receiver_ediel_id" className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm" placeholder="Nätägarens Ediel-id" />
         </label>
 
         <label className="text-sm font-medium text-slate-800">
-          Receiver subaddress
+          Mottagarens subadress
           <input name="preferred_receiver_sub_address" className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm" placeholder="Valfritt" />
         </label>
 
         <label className="text-sm font-medium text-slate-800">
-          Application Reference
+          Application Reference (fylls automatiskt om tomt)
           <input name="preferred_application_reference" defaultValue="23-DGI-PRODAT" className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm" />
         </label>
 
         <label className="text-sm font-medium text-slate-800">
-          Preferred route
+          Hur ska nätägaren kontaktas?
           <select name="preferred_route_id" className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900">
             <option value="">Automatiskt routeval</option>
             {routes.map((route) => (
@@ -131,7 +145,7 @@ export default function GridOwnerAgreementForm({ companies, gridOwners, routes }
         </label>
 
         <label className="text-sm font-medium text-slate-800 md:col-span-2">
-          Referenskrav JSON
+          Vilka uppgifter kräver nätägaren? (JSON för platform admin)
           <textarea name="reference_requirements" rows={4} className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 font-mono text-xs" placeholder='{"requires_agreement_reference": true}' />
         </label>
       </div>

@@ -52,6 +52,10 @@ export type ElectricitySupplierRow = {
   ediel_id: string | null
   contact_name: string | null
   email: string | null
+  customer_service_email?: string | null
+  switching_email?: string | null
+  contract_email?: string | null
+  website?: string | null
   phone: string | null
   notes: string | null
   is_active: boolean
@@ -93,8 +97,15 @@ export type CustomerSiteRow = {
   price_area_code: PriceAreaCode | null
   move_in_date: string | null
   annual_consumption_kwh: number | null
+  current_supplier_id?: string | null
   current_supplier_name: string | null
   current_supplier_org_number: string | null
+  current_supplier_unknown?: boolean | null
+  current_supplier_contract_status?: string | null
+  current_supplier_contract_end_date?: string | null
+  current_supplier_notice_period?: string | null
+  current_supplier_termination_fee?: number | null
+  current_supplier_response_status?: string | null
   street: string | null
   care_of: string | null
   postal_code: string | null

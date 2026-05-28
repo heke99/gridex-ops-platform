@@ -82,6 +82,10 @@ export const electricitySupplierInputSchema = z.object({
     .refine((value) => value === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
       message: 'Ogiltig e-postadress',
     }),
+  customer_service_email: nullableTrimmedString,
+  switching_email: nullableTrimmedString,
+  contract_email: nullableTrimmedString,
+  website: nullableTrimmedString,
   phone: nullableTrimmedString,
   notes: nullableTrimmedString,
   is_active: z.boolean().default(true),

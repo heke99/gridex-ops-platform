@@ -49,6 +49,7 @@ import CustomerProfileCard from '@/components/admin/customers/CustomerProfileCar
 import CustomerGridOwnerFileImportCard from '@/components/admin/customers/CustomerGridOwnerFileImportCard'
 import CustomerContractOfferEligibilityCard from '@/components/admin/customers/CustomerContractOfferEligibilityCard'
 import CustomerOperationsReadinessStrip from '@/components/admin/customers/CustomerOperationsReadinessStrip'
+import CustomerBusinessActionsCard from '@/components/admin/customers/CustomerBusinessActionsCard'
 import CustomerAuthorizationDocumentsCard from '@/components/admin/customers/CustomerAuthorizationDocumentsCard'
 import CustomerDataRequestsCard from '@/components/admin/customers/CustomerDataRequestsCard'
 import {

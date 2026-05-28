@@ -4,7 +4,7 @@ import CustomerBulkImportPanel from "@/components/admin/customers/CustomerBulkIm
 import CustomerIntakeForm from "@/components/admin/customers/CustomerIntakeForm";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminPageAccess } from "@/lib/admin/guards";
-import { listGridOwners, listPriceAreas } from "@/lib/masterdata/db";
+import { listElectricitySuppliers, listGridOwners, listPriceAreas } from "@/lib/masterdata/db";
 import { listContractOffers } from "@/lib/customer-contracts/db";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
 
@@ -24,8 +24,9 @@ export default async function CustomerIntakePage() {
   const user = authResult.user;
   const companyScope = await getOperationalCompanyScope(access.userId);
 
-  const [gridOwners, priceAreas, contractOffers] = await Promise.all([
+  const [gridOwners, electricitySuppliers, priceAreas, contractOffers] = await Promise.all([
     listGridOwners(supabase),
+    listElectricitySuppliers(supabase, { activeOnly: true }),
     listPriceAreas(supabase),
     companyScope.companyId
       ? listContractOffers({
@@ -99,6 +100,13 @@ export default async function CustomerIntakePage() {
             gridOwners={gridOwners.map((owner) => ({
               id: owner.id,
               name: owner.name,
+            }))}
+            electricitySuppliers={electricitySuppliers.map((supplier) => ({
+              id: supplier.id,
+              name: supplier.name,
+              org_number: supplier.org_number,
+              ediel_id: supplier.ediel_id,
+              email: supplier.email,
             }))}
             priceAreas={priceAreas.map((area) => ({
               code: area.code,

@@ -162,8 +162,15 @@ export type SupplierSwitchRequestRow = {
   request_type: SupplierSwitchRequestType;
   status: SupplierSwitchRequestStatus;
   requested_start_date: string | null;
+  current_supplier_id?: string | null;
   current_supplier_name: string | null;
   current_supplier_org_number: string | null;
+  current_supplier_unknown?: boolean | null;
+  current_supplier_contract_status?: string | null;
+  current_supplier_contract_end_date?: string | null;
+  current_supplier_notice_period?: string | null;
+  current_supplier_termination_fee?: number | null;
+  current_supplier_response_status?: string | null;
   incoming_supplier_name: string;
   incoming_supplier_org_number: string | null;
   grid_owner_id: string | null;
