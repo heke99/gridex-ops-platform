@@ -2,6 +2,10 @@ export type GridOwnerDataRequestScope =
   | 'meter_values'
   | 'billing_underlay'
   | 'customer_masterdata'
+  | 'metering_access'
+  | 'supplier_switch'
+  | 'partner_export'
+  | 'ediel_ack'
 
 export type GridOwnerDataRequestStatus =
   | 'pending'
@@ -158,6 +162,9 @@ export type CommunicationRouteScope =
   | 'meter_values'
   | 'billing_underlay'
   | 'customer_masterdata'
+  | 'metering_access'
+  | 'partner_export'
+  | 'ediel_ack'
 
 export type CommunicationRouteType =
   | 'partner_api'
@@ -190,6 +197,18 @@ export type OutboundRequestType =
   | 'meter_values'
   | 'billing_underlay'
   | 'customer_masterdata'
+  | 'metering_access'
+  | 'partner_export'
+  | 'ediel_ack'
+  | 'grid_owner_metering_access_agreement'
+  | 'switch_information_request'
+  | 'current_supplier_contract_information_request'
+  | 'customer_masterdata_request'
+  | 'supplier_switch_cancellation'
+  | 'metering_access_request'
+  | 'metering_access_termination'
+  | 'meter_values_request'
+  | 'billing_underlay_request'
 
 export type OutboundRequestStatus =
   | 'queued'
@@ -215,6 +234,9 @@ export type OutboundRequestRow = {
   grid_owner_id: string | null
   communication_route_id: string | null
   authorization_document_id: string | null
+  agreement_id?: string | null
+  grid_owner_access_agreement_id?: string | null
+  ediel_route_profile_id?: string | null
   request_type: OutboundRequestType
   source_type:
     | 'supplier_switch_request'
@@ -225,6 +247,20 @@ export type OutboundRequestRow = {
   source_id: string | null
   status: OutboundRequestStatus
   channel_type: OutboundChannelType
+  business_process?: string | null
+  message_intent?: string | null
+  message_family?: string | null
+  message_code?: string | null
+  message_version?: string | null
+  application_reference?: string | null
+  sender_ediel_id?: string | null
+  sender_sub_address?: string | null
+  receiver_ediel_id?: string | null
+  receiver_sub_address?: string | null
+  ack_policy?: Record<string, unknown> | null
+  blocking_reasons?: Array<Record<string, unknown>> | null
+  required_admin_actions?: string[] | null
+  route_decision_payload?: Record<string, unknown> | null
   payload: Record<string, unknown>
   response_payload: Record<string, unknown>
   period_start: string | null

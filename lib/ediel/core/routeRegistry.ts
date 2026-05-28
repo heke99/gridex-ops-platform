@@ -17,8 +17,11 @@ import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 export type CanonicalRouteRequestType =
   | 'supplier_switch'
   | 'customer_masterdata'
+  | 'metering_access'
   | 'meter_values'
   | 'billing_underlay'
+  | 'partner_export'
+  | 'ediel_ack'
 
 export type CanonicalRouteContext = {
   companyId: string | null
@@ -45,7 +48,7 @@ export type CanonicalRouteContext = {
 }
 
 function isProdatRouteRequestType(value: CanonicalRouteRequestType): boolean {
-  return value === 'supplier_switch' || value === 'customer_masterdata'
+  return value === 'supplier_switch' || value === 'customer_masterdata' || value === 'metering_access'
 }
 
 function trimOrNull(value?: string | null): string | null {
@@ -175,7 +178,7 @@ export async function resolveCanonicalRouteContext(params: {
       )
     }
 
-    if (normalizedApplicationReference.startsWith('23-DDQ')) {
+    if (normalizedApplicationReference.includes('TGT') || normalizedApplicationReference.includes('EDIELPORTAL')) {
       throw new Error(
         `Produktionsruntime får inte använda TGT application reference ${applicationReference}. Uppdatera route profile/actor settings innan utskick.`
       )

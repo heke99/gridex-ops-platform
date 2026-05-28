@@ -27,7 +27,10 @@ function upper(value: unknown): string {
 }
 
 export function isTgtApplicationReference(value?: string | null): boolean {
-  return upper(value).startsWith('23-DDQ')
+  const normalized = upper(value)
+  // 23-DDQ-PRODAT is a valid PRODAT application reference and must not be
+  // treated as a test-system marker. Only explicit portal/TGT references are blocked.
+  return normalized === '91100' || normalized.includes('TGT') || normalized.includes('EDIELPORTAL')
 }
 
 export function isEdielPortalParty(value?: string | null): boolean {

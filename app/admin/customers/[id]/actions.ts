@@ -49,6 +49,7 @@ import {
   findOpenOutboundBySource,
   updateGridOwnerDataRequestStatus,
 } from '@/lib/cis/db'
+import type { OutboundRequestType } from '@/lib/cis/types'
 import {
   createCustomerInfoRequest,
   queueCustomerInfoRequestForDispatch,
@@ -220,11 +221,13 @@ async function applyEdielMeteringMethodToSwitchSnapshots(params: {
 }
 
 
-function mapGridOwnerRequestScopeToOutboundType(
-  value: 'meter_values' | 'billing_underlay' | 'customer_masterdata'
-): 'customer_masterdata' | 'meter_values' | 'billing_underlay' {
+function mapGridOwnerRequestScopeToOutboundType(value: string | null | undefined): OutboundRequestType {
   if (value === 'billing_underlay') return 'billing_underlay'
   if (value === 'customer_masterdata') return 'customer_masterdata'
+  if (value === 'metering_access') return 'metering_access_request'
+  if (value === 'supplier_switch') return 'switch_information_request'
+  if (value === 'partner_export') return 'partner_export'
+  if (value === 'ediel_ack') return 'ediel_ack'
   return 'meter_values'
 }
 

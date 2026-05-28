@@ -195,6 +195,11 @@ export type EdielMessageRow = {
 
   communication_route_id: string | null
   outbound_request_id: string | null
+  inbound_email_message_id?: string | null
+  inbound_processing_job_id?: string | null
+  message_intent?: string | null
+  route_scope?: string | null
+  route_decision_payload?: Record<string, unknown> | null
   switch_request_id: string | null
   grid_owner_data_request_id: string | null
   partner_export_id: string | null

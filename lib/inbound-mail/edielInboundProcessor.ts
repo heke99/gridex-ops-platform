@@ -1,0 +1,115 @@
+import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
+import { resolveTenantForInboundEdiel } from '@/lib/inbound-mail/inboundTenantResolver'
+import { matchMeteringPointForInbound, matchOutboundRequestForInbound } from '@/lib/inbound-mail/inboundMatcher'
+import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
+import {
+  applySafeInboundStatusUpdate,
+  createParseResult,
+  updateInboundEmailProcessingStatus,
+} from '@/lib/inbound-mail/inboundStatusUpdater'
+import { supabaseService } from '@/lib/supabase/service'
+
+export async function processInboundEmailMessage(input: {
+  inboundEmailMessageId: string
+  actorUserId?: string | null
+}): Promise<{ status: string; companyId: string | null; parseResultId: string | null }> {
+  const { data, error } = await supabaseService
+    .from('inbound_email_messages')
+    .select('*, ediel_mailboxes(company_id)')
+    .eq('id', input.inboundEmailMessageId)
+    .maybeSingle()
+
+  if (error) throw error
+  const row = data as Record<string, unknown> | null
+  if (!row) throw new Error('Inbound email hittades inte.')
+
+  const parsed = parseInboundEmailContent({
+    rawEmail: typeof row.raw_email === 'string' ? row.raw_email : null,
+    bodyText: typeof row.body_text === 'string' ? row.body_text : null,
+    attachmentText: typeof row.raw_edifact_payload === 'string' ? row.raw_edifact_payload : null,
+  })
+
+  if (!parsed) {
+    await updateInboundEmailProcessingStatus({
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      companyId: typeof row.company_id === 'string' ? row.company_id : null,
+      status: 'manual_review',
+      matchStatus: 'missing_payload',
+      errorMessage: 'Mail saknar EDIFACT payload.',
+    })
+    await createInboundMailTask({
+      companyId: typeof row.company_id === 'string' ? row.company_id : null,
+      title: 'Inkommande Ediel-mail saknar läsbar EDIFACT payload',
+      description: 'Kontrollera råmail och bilagor manuellt.',
+      metadata: { inboundEmailMessageId: input.inboundEmailMessageId },
+      actorUserId: input.actorUserId ?? null,
+    })
+    return { status: 'manual_review', companyId: typeof row.company_id === 'string' ? row.company_id : null, parseResultId: null }
+  }
+
+  const mailbox = row.ediel_mailboxes as { company_id?: string | null } | null
+  const tenant = await resolveTenantForInboundEdiel({
+    mailboxCompanyId: typeof row.company_id === 'string' ? row.company_id : mailbox?.company_id ?? null,
+    parsed,
+  })
+
+  const parseResultId = await createParseResult({
+    inboundEmailMessageId: input.inboundEmailMessageId,
+    companyId: tenant.companyId,
+    parsed,
+  })
+
+  if (tenant.status !== 'resolved' || !tenant.companyId) {
+    await updateInboundEmailProcessingStatus({
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      companyId: tenant.companyId,
+      status: 'manual_review',
+      matchStatus: tenant.status,
+      matchPayload: { tenant, parsed },
+    })
+    return { status: 'manual_review', companyId: null, parseResultId }
+  }
+
+  const outboundMatch = await matchOutboundRequestForInbound({
+    companyId: tenant.companyId,
+    parsed,
+    inboundEmailMessageId: input.inboundEmailMessageId,
+    parseResultId,
+  })
+  const meteringPointMatch = await matchMeteringPointForInbound({
+    companyId: tenant.companyId,
+    parsed,
+    inboundEmailMessageId: input.inboundEmailMessageId,
+    parseResultId,
+  })
+
+  const safeMatch = outboundMatch.status === 'matched'
+  const matchStatus = safeMatch ? 'matched' : outboundMatch.status
+
+  if (safeMatch) {
+    await applySafeInboundStatusUpdate({
+      companyId: tenant.companyId,
+      parsed,
+      outboundMatch,
+      meteringPointMatch,
+    })
+  } else {
+    await createInboundMailTask({
+      companyId: tenant.companyId,
+      title: 'Inkommande Ediel-mail kräver manuell matchning',
+      description: outboundMatch.reasons.join('\n'),
+      metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId, outboundMatch, meteringPointMatch, parsed },
+      actorUserId: input.actorUserId ?? null,
+    })
+  }
+
+  await updateInboundEmailProcessingStatus({
+    inboundEmailMessageId: input.inboundEmailMessageId,
+    companyId: tenant.companyId,
+    status: safeMatch ? 'processed' : 'manual_review',
+    matchStatus,
+    matchPayload: { tenant, outboundMatch, meteringPointMatch, parsed },
+  })
+
+  return { status: safeMatch ? 'processed' : 'manual_review', companyId: tenant.companyId, parseResultId }
+}

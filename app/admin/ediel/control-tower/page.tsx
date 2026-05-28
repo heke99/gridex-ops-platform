@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -122,7 +122,7 @@ function StatCard({ label, value, href, tone = 'info' }: { label: string; value:
 }
 
 export default async function EdielControlTowerPage() {
-  const context = await requireAdminPageKeyAccess('ediel.control_tower')
+  const context = await requirePlatformAdminAccess()
   const tenantScope = await resolveAdminTenantReadScope(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
   const companyId = tenantScope.companyId

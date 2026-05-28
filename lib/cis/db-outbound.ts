@@ -9,6 +9,8 @@ import type {
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import { findBestCommunicationRoute } from './db-routes'
+import { decideCommunicationRoute, routeDecisionPayload } from '@/lib/routes/routeDecisionEngine'
+import type { BusinessProcess } from '@/lib/routes/routeDecisionTypes'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
   buildBatchKey,
@@ -26,6 +28,16 @@ import {
   normalizeQuery,
 } from './db-shared'
 
+
+function businessProcessFromRequestType(requestType: OutboundRequestType): BusinessProcess {
+  if (requestType === 'customer_masterdata' || requestType === 'customer_masterdata_request') return 'customer_masterdata'
+  if (requestType === 'metering_access' || requestType === 'metering_access_request' || requestType === 'metering_access_termination') return 'metering_access'
+  if (requestType === 'meter_values' || requestType === 'meter_values_request') return 'meter_values'
+  if (requestType === 'billing_underlay' || requestType === 'billing_underlay_request') return 'billing_underlay'
+  if (requestType === 'partner_export') return 'partner_export'
+  if (requestType === 'ediel_ack') return 'ediel_ack'
+  return 'supplier_switch'
+}
 
 async function getCommunicationRouteById(
   communicationRouteId: string
@@ -193,18 +205,36 @@ export async function createOutboundRequest(input: {
   const companyId = requireContextCompanyId(context, 'Skapa outbound request')
   await requireCompanyOperationalForWrites(companyId)
 
-  const route = input.communicationRouteId
-    ? await getCommunicationRouteById(input.communicationRouteId)
-    : await findBestCommunicationRoute({
-        companyId,
-        requestType: input.requestType,
-        gridOwnerId: input.gridOwnerId ?? context.meteringPoint?.grid_owner_id ?? context.site?.grid_owner_id ?? null,
-      })
+  const gridOwnerId = input.gridOwnerId ?? context.meteringPoint?.grid_owner_id ?? context.site?.grid_owner_id ?? null
+  const businessProcess = businessProcessFromRequestType(input.requestType)
+  const routeDecision = await decideCommunicationRoute({
+    companyId,
+    customerId: input.customerId,
+    siteId: input.siteId ?? null,
+    meteringPointId: input.meteringPointId ?? null,
+    gridOwnerId,
+    businessProcess,
+    requestedAction: input.requestType,
+    preferredRouteId: input.communicationRouteId ?? null,
+    authorizationDocumentId: input.payload?.authorization_document_id as string | undefined,
+    payload: input.payload ?? {},
+    actorUserId: input.actorUserId,
+  })
+
+  const route = routeDecision.communicationRouteId
+    ? await getCommunicationRouteById(routeDecision.communicationRouteId)
+    : input.communicationRouteId
+      ? await getCommunicationRouteById(input.communicationRouteId)
+      : await findBestCommunicationRoute({
+          companyId,
+          requestType: input.requestType,
+          gridOwnerId,
+        })
 
   if (route?.company_id && route.company_id !== companyId) {
     throw new Error('Vald kommunikationsroute tillhör ett annat bolag.')
   }
-  const channelType = route?.route_type ?? 'unresolved'
+  const channelType = routeDecision.decisionStatus === 'blocked' ? 'unresolved' : route?.route_type ?? 'unresolved'
   const shouldReplaceSupplierSwitchAttempt = Boolean(
     input.replaceOpenSupplierSwitchAttempt &&
       input.sourceType === 'supplier_switch_request' &&
@@ -239,14 +269,31 @@ export async function createOutboundRequest(input: {
     customer_id: input.customerId,
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
-    grid_owner_id: input.gridOwnerId ?? null,
+    grid_owner_id: gridOwnerId,
     communication_route_id: route?.id ?? input.communicationRouteId ?? null,
     request_type: input.requestType,
     source_type: input.sourceType ?? 'manual',
     source_id: input.sourceId ?? null,
-    status: 'queued' as const,
+    status: routeDecision.decisionStatus === 'blocked' ? 'failed' as const : 'queued' as const,
     channel_type: channelType,
-    payload: enrichedPayload,
+    agreement_id: routeDecision.gridOwnerAccessAgreementId,
+    grid_owner_access_agreement_id: routeDecision.gridOwnerAccessAgreementId,
+    ediel_route_profile_id: routeDecision.edielRouteProfileId,
+    business_process: routeDecision.businessProcess,
+    message_intent: routeDecision.messageIntent,
+    message_family: routeDecision.messageFamily,
+    message_code: routeDecision.messageCode,
+    message_version: routeDecision.messageVersion,
+    application_reference: routeDecision.applicationReference,
+    sender_ediel_id: routeDecision.senderEdielId,
+    sender_sub_address: routeDecision.senderSubAddress,
+    receiver_ediel_id: routeDecision.receiverEdielId,
+    receiver_sub_address: routeDecision.receiverSubAddress,
+    ack_policy: routeDecision.ackPolicy,
+    blocking_reasons: routeDecision.blockingReasons,
+    required_admin_actions: routeDecision.requiredAdminActions,
+    route_decision_payload: routeDecisionPayload(routeDecision),
+    payload: mergeJsonObjects(enrichedPayload, { route_decision: routeDecisionPayload(routeDecision) }),
     period_start: input.periodStart ?? null,
     period_end: input.periodEnd ?? null,
     external_reference: input.externalReference ?? null,
@@ -255,6 +302,9 @@ export async function createOutboundRequest(input: {
     automation_key: input.automationKey ?? null,
     created_by: input.actorUserId,
     updated_by: input.actorUserId,
+    failure_reason: routeDecision.decisionStatus === 'blocked'
+      ? routeDecision.blockingReasons.map((reason) => reason.message).join(' | ')
+      : null,
   }
 
   const { data, error } = await supabaseService
@@ -298,6 +348,7 @@ export async function createOutboundRequest(input: {
           channelType,
           targetSystem: route?.target_system ?? null,
           targetEmail: route?.target_email ?? null,
+          routeDecision: routeDecisionPayload(routeDecision),
           replacement: true,
         },
       })
@@ -342,6 +393,7 @@ export async function createOutboundRequest(input: {
       channelType,
       targetSystem: route?.target_system ?? null,
       targetEmail: route?.target_email ?? null,
+      routeDecision: routeDecisionPayload(routeDecision),
     },
   })
 

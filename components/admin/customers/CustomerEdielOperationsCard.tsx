@@ -41,6 +41,7 @@ type Props = {
  routeProfiles: EdielRouteProfileRow[]
  edielMessages: EdielMessageSummaryRow[]
  recommendationRoutes: EdielRecommendationRouteRow[]
+ isPlatformAdmin?: boolean
 }
 
 type EdielValidationIssue = {
@@ -546,6 +547,7 @@ export default async function CustomerEdielOperationsCard({
  routeProfiles,
  edielMessages,
  recommendationRoutes,
+ isPlatformAdmin = false,
 }: Props) {
  const supabase = await createSupabaseServerClient()
  const {
@@ -618,12 +620,15 @@ aperak_status: normalizeRecommendationAckStatus(
  Ediel operations
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Kör leverantörsbyte och mätvärdesflöden direkt från kundkortet med
- route, mailbox och senaste Ediel-händelser synliga här.
+ {isPlatformAdmin
+ ? 'Kör leverantörsbyte och mätvärdesflöden med teknisk Ediel-kedja, route och mailbox synligt.'
+ : 'Kör leverantörsbyte och mätvärdesflöden i affärsspråk. Systemet hanterar route, kvittenser och teknik i bakgrunden.'}
  </p>
  </div>
 
  <div className="flex flex-wrap gap-2">
+ {isPlatformAdmin ? (
+ <>
  <Link
  href="/admin/ediel"
  className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 "
@@ -636,6 +641,12 @@ aperak_status: normalizeRecommendationAckStatus(
  >
  Ediel-routes
  </Link>
+ </>
+ ) : (
+ <span className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800">
+ Teknisk Ediel-kedja hanteras av plattformen
+ </span>
+ )}
  </div>
  </div>
  </div>
@@ -670,7 +681,7 @@ aperak_status: normalizeRecommendationAckStatus(
 
  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
  <div className="text-sm text-slate-700 ">
- Ediel-routes för kunden
+ {isPlatformAdmin ? 'Ediel-routes för kunden' : 'Möjliga mottagare'}
  </div>
  <div className="mt-2 text-3xl font-semibold text-slate-950 ">
  {
@@ -686,10 +697,12 @@ aperak_status: normalizeRecommendationAckStatus(
  <div className="rounded-3xl border border-emerald-200 bg-emerald-50/70 shadow-sm ">
  <div className="border-b border-emerald-200 px-6 py-5 ">
  <h3 className="text-base font-semibold text-slate-900 ">
- Rekommenderat Ediel-nästa steg för kunden
+ {isPlatformAdmin ? 'Rekommenderat Ediel-nästa steg för kunden' : 'Nästa steg'}
  </h3>
  <p className="mt-1 text-sm text-slate-700 ">
- Detta räknas fram med samma rekommendationsmotor som i Ediel Live Center, men visas direkt på kundkortet så handläggaren slipper hoppa mellan vyer.
+ {isPlatformAdmin
+ ? 'Detta räknas fram med samma rekommendationsmotor som i Ediel Live Center, inklusive route och teknisk status.'
+ : 'Här visas vad som kan göras från kundkortet utan att vanliga handläggare behöver se rå Ediel-teknik.'}
  </p>
  </div>
 
@@ -703,6 +716,7 @@ aperak_status: normalizeRecommendationAckStatus(
  </div>
  </div>
 
+ {isPlatformAdmin ? (
  <div className="rounded-2xl border border-white/80 bg-white p-4 ">
  <div className="text-xs font-medium uppercase tracking-wide text-slate-700 ">
  Bästa route
@@ -713,6 +727,7 @@ aperak_status: normalizeRecommendationAckStatus(
  : '—'}
  </div>
  </div>
+ ) : null}
 
  <div className="rounded-2xl border border-white/80 bg-white p-4 ">
  <div className="text-xs font-medium uppercase tracking-wide text-slate-700 ">
@@ -742,6 +757,7 @@ aperak_status: normalizeRecommendationAckStatus(
  </div>
  </div>
 
+ {isPlatformAdmin ? (
  <div className="rounded-2xl border border-white/80 bg-white p-4 ">
  <div className="text-xs font-medium uppercase tracking-wide text-slate-700 ">
  Route-hälsa
@@ -761,7 +777,9 @@ aperak_status: normalizeRecommendationAckStatus(
  </span>
  </div>
  </div>
+ ) : null}
 
+ {isPlatformAdmin ? (
  <div className="rounded-2xl border border-white/80 bg-white p-4 md:col-span-5">
  <div className="text-sm font-semibold text-slate-900 ">
  Routebedömning
@@ -796,6 +814,7 @@ aperak_status: normalizeRecommendationAckStatus(
  />
  </div>
  </div>
+ ) : null}
  </div>
  </div>
 

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminPageAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import CustomerEdielOperationsCard from '@/components/admin/customers/CustomerEdielOperationsCard'
@@ -1330,6 +1330,7 @@ export default async function CustomerAdminDetailPage({
  searchParams,
 }: CustomerPageProps) {
  const access = await requireAdminPageAccess({ anyOf: ['customers.read', MASTERDATA_PERMISSIONS.READ] })
+ const isPlatformAdmin = isPlatformAdminContext(access)
 
  const { id } = await params
  const resolvedSearchParams = await searchParams
@@ -2063,7 +2064,7 @@ export default async function CustomerAdminDetailPage({
 
  {activeTab === 'ediel-operations' ? (
  <SectionAnchor id="ediel-operations" title="Ediel" description="Skapa, validera och följ Ediel-flödet för kundens switchar och nätägarrelaterade meddelanden.">
- <CustomerEdielOperationsCard customerId={id} sites={sites} meteringPoints={meteringPoints} gridOwners={gridOwners} switchRequests={switchRequests} dataRequests={dataRequests} communicationRoutes={edielData.communicationRoutes} routeProfiles={edielData.routeProfiles} edielMessages={edielData.edielMessages} recommendationRoutes={edielData.recommendationRoutes} />
+ <CustomerEdielOperationsCard customerId={id} sites={sites} meteringPoints={meteringPoints} gridOwners={gridOwners} switchRequests={switchRequests} dataRequests={dataRequests} communicationRoutes={edielData.communicationRoutes} routeProfiles={edielData.routeProfiles} edielMessages={edielData.edielMessages} recommendationRoutes={edielData.recommendationRoutes} isPlatformAdmin={isPlatformAdmin} />
  </SectionAnchor>
  ) : null}
 
