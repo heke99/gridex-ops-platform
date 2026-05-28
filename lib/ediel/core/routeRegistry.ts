@@ -51,6 +51,12 @@ function isProdatRouteRequestType(value: CanonicalRouteRequestType): boolean {
   return value === 'supplier_switch' || value === 'customer_masterdata' || value === 'metering_access'
 }
 
+function defaultApplicationReferenceForRequestType(value: CanonicalRouteRequestType): string | null {
+  if (value === 'metering_access') return '23-DGI-PRODAT'
+  if (value === 'supplier_switch' || value === 'customer_masterdata') return '23-DDQ-PRODAT'
+  return null
+}
+
 function trimOrNull(value?: string | null): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
@@ -164,9 +170,10 @@ export async function resolveCanonicalRouteContext(params: {
   const mailbox = trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox
   const applicationReference =
     trimOrNull(routeRuntime?.application_reference) ??
-    (isEdielPortalTgtRoute && isProdatRouteRequestType(params.requestType)
-      ? '23-DDQ-PRODAT'
-      : actor.defaultApplicationReference)
+    (isProdatRouteRequestType(params.requestType)
+      ? defaultApplicationReferenceForRequestType(params.requestType)
+      : null) ??
+    actor.defaultApplicationReference
 
   if (environment === 'production') {
     const normalizedApplicationReference = String(applicationReference ?? '').toUpperCase()
@@ -194,6 +201,7 @@ export async function resolveCanonicalRouteContext(params: {
     route.id,
     receiverEdielId,
     receiverSubAddress,
+    applicationReference ?? 'default-application-reference',
     messageStandard,
     environment,
     defaultMessageVersion ?? 'default-version',
@@ -201,10 +209,10 @@ export async function resolveCanonicalRouteContext(params: {
 
   const routeDecisionReason =
     resolvedRoute.source === 'explicit_route'
-      ? `Explicit route ${route.route_name} valdes för ${params.requestType}. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverSubAddress}, mailbox ${mailbox ?? '—'} och ack_mode ${ackMode}.`
+      ? `Explicit route ${route.route_name} valdes för ${params.requestType}. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverSubAddress}, mailbox ${mailbox ?? '—'} application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
       : `Route ${route.route_name} valdes automatiskt för ${params.requestType}${
           params.gridOwner?.name ? ` mot ${params.gridOwner.name}` : ''
-        }. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverSubAddress}, mailbox ${mailbox ?? '—'} och ack_mode ${ackMode}.`
+        }. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverSubAddress}, mailbox ${mailbox ?? '—'} application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
 
   return {
     companyId: companyId ?? route.company_id ?? null,

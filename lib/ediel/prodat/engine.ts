@@ -19,6 +19,7 @@ import { buildZ14Segments } from '@/lib/ediel/prodat/builders/z14'
 import { buildZ15Segments } from '@/lib/ediel/prodat/builders/z15'
 import { buildZ18Segments } from '@/lib/ediel/prodat/builders/z18'
 import { deriveProdatAckExpectation } from '@/lib/ediel/prodat/registry'
+import { validateProdatRulebookInput } from '@/lib/ediel/rulebook/validator'
 
 export type {
   ProdatEngineAckExpectation,
@@ -59,7 +60,8 @@ function withAckExpectation(result: ProdatEngineRenderResult): ProdatEngineRende
 
 export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult {
   const builder = BUILDERS[input.code]
-  return withAckExpectation(
+  const rulebookValidation = validateProdatRulebookInput(input)
+  const rendered = withAckExpectation(
     builder({
       context: input.context,
       portalSnapshot: input.portalSnapshot ?? null,
@@ -71,6 +73,19 @@ export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult
       acceptedVersions: input.version.acceptedVersions ?? [],
     })
   )
+
+  return {
+    ...rendered,
+    issues: [
+      ...rulebookValidation.issues.map((item) => ({
+        severity: item.severity === 'error' ? 'error' as const : 'warning' as const,
+        code: item.code,
+        title: item.title,
+        description: item.description,
+      })),
+      ...rendered.issues,
+    ],
+  }
 }
 
 /**
