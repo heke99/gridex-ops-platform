@@ -232,6 +232,19 @@ async function setCompanyStatus(input: {
   return data as { id: string; name: string; status: string }
 }
 
+
+async function verifyCompanyCreated(companyId: string) {
+  const { data, error } = await supabaseService
+    .from('companies')
+    .select('id,name,slug,status,org_number,primary_contact_email,created_by')
+    .eq('id', companyId)
+    .maybeSingle()
+
+  if (error) throw new Error(`Bolaget skapades men kunde inte verifieras i databasen: ${errorMessage(error, 'Okänt databasfel')}`)
+  if (!data?.id) throw new Error('Bolaget skapades inte korrekt i databasen. Ingen companies-rad kunde verifieras efter insert.')
+  return data
+}
+
 function escapeEmailHtml(value: string) {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\"', '&quot;')
 }
@@ -321,6 +334,9 @@ export async function createCompanyAction(
 
     if (companyError) throw companyError
     createdCompanyId = company.id as string
+    await verifyCompanyCreated(createdCompanyId)
+
+    let provisionedProjectRef: string | null = null
 
     if (initialAdminEmail) {
       const provisionedAdmin = await provisionCompanyUserWithTemporaryPassword({
@@ -334,6 +350,8 @@ export async function createCompanyAction(
         actorUserId,
         source: 'create_company_initial_admin',
       })
+
+      provisionedProjectRef = provisionedAdmin.supabaseProjectRef
 
       await trySendTenantInviteEmail({
         companyId: company.id,
@@ -362,8 +380,8 @@ export async function createCompanyAction(
     return {
       ok: true,
       message: initialAdminEmail
-        ? 'Elhandelsbolaget skapades i onboarding och bolagsansvarig kan logga in med det temporära lösenordet.'
-        : 'Elhandelsbolaget skapades i onboarding.',
+        ? `Elhandelsbolaget skapades i databasen och bolagsansvarig skapades/kopplades i Supabase Auth${provisionedProjectRef ? ` (${provisionedProjectRef})` : ''}.`
+        : 'Elhandelsbolaget skapades i databasen och verifierades.',
     }
   } catch (error) {
     if (createdCompanyId) {
@@ -461,7 +479,10 @@ export async function inviteCompanyUserAction(
     revalidatePath('/admin/company-settings')
     revalidatePath('/admin')
 
-    return { ok: true, message: 'Användaren skapades/kopplades och visas nu i bolagets användarlista.' }
+    return {
+      ok: true,
+      message: `Användaren skapades/kopplades i Supabase Auth${provisioned.supabaseProjectRef ? ` (${provisioned.supabaseProjectRef})` : ''} och visas nu i bolagets användarlista.`,
+    }
   } catch (error) {
     return { ok: false, message: errorMessage(error, 'Användaren kunde inte skapas eller kopplas till bolaget.') }
   }

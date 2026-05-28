@@ -6,6 +6,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { requireRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
+import { assertSupabaseAdminHealth } from '@/lib/supabase/adminHealth'
 import {
   findAuthUserByEmail,
   getBaseAppUrl,
@@ -139,6 +140,8 @@ export async function inviteAdminUserAction(
     let userId: string | null = null
 
     if (sendInvite) {
+      await assertSupabaseAdminHealth()
+
       const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(email, {
         redirectTo: `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent('/login/update-password')}`,
         data: fullName ? { full_name: fullName } : undefined,
@@ -215,6 +218,8 @@ export async function createDirectAdminUserAction(
     if (!email) return { ok: false, message: 'E-post saknas.' }
     if (password.length < 10) return { ok: false, message: 'Lösenordet behöver vara minst 10 tecken.' }
 
+    const adminHealth = await assertSupabaseAdminHealth()
+
     const existingUser = await findAuthUserByEmail(email)
     if (existingUser) return { ok: false, message: 'Det finns redan ett konto med den e-postadressen.' }
 
@@ -227,6 +232,11 @@ export async function createDirectAdminUserAction(
 
     if (error) throw error
     if (!data.user?.id) throw new Error('Auth-kontot skapades inte korrekt.')
+
+    const authVerify = await supabaseService.auth.admin.getUserById(data.user.id)
+    if (authVerify.error || !authVerify.data.user?.id) {
+      throw new Error('Auth-kontot kunde inte verifieras i Supabase Authentication efter skapande.')
+    }
 
     await upsertAuthUserProfile({
       userId: data.user.id,
@@ -253,7 +263,7 @@ export async function createDirectAdminUserAction(
     })
 
     revalidatePath('/admin/users')
-    return { ok: true, message: 'Kontot skapades och databasen synkades.' }
+    return { ok: true, message: `Kontot skapades i Supabase Auth${adminHealth.projectRef ? ` (${adminHealth.projectRef})` : ''} och databasen synkades.` }
   } catch (error) {
     return {
       ok: false,

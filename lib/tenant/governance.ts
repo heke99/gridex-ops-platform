@@ -82,6 +82,8 @@ export type CompanyUserGovernanceRow = {
   disabledAt: string | null
   removedAt: string | null
   userStatus: UserOperationalStatus | null
+  authStatus: 'auth_ok' | 'missing_auth_user' | 'auth_lookup_failed'
+  authEmail: string | null
 }
 
 type CountFilter = {
@@ -459,8 +461,8 @@ function chunkStrings(values: string[], size: number): string[][] {
   return chunks
 }
 
-async function loadAuthEmailsById(userIds: string[]): Promise<Map<string, string | null>> {
-  const authEmailById = new Map<string, string | null>()
+async function loadAuthEmailsById(userIds: string[]): Promise<Map<string, { email: string | null; status: 'auth_ok' | 'missing_auth_user' | 'auth_lookup_failed' }>> {
+  const authEmailById = new Map<string, { email: string | null; status: 'auth_ok' | 'missing_auth_user' | 'auth_lookup_failed' }>()
   const uniqueIds = Array.from(new Set(userIds.filter((value) => value.length > 0 && !value.includes('@'))))
 
   for (const idChunk of chunkStrings(uniqueIds, 10)) {
@@ -469,10 +471,12 @@ async function loadAuthEmailsById(userIds: string[]): Promise<Map<string, string
         try {
           const { data, error } = await supabaseService.auth.admin.getUserById(userId)
           if (!error && data.user?.id) {
-            authEmailById.set(userId, data.user.email ?? null)
+            authEmailById.set(userId, { email: data.user.email ?? null, status: 'auth_ok' })
+          } else {
+            authEmailById.set(userId, { email: null, status: 'missing_auth_user' })
           }
         } catch {
-          // Auth lookup is best effort and must never crash the company users page.
+          authEmailById.set(userId, { email: null, status: 'auth_lookup_failed' })
         }
       })
     )
@@ -621,18 +625,20 @@ export async function listCompanyUsersForGovernance(companyId: string): Promise<
     }
   }
 
-  const missingAuthEmailIds = userIds.filter((userId) => !profileById.get(userId)?.email)
-  const authEmailById = missingAuthEmailIds.length > 0
-    ? await loadAuthEmailsById(missingAuthEmailIds)
-    : new Map<string, string | null>()
+  const authLookupIds = userIds
+  const authEmailById = authLookupIds.length > 0
+    ? await loadAuthEmailsById(authLookupIds)
+    : new Map<string, { email: string | null; status: 'auth_ok' | 'missing_auth_user' | 'auth_lookup_failed' }>()
 
   return memberships.map((row) => {
     const profile = profileById.get(row.userId)
     return {
       ...row,
-      email: profile?.email ?? authEmailById.get(row.userId) ?? row.invitedEmail,
+      email: profile?.email ?? authEmailById.get(row.userId)?.email ?? row.invitedEmail,
       fullName: profile?.fullName ?? null,
       userStatus: profile?.userStatus ?? null,
+      authStatus: row.userId.includes('@') ? 'missing_auth_user' : (authEmailById.get(row.userId)?.status ?? (profile?.email ? 'auth_ok' : 'auth_lookup_failed')),
+      authEmail: authEmailById.get(row.userId)?.email ?? null,
     }
   })
 }

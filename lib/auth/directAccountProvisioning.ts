@@ -1,5 +1,6 @@
 import { createClient, type User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertSupabaseAdminHealth, type SupabaseAdminHealth } from '@/lib/supabase/adminHealth'
 
 export type ProvisionDirectTemporaryPasswordUserInput = {
   email: string
@@ -15,6 +16,7 @@ export type ProvisionDirectTemporaryPasswordUserResult = {
   email: string
   createdAuthUser: boolean
   passwordVerified: boolean
+  supabaseProjectRef: string | null
 }
 
 function normalizeEmail(value: string) {
@@ -153,12 +155,33 @@ async function upsertUserProfile(input: {
   }
 }
 
+
+async function verifyAuthUserPersisted(input: { userId: string; email: string; context: string }) {
+  const normalizedEmail = normalizeEmail(input.email)
+  const byId = await supabaseService.auth.admin.getUserById(input.userId)
+
+  if (byId.error || !byId.data.user?.id) {
+    throw new Error(`Auth-verifiering misslyckades efter ${input.context}: användaren finns inte i Supabase Auth för user_id ${input.userId}.`)
+  }
+
+  if (normalizeEmail(byId.data.user.email ?? '') !== normalizedEmail) {
+    throw new Error(`Auth-verifiering misslyckades efter ${input.context}: Auth-e-posten matchar inte skapandeflödet.`)
+  }
+
+  const byEmail = await findAuthUserByEmail(normalizedEmail)
+  if (!byEmail?.id || byEmail.id !== input.userId) {
+    throw new Error(`Auth-verifiering misslyckades efter ${input.context}: användaren kunde inte hittas i Supabase Auth via e-post efter skapande.`)
+  }
+}
+
 export async function provisionDirectTemporaryPasswordUser(
   input: ProvisionDirectTemporaryPasswordUserInput
 ): Promise<ProvisionDirectTemporaryPasswordUserResult> {
   const email = normalizeEmail(input.email)
   const temporaryPassword = String(input.temporaryPassword ?? '')
   assertTemporaryPassword(temporaryPassword)
+
+  const adminHealth: SupabaseAdminHealth = await assertSupabaseAdminHealth()
 
   let existing = await findAuthUserByEmail(email)
   let createdAuthUser = false
@@ -188,6 +211,8 @@ export async function provisionDirectTemporaryPasswordUser(
   }
 
   if (createdAuthUser) {
+    await verifyAuthUserPersisted({ userId: existing.id, email, context: 'createUser' })
+
     const update = await supabaseService.auth.admin.updateUserById(existing.id, {
       email_confirm: true,
       user_metadata: buildUserMetadata({ ...input, email }, existing, { markTemporaryPassword: true }),
@@ -197,6 +222,7 @@ export async function provisionDirectTemporaryPasswordUser(
       throw new Error(`Kunde inte verifiera nytt Supabase Auth-konto: ${normalizeErrorMessage(update.error)}`)
     }
 
+    await verifyAuthUserPersisted({ userId: existing.id, email, context: 'updateUserById' })
     await verifyPasswordWorks(email, temporaryPassword)
   } else {
     const update = await supabaseService.auth.admin.updateUserById(existing.id, {
@@ -206,6 +232,8 @@ export async function provisionDirectTemporaryPasswordUser(
     if (update.error) {
       throw new Error(`Kunde inte uppdatera befintligt Supabase Auth-konto: ${normalizeErrorMessage(update.error)}`)
     }
+
+    await verifyAuthUserPersisted({ userId: existing.id, email, context: 'befintlig Auth-koppling' })
   }
 
   await upsertUserProfile({
@@ -221,6 +249,7 @@ export async function provisionDirectTemporaryPasswordUser(
     email,
     createdAuthUser,
     passwordVerified: createdAuthUser,
+    supabaseProjectRef: adminHealth.projectRef,
   }
 }
 

@@ -84,6 +84,13 @@ function membershipStatusTone(status: string) {
   return 'border-amber-200 bg-amber-50 text-amber-800'
 }
 
+
+function authStatusCopy(status: 'auth_ok' | 'missing_auth_user' | 'auth_lookup_failed') {
+  if (status === 'auth_ok') return { label: 'Auth OK', tone: 'border-emerald-200 bg-emerald-50 text-emerald-800' }
+  if (status === 'missing_auth_user') return { label: 'Auth saknas', tone: 'border-red-200 bg-red-50 text-red-800' }
+  return { label: 'Auth oklar', tone: 'border-amber-200 bg-amber-50 text-amber-800' }
+}
+
 function StatusBadge({ status }: { status: CompanyOperationalStatus }) {
   const copy = getCompanyStatusCopy(status)
   return <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${copy.tone}`}>{copy.label}</span>
@@ -124,6 +131,7 @@ export default async function CompanyUsersPage({
   const usersLoadError = usersResult.error
   const activeUsers = users.filter((user) => user.status === 'active').length
   const disabledUsers = users.filter((user) => user.status !== 'active').length
+  const missingAuthUsers = users.filter((user) => user.authStatus === 'missing_auth_user').length
 
   return (
     <div className="min-h-screen">
@@ -148,7 +156,7 @@ export default async function CompanyUsersPage({
           </div>
         </div>
 
-        <section className="grid gap-4 xl:grid-cols-3">
+        <section className="grid gap-4 xl:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-sm font-medium text-slate-700">Aktiva användare</p>
             <p className="mt-1 text-2xl font-semibold text-slate-950">{activeUsers}</p>
@@ -156,6 +164,11 @@ export default async function CompanyUsersPage({
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-sm font-medium text-slate-700">Inaktiva/avkopplade</p>
             <p className="mt-1 text-2xl font-semibold text-slate-950">{disabledUsers}</p>
+          </div>
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm">
+            <p className="text-sm font-medium text-red-700">Saknar Auth</p>
+            <p className="mt-1 text-2xl font-semibold text-red-950">{missingAuthUsers}</p>
+            <p className="mt-1 text-xs leading-5 text-red-800">Dessa kan inte logga in förrän Auth-konto finns.</p>
           </div>
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
             <p className="text-sm font-medium text-amber-700">Historik bevaras</p>
@@ -216,6 +229,7 @@ export default async function CompanyUsersPage({
                   <th className="px-6 py-4 text-left font-semibold text-slate-700">Användare</th>
                   <th className="px-6 py-4 text-left font-semibold text-slate-700">Bolagsroll</th>
                   <th className="px-6 py-4 text-left font-semibold text-slate-700">Status</th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Auth</th>
                   <th className="px-6 py-4 text-left font-semibold text-slate-700">Senast</th>
                   <th className="px-6 py-4 text-left font-semibold text-slate-700">Åtgärder</th>
                 </tr>
@@ -239,6 +253,15 @@ export default async function CompanyUsersPage({
                       </span>
                       {user.userStatus && user.userStatus !== 'active' ? (
                         <p className="mt-1 text-xs text-red-700">Global: {user.userStatus}</p>
+                      ) : null}
+                    </td>
+                    <td className="px-5 py-3">
+                      {(() => {
+                        const auth = authStatusCopy(user.authStatus)
+                        return <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${auth.tone}`}>{auth.label}</span>
+                      })()}
+                      {user.authStatus !== 'auth_ok' ? (
+                        <p className="mt-1 max-w-[190px] text-xs leading-5 text-red-700">Användaren finns i appdata men saknas/kan inte verifieras i Supabase Authentication.</p>
                       ) : null}
                     </td>
                     <td className="px-5 py-3 text-xs leading-5 text-slate-700">
