@@ -1,3 +1,4 @@
+//app/admin/inbound-mail/[id]/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
