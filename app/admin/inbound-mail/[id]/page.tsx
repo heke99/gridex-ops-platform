@@ -2,6 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { reprocessInboundEmailAction } from '@/app/admin/inbound-mail/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,9 +59,15 @@ export default async function InboundMailDetailPage({ params }: Props) {
       />
 
       <main className="space-y-6 px-6 py-6 sm:px-8">
-        <Link href="/admin/inbound-mail" className="inline-flex rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 shadow-sm shadow-emerald-950/5 hover:bg-emerald-50">
-          Tillbaka till Inbound Mail Engine
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/admin/inbound-mail" className="inline-flex rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 shadow-sm shadow-emerald-950/5 hover:bg-emerald-50">
+            Tillbaka till Inbound Mail Engine
+          </Link>
+          <form action={reprocessInboundEmailAction}>
+            <input type="hidden" name="id" value={id} />
+            <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-950/10 hover:bg-emerald-800">Processa om</button>
+          </form>
+        </div>
 
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5 md:col-span-2">

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { processInboundMailQueueAction, runInboundMailEngineAction } from '@/app/admin/inbound-mail/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,6 +81,25 @@ export default async function InboundMailPage() {
       />
 
       <main className="space-y-6 px-6 py-6 sm:px-8">
+        <section className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Engine-körning</p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-950">Pollning och köprocessor</h2>
+              <p className="mt-1 text-sm text-slate-700">Används av platform admin för manuell debug. I produktion kan samma runner anropas av Vercel Cron/API var 10:e minut.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <form action={runInboundMailEngineAction}>
+                <input type="hidden" name="environment" value="test" />
+                <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-950/10 hover:bg-emerald-800">Kör engine nu</button>
+              </form>
+              <form action={processInboundMailQueueAction}>
+                <button className="rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Processa kö</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Inkommande mail</p>

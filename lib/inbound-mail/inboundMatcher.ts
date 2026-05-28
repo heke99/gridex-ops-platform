@@ -74,14 +74,58 @@ export async function matchOutboundRequestForInbound(input: {
 
   const { data, error } = await supabaseService
     .from('outbound_requests')
-    .select('id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, status, external_reference, dispatch_batch_key, source_id')
+    .select('id, company_id, source_type, source_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, status, external_reference, dispatch_batch_key, message_family, message_code')
     .eq('company_id', input.companyId)
     .or(conditions.join(','))
     .limit(5)
 
   if (error) throw error
 
-  const match = singleOrAmbiguous('outbound_request', (data ?? []) as Array<Record<string, unknown>>, [`Referenser testade: ${references.join(', ')}`])
+  const outboundRows = (data ?? []) as Array<Record<string, unknown>>
+  if (outboundRows.length > 0) {
+    const match = singleOrAmbiguous('outbound_request', outboundRows, [`Referenser testade mot outbound_requests: ${references.join(', ')}`])
+    await insertAttempt({ ...input, matchType: 'outbound_request', match })
+    return match
+  }
+
+  const { data: edielData, error: edielError } = await supabaseService
+    .from('ediel_messages')
+    .select('outbound_request_id')
+    .eq('company_id', input.companyId)
+    .eq('direction', 'outbound')
+    .not('outbound_request_id', 'is', null)
+    .or(references.flatMap((reference) => [
+      `interchange_reference.eq.${reference}`,
+      `transaction_reference.eq.${reference}`,
+      `external_reference.eq.${reference}`,
+      `correlation_reference.eq.${reference}`,
+      `original_message_id.eq.${reference}`,
+    ]).join(','))
+    .limit(5)
+
+  if (edielError) throw edielError
+
+  const outboundIds = Array.from(new Set(
+    ((edielData ?? []) as Array<Record<string, unknown>>)
+      .map((row) => (typeof row.outbound_request_id === 'string' ? row.outbound_request_id : null))
+      .filter((value): value is string => Boolean(value))
+  ))
+
+  if (outboundIds.length === 0) {
+    const match = singleOrAmbiguous('outbound_request', [], [`Referenser testade mot outbound_requests/ediel_messages: ${references.join(', ')}`])
+    await insertAttempt({ ...input, matchType: 'outbound_request', match })
+    return match
+  }
+
+  const { data: linkedOutboundRows, error: linkedError } = await supabaseService
+    .from('outbound_requests')
+    .select('id, company_id, source_type, source_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, status, external_reference, dispatch_batch_key, message_family, message_code')
+    .eq('company_id', input.companyId)
+    .in('id', outboundIds)
+
+  if (linkedError) throw linkedError
+
+  const match = singleOrAmbiguous('outbound_request', (linkedOutboundRows ?? []) as Array<Record<string, unknown>>, [`Referenser testade mot outbound_requests/ediel_messages: ${references.join(', ')}`])
   await insertAttempt({ ...input, matchType: 'outbound_request', match })
   return match
 }

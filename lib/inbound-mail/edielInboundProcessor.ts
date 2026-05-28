@@ -4,6 +4,7 @@ import { matchMeteringPointForInbound, matchOutboundRequestForInbound } from '@/
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
 import {
   applySafeInboundStatusUpdate,
+  createInboundEdielMessage,
   createParseResult,
   updateInboundEmailProcessingStatus,
 } from '@/lib/inbound-mail/inboundStatusUpdater'
@@ -67,6 +68,13 @@ export async function processInboundEmailMessage(input: {
       matchStatus: tenant.status,
       matchPayload: { tenant, parsed },
     })
+    await createInboundMailTask({
+      companyId: tenant.companyId,
+      title: 'Inkommande Ediel-mail saknar säker tenant-match',
+      description: tenant.reasons.join('\n') || 'Systemet kunde inte matcha company_id säkert.',
+      metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId, tenant, parsed },
+      actorUserId: input.actorUserId ?? null,
+    })
     return { status: 'manual_review', companyId: null, parseResultId }
   }
 
@@ -92,8 +100,20 @@ export async function processInboundEmailMessage(input: {
       parsed,
       outboundMatch,
       meteringPointMatch,
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      parseResultId,
+      actorUserId: input.actorUserId ?? null,
     })
   } else {
+    await createInboundEdielMessage({
+      companyId: tenant.companyId,
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      parseResultId,
+      parsed,
+      outboundMatch,
+      meteringPointMatch,
+    })
+
     await createInboundMailTask({
       companyId: tenant.companyId,
       title: 'Inkommande Ediel-mail kräver manuell matchning',
