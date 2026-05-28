@@ -37,7 +37,7 @@ export default async function ForgotPasswordPage({
                 Återställ lösenordet på ett säkert sätt.
               </h1>
               <p className="mt-5 text-base leading-8 text-white/70">
-                Ange din e-postadress så skickas en återställningslänk via Supabase Auth. Länken gäller endast för det konto som är kopplat till adressen.
+                Ange din e-postadress så skickas en återställningslänk. Länken gäller endast för det konto som är kopplat till adressen.
               </p>
             </div>
           </section>
