@@ -4,13 +4,18 @@ import { resolveRoleKey } from '@/lib/rbac/roleKeys'
 type UserRoleRow = {
   user_id?: string | null
   role_id?: string | null
-  role?: string | null
   is_active?: boolean | null
   status?: string | null
   roles?: {
     key?: string | null
     name?: string | null
   } | null
+}
+
+type RoleLookupRow = {
+  id?: string | null
+  key?: string | null
+  name?: string | null
 }
 
 type ListedAuthUser = {
@@ -131,9 +136,10 @@ async function loadActiveUserRoles(userIds: string[]): Promise<UserRoleRow[]> {
   if (ids.length === 0) return []
 
   const selectAttempts = [
-    'user_id, role_id, role, is_active, status, roles(key, name)',
-    'user_id, role_id, role, is_active, status',
-    'user_id, role, is_active, status',
+    'user_id, role_id, is_active, status, roles(key, name)',
+    'user_id, role_id, is_active, status',
+    'user_id, role_id, status',
+    'user_id, role_id',
   ]
 
   let lastError: unknown = null
@@ -167,6 +173,31 @@ async function loadActiveUserRoles(userIds: string[]): Promise<UserRoleRow[]> {
   return []
 }
 
+
+async function loadRolesById(roleIds: string[]): Promise<Map<string, RoleLookupRow>> {
+  const ids = uniqueStrings(roleIds)
+  const byId = new Map<string, RoleLookupRow>()
+  if (ids.length === 0) return byId
+
+  for (const idChunk of chunk(ids, QUERY_CHUNK_SIZE)) {
+    const { data, error } = await supabaseService
+      .from('roles')
+      .select('id,key,name')
+      .in('id', idChunk)
+
+    if (error) {
+      if (isIgnorableSchemaError(error)) return byId
+      throw error
+    }
+
+    for (const role of ((data ?? []) as unknown as RoleLookupRow[])) {
+      if (role.id) byId.set(String(role.id), role)
+    }
+  }
+
+  return byId
+}
+
 export async function getAdminUsers(): Promise<AdminUserListItem[]> {
   const [authUsers, profiles] = await Promise.all([
     listAuthUsersPaginated(),
@@ -188,6 +219,7 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
   ])
 
   const roleRows = await loadActiveUserRoles(orderedIds)
+  const rolesById = await loadRolesById(roleRows.map((row) => row.role_id).filter((value): value is string => typeof value === 'string' && value.length > 0))
   const groupedRoles = new Map<string, string[]>()
 
   for (const row of roleRows) {
@@ -197,7 +229,7 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
     const isActive = row.status ? row.status === 'active' : row.is_active !== false
     if (!isActive) continue
 
-    const roleKey = resolveRoleKey(row.roles ?? row)
+    const roleKey = resolveRoleKey(row.roles ?? (row.role_id ? rolesById.get(row.role_id) : null) ?? null)
     if (!roleKey) continue
 
     const list = groupedRoles.get(userId) ?? []

@@ -59,6 +59,56 @@ function errorMessage(error: unknown, fallback: string): string {
   return fallback
 }
 
+
+type DbErrorLike = { code?: string | null; message?: string | null }
+
+function missingColumnName(error: DbErrorLike | null | undefined): string | null {
+  if (!error || !['42703', 'PGRST204'].includes(error.code ?? '')) return null
+  const message = error.message ?? ''
+  return (
+    message.match(/column\s+"([^"]+)"\s+does not exist/i)?.[1] ??
+    message.match(/'([^']+)'\s+column/i)?.[1] ??
+    message.match(/column\s+([^\s]+)\s+does not exist/i)?.[1] ??
+    null
+  )
+}
+
+function dropMissingOptionalColumn(payload: Record<string, unknown>, error: DbErrorLike | null | undefined, requiredColumns: string[]) {
+  const missing = missingColumnName(error)
+  if (!missing || !(missing in payload)) return false
+  if (requiredColumns.includes(missing)) {
+    throw new Error(`Databasen saknar obligatoriska kolumnen ${missing}. Kör senaste användar-/tenant-migrationen innan åtgärden körs.`)
+  }
+  delete payload[missing]
+  return true
+}
+
+async function markCompanyMembershipRemoved(input: {
+  companyId: string
+  userId: string
+  actorUserId: string
+  reason: string | null
+}) {
+  const payload: Record<string, unknown> = {
+    status: 'removed_from_company',
+    removed_at: new Date().toISOString(),
+    removed_by: input.actorUserId,
+    status_reason: input.reason,
+  }
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const { error } = await supabaseService
+      .from('company_memberships')
+      .update(payload)
+      .eq('company_id', input.companyId)
+      .eq('user_id', input.userId)
+
+    if (!error) return
+    if (dropMissingOptionalColumn(payload, error, ['status'])) continue
+    throw error
+  }
+}
+
 function normalizeTemporaryPassword(value: FormDataEntryValue | null): string {
   return String(value ?? '').trim()
 }
@@ -532,19 +582,7 @@ export async function removeUserFromCompanyAction(
     await assertCanManageCompanyUsers(companyId)
     if (!userId) return { ok: false, message: 'Användare saknas.' }
 
-    const { error } = await supabaseService
-      .from('company_memberships')
-      .update({
-        status: 'removed_from_company',
-        removed_at: new Date().toISOString(),
-        removed_by: actorUserId,
-        status_reason: reason,
-      })
-      .eq('company_id', companyId)
-      .eq('user_id', userId)
-
-    if (error) throw error
-
+    await markCompanyMembershipRemoved({ companyId, userId, actorUserId, reason })
     await deactivateCompanyUserAccess({ companyId, userId, actorUserId, reason })
 
     await supabaseService

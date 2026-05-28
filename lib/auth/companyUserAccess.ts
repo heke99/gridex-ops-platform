@@ -449,24 +449,47 @@ export async function provisionCompanyUserWithTemporaryPassword(
   return { ...provisioned, companyId: input.companyId, ...access }
 }
 
+async function deactivateAllTenantUserRoles(input: {
+  companyId: string
+  userId: string
+  actorUserId?: string | null
+  reason?: string | null
+}) {
+  const payload: Record<string, unknown> = {
+    status: 'removed_from_company',
+    is_active: false,
+    disabled_at: new Date().toISOString(),
+    disabled_by: input.actorUserId ?? null,
+    status_reason: input.reason ?? 'Användaren togs bort från bolaget.',
+  }
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const { error } = await supabaseService
+      .from('user_roles')
+      .update(payload)
+      .eq('company_id', input.companyId)
+      .eq('user_id', input.userId)
+
+    if (!error) return
+
+    const missing = missingColumnName(error)
+    if (missing === 'company_id') {
+      throw new Error('Databasen saknar user_roles.company_id. Kör senaste användar-/RBAC-migrationen innan användare kan kopplas bort säkert från ett enskilt bolag.')
+    }
+
+    if (dropMissingOptionalColumn(payload, error, ['user_id'])) continue
+    if (isIgnorableSchemaError(error)) return
+    throw error
+  }
+}
+
 export async function deactivateCompanyUserAccess(input: {
   companyId: string
   userId: string
   actorUserId?: string | null
   reason?: string | null
 }) {
-  await updateUserRolesByRoleIds({
-    companyId: input.companyId,
-    userId: input.userId,
-    roleIds: (await resolvePrimaryCompanyRoleRows()).map((row) => row.id),
-    payload: {
-      status: 'removed_from_company',
-      is_active: false,
-      disabled_at: new Date().toISOString(),
-      disabled_by: input.actorUserId ?? null,
-      status_reason: input.reason ?? 'Användaren togs bort från bolaget.',
-    },
-  })
+  await deactivateAllTenantUserRoles(input)
 }
 
 async function findActiveMembership(input: { companyId: string; userId: string }) {

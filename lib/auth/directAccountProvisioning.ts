@@ -54,19 +54,31 @@ export async function findAuthUserByEmail(email: string): Promise<User | null> {
   throw new Error('Kunde inte hitta användaren eftersom Supabase Auth innehåller fler än 20 000 users. Lägg till en mer specifik lookup innan fler users skapas.')
 }
 
-function buildUserMetadata(input: ProvisionDirectTemporaryPasswordUserInput, existing?: User | null) {
+function buildUserMetadata(
+  input: ProvisionDirectTemporaryPasswordUserInput,
+  existing: User | null | undefined,
+  options: { markTemporaryPassword: boolean }
+) {
   const current = (existing?.user_metadata ?? {}) as Record<string, unknown>
   const now = new Date().toISOString()
-
-  return {
+  const base: Record<string, unknown> = {
     ...current,
     ...(input.fullName ? { full_name: input.fullName } : {}),
+    last_company_access_linked_at: now,
+    last_company_access_company_id: input.companyId ?? null,
+    last_company_access_company_name: input.companyName ?? null,
+    provisioned_by_gridex_admin: true,
+  }
+
+  if (!options.markTemporaryPassword) return base
+
+  return {
+    ...base,
     must_change_password: true,
     temporary_password_set_at: now,
     temporary_password_set_by: input.actorUserId ?? null,
     temporary_password_company_id: input.companyId ?? null,
     temporary_password_company_name: input.companyName ?? null,
-    provisioned_by_gridex_admin: true,
   }
 }
 
@@ -99,16 +111,21 @@ async function upsertUserProfile(input: {
   email: string
   fullName: string | null
   companyId?: string | null
+  markTemporaryPassword: boolean
 }) {
   const now = new Date().toISOString()
-  const fullPayload = {
+  const fullPayload: Record<string, unknown> = {
     id: input.userId,
     email: input.email,
     full_name: input.fullName,
     user_status: 'active',
     active_company_id: input.companyId ?? null,
-    must_change_password: true,
-    temporary_password_set_at: now,
+    updated_at: now,
+  }
+
+  if (input.markTemporaryPassword) {
+    fullPayload.must_change_password = true
+    fullPayload.temporary_password_set_at = now
   }
 
   const minimalPayload = {
@@ -145,14 +162,13 @@ export async function provisionDirectTemporaryPasswordUser(
 
   let existing = await findAuthUserByEmail(email)
   let createdAuthUser = false
-  const metadata = buildUserMetadata({ ...input, email }, existing)
 
   if (!existing) {
     const { data, error } = await supabaseService.auth.admin.createUser({
       email,
       password: temporaryPassword,
       email_confirm: true,
-      user_metadata: metadata,
+      user_metadata: buildUserMetadata({ ...input, email }, existing, { markTemporaryPassword: true }),
     })
 
     if (error) {
@@ -174,7 +190,7 @@ export async function provisionDirectTemporaryPasswordUser(
   if (createdAuthUser) {
     const update = await supabaseService.auth.admin.updateUserById(existing.id, {
       email_confirm: true,
-      user_metadata: buildUserMetadata({ ...input, email }, existing),
+      user_metadata: buildUserMetadata({ ...input, email }, existing, { markTemporaryPassword: true }),
     })
 
     if (update.error) {
@@ -184,7 +200,7 @@ export async function provisionDirectTemporaryPasswordUser(
     await verifyPasswordWorks(email, temporaryPassword)
   } else {
     const update = await supabaseService.auth.admin.updateUserById(existing.id, {
-      user_metadata: buildUserMetadata({ ...input, email }, existing),
+      user_metadata: buildUserMetadata({ ...input, email }, existing, { markTemporaryPassword: false }),
     })
 
     if (update.error) {
@@ -197,6 +213,7 @@ export async function provisionDirectTemporaryPasswordUser(
     email,
     fullName: input.fullName,
     companyId: input.companyId ?? null,
+    markTemporaryPassword: createdAuthUser,
   })
 
   return {

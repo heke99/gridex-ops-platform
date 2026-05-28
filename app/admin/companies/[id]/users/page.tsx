@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
@@ -18,19 +19,54 @@ export const dynamic = 'force-dynamic'
 
 const emptyActionState = { ok: false, message: '' }
 
+type ActionSearchParams = Record<string, string | string[] | undefined>
+
+function firstSearchValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function buildCompanyUsersActionRedirect(companyId: string, result: { ok: boolean; message: string }) {
+  const key = result.ok ? 'success' : 'error'
+  const message = result.message || (result.ok ? 'Åtgärden sparades.' : 'Åtgärden misslyckades.')
+  return `/admin/companies/${companyId}/users?${key}=${encodeURIComponent(message)}`
+}
+
 async function inviteCompanyUserFormAction(formData: FormData) {
   'use server'
-  await inviteCompanyUserAction(emptyActionState, formData)
+  const companyId = String(formData.get('company_id') ?? '')
+  const result = await inviteCompanyUserAction(emptyActionState, formData)
+  redirect(buildCompanyUsersActionRedirect(companyId, result))
 }
 
 async function removeUserFromCompanyFormAction(formData: FormData) {
   'use server'
-  await removeUserFromCompanyAction(emptyActionState, formData)
+  const companyId = String(formData.get('company_id') ?? '')
+  const result = await removeUserFromCompanyAction(emptyActionState, formData)
+  redirect(buildCompanyUsersActionRedirect(companyId, result))
 }
 
 async function setCompanyUserRoleFormAction(formData: FormData) {
   'use server'
-  await setCompanyUserRoleAction(emptyActionState, formData)
+  const companyId = String(formData.get('company_id') ?? '')
+  const result = await setCompanyUserRoleAction(emptyActionState, formData)
+  redirect(buildCompanyUsersActionRedirect(companyId, result))
+}
+
+function ActionBanner({ success, error }: { success?: string; error?: string }) {
+  if (!success && !error) return null
+
+  const isSuccess = Boolean(success)
+  return (
+    <div
+      className={
+        isSuccess
+          ? 'rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800'
+          : 'rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800'
+      }
+    >
+      {success ?? error}
+    </div>
+  )
 }
 
 function formatDate(value: string | null | undefined) {
@@ -55,11 +91,16 @@ function StatusBadge({ status }: { status: CompanyOperationalStatus }) {
 
 export default async function CompanyUsersPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams?: Promise<ActionSearchParams>
 }) {
   const admin = await requirePlatformAdminAccess()
   const { id } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const actionSuccess = firstSearchValue(resolvedSearchParams.success)
+  const actionError = firstSearchValue(resolvedSearchParams.error)
   const company = await getCompanyById(id)
 
   if (!company) {
@@ -93,6 +134,8 @@ export default async function CompanyUsersPage({
       />
 
       <div className="space-y-5 p-6">
+        <ActionBanner success={actionSuccess} error={actionError} />
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/admin/companies" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             Tillbaka till bolag
