@@ -36,7 +36,6 @@ type RawUserRoleRow = {
   is_active?: boolean | null
   created_at?: string | null
   updated_at?: string | null
-  role?: string | null
   role_id?: string | null
   roles?: RoleRow | null
 }
@@ -64,7 +63,7 @@ export async function getAdminUserById(userId: string) {
 
   const { data: userRoles, error: rolesError } = await supabaseService
     .from('user_roles')
-    .select('id, user_id, role, role_id, is_active, created_at, updated_at, roles(id, key, name)')
+    .select('id, user_id, role_id, is_active, created_at, updated_at, roles(id, key, name)')
     .eq('user_id', userId)
     .eq('is_active', true)
 
@@ -77,10 +76,10 @@ export async function getAdminUserById(userId: string) {
     is_active: row.is_active !== false,
     granted_at: row.created_at ?? row.updated_at ?? null,
     expires_at: null,
-    roles: row.roles ?? (row.role_id || row.role ? {
-      id: row.role_id ?? row.role ?? '',
-      key: normalizeRoleKey(row.role),
-      name: normalizeRoleKey(row.role),
+    roles: row.roles ?? (row.role_id ? {
+      id: row.role_id,
+      key: normalizeRoleKey(row.role_id),
+      name: normalizeRoleKey(row.role_id),
     } : null),
   }))
 

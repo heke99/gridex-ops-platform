@@ -45,20 +45,7 @@ async function resolveRoleIdFromFormOrKey(formData: FormData): Promise<string> {
   return resolveRoleIdByKey(roleKey)
 }
 
-async function resolveRoleKeyById(roleId: string): Promise<string | null> {
-  const { data, error } = await supabaseService
-    .from('roles')
-    .select('key,name')
-    .eq('id', roleId)
-    .maybeSingle()
-
-  if (error) throw error
-  return String(data?.key ?? data?.name ?? '').trim() || null
-}
-
 async function activateUserRole(input: { userId: string; roleId: string }) {
-  const roleKey = await resolveRoleKeyById(input.roleId)
-
   const existingById = await supabaseService
     .from('user_roles')
     .select('id')
@@ -72,7 +59,7 @@ async function activateUserRole(input: { userId: string; roleId: string }) {
   if (existingById.data?.id) {
     const { error } = await supabaseService
       .from('user_roles')
-      .update({ role_id: input.roleId, role: roleKey, status: 'active', is_active: true })
+      .update({ role_id: input.roleId, status: 'active', is_active: true })
       .eq('id', existingById.data.id)
     if (error) throw error
     return
@@ -83,7 +70,6 @@ async function activateUserRole(input: { userId: string; roleId: string }) {
     .insert({
       user_id: input.userId,
       role_id: input.roleId,
-      role: roleKey,
       status: 'active',
       is_active: true,
     })

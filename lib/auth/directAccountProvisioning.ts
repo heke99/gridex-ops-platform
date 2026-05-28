@@ -171,28 +171,24 @@ export async function provisionDirectTemporaryPasswordUser(
     throw new Error(`Supabase Auth-konto kunde inte skapas eller hittas för ${email}.`)
   }
 
-  let passwordVerified = false
-
   if (createdAuthUser) {
     const update = await supabaseService.auth.admin.updateUserById(existing.id, {
-      password: temporaryPassword,
       email_confirm: true,
       user_metadata: buildUserMetadata({ ...input, email }, existing),
     })
 
     if (update.error) {
-      throw new Error(`Kunde inte sätta temporärt lösenord i Supabase Auth: ${normalizeErrorMessage(update.error)}`)
+      throw new Error(`Kunde inte verifiera nytt Supabase Auth-konto: ${normalizeErrorMessage(update.error)}`)
     }
 
     await verifyPasswordWorks(email, temporaryPassword)
-    passwordVerified = true
   } else {
     const update = await supabaseService.auth.admin.updateUserById(existing.id, {
       user_metadata: buildUserMetadata({ ...input, email }, existing),
     })
 
     if (update.error) {
-      throw new Error(`Kunde inte uppdatera befintlig Supabase Auth-användare: ${normalizeErrorMessage(update.error)}`)
+      throw new Error(`Kunde inte uppdatera befintligt Supabase Auth-konto: ${normalizeErrorMessage(update.error)}`)
     }
   }
 
@@ -207,7 +203,7 @@ export async function provisionDirectTemporaryPasswordUser(
     userId: existing.id,
     email,
     createdAuthUser,
-    passwordVerified,
+    passwordVerified: createdAuthUser,
   }
 }
 

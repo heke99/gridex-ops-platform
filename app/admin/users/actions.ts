@@ -47,16 +47,6 @@ async function getCurrentActorUserId(): Promise<string | null> {
 }
 
 async function insertActiveUserRole(input: { userId: string; roleId: string }) {
-  const { data: roleRow, error: roleError } = await supabaseService
-    .from('roles')
-    .select('key,name')
-    .eq('id', input.roleId)
-    .maybeSingle()
-
-  if (roleError) throw roleError
-
-  const roleKey = String(roleRow?.key ?? roleRow?.name ?? '').trim() || null
-
   const existing = await supabaseService
     .from('user_roles')
     .select('id')
@@ -70,7 +60,7 @@ async function insertActiveUserRole(input: { userId: string; roleId: string }) {
   if (existing.data?.id) {
     const { error } = await supabaseService
       .from('user_roles')
-      .update({ role_id: input.roleId, role: roleKey, status: 'active', is_active: true })
+      .update({ role_id: input.roleId, status: 'active', is_active: true })
       .eq('id', existing.data.id)
 
     if (error) throw error
@@ -82,7 +72,6 @@ async function insertActiveUserRole(input: { userId: string; roleId: string }) {
     .insert({
       user_id: input.userId,
       role_id: input.roleId,
-      role: roleKey,
       status: 'active',
       is_active: true,
     })

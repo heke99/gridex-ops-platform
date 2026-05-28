@@ -273,7 +273,7 @@ export async function createCompanyAction(
     createdCompanyId = company.id as string
 
     if (initialAdminEmail) {
-      await provisionCompanyUserWithTemporaryPassword({
+      const provisionedAdmin = await provisionCompanyUserWithTemporaryPassword({
         companyId: company.id,
         companyName: name,
         email: initialAdminEmail,
@@ -289,7 +289,7 @@ export async function createCompanyAction(
         companyId: company.id,
         email: initialAdminEmail,
         fullName: initialAdminName || null,
-        temporaryPassword,
+        temporaryPassword: provisionedAdmin.createdAuthUser ? temporaryPassword : null,
         actorUserId,
       })
     }
@@ -392,7 +392,7 @@ export async function inviteCompanyUserAction(
       companyId,
       email,
       fullName,
-      temporaryPassword,
+      temporaryPassword: provisioned.createdAuthUser ? temporaryPassword : null,
       actorUserId,
     })
 
