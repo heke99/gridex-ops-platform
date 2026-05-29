@@ -8,6 +8,8 @@ import { STATIC_FIELD_RULES } from '@/lib/ediel/rulebook/fieldMatrix'
 import { STATIC_CODE_RULES } from '@/lib/ediel/rulebook/codeRules'
 import { findRulebookTestCase, listRulebookTestCases } from '@/lib/ediel/rulebook/testCaseMatcher'
 import { parseRulebookListPayload, parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import { parseCanonicalEdielPayload, buildCanonicalParsedPayload } from '@/lib/ediel/core/canonicalMessage'
+import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder'
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 import { parseStructuredTestData } from '@/lib/ediel/rulebook/testDataImport'
 import { attachRulebookArtifact, runRulebookRegression, type RulebookRegressionScope } from '@/lib/ediel/rulebook/testRunner'
@@ -785,18 +787,26 @@ export async function parseAndValidateRulebookPayloadAction(formData: FormData) 
   if (!rawPayload.trim()) throw new Error('Klistra in eller ladda upp payload först')
 
   const parsed = rawPayload.includes("'") ? parseRulebookMessage(rawPayload) : parseRulebookListPayload(rawPayload)
+  const canonical = parseCanonicalEdielPayload({ rawPayload })
+  const payloadPreflight = preflightEdielPayload({
+    rawPayload,
+    messageStandard: canonical.messageStandard,
+    mimeType: canonical.messageStandard === 'xml' ? 'application/xml; charset="utf-8"' : canonical.messageStandard === 'ai_list' ? 'text/csv' : 'application/EDIFACT',
+    mode: 'parse',
+  })
   const validation = validateRulebookMessage({ parsed, rawPayload, mode: 'parse' })
+  const combinedBlocking = validation.blocking || payloadPreflight.blocking
 
   const run = await safeInsert('ediel_test_runs', {
     test_suite: 'RULEBOOK_PARSER',
     role_code: 'system',
     test_case_code: `${validation.family ?? 'UNKNOWN'}_${validation.code ?? 'UNKNOWN'}_${Date.now()}`,
     title: `Parser & validering ${validation.family ?? 'okänd'} ${validation.code ?? ''}`,
-    status: validation.blocking ? 'failed' : 'passed',
+    status: combinedBlocking ? 'failed' : 'passed',
     started_at: new Date().toISOString(),
     completed_at: new Date().toISOString(),
-    failure_reason: validation.blocking ? validation.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.description).join(' | ') : null,
-    notes: JSON.stringify({ fileName: uploaded.fileName, validation }),
+    failure_reason: combinedBlocking ? [...validation.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.description), ...payloadPreflight.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.description)].join(' | ') : null,
+    notes: JSON.stringify({ fileName: uploaded.fileName, validation, payloadPreflight }),
     created_by: context.userId,
     updated_by: context.userId,
   })
@@ -806,7 +816,7 @@ export async function parseAndValidateRulebookPayloadAction(formData: FormData) 
     testRunId: typeof run?.id === 'string' ? run.id : null,
     artifactType: 'parser_validation',
     title: 'Parser & rulebook-validering',
-    payload: { parsed, validation, rawPayload: rawPayload.slice(0, 25000) },
+    payload: { parsed, canonical: buildCanonicalParsedPayload(canonical), validation, payloadPreflight, rawPayload: rawPayload.slice(0, 25000) },
   })
 
   revalidateSystemTests()

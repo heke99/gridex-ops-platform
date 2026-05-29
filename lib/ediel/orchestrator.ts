@@ -8,7 +8,7 @@ import {
   buildUtiltsErrDraft,
   type EdielAperakApplicationError,
 } from '@/lib/ediel/ack'
-import { getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
+import { createEdielMessageEvent, getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
 import {
   createCanonicalAckMessage,
   resolveCanonicalOutboundContext,
@@ -46,6 +46,7 @@ import {
   prepareAndQueueUtiltsE73,
 } from '@/lib/ediel/flows/utiltsDataRequest'
 import { sendEdielMessageViaSmtp, type EdielSmtpMimeMode } from '@/lib/ediel/transport'
+import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder'
 
 export type {
   AckFamily,
@@ -209,6 +210,46 @@ export async function sendQueuedEdielMessage(params: {
 
   if (message.direction !== 'outbound') {
     throw new Error(`Meddelande ${message.id} är inte outbound.`)
+  }
+
+  const preflight = preflightEdielMessageRow(message, 'send')
+  await createEdielMessageEvent({
+    actorUserId,
+    edielMessageId: message.id,
+    eventType: 'manual_note',
+    eventStatus: preflight.blocking ? 'error' : preflight.issues.length > 0 ? 'warning' : 'success',
+    message: preflight.blocking
+      ? 'Payload preflight blockerade utskick.'
+      : 'Payload preflight godkändes före utskick.',
+    payload: {
+      batch: '2.5B.1',
+      family: preflight.family,
+      code: preflight.code,
+      segmentCount: preflight.segmentCount,
+      declaredUntCount: preflight.declaredUntCount,
+      declaredUnzCount: preflight.declaredUnzCount,
+      payloadSizeBytes: preflight.payloadSizeBytes,
+      issues: preflight.issues,
+      markers: preflight.markers,
+    },
+  }).catch(() => null)
+
+  if (preflight.blocking) {
+    await updateEdielMessageStatus({
+      actorUserId,
+      edielMessageId: message.id,
+      status: 'failed',
+      failureReason: preflight.issues
+        .filter((issue) => issue.severity === 'error')
+        .map((issue) => `${issue.code}: ${issue.description}`)
+        .join(' | '),
+      failedAt: new Date().toISOString(),
+      validationReport: {
+        ...(message.validation_report ?? {}),
+        payloadPreflight: preflight,
+      },
+    })
+    throw new Error('Meddelandet stoppades av payload preflight och skickades inte.')
   }
 
   if (message.status === 'draft') {

@@ -142,8 +142,10 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
   const lin = first(rawSegments, 'LIN+')
   const sender = splitParty(part(unb, 2))
   const receiver = splitParty(part(unb, 3))
-  const family = inferFamilyFromUnh(unh)
-  const code = family === 'CONTRL' ? 'CONTRL' : family === 'APERAK' ? 'APERAK' : family === 'UTILTS_ERR' ? 'UTILTS_ERR' : parseBgmCode(bgm)
+  const bgmCode = parseBgmCode(bgm)
+  const inferredFamily = inferFamilyFromUnh(unh)
+  const family = inferredFamily === 'UTILTS' && bgmCode === 'ERR' ? 'UTILTS_ERR' : inferredFamily
+  const code = family === 'CONTRL' ? 'CONTRL' : family === 'APERAK' ? 'APERAK' : family === 'UTILTS_ERR' ? 'UTILTS_ERR' : bgmCode
   const applicationReference = part(unb, 7)
   const interchangeReference = part(unb, 5)
   const messageReference = parseBgmReference(bgm) ?? part(unh, 1)

@@ -19,12 +19,13 @@ import {
   matchSiteAndCustomerForMeteringPoint,
 } from '@/lib/ediel/matching'
 import { linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
-import { buildContrlDraft, buildAperakDraft, buildUtiltsErrDraft, getAutomaticAckPolicy, getCanonicalAckState } from '@/lib/ediel/ack'
+import { buildContrlDraft, buildAperakDraft, buildUtiltsErrDraft, getAutomaticAckPolicy, getCanonicalAckState, type EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 import { syncActorTestingForMessage } from '@/lib/ediel/actorTestingEngine'
 import { EDIEL_AGT_PORTAL_EDIEL_ID } from '@/lib/ediel/agtRegistry'
+import { resolveCanonicalRuntimeDecision, type CanonicalRuntimeDecision, type CanonicalResponsePlanItem } from '@/lib/ediel/core/runtimeDecision'
 import { buildSafeMasterdataProposal } from '@/lib/ediel/operationalVerification'
 import { createOrUpdateInboundProdatCase } from '@/lib/ediel/inboundCases'
 import {
@@ -78,6 +79,7 @@ async function createAckIfMissing(params: {
   ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'
   messageText?: string | null
+  applicationErrors?: readonly EdielAperakApplicationError[] | null
 }) {
   const draft =
     params.ackFamily === 'CONTRL'
@@ -93,6 +95,7 @@ async function createAckIfMissing(params: {
             sourceMessage: params.sourceMessage,
             outcome: params.outcome ?? 'positive',
             messageText: params.messageText ?? null,
+            applicationErrors: params.applicationErrors ?? null,
           })
         : buildUtiltsErrDraft({
             actorUserId: params.actorUserId,
@@ -199,6 +202,86 @@ async function syncActorTestingGlobally(params: {
   }
 }
 
+
+function canonicalResponsePlanFromMessage(message: EdielMessageRow): CanonicalResponsePlanItem[] {
+  const report = message.validation_report ?? {}
+  const direct = report.responsePlan
+  const nested = (report.canonicalRuntime as { responsePlan?: unknown } | undefined)?.responsePlan
+  const candidate = Array.isArray(direct) ? direct : Array.isArray(nested) ? nested : []
+  return candidate.filter((item): item is CanonicalResponsePlanItem => {
+    if (!item || typeof item !== 'object') return false
+    const family = (item as { family?: unknown }).family
+    return family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
+  })
+}
+
+function responsePlanItemFor(message: EdielMessageRow, family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'): CanonicalResponsePlanItem | null {
+  return canonicalResponsePlanFromMessage(message).find((item) => item.family === family) ?? null
+}
+
+async function applyCanonicalRuntimeDecision(params: {
+  actorUserId: string
+  message: EdielMessageRow
+}): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision }> {
+  const decision = resolveCanonicalRuntimeDecision(params.message)
+  const now = new Date().toISOString()
+  const mergedParsedPayload = {
+    ...(params.message.parsed_payload ?? {}),
+    canonical: decision.parsedPayload,
+  }
+  const mergedValidationReport = {
+    ...(params.message.validation_report ?? {}),
+    canonicalRuntime: decision.validationReport,
+    canonicalRuntimeVersion: '2.5B',
+    syntaxDecision: decision.syntaxDecision,
+    applicationDecision: decision.applicationDecision,
+    functionalDecision: decision.functionalDecision,
+    responsePlan: decision.responsePlan,
+    decisionTrace: decision.decisionTrace,
+    sourceRules: decision.sourceRules,
+  }
+
+  const nextStatus = decision.syntaxDecision === 'rejected' ? 'failed' : 'validated'
+  const failureReason = decision.syntaxDecision === 'rejected'
+    ? decision.issues.filter((item) => item.layer === 'syntax' && item.severity === 'error').map((item) => item.description).join(' | ') || 'EDIFACT syntaxfel.'
+    : undefined
+
+  const updated = await updateEdielMessageStatus({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.message.id,
+    status: nextStatus,
+    parsedPayload: mergedParsedPayload,
+    validationReport: mergedValidationReport,
+    parsedAt: params.message.parsed_at ?? now,
+    validatedAt: now,
+    failedAt: nextStatus === 'failed' ? now : undefined,
+    failureReason,
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.message.id,
+    eventType: 'validated',
+    eventStatus: decision.syntaxDecision === 'rejected' || decision.applicationDecision === 'rejected' || decision.functionalDecision === 'rejected' ? 'warning' : 'success',
+    message: 'Canonical Ediel Runtime Engine kördes för inbound-meddelandet.',
+    payload: {
+      batch: '2.5B',
+      family: decision.canonical.family,
+      messageCode: decision.canonical.messageCode,
+      processGroup: decision.canonical.processGroup,
+      syntaxDecision: decision.syntaxDecision,
+      applicationDecision: decision.applicationDecision,
+      functionalDecision: decision.functionalDecision,
+      responsePlan: decision.responsePlan,
+      issueCount: decision.issues.length,
+      sourceRules: decision.sourceRules,
+      decisionTrace: decision.decisionTrace,
+    },
+  })
+
+  return { message: updated, decision }
+}
+
 async function createAutomaticPositiveAcks(params: {
   actorUserId: string
   sourceMessage: EdielMessageRow
@@ -220,14 +303,15 @@ async function createAutomaticPositiveAcks(params: {
     return createdIds
   }
 
-  if (policy.shouldSendContrl) {
+  const contrlPlan = responsePlanItemFor(params.sourceMessage, 'CONTRL')
+  if (policy.shouldSendContrl || contrlPlan) {
     try {
       const contrl = await createAckIfMissing({
         actorUserId: params.actorUserId,
         sourceMessage: params.sourceMessage,
         ackFamily: 'CONTRL',
-        outcome: 'positive',
-        messageText: 'Automatiskt CONTRL.',
+        outcome: contrlPlan?.outcome === 'negative' ? 'negative' : 'positive',
+        messageText: contrlPlan?.reason ?? 'Automatiskt CONTRL.',
       })
       createdIds.push(contrl.id)
     } catch (error) {
@@ -240,14 +324,40 @@ async function createAutomaticPositiveAcks(params: {
     }
   }
 
-  if (policy.shouldSendPositiveAperak) {
+  const utiltsErrPlan = responsePlanItemFor(params.sourceMessage, 'UTILTS_ERR')
+  if (utiltsErrPlan) {
+    try {
+      const utiltsErr = await createAckIfMissing({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        ackFamily: 'UTILTS_ERR',
+        outcome: 'negative',
+        messageText: utiltsErrPlan.reason,
+      })
+      createdIds.push(utiltsErr.id)
+    } catch (error) {
+      await createAckBlockedEvent({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        ackFamily: 'UTILTS_ERR',
+        reason: error instanceof Error ? error.message : 'Okänt fel vid UTILTS_ERR-skapande.',
+      })
+    }
+
+    return createdIds
+  }
+
+  const aperakPlan = responsePlanItemFor(params.sourceMessage, 'APERAK')
+  const shouldSendAperakFromPlan = aperakPlan?.outcome === 'negative'
+  if (policy.shouldSendPositiveAperak || shouldSendAperakFromPlan) {
     try {
       const aperak = await createAckIfMissing({
         actorUserId: params.actorUserId,
         sourceMessage: params.sourceMessage,
         ackFamily: 'APERAK',
-        outcome: 'positive',
-        messageText: 'Automatiskt APERAK.',
+        outcome: aperakPlan?.outcome === 'negative' ? 'negative' : 'positive',
+        messageText: aperakPlan?.reason ?? 'Automatiskt APERAK.',
+        applicationErrors: aperakPlan?.applicationErrors ?? null,
       })
       createdIds.push(aperak.id)
     } catch (error) {
@@ -497,55 +607,66 @@ export async function processInboundEdielMessage(params: {
     return message
   }
 
-  if (message.message_family === 'PRODAT' || message.message_family === 'UTILTS') {
+  const canonicalRuntime = await applyCanonicalRuntimeDecision({ actorUserId, message })
+  const runtimeMessage = canonicalRuntime.message
+
+  if (canonicalRuntime.decision.syntaxDecision === 'rejected') {
+    await createAutomaticPositiveAcks({
+      actorUserId,
+      sourceMessage: runtimeMessage,
+    })
+    return runtimeMessage
+  }
+
+  if (runtimeMessage.message_family === 'PRODAT' || runtimeMessage.message_family === 'UTILTS') {
     const handledByActorTesting = await syncActorTestingGlobally({
       actorUserId,
-      message,
+      message: runtimeMessage,
       phase: 'pre_business_processing',
       autoRespond: true,
       autoSend: true,
     })
 
     if (handledByActorTesting) {
-      return message
+      return runtimeMessage
     }
   }
 
   if (
-    message.message_family === 'CONTRL' ||
-    message.message_family === 'APERAK' ||
-    message.message_family === 'UTILTS_ERR'
+    runtimeMessage.message_family === 'CONTRL' ||
+    runtimeMessage.message_family === 'APERAK' ||
+    runtimeMessage.message_family === 'UTILTS_ERR'
   ) {
-    await processInboundAckMessage({ actorUserId, message })
+    await processInboundAckMessage({ actorUserId, message: runtimeMessage })
     await syncActorTestingGlobally({
       actorUserId,
-      message,
+      message: runtimeMessage,
       phase: 'post_ack_processing',
       autoRespond: false,
       autoSend: false,
     })
-    return message
+    return runtimeMessage
   }
 
-  if (message.message_family === 'PRODAT') {
-    await processInboundProdatMessage({ actorUserId, message })
-    return message
+  if (runtimeMessage.message_family === 'PRODAT') {
+    await processInboundProdatMessage({ actorUserId, message: runtimeMessage })
+    return runtimeMessage
   }
 
-  if (message.message_family === 'UTILTS') {
-    await processInboundUtiltsMessage({ actorUserId, edielMessageId: message.id })
-    return message
+  if (runtimeMessage.message_family === 'UTILTS') {
+    await processInboundUtiltsMessage({ actorUserId, edielMessageId: runtimeMessage.id })
+    return runtimeMessage
   }
 
   const ackIds = await createAutomaticPositiveAcks({
     actorUserId,
-    sourceMessage: message,
+    sourceMessage: runtimeMessage,
   })
-  const ackSnapshot = await readCanonicalAckSnapshot(message.id)
+  const ackSnapshot = await readCanonicalAckSnapshot(runtimeMessage.id)
 
   await createEdielMessageEvent({
     actorUserId,
-    edielMessageId: message.id,
+    edielMessageId: runtimeMessage.id,
     eventType: 'validated',
     eventStatus: 'warning',
     message: 'Inbound meddelande kvitterades automatiskt men saknar ännu stark processkoppling.',
@@ -556,7 +677,7 @@ export async function processInboundEdielMessage(params: {
     },
   })
 
-  return message
+  return runtimeMessage
 }
 
 export async function pollAndIngestEdielMailbox(params: {

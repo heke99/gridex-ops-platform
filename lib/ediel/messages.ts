@@ -1,6 +1,7 @@
 // lib/ediel/messages.ts
 
 import { buildEdielInterchangeReference } from '@/lib/ediel/references'
+import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder'
 
 type BuildEdifactEnvelopeInput = {
   senderEdielId: string
@@ -151,6 +152,21 @@ export function buildEdifactEnvelope(
   // the reserved blank before the segment terminator. Do not add an extra
   // terminator after UNA; it already ends with the terminator character.
   const raw = `${buildUnaSegment()}${interchangeSegments.map((segment) => `${sanitizeSegment(segment)}'`).join('')}`
+  const preflight = preflightEdielPayload({
+    rawPayload: raw,
+    mimeType: 'application/EDIFACT',
+    messageStandard: 'edifact',
+    mode: 'send',
+  })
+
+  if (preflight.blocking) {
+    throw new Error(
+      `EDIFACT envelope stoppades av payload preflight: ${preflight.issues
+        .filter((issue) => issue.severity === 'error')
+        .map((issue) => `${issue.code}: ${issue.description}`)
+        .join(' | ')}`
+    )
+  }
 
   return {
     raw,
