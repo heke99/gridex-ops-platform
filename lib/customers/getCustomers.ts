@@ -36,6 +36,30 @@ export type CustomerListRow = {
 type RawCustomerRow = Record<string, unknown> & { id?: string }
 
 const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
+const CUSTOMER_LIST_SELECT = [
+  'id',
+  'customer_type',
+  'status',
+  'possible_duplicate',
+  'duplicate_review_status',
+  'consolidated_invoice',
+  'billing_level',
+  'intake_status',
+  'intake_missing_fields',
+  'first_name',
+  'last_name',
+  'full_name',
+  'company_name',
+  'email',
+  'phone',
+  'personal_number',
+  'org_number',
+  'customer_number',
+  'apartment_number',
+  'source',
+  'created_at',
+  'company_id',
+].join(',')
 
 type CustomerSiteCountRow = {
   id: string
@@ -201,7 +225,7 @@ async function loadCustomerRows(companyId: string | null): Promise<CustomerListR
   try {
     let query = supabaseService
       .from('customers')
-      .select('*')
+      .select(CUSTOMER_LIST_SELECT)
       .not('company_id', 'is', null)
       .or('source.is.null,source.neq.ediel_portal_test')
       .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)

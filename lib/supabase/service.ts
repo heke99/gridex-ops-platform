@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
+import { getSupabaseServiceEnv } from '@/lib/env/supabaseServer'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://missing-supabase-url.supabase.co'
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'missing-service-role-key'
+const { url, serviceRoleKey } = getSupabaseServiceEnv()
 
-export const supabaseService = createClient(supabaseUrl, serviceRoleKey, {
+export const supabaseService = createClient(url, serviceRoleKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,

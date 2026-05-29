@@ -1,11 +1,6 @@
 // lib/ediel/summary.ts
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type {
-  EdielMessageRow,
-  EdielRouteProfileRow,
-  EdielTestRunRow,
-} from '@/lib/ediel/types'
 
 export type EdielSummary = {
   totalMessages: number
@@ -24,94 +19,93 @@ export type EdielSummary = {
   runningTests: number
 }
 
-function isAckPending(
-  message: Pick<EdielMessageRow, 'contrl_status' | 'aperak_status'>
-) {
-  return message.contrl_status === 'pending' || message.aperak_status === 'pending'
-}
+type CountQuery = PromiseLike<{
+  count: number | null
+  error: unknown
+}>
 
-function isAckOverdue(
-  message: Pick<
-    EdielMessageRow,
-    'contrl_status' | 'aperak_status' | 'ack_due_at'
-  >
-) {
-  if (!isAckPending(message)) return false
-  if (!message.ack_due_at) return false
-
-  const dueAt = new Date(message.ack_due_at)
-  if (Number.isNaN(dueAt.getTime())) return false
-
-  return dueAt.getTime() < Date.now()
+async function readCount(query: CountQuery): Promise<number> {
+  const { count, error } = await query
+  if (error) throw error
+  return count ?? 0
 }
 
 export async function getEdielSummary(
   supabase: SupabaseClient,
   companyId?: string | null
 ): Promise<EdielSummary> {
-  let messagesQuery = supabase.from('ediel_messages').select('*')
-  let routesQuery = supabase
-    .from('communication_routes')
-    .select('id,is_active,route_type,target_system,target_email,company_id')
-  let profilesQuery = supabase.from('ediel_route_profiles').select('*')
-  let testsQuery = supabase.from('ediel_test_runs').select('*')
-
-  if (companyId) {
-    messagesQuery = messagesQuery.eq('company_id', companyId)
-    routesQuery = routesQuery.eq('company_id', companyId)
-    profilesQuery = profilesQuery.eq('company_id', companyId)
-    testsQuery = testsQuery.eq('company_id', companyId)
+  const messages = () => {
+    let query = supabase.from('ediel_messages').select('id', { count: 'exact', head: true })
+    if (companyId) query = query.eq('company_id', companyId)
+    return query
+  }
+  const routes = () => {
+    let query = supabase
+      .from('communication_routes')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true)
+      .or('route_type.eq.ediel_partner,target_system.ilike.%ediel%,target_email.ilike.%ediel%')
+    if (companyId) query = query.eq('company_id', companyId)
+    return query
+  }
+  const profiles = () => {
+    let query = supabase.from('ediel_route_profiles').select('id', { count: 'exact', head: true })
+    if (companyId) query = query.eq('company_id', companyId)
+    return query
+  }
+  const tests = () => {
+    let query = supabase.from('ediel_test_runs').select('id', { count: 'exact', head: true })
+    if (companyId) query = query.eq('company_id', companyId)
+    return query
   }
 
-  const [messagesRes, routesRes, profilesRes, testsRes] = await Promise.all([
-    messagesQuery,
-    routesQuery,
-    profilesQuery,
-    testsQuery,
+  const [
+    totalMessages,
+    inboundMessages,
+    outboundMessages,
+    draftMessages,
+    failedMessages,
+    queuedMessages,
+    preparedMessages,
+    sentMessages,
+    ackPendingMessages,
+    ackOverdueMessages,
+    activeRoutes,
+    configuredProfiles,
+    activeTestRuns,
+  ] = await Promise.all([
+    readCount(messages()),
+    readCount(messages().eq('direction', 'inbound')),
+    readCount(messages().eq('direction', 'outbound')),
+    readCount(messages().eq('status', 'draft')),
+    readCount(messages().eq('status', 'failed')),
+    readCount(messages().eq('status', 'queued')),
+    readCount(messages().eq('status', 'prepared')),
+    readCount(messages().eq('status', 'sent')),
+    readCount(messages().or('contrl_status.eq.pending,aperak_status.eq.pending')),
+    readCount(
+      messages()
+        .or('contrl_status.eq.pending,aperak_status.eq.pending')
+        .lt('ack_due_at', new Date().toISOString())
+    ),
+    readCount(routes()),
+    readCount(profiles()),
+    readCount(tests().in('status', ['draft', 'running'])),
   ])
 
-  if (messagesRes.error) throw messagesRes.error
-  if (routesRes.error) throw routesRes.error
-  if (profilesRes.error) throw profilesRes.error
-  if (testsRes.error) throw testsRes.error
-
-  const messages = (messagesRes.data ?? []) as EdielMessageRow[]
-  const profiles = (profilesRes.data ?? []) as EdielRouteProfileRow[]
-  const tests = (testsRes.data ?? []) as EdielTestRunRow[]
-
-  const routes = (routesRes.data ?? []) as Array<{
-    id: string
-    is_active: boolean
-    route_type: string
-    target_system: string | null
-    target_email: string | null
-  }>
-
-  const activeRoutes = routes.filter((route) => {
-    if (!route.is_active) return false
-    if (route.route_type === 'ediel_partner') return true
-    if (route.target_system?.toLowerCase().includes('ediel')) return true
-    if (route.target_email?.toLowerCase().includes('ediel')) return true
-    return false
-  }).length
-
-  const activeTestRuns = tests.filter(
-    (row) => row.status === 'draft' || row.status === 'running'
-  ).length
-
   return {
-    totalMessages: messages.length,
-    inboundMessages: messages.filter((row) => row.direction === 'inbound').length,
-    outboundMessages: messages.filter((row) => row.direction === 'outbound').length,
-    draftMessages: messages.filter((row) => row.status === 'draft').length,
-    failedMessages: messages.filter((row) => row.status === 'failed').length,
-    queuedMessages: messages.filter((row) => row.status === 'queued').length,
-    preparedMessages: messages.filter((row) => row.status === 'prepared').length,
-    sentMessages: messages.filter((row) => row.status === 'sent').length,
-    ackPendingMessages: messages.filter(isAckPending).length,
-    ackOverdueMessages: messages.filter(isAckOverdue).length,
+    totalMessages,
+    inboundMessages,
+    outboundMessages,
+    draftMessages,
+    failedMessages,
+    queuedMessages,
+    preparedMessages,
+    sentMessages,
+    ackPendingMessages,
+    ackOverdueMessages,
     activeRoutes,
-    configuredProfiles: profiles.length,
+    configuredProfiles,
     activeTestRuns,
     runningTests: activeTestRuns,
   }

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import {
+  apiErrorResponse,
+  jsonError,
+  requireAdminApiAccess,
+} from '@/lib/admin/apiGuards'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertCompanyAccessForGuard } from '@/lib/tenant/entityGuards'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,14 +13,8 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ documentId: string }> }
 ) {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Ej inloggad' }, { status: 401 })
-  }
+  const access = await requireAdminApiAccess(['documents.read', 'poa.read', 'customers.read'])
+  if (access.response) return access.response
 
   const { documentId } = await context.params
   const mode = request.nextUrl.searchParams.get('mode') === 'download'
@@ -24,7 +23,7 @@ export async function GET(
 
   const { data: document, error } = await supabaseService
     .from('customer_authorization_documents')
-    .select('*')
+    .select('id, customer_id, company_id, storage_bucket, file_path, file_name')
     .eq('id', documentId)
     .maybeSingle()
 
@@ -33,7 +32,17 @@ export async function GET(
   }
 
   if (!document) {
-    return NextResponse.json({ error: 'Dokumentet hittades inte' }, { status: 404 })
+    return jsonError('Dokumentet hittades inte', 404)
+  }
+
+  try {
+    await assertCompanyAccessForGuard(document.company_id, access.guard)
+  } catch (tenantError) {
+    return apiErrorResponse(tenantError, 403)
+  }
+
+  if (!document.file_path) {
+    return jsonError('Dokumentet saknar lagringsväg', 422)
   }
 
   const bucket = document.storage_bucket || 'customer-documents'
@@ -47,7 +56,7 @@ export async function GET(
   if (signedUrlResponse.error || !signedUrlResponse.data?.signedUrl) {
     return NextResponse.json(
       { error: signedUrlResponse.error?.message ?? 'Kunde inte skapa signed URL' },
-      { status: 500 }
+      { status: 404 }
     )
   }
 

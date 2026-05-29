@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
+  apiErrorResponse,
+  requireAdminApiAccess,
+} from '@/lib/admin/apiGuards'
+import {
   resolveOwnElectricitySupplier,
   type OwnElectricitySupplierResolution,
 } from '@/lib/masterdata/selfSupplier'
+import { loadCustomerTenantContext } from '@/lib/tenant/entityGuards'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,14 +32,18 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const access = await requireAdminApiAccess(['customers.read', 'switching.read'])
+  if (access.response) return access.response
 
-  if (!user) {
-    return NextResponse.json({ error: 'Ej inloggad' }, { status: 401 })
+  let companyId: string
+  try {
+    const tenant = await loadCustomerTenantContext(customerId, access.guard)
+    companyId = tenant.companyId
+  } catch (error) {
+    return apiErrorResponse(error, 403)
   }
+
+  const supabase = await createSupabaseServerClient()
 
   const [customerResponse, suppliersResponse, ownSupplierLookup] = await Promise.all([
     supabase
@@ -43,13 +52,15 @@ export async function GET(request: NextRequest) {
         'id, customer_type, first_name, last_name, company_name, org_number, personal_number'
       )
       .eq('id', customerId)
+      .eq('company_id', companyId)
       .maybeSingle(),
     supabase
       .from('electricity_suppliers')
       .select('id, name, org_number, is_active, is_own_supplier')
       .eq('is_active', true)
       .order('is_own_supplier', { ascending: false })
-      .order('name', { ascending: true }),
+      .order('name', { ascending: true })
+      .limit(250),
     resolveOwnElectricitySupplier(supabase),
   ])
 

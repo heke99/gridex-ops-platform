@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import {
   getAdminNavigationGroups,
   type AdminNavigationMode,
+  type AdminNavigationItem,
 } from '@/lib/admin/navigation'
 
 type AdminSidebarProps = {
@@ -25,6 +26,10 @@ function isActive(pathname: string, href: string) {
 
 function modeHref(pathname: string, mode: AdminNavigationMode) {
   return `${pathname}?nav=${mode === 'platform_view' ? 'platform' : 'company'}`
+}
+
+function itemIsPlatformOnly(item: Pick<AdminNavigationItem, 'platformOnly'>) {
+  return item.platformOnly === true
 }
 
 export default function AdminSidebar({
@@ -144,7 +149,13 @@ export default function AdminSidebar({
                     <div className="pl-2">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-semibold">{item.label}</div>
-                        {active ? <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" /> : null}
+                        {itemIsPlatformOnly(item) && mode === 'platform_view' ? (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                            Plattform
+                          </span>
+                        ) : active ? (
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" />
+                        ) : null}
                       </div>
                       {item.description ? (
                         <div className={`mt-1 text-xs leading-5 ${active ? 'text-emerald-800' : 'text-slate-700 group-hover:text-slate-700'}`}>

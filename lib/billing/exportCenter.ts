@@ -676,6 +676,13 @@ export type BillingExportFile = {
   body: string | Uint8Array;
 };
 
+export class BillingExportNotFoundError extends Error {
+  constructor() {
+    super("Exportkörningen hittades inte för valt bolag.");
+    this.name = "BillingExportNotFoundError";
+  }
+}
+
 function csvEscape(value: unknown): string {
   if (value === null || value === undefined) return "";
   const raw = typeof value === "object" ? JSON.stringify(value) : String(value);
@@ -745,25 +752,25 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
 }
 
 export async function getBillingExportRunWithItems(params: {
-  companyId: string;
+  companyId: string | null;
   exportRunId: string;
 }): Promise<{ run: BillingExportRunRow; items: BillingExportRunItemRow[] }> {
-  const { data: run, error: runError } = await supabaseService
+  let runQuery = supabaseService
     .from("billing_export_runs")
     .select("*")
-    .eq("company_id", params.companyId)
     .eq("id", params.exportRunId)
-    .maybeSingle();
+  if (params.companyId) runQuery = runQuery.eq("company_id", params.companyId);
+  const { data: run, error: runError } = await runQuery.maybeSingle();
 
   if (runError) throw runError;
-  if (!run) throw new Error("Exportkörningen hittades inte för valt bolag.");
+  if (!run) throw new BillingExportNotFoundError();
 
-  const { data: items, error: itemError } = await supabaseService
+  let itemsQuery = supabaseService
     .from("billing_export_run_items")
     .select("*")
-    .eq("company_id", params.companyId)
     .eq("billing_export_run_id", params.exportRunId)
-    .order("created_at", { ascending: true });
+  if (params.companyId) itemsQuery = itemsQuery.eq("company_id", params.companyId);
+  const { data: items, error: itemError } = await itemsQuery.order("created_at", { ascending: true });
 
   if (itemError) throw itemError;
 

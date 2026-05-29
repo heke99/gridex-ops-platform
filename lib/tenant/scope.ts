@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type CompanySummary = {
@@ -62,7 +63,7 @@ export function isMissingRelationError(error: unknown): boolean {
   )
 }
 
-export async function listOperationalCompaniesForUser(
+export const listOperationalCompaniesForUser = cache(async function listOperationalCompaniesForUser(
   userId: string
 ): Promise<CompanyMembershipSummary[]> {
   const { data, error } = await supabaseService
@@ -91,9 +92,9 @@ export async function listOperationalCompaniesForUser(
       } satisfies CompanyMembershipSummary
     })
     .filter((row): row is CompanyMembershipSummary => Boolean(row))
-}
+})
 
-export async function getOperationalCompanyScope(
+export const getOperationalCompanyScope = cache(async function getOperationalCompanyScope(
   userId: string
 ): Promise<OperationalCompanyScope> {
   const memberships = await listOperationalCompaniesForUser(userId)
@@ -118,7 +119,7 @@ export async function getOperationalCompanyScope(
     requiresCompany: false,
     message: null,
   }
-}
+})
 
 export async function requireOperationalCompanyId(userId: string): Promise<string> {
   const scope = await getOperationalCompanyScope(userId)

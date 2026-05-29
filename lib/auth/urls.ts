@@ -4,8 +4,14 @@ export function getBaseAppUrl(): string {
     process.env.NEXT_PUBLIC_SITE_URL ??
     process.env.NEXT_PUBLIC_BASE_URL ??
     process.env.SITE_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ??
-    'http://localhost:3000'
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+
+  if (!value) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Missing required production app URL environment variable.')
+    }
+    return 'http://localhost:3000'
+  }
 
   return value.replace(/\/$/, '')
 }

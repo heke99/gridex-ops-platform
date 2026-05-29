@@ -1,4 +1,5 @@
 // lib/admin/guards.ts
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
@@ -85,7 +86,7 @@ export function isPlatformAdminContext(input: Pick<GuardResult, 'roles' | 'permi
   })
 }
 
-async function loadBaseAdminContext(): Promise<GuardResult> {
+const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promise<GuardResult> {
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -97,7 +98,12 @@ async function loadBaseAdminContext(): Promise<GuardResult> {
     redirect('/login')
   }
 
-  const permissions = await getUserPermissions(user.id)
+  let permissions: string[] = []
+  try {
+    permissions = await getUserPermissions(user.id)
+  } catch (error) {
+    console.warn('[admin-guard] Could not load permissions', error)
+  }
 
   const { data: rolesData, error: rolesError } = await supabase.rpc(
     'gridex_get_user_roles',
@@ -107,10 +113,10 @@ async function loadBaseAdminContext(): Promise<GuardResult> {
   )
 
   if (rolesError) {
-    throw rolesError
+    console.warn('[admin-guard] Could not load roles', rolesError)
   }
 
-  const roles = (Array.isArray(rolesData) ? (rolesData as UserRoleRpcRow[]) : [])
+  const roles = (!rolesError && Array.isArray(rolesData) ? (rolesData as UserRoleRpcRow[]) : [])
     .map(roleFromRpcRow)
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
 
@@ -131,7 +137,7 @@ async function loadBaseAdminContext(): Promise<GuardResult> {
     ...base,
     isPlatformAdmin: isPlatformAdminContext(base),
   }
-}
+})
 
 export async function requireAdminAccess(): Promise<GuardResult> {
   const base = await loadBaseAdminContext()

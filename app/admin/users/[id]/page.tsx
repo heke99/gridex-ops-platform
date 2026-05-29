@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getAdminUserById } from '@/lib/rbac/getAdminUserById'
 import { getAllRoles } from '@/lib/rbac/getAllRoles'
@@ -48,6 +49,7 @@ export default async function AdminUserDetailPage({
   getAllPermissions(),
   getUserPermissions(id),
  ])
+ if (!user) notFound()
  const roles = getInternalRoleOptions(allRoles)
  const permissions = sortPermissions(allPermissions)
  const effectivePermissions = new Set(effectivePermissionList)

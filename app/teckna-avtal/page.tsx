@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function PublicContractIntakePage({ searchParams }: { searchParams?: Promise<{ bolag?: string; status?: string; message?: string }> }) {
   const params = searchParams ? await searchParams : {}
-  const companySlug = params?.bolag ?? 'div3rsa-ab'
+  const companySlug = params?.bolag?.trim() ?? ''
 
   return (
     <main className="min-h-screen bg-slate-100 px-6 py-10 text-slate-950">
@@ -23,6 +23,11 @@ export default async function PublicContractIntakePage({ searchParams }: { searc
           </section>
         ) : null}
 
+        {!companySlug ? (
+          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-900">
+            Avtalsformuläret saknar bolagskoppling. Öppna formuläret via bolagets unika länk.
+          </section>
+        ) : (
         <form action={submitExternalContractAction} className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
           <input type="hidden" name="company_slug" value={companySlug} />
 
@@ -94,6 +99,7 @@ export default async function PublicContractIntakePage({ searchParams }: { searc
             Skicka avtalsbegäran
           </button>
         </form>
+        )}
       </div>
     </main>
   )
