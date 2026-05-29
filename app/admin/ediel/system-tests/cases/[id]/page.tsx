@@ -14,11 +14,13 @@ import {
   getEdielTgtTestCaseByCode,
   getEdielTgtTestCases,
   type EdielTgtExpectedStep,
+  type EdielTgtRunEvaluation,
   type EdielTgtTestCaseDefinition,
 } from '@/lib/ediel/tgtRegistry'
 import { createEdielTgtRunFromTemplateAction } from '@/app/admin/ediel/actions'
 import {
   createAndSendSystemTestAckAction,
+  deleteSystemTestArtifactAction,
   deleteSystemTestRunAction,
   pollAndSyncTgtSystemTestMailboxAction,
   softDeleteSystemTestMessageAction,
@@ -172,6 +174,21 @@ function DeleteRunForm({ testRunId, testCaseCode }: { testRunId: string; testCas
   )
 }
 
+
+function DeleteArtifactForm({ testRunId, testCaseCode, artifactId }: { testRunId: string; testCaseCode: string; artifactId: string }) {
+  return (
+    <form action={deleteSystemTestArtifactAction}>
+      <input type="hidden" name="testRunId" value={testRunId} />
+      <input type="hidden" name="testCaseCode" value={testCaseCode} />
+      <input type="hidden" name="artifactId" value={artifactId} />
+      <input type="hidden" name="reason" value="Artifact raderad från testfallssidan inför ny verifiering." />
+      <button type="submit" className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
+        Radera artifact
+      </button>
+    </form>
+  )
+}
+
 function safeJsonPreview(value: unknown, maxLength = 900): string {
   try {
     const text = JSON.stringify(value ?? {}, null, 2)
@@ -192,6 +209,117 @@ function expectedAckStep(testCase: EdielTgtTestCaseDefinition, family: 'CONTRL' 
 
 function shouldOfferAperak(messageFamily: string | null | undefined) {
   return messageFamily === 'PRODAT' || messageFamily === 'UTILTS'
+}
+
+
+function splitEdifactSegments(rawPayload: string | null | undefined): string[] {
+  return String(rawPayload ?? '')
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+}
+
+function firstSegment(rawPayload: string | null | undefined, tag: string): string | null {
+  return splitEdifactSegments(rawPayload).find((segment) => segment.toUpperCase().startsWith(`${tag.toUpperCase()}+`)) ?? null
+}
+
+function allSegments(rawPayload: string | null | undefined, tag: string): string {
+  const values = splitEdifactSegments(rawPayload).filter((segment) => segment.toUpperCase().startsWith(`${tag.toUpperCase()}+`))
+  return values.length > 0 ? values.slice(0, 3).join(' | ') : '—'
+}
+
+function shortValue(value: string | null | undefined, maxLength = 90): string {
+  const text = String(value ?? '—')
+  return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text
+}
+
+function markerFromParsed(parsed: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = parsed[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+    if (typeof value === 'number') return String(value)
+  }
+  return null
+}
+
+function MessageMarkerGrid({ message }: { message: NonNullable<EdielTgtRunEvaluation['matches'][number]['message']> }) {
+  const parsed = message.parsed_payload ?? {}
+  const bgm = firstSegment(message.raw_payload, 'BGM') ?? markerFromParsed(parsed, ['bgm', 'bgmCode', 'messageCode', 'documentNameCode'])
+  const unh = firstSegment(message.raw_payload, 'UNH') ?? markerFromParsed(parsed, ['unh', 'family', 'messageFamily'])
+  const rff = firstSegment(message.raw_payload, 'RFF') ?? markerFromParsed(parsed, ['transactionReference', 'businessReference', 'lineItemReference'])
+  const doc = firstSegment(message.raw_payload, 'DOC') ?? markerFromParsed(parsed, ['documentReference', 'sourceDocumentReference'])
+  return (
+    <div className="mt-2 grid gap-1 text-[11px] leading-5 text-slate-700 md:grid-cols-2">
+      <div><strong>UNH:</strong> {shortValue(unh)}</div>
+      <div><strong>BGM:</strong> {shortValue(bgm)}</div>
+      <div><strong>ERC:</strong> {shortValue(allSegments(message.raw_payload, 'ERC'))}</div>
+      <div><strong>FTX:</strong> {shortValue(allSegments(message.raw_payload, 'FTX'))}</div>
+      <div><strong>STS:</strong> {shortValue(allSegments(message.raw_payload, 'STS'))}</div>
+      <div><strong>RFF/DOC:</strong> {shortValue(rff ?? doc)}</div>
+    </div>
+  )
+}
+
+function ExpectedActualPanel({ evaluation }: { evaluation: EdielTgtRunEvaluation }) {
+  return (
+    <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-slate-950">Expected vs actual</h3>
+        <Badge tone={evaluation.hasMismatch ? 'red' : evaluation.missingRequiredSteps > 0 ? 'amber' : 'emerald'}>
+          {evaluation.passedSteps}/{evaluation.requiredSteps} obligatoriska steg
+        </Badge>
+      </div>
+      <div className="mt-3 overflow-x-auto rounded-xl border border-indigo-100 bg-white">
+        <table className="min-w-full text-left text-xs">
+          <thead className="bg-slate-50 text-slate-600">
+            <tr>
+              <th className="px-3 py-2 font-semibold">Steg</th>
+              <th className="px-3 py-2 font-semibold">Förväntat</th>
+              <th className="px-3 py-2 font-semibold">Faktiskt</th>
+              <th className="px-3 py-2 font-semibold">Payload-kontroll</th>
+              <th className="px-3 py-2 font-semibold">Status/diff</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {evaluation.matches.map((match) => (
+              <tr key={match.step.stepNo} className="align-top">
+                <td className="px-3 py-3 font-semibold text-slate-900">{match.step.stepNo}</td>
+                <td className="px-3 py-3 text-slate-700">
+                  <div>{match.step.actor === 'gridex' ? 'Gridex' : 'Portal'} · {match.step.direction}</div>
+                  <div className="mt-1 font-semibold text-slate-900">{match.step.family} {match.step.code}</div>
+                  <div className="mt-1">{match.step.outcome ?? 'outcome enligt meddelande'}</div>
+                  <div className="mt-1">{match.step.required ? 'Obligatoriskt' : 'Valfritt'}</div>
+                </td>
+                <td className="px-3 py-3 text-slate-700">
+                  {match.message ? (
+                    <div>
+                      <div>{match.message.direction} · {match.message.message_family} {match.message.message_code}</div>
+                      <div className="mt-1">Status: {match.message.status}</div>
+                      <div className="mt-1">ACK: {match.message.ack_outcome ?? '—'} · syntax: {match.message.syntax_check_status ?? '—'}</div>
+                      <Link href={`/admin/ediel/messages/${match.message.id}`} className="mt-1 inline-flex text-emerald-700 underline">Öppna meddelande</Link>
+                    </div>
+                  ) : (
+                    <span className="text-slate-500">Saknas</span>
+                  )}
+                </td>
+                <td className="px-3 py-3 text-slate-700">
+                  {match.message ? <MessageMarkerGrid message={match.message} /> : <span className="text-slate-500">Ingen payload ännu</span>}
+                </td>
+                <td className="px-3 py-3 text-slate-700">
+                  <Badge tone={match.status === 'passed' ? 'emerald' : match.status === 'mismatch' ? 'red' : 'amber'}>{match.status}</Badge>
+                  {match.issues.length > 0 ? (
+                    <ul className="mt-2 list-disc space-y-1 pl-4 text-red-700">
+                      {match.issues.map((issue) => <li key={issue}>{issue}</li>)}
+                    </ul>
+                  ) : <div className="mt-2 text-slate-500">Ingen diff registrerad.</div>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 }
 
 function StepCard({ step }: { step: EdielTgtExpectedStep }) {
@@ -452,6 +580,8 @@ export default async function SystemTestCasePage({
                 ))}
               </div>
 
+              <ExpectedActualPanel evaluation={evaluation} />
+
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-semibold text-slate-950">Testkopplade meddelanden</h3>
@@ -502,6 +632,9 @@ export default async function SystemTestCasePage({
                       <summary className="cursor-pointer font-semibold text-slate-900">
                         {String(artifact.artifact_type ?? 'artifact')} · {String(artifact.title ?? '')} · {formatDate(typeof artifact.created_at === 'string' ? artifact.created_at : null)}
                       </summary>
+                      <div className="mt-3 flex flex-wrap justify-end gap-2">
+                        {artifact.id ? <DeleteArtifactForm testRunId={evaluation.testRun.id} testCaseCode={testCase.testCaseCode} artifactId={String(artifact.id)} /> : null}
+                      </div>
                       <pre className="mt-3 max-h-72 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-5 text-slate-50">{safeJsonPreview(artifact.payload)}</pre>
                     </details>
                   ))}

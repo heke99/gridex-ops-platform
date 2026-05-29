@@ -19,8 +19,12 @@ export const dynamic = 'force-dynamic'
 
 type Tone = 'emerald' | 'amber' | 'red' | 'slate' | 'blue'
 type TestRunList = Awaited<ReturnType<typeof listEdielTestRuns>>
+type MessageList = Awaited<ReturnType<typeof listEdielMessages>>
 type FilterPacket = 'all' | 'u3' | 'u31' | 'u32' | 'esco' | 'utilts' | 'prodat' | 'l' | 'e' | 'ul' | 'ue' | 'agt' | 'tgt'
-type FilterStatus = 'all' | 'not_started' | 'running' | 'passed' | 'failed'
+type FilterFamily = 'all' | 'PRODAT' | 'UTILTS' | 'APERAK' | 'CONTRL' | 'UTILTS_ERR' | 'AI_LIST' | 'NBS_XML'
+type FilterTestType = 'all' | 'tgt' | 'agt' | 'regression' | 'payload'
+type FilterDirection = 'all' | 'portal_to_gridex' | 'gridex_to_portal' | 'external_to_gridex' | 'gridex_to_external'
+type FilterStatus = 'all' | 'not_started' | 'running' | 'passed' | 'failed' | 'waiting_inbound' | 'waiting_contrl' | 'waiting_aperak' | 'waiting_utilts_err' | 'blocked'
 
 function badgeClass(tone: Tone) {
   if (tone === 'emerald') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -72,9 +76,27 @@ function normalizePacket(value: string | undefined): FilterPacket {
   return 'u3'
 }
 
+function normalizeFamily(value: string | undefined): FilterFamily {
+  const normalized = String(value ?? 'all').trim().toUpperCase()
+  if (normalized === 'PRODAT' || normalized === 'UTILTS' || normalized === 'APERAK' || normalized === 'CONTRL' || normalized === 'UTILTS_ERR' || normalized === 'AI_LIST' || normalized === 'NBS_XML') return normalized
+  return 'all'
+}
+
+function normalizeTestType(value: string | undefined): FilterTestType {
+  const normalized = String(value ?? 'all').toLowerCase()
+  if (normalized === 'all' || normalized === 'tgt' || normalized === 'agt' || normalized === 'regression' || normalized === 'payload') return normalized
+  return 'all'
+}
+
+function normalizeDirection(value: string | undefined): FilterDirection {
+  const normalized = String(value ?? 'all').toLowerCase()
+  if (normalized === 'all' || normalized === 'portal_to_gridex' || normalized === 'gridex_to_portal' || normalized === 'external_to_gridex' || normalized === 'gridex_to_external') return normalized
+  return 'all'
+}
+
 function normalizeStatus(value: string | undefined): FilterStatus {
   const normalized = String(value ?? 'all').toLowerCase()
-  if (normalized === 'all' || normalized === 'not_started' || normalized === 'running' || normalized === 'passed' || normalized === 'failed') return normalized
+  if (normalized === 'all' || normalized === 'not_started' || normalized === 'running' || normalized === 'passed' || normalized === 'failed' || normalized === 'waiting_inbound' || normalized === 'waiting_contrl' || normalized === 'waiting_aperak' || normalized === 'waiting_utilts_err' || normalized === 'blocked') return normalized
   return 'all'
 }
 
@@ -95,12 +117,35 @@ function runsForCase(testCase: EdielTgtTestCaseDefinition, runs: TestRunList) {
   )
 }
 
-function statusForCase(testCase: EdielTgtTestCaseDefinition, activeRuns: TestRunList): { key: FilterStatus; label: string; tone: Tone } {
+function latestRunForCase(testCase: EdielTgtTestCaseDefinition, activeRuns: TestRunList) {
+  return [...runsForCase(testCase, activeRuns)].sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')))[0] ?? null
+}
+
+function detailedStatusForEvaluation(testCase: EdielTgtTestCaseDefinition, activeRuns: TestRunList, messages?: MessageList): { key: FilterStatus; label: string; tone: Tone } {
   const runs = runsForCase(testCase, activeRuns)
+  if (runs.length === 0) return { key: 'not_started', label: 'Inte påbörjad', tone: 'slate' }
   if (runs.some((run) => run.status === 'passed')) return { key: 'passed', label: 'Klar', tone: 'emerald' }
-  if (runs.some((run) => run.status === 'failed')) return { key: 'failed', label: 'Fel', tone: 'red' }
-  if (runs.some((run) => run.status === 'running' || run.status === 'draft')) return { key: 'running', label: 'Pågår', tone: 'amber' }
-  return { key: 'not_started', label: 'Inte påbörjad', tone: 'slate' }
+
+  const latestRun = latestRunForCase(testCase, activeRuns)
+  if (!latestRun) return { key: 'not_started', label: 'Inte påbörjad', tone: 'slate' }
+  if (latestRun.status === 'failed') return { key: 'failed', label: 'Fel', tone: 'red' }
+  if (!messages) return { key: 'running', label: 'Pågår', tone: 'amber' }
+
+  const evaluation = evaluateEdielTgtRun(latestRun, messages)
+  if (evaluation.computedStatus === 'failed' || evaluation.hasMismatch) return { key: 'blocked', label: 'Blockerad', tone: 'red' }
+  if (evaluation.computedStatus === 'passed') return { key: 'passed', label: 'Klar', tone: 'emerald' }
+
+  const missing = evaluation.matches.find((match) => match.step.required && match.status !== 'passed')
+  if (!missing) return { key: 'running', label: 'Pågår', tone: 'amber' }
+  if (missing.step.direction === 'inbound') return { key: 'waiting_inbound', label: 'Väntar på inbound', tone: 'amber' }
+  if (missing.step.family === 'CONTRL') return { key: 'waiting_contrl', label: 'Väntar på CONTRL', tone: 'amber' }
+  if (missing.step.family === 'APERAK') return { key: 'waiting_aperak', label: 'Väntar på APERAK', tone: 'amber' }
+  if (missing.step.family === 'UTILTS_ERR') return { key: 'waiting_utilts_err', label: 'Väntar på UTILTS_ERR', tone: 'amber' }
+  return { key: 'running', label: 'Pågår', tone: 'amber' }
+}
+
+function statusForCase(testCase: EdielTgtTestCaseDefinition, activeRuns: TestRunList, messages?: MessageList): { key: FilterStatus; label: string; tone: Tone } {
+  return detailedStatusForEvaluation(testCase, activeRuns, messages)
 }
 
 function testDirectionLabel(testCase: EdielTgtTestCaseDefinition): string {
@@ -136,6 +181,44 @@ function matchesPacket(testCase: EdielTgtTestCaseDefinition, packet: FilterPacke
   if (packet === 'ul') return testCase.roleCode === 'supplier' && testCase.suite === 'UTILTS' && code.startsWith('UL')
   if (packet === 'agt') return code.startsWith('L') || code.startsWith('UL') || code.startsWith('UE') || code.startsWith('E')
   if (packet === 'tgt') return !code.startsWith('L') && !code.startsWith('UL') && !code.startsWith('UE')
+  return true
+}
+
+
+function isAgtCase(testCase: EdielTgtTestCaseDefinition): boolean {
+  const code = testCase.testCaseCode.toUpperCase()
+  return code.startsWith('L') || code.startsWith('UL') || code.startsWith('UE') || /^E\d/.test(code)
+}
+
+function matchesRole(testCase: EdielTgtTestCaseDefinition, role: string): boolean {
+  if (!role) return true
+  if (role === 'system_provider') return !isAgtCase(testCase)
+  return testCase.roleCode === role
+}
+
+function matchesFamily(testCase: EdielTgtTestCaseDefinition, family: FilterFamily): boolean {
+  if (family === 'all') return true
+  if (family === 'AI_LIST' || family === 'NBS_XML') return testCase.suite === family
+  return String(testCase.suite) === family || testCase.expectedSteps.some((step) => step.family === family)
+}
+
+function matchesTestType(testCase: EdielTgtTestCaseDefinition, testType: FilterTestType): boolean {
+  if (testType === 'all') return true
+  if (testType === 'agt') return isAgtCase(testCase)
+  if (testType === 'tgt') return !isAgtCase(testCase)
+  if (testType === 'payload') return true
+  if (testType === 'regression') return true
+  return true
+}
+
+function matchesDirection(testCase: EdielTgtTestCaseDefinition, direction: FilterDirection): boolean {
+  if (direction === 'all') return true
+  const first = testCase.expectedSteps[0]
+  if (!first) return false
+  if (direction === 'portal_to_gridex') return first.actor === 'portal' && first.direction === 'inbound'
+  if (direction === 'gridex_to_portal') return first.actor === 'gridex' && first.direction === 'outbound'
+  if (direction === 'external_to_gridex') return first.direction === 'inbound'
+  if (direction === 'gridex_to_external') return first.direction === 'outbound'
   return true
 }
 
@@ -184,8 +267,8 @@ function IdentityPanel() {
   )
 }
 
-function QuickFilters({ packet, status, q }: { packet: FilterPacket; status: FilterStatus; q: string }) {
-  const base = `/admin/ediel/system-tests?status=${encodeURIComponent(status)}${q ? `&q=${encodeURIComponent(q)}` : ''}`
+function QuickFilters({ packet, status, q, family, testType, direction, suite, role }: { packet: FilterPacket; status: FilterStatus; q: string; family: FilterFamily; testType: FilterTestType; direction: FilterDirection; suite: string; role: string }) {
+  const base = `/admin/ediel/system-tests?status=${encodeURIComponent(status)}&family=${encodeURIComponent(family)}&testType=${encodeURIComponent(testType)}&direction=${encodeURIComponent(direction)}${suite ? `&suite=${encodeURIComponent(suite)}` : ''}${role ? `&role=${encodeURIComponent(role)}` : ''}${q ? `&q=${encodeURIComponent(q)}` : ''}`
   const items: Array<{ key: FilterPacket; label: string }> = [
     { key: 'u3', label: 'U3 alla' },
     { key: 'u31', label: 'U3.1 korrekta' },
@@ -228,11 +311,11 @@ function StartRunForm({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
   )
 }
 
-function TestCard({ testCase, activeRuns }: { testCase: EdielTgtTestCaseDefinition; activeRuns: TestRunList }) {
-  const status = statusForCase(testCase, activeRuns)
+function TestCard({ testCase, activeRuns, messages }: { testCase: EdielTgtTestCaseDefinition; activeRuns: TestRunList; messages: MessageList }) {
+  const status = statusForCase(testCase, activeRuns, messages)
   const caseRuns = runsForCase(testCase, activeRuns)
   const activeCount = caseRuns.filter((run) => run.status === 'running' || run.status === 'draft').length
-  const latestRun = caseRuns[0]
+  const latestRun = latestRunForCase(testCase, activeRuns)
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -280,11 +363,11 @@ function TestCard({ testCase, activeRuns }: { testCase: EdielTgtTestCaseDefiniti
   )
 }
 
-function ProgressSummary({ cases, runs }: { cases: EdielTgtTestCaseDefinition[]; runs: TestRunList }) {
+function ProgressSummary({ cases, runs, messages }: { cases: EdielTgtTestCaseDefinition[]; runs: TestRunList; messages: MessageList }) {
   const total = cases.length
-  const passed = cases.filter((testCase) => statusForCase(testCase, runs).key === 'passed').length
-  const failed = cases.filter((testCase) => statusForCase(testCase, runs).key === 'failed').length
-  const running = cases.filter((testCase) => statusForCase(testCase, runs).key === 'running').length
+  const passed = cases.filter((testCase) => statusForCase(testCase, runs, messages).key === 'passed').length
+  const failed = cases.filter((testCase) => statusForCase(testCase, runs, messages).key === 'failed').length
+  const running = cases.filter((testCase) => ['running', 'waiting_inbound', 'waiting_contrl', 'waiting_aperak', 'waiting_utilts_err', 'blocked'].includes(statusForCase(testCase, runs, messages).key)).length
   const notStarted = Math.max(0, total - passed - failed - running)
   const percent = total > 0 ? Math.round((passed / total) * 100) : 0
 
@@ -312,7 +395,7 @@ function ProgressSummary({ cases, runs }: { cases: EdielTgtTestCaseDefinition[];
 export default async function EdielSystemTestsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ q?: string; suite?: string; role?: string; packet?: string; status?: string }>
+  searchParams?: Promise<{ q?: string; suite?: string; role?: string; packet?: string; family?: string; testType?: string; direction?: string; status?: string }>
 }) {
   const context = await requirePlatformAdminAccess()
   const query = searchParams ? await searchParams : {}
@@ -320,6 +403,9 @@ export default async function EdielSystemTestsPage({
   const suite = String(query.suite ?? '').trim().toUpperCase()
   const role = String(query.role ?? '').trim().toLowerCase()
   const packet = normalizePacket(query.packet)
+  const family = normalizeFamily(query.family)
+  const testType = normalizeTestType(query.testType)
+  const direction = normalizeDirection(query.direction)
   const status = normalizeStatus(query.status)
 
   const [testRuns, messages] = await Promise.all([
@@ -332,10 +418,13 @@ export default async function EdielSystemTestsPage({
   const u3Cases = allCore.filter(isU3).sort(compareCase)
   const filteredCases = allCore
     .filter((testCase) => !suite || testCase.suite === suite)
-    .filter((testCase) => !role || testCase.roleCode === role)
+    .filter((testCase) => matchesRole(testCase, role))
     .filter((testCase) => matchesPacket(testCase, packet))
+    .filter((testCase) => matchesFamily(testCase, family))
+    .filter((testCase) => matchesTestType(testCase, testType))
+    .filter((testCase) => matchesDirection(testCase, direction))
     .filter((testCase) => matchesQuery(testCase, q))
-    .filter((testCase) => status === 'all' || statusForCase(testCase, testRuns).key === status)
+    .filter((testCase) => status === 'all' || statusForCase(testCase, testRuns, messages).key === status)
     .sort(compareCase)
 
   const evaluations = testRuns
@@ -377,7 +466,7 @@ export default async function EdielSystemTestsPage({
 
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {u3Cases.map((testCase) => (
-            <TestCard key={testCase.testCaseCode} testCase={testCase} activeRuns={testRunsForCards} />
+            <TestCard key={testCase.testCaseCode} testCase={testCase} activeRuns={testRunsForCards} messages={messages} />
           ))}
         </div>
       </section>
@@ -394,10 +483,10 @@ export default async function EdielSystemTestsPage({
         </div>
 
         <div className="mt-4">
-          <QuickFilters packet={packet} status={status} q={q} />
+          <QuickFilters packet={packet} status={status} q={q} family={family} testType={testType} direction={direction} suite={suite} role={role} />
         </div>
 
-        <form className="mt-4 grid gap-3 md:grid-cols-6">
+        <form className="mt-4 grid gap-3 md:grid-cols-8">
           <input type="hidden" name="packet" value={packet} />
           <input name="q" defaultValue={q} placeholder="Sök U3.1.1, E66, SCH, kvart" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2" />
           <select name="suite" defaultValue={suite} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
@@ -405,17 +494,49 @@ export default async function EdielSystemTestsPage({
             <option value="PRODAT">PRODAT</option>
             <option value="UTILTS">UTILTS</option>
             <option value="AI_LIST">AI-lista</option>
+            <option value="NBS_XML">NBS/eSett XML</option>
+          </select>
+          <select name="family" defaultValue={family} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+            <option value="all">Alla familjer</option>
+            <option value="PRODAT">PRODAT</option>
+            <option value="UTILTS">UTILTS</option>
+            <option value="APERAK">APERAK</option>
+            <option value="CONTRL">CONTRL</option>
+            <option value="UTILTS_ERR">UTILTS_ERR</option>
+            <option value="AI_LIST">AI/BI-lista</option>
+            <option value="NBS_XML">NBS/eSett XML</option>
           </select>
           <select name="role" defaultValue={role} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
             <option value="">Alla roller</option>
             <option value="supplier">Leverantör</option>
             <option value="esco">Energitjänsteföretag</option>
             <option value="grid_owner">Nätägare</option>
+            <option value="balance_responsible">Balansansvarig</option>
+            <option value="system_provider">Systemleverantör/TGT</option>
+          </select>
+          <select name="testType" defaultValue={testType} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+            <option value="all">Alla testtyper</option>
+            <option value="tgt">TGT/Systemtest</option>
+            <option value="agt">AGT/Aktörstest</option>
+            <option value="regression">Regression</option>
+            <option value="payload">Payload-test</option>
+          </select>
+          <select name="direction" defaultValue={direction} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+            <option value="all">Alla riktningar</option>
+            <option value="portal_to_gridex">Portal → Gridex</option>
+            <option value="gridex_to_portal">Gridex → Portal</option>
+            <option value="external_to_gridex">Extern aktör → Gridex</option>
+            <option value="gridex_to_external">Gridex → extern aktör</option>
           </select>
           <select name="status" defaultValue={status} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
             <option value="all">Alla statusar</option>
             <option value="not_started">Inte påbörjad</option>
             <option value="running">Pågår</option>
+            <option value="waiting_inbound">Väntar på inbound</option>
+            <option value="waiting_contrl">Väntar på CONTRL</option>
+            <option value="waiting_aperak">Väntar på APERAK</option>
+            <option value="waiting_utilts_err">Väntar på UTILTS_ERR</option>
+            <option value="blocked">Blockerad</option>
             <option value="passed">Klar</option>
             <option value="failed">Fel</option>
           </select>
@@ -423,7 +544,7 @@ export default async function EdielSystemTestsPage({
         </form>
       </section>
 
-      <ProgressSummary cases={filteredCases} runs={testRuns} />
+      <ProgressSummary cases={filteredCases} runs={testRuns} messages={messages} />
 
       {filteredCases.length === 0 ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
@@ -441,7 +562,7 @@ export default async function EdielSystemTestsPage({
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               {items.map((testCase) => (
-                <TestCard key={`${testCase.suite}-${testCase.roleCode}-${testCase.testCaseCode}`} testCase={testCase} activeRuns={testRunsForCards} />
+                <TestCard key={`${testCase.suite}-${testCase.roleCode}-${testCase.testCaseCode}`} testCase={testCase} activeRuns={testRunsForCards} messages={messages} />
               ))}
             </div>
           </section>

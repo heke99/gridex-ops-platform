@@ -320,6 +320,7 @@ export async function deleteSystemTestRunAction(formData: FormData) {
   if (!testRunId) throw new Error('testRunId saknas')
 
   await safeDeleteWhere('ediel_test_run_messages', 'test_run_id', testRunId)
+  await safeDeleteWhere('ediel_test_run_steps', 'test_run_id', testRunId)
   await safeDeleteWhere('ediel_test_artifacts', 'test_run_id', testRunId)
   await updateEdielTestRunStatus({
     actorUserId: context.userId,
@@ -335,6 +336,28 @@ export async function deleteSystemTestRunAction(formData: FormData) {
     testRunId,
     reason,
     payload: { testCaseCode: testCaseCode ?? null },
+  })
+
+  revalidateSystemTests(testCaseCode)
+}
+
+
+export async function deleteSystemTestArtifactAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const artifactId = formString(formData.get('artifactId'))
+  const testRunId = formString(formData.get('testRunId'))
+  const testCaseCode = formString(formData.get('testCaseCode'))
+  const reason = formString(formData.get('reason')) ?? 'Artifact raderades från testfallssidan.'
+
+  if (!artifactId) throw new Error('artifactId saknas')
+
+  await safeDeleteWhere('ediel_test_artifacts', 'id', artifactId)
+  await auditSystemTestMaintenance({
+    actorUserId: context.userId,
+    action: 'ediel.system_test.delete_artifact',
+    testRunId,
+    reason,
+    payload: { artifactId, testCaseCode: testCaseCode ?? null },
   })
 
   revalidateSystemTests(testCaseCode)
