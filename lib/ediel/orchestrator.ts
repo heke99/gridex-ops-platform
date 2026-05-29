@@ -47,6 +47,7 @@ import {
 } from '@/lib/ediel/flows/utiltsDataRequest'
 import { sendEdielMessageViaSmtp, type EdielSmtpMimeMode } from '@/lib/ediel/transport'
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder'
+import { evaluateEdielProductionSendLock } from '@/lib/ediel/core/productionGuards'
 
 export type {
   AckFamily,
@@ -233,6 +234,44 @@ export async function sendQueuedEdielMessage(params: {
       markers: preflight.markers,
     },
   }).catch(() => null)
+
+  const sendLock = evaluateEdielProductionSendLock(message, preflight)
+  await createEdielMessageEvent({
+    actorUserId,
+    edielMessageId: message.id,
+    eventType: 'manual_note',
+    eventStatus: sendLock.status === 'blocked' ? 'error' : sendLock.status === 'warning' ? 'warning' : 'success',
+    message: sendLock.status === 'blocked'
+      ? 'Live-send blockerades av production send-lock.'
+      : sendLock.status === 'warning'
+        ? 'Production send-lock passerade med varning.'
+        : 'Production send-lock godkänd.',
+    payload: {
+      batch: '2.5D-1',
+      environment: message.environment,
+      status: sendLock.status,
+      issues: sendLock.issues,
+    },
+  }).catch(() => null)
+
+  if (sendLock.locked) {
+    await updateEdielMessageStatus({
+      actorUserId,
+      edielMessageId: message.id,
+      status: 'failed',
+      failureReason: sendLock.issues
+        .filter((issue) => issue.severity === 'blocked')
+        .map((issue) => `${issue.code}: ${issue.message}`)
+        .join(' | '),
+      failedAt: new Date().toISOString(),
+      validationReport: {
+        ...(message.validation_report ?? {}),
+        payloadPreflight: preflight,
+        productionSendLock: sendLock,
+      },
+    })
+    throw new Error('Meddelandet stoppades av production send-lock och skickades inte.')
+  }
 
   if (preflight.blocking) {
     await updateEdielMessageStatus({

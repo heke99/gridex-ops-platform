@@ -1,9 +1,17 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requirePlatformAdminAccess } from '@/lib/admin/guards'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
+import { getEdielOperationsEngineStatus } from '@/lib/ediel/operations/engineStatus'
+import {
+  buildEdielControlTowerOperationsSummary,
+  type EdielOpsIncident,
+  type EdielOpsMonitor,
+  type EdielOpsMetric,
+  type EdielOpsReadinessCheck,
+} from '@/lib/ediel/operations/controlTower'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,14 +61,11 @@ function applyFilter(query: SafeSupabaseQuery, filter: CountFilter): SafeSupabas
   if (filter.op === 'is') return query.is(filter.column, filter.value)
   if (filter.op === 'notIs') return query.not(filter.column, 'is', filter.value)
   if (filter.op === 'neq') {
-    // PostgREST does not handle neq null the same way SQL does. Use not(is.null) so
-    // Control Tower does not crash when checking overdue/queued Ediel items.
     if (filter.value === null) return query.not(filter.column, 'is', null)
     return query.neq(filter.column, filter.value)
   }
   return query.eq(filter.column, filter.value)
 }
-
 
 async function safeCount(table: string, companyId: string | null, filters: CountFilter[] = []): Promise<number> {
   try {
@@ -112,17 +117,102 @@ function toneClass(tone: 'danger' | 'warning' | 'success' | 'info') {
   return 'border-slate-200 bg-white text-slate-800'
 }
 
-function StatCard({ label, value, href, tone = 'info' }: { label: string; value: number; href: string; tone?: 'danger' | 'warning' | 'success' | 'info' }) {
-  return (
-    <Link href={href} className={`rounded-3xl border p-5 shadow-sm transition hover:shadow-md ${toneClass(tone)}`}>
+function statusClass(status: string) {
+  if (status === 'blocked' || status === 'danger') return 'border-red-200 bg-red-50 text-red-800'
+  if (status === 'attention' || status === 'warning') return 'border-amber-200 bg-amber-50 text-amber-800'
+  if (status === 'healthy' || status === 'ready' || status === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  return 'border-slate-200 bg-slate-50 text-slate-700'
+}
+
+function StatCard({ label, value, href, tone = 'info' }: { label: string; value: number | string; href?: string; tone?: 'danger' | 'warning' | 'success' | 'info' }) {
+  const content = (
+    <>
       <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-75">{label}</p>
       <p className="mt-3 text-3xl font-semibold">{value}</p>
+    </>
+  )
+
+  if (!href) {
+    return <div className={`rounded-3xl border p-5 shadow-sm ${toneClass(tone)}`}>{content}</div>
+  }
+
+  return (
+    <Link href={href} className={`rounded-3xl border p-5 shadow-sm transition hover:shadow-md ${toneClass(tone)}`}>
+      {content}
     </Link>
   )
 }
 
+function MetricCard({ metric }: { metric: EdielOpsMetric }) {
+  return (
+    <StatCard label={metric.label} value={metric.value} href={metric.href} tone={metric.tone} />
+  )
+}
+
+function MonitorCard({ monitor }: { monitor: EdielOpsMonitor }) {
+  return (
+    <div className={`rounded-3xl border p-5 shadow-sm ${statusClass(monitor.status)}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-75">{monitor.title}</p>
+          <p className="mt-2 text-2xl font-semibold">{monitor.value}</p>
+        </div>
+        <span className="rounded-full border border-current/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] opacity-80">{monitor.status}</span>
+      </div>
+      <p className="mt-3 text-sm leading-6 opacity-85">{monitor.description}</p>
+      {monitor.actionHref ? (
+        <Link href={monitor.actionHref} className="mt-4 inline-flex rounded-2xl border border-current/25 px-4 py-2 text-sm font-semibold hover:bg-white/40">
+          {monitor.actionLabel ?? 'Öppna'}
+        </Link>
+      ) : null}
+    </div>
+  )
+}
+
+function ReadinessList({ title, items }: { title: string; items: EdielOpsReadinessCheck[] }) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
+      <div className="mt-4 space-y-3">
+        {items.length === 0 ? <p className="text-sm text-slate-500">Inga poster att visa.</p> : null}
+        {items.map((item) => (
+          <div key={item.key} className={`rounded-2xl border p-4 ${statusClass(item.status)}`}>
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold">{item.label}</p>
+              <span className="rounded-full border border-current/20 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">{item.status}</span>
+            </div>
+            <p className="mt-2 text-sm leading-6 opacity-85">{item.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function IncidentList({ title, items }: { title: string; items: EdielOpsIncident[] }) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
+      <div className="mt-4 space-y-3">
+        {items.length === 0 ? <p className="text-sm text-slate-500">Inga händelser hittades.</p> : null}
+        {items.map((item) => {
+          const body = (
+            <div className={`rounded-2xl border p-4 ${toneClass(item.tone)}`}>
+              <p className="font-semibold">{item.title}</p>
+              <p className="mt-1 text-sm leading-6 opacity-85">{item.description}</p>
+              <p className="mt-2 text-xs opacity-70">{formatDate(item.createdAt)}</p>
+            </div>
+          )
+
+          return item.href ? <Link key={item.id} href={item.href}>{body}</Link> : <div key={item.id}>{body}</div>
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default async function EdielControlTowerPage() {
-  const context = await requirePlatformAdminAccess()
+  const context = await requireAdminPageKeyAccess('ediel.control_tower')
   const tenantScope = await resolveAdminTenantReadScope(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
   const companyId = tenantScope.companyId
@@ -137,6 +227,7 @@ export default async function EdielControlTowerPage() {
     unresolvedRoutes,
     recentMessages,
     disabledRoutes,
+    operations,
   ] = await Promise.all([
     safeCount('ediel_messages', companyId),
     safeCount('ediel_messages', companyId, [{ column: 'status', value: 'failed' }]),
@@ -156,8 +247,13 @@ export default async function EdielControlTowerPage() {
       12
     ),
     safeRows<RouteIssueRow>('ediel_route_profiles', companyId, 'id, route_name, counterparty_name, status, is_enabled, updated_at', [{ column: 'is_enabled', value: false }], 8, 'updated_at'),
+    buildEdielControlTowerOperationsSummary({
+      companyId,
+      scope: tenantScope.isPlatformAdmin ? 'platform' : 'tenant',
+    }),
   ])
 
+  const engineStatus = getEdielOperationsEngineStatus()
   const workspaceName = tenantScope.isPlatformAdmin
     ? 'Gridex Platform'
     : companyScope.companyName ?? 'Bolag saknas'
@@ -166,7 +262,7 @@ export default async function EdielControlTowerPage() {
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="Ediel Control Tower"
-        subtitle="Kvittenser, fel, dubbletter, route-problem och senaste Ediel-meddelanden."
+        subtitle="Drift, kvittenser, transport, send-locks, dubbletter, route-problem och Ediel-meddelanden."
         userEmail={context.email}
         workspaceName={workspaceName}
         workspaceMode={tenantScope.isPlatformAdmin ? 'platform' : 'tenant'}
@@ -181,6 +277,23 @@ export default async function EdielControlTowerPage() {
             </p>
           </section>
         ) : null}
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Batch 2.5D-1</p>
+              <h2 className="mt-1 text-xl font-semibold text-slate-950">Production Operations Foundation</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
+                Den här vyn bygger drift- och skyddslagret före full regression. Den visar mailbox/SMTP-health, ACK-övervakning, payload-preflight, route-resolution, tenant send-lock och audit. Nya tekniska regler ska fortfarande inte aktiveras som live-regler innan Batch 2.5C regression är grön.
+              </p>
+            </div>
+            <div className={`rounded-3xl border p-4 text-sm ${statusClass(operations.sendLock.status)}`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-75">Send-lock</p>
+              <p className="mt-2 font-semibold">{operations.sendLock.title}</p>
+              <p className="mt-1 leading-6 opacity-85">{operations.sendLock.description}</p>
+            </div>
+          </div>
+        </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Ediel-meddelanden" value={totalMessages} href="/admin/ediel/messages" tone="info" />
@@ -198,45 +311,64 @@ export default async function EdielControlTowerPage() {
           />
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-950">Senaste Ediel-meddelanden</h2>
-                <p className="mt-1 text-sm text-slate-600">Visar senaste meddelanden i valt tenant-/platform-scope.</p>
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {operations.metrics.map((metric) => <MetricCard key={metric.key} metric={metric} />)}
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          {operations.monitors.map((monitor) => <MonitorCard key={monitor.key} monitor={monitor} />)}
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-950">Senaste Ediel-meddelanden</h2>
+                  <p className="mt-1 text-sm text-slate-600">Visar senaste meddelanden i valt tenant-/platform-scope.</p>
+                </div>
+                <Link href="/admin/ediel/messages" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Öppna meddelanden</Link>
               </div>
-              <Link href="/admin/ediel/messages" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Öppna meddelanden</Link>
+
+              <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">Typ</th>
+                      <th className="px-4 py-3">Riktning</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Referens</th>
+                      <th className="px-4 py-3">Skapad</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {recentMessages.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-6 text-center text-slate-500">Inga Ediel-meddelanden hittades.</td>
+                      </tr>
+                    ) : null}
+                    {recentMessages.map((message) => (
+                      <tr key={message.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 font-semibold text-slate-900">
+                          <Link href={`/admin/ediel/messages/${message.id}`} className="hover:underline">
+                            {message.message_family ?? 'EDIEL'} {message.message_code ?? ''}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">{message.direction ?? '—'}</td>
+                        <td className="px-4 py-3 text-slate-700">{message.status ?? '—'}{message.ack_status ? ` · ${message.ack_status}` : ''}</td>
+                        <td className="px-4 py-3 text-slate-700">{message.transaction_reference ?? message.interchange_reference ?? '—'}</td>
+                        <td className="px-4 py-3 text-slate-700">{formatDate(message.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Typ</th>
-                    <th className="px-4 py-3">Riktning</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Referens</th>
-                    <th className="px-4 py-3">Skapad</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {recentMessages.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-6 text-center text-slate-500">Inga Ediel-meddelanden hittades.</td>
-                    </tr>
-                  ) : null}
-                  {recentMessages.map((message) => (
-                    <tr key={message.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 font-semibold text-slate-900">{message.message_family ?? 'EDIEL'} {message.message_code ?? ''}</td>
-                      <td className="px-4 py-3 text-slate-700">{message.direction ?? '—'}</td>
-                      <td className="px-4 py-3 text-slate-700">{message.status ?? '—'}{message.ack_status ? ` · ${message.ack_status}` : ''}</td>
-                      <td className="px-4 py-3 text-slate-700">{message.transaction_reference ?? message.interchange_reference ?? '—'}</td>
-                      <td className="px-4 py-3 text-slate-700">{formatDate(message.created_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <section className="grid gap-6 lg:grid-cols-2">
+              <ReadinessList title="Readiness checks" items={operations.readiness} />
+              <ReadinessList title="Send-lock blockerare" items={[...operations.sendLock.blockers, ...operations.sendLock.warnings]} />
+            </section>
           </div>
 
           <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -246,9 +378,23 @@ export default async function EdielControlTowerPage() {
               <>
                 <Link href="/admin/ediel/routes" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Adressering & routes</Link>
                 <Link href="/admin/ediel/settings" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Ediel-inställningar</Link>
+                <Link href="/admin/ediel/system-tests" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Systemtest & ACK</Link>
               </>
             ) : null}
             <Link href="/admin/company-actor-status" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Live-status & godkännande</Link>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <p className="font-semibold text-slate-950">{engineStatus.title}</p>
+              <p className="mt-2 leading-6">{engineStatus.description}</p>
+              <div className="mt-3 space-y-2">
+                {engineStatus.checks.map((check) => (
+                  <div key={check.label} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+                    <span>{check.label}</span>
+                    <span className="font-semibold">{check.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {disabledRoutes.length > 0 ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -261,6 +407,11 @@ export default async function EdielControlTowerPage() {
               </div>
             ) : null}
           </aside>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-2">
+          <IncidentList title="Driftincidenter" items={operations.incidents} />
+          <IncidentList title="Audit timeline" items={operations.auditTimeline} />
         </section>
       </main>
     </div>
