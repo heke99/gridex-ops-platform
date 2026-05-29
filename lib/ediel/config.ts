@@ -319,7 +319,14 @@ export function buildDefaultApplicationReference(params: {
   actorSubAddress?: string | null
   process: string
 }) {
-  const sub = sanitize(params.actorSubAddress) ?? 'GRIDEX'
+  const rawSub = sanitize(params.actorSubAddress)?.toUpperCase() ?? 'DDQ'
   const process = sanitize(params.process)?.toUpperCase() ?? 'EDIEL'
-  return `23-${sub}-${process}`
+  const sub = rawSub.includes('DGI') ? 'DGI' : rawSub.includes('DDQ') ? 'DDQ' : rawSub.slice(0, 3) || 'DDQ'
+
+  if (process === 'PRODAT') return `23-${sub}-PRODAT`.slice(0, 14)
+  if (process === 'UTILTS' || process === 'UTILTS_ERR') return `23-${sub}-UTILTS`.slice(0, 14)
+  if (process === 'APERAK') return `23-${sub}-APERAK`.slice(0, 14)
+  if (process === 'CONTRL') return `23-${sub}-CONTRL`.slice(0, 14)
+
+  return `23-${sub}-${process.replace(/[^A-Z0-9]/g, '').slice(0, 6)}`.slice(0, 14)
 }

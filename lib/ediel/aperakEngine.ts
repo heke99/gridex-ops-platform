@@ -129,7 +129,7 @@ function normalizeAperakErrors(
     .map((error) => ({
       ercCode: sanitizeEdifactToken(error.ercCode, 12) ?? '',
       fieldCode: sanitizeEdifactToken(error.fieldCode ?? null, 12),
-      text: escapeEdifactText(error.text, 140),
+      text: escapeEdifactText(error.text, 70),
       referenceQualifier: sanitizeEdifactToken(error.referenceQualifier ?? null, 12),
       referenceNumber: sanitizeEdifactToken(error.referenceNumber ?? null, 35),
       lineItemReference: sanitizeEdifactToken(error.lineItemReference ?? null, 35),
@@ -141,7 +141,7 @@ function normalizeAperakErrors(
     {
       ercCode: '40',
       fieldCode: '40',
-      text: escapeEdifactText(fallbackText || 'Applikationen kunde inte bearbeta meddelandet', 140),
+      text: escapeEdifactText(fallbackText || 'Applikationen kunde inte bearbeta meddelandet', 70),
       referenceQualifier: null,
       referenceNumber: null,
       lineItemReference: null,

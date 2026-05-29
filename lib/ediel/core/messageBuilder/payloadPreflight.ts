@@ -2,6 +2,13 @@
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
+import {
+  profileForMessage,
+  segmentCount as countProfileSegment,
+  tagOf,
+  type EdielMessageProfile,
+} from '@/lib/ediel/core/messageBuilder/segmentSchema'
+import { compositeComponent, effectiveEdifactLength, segmentElement } from '@/lib/ediel/core/messageBuilder/fieldFormatter'
 
 export type EdielPayloadPreflightIssue = {
   severity: 'info' | 'warning' | 'error'
@@ -34,7 +41,12 @@ function issue(input: EdielPayloadPreflightIssue): EdielPayloadPreflightIssue {
 }
 
 function segments(rawPayload: string): string[] {
-  const normalized = rawPayload.replace(/^UNA.{6}'/i, '')
+  // UNA is exactly 9 characters including the segment terminator, e.g. "UNA:+.? '".
+  // Do not use trim/split before removing it, because the reserved blank before
+  // the terminator is significant in Ediel's default UNA.
+  const normalized = rawPayload.toUpperCase().startsWith('UNA')
+    ? rawPayload.slice(9)
+    : rawPayload
   return normalized.split("'").map((segment) => segment.trim()).filter(Boolean)
 }
 
@@ -116,6 +128,192 @@ function markers(rawPayload: string): Record<string, boolean> {
   }
 }
 
+
+function firstTagIndex(rawSegments: readonly string[], tag: string): number | null {
+  const index = rawSegments.findIndex((segment) => tagOf(segment) === tag.toUpperCase())
+  return index >= 0 ? index : null
+}
+
+function textForSegment(segment: string | null | undefined, elementIndex: number, componentIndex?: number | null): string | null {
+  const value = segmentElement(segment, elementIndex)
+  if (componentIndex === null || componentIndex === undefined) return value
+  return compositeComponent(value, componentIndex)
+}
+
+function validateFieldLimits(params: {
+  profile: EdielMessageProfile
+  rawSegments: readonly string[]
+  issues: EdielPayloadPreflightIssue[]
+}) {
+  for (const limit of params.profile.fieldLimits) {
+    for (const segment of params.rawSegments.filter((item) => tagOf(item) === limit.segment.toUpperCase())) {
+      const value = textForSegment(segment, limit.elementIndex, limit.componentIndex)
+      if (!value) continue
+      const actual = effectiveEdifactLength(value)
+      if (actual > limit.max) {
+        params.issues.push(issue({
+          severity: limit.severity ?? 'error',
+          code: 'PROFILE_FIELD_LENGTH_EXCEEDED',
+          title: `${limit.label} är för långt`,
+          description: `${params.profile.key}: värdet är ${actual} tecken men max är ${limit.max}.`,
+          segment,
+        }))
+      }
+    }
+  }
+}
+
+function validateSegmentProfile(params: {
+  profile: EdielMessageProfile | null
+  rawSegments: readonly string[]
+  canonicalFamily: string | null
+  canonicalCode: string | null
+  messageTypeToken: string | null
+  mode: 'send' | 'parse'
+  issues: EdielPayloadPreflightIssue[]
+}) {
+  if (!params.profile) {
+    params.issues.push(issue({
+      severity: params.mode === 'send' ? 'error' : 'warning',
+      code: 'MESSAGE_PROFILE_MISSING',
+      title: 'Meddelandeprofil saknas',
+      description: `Ingen certifierad segmentprofil hittades för ${params.canonicalFamily ?? 'okänd'} ${params.canonicalCode ?? ''}.`,
+    }))
+    return
+  }
+
+  for (const requirement of params.profile.requiredSegments) {
+    const count = countProfileSegment(params.rawSegments, requirement.tag)
+    if (typeof requirement.min === 'number' && count < requirement.min) {
+      params.issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PROFILE_REQUIRED_SEGMENT_MISSING',
+        title: `${requirement.tag} saknas enligt ${params.profile.key}`,
+        description: requirement.description,
+      }))
+    }
+    if (typeof requirement.max === 'number' && count > requirement.max) {
+      params.issues.push(issue({
+        severity: 'error',
+        code: 'PROFILE_SEGMENT_REPEATED_TOO_MANY_TIMES',
+        title: `${requirement.tag} förekommer för många gånger`,
+        description: `${params.profile.key}: ${requirement.tag} får förekomma max ${requirement.max} gånger men finns ${count} gånger.`,
+      }))
+    }
+  }
+
+  for (const forbidden of params.profile.forbiddenSegments ?? []) {
+    const count = countProfileSegment(params.rawSegments, forbidden.tag)
+    if (count > 0) {
+      params.issues.push(issue({
+        severity: 'error',
+        code: 'PROFILE_FORBIDDEN_SEGMENT_PRESENT',
+        title: `${forbidden.tag} får inte finnas i ${params.profile.key}`,
+        description: forbidden.description,
+      }))
+    }
+  }
+
+  if (params.messageTypeToken && params.profile.expectedUnhTokens.length > 0) {
+    const normalizedToken = params.messageTypeToken.toUpperCase()
+    const matches = params.profile.expectedUnhTokens.some((token) => token.toUpperCase() === normalizedToken)
+    if (!matches) {
+      params.issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PROFILE_UNH_TOKEN_MISMATCH',
+        title: 'UNH-version matchar inte certifierad profil',
+        description: `${params.profile.key} förväntar ${params.profile.expectedUnhTokens.join(' eller ')}, payload anger ${params.messageTypeToken}.`,
+      }))
+    }
+  }
+
+  const bgm = params.rawSegments.find((segment) => tagOf(segment) === 'BGM') ?? null
+  const bgmCode = textForSegment(bgm, 1, 0)?.toUpperCase() ?? null
+  const unb = params.rawSegments.find((segment) => tagOf(segment) === 'UNB') ?? null
+  const applicationReference = textForSegment(unb, 7)
+  if (params.profile.family !== 'CONTRL' && !applicationReference && params.mode === 'send') {
+    params.issues.push(issue({
+      severity: 'error',
+      code: 'PROFILE_APPLICATION_REFERENCE_MISSING',
+      title: 'Application Reference saknas',
+      description: `${params.profile.key} kräver Application Reference i UNB. Värdet ska komma från route/rulebook, inte från generator-gissning.`,
+      segment: unb,
+    }))
+  }
+  if (bgmCode && params.profile.allowedBgmCodes !== '*' && !params.profile.allowedBgmCodes.includes(bgmCode)) {
+    params.issues.push(issue({
+      severity: params.mode === 'send' ? 'error' : 'warning',
+      code: 'PROFILE_BGM_CODE_NOT_ALLOWED',
+      title: 'BGM-kod matchar inte meddelandeprofil',
+      description: `${params.profile.key} tillåter ${params.profile.allowedBgmCodes.join(', ')}, payload anger ${bgmCode}.`,
+      segment: bgm,
+    }))
+  }
+  if (params.profile.family === 'PRODAT' && bgmCode && /^Z\d{2}[A-Z]+$/i.test(bgmCode)) {
+    params.issues.push(issue({
+      severity: 'error',
+      code: 'PRODAT_COMPOSITE_BGM_BLOCKED',
+      title: 'PRODAT undertyp får inte ligga i BGM',
+      description: 'BGM ska vara huvudfunktion, t.ex. Z03/Z13/Z14. Undertyp/status ska ligga i rätt segment/fält.',
+      segment: bgm,
+    }))
+  }
+
+  let previousIndex = -1
+  for (const tag of params.profile.orderedTags) {
+    const index = firstTagIndex(params.rawSegments, tag)
+    if (index === null) continue
+    if (index < previousIndex) {
+      params.issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PROFILE_SEGMENT_ORDER_WARNING',
+        title: 'Segmentordningen avviker från profilen',
+        description: `${tag} ligger tidigare än förväntat enligt ${params.profile.key}.`,
+      }))
+      break
+    }
+    previousIndex = index
+  }
+
+  if (params.profile.family === 'APERAK') {
+    const ercSegments = params.rawSegments.filter((segment) => tagOf(segment) === 'ERC')
+    const ftxSegments = params.rawSegments.filter((segment) => tagOf(segment) === 'FTX')
+    if (ercSegments.length > ftxSegments.length) {
+      params.issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'APERAK_ERC_WITHOUT_FTX',
+        title: 'APERAK ERC saknar motsvarande FTX',
+        description: 'Varje APERAK-status/felkod ska ha kort FTX-text. Interna långa feltexter ska inte skickas i payload.',
+      }))
+    }
+    const positiveErc = ercSegments.some((segment) => textForSegment(segment, 1, 0) === '100')
+    const ftxText = ftxSegments.map((segment) => segment.toUpperCase()).join(' ')
+    if (positiveErc && !ftxText.includes('OK')) {
+      params.issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'APERAK_POSITIVE_WITHOUT_OK_FTX',
+        title: 'Positiv APERAK saknar OK-text',
+        description: 'Positiv APERAK med ERC 100 ska ha FTX OK.',
+      }))
+    }
+  }
+
+  if (params.profile.family === 'UTILTS_ERR') {
+    const bgmErr = bgmCode === 'ERR'
+    if (!bgmErr) {
+      params.issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'UTILTS_ERR_BGM_NOT_ERR',
+        title: 'UTILTS_ERR ska ha BGM+ERR',
+        description: 'UTILTS_ERR-profilen kräver BGM+ERR för funktions-/processfel.',
+        segment: bgm,
+      }))
+    }
+  }
+
+  validateFieldLimits({ profile: params.profile, rawSegments: params.rawSegments, issues: params.issues })
+}
+
 function validateEdifactPayload(params: {
   rawPayload: string
   mimeType?: string | null
@@ -160,6 +358,23 @@ function validateEdifactPayload(params: {
   const unbRef = element(unb, 5)
   const unzRef = element(unz, 2)
   const unbSyntax = element(unb, 1)
+  const messageTypeToken = element(unh, 2)
+  const profile = profileForMessage({
+    family: String(canonical.family),
+    code: canonical.messageCode,
+    messageTypeToken,
+    rawSegments,
+  })
+
+  validateSegmentProfile({
+    profile,
+    rawSegments,
+    canonicalFamily: String(canonical.family),
+    canonicalCode: canonical.messageCode,
+    messageTypeToken,
+    mode: params.mode,
+    issues,
+  })
 
   if (unbSyntax && unbSyntax.toUpperCase() !== 'UNOC:3') {
     issues.push(issue({ severity: 'warning', code: 'UNB_SYNTAX_NOT_UNOC3', title: 'Kontrollera syntaxidentifierare', description: `PRODAT/UTILTS/APERAK ska normalt använda UNOC:3, payload anger ${unbSyntax}.`, segment: unb }))
