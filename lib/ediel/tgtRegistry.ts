@@ -156,59 +156,30 @@ function utiltsErrCase(testCaseCode: string, title: string, code: string, purpos
   }
 }
 
-
-function utiltsEscoPositiveCase(testCaseCode: string, title: string, purpose: string, settlementHint: 'SCH' | 'KVART'): EdielTgtTestCaseDefinition {
+function utiltsEscoPositiveCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
   return {
-    suite: 'UTILTS', roleCode: 'esco', testCaseCode, title,
-    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
-    purpose,
-    testDataHint: `U3 energitjänsteföretag. Edielportalen skickar korrekt UTILTS E66 (${settlementHint}) till GridCore.`,
-    expectedSteps: [
-      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'UTILTS', code: 'E66', required: true, title: `Ta emot korrekt UTILTS E66 ${settlementHint}`, description: title },
-      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxen i portalens UTILTS E66 är OK.' },
-      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'positive', required: true, title: 'Skicka positiv APERAK', description: 'Affärsinnehållet i korrekt E66 är OK.' },
-    ],
-    notes: [
-      'Detta är energitjänsteföretag/berättigad part, inte vanligt leverantörsbyte.',
-      'Starta bara en U3-run åt gången så inkommande E66 kopplas till rätt testfall.',
-    ],
+    ...utiltsPositiveCase(testCaseCode, title, code, purpose),
+    roleCode: 'esco',
+    testDataHint: `UTILTS ${code}. Korrekt energitjänsteföretag/berättigad-part-test ska ge positiv CONTRL och positiv APERAK.`,
+    notes: ['U3 korrekt E66 ska ge APERAK BGM 312 och ERC 100.'],
   }
 }
 
-function utiltsEscoNegativeAperakCase(testCaseCode: string, title: string, purpose: string): EdielTgtTestCaseDefinition {
+function utiltsEscoNegativeAperakCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
   return {
-    suite: 'UTILTS', roleCode: 'esco', testCaseCode, title,
-    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
-    purpose,
-    testDataHint: 'U3 energitjänsteföretag. Anvisningsfel i UTILTS E66 kvart ska ge positiv CONTRL och negativ APERAK.',
-    expectedSteps: [
-      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'UTILTS', code: 'E66', required: true, title: 'Ta emot felaktig UTILTS E66 Kvart', description: title },
-      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxen är OK även när innehållet har anvisningsfel.' },
-      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'APERAK', code: 'APERAK', outcome: 'negative', required: true, title: 'Skicka negativ APERAK', description: 'Anvisnings-/required-fel ska avvisas med negativ APERAK.' },
-    ],
-    notes: [
-      'U3.2.1 är anvisningsfel och ska inte styras till UTILTS_ERR.',
-      'Bevara tidigare UTILTS E66-regeln: saknad/ogiltig DTM+597 i kvart/tim-E66 ska ge negativ APERAK med MANDATORY FIELD MISSING när testfacit kräver det.',
-    ],
+    ...utiltsNegativeAperakCase(testCaseCode, title, code, purpose),
+    roleCode: 'esco',
+    testDataHint: `UTILTS ${code}. Energitjänsteföretag/berättigad-part anvisningsfel ska ge positiv CONTRL och negativ APERAK.`,
+    notes: ['U3 anvisningsfel är APERAK, inte UTILTS-ERR.'],
   }
 }
 
-function utiltsEscoErrCase(testCaseCode: string, title: string, purpose: string): EdielTgtTestCaseDefinition {
+function utiltsEscoErrCase(testCaseCode: string, title: string, code: string, purpose: string): EdielTgtTestCaseDefinition {
   return {
-    suite: 'UTILTS', roleCode: 'esco', testCaseCode, title,
-    approvalVersion: 'TGT 6.0.5 / Edielportalen 4.1', market: 'el', source: 'TGT_PRODAT_UTILTS_6_0_5', scope: 'core', status: 'ready_for_file_engine',
-    purpose,
-    testDataHint: 'U3 energitjänsteföretag. Funktionsfel i UTILTS E66 kvart ska ge positiv CONTRL och UTILTS_ERR.',
-    expectedSteps: [
-      { stepNo: 1, direction: 'inbound', actor: 'portal', family: 'UTILTS', code: 'E66', required: true, title: 'Ta emot felaktig UTILTS E66 Kvart', description: title },
-      { stepNo: 2, direction: 'outbound', actor: 'gridex', family: 'CONTRL', code: 'CONTRL', outcome: 'positive', required: true, title: 'Skicka positiv CONTRL', description: 'Syntaxen är OK.' },
-      { stepNo: 3, direction: 'outbound', actor: 'gridex', family: 'UTILTS_ERR', code: 'UTILTS_ERR', outcome: 'negative', required: true, title: 'Skicka UTILTS_ERR', description: 'Funktions-/processfel ska besvaras med UTILTS_ERR, inte APERAK.' },
-      { stepNo: 4, direction: 'inbound', actor: 'portal', family: 'APERAK', code: 'APERAK', required: false, title: 'Ta emot APERAK på UTILTS_ERR', description: 'Portalen kan kvittera UTILTS_ERR med APERAK.' },
-    ],
-    notes: [
-      'U3.2.2 är funktionsfel och ska inte skapa negativ APERAK som huvudsvar.',
-      'Systemet ska skapa UTILTS_ERR och därefter vänta på portalens APERAK när portalen kräver det.',
-    ],
+    ...utiltsErrCase(testCaseCode, title, code, purpose),
+    roleCode: 'esco',
+    testDataHint: `UTILTS ${code}. Energitjänsteföretag/berättigad-part funktionsfel ska ge UTILTS-ERR.`,
+    notes: ['U3 funktionsfel är UTILTS-ERR, inte negativ APERAK.'],
   }
 }
 
@@ -397,10 +368,6 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       purpose: 'Verifierar negativ APERAK när Z15V innehåller affärs-/anvisningsfel.',
       testDataHint: 'S9.2.1. Portalen skickar felaktig Z15V, GridCore svarar positiv CONTRL + negativ APERAK.',
     }),
-    utiltsEscoPositiveCase('U3.1.1', 'Korrekt UTILTS-E66, periodisk månadsavl. (SCH)', 'Verifierar att energitjänsteföretag kan ta emot korrekt periodisk månadsavläst UTILTS E66 och svara positivt.', 'SCH'),
-    utiltsEscoPositiveCase('U3.1.2', 'Korrekt UTILTS-E66, dygnsavräknad (kvart)', 'Verifierar att energitjänsteföretag kan ta emot korrekt dygnsavräknad kvart-UTILTS E66 och svara positivt.', 'KVART'),
-    utiltsEscoNegativeAperakCase('U3.2.1', 'Felaktig UTILTS-E66, anvisningsfel (Kvart)', 'Verifierar att energitjänsteföretag svarar med positiv CONTRL och negativ APERAK vid anvisningsfel i kvart-E66.'),
-    utiltsEscoErrCase('U3.2.2', 'Felaktig UTILTS-E66, funktionsfel (Kvart)', 'Verifierar att energitjänsteföretag svarar med positiv CONTRL och UTILTS_ERR vid funktionsfel i kvart-E66.'),
     prodatInboundNegativeCase('2.2.1', 'Z06F – felaktigt anläggningsid', 'Z06', 'Verifierar negativ APERAK på Z06F när anläggningen inte kan identifieras.'),
     prodatInboundNegativeCase('2.2.2', 'Z06F – antal siffror saknas', 'Z06', 'Verifierar negativ APERAK på Z06F när antal siffror saknas.'),
     prodatInboundPositiveCase('2.3.1', 'Z10M – mätarbyte', 'Z10', 'Verifierar korrekt PRODAT Z10M för mätarbyte.'),
@@ -436,6 +403,10 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
     utiltsPositiveCase('U2.3.2', 'Korrekt UTILTS-E31, slutliga andelstal (SCH)', 'E31', 'Verifierar att korrekt E31-SCH från portalen ger positiv CONTRL och positiv APERAK.'),
     utiltsNegativeAperakCase('U2.4.1', 'Felaktigt UTILTS-E31, anvisningsfel (SCH)', 'E31', 'Verifierar att E31-SCH med anvisningsfel ger positiv CONTRL och negativ APERAK.'),
     utiltsErrCase('U2.4.3', 'Felaktigt UTILTS-E31, funktionsfel (SCH)', 'E31', 'Verifierar att E31-SCH med process-/funktionsfel ger positiv CONTRL och UTILTS-ERR.'),
+    utiltsEscoPositiveCase('U3.1.1', 'Korrekt UTILTS-E66, periodisk månadsavl. (SCH)', 'E66', 'Verifierar att korrekt U3 E66-SCH från Edielportalen ger positiv CONTRL och positiv APERAK.'),
+    utiltsEscoPositiveCase('U3.1.2', 'Korrekt UTILTS-E66, dygnsavräknad (kvart)', 'E66', 'Verifierar att korrekt U3 E66-kvart från Edielportalen ger positiv CONTRL och positiv APERAK.'),
+    utiltsEscoNegativeAperakCase('U3.2.1', 'Felaktig UTILTS-E66, anvisningsfel (Kvart)', 'E66', 'Verifierar att U3 E66-kvart med anvisningsfel ger positiv CONTRL och negativ APERAK.'),
+    utiltsEscoErrCase('U3.2.2', 'Felaktig UTILTS-E66, funktionsfel (Kvart)', 'E66', 'Verifierar att U3 E66-kvart med funktionsfel ger positiv CONTRL och UTILTS-ERR.'),
     utiltsPositiveCase('U2.1.4b', 'Korrekt UTILTS-E66, saknat värde SCH – b-testfall', 'E66', 'Verifierar b-testvariant för korrekt E66 saknat värde.'),
     utiltsPositiveCase('U2.1.8b', 'Korrekt UTILTS-E66, mätarbyte kvartsmätare – b-testfall', 'E66', 'Verifierar b-testvariant för korrekt E66 mätarbyte.'),
     utiltsNegativeAperakCase('U2.2.1b', 'Felaktigt UTILTS-E66, anvisningsfel SCH – b-testfall', 'E66', 'Verifierar b-testvariant för negativ APERAK på E66.'),

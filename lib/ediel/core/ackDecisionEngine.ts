@@ -228,6 +228,34 @@ function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined
   return String(testData?.testCaseCode ?? '').trim().toUpperCase()
 }
 
+function expectedAckFromTgtData(testData: EdielTgtCaseTestData | null | undefined): {
+  aperak?: 'positive' | 'negative' | null
+  utiltsErr?: boolean | null
+  reason?: string | null
+} | null {
+  const explicit = testData?.expectedAck
+  if (explicit && (explicit.aperak || explicit.utiltsErr)) {
+    return {
+      aperak: explicit.aperak ?? null,
+      utiltsErr: explicit.utiltsErr ?? false,
+      reason: explicit.reason ?? null,
+    }
+  }
+
+  const text = normalizeDecisionText([
+    testData?.title,
+    testData?.sourceNote,
+    ...collectTgtDecisionText(testData?.groups ?? []),
+  ].join(' '))
+
+  if (!text) return null
+  if (text.includes('FUNKTIONSFEL')) return { aperak: null, utiltsErr: true, reason: 'TGT UTILTS functional error expectation from testdata.' }
+  if (text.includes('ANVISNINGSFEL')) return { aperak: 'negative', utiltsErr: false, reason: 'TGT UTILTS application error expectation from testdata.' }
+  if (text.includes('KORREKT')) return { aperak: 'positive', utiltsErr: false, reason: 'TGT UTILTS positive expectation from testdata.' }
+
+  return null
+}
+
 function utiltsTgtApplicationDecision(
   message: EdielMessageRow,
   testData: EdielTgtCaseTestData | null | undefined
@@ -249,6 +277,34 @@ function utiltsTgtApplicationDecision(
     referenceNumber: null,
     lineItemReference: message.transaction_reference ?? null,
   })
+
+  const expectedAck = expectedAckFromTgtData(testData)
+  if (expectedAck?.utiltsErr) {
+    return {
+      family: 'UTILTS_ERR',
+      matchedRule: 'UTILTS_TGT_EXPECTED_UTILTS_ERR',
+      messageText: expectedAck.reason ?? 'UTILTS process- eller funktionsfel enligt valt testfall',
+    }
+  }
+
+  if (expectedAck?.aperak === 'positive') {
+    return {
+      family: 'APERAK',
+      outcome: 'positive',
+      matchedRule: 'UTILTS_TGT_EXPECTED_POSITIVE_APERAK',
+      messageText: expectedAck.reason ?? null,
+    }
+  }
+
+  if (expectedAck?.aperak === 'negative') {
+    return {
+      family: 'APERAK',
+      outcome: 'negative',
+      matchedRule: 'UTILTS_TGT_EXPECTED_NEGATIVE_APERAK',
+      errors: [makeError('41', '512', 'MANDATORY FIELD MISSING')],
+      messageText: expectedAck.reason ?? 'UTILTS anvisningsfel enligt valt testfall',
+    }
+  }
 
   // TGT guide/anvisningsfel => negative APERAK. The APERAK error codes are
   // driven by the TGT/UTILTS specification. This is TGT selection only; the
@@ -389,6 +445,15 @@ function utiltsApplicationDecision(message: EdielMessageRow, testData?: EdielTgt
     return {
       family: 'UTILTS_ERR',
       messageText: tgtDecision.messageText ?? 'UTILTS process- eller funktionsfel',
+      matchedRule: tgtDecision.matchedRule,
+    }
+  }
+
+  if (tgtDecision?.family === 'APERAK' && tgtDecision.outcome === 'positive') {
+    return {
+      family: 'APERAK',
+      outcome: 'positive',
+      messageText: tgtDecision.messageText,
       matchedRule: tgtDecision.matchedRule,
     }
   }

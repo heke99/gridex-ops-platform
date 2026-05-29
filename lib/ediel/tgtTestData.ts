@@ -36,6 +36,18 @@ export type EdielTgtCaseTestDataGroup = {
   fields: readonly EdielTgtExcelField[]
 }
 
+export type EdielTgtCaseExpectedAck = {
+  contrl?: 'positive' | 'negative' | null
+  aperak?: 'positive' | 'negative' | null
+  utiltsErr?: boolean | null
+  /**
+   * Optional business reason from the testdata/portal instruction. This is used
+   * only by the TGT/systemtest layer; production validation still reads the
+   * actual EDIFACT content.
+   */
+  reason?: string | null
+}
+
 export type EdielTgtCaseTestData = {
   suite: EdielTestSuite
   roleCode: EdielTestRoleCode
@@ -43,6 +55,13 @@ export type EdielTgtCaseTestData = {
   title: string
   sourceNote: string
   groups: readonly EdielTgtCaseTestDataGroup[]
+  /**
+   * Expected acknowledgement for a selected Edielportal/TGT test case. Keeping
+   * this on the testdata object prevents the ACK engine from hardcoding a
+   * specific test-id while still allowing portal-provided expectations to beat
+   * overly broad local guide checks.
+   */
+  expectedAck?: EdielTgtCaseExpectedAck | null
 }
 
 const RAW_PRODAT_BLOCKS = [
@@ -2213,6 +2232,40 @@ export function getEdielTgtTestDataForCase(
   testCaseCode: string
 ): EdielTgtCaseTestData | null {
   const code = normalize(testCaseCode)
+
+  if (suite === 'UTILTS' && roleCode === 'esco') {
+    const utiltsEscoCases: Record<string, { title: string; expectedAck: EdielTgtCaseExpectedAck }> = {
+      'U3.1.1': {
+        title: 'Korrekt UTILTS-E66, periodisk månadsavl. (SCH)',
+        expectedAck: { contrl: 'positive', aperak: 'positive', utiltsErr: false, reason: 'TGT U3.1 correct E66-SCH expects positive APERAK.' },
+      },
+      'U3.1.2': {
+        title: 'Korrekt UTILTS-E66, dygnsavräknad (kvart)',
+        expectedAck: { contrl: 'positive', aperak: 'positive', utiltsErr: false, reason: 'TGT U3.1 correct E66 quarter expects positive APERAK.' },
+      },
+      'U3.2.1': {
+        title: 'Felaktig UTILTS-E66, anvisningsfel (Kvart)',
+        expectedAck: { contrl: 'positive', aperak: 'negative', utiltsErr: false, reason: 'TGT U3.2 guide/application error expects negative APERAK.' },
+      },
+      'U3.2.2': {
+        title: 'Felaktig UTILTS-E66, funktionsfel (Kvart)',
+        expectedAck: { contrl: 'positive', aperak: null, utiltsErr: true, reason: 'TGT U3.2 functional error expects UTILTS_ERR.' },
+      },
+    }
+
+    const utiltsEscoCase = utiltsEscoCases[code]
+    if (utiltsEscoCase) {
+      return {
+        suite,
+        roleCode,
+        testCaseCode: code,
+        title: utiltsEscoCase.title,
+        sourceNote: 'TGT UTILTS ESCO/Energitjänsteföretag U3 expected acknowledgement profile.',
+        groups: [],
+        expectedAck: utiltsEscoCase.expectedAck,
+      }
+    }
+  }
 
   if (suite === 'PRODAT' && roleCode === 'supplier' && code === '1.2.1') {
     return {

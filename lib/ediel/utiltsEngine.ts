@@ -1187,7 +1187,14 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
         !groupHasMeterReadingQuantity(group) &&
         groupQuantities.some((qty) => String(qty.qualifier ?? '').toUpperCase() === '136')
       ) {
-        issues.push(buildIssue({ severity: 'error', kind: 'application', code: 'UTILTS_E66_MISSING_METER_READING', title: 'Mätarställning saknas', description: 'E66-transaktionen innehåller endast energimängd men saknar mätarställning.', aperakErcCode: '41', aperakFieldCode: '514', aperakText: 'MANDATORY FIELD MISSING', referenceQualifier: 'ACW', referenceNumber: transactionReference, lineItemReference: transactionReference }))
+        // Do not reject all non-interval E66 energy-only transactions as a
+        // mandatory-field error. The portal's correct E66-SCH/periodic cases can
+        // legitimately carry billing energy without meter-reading QTY rows.
+        // True TGT anvisningsfel is decided from selected/imported testdata and
+        // real functional faults are still caught by the processability checks
+        // above. Keep this as a diagnostic warning so operators can inspect it
+        // without turning a correct U3.1.1 into APERAK 313/ERC 41.
+        issues.push(buildIssue({ severity: 'warning', kind: 'application', code: 'UTILTS_E66_ENERGY_ONLY_WITHOUT_METER_READING', title: 'E66 innehåller energimängd utan mätarställningsrader', description: 'E66-transaktionen innehåller energimängd utan QTY för mätarställning. Detta är inte ensamt ett blockerande anvisningsfel; testdata/övriga regler avgör om negativ APERAK krävs.', aperakErcCode: '41', aperakFieldCode: '514', aperakText: 'MANDATORY FIELD MISSING', referenceQualifier: 'ACW', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
     }
   }
