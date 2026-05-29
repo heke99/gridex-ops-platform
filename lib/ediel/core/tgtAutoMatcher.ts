@@ -57,7 +57,7 @@ export function messageCodePrefixesForTgtAutoMatch(message: EdielMessageRow): st
   if (family === 'UTILTS') {
     if (code === 'S02') return ['U1.1', 'U1.2']
     if (code === 'S03') return ['U1.3', 'U1.4']
-    if (code === 'E66') return ['U2.1', 'U2.2']
+    if (code === 'E66') return ['U2.1', 'U2.2', 'U3.1', 'U3.2']
     if (code === 'E31') return ['U2.3', 'U2.4']
   }
 
@@ -1060,6 +1060,11 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
     }
 
     if (code === 'E66') {
+      if (/\bU3\.2\.2\b/i.test(rawText) || /\bU3\.2\.2\b/i.test(text)) return 'U3.2.2'
+      if (/\bU3\.2\.1\b/i.test(rawText) || /\bU3\.2\.1\b/i.test(text)) return 'U3.2.1'
+      if (/\bU3\.1\.2\b/i.test(rawText) || /\bU3\.1\.2\b/i.test(text)) return 'U3.1.2'
+      if (/\bU3\.1\.1\b/i.test(rawText) || /\bU3\.1\.1\b/i.test(text)) return 'U3.1.1'
+
       if (textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U2.2.2'
 
       if (shouldPreferPositiveUtiltsE66QuarterTgtCase(message, rawText)) return 'U2.1.1'

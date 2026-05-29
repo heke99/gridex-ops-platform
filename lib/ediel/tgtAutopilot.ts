@@ -448,11 +448,19 @@ export async function createMockPortalMessageForNextStep(params: {
 
 export async function autoAttachImportedMessageToActiveTgtRun(params: {
   edielMessage: EdielMessageRow
+  explicitTestCaseCode?: string | null
 }): Promise<EdielTgtAutopilotResult | null> {
   const [runs, messages] = await Promise.all([listEdielTestRuns(), listEdielMessages({ limit: 300 })])
+  const explicitCode = String(params.explicitTestCaseCode ?? '').trim().toUpperCase()
   const activeRuns = runs.filter((run) => run.status === 'running' || run.status === 'draft')
+  const prioritizedRuns = explicitCode
+    ? [
+        ...activeRuns.filter((run) => String(run.test_case_code ?? '').toUpperCase() === explicitCode),
+        ...activeRuns.filter((run) => String(run.test_case_code ?? '').toUpperCase() !== explicitCode),
+      ]
+    : activeRuns
 
-  for (const run of activeRuns) {
+  for (const run of prioritizedRuns) {
     const evaluation = evaluateEdielTgtRun(run, messages)
     if (!evaluation.definition) continue
 
@@ -466,6 +474,7 @@ export async function autoAttachImportedMessageToActiveTgtRun(params: {
     })
 
     if (!matchingStep) continue
+    if (explicitCode && String(run.test_case_code ?? '').toUpperCase() !== explicitCode) continue
 
     await attachEdielMessageToTestRun({
       testRunId: run.id,

@@ -91,7 +91,6 @@ import {
 } from "@/lib/ediel/tgtTestDataStore";
 import { resolveRecommendedAckForInboundMessage } from "@/lib/ediel/core/ackDecisionEngine";
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight";
-import { assertRulebookAllowsSend } from "@/lib/ediel/rulebook/sendGuards";
 import { validateL7PayloadPreflight } from "@/lib/ediel/agtRunMetadata";
 import {
   effectiveTgtTestCaseCodeForMessageRow,
@@ -1011,6 +1010,7 @@ function getProdatDraftBuilder(messageCode: ProdatSwitchCode) {
 function revalidateEdiel(messageId?: string | null) {
   revalidatePath("/admin/ediel");
   revalidatePath("/admin/ediel/agt");
+  revalidatePath("/admin/ediel/system-tests");
   revalidatePath("/admin/ediel/ai-list");
   revalidatePath("/admin/ediel/control-tower");
   revalidatePath("/admin/ediel/routes");
@@ -1189,10 +1189,6 @@ export async function sendEdielMessageAction(formData: FormData) {
     }
   }
 
-  if (message.direction === "outbound") {
-    assertRulebookAllowsSend(message);
-  }
-
   if (isAgtL7OutboundMessage(message)) {
     const blockers = validateL7PayloadPreflight(message.raw_payload ?? "");
 
@@ -1339,6 +1335,7 @@ export async function registerEdielFileAction(formData: FormData) {
   if (createdMessage) {
     const autoAttachResult = await autoAttachImportedMessageToActiveTgtRun({
       edielMessage: createdMessage,
+      explicitTestCaseCode: formString(formData.get("tgtTestCaseCode")),
     });
 
     if (autoAttachResult) {
