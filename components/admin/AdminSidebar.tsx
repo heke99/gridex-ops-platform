@@ -6,7 +6,6 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import {
   getAdminNavigationGroups,
   type AdminNavigationMode,
-  type AdminNavigationItem,
 } from '@/lib/admin/navigation'
 
 type AdminSidebarProps = {
@@ -28,7 +27,7 @@ function modeHref(pathname: string, mode: AdminNavigationMode) {
   return `${pathname}?nav=${mode === 'platform_view' ? 'platform' : 'company'}`
 }
 
-function itemIsPlatformOnly(item: Pick<AdminNavigationItem, 'platformOnly'>) {
+function itemIsPlatformOnly(item: { platformOnly?: boolean }) {
   return item.platformOnly === true
 }
 

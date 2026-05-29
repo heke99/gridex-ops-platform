@@ -237,7 +237,7 @@ async function loadCustomerRows(companyId: string | null): Promise<CustomerListR
     const { data, error } = await query
     if (error) throw error
 
-    return ((data ?? []) as RawCustomerRow[])
+    return ((data ?? []) as unknown as RawCustomerRow[])
       .filter((row) => typeof row.id === 'string')
       .map(normalizeCustomerRow)
   } catch (error) {
