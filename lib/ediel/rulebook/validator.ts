@@ -1,5 +1,5 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { fieldRulesForMessage } from '@/lib/ediel/rulebook/fieldMatrix'
+import { fieldRulesForMessage, validateFieldMatrixPayload } from '@/lib/ediel/rulebook/fieldMatrix'
 import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import {
   defaultApplicationReferenceForProcess,
@@ -112,6 +112,17 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
       }
     }
   }
+
+  const fieldMatrixIssues = validateFieldMatrixPayload({
+    family,
+    code,
+    rawSegments: parsed?.rawSegments ?? [],
+    applicationReference: actualApplicationReference,
+    expectedApplicationReference,
+    mode: input.mode ?? 'send',
+  })
+
+  issues.push(...fieldMatrixIssues)
 
   const blocking = issues.some((item) => item.severity === 'error' || item.blocking)
   return {

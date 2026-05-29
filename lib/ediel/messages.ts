@@ -1,7 +1,7 @@
 // lib/ediel/messages.ts
 
 import { buildEdielInterchangeReference } from '@/lib/ediel/references'
-import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder'
+import { preflightEdielPayload, type EdielPayloadPreflightResult } from '@/lib/ediel/core/messageBuilder'
 
 type BuildEdifactEnvelopeInput = {
   senderEdielId: string
@@ -19,6 +19,7 @@ type BuiltEdifactEnvelope = {
   interchangeReference: string
   messageReference: string
   segmentCount: number
+  payloadPreflight: EdielPayloadPreflightResult
 }
 
 function trimOrNull(value?: string | null): string | null {
@@ -173,5 +174,6 @@ export function buildEdifactEnvelope(
     interchangeReference,
     messageReference,
     segmentCount: normalizedBody.length + 2,
+    payloadPreflight: preflight,
   }
 }

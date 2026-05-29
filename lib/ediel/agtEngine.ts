@@ -514,6 +514,7 @@ function buildAgtProdatOutboundInput(params: {
       },
       expectedPortalResponse: 'positive CONTRL + negative APERAK',
       instruction: definition.agtInstruction,
+      payloadPreflight: envelope.payloadPreflight,
     },
     requiresContrl: ack.requiresContrl,
     requiresAperak: ack.requiresAperak,

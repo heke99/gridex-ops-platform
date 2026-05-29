@@ -539,7 +539,15 @@ export async function buildUtiltsOutboundDraft(
     meteringPointId: input.meteringPointId ?? null,
     gridOwnerId: input.gridOwnerId ?? null,
     rawPayload: envelope.raw,
-    parsedPayload,
+    parsedPayload: {
+      ...parsedPayload,
+      payloadPreflight: envelope.payloadPreflight,
+    },
+    validationReport: {
+      generatedBy: 'buildUtiltsOutboundDraft',
+      engineVersion: '2026-05-message-builder-certification-v2',
+      payloadPreflight: envelope.payloadPreflight,
+    },
     requiresContrl: ack.requiresContrl,
     requiresAperak: ack.requiresAperak,
     contrlStatus: ack.contrlStatus,

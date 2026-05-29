@@ -974,6 +974,7 @@ function buildAckDraft(params: {
       aperakSequenceToken,
       ackScope: params.ackScope ?? (params.relatedTransactionReference ? 'transaction' : 'message'),
       relatedTransactionReference: params.relatedTransactionReference ?? null,
+      payloadPreflight: envelope.payloadPreflight,
     },
     applicationReference,
     // Store the outbound UNB/0020 on the outbound row. The inbound

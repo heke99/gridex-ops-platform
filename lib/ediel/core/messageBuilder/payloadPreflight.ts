@@ -1,6 +1,7 @@
 // lib/ediel/core/messageBuilder/payloadPreflight.ts
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import {
   profileForMessage,
@@ -375,6 +376,27 @@ function validateEdifactPayload(params: {
     mode: params.mode,
     issues,
   })
+
+  const rulebookValidation = validateRulebookMessage({
+    family: String(canonical.family),
+    code: canonical.messageCode,
+    processGroup: canonical.processGroup,
+    applicationReference: canonical.applicationReference,
+    rawPayload,
+    mode: params.mode === 'send' ? 'send' : 'parse',
+  })
+
+  for (const rulebookIssue of rulebookValidation.issues) {
+    const duplicate = issues.some((existing) => existing.code === rulebookIssue.code && existing.description === rulebookIssue.description)
+    if (duplicate) continue
+    issues.push(issue({
+      severity: rulebookIssue.severity,
+      code: rulebookIssue.code,
+      title: rulebookIssue.title,
+      description: rulebookIssue.description,
+      segment: rulebookIssue.fieldPath ?? null,
+    }))
+  }
 
   if (unbSyntax && unbSyntax.toUpperCase() !== 'UNOC:3') {
     issues.push(issue({ severity: 'warning', code: 'UNB_SYNTAX_NOT_UNOC3', title: 'Kontrollera syntaxidentifierare', description: `PRODAT/UTILTS/APERAK ska normalt använda UNOC:3, payload anger ${unbSyntax}.`, segment: unb }))

@@ -97,6 +97,31 @@ function defaultPermissionPurpose(code: string, reasonForTransaction?: string | 
   return 'B71'
 }
 
+function defaultTestReportingFrequency(code: string, mode?: 'test' | 'production'): string | null {
+  if (mode !== 'test') return null
+  if (code === 'Z13') return 'D'
+  return null
+}
+
+function defaultTestEnergyProductId(code: string, mode?: 'test' | 'production'): string | null {
+  if (mode !== 'test') return null
+  if (code === 'Z13') return '8716867000030'
+  return null
+}
+
+function defaultPermissionStatus(code: string, mode?: 'test' | 'production'): string | null {
+  if (mode !== 'test') return null
+  if (code === 'Z15') return 'A75'
+  return null
+}
+
+function defaultPermissionEndReason(code: string, mode?: 'test' | 'production'): string | null {
+  if (mode !== 'test') return null
+  if (code === 'Z15') return 'B79'
+  if (code === 'Z18') return 'B80'
+  return null
+}
+
 function resolvePermissionPurpose(code: string, explicitValue?: string | null, reasonForTransaction?: string | null): string | null {
   const normalized = sanitizeProdatToken(explicitValue ?? null, 12)
   return normalized || defaultPermissionPurpose(code, reasonForTransaction)
@@ -171,12 +196,12 @@ export function buildGenericProdatSegments(input: {
     segments.push('CCI++Z04', isPermissionMessage ? prodatCav(meteringMethod) : `CAV+${meteringMethod}`)
   }
 
-  const reportingFrequency = sanitizeProdatToken(portalString(portalData, 'reportingFrequency') ?? context.reportingFrequency ?? null, 12)
+  const reportingFrequency = sanitizeProdatToken(portalString(portalData, 'reportingFrequency') ?? context.reportingFrequency ?? defaultTestReportingFrequency(context.code, input.mode), 12)
   if (isPermissionMessage && reportingFrequency) {
     segments.push('CCI++Z12', prodatCavValue1(reportingFrequency, 12))
   }
 
-  const energyProductId = sanitizeProdatToken(portalString(portalData, 'energyProductId') ?? context.energyProductId ?? null, 35)
+  const energyProductId = sanitizeProdatToken(portalString(portalData, 'energyProductId') ?? context.energyProductId ?? defaultTestEnergyProductId(context.code, input.mode), 35)
   if (isPermissionMessage && energyProductId) {
     // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7111,
     // med GS1 som kodlisteansvarig. Det ska inte renderas som PIA i permission-flöden.
@@ -187,7 +212,7 @@ export function buildGenericProdatSegments(input: {
     segments.push('CCI++Z22', prodatCav(installationDirection))
   }
 
-  const permissionStatus = sanitizeProdatToken(portalString(portalData, 'permissionStatus') ?? context.permissionStatus ?? null, 12)
+  const permissionStatus = sanitizeProdatToken(portalString(portalData, 'permissionStatus') ?? context.permissionStatus ?? defaultPermissionStatus(context.code, input.mode), 12)
   if (isPermissionMessage && permissionStatus) {
     segments.push('CCI++Z23', prodatCav(permissionStatus))
   }
@@ -196,7 +221,7 @@ export function buildGenericProdatSegments(input: {
     segments.push('CCI++Z24', prodatCav(permissionPurpose))
   }
 
-  const permissionEndReason = sanitizeProdatToken(portalString(portalData, 'permissionEndReason') ?? context.permissionEndReason ?? null, 12)
+  const permissionEndReason = sanitizeProdatToken(portalString(portalData, 'permissionEndReason') ?? context.permissionEndReason ?? defaultPermissionEndReason(context.code, input.mode), 12)
   if (isPermissionMessage && permissionEndReason) {
     segments.push('CCI++Z25', prodatCav(permissionEndReason))
   }

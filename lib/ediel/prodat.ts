@@ -799,8 +799,9 @@ function buildProdatSwitchOutboundDraft(
       validationReport: {
         ...buildValidationReport(validation),
         prodatEngine: prodatRendered.diagnostics,
-      prodatAckExpectation: prodatRendered.ackExpectation ?? null,
+        prodatAckExpectation: prodatRendered.ackExpectation ?? null,
         engineIssues: prodatRendered.issues,
+        payloadPreflight: envelope.payloadPreflight,
       },
       requiresContrl: ack.requiresContrl,
       requiresAperak: ack.requiresAperak,

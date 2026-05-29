@@ -197,6 +197,7 @@ function buildProdatZ01Draft(params: {
       prodatEngine: rendered.diagnostics,
       prodatAckExpectation: rendered.ackExpectation ?? null,
       engineIssues: rendered.issues,
+      payloadPreflight: envelope.payloadPreflight,
     }
 
     return {
