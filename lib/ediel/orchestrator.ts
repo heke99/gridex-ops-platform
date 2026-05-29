@@ -7,6 +7,7 @@ import {
   buildContrlDraft,
   buildUtiltsErrDraft,
   type EdielAperakApplicationError,
+  type EdielAckScope,
 } from '@/lib/ediel/ack'
 import { createEdielMessageEvent, getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
 import {
@@ -92,6 +93,8 @@ export async function createAckForSourceMessage(params: {
   outcome?: AckOutcome
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
+  ackScope?: EdielAckScope | null
+  relatedTransactionReference?: string | null
 }) {
   const draft = buildAckDraftForSource({
     actorUserId: params.actorUserId,
@@ -100,6 +103,8 @@ export async function createAckForSourceMessage(params: {
     outcome: params.outcome,
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
+    ackScope: params.ackScope ?? null,
+    relatedTransactionReference: params.relatedTransactionReference ?? null,
   })
 
   return createCanonicalAckMessage({
@@ -118,6 +123,8 @@ export async function createAckDraftForMessage(params: {
   outcome?: AckOutcome
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
+  ackScope?: EdielAckScope | null
+  relatedTransactionReference?: string | null
 }) {
   const sourceMessage = await getEdielMessageById(params.sourceMessageId)
   if (!sourceMessage) {
@@ -131,6 +138,8 @@ export async function createAckDraftForMessage(params: {
     outcome: params.outcome,
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
+    ackScope: params.ackScope ?? null,
+    relatedTransactionReference: params.relatedTransactionReference ?? null,
   })
 }
 

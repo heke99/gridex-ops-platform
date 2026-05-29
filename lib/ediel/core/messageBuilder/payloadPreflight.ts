@@ -297,6 +297,33 @@ function validateSegmentProfile(params: {
         description: 'Positiv APERAK med ERC 100 ska ha FTX OK.',
       }))
     }
+
+    const ercCodes = ercSegments.map((segment) => textForSegment(segment, 1, 0)).filter(Boolean)
+    const ftxCodes = ftxSegments.map((segment) => textForSegment(segment, 3, 0)).filter(Boolean)
+    const isUtiltsE66IntervalAck =
+      params.profile.key === 'APERAK_UTILTS_E5SE5A' &&
+      String(applicationReference ?? '').toUpperCase().includes('E66-T') &&
+      bgmCode === '313'
+
+    if (isUtiltsE66IntervalAck && ercCodes.includes('40')) {
+      params.issues.push(issue({
+        severity: 'error',
+        code: 'APERAK_UTILTS_E66_GENERIC_ERC40_BLOCKED',
+        title: 'Generisk APERAK-felkod blockerad för UTILTS E66-T',
+        description: 'UTILTS E66-T med anvisningsfel får inte skickas med generisk ERC 40. Saknad/ogiltig DTM+597 ska skickas som ERC 41 och FTX 512 enligt runtime-beslut.',
+        segment: ercSegments.find((segment) => textForSegment(segment, 1, 0) === '40') ?? null,
+      }))
+    }
+
+    if (isUtiltsE66IntervalAck && ftxCodes.includes('40')) {
+      params.issues.push(issue({
+        severity: 'error',
+        code: 'APERAK_UTILTS_E66_GENERIC_FTX40_BLOCKED',
+        title: 'Generisk APERAK-FTX blockerad för UTILTS E66-T',
+        description: 'UTILTS E66-T med anvisningsfel får inte skicka FTX-kod 40. Saknad/ogiltig DTM+597 ska skickas som FTX 512 MANDATORY FIELD MISSING.',
+        segment: ftxSegments.find((segment) => textForSegment(segment, 3, 0) === '40') ?? null,
+      }))
+    }
   }
 
   if (params.profile.family === 'UTILTS_ERR') {

@@ -24,6 +24,8 @@ import {
   updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import { createAckDraftForMessage, pollAndIngestEdielMailbox, sendQueuedEdielMessage } from '@/lib/ediel/orchestrator'
+import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import type { EdielAperakApplicationError, EdielAckScope } from '@/lib/ediel/ack'
 import { getEdielTgtTestCaseByCode, getEdielTgtTestCases } from '@/lib/ediel/tgtRegistry'
 import { autoAttachImportedMessageToActiveTgtRun, runTgtAutopilotForRun } from '@/lib/ediel/tgtAutopilot'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
@@ -164,6 +166,123 @@ async function findBestActiveRunForMessage(params: {
   return candidate?.id ?? null
 }
 
+
+type SystemTestAckDecision = {
+  outcome: AckOutcome
+  messageText: string | null
+  applicationErrors: EdielAperakApplicationError[] | null
+  ackScope: EdielAckScope | null
+  relatedTransactionReference: string | null
+  reason: string | null
+  ruleKeys: string[]
+}
+
+function firstErrorTransactionReference(errors: readonly EdielAperakApplicationError[] | null | undefined): string | null {
+  if (!errors || errors.length === 0) return null
+  const candidate = errors.find((error) => error.lineItemReference || error.referenceNumber) ?? errors[0]
+  const value = candidate.lineItemReference ?? candidate.referenceNumber ?? null
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function messageHasGenericErc40(rawPayload?: string | null): boolean {
+  const raw = String(rawPayload ?? '').toUpperCase()
+  return raw.includes('ERC+40') || raw.includes('FTX+AAO++40')
+}
+
+function buildApplicationErrorSummary(errors: readonly EdielAperakApplicationError[] | null): string | null {
+  if (!errors || errors.length === 0) return null
+  return errors
+    .map((error) => `${error.ercCode}${error.fieldCode ? `/${error.fieldCode}` : ''}: ${error.text}`)
+    .join(' | ')
+}
+
+function resolveSystemTestAckDecision(params: {
+  sourceMessage: Awaited<ReturnType<typeof getEdielMessageById>>
+  ackFamily: AckFamily
+  requestedOutcome: AckOutcome
+  messageText: string | null
+}): SystemTestAckDecision {
+  const fallback: SystemTestAckDecision = {
+    outcome: params.requestedOutcome,
+    messageText: params.messageText,
+    applicationErrors: null,
+    ackScope: null,
+    relatedTransactionReference: null,
+    reason: null,
+    ruleKeys: [],
+  }
+
+  const sourceMessage = params.sourceMessage
+  if (!sourceMessage || params.ackFamily !== 'APERAK') return fallback
+
+  if (String(sourceMessage.message_family ?? '').toUpperCase() === 'UTILTS') {
+    const runtime = runUtiltsRuntimeForMessage(sourceMessage)
+
+    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'negative') {
+      const applicationErrors = runtime.ackPlan.aperakApplicationErrors.map((error) => ({
+        ercCode: error.ercCode,
+        fieldCode: error.fieldCode ?? null,
+        text: error.text,
+        referenceQualifier: error.referenceQualifier ?? null,
+        referenceNumber: error.referenceNumber ?? null,
+        lineItemReference: error.lineItemReference ?? null,
+      }))
+      const relatedTransactionReference = firstErrorTransactionReference(applicationErrors)
+
+      return {
+        outcome: 'negative',
+        messageText: buildApplicationErrorSummary(applicationErrors) ?? params.messageText,
+        applicationErrors,
+        ackScope: relatedTransactionReference ? 'transaction' : 'message',
+        relatedTransactionReference,
+        reason: runtime.ackPlan.reason,
+        ruleKeys: runtime.validation.issues
+          .filter((issue) => issue.severity === 'error' && issue.kind === 'application')
+          .map((issue) => issue.code),
+      }
+    }
+
+    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'positive') {
+      return {
+        outcome: 'positive',
+        messageText: params.messageText,
+        applicationErrors: null,
+        ackScope: null,
+        relatedTransactionReference: null,
+        reason: runtime.ackPlan.reason,
+        ruleKeys: [],
+      }
+    }
+  }
+
+  return fallback
+}
+
+function canReuseSystemTestAck(params: {
+  ack: Awaited<ReturnType<typeof listAckMessagesForSource>>[number]
+  ackFamily: AckFamily
+  decision: SystemTestAckDecision
+}): boolean {
+  const status = String(params.ack.status ?? '').toLowerCase()
+  if (!['draft', 'queued', 'prepared'].includes(status)) return false
+
+  // Negative APERAK in Systemtest must be rebuilt from the current backend/runtime
+  // decision. Reusing a stale draft is how U3.2.1 kept sending ERC+40 after the
+  // UTILTS runtime had already resolved the correct ERC+41/FTX+512 decision.
+  if (params.ackFamily === 'APERAK' && params.decision.outcome === 'negative') return false
+
+  if (
+    params.ackFamily === 'APERAK' &&
+    params.decision.applicationErrors &&
+    params.decision.applicationErrors.length > 0 &&
+    messageHasGenericErc40(params.ack.raw_payload)
+  ) {
+    return false
+  }
+
+  return true
+}
+
 export async function createAndSendSystemTestAckAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
   const sourceMessageId = formString(formData.get('sourceMessageId'))
@@ -185,23 +304,34 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
   }
 
   const testRunId = await findBestActiveRunForMessage({ testRunId: testRunIdInput, testCaseCode, sourceMessageId })
+  const backendDecision = resolveSystemTestAckDecision({
+    sourceMessage,
+    ackFamily,
+    requestedOutcome: outcome,
+    messageText: messageText ?? null,
+  })
 
   const existingAcks = await listAckMessagesForSource({
     sourceMessageId,
     ackFamily,
-    outcome: ackFamily === 'UTILTS_ERR' ? undefined : outcome,
+    outcome: ackFamily === 'UTILTS_ERR' ? undefined : backendDecision.outcome,
     companyId: sourceMessage.company_id ?? null,
   }).catch(() => [])
-  const reusableAck = existingAcks.find((ack) => ack.direction === 'outbound' && ['draft', 'queued', 'prepared'].includes(String(ack.status)))
+  const reusableAck = existingAcks.find((ack) =>
+    ack.direction === 'outbound' &&
+    canReuseSystemTestAck({ ack, ackFamily, decision: backendDecision })
+  )
   let ackMessage = reusableAck ?? null
   if (!ackMessage) {
     ackMessage = await createAckDraftForMessage({
       actorUserId: context.userId,
       sourceMessageId,
       ackFamily,
-      outcome: ackFamily === 'UTILTS_ERR' ? undefined : outcome,
-      messageText: messageText ?? null,
-      applicationErrors: null,
+      outcome: ackFamily === 'UTILTS_ERR' ? undefined : backendDecision.outcome,
+      messageText: backendDecision.messageText ?? null,
+      applicationErrors: ackFamily === 'APERAK' ? backendDecision.applicationErrors : null,
+      ackScope: backendDecision.ackScope,
+      relatedTransactionReference: backendDecision.relatedTransactionReference,
     })
   }
 
@@ -229,8 +359,21 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     action: sendNow ? 'ediel.system_test.ack_create_and_send' : 'ediel.system_test.ack_create_preview',
     testRunId,
     edielMessageId: ackMessage.id,
-    reason: `${ackFamily} ${outcome} skapades från Systemtest.`,
-    payload: { sourceMessageId, ackFamily, outcome, testCaseCode: testCaseCode ?? null, stepNo },
+    reason: `${ackFamily} ${backendDecision.outcome} skapades från Systemtest.`,
+    payload: {
+      sourceMessageId,
+      ackFamily,
+      outcome: backendDecision.outcome,
+      requestedOutcome: outcome,
+      testCaseCode: testCaseCode ?? null,
+      stepNo,
+      backendReason: backendDecision.reason,
+      backendRuleKeys: backendDecision.ruleKeys,
+      applicationErrors: backendDecision.applicationErrors,
+      ackScope: backendDecision.ackScope,
+      relatedTransactionReference: backendDecision.relatedTransactionReference,
+      reusedAck: Boolean(reusableAck),
+    },
   })
 
   if (sendNow) {
@@ -241,8 +384,8 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
         action: 'ediel.system_test.ack_sent',
         testRunId,
         edielMessageId: ackMessage.id,
-        reason: `${ackFamily} ${outcome} skickades från Systemtest.`,
-        payload: { sourceMessageId, ackFamily, outcome, testCaseCode: testCaseCode ?? null },
+        reason: `${ackFamily} ${backendDecision.outcome} skickades från Systemtest.`,
+        payload: { sourceMessageId, ackFamily, outcome: backendDecision.outcome, requestedOutcome: outcome, testCaseCode: testCaseCode ?? null },
       })
     } catch (error) {
       await updateEdielMessageStatus({
