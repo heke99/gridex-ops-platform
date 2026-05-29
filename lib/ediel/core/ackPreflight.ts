@@ -39,6 +39,44 @@ function allSegments(raw: string): string[] {
     .filter(Boolean)
 }
 
+
+function normalizedEdifact(raw?: string | null): string {
+  return String(raw ?? '').replace(/\r?\n/g, '').toUpperCase()
+}
+
+function sourceLooksLikeE66QuarterOrHourly(sourceMessage: EdielMessageRow): boolean {
+  if (sourceMessage.message_family !== 'UTILTS') return false
+  if (String(sourceMessage.message_code ?? '').toUpperCase() !== 'E66') return false
+
+  const rawUpper = normalizedEdifact(sourceMessage.raw_payload)
+  const appRef = String(sourceMessage.application_reference ?? '').toUpperCase()
+
+  return (
+    appRef.includes('E66-T') ||
+    rawUpper.includes('DTM+354:15:804') ||
+    rawUpper.includes('DTM+354:60:804') ||
+    rawUpper.includes('QTY+87:') ||
+    rawUpper.includes('QTY+136:')
+  )
+}
+
+function sourceHasMissingOrInvalidRegistrationTime(sourceMessage: EdielMessageRow): boolean {
+  if (!sourceLooksLikeE66QuarterOrHourly(sourceMessage)) return false
+
+  const rawUpper = normalizedEdifact(sourceMessage.raw_payload)
+  const registrationSegments = rawUpper
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.startsWith('DTM+597'))
+
+  if (registrationSegments.length === 0) return true
+
+  return registrationSegments.some((segment) => {
+    const value = segment.split(':')[1]?.trim() ?? ''
+    return !/^\d{8,12}$/.test(value)
+  })
+}
+
 function isUtiltsS03Err(rawUpper: string, sourceMessage: EdielMessageRow): boolean {
   return (
     sourceMessage.message_family === 'UTILTS' &&
@@ -225,6 +263,20 @@ function validateAperakPreflight(params: {
   } else if (outcome === 'negative') {
     if (rawUpper.includes('ERC+100')) {
       issues.push(issue('error', 'negative_aperak_contains_100', 'Negativ APERAK får inte innehålla ERC+100/OK.'))
+    }
+
+    if (sourceMessage.message_family === 'UTILTS' && (rawUpper.includes('ERC+40::260') || rawUpper.includes('FTX+AAO++40::260'))) {
+      issues.push(issue('error', 'utilts_negative_aperak_generic_erc40_blocked', 'Negativ UTILTS-APERAK får inte använda generisk ERC/FTX 40. Kör UTILTS runtime och skicka specifik APERAK-kod, t.ex. ERC 41 + FTX 512 för saknad registreringstidpunkt.'))
+    }
+
+    if (sourceHasMissingOrInvalidRegistrationTime(sourceMessage)) {
+      if (!rawUpper.includes('ERC+41::260')) {
+        issues.push(issue('error', 'utilts_e66_missing_registration_time_requires_erc41', 'UTILTS E66-T med saknad/ogiltig registreringstidpunkt ska besvaras med ERC+41::260.'))
+      }
+
+      if (!rawUpper.includes('FTX+AAO++512::260+MANDATORY FIELD MISSING')) {
+        issues.push(issue('error', 'utilts_e66_missing_registration_time_requires_ftx512', 'UTILTS E66-T med saknad/ogiltig registreringstidpunkt ska besvaras med FTX+AAO++512::260+MANDATORY FIELD MISSING.'))
+      }
     }
   }
 

@@ -86,119 +86,6 @@ function segmentsFromRawPayload(rawPayload?: string | null): string[] {
     .filter(Boolean)
 }
 
-
-function segmentElement(segment: string | null | undefined, index: number): string | null {
-  const value = segment?.split('+')[index]?.trim() ?? ''
-  return value.length > 0 ? value : null
-}
-
-function compositeComponent(value: string | null | undefined, index: number): string | null {
-  const component = value?.split(':')[index]?.trim() ?? ''
-  return component.length > 0 ? component : null
-}
-
-function isRealEdifactDateTime(value: string | null | undefined): boolean {
-  const raw = value?.trim() ?? ''
-  if (!raw || raw.includes('?')) return false
-  if (!/^(\d{8}|\d{10}|\d{12}|\d{14})$/.test(raw)) return false
-
-  const year = Number(raw.slice(0, 4))
-  const month = Number(raw.slice(4, 6))
-  const day = Number(raw.slice(6, 8))
-  const hour = raw.length >= 10 ? Number(raw.slice(8, 10)) : 0
-  const minute = raw.length >= 12 ? Number(raw.slice(10, 12)) : 0
-  const second = raw.length >= 14 ? Number(raw.slice(12, 14)) : 0
-  if (month < 1 || month > 12) return false
-  if (day < 1 || day > 31) return false
-  if (hour < 0 || hour > 23) return false
-  if (minute < 0 || minute > 59) return false
-  if (second < 0 || second > 59) return false
-
-  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day &&
-    date.getUTCHours() === hour &&
-    date.getUTCMinutes() === minute &&
-    date.getUTCSeconds() === second
-  )
-}
-
-function splitUtiltsTransactionGroups(rawPayload?: string | null): Array<{ transactionReference: string | null; segments: string[] }> {
-  const groups: Array<{ transactionReference: string | null; segments: string[] }> = []
-  let current: { transactionReference: string | null; segments: string[] } | null = null
-
-  for (const segment of segmentsFromRawPayload(rawPayload)) {
-    const tag = segment.split('+')[0]?.toUpperCase() ?? ''
-    if (tag === 'IDE') {
-      if (current) groups.push(current)
-      current = {
-        transactionReference: compositeComponent(segmentElement(segment, 1), 1) ?? compositeComponent(segmentElement(segment, 1), 0),
-        segments: [segment],
-      }
-      continue
-    }
-
-    if (current) current.segments.push(segment)
-  }
-
-  if (current) groups.push(current)
-
-  if (groups.length > 0) return groups
-  return [{ transactionReference: null, segments: segmentsFromRawPayload(rawPayload) }]
-}
-
-function utiltsGroupResolution(group: { segments: string[] }): string | null {
-  const segment = group.segments.find((item) => item.toUpperCase().startsWith('DTM+354')) ?? null
-  return compositeComponent(segmentElement(segment, 1), 1)
-}
-
-function utiltsGroupHasRealRegistrationTime(group: { segments: string[] }): boolean {
-  return group.segments.some((segment) => {
-    if (!segment.toUpperCase().startsWith('DTM+597')) return false
-    return isRealEdifactDateTime(compositeComponent(segmentElement(segment, 1), 1))
-  })
-}
-
-function inferUtiltsApplicationErrorsFromSource(params: {
-  source: AperakEngineSource
-  refs: AperakEngineRefs
-}): AperakEngineApplicationError[] {
-  const family = String(params.source.messageFamily ?? '').toUpperCase()
-  const code = String(params.source.messageCode ?? '').toUpperCase()
-  if (family !== 'UTILTS' || code !== 'E66') return []
-
-  const errors: AperakEngineApplicationError[] = []
-  const seen = new Set<string>()
-
-  for (const group of splitUtiltsTransactionGroups(params.source.rawPayload)) {
-    const resolution = utiltsGroupResolution(group)
-    const isIntervalGroup = resolution === '15' || resolution === '60'
-    if (!isIntervalGroup || utiltsGroupHasRealRegistrationTime(group)) continue
-
-    const reference =
-      sanitizeEdifactToken(group.transactionReference, 35) ??
-      sanitizeEdifactToken(params.refs.lineItemReference, 35) ??
-      sanitizeEdifactToken(params.refs.documentReference, 35) ??
-      null
-    const key = reference ?? 'message'
-    if (seen.has(key)) continue
-    seen.add(key)
-
-    errors.push({
-      ercCode: '41',
-      fieldCode: '512',
-      text: 'MANDATORY FIELD MISSING',
-      referenceQualifier: 'ACW',
-      referenceNumber: reference,
-      lineItemReference: reference,
-    })
-  }
-
-  return errors
-}
-
 function swedishDateTime(date = new Date()): string {
   const parts = new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Europe/Stockholm',
@@ -242,7 +129,7 @@ function normalizeAperakErrors(
     .map((error) => ({
       ercCode: sanitizeEdifactToken(error.ercCode, 12) ?? '',
       fieldCode: sanitizeEdifactToken(error.fieldCode ?? null, 12),
-      text: escapeEdifactText(error.text, 70),
+      text: escapeEdifactText(error.text, 140),
       referenceQualifier: sanitizeEdifactToken(error.referenceQualifier ?? null, 12),
       referenceNumber: sanitizeEdifactToken(error.referenceNumber ?? null, 35),
       lineItemReference: sanitizeEdifactToken(error.lineItemReference ?? null, 35),
@@ -254,7 +141,7 @@ function normalizeAperakErrors(
     {
       ercCode: '40',
       fieldCode: '40',
-      text: escapeEdifactText(fallbackText || 'Applikationen kunde inte bearbeta meddelandet', 70),
+      text: escapeEdifactText(fallbackText || 'Applikationen kunde inte bearbeta meddelandet', 140),
       referenceQualifier: null,
       referenceNumber: null,
       lineItemReference: null,
@@ -294,7 +181,7 @@ export function renderAperakEdiel(params: {
         `BGM+${utiltsBgmCode}+${sanitizeEdifactToken(params.externalReference) ?? 'APERAK'}+9`,
         `DTM+137:${swedishDateTime()}:203`,
         'DTM+735:?+0100:406',
-        `DOC+${sanitizeEdifactToken(params.source.messageCode) ?? 'UTILTS'}::260+${previousMessageReference}`,
+        `DOC+${sanitizeEdifactToken(params.source.messageCode) ?? 'UTILTS'}:SVK:260+${previousMessageReference}`,
         `NAD+MS+${sanitizeEdifactToken(params.source.receiverEdielId) ?? 'UNKNOWN'}:SVK:260`,
         `NAD+MR+${sanitizeEdifactToken(params.source.senderEdielId) ?? 'UNKNOWN'}:SVK:260`,
         'NAD+DDQ',
@@ -326,10 +213,11 @@ export function renderAperakEdiel(params: {
     )
   }
 
-  const inferredUtiltsErrors =
-    params.outcome === 'negative' && isUtiltsSource
-      ? inferUtiltsApplicationErrorsFromSource({ source: params.source, refs: params.refs })
-      : []
+  if (params.outcome === 'negative' && isUtiltsSource && (!params.applicationErrors || params.applicationErrors.length === 0)) {
+    throw new Error(
+      'Negativ UTILTS-APERAK saknar applicationErrors. Generatorn får inte falla tillbaka till generisk ERC 40; kör UTILTS runtime/decision engine och skicka explicit ERC/FTX enligt anvisningen.'
+    )
+  }
 
   const errors =
     params.outcome === 'positive'
@@ -343,12 +231,7 @@ export function renderAperakEdiel(params: {
             lineItemReference: null,
           },
         ]
-      : normalizeAperakErrors(
-          params.applicationErrors && params.applicationErrors.length > 0
-            ? params.applicationErrors
-            : inferredUtiltsErrors,
-          params.messageText ?? null
-        )
+      : normalizeAperakErrors(params.applicationErrors, params.messageText ?? null)
 
   for (const error of errors) {
     segments.push(`ERC+${error.ercCode}::260`)

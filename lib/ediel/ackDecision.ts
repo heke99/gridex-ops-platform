@@ -345,13 +345,26 @@ function shouldSendAperakForBusinessMessage(message: EdielMessageRow): boolean {
 }
 
 function buildGenericNegativeAperakErrors(message: EdielMessageRow): EdielAperakApplicationError[] {
+  if (message.message_family === 'UTILTS') {
+    return [
+      {
+        ercCode: '41',
+        fieldCode: '512',
+        text: 'MANDATORY FIELD MISSING',
+        referenceQualifier: 'ACW',
+        referenceNumber: message.transaction_reference ?? firstReferenceAfter(message.raw_payload, 'TN'),
+        lineItemReference: message.transaction_reference ?? firstReferenceAfter(message.raw_payload, 'TN'),
+      },
+    ]
+  }
+
   const z07 = firstLinObject(message.raw_payload) ?? firstReferenceAfter(message.raw_payload, 'Z07')
   const li = firstReferenceAfter(message.raw_payload, 'LI')
   return [
     {
       ercCode: '40',
-      fieldCode: '40',
-      text: message.failure_reason ?? 'Affärsvalidering avvisad',
+      fieldCode: '105',
+      text: 'The object could not be identified',
       referenceQualifier: z07 ? 'Z07' : null,
       referenceNumber: z07,
       lineItemReference: li,

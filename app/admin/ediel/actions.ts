@@ -690,56 +690,6 @@ function findZ05FacilityMismatchTgtRowForMessage(
 }
 
 
-function normalizedTgtCode(value: string | null | undefined): string {
-  return String(value ?? '').trim().toUpperCase()
-}
-
-function defaultTgtUtiltsCaseTitle(testCaseCode: string): string | null {
-  const code = normalizedTgtCode(testCaseCode)
-
-  const titles: Record<string, string> = {
-    'U3.1.1': 'Korrekt UTILTS-E66, periodisk månadsavl. (SCH)',
-    'U3.1.2': 'Korrekt UTILTS-E66, dygnsavräknad (kvart)',
-    'U3.2.1': 'Felaktig UTILTS-E66, anvisningsfel (Kvart)',
-    'U3.2.2': 'Felaktig UTILTS-E66, funktionsfel (Kvart)',
-  }
-
-  return titles[code] ?? null
-}
-
-function expectedAckForSelectedTgtCase(params: {
-  testSuite: EdielTestSuite
-  roleCode: EdielTestRoleCode
-  testCaseCode: string | null | undefined
-  title?: string | null
-}): EdielTgtCaseTestData['expectedAck'] {
-  if (params.testSuite !== 'UTILTS') return null
-
-  const code = normalizedTgtCode(params.testCaseCode)
-  const title = `${params.title ?? ''} ${defaultTgtUtiltsCaseTitle(code) ?? ''}`
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-
-  // Data-driven TGT expectation: use the selected portal test's visible
-  // semantics, not the APERAK generator. This avoids hardcoding the APERAK
-  // payload while still protecting correct E66-SCH/Kvart cases from an overly
-  // broad local mandatory-field fallback.
-  if (title.includes('FUNKTIONSFEL')) {
-    return { contrl: 'positive', aperak: null, utiltsErr: true, reason: 'Selected TGT UTILTS case expects UTILTS_ERR.' }
-  }
-
-  if (title.includes('ANVISNINGSFEL')) {
-    return { contrl: 'positive', aperak: 'negative', utiltsErr: false, reason: 'Selected TGT UTILTS case expects negative APERAK.' }
-  }
-
-  if (title.includes('KORREKT')) {
-    return { contrl: 'positive', aperak: 'positive', utiltsErr: false, reason: 'Selected TGT UTILTS case expects positive APERAK.' }
-  }
-
-  return null
-}
-
 function minimalRequestedTgtCaseData(params: {
   testSuite: EdielTestSuite
   roleCode: EdielTestRoleCode
@@ -749,21 +699,13 @@ function minimalRequestedTgtCaseData(params: {
   const testCaseCode = String(params.testCaseCode ?? '').trim()
   if (!testCaseCode) return null
 
-  const title = params.title ?? defaultTgtUtiltsCaseTitle(testCaseCode) ?? `TGT ${testCaseCode}`
-
   return {
     suite: params.testSuite,
     roleCode: params.roleCode,
     testCaseCode,
-    title,
+    title: params.title ?? `TGT ${testCaseCode}`,
     sourceNote: 'Minimal TGT-case marker from selected Edielportal test. Used when no dynamic testdata row has been imported yet.',
     groups: [],
-    expectedAck: expectedAckForSelectedTgtCase({
-      testSuite: params.testSuite,
-      roleCode: params.roleCode,
-      testCaseCode,
-      title,
-    }),
   }
 }
 
@@ -1238,82 +1180,116 @@ export async function sendEdielMessageAction(formData: FormData) {
     ? (message as unknown as { company_id: string }).company_id
     : null;
 
-  if (message.direction === "outbound" && messageCompanyId) {
-    await requireCompanyOperationalForWrites(messageCompanyId);
+  try {
+    if (message.direction === "outbound" && messageCompanyId) {
+      await requireCompanyOperationalForWrites(messageCompanyId);
 
-    if (!isTestOrCertificationEdielMessage(message)) {
-      await assertCompanyLiveEdielForOutbound(messageCompanyId);
+      if (!isTestOrCertificationEdielMessage(message)) {
+        await assertCompanyLiveEdielForOutbound(messageCompanyId);
+      }
     }
-  }
 
-  if (isAgtL7OutboundMessage(message)) {
-    const blockers = validateL7PayloadPreflight(message.raw_payload ?? "");
+    if (isAgtL7OutboundMessage(message)) {
+      const blockers = validateL7PayloadPreflight(message.raw_payload ?? "");
 
-    await createEdielMessageEvent({
+      await createEdielMessageEvent({
+        actorUserId: context.userId,
+        edielMessageId,
+        eventType: "manual_note",
+        eventStatus: blockers.length === 0 ? "success" : "error",
+        message:
+          blockers.length === 0
+            ? "L7/Z09 preflight OK innan skick."
+            : `L7/Z09 preflight blockerar skick: ${blockers.join(" | ")}`,
+        payload: {
+          phase: "send_preflight",
+          agt: true,
+          testCaseCode: "L7",
+          issues: blockers,
+        },
+      });
+
+      if (blockers.length > 0) {
+        throw new Error(`L7/Z09 preflight blockerar skick: ${blockers.join(" | ")}`);
+      }
+    }
+
+    if (
+      ["CONTRL", "APERAK", "UTILTS_ERR"].includes(String(message.message_family))
+    ) {
+      if (!message.related_message_id) {
+        throw new Error(
+          "Kvittensen saknar kopplat källmeddelande och kan inte skickas säkert.",
+        );
+      }
+
+      const sourceMessage = await getEdielMessageById(message.related_message_id, { companyId: messageCompanyId });
+      if (!sourceMessage)
+        throw new Error("Källmeddelande för kvittensen hittades inte");
+
+      const preflight = validateAckPreflight({
+        ackMessage: message,
+        sourceMessage,
+      });
+
+      await createEdielMessageEvent({
+        actorUserId: context.userId,
+        edielMessageId,
+        eventType: "manual_note",
+        eventStatus: preflight.ok ? "success" : "error",
+        message: preflight.summary,
+        payload: {
+          phase: "send_preflight",
+          issues: preflight.issues,
+          sourceMessageId: sourceMessage.id,
+        },
+      });
+
+      if (!preflight.ok) {
+        throw new Error(preflight.summary);
+      }
+    }
+
+    await sendQueuedEdielMessage({
       actorUserId: context.userId,
       edielMessageId,
-      eventType: "manual_note",
-      eventStatus: blockers.length === 0 ? "success" : "error",
-      message:
-        blockers.length === 0
-          ? "L7/Z09 preflight OK innan skick."
-          : `L7/Z09 preflight blockerar skick: ${blockers.join(" | ")}`,
-      payload: {
-        phase: "send_preflight",
-        agt: true,
-        testCaseCode: "L7",
-        issues: blockers,
-      },
+      smtpMimeMode: "ediel-singlepart-base64",
     });
 
-    if (blockers.length > 0) {
-      throw new Error(`L7/Z09 preflight blockerar skick: ${blockers.join(" | ")}`);
+    await revalidateRelatedMessage(edielMessageId);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    try {
+      await createEdielMessageEvent({
+        actorUserId: context.userId,
+        edielMessageId,
+        eventType: "manual_note",
+        eventStatus: "error",
+        message: `Skick stoppades: ${errorMessage}`,
+        payload: {
+          phase: "send_action_error",
+          messageFamily: message.message_family,
+          messageCode: message.message_code,
+          relatedMessageId: message.related_message_id ?? null,
+          errorMessage,
+        },
+      });
+    } catch (eventError) {
+      console.error("Could not persist Ediel send error event", eventError);
     }
-  }
 
-  if (
-    ["CONTRL", "APERAK", "UTILTS_ERR"].includes(String(message.message_family))
-  ) {
-    if (!message.related_message_id) {
-      throw new Error(
-        "Kvittensen saknar kopplat källmeddelande och kan inte skickas säkert.",
-      );
-    }
-
-    const sourceMessage = await getEdielMessageById(message.related_message_id, { companyId: messageCompanyId });
-    if (!sourceMessage)
-      throw new Error("Källmeddelande för kvittensen hittades inte");
-
-    const preflight = validateAckPreflight({
-      ackMessage: message,
-      sourceMessage,
-    });
-
-    await createEdielMessageEvent({
-      actorUserId: context.userId,
+    console.error("Ediel send stopped", {
       edielMessageId,
-      eventType: "manual_note",
-      eventStatus: preflight.ok ? "success" : "error",
-      message: preflight.summary,
-      payload: {
-        phase: "send_preflight",
-        issues: preflight.issues,
-        sourceMessageId: sourceMessage.id,
-      },
+      family: message.message_family,
+      code: message.message_code,
+      errorMessage,
     });
 
-    if (!preflight.ok) {
-      throw new Error(preflight.summary);
-    }
+    revalidateEdiel(edielMessageId);
+    await revalidateRelatedMessage(edielMessageId);
+    return;
   }
-
-  await sendQueuedEdielMessage({
-    actorUserId: context.userId,
-    edielMessageId,
-    smtpMimeMode: "ediel-singlepart-base64",
-  });
-
-  await revalidateRelatedMessage(edielMessageId);
 }
 
 export async function pollMailboxAction(formData: FormData) {
@@ -2185,46 +2161,6 @@ async function resolveBackendAperakDecision(params: {
       throw new Error(
         `UTILTS funktions-/processfel ska besvaras med UTILTS-ERR (${codes}), inte APERAK. Använd rekommenderat svar eller välj UTILTS_ERR.`,
       );
-    }
-
-    if (
-      utiltsRecommendation.action?.ackFamily === "APERAK" &&
-      utiltsRecommendation.action.outcome === "positive"
-    ) {
-      await createEdielMessageEvent({
-        actorUserId: params.actorUserId,
-        edielMessageId: params.sourceMessage.id,
-        eventType: "manual_note",
-        eventStatus: "success",
-        message:
-          "UTILTS-regel/testförväntan valde positiv APERAK. Generiska lokala anvisningsvarningar blockerade inte valt TGT-fall.",
-        payload: {
-          matchedRule: utiltsRecommendation.matchedRule,
-          selectedTgtCaseCode:
-            tgtResolution.selectedRow?.testCaseCode ??
-            tgtResolution.requestedTestData?.testCaseCode ??
-            null,
-          runtimeClassification: runtime.validation.classification,
-          runtimeIssues: runtime.validation.issues.map((issue) => ({
-            code: issue.code,
-            kind: issue.kind,
-            severity: issue.severity,
-            title: issue.title,
-          })),
-        },
-      });
-
-      return {
-        outcome: "positive",
-        applicationErrors: null,
-        backendRuleKeys: [utiltsRecommendation.matchedRule ?? "UTILTS_EXPECTED_POSITIVE_APERAK"],
-        backendIssueCount: runtime.validation.issues.length,
-        backendUnmappedRuleKeys: [],
-        selectedTgtCaseCode:
-          tgtResolution.selectedRow?.testCaseCode ??
-          tgtResolution.requestedTestData?.testCaseCode ??
-          null,
-      };
     }
 
     if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === "negative") {
@@ -3241,13 +3177,35 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
   const messageText = formString(formData.get("messageText"));
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
-  if (!messageText) throw new Error("messageText saknas");
-  await requireScopedEdielMessageForAction(edielMessageId, context);
+
+  const sourceMessage = await requireScopedEdielMessageForAction(edielMessageId, context);
+  const runtime = sourceMessage.message_family === "UTILTS"
+    ? runUtiltsRuntimeForMessage(sourceMessage)
+    : null;
+  const resolvedMessageText = messageText ?? (runtime ? serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan) : null);
+
+  if (!resolvedMessageText) {
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId,
+      eventType: "manual_note",
+      eventStatus: "error",
+      message: "UTILTS_ERR stoppad: motorn kunde inte härleda STS-felkod och ingen manuell kod angavs.",
+      payload: {
+        phase: "utilts_err_create_preflight",
+        runtimeClassification: runtime?.validation.classification ?? null,
+        utiltsErrCodes: runtime?.ackPlan.utiltsErrCodes ?? [],
+      },
+    });
+
+    revalidateEdiel(edielMessageId);
+    return;
+  }
 
   const ackMessage = await createNegativeUtiltsResponse({
     actorUserId: context.userId,
     edielMessageId,
-    messageText,
+    messageText: resolvedMessageText,
   });
 
   revalidateEdiel(edielMessageId);
