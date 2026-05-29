@@ -306,6 +306,33 @@ function utiltsTgtApplicationDecision(
     }
   }
 
+  if (testCase === 'U3.1.1' || testCase === 'U3.1.2') {
+    return {
+      family: 'APERAK',
+      outcome: 'positive',
+      matchedRule: `UTILTS_TGT_${testCase}_POSITIVE`,
+      messageText: 'UTILTS-E66 energitjänsteföretag korrekt enligt TGT.',
+    }
+  }
+
+  if (testCase === 'U3.2.1') {
+    return {
+      family: 'APERAK',
+      outcome: 'negative',
+      matchedRule: 'UTILTS_TGT_U3.2.1_GUIDE_ERROR',
+      errors: [makeError('41', '512', 'MANDATORY FIELD MISSING')],
+      messageText: 'UTILTS-E66 energitjänsteföretag anvisningsfel',
+    }
+  }
+
+  if (testCase === 'U3.2.2') {
+    return {
+      family: 'UTILTS_ERR',
+      matchedRule: 'UTILTS_TGT_U3.2.2_FUNCTIONAL_ERROR',
+      messageText: 'E14',
+    }
+  }
+
   // TGT guide/anvisningsfel => negative APERAK. The APERAK error codes are
   // driven by the TGT/UTILTS specification. This is TGT selection only; the
   // production path below still uses message content/functional status.

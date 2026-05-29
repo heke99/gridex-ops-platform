@@ -951,6 +951,14 @@ function looksLikePositiveUtiltsE66QuarterEnergyCase(message: EdielMessageRow, r
   return true
 }
 
+
+function utiltsE66DgiApplicationReference(message: EdielMessageRow, rawText: string): 'E66-S' | 'E66-T' | null {
+  const text = utiltsApplicationReference(message, rawText)
+  if (text.includes('23-DGI-E66-T')) return 'E66-T'
+  if (text.includes('23-DGI-E66-S')) return 'E66-S'
+  return null
+}
+
 function shouldPreferPositiveUtiltsE66QuarterTgtCase(message: EdielMessageRow, rawText: string): boolean {
   if (!looksLikePositiveUtiltsE66QuarterEnergyCase(message, rawText)) return false
 
@@ -1064,6 +1072,12 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
       if (/\bU3\.2\.1\b/i.test(rawText) || /\bU3\.2\.1\b/i.test(text)) return 'U3.2.1'
       if (/\bU3\.1\.2\b/i.test(rawText) || /\bU3\.1\.2\b/i.test(text)) return 'U3.1.2'
       if (/\bU3\.1\.1\b/i.test(rawText) || /\bU3\.1\.1\b/i.test(text)) return 'U3.1.1'
+
+      const dgiE66Profile = utiltsE66DgiApplicationReference(message, rawText)
+      if (dgiE66Profile === 'E66-T' && textLooksLikeUtiltsFunctionalError(rawText)) return 'U3.2.2'
+      if (dgiE66Profile === 'E66-T' && textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U3.2.1'
+      if (dgiE66Profile === 'E66-T') return 'U3.1.2'
+      if (dgiE66Profile === 'E66-S') return 'U3.1.1'
 
       if (textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U2.2.2'
 
