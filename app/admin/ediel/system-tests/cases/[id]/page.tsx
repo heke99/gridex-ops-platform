@@ -4,6 +4,11 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { listEdielMessages, listEdielTestRuns } from '@/lib/ediel/db'
 import {
+  EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
+  EDIEL_TGT_TESTSYSTEM_EMAIL,
+  GRIDEX_TGT_EDIEL_ID,
+} from '@/lib/ediel/fileEngine'
+import {
   evaluateEdielTgtRun,
   getEdielTgtTestCaseByCode,
   getEdielTgtTestCases,
@@ -44,6 +49,28 @@ function findDefinition(testCaseCode: string): EdielTgtTestCaseDefinition | null
   return getEdielTgtTestCaseByCode('UTILTS', 'esco', code)
     ?? getEdielTgtTestCases().find((testCase) => testCase.testCaseCode.toUpperCase() === code)
     ?? null
+}
+
+
+function identityText(testCase: EdielTgtTestCaseDefinition): string {
+  const first = testCase.expectedSteps[0]
+  if (first?.direction === 'inbound' && first.actor === 'portal') {
+    return `Inbound från Edielportalen ${EDIEL_TGT_TESTSYSTEM_EDIEL_ID} till Gridex/GridCore ${GRIDEX_TGT_EDIEL_ID}.`
+  }
+  if (first?.direction === 'outbound' && first.actor === 'gridex') {
+    return `Outbound från Gridex/GridCore ${GRIDEX_TGT_EDIEL_ID} till Edielportalen ${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}.`
+  }
+  return `Systemets TGT Ediel-ID är ${GRIDEX_TGT_EDIEL_ID}; Edielportalen är ${EDIEL_TGT_TESTSYSTEM_EDIEL_ID}.`
+}
+
+function expectedResponseText(testCase: EdielTgtTestCaseDefinition): string {
+  const gridexOutbound = testCase.expectedSteps.filter((step) => step.actor === 'gridex' && step.direction === 'outbound' && step.required)
+  if (gridexOutbound.some((step) => step.family === 'UTILTS_ERR')) return 'Förväntat svar från Gridex: positiv CONTRL + UTILTS_ERR.'
+  const aperak = gridexOutbound.find((step) => step.family === 'APERAK')
+  if (aperak?.outcome === 'negative') return 'Förväntat svar från Gridex: positiv CONTRL + negativ APERAK.'
+  if (aperak?.outcome === 'positive') return 'Förväntat svar från Gridex: positiv CONTRL + positiv APERAK.'
+  if (gridexOutbound.some((step) => step.family === 'CONTRL')) return 'Förväntat svar från Gridex: CONTRL enligt kedjan.'
+  return 'Förväntat svar följer stegen nedan.'
 }
 
 function StartRunForm({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
@@ -140,9 +167,22 @@ export default async function SystemTestCasePage({
               <Badge tone="emerald">{testCase.suite}</Badge>
               <Badge>{testCase.roleCode === 'esco' ? 'Energitjänsteföretag' : testCase.roleCode}</Badge>
               <Badge>{testCase.approvalVersion}</Badge>
+              <Badge>System Ediel-ID {GRIDEX_TGT_EDIEL_ID}</Badge>
+              <Badge>Portal {EDIEL_TGT_TESTSYSTEM_EDIEL_ID}</Badge>
               {latest ? <Badge tone={statusTone(latest.computedStatus)}>{latest.computedStatus}</Badge> : <Badge>Inte påbörjad</Badge>}
             </div>
             <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-700">{testCase.purpose}</p>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-blue-950">
+                <div className="font-semibold">Ediel-identitet</div>
+                <div>{identityText(testCase)}</div>
+                <div className="mt-1 text-xs">Portalens e-post: {EDIEL_TGT_TESTSYSTEM_EMAIL}</div>
+              </div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-950">
+                <div className="font-semibold">Förväntad respons</div>
+                <div>{expectedResponseText(testCase)}</div>
+              </div>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <StartRunForm testCase={testCase} />
@@ -156,8 +196,9 @@ export default async function SystemTestCasePage({
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-900">
         <h2 className="text-base font-semibold text-slate-950">Så kör du testet</h2>
         <ol className="mt-3 list-decimal space-y-1 pl-5">
-          <li>Klicka <strong>Starta ny testkörning</strong> i Gridex.</li>
+          <li>Klicka <strong>Starta ny testkörning</strong> i Gridex. Kör bara ett U3-test åt gången.</li>
           <li>Starta exakt samma testfall i Edielportalen: <strong>{testCase.testCaseCode}</strong>.</li>
+          <li>Kontrollera att portalens fil gäller rätt mottagare: Gridex/GridCore Ediel-ID <strong>{GRIDEX_TGT_EDIEL_ID}</strong>.</li>
           <li>När portalen skickar inbound UTILTS/PRODAT/ACK: importera filen här nedan eller kör mailbox-poll från Ediel-vyn.</li>
           <li>Importformuläret skickar med <strong>tgtTestCaseCode={testCase.testCaseCode}</strong>, så payloaden kopplas till rätt aktiv run och inte till fel E66-test.</li>
           <li>Kontrollera kedjan under Aktiva körningar. Gridex skapar nästa svar enligt förväntat steg.</li>
