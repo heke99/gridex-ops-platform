@@ -119,6 +119,9 @@ export type ProdatEngineDiagnostics = {
   routeDecisionReason?: string | null
   selectedVersion?: string | null
   acceptedVersions?: string[]
+  rulebookProcessGroup?: string | null
+  rulebookApplicationReference?: string | null
+  rulebookIssues?: Array<Record<string, unknown>>
 }
 
 export type ProdatEngineRenderResult = {

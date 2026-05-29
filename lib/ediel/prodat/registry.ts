@@ -26,10 +26,11 @@ export function prodatMessageTypeToken(version: string | null | undefined): stri
   return `PRODAT:D:97A:UN:${selectedVersion === '26A' ? 'E2SE6A' : selectedVersion}`
 }
 
-export function deriveProdatAckExpectation(): ProdatEngineAckExpectation {
+export function deriveProdatAckExpectation(code?: ProdatEngineCode | string | null): ProdatEngineAckExpectation {
+  const normalizedCode = String(code ?? '').trim().toUpperCase()
   return {
     requiresContrl: true,
-    requiresAperak: true,
+    requiresAperak: normalizedCode === 'Z01' ? false : true,
     contrlStatus: 'pending',
     aperakStatus: 'pending',
     utiltsErrStatus: 'not_required',

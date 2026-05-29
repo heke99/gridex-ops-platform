@@ -1,111 +1,235 @@
-// lib/ediel/rulebook/messageParser.ts
+import type { EdielMessageFamily } from '@/lib/ediel/types'
+import { processGroupForMessage } from '@/lib/ediel/rulebook/rulebook'
 
-import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
-import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
-import { parseInboundUtilts } from '@/lib/ediel/utilts'
-import { getBusinessProcessForMessage } from '@/lib/ediel/rulebook/rulebook'
-
-export type CanonicalRulebookParsedMessage = {
-  family: string
-  messageCode: string | null
+export type ParsedRulebookMessage = {
+  family: EdielMessageFamily | 'BI_LIST' | 'UNKNOWN'
+  code: string | null
   subtype: string | null
   sender: string | null
   receiver: string | null
+  senderSubAddress: string | null
+  receiverSubAddress: string | null
   applicationReference: string | null
   interchangeReference: string | null
   messageReference: string | null
   transactionReference: string | null
-  caseReference: string | null
+  relatedReference: string | null
   facilityId: string | null
   meteringPointId: string | null
-  customerIdentifier: string | null
   permissionId: string | null
   period: string | null
-  businessProcess: string
+  outcome: 'positive' | 'negative' | null
+  processGroup: string
+  rawSegments: string[]
+  facts: Record<string, unknown>
   errors: string[]
   warnings: string[]
-  rawSegments: string[]
 }
 
-export function parseRulebookMessage(rawPayload: string): CanonicalRulebookParsedMessage {
-  const facts = parseEdifactMessageFacts(rawPayload)
-  const family = String(facts.messageType ?? '').toUpperCase()
-  const code = String(facts.messageCode ?? '').toUpperCase() || null
-  const rawSegments = rawPayload
-    .split("'")
-    .map((item) => item.trim())
-    .filter(Boolean)
+function segments(raw: string): string[] {
+  return raw.split("'").map((segment) => segment.trim()).filter(Boolean)
+}
 
-  if (family === 'PRODAT') {
-    const parsed = parseProdatMessage(rawPayload)
-    const first = parsed.lineItems[0]
-    return {
-      family,
-      messageCode: parsed.messageCode,
-      subtype: first?.reasonForTransaction ?? null,
-      sender: parsed.senderEdielId ?? (facts.senderComposite?.split(':')[0]?.trim() || null),
-      receiver: parsed.receiverEdielId ?? (facts.receiverComposite?.split(':')[0]?.trim() || null),
-      applicationReference: parsed.applicationReference ?? (facts.unb?.elements[7]?.trim() || null),
-      interchangeReference: parsed.interchangeReference ?? facts.interchangeReference,
-      messageReference: parsed.messageReference,
-      transactionReference: parsed.transactionReference ?? first?.lineItemReference ?? null,
-      caseReference: first?.lineItemReference ?? null,
-      facilityId: first?.meteringPointId ?? null,
-      meteringPointId: first?.meteringPointId ?? null,
-      customerIdentifier: first?.customerId ?? null,
-      permissionId: first?.permissionId ?? null,
-      period: first?.contractStartDate ?? null,
-      businessProcess: getBusinessProcessForMessage({ family, code: parsed.messageCode }),
-      errors: [],
-      warnings: [],
-      rawSegments,
-    }
-  }
+function part(segment: string | null | undefined, index: number): string | null {
+  if (!segment) return null
+  return segment.split('+')[index]?.trim() || null
+}
 
-  if (family === 'UTILTS') {
-    const parsed = parseInboundUtilts(rawPayload)
-    return {
-      family,
-      messageCode: String(parsed.messageCode ?? code ?? '') || null,
-      subtype: String(parsed.messageCode ?? code ?? '') || null,
-      sender: parsed.senderEdielId ?? null,
-      receiver: parsed.receiverEdielId ?? null,
-      applicationReference: parsed.applicationReference ?? null,
-      interchangeReference: facts.interchangeReference ?? null,
-      messageReference: parsed.externalReference ?? facts.messageReference ?? null,
-      transactionReference: parsed.transactionReference ?? null,
-      caseReference: parsed.transactionReference ?? null,
-      facilityId: typeof parsed.parsedPayload.meteringPointId === 'string' ? parsed.parsedPayload.meteringPointId : null,
-      meteringPointId: typeof parsed.parsedPayload.meteringPointId === 'string' ? parsed.parsedPayload.meteringPointId : null,
-      customerIdentifier: null,
-      permissionId: null,
-      period: typeof parsed.parsedPayload.periodStart === 'string' ? parsed.parsedPayload.periodStart : null,
-      businessProcess: 'meter_values',
-      errors: [],
-      warnings: [],
-      rawSegments,
-    }
+function splitParty(value: string | null): { id: string | null; subAddress: string | null } {
+  if (!value) return { id: null, subAddress: null }
+  const parts = value.split(':')
+  return { id: parts[0]?.trim() || null, subAddress: parts[2]?.trim() || null }
+}
+
+function first(segments: string[], prefix: string): string | null {
+  return segments.find((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase())) ?? null
+}
+
+function all(segments: string[], prefix: string): string[] {
+  return segments.filter((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase()))
+}
+
+function extractRff(rawSegments: string[], qualifier: string): string | null {
+  const hit = rawSegments.find((segment) => segment.toUpperCase().startsWith(`RFF+${qualifier.toUpperCase()}:`))
+  if (!hit) return null
+  return hit.split(':').slice(1).join(':').trim() || null
+}
+
+function extractDtm(rawSegments: string[], qualifier: string): string | null {
+  const hit = rawSegments.find((segment) => segment.toUpperCase().startsWith(`DTM+${qualifier.toUpperCase()}:`))
+  return hit?.split(':')[1]?.trim() || null
+}
+
+function inferFamilyFromUnh(unh: string | null): EdielMessageFamily | 'UNKNOWN' {
+  const token = (unh ?? '').toUpperCase()
+  if (token.includes('PRODAT')) return 'PRODAT'
+  if (token.includes('UTILTS')) return 'UTILTS'
+  if (token.includes('APERAK')) return 'APERAK'
+  if (token.includes('CONTRL')) return 'CONTRL'
+  if (token.includes('UTILTS_ERR')) return 'UTILTS_ERR'
+  return 'UNKNOWN'
+}
+
+function parseBgmCode(bgm: string | null): string | null {
+  if (!bgm) return null
+  const value = part(bgm, 1)
+  if (!value) return null
+  return value.split(':')[0]?.trim().toUpperCase() || null
+}
+
+function parseBgmReference(bgm: string | null): string | null {
+  return part(bgm, 2)?.split(':')[0]?.trim() || null
+}
+
+function inferSubtype(rawSegments: string[]): string | null {
+  const cci = rawSegments.find((segment) => segment.toUpperCase().startsWith('CCI++Z13'))
+  if (!cci) return null
+  const idx = rawSegments.indexOf(cci)
+  const cav = rawSegments[idx + 1]
+  if (!cav || !cav.toUpperCase().startsWith('CAV+')) return null
+  const raw = cav.slice(4).split(':').filter(Boolean).pop()
+  return raw?.trim().toUpperCase() || null
+}
+
+function parseContrlFacts(rawSegments: string[]): Record<string, unknown> {
+  const uci = first(rawSegments, 'UCI+')
+  const ucm = all(rawSegments, 'UCM+')
+  const ucs = all(rawSegments, 'UCS+')
+  const statusToken = [uci, ...ucm, ...ucs].join('+').toUpperCase()
+  return {
+    uci,
+    ucm,
+    ucs,
+    acknowledgedInterchangeReference: uci?.split('+')[1] ?? null,
+    status: statusToken.includes('+7') || statusToken.includes(':7') ? 'negative' : 'positive',
   }
+}
+
+function parseAperakFacts(rawSegments: string[]): Record<string, unknown> {
+  const erc = all(rawSegments, 'ERC+')
+  const ftx = all(rawSegments, 'FTX+')
+  const doc = all(rawSegments, 'DOC+')
+  return {
+    erc,
+    ftx,
+    doc,
+    errors: erc.map((segment, index) => ({
+      erc: segment.split('+')[1]?.split(':')[0] ?? null,
+      ftx: ftx[index] ?? null,
+    })),
+  }
+}
+
+function parseUtiltsFacts(rawSegments: string[]): Record<string, unknown> {
+  return {
+    mks: all(rawSegments, 'MKS+'),
+    ide: all(rawSegments, 'IDE+'),
+    loc: all(rawSegments, 'LOC+'),
+    qty: all(rawSegments, 'QTY+'),
+    sts: all(rawSegments, 'STS+'),
+    dtm137: extractDtm(rawSegments, '137'),
+    dtm354: extractDtm(rawSegments, '354'),
+    dtm597: extractDtm(rawSegments, '597'),
+    dtm735: extractDtm(rawSegments, '735'),
+  }
+}
+
+export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
+  const rawSegments = segments(raw)
+  const unb = first(rawSegments, 'UNB+')
+  const unh = first(rawSegments, 'UNH+')
+  const bgm = first(rawSegments, 'BGM+')
+  const lin = first(rawSegments, 'LIN+')
+  const sender = splitParty(part(unb, 2))
+  const receiver = splitParty(part(unb, 3))
+  const family = inferFamilyFromUnh(unh)
+  const code = family === 'CONTRL' ? 'CONTRL' : family === 'APERAK' ? 'APERAK' : family === 'UTILTS_ERR' ? 'UTILTS_ERR' : parseBgmCode(bgm)
+  const applicationReference = part(unb, 7)
+  const interchangeReference = part(unb, 5)
+  const messageReference = parseBgmReference(bgm) ?? part(unh, 1)
+  const transactionReference = extractRff(rawSegments, 'TN') ?? extractRff(rawSegments, 'LI') ?? extractRff(rawSegments, 'ACW')
+  const relatedReference = extractRff(rawSegments, 'ACW') ?? extractRff(rawSegments, 'AGO') ?? extractRff(rawSegments, 'E31')
+  const facilityId = extractRff(rawSegments, 'Z05') ?? null
+  const meteringPointId = lin?.split('+')[3]?.split(':')[0]?.trim() || null
+  const permissionId = extractRff(rawSegments, 'Z07') ?? extractRff(rawSegments, 'AHL') ?? null
+  const processGroup = processGroupForMessage(family, code)
+  const facts: Record<string, unknown> = {
+    bgm,
+    unh,
+    unb,
+    nad: all(rawSegments, 'NAD+'),
+    rff: all(rawSegments, 'RFF+'),
+    dtm: all(rawSegments, 'DTM+'),
+  }
+  if (family === 'CONTRL') Object.assign(facts, parseContrlFacts(rawSegments))
+  if (family === 'APERAK') Object.assign(facts, parseAperakFacts(rawSegments))
+  if (family === 'UTILTS' || family === 'UTILTS_ERR') Object.assign(facts, parseUtiltsFacts(rawSegments))
+
+  const errors: string[] = []
+  const warnings: string[] = []
+  if (!unb && rawSegments.length > 0) warnings.push('UNB saknas eller kunde inte läsas.')
+  if (!unh && !raw.includes(';')) warnings.push('UNH saknas eller kunde inte läsas.')
+  if (family !== 'CONTRL' && family !== 'AI_LIST' && family !== 'UNKNOWN' && !bgm) warnings.push('BGM saknas eller kunde inte läsas.')
+
+  const outcome = family === 'APERAK'
+    ? (all(rawSegments, 'ERC+').length > 0 ? 'negative' : 'positive')
+    : family === 'CONTRL'
+      ? ((facts.status as string | undefined) === 'negative' ? 'negative' : 'positive')
+      : null
 
   return {
-    family: family || 'UNKNOWN',
-    messageCode: code,
-    subtype: code,
-    sender: facts.senderComposite?.split(':')[0]?.trim() || null,
-    receiver: facts.receiverComposite?.split(':')[0]?.trim() || null,
-    applicationReference: facts.unb?.elements[7]?.trim() || null,
-    interchangeReference: facts.interchangeReference ?? null,
-    messageReference: facts.messageReference ?? null,
+    family,
+    code,
+    subtype: inferSubtype(rawSegments),
+    sender: sender.id,
+    receiver: receiver.id,
+    senderSubAddress: sender.subAddress,
+    receiverSubAddress: receiver.subAddress,
+    applicationReference,
+    interchangeReference,
+    messageReference,
+    transactionReference,
+    relatedReference,
+    facilityId,
+    meteringPointId,
+    permissionId,
+    period: extractDtm(rawSegments, '163') ?? extractDtm(rawSegments, '324') ?? null,
+    outcome,
+    processGroup,
+    rawSegments,
+    facts,
+    errors,
+    warnings,
+  }
+}
+
+export function parseRulebookListPayload(raw: string): ParsedRulebookMessage {
+  const firstLine = raw.split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? ''
+  const delimiter = firstLine.includes(';') ? ';' : firstLine.includes('\t') ? '\t' : ','
+  const headers = firstLine.split(delimiter).map((value) => value.trim())
+  const isBi = headers.some((header) => /nytt|new|changed|ändr/i.test(header))
+  return {
+    family: isBi ? ('BI_LIST' as never) : 'AI_LIST',
+    code: isBi ? 'BI' : 'AI',
+    subtype: null,
+    sender: null,
+    receiver: null,
+    senderSubAddress: null,
+    receiverSubAddress: null,
+    applicationReference: null,
+    interchangeReference: null,
+    messageReference: null,
     transactionReference: null,
-    caseReference: null,
+    relatedReference: null,
     facilityId: null,
     meteringPointId: null,
-    customerIdentifier: null,
     permissionId: null,
     period: null,
-    businessProcess: getBusinessProcessForMessage({ family, code }),
+    outcome: null,
+    processGroup: 'ai_list',
+    rawSegments: raw.split(/\r?\n/).filter(Boolean),
+    facts: { headers, delimiter, rowCount: Math.max(raw.split(/\r?\n/).filter(Boolean).length - 1, 0), formatVersion: raw.includes('Ver20140401') ? 'Ver20140401' : null },
     errors: [],
-    warnings: [],
-    rawSegments,
+    warnings: delimiter !== ';' ? ['AI/BI-lista ska normalt vara semikolonseparerad.'] : [],
   }
 }

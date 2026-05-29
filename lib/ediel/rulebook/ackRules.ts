@@ -1,97 +1,39 @@
-// lib/ediel/rulebook/ackRules.ts
-
-import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
-import {
-  getRulebookMessageRule,
-  type RulebookIssue,
-} from '@/lib/ediel/rulebook/rulebook'
+import { getRulebookRule, processGroupForMessage, type EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 
 export type RulebookAckDecision = {
   requiresContrl: boolean
   requiresAperak: boolean
-  contrlStatus: 'pending' | 'not_required'
-  aperakStatus: 'pending' | 'not_required'
-  utiltsErrStatus: 'pending' | 'not_required'
-  negativeAperakAlwaysOnError: boolean
-  ackDueMinutes: number | null
-  issues: RulebookIssue[]
+  requiresUtiltsErr: boolean
+  negativeAperakOnError: boolean
+  issues: EdielRulebookIssue[]
 }
 
-export function deriveRulebookAckDecision(params: {
-  family: string
-  code: string
+export function resolveRulebookAckDecision(input: {
+  family: string | null | undefined
+  code: string | null | undefined
   hasApplicationError?: boolean
-  hasSyntaxError?: boolean
-  utiltsFunctionalError?: boolean
+  hasFunctionalError?: boolean
 }): RulebookAckDecision {
-  const family = params.family.trim().toUpperCase()
-  const rule = getRulebookMessageRule({ family, code: params.code })
-  const issues: RulebookIssue[] = []
+  const rule = getRulebookRule(input.family, input.code)
+  const processGroup = processGroupForMessage(input.family, input.code)
+  const issues: EdielRulebookIssue[] = []
 
-  if (!rule) {
+  if (!rule && processGroup !== 'unknown') {
     issues.push({
       severity: 'warning',
-      code: 'rulebook_ack_rule_missing',
+      code: 'RULEBOOK_ACK_RULE_MISSING',
       title: 'ACK-regel saknas',
-      description: `Ingen regel hittades för ${params.family}/${params.code}. Faller tillbaka till teknisk CONTRL.`,
+      description: `Ingen explicit ACK-regel hittades för ${input.family ?? 'okänd'} ${input.code ?? ''}.`,
     })
   }
 
-  if (family === 'CONTRL') {
-    return noAck(issues)
-  }
-
-  if (family === 'UTILTS_ERR') {
-    return noAck(issues)
-  }
-
-  if (family === 'APERAK') {
-    return {
-      requiresContrl: true,
-      requiresAperak: false,
-      contrlStatus: 'pending',
-      aperakStatus: 'not_required',
-      utiltsErrStatus: 'not_required',
-      negativeAperakAlwaysOnError: false,
-      ackDueMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-      issues,
-    }
-  }
-
-  if (params.utiltsFunctionalError && family === 'UTILTS') {
-    return {
-      requiresContrl: true,
-      requiresAperak: false,
-      contrlStatus: 'pending',
-      aperakStatus: 'not_required',
-      utiltsErrStatus: 'pending',
-      negativeAperakAlwaysOnError: false,
-      ackDueMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-      issues,
-    }
-  }
+  const requiresUtiltsErr = Boolean(rule?.requiresUtiltsErr && input.hasFunctionalError)
 
   return {
-    requiresContrl: rule?.requiresContrl ?? true,
+    requiresContrl: rule?.requiresContrl ?? processGroup !== 'ediel_ack',
     requiresAperak: rule?.requiresAperak ?? false,
-    contrlStatus: (rule?.requiresContrl ?? true) ? 'pending' : 'not_required',
-    aperakStatus: (rule?.requiresAperak ?? false) ? 'pending' : 'not_required',
-    utiltsErrStatus: 'not_required',
-    negativeAperakAlwaysOnError: rule?.supportsNegativeAperak ?? (family === 'PRODAT' || family === 'UTILTS'),
-    ackDueMinutes: rule ? EDIEL_ACK_DEADLINE_MINUTES : null,
-    issues,
-  }
-}
-
-function noAck(issues: RulebookIssue[]): RulebookAckDecision {
-  return {
-    requiresContrl: false,
-    requiresAperak: false,
-    contrlStatus: 'not_required',
-    aperakStatus: 'not_required',
-    utiltsErrStatus: 'not_required',
-    negativeAperakAlwaysOnError: false,
-    ackDueMinutes: null,
+    requiresUtiltsErr,
+    negativeAperakOnError: rule?.negativeAperakOnError ?? Boolean(input.hasApplicationError),
     issues,
   }
 }

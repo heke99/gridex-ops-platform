@@ -1,151 +1,139 @@
-// lib/ediel/rulebook/validator.ts
-
-import type { ProdatEngineInput, ProdatEngineProductionContext } from '@/lib/ediel/prodat/types'
+import type { EdielMessageRow } from '@/lib/ediel/types'
+import { fieldRulesForMessage } from '@/lib/ediel/rulebook/fieldMatrix'
+import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import {
-  expectedApplicationReferenceForProcess,
-  getBusinessProcessForMessage,
-  getRulebookMessageRule,
-  isPermissionProdatCode,
-  isSupplierSwitchProdatCode,
-  type RulebookIssue,
+  defaultApplicationReferenceForProcess,
+  getRulebookRule,
+  isProdatCustomerMasterdataCode,
+  isProdatMeteringAccessCode,
+  isProdatSupplierSwitchCode,
+  normalizeRulebookToken,
+  processGroupForMessage,
+  type EdielRulebookIssue,
 } from '@/lib/ediel/rulebook/rulebook'
-import {
-  isAllowedMeteringAccessTransactionType,
-  isAllowedProdatBgmCode,
-  isAllowedSupplierSwitchTransactionType,
-  mapProdatSubtypeToTransactionType,
-} from '@/lib/ediel/rulebook/codeRules'
-import { parseRulebookMessage, type CanonicalRulebookParsedMessage } from '@/lib/ediel/rulebook/messageParser'
+
+export type RulebookValidationInput = {
+  family?: string | null
+  code?: string | null
+  processGroup?: string | null
+  routeScope?: string | null
+  applicationReference?: string | null
+  rawPayload?: string | null
+  parsed?: ParsedRulebookMessage | null
+  mode?: 'send' | 'parse' | 'test'
+}
 
 export type RulebookValidationResult = {
-  status: 'ok' | 'warning' | 'failed'
-  issues: RulebookIssue[]
+  ok: boolean
+  blocking: boolean
+  family: string | null
+  code: string | null
+  processGroup: string
+  expectedApplicationReference: string | null
+  parsed: ParsedRulebookMessage | null
+  issues: EdielRulebookIssue[]
 }
 
-function issue(
-  severity: RulebookIssue['severity'],
-  code: string,
-  title: string,
-  description: string
-): RulebookIssue {
-  return { severity, code, title, description }
+function issue(input: EdielRulebookIssue): EdielRulebookIssue {
+  return { blocking: input.severity === 'error', ...input }
 }
 
-function statusFromIssues(issues: RulebookIssue[]): RulebookValidationResult['status'] {
-  if (issues.some((item) => item.severity === 'error')) return 'failed'
-  if (issues.some((item) => item.severity === 'warning')) return 'warning'
-  return 'ok'
+function detectCompositeBgmCode(code: string | null): boolean {
+  return Boolean(code && /^Z\d{2}[A-Z]+$/i.test(code))
 }
 
-function normalize(value?: string | null): string {
-  return String(value ?? '').trim().toUpperCase()
+
+function normalizeProcessGroupInput(value: string | null | undefined, family: string | null, code: string | null): string {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  if (!normalized) return processGroupForMessage(family, code)
+  if (normalized === 'customer_masterdata' || normalized.includes('customer_masterdata') || normalized.includes('customer_info') || normalized.includes('data_request')) return 'customer_masterdata'
+  if (normalized === 'supplier_switch' || normalized.includes('supplier_switch') || normalized.includes('switch')) return 'supplier_switch'
+  if (normalized === 'metering_access' || normalized.includes('metering_access') || normalized.includes('permission')) return 'metering_access'
+  if (normalized === 'meter_values' || normalized.includes('meter_value') || normalized.includes('utilts')) return 'meter_values'
+  if (normalized === 'ediel_ack' || normalized.includes('ack')) return 'ediel_ack'
+  if (normalized === 'ai_list' || normalized.includes('ai_list') || normalized.includes('bi_list')) return 'ai_list'
+  return processGroupForMessage(family, code)
 }
 
-export function validateProdatRulebookInput(input: ProdatEngineInput): RulebookValidationResult {
-  const issues: RulebookIssue[] = []
-  const code = normalize(input.code)
-  const process = getBusinessProcessForMessage({ family: 'PRODAT', code })
-  const expectedApplicationReference = expectedApplicationReferenceForProcess(process)
-  const applicationReference = normalize(input.route.applicationReference)
-  const requestType = normalize(input.route.routeDecisionReason).replace(/\s+/g, '_')
-  const reason = normalize(input.context.reasonForTransaction ?? input.variant)
-  const mappedReason = mapProdatSubtypeToTransactionType(reason) ?? reason
-
-  if (!isAllowedProdatBgmCode(code)) {
-    issues.push(issue('error', 'rulebook_invalid_prodat_code', 'Fel PRODAT-kod', `BGM ska vara en känd PRODAT-funktion. Värde: ${code || '—'}.`))
+function ensureNoMixedProdatFunctions(rawPayload: string | null | undefined, issues: EdielRulebookIssue[]) {
+  if (!rawPayload) return
+  const bgmCodes = Array.from(new Set(Array.from(rawPayload.matchAll(/BGM\+([A-Z0-9]+)/gi)).map((match) => match[1]?.toUpperCase()).filter(Boolean)))
+  const prodatCodes = bgmCodes.filter((code) => /^Z\d{2}$/.test(code))
+  if (prodatCodes.length > 1) {
+    issues.push(issue({ severity: 'error', code: 'PRODAT_MIXED_FUNCTIONS', title: 'Flera PRODAT-funktioner i samma payload', description: `Payload innehåller ${prodatCodes.join(', ')}. PRODAT-funktioner får inte blandas i samma överföring.` }))
   }
-
-  if (code.length > 3 || /^(Z\d{2})(L|LK|C|V|VH|N)$/i.test(code)) {
-    issues.push(issue('error', 'rulebook_subtype_in_bgm', 'Undertyp ligger i BGM', 'PRODAT ska inte byggas som Z03L/Z13V i BGM. BGM ska vara Z03/Z13 och undertyp ska ligga som transaktionstyp i SG14/CCI-CAV.'))
-  }
-
-  if (expectedApplicationReference && applicationReference && applicationReference !== expectedApplicationReference) {
-    issues.push(issue('error', 'rulebook_wrong_application_reference', 'Fel Application Reference', `${code} tillhör ${process} och ska använda ${expectedApplicationReference}, inte ${applicationReference}.`))
-  }
-
-  if (isPermissionProdatCode(code)) {
-    if (applicationReference && applicationReference !== '23-DGI-PRODAT') {
-      issues.push(issue('error', 'rulebook_metering_access_wrong_appref', 'Mätvärdesåtkomst använder fel referens', 'Z13/Z14/Z15/Z18 ska använda 23-DGI-PRODAT. De får inte skickas som vanliga leverantörsbytesmeddelanden.'))
-    }
-    if (requestType.includes('SUPPLIER_SWITCH')) {
-      issues.push(issue('error', 'rulebook_metering_access_as_supplier_switch', 'Mätvärdesåtkomst ligger i leverantörsbyte', 'Z13/Z14/Z15/Z18 måste ligga i metering_access, inte supplier_switch.'))
-    }
-    if (mappedReason && !isAllowedMeteringAccessTransactionType(mappedReason)) {
-      issues.push(issue('error', 'rulebook_invalid_metering_access_transaction_type', 'Fel transaktionstyp för mätvärdesåtkomst', `${mappedReason} är inte giltig för Z13/Z14/Z15/Z18.`))
-    }
-  }
-
-  if (isSupplierSwitchProdatCode(code)) {
-    if (applicationReference && applicationReference !== '23-DDQ-PRODAT') {
-      issues.push(issue('error', 'rulebook_supplier_switch_wrong_appref', 'Leverantörsflöde använder fel referens', 'Z03/Z04/Z05/Z06/Z08/Z09/Z10 ska använda 23-DDQ-PRODAT.'))
-    }
-    if (requestType.includes('METERING_ACCESS')) {
-      issues.push(issue('error', 'rulebook_supplier_switch_as_metering_access', 'Leverantörsflöde ligger i mätvärdesåtkomst', 'Leverantörsbyte och mätvärdesåtkomst får inte blandas i samma process.'))
-    }
-    if (mappedReason && !isAllowedSupplierSwitchTransactionType(mappedReason)) {
-      issues.push(issue('warning', 'rulebook_unusual_supplier_transaction_type', 'Ovanlig transaktionstyp', `${mappedReason} är inte en vanlig supplier_switch-transaktionstyp.`))
-    }
-  }
-
-  if (!getRulebookMessageRule({ family: 'PRODAT', code })) {
-    issues.push(issue('warning', 'rulebook_message_rule_missing', 'Regel saknas', `Ingen aktiv rulebook-regel hittades för PRODAT/${code}.`))
-  }
-
-  return { status: statusFromIssues(issues), issues }
 }
 
-export function validateProdatContextForRulebook(params: {
-  context: ProdatEngineProductionContext
-  applicationReference?: string | null
-  requestType?: string | null
-}): RulebookValidationResult {
-  return validateProdatRulebookInput({
-    code: params.context.code,
-    mode: 'production',
-    actor: {
-      senderEdielId: params.context.senderEdielId,
-      receiverEdielId: params.context.receiverEdielId,
-    },
-    route: {
-      applicationReference: params.applicationReference ?? expectedApplicationReferenceForProcess(getBusinessProcessForMessage({ family: 'PRODAT', code: params.context.code })),
-      routeDecisionReason: params.requestType ?? null,
-    },
-    version: {
-      selectedVersion: '26A',
-      messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A',
-      acceptedVersions: ['26A', 'E2SE6A'],
-    },
-    context: params.context,
-  })
-}
+export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
+  const parsed = input.parsed ?? (input.rawPayload ? (input.rawPayload.includes("'") ? parseRulebookMessage(input.rawPayload) : parseRulebookListPayload(input.rawPayload)) : null)
+  const family = normalizeRulebookToken(input.family ?? parsed?.family ?? null) || null
+  const code = normalizeRulebookToken(input.code ?? parsed?.code ?? null) || null
+  const processGroup = normalizeProcessGroupInput(input.processGroup ?? input.routeScope ?? parsed?.processGroup, family, code)
+  const expectedApplicationReference = defaultApplicationReferenceForProcess(processGroup as never, family)
+  const actualApplicationReference = input.applicationReference ?? parsed?.applicationReference ?? null
+  const issues: EdielRulebookIssue[] = [...(parsed?.errors ?? []).map((description) => issue({ severity: 'error', code: 'PARSER_ERROR', title: 'Parserfel', description }))]
+  for (const warning of parsed?.warnings ?? []) issues.push(issue({ severity: 'warning', code: 'PARSER_WARNING', title: 'Parser-varning', description: warning }))
 
-export function validateRawPayloadWithRulebook(rawPayload: string): RulebookValidationResult & {
-  parsed: CanonicalRulebookParsedMessage
-} {
-  const parsed = parseRulebookMessage(rawPayload)
-  const issues: RulebookIssue[] = []
-  const rule = getRulebookMessageRule({ family: parsed.family, code: parsed.messageCode })
-  const expectedApplicationReference = expectedApplicationReferenceForProcess(parsed.businessProcess as never)
-
-  if (!rule) {
-    issues.push(issue('warning', 'rulebook_raw_message_rule_missing', 'Regel saknas', `Ingen regel hittades för ${parsed.family}/${parsed.messageCode ?? '—'}.`))
+  const rule = getRulebookRule(family, code)
+  if (!rule && family && code) {
+    issues.push(issue({ severity: 'warning', code: 'RULEBOOK_RULE_MISSING', title: 'Regel saknas', description: `Ingen aktiv rulebook-regel hittades för ${family} ${code}.` }))
   }
 
-  if (parsed.family === 'PRODAT' && parsed.messageCode && !isAllowedProdatBgmCode(parsed.messageCode)) {
-    issues.push(issue('error', 'rulebook_raw_invalid_prodat_code', 'Fel PRODAT-kod', `BGM innehåller ${parsed.messageCode}, vilket inte är en godkänd PRODAT-funktion.`))
+  if (family === 'PRODAT') {
+    if (detectCompositeBgmCode(code)) {
+      issues.push(issue({ severity: 'error', code: 'PRODAT_COMPOSITE_BGM_CODE', title: 'Fel BGM-kod', description: `${code} får inte användas som BGM-värde. BGM ska vara t.ex. Z03 och undertyp ska ligga separat i CCI/CAV.` }))
+    }
+    if (isProdatMeteringAccessCode(code) && processGroup !== 'metering_access') {
+      issues.push(issue({ severity: 'error', code: 'PRODAT_PERMISSION_WRONG_PROCESS', title: 'Mätvärdesåtkomst i fel process', description: `${code} måste ligga i metering_access, inte ${processGroup}.` }))
+    }
+    if ((isProdatSupplierSwitchCode(code) || isProdatCustomerMasterdataCode(code)) && processGroup === 'metering_access') {
+      issues.push(issue({ severity: 'error', code: 'PRODAT_SWITCH_WRONG_PROCESS', title: 'Leverantörs-/kunddata i fel process', description: `${code} får inte skickas som metering_access.` }))
+    }
+    if (expectedApplicationReference && actualApplicationReference && normalizeRulebookToken(actualApplicationReference) !== normalizeRulebookToken(expectedApplicationReference)) {
+      issues.push(issue({ severity: 'error', code: 'APPLICATION_REFERENCE_MISMATCH', title: 'Fel Application Reference', description: `${code} i ${processGroup} ska använda ${expectedApplicationReference}, men payload/route anger ${actualApplicationReference}.` }))
+    }
+    if (expectedApplicationReference && !actualApplicationReference && input.mode === 'send') {
+      issues.push(issue({ severity: 'error', code: 'APPLICATION_REFERENCE_MISSING', title: 'Application Reference saknas', description: `${code} i ${processGroup} kräver ${expectedApplicationReference}.` }))
+    }
+    ensureNoMixedProdatFunctions(input.rawPayload, issues)
   }
 
-  if (expectedApplicationReference && parsed.applicationReference && normalize(parsed.applicationReference) !== expectedApplicationReference) {
-    issues.push(issue('error', 'rulebook_raw_wrong_application_reference', 'Fel Application Reference', `${parsed.messageCode ?? parsed.family} ska använda ${expectedApplicationReference}, inte ${parsed.applicationReference}.`))
+  if ((family === 'AI_LIST' || family === 'BI_LIST') && input.rawPayload) {
+    if (!input.rawPayload.includes(';')) {
+      issues.push(issue({ severity: 'warning', code: 'AI_BI_DELIMITER_WARNING', title: 'Kontrollera separator', description: 'AI/BI-listor ska vara semikolonseparerade även när filändelsen är .csv.' }))
+    }
   }
 
-  if (parsed.family === 'PRODAT' && isPermissionProdatCode(parsed.messageCode) && parsed.businessProcess !== 'metering_access') {
-    issues.push(issue('error', 'rulebook_raw_permission_wrong_process', 'Fel processgrupp', 'Z13/Z14/Z15/Z18 ska klassas som metering_access.'))
+  const fieldRules = fieldRulesForMessage(family, code)
+  if (input.mode === 'send') {
+    for (const fieldRule of fieldRules.filter((rule) => rule.requirement === 'required')) {
+      if (fieldRule.fieldKey === 'application_reference' && expectedApplicationReference && !actualApplicationReference) {
+        issues.push(issue({ severity: 'error', code: fieldRule.errorCodeIfMissing ?? 'REQUIRED_FIELD_MISSING', title: `${fieldRule.label} saknas`, description: `${fieldRule.segmentPath} krävs för ${family} ${code}.`, fieldPath: fieldRule.segmentPath }))
+      }
+    }
   }
 
+  const blocking = issues.some((item) => item.severity === 'error' || item.blocking)
   return {
+    ok: !blocking,
+    blocking,
+    family,
+    code,
+    processGroup,
+    expectedApplicationReference,
     parsed,
-    status: statusFromIssues(issues),
     issues,
   }
+}
+
+export function validateEdielMessageRowWithRulebook(message: EdielMessageRow, mode: 'send' | 'parse' | 'test' = 'send'): RulebookValidationResult {
+  return validateRulebookMessage({
+    family: message.message_family,
+    code: String(message.message_code ?? ''),
+    processGroup: message.process_type ?? message.route_scope ?? null,
+    routeScope: message.route_scope ?? null,
+    applicationReference: message.application_reference,
+    rawPayload: message.raw_payload,
+    mode,
+  })
 }

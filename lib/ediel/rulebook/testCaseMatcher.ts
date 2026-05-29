@@ -1,169 +1,122 @@
-// lib/ediel/rulebook/testCaseMatcher.ts
+import { activeRulebookRules, processGroupForMessage } from '@/lib/ediel/rulebook/rulebook'
 
-import { parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
-
-export type RulebookTestCaseDefinition = {
-  suite: string
+export type RulebookTestCase = {
   testCaseCode: string
-  name: string
-  actorRole: 'supplier' | 'energy_service_company' | 'grid_owner' | 'platform'
-  market: 'electricity'
-  family: 'PRODAT' | 'UTILTS' | 'APERAK' | 'CONTRL' | 'UTILTS_ERR' | 'AI_LIST'
-  messageCode: string
+  suite: string
+  title: string
+  role: string
+  family: string
+  code: string
   subtype: string | null
-  direction: 'actor_to_portal' | 'portal_to_actor' | 'inbound' | 'outbound'
-  expectedContrl: 'positive' | 'negative' | 'not_expected' | 'depends'
-  expectedAperak: 'positive' | 'negative' | 'not_expected' | 'depends'
-  expectedUtiltsErr: 'expected' | 'not_expected' | 'depends'
-  expectedStatus: 'passed' | 'failed' | 'manual_review'
+  processGroup: string
+  expectedContrl: string
+  expectedAperak: string
+  expectedUtiltsErr: string
   mandatory: boolean
 }
 
-export const RULEBOOK_TEST_CASES: readonly RulebookTestCaseDefinition[] = [
-  supplier('L1', 'AGT PRODAT', 'L1 PRODAT Z03', 'Z03', 'L', 'actor_to_portal'),
-  supplier('L2', 'AGT PRODAT', 'L2 PRODAT Z04', 'Z04', null, 'portal_to_actor', 'negative'),
-  supplier('L3', 'AGT PRODAT', 'L3 PRODAT Z05', 'Z05', null, 'portal_to_actor', 'negative'),
-  supplier('L4', 'AGT PRODAT', 'L4 PRODAT Z06', 'Z06', null, 'portal_to_actor', 'negative'),
-  supplier('L5', 'AGT PRODAT', 'L5 PRODAT Z10', 'Z10', null, 'portal_to_actor', 'negative'),
-  supplier('L7', 'AGT PRODAT', 'L7 PRODAT Z09', 'Z09', 'F', 'actor_to_portal'),
-  utiltsSupplier('UL1', 'AGT UTILTS', 'UL1 UTILTS S03', 'S03'),
-  utiltsSupplier('UL2', 'AGT UTILTS', 'UL2 UTILTS E66-KVART', 'E66'),
-  utiltsSupplier('UL3', 'AGT UTILTS', 'UL3 UTILTS E66-SCH', 'E66'),
-  utiltsSupplier('UL4', 'AGT UTILTS', 'UL4 UTILTS S02', 'S02'),
-  utiltsSupplier('UL6', 'AGT UTILTS', 'UL6 UTILTS E31-SCH', 'E31'),
-  esco('E3', 'AGT PRODAT ESCO', 'E3 PRODAT Z13V', 'Z13', 'V', 'actor_to_portal'),
-  esco('E4', 'AGT PRODAT ESCO', 'E4 PRODAT Z13VH', 'Z13', 'VH', 'actor_to_portal'),
-  esco('E5', 'AGT PRODAT ESCO', 'E5 PRODAT Z14V', 'Z14', 'V', 'portal_to_actor'),
-  esco('E6', 'AGT PRODAT ESCO', 'E6 PRODAT Z14N', 'Z14', 'N', 'portal_to_actor', 'negative'),
-  esco('E7', 'AGT PRODAT ESCO', 'E7 PRODAT Z15V', 'Z15', 'V', 'portal_to_actor'),
-  esco('E8', 'AGT PRODAT ESCO', 'E8 PRODAT Z18V', 'Z18', 'V', 'actor_to_portal'),
-  tgtEsco('8.1.1', 'TGT PRODAT ESCO', 'Korrekt Z13V → Z14V', 'Z13', 'V'),
-  tgtEsco('8.1.2', 'TGT PRODAT ESCO', 'Korrekt Z13V → Z14N', 'Z13', 'V'),
-  tgtEsco('8.1.3', 'TGT PRODAT ESCO', 'Korrekt Z13VH → Z14VH', 'Z13', 'VH'),
-  tgtEsco('8.2.1', 'TGT PRODAT ESCO', 'Avvisad Z14V', 'Z14', 'V', 'negative'),
-  tgtEsco('9.1.1', 'TGT PRODAT ESCO', 'Z15V', 'Z15', 'V'),
-  tgtEsco('9.1.2', 'TGT PRODAT ESCO', 'Z18V → Z15V', 'Z18', 'V'),
-  tgtEsco('9.2.1', 'TGT PRODAT ESCO', 'Avvisad Z15V', 'Z15', 'V', 'negative'),
-  tgtUtiltsEsco('U3.1.1', 'Korrekt UTILTS E66-SCH', 'positive', 'not_expected'),
-  tgtUtiltsEsco('U3.1.2', 'Korrekt UTILTS E66-KVART', 'positive', 'not_expected'),
-  tgtUtiltsEsco('U3.2.1', 'Felaktig UTILTS E66 anvisningsfel kvart', 'negative', 'not_expected'),
-  tgtUtiltsEsco('U3.2.2', 'Felaktig UTILTS E66 funktionsfel kvart', 'not_expected', 'expected'),
+const ESCO_PRODAT: RulebookTestCase[] = [
+  ['E3', 'PRODAT Z13V', 'Z13', 'V'],
+  ['E4', 'PRODAT Z13VH', 'Z13', 'VH'],
+  ['E5', 'PRODAT Z14V', 'Z14', 'V'],
+  ['E6', 'PRODAT Z14N', 'Z14', 'N'],
+  ['E7', 'PRODAT Z15V', 'Z15', 'V'],
+  ['E8', 'PRODAT Z18V', 'Z18', 'V'],
+].map(([code, title, messageCode, subtype]) => ({
+  testCaseCode: code,
+  suite: 'AGT_PRODAT_ESCO',
+  title,
+  role: 'energy_service_company',
+  family: 'PRODAT',
+  code: messageCode,
+  subtype,
+  processGroup: processGroupForMessage('PRODAT', messageCode),
+  expectedContrl: 'positive',
+  expectedAperak: 'positive_or_negative_by_case',
+  expectedUtiltsErr: 'not_required',
+  mandatory: true,
+}))
+
+const ESCO_UTILTS: RulebookTestCase[] = [
+  { testCaseCode: 'UE1', suite: 'AGT_UTILTS_ESCO', title: 'UTILTS E66-KVART', role: 'energy_service_company', family: 'UTILTS', code: 'E66', subtype: 'KVART', processGroup: 'meter_values', expectedContrl: 'positive', expectedAperak: 'positive', expectedUtiltsErr: 'not_required', mandatory: true },
+  { testCaseCode: 'UE2', suite: 'AGT_UTILTS_ESCO', title: 'UTILTS E66-SCH', role: 'energy_service_company', family: 'UTILTS', code: 'E66', subtype: 'SCH', processGroup: 'meter_values', expectedContrl: 'positive', expectedAperak: 'positive', expectedUtiltsErr: 'not_required', mandatory: true },
 ]
 
-function supplier(
-  testCaseCode: string,
-  suite: string,
-  name: string,
-  messageCode: string,
-  subtype: string | null,
-  direction: RulebookTestCaseDefinition['direction'],
-  aperak: RulebookTestCaseDefinition['expectedAperak'] = 'positive'
-): RulebookTestCaseDefinition {
-  return {
-    suite,
+const TGT_ESCO: RulebookTestCase[] = [
+  ['8.1.1', 'Korrekt Z13V → Z14V', 'PRODAT', 'Z13', 'V'],
+  ['8.1.2', 'Korrekt Z13V → Z14N', 'PRODAT', 'Z13', 'V'],
+  ['8.1.3', 'Korrekt Z13VH → Z14VH', 'PRODAT', 'Z13', 'VH'],
+  ['8.2.1', 'Avvisad Z14V', 'PRODAT', 'Z14', 'V'],
+  ['9.1.1', 'Z15V', 'PRODAT', 'Z15', 'V'],
+  ['9.1.2', 'Z18V → Z15V', 'PRODAT', 'Z18', 'V'],
+  ['9.2.1', 'Avvisad Z15V', 'PRODAT', 'Z15', 'V'],
+  ['U3.1.1', 'Korrekt UTILTS E66-SCH', 'UTILTS', 'E66', 'SCH'],
+  ['U3.1.2', 'Korrekt UTILTS E66-KVART', 'UTILTS', 'E66', 'KVART'],
+  ['U3.2.1', 'Felaktig UTILTS E66 anvisningsfel kvart', 'UTILTS', 'E66', 'KVART'],
+  ['U3.2.2', 'Felaktig UTILTS E66 funktionsfel kvart', 'UTILTS', 'E66', 'KVART'],
+].map(([testCaseCode, title, family, code, subtype]) => ({
+  testCaseCode,
+  suite: 'TGT_ESCO',
+  title,
+  role: 'energy_service_company',
+  family,
+  code,
+  subtype,
+  processGroup: processGroupForMessage(family, code),
+  expectedContrl: 'by_case',
+  expectedAperak: 'by_case',
+  expectedUtiltsErr: String(testCaseCode).includes('U3.2.2') ? 'required' : 'not_required',
+  mandatory: true,
+}))
+
+export function listRulebookTestCases(): RulebookTestCase[] {
+  const supplierCaseRows: Array<[string, string, string, string, string | null]> = [
+    ['L1', 'PRODAT Z03', 'PRODAT', 'Z03', 'L'],
+    ['L2', 'PRODAT Z04', 'PRODAT', 'Z04', 'L'],
+    ['L3', 'PRODAT Z05', 'PRODAT', 'Z05', 'L'],
+    ['L4', 'PRODAT Z06', 'PRODAT', 'Z06', 'E'],
+    ['L5', 'PRODAT Z10', 'PRODAT', 'Z10', 'M'],
+    ['L7', 'PRODAT Z09', 'PRODAT', 'Z09', 'F'],
+    ['UL1', 'UTILTS S03', 'UTILTS', 'S03', null],
+    ['UL2', 'UTILTS E66-KVART', 'UTILTS', 'E66', 'KVART'],
+    ['UL3', 'UTILTS E66-SCH', 'UTILTS', 'E66', 'SCH'],
+    ['UL4', 'UTILTS S02', 'UTILTS', 'S02', null],
+    ['UL6', 'UTILTS E31-SCH', 'UTILTS', 'E31', 'SCH'],
+  ]
+  const supplierCases: RulebookTestCase[] = supplierCaseRows.map(([testCaseCode, title, family, code, subtype]) => ({
     testCaseCode,
-    name,
-    actorRole: 'supplier',
-    market: 'electricity',
-    family: 'PRODAT',
-    messageCode,
+    suite: String(testCaseCode).startsWith('UL') ? 'AGT_UTILTS_SUPPLIER' : 'AGT_PRODAT_SUPPLIER',
+    title,
+    role: 'supplier',
+    family,
+    code,
     subtype,
-    direction,
+    processGroup: processGroupForMessage(family, code),
     expectedContrl: 'positive',
-    expectedAperak: aperak,
-    expectedUtiltsErr: 'not_expected',
-    expectedStatus: aperak === 'negative' ? 'manual_review' : 'passed',
+    expectedAperak: 'by_case',
+    expectedUtiltsErr: 'not_required',
     mandatory: true,
-  }
-}
+  }))
 
-function utiltsSupplier(testCaseCode: string, suite: string, name: string, messageCode: string): RulebookTestCaseDefinition {
-  return {
-    suite,
-    testCaseCode,
-    name,
-    actorRole: 'supplier',
-    market: 'electricity',
-    family: 'UTILTS',
-    messageCode,
+  const ruleCases = activeRulebookRules().map((rule) => ({
+    testCaseCode: `RULE-${rule.family}-${rule.code}`,
+    suite: 'RULEBOOK_REGRESSION',
+    title: `${rule.family} ${rule.code} regelkontroll`,
+    role: 'platform',
+    family: String(rule.family),
+    code: rule.code,
     subtype: null,
-    direction: 'actor_to_portal',
-    expectedContrl: 'positive',
-    expectedAperak: 'depends',
-    expectedUtiltsErr: 'depends',
-    expectedStatus: 'passed',
+    processGroup: rule.processGroup,
+    expectedContrl: rule.requiresContrl ? 'required' : 'not_required',
+    expectedAperak: rule.requiresAperak ? 'required' : 'not_required',
+    expectedUtiltsErr: rule.requiresUtiltsErr ? 'conditional' : 'not_required',
     mandatory: true,
-  }
+  }))
+
+  return [...supplierCases, ...ESCO_PRODAT, ...ESCO_UTILTS, ...TGT_ESCO, ...ruleCases]
 }
 
-function esco(
-  testCaseCode: string,
-  suite: string,
-  name: string,
-  messageCode: string,
-  subtype: string | null,
-  direction: RulebookTestCaseDefinition['direction'],
-  aperak: RulebookTestCaseDefinition['expectedAperak'] = 'positive'
-): RulebookTestCaseDefinition {
-  return {
-    suite,
-    testCaseCode,
-    name,
-    actorRole: 'energy_service_company',
-    market: 'electricity',
-    family: 'PRODAT',
-    messageCode,
-    subtype,
-    direction,
-    expectedContrl: 'positive',
-    expectedAperak: aperak,
-    expectedUtiltsErr: 'not_expected',
-    expectedStatus: aperak === 'negative' ? 'manual_review' : 'passed',
-    mandatory: true,
-  }
-}
-
-function tgtEsco(
-  testCaseCode: string,
-  suite: string,
-  name: string,
-  messageCode: string,
-  subtype: string | null,
-  aperak: RulebookTestCaseDefinition['expectedAperak'] = 'positive'
-): RulebookTestCaseDefinition {
-  return esco(testCaseCode, suite, name, messageCode, subtype, 'inbound', aperak)
-}
-
-function tgtUtiltsEsco(
-  testCaseCode: string,
-  name: string,
-  aperak: RulebookTestCaseDefinition['expectedAperak'],
-  utiltsErr: RulebookTestCaseDefinition['expectedUtiltsErr']
-): RulebookTestCaseDefinition {
-  return {
-    suite: 'TGT UTILTS ESCO',
-    testCaseCode,
-    name,
-    actorRole: 'energy_service_company',
-    market: 'electricity',
-    family: 'UTILTS',
-    messageCode: 'E66',
-    subtype: null,
-    direction: 'inbound',
-    expectedContrl: 'positive',
-    expectedAperak: aperak,
-    expectedUtiltsErr: utiltsErr,
-    expectedStatus: utiltsErr === 'expected' || aperak === 'negative' ? 'manual_review' : 'passed',
-    mandatory: true,
-  }
-}
-
-export function matchRulebookTestCase(rawPayload: string): RulebookTestCaseDefinition[] {
-  const parsed = parseRulebookMessage(rawPayload)
-  return RULEBOOK_TEST_CASES.filter((testCase) => {
-    if (testCase.family !== parsed.family) return false
-    if (testCase.messageCode !== parsed.messageCode) return false
-    if (testCase.subtype && parsed.subtype && testCase.subtype !== parsed.subtype) return false
-    return true
-  })
+export function findRulebookTestCase(testCaseCode: string | null | undefined): RulebookTestCase | null {
+  const normalized = String(testCaseCode ?? '').trim().toUpperCase()
+  return listRulebookTestCases().find((testCase) => testCase.testCaseCode.toUpperCase() === normalized) ?? null
 }

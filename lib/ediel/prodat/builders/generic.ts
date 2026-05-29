@@ -70,7 +70,7 @@ function defaultPermissionReasonForCode(code: string): string | null {
   // transaktionstyp i CCI++Z13/CAV. Om kundspecifik data inte skickar ett
   // explicit värde används standarden för korrekt Z13V. Övriga
   // tillståndsflöden får inte ärva leverantörsbytes-defaulten Z22.
-  if (code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18') return 'S17'
+  if (code === 'Z13') return 'S17'
   return null
 }
 
@@ -242,7 +242,7 @@ export function buildGenericProdatSegments(input: {
   return {
     segments,
     issues,
-    ackExpectation: deriveProdatAckExpectation(),
+    ackExpectation: deriveProdatAckExpectation(context.code),
     diagnostics: {
       engine: 'prodat',
       renderer: input.renderer ?? 'prodat.engine.buildGenericProdatSegments',

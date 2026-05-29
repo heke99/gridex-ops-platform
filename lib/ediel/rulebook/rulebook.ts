@@ -1,17 +1,6 @@
-// lib/ediel/rulebook/rulebook.ts
+import type { EdielMessageFamily } from '@/lib/ediel/types'
 
-import type { EdielMessageStandard } from '@/lib/ediel/types'
-
-export type EdielRulebookFamily =
-  | 'PRODAT'
-  | 'UTILTS'
-  | 'APERAK'
-  | 'CONTRL'
-  | 'UTILTS_ERR'
-  | 'AI_LIST'
-  | 'BI_LIST'
-
-export type EdielBusinessProcess =
+export type EdielRulebookProcessGroup =
   | 'customer_masterdata'
   | 'supplier_switch'
   | 'metering_access'
@@ -20,193 +9,126 @@ export type EdielBusinessProcess =
   | 'ai_list'
   | 'unknown'
 
-export type FieldRequirement = 'required' | 'dependent' | 'optional' | 'not_used' | 'forbidden'
+export type EdielRulebookRequirement = 'required' | 'dependent' | 'optional' | 'not_used' | 'forbidden'
 
-export type RulebookSeverity = 'error' | 'warning' | 'info'
-
-export type RulebookIssue = {
-  severity: RulebookSeverity
+export type EdielRulebookIssue = {
+  severity: 'error' | 'warning'
   code: string
   title: string
   description: string
+  fieldPath?: string | null
+  blocking?: boolean
 }
 
-export type RulebookMessageRule = {
-  family: EdielRulebookFamily
+export type EdielRulebookMessageRule = {
+  family: EdielMessageFamily | 'BI_LIST'
   code: string
-  label: string
-  standard: EdielMessageStandard | 'ai_list'
-  currentVersion: string
+  version: string
   previousVersion?: string | null
-  validFrom: string | null
-  businessProcess: EdielBusinessProcess
-  defaultApplicationReference: string | null
+  applicationReference: string | null
+  processGroup: EdielRulebookProcessGroup
   requiresContrl: boolean
   requiresAperak: boolean
-  supportsNegativeAperak: boolean
-  supportsUtiltsErr: boolean
-  runtimeStatus: 'runtime_ready' | 'runtime_partial' | 'documented_not_enabled'
+  negativeAperakOnError: boolean
+  requiresUtiltsErr: boolean
+  validFrom: string
+  validTo?: string | null
+  status: 'active' | 'draft' | 'review' | 'superseded' | 'archived'
+  allowedSubtypes?: string[]
+  description: string
 }
 
-export const PRODAT_PROCESS_BY_CODE: Record<string, EdielBusinessProcess> = {
-  Z01: 'customer_masterdata',
-  Z02: 'customer_masterdata',
-  Z03: 'supplier_switch',
-  Z04: 'supplier_switch',
-  Z05: 'supplier_switch',
-  Z06: 'supplier_switch',
-  Z08: 'supplier_switch',
-  Z09: 'supplier_switch',
-  Z10: 'supplier_switch',
-  Z13: 'metering_access',
-  Z14: 'metering_access',
-  Z15: 'metering_access',
-  Z18: 'metering_access',
-}
+export const PRODAT_CUSTOMER_MASTERDATA_CODES = ['Z01', 'Z02'] as const
+export const PRODAT_SUPPLIER_SWITCH_CODES = ['Z03', 'Z04', 'Z05', 'Z06', 'Z08', 'Z09', 'Z10'] as const
+export const PRODAT_METERING_ACCESS_CODES = ['Z13', 'Z14', 'Z15', 'Z18'] as const
+export const ACK_FAMILIES = ['CONTRL', 'APERAK', 'UTILTS_ERR'] as const
 
-export const PRODAT_CODES = Object.freeze(Object.keys(PRODAT_PROCESS_BY_CODE))
-
-export const PRODAT_SUBTYPE_TO_TRANSACTION_TYPE: Record<string, string> = {
-  L: 'Z22',
-  LK: 'Z23',
-  C: 'Z24',
-  A: 'Z26',
-  B: 'Z27',
-  M: 'E58',
-  D: 'Z70',
-  E: 'Z34',
-  F: 'E64',
-  G: 'E32',
-  H: 'Z25',
-  N: 'Z96',
-  V: 'S17',
-  VH: 'S18',
-}
-
-export const RULEBOOK_MESSAGE_RULES = [
-  rule('PRODAT', 'Z01', 'Förfrågan kund-/anläggningsuppgifter', 'customer_masterdata', '23-DDQ-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z02', 'Svar på kund-/anläggningsuppgifter', 'customer_masterdata', '23-DDQ-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z03', 'Leverantörsbyte / inflytt', 'supplier_switch', '23-DDQ-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z04', 'Bekräftelse leverantörsbyte / inflytt', 'supplier_switch', '23-DDQ-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z05', 'Information till tidigare leverantör', 'supplier_switch', '23-DDQ-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z06', 'Uppdatering grunddata från nätägare', 'supplier_switch', '23-DDQ-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z08', 'Avslut/hävning av leveransavtal', 'supplier_switch', '23-DDQ-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z09', 'Uppdatering grunddata från leverantör', 'supplier_switch', '23-DDQ-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z10', 'Mätaruppdatering från nätägare', 'supplier_switch', '23-DDQ-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z13', 'Begäran om mätvärdesåtkomst', 'metering_access', '23-DGI-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z14', 'Svar på mätvärdesåtkomst', 'metering_access', '23-DGI-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z15', 'Mätvärdesrapportering upphör', 'metering_access', '23-DGI-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('PRODAT', 'Z18', 'Begäran om avslut av mätvärdesrapportering', 'metering_access', '23-DGI-PRODAT', true, true, '26A', '2026-04-01'),
-  rule('UTILTS', 'E66', 'Validerade mätdata per objekt', 'meter_values', '23-DDQ-UTILTS', true, true, 'E5SE5A', '2025-06-01', 'runtime_ready', true),
-  rule('UTILTS', 'E73', 'Begäran om saknade validerade mätdata', 'meter_values', '23-DDQ-UTILTS', true, true, 'E5SE5A', '2025-06-01', 'runtime_partial', true),
-  rule('UTILTS', 'E30', 'Insamlade mätdata per objekt', 'meter_values', '23-DDQ-UTILTS', true, true, 'E5SE5A', '2025-06-01', 'runtime_partial', true),
-  rule('UTILTS', 'E31', 'Summerade mätdata / andelstal', 'meter_values', '23-DDQ-E31-S', true, true, 'E5SE5A', '2025-06-01', 'runtime_ready', true),
-  rule('UTILTS', 'S02', 'Förbrukningsprognos per objekt', 'meter_values', '23-DDQ-UTILTS', true, true, 'E5SE5A', '2025-06-01', 'runtime_partial', true),
-  rule('UTILTS', 'S03', 'Preliminära andelstal / planvärden', 'meter_values', '23-DDQ-UTILTS', true, true, 'E5SE5A', '2025-06-01', 'runtime_partial', true),
-  rule('APERAK', 'APERAK', 'Applikationskvittens', 'ediel_ack', null, false, false, 'E2SE6A', null, 'runtime_ready'),
-  rule('CONTRL', 'CONTRL', 'Syntax-/teknisk kvittens', 'ediel_ack', null, false, false, 'D96A', null, 'runtime_ready'),
-  rule('UTILTS_ERR', 'UTILTS_ERR', 'Funktionsfel för UTILTS', 'ediel_ack', null, false, false, 'E5SE5A', '2025-06-01', 'runtime_ready'),
-  {
-    family: 'AI_LIST',
-    code: 'AI',
-    label: 'AI-lista strukturdatakontroll',
-    standard: 'ai_list',
-    currentVersion: 'Ver20140401',
-    previousVersion: null,
-    validFrom: '2025-10-01',
-    businessProcess: 'ai_list',
-    defaultApplicationReference: null,
-    requiresContrl: false,
-    requiresAperak: false,
-    supportsNegativeAperak: false,
-    supportsUtiltsErr: false,
-    runtimeStatus: 'runtime_ready',
-  },
-  {
-    family: 'BI_LIST',
-    code: 'BI',
-    label: 'BI-lista ändring anläggnings-/nätområdesinformation',
-    standard: 'ai_list',
-    currentVersion: 'Ver20140401',
-    previousVersion: null,
-    validFrom: '2025-10-01',
-    businessProcess: 'ai_list',
-    defaultApplicationReference: null,
-    requiresContrl: false,
-    requiresAperak: false,
-    supportsNegativeAperak: false,
-    supportsUtiltsErr: false,
-    runtimeStatus: 'runtime_ready',
-  },
-] as const satisfies readonly RulebookMessageRule[]
-
-function rule(
-  family: Exclude<EdielRulebookFamily, 'AI_LIST' | 'BI_LIST'>,
-  code: string,
-  label: string,
-  businessProcess: EdielBusinessProcess,
-  defaultApplicationReference: string | null,
-  requiresContrl: boolean,
-  requiresAperak: boolean,
-  currentVersion: string,
-  validFrom: string | null,
-  runtimeStatus: RulebookMessageRule['runtimeStatus'] = 'runtime_ready',
-  supportsUtiltsErr = false
-): RulebookMessageRule {
-  return {
-    family,
-    code,
-    label,
-    standard: 'edifact',
-    currentVersion,
-    previousVersion: family === 'PRODAT' ? '16B' : null,
-    validFrom,
-    businessProcess,
-    defaultApplicationReference,
-    requiresContrl,
-    requiresAperak,
-    supportsNegativeAperak: family === 'PRODAT' || family === 'UTILTS',
-    supportsUtiltsErr,
-    runtimeStatus,
-  }
-}
-
-function normalize(value?: string | null): string {
+export function normalizeRulebookToken(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
-export function getRulebookMessageRule(params: {
-  family?: string | null
-  code?: string | null
-}): RulebookMessageRule | null {
-  const family = normalize(params.family)
-  const code = normalize(params.code)
-  return RULEBOOK_MESSAGE_RULES.find((item) => item.family === family && item.code === code) ?? null
+export function isProdatMeteringAccessCode(code: string | null | undefined): boolean {
+  return (PRODAT_METERING_ACCESS_CODES as readonly string[]).includes(normalizeRulebookToken(code))
 }
 
-export function getBusinessProcessForMessage(params: {
-  family?: string | null
-  code?: string | null
-}): EdielBusinessProcess {
-  const family = normalize(params.family)
-  const code = normalize(params.code)
-  if (family === 'PRODAT') return PRODAT_PROCESS_BY_CODE[code] ?? 'unknown'
-  if (family === 'UTILTS') return 'meter_values'
-  if (family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR') return 'ediel_ack'
-  if (family === 'AI_LIST' || family === 'BI_LIST') return 'ai_list'
+export function isProdatSupplierSwitchCode(code: string | null | undefined): boolean {
+  return (PRODAT_SUPPLIER_SWITCH_CODES as readonly string[]).includes(normalizeRulebookToken(code))
+}
+
+export function isProdatCustomerMasterdataCode(code: string | null | undefined): boolean {
+  return (PRODAT_CUSTOMER_MASTERDATA_CODES as readonly string[]).includes(normalizeRulebookToken(code))
+}
+
+export function isAckFamily(family: string | null | undefined): boolean {
+  return (ACK_FAMILIES as readonly string[]).includes(normalizeRulebookToken(family))
+}
+
+export function processGroupForMessage(family: string | null | undefined, code: string | null | undefined): EdielRulebookProcessGroup {
+  const normalizedFamily = normalizeRulebookToken(family)
+  const normalizedCode = normalizeRulebookToken(code)
+  if (normalizedFamily === 'PRODAT') {
+    if (isProdatCustomerMasterdataCode(normalizedCode)) return 'customer_masterdata'
+    if (isProdatSupplierSwitchCode(normalizedCode)) return 'supplier_switch'
+    if (isProdatMeteringAccessCode(normalizedCode)) return 'metering_access'
+  }
+  if (normalizedFamily === 'UTILTS') return 'meter_values'
+  if (isAckFamily(normalizedFamily) || isAckFamily(normalizedCode)) return 'ediel_ack'
+  if (normalizedFamily === 'AI_LIST' || normalizedCode === 'AI') return 'ai_list'
+  if (normalizedFamily === 'BI_LIST' || normalizedCode === 'BI') return 'ai_list'
   return 'unknown'
 }
 
-export function expectedApplicationReferenceForProcess(process: EdielBusinessProcess): string | null {
-  if (process === 'customer_masterdata' || process === 'supplier_switch') return '23-DDQ-PRODAT'
-  if (process === 'metering_access') return '23-DGI-PRODAT'
+export function defaultApplicationReferenceForProcess(processGroup: EdielRulebookProcessGroup, family?: string | null): string | null {
+  if (family && normalizeRulebookToken(family) !== 'PRODAT') return null
+  if (processGroup === 'metering_access') return '23-DGI-PRODAT'
+  if (processGroup === 'supplier_switch' || processGroup === 'customer_masterdata') return '23-DDQ-PRODAT'
   return null
 }
 
-export function isPermissionProdatCode(code?: string | null): boolean {
-  return getBusinessProcessForMessage({ family: 'PRODAT', code }) === 'metering_access'
+export function messageVersionForFamily(family: string | null | undefined, code?: string | null): string {
+  const normalizedFamily = normalizeRulebookToken(family)
+  const normalizedCode = normalizeRulebookToken(code)
+  if (normalizedFamily === 'PRODAT') return '26A'
+  if (normalizedFamily === 'APERAK' || normalizedCode === 'APERAK') return '16B'
+  if (normalizedFamily === 'CONTRL' || normalizedCode === 'CONTRL') return '1.0'
+  if (normalizedFamily === 'UTILTS' || normalizedCode.startsWith('E') || normalizedCode.startsWith('S')) return 'E5SE5A'
+  if (normalizedFamily === 'AI_LIST' || normalizedCode === 'AI' || normalizedCode === 'BI') return 'Ver20140401'
+  return 'active'
 }
 
-export function isSupplierSwitchProdatCode(code?: string | null): boolean {
-  return getBusinessProcessForMessage({ family: 'PRODAT', code }) === 'supplier_switch'
+export function activeRulebookRules(): EdielRulebookMessageRule[] {
+  const prodatRules: EdielRulebookMessageRule[] = [
+    { family: 'PRODAT', code: 'Z01', version: '26A', previousVersion: null, applicationReference: '23-DDQ-PRODAT', processGroup: 'customer_masterdata', requiresContrl: true, requiresAperak: false, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['L', 'LK', 'Z22', 'Z23'], description: 'Förfrågan om kund-/anläggningsuppgifter. APERAK är inte obligatorisk som default men negativ APERAK hanteras vid fel.' },
+    { family: 'PRODAT', code: 'Z02', version: '26A', previousVersion: null, applicationReference: '23-DDQ-PRODAT', processGroup: 'customer_masterdata', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['L', 'LK', 'Z22', 'Z23'], description: 'Svar på Z01.' },
+    { family: 'PRODAT', code: 'Z03', version: '26A', previousVersion: null, applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['L', 'LK', 'C', 'Z22', 'Z23', 'Z24'], description: 'Leverantörsbyte, inflytt eller återtag.' },
+    { family: 'PRODAT', code: 'Z04', version: '26A', previousVersion: null, applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['L', 'LK', 'C', 'A', 'D', 'Z22', 'Z23', 'Z24', 'Z26', 'Z70'], description: 'Bekräftelse/svar från nätägare.' },
+    { family: 'PRODAT', code: 'Z05', version: '26A', previousVersion: null, applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['L', 'LK', 'C', 'Z22', 'Z23', 'Z24'], description: 'Information till frånträdande leverantör.' },
+    { family: 'PRODAT', code: 'Z06', version: '26A', previousVersion: null, applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['E', 'F', 'G', 'Z34', 'E64', 'E32'], description: 'Uppdatering grunddata från nätägare.' },
+    { family: 'PRODAT', code: 'Z08', version: '26A', previousVersion: null, applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['H', 'Z25'], description: 'Avslut/hävning av leveransavtal.' },
+    { family: 'PRODAT', code: 'Z09', version: '26A', previousVersion: null, applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['B', 'D', 'E', 'F', 'G', 'Z27', 'Z70', 'Z34', 'E64', 'E32'], description: 'Uppdatering grunddata från leverantör.' },
+    { family: 'PRODAT', code: 'Z10', version: '26A', previousVersion: null, applicationReference: '23-DDQ-PRODAT', processGroup: 'supplier_switch', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['M', 'E58'], description: 'Uppdatering grunddata mätare.' },
+    { family: 'PRODAT', code: 'Z13', version: '26A', previousVersion: null, applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['V', 'VH', 'S17', 'S18'], description: 'Begäran om tillgång till mätvärden.' },
+    { family: 'PRODAT', code: 'Z14', version: '26A', previousVersion: null, applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['V', 'VH', 'N', 'S17', 'S18', 'Z96'], description: 'Svar på mätvärdesåtkomst.' },
+    { family: 'PRODAT', code: 'Z15', version: '26A', previousVersion: null, applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['V', 'VH', 'C', 'S17', 'S18', 'Z24'], description: 'Tillstånd upphör eller fortsätter.' },
+    { family: 'PRODAT', code: 'Z18', version: '26A', previousVersion: null, applicationReference: '23-DGI-PRODAT', processGroup: 'metering_access', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', allowedSubtypes: ['V', 'S17'], description: 'Begäran om avslut av mätvärdesrapportering.' },
+  ]
+
+  return [
+    ...prodatRules,
+    { family: 'APERAK', code: 'APERAK', version: '16B', previousVersion: null, applicationReference: null, processGroup: 'ediel_ack', requiresContrl: true, requiresAperak: false, negativeAperakOnError: false, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', description: 'Applikationskvittens.' },
+    { family: 'CONTRL', code: 'CONTRL', version: '1.0', previousVersion: null, applicationReference: null, processGroup: 'ediel_ack', requiresContrl: false, requiresAperak: false, negativeAperakOnError: false, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', description: 'Syntax-/teknisk kvittens.' },
+    { family: 'UTILTS_ERR', code: 'UTILTS_ERR', version: 'E5SE5A', previousVersion: null, applicationReference: null, processGroup: 'ediel_ack', requiresContrl: true, requiresAperak: false, negativeAperakOnError: false, requiresUtiltsErr: false, validFrom: '2026-04-01', status: 'active', description: 'Funktionsfel i UTILTS-flöde.' },
+    { family: 'UTILTS', code: 'E66', version: 'E5SE5A', previousVersion: null, applicationReference: null, processGroup: 'meter_values', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: true, validFrom: '2025-06-01', status: 'active', description: 'Validerade mätdata per objekt.' },
+    { family: 'UTILTS', code: 'E31', version: 'E5SE5A', previousVersion: null, applicationReference: null, processGroup: 'meter_values', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: true, validFrom: '2025-06-01', status: 'active', description: 'Summerade mätdata/slutliga andelstal.' },
+    { family: 'UTILTS', code: 'S02', version: 'E5SE5A', previousVersion: null, applicationReference: null, processGroup: 'meter_values', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: true, validFrom: '2025-06-01', status: 'active', description: 'Förbrukningsprognos per objekt.' },
+    { family: 'UTILTS', code: 'S03', version: 'E5SE5A', previousVersion: null, applicationReference: null, processGroup: 'meter_values', requiresContrl: true, requiresAperak: true, negativeAperakOnError: true, requiresUtiltsErr: true, validFrom: '2025-06-01', status: 'active', description: 'Preliminära andelstal/summerade planvärden.' },
+    { family: 'AI_LIST', code: 'AI', version: 'Ver20140401', previousVersion: null, applicationReference: null, processGroup: 'ai_list', requiresContrl: false, requiresAperak: false, negativeAperakOnError: false, requiresUtiltsErr: false, validFrom: '2025-10-01', status: 'active', description: 'Anläggningsinformationslista/strukturkontroll.' },
+    { family: 'BI_LIST' as never, code: 'BI', version: 'Ver20140401', previousVersion: null, applicationReference: null, processGroup: 'ai_list', requiresContrl: false, requiresAperak: false, negativeAperakOnError: false, requiresUtiltsErr: false, validFrom: '2025-10-01', status: 'active', description: 'Ändringslista för anläggnings-id/nätområde/elnätsföretag.' },
+  ]
+}
+
+export function getRulebookRule(family: string | null | undefined, code: string | null | undefined): EdielRulebookMessageRule | null {
+  const normalizedFamily = normalizeRulebookToken(family)
+  const normalizedCode = normalizeRulebookToken(code)
+  return activeRulebookRules().find((rule) => normalizeRulebookToken(rule.family) === normalizedFamily && normalizeRulebookToken(rule.code) === normalizedCode) ?? null
 }

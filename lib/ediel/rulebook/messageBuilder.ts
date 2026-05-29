@@ -1,26 +1,36 @@
-// lib/ediel/rulebook/messageBuilder.ts
+import { defaultApplicationReferenceForProcess, processGroupForMessage, type EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
+import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 
-import { renderProdat } from '@/lib/ediel/prodat/engine'
-import type { ProdatEngineInput, ProdatEngineRenderResult } from '@/lib/ediel/prodat/types'
-import { validateProdatRulebookInput } from '@/lib/ediel/rulebook/validator'
-
-export type RulebookBuildResult = ProdatEngineRenderResult & {
-  rulebookStatus: 'ok' | 'warning' | 'failed'
+export type RulebookMessageBuildDecision = {
+  family: string
+  code: string
+  processGroup: string
+  applicationReference: string | null
+  issues: EdielRulebookIssue[]
 }
 
-export function buildRulebookProdatMessage(input: ProdatEngineInput): RulebookBuildResult {
-  const rulebookValidation = validateProdatRulebookInput(input)
-  const rendered = renderProdat(input)
-  const convertedIssues = rulebookValidation.issues.map((item) => ({
-    severity: item.severity === 'error' ? 'error' as const : 'warning' as const,
-    code: item.code,
-    title: item.title,
-    description: item.description,
-  }))
-
+export function buildRulebookMessageDecision(input: {
+  family: string
+  code: string
+  processGroup?: string | null
+  applicationReference?: string | null
+  rawPayload?: string | null
+}): RulebookMessageBuildDecision {
+  const processGroup = input.processGroup ?? processGroupForMessage(input.family, input.code)
+  const applicationReference = input.applicationReference ?? defaultApplicationReferenceForProcess(processGroup as never, input.family)
+  const validation = validateRulebookMessage({
+    family: input.family,
+    code: input.code,
+    processGroup,
+    applicationReference,
+    rawPayload: input.rawPayload,
+    mode: 'test',
+  })
   return {
-    ...rendered,
-    issues: [...convertedIssues, ...rendered.issues],
-    rulebookStatus: rulebookValidation.status,
+    family: input.family,
+    code: input.code,
+    processGroup,
+    applicationReference,
+    issues: validation.issues,
   }
 }

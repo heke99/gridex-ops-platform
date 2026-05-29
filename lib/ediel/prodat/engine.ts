@@ -19,7 +19,7 @@ import { buildZ14Segments } from '@/lib/ediel/prodat/builders/z14'
 import { buildZ15Segments } from '@/lib/ediel/prodat/builders/z15'
 import { buildZ18Segments } from '@/lib/ediel/prodat/builders/z18'
 import { deriveProdatAckExpectation } from '@/lib/ediel/prodat/registry'
-import { validateProdatRulebookInput } from '@/lib/ediel/rulebook/validator'
+import { buildRulebookMessageDecision } from '@/lib/ediel/rulebook/messageBuilder'
 
 export type {
   ProdatEngineAckExpectation,
@@ -51,41 +51,49 @@ const BUILDERS = {
   Z18: buildZ18Segments,
 } satisfies Record<ProdatEngineInput['code'], typeof buildZ09Segments>
 
-function withAckExpectation(result: ProdatEngineRenderResult): ProdatEngineRenderResult {
+function withAckExpectation(result: ProdatEngineRenderResult, code?: string | null): ProdatEngineRenderResult {
   return {
     ...result,
-    ackExpectation: result.ackExpectation ?? deriveProdatAckExpectation(),
+    ackExpectation: result.ackExpectation ?? deriveProdatAckExpectation(code),
   }
 }
 
 export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult {
   const builder = BUILDERS[input.code]
-  const rulebookValidation = validateProdatRulebookInput(input)
-  const rendered = withAckExpectation(
-    builder({
-      context: input.context,
-      portalSnapshot: input.portalSnapshot ?? null,
-      generatedAt: input.generatedAt,
-      mode: input.mode,
-      variant: input.variant ?? null,
-      routeDecisionReason: input.route.routeDecisionReason ?? null,
-      selectedVersion: input.version.selectedVersion,
-      acceptedVersions: input.version.acceptedVersions ?? [],
-    })
-  )
+  const rulebookDecision = buildRulebookMessageDecision({
+    family: 'PRODAT',
+    code: input.code,
+    applicationReference: input.route.applicationReference ?? undefined,
+  })
+  const result = builder({
+    context: input.context,
+    portalSnapshot: input.portalSnapshot ?? null,
+    generatedAt: input.generatedAt,
+    mode: input.mode,
+    variant: input.variant ?? null,
+    routeDecisionReason: input.route.routeDecisionReason ?? null,
+    selectedVersion: input.version.selectedVersion,
+    acceptedVersions: input.version.acceptedVersions ?? [],
+  })
 
-  return {
-    ...rendered,
+  return withAckExpectation({
+    ...result,
     issues: [
-      ...rulebookValidation.issues.map((item) => ({
-        severity: item.severity === 'error' ? 'error' as const : 'warning' as const,
-        code: item.code,
-        title: item.title,
-        description: item.description,
+      ...result.issues,
+      ...rulebookDecision.issues.map((issue) => ({
+        severity: issue.severity,
+        code: issue.code,
+        title: issue.title,
+        description: issue.description,
       })),
-      ...rendered.issues,
     ],
-  }
+    diagnostics: {
+      ...result.diagnostics,
+      rulebookProcessGroup: rulebookDecision.processGroup,
+      rulebookApplicationReference: rulebookDecision.applicationReference,
+      rulebookIssues: rulebookDecision.issues as unknown as Array<Record<string, unknown>>,
+    },
+  }, input.code)
 }
 
 /**

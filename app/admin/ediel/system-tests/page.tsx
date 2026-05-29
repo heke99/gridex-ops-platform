@@ -3,459 +3,322 @@ import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { activeRulebookRules } from '@/lib/ediel/rulebook/rulebook'
+import { STATIC_FIELD_RULES } from '@/lib/ediel/rulebook/fieldMatrix'
+import { STATIC_CODE_RULES } from '@/lib/ediel/rulebook/codeRules'
+import { listRulebookTestCases } from '@/lib/ediel/rulebook/testCaseMatcher'
 import {
-  RULEBOOK_FIELD_MATRIX,
-  RULEBOOK_MESSAGE_RULES,
-  RULEBOOK_TEST_CASES,
-  deriveRulebookAckDecision,
-  expectedApplicationReferenceForProcess,
-  getBusinessProcessForMessage,
-  listFieldRules,
-} from '@/lib/ediel/rulebook'
-import {
-  activateEdielRuleVersionAction,
-  cloneEdielRuleVersionAction,
-  importEdielRulebookTestDataAction,
-  runEdielRulebookRegressionAction,
+  activateRuleVersionAction,
+  cloneRuleVersionToDraftAction,
+  importStructuredTestDataAction,
+  parseAndValidateRulebookPayloadAction,
+  runRulebookRegressionAction,
   syncRulebookStaticRulesAction,
-  validateEdielRulebookPayloadAction,
 } from '@/app/admin/ediel/system-tests/actions'
 
 export const dynamic = 'force-dynamic'
 
-type RecentRun = {
-  id: string
-  test_suite: string | null
-  test_case_code: string | null
-  title: string | null
-  role_code: string | null
-  status: string | null
-  created_at: string | null
-  failure_reason?: string | null
+type TabKey =
+  | 'overview'
+  | 'suites'
+  | 'cases'
+  | 'runs'
+  | 'versions'
+  | 'fields'
+  | 'builder'
+  | 'parser'
+  | 'ack'
+  | 'testdata'
+  | 'esco'
+  | 'ai'
+  | 'changes'
+
+type SearchParams = Promise<{ tab?: string }>
+
+const TABS: Array<{ key: TabKey; label: string }> = [
+  { key: 'overview', label: 'Översikt' },
+  { key: 'suites', label: 'Testsviter' },
+  { key: 'cases', label: 'Testfall' },
+  { key: 'runs', label: 'Testkörningar' },
+  { key: 'versions', label: 'Regelversioner' },
+  { key: 'fields', label: 'Fältmatris' },
+  { key: 'builder', label: 'Meddelandebyggare' },
+  { key: 'parser', label: 'Parser & validering' },
+  { key: 'ack', label: 'ACK-regler' },
+  { key: 'testdata', label: 'Testdata' },
+  { key: 'esco', label: 'Energitjänsteföretag' },
+  { key: 'ai', label: 'AI-lista' },
+  { key: 'changes', label: 'Ändringslogg' },
+]
+
+function cardClassName() {
+  return 'rounded-3xl border border-slate-200 bg-white p-5 shadow-sm'
 }
 
-type RuleVersionRow = {
-  id: string
-  rulebook_key: string | null
-  version_code: string | null
-  status: string | null
-  valid_from: string | null
-  valid_to: string | null
-  message_family: string | null
-  message_code: string | null
+function inputClassName() {
+  return 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500'
 }
 
-type ArtifactRow = {
-  id: string
-  artifact_type: string | null
-  title: string | null
-  validation_report: Record<string, unknown> | null
-  created_at: string | null
-}
-
-type DataSetRow = {
-  id: string
-  dataset_key: string | null
-  name: string | null
-  source_file_name: string | null
-  status: string | null
-  metadata: Record<string, unknown> | null
-  created_at: string | null
-}
-
-async function countRows(table: string): Promise<number> {
-  try {
-    const result = await supabaseService.from(table).select('*', { count: 'exact', head: true })
-    if (result.error) throw result.error
-    return result.count ?? 0
-  } catch {
-    return 0
-  }
-}
-
-async function recentRuns(): Promise<RecentRun[]> {
-  try {
-    const { data, error } = await supabaseService
-      .from('ediel_test_runs')
-      .select('id,test_suite,test_case_code,title,role_code,status,created_at,failure_reason')
-      .order('created_at', { ascending: false })
-      .limit(8)
-    if (error) throw error
-    return Array.isArray(data) ? data as RecentRun[] : []
-  } catch {
-    return []
-  }
-}
-
-async function ruleVersions(): Promise<RuleVersionRow[]> {
-  try {
-    const { data, error } = await supabaseService
-      .from('ediel_rule_versions')
-      .select('id,rulebook_key,version_code,status,valid_from,valid_to,message_family,message_code')
-      .order('valid_from', { ascending: false })
-      .limit(30)
-    if (error) throw error
-    return Array.isArray(data) ? data as RuleVersionRow[] : []
-  } catch {
-    return []
-  }
-}
-
-async function recentArtifacts(): Promise<ArtifactRow[]> {
-  try {
-    const { data, error } = await supabaseService
-      .from('ediel_test_artifacts')
-      .select('id,artifact_type,title,validation_report,created_at')
-      .order('created_at', { ascending: false })
-      .limit(8)
-    if (error) throw error
-    return Array.isArray(data) ? data as ArtifactRow[] : []
-  } catch {
-    return []
-  }
-}
-
-async function dataSets(): Promise<DataSetRow[]> {
-  try {
-    const { data, error } = await supabaseService
-      .from('ediel_test_data_sets')
-      .select('id,dataset_key,name,source_file_name,status,metadata,created_at')
-      .order('created_at', { ascending: false })
-      .limit(8)
-    if (error) throw error
-    return Array.isArray(data) ? data as DataSetRow[] : []
-  } catch {
-    return []
-  }
-}
-
-function Badge({ tone, children }: { tone: 'emerald' | 'amber' | 'red' | 'slate' | 'blue'; children: ReactNode }) {
-  const styles: Record<typeof tone, string> = {
+function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: 'emerald' | 'amber' | 'red' | 'slate' }) {
+  const classes: Record<typeof tone, string> = {
     emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    amber: 'border-amber-200 bg-amber-50 text-amber-900',
+    amber: 'border-amber-200 bg-amber-50 text-amber-800',
     red: 'border-red-200 bg-red-50 text-red-800',
     slate: 'border-slate-200 bg-slate-50 text-slate-700',
-    blue: 'border-blue-200 bg-blue-50 text-blue-800',
   }
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${styles[tone]}`}>{children}</span>
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${classes[tone]}`}>{children}</span>
 }
 
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+function SubmitButton({ children, tone = 'emerald' }: { children: ReactNode; tone?: 'emerald' | 'slate' | 'red' }) {
+  const classes: Record<typeof tone, string> = {
+    emerald: 'bg-emerald-700 text-white hover:bg-emerald-800',
+    slate: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
+    red: 'bg-red-700 text-white hover:bg-red-800',
+  }
+  return <button className={`rounded-xl px-3 py-2 text-xs font-bold ${classes[tone]}`}>{children}</button>
+}
+
+async function listRows(table: string, limit = 50) {
+  const { data } = await supabaseService.from(table).select('*').order('created_at', { ascending: false }).limit(limit)
+  return Array.isArray(data) ? (data as Array<Record<string, unknown>>) : []
+}
+
+function text(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+function TabNav({ activeTab }: { activeTab: TabKey }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-black text-slate-950">{title}</h2>
-          {subtitle ? <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">{subtitle}</p> : null}
-        </div>
+    <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
+      <div className="flex flex-wrap gap-2">
+        {TABS.map((tab) => (
+          <Link
+            key={tab.key}
+            href={`/admin/ediel/system-tests?tab=${tab.key}`}
+            className={`rounded-2xl px-3 py-2 text-sm font-bold transition ${activeTab === tab.key ? 'bg-emerald-700 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
+          >
+            {tab.label}
+          </Link>
+        ))}
       </div>
-      <div className="mt-5">{children}</div>
+    </div>
+  )
+}
+
+function RuleSyncCard() {
+  return (
+    <form action={syncRulebookStaticRulesAction} className={cardClassName()}>
+      <h2 className="text-lg font-black text-slate-950">Synka rulebook till databas</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-700">Skapar/uppdaterar regelversioner, fältregler, kodlistor, ACK-regler och testfall utan att duplicera.</p>
+      <div className="mt-4"><SubmitButton>Synka statiska regler</SubmitButton></div>
+    </form>
+  )
+}
+
+function OverviewTab({ ruleVersions, testRuns }: { ruleVersions: Array<Record<string, unknown>>; testRuns: Array<Record<string, unknown>> }) {
+  const staticRules = activeRulebookRules()
+  const cases = listRulebookTestCases()
+  const activeVersions = ruleVersions.filter((row) => row.status === 'active').length
+  const draftVersions = ruleVersions.filter((row) => row.status === 'draft').length
+  const failedRuns = testRuns.filter((row) => row.status === 'failed').length
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className={cardClassName()}><div className="text-sm font-bold text-slate-600">Statiska regler</div><div className="mt-2 text-3xl font-black">{staticRules.length}</div></div>
+        <div className={cardClassName()}><div className="text-sm font-bold text-slate-600">Testfall</div><div className="mt-2 text-3xl font-black">{cases.length}</div></div>
+        <div className={cardClassName()}><div className="text-sm font-bold text-slate-600">Aktiva versioner</div><div className="mt-2 text-3xl font-black">{activeVersions}</div></div>
+        <div className={cardClassName()}><div className="text-sm font-bold text-slate-600">Draft/fel</div><div className="mt-2 text-3xl font-black">{draftVersions}/{failedRuns}</div></div>
+      </div>
+      <RuleSyncCard />
+      <section className={cardClassName()}>
+        <h2 className="text-lg font-black text-slate-950">Viktigaste runtime-regler</h2>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><Badge tone="emerald">23-DDQ-PRODAT</Badge><p className="mt-2 text-sm text-slate-700">Z01/Z02 och leverantörsbyte/grunddata.</p></div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><Badge tone="emerald">23-DGI-PRODAT</Badge><p className="mt-2 text-sm text-slate-700">Z13/Z14/Z15/Z18 för mätvärdesåtkomst/ESCO.</p></div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><Badge tone="red">Hard blocker</Badge><p className="mt-2 text-sm text-slate-700">Rulebook-fel stoppar outbound skick innan transport.</p></div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function VersionsTab({ ruleVersions }: { ruleVersions: Array<Record<string, unknown>> }) {
+  return (
+    <div className="space-y-5">
+      <RuleSyncCard />
+      <section className={cardClassName()}>
+        <h2 className="text-lg font-black text-slate-950">Regelversioner</h2>
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="text-xs uppercase text-slate-500"><tr><th className="p-2">Regel</th><th className="p-2">Status</th><th className="p-2">Regression</th><th className="p-2">Ändrad</th><th className="p-2">Åtgärder</th></tr></thead>
+            <tbody>
+              {ruleVersions.map((row) => (
+                <tr key={String(row.id)} className="border-t border-slate-100">
+                  <td className="p-2"><div className="font-bold text-slate-900">{text(row.message_family)} {text(row.message_code)}</div><div className="text-xs text-slate-500">{text(row.version_code)} · {text(row.application_reference)}</div></td>
+                  <td className="p-2"><Badge tone={row.status === 'active' ? 'emerald' : row.status === 'draft' ? 'amber' : 'slate'}>{text(row.status)}</Badge></td>
+                  <td className="p-2"><div>{text(row.last_regression_status)}</div><div className="text-xs text-slate-500">{text(row.last_regression_at).slice(0, 16)}</div></td>
+                  <td className="p-2 text-xs text-slate-600">{text(row.latest_change_at ?? row.updated_at).slice(0, 16)}</td>
+                  <td className="p-2">
+                    <div className="flex flex-wrap gap-2">
+                      <form action={cloneRuleVersionToDraftAction}><input type="hidden" name="ruleVersionId" value={String(row.id)} /><SubmitButton tone="slate">Klona</SubmitButton></form>
+                      <form action={runRulebookRegressionAction}><input type="hidden" name="ruleVersionId" value={String(row.id)} /><input type="hidden" name="scope" value="all" /><SubmitButton>Regression</SubmitButton></form>
+                      <form action={activateRuleVersionAction}><input type="hidden" name="ruleVersionId" value={String(row.id)} /><SubmitButton tone="red">Aktivera</SubmitButton></form>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function CasesTab() {
+  const cases = listRulebookTestCases()
+  return (
+    <section className={cardClassName()}>
+      <h2 className="text-lg font-black text-slate-950">Testfall</h2>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {cases.map((testCase) => (
+          <Link key={testCase.testCaseCode} href={`/admin/ediel/system-tests/cases/${encodeURIComponent(testCase.testCaseCode)}`} className="rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">
+            <div className="flex flex-wrap items-center gap-2"><Badge>{testCase.suite}</Badge><Badge tone={testCase.role === 'energy_service_company' ? 'emerald' : 'slate'}>{testCase.role}</Badge></div>
+            <div className="mt-3 font-black text-slate-950">{testCase.testCaseCode} · {testCase.title}</div>
+            <div className="mt-1 text-sm text-slate-700">{testCase.family} {testCase.code} · {testCase.processGroup}</div>
+          </Link>
+        ))}
+      </div>
     </section>
   )
 }
 
-function Metric({ label, value, hint }: { label: string; value: string | number; hint: string }) {
+function RunsTab({ testRuns }: { testRuns: Array<Record<string, unknown>> }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">{label}</div>
-      <div className="mt-2 text-3xl font-black text-slate-950">{value}</div>
-      <div className="mt-2 text-sm font-semibold leading-6 text-slate-600">{hint}</div>
+    <section className={cardClassName()}>
+      <h2 className="text-lg font-black text-slate-950">Testkörningar</h2>
+      <div className="mt-4 space-y-3">
+        {testRuns.map((run) => (
+          <div key={String(run.id)} className="rounded-2xl border border-slate-200 p-4">
+            <div className="flex flex-wrap items-center gap-2"><Badge tone={run.status === 'passed' ? 'emerald' : run.status === 'failed' ? 'red' : 'amber'}>{text(run.status)}</Badge><Badge>{text(run.test_suite)}</Badge></div>
+            <div className="mt-2 font-bold text-slate-950">{text(run.title)}</div>
+            <div className="mt-1 text-xs text-slate-600">{text(run.test_case_code)} · {text(run.created_at).slice(0, 16)}</div>
+            {run.failure_reason ? <p className="mt-2 text-sm text-red-700">{text(run.failure_reason)}</p> : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ParserTab() {
+  return (
+    <section className={cardClassName()}>
+      <h2 className="text-lg font-black text-slate-950">Parser & validering</h2>
+      <p className="mt-2 text-sm text-slate-700">Klistra in PRODAT, APERAK, CONTRL, UTILTS, UTILTS_ERR eller AI/BI-lista. Resultatet sparas som testkörning och artifact.</p>
+      <form action={parseAndValidateRulebookPayloadAction} className="mt-4 space-y-3">
+        <textarea name="rawPayload" rows={12} className={inputClassName()} placeholder="UNA:+.? 'UNB+..." />
+        <input type="file" name="payloadFile" className={inputClassName()} />
+        <SubmitButton>Kör parser och rulebook-validering</SubmitButton>
+      </form>
+    </section>
+  )
+}
+
+function TestDataTab({ dataSets }: { dataSets: Array<Record<string, unknown>> }) {
+  return (
+    <div className="space-y-5">
+      <section className={cardClassName()}>
+        <h2 className="text-lg font-black text-slate-950">Strukturerad testdata-import</h2>
+        <p className="mt-2 text-sm text-slate-700">Importer sparar data strukturerat till kunder, anläggningar, mätpunkter, expected ACK, expected values och field values.</p>
+        <form action={importStructuredTestDataAction} className="mt-4 space-y-3">
+          <input name="title" className={inputClassName()} placeholder="Namn på dataset" />
+          <textarea name="testDataText" rows={8} className={inputClassName()} placeholder="Klistra in semikolonseparerad testdata" />
+          <input type="file" name="testDataFile" className={inputClassName()} />
+          <SubmitButton>Importera strukturerat</SubmitButton>
+        </form>
+      </section>
+      <section className={cardClassName()}>
+        <h2 className="text-lg font-black text-slate-950">Importerade dataset</h2>
+        <div className="mt-4 space-y-2">
+          {dataSets.map((row) => <div key={String(row.id)} className="rounded-xl border border-slate-200 p-3"><div className="font-bold">{text(row.title)}</div><div className="text-xs text-slate-600">{text(row.row_count)} rader · {text(row.created_at).slice(0, 16)}</div></div>)}
+        </div>
+      </section>
     </div>
   )
 }
 
-function statusTone(status?: string | null): 'emerald' | 'amber' | 'red' | 'slate' | 'blue' {
-  const normalized = String(status ?? '').toLowerCase()
-  if (['active', 'passed', 'runtime_ready'].includes(normalized)) return 'emerald'
-  if (['draft', 'review', 'running', 'manual_review', 'runtime_partial'].includes(normalized)) return 'amber'
-  if (['failed', 'blocked'].includes(normalized)) return 'red'
-  if (['superseded'].includes(normalized)) return 'blue'
-  return 'slate'
+function StaticTableTab({ title, rows }: { title: string; rows: Array<Record<string, unknown>> }) {
+  return (
+    <section className={cardClassName()}>
+      <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      <div className="mt-4 space-y-2">
+        {rows.map((row, index) => (
+          <div key={index} className="rounded-2xl border border-slate-200 p-4 text-sm">
+            <pre className="whitespace-pre-wrap break-words text-xs text-slate-700">{JSON.stringify(row, null, 2)}</pre>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
 }
 
-function jsonStatus(value: Record<string, unknown> | null): string {
-  const status = value?.status
-  return typeof status === 'string' ? status : '—'
+function RegressionPanel() {
+  return (
+    <section className={cardClassName()}>
+      <h2 className="text-lg font-black text-slate-950">Regression före aktivering</h2>
+      <form action={runRulebookRegressionAction} className="mt-4 flex flex-wrap gap-2">
+        <select name="scope" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+          <option value="all">Alla</option>
+          <option value="prodat_supplier">PRODAT leverantör</option>
+          <option value="prodat_energy_service_company">PRODAT ESCO</option>
+          <option value="utilts_supplier">UTILTS leverantör</option>
+          <option value="utilts_energy_service_company">UTILTS ESCO</option>
+          <option value="ack">ACK</option>
+          <option value="ai_list">AI-lista</option>
+        </select>
+        <SubmitButton>Kör regression</SubmitButton>
+      </form>
+    </section>
+  )
 }
 
-export default async function EdielSystemTestsPage() {
-  const context = await requirePlatformAdminAccess()
-  const [dbTestCases, dbRuns, dbVersions, dbFieldRules, recent, versions, artifacts, importedSets] = await Promise.all([
-    countRows('ediel_test_cases'),
-    countRows('ediel_test_runs'),
-    countRows('ediel_rule_versions'),
-    countRows('ediel_field_rules'),
-    recentRuns(),
-    ruleVersions(),
-    recentArtifacts(),
-    dataSets(),
+export default async function EdielSystemTestsPage({ searchParams }: { searchParams?: SearchParams }) {
+  await requirePlatformAdminAccess()
+  const query = searchParams ? await searchParams : {}
+  const requestedTab = String(query.tab ?? 'overview') as TabKey
+  const activeTab = TABS.some((tab) => tab.key === requestedTab) ? requestedTab : 'overview'
+
+  const [ruleVersions, testRuns, dataSets, changeLogs] = await Promise.all([
+    listRows('ediel_rule_versions', 100),
+    listRows('ediel_test_runs', 30),
+    listRows('ediel_test_data_sets', 20),
+    listRows('ediel_rule_change_logs', 30),
   ])
 
-  const activeRuleCount = RULEBOOK_MESSAGE_RULES.filter((item) => item.runtimeStatus === 'runtime_ready').length
-  const partialRuleCount = RULEBOOK_MESSAGE_RULES.filter((item) => item.runtimeStatus === 'runtime_partial').length
-  const escoCases = RULEBOOK_TEST_CASES.filter((item) => item.actorRole === 'energy_service_company')
-  const supplierCases = RULEBOOK_TEST_CASES.filter((item) => item.actorRole === 'supplier')
-  const ackSamples = [
-    { label: 'PRODAT Z03', decision: deriveRulebookAckDecision({ family: 'PRODAT', code: 'Z03' }) },
-    { label: 'APERAK', decision: deriveRulebookAckDecision({ family: 'APERAK', code: 'APERAK' }) },
-    { label: 'UTILTS E66 funktionsfel', decision: deriveRulebookAckDecision({ family: 'UTILTS', code: 'E66', utiltsFunctionalError: true }) },
-  ]
-  const activeOrReviewVersions = versions.filter((item) => ['active', 'review', 'draft'].includes(String(item.status ?? '').toLowerCase()))
-
   return (
-    <div className="space-y-6 p-6">
+    <main className="space-y-6">
       <AdminHeader
         title="Ediel Systemtest & Regelcenter"
-        subtitle="Superadmin-yta för rulebook, testfall, fältmatris, parser, ACK-regler, ESCO och regression. Kundkortets befintliga testflöde använder samma regelmotor bakom kulisserna."
-        userEmail={context.email}
-        workspaceName="Plattformskontroll"
-        workspaceMode="platform"
+        subtitle="Rulebook, parser, fältmatris, testfall, regression och ESCO/berättigad part-flöden för superadmin."
       />
-
-      <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">Batch 2 rulebook</p>
-            <h1 className="mt-2 text-2xl font-black text-slate-950">Gemensam regelmotor före fler specialflöden</h1>
-            <p className="mt-3 max-w-5xl text-sm font-semibold leading-6 text-slate-700">
-              Den här ytan hanterar regelversioner, regression, parser/validering, testdata och ESCO/berättigad part. Den är platform-only så vanliga bolag inte ser rå Ediel-teknik.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge tone="emerald">PRODAT rulebook</Badge>
-            <Badge tone="blue">ESCO</Badge>
-            <Badge tone="amber">draft-regler testbara</Badge>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Runtime-regler" value={activeRuleCount} hint="Kända aktiva regler i rulebook-lagret." />
-        <Metric label="Delvisa regler" value={partialRuleCount} hint="Regler där fältimport/komplett segmentvalidering byggs på." />
-        <Metric label="Testfall" value={dbTestCases || RULEBOOK_TEST_CASES.length} hint="Databasens testfall eller statisk fallback från rulebook." />
-        <Metric label="Körningar" value={dbRuns} hint="Sparade system-/AGT-/TGT-körningar." />
-      </section>
-
-      <Card title="Regelstyrning" subtitle="Synka kodens rulebook, klona aktiv regel, kör regression och aktivera först när regressionen är grön.">
-        <div className="grid gap-4 xl:grid-cols-4">
-          <form action={syncRulebookStaticRulesAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-black text-slate-950">Synka statiska regler</div>
-            <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">Skriver rulebook, ACK-regler och fältmatris från kod till databasen utan att ta bort historik.</p>
-            <button className="mt-4 rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white">Synka regler</button>
-          </form>
-
-          <form action={cloneEdielRuleVersionAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-black text-slate-950">Klona regelversion</div>
-            <select name="ruleVersionId" className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">
-              {activeOrReviewVersions.map((item) => <option key={item.id} value={item.id}>{item.message_family}/{item.message_code} · {item.version_code} · {item.status}</option>)}
-            </select>
-            <input name="newVersionCode" placeholder="Ny version, t.ex. 26A-draft-2" className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <button className="mt-3 rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white">Skapa draft</button>
-          </form>
-
-          <form action={runEdielRulebookRegressionAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-black text-slate-950">Kör regression</div>
-            <select name="ruleVersionId" className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">
-              <option value="">Alla aktiva regler</option>
-              {activeOrReviewVersions.map((item) => <option key={item.id} value={item.id}>{item.message_family}/{item.message_code} · {item.version_code}</option>)}
-            </select>
-            <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">Kör PRODAT, UTILTS, ACK, ESCO och AI-lista regression innan aktivering.</p>
-            <button className="mt-3 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white">Kör regression</button>
-          </form>
-
-          <form action={activateEdielRuleVersionAction} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <div className="text-sm font-black text-amber-950">Aktivera regel</div>
-            <select name="ruleVersionId" className="mt-3 w-full rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-semibold">
-              {versions.filter((item) => String(item.status ?? '').toLowerCase() !== 'active').map((item) => <option key={item.id} value={item.id}>{item.message_family}/{item.message_code} · {item.version_code} · {item.status}</option>)}
-            </select>
-            <p className="mt-2 text-xs font-semibold leading-5 text-amber-800">Kräver minst en grön RULEBOOK_REGRESSION.</p>
-            <button className="mt-3 rounded-xl bg-amber-700 px-3 py-2 text-xs font-black text-white">Aktivera</button>
-          </form>
-        </div>
-      </Card>
-
-      <Card title="Parser & validering" subtitle="Klistra in raw EDIFACT/AI/BI. Resultatet sparas som testkörning och artifact.">
-        <form action={validateEdielRulebookPayloadAction} className="grid gap-3">
-          <input name="title" placeholder="Rubrik, valfritt" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-          <textarea name="rawPayload" rows={8} placeholder="UNA:+.? 'UNB+..." className="w-full rounded-2xl border border-slate-300 p-4 font-mono text-xs" />
-          <button className="w-fit rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white">Parse & validera</button>
-        </form>
-        {artifacts.length > 0 ? (
-          <div className="mt-5 grid gap-2">
-            {artifacts.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-black text-slate-950">{item.title ?? item.artifact_type ?? 'Artifact'}</div>
-                    <div className="text-xs font-semibold text-slate-500">{item.artifact_type} · {item.created_at ?? '—'}</div>
-                  </div>
-                  <Badge tone={statusTone(jsonStatus(item.validation_report))}>{jsonStatus(item.validation_report)}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </Card>
-
-      <Card title="Testdata-import" subtitle="Importera Excel/PDF-export som text/CSV eller klistra in tabell. Data sparas som dataset, inte som hårdkod i generatorn.">
-        <form action={importEdielRulebookTestDataAction} className="grid gap-3 md:grid-cols-2">
-          <input name="datasetKey" placeholder="Dataset key, t.ex. agt-prodat-2026" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-          <input name="name" placeholder="Namn" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-          <input name="testDataFile" type="file" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
-          <textarea name="rawText" rows={4} placeholder="Eller klistra in semikolon-/CSV-/tabelltext" className="rounded-xl border border-slate-300 p-3 text-sm" />
-          <button className="w-fit rounded-xl bg-emerald-700 px-4 py-2 text-sm font-black text-white">Importera testdata</button>
-        </form>
-        {importedSets.length > 0 ? (
-          <div className="mt-5 grid gap-2 md:grid-cols-2">
-            {importedSets.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-black text-slate-950">{item.name ?? item.dataset_key}</div>
-                <div className="mt-1 text-xs font-semibold text-slate-500">{item.dataset_key} · {item.source_file_name ?? 'inklistrad data'} · {item.created_at ?? '—'}</div>
-                <div className="mt-2"><Badge tone={statusTone(item.status)}>{item.status ?? '—'}</Badge></div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </Card>
-
-      <Card title="Regelversioner" subtitle="Produktion ska bara använda active. Systemtest kan läsa draft/review för regression.">
-        <div className="overflow-hidden rounded-2xl border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-black uppercase tracking-[0.14em] text-slate-500">
-              <tr><th className="px-4 py-3">Regel</th><th className="px-4 py-3">Version</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Giltig från</th></tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {(versions.length > 0 ? versions : RULEBOOK_MESSAGE_RULES.slice(0, 12).map((item, index) => ({
-                id: `${item.family}-${item.code}-${index}`,
-                rulebook_key: `${item.family}/${item.code}`,
-                version_code: item.currentVersion,
-                status: item.runtimeStatus === 'runtime_ready' ? 'active' : 'review',
-                valid_from: item.validFrom,
-                valid_to: null,
-                message_family: item.family,
-                message_code: item.code,
-              }))).map((item) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-3 font-bold text-slate-950">{item.rulebook_key ?? `${item.message_family}/${item.message_code}`}</td>
-                  <td className="px-4 py-3 text-slate-700">{item.version_code ?? '—'}</td>
-                  <td className="px-4 py-3"><Badge tone={statusTone(item.status)}>{item.status ?? '—'}</Badge></td>
-                  <td className="px-4 py-3 text-slate-700">{item.valid_from ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <Card title="Testsviter & testfall" subtitle="Leverantörstester behålls. ESCO/berättigad part läggs ovanpå samma testmotor.">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {RULEBOOK_TEST_CASES.map((item) => (
-            <Link key={`${item.suite}-${item.testCaseCode}`} href={`/admin/ediel/system-tests/cases/${encodeURIComponent(item.testCaseCode)}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-emerald-300">
-              <div className="flex flex-wrap gap-2">
-                <Badge tone={item.actorRole === 'energy_service_company' ? 'blue' : 'slate'}>{item.actorRole === 'energy_service_company' ? 'Energitjänsteföretag' : item.actorRole}</Badge>
-                <Badge tone="emerald">{item.family} {item.messageCode}</Badge>
-              </div>
-              <div className="mt-3 text-sm font-black text-slate-950">{item.testCaseCode} · {item.name}</div>
-              <div className="mt-1 text-xs font-semibold text-slate-600">{item.suite} · {item.direction}</div>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <Badge tone={item.expectedContrl === 'positive' ? 'emerald' : 'amber'}>CONTRL {item.expectedContrl}</Badge>
-                <Badge tone={item.expectedAperak === 'negative' ? 'red' : item.expectedAperak === 'positive' ? 'emerald' : 'amber'}>APERAK {item.expectedAperak}</Badge>
-                <Badge tone={item.expectedUtiltsErr === 'expected' ? 'red' : 'slate'}>UTILTS_ERR {item.expectedUtiltsErr}</Badge>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </Card>
-
-      <Card title="Fältmatris" subtitle="R/D/O byggs som regelmatris, inte enkel required true/false.">
-        <div className="overflow-hidden rounded-2xl border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-black uppercase tracking-[0.14em] text-slate-500">
-              <tr><th className="px-4 py-3">Meddelande</th><th className="px-4 py-3">Fält</th><th className="px-4 py-3">Segment</th><th className="px-4 py-3">Krav</th><th className="px-4 py-3">Villkor</th></tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {listFieldRules().slice(0, 22).map((item) => (
-                <tr key={`${item.family}-${item.code}-${item.fieldKey}-${item.segmentPath}`}>
-                  <td className="px-4 py-3 font-bold text-slate-950">{item.family}/{item.code}</td>
-                  <td className="px-4 py-3 text-slate-700">{item.label}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-700">{item.segmentPath}</td>
-                  <td className="px-4 py-3"><Badge tone={item.requirement === 'required' ? 'red' : item.requirement === 'dependent' ? 'amber' : 'slate'}>{item.requirement}</Badge></td>
-                  <td className="px-4 py-3 text-slate-600">{item.condition ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <Card title="Meddelandebyggare / processgrupper" subtitle="BGM hålls ren: Z03L/Z13V är inte BGM-värden, undertyp ligger i transaktionstyp.">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {['Z01', 'Z03', 'Z13', 'Z18'].map((code) => {
-            const process = getBusinessProcessForMessage({ family: 'PRODAT', code })
-            return (
-              <div key={code} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-lg font-black text-slate-950">PRODAT {code}</div>
-                <div className="mt-2 text-sm font-semibold text-slate-700">Process: {process}</div>
-                <div className="mt-2 text-sm font-semibold text-slate-700">Application Reference: {expectedApplicationReferenceForProcess(process)}</div>
-              </div>
-            )
-          })}
-        </div>
-      </Card>
-
-      <Card title="ACK-regler" subtitle="CONTRL, APERAK och UTILTS_ERR hålls isär.">
-        <div className="grid gap-3 md:grid-cols-3">
-          {ackSamples.map((item) => (
-            <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm font-black text-slate-950">{item.label}</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Badge tone={item.decision.requiresContrl ? 'emerald' : 'slate'}>CONTRL {item.decision.contrlStatus}</Badge>
-                <Badge tone={item.decision.requiresAperak ? 'emerald' : 'slate'}>APERAK {item.decision.aperakStatus}</Badge>
-                <Badge tone={item.decision.utiltsErrStatus === 'pending' ? 'red' : 'slate'}>UTILTS_ERR {item.decision.utiltsErrStatus}</Badge>
-              </div>
-              <p className="mt-3 text-sm font-semibold text-slate-700">Deadline: {item.decision.ackDueMinutes ? `${item.decision.ackDueMinutes} min` : 'ingen'}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card title="AI-lista / BI-lista" subtitle="AI/BI är strukturkontroll och avvikelselista, inte ett PRODAT-substitut.">
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-black text-slate-950">AI-lista</div>
-            <p className="mt-1 text-sm font-semibold text-slate-600">CSV från 2025-10-01, fortfarande semikolonseparerad, versionsmarkering Ver20140401.</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-black text-slate-950">BI-lista</div>
-            <p className="mt-1 text-sm font-semibold text-slate-600">Ändring av anläggnings-id/nätområde/nätbolag ska ge avvikelsehantering, inte automatisk kundändring.</p>
-          </div>
-        </div>
-      </Card>
-
-      <Card title="Senaste testkörningar" subtitle="Kopplar systemtest/kundkortstest till samma testlogg.">
-        {recent.length > 0 ? (
-          <div className="space-y-2">
-            {recent.map((run) => (
-              <div key={run.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <div>
-                  <div className="text-sm font-black text-slate-950">{run.title ?? `${run.test_suite ?? '—'} · ${run.test_case_code ?? '—'}`}</div>
-                  <div className="text-xs font-semibold text-slate-500">{run.role_code ?? '—'} · {run.created_at ?? '—'}</div>
-                  {run.failure_reason ? <div className="mt-1 text-xs font-semibold text-red-700">{run.failure_reason}</div> : null}
-                </div>
-                <Badge tone={statusTone(run.status)}>{run.status ?? '—'}</Badge>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-600">Inga sparade testkörningar ännu.</div>
-        )}
-      </Card>
-
-      <div className="flex flex-wrap gap-3">
-        <Link href="/admin/ediel/agt" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Öppna AGT</Link>
-        <Link href="/admin/ediel/control-tower" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50">Öppna Control Tower</Link>
-        <Link href="/admin/ediel/ai-list" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50">Öppna AI-lista</Link>
-      </div>
-    </div>
+      <TabNav activeTab={activeTab} />
+      {activeTab === 'overview' ? <OverviewTab ruleVersions={ruleVersions} testRuns={testRuns} /> : null}
+      {activeTab === 'suites' ? <StaticTableTab title="Testsviter" rows={Array.from(new Set(listRulebookTestCases().map((testCase) => testCase.suite))).map((suite) => ({ suite, cases: listRulebookTestCases().filter((testCase) => testCase.suite === suite).length }))} /> : null}
+      {activeTab === 'cases' ? <CasesTab /> : null}
+      {activeTab === 'runs' ? <RunsTab testRuns={testRuns} /> : null}
+      {activeTab === 'versions' ? <VersionsTab ruleVersions={ruleVersions} /> : null}
+      {activeTab === 'fields' ? <StaticTableTab title="Fältmatris" rows={STATIC_FIELD_RULES as unknown as Array<Record<string, unknown>>} /> : null}
+      {activeTab === 'builder' ? <StaticTableTab title="Meddelandebyggare / styrregler" rows={activeRulebookRules() as unknown as Array<Record<string, unknown>>} /> : null}
+      {activeTab === 'parser' ? <ParserTab /> : null}
+      {activeTab === 'ack' ? <StaticTableTab title="ACK-regler" rows={activeRulebookRules().map((rule) => ({ family: rule.family, code: rule.code, requiresContrl: rule.requiresContrl, requiresAperak: rule.requiresAperak, requiresUtiltsErr: rule.requiresUtiltsErr, negativeAperakOnError: rule.negativeAperakOnError }))} /> : null}
+      {activeTab === 'testdata' ? <TestDataTab dataSets={dataSets} /> : null}
+      {activeTab === 'esco' ? <StaticTableTab title="Energitjänsteföretag / berättigad part" rows={listRulebookTestCases().filter((testCase) => testCase.role === 'energy_service_company') as unknown as Array<Record<string, unknown>>} /> : null}
+      {activeTab === 'ai' ? <StaticTableTab title="AI/BI-lista" rows={[...STATIC_CODE_RULES.filter((rule) => rule.codeList === 'AI_BI_FORMATS'), { rule: 'AI-lista skapar avvikelselista och får inte ersätta PRODAT-flöde.' }] as unknown as Array<Record<string, unknown>>} /> : null}
+      {activeTab === 'changes' ? <StaticTableTab title="Ändringslogg" rows={changeLogs} /> : null}
+      <RegressionPanel />
+    </main>
   )
 }

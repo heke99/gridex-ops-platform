@@ -1,34 +1,33 @@
-// lib/ediel/rulebook/versionSelector.ts
+import { getRulebookRule, messageVersionForFamily } from '@/lib/ediel/rulebook/rulebook'
 
-import { resolveOutboundMessageVersionRuntimeFromRegistry, resolveInboundAcceptedVersionsRuntimeFromRegistry } from '@/lib/ediel/core/versionRegistry'
-import { getRulebookMessageRule } from '@/lib/ediel/rulebook/rulebook'
-import type { EdielMessageStandard } from '@/lib/ediel/types'
-
-export async function resolveRulebookOutboundVersion(params: {
-  family: string
-  code: string
-  standard?: EdielMessageStandard
-  fallback?: string | null
-  routeDefaultMessageVersion?: string | null
-}) {
-  const fallbackRule = getRulebookMessageRule({ family: params.family, code: params.code })
-  return resolveOutboundMessageVersionRuntimeFromRegistry({
-    family: params.family,
-    code: params.code,
-    standard: params.standard ?? 'edifact',
-    fallback: params.fallback ?? fallbackRule?.currentVersion ?? null,
-    routeDefaultMessageVersion: params.routeDefaultMessageVersion ?? null,
-  })
+export type RulebookVersionSelection = {
+  selectedVersion: string
+  previousVersion: string | null
+  acceptedVersions: string[]
+  messageTypeToken: string
 }
 
-export async function resolveRulebookInboundAcceptedVersions(params: {
-  family: string
-  code: string
-  standard?: EdielMessageStandard
-}) {
-  return resolveInboundAcceptedVersionsRuntimeFromRegistry({
-    family: params.family,
-    code: params.code,
-    standard: params.standard ?? 'edifact',
-  })
+export function selectRulebookVersion(input: {
+  family: string | null | undefined
+  code?: string | null
+  asOf?: Date
+}): RulebookVersionSelection {
+  const rule = getRulebookRule(input.family, input.code)
+  const selectedVersion = rule?.version ?? messageVersionForFamily(input.family, input.code)
+  const previousVersion = rule?.previousVersion ?? null
+  const family = String(input.family ?? '').toUpperCase()
+  const code = String(input.code ?? '').toUpperCase()
+
+  let messageTypeToken = `${family}:${selectedVersion}`
+  if (family === 'PRODAT') messageTypeToken = `PRODAT:D:97A:UN:${selectedVersion === '26A' ? 'E2SE6A' : selectedVersion}`
+  if (family === 'APERAK' || code === 'APERAK') messageTypeToken = `APERAK:D:96A:UN:${selectedVersion === '16B' ? 'E2SE6A' : selectedVersion}`
+  if (family === 'CONTRL' || code === 'CONTRL') messageTypeToken = 'CONTRL:D:96A:UN:1.0'
+  if (family === 'UTILTS') messageTypeToken = `UTILTS:D:02B:UN:${selectedVersion}`
+
+  return {
+    selectedVersion,
+    previousVersion,
+    acceptedVersions: [selectedVersion, previousVersion].filter((value): value is string => Boolean(value)),
+    messageTypeToken,
+  }
 }

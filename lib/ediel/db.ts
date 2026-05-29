@@ -2,6 +2,9 @@
 
 import { supabaseService } from '@/lib/supabase/service'
 import { assertNoTgtLeakageInProductionInput } from '@/lib/ediel/core/productionGuards'
+import { findRulebookTestCase } from '@/lib/ediel/rulebook/testCaseMatcher'
+import { parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 import type {
   AttachEdielMessageToTestRunInput,
   CreateEdielMessageEventInput,
@@ -852,7 +855,39 @@ export async function createEdielTestRun(
     .single()
 
   if (error) throw error
-  return data as EdielTestRunRow
+  const row = data as EdielTestRunRow
+
+  const rulebookCase = findRulebookTestCase(input.testCaseCode)
+  if (rulebookCase) {
+    await supabaseService
+      .from('ediel_test_run_steps')
+      .insert({
+        test_run_id: row.id,
+        step_no: 1,
+        title: rulebookCase.title,
+        status: 'pending',
+        expected_family: rulebookCase.family,
+        expected_code: rulebookCase.code,
+        expected_direction: null,
+        expected_ack: {
+          contrl: rulebookCase.expectedContrl,
+          aperak: rulebookCase.expectedAperak,
+          utiltsErr: rulebookCase.expectedUtiltsErr,
+        },
+        validation_report: {
+          source: 'rulebook',
+          processGroup: rulebookCase.processGroup,
+          subtype: rulebookCase.subtype,
+        },
+      })
+      .then(({ error: stepError }) => {
+        if (stepError && stepError.code !== '23505') {
+          console.warn('Rulebook test step could not be created', stepError)
+        }
+      })
+  }
+
+  return row
 }
 
 export async function listEdielTestRuns(options?: { companyId?: string | null }): Promise<EdielTestRunRow[]> {
@@ -970,7 +1005,39 @@ export async function attachEdielMessageToTestRun(
     .select('*')
     .single()
 
-  if (!error) return data as EdielTestRunMessageRow
+  if (!error) {
+    const row = data as EdielTestRunMessageRow
+    const { data: message } = await supabaseService
+      .from('ediel_messages')
+      .select('*')
+      .eq('id', input.edielMessageId)
+      .maybeSingle()
+
+    if (message && typeof (message as { raw_payload?: unknown }).raw_payload === 'string') {
+      const rawPayload = String((message as { raw_payload?: unknown }).raw_payload ?? '')
+      const parsed = rawPayload ? parseRulebookMessage(rawPayload) : null
+      const validation = validateRulebookMessage({
+        family: String((message as { message_family?: unknown }).message_family ?? ''),
+        code: String((message as { message_code?: unknown }).message_code ?? ''),
+        processGroup: String((message as { process_type?: unknown }).process_type ?? ''),
+        applicationReference: typeof (message as { application_reference?: unknown }).application_reference === 'string' ? String((message as { application_reference?: unknown }).application_reference) : null,
+        rawPayload,
+        parsed,
+        mode: 'test',
+      })
+      await supabaseService.from('ediel_test_artifacts').insert({
+        test_run_id: input.testRunId,
+        ediel_message_id: input.edielMessageId,
+        artifact_type: 'rulebook_message_validation',
+        title: 'Rulebook-validering för kopplat Ediel-meddelande',
+        payload: { parsed, validation },
+      }).then(({ error: artifactError }) => {
+        if (artifactError && artifactError.code !== '23505') console.warn('Rulebook artifact could not be created', artifactError)
+      })
+    }
+
+    return row
+  }
 
   // Idempotent TGT-koppling: samma steg/meddelande ska inte krascha UI med 23505.
   if (error.code === '23505') {

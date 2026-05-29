@@ -3,14 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import {
-  RULEBOOK_FIELD_MATRIX,
-  RULEBOOK_MESSAGE_RULES,
-  deriveRulebookAckDecision,
-  createRulebookPayloadValidationRun,
-  importRulebookTestDataSet,
-  runRulebookRegressionSuite,
-} from '@/lib/ediel/rulebook'
+import { activeRulebookRules } from '@/lib/ediel/rulebook/rulebook'
+import { STATIC_FIELD_RULES } from '@/lib/ediel/rulebook/fieldMatrix'
+import { STATIC_CODE_RULES } from '@/lib/ediel/rulebook/codeRules'
+import { listRulebookTestCases } from '@/lib/ediel/rulebook/testCaseMatcher'
+import { parseRulebookListPayload, parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
+import { parseStructuredTestData } from '@/lib/ediel/rulebook/testDataImport'
+import { attachRulebookArtifact, runRulebookRegression, type RulebookRegressionScope } from '@/lib/ediel/rulebook/testRunner'
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
@@ -20,324 +20,283 @@ function formString(value: FormDataEntryValue | null): string | null {
 
 async function formFileText(value: FormDataEntryValue | null): Promise<{ text: string | null; fileName: string | null }> {
   if (!value || typeof value === 'string') return { text: null, fileName: null }
-  const maybeFile = value as unknown as { arrayBuffer?: () => Promise<ArrayBuffer>; name?: string; size?: number }
-  if (!maybeFile.arrayBuffer || (maybeFile.size ?? 0) <= 0) return { text: null, fileName: null }
-  const decoder = new TextDecoder('utf-8')
-  return {
-    text: decoder.decode(await maybeFile.arrayBuffer()),
-    fileName: typeof maybeFile.name === 'string' ? maybeFile.name : null,
-  }
+  const file = value as unknown as { arrayBuffer?: () => Promise<ArrayBuffer>; name?: string; size?: number }
+  if (!file.arrayBuffer || (file.size ?? 0) <= 0) return { text: null, fileName: null }
+  const buffer = await file.arrayBuffer()
+  return { text: new TextDecoder('utf-8').decode(buffer), fileName: file.name ?? null }
+}
+
+async function safeUpsert(table: string, payload: Record<string, unknown>, onConflict?: string) {
+  let query = supabaseService.from(table).upsert(payload, onConflict ? { onConflict } : undefined).select('*').maybeSingle()
+  const { data, error } = await query
+  if (error) throw error
+  return data as Record<string, unknown> | null
+}
+
+async function safeInsert(table: string, payload: Record<string, unknown>) {
+  const { data, error } = await supabaseService.from(table).insert(payload).select('*').maybeSingle()
+  if (error) throw error
+  return data as Record<string, unknown> | null
 }
 
 function revalidateSystemTests() {
   revalidatePath('/admin/ediel/system-tests')
   revalidatePath('/admin/ediel')
-  revalidatePath('/admin/ediel/agt')
-  revalidatePath('/admin/ediel/control-tower')
 }
 
-export async function validateEdielRulebookPayloadAction(formData: FormData) {
+export async function syncRulebookStaticRulesAction() {
   const context = await requirePlatformAdminActionAccess()
-  const rawPayload = formString(formData.get('rawPayload'))
-  if (!rawPayload) throw new Error('Klistra in ett EDIFACT-/AI-/BI-meddelande först.')
+  const now = new Date().toISOString()
 
-  await createRulebookPayloadValidationRun({
-    rawPayload,
-    createdBy: context.userId,
-    title: formString(formData.get('title')),
+  const rulebook = await safeUpsert('ediel_rulebooks', {
+    code: 'GRIDEX_EDIEL_RULEBOOK',
+    name: 'Gridex Ediel Rulebook',
+    description: 'Central rulebook för PRODAT, UTILTS, ACK, AI/BI och systemtester.',
+    status: 'active',
+    updated_by: context.userId,
+    updated_at: now,
+  }, 'code')
+
+  const rulebookId = String(rulebook?.id ?? '')
+
+  for (const rule of activeRulebookRules()) {
+    await safeUpsert('ediel_rule_versions', {
+      rulebook_id: rulebookId || null,
+      rule_key: `${rule.family}:${rule.code}:${rule.version}`,
+      version_code: rule.version,
+      previous_version_code: rule.previousVersion,
+      message_family: rule.family,
+      message_code: rule.code,
+      process_group: rule.processGroup,
+      application_reference: rule.applicationReference,
+      status: rule.status,
+      valid_from: rule.validFrom,
+      valid_to: rule.validTo ?? null,
+      latest_change_at: now,
+      metadata: { description: rule.description, allowedSubtypes: rule.allowedSubtypes ?? [] },
+      updated_by: context.userId,
+      updated_at: now,
+    }, 'rule_key')
+
+    await safeUpsert('ediel_ack_rules', {
+      rule_key: `${rule.family}:${rule.code}:ACK`,
+      message_family: rule.family,
+      message_code: rule.code,
+      requires_contrl: rule.requiresContrl,
+      requires_aperak: rule.requiresAperak,
+      requires_utilts_err: rule.requiresUtiltsErr,
+      negative_aperak_on_error: rule.negativeAperakOnError,
+      is_active: true,
+      metadata: { processGroup: rule.processGroup },
+      updated_by: context.userId,
+      updated_at: now,
+    }, 'rule_key')
+  }
+
+  for (const fieldRule of STATIC_FIELD_RULES) {
+    await safeUpsert('ediel_field_rules', {
+      rule_key: `${fieldRule.family}:${fieldRule.code}:${fieldRule.fieldKey}`,
+      message_family: fieldRule.family,
+      message_code: fieldRule.code,
+      field_key: fieldRule.fieldKey,
+      field_name: fieldRule.label,
+      segment_path: fieldRule.segmentPath,
+      requirement: fieldRule.requirement,
+      condition: fieldRule.condition ?? null,
+      allowed_values: fieldRule.allowedValues ?? [],
+      error_code_if_missing: fieldRule.errorCodeIfMissing ?? null,
+      error_code_if_invalid: fieldRule.errorCodeIfInvalid ?? null,
+      is_active: true,
+      updated_by: context.userId,
+      updated_at: now,
+    }, 'rule_key')
+  }
+
+  for (const codeRule of STATIC_CODE_RULES) {
+    await safeUpsert('ediel_code_rules', {
+      code_list: codeRule.codeList,
+      allowed_values: codeRule.values,
+      description: codeRule.description,
+      is_active: true,
+      updated_by: context.userId,
+      updated_at: now,
+    }, 'code_list')
+  }
+
+  for (const testCase of listRulebookTestCases()) {
+    await safeUpsert('ediel_test_cases', {
+      test_case_code: testCase.testCaseCode,
+      suite_code: testCase.suite,
+      title: testCase.title,
+      role_code: testCase.role,
+      message_family: testCase.family,
+      message_code: testCase.code,
+      subtype: testCase.subtype,
+      process_group: testCase.processGroup,
+      expected_contrl: testCase.expectedContrl,
+      expected_aperak: testCase.expectedAperak,
+      expected_utilts_err: testCase.expectedUtiltsErr,
+      mandatory: testCase.mandatory,
+      is_active: true,
+      updated_by: context.userId,
+      updated_at: now,
+    }, 'test_case_code')
+  }
+
+  revalidateSystemTests()
+}
+
+export async function cloneRuleVersionToDraftAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const ruleVersionId = formString(formData.get('ruleVersionId'))
+  if (!ruleVersionId) throw new Error('ruleVersionId saknas')
+
+  const { data, error } = await supabaseService.from('ediel_rule_versions').select('*').eq('id', ruleVersionId).maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('Regelversion hittades inte')
+
+  const original = data as Record<string, unknown>
+  await safeInsert('ediel_rule_versions', {
+    ...original,
+    id: undefined,
+    rule_key: `${String(original.rule_key ?? 'rule')}:draft:${Date.now()}`,
+    status: 'draft',
+    latest_change_at: new Date().toISOString(),
+    last_regression_run_id: null,
+    last_regression_status: null,
+    last_regression_at: null,
+    approved_by: null,
+    activated_at: null,
+    created_by: context.userId,
+    updated_by: context.userId,
+    created_at: undefined,
+    updated_at: new Date().toISOString(),
   })
 
   revalidateSystemTests()
 }
 
-export async function runEdielRulebookRegressionAction(formData: FormData) {
+export async function runRulebookRegressionAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
   const ruleVersionId = formString(formData.get('ruleVersionId'))
-
-  await runRulebookRegressionSuite({
-    actorUserId: context.userId,
-    ruleVersionId,
-  })
-
+  const scope = (formString(formData.get('scope')) ?? 'all') as RulebookRegressionScope
+  await runRulebookRegression({ actorUserId: context.userId, ruleVersionId, scope })
   revalidateSystemTests()
 }
 
-export async function cloneEdielRuleVersionAction(formData: FormData) {
+export async function activateRuleVersionAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
   const ruleVersionId = formString(formData.get('ruleVersionId'))
-  const newVersionCode = formString(formData.get('newVersionCode'))
-  if (!ruleVersionId) throw new Error('Välj regelversion att kopiera.')
+  if (!ruleVersionId) throw new Error('ruleVersionId saknas')
 
-  const { data: source, error: sourceError } = await supabaseService
-    .from('ediel_rule_versions')
-    .select('*')
-    .eq('id', ruleVersionId)
-    .single()
+  const { data, error } = await supabaseService.from('ediel_rule_versions').select('*').eq('id', ruleVersionId).maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('Regelversion hittades inte')
+  const row = data as Record<string, unknown>
+  const status = String(row.last_regression_status ?? '')
+  const regressionAt = typeof row.last_regression_at === 'string' ? Date.parse(row.last_regression_at) : NaN
+  const changedAt = typeof row.latest_change_at === 'string'
+    ? Date.parse(row.latest_change_at)
+    : typeof row.updated_at === 'string'
+      ? Date.parse(row.updated_at)
+      : NaN
 
-  if (sourceError) throw sourceError
-  if (!source) throw new Error('Regelversionen hittades inte.')
-
-  const versionCode = newVersionCode ?? `${source.version_code}-DRAFT-${new Date().toISOString().slice(0, 10)}`
-  const { data: clone, error: cloneError } = await supabaseService
-    .from('ediel_rule_versions')
-    .insert({
-      rulebook_id: source.rulebook_id,
-      rulebook_key: source.rulebook_key,
-      message_family: source.message_family,
-      message_code: source.message_code,
-      message_standard: source.message_standard,
-      version_code: versionCode,
-      previous_version_code: source.version_code,
-      status: 'draft',
-      valid_from: source.valid_from,
-      valid_to: null,
-      business_process: source.business_process,
-      default_application_reference: source.default_application_reference,
-      requires_contrl: source.requires_contrl,
-      requires_aperak: source.requires_aperak,
-      supports_negative_response: source.supports_negative_response,
-      supports_utilts_err: source.supports_utilts_err,
-      source_title: source.source_title,
-      source_version: source.source_version,
-      notes: {
-        ...(source.notes && typeof source.notes === 'object' ? source.notes : {}),
-        clonedFromRuleVersionId: ruleVersionId,
-        clonedBy: context.userId,
-        clonedAt: new Date().toISOString(),
-      },
-      created_by: context.userId,
-    })
-    .select('id')
-    .single()
-
-  if (cloneError) throw cloneError
-  const clonedId = typeof clone?.id === 'string' ? clone.id : null
-
-  if (clonedId) {
-    await copyRuleVersionChildren(ruleVersionId, clonedId)
-    await supabaseService.from('ediel_rule_change_logs').insert({
-      rule_version_id: clonedId,
-      changed_by: context.userId,
-      change_type: 'clone_rule_version',
-      old_value: { sourceRuleVersionId: ruleVersionId },
-      new_value: { clonedRuleVersionId: clonedId, versionCode },
-    })
+  if (status !== 'passed' || !Number.isFinite(regressionAt) || (Number.isFinite(changedAt) && regressionAt < changedAt)) {
+    throw new Error('Regelversionen kan inte aktiveras. Kör en grön regression för samma rule_version_id efter senaste ändringen först.')
   }
-
-  revalidateSystemTests()
-}
-
-async function copyRuleVersionChildren(sourceId: string, targetId: string) {
-  const copySpecs = [
-    { table: 'ediel_field_rules', omit: new Set(['id', 'created_at', 'updated_at']) },
-    { table: 'ediel_code_rules', omit: new Set(['id', 'created_at']) },
-    { table: 'ediel_ack_rules', omit: new Set(['id', 'created_at', 'updated_at']) },
-    { table: 'ediel_message_build_rules', omit: new Set(['id', 'created_at']) },
-  ]
-
-  for (const spec of copySpecs) {
-    const { data, error } = await supabaseService.from(spec.table).select('*').eq('rule_version_id', sourceId)
-    if (error) throw error
-    const rows = (data ?? []).map((row: Record<string, unknown>) => {
-      const next: Record<string, unknown> = { rule_version_id: targetId }
-      for (const [key, value] of Object.entries(row)) {
-        if (spec.omit.has(key) || key === 'rule_version_id') continue
-        next[key] = value
-      }
-      return next
-    })
-    if (rows.length > 0) {
-      const { error: insertError } = await supabaseService.from(spec.table).insert(rows)
-      if (insertError) throw insertError
-    }
-  }
-}
-
-export async function activateEdielRuleVersionAction(formData: FormData) {
-  const context = await requirePlatformAdminActionAccess()
-  const ruleVersionId = formString(formData.get('ruleVersionId'))
-  if (!ruleVersionId) throw new Error('Välj regelversion att aktivera.')
-
-  const { data: lastRegression, error: regressionError } = await supabaseService
-    .from('ediel_test_runs')
-    .select('id,status,created_at')
-    .eq('test_case_code', 'RULEBOOK_REGRESSION')
-    .eq('status', 'passed')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (regressionError) throw regressionError
-  if (!lastRegression) {
-    throw new Error('Kör regression först. Regelversion får inte aktiveras utan grön regression.')
-  }
-
-  const { data: selected, error: selectedError } = await supabaseService
-    .from('ediel_rule_versions')
-    .select('*')
-    .eq('id', ruleVersionId)
-    .single()
-
-  if (selectedError) throw selectedError
-  if (!selected) throw new Error('Regelversionen hittades inte.')
 
   await supabaseService
-    .from('ediel_rule_versions')
-    .update({ status: 'superseded', valid_to: new Date().toISOString().slice(0, 10), updated_at: new Date().toISOString() })
-    .eq('message_family', selected.message_family)
-    .eq('message_code', selected.message_code)
-    .eq('message_standard', selected.message_standard)
-    .eq('status', 'active')
-    .neq('id', ruleVersionId)
-
-  const { error: updateError } = await supabaseService
     .from('ediel_rule_versions')
     .update({
       status: 'active',
       approved_by: context.userId,
       activated_at: new Date().toISOString(),
+      updated_by: context.userId,
       updated_at: new Date().toISOString(),
-      notes: {
-        ...(selected.notes && typeof selected.notes === 'object' ? selected.notes : {}),
-        activatedBy: context.userId,
-        activatedAt: new Date().toISOString(),
-        regressionRunId: lastRegression.id,
-      },
     })
     .eq('id', ruleVersionId)
 
-  if (updateError) throw updateError
-
-  await supabaseService.from('ediel_rule_change_logs').insert({
+  await safeInsert('ediel_rule_change_logs', {
     rule_version_id: ruleVersionId,
+    change_type: 'activated',
+    old_value: { status: row.status ?? null },
+    new_value: { status: 'active' },
     changed_by: context.userId,
-    change_type: 'activate_rule_version',
-    old_value: { previousStatus: selected.status },
-    new_value: { status: 'active', regressionRunId: lastRegression.id },
-    approved_by: context.userId,
-    activated_at: new Date().toISOString(),
   })
 
   revalidateSystemTests()
 }
 
-export async function importEdielRulebookTestDataAction(formData: FormData) {
+export async function parseAndValidateRulebookPayloadAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
-  const uploaded = await formFileText(formData.get('testDataFile'))
-  const pasted = formString(formData.get('rawText'))
-  const rawText = uploaded.text ?? pasted
-  if (!rawText) throw new Error('Ladda upp eller klistra in testdata först.')
+  const pasted = formString(formData.get('rawPayload')) ?? ''
+  const uploaded = await formFileText(formData.get('payloadFile'))
+  const rawPayload = uploaded.text ?? pasted
+  if (!rawPayload.trim()) throw new Error('Klistra in eller ladda upp payload först')
 
-  const datasetKey = formString(formData.get('datasetKey')) ?? `ediel-testdata-${Date.now()}`
-  const name = formString(formData.get('name')) ?? uploaded.fileName ?? datasetKey
+  const parsed = rawPayload.includes("'") ? parseRulebookMessage(rawPayload) : parseRulebookListPayload(rawPayload)
+  const validation = validateRulebookMessage({ parsed, rawPayload, mode: 'parse' })
 
-  await importRulebookTestDataSet({
+  const run = await safeInsert('ediel_test_runs', {
+    test_suite: 'RULEBOOK_PARSER',
+    role_code: 'system',
+    test_case_code: `${validation.family ?? 'UNKNOWN'}_${validation.code ?? 'UNKNOWN'}_${Date.now()}`,
+    title: `Parser & validering ${validation.family ?? 'okänd'} ${validation.code ?? ''}`,
+    status: validation.blocking ? 'failed' : 'passed',
+    started_at: new Date().toISOString(),
+    completed_at: new Date().toISOString(),
+    failure_reason: validation.blocking ? validation.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.description).join(' | ') : null,
+    notes: JSON.stringify({ fileName: uploaded.fileName, validation }),
+    created_by: context.userId,
+    updated_by: context.userId,
+  })
+
+  await attachRulebookArtifact({
     actorUserId: context.userId,
-    datasetKey,
-    name,
-    sourceFileName: uploaded.fileName,
-    sourceType: uploaded.fileName ? 'file_upload' : 'pasted_text',
-    rawText,
+    testRunId: typeof run?.id === 'string' ? run.id : null,
+    artifactType: 'parser_validation',
+    title: 'Parser & rulebook-validering',
+    payload: { parsed, validation, rawPayload: rawPayload.slice(0, 25000) },
   })
 
   revalidateSystemTests()
 }
 
-export async function syncRulebookStaticRulesAction(_formData: FormData) {
+export async function importStructuredTestDataAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
+  const title = formString(formData.get('title')) ?? 'Importerad testdata'
+  const pasted = formString(formData.get('testDataText')) ?? ''
+  const uploaded = await formFileText(formData.get('testDataFile'))
+  const text = uploaded.text ?? pasted
+  if (!text.trim()) throw new Error('Ingen testdata att importera')
 
-  const { data: rulebook, error: rulebookError } = await supabaseService
-    .from('ediel_rulebooks')
-    .upsert({
-      rulebook_key: 'ediel-electricity-2026A',
-      name: 'Ediel elmarknad 2026A',
-      market: 'electricity',
-      status: 'active',
-      description: 'Synkad från rulebook-kod efter Batch 2.',
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'rulebook_key' })
-    .select('id')
-    .single()
+  const parsed = parseStructuredTestData(text)
+  const dataSet = await safeInsert('ediel_test_data_sets', {
+    title,
+    file_name: uploaded.fileName,
+    source_type: uploaded.fileName ? 'upload' : 'paste',
+    row_count: parsed.rows.length,
+    headers: parsed.headers,
+    raw_text_preview: text.slice(0, 25000),
+    metadata: { warnings: parsed.warnings },
+    created_by: context.userId,
+  })
+  const dataSetId = typeof dataSet?.id === 'string' ? dataSet.id : null
 
-  if (rulebookError) throw rulebookError
-  const rulebookId = rulebook?.id ?? null
+  const inserts: Array<[string, Array<Record<string, string>>]> = [
+    ['ediel_test_customers', parsed.customers],
+    ['ediel_test_facilities', parsed.facilities],
+    ['ediel_test_metering_points', parsed.meteringPoints],
+    ['ediel_test_expected_values', parsed.expectedValues],
+    ['ediel_test_expected_acks', parsed.expectedAcks],
+    ['ediel_test_field_values', parsed.fieldValues],
+  ]
 
-  for (const item of RULEBOOK_MESSAGE_RULES) {
-    const { data: version, error: versionError } = await supabaseService
-      .from('ediel_rule_versions')
-      .upsert({
-        rulebook_id: rulebookId,
-        rulebook_key: 'ediel-electricity-2026A',
-        message_family: item.family,
-        message_code: item.code,
-        message_standard: item.standard,
-        version_code: item.currentVersion,
-        previous_version_code: item.previousVersion ?? null,
-        status: item.runtimeStatus === 'runtime_ready' ? 'active' : 'review',
-        valid_from: item.validFrom,
-        business_process: item.businessProcess,
-        default_application_reference: item.defaultApplicationReference,
-        requires_contrl: item.requiresContrl,
-        requires_aperak: item.requiresAperak,
-        supports_negative_response: item.supportsNegativeAperak,
-        supports_utilts_err: item.supportsUtiltsErr,
-        notes: { syncedBy: context.userId, syncedAt: new Date().toISOString() },
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'message_family,message_code,message_standard,version_code,valid_from' })
-      .select('id')
-      .single()
-
-    if (versionError) throw versionError
-
-    const ack = deriveRulebookAckDecision({ family: item.family, code: item.code })
-    await supabaseService.from('ediel_ack_rules').upsert({
-      rule_version_id: version?.id ?? null,
-      message_family: item.family,
-      message_code: item.code,
-      requires_contrl: ack.requiresContrl,
-      requires_aperak: ack.requiresAperak,
-      send_negative_aperak_on_error: ack.negativeAperakAlwaysOnError,
-      send_utilts_err_on_functional_error: ack.utiltsErrStatus === 'pending',
-      ack_deadline_minutes: ack.ackDueMinutes,
-      status: 'active',
-      notes: { syncedBy: context.userId },
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'message_family,message_code,status' })
-  }
-
-  for (const item of RULEBOOK_FIELD_MATRIX) {
-    const match = await supabaseService
-      .from('ediel_field_rules')
-      .select('id')
-      .eq('message_family', item.family)
-      .eq('message_code', item.code)
-      .eq('field_key', item.fieldKey)
-      .eq('segment_path', item.segmentPath)
-      .is('subtype', null)
-      .maybeSingle()
-
-    if (match.error) throw match.error
-
-    const payload = {
-      message_family: item.family,
-      message_code: item.code,
-      subtype: null,
-      field_key: item.fieldKey,
-      field_label: item.label,
-      segment_path: item.segmentPath,
-      requirement: item.requirement,
-      condition: item.condition,
-      allowed_values: item.allowedValues ?? [],
-      error_code_if_missing: item.errorCodeIfMissing ?? null,
-      error_code_if_invalid: item.errorCodeIfInvalid ?? null,
-      updated_at: new Date().toISOString(),
-    }
-
-    const write = match.data?.id
-      ? await supabaseService.from('ediel_field_rules').update(payload).eq('id', match.data.id)
-      : await supabaseService.from('ediel_field_rules').insert(payload)
-
-    if (write.error) throw write.error
+  for (const [table, rows] of inserts) {
+    if (!dataSetId || rows.length === 0) continue
+    const payload = rows.map((row) => ({ data_set_id: dataSetId, ...row, created_by: context.userId }))
+    const { error } = await supabaseService.from(table).insert(payload)
+    if (error) throw error
   }
 
   revalidateSystemTests()
