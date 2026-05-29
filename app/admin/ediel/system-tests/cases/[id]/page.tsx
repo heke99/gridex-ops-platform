@@ -15,7 +15,8 @@ import {
   type EdielTgtExpectedStep,
   type EdielTgtTestCaseDefinition,
 } from '@/lib/ediel/tgtRegistry'
-import { createEdielTgtRunFromTemplateAction, registerEdielFileAction } from '@/app/admin/ediel/actions'
+import { createEdielTgtRunFromTemplateAction } from '@/app/admin/ediel/actions'
+import { pollAndSyncTgtSystemTestMailboxAction } from '@/app/admin/ediel/system-tests/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -199,33 +200,36 @@ export default async function SystemTestCasePage({
           <li>Klicka <strong>Starta ny testkörning</strong> i Gridex. Kör bara ett U3-test åt gången.</li>
           <li>Starta exakt samma testfall i Edielportalen: <strong>{testCase.testCaseCode}</strong>.</li>
           <li>Kontrollera att portalens fil gäller rätt mottagare: Gridex/GridCore Ediel-ID <strong>{GRIDEX_TGT_EDIEL_ID}</strong>.</li>
-          <li>När portalen skickar inbound UTILTS/PRODAT/ACK: importera filen här nedan eller kör mailbox-poll från Ediel-vyn.</li>
+          <li>När portalen skickar inbound UTILTS/PRODAT/ACK: klicka på <strong>Importera via IMAP och synka</strong> här nedan. Knappen pollar IMAP direkt från testfallssidan.</li>
           <li>Importformuläret skickar med <strong>tgtTestCaseCode={testCase.testCaseCode}</strong>, så payloaden kopplas till rätt aktiv run och inte till fel E66-test.</li>
           <li>Kontrollera kedjan under Aktiva körningar. Gridex skapar nästa svar enligt förväntat steg.</li>
         </ol>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-lg font-semibold text-slate-950">Importera portalens payload till detta testfall</h2>
-        <p className="mt-1 text-sm text-slate-700">
-          Använd detta när Edielportalen skickat inbound-filen. Formuläret låser synken till {testCase.testCaseCode} så U3.1.1/U3.1.2/U3.2.1/U3.2.2 inte blandas ihop.
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <h2 className="text-lg font-semibold text-slate-950">Importera via IMAP och synka till detta testfall</h2>
+        <p className="mt-1 text-sm leading-6 text-blue-950">
+          Använd detta när Edielportalen har skickat inbound-filen. Knappen pollar IMAP direkt, importerar olästa Ediel-meddelanden och låser synken till <strong>{testCase.testCaseCode}</strong> så U3.1.1/U3.1.2/U3.2.1/U3.2.2 inte blandas ihop.
         </p>
-        <form action={registerEdielFileAction} className="mt-4 space-y-3">
-          <input type="hidden" name="direction" value="inbound" />
-          <input type="hidden" name="mode" value="tgt" />
-          <input type="hidden" name="tgtTestCaseCode" value={testCase.testCaseCode} />
+        <form action={pollAndSyncTgtSystemTestMailboxAction} className="mt-4 grid gap-3 md:grid-cols-[1fr_160px_auto] md:items-end">
+          <input type="hidden" name="testSuite" value={testCase.suite} />
+          <input type="hidden" name="roleCode" value={testCase.roleCode} />
+          <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
           <label className="block text-sm font-medium text-slate-700">
-            EDIFACT-fil från Edielportalen
-            <input name="edielFile" type="file" className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+            IMAP-mapp / mailbox
+            <input name="mailbox" defaultValue="INBOX" className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
           </label>
           <label className="block text-sm font-medium text-slate-700">
-            Eller klistra in raw payload
-            <textarea name="rawPayload" rows={8} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 font-mono text-xs" placeholder="UNA...UNB...UNH..." />
+            Max antal
+            <input name="limit" defaultValue="10" inputMode="numeric" className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
           </label>
-          <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-            Importera och synka till {testCase.testCaseCode}
+          <button className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+            Importera via IMAP och synka till {testCase.testCaseCode}
           </button>
         </form>
+        <div className="mt-3 rounded-xl border border-blue-200 bg-white p-3 text-xs leading-5 text-blue-950">
+          Om IMAP saknar inställningar eller lösenord skapas en misslyckad testkörning med felorsak i stället för att sidan kraschar.
+        </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -253,6 +257,11 @@ export default async function SystemTestCasePage({
                 </div>
                 <div className="text-xs text-slate-600">Skapad {formatDate(evaluation.testRun.created_at)}</div>
               </div>
+              {evaluation.testRun.failure_reason ? (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  <strong>Senaste fel:</strong> {evaluation.testRun.failure_reason}
+                </div>
+              ) : null}
               <div className="mt-3 grid gap-2 md:grid-cols-2">
                 {evaluation.matches.map((match) => (
                   <div key={match.step.stepNo} className="rounded-xl border border-slate-200 bg-white p-3 text-xs">

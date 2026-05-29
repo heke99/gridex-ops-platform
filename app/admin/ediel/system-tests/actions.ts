@@ -11,6 +11,11 @@ import { parseRulebookListPayload, parseRulebookMessage } from '@/lib/ediel/rule
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 import { parseStructuredTestData } from '@/lib/ediel/rulebook/testDataImport'
 import { attachRulebookArtifact, runRulebookRegression, type RulebookRegressionScope } from '@/lib/ediel/rulebook/testRunner'
+import { createEdielTestRun, listEdielTestRuns, updateEdielTestRunStatus } from '@/lib/ediel/db'
+import { pollAndIngestEdielMailbox } from '@/lib/ediel/orchestrator'
+import { getEdielTgtTestCaseByCode, getEdielTgtTestCases } from '@/lib/ediel/tgtRegistry'
+import { autoAttachImportedMessageToActiveTgtRun, runTgtAutopilotForRun } from '@/lib/ediel/tgtAutopilot'
+import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
@@ -39,9 +44,181 @@ async function safeInsert(table: string, payload: Record<string, unknown>) {
   return data as Record<string, unknown> | null
 }
 
-function revalidateSystemTests() {
+function revalidateSystemTests(testCaseCode?: string | null) {
   revalidatePath('/admin/ediel/system-tests')
+  if (testCaseCode) revalidatePath(`/admin/ediel/system-tests/cases/${encodeURIComponent(testCaseCode)}`)
   revalidatePath('/admin/ediel')
+}
+
+function normalizeCode(value: string | null | undefined): string {
+  return String(value ?? '').trim().toUpperCase()
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const testCaseCode = normalizeCode(formString(formData.get('testCaseCode')))
+  const suiteRaw = normalizeCode(formString(formData.get('testSuite'))) || 'UTILTS'
+  const roleRaw = String(formString(formData.get('roleCode')) ?? 'esco').trim().toLowerCase()
+  const suite: EdielTestSuite = suiteRaw === 'PRODAT' || suiteRaw === 'UTILTS' || suiteRaw === 'AI_LIST' || suiteRaw === 'NBS_XML' ? suiteRaw : 'OTHER'
+  const roleCode: EdielTestRoleCode = roleRaw === 'supplier' || roleRaw === 'grid_owner' || roleRaw === 'balance_responsible' || roleRaw === 'esco' ? roleRaw : 'esco'
+  const mailbox = formString(formData.get('mailbox')) ?? 'INBOX'
+  const limitRaw = formString(formData.get('limit'))
+  const limitNumber = limitRaw ? Number(limitRaw) : 10
+  const limit = Number.isFinite(limitNumber) && limitNumber > 0 ? Math.min(Math.floor(limitNumber), 50) : 10
+  const startedAt = new Date().toISOString()
+
+  const definition = getEdielTgtTestCaseByCode(suite, roleCode, testCaseCode)
+    ?? getEdielTgtTestCases().find((testCase) => normalizeCode(testCase.testCaseCode) === testCaseCode)
+
+  if (!testCaseCode || !definition) {
+    throw new Error(`Okänt TGT-testfall: ${testCaseCode || 'saknas'}`)
+  }
+
+  let targetRunId: string | null = null
+
+  try {
+    const existingRuns = await listEdielTestRuns().catch(() => [])
+    const activeRun = existingRuns.find((run) =>
+      normalizeCode(run.test_suite) === normalizeCode(definition.suite) &&
+      normalizeCode(run.role_code) === normalizeCode(definition.roleCode) &&
+      normalizeCode(run.test_case_code) === normalizeCode(definition.testCaseCode) &&
+      (run.status === 'running' || run.status === 'draft')
+    )
+
+    if (activeRun) {
+      targetRunId = activeRun.id
+    } else {
+      const createdRun = await createEdielTestRun({
+        actorUserId: context.userId,
+        testSuite: definition.suite,
+        roleCode: definition.roleCode,
+        testCaseCode: definition.testCaseCode,
+        title: definition.title,
+        approvalVersion: definition.approvalVersion,
+        notes: [
+          definition.purpose,
+          'Skapad automatiskt från Systemtest när IMAP-poll kördes.',
+          'Synknyckel: explicit TGT-testfallskod så U3.1.1/U3.1.2/U3.2.1/U3.2.2 inte blandas ihop.',
+        ].join('\n'),
+        status: 'running',
+        startedAt,
+      })
+      targetRunId = createdRun.id
+    }
+
+    const importedMessages = await pollAndIngestEdielMailbox({
+      actorUserId: context.userId,
+      mailbox,
+      limit,
+    })
+
+    const linked: Array<Record<string, unknown>> = []
+    const skipped: Array<Record<string, unknown>> = []
+
+    for (const message of importedMessages) {
+      const attachResult = await autoAttachImportedMessageToActiveTgtRun({
+        edielMessage: message,
+        explicitTestCaseCode: definition.testCaseCode,
+      })
+
+      if (!attachResult) {
+        skipped.push({
+          messageId: message.id,
+          family: message.message_family,
+          code: message.message_code,
+          direction: message.direction,
+          reason: 'Meddelandet matchade inte nästa förväntade steg för valt testfall.',
+        })
+        continue
+      }
+
+      linked.push({
+        messageId: attachResult.messageId,
+        testRunId: attachResult.testRunId,
+        stepNo: attachResult.stepNo,
+        action: attachResult.action,
+        description: attachResult.description,
+      })
+      targetRunId = attachResult.testRunId
+
+      await runTgtAutopilotForRun({
+        actorUserId: context.userId,
+        testRunId: attachResult.testRunId,
+      }).catch(async (error) => {
+        skipped.push({
+          testRunId: attachResult.testRunId,
+          messageId: attachResult.messageId,
+          reason: `Autopilot kunde inte skapa nästa steg: ${errorMessage(error)}`,
+        })
+      })
+    }
+
+    await attachRulebookArtifact({
+      actorUserId: context.userId,
+      testRunId: targetRunId,
+      artifactType: 'imap_poll_sync',
+      title: `IMAP-poll och synk för ${definition.testCaseCode}`,
+      payload: {
+        testCaseCode: definition.testCaseCode,
+        mailbox,
+        limit,
+        importedCount: importedMessages.length,
+        linkedCount: linked.length,
+        linked,
+        skipped,
+        pollStatus: linked.length > 0 ? 'linked' : importedMessages.length > 0 ? 'imported_without_match' : 'no_unread_messages',
+        createdAt: new Date().toISOString(),
+      },
+    })
+  } catch (error) {
+    const pollError = `IMAP-poll misslyckades: ${errorMessage(error)}`
+    if (targetRunId) {
+      await updateEdielTestRunStatus({
+        actorUserId: context.userId,
+        testRunId: targetRunId,
+        status: 'failed',
+        failureReason: pollError,
+        completedAt: new Date().toISOString(),
+      }).catch(() => undefined)
+    }
+
+    if (!targetRunId) {
+      const failedRun = await createEdielTestRun({
+        actorUserId: context.userId,
+        testSuite: definition.suite,
+        roleCode: definition.roleCode,
+        testCaseCode: definition.testCaseCode,
+        title: definition.title,
+        approvalVersion: definition.approvalVersion,
+        status: 'failed',
+        startedAt,
+        completedAt: new Date().toISOString(),
+        failureReason: pollError,
+        notes: 'Systemtest försökte polla IMAP från testfallssidan men kunde inte slutföra importen.',
+      })
+      targetRunId = failedRun.id
+    }
+
+    await attachRulebookArtifact({
+      actorUserId: context.userId,
+      testRunId: targetRunId,
+      artifactType: 'imap_poll_error',
+      title: `IMAP-poll misslyckades för ${definition.testCaseCode}`,
+      payload: {
+        testCaseCode: definition.testCaseCode,
+        mailbox,
+        limit,
+        error: errorMessage(error),
+        createdAt: new Date().toISOString(),
+      },
+    }).catch(() => undefined)
+  }
+
+  revalidateSystemTests(definition.testCaseCode)
 }
 
 export async function syncRulebookStaticRulesAction() {
