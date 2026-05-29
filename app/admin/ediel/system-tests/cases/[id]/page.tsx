@@ -2,7 +2,8 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
-import { listEdielMessages, listEdielTestRuns } from '@/lib/ediel/db'
+import { listEdielMessages, listEdielMessagesByIds, listEdielTestRunMessages, listEdielTestRuns } from '@/lib/ediel/db'
+import { supabaseService } from '@/lib/supabase/service'
 import {
   EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
   EDIEL_TGT_TESTSYSTEM_EMAIL,
@@ -16,7 +17,14 @@ import {
   type EdielTgtTestCaseDefinition,
 } from '@/lib/ediel/tgtRegistry'
 import { createEdielTgtRunFromTemplateAction } from '@/app/admin/ediel/actions'
-import { pollAndSyncTgtSystemTestMailboxAction } from '@/app/admin/ediel/system-tests/actions'
+import {
+  createAndSendSystemTestAckAction,
+  deleteSystemTestRunAction,
+  pollAndSyncTgtSystemTestMailboxAction,
+  softDeleteSystemTestMessageAction,
+  unlinkSystemTestMessageAction,
+  validateSystemTestPayloadAction,
+} from '@/app/admin/ediel/system-tests/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,6 +95,105 @@ function StartRunForm({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
   )
 }
 
+
+function AckActionForm({
+  sourceMessageId,
+  testRunId,
+  testCase,
+  ackFamily,
+  outcome,
+  label,
+  tone = 'slate',
+  stepNo,
+}: {
+  sourceMessageId: string
+  testRunId: string
+  testCase: EdielTgtTestCaseDefinition
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome: 'positive' | 'negative'
+  label: string
+  tone?: Tone
+  stepNo?: number | null
+}) {
+  return (
+    <form action={createAndSendSystemTestAckAction}>
+      <input type="hidden" name="sourceMessageId" value={sourceMessageId} />
+      <input type="hidden" name="testRunId" value={testRunId} />
+      <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+      <input type="hidden" name="ackFamily" value={ackFamily} />
+      <input type="hidden" name="outcome" value={outcome} />
+      <input type="hidden" name="sendNow" value="true" />
+      {stepNo ? <input type="hidden" name="stepNo" value={String(stepNo)} /> : null}
+      <button type="submit" className={`rounded-xl border px-3 py-2 text-xs font-semibold ${badgeClass(tone)} hover:bg-white`}>
+        {label}
+      </button>
+    </form>
+  )
+}
+
+function UnlinkMessageForm({ testRunId, testCaseCode, edielMessageId, linkId }: { testRunId: string; testCaseCode: string; edielMessageId: string; linkId?: string | null }) {
+  return (
+    <form action={unlinkSystemTestMessageAction}>
+      <input type="hidden" name="testRunId" value={testRunId} />
+      <input type="hidden" name="testCaseCode" value={testCaseCode} />
+      <input type="hidden" name="edielMessageId" value={edielMessageId} />
+      {linkId ? <input type="hidden" name="linkId" value={linkId} /> : null}
+      <button type="submit" className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+        Koppla loss
+      </button>
+    </form>
+  )
+}
+
+function SoftDeleteMessageForm({ testRunId, testCaseCode, edielMessageId }: { testRunId: string; testCaseCode: string; edielMessageId: string }) {
+  return (
+    <form action={softDeleteSystemTestMessageAction}>
+      <input type="hidden" name="testRunId" value={testRunId} />
+      <input type="hidden" name="testCaseCode" value={testCaseCode} />
+      <input type="hidden" name="edielMessageId" value={edielMessageId} />
+      <input type="hidden" name="reason" value="Soft delete från testfallssidan. Felkopplat eller felaktigt testmeddelande." />
+      <button type="submit" className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
+        Soft delete
+      </button>
+    </form>
+  )
+}
+
+function DeleteRunForm({ testRunId, testCaseCode }: { testRunId: string; testCaseCode: string }) {
+  return (
+    <form action={deleteSystemTestRunAction}>
+      <input type="hidden" name="testRunId" value={testRunId} />
+      <input type="hidden" name="testCaseCode" value={testCaseCode} />
+      <input type="hidden" name="reason" value="Testkörning rensad från testfallssidan innan ny portaltestkörning." />
+      <button type="submit" className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
+        Radera/lossa testkörning
+      </button>
+    </form>
+  )
+}
+
+function safeJsonPreview(value: unknown, maxLength = 900): string {
+  try {
+    const text = JSON.stringify(value ?? {}, null, 2)
+    return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text
+  } catch {
+    return 'Kunde inte visa payload.'
+  }
+}
+
+function expectedAckStep(testCase: EdielTgtTestCaseDefinition, family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR', outcome?: 'positive' | 'negative') {
+  return testCase.expectedSteps.find((step) =>
+    step.actor === 'gridex' &&
+    step.direction === 'outbound' &&
+    step.family === family &&
+    (!outcome || step.outcome === outcome)
+  ) ?? testCase.expectedSteps.find((step) => step.actor === 'gridex' && step.direction === 'outbound' && step.family === family)
+}
+
+function shouldOfferAperak(messageFamily: string | null | undefined) {
+  return messageFamily === 'PRODAT' || messageFamily === 'UTILTS'
+}
+
 function StepCard({ step }: { step: EdielTgtExpectedStep }) {
   const tone: Tone = step.actor === 'gridex' ? 'emerald' : 'amber'
   return (
@@ -150,6 +257,33 @@ export default async function SystemTestCasePage({
   )
   const evaluations = matchingRuns.map((run) => evaluateEdielTgtRun(run, messages))
   const latest = evaluations[0] ?? null
+  const runDetails = await Promise.all(matchingRuns.map(async (run) => {
+    const links = await listEdielTestRunMessages({ testRunId: run.id }).catch(() => [])
+    const linkMessageRows = await listEdielMessagesByIds(links.map((link) => link.ediel_message_id)).catch(() => [])
+    const messagesById = new Map(linkMessageRows.map((message) => [message.id, message]))
+    let artifactRows: Array<Record<string, unknown>> = []
+    try {
+      const artifactResult = await supabaseService
+        .from('ediel_test_artifacts')
+        .select('*')
+        .eq('test_run_id', run.id)
+        .order('created_at', { ascending: false })
+        .limit(8)
+
+      if (!artifactResult.error || artifactResult.error.code === '42P01') {
+        artifactRows = (artifactResult.data ?? []) as Array<Record<string, unknown>>
+      }
+    } catch {
+      artifactRows = []
+    }
+
+    return {
+      runId: run.id,
+      links: links.map((link) => ({ link, message: messagesById.get(link.ediel_message_id) ?? null })),
+      artifacts: artifactRows,
+    }
+  }))
+  const runDetailById = new Map(runDetails.map((detail) => [detail.runId, detail]))
 
   return (
     <div className="space-y-6">
@@ -215,6 +349,7 @@ export default async function SystemTestCasePage({
           <input type="hidden" name="testSuite" value={testCase.suite} />
           <input type="hidden" name="roleCode" value={testCase.roleCode} />
           <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+          <input type="hidden" name="tgtTestCaseCode" value={testCase.testCaseCode} />
           <label className="block text-sm font-medium text-slate-700">
             IMAP-mapp / mailbox
             <input name="mailbox" defaultValue="INBOX" className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
@@ -232,6 +367,32 @@ export default async function SystemTestCasePage({
         </div>
       </section>
 
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">Payload-validator</h2>
+            <p className="mt-1 max-w-4xl text-sm leading-6 text-slate-700">
+              Använd denna innan du skickar eller efter IMAP-import för att se parsed family/code, fältfel, fel Application Reference och förväntad ACK. Resultatet sparas som artifact på aktiv testkörning om en finns.
+            </p>
+          </div>
+          <Badge>2.5A</Badge>
+        </div>
+        <form action={validateSystemTestPayloadAction} className="mt-4 grid gap-3">
+          <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+          {latest?.testRun.id ? <input type="hidden" name="testRunId" value={latest.testRun.id} /> : null}
+          <textarea name="rawPayload" rows={8} placeholder="Klistra in EDIFACT/XML/AI-lista här" className="w-full rounded-xl border border-slate-300 px-3 py-2 font-mono text-xs" />
+          <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+            <label className="block text-sm font-medium text-slate-700">
+              Eller ladda upp payloadfil
+              <input type="file" name="payloadFile" className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+            </label>
+            <button type="submit" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+              Validera payload mot {testCase.testCaseCode}
+            </button>
+          </div>
+        </form>
+      </section>
+
       <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <h2 className="text-lg font-semibold text-slate-950">Förväntad kedja</h2>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -247,7 +408,15 @@ export default async function SystemTestCasePage({
         <div className="mt-4 space-y-3">
           {evaluations.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-700">Ingen run finns ännu. Starta testkörning först.</div>
-          ) : evaluations.map((evaluation) => (
+          ) : evaluations.map((evaluation) => {
+            const detail = runDetailById.get(evaluation.testRun.id)
+            const contrlPositiveStep = expectedAckStep(testCase, 'CONTRL', 'positive')
+            const contrlNegativeStep = expectedAckStep(testCase, 'CONTRL', 'negative')
+            const positiveAperakStep = expectedAckStep(testCase, 'APERAK', 'positive')
+            const negativeAperakStep = expectedAckStep(testCase, 'APERAK', 'negative')
+            const utiltsErrStep = expectedAckStep(testCase, 'UTILTS_ERR', 'negative')
+
+            return (
             <div key={evaluation.testRun.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-2">
@@ -255,7 +424,10 @@ export default async function SystemTestCasePage({
                   <Badge>{evaluation.passedSteps}/{evaluation.requiredSteps} steg</Badge>
                   <Badge tone={evaluation.missingRequiredSteps > 0 ? 'amber' : 'emerald'}>{evaluation.missingRequiredSteps} saknas</Badge>
                 </div>
-                <div className="text-xs text-slate-600">Skapad {formatDate(evaluation.testRun.created_at)}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-xs text-slate-600">Skapad {formatDate(evaluation.testRun.created_at)}</div>
+                  <DeleteRunForm testRunId={evaluation.testRun.id} testCaseCode={testCase.testCaseCode} />
+                </div>
               </div>
               {evaluation.testRun.failure_reason ? (
                 <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
@@ -279,8 +451,65 @@ export default async function SystemTestCasePage({
                   </div>
                 ))}
               </div>
+
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-slate-950">Testkopplade meddelanden</h3>
+                  <Badge>{detail?.links.length ?? 0} kopplingar</Badge>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {!detail || detail.links.length === 0 ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">Inga testkopplade meddelanden ännu. Polla IMAP eller koppla meddelande från meddelandevyn.</div>
+                  ) : detail.links.map(({ link, message }) => (
+                    <div key={link.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          <Badge tone={message?.direction === 'inbound' ? 'amber' : 'emerald'}>{message?.direction ?? 'okänd'}</Badge>
+                          <Badge>{message?.message_family ?? link.expected_family} {message?.message_code ?? link.expected_code}</Badge>
+                          <Badge>{message?.status ?? '—'}</Badge>
+                          {link.step_no ? <Badge>Steg {link.step_no}</Badge> : null}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {message ? <Link href={`/admin/ediel/messages/${message.id}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Öppna</Link> : null}
+                          {message ? <UnlinkMessageForm testRunId={evaluation.testRun.id} testCaseCode={testCase.testCaseCode} edielMessageId={message.id} linkId={link.id} /> : null}
+                          {message ? <SoftDeleteMessageForm testRunId={evaluation.testRun.id} testCaseCode={testCase.testCaseCode} edielMessageId={message.id} /> : null}
+                        </div>
+                      </div>
+                      {message?.direction === 'inbound' && message.message_family !== 'CONTRL' ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <AckActionForm sourceMessageId={message.id} testRunId={evaluation.testRun.id} testCase={testCase} ackFamily="CONTRL" outcome="positive" stepNo={contrlPositiveStep?.stepNo ?? contrlNegativeStep?.stepNo ?? null} label="Skapa & skicka positiv CONTRL" tone="emerald" />
+                          <AckActionForm sourceMessageId={message.id} testRunId={evaluation.testRun.id} testCase={testCase} ackFamily="CONTRL" outcome="negative" stepNo={contrlNegativeStep?.stepNo ?? contrlPositiveStep?.stepNo ?? null} label="Skapa & skicka negativ CONTRL" tone="red" />
+                          {shouldOfferAperak(message.message_family) && positiveAperakStep ? <AckActionForm sourceMessageId={message.id} testRunId={evaluation.testRun.id} testCase={testCase} ackFamily="APERAK" outcome="positive" stepNo={positiveAperakStep.stepNo} label="Skapa & skicka positiv APERAK" tone="emerald" /> : null}
+                          {shouldOfferAperak(message.message_family) && negativeAperakStep ? <AckActionForm sourceMessageId={message.id} testRunId={evaluation.testRun.id} testCase={testCase} ackFamily="APERAK" outcome="negative" stepNo={negativeAperakStep.stepNo} label="Skapa & skicka negativ APERAK" tone="red" /> : null}
+                          {message.message_family === 'UTILTS' && utiltsErrStep ? <AckActionForm sourceMessageId={message.id} testRunId={evaluation.testRun.id} testCase={testCase} ackFamily="UTILTS_ERR" outcome="negative" stepNo={utiltsErrStep.stepNo} label="Skapa & skicka UTILTS_ERR" tone="red" /> : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-slate-950">Decision trace / artifacts</h3>
+                  <Badge>{detail?.artifacts.length ?? 0} artifacts</Badge>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {!detail || detail.artifacts.length === 0 ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">Inga artifacts ännu. Kör IMAP-synk eller Payload-validator.</div>
+                  ) : detail.artifacts.map((artifact) => (
+                    <details key={String(artifact.id ?? `${artifact.artifact_type}-${artifact.created_at}`)} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+                      <summary className="cursor-pointer font-semibold text-slate-900">
+                        {String(artifact.artifact_type ?? 'artifact')} · {String(artifact.title ?? '')} · {formatDate(typeof artifact.created_at === 'string' ? artifact.created_at : null)}
+                      </summary>
+                      <pre className="mt-3 max-h-72 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-5 text-slate-50">{safeJsonPreview(artifact.payload)}</pre>
+                    </details>
+                  ))}
+                </div>
+              </div>
             </div>
-          ))}
+          )
+          })}
         </div>
       </section>
     </div>

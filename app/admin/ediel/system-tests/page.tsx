@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic'
 
 type Tone = 'emerald' | 'amber' | 'red' | 'slate' | 'blue'
 type TestRunList = Awaited<ReturnType<typeof listEdielTestRuns>>
-type FilterPacket = 'all' | 'u3' | 'u31' | 'u32' | 'esco' | 'utilts' | 'prodat'
+type FilterPacket = 'all' | 'u3' | 'u31' | 'u32' | 'esco' | 'utilts' | 'prodat' | 'l' | 'e' | 'ul' | 'ue' | 'agt' | 'tgt'
 type FilterStatus = 'all' | 'not_started' | 'running' | 'passed' | 'failed'
 
 function badgeClass(tone: Tone) {
@@ -68,7 +68,7 @@ function compareCase(a: EdielTgtTestCaseDefinition, b: EdielTgtTestCaseDefinitio
 
 function normalizePacket(value: string | undefined): FilterPacket {
   const normalized = String(value ?? 'u3').toLowerCase()
-  if (normalized === 'all' || normalized === 'u3' || normalized === 'u31' || normalized === 'u32' || normalized === 'esco' || normalized === 'utilts' || normalized === 'prodat') return normalized
+  if (normalized === 'all' || normalized === 'u3' || normalized === 'u31' || normalized === 'u32' || normalized === 'esco' || normalized === 'utilts' || normalized === 'prodat' || normalized === 'l' || normalized === 'e' || normalized === 'ul' || normalized === 'ue' || normalized === 'agt' || normalized === 'tgt') return normalized
   return 'u3'
 }
 
@@ -130,6 +130,12 @@ function matchesPacket(testCase: EdielTgtTestCaseDefinition, packet: FilterPacke
   if (packet === 'esco') return testCase.roleCode === 'esco'
   if (packet === 'utilts') return testCase.suite === 'UTILTS'
   if (packet === 'prodat') return testCase.suite === 'PRODAT'
+  if (packet === 'e') return testCase.roleCode === 'esco' && testCase.suite === 'PRODAT' && (/^E\d/i.test(code) || code.startsWith('8.') || code.startsWith('9.'))
+  if (packet === 'ue') return testCase.roleCode === 'esco' && testCase.suite === 'UTILTS' && (code.startsWith('UE') || code.startsWith('U3.'))
+  if (packet === 'l') return testCase.roleCode === 'supplier' && testCase.suite === 'PRODAT' && code.startsWith('L')
+  if (packet === 'ul') return testCase.roleCode === 'supplier' && testCase.suite === 'UTILTS' && code.startsWith('UL')
+  if (packet === 'agt') return code.startsWith('L') || code.startsWith('UL') || code.startsWith('UE') || code.startsWith('E')
+  if (packet === 'tgt') return !code.startsWith('L') && !code.startsWith('UL') && !code.startsWith('UE')
   return true
 }
 
@@ -185,7 +191,12 @@ function QuickFilters({ packet, status, q }: { packet: FilterPacket; status: Fil
     { key: 'u31', label: 'U3.1 korrekta' },
     { key: 'u32', label: 'U3.2 felaktiga' },
     { key: 'esco', label: 'Alla energitjänsteföretag' },
+    { key: 'e', label: 'E3–E8 PRODAT ESCO' },
+    { key: 'ue', label: 'UE1–UE2 UTILTS ESCO' },
+    { key: 'l', label: 'L1–L7 Leverantör AGT' },
+    { key: 'ul', label: 'UL1–UL6 UTILTS AGT' },
     { key: 'utilts', label: 'Alla UTILTS' },
+    { key: 'prodat', label: 'Alla PRODAT' },
     { key: 'all', label: 'Alla testfall' },
   ]
 
@@ -315,6 +326,7 @@ export default async function EdielSystemTestsPage({
     listEdielTestRuns().catch(() => []),
     listEdielMessages({ limit: 300 }).catch(() => []),
   ])
+  const testRunsForCards = testRuns as TestRunList
 
   const allCore = getEdielTgtTestCases().filter((testCase) => testCase.scope === 'core')
   const u3Cases = allCore.filter(isU3).sort(compareCase)
@@ -365,7 +377,7 @@ export default async function EdielSystemTestsPage({
 
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {u3Cases.map((testCase) => (
-            <TestCard key={testCase.testCaseCode} testCase={testCase} activeRuns={testRuns} />
+            <TestCard key={testCase.testCaseCode} testCase={testCase} activeRuns={testRunsForCards} />
           ))}
         </div>
       </section>
@@ -429,7 +441,7 @@ export default async function EdielSystemTestsPage({
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               {items.map((testCase) => (
-                <TestCard key={`${testCase.suite}-${testCase.roleCode}-${testCase.testCaseCode}`} testCase={testCase} activeRuns={testRuns} />
+                <TestCard key={`${testCase.suite}-${testCase.roleCode}-${testCase.testCaseCode}`} testCase={testCase} activeRuns={testRunsForCards} />
               ))}
             </div>
           </section>

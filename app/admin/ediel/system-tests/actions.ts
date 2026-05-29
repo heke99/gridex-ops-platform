@@ -11,11 +11,21 @@ import { parseRulebookListPayload, parseRulebookMessage } from '@/lib/ediel/rule
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 import { parseStructuredTestData } from '@/lib/ediel/rulebook/testDataImport'
 import { attachRulebookArtifact, runRulebookRegression, type RulebookRegressionScope } from '@/lib/ediel/rulebook/testRunner'
-import { createEdielTestRun, listEdielTestRuns, updateEdielTestRunStatus } from '@/lib/ediel/db'
-import { pollAndIngestEdielMailbox } from '@/lib/ediel/orchestrator'
+import {
+  attachEdielMessageToTestRun,
+  createEdielMessageEvent,
+  createEdielTestRun,
+  getEdielMessageById,
+  listAckMessagesForSource,
+  listEdielTestRuns,
+  updateEdielMessageStatus,
+  updateEdielTestRunStatus,
+} from '@/lib/ediel/db'
+import { createAckDraftForMessage, pollAndIngestEdielMailbox, sendQueuedEdielMessage } from '@/lib/ediel/orchestrator'
 import { getEdielTgtTestCaseByCode, getEdielTgtTestCases } from '@/lib/ediel/tgtRegistry'
 import { autoAttachImportedMessageToActiveTgtRun, runTgtAutopilotForRun } from '@/lib/ediel/tgtAutopilot'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
+import type { AckFamily, AckOutcome } from '@/lib/ediel/core/ackPolicy'
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
@@ -58,9 +68,349 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+
+function normalizeAckFamily(value: string | null | undefined): AckFamily {
+  const normalized = String(value ?? '').trim().toUpperCase()
+  if (normalized === 'CONTRL' || normalized === 'APERAK' || normalized === 'UTILTS_ERR') return normalized
+  throw new Error('Ogiltig ACK-familj')
+}
+
+function normalizeAckOutcome(value: string | null | undefined): AckOutcome {
+  const normalized = String(value ?? 'positive').trim().toLowerCase()
+  if (normalized === 'positive' || normalized === 'negative') return normalized
+  throw new Error('Ogiltig ACK-outcome')
+}
+
+function formNumber(value: FormDataEntryValue | null): number | null {
+  const raw = formString(value)
+  if (!raw) return null
+  const number = Number(raw)
+  return Number.isFinite(number) ? number : null
+}
+
+async function safeDeleteWhere(table: string, column: string, value: string) {
+  const { error } = await supabaseService.from(table).delete().eq(column, value)
+  if (error && error.code !== '42P01' && error.code !== '42703') throw error
+}
+
+async function safeDeleteMessageRunLink(params: { testRunId: string; edielMessageId?: string | null; linkId?: string | null }) {
+  let query = supabaseService.from('ediel_test_run_messages').delete().eq('test_run_id', params.testRunId)
+  if (params.linkId) query = query.eq('id', params.linkId)
+  if (params.edielMessageId) query = query.eq('ediel_message_id', params.edielMessageId)
+  const { error } = await query
+  if (error && error.code !== '42P01' && error.code !== '42703') throw error
+}
+
+async function auditSystemTestMaintenance(params: {
+  actorUserId: string
+  action: string
+  testRunId?: string | null
+  edielMessageId?: string | null
+  reason?: string | null
+  payload?: Record<string, unknown>
+}) {
+  if (params.edielMessageId) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.edielMessageId,
+      eventType: 'manual_note',
+      eventStatus: params.action.includes('delete') || params.action.includes('unlink') ? 'warning' : 'info',
+      message: params.reason ?? params.action,
+      payload: {
+        action: params.action,
+        testRunId: params.testRunId ?? null,
+        ...(params.payload ?? {}),
+      },
+    }).catch(() => undefined)
+  }
+
+  await supabaseService.from('audit_logs').insert({
+    action: params.action,
+    entity_type: 'ediel_system_test',
+    entity_id: params.testRunId ?? params.edielMessageId ?? null,
+    actor_user_id: params.actorUserId,
+    metadata: {
+      testRunId: params.testRunId ?? null,
+      edielMessageId: params.edielMessageId ?? null,
+      reason: params.reason ?? null,
+      ...(params.payload ?? {}),
+    },
+  }).then((result: { error?: { code?: string } | null }) => {
+    const error = result.error ?? null
+    if (error && error.code !== '42P01' && error.code !== '42703') {
+      console.warn('Audit log kunde inte sparas för systemtest-action', error)
+    }
+  })
+}
+
+async function findBestActiveRunForMessage(params: {
+  testRunId?: string | null
+  testCaseCode?: string | null
+  sourceMessageId?: string | null
+}) {
+  if (params.testRunId) return params.testRunId
+
+  const testCaseCode = normalizeCode(params.testCaseCode)
+  if (!testCaseCode) return null
+
+  const runs = await listEdielTestRuns().catch(() => [])
+  const candidate = runs.find((run) =>
+    normalizeCode(run.test_case_code) === testCaseCode &&
+    (run.status === 'running' || run.status === 'draft')
+  ) ?? runs.find((run) => normalizeCode(run.test_case_code) === testCaseCode)
+
+  return candidate?.id ?? null
+}
+
+export async function createAndSendSystemTestAckAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const sourceMessageId = formString(formData.get('sourceMessageId'))
+  const testRunIdInput = formString(formData.get('testRunId'))
+  const testCaseCode = formString(formData.get('testCaseCode'))
+  const ackFamily = normalizeAckFamily(formString(formData.get('ackFamily')))
+  const outcome = normalizeAckOutcome(formString(formData.get('outcome')))
+  const messageText = formString(formData.get('messageText'))
+  const stepNo = formNumber(formData.get('stepNo'))
+  const sendNow = (formString(formData.get('sendNow')) ?? 'true') !== 'false'
+
+  if (!sourceMessageId) throw new Error('sourceMessageId saknas')
+
+  const sourceMessage = await getEdielMessageById(sourceMessageId)
+  if (!sourceMessage) throw new Error('Källmeddelande hittades inte')
+  if (sourceMessage.message_family === 'CONTRL') throw new Error('CONTRL ska aldrig kvitteras med en ny CONTRL/APERAK.')
+  if (ackFamily === 'APERAK' && sourceMessage.message_family === 'APERAK') {
+    throw new Error('APERAK får inte skickas på APERAK.')
+  }
+
+  const testRunId = await findBestActiveRunForMessage({ testRunId: testRunIdInput, testCaseCode, sourceMessageId })
+
+  const existingAcks = await listAckMessagesForSource({
+    sourceMessageId,
+    ackFamily,
+    outcome: ackFamily === 'UTILTS_ERR' ? undefined : outcome,
+    companyId: sourceMessage.company_id ?? null,
+  }).catch(() => [])
+  const reusableAck = existingAcks.find((ack) => ack.direction === 'outbound' && ['draft', 'queued', 'prepared'].includes(String(ack.status)))
+  let ackMessage = reusableAck ?? null
+  if (!ackMessage) {
+    ackMessage = await createAckDraftForMessage({
+      actorUserId: context.userId,
+      sourceMessageId,
+      ackFamily,
+      outcome: ackFamily === 'UTILTS_ERR' ? undefined : outcome,
+      messageText: messageText ?? null,
+      applicationErrors: null,
+    })
+  }
+
+  if (testRunId) {
+    await attachEdielMessageToTestRun({
+      testRunId,
+      edielMessageId: ackMessage.id,
+      stepNo,
+      expectedDirection: 'outbound',
+      expectedFamily: ackFamily,
+      expectedCode: ackFamily,
+    }).catch(async (error) => {
+      await auditSystemTestMaintenance({
+        actorUserId: context.userId,
+        action: 'ediel.system_test.ack_attach_failed',
+        testRunId,
+        edielMessageId: ackMessage.id,
+        reason: errorMessage(error),
+      })
+    })
+  }
+
+  await auditSystemTestMaintenance({
+    actorUserId: context.userId,
+    action: sendNow ? 'ediel.system_test.ack_create_and_send' : 'ediel.system_test.ack_create_preview',
+    testRunId,
+    edielMessageId: ackMessage.id,
+    reason: `${ackFamily} ${outcome} skapades från Systemtest.`,
+    payload: { sourceMessageId, ackFamily, outcome, testCaseCode: testCaseCode ?? null, stepNo },
+  })
+
+  if (sendNow) {
+    try {
+      await sendQueuedEdielMessage({ actorUserId: context.userId, edielMessageId: ackMessage.id })
+      await auditSystemTestMaintenance({
+        actorUserId: context.userId,
+        action: 'ediel.system_test.ack_sent',
+        testRunId,
+        edielMessageId: ackMessage.id,
+        reason: `${ackFamily} ${outcome} skickades från Systemtest.`,
+        payload: { sourceMessageId, ackFamily, outcome, testCaseCode: testCaseCode ?? null },
+      })
+    } catch (error) {
+      await updateEdielMessageStatus({
+        actorUserId: context.userId,
+        edielMessageId: ackMessage.id,
+        status: 'failed',
+        failureReason: `Systemtest kunde skapa men inte skicka ${ackFamily}: ${errorMessage(error)}`,
+        failedAt: new Date().toISOString(),
+      }).catch(() => undefined)
+      throw error
+    }
+  }
+
+  revalidateSystemTests(testCaseCode)
+}
+
+export async function unlinkSystemTestMessageAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const testRunId = formString(formData.get('testRunId'))
+  const edielMessageId = formString(formData.get('edielMessageId'))
+  const linkId = formString(formData.get('linkId'))
+  const testCaseCode = formString(formData.get('testCaseCode'))
+  const reason = formString(formData.get('reason')) ?? 'Kopplades loss från testkörning via Systemtest.'
+
+  if (!testRunId) throw new Error('testRunId saknas')
+  if (!edielMessageId && !linkId) throw new Error('edielMessageId eller linkId saknas')
+
+  await safeDeleteMessageRunLink({ testRunId, edielMessageId, linkId })
+
+  await auditSystemTestMaintenance({
+    actorUserId: context.userId,
+    action: 'ediel.system_test.unlink_message',
+    testRunId,
+    edielMessageId,
+    reason,
+    payload: { linkId: linkId ?? null, testCaseCode: testCaseCode ?? null },
+  })
+
+  revalidateSystemTests(testCaseCode)
+}
+
+export async function softDeleteSystemTestMessageAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const testRunId = formString(formData.get('testRunId'))
+  const edielMessageId = formString(formData.get('edielMessageId'))
+  const testCaseCode = formString(formData.get('testCaseCode'))
+  const reason = formString(formData.get('reason')) ?? 'Soft delete från Systemtest. Meddelandet döljs men historik finns kvar.'
+
+  if (!edielMessageId) throw new Error('edielMessageId saknas')
+
+  if (testRunId) await safeDeleteMessageRunLink({ testRunId, edielMessageId })
+  await updateEdielMessageStatus({
+    actorUserId: context.userId,
+    edielMessageId,
+    status: 'cancelled',
+    failureReason: reason,
+  })
+
+  await auditSystemTestMaintenance({
+    actorUserId: context.userId,
+    action: 'ediel.system_test.soft_delete_message',
+    testRunId,
+    edielMessageId,
+    reason,
+    payload: { testCaseCode: testCaseCode ?? null },
+  })
+
+  revalidateSystemTests(testCaseCode)
+}
+
+export async function deleteSystemTestRunAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const testRunId = formString(formData.get('testRunId'))
+  const testCaseCode = formString(formData.get('testCaseCode'))
+  const reason = formString(formData.get('reason')) ?? 'Testkörningen avbröts/rensades från Systemtest.'
+
+  if (!testRunId) throw new Error('testRunId saknas')
+
+  await safeDeleteWhere('ediel_test_run_messages', 'test_run_id', testRunId)
+  await safeDeleteWhere('ediel_test_artifacts', 'test_run_id', testRunId)
+  await updateEdielTestRunStatus({
+    actorUserId: context.userId,
+    testRunId,
+    status: 'cancelled',
+    failureReason: reason,
+    completedAt: new Date().toISOString(),
+  })
+
+  await auditSystemTestMaintenance({
+    actorUserId: context.userId,
+    action: 'ediel.system_test.cancel_and_clear_run',
+    testRunId,
+    reason,
+    payload: { testCaseCode: testCaseCode ?? null },
+  })
+
+  revalidateSystemTests(testCaseCode)
+}
+
+export async function validateSystemTestPayloadAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const testRunId = formString(formData.get('testRunId'))
+  const testCaseCode = formString(formData.get('testCaseCode'))
+  const title = formString(formData.get('title')) ?? `Payload-validering ${testCaseCode ?? ''}`.trim()
+  const pasted = formString(formData.get('rawPayload')) ?? ''
+  const uploaded = await formFileText(formData.get('payloadFile'))
+  const rawPayload = uploaded.text ?? pasted
+
+  if (!rawPayload.trim()) throw new Error('Klistra in eller ladda upp payload först')
+
+  const parsed = rawPayload.includes("'") ? parseRulebookMessage(rawPayload) : parseRulebookListPayload(rawPayload)
+  const definition = testCaseCode ? getEdielTgtTestCases().find((testCase) => normalizeCode(testCase.testCaseCode) === normalizeCode(testCaseCode)) : null
+  const validation = validateRulebookMessage({
+    family: definition?.expectedSteps[0]?.family ?? parsed.family,
+    code: definition?.expectedSteps[0]?.code ?? parsed.code,
+    parsed,
+    rawPayload,
+    mode: 'parse',
+  })
+
+  let targetRunId = testRunId
+  if (!targetRunId && definition) {
+    targetRunId = await findBestActiveRunForMessage({ testCaseCode: definition.testCaseCode })
+  }
+
+  if (!targetRunId && definition) {
+    const run = await createEdielTestRun({
+      actorUserId: context.userId,
+      testSuite: definition.suite,
+      roleCode: definition.roleCode,
+      testCaseCode: definition.testCaseCode,
+      title: definition.title,
+      approvalVersion: definition.approvalVersion,
+      status: validation.blocking ? 'failed' : 'running',
+      startedAt: new Date().toISOString(),
+      failureReason: validation.blocking ? validation.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.description).join(' | ') : null,
+      notes: 'Skapad av Payload-validator i Systemtest.',
+    })
+    targetRunId = run.id
+  }
+
+  await attachRulebookArtifact({
+    actorUserId: context.userId,
+    testRunId: targetRunId,
+    artifactType: 'system_test_payload_validation',
+    title,
+    payload: {
+      testCaseCode: testCaseCode ?? null,
+      fileName: uploaded.fileName,
+      parsed,
+      validation,
+      rawPayload: rawPayload.slice(0, 25000),
+      createdAt: new Date().toISOString(),
+    },
+  })
+
+  await auditSystemTestMaintenance({
+    actorUserId: context.userId,
+    action: 'ediel.system_test.payload_validate',
+    testRunId: targetRunId,
+    reason: validation.blocking ? 'Payload-validering hittade blockerare.' : 'Payload-validering kördes utan blockerare.',
+    payload: { testCaseCode: testCaseCode ?? null, blocking: validation.blocking, issueCount: validation.issues.length },
+  })
+
+  revalidateSystemTests(testCaseCode)
+}
+
 export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
-  const testCaseCode = normalizeCode(formString(formData.get('testCaseCode')))
+  const testCaseCode = normalizeCode(formString(formData.get('testCaseCode')) ?? formString(formData.get('tgtTestCaseCode')))
   const suiteRaw = normalizeCode(formString(formData.get('testSuite'))) || 'UTILTS'
   const roleRaw = String(formString(formData.get('roleCode')) ?? 'esco').trim().toLowerCase()
   const suite: EdielTestSuite = suiteRaw === 'PRODAT' || suiteRaw === 'UTILTS' || suiteRaw === 'AI_LIST' || suiteRaw === 'NBS_XML' ? suiteRaw : 'OTHER'
