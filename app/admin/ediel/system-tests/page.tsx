@@ -10,6 +10,7 @@ import { listRulebookTestCases } from '@/lib/ediel/rulebook/testCaseMatcher'
 import {
   activateRuleVersionAction,
   cloneRuleVersionToDraftAction,
+  executeRulebookTestCaseAction,
   importStructuredTestDataAction,
   parseAndValidateRulebookPayloadAction,
   runRulebookRegressionAction,
@@ -33,7 +34,7 @@ type TabKey =
   | 'ai'
   | 'changes'
 
-type SearchParams = Promise<{ tab?: string }>
+type SearchParams = Promise<{ tab?: string; q?: string; suite?: string; role?: string; family?: string; code?: string; subtype?: string }>
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'overview', label: 'Översikt' },
@@ -177,21 +178,170 @@ function VersionsTab({ ruleVersions }: { ruleVersions: Array<Record<string, unkn
   )
 }
 
-function CasesTab() {
-  const cases = listRulebookTestCases()
+type TestCaseFilters = {
+  q?: string
+  suite?: string
+  role?: string
+  family?: string
+  code?: string
+  subtype?: string
+}
+
+function norm(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function filterTestCases(filters: TestCaseFilters, forced?: Partial<TestCaseFilters>) {
+  const effective = { ...filters, ...forced }
+  const q = norm(effective.q)
+  return listRulebookTestCases().filter((testCase) => {
+    if (effective.suite && testCase.suite !== effective.suite) return false
+    if (effective.role && testCase.role !== effective.role) return false
+    if (effective.family && testCase.family !== effective.family) return false
+    if (effective.code && testCase.code !== effective.code) return false
+    if (effective.subtype && String(testCase.subtype ?? '') !== effective.subtype) return false
+    if (!q) return true
+    const haystack = [testCase.testCaseCode, testCase.title, testCase.suite, testCase.role, testCase.family, testCase.code, testCase.subtype, testCase.processGroup].map((item) => String(item ?? '').toLowerCase()).join(' ')
+    return haystack.includes(q)
+  })
+}
+
+function uniqueValues(key: keyof ReturnType<typeof listRulebookTestCases>[number]) {
+  return Array.from(new Set(listRulebookTestCases().map((testCase) => String(testCase[key] ?? '')).filter(Boolean))).sort()
+}
+
+function TestCaseFilterForm({ filters, forcedRole }: { filters: TestCaseFilters; forcedRole?: string }) {
   return (
     <section className={cardClassName()}>
-      <h2 className="text-lg font-black text-slate-950">Testfall</h2>
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        {cases.map((testCase) => (
-          <Link key={testCase.testCaseCode} href={`/admin/ediel/system-tests/cases/${encodeURIComponent(testCase.testCaseCode)}`} className="rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">
-            <div className="flex flex-wrap items-center gap-2"><Badge>{testCase.suite}</Badge><Badge tone={testCase.role === 'energy_service_company' ? 'emerald' : 'slate'}>{testCase.role}</Badge></div>
-            <div className="mt-3 font-black text-slate-950">{testCase.testCaseCode} · {testCase.title}</div>
-            <div className="mt-1 text-sm text-slate-700">{testCase.family} {testCase.code} · {testCase.processGroup}</div>
-          </Link>
-        ))}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-black text-slate-950">Hitta testfall snabbt</h2>
+          <p className="mt-1 text-sm text-slate-700">Filtrera på roll, familj, kod och undertyp. För UTILTS E66 energitjänsteföretag använder du UE1/UE2 eller U3.x.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/ediel/system-tests?tab=cases&role=energy_service_company&family=UTILTS&code=E66" className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800">ESCO UTILTS E66</Link>
+          <Link href="/admin/ediel/system-tests?tab=cases&q=UE1" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">UE1 KVART</Link>
+          <Link href="/admin/ediel/system-tests?tab=cases&q=UE2" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">UE2 SCH</Link>
+          <Link href="/admin/ediel/system-tests?tab=esco&family=UTILTS&code=E66" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">TGT U3.x</Link>
+        </div>
       </div>
+      <form className="mt-4 grid gap-3 md:grid-cols-6" action="/admin/ediel/system-tests" method="get">
+        <input type="hidden" name="tab" value={forcedRole ? 'esco' : 'cases'} />
+        <input name="q" defaultValue={filters.q ?? ''} className={inputClassName()} placeholder="Sök: UE1, E66, KVART..." />
+        <select name="role" defaultValue={forcedRole ?? filters.role ?? ''} className={inputClassName()} disabled={Boolean(forcedRole)}>
+          <option value="">Alla roller</option>
+          {uniqueValues('role').map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        {forcedRole ? <input type="hidden" name="role" value={forcedRole} /> : null}
+        <select name="suite" defaultValue={filters.suite ?? ''} className={inputClassName()}>
+          <option value="">Alla sviter</option>
+          {uniqueValues('suite').map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select name="family" defaultValue={filters.family ?? ''} className={inputClassName()}>
+          <option value="">Alla familjer</option>
+          {uniqueValues('family').map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select name="code" defaultValue={filters.code ?? ''} className={inputClassName()}>
+          <option value="">Alla koder</option>
+          {uniqueValues('code').map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select name="subtype" defaultValue={filters.subtype ?? ''} className={inputClassName()}>
+          <option value="">Alla undertyper</option>
+          {uniqueValues('subtype').map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <div className="md:col-span-6 flex flex-wrap gap-2">
+          <SubmitButton>Filtrera</SubmitButton>
+          <Link href={`/admin/ediel/system-tests?tab=${forcedRole ? 'esco' : 'cases'}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">Rensa filter</Link>
+        </div>
+      </form>
     </section>
+  )
+}
+
+function executionHint(testCase: ReturnType<typeof listRulebookTestCases>[number]) {
+  if (testCase.family === 'UTILTS' && testCase.role === 'energy_service_company') {
+    return 'Portal → aktör. Starta testet i Edielportalen, låt portalen skicka inbound UTILTS E66, poll/importera mailbox och validera payloaden mot körningen.'
+  }
+  if (testCase.family === 'PRODAT' && testCase.processGroup === 'metering_access') {
+    return 'Mätvärdesåtkomst/berättigad part. Kontrollera att Application Reference är 23-DGI-PRODAT och att flödet inte går via supplier_switch.'
+  }
+  return 'Kör regeltest eller öppna testfallet för detaljerad payload-validering.'
+}
+
+function TestCaseCard({ testCase }: { testCase: ReturnType<typeof listRulebookTestCases>[number] }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge>{testCase.suite}</Badge>
+        <Badge tone={testCase.role === 'energy_service_company' ? 'emerald' : 'slate'}>{testCase.role === 'energy_service_company' ? 'Energitjänsteföretag' : testCase.role}</Badge>
+        <Badge tone={testCase.family === 'UTILTS' ? 'amber' : 'slate'}>{testCase.family} {testCase.code}{testCase.subtype ? ` ${testCase.subtype}` : ''}</Badge>
+      </div>
+      <div className="mt-3 font-black text-slate-950">{testCase.testCaseCode} · {testCase.title}</div>
+      <p className="mt-2 text-sm leading-6 text-slate-700">{executionHint(testCase)}</p>
+      <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-3">
+        <div><span className="font-bold text-slate-800">Process:</span> {testCase.processGroup}</div>
+        <div><span className="font-bold text-slate-800">CONTRL:</span> {testCase.expectedContrl}</div>
+        <div><span className="font-bold text-slate-800">APERAK/ERR:</span> {testCase.expectedAperak} / {testCase.expectedUtiltsErr}</div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <form action={executeRulebookTestCaseAction}>
+          <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+          <input type="hidden" name="executionMode" value="start_portal" />
+          <SubmitButton>{testCase.family === 'UTILTS' ? 'Starta testkörning' : 'Starta test'}</SubmitButton>
+        </form>
+        <Link href={`/admin/ediel/system-tests/cases/${encodeURIComponent(testCase.testCaseCode)}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">Öppna & validera payload</Link>
+      </div>
+    </div>
+  )
+}
+
+function CasesTab({ filters }: { filters: TestCaseFilters }) {
+  const cases = filterTestCases(filters)
+  return (
+    <div className="space-y-5">
+      <TestCaseFilterForm filters={filters} />
+      <section className={cardClassName()}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-black text-slate-950">Testfall</h2>
+          <Badge tone="emerald">{cases.length} träffar</Badge>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {cases.map((testCase) => <TestCaseCard key={testCase.testCaseCode} testCase={testCase} />)}
+          {cases.length === 0 ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Inga testfall matchar filtren. Rensa filter eller sök på UE1, UE2, U3.1.1 eller E66.</div> : null}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function EscoTab({ filters }: { filters: TestCaseFilters }) {
+  const cases = filterTestCases(filters, { role: 'energy_service_company' })
+  return (
+    <div className="space-y-5">
+      <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+        <h2 className="text-lg font-black text-emerald-950">Snabbstart: UTILTS E66 för energitjänsteföretag</h2>
+        <p className="mt-2 text-sm leading-6 text-emerald-900">För KVART/SCH är testet normalt portal → aktör. Starta testkörningen här, starta motsvarande test i Edielportalen och kontrollera sedan inbound/ACK-kedjan i Testkörningar eller Parser & validering.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {['UE1', 'UE2', 'U3.1.1', 'U3.1.2', 'U3.2.1', 'U3.2.2'].map((code) => (
+            <form key={code} action={executeRulebookTestCaseAction}>
+              <input type="hidden" name="testCaseCode" value={code} />
+              <input type="hidden" name="executionMode" value="start_portal" />
+              <SubmitButton>{code}</SubmitButton>
+            </form>
+          ))}
+        </div>
+      </section>
+      <TestCaseFilterForm filters={filters} forcedRole="energy_service_company" />
+      <section className={cardClassName()}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-black text-slate-950">Energitjänsteföretag / berättigad part</h2>
+          <Badge tone="emerald">{cases.length} träffar</Badge>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {cases.map((testCase) => <TestCaseCard key={testCase.testCaseCode} testCase={testCase} />)}
+        </div>
+      </section>
+    </div>
   )
 }
 
@@ -290,6 +440,14 @@ export default async function EdielSystemTestsPage({ searchParams }: { searchPar
   const query = searchParams ? await searchParams : {}
   const requestedTab = String(query.tab ?? 'overview') as TabKey
   const activeTab = TABS.some((tab) => tab.key === requestedTab) ? requestedTab : 'overview'
+  const filters: TestCaseFilters = {
+    q: typeof query.q === 'string' ? query.q : undefined,
+    suite: typeof query.suite === 'string' ? query.suite : undefined,
+    role: typeof query.role === 'string' ? query.role : undefined,
+    family: typeof query.family === 'string' ? query.family : undefined,
+    code: typeof query.code === 'string' ? query.code : undefined,
+    subtype: typeof query.subtype === 'string' ? query.subtype : undefined,
+  }
 
   const [ruleVersions, testRuns, dataSets, changeLogs] = await Promise.all([
     listRows('ediel_rule_versions', 100),
@@ -307,7 +465,7 @@ export default async function EdielSystemTestsPage({ searchParams }: { searchPar
       <TabNav activeTab={activeTab} />
       {activeTab === 'overview' ? <OverviewTab ruleVersions={ruleVersions} testRuns={testRuns} /> : null}
       {activeTab === 'suites' ? <StaticTableTab title="Testsviter" rows={Array.from(new Set(listRulebookTestCases().map((testCase) => testCase.suite))).map((suite) => ({ suite, cases: listRulebookTestCases().filter((testCase) => testCase.suite === suite).length }))} /> : null}
-      {activeTab === 'cases' ? <CasesTab /> : null}
+      {activeTab === 'cases' ? <CasesTab filters={filters} /> : null}
       {activeTab === 'runs' ? <RunsTab testRuns={testRuns} /> : null}
       {activeTab === 'versions' ? <VersionsTab ruleVersions={ruleVersions} /> : null}
       {activeTab === 'fields' ? <StaticTableTab title="Fältmatris" rows={STATIC_FIELD_RULES as unknown as Array<Record<string, unknown>>} /> : null}
@@ -315,7 +473,7 @@ export default async function EdielSystemTestsPage({ searchParams }: { searchPar
       {activeTab === 'parser' ? <ParserTab /> : null}
       {activeTab === 'ack' ? <StaticTableTab title="ACK-regler" rows={activeRulebookRules().map((rule) => ({ family: rule.family, code: rule.code, requiresContrl: rule.requiresContrl, requiresAperak: rule.requiresAperak, requiresUtiltsErr: rule.requiresUtiltsErr, negativeAperakOnError: rule.negativeAperakOnError }))} /> : null}
       {activeTab === 'testdata' ? <TestDataTab dataSets={dataSets} /> : null}
-      {activeTab === 'esco' ? <StaticTableTab title="Energitjänsteföretag / berättigad part" rows={listRulebookTestCases().filter((testCase) => testCase.role === 'energy_service_company') as unknown as Array<Record<string, unknown>>} /> : null}
+      {activeTab === 'esco' ? <EscoTab filters={filters} /> : null}
       {activeTab === 'ai' ? <StaticTableTab title="AI/BI-lista" rows={[...STATIC_CODE_RULES.filter((rule) => rule.codeList === 'AI_BI_FORMATS'), { rule: 'AI-lista skapar avvikelselista och får inte ersätta PRODAT-flöde.' }] as unknown as Array<Record<string, unknown>>} /> : null}
       {activeTab === 'changes' ? <StaticTableTab title="Ändringslogg" rows={changeLogs} /> : null}
       <RegressionPanel />

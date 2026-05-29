@@ -3,10 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { activeRulebookRules } from '@/lib/ediel/rulebook/rulebook'
+import { activeRulebookRules, defaultApplicationReferenceForProcess } from '@/lib/ediel/rulebook/rulebook'
 import { STATIC_FIELD_RULES } from '@/lib/ediel/rulebook/fieldMatrix'
 import { STATIC_CODE_RULES } from '@/lib/ediel/rulebook/codeRules'
-import { listRulebookTestCases } from '@/lib/ediel/rulebook/testCaseMatcher'
+import { findRulebookTestCase, listRulebookTestCases } from '@/lib/ediel/rulebook/testCaseMatcher'
 import { parseRulebookListPayload, parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 import { parseStructuredTestData } from '@/lib/ediel/rulebook/testDataImport'
@@ -301,3 +301,146 @@ export async function importStructuredTestDataAction(formData: FormData) {
 
   revalidateSystemTests()
 }
+
+export async function executeRulebookTestCaseAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const testCaseCode = formString(formData.get('testCaseCode'))
+  if (!testCaseCode) throw new Error('testCaseCode saknas')
+
+  const testCase = findRulebookTestCase(testCaseCode)
+  if (!testCase) throw new Error(`Okänt testfall: ${testCaseCode}`)
+
+  const executionMode = formString(formData.get('executionMode')) ?? 'start_portal'
+  const pasted = formString(formData.get('rawPayload')) ?? ''
+  const uploaded = await formFileText(formData.get('payloadFile'))
+  const rawPayload = uploaded.text ?? pasted
+  const now = new Date().toISOString()
+  const appRef = defaultApplicationReferenceForProcess(testCase.processGroup as never, testCase.family)
+  const hasPayload = rawPayload.trim().length > 0
+  const parsed = hasPayload ? (rawPayload.includes("'") ? parseRulebookMessage(rawPayload) : parseRulebookListPayload(rawPayload)) : null
+  const validation = validateRulebookMessage({
+    family: testCase.family,
+    code: testCase.code,
+    processGroup: testCase.processGroup,
+    applicationReference: appRef,
+    parsed,
+    rawPayload: hasPayload ? rawPayload : null,
+    mode: hasPayload ? 'parse' : 'test',
+  })
+
+  const mismatchIssues: Array<Record<string, unknown>> = []
+  if (parsed?.family && String(parsed.family).toUpperCase() !== String(testCase.family).toUpperCase()) {
+    mismatchIssues.push({ severity: 'error', code: 'TEST_FAMILY_MISMATCH', title: 'Fel meddelandefamilj', description: `Payload är ${parsed.family}, men testfallet kräver ${testCase.family}.` })
+  }
+  if (parsed?.code && String(parsed.code).toUpperCase() !== String(testCase.code).toUpperCase()) {
+    mismatchIssues.push({ severity: 'error', code: 'TEST_CODE_MISMATCH', title: 'Fel meddelandekod', description: `Payload är ${parsed.code}, men testfallet kräver ${testCase.code}.` })
+  }
+
+  const blocking = validation.blocking || mismatchIssues.some((issue) => issue.severity === 'error')
+  const status = hasPayload ? (blocking ? 'failed' : 'passed') : 'running'
+  const title = `${testCase.testCaseCode} · ${testCase.title}`
+  const portalInstructions = testCase.family === 'UTILTS'
+    ? 'Starta testet i Edielportalen. Testet är portal→aktör: portalen ska skicka inbound UTILTS till Gridex. När inbound finns, importera/polla mailbox och koppla meddelandet till denna körning via parser/inbound-kedjan.'
+    : 'Starta testet enligt testsviten. Outbound-fall kan skickas från relevant kundkort/AGT-flöde; inbound-fall väntar på meddelande från Edielportalen.'
+
+  const run = await safeInsert('ediel_test_runs', {
+    test_suite: testCase.suite,
+    role_code: testCase.role,
+    test_case_code: testCase.testCaseCode,
+    title,
+    status,
+    started_at: now,
+    completed_at: hasPayload ? now : null,
+    failure_reason: blocking ? [...validation.issues, ...mismatchIssues].filter((issue) => String(issue.severity ?? '') === 'error').map((issue) => String(issue.description ?? issue.title ?? issue.code)).join(' | ') : null,
+    notes: JSON.stringify({
+      source: 'system_tests_execute_action',
+      executionMode,
+      fileName: uploaded.fileName,
+      portalInstructions,
+      applicationReference: appRef,
+      subtype: testCase.subtype,
+    }),
+    created_by: context.userId,
+    updated_by: context.userId,
+  })
+  const runId = typeof run?.id === 'string' ? run.id : null
+
+  if (runId) {
+    const stepRows = hasPayload
+      ? [
+          {
+            test_run_id: runId,
+            step_no: 1,
+            title: 'Payload parserad och validerad mot valt testfall',
+            status,
+            expected_direction: 'inbound',
+            expected_family: testCase.family,
+            expected_code: testCase.code,
+            expected_ack: { contrl: testCase.expectedContrl, aperak: testCase.expectedAperak, utiltsErr: testCase.expectedUtiltsErr },
+            actual_direction: null,
+            actual_family: parsed?.family ?? validation.family,
+            actual_code: parsed?.code ?? validation.code,
+            validation_report: { ...validation, mismatchIssues, testCase, applicationReference: appRef },
+            created_at: now,
+            updated_at: now,
+          },
+        ]
+      : [
+          {
+            test_run_id: runId,
+            step_no: 1,
+            title: 'Starta testet i Edielportalen',
+            status: 'pending',
+            expected_direction: 'inbound',
+            expected_family: testCase.family,
+            expected_code: testCase.code,
+            expected_ack: { contrl: testCase.expectedContrl, aperak: testCase.expectedAperak, utiltsErr: testCase.expectedUtiltsErr },
+            validation_report: { testCase, applicationReference: appRef, instructions: portalInstructions },
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            test_run_id: runId,
+            step_no: 2,
+            title: `Ta emot ${testCase.family} ${testCase.code}${testCase.subtype ? ` ${testCase.subtype}` : ''}`,
+            status: 'pending',
+            expected_direction: 'inbound',
+            expected_family: testCase.family,
+            expected_code: testCase.code,
+            expected_ack: { contrl: testCase.expectedContrl, aperak: testCase.expectedAperak, utiltsErr: testCase.expectedUtiltsErr },
+            validation_report: { processGroup: testCase.processGroup, subtype: testCase.subtype, applicationReference: appRef },
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            test_run_id: runId,
+            step_no: 3,
+            title: 'Validera ACK-kedja och rulebook-resultat',
+            status: 'pending',
+            expected_direction: null,
+            expected_family: testCase.expectedUtiltsErr === 'required' ? 'UTILTS_ERR' : 'CONTRL/APERAK',
+            expected_code: null,
+            expected_ack: { contrl: testCase.expectedContrl, aperak: testCase.expectedAperak, utiltsErr: testCase.expectedUtiltsErr },
+            validation_report: { source: 'rulebook', expectedStatus: hasPayload ? status : 'waiting_for_inbound' },
+            created_at: now,
+            updated_at: now,
+          },
+        ]
+
+    const { error: stepError } = await supabaseService.from('ediel_test_run_steps').insert(stepRows)
+    if (stepError) throw stepError
+  }
+
+  await attachRulebookArtifact({
+    actorUserId: context.userId,
+    testRunId: runId,
+    artifactType: hasPayload ? 'test_payload_validation' : 'test_execution_instructions',
+    title: hasPayload ? `Validering för ${title}` : `Körinstruktioner för ${title}`,
+    payload: hasPayload
+      ? { testCase, parsed, validation, mismatchIssues, rawPayload: rawPayload.slice(0, 25000) }
+      : { testCase, validation, portalInstructions, applicationReference: appRef },
+  })
+
+  revalidateSystemTests()
+}
+
