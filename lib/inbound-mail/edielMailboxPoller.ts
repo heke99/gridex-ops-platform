@@ -986,6 +986,23 @@ async function listEdielMessageIdsForInboundEmails(inboundEmailMessageIds: strin
     .filter((id): id is string => Boolean(id))
 }
 
+async function listRecentParsedInboundEmailIds(limit = 50): Promise<string[]> {
+  const { data, error } = await supabaseService
+    .from('inbound_ediel_parse_results')
+    .select('inbound_email_message_id')
+    .not('inbound_email_message_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+
+  return Array.from(new Set(
+    ((data ?? []) as Array<{ inbound_email_message_id?: string | null }>)
+      .map((row) => row.inbound_email_message_id)
+      .filter((id): id is string => Boolean(id))
+  ))
+}
+
 async function ensureDiagnosticEdielMessagesForInboundEmails(inboundEmailMessageIds: string[]): Promise<string[]> {
   const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)))
   if (ids.length === 0) return []
@@ -1149,8 +1166,14 @@ export async function runInboundEdielMailEngine(input: {
     ...item.inboundEmailMessageIds,
     ...item.dedupedInboundEmailMessageIds,
   ])
+  const diagnosticInboundEmailIds = input.createDiagnosticMessagesForUnresolved
+    ? Array.from(new Set([
+        ...allInboundEmailMessageIds,
+        ...(await listRecentParsedInboundEmailIds(input.processLimit ?? 50)),
+      ]))
+    : allInboundEmailMessageIds
   const edielMessageIds = input.createDiagnosticMessagesForUnresolved
-    ? await ensureDiagnosticEdielMessagesForInboundEmails(allInboundEmailMessageIds)
+    ? await ensureDiagnosticEdielMessagesForInboundEmails(diagnosticInboundEmailIds)
     : await listEdielMessageIdsForInboundEmails(allInboundEmailMessageIds)
   const fetchedMessages = results.reduce((sum, item) => sum + item.fetched, 0)
   const storedEmails = results.reduce((sum, item) => sum + item.stored, 0)
