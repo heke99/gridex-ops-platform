@@ -385,7 +385,7 @@ export async function buildEdielControlTowerOperationsSummary(params: {
   const routeFailures = unresolvedOutbound + routeLessOutbound
   const transportFailures = failedEvents + failedMessages
   const smtpConfigured = hasEnv('EDIEL_SMTP_HOST') && hasEnv('EDIEL_SMTP_USER') && hasEnv('EDIEL_SMTP_PASS')
-  const imapConfigured = activeMailboxes > 0
+  const activeMailboxConfigured = activeMailboxes > 0
 
   const metrics: EdielOpsMetric[] = [
     { key: 'messages', label: 'Ediel-meddelanden', value: totalMessages, tone: 'info', href: '/admin/ediel/messages' },
@@ -402,9 +402,9 @@ export async function buildEdielControlTowerOperationsSummary(params: {
     {
       key: 'imap_health',
       title: 'Inbound mailbox health',
-      status: imapConfigured ? (inbound24h > 0 ? 'healthy' : 'attention') : 'blocked',
-      value: imapConfigured ? `${activeMailboxes} aktiv(a) mailbox(ar) · ${inbound24h} inbound senaste 24h` : 'Ingen aktiv Ediel-mailbox är konfigurerad',
-      description: imapConfigured
+      status: activeMailboxConfigured ? (inbound24h > 0 ? 'healthy' : 'attention') : 'blocked',
+      value: activeMailboxConfigured ? `${activeMailboxes} aktiv(a) mailbox(ar) · ${inbound24h} inbound senaste 24h` : 'Ingen aktiv Ediel-mailbox är konfigurerad',
+      description: activeMailboxConfigured
         ? inbound24h > 0
           ? 'Mailboxen tar emot trafik och importflödet har färska inbound-meddelanden.'
           : 'Aktiv DB-mailbox finns men inga inbound-meddelanden har registrerats senaste 24 timmarna. Kontrollera om det är förväntat.'
@@ -525,11 +525,11 @@ export async function buildEdielControlTowerOperationsSummary(params: {
       'warning'
     ),
     readinessCheck(
-      'imap_env',
+      'imap_mailbox',
       'IMAP-konfiguration',
-      imapConfigured,
-      'IMAP env-konfiguration finns.',
-      'IMAP env-konfiguration saknas eller är ofullständig.',
+      activeMailboxConfigured,
+      'Aktiv Ediel-mailbox finns i DB-konfigurationen.',
+      'No active Ediel mailbox is configured for this company/environment.',
       'warning'
     ),
     {

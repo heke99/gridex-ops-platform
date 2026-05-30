@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const mailboxId = request.nextUrl.searchParams.get('mailbox_id') ?? request.nextUrl.searchParams.get('mailboxId')
   const force = ['1', 'true', 'yes'].includes((request.nextUrl.searchParams.get('force') ?? '').toLowerCase())
   try {
-    const result = await runInboundEdielMailEngine({ companyId, environment, mailboxId, force })
+    const result = await runInboundEdielMailEngine({ companyId, environment, mailboxId, force, allowMissingMailboxConfig: true })
     return NextResponse.json({ ok: true, result })
   } catch (error) {
     console.error('[inbound-mail-cron] Run failed', error)
