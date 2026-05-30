@@ -986,6 +986,84 @@ async function listEdielMessageIdsForInboundEmails(inboundEmailMessageIds: strin
     .filter((id): id is string => Boolean(id))
 }
 
+async function ensureDiagnosticEdielMessagesForInboundEmails(inboundEmailMessageIds: string[]): Promise<string[]> {
+  const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)))
+  if (ids.length === 0) return []
+
+  const existingIds = await listEdielMessageIdsForInboundEmails(ids)
+  const { data: existingMessages, error: existingError } = await supabaseService
+    .from('ediel_messages')
+    .select('inbound_email_message_id')
+    .in('inbound_email_message_id', ids)
+
+  if (existingError) throw existingError
+  const existingInboundIds = new Set(
+    ((existingMessages ?? []) as Array<{ inbound_email_message_id?: string | null }>)
+      .map((row) => row.inbound_email_message_id)
+      .filter((value): value is string => Boolean(value))
+  )
+  const missingIds = ids.filter((id) => !existingInboundIds.has(id))
+  if (missingIds.length === 0) return existingIds
+
+  const { data: parseRows, error: parseError } = await supabaseService
+    .from('inbound_ediel_parse_results')
+    .select('*')
+    .in('inbound_email_message_id', missingIds)
+
+  if (parseError) throw parseError
+
+  const inserts = ((parseRows ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    company_id: row.company_id ?? null,
+    direction: 'inbound',
+    message_standard: 'edifact',
+    message_family: row.message_family ?? 'OTHER',
+    message_code: row.message_code ?? null,
+    environment: 'test',
+    status: 'received',
+    transport_type: 'email',
+    sender_ediel_id: row.sender_ediel_id ?? null,
+    sender_sub_address: row.sender_sub_address ?? null,
+    receiver_ediel_id: row.receiver_ediel_id ?? null,
+    receiver_sub_address: row.receiver_sub_address ?? null,
+    interchange_reference: row.interchange_reference ?? null,
+    transaction_reference: row.transaction_reference ?? null,
+    application_reference: row.application_reference ?? null,
+    external_reference: typeof row.parsed_payload === 'object' && row.parsed_payload
+      ? (row.parsed_payload as Record<string, unknown>).bgmReference ?? null
+      : null,
+    raw_payload: row.raw_payload ?? null,
+    parsed_payload: row.parsed_payload ?? {},
+    validation_report: {
+      status: 'diagnostic_message_created_from_inbound_parse_result',
+      reason: 'Inbound mail was parsed but no ediel_messages row existed after tenant routing/manual review.',
+      parseResultId: row.id,
+    },
+    tenant_resolution_status: row.company_id ? 'tenant_resolved' : 'tenant_unresolved',
+    business_match_status: row.company_id ? 'not_checked' : 'business_blocked',
+    processing_status: row.company_id ? 'received' : 'tenant_unresolved',
+    inbound_email_message_id: row.inbound_email_message_id,
+    message_received_at: nowIso(),
+    parsed_at: nowIso(),
+    failure_reason: row.company_id ? null : 'Tenant kunde inte lösas säkert; teknisk systemtest-rad skapades utan affärsuppdatering.',
+  }))
+
+  if (inserts.length === 0) return existingIds
+
+  const { data: inserted, error: insertError } = await supabaseService
+    .from('ediel_messages')
+    .insert(inserts)
+    .select('id')
+
+  if (insertError) throw insertError
+
+  return [
+    ...existingIds,
+    ...((inserted ?? []) as Array<{ id?: string | null }>)
+      .map((row) => row.id)
+      .filter((id): id is string => Boolean(id)),
+  ]
+}
+
 async function logInboundPollRun(result: InboundEngineRunResult, requestedEnvironment: string | null): Promise<void> {
   await supabaseService.from('ediel_inbound_poll_runs').insert({
     worker_id: result.workerId,
@@ -1066,7 +1144,11 @@ export async function runInboundEdielMailEngine(input: {
   })
   const overdueTasks = await createInboundOverdueTasks()
   const inboundEmailMessageIds = results.flatMap((item) => item.inboundEmailMessageIds)
-  const edielMessageIds = await listEdielMessageIdsForInboundEmails(inboundEmailMessageIds)
+  const allInboundEmailMessageIds = results.flatMap((item) => [
+    ...item.inboundEmailMessageIds,
+    ...item.dedupedInboundEmailMessageIds,
+  ])
+  const edielMessageIds = await ensureDiagnosticEdielMessagesForInboundEmails(allInboundEmailMessageIds)
   const fetchedMessages = results.reduce((sum, item) => sum + item.fetched, 0)
   const storedEmails = results.reduce((sum, item) => sum + item.stored, 0)
 
