@@ -17,6 +17,7 @@ export async function runInboundMailEngineAction(formData: FormData) {
   await runInboundEdielMailEngine({
     environment: text(formData, 'environment'),
     forcePoll: true,
+    sharedOnly: true,
     actorUserId: admin.userId,
   })
   revalidatePath('/admin/inbound-mail')

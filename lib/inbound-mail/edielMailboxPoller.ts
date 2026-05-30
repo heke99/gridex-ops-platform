@@ -1,5 +1,5 @@
 import { ImapFlow } from 'imapflow'
-import { extractEdifactPayload } from '@/lib/inbound-mail/edielEmailParser'
+import { extractEdifactPayload, parseEdifactPayload } from '@/lib/inbound-mail/edielEmailParser'
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
 import { createInboundOverdueTasks } from '@/lib/inbound-mail/inboundOverdueMonitor'
 import { supabaseService } from '@/lib/supabase/service'
@@ -40,6 +40,7 @@ export type InboundEmailAttachmentInput = {
 export type StoreInboundEmailInput = {
   mailboxId: string
   companyId?: string | null
+  environment?: string | null
   internetMessageId?: string | null
   fromAddress?: string | null
   toAddress?: string | null
@@ -74,9 +75,11 @@ export type InboundProcessingJobRow = {
 export type PollMailboxResult = {
   mailboxId: string
   mailboxName: string
+  environment: string
   fetched: number
   stored: number
   deduped: number
+  skippedLocked: boolean
   inboundEmailMessageIds: string[]
   dedupedInboundEmailMessageIds: string[]
   processed: number
@@ -143,6 +146,62 @@ function stringOrNull(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function isPlatformSharedMailbox(mailbox: Pick<EdielMailboxRow, 'company_id' | 'environment' | 'metadata'>): boolean {
+  const scope = typeof mailbox.metadata?.scope === 'string' ? mailbox.metadata.scope : null
+  if (scope === 'platform_shared') return mailbox.company_id === null
+  return mailbox.company_id === null && mailbox.environment === 'test'
+}
+
+function normalizeEnvironment(value: string | null | undefined): 'test' | 'production' | null {
+  if (value === 'test' || value === 'production') return value
+  return null
+}
+
+function parseInboundDedupeFacts(rawPayload: string | null | undefined): {
+  senderEdielId: string | null
+  receiverEdielId: string | null
+  interchangeReference: string | null
+  transactionReference: string | null
+  externalReference: string | null
+  messageFamily: string | null
+  messageCode: string | null
+} {
+  if (!rawPayload) {
+    return {
+      senderEdielId: null,
+      receiverEdielId: null,
+      interchangeReference: null,
+      transactionReference: null,
+      externalReference: null,
+      messageFamily: null,
+      messageCode: null,
+    }
+  }
+
+  try {
+    const parsed = parseEdifactPayload(rawPayload)
+    return {
+      senderEdielId: parsed.senderEdielId,
+      receiverEdielId: parsed.receiverEdielId,
+      interchangeReference: parsed.interchangeReference,
+      transactionReference: parsed.transactionReference,
+      externalReference: parsed.bgmReference ?? parsed.references.ACW?.[0] ?? parsed.references.TN?.[0] ?? parsed.references.LI?.[0] ?? null,
+      messageFamily: parsed.messageFamily === 'OTHER' ? null : parsed.messageFamily,
+      messageCode: parsed.messageCode,
+    }
+  } catch {
+    return {
+      senderEdielId: null,
+      receiverEdielId: null,
+      interchangeReference: null,
+      transactionReference: null,
+      externalReference: null,
+      messageFamily: null,
+      messageCode: null,
+    }
+  }
 }
 
 export function resolveMailboxPasswordFromSecretReference(mailbox: Pick<EdielMailboxRow, 'id' | 'secret_reference'>): string | null {
@@ -344,6 +403,7 @@ export async function listConfiguredEdielMailboxes(options: {
   companyId?: string | null
   environment?: string | null
   mailboxId?: string | null
+  sharedOnly?: boolean
 } = {}): Promise<EdielMailboxRow[]> {
   let query = supabaseService
     .from('ediel_mailboxes')
@@ -357,7 +417,13 @@ export async function listConfiguredEdielMailboxes(options: {
   const { data, error } = await query.order('last_polled_at', { ascending: true, nullsFirst: true })
   if (error) throw error
 
-  return (data ?? []) as EdielMailboxRow[]
+  const rows = (data ?? []) as EdielMailboxRow[]
+  if (!options.sharedOnly) return rows
+
+  const shared = rows.filter(isPlatformSharedMailbox)
+  if (shared.length > 0) return shared
+
+  return rows.filter((mailbox) => mailbox.company_id === null && mailbox.environment === 'test')
 }
 
 export async function listDueEdielMailboxes(options: {
@@ -366,6 +432,7 @@ export async function listDueEdielMailboxes(options: {
   mailboxId?: string | null
   includeLockedOlderThanMinutes?: number
   force?: boolean
+  sharedOnly?: boolean
 } = {}): Promise<EdielMailboxRow[]> {
   const configuredMailboxes = await listConfiguredEdielMailboxes(options)
   if (configuredMailboxes.length === 0) {
@@ -375,13 +442,18 @@ export async function listDueEdielMailboxes(options: {
   return configuredMailboxes.filter((mailbox) => isEdielMailboxDueForPolling(mailbox, options))
 }
 
-export async function markMailboxPollStarted(mailboxId: string, workerId = 'inbound-mail-engine'): Promise<void> {
-  const { error } = await supabaseService
+export async function markMailboxPollStarted(mailboxId: string, workerId = 'inbound-mail-engine'): Promise<boolean> {
+  const staleCutoff = new Date(Date.now() - envInt('EDIEL_INBOUND_STALE_MAILBOX_LOCK_MINUTES', 30) * 60_000).toISOString()
+  const { data, error } = await supabaseService
     .from('ediel_mailboxes')
-    .update({ last_polled_at: nowIso(), locked_at: nowIso(), locked_by: workerId, last_error: null })
+    .update({ last_polled_at: nowIso(), locked_at: nowIso(), locked_by: workerId, last_error: null, updated_at: nowIso() })
     .eq('id', mailboxId)
+    .or(`locked_at.is.null,locked_at.lt.${staleCutoff}`)
+    .select('id')
+    .maybeSingle()
 
   if (error) throw error
+  return Boolean(data)
 }
 
 export async function markMailboxPollFinished(input: {
@@ -390,21 +462,86 @@ export async function markMailboxPollFinished(input: {
   errorMessage?: string | null
 }): Promise<void> {
   const payload = input.ok
-    ? { last_successful_poll_at: nowIso(), locked_at: null, locked_by: null, last_error: null }
-    : { locked_at: null, locked_by: null, last_error: input.errorMessage ?? 'Mailbox polling failed' }
+    ? { last_successful_poll_at: nowIso(), locked_at: null, locked_by: null, last_error: null, updated_at: nowIso() }
+    : { locked_at: null, locked_by: null, last_error: input.errorMessage ?? 'Mailbox polling failed', updated_at: nowIso() }
 
   const { error } = await supabaseService.from('ediel_mailboxes').update(payload).eq('id', input.mailboxId)
   if (error) throw error
 }
 
+async function findExistingInboundEmail(input: {
+  mailboxId: string
+  internetMessageId?: string | null
+  senderEdielId?: string | null
+  interchangeReference?: string | null
+  transactionReference?: string | null
+  externalReference?: string | null
+}): Promise<string | null> {
+  if (input.internetMessageId) {
+    const { data, error } = await supabaseService
+      .from('inbound_email_messages')
+      .select('id')
+      .eq('mailbox_id', input.mailboxId)
+      .eq('internet_message_id', input.internetMessageId)
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    const id = (data as { id?: string } | null)?.id
+    if (id) return id
+  }
+
+  if (input.senderEdielId && input.interchangeReference) {
+    const { data, error } = await supabaseService
+      .from('inbound_email_messages')
+      .select('id')
+      .eq('sender_ediel_id', input.senderEdielId)
+      .eq('interchange_reference', input.interchangeReference)
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    const id = (data as { id?: string } | null)?.id
+    if (id) return id
+  }
+
+  if (input.senderEdielId && input.transactionReference && input.externalReference) {
+    const { data, error } = await supabaseService
+      .from('inbound_email_messages')
+      .select('id')
+      .eq('sender_ediel_id', input.senderEdielId)
+      .eq('transaction_reference', input.transactionReference)
+      .eq('external_reference', input.externalReference)
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    return (data as { id?: string } | null)?.id ?? null
+  }
+
+  return null
+}
+
 export async function storeInboundEmail(input: StoreInboundEmailInput): Promise<{ id: string; deduped: boolean }> {
   const dedupeKey = input.internetMessageId ? `${input.mailboxId}:${input.internetMessageId}` : null
+  const dedupeFacts = parseInboundDedupeFacts(input.rawEdifactPayload)
+  const existing = await findExistingInboundEmail({
+    mailboxId: input.mailboxId,
+    internetMessageId: input.internetMessageId ?? null,
+    senderEdielId: dedupeFacts.senderEdielId,
+    interchangeReference: dedupeFacts.interchangeReference,
+    transactionReference: dedupeFacts.transactionReference,
+    externalReference: dedupeFacts.externalReference,
+  })
+
+  if (existing) return { id: existing, deduped: true }
 
   const { data, error } = await supabaseService
     .from('inbound_email_messages')
     .insert({
       mailbox_id: input.mailboxId,
       company_id: input.companyId ?? null,
+      environment: normalizeEnvironment(input.environment) ?? 'test',
       internet_message_id: input.internetMessageId ?? null,
       from_address: input.fromAddress ?? null,
       to_address: input.toAddress ?? null,
@@ -418,23 +555,29 @@ export async function storeInboundEmail(input: StoreInboundEmailInput): Promise<
       processing_status: 'received',
       dedupe_key: dedupeKey,
       match_status: 'not_checked',
+      sender_ediel_id: dedupeFacts.senderEdielId,
+      receiver_ediel_id: dedupeFacts.receiverEdielId,
+      interchange_reference: dedupeFacts.interchangeReference,
+      transaction_reference: dedupeFacts.transactionReference,
+      external_reference: dedupeFacts.externalReference,
+      message_family: dedupeFacts.messageFamily,
+      message_code: dedupeFacts.messageCode,
     })
     .select('id')
     .single()
 
   if (error) {
     const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: unknown }).code) : ''
-    if (code === '23505' && input.internetMessageId) {
-      const existing = await supabaseService
-        .from('inbound_email_messages')
-        .select('id')
-        .eq('mailbox_id', input.mailboxId)
-        .eq('internet_message_id', input.internetMessageId)
-        .maybeSingle()
-
-      if (existing.error) throw existing.error
-      const id = (existing.data as { id?: string } | null)?.id
-      if (id) return { id, deduped: true }
+    if (code === '23505') {
+      const existingAfterConflict = await findExistingInboundEmail({
+        mailboxId: input.mailboxId,
+        internetMessageId: input.internetMessageId ?? null,
+        senderEdielId: dedupeFacts.senderEdielId,
+        interchangeReference: dedupeFacts.interchangeReference,
+        transactionReference: dedupeFacts.transactionReference,
+        externalReference: dedupeFacts.externalReference,
+      })
+      if (existingAfterConflict) return { id: existingAfterConflict, deduped: true }
     }
 
     throw error
@@ -495,7 +638,8 @@ async function storeMailboxFetchMessage(input: {
 
   return storeInboundEmail({
     mailboxId: input.mailbox.id,
-    companyId: input.mailbox.company_id,
+    companyId: isPlatformSharedMailbox(input.mailbox) ? null : input.mailbox.company_id,
+    environment: input.mailbox.environment,
     internetMessageId: messageId,
     fromAddress,
     toAddress,
@@ -520,16 +664,22 @@ export async function pollEdielMailbox(input: {
   const result: PollMailboxResult = {
     mailboxId: input.mailbox.id,
     mailboxName: input.mailbox.mailbox_name,
+    environment: input.mailbox.environment,
     fetched: 0,
     stored: 0,
     deduped: 0,
+    skippedLocked: false,
     inboundEmailMessageIds: [],
     dedupedInboundEmailMessageIds: [],
     processed: 0,
     errors: [],
   }
 
-  await markMailboxPollStarted(input.mailbox.id, workerId)
+  const locked = await markMailboxPollStarted(input.mailbox.id, workerId)
+  if (!locked) {
+    result.skippedLocked = true
+    return result
+  }
 
   try {
     if (!input.mailbox.imap_host || !input.mailbox.username) {
@@ -709,6 +859,32 @@ async function listEdielMessageIdsForInboundEmails(inboundEmailMessageIds: strin
     .filter((id): id is string => Boolean(id))
 }
 
+async function logInboundPollRun(result: InboundEngineRunResult, requestedEnvironment: string | null): Promise<void> {
+  await supabaseService.from('ediel_inbound_poll_runs').insert({
+    worker_id: result.workerId,
+    environment: normalizeEnvironment(requestedEnvironment) ?? null,
+    started_at: result.startedAt,
+    finished_at: result.finishedAt,
+    status: result.failedJobs > 0 || result.debug.errorsByMailbox.length > 0 ? 'warning' : 'success',
+    configured_mailboxes: result.configuredMailboxes,
+    due_mailboxes: result.dueMailboxes,
+    skipped_locked: result.skippedLockedMailboxes,
+    skipped_not_due: result.skippedNotDueMailboxes,
+    fetched_messages: result.fetchedMessages,
+    stored_emails: result.storedEmails,
+    deduped_emails: result.dedupedEmails,
+    processed_jobs: result.processedJobs,
+    failed_jobs: result.failedJobs,
+    errors_by_mailbox: result.debug.errorsByMailbox,
+    metadata: {
+      inboundEmailMessageIds: result.inboundEmailMessageIds,
+      edielMessageIds: result.edielMessageIds,
+      overdueTasks: result.overdueTasks,
+      configurationError: result.debug.configurationError,
+    },
+  })
+}
+
 export async function runInboundEdielMailEngine(input: {
   companyId?: string | null
   environment?: string | null
@@ -721,21 +897,24 @@ export async function runInboundEdielMailEngine(input: {
   forcePoll?: boolean
   allowMissingMailboxConfig?: boolean
   actorUserId?: string | null
+  sharedOnly?: boolean
 } = {}): Promise<InboundEngineRunResult> {
   const startedAt = nowIso()
   const workerId = input.workerId ?? `inbound-mail-engine-${startedAt}`
   const force = input.force ?? input.forcePoll ?? false
+  const sharedOnly = input.sharedOnly ?? (!input.companyId && !input.mailboxId)
   const configuredMailboxes = await listConfiguredEdielMailboxes({
     companyId: input.companyId,
     environment: input.environment,
     mailboxId: input.mailboxId,
+    sharedOnly,
   })
 
   if (configuredMailboxes.length === 0 && !input.allowMissingMailboxConfig) {
     throw new Error(NO_ACTIVE_EDIEL_MAILBOX_ERROR)
   }
 
-  const eligibilityOptions = { force }
+  const eligibilityOptions = { force, includeLockedOlderThanMinutes: envInt('EDIEL_INBOUND_STALE_MAILBOX_LOCK_MINUTES', 30) }
   const dueMailboxes = configuredMailboxes.filter((mailbox) => mailboxSkipReason(mailbox, eligibilityOptions) === null)
   const skippedLocked = configuredMailboxes.filter((mailbox) => mailboxSkipReason(mailbox, eligibilityOptions) === 'locked')
   const skippedNotDue = configuredMailboxes.filter((mailbox) => mailboxSkipReason(mailbox, eligibilityOptions) === 'not_due')
@@ -761,7 +940,7 @@ export async function runInboundEdielMailEngine(input: {
   const fetchedMessages = results.reduce((sum, item) => sum + item.fetched, 0)
   const storedEmails = results.reduce((sum, item) => sum + item.stored, 0)
 
-  return {
+  const result: InboundEngineRunResult = {
     workerId,
     startedAt,
     finishedAt: nowIso(),
@@ -793,4 +972,7 @@ export async function runInboundEdielMailEngine(input: {
     },
     results,
   }
+
+  await logInboundPollRun(result, input.environment ?? null).catch(() => null)
+  return result
 }
