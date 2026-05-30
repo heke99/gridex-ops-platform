@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { Suspense, type ReactNode } from 'react'
 import { isPlatformAdminContext, requireAdminAccess } from '@/lib/admin/guards'
 import { logoutAction } from '@/lib/auth/logoutAction'
 import AdminSidebar from '@/components/admin/AdminSidebar'
@@ -23,6 +23,7 @@ export default async function AdminLayout({
  <div className="admin-saas-shell min-h-screen bg-[#f7fbf8] text-slate-900">
  <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[300px_1fr]">
  <div className="hidden lg:block">
+ <Suspense fallback={<div className="h-screen border-r border-emerald-100 bg-white" />}>
  <AdminSidebar
  permissions={admin.permissions}
  isPlatformAdmin={isPlatformAdmin}
@@ -30,6 +31,7 @@ export default async function AdminLayout({
  workspaceSubtitle={workspaceSubtitle}
  isCompanyLiveEnabled={isPlatformAdmin || liveAccess.canUseLiveEdiel}
  />
+ </Suspense>
  </div>
 
  <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.08),transparent_28%),linear-gradient(180deg,#f7fbf8_0%,#ffffff_42%,#f7fbf8_100%)]">

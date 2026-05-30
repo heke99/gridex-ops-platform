@@ -10,7 +10,7 @@ import { getEdielSummary } from '@/lib/ediel/summary'
 import {
  listAllOperationTasks,
  listAllSupplierSwitchRequests,
- listPowersOfAttorneyByCustomerId,
+ listPowersOfAttorneyByCustomerIds,
  listSupplierSwitchEventsByRequestIds,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
@@ -439,20 +439,27 @@ export default async function AdminOperationsPage() {
  )
  const events = scopedEvents.slice(0, 30)
 
- const readinessResults = await Promise.all(
- sites.map(async (site) => {
- const powersOfAttorney = await listPowersOfAttorneyByCustomerId(
- supabase,
- site.customer_id
- )
+const powersOfAttorney = await listPowersOfAttorneyByCustomerIds(
+supabase,
+sites.map((site) => site.customer_id),
+{ companyId }
+)
+const powersOfAttorneyByCustomerId = new Map<string, typeof powersOfAttorney>()
+for (const powerOfAttorney of powersOfAttorney) {
+const customerId = powerOfAttorney.customer_id
+if (!customerId) continue
+const rows = powersOfAttorneyByCustomerId.get(customerId) ?? []
+rows.push(powerOfAttorney)
+powersOfAttorneyByCustomerId.set(customerId, rows)
+}
 
- return evaluateSiteSwitchReadiness({
- site,
- meteringPoints: meteringPoints.filter((point) => point.site_id === site.id),
- powersOfAttorney,
- })
- })
- )
+const readinessResults = sites.map((site) =>
+evaluateSiteSwitchReadiness({
+site,
+meteringPoints: meteringPoints.filter((point) => point.site_id === site.id),
+powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
+})
+)
 
  const openTasks = tasks.filter((task) =>
  ['open', 'in_progress', 'blocked'].includes(task.status)

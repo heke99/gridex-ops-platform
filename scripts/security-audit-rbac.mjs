@@ -45,9 +45,9 @@ mustNotContain(
   "platform access via roles.manage",
 );
 mustNotContain(
-  "middleware.ts",
+  "proxy.ts",
   "permissions.includes('tenants.write')",
-  "middleware platform access via tenants.write",
+  "proxy platform access via tenants.write",
 );
 mustContain("app/dashboard/page.tsx", "isPlatformAdmin ?");
 mustContain("app/dashboard/page.tsx", 'href="/admin/company-settings"');
@@ -67,11 +67,11 @@ mustNotContain(
   "company settings link to platform company detail",
 );
 mustContain("app/admin/companies/actions.ts", "parseCompanyAssignableRoleKey");
-mustContain("middleware.ts", "isPlatformAdminPath");
-mustContain("middleware.ts", "pathname === '/admin/companies'");
-mustContain("middleware.ts", "pathname === '/admin/users'");
-mustContain("middleware.ts", "pathname === '/admin/roles'");
-mustContain("middleware.ts", "pathname.startsWith('/admin/platform/')");
+mustContain("proxy.ts", "isPlatformAdminPath");
+mustContain("proxy.ts", "pathname === '/admin/companies'");
+mustContain("proxy.ts", "pathname === '/admin/users'");
+mustContain("proxy.ts", "pathname === '/admin/roles'");
+mustContain("proxy.ts", "pathname.startsWith('/admin/platform/')");
 mustContain(
   "supabase/migrations/20260520_batch_6e_hard_platform_roles_only.sql",
   "gridex_user_is_platform_admin",
@@ -168,6 +168,9 @@ mustContain(
 
 const reviewedServiceClientFiles = new Set([
   "app/admin/audit/page.tsx",
+  "app/admin/agreements/grid-owners/actions.ts",
+  "app/admin/agreements/grid-owners/documents/route.ts",
+  "app/admin/agreements/grid-owners/page.tsx",
   "app/admin/billing/import/actions.ts",
   "app/admin/billing/import/page.tsx",
   "app/admin/customers/duplicates/actions.ts",
@@ -193,6 +196,10 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/customers/segments/page.tsx",
   "app/admin/ediel/actions.ts",
   "app/admin/ediel/agt/actions.ts",
+  "app/admin/ediel/system-tests/actions.ts",
+  "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+  "app/admin/inbound-mail/[id]/page.tsx",
+  "app/admin/inbound-mail/page.tsx",
   "app/admin/operations/actions.ts",
   "app/admin/operations/control-actions.ts",
   "app/admin/system/auth-diagnostics/page.tsx",

@@ -46,7 +46,7 @@ async function formFileText(value: FormDataEntryValue | null): Promise<{ text: s
 }
 
 async function safeUpsert(table: string, payload: Record<string, unknown>, onConflict?: string) {
-  let query = supabaseService.from(table).upsert(payload, onConflict ? { onConflict } : undefined).select('*').maybeSingle()
+  const query = supabaseService.from(table).upsert(payload, onConflict ? { onConflict } : undefined).select('*').maybeSingle()
   const { data, error } = await query
   if (error) throw error
   return data as Record<string, unknown> | null

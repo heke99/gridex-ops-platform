@@ -59,6 +59,7 @@ export async function listAllGridOwnerDataRequests(options: {
   scope?: string | null
   query?: string | null
   companyId?: string | null
+  limit?: number
 } = {}): Promise<GridOwnerDataRequestRow[]> {
   let requestQuery = supabaseService
     .from('grid_owner_data_requests')
@@ -77,7 +78,7 @@ export async function listAllGridOwnerDataRequests(options: {
     requestQuery = requestQuery.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await requestQuery
+  const { data, error } = await requestQuery.limit(options.limit ?? 1000)
   if (error) throw error
 
   const rows = (data ?? []) as GridOwnerDataRequestRow[]
@@ -352,6 +353,7 @@ export async function listAllBillingUnderlays(options: {
   status?: string | null
   query?: string | null
   companyId?: string | null
+  limit?: number
 } = {}): Promise<BillingUnderlayRow[]> {
   let queryBuilder = supabaseService
     .from('billing_underlays')
@@ -366,7 +368,7 @@ export async function listAllBillingUnderlays(options: {
     queryBuilder = queryBuilder.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await queryBuilder
+  const { data, error } = await queryBuilder.limit(options.limit ?? 1000)
   if (error) throw error
 
   const rows = (data ?? []) as BillingUnderlayRow[]
@@ -394,6 +396,7 @@ export async function listAllPartnerExports(options: {
   exportKind?: string | null
   query?: string | null
   companyId?: string | null
+  limit?: number
 } = {}): Promise<PartnerExportRow[]> {
   let queryBuilder = supabaseService
     .from('partner_exports')
@@ -412,7 +415,7 @@ export async function listAllPartnerExports(options: {
     queryBuilder = queryBuilder.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await queryBuilder
+  const { data, error } = await queryBuilder.limit(options.limit ?? 1000)
   if (error) throw error
 
   const rows = (data ?? []) as PartnerExportRow[]

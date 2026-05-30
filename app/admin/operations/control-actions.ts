@@ -24,7 +24,7 @@ import {
   createSupplierSwitchEvent,
   getSupplierSwitchRequestById,
   listAllSupplierSwitchRequests,
-  listPowersOfAttorneyByCustomerId,
+  listPowersOfAttorneyByCustomerIds,
   syncOperationTasksFromReadiness,
   updateSupplierSwitchRequestStatus,
 } from '@/lib/operations/db'
@@ -534,18 +534,27 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
   let syncedSwitches = 0
   let executedSwitches = 0
 
-  for (const site of sites) {
-    const powersOfAttorney = await listPowersOfAttorneyByCustomerId(
-      supabase,
-      site.customer_id
-    )
+  const powersOfAttorney = await listPowersOfAttorneyByCustomerIds(
+    supabase,
+    sites.map((site) => site.customer_id),
+    { companyId }
+  )
+  const powersOfAttorneyByCustomerId = new Map<string, typeof powersOfAttorney>()
+  for (const powerOfAttorney of powersOfAttorney) {
+    const customerId = powerOfAttorney.customer_id
+    if (!customerId) continue
+    const rows = powersOfAttorneyByCustomerId.get(customerId) ?? []
+    rows.push(powerOfAttorney)
+    powersOfAttorneyByCustomerId.set(customerId, rows)
+  }
 
+  for (const site of sites) {
     const readiness = evaluateSiteSwitchReadiness({
       site,
       meteringPoints: meteringPoints.filter(
         (point) => point.site_id === site.id
       ),
-      powersOfAttorney,
+      powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
     })
 
     await syncOperationTasksFromReadiness(supabase, readiness)

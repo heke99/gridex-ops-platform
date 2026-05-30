@@ -406,6 +406,7 @@ export async function listOutboundRequests(options: {
   channelType?: string | null
   query?: string | null
   companyId?: string | null
+  limit?: number
 } = {}): Promise<OutboundRequestRow[]> {
   let requestQuery = supabaseService
     .from('outbound_requests')
@@ -428,7 +429,7 @@ export async function listOutboundRequests(options: {
     requestQuery = requestQuery.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await requestQuery
+  const { data, error } = await requestQuery.limit(options.limit ?? 1000)
   if (error) throw error
 
   const rows = (data ?? []) as OutboundRequestRow[]

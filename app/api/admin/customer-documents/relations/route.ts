@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import {
+  apiErrorResponse,
+  requireAdminApiAccess,
+} from '@/lib/admin/apiGuards'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   listGridOwnerDataRequestsByCustomerId,
   listOutboundRequestsByCustomerId,
 } from '@/lib/cis/db'
 import { listSupplierSwitchRequestsByCustomerId } from '@/lib/operations/db'
+import { loadCustomerTenantContext } from '@/lib/tenant/entityGuards'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,14 +21,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'customerId saknas' }, { status: 400 })
   }
 
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const access = await requireAdminApiAccess(['customers.read', 'poa.read'])
+  if (access.response) return access.response
 
-  if (!user) {
-    return NextResponse.json({ error: 'Ej inloggad' }, { status: 401 })
+  try {
+    await loadCustomerTenantContext(customerId, access.guard)
+  } catch (error) {
+    return apiErrorResponse(error, 403)
   }
+
+  const supabase = await createSupabaseServerClient()
 
   const { data: documentRows, error: documentError } = await supabaseService
     .from('customer_authorization_documents')

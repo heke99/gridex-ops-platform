@@ -184,6 +184,31 @@ export async function listPowersOfAttorneyByCustomerId(
   return (data ?? []) as PowerOfAttorneyRow[];
 }
 
+export async function listPowersOfAttorneyByCustomerIds(
+  supabase: SupabaseClient,
+  customerIds: string[],
+  options: { companyId?: string | null; limit?: number } = {},
+): Promise<PowerOfAttorneyRow[]> {
+  const uniqueCustomerIds = Array.from(new Set(customerIds.filter(Boolean)));
+  if (uniqueCustomerIds.length === 0) return [];
+
+  let query = supabase
+    .from("powers_of_attorney")
+    .select("*")
+    .in("customer_id", uniqueCustomerIds);
+
+  if (options.companyId) {
+    query = query.eq("company_id", options.companyId);
+  }
+
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(options.limit ?? 1000);
+
+  if (error) throw error;
+  return (data ?? []) as PowerOfAttorneyRow[];
+}
+
 export async function getPowerOfAttorneyById(
   supabase: SupabaseClient,
   powerOfAttorneyId: string,
@@ -932,6 +957,7 @@ export async function listAllOperationTasks(
     priority?: string | null;
     query?: string | null;
     companyId?: string | null;
+    limit?: number;
   } = {},
 ): Promise<CustomerOperationTaskRow[]> {
   let taskQuery = supabase
@@ -951,7 +977,7 @@ export async function listAllOperationTasks(
     taskQuery = taskQuery.eq("company_id", options.companyId);
   }
 
-  const { data, error } = await taskQuery;
+  const { data, error } = await taskQuery.limit(options.limit ?? 1000);
 
   if (error) throw error;
 
@@ -1027,6 +1053,7 @@ export async function listAllSupplierSwitchRequests(
     requestType?: string | null;
     query?: string | null;
     companyId?: string | null;
+    limit?: number;
   } = {},
 ): Promise<SupplierSwitchRequestRow[]> {
   let requestQuery = supabase
@@ -1046,7 +1073,7 @@ export async function listAllSupplierSwitchRequests(
     requestQuery = requestQuery.eq("company_id", options.companyId);
   }
 
-  const { data, error } = await requestQuery;
+  const { data, error } = await requestQuery.limit(options.limit ?? 1000);
 
   if (error) throw error;
 

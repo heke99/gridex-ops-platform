@@ -60,6 +60,7 @@ export async function getAdminUserById(userId: string) {
     await supabaseService.auth.admin.getUserById(userId)
 
   if (authError) throw authError
+  if (!authUserData.user) return null
 
   const { data: userRoles, error: rolesError } = await supabaseService
     .from('user_roles')

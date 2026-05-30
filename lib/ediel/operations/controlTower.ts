@@ -93,11 +93,32 @@ type RawEdielEvent = {
   created_at?: string | null
 }
 
-function applyCompanyScope(query: any, companyId: string | null) {
+type SupabaseQueryBuilder = PromiseLike<{
+  data?: unknown[] | null
+  count?: number | null
+  error: unknown
+}> & {
+  eq(column: string, value: unknown): SupabaseQueryBuilder
+  neq(column: string, value: unknown): SupabaseQueryBuilder
+  not(column: string, operator: string, value: unknown): SupabaseQueryBuilder
+  in(column: string, values: unknown[]): SupabaseQueryBuilder
+  is(column: string, value: unknown): SupabaseQueryBuilder
+  lte(column: string, value: unknown): SupabaseQueryBuilder
+  gte(column: string, value: unknown): SupabaseQueryBuilder
+  ilike(column: string, value: string): SupabaseQueryBuilder
+  order(column: string, options: { ascending: boolean }): SupabaseQueryBuilder
+  limit(count: number): SupabaseQueryBuilder
+}
+
+function asSupabaseQueryBuilder(query: unknown): SupabaseQueryBuilder {
+  return query as SupabaseQueryBuilder
+}
+
+function applyCompanyScope(query: SupabaseQueryBuilder, companyId: string | null) {
   return companyId ? query.eq('company_id', companyId) : query
 }
 
-function applyFilters(query: any, filters: QueryFilter[]) {
+function applyFilters(query: SupabaseQueryBuilder, filters: QueryFilter[]) {
   let current = query
   for (const filter of filters) {
     if (filter.op === 'in') {
@@ -129,7 +150,9 @@ async function safeCount(
   filters: QueryFilter[] = []
 ): Promise<number> {
   try {
-    let query: any = supabaseService.from(table).select('*', { count: 'exact', head: true })
+    let query = asSupabaseQueryBuilder(
+      supabaseService.from(table).select('*', { count: 'exact', head: true })
+    )
     query = applyCompanyScope(query, companyId)
     query = applyFilters(query, filters)
     const { count, error } = await query
@@ -151,10 +174,12 @@ async function safeRows<T>(params: {
   ascending?: boolean
 }): Promise<T[]> {
   try {
-    let query: any = supabaseService
-      .from(params.table)
-      .select(params.select)
-      .limit(params.limit ?? 10)
+    let query = asSupabaseQueryBuilder(
+      supabaseService
+        .from(params.table)
+        .select(params.select)
+        .limit(params.limit ?? 10)
+    )
 
     query = applyCompanyScope(query, params.companyId ?? null)
     query = applyFilters(query, params.filters ?? [])

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 function isAuthorized(request: NextRequest): boolean {
   const configuredSecret = process.env.EDIEL_INBOUND_CRON_SECRET ?? process.env.CRON_SECRET
-  if (!configuredSecret) return process.env.NODE_ENV !== 'production'
+  if (!configuredSecret) return process.env.NODE_ENV === 'development'
 
   const authorization = request.headers.get('authorization') ?? ''
   const bearer = authorization.startsWith('Bearer ') ? authorization.slice('Bearer '.length) : null
@@ -23,8 +23,19 @@ export async function POST(request: NextRequest) {
   }
 
   const environment = request.nextUrl.searchParams.get('environment')
-  const result = await runInboundEdielMailEngine({ environment })
-  return NextResponse.json({ ok: true, result })
+  try {
+    const result = await runInboundEdielMailEngine({ environment })
+    return NextResponse.json({ ok: true, result })
+  } catch (error) {
+    console.error('[inbound-mail-cron] Run failed', error)
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Inbound mail engine failed',
+      },
+      { status: 500 }
+    )
+  }
 }
 
 export async function GET(request: NextRequest) {

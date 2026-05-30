@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { cache } from 'react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import type {
@@ -44,7 +45,7 @@ function monthLabel(monthKey: string): string {
   return `${year}-${month}`
 }
 
-export async function getCustomerPortalContext(): Promise<CustomerPortalContext> {
+export const getCustomerPortalContext = cache(async function getCustomerPortalContext(): Promise<CustomerPortalContext> {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -91,7 +92,7 @@ export async function getCustomerPortalContext(): Promise<CustomerPortalContext>
     customerIds,
     customers: (customerRows ?? []) as CustomerPortalCustomerRow[],
   }
-}
+})
 
 export function assertPortalAccessToCustomer(
   context: CustomerPortalContext,
@@ -177,6 +178,7 @@ export async function listPortalSites(
     )
     .in('customer_id', context.customerIds)
     .order('created_at', { ascending: false })
+    .limit(100)
 
   if (error) throw error
   return (data ?? []) as CustomerPortalSiteRow[]
@@ -192,6 +194,7 @@ export async function listPortalMeteringPoints(
     .select('id,site_id,meter_point_id,grid_owner_id,price_area_code,status')
     .in('site_id', siteIds)
     .order('created_at', { ascending: false })
+    .limit(250)
 
   if (error) throw error
   return (data ?? []) as CustomerPortalMeteringPointRow[]

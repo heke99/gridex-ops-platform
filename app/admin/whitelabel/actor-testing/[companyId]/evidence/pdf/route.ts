@@ -10,6 +10,10 @@ function toResponseBody(bytes: Uint8Array): ArrayBuffer {
   return buffer
 }
 
+function evidenceSlug(name: string | null | undefined, fallback: string) {
+  return (name?.trim() || fallback).replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+}
+
 export async function GET(_request: Request, context: { params: Promise<{ companyId: string }> }) {
   const admin = await requireAdminAccess()
   const { companyId } = await context.params
@@ -18,7 +22,7 @@ export async function GET(_request: Request, context: { params: Promise<{ compan
 
   const pkg = await buildActorTestingEvidencePackage(companyId)
   const pdf = renderActorTestingEvidencePdf(pkg)
-  const filename = `actor-testing-evidence-${pkg.company.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`
+  const filename = `actor-testing-evidence-${evidenceSlug(pkg.company.name, companyId)}-${new Date().toISOString().slice(0, 10)}.pdf`
   return new Response(toResponseBody(pdf), {
     headers: {
       'content-type': 'application/pdf',
