@@ -159,6 +159,106 @@ function normalizeEnvironment(value: string | null | undefined): 'test' | 'produ
   return null
 }
 
+function envValue(...names: string[]): string | null {
+  for (const name of names) {
+    const value = stringOrNull(process.env[name])
+    if (value) return value
+  }
+  return null
+}
+
+function envIntValue(fallback: number, ...names: string[]): number {
+  for (const name of names) {
+    const value = Number.parseInt(process.env[name] ?? '', 10)
+    if (Number.isFinite(value) && value > 0) return value
+  }
+  return fallback
+}
+
+function envSecretReference(environment: 'test' | 'production'): string | null {
+  const envKey = environment.toUpperCase()
+  const explicit = envValue(
+    `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_SECRET_REFERENCE`,
+    'GRIDEX_SHARED_EDIEL_IMAP_SECRET_REFERENCE'
+  )
+  if (explicit) return explicit
+
+  const passwordEnvName = [
+    `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_PASS`,
+    `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_PASSWORD`,
+    'GRIDEX_SHARED_EDIEL_IMAP_PASS',
+    'GRIDEX_SHARED_EDIEL_IMAP_PASSWORD',
+  ].find((name) => stringOrNull(process.env[name]))
+
+  return passwordEnvName ? `env:${passwordEnvName}` : null
+}
+
+async function bootstrapSharedMailboxFromEnv(environmentInput: string | null | undefined): Promise<EdielMailboxRow | null> {
+  const environment = normalizeEnvironment(environmentInput) ?? 'test'
+  const envKey = environment.toUpperCase()
+  const emailAddress = envValue(
+    `GRIDEX_SHARED_EDIEL_${envKey}_EMAIL`,
+    `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_EMAIL`,
+    'GRIDEX_SHARED_EDIEL_EMAIL',
+    'GRIDEX_SHARED_EDIEL_IMAP_EMAIL',
+    'EDIEL_INBOUND_EMAIL'
+  )
+  const imapHost = envValue(
+    `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_HOST`,
+    `GRIDEX_SHARED_${envKey}_EDIEL_IMAP_HOST`,
+    'GRIDEX_SHARED_EDIEL_IMAP_HOST',
+    'EDIEL_INBOUND_IMAP_HOST'
+  )
+  const username = envValue(
+    `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_USERNAME`,
+    `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_USER`,
+    'GRIDEX_SHARED_EDIEL_IMAP_USERNAME',
+    'GRIDEX_SHARED_EDIEL_IMAP_USER',
+    'EDIEL_INBOUND_IMAP_USERNAME',
+    'EDIEL_INBOUND_IMAP_USER'
+  ) ?? emailAddress
+  const secretReference = envSecretReference(environment)
+
+  if (!emailAddress || !imapHost || !username || !secretReference) return null
+
+  const payload = {
+    company_id: null,
+    environment,
+    mailbox_name: `Gridex shared ${environment} Ediel`,
+    email_address: emailAddress,
+    imap_host: imapHost,
+    imap_port: envIntValue(
+      993,
+      `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_PORT`,
+      'GRIDEX_SHARED_EDIEL_IMAP_PORT',
+      'EDIEL_INBOUND_IMAP_PORT'
+    ),
+    username,
+    secret_reference: secretReference,
+    is_active: true,
+    poll_interval_minutes: 5,
+    metadata: {
+      scope: 'platform_shared',
+      imap_folder: envValue(
+        `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_FOLDER`,
+        'GRIDEX_SHARED_EDIEL_IMAP_FOLDER',
+        'EDIEL_INBOUND_IMAP_FOLDER'
+      ) ?? 'INBOX',
+      bootstrappedFromEnv: true,
+    },
+    updated_at: nowIso(),
+  }
+
+  const { data, error } = await supabaseService
+    .from('ediel_mailboxes')
+    .insert(payload)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as EdielMailboxRow
+}
+
 function parseInboundDedupeFacts(rawPayload: string | null | undefined): {
   senderEdielId: string | null
   receiverEdielId: string | null
@@ -422,6 +522,9 @@ export async function listConfiguredEdielMailboxes(options: {
 
   const shared = rows.filter(isPlatformSharedMailbox)
   if (shared.length > 0) return shared
+
+  const bootstrapped = await bootstrapSharedMailboxFromEnv(options.environment)
+  if (bootstrapped) return [bootstrapped]
 
   return rows.filter((mailbox) => mailbox.company_id === null && mailbox.environment === 'test')
 }
@@ -911,7 +1014,9 @@ export async function runInboundEdielMailEngine(input: {
   })
 
   if (configuredMailboxes.length === 0 && !input.allowMissingMailboxConfig) {
-    throw new Error(NO_ACTIVE_EDIEL_MAILBOX_ERROR)
+    throw new Error(
+      `${NO_ACTIVE_EDIEL_MAILBOX_ERROR} Skapa en platform_shared rad i ediel_mailboxes eller sätt env för bootstrap: GRIDEX_SHARED_EDIEL_${String(input.environment ?? 'TEST').toUpperCase()}_EMAIL, GRIDEX_SHARED_EDIEL_${String(input.environment ?? 'TEST').toUpperCase()}_IMAP_HOST, GRIDEX_SHARED_EDIEL_${String(input.environment ?? 'TEST').toUpperCase()}_IMAP_USER/USERNAME och GRIDEX_SHARED_EDIEL_${String(input.environment ?? 'TEST').toUpperCase()}_IMAP_PASS.`
+    )
   }
 
   const eligibilityOptions = { force, includeLockedOlderThanMinutes: envInt('EDIEL_INBOUND_STALE_MAILBOX_LOCK_MINUTES', 30) }
