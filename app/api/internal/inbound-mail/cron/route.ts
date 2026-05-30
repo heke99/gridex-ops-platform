@@ -23,8 +23,9 @@ export async function POST(request: NextRequest) {
   }
 
   const environment = request.nextUrl.searchParams.get('environment')
+  const forcePoll = ['1', 'true', 'yes'].includes((request.nextUrl.searchParams.get('force') ?? '').toLowerCase())
   try {
-    const result = await runInboundEdielMailEngine({ environment })
+    const result = await runInboundEdielMailEngine({ environment, forcePoll })
     return NextResponse.json({ ok: true, result })
   } catch (error) {
     console.error('[inbound-mail-cron] Run failed', error)

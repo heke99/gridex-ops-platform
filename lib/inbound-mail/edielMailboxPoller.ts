@@ -111,7 +111,7 @@ function stringOrNull(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
-function passwordFromSecretReference(mailbox: EdielMailboxRow): string | null {
+export function resolveMailboxPasswordFromSecretReference(mailbox: Pick<EdielMailboxRow, 'id' | 'secret_reference'>): string | null {
   const reference = stringOrNull(mailbox.secret_reference)
   if (!reference) return null
 
@@ -126,6 +126,32 @@ function passwordFromSecretReference(mailbox: EdielMailboxRow): string | null {
   if (mailboxSpecific) return mailboxSpecific
 
   return null
+}
+
+export function normalizeImapMailboxFolder(value: unknown): string {
+  const folder = typeof value === 'string' ? value.trim() : ''
+  if (!folder || folder.includes('@') || folder.toLowerCase().startsWith('smtp://')) return 'INBOX'
+  return folder
+}
+
+export function isEdielMailboxDueForPolling(
+  mailbox: Pick<EdielMailboxRow, 'locked_at' | 'last_polled_at' | 'poll_interval_minutes'>,
+  options: { nowMs?: number; includeLockedOlderThanMinutes?: number; force?: boolean } = {}
+): boolean {
+  const now = options.nowMs ?? Date.now()
+  const staleLockMs = (options.includeLockedOlderThanMinutes ?? 30) * 60_000
+
+  if (mailbox.locked_at) {
+    const lockedAt = new Date(mailbox.locked_at).getTime()
+    if (!Number.isNaN(lockedAt) && now - lockedAt < staleLockMs) return false
+  }
+
+  if (options.force) return true
+  if (!mailbox.last_polled_at) return true
+  const intervalMinutes = Number(mailbox.poll_interval_minutes || 10)
+  const last = new Date(mailbox.last_polled_at).getTime()
+  if (Number.isNaN(last)) return true
+  return now - last >= intervalMinutes * 60_000
 }
 
 function extractHeader(rawEmail: string | null, headerName: string): string | null {
@@ -249,7 +275,7 @@ function splitMimeParts(rawEmail: string | null): { bodyText: string | null; bod
   }
 }
 
-export async function listDueEdielMailboxes(options: { environment?: string | null; includeLockedOlderThanMinutes?: number } = {}): Promise<EdielMailboxRow[]> {
+export async function listDueEdielMailboxes(options: { environment?: string | null; includeLockedOlderThanMinutes?: number; force?: boolean } = {}): Promise<EdielMailboxRow[]> {
   let query = supabaseService
     .from('ediel_mailboxes')
     .select('*')
@@ -260,21 +286,7 @@ export async function listDueEdielMailboxes(options: { environment?: string | nu
   const { data, error } = await query.order('last_polled_at', { ascending: true, nullsFirst: true })
   if (error) throw error
 
-  const now = Date.now()
-  const staleLockMs = (options.includeLockedOlderThanMinutes ?? 30) * 60_000
-
-  return ((data ?? []) as EdielMailboxRow[]).filter((mailbox) => {
-    if (mailbox.locked_at) {
-      const lockedAt = new Date(mailbox.locked_at).getTime()
-      if (!Number.isNaN(lockedAt) && now - lockedAt < staleLockMs) return false
-    }
-
-    if (!mailbox.last_polled_at) return true
-    const intervalMinutes = Number(mailbox.poll_interval_minutes || 10)
-    const last = new Date(mailbox.last_polled_at).getTime()
-    if (Number.isNaN(last)) return true
-    return now - last >= intervalMinutes * 60_000
-  })
+  return ((data ?? []) as EdielMailboxRow[]).filter((mailbox) => isEdielMailboxDueForPolling(mailbox, options))
 }
 
 export async function markMailboxPollStarted(mailboxId: string, workerId = 'inbound-mail-engine'): Promise<void> {
@@ -359,7 +371,7 @@ export async function storeInboundEmail(input: StoreInboundEmailInput): Promise<
     if (attachmentError) console.warn('[inbound-mail] Kunde inte spara bilagor', attachmentError)
   }
 
-  await supabaseService.from('inbound_processing_jobs').insert({
+  const { error: jobError } = await supabaseService.from('inbound_processing_jobs').insert({
     company_id: input.companyId ?? null,
     mailbox_id: input.mailboxId,
     inbound_email_message_id: id,
@@ -367,6 +379,7 @@ export async function storeInboundEmail(input: StoreInboundEmailInput): Promise<
     step: 'received',
     payload: { dedupeKey, hasRawEdifactPayload: Boolean(input.rawEdifactPayload), attachmentCount: attachments.length },
   })
+  if (jobError) throw jobError
 
   return { id, deduped: false }
 }
@@ -434,7 +447,7 @@ export async function pollEdielMailbox(input: {
       throw new Error('Mailbox saknar imap_host eller username.')
     }
 
-    const password = passwordFromSecretReference(input.mailbox)
+    const password = resolveMailboxPasswordFromSecretReference(input.mailbox)
     if (!password) {
       throw new Error('Mailbox saknar giltig secret_reference/env-lösenord.')
     }
@@ -451,7 +464,7 @@ export async function pollEdielMailbox(input: {
     })
 
     await client.connect()
-    const folder = stringOrNull(input.mailbox.metadata?.imap_folder) ?? stringOrNull(input.mailbox.metadata?.folder) ?? 'INBOX'
+    const folder = normalizeImapMailboxFolder(input.mailbox.metadata?.imap_folder ?? input.mailbox.metadata?.folder)
     const lock = await client.getMailboxLock(folder)
 
     try {
@@ -591,11 +604,12 @@ export async function runInboundEdielMailEngine(input: {
   pollLimit?: number
   messageLimitPerMailbox?: number
   processLimit?: number
+  forcePoll?: boolean
   actorUserId?: string | null
 } = {}): Promise<InboundEngineRunResult> {
   const startedAt = nowIso()
   const workerId = input.workerId ?? `inbound-mail-engine-${startedAt}`
-  const mailboxes = (await listDueEdielMailboxes({ environment: input.environment })).slice(0, input.pollLimit ?? envInt('EDIEL_INBOUND_MAILBOX_POLL_LIMIT', 10))
+  const mailboxes = (await listDueEdielMailboxes({ environment: input.environment, force: input.forcePoll })).slice(0, input.pollLimit ?? envInt('EDIEL_INBOUND_MAILBOX_POLL_LIMIT', 10))
   const results: PollMailboxResult[] = []
 
   for (const mailbox of mailboxes) {

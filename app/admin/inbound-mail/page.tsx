@@ -50,16 +50,22 @@ async function safeCount(table: string, filters: Record<string, string> = {}) {
   return count ?? 0
 }
 
+async function safeOrCount(table: string, orFilter: string) {
+  const { count } = await supabaseService.from(table).select('id', { count: 'exact', head: true }).or(orFilter)
+  return count ?? 0
+}
+
 export default async function InboundMailPage() {
   const admin = await requirePlatformAdminAccess()
 
-  const [mailboxesResult, messagesResult, parseResult, totalMessages, manualReviewCount, failedCount] = await Promise.all([
+  const [mailboxesResult, messagesResult, parseResult, totalMessages, manualReviewCount, failedMessageCount, failedJobCount] = await Promise.all([
     supabaseService.from('ediel_mailboxes').select('*').order('updated_at', { ascending: false }).limit(50),
     supabaseService.from('inbound_email_messages').select('*').order('created_at', { ascending: false }).limit(25),
     supabaseService.from('inbound_ediel_parse_results').select('*').order('created_at', { ascending: false }).limit(25),
     safeCount('inbound_email_messages'),
-    safeCount('inbound_email_messages', { match_status: 'manual_review' }),
+    safeOrCount('inbound_email_messages', 'processing_status.eq.manual_review,match_status.eq.manual_review'),
     safeCount('inbound_email_messages', { processing_status: 'failed' }),
+    safeOrCount('inbound_processing_jobs', 'status.eq.failed,status.eq.retry'),
   ])
 
   if (mailboxesResult.error) throw mailboxesResult.error
@@ -70,6 +76,7 @@ export default async function InboundMailPage() {
   const messages = (messagesResult.data ?? []) as InboundEmailRow[]
   const parseRows = (parseResult.data ?? []) as ParseRow[]
   const parseByMessageId = new Map(parseRows.map((row) => [row.inbound_email_message_id, row]))
+  const failedCount = failedMessageCount + failedJobCount
 
   return (
     <div>
@@ -86,7 +93,7 @@ export default async function InboundMailPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Engine-körning</p>
               <h2 className="mt-2 text-lg font-semibold text-slate-950">Pollning och köprocessor</h2>
-              <p className="mt-1 text-sm text-slate-700">Används av platform admin för manuell debug. I produktion kan samma runner anropas av Vercel Cron/API var 10:e minut.</p>
+              <p className="mt-1 text-sm text-slate-700">Används av platform admin för manuell debug. Knappen kör aktiv test-mailbox direkt; cron/API följer normalt pollintervallet.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <form action={runInboundMailEngineAction}>
@@ -117,7 +124,7 @@ export default async function InboundMailPage() {
           <div className="rounded-3xl border border-red-100 bg-white p-5 shadow-sm shadow-red-950/5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-700">Fel</p>
             <p className="mt-2 text-3xl font-semibold text-slate-950">{failedCount}</p>
-            <p className="mt-1 text-sm text-slate-700">Mail eller parserjobb som behöver åtgärd.</p>
+            <p className="mt-1 text-sm text-slate-700">Mail eller köjobb som behöver åtgärd.</p>
           </div>
         </section>
 
