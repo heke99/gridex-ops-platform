@@ -710,6 +710,7 @@ export async function pollAndIngestEdielMailbox(params: {
   environment?: 'test' | 'production' | null
   force?: boolean
   limit?: number
+  markSeen?: boolean
   sharedOnly?: boolean
   createDiagnosticMessagesForUnresolved?: boolean
 }) {
@@ -733,6 +734,7 @@ export async function pollAndIngestEdielMailbox(params: {
     mailboxId: resolvedMailboxId,
     sharedOnly: useSharedMailbox,
     force: params.force ?? true,
+    markSeen: params.markSeen,
     messageLimitPerMailbox: params.limit ?? 10,
     createDiagnosticMessagesForUnresolved: params.createDiagnosticMessagesForUnresolved ?? false,
   })

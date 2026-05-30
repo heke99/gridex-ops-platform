@@ -1117,6 +1117,7 @@ export async function runInboundEdielMailEngine(input: {
   processLimit?: number
   force?: boolean
   forcePoll?: boolean
+  markSeen?: boolean
   allowMissingMailboxConfig?: boolean
   actorUserId?: string | null
   sharedOnly?: boolean
@@ -1151,6 +1152,7 @@ export async function runInboundEdielMailEngine(input: {
       mailbox,
       workerId,
       maxMessages: input.messageLimitPerMailbox ?? envInt('EDIEL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX', 25),
+      markSeen: input.markSeen,
       forceLock: force,
     }))
   }
