@@ -84,7 +84,7 @@ async function audit(input: {
 
 export async function saveCompanyEdielActorAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess()
-  let companyId = text(formData.get('company_id'))
+  const companyId = text(formData.get('company_id'))
   let redirectMessage = 'Aktörsprofilen sparades.'
 
   try {
@@ -172,7 +172,7 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
 
 export async function saveCompanyBrpAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess()
-  let companyId = text(formData.get('company_id'))
+  const companyId = text(formData.get('company_id'))
   let redirectMessage = 'BRP-inställningen sparades.'
 
   try {

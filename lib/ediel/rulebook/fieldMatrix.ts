@@ -5,13 +5,18 @@ export type RulebookFieldRule = {
   code: string
   fieldKey: string
   label: string
-  segmentPath: string
+  segmentPath: string | null
   requirement: EdielRulebookRequirement
   condition?: string | null
   allowedValues?: string[]
   errorCodeIfMissing?: string | null
   errorCodeIfInvalid?: string | null
   severity?: 'warning' | 'error'
+  dependency?: {
+    anySegmentPresent?: string[]
+    allSegmentPresent?: string[]
+  } | null
+  source?: 'static' | 'registry'
 }
 
 export type FieldMatrixEvaluationInput = {
@@ -34,6 +39,14 @@ function tags(rawSegments: readonly string[] | null | undefined): string[] {
 function hasPrefix(rawSegments: readonly string[] | null | undefined, prefix: string): boolean {
   const normalized = prefix.toUpperCase()
   return (rawSegments ?? []).some((segment) => segment.toUpperCase().startsWith(normalized))
+}
+
+function hasSegmentTag(rawSegments: readonly string[] | null | undefined, tag: string): boolean {
+  const normalized = tag.toUpperCase()
+  return (rawSegments ?? []).some((segment) => {
+    const upper = segment.toUpperCase()
+    return upper === normalized || upper.startsWith(`${normalized}+`)
+  })
 }
 
 function first(rawSegments: readonly string[] | null | undefined, prefix: string): string | null {
@@ -73,6 +86,19 @@ function hasCciWithFollowingCav(rawSegments: readonly string[] | null | undefine
   return false
 }
 
+function valueAfterCci(rawSegments: readonly string[] | null | undefined, qualifier: string): string | null {
+  const segments = rawSegments ?? []
+  const expected = `CCI++${qualifier.toUpperCase()}`
+  const index = segments.findIndex((segment) => segment.toUpperCase() === expected || segment.toUpperCase().startsWith(`${expected}+`))
+  if (index < 0) return null
+  for (let cursor = index + 1; cursor < segments.length; cursor += 1) {
+    const upper = segments[cursor]?.toUpperCase() ?? ''
+    if (upper.startsWith('CCI+')) return null
+    if (upper.startsWith('CAV+')) return components(element(segments[cursor], 1))[0]?.toUpperCase() ?? null
+  }
+  return null
+}
+
 function ftxHasOk(rawSegments: readonly string[] | null | undefined): boolean {
   return (rawSegments ?? []).some((segment) => segment.toUpperCase().startsWith('FTX+') && segment.toUpperCase().includes('OK'))
 }
@@ -90,6 +116,96 @@ function hasAnyNad(rawSegments: readonly string[] | null | undefined, qualifier:
 
 function issue(input: Omit<EdielRulebookIssue, 'blocking'>): EdielRulebookIssue {
   return { ...input, blocking: input.severity === 'error' }
+}
+
+function normalizeSegmentPath(path: string | null | undefined): string {
+  return String(path ?? '').trim().toUpperCase()
+}
+
+function segmentPathAlternatives(path: string | null | undefined): string[] {
+  return normalizeSegmentPath(path)
+    .split(/[|,;]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function pathPresence(rawSegments: readonly string[] | null | undefined, path: string | null | undefined): boolean {
+  const alternatives = segmentPathAlternatives(path)
+  if (alternatives.length === 0) return false
+
+  return alternatives.some((candidate) => {
+    if (candidate.startsWith('CCI++')) {
+      const qualifier = candidate.match(/^CCI\+\+([A-Z0-9]+)/)?.[1]
+      return qualifier ? hasCci(rawSegments, qualifier) : false
+    }
+
+    if (candidate.includes('+')) {
+      const prefix = candidate.includes('/') ? candidate.split('/')[0] : candidate
+      if (!prefix) return false
+      return (rawSegments ?? []).some((segment) => {
+        const upper = segment.toUpperCase()
+        return upper === prefix || upper.startsWith(`${prefix}+`) || upper.startsWith(`${prefix}:`)
+      })
+    }
+
+    const tag = candidate.split('/')[0]
+    return Boolean(tag && hasSegmentTag(rawSegments, tag))
+  })
+}
+
+function firstValueForPath(rawSegments: readonly string[] | null | undefined, path: string | null | undefined): string | null {
+  const candidate = segmentPathAlternatives(path)[0]
+  if (!candidate) return null
+
+  if (candidate.startsWith('CCI++')) {
+    const qualifier = candidate.match(/^CCI\+\+([A-Z0-9]+)/)?.[1]
+    return qualifier ? valueAfterCci(rawSegments, qualifier) : null
+  }
+
+  const prefix = candidate.includes('/') ? candidate.split('/')[0] : candidate
+  const segment = first(rawSegments, prefix.includes('+') ? prefix : `${prefix}+`)
+  if (!segment) return null
+  return components(element(segment, 1))[0]?.toUpperCase() ?? null
+}
+
+function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): string[] {
+  const rawSegments = input.rawSegments ?? []
+  const value = (() => {
+    switch (rule.fieldKey) {
+      case 'application_reference':
+        return input.applicationReference ?? null
+      case 'message_code':
+        return bgmCode(rawSegments)
+      case 'reason_for_transaction':
+        return valueAfterCci(rawSegments, 'Z13')
+      case 'reporting_frequency':
+        return valueAfterCci(rawSegments, 'Z12')
+      case 'energy_product':
+        return valueAfterCci(rawSegments, 'Z14')
+      case 'installation_direction':
+        return valueAfterCci(rawSegments, 'Z22')
+      case 'permission_purpose':
+        return valueAfterCci(rawSegments, 'Z24')
+      case 'permission_status':
+        return valueAfterCci(rawSegments, 'Z23')
+      case 'permission_end_reason':
+        return valueAfterCci(rawSegments, 'Z25')
+      default:
+        return firstValueForPath(rawSegments, rule.segmentPath)
+    }
+  })()
+
+  return value ? [normalize(value)] : []
+}
+
+function dependencyApplies(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
+  if (rule.requirement !== 'dependent') return false
+  const any = rule.dependency?.anySegmentPresent ?? []
+  const all = rule.dependency?.allSegmentPresent ?? []
+  if (any.length === 0 && all.length === 0) return input.mode === 'send'
+  if (any.length > 0 && any.some((path) => pathPresence(input.rawSegments, path))) return true
+  if (all.length > 0 && all.every((path) => pathPresence(input.rawSegments, path))) return true
+  return false
 }
 
 const PRODAT_CODES = ['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z06', 'Z08', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'] as const
@@ -251,15 +367,19 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
     case 'source_reference':
       return hasPrefix(rawSegments, 'RFF+')
     default:
-      return true
+      return pathPresence(rawSegments, rule.segmentPath)
   }
 }
 
-export function validateFieldMatrixPayload(input: FieldMatrixEvaluationInput): EdielRulebookIssue[] {
+export function validateFieldMatrixPayload(
+  input: FieldMatrixEvaluationInput,
+  fieldRules?: readonly RulebookFieldRule[] | null
+): EdielRulebookIssue[] {
   const family = normalize(input.family)
   const code = normalize(input.code)
   const rawSegments = input.rawSegments ?? []
   const issues: EdielRulebookIssue[] = []
+  const rules = fieldRules ?? fieldRulesForMessage(family, code)
 
   const familyKnown = family === 'PRODAT' || family === 'UTILTS' || family === 'APERAK' || family === 'CONTRL' || family === 'UTILTS_ERR'
   if (!familyKnown) return issues
@@ -272,18 +392,47 @@ export function validateFieldMatrixPayload(input: FieldMatrixEvaluationInput): E
     issues.push(issue({ severity: 'error', code: 'UTILTS_CODE_NOT_ALLOWED', title: 'UTILTS-kod saknar profil', description: `${code} finns inte i UTILTS E5SE5A-profilerna.`, fieldPath: 'BGM/C002/1001' }))
   }
 
-  for (const rule of fieldRulesForMessage(family, code)) {
-    const shouldEvaluate = rule.requirement === 'required' || (input.mode === 'send' && rule.requirement === 'dependent')
+  for (const rule of rules) {
+    const present = fieldRulePresent(rule, { ...input, rawSegments })
+    if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
+      if (!present) continue
+      issues.push(issue({
+        severity: 'error',
+        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT',
+        title: `${rule.label} får inte skickas`,
+        description: `${rule.segmentPath ?? rule.fieldKey} är markerat som - för ${family} ${code} och blockeras.`,
+        fieldPath: rule.segmentPath,
+      }))
+      continue
+    }
+
+    const requiredByDependency = dependencyApplies(rule, { ...input, rawSegments })
+    const shouldEvaluate = rule.requirement === 'required' || requiredByDependency
     if (!shouldEvaluate) continue
-    if (fieldRulePresent(rule, { ...input, rawSegments })) continue
-    const severity = rule.severity ?? (rule.requirement === 'dependent' ? 'warning' : 'error')
-    issues.push(issue({
-      severity,
-      code: rule.errorCodeIfMissing ?? 'FIELD_MATRIX_REQUIRED_FIELD_MISSING',
-      title: `${rule.label} saknas`,
-      description: `${rule.segmentPath} krävs för ${family} ${code}${rule.condition ? ` (${rule.condition})` : ''}.`,
-      fieldPath: rule.segmentPath,
-    }))
+    if (!present) {
+      const severity = rule.severity ?? (requiredByDependency ? 'error' : rule.requirement === 'dependent' ? 'warning' : 'error')
+      issues.push(issue({
+        severity,
+        code: rule.errorCodeIfMissing ?? 'FIELD_MATRIX_REQUIRED_FIELD_MISSING',
+        title: `${rule.label} saknas`,
+        description: `${rule.segmentPath ?? rule.fieldKey} krävs för ${family} ${code}${rule.condition ? ` (${rule.condition})` : ''}.`,
+        fieldPath: rule.segmentPath,
+      }))
+      continue
+    }
+
+    const allowedValues = (rule.allowedValues ?? []).map(normalize).filter(Boolean)
+    if (allowedValues.length === 0) continue
+    const actualValues = fieldValuesForRule(rule, { ...input, rawSegments })
+    if (actualValues.length === 0 || actualValues.some((value) => !allowedValues.includes(value))) {
+      issues.push(issue({
+        severity: rule.severity ?? 'error',
+        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_CODE_LIST_INVALID',
+        title: `${rule.label} har otillåtet värde`,
+        description: `${rule.segmentPath ?? rule.fieldKey} måste vara ett av ${allowedValues.join(', ')}.`,
+        fieldPath: rule.segmentPath,
+      }))
+    }
   }
 
   if (family === 'PRODAT') {

@@ -1,5 +1,7 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { fieldRulesForMessage, validateFieldMatrixPayload } from '@/lib/ediel/rulebook/fieldMatrix'
+import { fieldRulesForMessage, validateFieldMatrixPayload, type RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
+import type { RegistryFieldRuleResult } from '@/lib/ediel/rulebook/fieldRuleRegistry'
+import type { EdielDirection, EdielEnvironment } from '@/lib/ediel/types'
 import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import {
   defaultApplicationReferenceForProcess,
@@ -21,6 +23,12 @@ export type RulebookValidationInput = {
   rawPayload?: string | null
   parsed?: ParsedRulebookMessage | null
   mode?: 'send' | 'parse' | 'test'
+  roleCode?: string | null
+  direction?: EdielDirection | 'both' | null
+  environment?: EdielEnvironment | 'all' | null
+  version?: string | null
+  fieldRules?: readonly RulebookFieldRule[] | null
+  fieldRuleSource?: 'static' | 'registry'
 }
 
 export type RulebookValidationResult = {
@@ -32,6 +40,7 @@ export type RulebookValidationResult = {
   expectedApplicationReference: string | null
   parsed: ParsedRulebookMessage | null
   issues: EdielRulebookIssue[]
+  fieldRuleSource: 'static' | 'registry'
 }
 
 function issue(input: EdielRulebookIssue): EdielRulebookIssue {
@@ -53,6 +62,23 @@ function normalizeProcessGroupInput(value: string | null | undefined, family: st
   if (normalized === 'ediel_ack' || normalized.includes('ack')) return 'ediel_ack'
   if (normalized === 'ai_list' || normalized.includes('ai_list') || normalized.includes('bi_list')) return 'ai_list'
   return processGroupForMessage(family, code)
+}
+
+function deriveEdielRoleCode(input: {
+  family?: string | null
+  processGroup?: string | null
+  applicationReference?: string | null
+  roleCode?: string | null
+}): string | null {
+  const explicit = normalizeRulebookToken(input.roleCode)
+  if (explicit === 'DDQ' || explicit === 'DGI') return explicit
+  const reference = normalizeRulebookToken(input.applicationReference)
+  if (reference.includes('DGI')) return 'DGI'
+  if (reference.includes('DDQ')) return 'DDQ'
+  const processGroup = String(input.processGroup ?? '').trim().toLowerCase()
+  if (processGroup.includes('metering') || processGroup.includes('permission')) return 'DGI'
+  if (normalizeRulebookToken(input.family) === 'PRODAT') return 'DDQ'
+  return null
 }
 
 function ensureNoMixedProdatFunctions(rawPayload: string | null | undefined, issues: EdielRulebookIssue[]) {
@@ -104,7 +130,7 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
     }
   }
 
-  const fieldRules = fieldRulesForMessage(family, code)
+  const fieldRules = input.fieldRules ?? fieldRulesForMessage(family, code)
   if (input.mode === 'send') {
     for (const fieldRule of fieldRules.filter((rule) => rule.requirement === 'required')) {
       if (fieldRule.fieldKey === 'application_reference' && expectedApplicationReference && !actualApplicationReference) {
@@ -120,7 +146,7 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
     applicationReference: actualApplicationReference,
     expectedApplicationReference,
     mode: input.mode ?? 'send',
-  })
+  }, fieldRules)
 
   issues.push(...fieldMatrixIssues)
 
@@ -134,7 +160,45 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
     expectedApplicationReference,
     parsed,
     issues,
+    fieldRuleSource: input.fieldRuleSource ?? 'static',
   }
+}
+
+export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
+  const parsed = input.parsed ?? (input.rawPayload ? (input.rawPayload.includes("'") ? parseRulebookMessage(input.rawPayload) : parseRulebookListPayload(input.rawPayload)) : null)
+  const family = normalizeRulebookToken(input.family ?? parsed?.family ?? null) || null
+  const code = normalizeRulebookToken(input.code ?? parsed?.code ?? null) || null
+  const processGroup = normalizeProcessGroupInput(input.processGroup ?? input.routeScope ?? parsed?.processGroup, family, code)
+  const applicationReference = input.applicationReference ?? parsed?.applicationReference ?? null
+  const roleCode = deriveEdielRoleCode({
+    family,
+    processGroup,
+    applicationReference,
+    roleCode: input.roleCode,
+  })
+
+  let registry: RegistryFieldRuleResult = { rules: [], source: 'static' }
+  if (family && code) {
+    const { loadRegistryFieldRules } = await import('@/lib/ediel/rulebook/fieldRuleRegistry')
+    registry = await loadRegistryFieldRules({
+      family,
+      code,
+      roleCode,
+      direction: input.direction ?? null,
+      environment: input.environment ?? null,
+      version: input.version ?? null,
+    })
+  }
+
+  return validateRulebookMessage({
+    ...input,
+    parsed,
+    processGroup,
+    applicationReference,
+    roleCode,
+    fieldRules: registry.source === 'registry' ? registry.rules : input.fieldRules,
+    fieldRuleSource: registry.source,
+  })
 }
 
 export function validateEdielMessageRowWithRulebook(message: EdielMessageRow, mode: 'send' | 'parse' | 'test' = 'send'): RulebookValidationResult {

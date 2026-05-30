@@ -7,7 +7,7 @@ import {
   parseCanonicalMessageRow,
   type CanonicalEdielMessage,
 } from '@/lib/ediel/core/canonicalMessage'
-import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
+import { validateRulebookMessage, validateRulebookMessageWithRegistry, type RulebookValidationResult } from '@/lib/ediel/rulebook/validator'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
 
@@ -90,6 +90,67 @@ function applicationErrorFromIssue(input: {
 
 function canHaveApplicationAck(family: string): boolean {
   return family === 'PRODAT' || family === 'UTILTS'
+}
+
+function prodatAperakPlanFromValidation(rulebook: RulebookValidationResult): CanonicalResponsePlanItem {
+  const blocking = rulebook.issues.some((item) => item.severity === 'error' || item.blocking)
+  if (!blocking) {
+    return {
+      family: 'APERAK',
+      outcome: 'positive',
+      erc: '100',
+      ftx: 'OK',
+      reason: 'PRODAT är accepterad enligt canonical parser/rulebook. APERAK skickas om route/rule kräver det.',
+    }
+  }
+
+  const applicationErrors = rulebook.issues
+    .filter((item) => item.severity === 'error' || item.blocking)
+    .map((item) => applicationErrorFromIssue({ code: item.code, description: item.description, fieldPath: item.fieldPath }))
+
+  return {
+    family: 'APERAK',
+    outcome: 'negative',
+    erc: applicationErrors[0]?.ercCode ?? '42',
+    ftx: applicationErrors[0]?.text ?? 'INCORRECT DATA',
+    reason: rulebook.fieldRuleSource === 'registry'
+      ? 'PRODAT innehåller anvisnings-/applikationsfel enligt importerad fältmatris.'
+      : 'PRODAT innehåller anvisnings-/applikationsfel enligt rulebook.',
+    applicationErrors,
+  }
+}
+
+function applyProdatRulebookDecision(params: {
+  canonical: CanonicalEdielMessage
+  rulebook: RulebookValidationResult
+  responsePlan: CanonicalResponsePlanItem[]
+  issues: CanonicalDecisionIssue[]
+  sourceRules: string[]
+  decisionTrace: string[]
+}): { applicationDecision: CanonicalDecisionState; functionalDecision: CanonicalDecisionState } {
+  const { canonical, rulebook, responsePlan, issues, sourceRules, decisionTrace } = params
+  sourceRules.push(rulebook.fieldRuleSource === 'registry' ? 'PRODAT_IMPORTED_FIELD_RULES' : 'PRODAT_RULEBOOK_PROCESS_CLASSIFICATION')
+  decisionTrace.push(`PRODAT klassad som ${canonical.processGroup}; ${rulebook.fieldRuleSource === 'registry' ? 'importerad fältmatris' : 'rulebook'} gav ${rulebook.issues.length} issue(s).`)
+
+  for (const item of rulebook.issues) {
+    issues.push(issue({
+      layer: item.code.includes('APPLICATION_REFERENCE') ? 'route' : 'application',
+      severity: item.severity,
+      code: item.code,
+      title: item.title,
+      description: item.description,
+      source: rulebook.fieldRuleSource === 'registry' ? 'validateRulebookMessageWithRegistry' : 'validateRulebookMessage',
+    }))
+  }
+
+  const blocking = rulebook.issues.some((item) => item.severity === 'error' || item.blocking)
+  responsePlan.push(prodatAperakPlanFromValidation(rulebook))
+
+  if (blocking) {
+    return { applicationDecision: 'rejected', functionalDecision: 'accepted' }
+  }
+
+  return { applicationDecision: 'accepted', functionalDecision: 'accepted' }
 }
 
 function shouldContrlInbound(message: EdielMessageRow, family: string): boolean {
@@ -243,45 +304,16 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
       rawPayload: message.raw_payload,
       mode: 'parse',
     })
-    sourceRules.push('PRODAT_RULEBOOK_PROCESS_CLASSIFICATION')
-    decisionTrace.push(`PRODAT klassad som ${canonical.processGroup}; rulebook issues: ${rulebook.issues.length}.`)
-    for (const item of rulebook.issues) {
-      issues.push(issue({
-        layer: item.code.includes('APPLICATION_REFERENCE') ? 'route' : 'application',
-        severity: item.severity,
-        code: item.code,
-        title: item.title,
-        description: item.description,
-        source: 'validateRulebookMessage',
-      }))
-    }
-
-    const blocking = rulebook.issues.some((item) => item.severity === 'error' || item.blocking)
-    if (blocking) {
-      applicationDecision = 'rejected'
-      functionalDecision = 'accepted'
-      const applicationErrors = rulebook.issues
-        .filter((item) => item.severity === 'error' || item.blocking)
-        .map((item) => applicationErrorFromIssue({ code: item.code, description: item.description, fieldPath: item.fieldPath }))
-      responsePlan.push({
-        family: 'APERAK',
-        outcome: 'negative',
-        erc: applicationErrors[0]?.ercCode ?? '42',
-        ftx: applicationErrors[0]?.text ?? 'INCORRECT DATA',
-        reason: 'PRODAT innehåller anvisnings-/applikationsfel enligt rulebook.',
-        applicationErrors,
-      })
-    } else {
-      applicationDecision = 'accepted'
-      functionalDecision = 'accepted'
-      responsePlan.push({
-        family: 'APERAK',
-        outcome: 'positive',
-        erc: '100',
-        ftx: 'OK',
-        reason: 'PRODAT är accepterad enligt canonical parser/rulebook. APERAK skickas om route/rule kräver det.',
-      })
-    }
+    const prodatDecision = applyProdatRulebookDecision({
+      canonical,
+      rulebook,
+      responsePlan,
+      issues,
+      sourceRules,
+      decisionTrace,
+    })
+    applicationDecision = prodatDecision.applicationDecision
+    functionalDecision = prodatDecision.functionalDecision
   } else if (canHaveApplicationAck(String(canonical.family))) {
     applicationDecision = 'manual_review'
     functionalDecision = 'manual_review'
@@ -313,6 +345,64 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     sourceRules,
     decisionTrace,
     parsedPayload,
+    validationReport,
+  }
+}
+
+export async function resolveCanonicalRuntimeDecisionWithRegistry(message: EdielMessageRow): Promise<CanonicalRuntimeDecision> {
+  const canonical = parseCanonicalMessageRow(message)
+  if (canonical.family !== 'PRODAT') return resolveCanonicalRuntimeDecision(message)
+
+  const base = resolveCanonicalRuntimeDecision(message)
+  if (base.syntaxDecision === 'rejected') return base
+
+  const rulebook = await validateRulebookMessageWithRegistry({
+    family: 'PRODAT',
+    code: canonical.messageCode,
+    processGroup: canonical.processGroup,
+    applicationReference: canonical.applicationReference,
+    rawPayload: message.raw_payload,
+    mode: 'parse',
+    direction: message.direction,
+    environment: message.environment,
+    version: message.message_version,
+  })
+
+  if (rulebook.fieldRuleSource !== 'registry') return base
+
+  const issues = base.issues.filter((item) => item.source !== 'validateRulebookMessage')
+  const responsePlan = base.responsePlan.filter((item) => item.family !== 'APERAK')
+  const sourceRules = base.sourceRules.filter((item) => item !== 'PRODAT_RULEBOOK_PROCESS_CLASSIFICATION')
+  const decisionTrace = base.decisionTrace.filter((item) => !item.startsWith('PRODAT klassad som '))
+
+  const prodatDecision = applyProdatRulebookDecision({
+    canonical,
+    rulebook,
+    responsePlan,
+    issues,
+    sourceRules,
+    decisionTrace,
+  })
+
+  const validationReport = {
+    ...base.validationReport,
+    applicationDecision: prodatDecision.applicationDecision,
+    functionalDecision: prodatDecision.functionalDecision,
+    responsePlan,
+    issues,
+    sourceRules,
+    decisionTrace,
+    fieldRuleSource: 'registry',
+  }
+
+  return {
+    ...base,
+    applicationDecision: prodatDecision.applicationDecision,
+    functionalDecision: prodatDecision.functionalDecision,
+    responsePlan,
+    issues,
+    sourceRules,
+    decisionTrace,
     validationReport,
   }
 }

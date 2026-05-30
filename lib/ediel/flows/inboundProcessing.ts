@@ -25,7 +25,7 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 import { syncActorTestingForMessage } from '@/lib/ediel/actorTestingEngine'
 import { EDIEL_AGT_PORTAL_EDIEL_ID } from '@/lib/ediel/agtRegistry'
-import { resolveCanonicalRuntimeDecision, type CanonicalRuntimeDecision, type CanonicalResponsePlanItem } from '@/lib/ediel/core/runtimeDecision'
+import { resolveCanonicalRuntimeDecisionWithRegistry, type CanonicalRuntimeDecision, type CanonicalResponsePlanItem } from '@/lib/ediel/core/runtimeDecision'
 import { buildSafeMasterdataProposal } from '@/lib/ediel/operationalVerification'
 import { createOrUpdateInboundProdatCase } from '@/lib/ediel/inboundCases'
 import {
@@ -224,7 +224,7 @@ async function applyCanonicalRuntimeDecision(params: {
   actorUserId: string
   message: EdielMessageRow
 }): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision }> {
-  const decision = resolveCanonicalRuntimeDecision(params.message)
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(params.message)
   const now = new Date().toISOString()
   const mergedParsedPayload = {
     ...(params.message.parsed_payload ?? {}),

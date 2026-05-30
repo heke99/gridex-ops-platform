@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "start": "next start",
     "lint": "eslint",
-    "security:rbac": "node scripts/security-audit-rbac.mjs"
+    "security:rbac": "node scripts/security-audit-rbac.mjs",
+    "ediel:rule-regression": "node scripts/ediel-rule-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

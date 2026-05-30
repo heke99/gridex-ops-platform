@@ -31,6 +31,7 @@ import {
   resolveCanonicalInboundAcceptedVersions,
   resolveCanonicalOutboundVersion,
 } from '@/lib/ediel/core/versionRegistry'
+import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 
 function ensureActorUserId(value?: string | null) {
   return value && value.trim() ? value.trim() : 'system'
@@ -289,6 +290,34 @@ export async function createCanonicalOutboundMessage(params: {
   })
 }
 
+async function assertOutboundDraftAllowedByFieldRules(params: {
+  draft: CreateEdielMessageInput
+  messageVersion?: string | null
+}) {
+  if (!params.draft.rawPayload) return
+
+  const validation = await validateRulebookMessageWithRegistry({
+    family: params.draft.messageFamily,
+    code: String(params.draft.messageCode),
+    processGroup: params.draft.processType ?? null,
+    applicationReference: params.draft.applicationReference ?? null,
+    rawPayload: params.draft.rawPayload,
+    mode: 'send',
+    direction: 'outbound',
+    environment: params.draft.environment ?? null,
+    version: params.messageVersion ?? params.draft.messageVersion ?? null,
+  })
+
+  if (validation.fieldRuleSource !== 'registry') return
+  const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)
+  if (blocking.length === 0) return
+
+  const first = blocking[0]
+  throw new Error(
+    `Outbound ${params.draft.messageFamily} ${params.draft.messageCode} blockerades av importerad Ediel-regel: ${first.code} - ${first.description}`
+  )
+}
+
 export async function finalizeCanonicalOutboundDraft(params: {
   actorUserId?: string | null
   requestType: CanonicalRouteRequestType
@@ -331,6 +360,44 @@ export async function finalizeCanonicalOutboundDraft(params: {
     originalMessageCode: params.draft.originalMessageCode ?? null,
   })
 
+  const baseInput = {
+    ...params.draft,
+    actorUserId,
+    companyId: params.draft.companyId ?? params.routeContext.companyId ?? null,
+    messageVersion: resolvedVersion ?? params.draft.messageVersion ?? null,
+    applicationReference:
+      params.draft.applicationReference ??
+      params.routeContext.applicationReference ??
+      null,
+    externalReference: refs.externalReference,
+    transactionReference: refs.transactionReference,
+    correlationReference: refs.correlationReference,
+    originalMessageId: refs.originalMessageId,
+    originalTransactionId: refs.originalTransactionId,
+    originalMessageCode: refs.originalMessageCode,
+    senderEdielId: params.draft.senderEdielId ?? params.routeContext.senderEdielId,
+    senderName: params.draft.senderName ?? params.routeContext.senderName,
+    senderSubAddress:
+      params.draft.senderSubAddress ?? params.routeContext.senderSubAddress,
+    receiverEdielId: params.draft.receiverEdielId ?? params.routeContext.receiverEdielId,
+    receiverName: params.draft.receiverName ?? params.routeContext.receiverName,
+    receiverSubAddress:
+      params.draft.receiverSubAddress ?? params.routeContext.receiverSubAddress,
+    receiverEmail: params.draft.receiverEmail ?? params.routeContext.receiverEmail,
+    mailbox: params.draft.mailbox ?? params.routeContext.mailbox,
+    communicationRouteId:
+      params.draft.communicationRouteId ?? params.routeContext.route.id,
+    environment: params.draft.environment ?? params.routeContext.environment,
+    messageStandard:
+      params.draft.messageStandard ?? params.routeContext.messageStandard,
+    testFlag: params.draft.testFlag ?? params.routeContext.actor.testFlag,
+  }
+
+  await assertOutboundDraftAllowedByFieldRules({
+    draft: baseInput,
+    messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
+  })
+
   return createCanonicalOutboundMessage({
     actorUserId,
     requestType: params.requestType,
@@ -345,38 +412,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
       periodStart: params.duplicateCheck.periodStart ?? null,
       periodEnd: params.duplicateCheck.periodEnd ?? null,
     },
-    baseInput: {
-      ...params.draft,
-      actorUserId,
-      companyId: params.draft.companyId ?? params.routeContext.companyId ?? null,
-      messageVersion: resolvedVersion ?? params.draft.messageVersion ?? null,
-      applicationReference:
-        params.draft.applicationReference ??
-        params.routeContext.applicationReference ??
-        null,
-      externalReference: refs.externalReference,
-      transactionReference: refs.transactionReference,
-      correlationReference: refs.correlationReference,
-      originalMessageId: refs.originalMessageId,
-      originalTransactionId: refs.originalTransactionId,
-      originalMessageCode: refs.originalMessageCode,
-      senderEdielId: params.draft.senderEdielId ?? params.routeContext.senderEdielId,
-      senderName: params.draft.senderName ?? params.routeContext.senderName,
-      senderSubAddress:
-        params.draft.senderSubAddress ?? params.routeContext.senderSubAddress,
-      receiverEdielId: params.draft.receiverEdielId ?? params.routeContext.receiverEdielId,
-      receiverName: params.draft.receiverName ?? params.routeContext.receiverName,
-      receiverSubAddress:
-        params.draft.receiverSubAddress ?? params.routeContext.receiverSubAddress,
-      receiverEmail: params.draft.receiverEmail ?? params.routeContext.receiverEmail,
-      mailbox: params.draft.mailbox ?? params.routeContext.mailbox,
-      communicationRouteId:
-        params.draft.communicationRouteId ?? params.routeContext.route.id,
-      environment: params.draft.environment ?? params.routeContext.environment,
-      messageStandard:
-        params.draft.messageStandard ?? params.routeContext.messageStandard,
-      testFlag: params.draft.testFlag ?? params.routeContext.actor.testFlag,
-    },
+    baseInput,
   })
 }
 
