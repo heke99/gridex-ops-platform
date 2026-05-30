@@ -420,21 +420,30 @@ function segmentByPrefix(segments: readonly string[], prefix: string): string | 
   return segments.find((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase())) ?? null
 }
 
-function sourceSg2SubordinateNadSegments(segments: readonly string[]): string[] {
-  const result: string[] = []
-  const seen = new Set<string>()
+function sourceSg2SubordinateNadSegment(segments: readonly string[], sourceMks: string | null): string {
+  const candidates: string[] = []
+  const preferredRole = firstCompositeComponent(edifactElement(sourceMks, 2))?.toUpperCase() ?? null
 
   for (const segment of segments) {
     const upper = segment.toUpperCase()
     if (upper.startsWith('IDE+24') || upper.startsWith('LIN+')) break
     if (!upper.startsWith('NAD+DDQ') && !upper.startsWith('NAD+DDK')) continue
     if (!utiltsSegmentHasValue(segment, 2)) continue
-    if (seen.has(segment)) continue
-    seen.add(segment)
-    result.push(segment)
+    if (!candidates.includes(segment)) candidates.push(segment)
   }
 
-  return result
+  const selected =
+    candidates.find((segment) => preferredRole && segment.toUpperCase().startsWith(`NAD+${preferredRole}`)) ??
+    candidates[0] ??
+    null
+
+  if (!selected) {
+    throw new Error(
+      'Kan inte skapa UTILTS_ERR: inbound UTILTS saknar giltig SG2/NAD+DDQ eller NAD+DDK med party-id.'
+    )
+  }
+
+  return selected
 }
 
 function edifactElement(segment: string | null | undefined, index: number): string | null {
@@ -710,7 +719,7 @@ function buildUtiltsErrSegments(params: {
   const refs = parseEdifactRefs(params.sourceMessage)
   const sourceSegments = edifactSegmentsFromRaw(params.sourceMessage.raw_payload)
   const sourceMks = segmentByPrefix(sourceSegments, 'MKS+')
-  const sourceSubordinateNads = sourceSg2SubordinateNadSegments(sourceSegments)
+  const sourceSubordinateNad = sourceSg2SubordinateNadSegment(sourceSegments, sourceMks)
   const rawCodes = sanitizeSegmentText(params.messageText) || 'E14'
   const codes = rawCodes
     .split(/[|,;\s]+/)
@@ -729,7 +738,7 @@ function buildUtiltsErrSegments(params: {
     copiedUtiltsSegment(sourceMks, 'MKS+'),
     `NAD+MS+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
     `NAD+MR+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
-    ...sourceSubordinateNads,
+    sourceSubordinateNad,
   ]
 
   const usedMeterPointIds = new Set<string>()
