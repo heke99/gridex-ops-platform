@@ -30,7 +30,9 @@ function upper(value: unknown): string {
 function configuredValueMatches(configured: unknown, observed: unknown): boolean {
   const configuredValue = upper(configured)
   if (!configuredValue) return true
-  return configuredValue === upper(observed)
+  const observedValue = upper(observed)
+  if (!observedValue) return true
+  return configuredValue === observedValue
 }
 
 function bestCandidateEvidence(evidence: TenantCandidateEvidence[]): TenantCandidateEvidence[] {

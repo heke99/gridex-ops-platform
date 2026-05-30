@@ -31,7 +31,9 @@ function splitParty(value: string | null): { edielId: string | null; subAddress:
   const parts = first.split(':')
   return {
     edielId: cleanText(parts[0]),
-    subAddress: cleanText(parts[2] ?? parts[1] ?? null),
+    // UNB S002/S003 component 0007 is an ID qualifier (for example ZZ),
+    // while component 0008 is the reverse routing/subaddress.
+    subAddress: cleanText(parts[2] ?? null),
   }
 }
 

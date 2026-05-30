@@ -215,7 +215,7 @@ async function evidenceFromActorSettings(
     const actorIds = [row.ediel_id, row.actor_ediel_id].map(upper).filter(Boolean)
     if (!actorIds.includes(receiver)) return []
 
-    const actorSub = upper(row.receiver_subaddress ?? row.sender_subaddress ?? row.sender_sub_address)
+    const actorSub = upper(row.receiver_subaddress ?? row.receiver_sub_address ?? row.sender_subaddress ?? row.sender_sub_address)
     if (actorSub && receiverSub && actorSub !== receiverSub) return []
 
     return [{
