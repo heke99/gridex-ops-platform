@@ -420,6 +420,23 @@ function segmentByPrefix(segments: readonly string[], prefix: string): string | 
   return segments.find((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase())) ?? null
 }
 
+function sourceSg2SubordinateNadSegments(segments: readonly string[]): string[] {
+  const result: string[] = []
+  const seen = new Set<string>()
+
+  for (const segment of segments) {
+    const upper = segment.toUpperCase()
+    if (upper.startsWith('IDE+24') || upper.startsWith('LIN+')) break
+    if (!upper.startsWith('NAD+DDQ') && !upper.startsWith('NAD+DDK')) continue
+    if (!utiltsSegmentHasValue(segment, 2)) continue
+    if (seen.has(segment)) continue
+    seen.add(segment)
+    result.push(segment)
+  }
+
+  return result
+}
+
 function edifactElement(segment: string | null | undefined, index: number): string | null {
   const value = segment?.split('+')[index]?.trim() ?? ''
   return value.length > 0 ? value : null
@@ -597,6 +614,10 @@ export function shouldUseTransactionScopedPositiveAperak(params: {
 
 function copiedUtiltsSegment(segment: string | null, allowedPrefix: string): string | null {
   if (!segment || !segment.toUpperCase().startsWith(allowedPrefix.toUpperCase())) return null
+  const upper = segment.toUpperCase()
+  if ((upper.startsWith('NAD+DDQ') || upper.startsWith('NAD+DDK')) && !utiltsSegmentHasValue(segment, 2)) {
+    return null
+  }
   return segment
 }
 
@@ -689,6 +710,7 @@ function buildUtiltsErrSegments(params: {
   const refs = parseEdifactRefs(params.sourceMessage)
   const sourceSegments = edifactSegmentsFromRaw(params.sourceMessage.raw_payload)
   const sourceMks = segmentByPrefix(sourceSegments, 'MKS+')
+  const sourceSubordinateNads = sourceSg2SubordinateNadSegments(sourceSegments)
   const rawCodes = sanitizeSegmentText(params.messageText) || 'E14'
   const codes = rawCodes
     .split(/[|,;\s]+/)
@@ -707,7 +729,7 @@ function buildUtiltsErrSegments(params: {
     copiedUtiltsSegment(sourceMks, 'MKS+'),
     `NAD+MS+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
     `NAD+MR+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
-    'NAD+DDQ',
+    ...sourceSubordinateNads,
   ]
 
   const usedMeterPointIds = new Set<string>()

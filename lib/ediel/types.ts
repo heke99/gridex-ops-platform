@@ -184,6 +184,17 @@ export type EdielMessageRow = {
   mime_type: string | null
 
   interchange_reference: string | null
+  unb_sender_id?: string | null
+  unb_sender_subaddress?: string | null
+  unb_receiver_id?: string | null
+  unb_receiver_subaddress?: string | null
+  message_reference?: string | null
+  bgm_code?: string | null
+  bgm_reference?: string | null
+  tenant_resolution_status?: string | null
+  business_match_status?: string | null
+  ack_status?: string | null
+  processing_status?: string | null
   external_reference: string | null
   correlation_reference: string | null
   transaction_reference: string | null
@@ -261,11 +272,14 @@ export type EdielMessageEventStatus = 'info' | 'success' | 'warning' | 'error'
 
 export type EdielMessageEventRow = {
   id: string
+  company_id?: string | null
   ediel_message_id: string
+  message_id?: string | null
   event_type: EdielMessageEventType
   event_status: EdielMessageEventStatus
   message: string | null
   payload: Record<string, unknown>
+  event_payload?: Record<string, unknown> | null
   created_at: string
   created_by: string | null
 }
@@ -335,10 +349,15 @@ export type EdielActorSettingsRow = {
   actor_name: string
   actor_ediel_id: string
   actor_role: EdielActorRole
+  ediel_id?: string | null
+  role?: string | null
+  market?: string | null
   environment: EdielEnvironment
   is_active: boolean
   sender_name: string | null
   sender_sub_address: string | null
+  sender_subaddress?: string | null
+  receiver_subaddress?: string | null
   default_application_reference: string | null
   default_timezone: number
   default_charset: string
@@ -374,10 +393,20 @@ export type EdielRouteProfileRow = {
   company_id?: string | null
   communication_route_id: string
   is_enabled: boolean
+  is_active?: boolean | null
+  message_family?: string | null
+  message_code?: string | null
   sender_ediel_id: string | null
   sender_sub_address: string | null
+  own_ediel_id?: string | null
+  own_subaddress?: string | null
   receiver_ediel_id: string | null
   receiver_sub_address: string | null
+  counterparty_ediel_id?: string | null
+  counterparty_subaddress?: string | null
+  mailbox_id?: string | null
+  transport_type?: string | null
+  ack_policy?: string | null
   application_reference: string | null
   smtp_host: string | null
   smtp_port: number | null

@@ -32,6 +32,7 @@ import {
   applyInboundProdatZ02ToCustomerInfoRequest,
   applyInboundProdatZ14ToMeteringPermission,
 } from '@/lib/onboarding/inboundEdielLinking'
+import { resolveInboundTenantForMessage } from '@/lib/ediel/core/tenantResolver'
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -380,6 +381,7 @@ async function linkInboundProdatMessageCanonically(params: {
   const meteringPointId = await matchMeteringPointForEdielMessage(params.message)
   const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({
     meteringPointId,
+    companyId: params.message.company_id ?? null,
   })
   const matchedSwitch = await findMatchingSupplierSwitchRequest(params.message)
 
@@ -608,7 +610,26 @@ export async function processInboundEdielMessage(params: {
   }
 
   const canonicalRuntime = await applyCanonicalRuntimeDecision({ actorUserId, message })
-  const runtimeMessage = canonicalRuntime.message
+  const tenantResolution = await resolveInboundTenantForMessage({
+    actorUserId,
+    message: canonicalRuntime.message,
+  })
+  const runtimeMessage = tenantResolution.message
+
+  if (tenantResolution.status !== 'tenant_resolved') {
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: runtimeMessage.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Inbound Ediel processing stopped before business matching because tenant resolution failed.',
+      payload: {
+        tenantResolutionStatus: tenantResolution.status,
+        evidence: tenantResolution.evidence,
+      },
+    })
+    return runtimeMessage
+  }
 
   if (canonicalRuntime.decision.syntaxDecision === 'rejected') {
     await createAutomaticPositiveAcks({

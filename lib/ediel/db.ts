@@ -279,6 +279,89 @@ async function listRecentManualIssueEvents(limit = 200): Promise<CanonicalIssueE
     .filter((row): row is CanonicalIssueEventRow => row !== null)
 }
 
+function referenceRowsForMessage(row: EdielMessageRow): Array<{
+  reference_type: string
+  reference_value: string
+}> {
+  const parsed = row.parsed_payload ?? {}
+  const references = Array.isArray(parsed.references)
+    ? parsed.references as Array<{ qualifier?: unknown; value?: unknown }>
+    : []
+  const rff = (qualifier: string) =>
+    references.find((item) => item.qualifier === qualifier && typeof item.value === 'string')?.value as string | undefined
+
+  const values: Array<[string, string | null | undefined]> = [
+    ['UNB_REF', row.interchange_reference],
+    ['BGM_REF', row.external_reference],
+    ['RFF_LI', rff('LI') ?? row.external_reference],
+    ['RFF_ACW', rff('ACW') ?? row.correlation_reference],
+    ['RFF_Z07', rff('Z07')],
+    ['RFF_TN', rff('TN') ?? row.transaction_reference],
+    ['DOC_REF', typeof parsed.documentReference === 'string' ? parsed.documentReference : null],
+    ['IDE', typeof parsed.transactionReference === 'string' ? parsed.transactionReference : row.transaction_reference],
+    ['PERMISSION_ID', typeof parsed.permissionId === 'string' ? parsed.permissionId : null],
+    ['METERING_POINT_ID', typeof parsed.meteringPointId === 'string' ? parsed.meteringPointId : null],
+  ]
+
+  const seen = new Set<string>()
+  return values.flatMap(([reference_type, raw]) => {
+    const reference_value = asString(raw)
+    if (!reference_value) return []
+    const key = `${reference_type}:${reference_value}`
+    if (seen.has(key)) return []
+    seen.add(key)
+    return [{ reference_type, reference_value }]
+  })
+}
+
+async function saveBusinessReferencesForMessage(row: EdielMessageRow) {
+  if (!row.company_id) return
+
+  const businessObjectType = row.switch_request_id
+    ? 'supplier_switch_request'
+    : row.grid_owner_data_request_id
+      ? 'grid_owner_data_request'
+      : row.outbound_request_id
+        ? 'outbound_request'
+        : row.partner_export_id
+          ? 'partner_export'
+          : null
+
+  const businessObjectId =
+    row.switch_request_id ??
+    row.grid_owner_data_request_id ??
+    row.outbound_request_id ??
+    row.partner_export_id ??
+    null
+
+  if (!businessObjectType || !businessObjectId) return
+
+  const rows = referenceRowsForMessage(row).map((reference) => ({
+    company_id: row.company_id,
+    source_message_id: row.id,
+    reference_type: reference.reference_type,
+    reference_value: reference.reference_value,
+    message_family: row.message_family,
+    message_code: String(row.message_code ?? ''),
+    business_object_type: businessObjectType,
+    business_object_id: businessObjectId,
+    customer_id: row.customer_id,
+    customer_site_id: row.site_id,
+    metering_point_id: row.metering_point_id,
+  }))
+
+  if (rows.length === 0) return
+
+  const { error } = await supabaseService
+    .from('ediel_business_references')
+    .upsert(rows, {
+      onConflict: 'company_id,reference_type,reference_value,business_object_type,business_object_id',
+      ignoreDuplicates: true,
+    })
+
+  if (error) throw error
+}
+
 export async function createEdielMessage(
   input: CreateEdielMessageInput
 ): Promise<EdielMessageRow> {
@@ -312,6 +395,17 @@ export async function createEdielMessage(
     mime_type: input.mimeType ?? null,
 
     interchange_reference: input.interchangeReference ?? null,
+    unb_sender_id: input.senderEdielId ?? null,
+    unb_sender_subaddress: input.senderSubAddress ?? null,
+    unb_receiver_id: input.receiverEdielId ?? null,
+    unb_receiver_subaddress: input.receiverSubAddress ?? null,
+    message_reference: input.originalMessageId ?? null,
+    bgm_code: input.messageCode ?? null,
+    bgm_reference: input.externalReference ?? null,
+    tenant_resolution_status: input.companyId ? 'tenant_resolved' : null,
+    business_match_status: input.companyId ? 'not_checked' : null,
+    ack_status: input.ackOutcome ?? null,
+    processing_status: input.status ?? 'draft',
     external_reference: input.externalReference ?? null,
     correlation_reference: input.correlationReference ?? null,
     transaction_reference: input.transactionReference ?? null,
@@ -368,6 +462,8 @@ export async function createEdielMessage(
   if (error) throw error
 
   const row = data as EdielMessageRow
+
+  await saveBusinessReferencesForMessage(row)
 
   await createEdielMessageEvent({
     actorUserId: input.actorUserId ?? null,
@@ -579,12 +675,16 @@ export async function listRuleAmbiguities(): Promise<RuleAmbiguityRow[]> {
 export async function createEdielMessageEvent(
   input: CreateEdielMessageEventInput
 ): Promise<EdielMessageEventRow> {
+  const parent = await getEdielMessageById(input.edielMessageId)
   const payload = cleanObject({
+    company_id: parent?.company_id ?? null,
     ediel_message_id: input.edielMessageId,
+    message_id: input.edielMessageId,
     event_type: input.eventType,
     event_status: input.eventStatus ?? 'info',
     message: input.message ?? null,
     payload: ensureJson(input.payload),
+    event_payload: ensureJson(input.payload),
     created_by: input.actorUserId ?? null,
   })
 
@@ -729,6 +829,7 @@ export async function updateEdielMessageStatus(
 
   const patch = cleanObject({
     status: input.status,
+    processing_status: input.status,
     failure_reason: input.failureReason ?? undefined,
     parsed_at: input.parsedAt ?? undefined,
     validated_at: input.validatedAt ?? undefined,
@@ -756,6 +857,8 @@ export async function updateEdielMessageStatus(
   if (error) throw error
 
   const row = data as EdielMessageRow
+
+  await saveBusinessReferencesForMessage(row)
 
   await createEdielMessageEvent({
     actorUserId: input.actorUserId ?? null,
@@ -801,6 +904,8 @@ export async function linkEdielMessage(
   if (error) throw error
 
   const row = data as EdielMessageRow
+
+  await saveBusinessReferencesForMessage(row)
 
   await createEdielMessageEvent({
     actorUserId: input.actorUserId ?? null,

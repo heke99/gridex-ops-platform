@@ -1,7 +1,11 @@
 // lib/ediel/core/canonicalMessage.ts
 
 import type { EdielMessageFamily, EdielMessageRow, EdielMessageStandard } from '@/lib/ediel/types'
-import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
+import {
+  parseEdifactMessageFacts,
+  splitEdifactComponents,
+  splitEdifactElements,
+} from '@/lib/ediel/core/edifactSegments'
 import { parseRulebookListPayload } from '@/lib/ediel/rulebook/messageParser'
 import { processGroupForMessage } from '@/lib/ediel/rulebook/rulebook'
 
@@ -63,7 +67,7 @@ function upper(value: unknown): string {
 }
 
 function splitComposite(value: string | null | undefined): string[] {
-  return String(value ?? '').split(':').map((part) => part.trim())
+  return splitEdifactComponents(value).map((part) => part.trim())
 }
 
 function firstComponent(value: string | null | undefined): string | null {
@@ -71,7 +75,7 @@ function firstComponent(value: string | null | undefined): string | null {
 }
 
 function element(rawSegment: string | null | undefined, index: number): string | null {
-  const value = rawSegment?.split('+')[index]?.trim() ?? ''
+  const value = splitEdifactElements(rawSegment)[index]?.trim() ?? ''
   return value.length > 0 ? value : null
 }
 
