@@ -15,17 +15,26 @@ function uniqueStrings(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value)))]
 }
 
+function messageCompanyId(message: EdielMessageRow): string | null {
+  return stringOrNull(message.company_id)
+}
+
 function parsedText(message: EdielMessageRow, ...keys: string[]): string[] {
   const payload = message.parsed_payload ?? {}
   return uniqueStrings(keys.map((key) => stringOrNull(payload[key])))
 }
 
-async function matchMeteringPointByIdentifier(identifiers: string[]): Promise<string | null> {
+async function matchMeteringPointByIdentifier(params: {
+  companyId: string
+  identifiers: string[]
+}): Promise<string | null> {
+  const identifiers = params.identifiers
   if (identifiers.length === 0) return null
 
   const { data, error } = await supabaseService
     .from('metering_points')
-    .select('id,meter_point_id,metering_point_id,ediel_reference')
+    .select('id,company_id,meter_point_id,metering_point_id,ediel_reference')
+    .eq('company_id', params.companyId)
     .or(
       identifiers
         .map((identifier) => {
@@ -44,7 +53,20 @@ async function matchMeteringPointByIdentifier(identifiers: string[]): Promise<st
 export async function matchMeteringPointForEdielMessage(
   message: EdielMessageRow
 ): Promise<string | null> {
-  if (message.metering_point_id) return message.metering_point_id
+  const companyId = messageCompanyId(message)
+  if (!companyId) return null
+
+  if (message.metering_point_id) {
+    const { data, error } = await supabaseService
+      .from('metering_points')
+      .select('id')
+      .eq('id', message.metering_point_id)
+      .eq('company_id', companyId)
+      .maybeSingle()
+
+    if (error) throw error
+    return (data as { id: string } | null)?.id ?? null
+  }
 
   const identifiers = uniqueStrings([
     ...parsedText(
@@ -59,11 +81,12 @@ export async function matchMeteringPointForEdielMessage(
     stringOrNull(message.transaction_reference),
   ])
 
-  return matchMeteringPointByIdentifier(identifiers)
+  return matchMeteringPointByIdentifier({ companyId, identifiers })
 }
 
 export async function matchSiteAndCustomerForMeteringPoint(params: {
   meteringPointId: string | null
+  companyId?: string | null
 }): Promise<{
   siteId: string | null
   customerId: string | null
@@ -73,8 +96,9 @@ export async function matchSiteAndCustomerForMeteringPoint(params: {
 
   const { data, error } = await supabaseService
     .from('metering_points')
-    .select('id,site_id,grid_owner_id')
+    .select('id,company_id,site_id,grid_owner_id')
     .eq('id', params.meteringPointId)
+    .eq('company_id', params.companyId ?? '')
     .maybeSingle()
 
   if (error) throw error
@@ -93,6 +117,7 @@ export async function matchSiteAndCustomerForMeteringPoint(params: {
     .from('customer_sites')
     .select('id,customer_id')
     .eq('id', siteId)
+    .eq('company_id', params.companyId ?? '')
     .maybeSingle()
 
   if (siteRes.error) throw siteRes.error
@@ -107,11 +132,15 @@ export async function matchSiteAndCustomerForMeteringPoint(params: {
 export async function findMatchingSupplierSwitchRequest(
   message: EdielMessageRow
 ): Promise<SupplierSwitchRequestRow | null> {
+  const companyId = messageCompanyId(message)
+  if (!companyId) return null
+
   if (message.switch_request_id) {
     const { data, error } = await supabaseService
       .from('supplier_switch_requests')
       .select('*')
       .eq('id', message.switch_request_id)
+      .eq('company_id', companyId)
       .maybeSingle()
 
     if (error) throw error
@@ -131,12 +160,25 @@ export async function findMatchingSupplierSwitchRequest(
     const byReference = await supabaseService
       .from('supplier_switch_requests')
       .select('*')
+      .eq('company_id', companyId)
       .in('external_reference', references)
       .order('created_at', { ascending: false })
       .limit(1)
 
     if (byReference.error) throw byReference.error
-    const hit = (byReference.data?.[0] as SupplierSwitchRequestRow | undefined) ?? null
+    let hit = (byReference.data?.[0] as SupplierSwitchRequestRow | undefined) ?? null
+    if (hit) return hit
+
+    const byRffLi = await supabaseService
+      .from('supplier_switch_requests')
+      .select('*')
+      .eq('company_id', companyId)
+      .in('rff_li_reference', references)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (byRffLi.error) throw byRffLi.error
+    hit = (byRffLi.data?.[0] as SupplierSwitchRequestRow | undefined) ?? null
     if (hit) return hit
   }
 
@@ -145,6 +187,7 @@ export async function findMatchingSupplierSwitchRequest(
   const { data, error } = await supabaseService
     .from('supplier_switch_requests')
     .select('*')
+    .eq('company_id', companyId)
     .eq('metering_point_id', meteringPointId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -156,11 +199,15 @@ export async function findMatchingSupplierSwitchRequest(
 export async function findMatchingGridOwnerDataRequest(
   message: EdielMessageRow
 ): Promise<GridOwnerDataRequestRow | null> {
+  const companyId = messageCompanyId(message)
+  if (!companyId) return null
+
   if (message.grid_owner_data_request_id) {
     const { data, error } = await supabaseService
       .from('grid_owner_data_requests')
       .select('*')
       .eq('id', message.grid_owner_data_request_id)
+      .eq('company_id', companyId)
       .maybeSingle()
 
     if (error) throw error
@@ -180,6 +227,7 @@ export async function findMatchingGridOwnerDataRequest(
     const byReference = await supabaseService
       .from('grid_owner_data_requests')
       .select('*')
+      .eq('company_id', companyId)
       .in('external_reference', references)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -194,6 +242,7 @@ export async function findMatchingGridOwnerDataRequest(
   const { data, error } = await supabaseService
     .from('grid_owner_data_requests')
     .select('*')
+    .eq('company_id', companyId)
     .eq('metering_point_id', meteringPointId)
     .order('created_at', { ascending: false })
     .limit(1)

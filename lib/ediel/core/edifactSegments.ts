@@ -38,22 +38,100 @@ export type EdifactLineItem = {
   hasMeterNumber: boolean
 }
 
-function stripUna(rawPayload: string): string {
-  return rawPayload.replace(/^UNA.{6}'/i, '')
+type EdifactServiceChars = {
+  component: string
+  element: string
+  decimal: string
+  release: string
+  repetition: string
+  segment: string
+}
+
+const DEFAULT_SERVICE_CHARS: EdifactServiceChars = {
+  component: ':',
+  element: '+',
+  decimal: '.',
+  release: '?',
+  repetition: ' ',
+  segment: "'",
+}
+
+function readServiceChars(rawPayload: string): EdifactServiceChars {
+  if (!rawPayload.toUpperCase().startsWith('UNA') || rawPayload.length < 9) {
+    return DEFAULT_SERVICE_CHARS
+  }
+
+  return {
+    component: rawPayload[3] ?? DEFAULT_SERVICE_CHARS.component,
+    element: rawPayload[4] ?? DEFAULT_SERVICE_CHARS.element,
+    decimal: rawPayload[5] ?? DEFAULT_SERVICE_CHARS.decimal,
+    release: rawPayload[6] ?? DEFAULT_SERVICE_CHARS.release,
+    repetition: rawPayload[7] ?? DEFAULT_SERVICE_CHARS.repetition,
+    segment: rawPayload[8] ?? DEFAULT_SERVICE_CHARS.segment,
+  }
+}
+
+function stripUna(rawPayload: string, chars = readServiceChars(rawPayload)): string {
+  return rawPayload.toUpperCase().startsWith('UNA')
+    ? rawPayload.slice(9)
+    : rawPayload
+}
+
+function splitReleased(value: string, separator: string, release: string): string[] {
+  const parts: string[] = []
+  let current = ''
+  let released = false
+
+  for (const char of value) {
+    if (released) {
+      current += char
+      released = false
+      continue
+    }
+
+    if (char === release) {
+      released = true
+      continue
+    }
+
+    if (char === separator) {
+      parts.push(current)
+      current = ''
+      continue
+    }
+
+    current += char
+  }
+
+  parts.push(current)
+  return parts
+}
+
+export function splitEdifactElements(rawSegment: string | null | undefined): string[] {
+  const chars = DEFAULT_SERVICE_CHARS
+  return splitReleased(String(rawSegment ?? ''), chars.element, chars.release)
+}
+
+export function splitEdifactComponents(value: string | null | undefined): string[] {
+  const chars = DEFAULT_SERVICE_CHARS
+  return splitReleased(String(value ?? ''), chars.component, chars.release)
 }
 
 export function getEdifactSegments(rawPayload: string | null | undefined): string[] {
-  return stripUna(String(rawPayload ?? ''))
-    .replace(/\r\n/g, '')
-    .replace(/\n/g, '')
-    .split("'")
+  const raw = String(rawPayload ?? '')
+  const chars = readServiceChars(raw)
+  return splitReleased(
+    stripUna(raw, chars).replace(/\r\n/g, '').replace(/\n/g, ''),
+    chars.segment,
+    chars.release
+  )
     .map((segment) => segment.trim())
     .filter(Boolean)
 }
 
 export function parseEdifactSegments(rawPayload: string | null | undefined): EdifactSegment[] {
   return getEdifactSegments(rawPayload).map((raw, index) => {
-    const elements = raw.split('+')
+    const elements = splitEdifactElements(raw)
     return {
       raw,
       elements,
@@ -76,7 +154,7 @@ export function findSegments(segments: readonly EdifactSegment[], tag: string): 
 export function firstComponent(value: string | null | undefined): string | null {
   const raw = String(value ?? '').trim()
   if (!raw) return null
-  const first = raw.split(':')[0]?.trim() ?? ''
+  const first = splitEdifactComponents(raw)[0]?.trim() ?? ''
   return first.length > 0 ? first : null
 }
 

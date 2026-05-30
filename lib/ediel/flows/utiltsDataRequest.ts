@@ -52,6 +52,7 @@ import {
   type EdielAckScope,
   type EdielAperakApplicationError,
 } from '@/lib/ediel/ack'
+import { updateMeterValueBillingReadiness } from '@/lib/billing/meterValueBillingMatcher'
 
 type UtiltsProcessResult = {
   message: EdielMessageRow
@@ -401,6 +402,10 @@ async function maybeIngestMeteringValue(params: {
         parsedPayload: params.message.parsed_payload ?? {},
       },
     })
+    await updateMeterValueBillingReadiness({
+      meterValue: row,
+      sourceMessageId: params.message.id,
+    })
     rows.push(row)
   }
 
@@ -722,7 +727,10 @@ async function linkInboundUtiltsMessageCanonically(params: {
   message: EdielMessageRow
 }) {
   const meteringPointId = await matchMeteringPointForEdielMessage(params.message)
-  const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({ meteringPointId })
+  const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({
+    meteringPointId,
+    companyId: params.message.company_id ?? null,
+  })
   const matchedDataRequest = await findMatchingGridOwnerDataRequest(params.message)
 
   await linkEdielMessage({

@@ -290,6 +290,7 @@ async function syncActorTestingAckSafely(params: {
 }
 
 async function findOutboundSourceByColumn(params: {
+  companyId: string
   column: keyof Pick<
     EdielMessageRow,
     | 'external_reference'
@@ -306,6 +307,7 @@ async function findOutboundSourceByColumn(params: {
   const { data, error } = await supabaseService
     .from('ediel_messages')
     .select('*')
+    .eq('company_id', params.companyId)
     .eq('direction', 'outbound')
     .not('message_family', 'in', `(${SOURCE_EXCLUDED_FAMILIES.join(',')})`)
     .in(params.column, params.values)
@@ -318,18 +320,54 @@ async function findOutboundSourceByColumn(params: {
   return (data as EdielMessageRow | null) ?? null
 }
 
+async function findSourceMessageViaBusinessReferences(params: {
+  companyId: string
+  values: string[]
+}): Promise<EdielMessageRow | null> {
+  if (params.values.length === 0) return null
+
+  const { data, error } = await supabaseService
+    .from('ediel_business_references')
+    .select('source_message_id,reference_type,reference_value')
+    .eq('company_id', params.companyId)
+    .in('reference_value', params.values)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  if (error) throw error
+
+  for (const row of (data ?? []) as Array<{ source_message_id?: string | null }>) {
+    if (!row.source_message_id) continue
+    const source = await getEdielMessageById(row.source_message_id, { companyId: params.companyId })
+    if (source && source.direction === 'outbound' && !SOURCE_EXCLUDED_FAMILIES.includes(source.message_family)) {
+      return source
+    }
+  }
+
+  return null
+}
+
 async function findSourceMessageForInboundAck(message: EdielMessageRow): Promise<EdielMessageRow | null> {
+  const companyId = stringOrNull(message.company_id)
+  if (!companyId) return null
+
   if (message.related_message_id) {
-    const direct = await getEdielMessageById(message.related_message_id)
+    const direct = await getEdielMessageById(message.related_message_id, { companyId })
     if (direct && direct.direction === 'outbound') return direct
   }
 
   const candidates = readReferenceCandidates(message)
   const uuidCandidate = candidates.find(isUuidLike)
   if (uuidCandidate) {
-    const direct = await getEdielMessageById(uuidCandidate)
+    const direct = await getEdielMessageById(uuidCandidate, { companyId })
     if (direct && direct.direction === 'outbound') return direct
   }
+
+  const businessReferenceHit = await findSourceMessageViaBusinessReferences({
+    companyId,
+    values: candidates,
+  })
+  if (businessReferenceHit) return businessReferenceHit
 
   const sourceColumns: Array<Parameters<typeof findOutboundSourceByColumn>[0]['column']> = [
     'external_reference',
@@ -341,11 +379,60 @@ async function findSourceMessageForInboundAck(message: EdielMessageRow): Promise
   ]
 
   for (const column of sourceColumns) {
-    const hit = await findOutboundSourceByColumn({ column, values: candidates })
+    const hit = await findOutboundSourceByColumn({ companyId, column, values: candidates })
     if (hit) return hit
   }
 
   return null
+}
+
+async function createAckChainIfMissing(params: {
+  sourceMessage: EdielMessageRow
+  ackMessage: EdielMessageRow
+  outcome: InboundAckOutcome
+}) {
+  const companyId = stringOrNull(params.sourceMessage.company_id)
+  if (!companyId) return
+
+  const parsed = params.ackMessage.parsed_payload ?? {}
+  const ackScope = stringOrNull(parsed.ackScope) ?? 'message'
+  const transactionReference =
+    stringOrNull(parsed.relatedTransactionReference) ??
+    stringOrNull(params.ackMessage.transaction_reference)
+
+  const existing = await supabaseService
+    .from('ediel_ack_chains')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('source_message_id', params.sourceMessage.id)
+    .eq('ack_family', params.ackMessage.message_family)
+    .eq('ack_scope', ackScope)
+    .eq('outcome', params.outcome)
+    .limit(1)
+
+  if (transactionReference) {
+    existing.eq('transaction_reference', transactionReference)
+  } else {
+    existing.is('transaction_reference', null)
+  }
+
+  const existingResult = await existing.maybeSingle()
+  if (existingResult.error) throw existingResult.error
+  if (existingResult.data) return
+
+  const { error } = await supabaseService
+    .from('ediel_ack_chains')
+    .insert({
+      company_id: companyId,
+      source_message_id: params.sourceMessage.id,
+      ack_message_id: params.ackMessage.id,
+      ack_family: params.ackMessage.message_family,
+      ack_scope: ackScope,
+      transaction_reference: transactionReference,
+      outcome: params.outcome,
+    })
+
+  if (error && error.code !== '23505') throw error
 }
 
 async function patchSourceMessageFromAck(params: {
@@ -409,6 +496,7 @@ async function patchSourceMessageFromAck(params: {
     .from('ediel_messages')
     .update(patch)
     .eq('id', params.sourceMessage.id)
+    .eq('company_id', params.sourceMessage.company_id ?? '')
     .select('*')
     .single()
 
@@ -447,11 +535,17 @@ async function patchSourceMessageFromAck(params: {
   return { updated, finalAckReached, failureReason }
 }
 
-async function getSwitchRequestById(id: string): Promise<SupplierSwitchRequestRow | null> {
+async function getSwitchRequestById(
+  id: string,
+  companyId?: string | null
+): Promise<SupplierSwitchRequestRow | null> {
+  if (!companyId) return null
+
   const { data, error } = await supabaseService
     .from('supplier_switch_requests')
     .select('*')
     .eq('id', id)
+    .eq('company_id', companyId)
     .maybeSingle()
 
   if (error) throw error
@@ -616,7 +710,7 @@ async function syncSwitchFromInboundAck(params: {
 
   if (!switchRequestId) return null
 
-  const current = await getSwitchRequestById(switchRequestId)
+  const current = await getSwitchRequestById(switchRequestId, params.sourceMessage.company_id ?? null)
   if (!current) return null
 
   const supabase = await createSupabaseServerClient()
@@ -831,6 +925,12 @@ export async function processInboundAckMessage(params: {
 
   const sourcePatch = await patchSourceMessageFromAck({
     actorUserId,
+    sourceMessage,
+    ackMessage,
+    outcome,
+  })
+
+  await createAckChainIfMissing({
     sourceMessage,
     ackMessage,
     outcome,
