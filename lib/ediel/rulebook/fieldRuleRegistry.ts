@@ -53,6 +53,11 @@ export type RegistryFieldRuleResult = {
   source: 'registry' | 'static'
 }
 
+type FieldMetadata = {
+  fieldKey: string
+  segmentPath: string | null
+}
+
 function normalize(value: unknown): string {
   return String(value ?? '').trim().toUpperCase()
 }
@@ -85,6 +90,86 @@ function normalizeRequirement(value: unknown): EdielRulebookRequirement {
 
 function payloadObject(value: unknown): RegistryRulePayload {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as RegistryRulePayload : {}
+}
+
+const PRODAT_FIELD_METADATA: Record<string, FieldMetadata> = {
+  '311': { fieldKey: 'application_reference', segmentPath: 'UNB/S005/0026' },
+  '312': { fieldKey: 'association_assigned_code', segmentPath: 'UNH/S009/0057' },
+  '202': { fieldKey: 'message_code', segmentPath: 'BGM/C002/1001' },
+  '203': { fieldKey: 'message_id', segmentPath: 'UNH/0062' },
+  '204': { fieldKey: 'message_function', segmentPath: 'BGM/1225' },
+  '313': { fieldKey: 'request_for_acknowledgement', segmentPath: 'BGM/4343' },
+  '205': { fieldKey: 'document_date', segmentPath: 'DTM+137' },
+  '206': { fieldKey: 'timezone', segmentPath: 'DTM+ZZZ' },
+  '301': { fieldKey: 'free_text_header', segmentPath: 'FTX' },
+  '207': { fieldKey: 'sender_ediel_id', segmentPath: 'UNB/S002' },
+  '315': { fieldKey: 'sender_organisation_no', segmentPath: 'NAD+FR' },
+  '208': { fieldKey: 'receiver_ediel_id', segmentPath: 'UNB/S003' },
+  '314': { fieldKey: 'sequence_number', segmentPath: 'LIN' },
+  '209': { fieldKey: 'line_item', segmentPath: 'LIN' },
+  '258': { fieldKey: 'sub_line_number', segmentPath: 'LIN' },
+  '210': { fieldKey: 'contract_start_date', segmentPath: 'DTM+92' },
+  '211': { fieldKey: 'contract_stop_date', segmentPath: 'DTM+93' },
+  '302': { fieldKey: 'report_start_date', segmentPath: 'DTM+163' },
+  '321': { fieldKey: 'report_end_date', segmentPath: 'DTM+164' },
+  '216': { fieldKey: 'validity_start_date', segmentPath: 'DTM+157' },
+  '212': { fieldKey: 'first_meter_reading_date', segmentPath: 'DTM+9' },
+  '249': { fieldKey: 'date_of_birth', segmentPath: 'DTM+329' },
+  '508': { fieldKey: 'observation_length', segmentPath: 'CCI++Z03/CAV' },
+  '326': { fieldKey: 'permission_creation_timestamp', segmentPath: 'DTM+171' },
+  '327': { fieldKey: 'processing_end_timestamp', segmentPath: 'DTM+273' },
+  '303': { fieldKey: 'free_text_item_level', segmentPath: 'FTX' },
+  '213': { fieldKey: 'estimated_annual_volume', segmentPath: 'QTY+31' },
+  '214': { fieldKey: 'constant', segmentPath: 'QTY+40' },
+  '215': { fieldKey: 'old_constant', segmentPath: 'QTY+40' },
+  '217': { fieldKey: 'measure_method', segmentPath: 'CCI++Z04/CAV' },
+  '218': { fieldKey: 'number_of_digits', segmentPath: 'QTY+218' },
+  '219': { fieldKey: 'old_number_of_digits', segmentPath: 'QTY+219' },
+  '306': { fieldKey: 'installation_status', segmentPath: 'CCI++Z05/CAV' },
+  '307': { fieldKey: 'tariff_code', segmentPath: 'CCI++Z06/CAV' },
+  '220': { fieldKey: 'priority', segmentPath: 'CCI++Z07/CAV' },
+  '222': { fieldKey: 'reporting_frequency', segmentPath: 'CCI++Z12/CAV' },
+  '223': { fieldKey: 'reason_for_transaction', segmentPath: 'CCI++Z13/CAV' },
+  '259': { fieldKey: 'meter_time_frame', segmentPath: 'CCI++Z15/CAV' },
+  '254': { fieldKey: 'balance_settlement_method', segmentPath: 'CCI++Z16/CAV' },
+  '242': { fieldKey: 'product_code', segmentPath: 'CCI++Z17/CAV' },
+  '506': { fieldKey: 'energy_product', segmentPath: 'CCI++Z14/CAV' },
+  '310': { fieldKey: 'party_connected_to_grid_status', segmentPath: 'CCI++Z18/CAV' },
+  '513': { fieldKey: 'installation_direction', segmentPath: 'CCI++Z22/CAV' },
+  '322': { fieldKey: 'permission_status', segmentPath: 'CCI++Z23/CAV' },
+  '323': { fieldKey: 'permission_purpose', segmentPath: 'CCI++Z24/CAV' },
+  '324': { fieldKey: 'permission_end_reason', segmentPath: 'CCI++Z25/CAV' },
+  '224': { fieldKey: 'meter_number', segmentPath: 'RFF+MG' },
+  '225': { fieldKey: 'old_meter_number', segmentPath: 'RFF+MG' },
+  '308': { fieldKey: 'supplier_contract_no', segmentPath: 'RFF+CT' },
+  '260': { fieldKey: 'net_area', segmentPath: 'RFF+Z05' },
+  '320': { fieldKey: 'calorific_value_area', segmentPath: 'RFF+Z10' },
+  '240': { fieldKey: 'serial_id', segmentPath: 'RFF+SI' },
+  '319': { fieldKey: 'reference_to_metering_point', segmentPath: 'RFF+Z07' },
+  '261': { fieldKey: 'agreement_reference', segmentPath: 'RFF+ANJ' },
+  '226': { fieldKey: 'line_reference', segmentPath: 'RFF+LI' },
+  '325': { fieldKey: 'permission_id', segmentPath: 'RFF+ZPI' },
+  END_USER_GROUP: { fieldKey: 'end_user_group', segmentPath: 'NAD+UD' },
+  '227': { fieldKey: 'end_user_id', segmentPath: 'NAD+UD' },
+  '228': { fieldKey: 'end_user_name', segmentPath: 'NAD+UD' },
+  '229': { fieldKey: 'end_user_address', segmentPath: 'NAD+UD' },
+  '231': { fieldKey: 'end_user_postcode', segmentPath: 'NAD+UD' },
+  '232': { fieldKey: 'end_user_city', segmentPath: 'NAD+UD' },
+  '316': { fieldKey: 'end_user_country', segmentPath: 'NAD+UD' },
+  INSTALLATION_GROUP: { fieldKey: 'installation_group', segmentPath: 'NAD+IT' },
+  '233': { fieldKey: 'installation_id', segmentPath: 'NAD+IT' },
+  '234': { fieldKey: 'installation_address', segmentPath: 'NAD+IT' },
+  '235': { fieldKey: 'installation_postcode', segmentPath: 'NAD+IT' },
+  '236': { fieldKey: 'installation_city', segmentPath: 'NAD+IT' },
+  '237': { fieldKey: 'installation_country', segmentPath: 'NAD+IT' },
+  INVOICEE_GROUP: { fieldKey: 'invoicee_group', segmentPath: 'NAD+IV' },
+  '250': { fieldKey: 'invoicee_id', segmentPath: 'NAD+IV' },
+  '251': { fieldKey: 'invoicee_name', segmentPath: 'NAD+IV' },
+  '252': { fieldKey: 'invoicee_address', segmentPath: 'NAD+IV' },
+  '253': { fieldKey: 'invoicee_postcode', segmentPath: 'NAD+IV' },
+  '317': { fieldKey: 'invoicee_city', segmentPath: 'NAD+IV' },
+  '318': { fieldKey: 'invoicee_country', segmentPath: 'NAD+IV' },
+  '262': { fieldKey: 'balance_responsible', segmentPath: 'NAD+Z02' },
 }
 
 function dependencyFromPayload(payload: RegistryRulePayload): RulebookFieldRule['dependency'] {
@@ -139,7 +224,8 @@ function rowMatchesScope(row: RegistryFieldRuleRow, scope: RegistryFieldRuleScop
 function ruleFromRow(row: RegistryFieldRuleRow, scope: RegistryFieldRuleScope): RulebookFieldRule {
   const payload = payloadObject(row.rule_payload)
   const requirement = normalizeRequirement(row.requirement)
-  const fieldKey = optionalString(row.field_key) ?? optionalString(row.field_code) ?? optionalString(row.segment_path) ?? 'unknown_field'
+  const metadata = PRODAT_FIELD_METADATA[normalize(row.field_code)]
+  const fieldKey = metadata?.fieldKey ?? optionalString(row.field_key) ?? optionalString(row.field_code) ?? optionalString(row.segment_path) ?? 'unknown_field'
   const label = optionalString(row.field_label) ?? optionalString(row.field_name) ?? optionalString(row.field_code) ?? fieldKey
 
   return {
@@ -147,7 +233,7 @@ function ruleFromRow(row: RegistryFieldRuleRow, scope: RegistryFieldRuleScope): 
     code: normalize(row.message_code) || normalize(scope.code),
     fieldKey,
     label,
-    segmentPath: optionalString(row.segment_path) ?? optionalString(row.field_code),
+    segmentPath: optionalString(row.segment_path) ?? metadata?.segmentPath ?? optionalString(row.field_code),
     requirement,
     condition: optionalString(row.condition) ?? optionalString(row.dependency_note),
     allowedValues: [

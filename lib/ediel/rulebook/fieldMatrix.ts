@@ -202,7 +202,9 @@ function dependencyApplies(rule: RulebookFieldRule, input: FieldMatrixEvaluation
   if (rule.requirement !== 'dependent') return false
   const any = rule.dependency?.anySegmentPresent ?? []
   const all = rule.dependency?.allSegmentPresent ?? []
-  if (any.length === 0 && all.length === 0) return input.mode === 'send'
+  if (any.length === 0 && all.length === 0) {
+    return rule.source === 'registry' ? false : input.mode === 'send'
+  }
   if (any.length > 0 && any.some((path) => pathPresence(input.rawSegments, path))) return true
   if (all.length > 0 && all.every((path) => pathPresence(input.rawSegments, path))) return true
   return false

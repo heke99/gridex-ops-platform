@@ -111,6 +111,15 @@ for (const code of ['RFF_LI_MISSING', 'NAD_ZZ_FORBIDDEN', 'DTM_203_DEPENDENCY_MI
   assert(importedMatrixIssues.some((issue) => issue.code === code), `missing ${code}`)
 }
 
+const unresolvedDependentIssues = validateFieldMatrixPayload(
+  { family: 'PRODAT', code: 'Z03', mode: 'send', rawSegments: ['BGM+Z03'] },
+  [{ family: 'PRODAT', code: 'Z03', fieldKey: 'dependent_without_runtime_rule', label: 'Dependent without rule', segmentPath: 'DTM+999', requirement: 'dependent', errorCodeIfMissing: 'UNRESOLVED_D_SHOULD_NOT_BLOCK', source: 'registry' }]
+)
+assert(
+  !unresolvedDependentIssues.some((issue) => issue.code === 'UNRESOLVED_D_SHOULD_NOT_BLOCK'),
+  'imported D rules without dependency payload must not block'
+)
+
 const rawProdatMissingR =
   "UNA:+.? 'UNB+UNOC:3+SENDER:14+RECEIVER:14+260530:1832+1++++23-DDQ-PRODAT'UNH+1+PRODAT:D:96A:UN:E2SE6A'BGM+Z03+DOC1+9'DTM+137:202605301832:203'DTM+ZZZ:202605301832:203'NAD+FR+SENDER::9'NAD+DO+RECEIVER::9'LIN+1++735999999999999999:Z07'UNT+8+1'UNZ+1+1'"
 

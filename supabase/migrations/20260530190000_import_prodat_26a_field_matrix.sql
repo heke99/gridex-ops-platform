@@ -1,0 +1,163 @@
+begin;
+
+alter table if exists public.ediel_field_rules
+  add column if not exists rule_key text,
+  add column if not exists message_family text,
+  add column if not exists message_code text,
+  add column if not exists field_key text,
+  add column if not exists field_code text,
+  add column if not exists field_number text,
+  add column if not exists field_name text,
+  add column if not exists field_name_en text,
+  add column if not exists field_name_sv text,
+  add column if not exists field_label text,
+  add column if not exists segment_path text,
+  add column if not exists requirement text default 'optional',
+  add column if not exists dependency_note text,
+  add column if not exists role_code text,
+  add column if not exists direction text,
+  add column if not exists environment text,
+  add column if not exists version text,
+  add column if not exists is_active boolean default true,
+  add column if not exists enabled boolean default true,
+  add column if not exists source_document text,
+  add column if not exists rule_payload jsonb default '{}'::jsonb,
+  add column if not exists valid_from date,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+delete from public.ediel_field_rules
+where message_family = 'PRODAT'
+  and (
+    source_document in ('gridcore_active_scope_2026_05_30', 'prodat_26a_field_matrix_2026_05_30')
+    or rule_key like 'prodat_26a_%'
+  );
+
+with message_codes(code, idx, role_code, direction) as (
+  values
+    ('Z01',1,'DDQ','outbound'),('Z02',2,'DDQ','inbound'),('Z03',3,'DDQ','outbound'),
+    ('Z04',4,'DDQ','inbound'),('Z05',5,'DDQ','inbound'),('Z06',6,'DDQ','inbound'),
+    ('Z08',7,'DDQ','outbound'),('Z09',8,'DDQ','outbound'),('Z10',9,'DDQ','inbound'),
+    ('Z13',10,'DGI','outbound'),('Z14',11,'DGI','inbound'),('Z15',12,'DGI','inbound'),
+    ('Z18',13,'DGI','outbound')
+),
+field_matrix(field_code, field_key, field_name_en, field_name_sv, segment_path, reqs, note) as (
+  values
+    ('311','application_reference','Application Reference','Application Reference','UNB/S005/0026',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'UNB Application Reference: 23-DDQ-PRODAT eller 23-DGI-PRODAT.'),
+    ('312','association_assigned_code','Association assigned code','Version','UNH/S009/0057',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'Nationell version av Ediel-meddelandet.'),
+    ('202','message_code','Message name','Meddelandenamn','BGM/C002/1001',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'PRODAT funktion.'),
+    ('203','message_id','Message Id.','Meddelandeidentifikation','UNH/0062',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'Unik identitet på meddelandet.'),
+    ('204','message_function','Message function','Meddelandefunktion','BGM/1225',array['O','O','O','O','O','O','O','O','O','O','O','O','O'],'Kod 9 original, kod 5 ersättning.'),
+    ('313','request_for_acknowledgement','Request for acknowledgement','Kvittensbegäran','BGM/4343',array['O','R','R','R','R','R','R','R','R','R','R','R','R'],'Begäran om APERAK.'),
+    ('205','document_date','Message date','Meddelandedatum','DTM+137',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'Datum då PRODAT-meddelandet skapades.'),
+    ('206','timezone','Time zone','Tidszon','DTM+ZZZ',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'Tidzon anges som offset till UTC.'),
+    ('301','free_text_header','Free text (header)','Fritext (huvud)','FTX',array['O','O','O','O','O','O','O','O','O','O','O','O','O'],'Fritext rekommenderas ej.'),
+    ('207','sender_ediel_id','Sender','Avsändare (Ediel-ID)','UNB/S002',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'Giltigt Ediel-id enligt Ediel-register.'),
+    ('315','sender_organisation_no','Senders organisation no','Avsändarens org.nr','NAD+FR',array['-','-','O','-','-','-','-','-','-','-','-','-','-'],'Avsändarens organisationsnummer.'),
+    ('208','receiver_ediel_id','Recipient','Mottagare (Ediel-ID)','UNB/S003',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'Giltigt Ediel-id enligt Ediel-register.'),
+    ('314','sequence_number','Sequence number','Sekvensnummer','LIN',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'Sekvensnummer.'),
+    ('209','line_item','Object Id','Anläggnings-id','LIN',array['R','R','R','R','R','R','R','R','R','-','D','R','R'],'Skickas i Z14 utom Z14N.'),
+    ('258','sub_line_number','Sub-line number','Sekvensnummer','LIN',array['-','-','-','D','-','D','-','-','D','-','-','-','-'],'Obligatorisk för anläggningar/mätare med flera register.'),
+    ('210','contract_start_date','Contract start date','Avtal, startdatum','DTM+92',array['R','-','R','R','-','D','-','D','D','-','-','-','-'],'Giltigt startdatum enligt Handboken.'),
+    ('211','contract_stop_date','Contract stop date','Avtal, slutdatum','DTM+93',array['-','-','-','-','R','O','R','D','-','-','-','-','-'],'Giltigt slutdatum enligt Handboken.'),
+    ('302','report_start_date','Report start date','Rapportstartdatum','DTM+163',array['-','-','-','O','-','-','-','-','-','R','D','-','-'],'Tidstämpel för påbörjande av rapportering.'),
+    ('321','report_end_date','Report end date','Rapportslutdatum','DTM+164',array['-','-','-','-','-','-','-','-','-','D','D','-','-'],'Tidstämpel för avslutande av rapportering.'),
+    ('216','validity_start_date','Validity start date','Giltighetsdatum - giltig from','DTM+157',array['-','-','-','-','-','R','-','D','R','-','-','-','-'],'Datum när aktuell ändring börjar gälla.'),
+    ('212','first_meter_reading_date','First meter reading Date','Datum för första mätaravläsning','DTM+9',array['-','-','-','O','-','-','-','-','-','-','-','-','-'],'Datum när avläsning startar.'),
+    ('249','date_of_birth','Date of birth','Födelsedatum','DTM+329',array['O','O','O','O','O','O','O','-','-','-','-','-','-'],'Bör anges när känt och annat kund-id används.'),
+    ('508','observation_length','Observation length','Tidslängd (tidsperiod)','CCI++Z03/CAV',array['-','-','-','R','-','D','-','-','R','-','D','-','-'],'Kvart/tim/månad/år.'),
+    ('326','permission_creation_timestamp','Permission creation timestamp','Tillståndets tidstämpel','DTM+171',array['-','-','-','-','-','-','-','-','-','-','D','O','O'],'Skickas i Z14 utom Z14N.'),
+    ('327','processing_end_timestamp','Processing end date/time (Permission end timestamp)','Tjänsten/rapporteringen upphör','DTM+273',array['-','-','-','-','-','-','-','-','-','-','-','R','R'],'Tidpunkt när rapportering eller tjänst upphör.'),
+    ('303','free_text_item_level','Free text (item level)','Fritext (per anläggning)','FTX',array['O','O','O','O','O','O','O','-','O','-','-','-','-'],'Fritext rekommenderas ej.'),
+    ('213','estimated_annual_volume','Estimated annual volume','Uppskattad årsenergi','QTY+31',array['-','-','O','R','-','O','-','-','O','-','-','-','-'],'Uppskattad årsenergi.'),
+    ('214','constant','Constant','Konstant för mätare','QTY+40',array['-','-','-','D','-','D','-','-','D','-','-','-','-'],'Obligatorisk om mätarställningar skickas i UTILTS.'),
+    ('215','old_constant','Old Constant','Konstant, gammal mätare','QTY+40',array['-','-','-','-','-','-','-','-','O','-','-','-','-'],'Gammal mätarkonstant.'),
+    ('217','measure_method','Measure method','Mätmetod','CCI++Z04/CAV',array['-','R','R','R','-','D','-','D','R','R','D','-','-'],'Kvartsvis/timvis/månadsvis/årsvis mätning.'),
+    ('218','number_of_digits','Number of digits','Antal siffror, mätare','QTY+218',array['-','-','-','D','-','D','-','-','D','-','-','-','-'],'Obligatorisk om mätarställningar skickas.'),
+    ('219','old_number_of_digits','Old Number of digits','Antal siffror, gammal mätare','QTY+219',array['-','-','-','-','-','-','-','-','O','-','-','-','-'],'Antal siffror gammal mätare.'),
+    ('306','installation_status','Installation status','Installationsstatus','CCI++Z05/CAV',array['-','-','-','R','-','D','-','-','-','-','-','-','-'],'Aktiv eller ej inkopplad.'),
+    ('307','tariff_code','Tariff code','Tariffkod','CCI++Z06/CAV',array['-','-','-','O','-','O','-','-','-','-','-','-','-'],'Nättariff vid samfakturering.'),
+    ('220','priority','Priority','Prioritet','CCI++Z07/CAV',array['-','-','-','O','-','O','-','-','-','-','-','-','-'],'Prioriterad eller avkopplingsbar anläggning.'),
+    ('222','reporting_frequency','Meter reading frequency','Rapporteringsfrekvens','CCI++Z12/CAV',array['-','-','-','R','-','R','-','-','R','R','D','-','-'],'Hur ofta rapportering sker.'),
+    ('223','reason_for_transaction','Reason for transaction','Transaktionstyp (undertyp)','CCI++Z13/CAV',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'Transaktionstyp enligt kodlista.'),
+    ('259','meter_time_frame','Meter time frame','Mätare, tidsintervall (räkneverkskod)','CCI++Z15/CAV',array['-','-','-','D','-','D','-','-','D','-','-','-','-'],'Räkneverkskod.'),
+    ('254','balance_settlement_method','Method for balance Settlement','Avräkningsmetod','CCI++Z16/CAV',array['-','-','-','R','-','D','-','-','D','-','-','-','-'],'Dygns-/månadsavräkning.'),
+    ('242','product_code','Product code','Produktkod','CCI++Z17/CAV',array['-','-','-','R','-','D','-','-','D','-','-','-','-'],'Tidsserieprodukt.'),
+    ('506','energy_product','Product identification (Energy product)','Produkt id (Energiprodukt)','CCI++Z14/CAV',array['-','-','-','-','-','-','-','-','-','R','D','-','-'],'Energiprodukt.'),
+    ('310','party_connected_to_grid_status','Party connected to grid status','Kundstatus','CCI++Z18/CAV',array['-','-','-','-','D','D','-','D','-','-','-','-','-'],'Används endast i anslutning till dödsfall.'),
+    ('513','installation_direction','Type of Metering Point (Flow Direction)','Riktning (Typ av anläggning)','CCI++Z22/CAV',array['-','-','-','-','-','-','-','-','-','R','D','-','-'],'Flödesriktning vid mätpunkten.'),
+    ('322','permission_status','Permission status','Tillståndets status','CCI++Z23/CAV',array['-','-','-','-','-','-','-','-','-','-','R','R','-'],'Tillståndets status.'),
+    ('323','permission_purpose','Purpose','Tillståndets syfte','CCI++Z24/CAV',array['-','-','-','-','-','-','-','-','-','D','D','-','-'],'Ska anges för privatkunder i Z13/Z14, utom Z14N.'),
+    ('324','permission_end_reason','Permission end reason','Orsak till tillståndets upphörande','CCI++Z25/CAV',array['-','-','-','-','-','-','-','-','-','-','-','R','R'],'Varför tillståndet upphör.'),
+    ('224','meter_number','Meter no.','Mätarnummer','RFF+MG',array['-','-','-','R','O','O','O','-','R','-','-','-','-'],'Mätarnummer.'),
+    ('225','old_meter_number','Old Meter no.','Gammalt mätarnummer','RFF+MG',array['-','-','-','-','-','-','-','-','R','-','-','-','-'],'Används vid mätarbyte.'),
+    ('308','supplier_contract_no','Suppliers contract no','Leverantörens avtalsnr','RFF+CT',array['-','-','O','-','O','O','O','-','-','-','-','-','-'],'Avtalsnummer med elanvändaren.'),
+    ('260','net_area','Net Area','Nätområdesid','RFF+Z05',array['R','R','R','R','R','R','R','R','R','-','D','R','R'],'3-ställig nätområdeskod.'),
+    ('320','calorific_value_area','Calorific Value Area','Värmevärdesområde','RFF+Z10',array['-','-','-','D','-','D','-','-','-','-','-','-','-'],'Endast naturgasmarknaden.'),
+    ('240','serial_id','Serial Id','Serie-id','RFF+SI',array['-','-','-','D','O','D','-','-','D','-','-','-','-'],'Endast naturgasmarknaden.'),
+    ('319','reference_to_metering_point','Reference to metering point','Referens till anläggning','RFF+Z07',array['-','-','-','D','-','-','-','-','-','-','-','-','-'],'Obligatorisk i Z04D.'),
+    ('261','agreement_reference','Reference to authorisation','Referens till avtal/fullmakt','RFF+ANJ',array['R','-','R','-','-','-','-','-','-','R','-','-','-'],'Referens till avtal/fullmakt.'),
+    ('226','line_reference','Reference to line item','Ärendereferens','RFF+LI',array['R','R','R','R','R','R','R','R','R','R','R','R','R'],'Unik referens mellan ärenden.'),
+    ('325','permission_id','Permission ID','Tillståndets id','RFF+ZPI',array['-','-','-','-','-','-','-','-','-','-','D','R','R'],'Tillståndets id skickas ej i Z14N.'),
+    ('END_USER_GROUP','end_user_group','End user','Elanvändare','NAD+UD',array['R','R','R','R','R','D','R','D','-','R','D','R','R'],'Elanvändare.'),
+    ('227','end_user_id','End user ID','Kund-id','NAD+UD',array['R','R','R','R','R','D','R','D','-','R','D','R','R'],'Kund-id.'),
+    ('228','end_user_name','End user Name','Namn-elanvändare','NAD+UD',array['R','R','R','R','R','D','R','D','-','R','D','R','R'],'1-2 rader.'),
+    ('229','end_user_address','End user Address','Adress-elanvändare','NAD+UD',array['D','D','D','D','D','D','D','D','-','-','-','-','-'],'När elanvändaren anges ska adress fyllas i om den finns.'),
+    ('231','end_user_postcode','End user Postcode','Postnr-elanvändare','NAD+UD',array['R','R','R','R','R','D','R','D','-','-','-','-','-'],'Postnummer.'),
+    ('232','end_user_city','End user City name','Postort-elanvändare','NAD+UD',array['R','R','R','R','R','D','R','D','-','-','-','-','-'],'Postort.'),
+    ('316','end_user_country','End user Country','Land-elanvändare','NAD+UD',array['R','R','R','R','R','D','R','D','-','R','R','R','R'],'Land.'),
+    ('INSTALLATION_GROUP','installation_group','Installation','Anläggning','NAD+IT',array['O','R','O','R','R','R','O','-','-','-','D','-','-'],'Anläggningsadress.'),
+    ('233','installation_id','Installation ID','Anläggnings-id','NAD+IT',array['D','R','D','R','R','R','D','-','-','-','R','-','-'],'Samma värde som fält 209.'),
+    ('234','installation_address','Installation Address','Adress-anläggning','NAD+IT',array['D','R','D','R','R','R','D','-','-','-','R','-','-'],'1-3 rader.'),
+    ('235','installation_postcode','Installation Postcode','Postnr-anläggning','NAD+IT',array['O','O','O','O','O','O','O','-','-','-','O','-','-'],'Postnummer anläggning.'),
+    ('236','installation_city','Installation City name','Postort-anläggning','NAD+IT',array['O','O','O','O','O','O','O','-','-','-','O','-','-'],'Postort anläggning.'),
+    ('237','installation_country','Installation Country','Land-anläggning','NAD+IT',array['O','O','O','O','O','O','O','-','-','-','O','-','-'],'Land anläggning.'),
+    ('INVOICEE_GROUP','invoicee_group','Invoicee','Fakturamottagare','NAD+IV',array['-','-','D','D','D','D','D','D','-','-','-','-','-'],'Skickas om fakturamottagarens adress skiljer sig från elanvändarens.'),
+    ('250','invoicee_id','Invoicee ID','Fakturamottagare ID','NAD+IV',array['-','-','D','D','D','D','D','D','-','-','-','-','-'],'När fakturamottagare skickas anges id.'),
+    ('251','invoicee_name','Invoicee Name','Namn-fakturamottagare','NAD+IV',array['-','-','D','D','D','D','D','D','-','-','-','-','-'],'1-2 rader.'),
+    ('252','invoicee_address','Invoicee Address','Adress-fakturamottagare','NAD+IV',array['-','-','D','D','D','D','D','D','-','-','-','-','-'],'Adress fakturamottagare.'),
+    ('253','invoicee_postcode','Invoicee Postcode','Postnr-fakturamottgare','NAD+IV',array['-','-','D','D','D','D','D','D','-','-','-','-','-'],'Postnummer fakturamottagare.'),
+    ('317','invoicee_city','Invoicee City name','Postort-fakturamottagare','NAD+IV',array['-','-','D','D','D','D','D','D','-','-','-','-','-'],'Postort fakturamottagare.'),
+    ('318','invoicee_country','Invoicee Country','Land-fakturamottagare','NAD+IV',array['-','-','D','D','D','D','D','D','-','-','-','-','-'],'Land fakturamottagare.'),
+    ('262','balance_responsible','Balance responsible','Balansansvarig','NAD+Z02',array['-','-','R','R','R','R','R','R','R','-','-','-','-'],'Giltigt Ediel-id för balansansvarig.')
+)
+insert into public.ediel_field_rules(
+  rule_key, message_family, message_code, role_code, direction, environment, version,
+  field_code, field_number, field_key, field_name_en, field_name_sv, field_name,
+  field_label, segment_path, requirement, dependency_note, valid_from, is_active,
+  enabled, source_document, rule_payload, created_at, updated_at
+)
+select
+  'prodat_26a_' || lower(message_codes.code) || '_' || lower(field_matrix.field_code),
+  'PRODAT',
+  message_codes.code,
+  message_codes.role_code,
+  message_codes.direction,
+  'all',
+  '26A',
+  field_matrix.field_code,
+  field_matrix.field_code,
+  field_matrix.field_key,
+  field_matrix.field_name_en,
+  field_matrix.field_name_sv,
+  field_matrix.field_name_en,
+  field_matrix.field_name_sv,
+  field_matrix.segment_path,
+  field_matrix.reqs[message_codes.idx],
+  field_matrix.note,
+  date '2026-04-01',
+  true,
+  true,
+  'prodat_26a_field_matrix_2026_05_30',
+  jsonb_build_object(
+    'source', 'user_supplied_prodat_field_matrix_2026_05_30',
+    'matrixRequirement', field_matrix.reqs[message_codes.idx],
+    'note', field_matrix.note
+  ),
+  now(),
+  now()
+from field_matrix
+cross join message_codes
+where field_matrix.reqs[message_codes.idx] is not null;
+
+commit;
