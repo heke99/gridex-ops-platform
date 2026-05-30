@@ -710,6 +710,7 @@ export async function pollAndIngestEdielMailbox(params: {
   environment?: 'test' | 'production' | null
   force?: boolean
   limit?: number
+  sharedOnly?: boolean
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const routeProfile = params.communicationRouteId
@@ -720,17 +721,21 @@ export async function pollAndIngestEdielMailbox(params: {
   const legacyMailboxAsId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(params.mailbox ?? '')
     ? params.mailbox
     : null
+  const resolvedMailboxId = params.mailboxId ?? routeProfile?.mailbox_id ?? legacyMailboxAsId
+  const targetCompanyId = params.companyId ?? routeProfile?.company_id ?? null
+  const useSharedMailbox = params.sharedOnly ?? !resolvedMailboxId
 
   const result = await runInboundEdielMailEngine({
     actorUserId,
-    companyId: params.companyId ?? routeProfile?.company_id ?? null,
+    companyId: useSharedMailbox ? null : targetCompanyId,
     environment: params.environment ?? routeProfile?.environment ?? 'test',
-    mailboxId: params.mailboxId ?? routeProfile?.mailbox_id ?? legacyMailboxAsId,
+    mailboxId: resolvedMailboxId,
+    sharedOnly: useSharedMailbox,
     force: params.force ?? true,
     messageLimitPerMailbox: params.limit ?? 10,
   })
   const incoming = await listEdielMessagesByIds(result.edielMessageIds, {
-    companyId: params.companyId ?? routeProfile?.company_id ?? null,
+    companyId: targetCompanyId,
   })
 
   for (const message of incoming) {

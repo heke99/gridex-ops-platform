@@ -658,6 +658,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
       mailbox,
       environment: 'test',
       force: true,
+      sharedOnly: true,
       limit,
     })
 
