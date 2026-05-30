@@ -90,7 +90,7 @@ function StartRunForm({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
       <input type="hidden" name="testSuite" value={testCase.suite} />
       <input type="hidden" name="roleCode" value={testCase.roleCode} />
       <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
-      <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+      <button type="submit" className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
         Starta ny testkörning
       </button>
     </form>
@@ -479,14 +479,14 @@ export default async function SystemTestCasePage({
           <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
           <input type="hidden" name="tgtTestCaseCode" value={testCase.testCaseCode} />
           <label className="block text-sm font-medium text-slate-700">
-            IMAP-mapp / mailbox
-            <input name="mailbox" defaultValue="INBOX" className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
+            Mailbox-id eller tomt för aktiv testmailbox
+            <input name="mailbox" placeholder="Lämna tomt för DB-konfigurerad testmailbox" className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
           </label>
           <label className="block text-sm font-medium text-slate-700">
             Max antal
             <input name="limit" defaultValue="10" inputMode="numeric" className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
           </label>
-          <button className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+          <button type="submit" className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
             Importera via IMAP och synka till {testCase.testCaseCode}
           </button>
         </form>

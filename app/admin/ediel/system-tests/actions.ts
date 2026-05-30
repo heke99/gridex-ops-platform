@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { activeRulebookRules, defaultApplicationReferenceForProcess } from '@/lib/ediel/rulebook/rulebook'
@@ -606,7 +607,8 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
   const roleRaw = String(formString(formData.get('roleCode')) ?? 'esco').trim().toLowerCase()
   const suite: EdielTestSuite = suiteRaw === 'PRODAT' || suiteRaw === 'UTILTS' || suiteRaw === 'AI_LIST' || suiteRaw === 'NBS_XML' ? suiteRaw : 'OTHER'
   const roleCode: EdielTestRoleCode = roleRaw === 'supplier' || roleRaw === 'grid_owner' || roleRaw === 'balance_responsible' || roleRaw === 'esco' ? roleRaw : 'esco'
-  const mailbox = formString(formData.get('mailbox')) ?? 'INBOX'
+  const mailbox = formString(formData.get('mailbox'))
+  const mailboxLabel = mailbox ?? 'aktiv testmailbox'
   const limitRaw = formString(formData.get('limit'))
   const limitNumber = limitRaw ? Number(limitRaw) : 10
   const limit = Number.isFinite(limitNumber) && limitNumber > 0 ? Math.min(Math.floor(limitNumber), 50) : 10
@@ -707,7 +709,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
       title: `IMAP-poll och synk för ${definition.testCaseCode}`,
       payload: {
         testCaseCode: definition.testCaseCode,
-        mailbox,
+        mailbox: mailboxLabel,
         limit,
         importedCount: importedMessages.length,
         linkedCount: linked.length,
@@ -753,7 +755,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
       title: `IMAP-poll misslyckades för ${definition.testCaseCode}`,
       payload: {
         testCaseCode: definition.testCaseCode,
-        mailbox,
+        mailbox: mailboxLabel,
         limit,
         error: errorMessage(error),
         createdAt: new Date().toISOString(),
@@ -762,6 +764,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
   }
 
   revalidateSystemTests(definition.testCaseCode)
+  redirect(`/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`)
 }
 
 export async function syncRulebookStaticRulesAction() {

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAnyPermissionServer } from "@/lib/auth/requirePermissionServer";
 import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess, type GuardResult } from "@/lib/admin/guards";
 import { assertUserCanOperateCompany, getOperationalCompanyScope } from "@/lib/tenant/scope";
@@ -1499,10 +1500,7 @@ export async function createEdielAgtResponsesForInboundAction(formData: FormData
 }
 
 export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
-  const context = await requireAnyPermissionServer([
-    "communication.write",
-    "communication.read",
-  ]);
+  const context = await requirePlatformAdminActionAccess();
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode")) ?? "";
@@ -1535,12 +1533,44 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     startedAt: new Date().toISOString(),
   });
 
-  await runTgtAutopilotForRun({
+  const autopilotResult = await runTgtAutopilotForRun({
     actorUserId: context.userId,
     testRunId: testRun.id,
+  }).catch(async (error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    await updateEdielTestRunStatus({
+      actorUserId: context.userId,
+      testRunId: testRun.id,
+      status: "running",
+      failureReason: `Autopilot kunde inte skapa nästa steg automatiskt: ${message}`,
+    }).catch(() => undefined);
+    return null;
   });
 
+  if (autopilotResult) {
+    await supabaseService.from("audit_logs").insert({
+      action: "ediel.tgt_run.started",
+      entity_type: "ediel_test_run",
+      entity_id: testRun.id,
+      actor_user_id: context.userId,
+      metadata: {
+        testSuite: definition.suite,
+        roleCode: definition.roleCode,
+        testCaseCode: definition.testCaseCode,
+        autopilot: autopilotResult,
+      },
+    }).then((result: { error?: { code?: string } | null }) => {
+      const error = result.error ?? null;
+      if (error && error.code !== "42P01" && error.code !== "42703") {
+        console.warn("Audit log kunde inte sparas för TGT-start", error);
+      }
+    });
+  }
+
   revalidateEdiel();
+  revalidatePath("/admin/ediel/system-tests");
+  revalidatePath(`/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`);
+  redirect(`/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`);
 }
 
 export async function attachEdielMessageToTestRunAction(formData: FormData) {
