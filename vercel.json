@@ -1,8 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/internal/inbound-mail/cron",
-      "schedule": "*/10 * * * *"
+      "path": "/api/internal/inbound-mail/cron?environment=test",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/internal/inbound-mail/cron?environment=production",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

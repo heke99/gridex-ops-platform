@@ -2,7 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { processInboundMailQueueAction, runInboundMailEngineAction } from '@/app/admin/inbound-mail/actions'
+import { processInboundMailQueueAction, runInboundMailEngineAction, saveSharedMailboxProfileAction } from '@/app/admin/inbound-mail/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +13,9 @@ type MailboxRow = {
   email_address: string | null
   environment: string | null
   is_active: boolean | null
+  imap_host?: string | null
+  username?: string | null
+  secret_reference?: string | null
   poll_interval_minutes: number | null
   last_polled_at: string | null
   locked_at?: string | null
@@ -93,6 +96,8 @@ export default async function InboundMailPage() {
   if (parseResult.error) throw parseResult.error
 
   const mailboxes = (mailboxesResult.data ?? []) as MailboxRow[]
+  const sharedTestMailbox = mailboxes.find((mailbox) => mailbox.company_id === null && mailbox.environment === 'test' && mailbox.metadata?.scope === 'platform_shared')
+  const sharedProductionMailbox = mailboxes.find((mailbox) => mailbox.company_id === null && mailbox.environment === 'production' && mailbox.metadata?.scope === 'platform_shared')
   const pollRuns = pollRunsResult.error ? [] : (pollRunsResult.data ?? []) as PollRunRow[]
   const messages = (messagesResult.data ?? []) as InboundEmailRow[]
   const parseRows = (parseResult.data ?? []) as ParseRow[]
@@ -129,6 +134,68 @@ export default async function InboundMailPage() {
               </Link>
             </div>
           </div>
+        </section>
+
+        <section className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Produktionssetup</p>
+          <h2 className="mt-2 text-lg font-semibold text-slate-950">Shared Ediel-mailbox per miljö</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
+            Spara endast `secret_reference`, aldrig lösenord. Tenant routing sker efter EDIFACT-innehåll, inte från e-postadressen.
+          </p>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className={`rounded-2xl border p-4 text-sm ${sharedTestMailbox ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+              <p className="font-semibold">Test mailbox: {sharedTestMailbox ? 'konfigurerad' : 'saknas'}</p>
+              <p className="mt-1">{sharedTestMailbox?.email_address ?? 'Skapa en shared mailbox för environment=test.'}</p>
+            </div>
+            <div className={`rounded-2xl border p-4 text-sm ${sharedProductionMailbox ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
+              <p className="font-semibold">Production mailbox: {sharedProductionMailbox ? 'konfigurerad' : 'saknas'}</p>
+              <p className="mt-1">{sharedProductionMailbox?.email_address ?? 'Krävs innan produktionscron kan pollas säkert.'}</p>
+            </div>
+          </div>
+
+          <form action={saveSharedMailboxProfileAction} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <label className="grid gap-1">
+              <span className="text-xs font-semibold text-slate-700">Miljö</span>
+              <select name="environment" defaultValue="production" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+                <option value="test">test</option>
+                <option value="production">production</option>
+              </select>
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-semibold text-slate-700">Mailboxnamn</span>
+              <input name="mailbox_name" defaultValue="Gridex shared production Ediel" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-semibold text-slate-700">E-postadress</span>
+              <input name="email_address" type="email" placeholder="ediel@example.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-semibold text-slate-700">IMAP-host</span>
+              <input name="imap_host" placeholder="imap.example.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-semibold text-slate-700">IMAP-port</span>
+              <input name="imap_port" type="number" defaultValue={993} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-semibold text-slate-700">IMAP-folder</span>
+              <input name="imap_folder" defaultValue="INBOX" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-semibold text-slate-700">Username</span>
+              <input name="username" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+            </label>
+            <label className="grid gap-1 xl:col-span-2">
+              <span className="text-xs font-semibold text-slate-700">Secret reference</span>
+              <input name="secret_reference" defaultValue="env:GRIDEX_SHARED_EDIEL_IMAP_PASS" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+            </label>
+            <div className="xl:col-span-3">
+              <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">
+                Spara shared mailbox
+              </button>
+            </div>
+          </form>
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">

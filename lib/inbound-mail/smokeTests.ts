@@ -11,6 +11,7 @@ export type InboundSmokeTestResult = {
 
 type MailboxConfigRow = {
   id: string
+  company_id: string | null
   mailbox_name: string | null
   email_address: string | null
   environment: string | null
@@ -103,6 +104,7 @@ function mailboxConfigTest(mailbox: MailboxConfigRow): InboundSmokeTestResult {
   if (!mailbox.imap_host?.trim()) problems.push('imap_host saknas')
   if (!mailbox.username?.trim()) problems.push('username saknas')
   if (!mailbox.secret_reference?.trim()) problems.push('secret_reference saknas')
+  else if (!mailbox.secret_reference.startsWith('env:')) problems.push('secret_reference måste börja med env:')
   else if (!resolveMailboxPasswordFromSecretReference(mailbox)) problems.push('secret_reference pekar inte på ett tillgängligt env-lösenord')
 
   if (mailbox.imap_port !== null && (!Number.isFinite(mailbox.imap_port) || mailbox.imap_port <= 0)) problems.push('imap_port är ogiltig')
@@ -121,6 +123,8 @@ function mailboxConfigTest(mailbox: MailboxConfigRow): InboundSmokeTestResult {
     message: problems.length > 0 ? problems.join('. ') : warnings.length > 0 ? warnings.join('. ') : 'Aktiv mailbox har nödvändig IMAP-konfiguration.',
     details: {
       environment: mailbox.environment,
+      companyId: mailbox.company_id,
+      scope: mailbox.metadata?.scope ?? null,
       hasImapHost: Boolean(mailbox.imap_host?.trim()),
       hasUsername: Boolean(mailbox.username?.trim()),
       hasSecretReference: Boolean(mailbox.secret_reference?.trim()),
@@ -136,7 +140,7 @@ function mailboxConfigTest(mailbox: MailboxConfigRow): InboundSmokeTestResult {
 async function mailboxConfigTests(): Promise<InboundSmokeTestResult[]> {
   const { data, error } = await supabaseService
     .from('ediel_mailboxes')
-    .select('id,mailbox_name,email_address,environment,imap_host,imap_port,username,secret_reference,poll_interval_minutes,metadata,last_error')
+    .select('id,company_id,mailbox_name,email_address,environment,imap_host,imap_port,username,secret_reference,poll_interval_minutes,metadata,last_error')
     .eq('is_active', true)
     .order('updated_at', { ascending: false })
     .limit(50)
@@ -150,6 +154,9 @@ async function mailboxConfigTests(): Promise<InboundSmokeTestResult[]> {
   }
 
   const mailboxes = (data ?? []) as MailboxConfigRow[]
+  const sharedMailboxes = mailboxes.filter((mailbox) => mailbox.company_id === null && mailbox.metadata?.scope === 'platform_shared')
+  const sharedTest = sharedMailboxes.find((mailbox) => mailbox.environment === 'test')
+  const sharedProduction = sharedMailboxes.find((mailbox) => mailbox.environment === 'production')
   if (mailboxes.length === 0) {
     return [{
       name: 'IMAP mailbox config',
@@ -164,6 +171,18 @@ async function mailboxConfigTests(): Promise<InboundSmokeTestResult[]> {
       status: 'pass',
       message: `${mailboxes.length} aktiv(a) mailbox(ar) hittades för IMAP-sync.`,
       details: { count: mailboxes.length },
+    },
+    {
+      name: 'Shared test mailbox',
+      status: sharedTest ? 'pass' : 'fail',
+      message: sharedTest ? 'Shared test mailbox är konfigurerad.' : 'Saknar aktiv shared mailbox för environment=test.',
+      details: { requiredScope: 'platform_shared' },
+    },
+    {
+      name: 'Shared production mailbox',
+      status: sharedProduction ? 'pass' : 'fail',
+      message: sharedProduction ? 'Shared production mailbox är konfigurerad.' : 'Saknar aktiv shared mailbox för environment=production.',
+      details: { requiredScope: 'platform_shared' },
     },
     ...mailboxes.map(mailboxConfigTest),
   ]
@@ -196,8 +215,14 @@ export async function runInboundMailSmokeTests(): Promise<InboundSmokeTestResult
   const cronSecretConfigured = Boolean(process.env.EDIEL_INBOUND_CRON_SECRET ?? process.env.CRON_SECRET)
   tableResults.push({
     name: 'Cron secret',
-    status: cronSecretConfigured ? 'pass' : 'warning',
-    message: cronSecretConfigured ? 'Intern cron-secret är konfigurerad.' : 'Ingen cron-secret hittades i env. Tillåt bara detta lokalt, inte production.',
+    status: cronSecretConfigured ? 'pass' : 'fail',
+    message: cronSecretConfigured ? 'Intern cron-secret är konfigurerad.' : 'Ingen cron-secret hittades i env. Detta måste finnas i production.',
+  })
+
+  tableResults.push({
+    name: 'Cron schedule',
+    status: 'pass',
+    message: 'Repo:t har Vercel cron entries för test och production var 5:e minut. Kontrollera att hosting-miljön har CRON_SECRET/EDIEL_INBOUND_CRON_SECRET.',
   })
 
   return [...sampleParseTests(), ...tableResults, ...(await mailboxConfigTests())]
