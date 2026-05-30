@@ -76,12 +76,13 @@ export async function processInboundEmailMessage(input: {
   })
 
   if (tenant.status !== 'resolved' || !tenant.companyId) {
+    const unresolvedTenantStatus = tenant.status === 'ambiguous' ? 'ambiguous' : 'unassigned'
     await createUnresolvedInboundEdielMessage({
       companyId: tenant.companyId,
       inboundEmailMessageId: input.inboundEmailMessageId,
       parseResultId,
       parsed,
-      tenantStatus: tenant.status,
+      tenantStatus: unresolvedTenantStatus,
       reasons: tenant.reasons,
       candidates: tenant.candidates,
     })
