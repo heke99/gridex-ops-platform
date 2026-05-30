@@ -223,6 +223,7 @@ export default async function EdielControlTowerPage() {
     overdueAcks,
     negativeAperaks,
     duplicateBlocked,
+    unresolvedEdielItems,
     outboundQueued,
     unresolvedRoutes,
     recentMessages,
@@ -237,6 +238,7 @@ export default async function EdielControlTowerPage() {
     ]),
     safeCount('ediel_messages', companyId, [{ column: 'ack_outcome', op: 'in', value: ['negative', 'rejected'] }]),
     safeCount('ediel_messages', companyId, [{ column: 'dedupe_status', op: 'in', value: ['duplicate', 'blocked'] }]),
+    safeCount('ediel_unresolved_items', companyId, [{ column: 'status', op: 'in', value: ['open', 'manual_review'] }]),
     safeCount('ediel_messages', companyId, [{ column: 'direction', value: 'outbound' }, { column: 'status', op: 'in', value: ['queued', 'prepared'] }]),
     safeCount('outbound_requests', companyId, [{ column: 'channel_type', value: 'unresolved' }]),
     safeRows<EdielMessageRow>(
@@ -301,6 +303,7 @@ export default async function EdielControlTowerPage() {
           <StatCard label="Försenade kvittenser" value={overdueAcks} href="/admin/ediel/messages" tone={overdueAcks > 0 ? 'danger' : 'success'} />
           <StatCard label="Negativa APERAK" value={negativeAperaks} href="/admin/ediel/messages" tone={negativeAperaks > 0 ? 'warning' : 'success'} />
           <StatCard label="Dubblett/blockerat" value={duplicateBlocked} href="/admin/ediel/messages" tone={duplicateBlocked > 0 ? 'warning' : 'success'} />
+          <StatCard label="Oupplösta Ediel" value={unresolvedEdielItems} href="/admin/ediel/messages" tone={unresolvedEdielItems > 0 ? 'danger' : 'success'} />
           <StatCard label="Outbound köad" value={outboundQueued} href="/admin/ediel/messages?direction=outbound" tone={outboundQueued > 0 ? 'warning' : 'success'} />
           <StatCard label="Outbound saknar route" value={unresolvedRoutes} href="/admin/outbound/unresolved" tone={unresolvedRoutes > 0 ? 'danger' : 'success'} />
           <StatCard

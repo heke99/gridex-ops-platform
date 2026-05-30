@@ -106,6 +106,10 @@ function payloadForInbound(input: {
   }
 }
 
+function tenantResolutionStatus(status: 'unassigned' | 'ambiguous'): 'tenant_unresolved' | 'tenant_ambiguous' {
+  return status === 'ambiguous' ? 'tenant_ambiguous' : 'tenant_unresolved'
+}
+
 function matchedOutboundRow(match: InboundEntityMatch): Record<string, unknown> {
   return match.candidates?.[0] ?? {}
 }
@@ -252,6 +256,14 @@ export async function createInboundEdielMessage(input: {
     raw_payload: input.parsed.rawPayload,
     parsed_payload: input.parsed,
     validation_report: { status: 'parsed_by_batch_7a1_inbound_mail_engine' },
+    tenant_resolution_status: 'tenant_resolved',
+    business_match_status:
+      input.outboundMatch?.status === 'matched'
+        ? 'matched'
+        : input.meteringPointMatch?.status === 'matched'
+          ? 'partially_matched'
+          : 'business_unresolved',
+    processing_status: input.outboundMatch?.status === 'matched' ? statusForInboundEdielMessage(input.parsed) : 'manual_review',
     inbound_email_message_id: input.inboundEmailMessageId,
     outbound_request_id: matchedOutboundId,
     metering_point_id: matchedMeteringPointId,
@@ -310,6 +322,103 @@ export async function createInboundEdielMessage(input: {
       payload,
     })
   }
+
+  return edielMessageId
+}
+
+export async function createUnresolvedInboundEdielMessage(input: {
+  companyId?: string | null
+  inboundEmailMessageId: string
+  parseResultId?: string | null
+  parsed: ParsedEdifactEnvelope
+  tenantStatus: 'unassigned' | 'ambiguous'
+  reasons: string[]
+  candidates: string[]
+}): Promise<string | null> {
+  const payload = payloadForInbound({
+    parsed: input.parsed,
+    inboundEmailMessageId: input.inboundEmailMessageId,
+    parseResultId: input.parseResultId ?? null,
+  })
+  const resolutionStatus = tenantResolutionStatus(input.tenantStatus)
+  const insertPayload = {
+    company_id: input.companyId ?? null,
+    direction: 'inbound',
+    message_standard: 'edifact',
+    message_family: input.parsed.messageFamily,
+    message_code: input.parsed.messageCode,
+    status: 'failed',
+    sender_ediel_id: input.parsed.senderEdielId,
+    sender_sub_address: input.parsed.senderSubAddress,
+    receiver_ediel_id: input.parsed.receiverEdielId,
+    receiver_sub_address: input.parsed.receiverSubAddress,
+    interchange_reference: input.parsed.interchangeReference,
+    transaction_reference: input.parsed.transactionReference,
+    application_reference: input.parsed.applicationReference,
+    external_reference: input.parsed.bgmReference,
+    original_message_id: input.parsed.bgmReference,
+    raw_payload: input.parsed.rawPayload,
+    parsed_payload: input.parsed,
+    validation_report: {
+      status: 'blocked_by_inbound_mail_tenant_resolution',
+      reasons: input.reasons,
+      candidates: input.candidates,
+    },
+    tenant_resolution_status: resolutionStatus,
+    business_match_status: 'blocked',
+    processing_status: resolutionStatus,
+    inbound_email_message_id: input.inboundEmailMessageId,
+    message_received_at: nowIso(),
+    parsed_at: nowIso(),
+    failure_reason: input.reasons.join(' ') || 'Tenant kunde inte lösas säkert.',
+  }
+
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .insert(insertPayload)
+    .select('id')
+    .maybeSingle()
+
+  if (error) {
+    console.warn('[inbound-mail] Kunde inte skapa unresolved inbound ediel_message', error)
+    return null
+  }
+
+  const edielMessageId = (data as { id?: string } | null)?.id ?? null
+  if (!edielMessageId) return null
+
+  await supabaseService.from('ediel_unresolved_items').insert({
+    company_id: input.companyId ?? null,
+    source_message_id: edielMessageId,
+    issue_type: resolutionStatus,
+    severity: input.tenantStatus === 'ambiguous' ? 'critical' : 'warning',
+    extracted_identifiers: {
+      senderEdielId: input.parsed.senderEdielId,
+      receiverEdielId: input.parsed.receiverEdielId,
+      receiverSubAddress: input.parsed.receiverSubAddress,
+      applicationReference: input.parsed.applicationReference,
+      interchangeReference: input.parsed.interchangeReference,
+      bgmReference: input.parsed.bgmReference,
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      parseResultId: input.parseResultId ?? null,
+    },
+    suggested_matches: input.candidates.map((companyId) => ({ companyId })),
+    status: 'open',
+  })
+
+  await supabaseService.from('ediel_message_events').insert({
+    company_id: input.companyId ?? null,
+    ediel_message_id: edielMessageId,
+    event_type: 'manual_note',
+    event_status: input.tenantStatus === 'ambiguous' ? 'error' : 'warning',
+    message: 'Inbound Ediel-mail blockerades innan affärsuppdatering eftersom tenant inte kunde lösas säkert.',
+    payload: {
+      ...payload,
+      tenantStatus: input.tenantStatus,
+      reasons: input.reasons,
+      candidates: input.candidates,
+    },
+  })
 
   return edielMessageId
 }

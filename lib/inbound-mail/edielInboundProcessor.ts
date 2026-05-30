@@ -6,6 +6,7 @@ import {
   applySafeInboundStatusUpdate,
   createInboundEdielMessage,
   createParseResult,
+  createUnresolvedInboundEdielMessage,
   updateInboundEmailProcessingStatus,
 } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { supabaseService } from '@/lib/supabase/service'
@@ -75,6 +76,15 @@ export async function processInboundEmailMessage(input: {
   })
 
   if (tenant.status !== 'resolved' || !tenant.companyId) {
+    await createUnresolvedInboundEdielMessage({
+      companyId: tenant.companyId,
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      parseResultId,
+      parsed,
+      tenantStatus: tenant.status,
+      reasons: tenant.reasons,
+      candidates: tenant.candidates,
+    })
     await updateInboundEmailProcessingStatus({
       inboundEmailMessageId: input.inboundEmailMessageId,
       companyId: tenant.companyId,
