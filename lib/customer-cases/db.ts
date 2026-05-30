@@ -3,6 +3,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { assessWithdrawal, applyCustomerCaseOperationalStops, createCancellationDraftForCase } from './engine'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { CustomerCaseEventRow, CustomerCaseListRow, CustomerCaseRow, CustomerCaseType } from './types'
+import { queueTenantTemplateEmail, type TenantEmailTemplateKey } from '@/lib/tenant/emailTemplates'
 
 type CustomerCaseInput = {
   companyId: string
@@ -172,6 +173,62 @@ async function logAudit(input: {
   if (error && !['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) throw error
 }
 
+async function readCustomerForCase(companyId: string, customerId: string): Promise<{ name: string | null; email: string | null }> {
+  const { data, error } = await supabaseService
+    .from('customers')
+    .select('full_name, first_name, last_name, company_name, email')
+    .eq('company_id', companyId)
+    .eq('id', customerId)
+    .maybeSingle()
+
+  if (error) throw error
+  const personName = [data?.first_name, data?.last_name].filter(Boolean).join(' ').trim()
+  return {
+    name: data?.full_name ?? ((personName || data?.company_name) ?? null),
+    email: typeof data?.email === 'string' ? data.email : null,
+  }
+}
+
+function templateKeyForCase(row: CustomerCaseRow): TenantEmailTemplateKey | null {
+  if (row.case_type === 'withdrawal') return 'withdrawal_received'
+  if (row.case_type === 'supplier_switch_aborted' || row.cancellation_required) return 'cancellation_sent'
+  return null
+}
+
+async function queueCaseEmail(row: CustomerCaseRow, actorUserId?: string | null) {
+  const templateKey = templateKeyForCase(row)
+  if (!templateKey) return
+
+  const customer = await readCustomerForCase(row.company_id, row.customer_id)
+  const result = await queueTenantTemplateEmail(templateKey, {
+    companyId: row.company_id,
+    customerId: row.customer_id,
+    customerCaseId: row.id,
+    customerName: customer.name,
+    customerEmail: customer.email,
+    caseTitle: row.title,
+    caseTypeLabel: customerCaseTypeLabel(row.case_type),
+    nextAction: row.next_action,
+    actorUserId,
+  })
+  const skipped = 'skipped' in result && result.skipped === true
+
+  await createCustomerCaseEvent({
+    companyId: row.company_id,
+    customerCaseId: row.id,
+    customerId: row.customer_id,
+    eventType: 'tenant_email_queued',
+    eventStatus: result.ok ? 'success' : skipped ? 'info' : 'warning',
+    message: result.ok
+      ? 'Tenant-anpassad e-post skickades/köades.'
+      : skipped
+        ? 'E-post hoppades över eftersom kundens e-post saknas.'
+        : `E-post kunde inte skickas: ${'error' in result ? result.error : 'okänt fel'}`,
+    payload: { templateKey, result },
+    actorUserId: actorUserId ?? null,
+  }).catch(() => null)
+}
+
 export async function createCustomerCase(input: CustomerCaseInput): Promise<CustomerCaseRow> {
   const assessment = assessWithdrawal({
     caseType: input.caseType,
@@ -277,6 +334,19 @@ export async function createCustomerCase(input: CustomerCaseInput): Promise<Cust
       })
     }
   }
+
+  await queueCaseEmail(row, input.actorUserId ?? null).catch(async (error) => {
+    await createCustomerCaseEvent({
+      companyId: row.company_id,
+      customerCaseId: row.id,
+      customerId: row.customer_id,
+      eventType: 'tenant_email_failed',
+      eventStatus: 'warning',
+      message: error instanceof Error ? error.message : 'Tenant-e-post kunde inte köas.',
+      payload: { error: error instanceof Error ? error.message : String(error) },
+      actorUserId: input.actorUserId ?? null,
+    }).catch(() => null)
+  })
 
   await logAudit({
     companyId: row.company_id,

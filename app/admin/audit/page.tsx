@@ -16,6 +16,13 @@ type AuditRow = {
  new_values?: unknown
 }
 
+type AuditSearchParams = {
+ action?: string
+ entity?: string
+ company_id?: string
+ q?: string
+}
+
 function formatDate(value: string | null | undefined) {
  if (!value) return '–'
  const date = new Date(value)
@@ -28,10 +35,24 @@ function shortId(value: string | null | undefined) {
  return value.length > 14 ? `${value.slice(0, 8)}…${value.slice(-4)}` : value
 }
 
-export default async function AuditPage() {
+function cleanParam(value: string | string[] | undefined): string {
+ const raw = Array.isArray(value) ? value[0] : value
+ return String(raw ?? '').trim()
+}
+
+export default async function AuditPage({
+ searchParams,
+}: {
+ searchParams?: Promise<AuditSearchParams>
+}) {
  const context = await requireAdminPageKeyAccess('audit.log')
  const isPlatformAdmin = isPlatformAdminContext(context)
  const scope = await getOperationalCompanyScope(context.userId)
+ const params = searchParams ? await searchParams : {}
+ const actionFilter = cleanParam(params.action)
+ const entityFilter = cleanParam(params.entity)
+ const companyFilter = isPlatformAdmin ? cleanParam(params.company_id) : ''
+ const textFilter = cleanParam(params.q)
 
  let rows: AuditRow[] = []
  let loadError: string | null = null
@@ -41,7 +62,7 @@ export default async function AuditPage() {
  .from('audit_logs')
  .select('id, company_id, actor_user_id, action, entity_type, entity_id, created_at, new_values')
  .order('created_at', { ascending: false })
- .limit(100)
+ .limit(200)
 
  if (!isPlatformAdmin) {
  if (!scope.companyId) {
@@ -49,7 +70,12 @@ export default async function AuditPage() {
  } else {
  query = query.eq('company_id', scope.companyId)
  }
+ } else if (companyFilter) {
+ query = query.eq('company_id', companyFilter)
  }
+ if (actionFilter) query = query.ilike('action', `%${actionFilter}%`)
+ if (entityFilter) query = query.ilike('entity_type', `%${entityFilter}%`)
+ if (textFilter) query = query.or(`action.ilike.%${textFilter}%,entity_type.ilike.%${textFilter}%,entity_id.ilike.%${textFilter}%`)
 
  const { data, error } = await query
  if (error) throw error
@@ -85,12 +111,39 @@ export default async function AuditPage() {
  </section>
  ) : null}
 
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+ <h2 className="text-lg font-semibold text-slate-950">Filtrera audit</h2>
+ <form className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+ <label className="grid gap-1 text-sm">
+ <span className="font-medium text-slate-700">Action</span>
+ <input name="action" defaultValue={actionFilter} placeholder="withdrawal, ediel..." className="rounded-2xl border border-slate-300 px-4 py-3" />
+ </label>
+ <label className="grid gap-1 text-sm">
+ <span className="font-medium text-slate-700">Entity</span>
+ <input name="entity" defaultValue={entityFilter} placeholder="customer_case, ediel..." className="rounded-2xl border border-slate-300 px-4 py-3" />
+ </label>
+ {isPlatformAdmin ? (
+ <label className="grid gap-1 text-sm">
+ <span className="font-medium text-slate-700">Company ID</span>
+ <input name="company_id" defaultValue={companyFilter} placeholder="uuid" className="rounded-2xl border border-slate-300 px-4 py-3" />
+ </label>
+ ) : null}
+ <label className="grid gap-1 text-sm">
+ <span className="font-medium text-slate-700">Fritext</span>
+ <input name="q" defaultValue={textFilter} placeholder="sök action/entity/id" className="rounded-2xl border border-slate-300 px-4 py-3" />
+ </label>
+ <div className="flex items-end">
+ <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800">Filtrera</button>
+ </div>
+ </form>
+ </section>
+
  <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
  <div>
  <h2 className="text-lg font-semibold text-slate-950">Senaste händelser</h2>
  <p className="mt-1 text-sm text-slate-700">
- {isPlatformAdmin ? 'Visar de 100 senaste globala audit-händelserna.' : 'Visar de 100 senaste händelserna för bolaget.'}
+ {isPlatformAdmin ? 'Visar upp till 200 globala audit-händelser med aktuella filter.' : 'Visar upp till 200 händelser för bolaget med aktuella filter.'}
  </p>
  </div>
  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">

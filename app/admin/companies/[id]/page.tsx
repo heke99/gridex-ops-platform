@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
+import { supabaseService } from '@/lib/supabase/service'
 import {
   getCompanyById,
   getCompanyGovernanceSummary,
@@ -10,7 +11,13 @@ import {
 } from '@/lib/tenant/governance'
 import { getActorTestingSummary, getActorTestingStatusLabel, getProductionReadinessLabel } from '@/lib/ediel/actorTesting'
 import { getCompanyActorConfiguration, type CompanyActorConfiguration, type EdielConfigRow } from '@/lib/ediel/companyActorConfiguration'
+import {
+  listTenantEmailTemplates,
+  TENANT_EMAIL_TEMPLATE_DEFINITIONS,
+  type TenantEmailTemplateRow,
+} from '@/lib/tenant/emailTemplates'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
+import { saveTenantEmailTemplateAction } from './email-template-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,6 +73,63 @@ function ActionLine({ label, value, tone = 'slate' }: { label: string; value: st
 function statusBadge(company: GovernanceCompany) {
   const copy = getCompanyStatusCopy(company.status)
   return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${copy.tone}`}>{copy.label}</span>
+}
+
+type CompanyOperationalStats = {
+  newCustomersThisMonth: number
+  closedCustomersThisMonth: number
+  openWithdrawals: number
+  queuedEmails: number
+  failedEmails: number
+  sentEmailsThisMonth: number
+}
+
+function monthStartIso() {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+}
+
+async function safeCompanyCount(
+  table: string,
+  companyId: string,
+  filters: Array<{ column: string; op?: 'eq' | 'in' | 'gte'; value: string | string[] | boolean }> = []
+) {
+  try {
+    let query = supabaseService.from(table).select('id', { count: 'exact', head: true }).eq('company_id', companyId)
+    for (const filter of filters) {
+      if (filter.op === 'in' && Array.isArray(filter.value)) query = query.in(filter.column, filter.value)
+      else if (filter.op === 'gte') query = query.gte(filter.column, String(filter.value))
+      else query = query.eq(filter.column, filter.value as string | boolean)
+    }
+    const { count, error } = await query
+    if (error) return 0
+    return count ?? 0
+  } catch {
+    return 0
+  }
+}
+
+async function getCompanyOperationalStats(companyId: string): Promise<CompanyOperationalStats> {
+  const from = monthStartIso()
+  const [newCustomersThisMonth, closedCustomersThisMonth, openWithdrawals, queuedEmails, failedEmails, sentEmailsThisMonth] = await Promise.all([
+    safeCompanyCount('customers', companyId, [{ column: 'created_at', op: 'gte', value: from }]),
+    safeCompanyCount('customers', companyId, [
+      { column: 'updated_at', op: 'gte', value: from },
+      { column: 'status', op: 'in', value: ['terminated', 'moved', 'closed', 'inactive'] },
+    ]),
+    safeCompanyCount('customer_cases', companyId, [
+      { column: 'case_type', value: 'withdrawal' },
+      { column: 'status', op: 'in', value: ['open', 'action_required', 'billing_blocked', 'manual_follow_up'] },
+    ]),
+    safeCompanyCount('tenant_email_outbox', companyId, [{ column: 'status', value: 'queued' }]),
+    safeCompanyCount('tenant_email_outbox', companyId, [{ column: 'status', value: 'failed' }]),
+    safeCompanyCount('tenant_email_outbox', companyId, [
+      { column: 'status', value: 'sent' },
+      { column: 'sent_at', op: 'gte', value: from },
+    ]),
+  ])
+
+  return { newCustomersThisMonth, closedCustomersThisMonth, openWithdrawals, queuedEmails, failedEmails, sentEmailsThisMonth }
 }
 
 function ActionBanner({ success, error }: { success?: string; error?: string }) {
@@ -198,6 +262,73 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
   )
 }
 
+function CompanyEmailTemplates({
+  company,
+  templates,
+}: {
+  company: GovernanceCompany
+  templates: TenantEmailTemplateRow[]
+}) {
+  const byKey = new Map(templates.map((template) => [template.template_key, template]))
+
+  return (
+    <section id="email-templates" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">E-postmallar</p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Tenant-anpassade kundutskick</h2>
+          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-700">
+            Superadmin sätter bolagets mallar en gång. Kundflöden använder mallarna automatiskt när kund skapas, överflytt startar, ånger/flytt registreras eller annullering skickas.
+          </p>
+        </div>
+        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+          {templates.filter((template) => template.is_active).length}/{TENANT_EMAIL_TEMPLATE_DEFINITIONS.length} aktiva
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+        {TENANT_EMAIL_TEMPLATE_DEFINITIONS.map((definition) => {
+          const saved = byKey.get(definition.key)
+          return (
+            <form key={definition.key} action={saveTenantEmailTemplateAction} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <input type="hidden" name="company_id" value={company.id} />
+              <input type="hidden" name="template_key" value={definition.key} />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-black text-slate-950">{definition.label}</h3>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{definition.description}</p>
+                </div>
+                <label className="flex items-center gap-2 text-xs font-black text-slate-700">
+                  <input type="checkbox" name="is_active" defaultChecked={saved?.is_active ?? true} />
+                  Aktiv
+                </label>
+              </div>
+              <label className="mt-4 grid gap-1 text-sm">
+                <span className="text-xs font-bold text-slate-700">Ämne</span>
+                <input name="subject" defaultValue={saved?.subject ?? definition.defaultSubject} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+              </label>
+              <label className="mt-3 grid gap-1 text-sm">
+                <span className="text-xs font-bold text-slate-700">Intro</span>
+                <textarea name="intro" defaultValue={saved?.intro ?? definition.defaultIntro} rows={2} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+              </label>
+              <label className="mt-3 grid gap-1 text-sm">
+                <span className="text-xs font-bold text-slate-700">HTML-brödtext</span>
+                <textarea name="body" defaultValue={saved?.body ?? definition.defaultBody} rows={4} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-mono text-xs" />
+              </label>
+              <p className="mt-3 text-xs font-semibold text-slate-600">
+                Variabler: {'{{companyName}}'}, {'{{customerName}}'}, {'{{caseTitle}}'}, {'{{caseType}}'}, {'{{nextAction}}'}, {'{{portalUrl}}'}.
+              </p>
+              <button className="mt-4 rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
+                Spara mall
+              </button>
+            </form>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 export default async function CompanyDetailPage({
   params,
   searchParams,
@@ -221,10 +352,12 @@ export default async function CompanyDetailPage({
     )
   }
 
-  const [company, actorSummary, edielConfig] = await Promise.all([
+  const [company, actorSummary, edielConfig, emailTemplates, operationalStats] = await Promise.all([
     getCompanyGovernanceSummary(row),
     getActorTestingSummary(row.id),
     getCompanyActorConfiguration(row.id),
+    listTenantEmailTemplates(row.id),
+    getCompanyOperationalStats(row.id),
   ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
@@ -306,7 +439,22 @@ export default async function CompanyDetailPage({
           <StatCard label="Senaste Ediel" value={formatDate(company.latestEdielAt)} />
         </section>
 
+        <section id="company-statistics" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Statistik</p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Kunder, ärenden och utskick denna månad</h2>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+            <StatCard label="Nya kunder" value={operationalStats.newCustomersThisMonth} />
+            <StatCard label="Lämnat/avslutade" value={operationalStats.closedCustomersThisMonth} />
+            <StatCard label="Öppna ånger" value={operationalStats.openWithdrawals} />
+            <StatCard label="E-post köad" value={operationalStats.queuedEmails} />
+            <StatCard label="E-post misslyckad" value={operationalStats.failedEmails} />
+            <StatCard label="E-post skickad" value={operationalStats.sentEmailsThisMonth} hint="Denna månad" />
+          </div>
+        </section>
+
         <CompanyEdielConfiguration company={company} config={edielConfig} />
+
+        <CompanyEmailTemplates company={company} templates={emailTemplates} />
 
         <section className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-3xl border border-orange-200 bg-orange-50 p-6 shadow-sm">

@@ -11,6 +11,8 @@ import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { addCustomerContractEvent } from "@/lib/customer-contracts/db";
+import { createCustomerCase } from "@/lib/customer-cases/db";
+import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates";
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -486,7 +488,55 @@ export async function closeCustomerLifecycleAction(
       .in("id", activeSwitchIds);
 
     if (switchUpdateError) throw switchUpdateError;
+
+    await createCustomerCase({
+      companyId,
+      customerId,
+      siteId: siteIds[0] ?? null,
+      supplierSwitchRequestId: activeSwitchIds[0] ?? null,
+      caseType: "supplier_switch_aborted",
+      priority: "high",
+      title:
+        mode === "terminate"
+          ? "Aktivt leverantörsbyte stoppades vid avslut"
+          : "Aktivt leverantörsbyte stoppades vid flytt",
+      description:
+        reason ??
+        (mode === "terminate"
+          ? "Kunden avslutades innan switchen slutfördes."
+          : "Kunden flyttade innan switchen slutfördes."),
+      reasonCategory: mode,
+      withdrawalRequestedAt: nowIso,
+      deliveryStartAt: moveOutDate,
+      source: "customer_lifecycle_close",
+      metadata: {
+        lifecycleMetadata,
+        activeSwitchIds,
+      },
+      actorUserId,
+    }).catch(() => null);
   }
+
+  const customerEmail =
+    typeof customerAfter.email === "string" && customerAfter.email.trim()
+      ? customerAfter.email.trim()
+      : null;
+  await queueTenantTemplateEmail("move_out_confirmation", {
+    companyId,
+    customerId,
+    customerEmail,
+    customerName:
+      typeof customerAfter.full_name === "string"
+        ? customerAfter.full_name
+        : typeof customerAfter.company_name === "string"
+          ? customerAfter.company_name
+          : null,
+    nextAction:
+      mode === "terminate"
+        ? "Vi har registrerat avslutet och säkerställer slutunderlag."
+        : "Vi har registrerat flytten och säkerställer slutunderlag.",
+    actorUserId,
+  }).catch(() => null);
 
   const { error: taskCancelError } = await supabaseService
     .from("customer_operation_tasks")
