@@ -659,6 +659,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
       environment: 'test',
       force: true,
       sharedOnly: true,
+      createDiagnosticMessagesForUnresolved: true,
       limit,
     })
 

@@ -688,6 +688,7 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
     environment: 'test',
     force: true,
     sharedOnly: true,
+    createDiagnosticMessagesForUnresolved: true,
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
   })
 

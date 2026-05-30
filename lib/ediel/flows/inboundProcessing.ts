@@ -711,6 +711,7 @@ export async function pollAndIngestEdielMailbox(params: {
   force?: boolean
   limit?: number
   sharedOnly?: boolean
+  createDiagnosticMessagesForUnresolved?: boolean
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const routeProfile = params.communicationRouteId
@@ -733,6 +734,7 @@ export async function pollAndIngestEdielMailbox(params: {
     sharedOnly: useSharedMailbox,
     force: params.force ?? true,
     messageLimitPerMailbox: params.limit ?? 10,
+    createDiagnosticMessagesForUnresolved: params.createDiagnosticMessagesForUnresolved ?? false,
   })
   const incoming = await listEdielMessagesByIds(result.edielMessageIds, {
     companyId: targetCompanyId,

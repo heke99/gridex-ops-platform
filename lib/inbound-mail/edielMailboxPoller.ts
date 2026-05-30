@@ -1103,6 +1103,7 @@ export async function runInboundEdielMailEngine(input: {
   allowMissingMailboxConfig?: boolean
   actorUserId?: string | null
   sharedOnly?: boolean
+  createDiagnosticMessagesForUnresolved?: boolean
 } = {}): Promise<InboundEngineRunResult> {
   const startedAt = nowIso()
   const workerId = input.workerId ?? `inbound-mail-engine-${startedAt}`
@@ -1148,7 +1149,9 @@ export async function runInboundEdielMailEngine(input: {
     ...item.inboundEmailMessageIds,
     ...item.dedupedInboundEmailMessageIds,
   ])
-  const edielMessageIds = await ensureDiagnosticEdielMessagesForInboundEmails(allInboundEmailMessageIds)
+  const edielMessageIds = input.createDiagnosticMessagesForUnresolved
+    ? await ensureDiagnosticEdielMessagesForInboundEmails(allInboundEmailMessageIds)
+    : await listEdielMessageIdsForInboundEmails(allInboundEmailMessageIds)
   const fetchedMessages = results.reduce((sum, item) => sum + item.fetched, 0)
   const storedEmails = results.reduce((sum, item) => sum + item.stored, 0)
 
