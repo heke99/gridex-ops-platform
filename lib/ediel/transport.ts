@@ -1,22 +1,16 @@
 // lib/ediel/transport.ts
 
 import nodemailer from 'nodemailer'
-import { ImapFlow } from 'imapflow'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import {
-  getEdielMessageById,
   updateEdielMessageStatus,
   createEdielMessageEvent,
-  findEdielMessageByMailboxIdentity,
 } from '@/lib/ediel/db'
-import type {
-  CreateEdielMessageInput,
-  EdielMessageRow,
-} from '@/lib/ediel/types'
+import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
 import {
   ACTIVE_EDIEL_MESSAGE_FAMILIES,
   isActiveEdielMessageFamily,
@@ -28,19 +22,11 @@ import {
 import { parseInboundProdat } from '@/lib/ediel/prodat'
 import {
   extractEdifactPayloadFromText,
-  inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
 import { computeCanonicalAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy'
-import {
-  inferInboundAiListExternalReference,
-  normalizeInboundEmail,
-  normalizeInboundMailboxIdentity,
-} from '@/lib/ediel/core/referenceRegistry'
-import {
-  registerInboundCanonicalMessage,
-  resolveInboundAcceptedVersions,
-} from '@/lib/ediel/core/kernel'
+import { inferInboundAiListExternalReference } from '@/lib/ediel/core/referenceRegistry'
+import { resolveInboundAcceptedVersions } from '@/lib/ediel/core/kernel'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -393,22 +379,6 @@ function resolveSmtpPort(value?: number | null): number {
   return env ? Number(env) : 465
 }
 
-function resolveImapPort(value?: number | null): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  const env = process.env.EDIEL_IMAP_PORT
-  return env ? Number(env) : 993
-}
-
-function normalizeImapMailboxFolder(value?: string | null): string {
-  const trimmed = value?.trim()
-  // routeProfile.mailbox kan vara login-adressen ediel@gridex.se.
-  // Hos Strato är det inte en IMAP-mapp; SELECT ska normalt göras mot INBOX.
-  if (!trimmed || trimmed.includes('@') || trimmed.toLowerCase().startsWith('smtp://')) {
-    return 'INBOX'
-  }
-  return trimmed
-}
-
 type ParsedInboundEnvelope = {
   family: string
   code: string
@@ -493,17 +463,6 @@ function isEdielPortalValidationReport(params: { rawSource: string; subject?: st
 function looksLikeCompleteEdifactInterchange(value: string): boolean {
   const text = value.trim().toUpperCase()
   return text.includes('UNB+') && text.includes("UNZ+") && /UNZ\+[^']*'/i.test(value)
-}
-
-async function markImapMessageSeen(client: ImapFlow, uid: number | bigint | string | undefined): Promise<void> {
-  if (uid === undefined || uid === null) return
-
-  try {
-    await client.messageFlagsAdd(uid, ['\Seen'], { uid: true })
-  } catch {
-    // Best effort only. We must never fail the mailbox poll because a non-Ediel report
-    // could not be marked as read.
-  }
 }
 
 function splitEdifactSegmentsLoose(rawPayload: string): string[] {
@@ -1391,210 +1350,4 @@ export async function sendEdielMessageViaSmtp(
     rejected,
     messageId: result.messageId ?? null,
   }
-}
-
-export async function pollEdielMailboxViaImap(params?: {
-  actorUserId?: string | null
-  mailbox?: string | null
-  communicationRouteId?: string | null
-  companyId?: string | null
-  limit?: number
-}): Promise<EdielMessageRow[]> {
-  const actorUserId = requireActorUserId(params?.actorUserId)
-  const routeProfile = params?.communicationRouteId
-    ? await getEdielRouteProfileByCommunicationRouteId(params.communicationRouteId, {
-        companyId: params.companyId ?? null,
-      })
-    : null
-
-  const host = requireEnv('EDIEL_IMAP_HOST', routeProfile?.imap_host ?? null)
-  const port = resolveImapPort(routeProfile?.imap_port ?? null)
-  const user = requireEnv(
-    'EDIEL_IMAP_USER',
-    routeProfile?.mailbox ?? params?.mailbox ?? null
-  )
-  const pass = requireEnv('EDIEL_IMAP_PASS')
-  const mailbox = normalizeImapMailboxFolder(params?.mailbox ?? routeProfile?.mailbox ?? 'INBOX')
-  const limit = params?.limit ?? 10
-
-  const client = new ImapFlow({
-    host,
-    port,
-    secure: true,
-    auth: { user, pass },
-  })
-
-  const created: EdielMessageRow[] = []
-
-  await client.connect()
-  await client.mailboxOpen(mailbox)
-
-  try {
-    const lock = await client.getMailboxLock(mailbox)
-
-    try {
-      const messages = client.fetch(
-        { seen: false },
-        {
-          uid: true,
-          envelope: true,
-          source: true,
-        }
-      )
-
-      let count = 0
-
-      for await (const item of messages) {
-        if (count >= limit) break
-
-        const mailboxMessageId = normalizeInboundMailboxIdentity(item.uid)
-        if (!mailboxMessageId) continue
-
-        const existing = await findEdielMessageByMailboxIdentity({
-          mailbox,
-          mailboxMessageId,
-          companyId: params?.companyId ?? routeProfile?.company_id ?? null,
-        })
-        if (existing) continue
-
-        const rawSource =
-          typeof item.source === 'string'
-            ? item.source
-            : Buffer.isBuffer(item.source)
-              ? item.source.toString('utf8')
-              : ''
-
-        const content = rawSource || ''
-        if (!content.trim()) continue
-
-        const senderEmail = normalizeInboundEmail(item.envelope?.from?.[0]?.address)
-        const receiverEmail = normalizeInboundEmail(item.envelope?.to?.[0]?.address)
-        const subject = normalizeInboundSubject(
-          content,
-          typeof item.envelope?.subject === 'string' ? item.envelope.subject : null
-        )
-        const edifactPayload = extractInboundEdifactPayload({ rawSource: content, subject })
-
-        // Edielportalen skickar valideringsrapporter som vanliga mail efter uppladdning.
-        // De kan innehålla orden APERAK/CONTRL och ibland en renderad kopia av meddelandet,
-        // men de är inte inkommande Ediel-meddelanden. Importera dem inte som ACK.
-        if (isEdielPortalValidationReport({ rawSource: content, subject })) {
-          await markImapMessageSeen(client, item.uid)
-          continue
-        }
-
-        // Importera bara riktiga EDIFACT-interchanges eller AI-listor. Detta stoppar HTML-rapporter
-        // och vanliga statusmail från att bli ediel_messages.
-        const contentInference = inferEdielFamilyAndCodeFromRawPayload(content)
-        const isPotentialAiList = contentInference.messageFamily === 'AI_LIST'
-        if (!isPotentialAiList && !looksLikeCompleteEdifactInterchange(edifactPayload)) {
-          await markImapMessageSeen(client, item.uid)
-          continue
-        }
-
-        const classificationPayload = edifactPayload
-
-        const inferred = inferEdielFamilyAndCodeFromRawPayload(classificationPayload)
-        let input: CreateEdielMessageInput | null = null
-
-        if (inferred.messageFamily === 'CONTRL' || inferred.messageFamily === 'APERAK' || inferred.messageFamily === 'UTILTS_ERR') {
-          input = await withAcceptedInboundVersions(
-            await buildInboundAckMessageInput({
-              rawPayload: edifactPayload,
-              family: inferred.messageFamily,
-              code: inferred.messageCode ?? inferred.messageFamily,
-              communicationRouteId: params?.communicationRouteId ?? null,
-              mailbox,
-              mailboxMessageId,
-              senderEmail,
-              receiverEmail,
-              subject,
-            })
-          )
-
-          assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/ACK')
-        } else if (inferred.messageFamily === 'UTILTS') {
-          const utiltsCode =
-            inferred.messageCode === 'S01' ||
-            inferred.messageCode === 'S02' ||
-            inferred.messageCode === 'S03' ||
-            inferred.messageCode === 'S04' ||
-            inferred.messageCode === 'E31' ||
-            inferred.messageCode === 'E66' ||
-            inferred.messageCode === 'E73'
-              ? inferred.messageCode
-              : 'E66'
-
-          const parsed = parseInboundUtilts(edifactPayload)
-          if (!isActiveEdielMessageFamily(parsed.messageFamily)) continue
-
-          input = await withAcceptedInboundVersions(
-            buildInboundUtiltsMessageInput({
-              code: utiltsCode,
-              communicationRouteId: params?.communicationRouteId ?? null,
-              mailbox,
-              mailboxMessageId,
-              senderEmail,
-              receiverEmail,
-              rawPayload: edifactPayload,
-            })
-          )
-        } else if (inferred.messageFamily === 'PRODAT') {
-          input = await withAcceptedInboundVersions(
-            buildInboundProdatMessageInput({
-              rawPayload: edifactPayload,
-              communicationRouteId: params?.communicationRouteId ?? null,
-              mailbox,
-              mailboxMessageId,
-              senderEmail,
-              receiverEmail,
-              subject,
-            })
-          )
-
-          assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/PRODAT')
-        } else if (inferred.messageFamily === 'AI_LIST') {
-          const listType = inferred.messageCode === 'BI' ? 'BI' : 'AI'
-          input = await withAcceptedInboundVersions(
-            buildInboundAiListMessageInput({
-              rawPayload: content,
-              listType,
-              communicationRouteId: params?.communicationRouteId ?? null,
-              mailbox,
-              mailboxMessageId,
-              senderEmail,
-              receiverEmail,
-              subject,
-            })
-          )
-
-          assertTransportFamily(input.messageFamily, 'pollEdielMailboxViaImap/AI_LIST')
-        } else {
-          continue
-        }
-
-        const createdMessage = await registerInboundCanonicalMessage({
-          actorUserId,
-          input: {
-            ...input,
-            companyId: params?.companyId ?? routeProfile?.company_id ?? null,
-          },
-        })
-
-        const justCreated = await getEdielMessageById(createdMessage.id, {
-          companyId: params?.companyId ?? routeProfile?.company_id ?? null,
-        })
-        if (justCreated) {
-          created.push(justCreated)
-          count += 1
-        }
-      }
-    } finally {
-      lock.release()
-    }
-  } finally {
-    await client.logout()
-  }
-
-  return created
 }

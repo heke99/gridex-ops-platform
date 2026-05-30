@@ -1,4 +1,5 @@
 import { parseEdifactPayload } from '@/lib/inbound-mail/edielEmailParser'
+import { normalizeImapMailboxFolder, resolveMailboxPasswordFromSecretReference } from '@/lib/inbound-mail/edielMailboxPoller'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type InboundSmokeTestResult = {
@@ -6,6 +7,20 @@ export type InboundSmokeTestResult = {
   status: 'pass' | 'warning' | 'fail'
   message: string
   details?: Record<string, unknown>
+}
+
+type MailboxConfigRow = {
+  id: string
+  mailbox_name: string | null
+  email_address: string | null
+  environment: string | null
+  imap_host: string | null
+  imap_port: number | null
+  username: string | null
+  secret_reference: string | null
+  poll_interval_minutes: number | null
+  metadata: Record<string, unknown> | null
+  last_error: string | null
 }
 
 async function tableExists(table: string): Promise<boolean> {
@@ -52,6 +67,83 @@ function sampleParseTests(): InboundSmokeTestResult[] {
   })
 }
 
+function mailboxLabel(mailbox: MailboxConfigRow): string {
+  return mailbox.mailbox_name ?? mailbox.email_address ?? mailbox.id
+}
+
+function mailboxConfigTest(mailbox: MailboxConfigRow): InboundSmokeTestResult {
+  const problems: string[] = []
+  const warnings: string[] = []
+
+  if (!mailbox.imap_host?.trim()) problems.push('imap_host saknas')
+  if (!mailbox.username?.trim()) problems.push('username saknas')
+  if (!mailbox.secret_reference?.trim()) problems.push('secret_reference saknas')
+  else if (!resolveMailboxPasswordFromSecretReference(mailbox)) problems.push('secret_reference pekar inte på ett tillgängligt env-lösenord')
+
+  if (mailbox.imap_port !== null && (!Number.isFinite(mailbox.imap_port) || mailbox.imap_port <= 0)) problems.push('imap_port är ogiltig')
+  if (mailbox.poll_interval_minutes !== null && mailbox.poll_interval_minutes <= 0) warnings.push('poll_interval_minutes bör vara större än 0')
+
+  const rawFolder = mailbox.metadata?.imap_folder ?? mailbox.metadata?.folder
+  const normalizedFolder = normalizeImapMailboxFolder(rawFolder)
+  if (typeof rawFolder === 'string' && rawFolder.trim() && rawFolder.trim() !== normalizedFolder) {
+    warnings.push(`IMAP-mapp "${rawFolder}" normaliseras till "${normalizedFolder}"`)
+  }
+
+  const status = problems.length > 0 ? 'fail' : warnings.length > 0 ? 'warning' : 'pass'
+  return {
+    name: `IMAP config: ${mailboxLabel(mailbox)}`,
+    status,
+    message: problems.length > 0 ? problems.join('. ') : warnings.length > 0 ? warnings.join('. ') : 'Aktiv mailbox har nödvändig IMAP-konfiguration.',
+    details: {
+      environment: mailbox.environment,
+      hasImapHost: Boolean(mailbox.imap_host?.trim()),
+      hasUsername: Boolean(mailbox.username?.trim()),
+      hasSecretReference: Boolean(mailbox.secret_reference?.trim()),
+      hasResolvedPassword: Boolean(resolveMailboxPasswordFromSecretReference(mailbox)),
+      imapPort: mailbox.imap_port,
+      pollIntervalMinutes: mailbox.poll_interval_minutes,
+      normalizedFolder,
+      lastError: mailbox.last_error,
+    },
+  }
+}
+
+async function mailboxConfigTests(): Promise<InboundSmokeTestResult[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_mailboxes')
+    .select('id,mailbox_name,email_address,environment,imap_host,imap_port,username,secret_reference,poll_interval_minutes,metadata,last_error')
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(50)
+
+  if (error) {
+    return [{
+      name: 'IMAP mailbox config',
+      status: 'fail',
+      message: `Aktiva mailboxar kunde inte läsas: ${error.message}`,
+    }]
+  }
+
+  const mailboxes = (data ?? []) as MailboxConfigRow[]
+  if (mailboxes.length === 0) {
+    return [{
+      name: 'IMAP mailbox config',
+      status: 'warning',
+      message: 'Ingen aktiv Ediel-mailbox finns. Sync-knappen kan då inte hämta IMAP-mail.',
+    }]
+  }
+
+  return [
+    {
+      name: 'IMAP active mailboxes',
+      status: 'pass',
+      message: `${mailboxes.length} aktiv(a) mailbox(ar) hittades för IMAP-sync.`,
+      details: { count: mailboxes.length },
+    },
+    ...mailboxes.map(mailboxConfigTest),
+  ]
+}
+
 export async function runInboundMailSmokeTests(): Promise<InboundSmokeTestResult[]> {
   const requiredTables = [
     'ediel_mailboxes',
@@ -83,5 +175,5 @@ export async function runInboundMailSmokeTests(): Promise<InboundSmokeTestResult
     message: cronSecretConfigured ? 'Intern cron-secret är konfigurerad.' : 'Ingen cron-secret hittades i env. Tillåt bara detta lokalt, inte production.',
   })
 
-  return [...sampleParseTests(), ...tableResults]
+  return [...sampleParseTests(), ...tableResults, ...(await mailboxConfigTests())]
 }

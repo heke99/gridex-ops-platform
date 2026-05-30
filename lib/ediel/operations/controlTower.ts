@@ -304,6 +304,7 @@ export async function buildEdielControlTowerOperationsSummary(params: {
     disabledRouteProfiles,
     activeRules,
     productionQueued,
+    activeMailboxes,
     recentFailedMessages,
     recentFailedEvents,
     recentAudit,
@@ -357,6 +358,7 @@ export async function buildEdielControlTowerOperationsSummary(params: {
       { column: 'direction', value: 'outbound' },
       { column: 'status', op: 'in', value: ['prepared', 'queued'] },
     ]),
+    safeCount('ediel_mailboxes', companyId, [{ column: 'is_active', value: true }]),
     safeRows<RawEdielMessage>({
       table: 'ediel_messages',
       companyId,
@@ -383,7 +385,7 @@ export async function buildEdielControlTowerOperationsSummary(params: {
   const routeFailures = unresolvedOutbound + routeLessOutbound
   const transportFailures = failedEvents + failedMessages
   const smtpConfigured = hasEnv('EDIEL_SMTP_HOST') && hasEnv('EDIEL_SMTP_USER') && hasEnv('EDIEL_SMTP_PASS')
-  const imapConfigured = hasEnv('EDIEL_IMAP_HOST') && hasEnv('EDIEL_IMAP_USER') && hasEnv('EDIEL_IMAP_PASS')
+  const activeMailboxConfigured = activeMailboxes > 0
 
   const metrics: EdielOpsMetric[] = [
     { key: 'messages', label: 'Ediel-meddelanden', value: totalMessages, tone: 'info', href: '/admin/ediel/messages' },
@@ -400,15 +402,15 @@ export async function buildEdielControlTowerOperationsSummary(params: {
     {
       key: 'imap_health',
       title: 'Inbound mailbox health',
-      status: imapConfigured ? (inbound24h > 0 ? 'healthy' : 'attention') : 'blocked',
-      value: imapConfigured ? `${inbound24h} inbound senaste 24h` : 'IMAP saknar env-konfiguration',
-      description: imapConfigured
+      status: activeMailboxConfigured ? (inbound24h > 0 ? 'healthy' : 'attention') : 'blocked',
+      value: activeMailboxConfigured ? `${activeMailboxes} aktiv(a) mailbox(ar) · ${inbound24h} inbound senaste 24h` : 'Ingen aktiv Ediel-mailbox är konfigurerad',
+      description: activeMailboxConfigured
         ? inbound24h > 0
           ? 'Mailboxen tar emot trafik och importflödet har färska inbound-meddelanden.'
-          : 'IMAP är konfigurerat men inga inbound-meddelanden har registrerats senaste 24 timmarna. Kontrollera om det är förväntat.'
-        : 'EDIEL_IMAP_HOST, EDIEL_IMAP_USER och EDIEL_IMAP_PASS behöver vara satta eller route-profiler behöver ha fungerande mailboxuppgifter.',
-      actionHref: '/admin/ediel/system-tests',
-      actionLabel: 'Polla/synka',
+          : 'Aktiv DB-mailbox finns men inga inbound-meddelanden har registrerats senaste 24 timmarna. Kontrollera om det är förväntat.'
+        : 'No active Ediel mailbox is configured for this company/environment.',
+      actionHref: '/admin/inbound-mail/diagnostics',
+      actionLabel: 'Kontrollera mailboxar',
     },
     {
       key: 'smtp_health',
@@ -523,11 +525,11 @@ export async function buildEdielControlTowerOperationsSummary(params: {
       'warning'
     ),
     readinessCheck(
-      'imap_env',
+      'imap_mailbox',
       'IMAP-konfiguration',
-      imapConfigured,
-      'IMAP env-konfiguration finns.',
-      'IMAP env-konfiguration saknas eller är ofullständig.',
+      activeMailboxConfigured,
+      'Aktiv Ediel-mailbox finns i DB-konfigurationen.',
+      'No active Ediel mailbox is configured for this company/environment.',
       'warning'
     ),
     {

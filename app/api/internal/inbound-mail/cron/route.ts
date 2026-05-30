@@ -22,9 +22,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
   }
 
+  const companyId = request.nextUrl.searchParams.get('company_id') ?? request.nextUrl.searchParams.get('companyId')
   const environment = request.nextUrl.searchParams.get('environment')
+  const mailboxId = request.nextUrl.searchParams.get('mailbox_id') ?? request.nextUrl.searchParams.get('mailboxId')
+  const force = ['1', 'true', 'yes'].includes((request.nextUrl.searchParams.get('force') ?? '').toLowerCase())
   try {
-    const result = await runInboundEdielMailEngine({ environment })
+    const result = await runInboundEdielMailEngine({ companyId, environment, mailboxId, force, allowMissingMailboxConfig: true })
     return NextResponse.json({ ok: true, result })
   } catch (error) {
     console.error('[inbound-mail-cron] Run failed', error)

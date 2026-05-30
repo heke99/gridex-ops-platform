@@ -74,10 +74,24 @@ export type InboundProcessingJobRow = {
 export type PollMailboxResult = {
   mailboxId: string
   mailboxName: string
+  fetched: number
   stored: number
   deduped: number
+  inboundEmailMessageIds: string[]
+  dedupedInboundEmailMessageIds: string[]
   processed: number
   errors: string[]
+}
+
+export type MailboxPollDebugItem = {
+  mailboxId: string
+  mailboxName: string
+  companyId: string | null
+  environment: string
+  lastPolledAt: string | null
+  lockedAt: string | null
+  pollIntervalMinutes: number
+  skipReason?: 'locked' | 'not_due'
 }
 
 export type InboundEngineRunResult = {
@@ -85,13 +99,33 @@ export type InboundEngineRunResult = {
   startedAt: string
   finishedAt: string
   mailboxesChecked: number
+  configuredMailboxes: number
+  dueMailboxes: number
+  skippedLockedMailboxes: number
+  skippedNotDueMailboxes: number
+  fetchedMessages: number
   storedEmails: number
   dedupedEmails: number
   processedJobs: number
   failedJobs: number
   overdueTasks: { ackOverdue: number; z04Overdue: number; z14Overdue: number }
+  inboundEmailMessageIds: string[]
+  edielMessageIds: string[]
+  debug: {
+    configuredMailboxes: MailboxPollDebugItem[]
+    dueMailboxes: MailboxPollDebugItem[]
+    skippedLocked: MailboxPollDebugItem[]
+    skippedNotDue: MailboxPollDebugItem[]
+    messagesFetched: number
+    messagesStored: number
+    jobsProcessed: number
+    errorsByMailbox: Array<{ mailboxId: string; mailboxName: string; errors: string[] }>
+    configurationError: string | null
+  }
   results: PollMailboxResult[]
 }
+
+export const NO_ACTIVE_EDIEL_MAILBOX_ERROR = 'No active Ediel mailbox is configured for this company/environment.'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -111,7 +145,7 @@ function stringOrNull(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
-function passwordFromSecretReference(mailbox: EdielMailboxRow): string | null {
+export function resolveMailboxPasswordFromSecretReference(mailbox: Pick<EdielMailboxRow, 'id' | 'secret_reference'>): string | null {
   const reference = stringOrNull(mailbox.secret_reference)
   if (!reference) return null
 
@@ -126,6 +160,63 @@ function passwordFromSecretReference(mailbox: EdielMailboxRow): string | null {
   if (mailboxSpecific) return mailboxSpecific
 
   return null
+}
+
+export function normalizeImapMailboxFolder(value: unknown): string {
+  const folder = typeof value === 'string' ? value.trim() : ''
+  if (!folder || folder.includes('@') || folder.toLowerCase().startsWith('smtp://')) return 'INBOX'
+  return folder
+}
+
+export function isEdielMailboxDueForPolling(
+  mailbox: Pick<EdielMailboxRow, 'locked_at' | 'last_polled_at' | 'poll_interval_minutes'>,
+  options: { nowMs?: number; includeLockedOlderThanMinutes?: number; force?: boolean } = {}
+): boolean {
+  const now = options.nowMs ?? Date.now()
+  const staleLockMs = (options.includeLockedOlderThanMinutes ?? 30) * 60_000
+
+  if (mailbox.locked_at) {
+    const lockedAt = new Date(mailbox.locked_at).getTime()
+    if (!Number.isNaN(lockedAt) && now - lockedAt < staleLockMs) return false
+  }
+
+  if (options.force) return true
+  if (!mailbox.last_polled_at) return true
+  const intervalMinutes = Number(mailbox.poll_interval_minutes || 10)
+  const last = new Date(mailbox.last_polled_at).getTime()
+  if (Number.isNaN(last)) return true
+  return now - last >= intervalMinutes * 60_000
+}
+
+function mailboxDebugItem(mailbox: EdielMailboxRow, skipReason?: MailboxPollDebugItem['skipReason']): MailboxPollDebugItem {
+  return {
+    mailboxId: mailbox.id,
+    mailboxName: mailbox.mailbox_name,
+    companyId: mailbox.company_id,
+    environment: mailbox.environment,
+    lastPolledAt: mailbox.last_polled_at,
+    lockedAt: mailbox.locked_at,
+    pollIntervalMinutes: Number(mailbox.poll_interval_minutes || 10),
+    ...(skipReason ? { skipReason } : {}),
+  }
+}
+
+function mailboxSkipReason(
+  mailbox: EdielMailboxRow,
+  options: { nowMs?: number; includeLockedOlderThanMinutes?: number; force?: boolean } = {}
+): MailboxPollDebugItem['skipReason'] | null {
+  const now = options.nowMs ?? Date.now()
+  const staleLockMs = (options.includeLockedOlderThanMinutes ?? 30) * 60_000
+
+  if (mailbox.locked_at) {
+    const lockedAt = new Date(mailbox.locked_at).getTime()
+    if (!Number.isNaN(lockedAt) && now - lockedAt < staleLockMs) return 'locked'
+  }
+
+  if (options.force || !mailbox.last_polled_at) return null
+  const last = new Date(mailbox.last_polled_at).getTime()
+  if (Number.isNaN(last)) return null
+  return now - last >= Number(mailbox.poll_interval_minutes || 10) * 60_000 ? null : 'not_due'
 }
 
 function extractHeader(rawEmail: string | null, headerName: string): string | null {
@@ -249,32 +340,39 @@ function splitMimeParts(rawEmail: string | null): { bodyText: string | null; bod
   }
 }
 
-export async function listDueEdielMailboxes(options: { environment?: string | null; includeLockedOlderThanMinutes?: number } = {}): Promise<EdielMailboxRow[]> {
+export async function listConfiguredEdielMailboxes(options: {
+  companyId?: string | null
+  environment?: string | null
+  mailboxId?: string | null
+} = {}): Promise<EdielMailboxRow[]> {
   let query = supabaseService
     .from('ediel_mailboxes')
     .select('*')
     .eq('is_active', true)
 
+  if (options.companyId) query = query.eq('company_id', options.companyId)
   if (options.environment) query = query.eq('environment', options.environment)
+  if (options.mailboxId) query = query.eq('id', options.mailboxId)
 
   const { data, error } = await query.order('last_polled_at', { ascending: true, nullsFirst: true })
   if (error) throw error
 
-  const now = Date.now()
-  const staleLockMs = (options.includeLockedOlderThanMinutes ?? 30) * 60_000
+  return (data ?? []) as EdielMailboxRow[]
+}
 
-  return ((data ?? []) as EdielMailboxRow[]).filter((mailbox) => {
-    if (mailbox.locked_at) {
-      const lockedAt = new Date(mailbox.locked_at).getTime()
-      if (!Number.isNaN(lockedAt) && now - lockedAt < staleLockMs) return false
-    }
+export async function listDueEdielMailboxes(options: {
+  companyId?: string | null
+  environment?: string | null
+  mailboxId?: string | null
+  includeLockedOlderThanMinutes?: number
+  force?: boolean
+} = {}): Promise<EdielMailboxRow[]> {
+  const configuredMailboxes = await listConfiguredEdielMailboxes(options)
+  if (configuredMailboxes.length === 0) {
+    throw new Error(NO_ACTIVE_EDIEL_MAILBOX_ERROR)
+  }
 
-    if (!mailbox.last_polled_at) return true
-    const intervalMinutes = Number(mailbox.poll_interval_minutes || 10)
-    const last = new Date(mailbox.last_polled_at).getTime()
-    if (Number.isNaN(last)) return true
-    return now - last >= intervalMinutes * 60_000
-  })
+  return configuredMailboxes.filter((mailbox) => isEdielMailboxDueForPolling(mailbox, options))
 }
 
 export async function markMailboxPollStarted(mailboxId: string, workerId = 'inbound-mail-engine'): Promise<void> {
@@ -359,7 +457,7 @@ export async function storeInboundEmail(input: StoreInboundEmailInput): Promise<
     if (attachmentError) console.warn('[inbound-mail] Kunde inte spara bilagor', attachmentError)
   }
 
-  await supabaseService.from('inbound_processing_jobs').insert({
+  const { error: jobError } = await supabaseService.from('inbound_processing_jobs').insert({
     company_id: input.companyId ?? null,
     mailbox_id: input.mailboxId,
     inbound_email_message_id: id,
@@ -367,6 +465,7 @@ export async function storeInboundEmail(input: StoreInboundEmailInput): Promise<
     step: 'received',
     payload: { dedupeKey, hasRawEdifactPayload: Boolean(input.rawEdifactPayload), attachmentCount: attachments.length },
   })
+  if (jobError) throw jobError
 
   return { id, deduped: false }
 }
@@ -421,8 +520,11 @@ export async function pollEdielMailbox(input: {
   const result: PollMailboxResult = {
     mailboxId: input.mailbox.id,
     mailboxName: input.mailbox.mailbox_name,
+    fetched: 0,
     stored: 0,
     deduped: 0,
+    inboundEmailMessageIds: [],
+    dedupedInboundEmailMessageIds: [],
     processed: 0,
     errors: [],
   }
@@ -434,7 +536,7 @@ export async function pollEdielMailbox(input: {
       throw new Error('Mailbox saknar imap_host eller username.')
     }
 
-    const password = passwordFromSecretReference(input.mailbox)
+    const password = resolveMailboxPasswordFromSecretReference(input.mailbox)
     if (!password) {
       throw new Error('Mailbox saknar giltig secret_reference/env-lösenord.')
     }
@@ -451,7 +553,7 @@ export async function pollEdielMailbox(input: {
     })
 
     await client.connect()
-    const folder = stringOrNull(input.mailbox.metadata?.imap_folder) ?? stringOrNull(input.mailbox.metadata?.folder) ?? 'INBOX'
+    const folder = normalizeImapMailboxFolder(input.mailbox.metadata?.imap_folder ?? input.mailbox.metadata?.folder)
     const lock = await client.getMailboxLock(folder)
 
     try {
@@ -461,10 +563,16 @@ export async function pollEdielMailbox(input: {
       for await (const message of client.fetch({ seen: false }, fetchOptions)) {
         if (fetched >= (input.maxMessages ?? 25)) break
         fetched += 1
+        result.fetched += 1
 
         const stored = await storeMailboxFetchMessage({ mailbox: input.mailbox, message: message as unknown as Record<string, unknown> })
-        if (stored.deduped) result.deduped += 1
-        else result.stored += 1
+        if (stored.deduped) {
+          result.deduped += 1
+          result.dedupedInboundEmailMessageIds.push(stored.id)
+        } else {
+          result.stored += 1
+          result.inboundEmailMessageIds.push(stored.id)
+        }
 
         if (input.markSeen !== false && typeof (message as { uid?: unknown }).uid === 'number') {
           await client.messageFlagsAdd((message as { uid: number }).uid, ['\\Seen'], { uid: true })
@@ -585,17 +693,53 @@ export async function processQueuedInboundProcessingJobs(input: {
   return { processed, failed }
 }
 
+async function listEdielMessageIdsForInboundEmails(inboundEmailMessageIds: string[]): Promise<string[]> {
+  const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)))
+  if (ids.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .select('id')
+    .in('inbound_email_message_id', ids)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return ((data ?? []) as Array<{ id?: string | null }>)
+    .map((row) => row.id)
+    .filter((id): id is string => Boolean(id))
+}
+
 export async function runInboundEdielMailEngine(input: {
+  companyId?: string | null
   environment?: string | null
+  mailboxId?: string | null
   workerId?: string
   pollLimit?: number
   messageLimitPerMailbox?: number
   processLimit?: number
+  force?: boolean
+  forcePoll?: boolean
+  allowMissingMailboxConfig?: boolean
   actorUserId?: string | null
 } = {}): Promise<InboundEngineRunResult> {
   const startedAt = nowIso()
   const workerId = input.workerId ?? `inbound-mail-engine-${startedAt}`
-  const mailboxes = (await listDueEdielMailboxes({ environment: input.environment })).slice(0, input.pollLimit ?? envInt('EDIEL_INBOUND_MAILBOX_POLL_LIMIT', 10))
+  const force = input.force ?? input.forcePoll ?? false
+  const configuredMailboxes = await listConfiguredEdielMailboxes({
+    companyId: input.companyId,
+    environment: input.environment,
+    mailboxId: input.mailboxId,
+  })
+
+  if (configuredMailboxes.length === 0 && !input.allowMissingMailboxConfig) {
+    throw new Error(NO_ACTIVE_EDIEL_MAILBOX_ERROR)
+  }
+
+  const eligibilityOptions = { force }
+  const dueMailboxes = configuredMailboxes.filter((mailbox) => mailboxSkipReason(mailbox, eligibilityOptions) === null)
+  const skippedLocked = configuredMailboxes.filter((mailbox) => mailboxSkipReason(mailbox, eligibilityOptions) === 'locked')
+  const skippedNotDue = configuredMailboxes.filter((mailbox) => mailboxSkipReason(mailbox, eligibilityOptions) === 'not_due')
+  const mailboxes = dueMailboxes.slice(0, input.pollLimit ?? envInt('EDIEL_INBOUND_MAILBOX_POLL_LIMIT', 10))
   const results: PollMailboxResult[] = []
 
   for (const mailbox of mailboxes) {
@@ -612,17 +756,41 @@ export async function runInboundEdielMailEngine(input: {
     actorUserId: input.actorUserId ?? null,
   })
   const overdueTasks = await createInboundOverdueTasks()
+  const inboundEmailMessageIds = results.flatMap((item) => item.inboundEmailMessageIds)
+  const edielMessageIds = await listEdielMessageIdsForInboundEmails(inboundEmailMessageIds)
+  const fetchedMessages = results.reduce((sum, item) => sum + item.fetched, 0)
+  const storedEmails = results.reduce((sum, item) => sum + item.stored, 0)
 
   return {
     workerId,
     startedAt,
     finishedAt: nowIso(),
     mailboxesChecked: mailboxes.length,
-    storedEmails: results.reduce((sum, item) => sum + item.stored, 0),
+    configuredMailboxes: configuredMailboxes.length,
+    dueMailboxes: dueMailboxes.length,
+    skippedLockedMailboxes: skippedLocked.length,
+    skippedNotDueMailboxes: skippedNotDue.length,
+    fetchedMessages,
+    storedEmails,
     dedupedEmails: results.reduce((sum, item) => sum + item.deduped, 0),
     processedJobs: queueResult.processed,
     failedJobs: queueResult.failed,
     overdueTasks,
+    inboundEmailMessageIds,
+    edielMessageIds,
+    debug: {
+      configuredMailboxes: configuredMailboxes.map((mailbox) => mailboxDebugItem(mailbox)),
+      dueMailboxes: dueMailboxes.map((mailbox) => mailboxDebugItem(mailbox)),
+      skippedLocked: skippedLocked.map((mailbox) => mailboxDebugItem(mailbox, 'locked')),
+      skippedNotDue: skippedNotDue.map((mailbox) => mailboxDebugItem(mailbox, 'not_due')),
+      messagesFetched: fetchedMessages,
+      messagesStored: storedEmails,
+      jobsProcessed: queueResult.processed,
+      errorsByMailbox: results
+        .filter((result) => result.errors.length > 0)
+        .map((result) => ({ mailboxId: result.mailboxId, mailboxName: result.mailboxName, errors: result.errors })),
+      configurationError: configuredMailboxes.length === 0 ? NO_ACTIVE_EDIEL_MAILBOX_ERROR : null,
+    },
     results,
   }
 }

@@ -16,6 +16,7 @@ export async function runInboundMailEngineAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess()
   await runInboundEdielMailEngine({
     environment: text(formData, 'environment'),
+    forcePoll: true,
     actorUserId: admin.userId,
   })
   revalidatePath('/admin/inbound-mail')

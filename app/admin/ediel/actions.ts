@@ -1300,7 +1300,9 @@ export async function pollMailboxAction(formData: FormData) {
   const scope = await getOperationalCompanyScope(context.userId);
   const requestedCompanyId = formString(formData.get("companyId"));
   const mailbox = formString(formData.get("mailbox"));
+  const mailboxId = formString(formData.get("mailboxId")) ?? formString(formData.get("mailbox_id"));
   const communicationRouteId = formString(formData.get("communicationRouteId"));
+  const environment = formString(formData.get("environment")) === "production" ? "production" : formString(formData.get("environment")) === "test" ? "test" : null;
   const companyId = isPlatformAdminContext(context)
     ? requestedCompanyId ?? scope.companyId
     : scope.companyId;
@@ -1318,8 +1320,11 @@ export async function pollMailboxAction(formData: FormData) {
   await pollAndIngestEdielMailbox({
     actorUserId: context.userId,
     mailbox,
+    mailboxId,
     communicationRouteId,
     companyId,
+    environment,
+    force: true,
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
   });
 
