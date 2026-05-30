@@ -45,12 +45,37 @@ function sampleParseTests(): InboundSmokeTestResult[] {
       expectedFamily: 'UTILTS_ERR',
       payload: "UNB+UNOC:3+91100:ZZ:UTILTS+21660:ZZ+260528:1202+ABC125++23-DDQ-UTILTS'UNH+1+UTILTS:D:02B:UN:E5SE5A'BGM+ERR+ERR1+9'RFF+TN:ORIGTN1'STS+E01::260+41+E50::260'UNT+5+1'UNZ+1+ABC125'",
     },
+    {
+      name: 'Parse Batch 4 routing envelope',
+      expectedFamily: 'PRODAT',
+      expected: {
+        receiverEdielId: '21660',
+        receiverSubAddress: 'SUBTENANT',
+        applicationReference: '23-DDQ-PRODAT',
+        messageCode: 'E01',
+        bgmReference: 'BGM123',
+        rffAac: 'MPID123',
+        nadMs: '21660',
+        dtm157: '202605301400',
+      },
+      payload: "UNB+UNOC:3+91100:ZZ:SENDER+21660:ZZ:SUBTENANT+260530:1400+ABC126++23-DDQ-PRODAT'UNH+1+PRODAT:D:96A:UN:E2SE5'BGM+E01+BGM123+9'NAD+MS+21660::9'RFF+AAC:MPID123'DTM+157:202605301400:203'UNT+7+1'UNZ+1+ABC126'",
+    },
   ]
 
   return samples.map((sample) => {
     try {
       const parsed = parseEdifactPayload(sample.payload)
-      const ok = parsed.messageFamily === sample.expectedFamily
+      const expected = 'expected' in sample ? sample.expected : null
+      const ok = parsed.messageFamily === sample.expectedFamily &&
+        (!expected ||
+          (parsed.receiverEdielId === expected.receiverEdielId &&
+            parsed.receiverSubAddress === expected.receiverSubAddress &&
+            parsed.applicationReference === expected.applicationReference &&
+            parsed.messageCode === expected.messageCode &&
+            parsed.bgmReference === expected.bgmReference &&
+            parsed.references.AAC?.[0] === expected.rffAac &&
+            parsed.parties.MS?.[0] === expected.nadMs &&
+            parsed.dates['157']?.[0] === expected.dtm157))
       return {
         name: sample.name,
         status: ok ? 'pass' : 'fail',

@@ -17,7 +17,7 @@ export async function processInboundEmailMessage(input: {
 }): Promise<{ status: string; companyId: string | null; parseResultId: string | null }> {
   const { data, error } = await supabaseService
     .from('inbound_email_messages')
-    .select('*, ediel_mailboxes(company_id)')
+    .select('*, ediel_mailboxes(company_id,environment)')
     .eq('id', input.inboundEmailMessageId)
     .maybeSingle()
 
@@ -63,9 +63,10 @@ export async function processInboundEmailMessage(input: {
     return { status: 'manual_review', companyId: typeof row.company_id === 'string' ? row.company_id : null, parseResultId: null }
   }
 
-  const mailbox = row.ediel_mailboxes as { company_id?: string | null } | null
+  const mailbox = row.ediel_mailboxes as { company_id?: string | null; environment?: string | null } | null
   const tenant = await resolveTenantForInboundEdiel({
     mailboxCompanyId: typeof row.company_id === 'string' ? row.company_id : mailbox?.company_id ?? null,
+    environment: mailbox?.environment ?? null,
     parsed,
   })
 
