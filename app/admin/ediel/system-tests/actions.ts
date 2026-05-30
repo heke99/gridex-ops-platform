@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { activeRulebookRules, defaultApplicationReferenceForProcess } from '@/lib/ediel/rulebook/rulebook'
@@ -19,11 +20,13 @@ import {
   createEdielTestRun,
   getEdielMessageById,
   listAckMessagesForSource,
+  listEdielMessagesByIds,
   listEdielTestRuns,
   updateEdielMessageStatus,
   updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
-import { createAckDraftForMessage, pollAndIngestEdielMailbox, sendQueuedEdielMessage } from '@/lib/ediel/orchestrator'
+import { createAckDraftForMessage, sendQueuedEdielMessage } from '@/lib/ediel/orchestrator'
+import { NO_ACTIVE_EDIEL_MAILBOX_ERROR, runInboundEdielMailEngine } from '@/lib/inbound-mail/edielMailboxPoller'
 import { applyUtiltsTgtAckPlanOverride, runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import type { EdielAperakApplicationError, EdielAckScope } from '@/lib/ediel/ack'
 import { getEdielTgtTestCaseByCode, getEdielTgtTestCases } from '@/lib/ediel/tgtRegistry'
@@ -60,12 +63,85 @@ async function safeInsert(table: string, payload: Record<string, unknown>) {
 
 function revalidateSystemTests(testCaseCode?: string | null) {
   revalidatePath('/admin/ediel/system-tests')
+  revalidatePath('/admin/ediel/system-tests/cases')
   if (testCaseCode) revalidatePath(`/admin/ediel/system-tests/cases/${encodeURIComponent(testCaseCode)}`)
   revalidatePath('/admin/ediel')
 }
 
 function normalizeCode(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
+}
+
+function normalizeEnvironment(value: string | null | undefined): 'test' | 'production' {
+  return value === 'production' ? 'production' : 'test'
+}
+
+function systemTestCaseRedirectUrl(input: {
+  testCaseCode: string
+  status: 'success' | 'error'
+  message: string
+  runId?: string | null
+  companyId?: string | null
+  environment?: string | null
+  mailboxId?: string | null
+}) {
+  const params = new URLSearchParams({
+    status: input.status,
+    message: input.message,
+  })
+  if (input.runId) params.set('runId', input.runId)
+  if (input.companyId) params.set('companyId', input.companyId)
+  if (input.environment) params.set('environment', input.environment)
+  if (input.mailboxId) params.set('mailboxId', input.mailboxId)
+  return `/admin/ediel/system-tests/cases/${encodeURIComponent(input.testCaseCode)}?${params.toString()}`
+}
+
+async function readMailboxContext(mailboxId: string | null): Promise<{ companyId: string | null; environment: 'test' | 'production' | null }> {
+  if (!mailboxId) return { companyId: null, environment: null }
+  const { data, error } = await supabaseService
+    .from('ediel_mailboxes')
+    .select('company_id,environment')
+    .eq('id', mailboxId)
+    .maybeSingle()
+  if (error) throw error
+  const row = data as { company_id?: string | null; environment?: string | null } | null
+  return {
+    companyId: row?.company_id ?? null,
+    environment: row?.environment === 'production' ? 'production' : row?.environment === 'test' ? 'test' : null,
+  }
+}
+
+async function createExpectedTgtRunSteps(input: {
+  testRunId: string
+  testCase: NonNullable<ReturnType<typeof getEdielTgtTestCaseByCode>>
+  environment: 'test' | 'production'
+}) {
+  const now = new Date().toISOString()
+  const rows = input.testCase.expectedSteps.map((step) => ({
+    test_run_id: input.testRunId,
+    step_no: step.stepNo,
+    title: step.title,
+    status: 'pending',
+    expected_direction: step.direction,
+    expected_family: step.family,
+    expected_code: step.code,
+    expected_ack: {
+      outcome: step.outcome ?? null,
+      required: step.required,
+      actor: step.actor,
+    },
+    validation_report: {
+      source: 'tgt_expected_steps',
+      testCaseCode: input.testCase.testCaseCode,
+      environment: input.environment,
+      description: step.description,
+    },
+    created_at: now,
+    updated_at: now,
+  }))
+  if (rows.length === 0) return
+  const { error } = await supabaseService.from('ediel_test_run_steps').insert(rows)
+  if (error && error.code !== '42P01' && error.code !== '42703') throw error
 }
 
 function errorMessage(error: unknown): string {
@@ -599,17 +675,102 @@ export async function validateSystemTestPayloadAction(formData: FormData) {
   revalidateSystemTests(testCaseCode)
 }
 
+export async function startTgtSystemTestRunAction(formData: FormData) {
+  const admin = await requirePlatformAdminActionAccess()
+  const testCaseCode = normalizeCode(formString(formData.get('testCaseCode')) ?? formString(formData.get('testCaseId')))
+  const suiteRaw = normalizeCode(formString(formData.get('testSuite'))) || 'UTILTS'
+  const roleRaw = String(formString(formData.get('roleCode')) ?? 'esco').trim().toLowerCase()
+  const suite: EdielTestSuite = suiteRaw === 'PRODAT' || suiteRaw === 'UTILTS' || suiteRaw === 'AI_LIST' || suiteRaw === 'NBS_XML' ? suiteRaw : 'OTHER'
+  const roleCode: EdielTestRoleCode = roleRaw === 'supplier' || roleRaw === 'grid_owner' || roleRaw === 'balance_responsible' || roleRaw === 'esco' ? roleRaw : 'esco'
+  const companyId = formString(formData.get('companyId'))
+  const environment = normalizeEnvironment(formString(formData.get('environment')))
+  const definition = getEdielTgtTestCaseByCode(suite, roleCode, testCaseCode)
+    ?? getEdielTgtTestCases().find((testCase) => normalizeCode(testCase.testCaseCode) === testCaseCode)
+
+  if (!testCaseCode || !definition) {
+    throw new Error(`Okänt TGT-testfall: ${testCaseCode || 'saknas'}`)
+  }
+
+  console.info('[system-tests] startTgtSystemTestRunAction:start', { companyId, environment, testCaseId: definition.testCaseCode })
+  let redirectUrl: string
+  try {
+    const now = new Date().toISOString()
+    const run = await createEdielTestRun({
+      actorUserId: admin.userId,
+      companyId,
+      testSuite: definition.suite,
+      roleCode: definition.roleCode,
+      testCaseCode: definition.testCaseCode,
+      title: definition.title,
+      approvalVersion: definition.approvalVersion,
+      notes: [
+        definition.purpose,
+        `Testdata: ${definition.testDataHint}`,
+        `Miljö: ${environment}`,
+        ...definition.notes,
+        'Skapad från Systemtest testfallssida utan IMAP-beroende.',
+      ].join('\n'),
+      status: 'running',
+      startedAt: now,
+    })
+
+    await createExpectedTgtRunSteps({ testRunId: run.id, testCase: definition, environment })
+    await runTgtAutopilotForRun({
+      actorUserId: admin.userId,
+      testRunId: run.id,
+    }).catch(async (error) => {
+      await attachRulebookArtifact({
+        actorUserId: admin.userId,
+        testRunId: run.id,
+        artifactType: 'tgt_autopilot_warning',
+        title: `Autopilot kunde inte köras för ${definition.testCaseCode}`,
+        payload: { error: errorMessage(error), environment, companyId, createdAt: new Date().toISOString() },
+      }).catch(() => undefined)
+    })
+
+    await auditSystemTestMaintenance({
+      actorUserId: admin.userId,
+      action: 'ediel.system_test.start_tgt_run',
+      testRunId: run.id,
+      reason: `Ny testkörning startades för ${definition.testCaseCode}.`,
+      payload: { companyId, environment, testCaseId: definition.testCaseCode },
+    })
+    revalidateSystemTests(definition.testCaseCode)
+    console.info('[system-tests] startTgtSystemTestRunAction:end', { companyId, environment, testCaseId: definition.testCaseCode, runId: run.id })
+    redirectUrl = systemTestCaseRedirectUrl({
+      testCaseCode: definition.testCaseCode,
+      status: 'success',
+      message: `Ny testkörning startad för ${definition.testCaseCode}.`,
+      runId: run.id,
+      companyId,
+      environment,
+    })
+  } catch (error) {
+    const message = `Kunde inte starta testkörning: ${errorMessage(error)}`
+    console.error('[system-tests] startTgtSystemTestRunAction:error', { companyId, environment, testCaseId: definition.testCaseCode, error: errorMessage(error) })
+    revalidateSystemTests(definition.testCaseCode)
+    redirectUrl = systemTestCaseRedirectUrl({
+      testCaseCode: definition.testCaseCode,
+      status: 'error',
+      message,
+      companyId,
+      environment,
+    })
+  }
+  redirect(redirectUrl)
+}
+
 export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) {
-  const context = await requirePlatformAdminActionAccess()
+  const admin = await requirePlatformAdminActionAccess()
   const testCaseCode = normalizeCode(formString(formData.get('testCaseCode')) ?? formString(formData.get('tgtTestCaseCode')))
   const suiteRaw = normalizeCode(formString(formData.get('testSuite'))) || 'UTILTS'
   const roleRaw = String(formString(formData.get('roleCode')) ?? 'esco').trim().toLowerCase()
   const suite: EdielTestSuite = suiteRaw === 'PRODAT' || suiteRaw === 'UTILTS' || suiteRaw === 'AI_LIST' || suiteRaw === 'NBS_XML' ? suiteRaw : 'OTHER'
   const roleCode: EdielTestRoleCode = roleRaw === 'supplier' || roleRaw === 'grid_owner' || roleRaw === 'balance_responsible' || roleRaw === 'esco' ? roleRaw : 'esco'
-  const mailbox = formString(formData.get('mailbox')) ?? 'INBOX'
-  const limitRaw = formString(formData.get('limit'))
-  const limitNumber = limitRaw ? Number(limitRaw) : 10
-  const limit = Number.isFinite(limitNumber) && limitNumber > 0 ? Math.min(Math.floor(limitNumber), 50) : 10
+  const mailboxId = formString(formData.get('mailboxId')) ?? formString(formData.get('mailbox_id'))
+  const mailboxContext = await readMailboxContext(mailboxId)
+  const companyId = formString(formData.get('companyId')) ?? mailboxContext.companyId
+  const environment = normalizeEnvironment(formString(formData.get('environment')) ?? mailboxContext.environment)
   const startedAt = new Date().toISOString()
 
   const definition = getEdielTgtTestCaseByCode(suite, roleCode, testCaseCode)
@@ -619,7 +780,9 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
     throw new Error(`Okänt TGT-testfall: ${testCaseCode || 'saknas'}`)
   }
 
+  console.info('[system-tests] pollAndSyncTgtSystemTestMailboxAction:start', { companyId, environment, mailboxId, testCaseId: definition.testCaseCode })
   let targetRunId: string | null = null
+  let redirectUrl: string | null = null
 
   try {
     const existingRuns = await listEdielTestRuns().catch(() => [])
@@ -634,7 +797,8 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
       targetRunId = activeRun.id
     } else {
       const createdRun = await createEdielTestRun({
-        actorUserId: context.userId,
+        actorUserId: admin.userId,
+        companyId,
         testSuite: definition.suite,
         roleCode: definition.roleCode,
         testCaseCode: definition.testCaseCode,
@@ -649,14 +813,21 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
         startedAt,
       })
       targetRunId = createdRun.id
+      await createExpectedTgtRunSteps({ testRunId: createdRun.id, testCase: definition, environment })
     }
 
-    const importedMessages = await pollAndIngestEdielMailbox({
-      actorUserId: context.userId,
-      mailbox,
-      environment: 'test',
+    const result = await runInboundEdielMailEngine({
+      actorUserId: admin.userId,
+      companyId,
+      environment,
+      mailboxId,
       force: true,
-      limit,
+      allowMissingMailboxConfig: false,
+      messageLimitPerMailbox: 25,
+    })
+
+    const importedMessages = await listEdielMessagesByIds(result.edielMessageIds, {
+      companyId,
     })
 
     const linked: Array<Record<string, unknown>> = []
@@ -689,7 +860,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
       targetRunId = attachResult.testRunId
 
       await runTgtAutopilotForRun({
-        actorUserId: context.userId,
+        actorUserId: admin.userId,
         testRunId: attachResult.testRunId,
       }).catch(async (error) => {
         skipped.push({
@@ -701,14 +872,26 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
     }
 
     await attachRulebookArtifact({
-      actorUserId: context.userId,
+      actorUserId: admin.userId,
       testRunId: targetRunId,
       artifactType: 'imap_poll_sync',
       title: `IMAP-poll och synk för ${definition.testCaseCode}`,
       payload: {
         testCaseCode: definition.testCaseCode,
-        mailbox,
-        limit,
+        companyId,
+        environment,
+        mailboxId,
+        pollDebug: result.debug,
+        pollSummary: {
+          configuredMailboxes: result.configuredMailboxes,
+          dueMailboxes: result.dueMailboxes,
+          skippedLockedMailboxes: result.skippedLockedMailboxes,
+          skippedNotDueMailboxes: result.skippedNotDueMailboxes,
+          fetchedMessages: result.fetchedMessages,
+          storedEmails: result.storedEmails,
+          processedJobs: result.processedJobs,
+          failedJobs: result.failedJobs,
+        },
         importedCount: importedMessages.length,
         linkedCount: linked.length,
         linked,
@@ -717,21 +900,47 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
         createdAt: new Date().toISOString(),
       },
     })
+    console.info('[system-tests] pollAndSyncTgtSystemTestMailboxAction:end', {
+      companyId,
+      environment,
+      mailboxId,
+      testCaseId: definition.testCaseCode,
+      configuredMailboxes: result.configuredMailboxes,
+      dueMailboxes: result.dueMailboxes,
+      fetchedMessages: result.fetchedMessages,
+      storedEmails: result.storedEmails,
+      processedJobs: result.processedJobs,
+      errorsByMailbox: result.debug.errorsByMailbox,
+    })
+    redirectUrl = systemTestCaseRedirectUrl({
+      testCaseCode: definition.testCaseCode,
+      status: 'success',
+      message: `IMAP-synk klar: ${result.configuredMailboxes} konfigurerade, ${result.dueMailboxes} due, ${result.fetchedMessages} hämtade, ${result.storedEmails} sparade, ${result.processedJobs} jobb processade.`,
+      runId: targetRunId,
+      companyId,
+      environment,
+      mailboxId,
+    })
   } catch (error) {
-    const pollError = `IMAP-poll misslyckades: ${errorMessage(error)}`
+    const rawMessage = errorMessage(error)
+    const visibleMessage = rawMessage === NO_ACTIVE_EDIEL_MAILBOX_ERROR
+      ? 'Ingen aktiv Ediel-mailbox är konfigurerad för detta bolag/testmiljö.'
+      : `IMAP-poll misslyckades: ${rawMessage}`
+    console.error('[system-tests] pollAndSyncTgtSystemTestMailboxAction:error', { companyId, environment, mailboxId, testCaseId: definition.testCaseCode, error: rawMessage })
     if (targetRunId) {
       await updateEdielTestRunStatus({
-        actorUserId: context.userId,
+        actorUserId: admin.userId,
         testRunId: targetRunId,
         status: 'failed',
-        failureReason: pollError,
+        failureReason: visibleMessage,
         completedAt: new Date().toISOString(),
       }).catch(() => undefined)
     }
 
     if (!targetRunId) {
       const failedRun = await createEdielTestRun({
-        actorUserId: context.userId,
+        actorUserId: admin.userId,
+        companyId,
         testSuite: definition.suite,
         roleCode: definition.roleCode,
         testCaseCode: definition.testCaseCode,
@@ -740,28 +949,40 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
         status: 'failed',
         startedAt,
         completedAt: new Date().toISOString(),
-        failureReason: pollError,
+        failureReason: visibleMessage,
         notes: 'Systemtest försökte polla IMAP från testfallssidan men kunde inte slutföra importen.',
       })
       targetRunId = failedRun.id
     }
 
     await attachRulebookArtifact({
-      actorUserId: context.userId,
+      actorUserId: admin.userId,
       testRunId: targetRunId,
       artifactType: 'imap_poll_error',
       title: `IMAP-poll misslyckades för ${definition.testCaseCode}`,
       payload: {
         testCaseCode: definition.testCaseCode,
-        mailbox,
-        limit,
-        error: errorMessage(error),
+        companyId,
+        environment,
+        mailboxId,
+        error: rawMessage,
+        visibleMessage,
         createdAt: new Date().toISOString(),
       },
     }).catch(() => undefined)
+    redirectUrl = systemTestCaseRedirectUrl({
+      testCaseCode: definition.testCaseCode,
+      status: 'error',
+      message: visibleMessage,
+      runId: targetRunId,
+      companyId,
+      environment,
+      mailboxId,
+    })
   }
 
   revalidateSystemTests(definition.testCaseCode)
+  if (redirectUrl) redirect(redirectUrl)
 }
 
 export async function syncRulebookStaticRulesAction() {

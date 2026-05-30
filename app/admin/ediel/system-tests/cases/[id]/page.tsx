@@ -17,13 +17,13 @@ import {
   type EdielTgtRunEvaluation,
   type EdielTgtTestCaseDefinition,
 } from '@/lib/ediel/tgtRegistry'
-import { createEdielTgtRunFromTemplateAction } from '@/app/admin/ediel/actions'
 import {
   createAndSendSystemTestAckAction,
   deleteSystemTestArtifactAction,
   deleteSystemTestRunAction,
   pollAndSyncTgtSystemTestMailboxAction,
   softDeleteSystemTestMessageAction,
+  startTgtSystemTestRunAction,
   unlinkSystemTestMessageAction,
   validateSystemTestPayloadAction,
 } from '@/app/admin/ediel/system-tests/actions'
@@ -84,13 +84,24 @@ function expectedResponseText(testCase: EdielTgtTestCaseDefinition): string {
   return 'Förväntat svar följer stegen nedan.'
 }
 
-function StartRunForm({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
+type MailboxOption = {
+  id: string
+  mailbox_name: string | null
+  email_address: string | null
+  company_id: string | null
+  environment: string | null
+}
+
+function StartRunForm({ testCase, companyId, environment }: { testCase: EdielTgtTestCaseDefinition; companyId?: string | null; environment: 'test' | 'production' }) {
   return (
-    <form action={createEdielTgtRunFromTemplateAction}>
+    <form action={startTgtSystemTestRunAction}>
+      <input type="hidden" name="companyId" value={companyId ?? ''} />
+      <input type="hidden" name="environment" value={environment} />
+      <input type="hidden" name="testCaseId" value={testCase.testCaseCode} />
       <input type="hidden" name="testSuite" value={testCase.suite} />
       <input type="hidden" name="roleCode" value={testCase.roleCode} />
       <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
-      <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+      <button type="submit" className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
         Starta ny testkörning
       </button>
     </form>
@@ -344,13 +355,21 @@ function StepCard({ step }: { step: EdielTgtExpectedStep }) {
 
 export default async function SystemTestCasePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams?: Promise<{ status?: string; message?: string; runId?: string; companyId?: string; environment?: string; mailboxId?: string }>
 }) {
   const { id } = await params
+  const query = searchParams ? await searchParams : {}
   const testCaseCode = id
   const context = await requirePlatformAdminAccess()
   const testCase = findDefinition(testCaseCode)
+  const selectedEnvironment = query.environment === 'production' ? 'production' : 'test'
+  const selectedCompanyId = typeof query.companyId === 'string' && query.companyId.trim() ? query.companyId.trim() : null
+  const selectedMailboxId = typeof query.mailboxId === 'string' && query.mailboxId.trim() ? query.mailboxId.trim() : null
+  const noticeStatus = query.status === 'success' || query.status === 'error' ? query.status : null
+  const noticeMessage = typeof query.message === 'string' && query.message.trim() ? query.message.trim() : null
 
   if (!testCase) {
     return (
@@ -372,10 +391,18 @@ export default async function SystemTestCasePage({
     )
   }
 
-  const [runs, messages] = await Promise.all([
+  const [runs, messages, mailboxResult] = await Promise.all([
     listEdielTestRuns().catch(() => []),
     listEdielMessages({ limit: 300 }).catch(() => []),
+    supabaseService
+      .from('ediel_mailboxes')
+      .select('id,mailbox_name,email_address,company_id,environment')
+      .eq('is_active', true)
+      .eq('environment', selectedEnvironment)
+      .order('mailbox_name', { ascending: true })
+      .limit(100),
   ])
+  const mailboxOptions = mailboxResult.error ? [] : (mailboxResult.data ?? []) as MailboxOption[]
 
   const matchingRuns = runs.filter((run) =>
     run.test_suite === testCase.suite &&
@@ -423,6 +450,13 @@ export default async function SystemTestCasePage({
         workspaceMode="platform"
       />
 
+      {noticeStatus && noticeMessage ? (
+        <section className={`rounded-2xl border p-4 text-sm ${noticeStatus === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+          <strong>{noticeStatus === 'success' ? 'Klart:' : 'Åtgärd misslyckades:'}</strong> {noticeMessage}
+          {query.runId ? <span className="ml-2 text-xs">Run: {query.runId}</span> : null}
+        </section>
+      ) : null}
+
       <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -448,7 +482,7 @@ export default async function SystemTestCasePage({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <StartRunForm testCase={testCase} />
+            <StartRunForm testCase={testCase} companyId={selectedCompanyId} environment={selectedEnvironment} />
             <Link href="/admin/ediel/system-tests" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               Tillbaka
             </Link>
@@ -473,25 +507,39 @@ export default async function SystemTestCasePage({
         <p className="mt-1 text-sm leading-6 text-blue-950">
           Använd detta när Edielportalen har skickat inbound-filen. Knappen pollar IMAP direkt, importerar olästa Ediel-meddelanden och låser synken till <strong>{testCase.testCaseCode}</strong> så U3.1.1/U3.1.2/U3.2.1/U3.2.2 inte blandas ihop.
         </p>
-        <form action={pollAndSyncTgtSystemTestMailboxAction} className="mt-4 grid gap-3 md:grid-cols-[1fr_160px_auto] md:items-end">
+        <form action={pollAndSyncTgtSystemTestMailboxAction} className="mt-4 grid gap-3 md:grid-cols-[1fr_180px_auto] md:items-end">
+          <input type="hidden" name="companyId" value={selectedCompanyId ?? ''} />
+          <input type="hidden" name="testCaseId" value={testCase.testCaseCode} />
           <input type="hidden" name="testSuite" value={testCase.suite} />
           <input type="hidden" name="roleCode" value={testCase.roleCode} />
           <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
           <input type="hidden" name="tgtTestCaseCode" value={testCase.testCaseCode} />
           <label className="block text-sm font-medium text-slate-700">
-            IMAP-mapp / mailbox
-            <input name="mailbox" defaultValue="INBOX" className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
+            Aktiv mailbox
+            <select name="mailboxId" defaultValue={selectedMailboxId ?? ''} className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm">
+              <option value="">Välj aktiv mailbox</option>
+              {mailboxOptions.map((mailbox) => (
+                <option key={mailbox.id} value={mailbox.id}>
+                  {mailbox.mailbox_name ?? mailbox.email_address ?? mailbox.id} · {mailbox.company_id ?? 'plattform'}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="block text-sm font-medium text-slate-700">
-            Max antal
-            <input name="limit" defaultValue="10" inputMode="numeric" className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
+            Miljö
+            <select name="environment" defaultValue={selectedEnvironment} className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm">
+              <option value="test">test</option>
+              <option value="production">production</option>
+            </select>
           </label>
-          <button className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+          <button type="submit" className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
             Importera via IMAP och synka till {testCase.testCaseCode}
           </button>
         </form>
         <div className="mt-3 rounded-xl border border-blue-200 bg-white p-3 text-xs leading-5 text-blue-950">
-          Om IMAP saknar inställningar eller lösenord skapas en misslyckad testkörning med felorsak i stället för att sidan kraschar.
+          {mailboxOptions.length > 0
+            ? `${mailboxOptions.length} aktiv(a) mailbox(ar) hittades för ${selectedEnvironment}.`
+            : 'Ingen aktiv Ediel-mailbox är konfigurerad för vald miljö. Knappen visar ett tydligt fel om du försöker importera.'}
         </div>
       </section>
 
