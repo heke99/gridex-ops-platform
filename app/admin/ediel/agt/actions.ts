@@ -687,6 +687,7 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
     companyId,
     environment: 'test',
     force: true,
+    sharedOnly: true,
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
   })
 

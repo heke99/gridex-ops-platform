@@ -1326,6 +1326,7 @@ export async function pollMailboxAction(formData: FormData) {
     companyId,
     environment,
     force: true,
+    sharedOnly: isPlatformAdminContext(context) && !mailboxId,
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
   });
 
