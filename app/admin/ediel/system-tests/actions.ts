@@ -29,7 +29,8 @@ import { applyUtiltsTgtAckPlanOverride, runUtiltsRuntimeForMessage } from '@/lib
 import type { EdielAperakApplicationError, EdielAckScope } from '@/lib/ediel/ack'
 import { getEdielTgtTestCaseByCode, getEdielTgtTestCases } from '@/lib/ediel/tgtRegistry'
 import { autoAttachImportedMessageToActiveTgtRun, runTgtAutopilotForRun } from '@/lib/ediel/tgtAutopilot'
-import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
+import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
+import type { EdielMessageRow, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome } from '@/lib/ediel/core/ackPolicy'
 
 function formString(value: FormDataEntryValue | null): string | null {
@@ -84,6 +85,48 @@ function normalizeAckOutcome(value: string | null | undefined): AckOutcome {
   const normalized = String(value ?? 'positive').trim().toLowerCase()
   if (normalized === 'positive' || normalized === 'negative') return normalized
   throw new Error('Ogiltig ACK-outcome')
+}
+
+async function listRecentMessagesForSystemTest(definition: {
+  testCaseCode: string
+  expectedSteps: Array<{ actor: string; direction: string; family: string; code: string }>
+}): Promise<EdielMessageRow[]> {
+  const portalSteps = definition.expectedSteps.filter((step) => step.actor === 'portal' && step.direction === 'inbound')
+  if (portalSteps.length === 0) return []
+
+  const families = Array.from(new Set(portalSteps.map((step) => step.family)))
+  const codes = Array.from(new Set(portalSteps.map((step) => step.code)))
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('direction', 'inbound')
+    .neq('status', 'cancelled')
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (families.length === 1) query = query.eq('message_family', families[0])
+  else query = query.in('message_family', families)
+
+  if (codes.length === 1) query = query.eq('message_code', codes[0])
+  else query = query.in('message_code', codes)
+
+  const { data, error } = await query
+  if (error) throw error
+
+  const targetCode = normalizeCode(definition.testCaseCode)
+  return ((data ?? []) as EdielMessageRow[]).filter((message) => {
+    const rawText = [
+      message.raw_payload,
+      JSON.stringify(message.parsed_payload ?? {}),
+      JSON.stringify(message.validation_report ?? {}),
+    ].filter(Boolean).join('\n')
+    const inferred = normalizeCode(inferTgtTestCaseCodeForInboundTestData({
+      message,
+      rawText,
+      fallback: null,
+    }))
+    return inferred === targetCode
+  })
 }
 
 function formNumber(value: FormDataEntryValue | null): number | null {
@@ -662,11 +705,18 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
       createDiagnosticMessagesForUnresolved: true,
       limit,
     })
+    const recentMatchingMessages = importedMessages.length > 0
+      ? []
+      : await listRecentMessagesForSystemTest(definition)
+    const messagesForSync = [
+      ...importedMessages,
+      ...recentMatchingMessages.filter((message) => !importedMessages.some((imported) => imported.id === message.id)),
+    ]
 
     const linked: Array<Record<string, unknown>> = []
     const skipped: Array<Record<string, unknown>> = []
 
-    for (const message of importedMessages) {
+    for (const message of messagesForSync) {
       const attachResult = await autoAttachImportedMessageToActiveTgtRun({
         edielMessage: message,
         explicitTestCaseCode: definition.testCaseCode,
@@ -714,10 +764,11 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
         mailbox: mailboxLabel,
         limit,
         importedCount: importedMessages.length,
+        recentMatchingCount: recentMatchingMessages.length,
         linkedCount: linked.length,
         linked,
         skipped,
-        pollStatus: linked.length > 0 ? 'linked' : importedMessages.length > 0 ? 'imported_without_match' : 'no_unread_messages',
+        pollStatus: linked.length > 0 ? 'linked' : importedMessages.length > 0 ? 'imported_without_match' : recentMatchingMessages.length > 0 ? 'linked_from_recent_import' : 'no_unread_messages',
         createdAt: new Date().toISOString(),
       },
     })
