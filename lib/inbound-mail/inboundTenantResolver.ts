@@ -119,10 +119,18 @@ async function routeProfileEvidence(input: {
     const companyId = clean(row.company_id)
     if (!companyId || row.is_active === false || row.is_enabled === false) return []
 
-    const ownIds = [row.own_ediel_id, row.receiver_ediel_id].map(upper).filter(Boolean)
-    if (!ownIds.includes(receiver)) return []
+    const ownEdielId = upper(row.own_ediel_id)
+    const legacyReceiverEdielId = upper(row.receiver_ediel_id)
+    const matchedProfileKey = ownEdielId === receiver
+      ? 'own_ediel_id'
+      : legacyReceiverEdielId === receiver
+        ? 'receiver_ediel_id'
+        : null
+    if (!matchedProfileKey) return []
 
-    const profileSubAddress = row.own_subaddress ?? row.receiver_sub_address ?? row.receiver_subaddress
+    const profileSubAddress = matchedProfileKey === 'own_ediel_id'
+      ? row.own_subaddress
+      : row.receiver_sub_address ?? row.receiver_subaddress
     if (!configuredValueMatches(profileSubAddress, receiverSubAddress)) return []
     if (!configuredValueMatches(row.application_reference, applicationReference)) return []
     if (!configuredValueMatches(row.message_family, messageFamily)) return []
@@ -140,6 +148,7 @@ async function routeProfileEvidence(input: {
       score,
       details: {
         routeProfileId: row.id,
+        matchedProfileKey,
         environment: input.environment,
         receiverEdielId: input.receiver,
         receiverSubAddress: input.receiverSubAddress ?? null,
