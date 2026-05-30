@@ -244,9 +244,13 @@ async function evidenceFromOriginalReferences(
     ['IDE', snapshot.transactionReference],
   ] as const
 
-  const values = references
-    .map(([referenceType, referenceValue]) => ({ referenceType, referenceValue: trimOrNull(referenceValue) }))
-    .filter((row): row is { referenceType: string; referenceValue: string } => Boolean(row.referenceValue))
+  const values: Array<{ referenceType: string; referenceValue: string }> = references.flatMap(([
+    referenceType,
+    referenceValue,
+  ]) => {
+    const clean = trimOrNull(referenceValue)
+    return clean ? [{ referenceType, referenceValue: clean }] : []
+  })
 
   if (values.length === 0) return []
 

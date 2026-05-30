@@ -71,7 +71,7 @@ function readServiceChars(rawPayload: string): EdifactServiceChars {
   }
 }
 
-function stripUna(rawPayload: string, chars = readServiceChars(rawPayload)): string {
+function stripUna(rawPayload: string): string {
   return rawPayload.toUpperCase().startsWith('UNA')
     ? rawPayload.slice(9)
     : rawPayload
@@ -107,6 +107,38 @@ function splitReleased(value: string, separator: string, release: string): strin
   return parts
 }
 
+function splitSegments(value: string, chars: EdifactServiceChars): string[] {
+  const parts: string[] = []
+  let current = ''
+  let released = false
+
+  for (const char of value) {
+    if (released) {
+      current += chars.release
+      current += char
+      released = false
+      continue
+    }
+
+    if (char === chars.release) {
+      released = true
+      continue
+    }
+
+    if (char === chars.segment) {
+      parts.push(current)
+      current = ''
+      continue
+    }
+
+    current += char
+  }
+
+  if (released) current += chars.release
+  parts.push(current)
+  return parts
+}
+
 export function splitEdifactElements(rawSegment: string | null | undefined): string[] {
   const chars = DEFAULT_SERVICE_CHARS
   return splitReleased(String(rawSegment ?? ''), chars.element, chars.release)
@@ -120,10 +152,9 @@ export function splitEdifactComponents(value: string | null | undefined): string
 export function getEdifactSegments(rawPayload: string | null | undefined): string[] {
   const raw = String(rawPayload ?? '')
   const chars = readServiceChars(raw)
-  return splitReleased(
-    stripUna(raw, chars).replace(/\r\n/g, '').replace(/\n/g, ''),
-    chars.segment,
-    chars.release
+  return splitSegments(
+    stripUna(raw).replace(/\r\n/g, '').replace(/\n/g, ''),
+    chars
   )
     .map((segment) => segment.trim())
     .filter(Boolean)

@@ -400,7 +400,7 @@ async function createAckChainIfMissing(params: {
     stringOrNull(parsed.relatedTransactionReference) ??
     stringOrNull(params.ackMessage.transaction_reference)
 
-  const existing = await supabaseService
+  let existing = supabaseService
     .from('ediel_ack_chains')
     .select('id')
     .eq('company_id', companyId)
@@ -411,9 +411,9 @@ async function createAckChainIfMissing(params: {
     .limit(1)
 
   if (transactionReference) {
-    existing.eq('transaction_reference', transactionReference)
+    existing = existing.eq('transaction_reference', transactionReference)
   } else {
-    existing.is('transaction_reference', null)
+    existing = existing.is('transaction_reference', null)
   }
 
   const existingResult = await existing.maybeSingle()
