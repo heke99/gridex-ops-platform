@@ -3,6 +3,7 @@
 import type { EdielAckOutcome, EdielMessageRow } from '@/lib/ediel/types'
 import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts'
 import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
+import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
 
 export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-05-production-utilts-runtime-v3-e31-sch-functional-err'
 
@@ -1523,7 +1524,10 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
     stage: mks.stage,
     senderRole: parseNadQualifier(segments, 'MS'),
     receiverRole: parseNadQualifier(segments, 'MR'),
-    subordinateRole: segmentValue(segments, 'NAD+DDQ') ? 'DDQ' : null,
+    subordinateRole: deriveUtiltsSubordinateRole({
+      applicationReference: parsed.applicationReference,
+      segments,
+    }),
     meterPointId: firstComponent(element(loc172, 2)),
     gridAreaId: firstComponent(element(loc239, 2)),
     transactionId: firstComponent(element(segmentValue(segments, 'IDE+24'), 2)) ?? referenceValue(references, 'TN'),

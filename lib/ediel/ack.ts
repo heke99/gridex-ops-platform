@@ -21,6 +21,7 @@ import {
   type AckPolicy,
   type EdielCanonicalAckState,
 } from '@/lib/ediel/core/ackPolicy'
+import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
 
 export type {
   AckFamily,
@@ -420,26 +421,15 @@ function segmentByPrefix(segments: readonly string[], prefix: string): string | 
   return segments.find((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase())) ?? null
 }
 
-function sourceSg2SubordinateNadSegment(segments: readonly string[], sourceMks: string | null): string {
-  const candidates: string[] = []
-  const preferredRole = firstCompositeComponent(edifactElement(sourceMks, 2))?.toUpperCase() ?? null
-
-  for (const segment of segments) {
-    const upper = segment.toUpperCase()
-    if (upper.startsWith('IDE+24') || upper.startsWith('LIN+')) break
-    if (!upper.startsWith('NAD+DDQ') && !upper.startsWith('NAD+DDK')) continue
-    if (!utiltsSegmentHasValue(segment, 2)) continue
-    if (!candidates.includes(segment)) candidates.push(segment)
-  }
-
-  const selected =
-    candidates.find((segment) => preferredRole && segment.toUpperCase().startsWith(`NAD+${preferredRole}`)) ??
-    candidates[0] ??
-    null
+function sourceSg2SubordinateNadSegment(sourceMessage: EdielMessageRow, segments: readonly string[]): string {
+  const selected = resolveUtiltsSubordinateNadSegment({
+    segments,
+    applicationReference: sourceMessage.application_reference,
+  })
 
   if (!selected) {
     throw new Error(
-      'Kan inte skapa UTILTS_ERR: inbound UTILTS saknar giltig SG2/NAD+DDQ eller NAD+DDK med party-id.'
+      'Kan inte skapa UTILTS_ERR: inbound UTILTS saknar giltig SG2/NAD-roll och Application Reference kan inte härleda DDQ/DGI/PQ.'
     )
   }
 
@@ -624,7 +614,10 @@ export function shouldUseTransactionScopedPositiveAperak(params: {
 function copiedUtiltsSegment(segment: string | null, allowedPrefix: string): string | null {
   if (!segment || !segment.toUpperCase().startsWith(allowedPrefix.toUpperCase())) return null
   const upper = segment.toUpperCase()
-  if ((upper.startsWith('NAD+DDQ') || upper.startsWith('NAD+DDK')) && !utiltsSegmentHasValue(segment, 2)) {
+  if (
+    upper.startsWith('NAD+DDK') &&
+    !utiltsSegmentHasValue(segment, 2)
+  ) {
     return null
   }
   return segment
@@ -719,7 +712,7 @@ function buildUtiltsErrSegments(params: {
   const refs = parseEdifactRefs(params.sourceMessage)
   const sourceSegments = edifactSegmentsFromRaw(params.sourceMessage.raw_payload)
   const sourceMks = segmentByPrefix(sourceSegments, 'MKS+')
-  const sourceSubordinateNad = sourceSg2SubordinateNadSegment(sourceSegments, sourceMks)
+  const sourceSubordinateNad = sourceSg2SubordinateNadSegment(params.sourceMessage, sourceSegments)
   const rawCodes = sanitizeSegmentText(params.messageText) || 'E14'
   const codes = rawCodes
     .split(/[|,;\s]+/)
