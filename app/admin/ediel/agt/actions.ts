@@ -37,7 +37,7 @@ import {
   type EdielAgtExpectedStep,
   type EdielAgtTestCaseDefinition,
 } from '@/lib/ediel/agtRegistry'
-import { pollEdielMailboxViaImap } from '@/lib/ediel/transport'
+import { pollAndIngestEdielMailbox } from '@/lib/ediel/orchestrator'
 import { registerEdielFile } from '@/lib/ediel/fileEngine'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
 import { syncActorTestingForMessage } from '@/lib/ediel/actorTestingEngine'
@@ -680,11 +680,13 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
   const limitRaw = value(formData, 'limit')
   const limit = limitRaw ? Number(limitRaw) : 10
 
-  const imported = await pollEdielMailboxViaImap({
+  const imported = await pollAndIngestEdielMailbox({
     actorUserId,
     mailbox,
     communicationRouteId: routeId ?? null,
     companyId,
+    environment: 'test',
+    force: true,
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
   })
 

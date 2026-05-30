@@ -1,12 +1,12 @@
 // lib/ediel/flows/inboundProcessing.ts
 
-import { createEdielMessageEvent, getEdielMessageById, listAckMessagesForSource } from '@/lib/ediel/db'
+import { createEdielMessageEvent, getEdielMessageById, getEdielRouteProfileByCommunicationRouteId, listAckMessagesForSource, listEdielMessagesByIds } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
   ACTIVE_EDIEL_MESSAGE_FAMILIES,
   isActiveEdielMessageFamily,
 } from '@/lib/ediel/types'
-import { pollEdielMailboxViaImap } from '@/lib/ediel/transport'
+import { runInboundEdielMailEngine } from '@/lib/inbound-mail/edielMailboxPoller'
 import { ensureActorUserId } from '@/lib/ediel/flows/shared'
 import {
   createSupplierSwitchEvent,
@@ -704,18 +704,33 @@ export async function processInboundEdielMessage(params: {
 export async function pollAndIngestEdielMailbox(params: {
   actorUserId: string
   mailbox?: string | null
+  mailboxId?: string | null
   communicationRouteId?: string | null
   companyId?: string | null
+  environment?: 'test' | 'production' | null
+  force?: boolean
   limit?: number
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
+  const routeProfile = params.communicationRouteId
+    ? await getEdielRouteProfileByCommunicationRouteId(params.communicationRouteId, {
+        companyId: params.companyId ?? null,
+      })
+    : null
+  const legacyMailboxAsId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(params.mailbox ?? '')
+    ? params.mailbox
+    : null
 
-  const incoming = await pollEdielMailboxViaImap({
+  const result = await runInboundEdielMailEngine({
     actorUserId,
-    mailbox: params.mailbox ?? null,
-    communicationRouteId: params.communicationRouteId ?? null,
-    companyId: params.companyId ?? null,
-    limit: params.limit ?? 10,
+    companyId: params.companyId ?? routeProfile?.company_id ?? null,
+    environment: params.environment ?? routeProfile?.environment ?? 'test',
+    mailboxId: params.mailboxId ?? routeProfile?.mailbox_id ?? legacyMailboxAsId,
+    force: params.force ?? true,
+    messageLimitPerMailbox: params.limit ?? 10,
+  })
+  const incoming = await listEdielMessagesByIds(result.edielMessageIds, {
+    companyId: params.companyId ?? routeProfile?.company_id ?? null,
   })
 
   for (const message of incoming) {

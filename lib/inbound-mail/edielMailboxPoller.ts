@@ -76,6 +76,8 @@ export type PollMailboxResult = {
   mailboxName: string
   stored: number
   deduped: number
+  inboundEmailMessageIds: string[]
+  dedupedInboundEmailMessageIds: string[]
   processed: number
   errors: string[]
 }
@@ -90,8 +92,12 @@ export type InboundEngineRunResult = {
   processedJobs: number
   failedJobs: number
   overdueTasks: { ackOverdue: number; z04Overdue: number; z14Overdue: number }
+  inboundEmailMessageIds: string[]
+  edielMessageIds: string[]
   results: PollMailboxResult[]
 }
+
+export const NO_ACTIVE_EDIEL_MAILBOX_ERROR = 'No active Ediel mailbox is configured for this company/environment.'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -275,18 +281,39 @@ function splitMimeParts(rawEmail: string | null): { bodyText: string | null; bod
   }
 }
 
-export async function listDueEdielMailboxes(options: { environment?: string | null; includeLockedOlderThanMinutes?: number; force?: boolean } = {}): Promise<EdielMailboxRow[]> {
+export async function listConfiguredEdielMailboxes(options: {
+  companyId?: string | null
+  environment?: string | null
+  mailboxId?: string | null
+} = {}): Promise<EdielMailboxRow[]> {
   let query = supabaseService
     .from('ediel_mailboxes')
     .select('*')
     .eq('is_active', true)
 
+  if (options.companyId) query = query.eq('company_id', options.companyId)
   if (options.environment) query = query.eq('environment', options.environment)
+  if (options.mailboxId) query = query.eq('id', options.mailboxId)
 
   const { data, error } = await query.order('last_polled_at', { ascending: true, nullsFirst: true })
   if (error) throw error
 
-  return ((data ?? []) as EdielMailboxRow[]).filter((mailbox) => isEdielMailboxDueForPolling(mailbox, options))
+  return (data ?? []) as EdielMailboxRow[]
+}
+
+export async function listDueEdielMailboxes(options: {
+  companyId?: string | null
+  environment?: string | null
+  mailboxId?: string | null
+  includeLockedOlderThanMinutes?: number
+  force?: boolean
+} = {}): Promise<EdielMailboxRow[]> {
+  const configuredMailboxes = await listConfiguredEdielMailboxes(options)
+  if (configuredMailboxes.length === 0) {
+    throw new Error(NO_ACTIVE_EDIEL_MAILBOX_ERROR)
+  }
+
+  return configuredMailboxes.filter((mailbox) => isEdielMailboxDueForPolling(mailbox, options))
 }
 
 export async function markMailboxPollStarted(mailboxId: string, workerId = 'inbound-mail-engine'): Promise<void> {
@@ -436,6 +463,8 @@ export async function pollEdielMailbox(input: {
     mailboxName: input.mailbox.mailbox_name,
     stored: 0,
     deduped: 0,
+    inboundEmailMessageIds: [],
+    dedupedInboundEmailMessageIds: [],
     processed: 0,
     errors: [],
   }
@@ -476,8 +505,13 @@ export async function pollEdielMailbox(input: {
         fetched += 1
 
         const stored = await storeMailboxFetchMessage({ mailbox: input.mailbox, message: message as unknown as Record<string, unknown> })
-        if (stored.deduped) result.deduped += 1
-        else result.stored += 1
+        if (stored.deduped) {
+          result.deduped += 1
+          result.dedupedInboundEmailMessageIds.push(stored.id)
+        } else {
+          result.stored += 1
+          result.inboundEmailMessageIds.push(stored.id)
+        }
 
         if (input.markSeen !== false && typeof (message as { uid?: unknown }).uid === 'number') {
           await client.messageFlagsAdd((message as { uid: number }).uid, ['\\Seen'], { uid: true })
@@ -598,18 +632,43 @@ export async function processQueuedInboundProcessingJobs(input: {
   return { processed, failed }
 }
 
+async function listEdielMessageIdsForInboundEmails(inboundEmailMessageIds: string[]): Promise<string[]> {
+  const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)))
+  if (ids.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .select('id')
+    .in('inbound_email_message_id', ids)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return ((data ?? []) as Array<{ id?: string | null }>)
+    .map((row) => row.id)
+    .filter((id): id is string => Boolean(id))
+}
+
 export async function runInboundEdielMailEngine(input: {
+  companyId?: string | null
   environment?: string | null
+  mailboxId?: string | null
   workerId?: string
   pollLimit?: number
   messageLimitPerMailbox?: number
   processLimit?: number
+  force?: boolean
   forcePoll?: boolean
   actorUserId?: string | null
 } = {}): Promise<InboundEngineRunResult> {
   const startedAt = nowIso()
   const workerId = input.workerId ?? `inbound-mail-engine-${startedAt}`
-  const mailboxes = (await listDueEdielMailboxes({ environment: input.environment, force: input.forcePoll })).slice(0, input.pollLimit ?? envInt('EDIEL_INBOUND_MAILBOX_POLL_LIMIT', 10))
+  const force = input.force ?? input.forcePoll ?? false
+  const mailboxes = (await listDueEdielMailboxes({
+    companyId: input.companyId,
+    environment: input.environment,
+    mailboxId: input.mailboxId,
+    force,
+  })).slice(0, input.pollLimit ?? envInt('EDIEL_INBOUND_MAILBOX_POLL_LIMIT', 10))
   const results: PollMailboxResult[] = []
 
   for (const mailbox of mailboxes) {
@@ -626,6 +685,8 @@ export async function runInboundEdielMailEngine(input: {
     actorUserId: input.actorUserId ?? null,
   })
   const overdueTasks = await createInboundOverdueTasks()
+  const inboundEmailMessageIds = results.flatMap((item) => item.inboundEmailMessageIds)
+  const edielMessageIds = await listEdielMessageIdsForInboundEmails(inboundEmailMessageIds)
 
   return {
     workerId,
@@ -637,6 +698,8 @@ export async function runInboundEdielMailEngine(input: {
     processedJobs: queueResult.processed,
     failedJobs: queueResult.failed,
     overdueTasks,
+    inboundEmailMessageIds,
+    edielMessageIds,
     results,
   }
 }

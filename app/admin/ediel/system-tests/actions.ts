@@ -654,6 +654,8 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
     const importedMessages = await pollAndIngestEdielMailbox({
       actorUserId: context.userId,
       mailbox,
+      environment: 'test',
+      force: true,
       limit,
     })
 
