@@ -159,7 +159,7 @@ export default async function AdminEdielMessagesPage({
  <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950">
  <h1 className="text-xl font-bold text-slate-950">Live Ediel är inte aktiverat.</h1>
  <p className="mt-2 text-sm font-semibold leading-6">{liveAccess.message}</p>
- <Link href="/admin/company-actor-status" className="mt-5 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Öppna aktörsstatus</Link>
+<Link href="/admin" className="mt-5 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Öppna översikt</Link>
  </section>
  </main>
  </div>

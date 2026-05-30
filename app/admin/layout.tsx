@@ -1,9 +1,15 @@
 import { Suspense, type ReactNode } from 'react'
+import { cookies } from 'next/headers'
 import { isPlatformAdminContext, requireAdminAccess } from '@/lib/admin/guards'
 import { logoutAction } from '@/lib/auth/logoutAction'
 import AdminSidebar from '@/components/admin/AdminSidebar'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { getOperationalCompanyScope, listPlatformCompanies } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
+import {
+ ADMIN_NAVIGATION_MODE_COOKIE,
+ ADMIN_SELECTED_COMPANY_COOKIE,
+ normalizeAdminNavigationMode,
+} from '@/lib/admin/navigationPreferences'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,10 +20,20 @@ export default async function AdminLayout({
 }) {
  const admin = await requireAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(admin)
+ const cookieStore = await cookies()
+ const preferredMode = isPlatformAdmin
+ ? normalizeAdminNavigationMode(cookieStore.get(ADMIN_NAVIGATION_MODE_COOKIE)?.value) ?? 'platform_view'
+ : 'company_view'
+ const selectedCompanyId = isPlatformAdmin ? cookieStore.get(ADMIN_SELECTED_COMPANY_COOKIE)?.value ?? null : null
  const scope = await getOperationalCompanyScope(admin.userId)
  const liveAccess = await getTenantLiveAccessForAdmin(admin)
- const workspaceName = isPlatformAdmin ? 'Gridex Platform' : scope.companyName ?? 'Bolagsyta saknas'
- const workspaceSubtitle = isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta'
+ const companyOptions = isPlatformAdmin ? await listPlatformCompanies() : []
+ const workspaceName = isPlatformAdmin && preferredMode === 'company_view'
+ ? scope.companyName ?? 'Välj bolag'
+ : isPlatformAdmin ? 'Gridex Platform' : scope.companyName ?? 'Bolagsyta saknas'
+ const workspaceSubtitle = isPlatformAdmin && preferredMode === 'company_view'
+ ? 'Superadmin bolagsvy'
+ : isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta'
 
  return (
  <div className="admin-saas-shell min-h-screen bg-[#f7fbf8] text-slate-900">
@@ -30,6 +46,9 @@ export default async function AdminLayout({
  workspaceName={workspaceName}
  workspaceSubtitle={workspaceSubtitle}
  isCompanyLiveEnabled={isPlatformAdmin || liveAccess.canUseLiveEdiel}
+preferredMode={preferredMode}
+selectedCompanyId={selectedCompanyId}
+companyOptions={companyOptions}
  />
  </Suspense>
  </div>

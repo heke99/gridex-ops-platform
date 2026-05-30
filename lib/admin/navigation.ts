@@ -75,7 +75,6 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Bolagets egna inställningar',
     items: [
       { key: 'company_settings', label: 'Inställningar', href: '/admin/company-settings', description: 'Kontaktuppgifter och bolagsprofil', pageKey: 'company.settings' },
-      { key: 'actor_status', label: 'Live-status', href: '/admin/company-actor-status', description: 'Aktörsprofil och go-live-status', pageKey: 'company.actor_status' },
       { key: 'audit', label: 'Revisionslogg', href: '/admin/audit', description: 'Spårbarhet för behörigt scope', pageKey: 'audit.log' },
     ],
   },

@@ -14,6 +14,18 @@ const bulkExample = `customer_type;intake_flow_type;first_name;last_name;contact
 private;switch;Anna;Svensson;;;anna@example.se;0700000000;199001011234;;1201;Anna Svensson - Lägenhet;735999111111111111;735999000000000001;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-06-01;12000;Storgatan 1;11122;Stockholm;;SE;Fortum;5560000000;confirmed;signed;2026-05-21;2027-05-21;2026-06-01;;customer_expected;;;;;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;1
 association;move_in;Sara;Ek;Ordförande;Brf Solrosen;sara@solrosen.se;0701111111;;769600-1234;;Brf Solrosen Huvudanläggning;735999111111111112;735999000000000002;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-08-01;54000;Föreningsgatan 4;11123;Stockholm;c/o Styrelsen;SE;E.ON;5561000000;confirmed;sent;2026-05-21;2027-05-21;2026-08-01;;customer_expected;Gamla vägen 9;11121;Stockholm;Vattenfall;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;3`;
 
+async function safeLoad<T>(label: string, loader: () => Promise<T[]>): Promise<{ rows: T[]; warning: string | null }> {
+  try {
+    return { rows: await loader(), warning: null };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Okänt databasfel";
+    return {
+      rows: [],
+      warning: `${label} kunde inte läsas in. Kundintag visas ändå så att sidan inte kraschar: ${message}`,
+    };
+  }
+}
+
 export default async function CustomerIntakePage() {
   const access = await requireAdminPageAccess({
     anyOf: ["customers.write", "masterdata.read"],
@@ -24,17 +36,29 @@ export default async function CustomerIntakePage() {
   const user = authResult.user;
   const companyScope = await getOperationalCompanyScope(access.userId);
 
-  const [gridOwners, electricitySuppliers, priceAreas, contractOffers] = await Promise.all([
-    listGridOwners(supabase),
-    listElectricitySuppliers(supabase, { activeOnly: true }),
-    listPriceAreas(supabase),
-    companyScope.companyId
-      ? listContractOffers({
-          activeOnly: true,
-          companyId: companyScope.companyId,
-        })
-      : Promise.resolve([]),
+  const [gridOwnersResult, electricitySuppliersResult, priceAreasResult, contractOffersResult] = await Promise.all([
+    safeLoad("Nätägare", () => listGridOwners(supabase)),
+    safeLoad("Elhandlare", () => listElectricitySuppliers(supabase, { activeOnly: true })),
+    safeLoad("Prisområden", () => listPriceAreas(supabase)),
+    safeLoad("Avtalserbjudanden", () =>
+      companyScope.companyId
+        ? listContractOffers({
+            activeOnly: true,
+            companyId: companyScope.companyId,
+          })
+        : Promise.resolve([])
+    ),
   ]);
+  const gridOwners = gridOwnersResult.rows;
+  const electricitySuppliers = electricitySuppliersResult.rows;
+  const priceAreas = priceAreasResult.rows;
+  const contractOffers = contractOffersResult.rows;
+  const loadWarnings = [
+    gridOwnersResult.warning,
+    electricitySuppliersResult.warning,
+    priceAreasResult.warning,
+    contractOffersResult.warning,
+  ].filter((warning): warning is string => Boolean(warning));
 
   const serializedOffers = contractOffers.map((offer) => ({
     id: offer.id,
@@ -94,6 +118,17 @@ export default async function CustomerIntakePage() {
             </p>
           ) : null}
         </section>
+
+        {loadWarnings.length > 0 ? (
+          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900 shadow-sm">
+            <h2 className="font-semibold text-amber-950">Kundintag laddades med begränsad masterdata</h2>
+            <ul className="mt-3 list-disc space-y-2 pl-5">
+              {loadWarnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <CustomerIntakeForm

@@ -318,7 +318,7 @@ export default async function EdielControlTowerPage() {
           <StatCard
             label="Inaktiva route-profiler"
             value={disabledRoutes}
-            href={tenantScope.isPlatformAdmin ? '/admin/ediel/routes' : '/admin/company-actor-status'}
+            href={tenantScope.isPlatformAdmin ? '/admin/ediel/routes' : '/admin'}
             tone={disabledRoutes > 0 ? 'warning' : 'success'}
           />
         </section>
@@ -393,7 +393,7 @@ export default async function EdielControlTowerPage() {
                 <Link href="/admin/ediel/system-tests" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Systemtest & ACK</Link>
               </>
             ) : null}
-            <Link href="/admin/company-actor-status" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Live-status & godkännande</Link>
+            <Link href="/admin" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Översikt & godkännandestatus</Link>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <p className="font-semibold text-slate-950">{engineStatus.title}</p>
