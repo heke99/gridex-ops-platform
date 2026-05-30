@@ -363,7 +363,7 @@ export default async function AdminEdielMessageDetailPage({
  const hasContrlDraft = relatedAckMessages.some((ack) => ack.message_family === 'CONTRL')
  const hasAperakDraft = relatedAckMessages.some((ack) => ack.message_family === 'APERAK')
  const hasUtiltsErrDraft = relatedAckMessages.some(isUtiltsErrAckMessage)
- const hasAnyUtiltsTgtResponse = hasContrlDraft || hasAperakDraft || hasUtiltsErrDraft
+ const hasUtiltsApplicationResponse = hasAperakDraft || hasUtiltsErrDraft
 
  return (
  <div className="min-h-screen bg-slate-50">
@@ -418,11 +418,17 @@ export default async function AdminEdielMessageDetailPage({
  ) : null}
 
  {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
- hasAnyUtiltsTgtResponse ? (
+ hasUtiltsApplicationResponse ? (
  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
- CONTRL/APERAK/UTILTS-ERR finns redan för detta inbound-meddelande. Engine körs inte igen för att undvika dubbletter. Skicka befintliga svar nedan eller radera fel testomgång först.
+ APERAK/UTILTS-ERR finns redan för detta inbound-meddelande. Engine körs inte igen för att undvika dubbla applikationssvar. Skicka befintliga svar nedan eller radera fel testomgång först.
  </div>
  ) : (
+ <div className="space-y-2">
+ {hasContrlDraft ? (
+ <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+ CONTRL finns redan, men applikationssvaret saknas. Engine kan därför skapa saknad APERAK/UTILTS-ERR utan att dubbelskicka CONTRL.
+ </div>
+ ) : null}
  <form action={processEdielOperationalMessageAction}>
  <input type="hidden" name="edielMessageId" value={message.id} />
  <button
@@ -432,6 +438,7 @@ export default async function AdminEdielMessageDetailPage({
  Kör UTILTS engine / skapa TGT-svar
  </button>
  </form>
+ </div>
  )
  ) : null}
 

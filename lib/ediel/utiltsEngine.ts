@@ -1307,6 +1307,102 @@ export function serializeUtiltsRuntimeUtiltsErrMessageText(plan: UtiltsRuntimeAc
   return (plan.utiltsErrCodes.length > 0 ? plan.utiltsErrCodes : ['E14']).join('|')
 }
 
+
+function normalizeUtiltsTgtCaseCode(value: string | null | undefined): string | null {
+  const normalized = String(value ?? '').trim().toUpperCase()
+  return normalized.length > 0 ? normalized : null
+}
+
+function firstUtiltsTgtAckReference(facts: UtiltsRuntimeFacts): string | null {
+  const candidates = [
+    facts.transactions.find((transaction) => transaction.transactionId)?.transactionId ?? null,
+    facts.transactionId,
+    facts.transactionReference,
+    referenceValue(facts.references, 'ACW', 'TN', 'AES', 'DM'),
+    facts.documentReference,
+    facts.messageReference,
+  ]
+
+  for (const candidate of candidates) {
+    const sanitized = sanitizeRuntimeToken(candidate, 35)
+    if (sanitized) return sanitized
+  }
+
+  return null
+}
+
+function tgtU3GuideAperakErrors(facts: UtiltsRuntimeFacts): UtiltsAperakApplicationError[] {
+  const reference = firstUtiltsTgtAckReference(facts)
+  return [
+    {
+      ercCode: '41',
+      fieldCode: '512',
+      text: 'MANDATORY FIELD MISSING',
+      referenceQualifier: 'ACW',
+      referenceNumber: reference,
+      lineItemReference: reference,
+    },
+  ]
+}
+
+export function applyUtiltsTgtAckPlanOverride(params: {
+  runtime: UtiltsRuntimeResult
+  testCaseCode?: string | null
+}): UtiltsRuntimeAckPlan {
+  const testCaseCode = normalizeUtiltsTgtCaseCode(params.testCaseCode)
+  const base = params.runtime.ackPlan
+
+  if (testCaseCode === 'U3.1.1' || testCaseCode === 'U3.1.2') {
+    return {
+      ...base,
+      shouldSendContrl: true,
+      contrlOutcome: 'positive',
+      shouldSendAperak: true,
+      aperakOutcome: 'positive',
+      shouldSendUtiltsErr: false,
+      utiltsErrDetails: [],
+      utiltsErrCodes: [],
+      aperakApplicationErrors: [],
+      reason:
+        testCaseCode === 'U3.1.1'
+          ? 'TGT U3.1.1 korrekt E66-SCH för energitjänsteföretag ska ge positiv APERAK.'
+          : 'TGT U3.1.2 korrekt E66-kvart för energitjänsteföretag ska ge positiv APERAK.',
+    }
+  }
+
+  if (testCaseCode === 'U3.2.1') {
+    return {
+      ...base,
+      shouldSendContrl: true,
+      contrlOutcome: 'positive',
+      shouldSendAperak: true,
+      aperakOutcome: 'negative',
+      shouldSendUtiltsErr: false,
+      utiltsErrDetails: [],
+      utiltsErrCodes: [],
+      aperakApplicationErrors: tgtU3GuideAperakErrors(params.runtime.facts),
+      reason: 'TGT U3.2.1 UTILTS-E66 kvart anvisningsfel ska ge negativ APERAK.',
+    }
+  }
+
+  if (testCaseCode === 'U3.2.2') {
+    return {
+      ...base,
+      shouldSendContrl: true,
+      contrlOutcome: 'positive',
+      shouldSendAperak: false,
+      aperakOutcome: null,
+      shouldSendUtiltsErr: true,
+      utiltsErrDetails: base.utiltsErrDetails,
+      utiltsErrCodes: base.utiltsErrCodes.length > 0 ? base.utiltsErrCodes : ['E14'],
+      aperakApplicationErrors: [],
+      reason: 'TGT U3.2.2 UTILTS-E66 kvart funktionsfel ska ge UTILTS_ERR.',
+    }
+  }
+
+  return base
+}
+
 export function decideUtiltsRuntimeAckPlan(params: {
   message: EdielMessageRow
   facts: UtiltsRuntimeFacts

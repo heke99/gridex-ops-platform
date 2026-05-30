@@ -24,7 +24,7 @@ import {
   updateEdielTestRunStatus,
 } from '@/lib/ediel/db'
 import { createAckDraftForMessage, pollAndIngestEdielMailbox, sendQueuedEdielMessage } from '@/lib/ediel/orchestrator'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { applyUtiltsTgtAckPlanOverride, runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import type { EdielAperakApplicationError, EdielAckScope } from '@/lib/ediel/ack'
 import { getEdielTgtTestCaseByCode, getEdielTgtTestCases } from '@/lib/ediel/tgtRegistry'
 import { autoAttachImportedMessageToActiveTgtRun, runTgtAutopilotForRun } from '@/lib/ediel/tgtAutopilot'
@@ -201,6 +201,7 @@ function resolveSystemTestAckDecision(params: {
   ackFamily: AckFamily
   requestedOutcome: AckOutcome
   messageText: string | null
+  testCaseCode?: string | null
 }): SystemTestAckDecision {
   const fallback: SystemTestAckDecision = {
     outcome: params.requestedOutcome,
@@ -213,13 +214,17 @@ function resolveSystemTestAckDecision(params: {
   }
 
   const sourceMessage = params.sourceMessage
-  if (!sourceMessage || params.ackFamily !== 'APERAK') return fallback
+  if (!sourceMessage) return fallback
 
   if (String(sourceMessage.message_family ?? '').toUpperCase() === 'UTILTS') {
     const runtime = runUtiltsRuntimeForMessage(sourceMessage)
+    const ackPlan = applyUtiltsTgtAckPlanOverride({
+      runtime,
+      testCaseCode: params.testCaseCode ?? null,
+    })
 
-    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'negative') {
-      const applicationErrors = runtime.ackPlan.aperakApplicationErrors.map((error) => ({
+    if (params.ackFamily === 'APERAK' && ackPlan.shouldSendAperak && ackPlan.aperakOutcome === 'negative') {
+      const applicationErrors = ackPlan.aperakApplicationErrors.map((error) => ({
         ercCode: error.ercCode,
         fieldCode: error.fieldCode ?? null,
         text: error.text,
@@ -231,29 +236,46 @@ function resolveSystemTestAckDecision(params: {
 
       return {
         outcome: 'negative',
-        messageText: buildApplicationErrorSummary(applicationErrors) ?? params.messageText,
+        messageText: buildApplicationErrorSummary(applicationErrors) ?? ackPlan.reason ?? params.messageText,
         applicationErrors,
         ackScope: relatedTransactionReference ? 'transaction' : 'message',
         relatedTransactionReference,
-        reason: runtime.ackPlan.reason,
+        reason: ackPlan.reason,
         ruleKeys: runtime.validation.issues
           .filter((issue) => issue.severity === 'error' && issue.kind === 'application')
           .map((issue) => issue.code),
       }
     }
 
-    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'positive') {
+    if (params.ackFamily === 'UTILTS_ERR' && ackPlan.shouldSendUtiltsErr) {
+      const codes = ackPlan.utiltsErrCodes.length > 0 ? ackPlan.utiltsErrCodes : ['E14']
       return {
-        outcome: 'positive',
-        messageText: params.messageText,
+        outcome: 'negative',
+        messageText: params.messageText ?? codes.join('|'),
         applicationErrors: null,
         ackScope: null,
         relatedTransactionReference: null,
-        reason: runtime.ackPlan.reason,
+        reason: ackPlan.reason,
+        ruleKeys: runtime.validation.issues
+          .filter((issue) => issue.severity === 'error' && issue.kind === 'functional')
+          .map((issue) => issue.code),
+      }
+    }
+
+    if (params.ackFamily === 'APERAK' && ackPlan.shouldSendAperak && ackPlan.aperakOutcome === 'positive') {
+      return {
+        outcome: 'positive',
+        messageText: params.messageText ?? ackPlan.reason ?? null,
+        applicationErrors: null,
+        ackScope: null,
+        relatedTransactionReference: null,
+        reason: ackPlan.reason,
         ruleKeys: [],
       }
     }
   }
+
+  if (params.ackFamily !== 'APERAK') return fallback
 
   return fallback
 }
@@ -309,6 +331,7 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     ackFamily,
     requestedOutcome: outcome,
     messageText: messageText ?? null,
+    testCaseCode,
   })
 
   const existingAcks = await listAckMessagesForSource({

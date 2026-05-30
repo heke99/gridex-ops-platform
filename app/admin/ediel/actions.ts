@@ -1918,18 +1918,24 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     (message) => isActiveEdielAckMessage(message) && isOperationalAckMessage(message),
   );
 
-  if (activeAckMessages.length > 0) {
+  const activeApplicationResponses = activeAckMessages.filter(
+    (message) =>
+      String(message.message_family) === 'APERAK' ||
+      isUtiltsErrAckMessage(message),
+  );
+
+  if (activeApplicationResponses.length > 0) {
     await createEdielMessageEvent({
       actorUserId: context.userId,
       edielMessageId,
       eventType: 'manual_note',
       eventStatus: 'info',
       message:
-        'Engine kördes inte: det finns redan CONTRL/APERAK/UTILTS-ERR kopplat till detta inbound-meddelande. Skicka befintliga svar eller radera fel testomgång först.',
+        'Engine kördes inte: det finns redan APERAK/UTILTS-ERR kopplat till detta inbound-meddelande. Skicka befintligt svar eller rensa fel testkoppling först.',
       payload: {
-        phase: 'utilts_tgt_duplicate_guard',
-        existingAckMessageIds: activeAckMessages.map((message) => message.id),
-        existingAckFamilies: activeAckMessages.map((message) => ({
+        phase: 'utilts_tgt_application_response_duplicate_guard',
+        existingAckMessageIds: activeApplicationResponses.map((message) => message.id),
+        existingAckFamilies: activeApplicationResponses.map((message) => ({
           id: message.id,
           family: message.message_family,
           code: message.message_code,
@@ -1941,6 +1947,21 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     await revalidateRelatedMessage(edielMessageId);
     revalidateEdiel(edielMessageId);
     return;
+  }
+
+  if (activeAckMessages.some((message) => String(message.message_family) === 'CONTRL')) {
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId,
+      eventType: 'manual_note',
+      eventStatus: 'info',
+      message:
+        'CONTRL finns redan, men applikationssvaret saknas. Engine fortsätter och skapar saknad APERAK/UTILTS-ERR utan att dubbelskicka CONTRL.',
+      payload: {
+        phase: 'utilts_tgt_missing_application_response_recovery',
+        existingAckMessageIds: activeAckMessages.map((message) => message.id),
+      },
+    });
   }
 
   await processEdielOperationalMessage({

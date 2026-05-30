@@ -6,7 +6,7 @@ import {
   getMeteringPointById,
 } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { applyUtiltsTgtAckPlanOverride, runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import {
   createEdielMessageEvent,
   getEdielMessageById,
@@ -1043,7 +1043,17 @@ export async function processInboundUtiltsMessage(params: {
   })
 
   const runtime = runUtiltsRuntimeForMessage(message)
+  const ackPlan = applyUtiltsTgtAckPlanOverride({
+    runtime,
+    testCaseCode: runtimeTestCaseCode,
+  })
   const normalizedPayload = runtime.normalizedPayload
+  const forcedPositiveTgtAckPlan =
+    runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2'
+  const shouldRejectByAckPlan =
+    ackPlan.contrlOutcome === 'negative' ||
+    ackPlan.shouldSendUtiltsErr ||
+    (ackPlan.shouldSendAperak && ackPlan.aperakOutcome === 'negative')
   const canonicalLinks = await linkInboundUtiltsMessageCanonically({
     actorUserId,
     message,
@@ -1063,17 +1073,17 @@ export async function processInboundUtiltsMessage(params: {
       ...(message.validation_report ?? {}),
       utiltsRuntime: {
         validation: runtime.validation,
-        ackPlan: runtime.ackPlan,
+        ackPlan: ackPlan,
           testCaseCode: runtimeTestCaseCode,
         },
     },
   })
 
-  if (!runtime.validation.ok) {
+  if ((!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
     const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
       sourceMessage: message,
-      ackPlan: runtime.ackPlan,
+      ackPlan: ackPlan,
       testCaseCode: runtimeTestCaseCode,
     })
 
@@ -1081,7 +1091,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       edielMessageId: message.id,
       status: runtime.validation.classification === 'syntax_rejected' ? 'failed' : 'validated',
-      failureReason: runtime.ackPlan.reason,
+      failureReason: ackPlan.reason,
       parsedPayload: {
         ...(message.parsed_payload ?? {}),
         normalizedMeteringPayload: normalizedPayload,
@@ -1091,7 +1101,7 @@ export async function processInboundUtiltsMessage(params: {
         ...(message.validation_report ?? {}),
         utiltsRuntime: {
           validation: runtime.validation,
-          ackPlan: runtime.ackPlan,
+          ackPlan: ackPlan,
           createdAckMessageIds: ackIds,
         },
       },
@@ -1107,7 +1117,7 @@ export async function processInboundUtiltsMessage(params: {
         createdAckMessageIds: ackIds,
         normalizedMeteringPayload: normalizedPayload,
         validation: runtime.validation,
-        ackPlan: runtime.ackPlan,
+        ackPlan: ackPlan,
           testCaseCode: runtimeTestCaseCode,
         },
     })
@@ -1163,7 +1173,7 @@ export async function processInboundUtiltsMessage(params: {
       const ackIds = await createUtiltsRuntimeAcks({
         actorUserId,
         sourceMessage: message,
-        ackPlan: runtime.ackPlan,
+        ackPlan: ackPlan,
         testCaseCode: runtimeTestCaseCode,
       })
 
@@ -1183,7 +1193,7 @@ export async function processInboundUtiltsMessage(params: {
           ...(message.validation_report ?? {}),
           utiltsRuntime: {
             validation: runtime.validation,
-            ackPlan: runtime.ackPlan,
+            ackPlan: ackPlan,
             createdAckMessageIds: ackIds,
           },
         },
@@ -1200,7 +1210,7 @@ export async function processInboundUtiltsMessage(params: {
           ingestedMeterValueIds,
           normalizedMeteringPayload: normalizedPayload,
           validation: runtime.validation,
-          ackPlan: runtime.ackPlan,
+          ackPlan: ackPlan,
           testCaseCode: runtimeTestCaseCode,
         },
       })
@@ -1219,7 +1229,7 @@ export async function processInboundUtiltsMessage(params: {
     const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
       sourceMessage: message,
-      ackPlan: runtime.ackPlan,
+      ackPlan: ackPlan,
       testCaseCode: runtimeTestCaseCode,
     })
 
@@ -1234,7 +1244,7 @@ export async function processInboundUtiltsMessage(params: {
         createdAckMessageIds: ackIds,
         normalizedMeteringPayload: normalizedPayload,
         validation: runtime.validation,
-        ackPlan: runtime.ackPlan,
+        ackPlan: ackPlan,
           testCaseCode: runtimeTestCaseCode,
         },
     })
@@ -1302,7 +1312,7 @@ export async function processInboundUtiltsMessage(params: {
       ingestedMeterValueIds,
       utiltsRuntime: {
         validation: runtime.validation,
-        ackPlan: runtime.ackPlan,
+        ackPlan: ackPlan,
           testCaseCode: runtimeTestCaseCode,
         },
       outboundRequestId: acknowledgedOutbound?.id ?? null,
@@ -1322,7 +1332,7 @@ export async function processInboundUtiltsMessage(params: {
   const ackIds = await createUtiltsRuntimeAcks({
     actorUserId,
     sourceMessage: message,
-    ackPlan: runtime.ackPlan,
+    ackPlan: ackPlan,
     testCaseCode: runtimeTestCaseCode,
   })
 
@@ -1342,7 +1352,7 @@ export async function processInboundUtiltsMessage(params: {
       ...(message.validation_report ?? {}),
       utiltsRuntime: {
         validation: runtime.validation,
-        ackPlan: runtime.ackPlan,
+        ackPlan: ackPlan,
         createdAckMessageIds: ackIds,
       },
     },
@@ -1364,7 +1374,7 @@ export async function processInboundUtiltsMessage(params: {
       billingUnderlayId: billingUnderlay?.id ?? null,
       normalizedMeteringPayload: normalizedPayload,
       validation: runtime.validation,
-      ackPlan: runtime.ackPlan,
+      ackPlan: ackPlan,
     },
   })
 
