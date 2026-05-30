@@ -149,6 +149,15 @@ alter table if exists public.ediel_mailboxes
   add column if not exists metadata jsonb not null default '{}'::jsonb,
   add column if not exists updated_at timestamptz not null default now();
 
+alter table if exists public.ediel_mailboxes
+  alter column poll_interval_minutes set default 5;
+
+update public.ediel_mailboxes
+set poll_interval_minutes = 5,
+    updated_at = now()
+where coalesce(metadata->>'scope', '') = 'platform_shared'
+  and poll_interval_minutes <> 5;
+
 create table if not exists public.ediel_counterparties (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,

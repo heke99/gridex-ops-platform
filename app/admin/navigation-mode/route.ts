@@ -50,7 +50,12 @@ export async function GET(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 180,
     })
   } else {
-    response.cookies.delete(ADMIN_SELECTED_COMPANY_COOKIE)
+    response.cookies.set(ADMIN_SELECTED_COMPANY_COOKIE, '', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/admin',
+      maxAge: 0,
+    })
   }
 
   return response
