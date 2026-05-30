@@ -745,6 +745,7 @@ export async function createCanonicalAckConflictEvent(
 export async function listCanonicalDuplicateBlockEvents(params?: {
   limit?: number
   layer?: CanonicalDuplicateBlockLayer
+  companyId?: string | null
 }): Promise<CanonicalIssueEventRow[]> {
   const rows = await listRecentManualIssueEvents(Math.max(params?.limit ?? 100, 50))
 
@@ -752,7 +753,8 @@ export async function listCanonicalDuplicateBlockEvents(params?: {
     .filter(
       (row) =>
         row.issue_kind === 'duplicate_block' &&
-        (!params?.layer || row.dedupe_layer === params.layer)
+        (!params?.layer || row.dedupe_layer === params.layer) &&
+        (!params?.companyId || row.company_id === params.companyId)
     )
     .slice(0, params?.limit ?? 100)
 }
@@ -760,6 +762,7 @@ export async function listCanonicalDuplicateBlockEvents(params?: {
 export async function listCanonicalAckConflictEvents(params?: {
   limit?: number
   ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  companyId?: string | null
 }): Promise<CanonicalIssueEventRow[]> {
   const rows = await listRecentManualIssueEvents(Math.max(params?.limit ?? 100, 50))
 
@@ -767,7 +770,8 @@ export async function listCanonicalAckConflictEvents(params?: {
     .filter(
       (row) =>
         row.issue_kind === 'ack_conflict' &&
-        (!params?.ackFamily || row.ack_family === params.ackFamily)
+        (!params?.ackFamily || row.ack_family === params.ackFamily) &&
+        (!params?.companyId || row.company_id === params.companyId)
     )
     .slice(0, params?.limit ?? 100)
 }

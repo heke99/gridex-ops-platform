@@ -1,6 +1,10 @@
 // lib/ediel/operations/controlTower.ts
 
 import { supabaseService } from '@/lib/supabase/service'
+import {
+  listCanonicalAckConflictEvents,
+  listCanonicalDuplicateBlockEvents,
+} from '@/lib/ediel/db'
 
 export type EdielOpsTone = 'success' | 'warning' | 'danger' | 'info'
 
@@ -294,7 +298,8 @@ export async function buildEdielControlTowerOperationsSummary(params: {
     overdueViewCount,
     missingContrl,
     missingAperak,
-    duplicateBlocked,
+    duplicateEvents,
+    ackConflictEvents,
     unresolvedOutbound,
     routeLessOutbound,
     failedPreflight,
@@ -334,7 +339,8 @@ export async function buildEdielControlTowerOperationsSummary(params: {
       { column: 'message_family', op: 'in', value: ['PRODAT', 'UTILTS', 'UTILTS_ERR'] },
       { column: 'aperak_status', op: 'in', value: ['pending', 'failed'] },
     ]),
-    safeCount('ediel_messages', companyId, [{ column: 'dedupe_status', op: 'in', value: ['duplicate', 'blocked'] }]),
+    listCanonicalDuplicateBlockEvents({ companyId, limit: 25 }).catch(() => []),
+    listCanonicalAckConflictEvents({ companyId, limit: 25 }).catch(() => []),
     safeCount('outbound_requests', companyId, [{ column: 'channel_type', value: 'unresolved' }]),
     safeCount('ediel_messages', companyId, [
       { column: 'direction', value: 'outbound' },
@@ -382,6 +388,8 @@ export async function buildEdielControlTowerOperationsSummary(params: {
   ])
 
   const ackOverdue = overdueViewCount
+  const duplicateBlocked = duplicateEvents.length
+  const ackConflicts = ackConflictEvents.length
   const routeFailures = unresolvedOutbound + routeLessOutbound
   const transportFailures = failedEvents + failedMessages
   const smtpConfigured = hasEnv('EDIEL_SMTP_HOST') && hasEnv('EDIEL_SMTP_USER') && hasEnv('EDIEL_SMTP_PASS')
@@ -471,6 +479,16 @@ export async function buildEdielControlTowerOperationsSummary(params: {
       issueText: 'Dubblettskyddet har blockerat eller markerat Ediel-meddelanden.',
       actionHref: '/admin/ediel/messages',
       actionLabel: 'Visa dubbletter',
+    }),
+    monitorFromCount({
+      key: 'ack_conflicts',
+      title: 'ACK conflict monitor',
+      count: ackConflicts,
+      healthyText: 'Inga ACK-konflikter hittades i canonical engine.',
+      issueText: 'Canonical engine har blockerat eller upptäckt ACK-konflikter.',
+      issueStatus: 'blocked',
+      actionHref: '/admin/ediel/messages',
+      actionLabel: 'Visa ACK-kedjor',
     }),
     monitorFromCount({
       key: 'route_resolution',
