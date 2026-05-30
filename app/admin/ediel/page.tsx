@@ -203,7 +203,7 @@ export default async function EdielPage() {
  <h1 className="mt-2 text-2xl font-black text-slate-950">Live Ediel är inte aktiverat för {liveAccess.companyName ?? 'bolaget'}.</h1>
  <p className="mt-3 max-w-3xl text-sm font-semibold leading-6">{liveAccess.message}</p>
  <div className="mt-5 flex flex-wrap gap-3">
- <Link href="/admin/company-actor-status" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Öppna aktörsstatus</Link>
+<Link href="/admin" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Öppna översikt</Link>
  <Link href="/admin/ediel/settings" className="rounded-2xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-bold text-amber-900 hover:bg-amber-100">Kontrollera aktörsprofil</Link>
  </div>
  </section>

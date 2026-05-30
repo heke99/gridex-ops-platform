@@ -1,5 +1,6 @@
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { redirect } from 'next/navigation'
+import { isPlatformAdminContext, requireAdminPageAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getActorTestingSummary } from '@/lib/ediel/actorTesting'
 import { ActorCompanyIdentityCard, ActorTestPackageCards, GoLiveChecklist } from '@/components/admin/ediel/ActorTestingViews'
@@ -15,6 +16,9 @@ export default async function CompanyActorStatusPage({
 }) {
   const params = (await searchParams) ?? {}
   const admin = await requireAdminPageAccess({ anyOf: ['communication.read', 'users.read'] })
+  if (!isPlatformAdminContext(admin)) {
+    redirect('/admin')
+  }
   const scope = await getOperationalCompanyScope(admin.userId)
   const summary = scope.companyId ? await getActorTestingSummary(scope.companyId) : null
 

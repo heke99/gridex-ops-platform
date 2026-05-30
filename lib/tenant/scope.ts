@@ -1,4 +1,9 @@
 import { cache } from 'react'
+import { cookies } from 'next/headers'
+import {
+  ADMIN_SELECTED_COMPANY_COOKIE,
+} from '@/lib/admin/navigationPreferences'
+import { normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type CompanySummary = {
@@ -24,6 +29,7 @@ export type OperationalCompanyScope = {
   memberships: CompanyMembershipSummary[]
   requiresCompany: boolean
   message: string | null
+  selectedByPlatformAdmin?: boolean
 }
 
 type MembershipJoinRow = {
@@ -50,6 +56,68 @@ type MembershipJoinRow = {
 
 function unwrapCompany(row: MembershipJoinRow) {
   return Array.isArray(row.companies) ? row.companies[0] : row.companies
+}
+
+type UserRoleRpcRow = string | {
+  role_id?: string | null
+  role_key?: string | null
+  key?: string | null
+  code?: string | null
+  name?: string | null
+}
+
+const PLATFORM_ADMIN_ROLES = new Set(['super_admin', 'superadmin', 'platform_admin'])
+
+function roleFromRpcRow(row: UserRoleRpcRow): string | null {
+  if (typeof row === 'string') return normalizeRoleKey(row)
+  if (!row || typeof row !== 'object') return null
+  return resolveRoleKey(row)
+}
+
+async function isPlatformAdminUser(userId: string): Promise<boolean> {
+  const { data, error } = await supabaseService.rpc('gridex_get_user_roles', { p_user_id: userId })
+  if (error || !Array.isArray(data)) return false
+
+  return (data as UserRoleRpcRow[])
+    .map(roleFromRpcRow)
+    .some((role) => Boolean(role && PLATFORM_ADMIN_ROLES.has(role)))
+}
+
+async function getSelectedPlatformCompany(userId: string): Promise<CompanyMembershipSummary | null> {
+  const cookieStore = await cookies()
+  const selectedCompanyId = cookieStore.get(ADMIN_SELECTED_COMPANY_COOKIE)?.value?.trim()
+  if (!selectedCompanyId) return null
+  if (!(await isPlatformAdminUser(userId))) return null
+
+  const { data, error } = await supabaseService
+    .from('companies')
+    .select('id, name, slug, org_number, status')
+    .eq('id', selectedCompanyId)
+    .maybeSingle()
+
+  if (error) {
+    if (isMissingRelationError(error)) return null
+    throw error
+  }
+
+  const company = data as {
+    id?: string | null
+    name?: string | null
+    slug?: string | null
+    org_number?: string | null
+    status?: string | null
+  } | null
+
+  if (!company?.id || !company.name) return null
+
+  return {
+    companyId: company.id,
+    companyName: company.name,
+    companySlug: company.slug ?? null,
+    orgNumber: company.org_number ?? null,
+    membershipRole: 'platform_selected',
+    status: company.status ?? 'active',
+  }
 }
 
 export function isMissingRelationError(error: unknown): boolean {
@@ -98,6 +166,18 @@ export const getOperationalCompanyScope = cache(async function getOperationalCom
   userId: string
 ): Promise<OperationalCompanyScope> {
   const memberships = await listOperationalCompaniesForUser(userId)
+  const platformSelection = await getSelectedPlatformCompany(userId)
+
+  if (platformSelection) {
+    return {
+      companyId: platformSelection.companyId,
+      companyName: platformSelection.companyName,
+      memberships,
+      requiresCompany: false,
+      message: null,
+      selectedByPlatformAdmin: true,
+    }
+  }
 
   if (memberships.length === 0) {
     return {
@@ -106,7 +186,8 @@ export const getOperationalCompanyScope = cache(async function getOperationalCom
       memberships,
       requiresCompany: true,
       message:
-        'Kontot saknar aktiv bolagskoppling. Skapa eller koppla ett operativt bolag innan kunddata registreras.',
+        'Kontot saknar aktiv bolagskoppling. Superadmin kan välja ett aktivt bolag i sidomenyns bolagsvy.',
+      selectedByPlatformAdmin: false,
     }
   }
 
@@ -118,6 +199,7 @@ export const getOperationalCompanyScope = cache(async function getOperationalCom
     memberships,
     requiresCompany: false,
     message: null,
+    selectedByPlatformAdmin: false,
   }
 })
 
@@ -135,6 +217,21 @@ export async function assertUserCanOperateCompany(
 ): Promise<string> {
   const normalized = companyId?.trim()
   if (!normalized) return requireOperationalCompanyId(userId)
+
+  if (await isPlatformAdminUser(userId)) {
+    const { data, error } = await supabaseService
+      .from('companies')
+      .select('id')
+      .eq('id', normalized)
+      .maybeSingle()
+
+    if (error) {
+      if (isMissingRelationError(error)) throw new Error('Bolagstabellen saknas.')
+      throw error
+    }
+
+    if (data?.id) return normalized
+  }
 
   const memberships = await listOperationalCompaniesForUser(userId)
   const allowed = memberships.some((row) => row.companyId === normalized)

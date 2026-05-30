@@ -101,7 +101,7 @@ export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'user
 export async function assertTenantCanUseLiveEdiel(admin: Pick<GuardResult, 'userId' | 'roles' | 'permissions'>): Promise<TenantLiveAccess> {
   const access = await getTenantLiveAccessForAdmin(admin)
   if (!access.canUseLiveEdiel) {
-    redirect('/admin/company-actor-status?status=blocked&message=' + encodeURIComponent(access.message ?? 'Live Ediel är inte aktiverat.'))
+    redirect('/admin?status=blocked&message=' + encodeURIComponent(access.message ?? 'Live Ediel är inte aktiverat.'))
   }
   return access
 }

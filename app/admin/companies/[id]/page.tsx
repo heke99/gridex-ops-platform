@@ -9,6 +9,8 @@ import {
   type GovernanceCompany,
 } from '@/lib/tenant/governance'
 import { getActorTestingSummary, getActorTestingStatusLabel, getProductionReadinessLabel } from '@/lib/ediel/actorTesting'
+import { getCompanyActorConfiguration, type CompanyActorConfiguration, type EdielConfigRow } from '@/lib/ediel/companyActorConfiguration'
+import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +19,23 @@ function formatDate(value: string | null | undefined) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleString('sv-SE')
+}
+
+function firstSearchValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function rowText(row: Record<string, unknown> | null | undefined, ...keys: string[]): string | null {
+  if (!row) return null
+  for (const key of keys) {
+    const value = row[key]
+    if (typeof value === 'string' && value.trim().length > 0) return value
+  }
+  return null
+}
+
+function rowBool(row: Record<string, unknown> | null | undefined, key: string): boolean {
+  return row?.[key] === true
 }
 
 function StatCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
@@ -29,14 +48,168 @@ function StatCard({ label, value, hint }: { label: string; value: string | numbe
   )
 }
 
+function ActionLine({ label, value, tone = 'slate' }: { label: string; value: string | number; tone?: 'slate' | 'emerald' | 'amber' | 'red' }) {
+  const styles: Record<typeof tone, string> = {
+    slate: 'border-slate-200 bg-slate-50 text-slate-800',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    amber: 'border-amber-200 bg-amber-50 text-amber-900',
+    red: 'border-red-200 bg-red-50 text-red-800',
+  }
+  return (
+    <div className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${styles[tone]}`}>
+      <span>{label}</span>
+      <span>{value}</span>
+    </div>
+  )
+}
+
 function statusBadge(company: GovernanceCompany) {
   const copy = getCompanyStatusCopy(company.status)
   return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${copy.tone}`}>{copy.label}</span>
 }
 
-export default async function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+function ActionBanner({ success, error }: { success?: string; error?: string }) {
+  if (!success && !error) return null
+  const tone = success ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'
+  return <section className={`rounded-3xl border p-5 text-sm font-semibold ${tone}`}>{success ?? error}</section>
+}
+
+function ReadinessPill({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+      {label}: {ok ? 'ja' : 'nej'}
+    </span>
+  )
+}
+
+function ConfigTable({ title, rows, columns }: { title: string; rows: EdielConfigRow[]; columns: Array<{ key: string; label: string }> }) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600">
+            <tr>{columns.map((column) => <th key={column.key} className="px-4 py-3">{column.label}</th>)}</tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {rows.length === 0 ? <tr><td colSpan={columns.length} className="px-4 py-6 text-center text-slate-600">Inga rader hittades.</td></tr> : null}
+            {rows.slice(0, 10).map((row) => (
+              <tr key={row.id}>
+                {columns.map((column) => <td key={column.key} className="px-4 py-3 text-slate-700">{String(row[column.key] ?? '–')}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+function CompanyEdielConfiguration({ company, config }: { company: GovernanceCompany; config: CompanyActorConfiguration }) {
+  const actor = config.actors[0] ?? null
+  const brp = config.brpSettings.find((row) => rowBool(row, 'is_default')) ?? config.brpSettings[0] ?? null
+  const sharedMailbox = config.mailboxes.find((row) => {
+    const metadata = row.metadata
+    return metadata && typeof metadata === 'object' && (metadata as Record<string, unknown>).scope === 'platform_shared'
+  })
+  const readiness = {
+    actor: Boolean(rowText(actor, 'ediel_id', 'actor_ediel_id')),
+    brp: Boolean(rowText(brp, 'brp_ediel_id')),
+    mailbox: Boolean(sharedMailbox),
+    route: config.routeProfiles.some((row) => rowBool(row, 'is_active') || rowBool(row, 'is_enabled')),
+    rules: config.messageRules.some((row) => rowBool(row, 'is_active')),
+  }
+
+  return (
+    <section id="ediel-config" className="space-y-6">
+      <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">Ediel SaaS-konfiguration</p>
+        <h2 className="mt-2 text-2xl font-black text-slate-950">Shared mailbox, aktörsrouting och bolagets Ediel-identitet</h2>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <ReadinessPill ok={readiness.actor} label="Ediel ID" />
+          <ReadinessPill ok={readiness.brp} label="BRP" />
+          <ReadinessPill ok={readiness.mailbox} label="Shared mailbox" />
+          <ReadinessPill ok={readiness.route} label="Route profile" />
+          <ReadinessPill ok={readiness.rules} label="Message rules" />
+        </div>
+        <nav className="mt-5 flex flex-wrap gap-2 text-sm font-black">
+          {[
+            ['#overview', 'Overview'],
+            ['#ediel-actor', 'Ediel actor'],
+            ['#brp', 'BRP / balancing'],
+            ['#communication', 'Communication'],
+            ['#route-profiles', 'Route profiles'],
+            ['#message-rules', 'Message rules'],
+            ['#system-tests', 'System tests'],
+            ['#operational-health', 'Operational health'],
+          ].map(([href, label]) => (
+            <a key={href} href={href} className="rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-emerald-900 hover:bg-emerald-100">{label}</a>
+          ))}
+        </nav>
+      </div>
+
+      <section id="ediel-actor" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-black text-slate-950">Ediel actor</h2>
+        <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">Plattformen sparar bolagets Ediel ID per miljö. Mailboxen är bara transportkanal.</p>
+        <form action={saveCompanyEdielActorAction} className="mt-5 grid gap-4 md:grid-cols-2">
+          <input type="hidden" name="company_id" value={company.id} />
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Miljö</span><select name="environment" defaultValue={rowText(actor, 'environment') ?? 'test'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="test">test</option><option value="production">production</option></select></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Aktörsroll</span><select name="actor_role" defaultValue={rowText(actor, 'actor_role', 'role') ?? 'supplier'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="supplier">supplier</option><option value="grid_owner">grid_owner</option><option value="esco">esco</option><option value="brp">brp</option><option value="agent">agent</option><option value="other">other</option></select></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Ediel ID</span><input name="ediel_id" defaultValue={rowText(actor, 'ediel_id', 'actor_ediel_id') ?? ''} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Application reference</span><input name="application_reference" defaultValue={rowText(actor, 'application_reference', 'default_application_reference') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Sender subaddress</span><input name="sender_subaddress" defaultValue={rowText(actor, 'sender_subaddress', 'sender_sub_address') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Receiver subaddress</span><input name="receiver_subaddress" defaultValue={rowText(actor, 'receiver_subaddress', 'receiver_sub_address') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig från</span><input type="date" name="valid_from" defaultValue={rowText(actor, 'valid_from') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig till</span><input type="date" name="valid_to" defaultValue={rowText(actor, 'valid_to') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="flex items-center gap-2 text-sm font-bold text-slate-800"><input type="checkbox" name="is_active" defaultChecked={actor ? rowBool(actor, 'is_active') : true} /> Aktiv</label>
+          <div className="md:col-span-2"><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Spara Ediel actor</button></div>
+        </form>
+      </section>
+
+      <section id="brp" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-black text-slate-950">BRP / balancing</h2>
+        <form action={saveCompanyBrpAction} className="mt-5 grid gap-4 md:grid-cols-2">
+          <input type="hidden" name="company_id" value={company.id} />
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Miljö</span><select name="environment" defaultValue={rowText(brp, 'environment') ?? 'test'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="test">test</option><option value="production">production</option></select></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">BRP Ediel ID</span><input name="brp_ediel_id" defaultValue={rowText(brp, 'brp_ediel_id') ?? ''} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">BRP-namn</span><input name="brp_name" defaultValue={rowText(brp, 'brp_name') ?? ''} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">BRP e-post</span><input name="brp_email" defaultValue={rowText(brp, 'brp_email') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">BRP telefon</span><input name="brp_phone" defaultValue={rowText(brp, 'brp_phone') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Kontaktperson</span><input name="contact_person" defaultValue={rowText(brp, 'contact_person') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig från</span><input type="date" name="valid_from" defaultValue={rowText(brp, 'valid_from') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig till</span><input type="date" name="valid_to" defaultValue={rowText(brp, 'valid_to') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="flex items-center gap-2 text-sm font-bold text-slate-800"><input type="checkbox" name="is_default" defaultChecked={brp ? rowBool(brp, 'is_default') : true} /> Standard-BRP</label>
+          <div className="md:col-span-2"><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Spara BRP</button></div>
+        </form>
+      </section>
+
+      <section id="communication" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Shared mailboxes" value={config.mailboxes.length} hint="Transportkanaler; company_id får vara null för shared." />
+        <StatCard label="Allowed counterparties" value={config.counterparties.length} />
+        <StatCard label="Senaste inbound" value={formatDate(config.latestInboundAt)} />
+        <StatCard label="Senaste outbound" value={formatDate(config.latestOutboundAt)} />
+      </section>
+
+      <div id="route-profiles"><ConfigTable title="Route profiles" rows={config.routeProfiles} columns={[{ key: 'environment', label: 'Miljö' }, { key: 'route_name', label: 'Route' }, { key: 'sender_ediel_id', label: 'Sender' }, { key: 'receiver_ediel_id', label: 'Receiver' }, { key: 'is_active', label: 'Aktiv' }]} /></div>
+      <div id="message-rules"><ConfigTable title="Message rules" rows={config.messageRules} columns={[{ key: 'message_family', label: 'Familj' }, { key: 'message_code', label: 'Kod' }, { key: 'version_code', label: 'Version' }, { key: 'direction', label: 'Riktning' }, { key: 'is_active', label: 'Aktiv' }]} /></div>
+      <div id="system-tests" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-lg font-black text-slate-950">System tests</h2><div className="mt-4 flex flex-wrap gap-2"><Link href={`/admin/platform/actor-testing/${company.id}`} className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-50">Öppna aktörstester</Link><Link href="/admin/ediel/system-tests" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-50">Systemtestcenter</Link></div></div>
+      <div id="operational-health" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-lg font-black text-slate-950">Operational health</h2><div className="mt-4 grid gap-3 md:grid-cols-3"><ActionLine label="Unresolved inbound" value={config.unresolvedInboundCount} tone={config.unresolvedInboundCount > 0 ? 'red' : 'emerald'} /><ActionLine label="Aktiva actors" value={config.actors.filter((row) => rowBool(row, 'is_active')).length} tone={readiness.actor ? 'emerald' : 'red'} /><ActionLine label="Aktiva routes" value={config.routeProfiles.filter((row) => rowBool(row, 'is_active') || rowBool(row, 'is_enabled')).length} tone={readiness.route ? 'emerald' : 'amber'} /></div></div>
+    </section>
+  )
+}
+
+export default async function CompanyDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
   const admin = await requirePlatformAdminAccess()
   const { id } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const actionSuccess = firstSearchValue(resolvedSearchParams.success)
+  const actionError = firstSearchValue(resolvedSearchParams.error)
   const row = await getCompanyById(id)
 
   if (!row) {
@@ -48,9 +221,10 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
     )
   }
 
-  const [company, actorSummary] = await Promise.all([
+  const [company, actorSummary, edielConfig] = await Promise.all([
     getCompanyGovernanceSummary(row),
     getActorTestingSummary(row.id),
+    getCompanyActorConfiguration(row.id),
   ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
@@ -64,6 +238,8 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
       />
 
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
+        <ActionBanner success={actionSuccess} error={actionError} />
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/admin/companies" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             Tillbaka till bolag
@@ -129,6 +305,8 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
           <StatCard label="Senaste audit" value={formatDate(company.latestAuditAt)} />
           <StatCard label="Senaste Ediel" value={formatDate(company.latestEdielAt)} />
         </section>
+
+        <CompanyEdielConfiguration company={company} config={edielConfig} />
 
         <section className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-3xl border border-orange-200 bg-orange-50 p-6 shadow-sm">

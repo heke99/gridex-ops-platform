@@ -7,6 +7,10 @@ import {
   getAdminNavigationGroups,
   type AdminNavigationMode,
 } from '@/lib/admin/navigation'
+import {
+  navigationModeParam,
+  normalizeAdminNavigationMode,
+} from '@/lib/admin/navigationPreferences'
 
 type AdminSidebarProps = {
   permissions: string[]
@@ -14,6 +18,9 @@ type AdminSidebarProps = {
   workspaceName?: string | null
   workspaceSubtitle?: string | null
   isCompanyLiveEnabled?: boolean
+  preferredMode?: AdminNavigationMode
+  selectedCompanyId?: string | null
+  companyOptions?: Array<{ id: string; name: string; status?: string | null }>
 }
 
 const EXACT_MATCH_ITEMS = new Set(['/admin', '/admin/ediel', '/admin/controltower'])
@@ -23,8 +30,24 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function modeHref(pathname: string, mode: AdminNavigationMode) {
-  return `${pathname}?nav=${mode === 'platform_view' ? 'platform' : 'company'}`
+function nextPath(pathname: string, searchParams: URLSearchParams) {
+  const params = new URLSearchParams(searchParams.toString())
+  params.delete('nav')
+  const query = params.toString()
+  return `${pathname}${query ? `?${query}` : ''}`
+}
+
+function preferenceHref(
+  pathname: string,
+  searchParams: URLSearchParams,
+  mode: AdminNavigationMode,
+  companyId?: string | null
+) {
+  const params = new URLSearchParams()
+  params.set('mode', navigationModeParam(mode))
+  if (companyId) params.set('company_id', companyId)
+  params.set('next', nextPath(pathname, searchParams))
+  return `/admin/navigation-mode?${params.toString()}`
 }
 
 function itemIsPlatformOnly(item: { platformOnly?: boolean }) {
@@ -37,10 +60,13 @@ export default function AdminSidebar({
   workspaceName,
   workspaceSubtitle,
   isCompanyLiveEnabled = false,
+  preferredMode = 'platform_view',
+  selectedCompanyId = null,
+  companyOptions = [],
 }: AdminSidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const requestedMode = searchParams.get('nav') === 'company' ? 'company_view' : 'platform_view'
+  const requestedMode = normalizeAdminNavigationMode(searchParams.get('nav')) ?? preferredMode
   const mode: AdminNavigationMode = isPlatformAdmin ? requestedMode : 'company_view'
   const displayName = workspaceName?.trim() || (isPlatformAdmin ? 'Gridex Plattform' : 'Ditt bolag')
   const displaySubtitle = workspaceSubtitle?.trim() || (isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta')
@@ -91,7 +117,7 @@ export default function AdminSidebar({
           {isPlatformAdmin ? (
             <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-white/70 p-1">
               <Link
-                href={modeHref(pathname, 'platform_view')}
+                href={preferenceHref(pathname, searchParams, 'platform_view', selectedCompanyId)}
                 className={`rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${
                   mode === 'platform_view'
                     ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-700/20'
@@ -101,7 +127,7 @@ export default function AdminSidebar({
                 Plattform
               </Link>
               <Link
-                href={modeHref(pathname, 'company_view')}
+                href={preferenceHref(pathname, searchParams, 'company_view', selectedCompanyId)}
                 className={`rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${
                   mode === 'company_view'
                     ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-700/20'
@@ -111,6 +137,33 @@ export default function AdminSidebar({
                 Bolagsvy
               </Link>
             </div>
+          ) : null}
+
+          {isPlatformAdmin && mode === 'company_view' && companyOptions.length > 0 ? (
+            <label className="mt-3 block">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-900">
+                Aktivt bolag
+              </span>
+              <select
+                value={selectedCompanyId ?? ''}
+                onChange={(event) => {
+                  window.location.href = preferenceHref(
+                    pathname,
+                    searchParams,
+                    'company_view',
+                    event.currentTarget.value || null
+                  )
+                }}
+                className="mt-1 w-full rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
+              >
+                <option value="">Välj bolag</option>
+                {companyOptions.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}{company.status ? ` (${company.status})` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
           ) : null}
         </div>
       </div>
