@@ -188,6 +188,10 @@ function envSecretReference(environment: 'test' | 'production'): string | null {
     `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_PASSWORD`,
     'GRIDEX_SHARED_EDIEL_IMAP_PASS',
     'GRIDEX_SHARED_EDIEL_IMAP_PASSWORD',
+    `EDIEL_${envKey}_IMAP_PASS`,
+    `EDIEL_${envKey}_IMAP_PASSWORD`,
+    'EDIEL_IMAP_PASS',
+    'EDIEL_IMAP_PASSWORD',
   ].find((name) => stringOrNull(process.env[name]))
 
   return passwordEnvName ? `env:${passwordEnvName}` : null
@@ -201,13 +205,19 @@ async function bootstrapSharedMailboxFromEnv(environmentInput: string | null | u
     `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_EMAIL`,
     'GRIDEX_SHARED_EDIEL_EMAIL',
     'GRIDEX_SHARED_EDIEL_IMAP_EMAIL',
-    'EDIEL_INBOUND_EMAIL'
+    'EDIEL_INBOUND_EMAIL',
+    `EDIEL_${envKey}_IMAP_EMAIL`,
+    'EDIEL_IMAP_EMAIL',
+    `EDIEL_${envKey}_IMAP_USER`,
+    'EDIEL_IMAP_USER'
   )
   const imapHost = envValue(
     `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_HOST`,
     `GRIDEX_SHARED_${envKey}_EDIEL_IMAP_HOST`,
     'GRIDEX_SHARED_EDIEL_IMAP_HOST',
-    'EDIEL_INBOUND_IMAP_HOST'
+    'EDIEL_INBOUND_IMAP_HOST',
+    `EDIEL_${envKey}_IMAP_HOST`,
+    'EDIEL_IMAP_HOST'
   )
   const username = envValue(
     `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_USERNAME`,
@@ -215,7 +225,11 @@ async function bootstrapSharedMailboxFromEnv(environmentInput: string | null | u
     'GRIDEX_SHARED_EDIEL_IMAP_USERNAME',
     'GRIDEX_SHARED_EDIEL_IMAP_USER',
     'EDIEL_INBOUND_IMAP_USERNAME',
-    'EDIEL_INBOUND_IMAP_USER'
+    'EDIEL_INBOUND_IMAP_USER',
+    `EDIEL_${envKey}_IMAP_USERNAME`,
+    `EDIEL_${envKey}_IMAP_USER`,
+    'EDIEL_IMAP_USERNAME',
+    'EDIEL_IMAP_USER'
   ) ?? emailAddress
   const secretReference = envSecretReference(environment)
 
@@ -231,7 +245,9 @@ async function bootstrapSharedMailboxFromEnv(environmentInput: string | null | u
       993,
       `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_PORT`,
       'GRIDEX_SHARED_EDIEL_IMAP_PORT',
-      'EDIEL_INBOUND_IMAP_PORT'
+      'EDIEL_INBOUND_IMAP_PORT',
+      `EDIEL_${envKey}_IMAP_PORT`,
+      'EDIEL_IMAP_PORT'
     ),
     username,
     secret_reference: secretReference,
@@ -242,7 +258,9 @@ async function bootstrapSharedMailboxFromEnv(environmentInput: string | null | u
       imap_folder: envValue(
         `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_FOLDER`,
         'GRIDEX_SHARED_EDIEL_IMAP_FOLDER',
-        'EDIEL_INBOUND_IMAP_FOLDER'
+        'EDIEL_INBOUND_IMAP_FOLDER',
+        `EDIEL_${envKey}_IMAP_FOLDER`,
+        'EDIEL_IMAP_FOLDER'
       ) ?? 'INBOX',
       bootstrappedFromEnv: true,
     },
