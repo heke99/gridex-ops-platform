@@ -387,7 +387,7 @@ function mailboxSkipReason(
 
   if (mailbox.locked_at) {
     const lockedAt = new Date(mailbox.locked_at).getTime()
-    if (!Number.isNaN(lockedAt) && now - lockedAt < staleLockMs) return 'locked'
+    if (!options.force && !Number.isNaN(lockedAt) && now - lockedAt < staleLockMs) return 'locked'
   }
 
   if (options.force || !mailbox.last_polled_at) return null
@@ -563,13 +563,18 @@ export async function listDueEdielMailboxes(options: {
   return configuredMailboxes.filter((mailbox) => isEdielMailboxDueForPolling(mailbox, options))
 }
 
-export async function markMailboxPollStarted(mailboxId: string, workerId = 'inbound-mail-engine'): Promise<boolean> {
+export async function markMailboxPollStarted(mailboxId: string, workerId = 'inbound-mail-engine', forceLock = false): Promise<boolean> {
   const staleCutoff = new Date(Date.now() - envInt('EDIEL_INBOUND_STALE_MAILBOX_LOCK_MINUTES', 30) * 60_000).toISOString()
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('ediel_mailboxes')
     .update({ last_polled_at: nowIso(), locked_at: nowIso(), locked_by: workerId, last_error: null, updated_at: nowIso() })
     .eq('id', mailboxId)
-    .or(`locked_at.is.null,locked_at.lt.${staleCutoff}`)
+
+  if (!forceLock) {
+    query = query.or(`locked_at.is.null,locked_at.lt.${staleCutoff}`)
+  }
+
+  const { data, error } = await query
     .select('id')
     .maybeSingle()
 
@@ -780,6 +785,7 @@ export async function pollEdielMailbox(input: {
   workerId?: string
   maxMessages?: number
   markSeen?: boolean
+  forceLock?: boolean
 }): Promise<PollMailboxResult> {
   const workerId = input.workerId ?? 'inbound-mail-engine'
   const result: PollMailboxResult = {
@@ -796,7 +802,7 @@ export async function pollEdielMailbox(input: {
     errors: [],
   }
 
-  const locked = await markMailboxPollStarted(input.mailbox.id, workerId)
+  const locked = await markMailboxPollStarted(input.mailbox.id, workerId, input.forceLock ?? false)
   if (!locked) {
     result.skippedLocked = true
     return result
@@ -1049,6 +1055,7 @@ export async function runInboundEdielMailEngine(input: {
       mailbox,
       workerId,
       maxMessages: input.messageLimitPerMailbox ?? envInt('EDIEL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX', 25),
+      forceLock: force,
     }))
   }
 
