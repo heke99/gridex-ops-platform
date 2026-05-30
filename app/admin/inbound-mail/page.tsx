@@ -15,7 +15,26 @@ type MailboxRow = {
   is_active: boolean | null
   poll_interval_minutes: number | null
   last_polled_at: string | null
+  locked_at?: string | null
+  metadata?: Record<string, unknown> | null
   last_error: string | null
+}
+
+type PollRunRow = {
+  id: string
+  environment: string | null
+  status: string | null
+  configured_mailboxes: number | null
+  due_mailboxes: number | null
+  skipped_locked: number | null
+  skipped_not_due: number | null
+  fetched_messages: number | null
+  stored_emails: number | null
+  deduped_emails: number | null
+  processed_jobs: number | null
+  failed_jobs: number | null
+  started_at: string | null
+  finished_at: string | null
 }
 
 type InboundEmailRow = {
@@ -58,10 +77,11 @@ async function safeOrCount(table: string, orFilter: string) {
 export default async function InboundMailPage() {
   const admin = await requirePlatformAdminAccess()
 
-  const [mailboxesResult, messagesResult, parseResult, totalMessages, manualReviewCount, failedMessageCount, failedJobCount] = await Promise.all([
+  const [mailboxesResult, messagesResult, parseResult, pollRunsResult, totalMessages, manualReviewCount, failedMessageCount, failedJobCount] = await Promise.all([
     supabaseService.from('ediel_mailboxes').select('*').order('updated_at', { ascending: false }).limit(50),
     supabaseService.from('inbound_email_messages').select('*').order('created_at', { ascending: false }).limit(25),
     supabaseService.from('inbound_ediel_parse_results').select('*').order('created_at', { ascending: false }).limit(25),
+    supabaseService.from('ediel_inbound_poll_runs').select('*').order('started_at', { ascending: false }).limit(10),
     safeCount('inbound_email_messages'),
     safeOrCount('inbound_email_messages', 'processing_status.eq.manual_review,match_status.eq.manual_review'),
     safeCount('inbound_email_messages', { processing_status: 'failed' }),
@@ -73,6 +93,7 @@ export default async function InboundMailPage() {
   if (parseResult.error) throw parseResult.error
 
   const mailboxes = (mailboxesResult.data ?? []) as MailboxRow[]
+  const pollRuns = pollRunsResult.error ? [] : (pollRunsResult.data ?? []) as PollRunRow[]
   const messages = (messagesResult.data ?? []) as InboundEmailRow[]
   const parseRows = (parseResult.data ?? []) as ParseRow[]
   const parseByMessageId = new Map(parseRows.map((row) => [row.inbound_email_message_id, row]))
@@ -93,12 +114,12 @@ export default async function InboundMailPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Engine-körning</p>
               <h2 className="mt-2 text-lg font-semibold text-slate-950">Pollning och köprocessor</h2>
-              <p className="mt-1 text-sm text-slate-700">Används av platform admin för manuell debug. Knappen kör aktiv test-mailbox direkt; cron/API följer normalt pollintervallet.</p>
+              <p className="mt-1 text-sm text-slate-700">Normal drift kör shared mailbox via cron var 5:e minut. Knappen är platform/debug och använder shared test-mailbox med force.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <form action={runInboundMailEngineAction}>
                 <input type="hidden" name="environment" value="test" />
-                <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-950/10 hover:bg-emerald-800">Kör engine nu</button>
+                <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-950/10 hover:bg-emerald-800">Importera via IMAP och synka</button>
               </form>
               <form action={processInboundMailQueueAction}>
                 <button className="rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Processa kö</button>
@@ -135,7 +156,7 @@ export default async function InboundMailPage() {
               <h2 className="mt-2 text-lg font-semibold text-slate-950">Aktiva Ediel-mailboxar</h2>
             </div>
             <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-              Polling var 10:e minut som standard
+              Shared Ediel-mailboxar pollas var 5:e minut
             </span>
           </div>
 
@@ -147,16 +168,51 @@ export default async function InboundMailPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-slate-950">{mailbox.mailbox_name ?? mailbox.email_address ?? mailbox.id}</p>
-                    <p className="mt-1 text-xs text-slate-500">{mailbox.environment ?? 'test'} · {mailbox.poll_interval_minutes ?? 10} min</p>
+                    <p className="mt-1 text-xs text-slate-500">{mailbox.environment ?? 'test'} · {mailbox.poll_interval_minutes ?? 5} min · {(mailbox.metadata?.scope as string | undefined) ?? (mailbox.company_id ? 'tenant' : 'legacy shared')}</p>
                   </div>
                   <span className={`rounded-full px-2 py-1 text-xs font-semibold ${mailbox.is_active ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
                     {mailbox.is_active ? 'Aktiv' : 'Inaktiv'}
                   </span>
                 </div>
                 <p className="mt-3 text-xs text-slate-600">Senast pollad: {mailbox.last_polled_at ?? '—'}</p>
+                {mailbox.locked_at ? <p className="mt-1 text-xs font-medium text-amber-700">Låst sedan: {mailbox.locked_at}</p> : null}
                 {mailbox.last_error ? <p className="mt-2 text-xs font-medium text-red-700">{mailbox.last_error}</p> : null}
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
+          <div className="border-b border-slate-100 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Cron health</p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-950">Senaste poll-körningar</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-100 text-sm">
+              <thead className="bg-emerald-50/60 text-left text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
+                <tr>
+                  <th className="px-4 py-3">Miljö</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Mailboxar</th>
+                  <th className="px-4 py-3">Mail</th>
+                  <th className="px-4 py-3">Jobb</th>
+                  <th className="px-4 py-3">Start</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pollRuns.length === 0 ? <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-600">Inga poll-körningar loggade ännu.</td></tr> : null}
+                {pollRuns.map((run) => (
+                  <tr key={run.id}>
+                    <td className="px-4 py-3">{run.environment ?? '—'}</td>
+                    <td className="px-4 py-3">{run.status ?? '—'}</td>
+                    <td className="px-4 py-3">{run.configured_mailboxes ?? 0} konfig · {run.due_mailboxes ?? 0} due · {run.skipped_locked ?? 0} låsta · {run.skipped_not_due ?? 0} ej due</td>
+                    <td className="px-4 py-3">{run.fetched_messages ?? 0} hämtade · {run.stored_emails ?? 0} sparade · {run.deduped_emails ?? 0} dedupe</td>
+                    <td className="px-4 py-3">{run.processed_jobs ?? 0} processed · {run.failed_jobs ?? 0} failed</td>
+                    <td className="px-4 py-3">{run.started_at ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
 
