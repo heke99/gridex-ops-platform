@@ -13,6 +13,21 @@ create table if not exists public.bidding_zones (
 
 alter table if exists public.bidding_zones add column if not exists updated_at timestamptz default now();
 
+create table if not exists public.grid_owners (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid,
+  name text not null,
+  organization_number text,
+  ediel_id text,
+  contact_email text,
+  contact_phone text,
+  website text,
+  default_bidding_zone_code text,
+  is_active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- Some live databases have a generic set_updated_at() trigger attached to legacy
 -- tables that were created before updated_at existed. Add the column before any
 -- backfill write so the trigger cannot fail with "NEW has no field updated_at".
@@ -56,8 +71,10 @@ alter table if exists public.customers add column if not exists acquisition_chan
 alter table if exists public.customers add column if not exists campaign_id uuid;
 alter table if exists public.customers add column if not exists sales_agent_id uuid;
 alter table if exists public.customers add column if not exists partner_id uuid;
+alter table if exists public.customers add column if not exists company_id uuid;
 alter table if exists public.customers add column if not exists updated_at timestamptz default now();
 
+alter table if exists public.grid_owners add column if not exists company_id uuid;
 alter table if exists public.grid_owners add column if not exists organization_number text;
 alter table if exists public.grid_owners add column if not exists contact_email text;
 alter table if exists public.grid_owners add column if not exists contact_phone text;
@@ -72,6 +89,7 @@ set organization_number = coalesce(organization_number, org_number),
 where to_regclass('public.grid_owners') is not null;
 
 alter table if exists public.customer_sites add column if not exists bidding_zone_code text;
+alter table if exists public.customer_sites add column if not exists company_id uuid;
 alter table if exists public.customer_sites add column if not exists municipality text;
 alter table if exists public.customer_sites add column if not exists address text;
 alter table if exists public.customer_sites add column if not exists updated_at timestamptz default now();
@@ -82,6 +100,7 @@ set bidding_zone_code = coalesce(bidding_zone_code, price_area_code),
 where to_regclass('public.customer_sites') is not null;
 
 alter table if exists public.metering_points add column if not exists bidding_zone_code text;
+alter table if exists public.metering_points add column if not exists company_id uuid;
 alter table if exists public.metering_points add column if not exists metering_method text;
 alter table if exists public.metering_points add column if not exists settlement_method text;
 alter table if exists public.metering_points add column if not exists estimated_annual_consumption_kwh numeric;
@@ -98,6 +117,7 @@ where mp.site_id = cs.id
   and to_regclass('public.customer_sites') is not null;
 
 alter table if exists public.metering_values add column if not exists bidding_zone_code text;
+alter table if exists public.metering_values add column if not exists company_id uuid;
 alter table if exists public.metering_values add column if not exists resolution text;
 alter table if exists public.metering_values add column if not exists quantity_kwh numeric;
 alter table if exists public.metering_values add column if not exists quality text;
