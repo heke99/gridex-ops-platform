@@ -92,6 +92,13 @@ export async function calculateMeteringPointForecast(input: {
     return { forecastKwh: sameMonthPreviousYear, confidenceScore: 95, method: 'history', issues: [] }
   }
 
+  const lastTwelveStart = new Date(`${periodStart}T00:00:00.000Z`)
+  lastTwelveStart.setUTCMonth(lastTwelveStart.getUTCMonth() - 12)
+  const lastTwelveKwh = await actualKwhForPeriod(input.companyId, input.meteringPointId, lastTwelveStart.toISOString().slice(0, 10), periodStart)
+  if (lastTwelveKwh > 0) {
+    return { forecastKwh: lastTwelveKwh / 12, confidenceScore: 85, method: 'history', issues: ['average_last_12_months'] }
+  }
+
   const lastThreeStart = new Date(`${periodStart}T00:00:00.000Z`)
   lastThreeStart.setUTCMonth(lastThreeStart.getUTCMonth() - 3)
   const lastThreeKwh = await actualKwhForPeriod(input.companyId, input.meteringPointId, lastThreeStart.toISOString().slice(0, 10), periodStart)

@@ -14,7 +14,7 @@ type IssueInput = {
 const ACTIVE_STATUSES = ['active', 'live', 'ongoing']
 
 function isMissingRelation(error: { message?: string } | null): boolean {
-  return Boolean(error?.message && /does not exist|schema cache|Could not find/i.test(error.message))
+  return Boolean(error?.message && /does not exist|schema cache|Could not find|column .* does not exist/i.test(error.message))
 }
 
 async function upsertIssue(issue: IssueInput): Promise<void> {
@@ -219,6 +219,89 @@ export async function scanCompanyDataQuality(companyId: string, month = monthSta
         message: 'Aktiv kund saknar aktiv mätpunkt.',
       })
     }
+  }
+
+  const { data: incompleteCustomers, error: incompleteError } = await supabaseService
+    .from('customers')
+    .select('id, email, status, onboarding_status')
+    .eq('company_id', companyId)
+    .limit(5000)
+
+  if (incompleteError && !isMissingRelation(incompleteError)) throw incompleteError
+  for (const customer of incompleteCustomers ?? []) {
+    const status = String(customer.status ?? '').toLowerCase()
+    const onboarding = String(customer.onboarding_status ?? '').toLowerCase()
+    if (ACTIVE_STATUSES.includes(status) && (!customer.email || ['draft', 'incomplete', 'pending'].includes(onboarding))) {
+      issues += 1
+      await upsertIssue({
+        companyId,
+        entityType: 'customer',
+        entityId: customer.id,
+        issueType: 'incomplete_customer_onboarding',
+        message: 'Kunddata är ofullständig för aktiv kund.',
+      })
+    }
+  }
+
+  const { data: failedEdiel, error: edielError } = await supabaseService
+    .from('ediel_messages')
+    .select('id, message_family, status, failure_reason')
+    .eq('company_id', companyId)
+    .in('status', ['failed', 'error', 'rejected', 'blocked'])
+    .limit(500)
+
+  if (edielError && !isMissingRelation(edielError)) throw edielError
+  for (const message of failedEdiel ?? []) {
+    issues += 1
+    await upsertIssue({
+      companyId,
+      entityType: 'ediel_message',
+      entityId: message.id,
+      issueType: 'failed_ediel_message',
+      severity: 'critical',
+      message: `${message.message_family ?? 'Ediel'}-meddelande misslyckades${message.failure_reason ? `: ${message.failure_reason}` : '.'}`,
+    })
+  }
+
+  const slowThreshold = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString()
+  const { data: slowRequests, error: slowError } = await supabaseService
+    .from('grid_owner_data_requests')
+    .select('id, grid_owner_id, status, created_at')
+    .eq('company_id', companyId)
+    .in('status', ['pending', 'queued', 'sent', 'waiting_response'])
+    .lt('created_at', slowThreshold)
+    .limit(500)
+
+  if (slowError && !isMissingRelation(slowError)) throw slowError
+  for (const request of slowRequests ?? []) {
+    issues += 1
+    await upsertIssue({
+      companyId,
+      entityType: 'grid_owner_data_request',
+      entityId: request.id,
+      issueType: 'slow_grid_owner_response',
+      message: 'Nätägarsvar har inte kommit inom 72 timmar.',
+    })
+  }
+
+  const { data: forecastDeviations, error: deviationError } = await supabaseService
+    .from('forecast_run_items')
+    .select('id, metering_point_id, diff_percent')
+    .eq('company_id', companyId)
+    .not('diff_percent', 'is', null)
+    .or('diff_percent.gt.10,diff_percent.lt.-10')
+    .limit(500)
+
+  if (deviationError && !isMissingRelation(deviationError)) throw deviationError
+  for (const item of forecastDeviations ?? []) {
+    issues += 1
+    await upsertIssue({
+      companyId,
+      entityType: 'metering_point',
+      entityId: item.metering_point_id ?? item.id,
+      issueType: 'forecast_deviation',
+      message: `Prognosen avviker med ${Math.round(Number(item.diff_percent ?? 0))} % mot faktiskt utfall.`,
+    })
   }
 
   await refreshDashboardAlerts(companyId)

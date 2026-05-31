@@ -29,6 +29,17 @@ async function sumRows(table: string, column: string, companyId: string, build?:
   return ((data ?? []) as unknown as Array<Record<string, unknown>>).reduce((sum, row) => sum + asNumber(row[column]), 0)
 }
 
+async function distinctCountRows(table: string, column: string, companyId: string, build?: (query: any) => any): Promise<number> {
+  let query = supabaseService.from(table).select(column).eq('company_id', companyId)
+  if (build) query = build(query)
+  const { data, error } = await query
+  if (error) {
+    if (/does not exist|schema cache|Could not find|column .* does not exist/i.test(error.message)) return 0
+    throw error
+  }
+  return new Set(((data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => row[column]).filter(Boolean)).size
+}
+
 export async function buildCompanyMonthlyMetrics(companyId: string, month: string): Promise<void> {
   const safeMonth = monthStart(month)
   const start = `${safeMonth}T00:00:00.000Z`
@@ -148,7 +159,8 @@ async function buildBiddingZoneMonthlyMetrics(companyId: string, month: string):
   const start = `${month}T00:00:00.000Z`
   const end = `${monthEndExclusive(month)}T00:00:00.000Z`
   for (const zone of zones) {
-    const [sites, meteringPoints, forecastKwh, actualKwh] = await Promise.all([
+    const [customers, sites, meteringPoints, forecastKwh, actualKwh] = await Promise.all([
+      distinctCountRows('metering_points', 'customer_id', companyId, (query) => query.eq('bidding_zone_code', zone)),
       countRows('customer_sites', companyId, (query) => query.eq('bidding_zone_code', zone)),
       countRows('metering_points', companyId, (query) => query.eq('bidding_zone_code', zone)),
       sumRows('forecast_run_items', 'forecast_kwh', companyId, (query) => query.eq('bidding_zone_code', zone).gte('period_start', month).lt('period_start', addMonths(month, 1))),
@@ -159,7 +171,7 @@ async function buildBiddingZoneMonthlyMetrics(companyId: string, month: string):
       company_id: companyId,
       bidding_zone_code: zone,
       month,
-      customers_count: 0,
+      customers_count: customers,
       sites_count: sites,
       metering_points_count: meteringPoints,
       forecast_kwh: forecastKwh,
@@ -186,11 +198,13 @@ async function buildGridOwnerMonthlyMetrics(companyId: string, month: string): P
   const start = `${month}T00:00:00.000Z`
   const end = `${monthEndExclusive(month)}T00:00:00.000Z`
   for (const owner of owners ?? []) {
-    const [sites, meteringPoints, received, missing, failed, forecastKwh, actualKwh] = await Promise.all([
+    const [customers, sites, meteringPoints, received, missing, requested, failed, forecastKwh, actualKwh] = await Promise.all([
+      distinctCountRows('metering_points', 'customer_id', companyId, (query) => query.eq('grid_owner_id', owner.id)),
       countRows('customer_sites', companyId, (query) => query.eq('grid_owner_id', owner.id)),
       countRows('metering_points', companyId, (query) => query.eq('grid_owner_id', owner.id)),
       countRows('metering_values', companyId, (query) => query.eq('grid_owner_id', owner.id).gte('period_start', start).lt('period_start', end)),
       countRows('data_quality_issues', companyId, (query) => query.eq('status', 'open').eq('issue_type', 'missing_metering_values')),
+      countRows('grid_owner_data_requests', companyId, (query) => query.eq('grid_owner_id', owner.id).gte('created_at', start).lt('created_at', end)),
       countRows('grid_owner_data_requests', companyId, (query) => query.eq('grid_owner_id', owner.id).gte('created_at', start).lt('created_at', end).in('status', FAILED_STATUSES)),
       sumRows('forecast_run_items', 'forecast_kwh', companyId, (query) => query.eq('grid_owner_id', owner.id).gte('period_start', month).lt('period_start', addMonths(month, 1))),
       sumRows('metering_values', 'quantity_kwh', companyId, (query) => query.eq('grid_owner_id', owner.id).gte('period_start', start).lt('period_start', end)),
@@ -200,8 +214,10 @@ async function buildGridOwnerMonthlyMetrics(companyId: string, month: string): P
       company_id: companyId,
       grid_owner_id: owner.id,
       month,
+      customers_count: customers,
       sites_count: sites,
       metering_points_count: meteringPoints,
+      metering_values_requested: requested,
       metering_values_received: received,
       metering_values_missing: missing,
       failed_requests_count: failed,
