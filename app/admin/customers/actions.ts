@@ -40,6 +40,17 @@ import {
   syncCustomerOperationsForSite,
 } from "@/lib/operations/db";
 import type { SupplierSwitchRequestType } from "@/lib/operations/types";
+import {
+  isValidEmailAddress,
+  isValidFacilityId,
+  isValidMeterPointId,
+  isValidSwedishOrganizationNumber,
+  isValidSwedishPersonalNumber,
+  isValidSwedishPhoneNumber,
+  isValidSwedishPostalCode,
+} from "@/lib/validation/customerFields";
+import { emitDomainEvent } from "@/lib/events/domainEvents";
+import { enqueueWebhookDeliveriesForEvent } from "@/lib/integrations/webhooks";
 
 type CustomerType = "private" | "business" | "association";
 type SiteType = "consumption" | "production" | "mixed";
@@ -267,29 +278,20 @@ function getFormValues(formData: FormData): IntakeFormValues {
   return values;
 }
 
-function onlyDigits(value: string | null | undefined): string {
-  return (value ?? "").replace(/\D/g, "");
-}
-
 function isSwedishIdentityNumber(value: string | null | undefined): boolean {
-  const digits = onlyDigits(value);
-  return digits.length === 10 || digits.length === 12;
+  return isValidSwedishPersonalNumber(value);
 }
 
 function isSwedishOrgNumber(value: string | null | undefined): boolean {
-  const digits = onlyDigits(value);
-  return digits.length === 10 || digits.length === 12;
+  return isValidSwedishOrganizationNumber(value);
 }
 
 function isSwedishPhone(value: string | null | undefined): boolean {
-  if (!value) return true;
-  const compact = value.replace(/[\s().-]/g, "");
-  return /^(\+46|0046|0)\d{7,12}$/.test(compact);
+  return isValidSwedishPhoneNumber(value);
 }
 
 function isSwedishPostalCode(value: string | null | undefined): boolean {
-  if (!value) return true;
-  return /^\d{3}\s?\d{2}$/.test(value.trim());
+  return isValidSwedishPostalCode(value);
 }
 
 function getString(formData: FormData, key: string): string {
@@ -663,8 +665,7 @@ function isIsoDate(value: string | null | undefined): boolean {
 }
 
 function isEmail(value: string | null | undefined): boolean {
-  if (!value) return true;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  return isValidEmailAddress(value);
 }
 
 function validateCreateCustomerParams(
@@ -702,14 +703,32 @@ function validateCreateCustomerParams(
     normalizeOptionalString(params.personalNumber) &&
     !isSwedishIdentityNumber(params.personalNumber)
   ) {
-    errors.personalNumber = "Personnummer ska anges med 10 eller 12 siffror.";
+    errors.personalNumber =
+      "Personnummer ska vara ett giltigt svenskt personnummer med kontrollsiffra.";
   }
 
   if (
     normalizeOptionalString(params.orgNumber) &&
     !isSwedishOrgNumber(params.orgNumber)
   ) {
-    errors.orgNumber = "Organisationsnummer ska anges med 10 eller 12 siffror.";
+    errors.orgNumber =
+      "Organisationsnummer ska vara ett giltigt svenskt organisationsnummer med kontrollsiffra.";
+  }
+
+  if (
+    normalizeOptionalString(params.facilityId) &&
+    !isValidFacilityId(params.facilityId)
+  ) {
+    errors.facilityId =
+      "Anläggnings-id får bara innehålla bokstäver, siffror och bindestreck.";
+  }
+
+  if (
+    normalizeOptionalString(params.meterPointId) &&
+    !isValidMeterPointId(params.meterPointId)
+  ) {
+    errors.meterPointId =
+      "Mätpunkts-id får bara innehålla bokstäver, siffror och bindestreck.";
   }
 
   if (!isEmail(params.email)) {
@@ -3341,6 +3360,33 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
         transactionReadyMode: "server_validated_rollback",
       },
     });
+
+    const domainEvent = await emitDomainEvent({
+      companyId: params.companyId,
+      eventType: createdNewCustomer ? "customer.created" : "customer.updated_from_intake",
+      aggregateType: "customer",
+      aggregateId: customer.id,
+      subjectCustomerId: customer.id,
+      actorUserId: params.actorUserId,
+      source: "customer_intake",
+      idempotencyKey: `customer_intake:${params.companyId}:${customer.id}:${creationContext.siteId ?? "no_site"}:${creationContext.contractId ?? "no_contract"}`,
+      payload: {
+        intakeFlowType: params.intakeFlowType,
+        intakeStatus,
+        siteId,
+        meteringPointId: creationContext.meteringPointId,
+        contractId: creationContext.contractId,
+        switchRequestId: creationContext.switchRequestId,
+        powerOfAttorneyId: creationContext.powerOfAttorneyId,
+        missingData,
+        addressWarnings,
+        duplicateReviewRequired,
+      },
+    }).catch(() => null);
+
+    if (domainEvent) {
+      await enqueueWebhookDeliveriesForEvent(domainEvent).catch(() => 0);
+    }
 
     return {
       ...customer,
