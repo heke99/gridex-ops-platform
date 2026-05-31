@@ -103,6 +103,38 @@ export async function markCommunicationFailed(logId: string, errorMessage: strin
   return data as CommunicationLog
 }
 
+export async function markCommunicationDelivered(logId: string, occurredAt: string) {
+  const { data, error } = await supabaseService
+    .from('communication_logs')
+    .update({
+      status: 'delivered',
+      delivered_at: occurredAt,
+      error_message: null,
+    })
+    .eq('id', logId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as CommunicationLog
+}
+
+export async function markCommunicationBounced(logId: string, errorMessage: string, occurredAt: string) {
+  const { data, error } = await supabaseService
+    .from('communication_logs')
+    .update({
+      status: 'bounced',
+      error_message: errorMessage,
+      bounced_at: occurredAt,
+    })
+    .eq('id', logId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as CommunicationLog
+}
+
 export async function getCustomerCommunicationLogs(companyId: string, customerId: string): Promise<CommunicationLog[]> {
   const { data, error } = await supabaseService
     .from('communication_logs')
