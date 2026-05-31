@@ -537,10 +537,35 @@ export async function listAckMessagesForSource(params: {
   outcome?: 'positive' | 'negative'
   companyId?: string | null
 }): Promise<EdielMessageRow[]> {
+  const rowsBySource = await listAckMessagesForSources({
+    sourceMessageIds: [params.sourceMessageId],
+    ackFamily: params.ackFamily,
+    outcome: params.outcome,
+    companyId: params.companyId,
+  })
+
+  return rowsBySource.get(params.sourceMessageId) ?? []
+}
+
+export async function listAckMessagesForSources(params: {
+  sourceMessageIds: string[]
+  ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative'
+  companyId?: string | null
+}): Promise<Map<string, EdielMessageRow[]>> {
+  const sourceMessageIds = Array.from(new Set(params.sourceMessageIds.filter(Boolean)))
+  const rowsBySource = new Map<string, EdielMessageRow[]>()
+
+  for (const sourceMessageId of sourceMessageIds) {
+    rowsBySource.set(sourceMessageId, [])
+  }
+
+  if (sourceMessageIds.length === 0) return rowsBySource
+
   let query = supabaseService
     .from('ediel_messages')
     .select('*')
-    .eq('related_message_id', params.sourceMessageId)
+    .in('related_message_id', sourceMessageIds)
     .in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR'])
 
   query = applyCompanyScope(query, params.companyId)
@@ -558,9 +583,14 @@ export async function listAckMessagesForSource(params: {
   if (error) throw error
 
   const rows = (data ?? []) as EdielMessageRow[]
-  if (!params.outcome) return rows
+  const filteredRows = params.outcome ? rows.filter((row) => inferAckOutcome(row) === params.outcome) : rows
 
-  return rows.filter((row) => inferAckOutcome(row) === params.outcome)
+  for (const row of filteredRows) {
+    if (!row.related_message_id) continue
+    rowsBySource.get(row.related_message_id)?.push(row)
+  }
+
+  return rowsBySource
 }
 
 export async function getEdielMessageAckStateById(
