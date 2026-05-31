@@ -67,6 +67,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag till fakturering/export', pageKey: 'billing.workspace' },
       { key: 'billing_export', label: 'Exportcenter', href: '/admin/billing/export-center', description: 'Redo rader, blockerare och exporthistorik', pageKey: 'billing.export_center' },
       { key: 'outbound', label: 'Utskick', href: '/admin/outbound', description: 'Extern kommunikation i affärsspråk', pageKey: 'outbound.queue' },
+      { key: 'data_quality', label: 'Data quality', href: '/admin/data-quality', description: 'Felaktiga fält, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
     ],
   },
   {
@@ -121,6 +122,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Z01/Z02 och kompletteringar', pageKey: 'customer.info_requests' },
       { key: 'metering', label: 'Mätvärdesåtkomst', href: '/admin/metering', description: 'Mätvärden och tillstånd', pageKey: 'metering.workspace' },
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag och exportberedskap', pageKey: 'billing.workspace' },
+      { key: 'data_quality', label: 'Data quality', href: '/admin/data-quality', description: 'Felaktiga fält, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
     ],
   },
   {

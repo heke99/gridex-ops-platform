@@ -24,12 +24,35 @@ function isValidHex(value: string | null) {
   return Boolean(value && /^#[0-9a-fA-F]{6}$/.test(value))
 }
 
-export async function getTenantEmailBranding(companyId: string): Promise<TenantEmailBranding> {
+async function getVerifiedSenderProfile(companyId: string): Promise<{
+  from_email: string
+  reply_to_email: string | null
+} | null> {
   const { data, error } = await supabaseService
+    .from('tenant_email_sender_profiles')
+    .select('from_email, reply_to_email')
+    .eq('company_id', companyId)
+    .eq('status', 'verified')
+    .eq('is_default', true)
+    .maybeSingle()
+
+  if (error) {
+    if (['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) return null
+    throw error
+  }
+
+  return data as { from_email: string; reply_to_email: string | null } | null
+}
+
+export async function getTenantEmailBranding(companyId: string): Promise<TenantEmailBranding> {
+  const [{ data, error }, senderProfile] = await Promise.all([
+    supabaseService
     .from('companies')
     .select('id, name, support_email, billing_contact_email, primary_contact_email, website, branding')
     .eq('id', companyId)
-    .maybeSingle()
+    .maybeSingle(),
+    getVerifiedSenderProfile(companyId),
+  ])
 
   if (error) throw error
   if (!data) throw new Error('Bolaget hittades inte för e-postprofil.')
@@ -41,7 +64,7 @@ export async function getTenantEmailBranding(companyId: string): Promise<TenantE
   const displayName = readString(branding, 'display_name') ?? data.name
   const supportEmail = readString(branding, 'support_email') ?? data.support_email ?? data.primary_contact_email ?? null
   const billingEmail = readString(branding, 'billing_email') ?? data.billing_contact_email ?? supportEmail
-  const senderEmail = readString(branding, 'sender_email') ?? supportEmail ?? null
+  const senderEmail = senderProfile?.from_email ?? readString(branding, 'sender_email') ?? supportEmail ?? null
   const customerPortalName = readString(branding, 'customer_portal_name') ?? displayName
   const primaryColorCandidate = readString(branding, 'primary_color')
 
@@ -49,7 +72,7 @@ export async function getTenantEmailBranding(companyId: string): Promise<TenantE
     companyId: String(data.id),
     companyName: data.name,
     displayName,
-    supportEmail,
+    supportEmail: senderProfile?.reply_to_email ?? supportEmail,
     billingEmail,
     senderEmail,
     customerPortalName,
