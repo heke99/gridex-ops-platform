@@ -36,6 +36,15 @@ export type CustomerListRow = {
 type RawCustomerRow = Record<string, unknown> & { id?: string }
 
 const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
+const STATUS_COUNT_KEYS: Exclude<CustomerStatusFilter, 'all'>[] = [
+  'draft',
+  'pending_verification',
+  'active',
+  'inactive',
+  'moved',
+  'terminated',
+  'blocked',
+]
 const CUSTOMER_LIST_SELECT = [
   'id',
   'customer_type',
@@ -93,6 +102,20 @@ type GetCustomersOptions = {
   companyId?: string | null
   customerType?: CustomerTypeFilter
   flag?: CustomerFlagFilter
+}
+
+type CustomerQueryResult = {
+  data?: unknown[] | null
+  error: unknown
+  count?: number | null
+}
+
+type CustomerQuery = PromiseLike<CustomerQueryResult> & {
+  eq: (column: string, value: string) => CustomerQuery
+  not: (column: string, operator: string, value: unknown) => CustomerQuery
+  or: (filters: string) => CustomerQuery
+  order: (column: string, options?: { ascending?: boolean }) => CustomerQuery
+  range: (from: number, to: number) => CustomerQuery
 }
 
 export type CustomerStatusFilter =
@@ -219,6 +242,123 @@ function matchesFlag(row: CustomerListRow, flag: CustomerFlagFilter): boolean {
   if (flag === 'cancelled') return row.status === 'cancelled'
   if (flag === 'rejected') return row.status === 'rejected'
   return true
+}
+
+function canUsePagedCustomerQuery(params: {
+  query: string
+  contractFilter: LatestContractBucketFilter
+  flag: CustomerFlagFilter
+}): boolean {
+  return params.query.length === 0 && params.contractFilter === 'all' && params.flag === 'all'
+}
+
+function applyBaseCustomerFilters(query: CustomerQuery, companyId: string | null): CustomerQuery {
+  let scopedQuery = query
+    .not('company_id', 'is', null)
+    .or('source.is.null,source.neq.ediel_portal_test')
+    .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
+
+  if (companyId) scopedQuery = scopedQuery.eq('company_id', companyId)
+
+  return scopedQuery
+}
+
+function applyCustomerTypeQueryFilter(
+  query: CustomerQuery,
+  customerType: CustomerTypeFilter
+): CustomerQuery {
+  if (customerType === 'all') return query
+  if (customerType === 'private') return query.or('customer_type.is.null,customer_type.eq.private')
+  return query.eq('customer_type', customerType)
+}
+
+function applyStatusQueryFilter(
+  query: CustomerQuery,
+  status: CustomerStatusFilter
+): CustomerQuery {
+  return status === 'all' ? query : query.eq('status', status)
+}
+
+async function countCustomersByStatus(params: {
+  companyId: string | null
+  customerType: CustomerTypeFilter
+}): Promise<CustomerStatusCounts> {
+  const countForStatus = async (status: CustomerStatusFilter) => {
+    const query = applyStatusQueryFilter(
+      applyCustomerTypeQueryFilter(
+        applyBaseCustomerFilters(
+          supabaseService.from('customers').select('id', { count: 'exact', head: true }) as unknown as CustomerQuery,
+          params.companyId
+        ),
+        params.customerType
+      ),
+      status
+    )
+
+    const { count, error } = await query
+    if (error) throw error
+    return count ?? 0
+  }
+
+  const [all, ...statusCounts] = await Promise.all([
+    countForStatus('all'),
+    ...STATUS_COUNT_KEYS.map((status) => countForStatus(status)),
+  ])
+
+  return {
+    all,
+    draft: statusCounts[0] ?? 0,
+    pending_verification: statusCounts[1] ?? 0,
+    active: statusCounts[2] ?? 0,
+    inactive: statusCounts[3] ?? 0,
+    moved: statusCounts[4] ?? 0,
+    terminated: statusCounts[5] ?? 0,
+    blocked: statusCounts[6] ?? 0,
+  }
+}
+
+async function loadPagedCustomerRows(params: {
+  page: number
+  pageSize: number
+  status: CustomerStatusFilter
+  companyId: string | null
+  customerType: CustomerTypeFilter
+}): Promise<{ rows: CustomerListRow[]; total: number; counts: CustomerStatusCounts }> {
+  const from = (params.page - 1) * params.pageSize
+  const to = from + params.pageSize - 1
+
+  const query = applyStatusQueryFilter(
+    applyCustomerTypeQueryFilter(
+      applyBaseCustomerFilters(
+        supabaseService.from('customers').select(CUSTOMER_LIST_SELECT, { count: 'exact' }) as unknown as CustomerQuery,
+        params.companyId
+      ),
+      params.customerType
+    ),
+    params.status
+  )
+    .order('created_at', { ascending: false })
+    .range(from, to)
+
+  const [{ data, error, count }, counts] = await Promise.all([
+    query,
+    countCustomersByStatus({
+      companyId: params.companyId,
+      customerType: params.customerType,
+    }),
+  ])
+
+  if (error) throw error
+
+  const rows = ((data ?? []) as unknown as RawCustomerRow[])
+    .filter((row) => typeof row.id === 'string')
+    .map(normalizeCustomerRow)
+
+  return {
+    rows: await hydrateDerivedCustomerData(rows, params.companyId),
+    total: count ?? rows.length,
+    counts,
+  }
 }
 
 async function loadCustomerRows(companyId: string | null): Promise<CustomerListRow[]> {
@@ -384,6 +524,26 @@ export async function listCustomersPage(options: {
   const customerType = options.customerType ?? 'all'
   const flag = options.flag ?? 'all'
   const companyId = options.companyId ?? null
+
+  if (canUsePagedCustomerQuery({ query, contractFilter, flag })) {
+    const pagedRows = await loadPagedCustomerRows({
+      page,
+      pageSize,
+      status,
+      companyId,
+      customerType,
+    })
+    const totalPages = Math.max(1, Math.ceil(pagedRows.total / pageSize))
+
+    return {
+      rows: pagedRows.rows,
+      total: pagedRows.total,
+      page,
+      pageSize,
+      totalPages,
+      counts: pagedRows.counts,
+    }
+  }
 
   const allRows = await hydrateDerivedCustomerData(await loadCustomerRows(companyId), companyId)
   const searchedRows = allRows.filter((row) => matchesText(row, query))

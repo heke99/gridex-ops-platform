@@ -3,7 +3,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
-import { listAckMessagesForSource, listEdielMessages } from '@/lib/ediel/db'
+import { listAckMessagesForSources, listEdielMessages } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
  deleteEdielMessageAction,
@@ -182,16 +182,17 @@ export default async function AdminEdielMessagesPage({
  })
 
  const topLevelMessages = messages.filter((message) => shouldShowAsOwnMessageCard(message, family))
+ const ackMessagesBySource = await listAckMessagesForSources({
+ sourceMessageIds: topLevelMessages
+ .filter((message) => message.direction === 'inbound')
+ .map((message) => message.id),
+ companyId,
+ })
 
- const rows: RowWithAcks[] = await Promise.all(
- topLevelMessages.map(async (message) => ({
+ const rows: RowWithAcks[] = topLevelMessages.map((message) => ({
  message,
- ackMessages:
- message.direction === 'inbound'
- ? await listAckMessagesForSource({ sourceMessageId: message.id, companyId })
- : [],
+ ackMessages: message.direction === 'inbound' ? ackMessagesBySource.get(message.id) ?? [] : [],
  }))
- )
 
  return (
  <div className="min-h-screen bg-slate-50">
