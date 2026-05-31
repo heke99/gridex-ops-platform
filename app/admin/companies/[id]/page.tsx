@@ -11,13 +11,23 @@ import {
 } from '@/lib/tenant/governance'
 import { getActorTestingSummary, getActorTestingStatusLabel, getProductionReadinessLabel } from '@/lib/ediel/actorTesting'
 import { getCompanyActorConfiguration, type CompanyActorConfiguration, type EdielConfigRow } from '@/lib/ediel/companyActorConfiguration'
-import {
-  listTenantEmailTemplates,
-  TENANT_EMAIL_TEMPLATE_DEFINITIONS,
-  type TenantEmailTemplateRow,
-} from '@/lib/tenant/emailTemplates'
+import { CopyButton, CopyDnsRecordsButton } from '@/components/admin/email/CopyButtons'
+import { getCompanyEmailSettings, getEffectiveSender, type CompanyEmailSettings } from '@/lib/email/companyEmailSettings'
+import { getCompanyDnsRecords, type CompanyEmailDnsRecord } from '@/lib/email/dnsRecords'
+import { getEmailEventRules, type EmailEventRule } from '@/lib/email/emailEvents'
+import { DEFAULT_EMAIL_TEMPLATES, EMAIL_TEMPLATE_VARIABLES, getCompanyEmailTemplates, type CompanyEmailTemplate } from '@/lib/email/emailTemplates'
+import { getCompanyCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
-import { saveTenantEmailTemplateAction } from './email-template-actions'
+import {
+  checkCompanyDomainVerificationAction,
+  resetEmailTemplateAction,
+  saveCompanyEmailSettingsAction,
+  seedDefaultCompanyEmailAction,
+  sendCompanyTestEmailAction,
+  startCompanyDomainVerificationAction,
+  updateEmailEventRuleAction,
+  updateEmailTemplateAction,
+} from './email-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -262,69 +272,201 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
   )
 }
 
-function CompanyEmailTemplates({
+const VERIFICATION_STATUS_LABELS: Record<string, string> = {
+  not_started: 'Ej startad',
+  pending_dns: 'Väntar på DNS',
+  verified: 'Verifierad',
+  failed: 'Fel vid verifiering',
+  disabled: 'Inaktiv',
+}
+
+const DNS_STATUS_LABELS: Record<string, string> = {
+  pending: 'Väntar',
+  verified: 'Verifierad',
+  failed: 'Fel',
+}
+
+const IMPORTANT_EVENT_LABELS: Array<{ eventKey: string; label: string }> = [
+  { eventKey: 'contract_signed', label: 'Avtalsbekräftelse' },
+  { eventKey: 'cancellation_right_started', label: 'Ångerrätt' },
+  { eventKey: 'delivery_start_confirmed', label: 'Leveransstart' },
+  { eventKey: 'missing_customer_information', label: 'Saknade uppgifter' },
+  { eventKey: 'power_of_attorney_signed', label: 'Fullmaktsbekräftelse' },
+]
+
+const TEMPLATE_UI_KEYS = [
+  'contract_confirmation',
+  'welcome_email',
+  'cancellation_right',
+  'delivery_start_confirmed',
+  'missing_information',
+  'power_of_attorney_confirmation',
+]
+
+function statusTone(status: string | null | undefined) {
+  if (status === 'verified' || status === 'sent') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (status === 'failed' || status === 'bounced') return 'border-red-200 bg-red-50 text-red-800'
+  if (status === 'pending_dns' || status === 'queued') return 'border-amber-200 bg-amber-50 text-amber-900'
+  return 'border-slate-200 bg-slate-50 text-slate-700'
+}
+
+function CompanyEmailSection({
   company,
+  settings,
+  dnsRecords,
+  eventRules,
   templates,
+  logs,
+  effectiveSender,
 }: {
   company: GovernanceCompany
-  templates: TenantEmailTemplateRow[]
+  settings: CompanyEmailSettings | null
+  dnsRecords: CompanyEmailDnsRecord[]
+  eventRules: EmailEventRule[]
+  templates: CompanyEmailTemplate[]
+  logs: CommunicationLog[]
+  effectiveSender: Awaited<ReturnType<typeof getEffectiveSender>>
 }) {
-  const byKey = new Map(templates.map((template) => [template.template_key, template]))
+  const rulesByEvent = new Map(eventRules.map((rule) => [rule.event_key, rule]))
+  const templatesByKey = new Map(templates.map((template) => [template.template_key, template]))
+  const latestDnsCheck = dnsRecords.map((record) => record.last_checked_at).filter(Boolean).sort().at(-1)
+  const settingStatus = settings?.verification_status ?? 'not_started'
 
   return (
-    <section id="email-templates" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">E-postmallar</p>
-          <h2 className="mt-2 text-xl font-black text-slate-950">Tenant-anpassade kundutskick</h2>
-          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-700">
-            Superadmin sätter bolagets mallar en gång. Kundflöden använder mallarna automatiskt när kund skapas, överflytt startar, ånger/flytt registreras eller annullering skickas.
-          </p>
-        </div>
-        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
-          {templates.filter((template) => template.is_active).length}/{TENANT_EMAIL_TEMPLATE_DEFINITIONS.length} aktiva
-        </span>
+    <section id="email" className="space-y-5">
+      <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">E-post</p>
+        <h2 className="mt-2 text-2xl font-black text-slate-950">E-postinställningar för elbolag</h2>
+        <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
+          Aktiv avsändare: {effectiveSender.from}. Reply-to: {effectiveSender.replyTo ?? 'saknas'}.
+        </p>
+        <nav className="mt-5 flex flex-wrap gap-2 text-sm font-black">
+          {['Avsändare', 'Domänverifiering', 'DNS-poster', 'Testmail', 'Automatiska utskick', 'Mailmallar', 'Senaste utskick'].map((label) => (
+            <a key={label} href={`#email-${label.toLowerCase().replaceAll(' ', '-')}`} className="rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-emerald-900 hover:bg-emerald-100">{label}</a>
+          ))}
+        </nav>
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-2">
-        {TENANT_EMAIL_TEMPLATE_DEFINITIONS.map((definition) => {
-          const saved = byKey.get(definition.key)
-          return (
-            <form key={definition.key} action={saveTenantEmailTemplateAction} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-              <input type="hidden" name="company_id" value={company.id} />
-              <input type="hidden" name="template_key" value={definition.key} />
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-black text-slate-950">{definition.label}</h3>
-                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{definition.description}</p>
-                </div>
-                <label className="flex items-center gap-2 text-xs font-black text-slate-700">
-                  <input type="checkbox" name="is_active" defaultChecked={saved?.is_active ?? true} />
-                  Aktiv
-                </label>
-              </div>
-              <label className="mt-4 grid gap-1 text-sm">
-                <span className="text-xs font-bold text-slate-700">Ämne</span>
-                <input name="subject" defaultValue={saved?.subject ?? definition.defaultSubject} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
-              </label>
-              <label className="mt-3 grid gap-1 text-sm">
-                <span className="text-xs font-bold text-slate-700">Intro</span>
-                <textarea name="intro" defaultValue={saved?.intro ?? definition.defaultIntro} rows={2} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
-              </label>
-              <label className="mt-3 grid gap-1 text-sm">
-                <span className="text-xs font-bold text-slate-700">HTML-brödtext</span>
-                <textarea name="body" defaultValue={saved?.body ?? definition.defaultBody} rows={4} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-mono text-xs" />
-              </label>
-              <p className="mt-3 text-xs font-semibold text-slate-600">
-                Variabler: {'{{companyName}}'}, {'{{customerName}}'}, {'{{caseTitle}}'}, {'{{caseType}}'}, {'{{nextAction}}'}, {'{{portalUrl}}'}.
-              </p>
-              <button className="mt-4 rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
-                Spara mall
-              </button>
-            </form>
-          )
-        })}
-      </div>
+      <section id="email-avsändare" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-black text-slate-950">1. Avsändare</h3>
+        <form action={saveCompanyEmailSettingsAction} className="mt-5 grid gap-4 md:grid-cols-2">
+          <input type="hidden" name="company_id" value={company.id} />
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Avsändarnamn</span><input name="sender_name" defaultValue={settings?.sender_name ?? company.name} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Avsändarmail</span><input name="sender_email" type="email" defaultValue={settings?.sender_email ?? ''} placeholder="kundservice@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Reply-to</span><input name="reply_to_email" type="email" defaultValue={settings?.reply_to_email ?? ''} placeholder="support@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Supportmail</span><input name="support_email" type="email" defaultValue={settings?.support_email ?? company.primary_contact_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1 md:col-span-2"><span className="text-xs font-bold text-slate-700">Domän</span><input name="domain" defaultValue={settings?.domain ?? ''} placeholder="bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <div className="md:col-span-2"><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Spara</button></div>
+        </form>
+      </section>
+
+      <section id="email-domänverifiering" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-black text-slate-950">2. Domänverifiering</h3>
+        <div className="mt-4 grid gap-3 text-sm font-semibold text-slate-700 md:grid-cols-3">
+          <ActionLine label="Provider" value="Resend" />
+          <div className={`rounded-2xl border px-4 py-3 ${statusTone(settingStatus)}`}>Status: {VERIFICATION_STATUS_LABELS[settingStatus] ?? settingStatus}</div>
+          <ActionLine label="Senast kontrollerad" value={formatDate(latestDnsCheck)} />
+        </div>
+        <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+          {settingStatus === 'verified'
+            ? 'Domänen är verifierad. Utskick skickas från bolagets egen avsändare.'
+            : 'Domänen är inte verifierad ännu. Utskick skickas via Gridex standardavsändare med bolagets reply-to.'}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <form action={startCompanyDomainVerificationAction}><input type="hidden" name="company_id" value={company.id} /><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Starta verifiering</button></form>
+          <form action={checkCompanyDomainVerificationAction}><input type="hidden" name="company_id" value={company.id} /><button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50">Kontrollera DNS</button></form>
+          <form action={seedDefaultCompanyEmailAction}><input type="hidden" name="company_id" value={company.id} /><button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50">Skapa standardmallar</button></form>
+        </div>
+      </section>
+
+      <section id="email-dns-poster" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-black text-slate-950">3. DNS-poster</h3>
+          <CopyDnsRecordsButton records={dnsRecords.map((record) => ({ type: record.record_type, name: record.name, value: record.value, priority: record.priority }))} />
+        </div>
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600"><tr><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Namn</th><th className="px-4 py-3">Värde</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Kopiera</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {dnsRecords.length === 0 ? <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-600">Inga DNS-poster ännu.</td></tr> : null}
+              {dnsRecords.map((record) => (
+                <tr key={record.id}><td className="px-4 py-3 font-black text-slate-800">{record.record_type}</td><td className="px-4 py-3 text-slate-700">{record.name}</td><td className="max-w-xl break-all px-4 py-3 font-mono text-xs text-slate-700">{record.value}</td><td className="px-4 py-3">{DNS_STATUS_LABELS[record.status] ?? record.status}</td><td className="px-4 py-3"><CopyButton value={`${record.record_type}\t${record.name}\t${record.value}`} /></td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="email-testmail" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-black text-slate-950">4. Testmail</h3>
+        {effectiveSender.mode === 'fallback' ? <p className="mt-2 text-sm font-semibold text-amber-900">Testmail skickas via Gridex standardavsändare eftersom domänen inte är verifierad.</p> : null}
+        <form action={sendCompanyTestEmailAction} className="mt-4 flex flex-wrap gap-3">
+          <input type="hidden" name="company_id" value={company.id} />
+          <input name="to" type="email" required placeholder="namn@exempel.se" className="min-w-72 rounded-2xl border border-slate-300 px-4 py-3" />
+          <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Skicka testmail</button>
+        </form>
+      </section>
+
+      <section id="email-automatiska-utskick" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-black text-slate-950">5. Automatiska utskick</h3>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {IMPORTANT_EVENT_LABELS.map((item) => {
+            const rule = rulesByEvent.get(item.eventKey)
+            return (
+              <form key={item.eventKey} action={updateEmailEventRuleAction} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <input type="hidden" name="company_id" value={company.id} />
+                <input type="hidden" name="event_key" value={item.eventKey} />
+                <label className="flex items-center gap-3 text-sm font-black text-slate-800"><input type="checkbox" name="enabled" defaultChecked={rule?.enabled ?? true} />{item.label}</label>
+                <button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-100">Spara</button>
+              </form>
+            )
+          })}
+        </div>
+      </section>
+
+      <section id="email-mailmallar" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-black text-slate-950">6. Mailmallar</h3>
+        <p className="mt-2 text-xs font-semibold text-slate-600">Variabler: {EMAIL_TEMPLATE_VARIABLES.map((key) => `{{${key}}}`).join(', ')}</p>
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          {TEMPLATE_UI_KEYS.map((key) => {
+            const fallback = DEFAULT_EMAIL_TEMPLATES.find((template) => template.template_key === key)!
+            const template = templatesByKey.get(key)
+            return (
+              <details key={key} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <summary className="cursor-pointer font-black text-slate-950">{template?.name ?? fallback.name}</summary>
+                <form action={updateEmailTemplateAction} className="mt-4 grid gap-3">
+                  <input type="hidden" name="company_id" value={company.id} />
+                  <input type="hidden" name="template_key" value={key} />
+                  <label className="grid gap-1 text-sm"><span className="text-xs font-bold text-slate-700">Ämne</span><input name="subject" defaultValue={template?.subject ?? fallback.subject} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
+                  <label className="grid gap-1 text-sm"><span className="text-xs font-bold text-slate-700">HTML/text body</span><textarea name="body_html" rows={5} defaultValue={template?.body_html ?? fallback.body_html} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-mono text-xs" /></label>
+                  <textarea name="body_text" rows={2} defaultValue={template?.body_text ?? fallback.body_text} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-xs" />
+                  <label className="flex items-center gap-2 text-xs font-black text-slate-700"><input type="checkbox" name="is_active" defaultChecked={template?.is_active ?? true} />Aktiv</label>
+                  <div className="flex flex-wrap gap-2"><button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white">Redigera</button><span className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700">Förhandsgranska</span></div>
+                </form>
+                <form action={resetEmailTemplateAction} className="mt-2">
+                  <input type="hidden" name="company_id" value={company.id} />
+                  <input type="hidden" name="template_key" value={key} />
+                  <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100">Återställ standardmall</button>
+                </form>
+              </details>
+            )
+          })}
+        </div>
+      </section>
+
+      <section id="email-senaste-utskick" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-black text-slate-950">7. Senaste utskick</h3>
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600"><tr><th className="px-4 py-3">Datum</th><th className="px-4 py-3">Kund</th><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Mottagare</th><th className="px-4 py-3">Status</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {logs.length === 0 ? <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-600">Inga utskick loggade ännu.</td></tr> : null}
+              {logs.map((log) => <tr key={log.id}><td className="px-4 py-3">{formatDate(log.created_at)}</td><td className="px-4 py-3">{log.customer_id ?? '–'}</td><td className="px-4 py-3">{log.event_key ?? log.template_key ?? '–'}</td><td className="px-4 py-3">{log.recipient_email}</td><td className="px-4 py-3">{log.status}</td></tr>)}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-sm font-semibold text-slate-600">Visa all kommunikation</p>
+      </section>
     </section>
   )
 }
@@ -352,12 +494,28 @@ export default async function CompanyDetailPage({
     )
   }
 
-  const [company, actorSummary, edielConfig, emailTemplates, operationalStats] = await Promise.all([
+  const [
+    company,
+    actorSummary,
+    edielConfig,
+    operationalStats,
+    companyEmailSettings,
+    companyDnsRecords,
+    companyEmailEventRules,
+    companyEmailTemplates,
+    companyCommunicationLogs,
+    effectiveSender,
+  ] = await Promise.all([
     getCompanyGovernanceSummary(row),
     getActorTestingSummary(row.id),
     getCompanyActorConfiguration(row.id),
-    listTenantEmailTemplates(row.id),
     getCompanyOperationalStats(row.id),
+    getCompanyEmailSettings(row.id),
+    getCompanyDnsRecords(row.id),
+    getEmailEventRules(row.id),
+    getCompanyEmailTemplates(row.id),
+    getCompanyCommunicationLogs(row.id, { limit: 12 }),
+    getEffectiveSender(row.id),
   ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
@@ -454,7 +612,15 @@ export default async function CompanyDetailPage({
 
         <CompanyEdielConfiguration company={company} config={edielConfig} />
 
-        <CompanyEmailTemplates company={company} templates={emailTemplates} />
+        <CompanyEmailSection
+          company={company}
+          settings={companyEmailSettings}
+          dnsRecords={companyDnsRecords}
+          eventRules={companyEmailEventRules}
+          templates={companyEmailTemplates}
+          logs={companyCommunicationLogs}
+          effectiveSender={effectiveSender}
+        />
 
         <section className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-3xl border border-orange-200 bg-orange-50 p-6 shadow-sm">

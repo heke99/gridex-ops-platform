@@ -20,6 +20,7 @@ import {
   type GovernanceEventAction,
 } from '@/lib/tenant/governance'
 import { getTenantEmailBranding, queueAndTrySendTenantEmail, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
+import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import {
   parseCompanyAssignableMembershipRole,
   parseCompanyAssignableRoleKey,
@@ -335,6 +336,7 @@ export async function createCompanyAction(
     if (companyError) throw companyError
     createdCompanyId = company.id as string
     await verifyCompanyCreated(createdCompanyId)
+    await seedDefaultCompanyEmailConfiguration(createdCompanyId)
 
     let provisionedProjectRef: string | null = null
 

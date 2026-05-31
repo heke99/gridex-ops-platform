@@ -78,6 +78,8 @@ import {
 } from '@/lib/customer-portal/admin'
 import { getCustomerAnalytics } from '@/lib/analytics/db'
 import { formatMwh } from '@/lib/analytics/utils'
+import { getCustomerCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
+import { resendCustomerEmailAction } from './email-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -391,6 +393,7 @@ type CustomerWorkspaceTab =
  | 'sites'
  | 'metering-points'
  | 'notes'
+| 'communication'
  | 'lifecycle-decisions'
  | 'cases'
  | 'audit'
@@ -416,6 +419,7 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
  { id: 'portal-access', label: 'Kundportal', description: 'Portalaccess och kundkoppling.', group: 'Kunddata' },
  { id: 'grid-owner-import', label: 'Nätägarsynk', description: 'Import från nätägarsida.', group: 'Kunddata' },
  { id: 'notes', label: 'Anteckningar', description: 'Interna anteckningar.', group: 'Historik' },
+{ id: 'communication', label: 'Kommunikation', description: 'Kundens e-posthistorik.', group: 'Historik' },
  { id: 'lifecycle-decisions', label: 'Ånger / avvisning', description: 'Stoppa flöden utan att radera historik.', group: 'Historik' },
  { id: 'cases', label: 'Ärenden', description: 'Kundärenden och supportproblem.', group: 'Historik' },
  { id: 'audit', label: 'Audit', description: 'Senaste ändringar och spårbarhet.', group: 'Historik' },
@@ -1330,6 +1334,40 @@ function AuditSection({
  )
 }
 
+function CustomerCommunicationSection({ logs }: { logs: CommunicationLog[] }) {
+ return (
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div>
+ <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-800 ">Kommunikation</p>
+ <h2 className="mt-1 text-xl font-semibold text-slate-950 ">Kundens kommunikationshistorik</h2>
+ <p className="mt-2 text-sm text-slate-700 ">Visar bara kundens utskick. DNS och domäninställningar hanteras på bolagskortet.</p>
+ </div>
+ <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 ">
+ <table className="min-w-full text-sm">
+ <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600 ">
+ <tr><th className="px-4 py-3">Datum</th><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Mottagare</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Åtgärder</th></tr>
+ </thead>
+ <tbody className="divide-y divide-slate-100">
+ {logs.length === 0 ? <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-600">Ingen kommunikation loggad ännu.</td></tr> : null}
+ {logs.map((log) => (
+ <tr key={log.id}>
+ <td className="px-4 py-3 text-slate-700 ">{formatDateTime(log.created_at)}</td>
+ <td className="px-4 py-3 text-slate-700 ">{log.event_key ?? log.template_key ?? 'E-post'}</td>
+ <td className="px-4 py-3 text-slate-700 ">{log.recipient_email}</td>
+ <td className="px-4 py-3 text-slate-700 ">{log.status}</td>
+ <td className="px-4 py-3"><div className="flex flex-wrap gap-2">
+ <form action={resendCustomerEmailAction}><input type="hidden" name="customer_id" value={log.customer_id ?? ''} /><input type="hidden" name="log_id" value={log.id} /><button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Skicka om</button></form>
+ <details className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"><summary className="cursor-pointer">Visa innehåll</summary><p className="mt-2 max-w-sm text-slate-600">Ämne: {log.subject ?? '—'}</p></details>
+ </div></td>
+ </tr>
+ ))}
+ </tbody>
+ </table>
+ </div>
+ </section>
+ )
+}
+
 export default async function CustomerAdminDetailPage({
  params,
  searchParams,
@@ -1423,6 +1461,7 @@ const needsAnalyticsData = activeTab === 'overview' || activeTab === 'analytics'
  const needsSwitchEvents = activeTab === 'switch-operations'
  const needsAuditLogs = activeTab === 'audit'
  const needsPowerScopes = activeTab === 'authorization-documents'
+const needsCommunicationLogs = activeTab === 'communication'
  const emptyEdielData: CustomerEdielDataBundle = {
  communicationRoutes: [],
  routeProfiles: [],
@@ -1450,6 +1489,7 @@ const needsAnalyticsData = activeTab === 'overview' || activeTab === 'analytics'
  customerInfoRequests,
  customerCases,
  customerBlockers,
+communicationLogs,
  ] = await Promise.all([
  needsGridOwners ? listGridOwners(supabase) : Promise.resolve([]),
  needsPriceAreas ? listPriceAreas(supabase) : Promise.resolve([]),
@@ -1482,6 +1522,7 @@ const needsAnalyticsData = activeTab === 'overview' || activeTab === 'analytics'
  customerCompanyId ? listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id }) : Promise.resolve([]),
  activeTab === 'cases' ? listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 }) : Promise.resolve([]),
  listCustomerBlockersByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
+needsCommunicationLogs && customerCompanyId ? getCustomerCommunicationLogs(customerCompanyId, id) : Promise.resolve([]),
  ])
 
  if (contactsResponse.error) throw contactsResponse.error
@@ -2162,6 +2203,12 @@ const analytics = needsAnalyticsData && customerCompanyId
  <NotesSection customerId={id} notes={notes} />
  </SectionAnchor>
  ) : null}
+
+{activeTab === 'communication' ? (
+<SectionAnchor id="communication" title="Kommunikation" description="Kundens e-posthistorik.">
+<CustomerCommunicationSection logs={communicationLogs as CommunicationLog[]} />
+</SectionAnchor>
+) : null}
 
  {activeTab === 'lifecycle-decisions' ? (
  <SectionAnchor id="lifecycle-decisions" title="Ånger och avvisning" description="Stoppa leverantörsbyte och fakturering på kund-, avtals-, anläggnings- eller mätpunktsnivå.">
