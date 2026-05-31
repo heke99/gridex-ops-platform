@@ -8,9 +8,9 @@ import {
   type AdminNavigationMode,
 } from '@/lib/admin/navigation'
 import {
-  navigationModeParam,
   normalizeAdminNavigationMode,
 } from '@/lib/admin/navigationPreferences'
+import { updateAdminNavigationPreference } from '@/app/admin/navigation-mode/actions'
 
 type AdminSidebarProps = {
   permissions: string[]
@@ -28,26 +28,6 @@ const EXACT_MATCH_ITEMS = new Set(['/admin', '/admin/ediel', '/admin/controltowe
 function isActive(pathname: string, href: string) {
   if (EXACT_MATCH_ITEMS.has(href)) return pathname === href
   return pathname === href || pathname.startsWith(`${href}/`)
-}
-
-function nextPath(pathname: string, searchParams: URLSearchParams) {
-  const params = new URLSearchParams(searchParams.toString())
-  params.delete('nav')
-  const query = params.toString()
-  return `${pathname}${query ? `?${query}` : ''}`
-}
-
-function preferenceHref(
-  pathname: string,
-  searchParams: URLSearchParams,
-  mode: AdminNavigationMode,
-  companyId?: string | null
-) {
-  const params = new URLSearchParams()
-  params.set('mode', navigationModeParam(mode))
-  if (companyId) params.set('company_id', companyId)
-  params.set('next', nextPath(pathname, searchParams))
-  return `/admin/navigation-mode?${params.toString()}`
 }
 
 function itemIsPlatformOnly(item: { platformOnly?: boolean }) {
@@ -115,9 +95,12 @@ export default function AdminSidebar({
           </p>
 
           {isPlatformAdmin ? (
-            <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-white/70 p-1">
-              <Link
-                href={preferenceHref(pathname, searchParams, 'platform_view', selectedCompanyId)}
+            <form action={updateAdminNavigationPreference} className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-white/70 p-1">
+              <input type="hidden" name="company_id" value={selectedCompanyId ?? ''} />
+              <button
+                type="submit"
+                name="mode"
+                value="platform"
                 className={`rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${
                   mode === 'platform_view'
                     ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-700/20'
@@ -125,9 +108,11 @@ export default function AdminSidebar({
                 }`}
               >
                 Plattform
-              </Link>
-              <Link
-                href={preferenceHref(pathname, searchParams, 'company_view', selectedCompanyId)}
+              </button>
+              <button
+                type="submit"
+                name="mode"
+                value="company"
                 className={`rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${
                   mode === 'company_view'
                     ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-700/20'
@@ -135,35 +120,32 @@ export default function AdminSidebar({
                 }`}
               >
                 Bolagsvy
-              </Link>
-            </div>
+              </button>
+            </form>
           ) : null}
 
           {isPlatformAdmin && mode === 'company_view' && companyOptions.length > 0 ? (
-            <label className="mt-3 block">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-900">
-                Aktivt bolag
-              </span>
-              <select
-                value={selectedCompanyId ?? ''}
-                onChange={(event) => {
-                  window.location.href = preferenceHref(
-                    pathname,
-                    searchParams,
-                    'company_view',
-                    event.currentTarget.value || null
-                  )
-                }}
-                className="mt-1 w-full rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
-              >
-                <option value="">Välj bolag</option>
-                {companyOptions.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}{company.status ? ` (${company.status})` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <form action={updateAdminNavigationPreference} className="mt-3 block">
+              <input type="hidden" name="mode" value="company" />
+              <label>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-900">
+                  Aktivt bolag
+                </span>
+                <select
+                  name="company_id"
+                  value={selectedCompanyId ?? ''}
+                  onChange={(event) => event.currentTarget.form?.requestSubmit()}
+                  className="mt-1 w-full rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
+                >
+                  <option value="">Välj bolag</option>
+                  {companyOptions.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}{company.status ? ` (${company.status})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </form>
           ) : null}
         </div>
       </div>

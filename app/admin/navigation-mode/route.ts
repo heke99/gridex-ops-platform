@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
   }
 
   const response = NextResponse.redirect(next)
+  response.headers.set('Cache-Control', 'no-store, private, max-age=0')
   response.cookies.set(ADMIN_NAVIGATION_MODE_COOKIE, navigationModeParam(mode), {
     httpOnly: true,
     sameSite: 'lax',
