@@ -7,8 +7,11 @@ create table if not exists public.bidding_zones (
   name text,
   country_code text default 'SE',
   is_active boolean default true,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
+
+alter table if exists public.bidding_zones add column if not exists updated_at timestamptz default now();
 
 insert into public.bidding_zones (code, name, country_code)
 values
@@ -68,6 +71,7 @@ alter table if exists public.metering_values add column if not exists quantity_k
 alter table if exists public.metering_values add column if not exists quality text;
 alter table if exists public.metering_values add column if not exists source text;
 alter table if exists public.metering_values add column if not exists received_at timestamptz;
+alter table if exists public.metering_values add column if not exists updated_at timestamptz default now();
 
 update public.metering_values
 set quantity_kwh = coalesce(quantity_kwh, value_kwh),
@@ -90,7 +94,8 @@ create table if not exists public.grid_area_mappings (
   source text,
   valid_from date,
   valid_to date,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 create table if not exists public.data_quality_issues (
@@ -105,6 +110,7 @@ create table if not exists public.data_quality_issues (
   detected_at timestamptz default now(),
   resolved_at timestamptz,
   created_at timestamptz default now(),
+  updated_at timestamptz default now(),
   unique(company_id, entity_type, entity_id, issue_type, status)
 );
 
@@ -119,6 +125,7 @@ create table if not exists public.dashboard_alerts (
   entity_id uuid,
   status text default 'open',
   created_at timestamptz default now(),
+  updated_at timestamptz default now(),
   resolved_at timestamptz,
   unique(company_id, alert_type, entity_type, entity_id, status)
 );
@@ -224,8 +231,11 @@ create table if not exists public.consumption_profile_month_weights (
   month_number integer not null check (month_number between 1 and 12),
   weight_percent numeric not null,
   created_at timestamptz default now(),
+  updated_at timestamptz default now(),
   unique(profile_id, month_number)
 );
+
+alter table if exists public.consumption_profile_month_weights add column if not exists updated_at timestamptz default now();
 
 do $$
 declare
@@ -296,6 +306,7 @@ create table if not exists public.forecast_runs (
   method text,
   created_by uuid,
   created_at timestamptz default now(),
+  updated_at timestamptz default now(),
   completed_at timestamptz
 );
 
@@ -317,7 +328,8 @@ create table if not exists public.forecast_run_items (
   confidence_score numeric,
   method text,
   notes text,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 create table if not exists public.forecast_adjustments (
@@ -330,8 +342,18 @@ create table if not exists public.forecast_adjustments (
   adjustment_value numeric not null,
   reason text,
   created_by uuid,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
+
+alter table if exists public.bidding_zones add column if not exists updated_at timestamptz default now();
+alter table if exists public.grid_area_mappings add column if not exists updated_at timestamptz default now();
+alter table if exists public.data_quality_issues add column if not exists updated_at timestamptz default now();
+alter table if exists public.dashboard_alerts add column if not exists updated_at timestamptz default now();
+alter table if exists public.consumption_profile_month_weights add column if not exists updated_at timestamptz default now();
+alter table if exists public.forecast_runs add column if not exists updated_at timestamptz default now();
+alter table if exists public.forecast_run_items add column if not exists updated_at timestamptz default now();
+alter table if exists public.forecast_adjustments add column if not exists updated_at timestamptz default now();
 
 do $$
 begin
