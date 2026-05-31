@@ -76,6 +76,8 @@ import {
  listCustomerPortalAccountsByCustomerId,
  listCustomerPortalClaimsByCustomerId,
 } from '@/lib/customer-portal/admin'
+import { getCustomerAnalytics } from '@/lib/analytics/db'
+import { formatMwh } from '@/lib/analytics/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -383,6 +385,7 @@ type CustomerWorkspaceTab =
  | 'switch-operations'
  | 'ediel-operations'
  | 'billing-metering'
+| 'analytics'
  | 'contracts'
  | 'contacts-addresses'
  | 'sites'
@@ -403,6 +406,7 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
  { id: 'switch-operations', label: 'Leverantörsbyte', description: 'Starta och följ switchärenden.', group: 'Drift' },
  { id: 'ediel-operations', label: 'Ediel', description: 'Skapa, validera och följ Ediel-meddelanden.', group: 'Drift' },
  { id: 'billing-metering', label: 'Nätägaruppgifter', description: 'Mätvärden, billingunderlag och partnerexporter.', group: 'Drift' },
+{ id: 'analytics', label: 'Statistik', description: 'Kundens statistik, prognos och datakvalitet.', group: 'Drift' },
  { id: 'data-requests', label: 'Uppgiftsbegäran', description: 'Z01/Z02 och mätvärdestillstånd.', group: 'Drift' },
  { id: 'contracts', label: 'Avtal', description: 'Kundens avtal och avtalsläge.', group: 'Kunddata' },
  { id: 'profile', label: 'Profil', description: 'Kundprofil och erbjudanden.', group: 'Kunddata' },
@@ -1414,6 +1418,7 @@ export default async function CustomerAdminDetailPage({
  const needsPriceAreas = ['sites', 'metering-points'].includes(activeTab)
  const needsContractOffers = activeTab === 'profile'
  const needsBillingMeteringData = activeTab === 'overview' || activeTab === 'billing-metering'
+const needsAnalyticsData = activeTab === 'overview' || activeTab === 'analytics'
  const needsPortalAccessData = activeTab === 'portal-access'
  const needsSwitchEvents = activeTab === 'switch-operations'
  const needsAuditLogs = activeTab === 'audit'
@@ -1547,6 +1552,10 @@ export default async function CustomerAdminDetailPage({
  limit: 30,
  })
  : []
+
+const analytics = needsAnalyticsData && customerCompanyId
+? await getCustomerAnalytics(customerCompanyId, id, new Date().toISOString().slice(0, 10))
+: null
 
  const customerName = formatCustomerName(customer)
  const activeSites = sites.filter((site) => site.status === 'active').length
@@ -2081,6 +2090,42 @@ export default async function CustomerAdminDetailPage({
  <CustomerBillingMeteringCard customerId={id} sites={sites} meteringPoints={meteringPoints} gridOwners={gridOwners} dataRequests={dataRequests} meteringValues={meteringValues} billingUnderlays={billingUnderlays} partnerExports={partnerExports} outboundRequests={outboundRequests} />
  </SectionAnchor>
  ) : null}
+
+{activeTab === 'analytics' ? (
+<SectionAnchor id="analytics" title="Statistik och prognos" description="En enkel kundvy för prognos, faktiskt utfall och saknad data.">
+<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+<div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+<p className="text-sm font-black text-slate-700">Prognos denna månad</p>
+<p className="mt-2 text-3xl font-black text-slate-950">{formatMwh(analytics?.current?.forecast_kwh ?? 0)}</p>
+<p className="mt-2 text-xs font-bold text-slate-500">Aktuell kundprognos</p>
+</div>
+<div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+<p className="text-sm font-black text-slate-700">Prognos nästa månad</p>
+<p className="mt-2 text-3xl font-black text-slate-950">{formatMwh(analytics?.next?.forecast_kwh ?? 0)}</p>
+<p className="mt-2 text-xs font-bold text-slate-500">Planerad volym</p>
+</div>
+<div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+<p className="text-sm font-black text-slate-700">Faktiskt utfall</p>
+<p className="mt-2 text-3xl font-black text-slate-950">{formatMwh(analytics?.current?.actual_kwh ?? 0)}</p>
+<p className="mt-2 text-xs font-bold text-slate-500">Inkomna mätvärden</p>
+</div>
+<div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+<p className="text-sm font-black text-slate-700">Saknade mätvärden</p>
+<p className="mt-2 text-3xl font-black text-slate-950">{analytics?.missingMeteringValues ?? 0}</p>
+<p className="mt-2 text-xs font-bold text-slate-500">Öppna datakvalitetsfrågor</p>
+</div>
+</section>
+<section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+<h3 className="text-lg font-black text-slate-950">Anläggningar och mätpunkter</h3>
+<div className="mt-4 grid gap-3 text-sm font-semibold text-slate-700 md:grid-cols-2 xl:grid-cols-4">
+<div>Antal anläggningar: <span className="font-black text-slate-950">{analytics?.sites ?? sites.length}</span></div>
+<div>Antal mätpunkter: <span className="font-black text-slate-950">{analytics?.meteringPoints ?? meteringPoints.length}</span></div>
+<div>SE-områden: <span className="font-black text-slate-950">{analytics?.biddingZones.length ? analytics.biddingZones.join(', ') : 'Saknas'}</span></div>
+<div>Nätägare: <span className="font-black text-slate-950">{analytics?.gridOwners.length ? analytics.gridOwners.join(', ') : 'Saknas'}</span></div>
+</div>
+</section>
+</SectionAnchor>
+) : null}
 
  {activeTab === 'contracts' ? (
  <SectionAnchor id="contracts" title="Avtal" description="Visa, hantera och uppdatera kundens avtal.">

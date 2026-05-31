@@ -25,6 +25,7 @@ export type AdminPageKey =
   | 'whitelabel.go_live'
   | 'platform.security'
   | 'platform.usage'
+  | 'platform.analytics'
   | 'platform.work_queue'
   | 'platform.ediel.rules'
   | 'platform.ediel.versions'
@@ -47,6 +48,7 @@ export type AdminPageKey =
   | 'masterdata.electricity_suppliers'
   | 'masterdata.price_area_localities'
   | 'metering.workspace'
+  | 'analytics.workspace'
   | 'billing.workspace'
   | 'billing.export_center'
   | 'billing.import'
@@ -99,6 +101,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'whitelabel.go_live': { anyOf: ['whitelabel.read'] },
   'platform.security': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'platform.usage': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
+  'platform.analytics': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'platform.work_queue': { allOf: ['tenants.write'] },
   'platform.ediel.rules': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
   'platform.ediel.versions': { allOf: ['tenants.write', 'roles.manage', 'permissions.manage'] },
@@ -164,6 +167,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'masterdata.electricity_suppliers': { anyOf: ['masterdata.read'] },
   'masterdata.price_area_localities': { anyOf: ['masterdata.read'] },
   'metering.workspace': { anyOf: ['metering.read'] },
+  'analytics.workspace': { anyOf: ['reports.read', 'metering.read', 'customers.read'] },
   'billing.workspace': { anyOf: ['billing_underlay.read'] },
   'billing.export_center': { anyOf: ['billing_underlay.read', 'billing_underlay.export'] },
   'billing.import': { anyOf: ['billing_underlay.read', 'billing_underlay.export'] },
