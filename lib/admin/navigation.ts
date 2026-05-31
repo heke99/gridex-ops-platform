@@ -64,6 +64,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     items: [
       { key: 'switches', label: 'Leverantörsbyten', href: '/admin/operations/switches', description: 'Start, status och slutförande', pageKey: 'operations.switches' },
       { key: 'metering', label: 'Mätvärden', href: '/admin/metering', description: 'Mätvärdesrequests och inkomna värden', pageKey: 'metering.workspace' },
+      { key: 'analytics', label: 'Analytics', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag till fakturering/export', pageKey: 'billing.workspace' },
       { key: 'billing_export', label: 'Exportcenter', href: '/admin/billing/export-center', description: 'Redo rader, blockerare och exporthistorik', pageKey: 'billing.export_center' },
       { key: 'outbound', label: 'Utskick', href: '/admin/outbound', description: 'Extern kommunikation i affärsspråk', pageKey: 'outbound.queue' },
@@ -89,6 +90,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     items: [
       { key: 'platform.dashboard', label: 'Platform dashboard', href: '/admin', description: 'Överblick över tenants och drift', pageKey: 'dashboard' },
       { key: 'platform.usage', label: 'Bolagsstatistik', href: '/admin/platform/usage', description: 'Volymer per tenant för framtida fakturering', pageKey: 'platform.usage', platformOnly: true },
+      { key: 'platform.analytics', label: 'Platform analytics', href: '/admin/platform/analytics', description: 'Prognos, datakvalitet och volymer per tenant', pageKey: 'platform.analytics', platformOnly: true },
       { key: 'platform.work_queue', label: 'Arbetskö', href: '/admin/work-queue', description: 'Blockerare och manuella åtgärder', pageKey: 'operations.tasks' },
     ],
   },
@@ -121,6 +123,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'switches', label: 'Leverantörsbyten', href: '/admin/operations/switches', description: 'Z03/Z04-flöden i affärsvy', pageKey: 'operations.switches' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Z01/Z02 och kompletteringar', pageKey: 'customer.info_requests' },
       { key: 'metering', label: 'Mätvärdesåtkomst', href: '/admin/metering', description: 'Mätvärden och tillstånd', pageKey: 'metering.workspace' },
+      { key: 'analytics', label: 'Analytics', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag och exportberedskap', pageKey: 'billing.workspace' },
       { key: 'data_quality', label: 'Data quality', href: '/admin/data-quality', description: 'Felaktiga fält, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
     ],
