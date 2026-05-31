@@ -1,15 +1,15 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
-import { buildLiveMonthlyFallback, getCustomerGrowthSeries, getMonthlyMetric, listAnalyticsFilterOptions } from '@/lib/analytics/db'
+import { buildLiveMonthlyFallback, getCustomerGrowthSeries, getMonthlyMetric, getOverviewBreakdowns, listAnalyticsFilterOptions } from '@/lib/analytics/db'
 import { asNumber, formatMwh, formatNumber, monthStart, percentChange } from '@/lib/analytics/utils'
-import { AnalyticsFilters, AnalyticsTabs, MetricCards, SimpleBars } from './_components'
+import { AnalyticsFilters, AnalyticsTabs, MetricCards, SimpleBars, SimpleChart } from './_components'
 import type { MetricCard } from '@/lib/analytics/types'
 
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
-  searchParams: Promise<{ month?: string }>
+  searchParams: Promise<{ month?: string; biddingZoneCode?: string; gridOwnerId?: string; customerType?: string; meteringMethod?: string; status?: string }>
 }
 
 export default async function AnalyticsOverviewPage({ searchParams }: PageProps) {
@@ -23,11 +23,12 @@ export default async function AnalyticsOverviewPage({ searchParams }: PageProps)
     return <EmptyAnalytics userEmail={admin.email} message={scope.message ?? 'Välj bolag för att se analytics.'} />
   }
 
-  const [currentMetric, previousMetric, growthSeries, filterOptions] = await Promise.all([
+  const [currentMetric, previousMetric, growthSeries, filterOptions, breakdowns] = await Promise.all([
     getMonthlyMetric(companyId, month),
     getMonthlyMetric(companyId, new Date(new Date(`${month}T00:00:00.000Z`).setUTCMonth(new Date(`${month}T00:00:00.000Z`).getUTCMonth() - 1)).toISOString().slice(0, 10)),
     getCustomerGrowthSeries(companyId, month),
     listAnalyticsFilterOptions(companyId),
+    getOverviewBreakdowns(companyId, month),
   ])
   const metric = currentMetric ?? await buildLiveMonthlyFallback(companyId, month)
   const previous = previousMetric ?? null
@@ -43,7 +44,14 @@ export default async function AnalyticsOverviewPage({ searchParams }: PageProps)
       />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <AnalyticsTabs active="overview" />
-        <AnalyticsFilters month={month} biddingZones={filterOptions.biddingZones} gridOwners={filterOptions.gridOwners} />
+        <AnalyticsFilters
+          month={month}
+          biddingZones={filterOptions.biddingZones}
+          gridOwners={filterOptions.gridOwners}
+          meteringMethods={filterOptions.meteringMethods}
+          statuses={filterOptions.statuses}
+          selected={params}
+        />
         <MetricCards cards={cards} />
 
         <section className="grid gap-6 xl:grid-cols-2">
@@ -57,6 +65,20 @@ export default async function AnalyticsOverviewPage({ searchParams }: PageProps)
             <h2 className="text-lg font-black text-slate-950">Förbrukning/prognos per månad</h2>
             <div className="mt-5">
               <SimpleBars rows={growthSeries.length ? growthSeries : [metric]} valueKey="forecast_kwh" labelKey="month" />
+            </div>
+          </div>
+        </section>
+        <section className="grid gap-6 xl:grid-cols-2">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-black text-slate-950">Fördelning per SE-område</h2>
+            <div className="mt-5">
+              <SimpleChart rows={breakdowns.biddingZones} emptyLabel="Inga SE-områden finns för vald period." />
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-black text-slate-950">Saknade mätvärden per nätägare</h2>
+            <div className="mt-5">
+              <SimpleChart rows={breakdowns.missingByGridOwner} emptyLabel="Inga saknade mätvärden per nätägare." />
             </div>
           </div>
         </section>

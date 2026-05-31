@@ -3,6 +3,7 @@ export type AnalyticsFilters = {
   biddingZoneCode?: string | null
   gridOwnerId?: string | null
   customerType?: string | null
+  meteringMethod?: string | null
   status?: string | null
 }
 
@@ -47,6 +48,13 @@ export type ForecastSummaryRow = {
   diffPercent: number | null
   confidenceScore: number
   missingDataCount: number
+}
+
+export type SimpleChartRow = {
+  key: string
+  label: string
+  value: number
+  hint?: string
 }
 
 export type DeviationRow = {

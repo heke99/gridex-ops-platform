@@ -75,6 +75,38 @@ export async function refreshDashboardAlerts(companyId: string): Promise<void> {
         title: `${summary.count} mätpunkter saknar nätägare`,
         message: 'Komplettera nätägare innan prognos och mätvärdesuppföljning används.',
       })
+    } else if (type === 'forecast_deviation') {
+      await createDashboardAlert({
+        companyId,
+        alertType: type,
+        severity: summary.severity,
+        title: `${summary.count} prognoser avviker mot faktiskt utfall`,
+        message: 'Granska prognosavvikelser per mätpunkt och kund.',
+      })
+    } else if (type === 'failed_ediel_message') {
+      await createDashboardAlert({
+        companyId,
+        alertType: type,
+        severity: 'critical',
+        title: `${summary.count} Ediel-meddelanden har misslyckats`,
+        message: 'Följ upp misslyckade PRODAT, UTILTS, CONTRL eller APERAK-meddelanden.',
+      })
+    } else if (type === 'slow_grid_owner_response') {
+      await createDashboardAlert({
+        companyId,
+        alertType: type,
+        severity: summary.severity,
+        title: `${summary.count} nätägarsvar är försenade`,
+        message: 'Följ upp uppgifts- eller mätvärdesbegäran som väntar på svar.',
+      })
+    } else if (type === 'incomplete_customer_onboarding') {
+      await createDashboardAlert({
+        companyId,
+        alertType: type,
+        severity: summary.severity,
+        title: `${summary.count} kunder har ofullständig kunddata`,
+        message: 'Komplettera kunddata innan statistik, prognos och drift används fullt ut.',
+      })
     }
   }
 }

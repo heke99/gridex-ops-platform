@@ -2,15 +2,15 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
-import { getLatestForecastByBiddingZone, listAnalyticsFilterOptions } from '@/lib/analytics/db'
+import { getLatestForecastByBiddingZone, getLatestForecastByGridOwner, listAnalyticsFilterOptions } from '@/lib/analytics/db'
 import { formatMwh, monthStart } from '@/lib/analytics/utils'
-import { AnalyticsFilters, AnalyticsTabs, ForecastTable, MetricCards } from '../_components'
+import { AnalyticsFilters, AnalyticsTabs, ForecastTable, GridOwnerForecastTable, MetricCards } from '../_components'
 import type { MetricCard } from '@/lib/analytics/types'
 
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
-  searchParams: Promise<{ month?: string; biddingZoneCode?: string; gridOwnerId?: string; customerType?: string; status?: string }>
+  searchParams: Promise<{ month?: string; biddingZoneCode?: string; gridOwnerId?: string; customerType?: string; meteringMethod?: string; status?: string }>
 }
 
 export default async function AnalyticsForecastPage({ searchParams }: PageProps) {
@@ -24,15 +24,18 @@ export default async function AnalyticsForecastPage({ searchParams }: PageProps)
     return <div className="p-8">Bolag saknas.</div>
   }
 
-  const [filterOptions, rows] = await Promise.all([
+  const filters = {
+    month,
+    biddingZoneCode: params.biddingZoneCode || null,
+    gridOwnerId: params.gridOwnerId || null,
+    customerType: params.customerType || null,
+    meteringMethod: params.meteringMethod || null,
+    status: params.status || null,
+  }
+  const [filterOptions, rows, gridOwnerRows] = await Promise.all([
     listAnalyticsFilterOptions(companyId),
-    getLatestForecastByBiddingZone(companyId, {
-      month,
-      biddingZoneCode: params.biddingZoneCode || null,
-      gridOwnerId: params.gridOwnerId || null,
-      customerType: params.customerType || null,
-      status: params.status || null,
-    }),
+    getLatestForecastByBiddingZone(companyId, filters),
+    getLatestForecastByGridOwner(companyId, filters),
   ])
   const total = rows.reduce((sum, row) => sum + row.forecastKwh, 0)
   const actual = rows.reduce((sum, row) => sum + row.actualKwh, 0)
@@ -51,7 +54,14 @@ export default async function AnalyticsForecastPage({ searchParams }: PageProps)
       <AdminHeader title="Prognos" subtitle="Förbruknings- och inköpsprognos per SE-område med synlig säkerhet." userEmail={admin.email} workspaceName={scope.companyName} />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <AnalyticsTabs active="forecast" />
-        <AnalyticsFilters month={month} biddingZones={filterOptions.biddingZones} gridOwners={filterOptions.gridOwners} />
+        <AnalyticsFilters
+          month={month}
+          biddingZones={filterOptions.biddingZones}
+          gridOwners={filterOptions.gridOwners}
+          meteringMethods={filterOptions.meteringMethods}
+          statuses={filterOptions.statuses}
+          selected={params}
+        />
         <MetricCards cards={cards} />
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-bold leading-6 text-emerald-950">
           Prognosen baseras på historisk förbrukning där den finns. Om historik saknas används uppskattad årsförbrukning och säsongsprofil.
@@ -61,7 +71,14 @@ export default async function AnalyticsForecastPage({ searchParams }: PageProps)
             Exportera CSV
           </Link>
         </div>
-        <ForecastTable rows={rows} />
+        <section className="space-y-3">
+          <h2 className="text-lg font-black text-slate-950">Prognos per SE-område</h2>
+          <ForecastTable rows={rows} />
+        </section>
+        <section className="space-y-3">
+          <h2 className="text-lg font-black text-slate-950">Prognos per nätägare</h2>
+          <GridOwnerForecastTable rows={gridOwnerRows} />
+        </section>
       </div>
     </div>
   )
