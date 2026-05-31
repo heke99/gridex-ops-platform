@@ -41,6 +41,10 @@ function customerName(customer: CustomerRow) {
   return customer.full_name || customer.company_name || [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email || customer.id
 }
 
+function emptyResult() {
+  return { data: [], error: null }
+}
+
 export default async function BillingQualityPage() {
   const admin = await requireAdminPageKeyAccess('billing.workspace')
   const supabase = await createSupabaseServerClient()
@@ -50,31 +54,58 @@ export default async function BillingQualityPage() {
   const scope = user ? await getOperationalCompanyScope(user.id) : null
   const companyId = scope?.companyId ?? null
 
-  const [customersResult, sitesResult, metersResult, contractsResult, poaResult, billingResult, exportsResult] = companyId
-    ? await Promise.all([
-        supabase.from('customers').select('*').eq('company_id', companyId).order('updated_at', { ascending: false }).limit(80),
-        supabase.from('customer_sites').select('*').eq('company_id', companyId).limit(1000),
-        supabase.from('metering_points').select('*').eq('company_id', companyId).limit(1000),
-        supabase.from('customer_contracts').select('*').eq('company_id', companyId).limit(1000),
-        supabase.from('powers_of_attorney').select('*').eq('company_id', companyId).limit(1000),
-        supabase.from('billing_underlays').select('*').eq('company_id', companyId).limit(1000),
-        supabase.from('partner_exports').select('*').eq('company_id', companyId).limit(1000),
-      ])
-    : [
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-      ]
+  const customersResult = companyId
+    ? await supabase
+        .from('customers')
+        .select('id,full_name,first_name,last_name,company_name,customer_type,status,email,phone,personal_number,org_number,billing_street')
+        .eq('company_id', companyId)
+        .order('updated_at', { ascending: false })
+        .limit(80)
+    : emptyResult()
+
+  const customers = ((customersResult.data ?? []) as CustomerRow[])
+  const customerIds = customers.map((customer) => customer.id)
+
+  const [sitesResult, metersResult, contractsResult, poaResult, billingResult, exportsResult] =
+    companyId && customerIds.length > 0
+      ? await Promise.all([
+          supabase
+            .from('customer_sites')
+            .select('id,customer_id,street,address,facility_id,grid_owner_id,status')
+            .eq('company_id', companyId)
+            .in('customer_id', customerIds),
+          supabase
+            .from('metering_points')
+            .select('id,customer_id,site_id,meter_point_id,metering_point_id,status')
+            .eq('company_id', companyId)
+            .in('customer_id', customerIds),
+          supabase
+            .from('customer_contracts')
+            .select('id,customer_id,status,contract_name,starts_at,expected_start_at,confirmed_start_at,actual_start_at,campaign_version,price_version,terms_version')
+            .eq('company_id', companyId)
+            .in('customer_id', customerIds),
+          supabase
+            .from('powers_of_attorney')
+            .select('id,customer_id,status')
+            .eq('company_id', companyId)
+            .in('customer_id', customerIds),
+          supabase
+            .from('billing_underlays')
+            .select('id,customer_id,status')
+            .eq('company_id', companyId)
+            .in('customer_id', customerIds),
+          supabase
+            .from('partner_exports')
+            .select('id,customer_id,status')
+            .eq('company_id', companyId)
+            .in('customer_id', customerIds),
+        ])
+      : [emptyResult(), emptyResult(), emptyResult(), emptyResult(), emptyResult(), emptyResult()]
 
   const loadError = [customersResult, sitesResult, metersResult, contractsResult, poaResult, billingResult, exportsResult]
     .map((result) => result.error?.message)
     .find(Boolean)
 
-  const customers = ((customersResult.data ?? []) as CustomerRow[])
   const sitesByCustomer = groupByCustomer((sitesResult.data ?? []) as GenericRow[])
   const metersByCustomer = groupByCustomer((metersResult.data ?? []) as GenericRow[])
   const contractsByCustomer = groupByCustomer((contractsResult.data ?? []) as GenericRow[])

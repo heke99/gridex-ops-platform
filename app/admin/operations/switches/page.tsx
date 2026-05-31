@@ -7,7 +7,7 @@ import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import {
  listAllSupplierSwitchRequests,
- listPowersOfAttorneyByCustomerId,
+listPowersOfAttorneyByCustomerIds,
  listSupplierSwitchEventsByRequestIds,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
@@ -208,17 +208,24 @@ export default async function AdminOperationsSwitchesPage({
  string,
  ReturnType<typeof evaluateSiteSwitchReadiness>
  >()
+const customerIds = Array.from(new Set(sites.map((site) => site.customer_id).filter(Boolean)))
+const powersOfAttorney = await listPowersOfAttorneyByCustomerIds(supabase, customerIds, {
+ companyId,
+ limit: Math.max(customerIds.length * 5, 100),
+})
+const powersOfAttorneyByCustomerId = new Map<string, typeof powersOfAttorney>()
+
+for (const powerOfAttorney of powersOfAttorney) {
+ const current = powersOfAttorneyByCustomerId.get(powerOfAttorney.customer_id) ?? []
+ current.push(powerOfAttorney)
+ powersOfAttorneyByCustomerId.set(powerOfAttorney.customer_id, current)
+}
 
  for (const site of sites) {
- const powersOfAttorney = await listPowersOfAttorneyByCustomerId(
- supabase,
- site.customer_id
- )
-
  const readiness = evaluateSiteSwitchReadiness({
  site,
  meteringPoints: meteringPoints.filter((point) => point.site_id === site.id),
- powersOfAttorney,
+powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  })
 
  readinessMap.set(site.id, readiness)

@@ -6,17 +6,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getCustomers } from '@/lib/customers/getCustomers'
 import type { ReactNode } from 'react'
-import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
-import {
- listAllBillingUnderlays,
- listAllGridOwnerDataRequests,
- listAllMeteringValues,
- listAllPartnerExports,
-} from '@/lib/cis/db'
-import {
- listAllSupplierSwitchRequests,
- listPowersOfAttorneyByCustomerId,
-} from '@/lib/operations/db'
+import { loadOperationsIntegrityData } from '@/lib/operations/integrityData'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { getBillingExportReadiness } from '@/lib/operations/controlTower'
 import {
@@ -621,47 +611,17 @@ export default async function AdminOperationsIntegrityPage({
  const customers = await getCustomers({ query: '', companyId })
  const customerIds = customers.map((customer) => customer.id)
 
- const [
- sitesResponse,
- contractsResponse,
+const {
+ sites,
+ contracts,
  switchRequests,
  dataRequests,
  billingUnderlays,
  partnerExports,
  allMeteringValues,
- ] = await Promise.all([
- (() => {
- let query = supabase.from('customer_sites').select('*').in('customer_id', customerIds)
- if (companyId) query = query.eq('company_id', companyId)
- return query
- })(),
- (() => {
- let query = supabase.from('customer_contracts').select('*').in('customer_id', customerIds)
- if (companyId) query = query.eq('company_id', companyId)
- return query
- })(),
- listAllSupplierSwitchRequests(supabase, {
- status: 'all',
- requestType: 'all',
- query: '',
- companyId,
- }),
- listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '', companyId }),
- listAllBillingUnderlays({ status: 'all', query: '', companyId }),
- listAllPartnerExports({ status: 'all', exportKind: 'all', query: '', companyId }),
- listAllMeteringValues({ query: '', companyId }),
- ])
-
- if (sitesResponse.error) throw sitesResponse.error
- if (contractsResponse.error) throw contractsResponse.error
-
- const sites = (sitesResponse.data ?? []) as CustomerSiteRow[]
- const contracts = (contractsResponse.data ?? []) as CustomerContractRow[]
- const meteringPoints = await listMeteringPointsBySiteIds(
- supabase,
- sites.map((site) => site.id),
- { companyId }
- )
+ meteringPoints,
+ powersOfAttorney,
+} = await loadOperationsIntegrityData(customerIds, companyId)
 
  const period = previousMonthPeriod()
 
@@ -723,15 +683,10 @@ export default async function AdminOperationsIntegrityPage({
  valuesByMeteringPointId.set(value.metering_point_id, current)
  }
 
- const poaResults = await Promise.all(
- customerIds.map(async (customerId) => ({
- customerId,
- powers: await listPowersOfAttorneyByCustomerId(supabase, customerId),
- }))
- )
-
- for (const result of poaResults) {
- powersOfAttorneyByCustomerId.set(result.customerId, result.powers)
+for (const powerOfAttorney of powersOfAttorney) {
+ const current = powersOfAttorneyByCustomerId.get(powerOfAttorney.customer_id) ?? []
+ current.push(powerOfAttorney)
+ powersOfAttorneyByCustomerId.set(powerOfAttorney.customer_id, current)
  }
 
  const mismatchRows: DashboardRow[] = []

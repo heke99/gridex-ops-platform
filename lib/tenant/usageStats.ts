@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type TenantUsageStatsRow = {
@@ -112,7 +113,7 @@ async function listCompanies(): Promise<Array<{ id: string; name: string | null;
   return (data ?? []) as Array<{ id: string; name: string | null; status: string | null }>
 }
 
-export async function listTenantUsageStats(): Promise<TenantUsageStatsRow[]> {
+async function listTenantUsageStatsUncached(): Promise<TenantUsageStatsRow[]> {
   const companies = await listCompanies()
 
   return Promise.all(
@@ -220,3 +221,12 @@ export async function listTenantUsageStats(): Promise<TenantUsageStatsRow[]> {
     })
   )
 }
+
+export const listTenantUsageStats = unstable_cache(
+  listTenantUsageStatsUncached,
+  ['tenant-usage-stats'],
+  {
+    revalidate: 300,
+    tags: ['tenant-usage'],
+  }
+)
