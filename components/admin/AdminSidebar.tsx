@@ -2,14 +2,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   getAdminNavigationGroups,
   type AdminNavigationMode,
 } from '@/lib/admin/navigation'
-import {
-  normalizeAdminNavigationMode,
-} from '@/lib/admin/navigationPreferences'
 import { updateAdminNavigationPreference } from '@/app/admin/navigation-mode/actions'
 
 type AdminSidebarProps = {
@@ -45,9 +42,7 @@ export default function AdminSidebar({
   companyOptions = [],
 }: AdminSidebarProps) {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const requestedMode = normalizeAdminNavigationMode(searchParams.get('nav')) ?? preferredMode
-  const mode: AdminNavigationMode = isPlatformAdmin ? requestedMode : 'company_view'
+  const mode: AdminNavigationMode = isPlatformAdmin ? preferredMode : 'company_view'
   const displayName = workspaceName?.trim() || (isPlatformAdmin ? 'Gridex Plattform' : 'Ditt bolag')
   const displaySubtitle = workspaceSubtitle?.trim() || (isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta')
   const initial = displayName.charAt(0).toUpperCase()
