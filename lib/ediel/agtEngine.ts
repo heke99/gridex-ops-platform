@@ -23,10 +23,6 @@ import {
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { renderProdat26A, type ProdatEngineCode } from '@/lib/ediel/prodatEngine'
 import {
-  EDIEL_AGT_PORTAL_EDIEL_ID,
-  EDIEL_AGT_PORTAL_SMTP,
-  EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
-  EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS,
   EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
   getEdielAgtTestCaseByCode,
   inferEdielAgtCaseForInboundMessage,
@@ -178,10 +174,10 @@ async function resolveAgtActorRuntime(params?: {
   return {
     actorEdielId,
     actorName,
-    senderSubAddress: trimOrNull(agtRuntime?.prodat.profile?.sender_sub_address) ?? trimOrNull(activeActor?.sender_sub_address) ?? EDIEL_AGT_PRODAT_SENDER_SUB_ADDRESS,
-    receiverSubAddress: EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
-    receiverEdielId: agtRuntime?.prodat.profile?.receiver_ediel_id ?? EDIEL_AGT_PORTAL_EDIEL_ID,
-    receiverEmail: agtRuntime?.prodat.route?.target_email ?? EDIEL_AGT_PORTAL_SMTP,
+    senderSubAddress: trimOrNull(agtRuntime?.prodat.profile?.sender_sub_address) ?? trimOrNull(activeActor?.sender_sub_address),
+    receiverSubAddress: trimOrNull(agtRuntime?.systemTestSettings?.defaultReceiverSubaddress) ?? trimOrNull(agtRuntime?.prodat.profile?.receiver_sub_address),
+    receiverEdielId: trimOrNull(agtRuntime?.systemTestSettings?.testPortalEdielId) ?? trimOrNull(agtRuntime?.prodat.profile?.receiver_ediel_id) ?? '',
+    receiverEmail: trimOrNull(agtRuntime?.systemTestSettings?.testPortalEmail) ?? trimOrNull(agtRuntime?.prodat.route?.target_email) ?? '',
     applicationReference: agtRuntime?.prodat.profile?.application_reference ?? '23-DDQ-PRODAT',
     mailbox: activeActor?.mailbox ?? actor?.mailbox ?? 'agt-file-engine',
     smtpFromEmail: activeActor?.smtp_from_email ?? actor?.smtpFromEmail ?? null,
@@ -204,6 +200,24 @@ export async function getEdielAgtReadiness(params?: {
       code: 'actor_ediel_id_missing',
       title: 'Aktörens Ediel-id saknas',
       description: 'AGT kan inte köras utan leverantörens Ediel-id. Värdet ska komma från aktiv SaaS-tenant/aktörskort, inte från Gridcore/TGT.',
+    })
+  }
+
+  if (!trimOrNull(actor.receiverEdielId)) {
+    issues.push({
+      severity: 'error',
+      code: 'agt_receiver_ediel_id_missing',
+      title: 'Systemtestportalens Ediel-id saknas',
+      description: 'AGT kan inte köras utan DB-konfigurerad testportal i ediel_system_test_settings/ediel_counterparties.',
+    })
+  }
+
+  if (!trimOrNull(actor.receiverEmail)) {
+    issues.push({
+      severity: 'error',
+      code: 'agt_receiver_email_missing',
+      title: 'Systemtestportalens SMTP saknas',
+      description: 'Spara portalens testadress i AGT/systemtest-inställningar innan du skapar outbound.',
     })
   }
 
@@ -285,7 +299,7 @@ export async function createEdielSupplierAgtRun(params: {
       definition.purpose,
       definition.agtInstruction,
       `AGT-aktör: ${readiness.actor.actorName} (${readiness.actor.actorEdielId})`,
-      'Motpart: Edielportalen 91100 / 91100@ediel.se.',
+      `Motpart: DB-konfigurerad systemtestportal ${readiness.actor.receiverEdielId || 'saknas'} / ${readiness.actor.receiverEmail || 'saknas'}.`,
       'PRODAT använder leverantörens registrerade UNB sender-subadress om sådan finns i Edielregistret; annars tom. Receiver-subadress mot Edielportalen är PRODAT. UTILTS använder ingen subadress.',
       ...definition.notes,
     ].join('\n'),
@@ -571,16 +585,20 @@ async function assertStrictAgtOutboundRoute(params: {
     strictIssues.push(`AGT PRODAT sender_ediel_id (${prodat.profile.sender_ediel_id ?? '-'}) matchar inte tenantens aktörs-Ediel-id (${actorEdielId}).`)
   }
 
-  if (upper(prodat.profile?.receiver_ediel_id) !== EDIEL_AGT_PORTAL_EDIEL_ID) {
-    strictIssues.push(`AGT PRODAT receiver_ediel_id måste vara Edielportalen ${EDIEL_AGT_PORTAL_EDIEL_ID}.`)
+  const expectedPortalEdielId = upper(runtime.systemTestSettings?.testPortalEdielId)
+  if (!expectedPortalEdielId) {
+    strictIssues.push('AGT PRODAT saknar DB-konfigurerad testportal Ediel-ID.')
+  } else if (upper(prodat.profile?.receiver_ediel_id) !== expectedPortalEdielId) {
+    strictIssues.push(`AGT PRODAT receiver_ediel_id måste matcha DB-konfigurerad testportal ${expectedPortalEdielId}.`)
   }
 
   if (upper(prodat.profile?.application_reference) !== EDIEL_AGT_PRODAT_APPLICATION_REFERENCE) {
     strictIssues.push(`AGT PRODAT Application Reference måste vara ${EDIEL_AGT_PRODAT_APPLICATION_REFERENCE}.`)
   }
 
-  if (upper(prodat.profile?.receiver_sub_address) !== EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS) {
-    strictIssues.push(`AGT PRODAT receiver_sub_address måste vara ${EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}.`)
+  const expectedReceiverSubaddress = upper(runtime.systemTestSettings?.defaultReceiverSubaddress)
+  if (expectedReceiverSubaddress && upper(prodat.profile?.receiver_sub_address) !== expectedReceiverSubaddress) {
+    strictIssues.push(`AGT PRODAT receiver_sub_address måste matcha DB-konfigurerad mottagarsubadress ${expectedReceiverSubaddress}.`)
   }
 
   if (!trimOrNull(prodat.profile?.mailbox) && !trimOrNull(runtime.actor?.mailbox)) {

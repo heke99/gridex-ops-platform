@@ -174,11 +174,12 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
   }
 
   if (input.meteringPointId) {
-    const { data, error } = await supabaseService
+    let query = supabaseService
       .from("metering_points")
       .select("id,company_id,site_id,grid_owner_id")
-      .eq("id", input.meteringPointId)
-      .maybeSingle();
+      .eq("id", input.meteringPointId);
+    if (input.companyId) query = query.eq("company_id", input.companyId);
+    const { data, error } = await query.maybeSingle();
     if (error) throw error;
     const row = data as {
       id: string;
@@ -215,16 +216,21 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
   }
 
   if (input.siteId) {
+    let siteQuery = supabaseService
+      .from("customer_sites")
+      .select("id,company_id,grid_owner_id,selected_grid_owner_id")
+      .eq("id", input.siteId);
+    if (input.companyId) siteQuery = siteQuery.eq("company_id", input.companyId);
+
+    let pointsQuery = supabaseService
+      .from("metering_points")
+      .select("id,company_id,grid_owner_id")
+      .eq("site_id", input.siteId);
+    if (input.companyId) pointsQuery = pointsQuery.eq("company_id", input.companyId);
+
     const [siteResult, pointsResult] = await Promise.all([
-      supabaseService
-        .from("customer_sites")
-        .select("id,company_id,grid_owner_id")
-        .eq("id", input.siteId)
-        .maybeSingle(),
-      supabaseService
-        .from("metering_points")
-        .select("id,grid_owner_id")
-        .eq("site_id", input.siteId),
+      siteQuery.maybeSingle(),
+      pointsQuery,
     ]);
     if (siteResult.error) throw siteResult.error;
     if (pointsResult.error) throw pointsResult.error;
@@ -233,10 +239,12 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
       id: string;
       company_id: string | null;
       grid_owner_id: string | null;
+      selected_grid_owner_id?: string | null;
     } | null;
-    if (site?.grid_owner_id) {
+    const siteGridOwnerId = site?.selected_grid_owner_id ?? site?.grid_owner_id ?? null;
+    if (siteGridOwnerId) {
       return {
-        gridOwnerId: site.grid_owner_id,
+        gridOwnerId: siteGridOwnerId,
         source: "selected_customer_site_grid_owner",
         ambiguous: false,
         trace: [
@@ -244,7 +252,7 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
             "dynamic_receiver_context",
             "success",
             "Vald nätägare hämtades från anläggningen.",
-            { siteId: input.siteId, gridOwnerId: site.grid_owner_id },
+            { siteId: input.siteId, gridOwnerId: siteGridOwnerId },
           ),
         ],
       };
@@ -298,11 +306,12 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
   }
 
   if (input.supplierSwitchRequestId) {
-    const { data, error } = await supabaseService
+    let query = supabaseService
       .from("supplier_switch_requests")
       .select("id,company_id,grid_owner_id,metering_point_id,site_id")
-      .eq("id", input.supplierSwitchRequestId)
-      .maybeSingle();
+      .eq("id", input.supplierSwitchRequestId);
+    if (input.companyId) query = query.eq("company_id", input.companyId);
+    const { data, error } = await query.maybeSingle();
     if (error) throw error;
     const row = data as {
       id: string;
@@ -328,14 +337,31 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
         ],
       };
     }
+
+    if (row?.metering_point_id) {
+      return resolveGridOwnerIdFromContext({
+        ...input,
+        supplierSwitchRequestId: null,
+        meteringPointId: row.metering_point_id,
+      });
+    }
+
+    if (row?.site_id) {
+      return resolveGridOwnerIdFromContext({
+        ...input,
+        supplierSwitchRequestId: null,
+        siteId: row.site_id,
+      });
+    }
   }
 
   if (input.outboundRequestId) {
-    const { data, error } = await supabaseService
+    let query = supabaseService
       .from("outbound_requests")
       .select("id,company_id,grid_owner_id,metering_point_id,site_id,customer_site_id,supplier_switch_request_id,source_type,source_id")
-      .eq("id", input.outboundRequestId)
-      .maybeSingle();
+      .eq("id", input.outboundRequestId);
+    if (input.companyId) query = query.eq("company_id", input.companyId);
+    const { data, error } = await query.maybeSingle();
     if (error) throw error;
     const row = data as {
       id: string;
@@ -401,11 +427,12 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
   }
 
   if (input.dataRequestId) {
-    const { data, error } = await supabaseService
+    let query = supabaseService
       .from("grid_owner_data_requests")
       .select("id,company_id,grid_owner_id,metering_point_id,site_id")
-      .eq("id", input.dataRequestId)
-      .maybeSingle();
+      .eq("id", input.dataRequestId);
+    if (input.companyId) query = query.eq("company_id", input.companyId);
+    const { data, error } = await query.maybeSingle();
     if (error) throw error;
     const row = data as {
       id: string;
@@ -430,6 +457,22 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
           ),
         ],
       };
+    }
+
+    if (row?.metering_point_id) {
+      return resolveGridOwnerIdFromContext({
+        ...input,
+        dataRequestId: null,
+        meteringPointId: row.metering_point_id,
+      });
+    }
+
+    if (row?.site_id) {
+      return resolveGridOwnerIdFromContext({
+        ...input,
+        dataRequestId: null,
+        siteId: row.site_id,
+      });
     }
   }
 

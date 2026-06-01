@@ -1,13 +1,11 @@
 import type { EdielActorSettingsRow, EdielRouteProfileRow } from '@/lib/ediel/types'
 import { supabaseService } from '@/lib/supabase/service'
 import {
-  EDIEL_AGT_PORTAL_EDIEL_ID,
-  EDIEL_AGT_PORTAL_SMTP,
-  EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID,
   getEdielAgtRouteName,
 } from '@/lib/ediel/agtRegistry'
+import { getEdielSystemTestSettings, type EdielSystemTestSettings } from '@/lib/ediel/systemTestSettings'
 
 type CommunicationRouteLite = {
   id: string
@@ -39,6 +37,7 @@ export type EdielAgtRouteRuntime = {
 
 export type EdielAgtSupplierRuntime = {
   actor: EdielActorSettingsRow | null
+  systemTestSettings: EdielSystemTestSettings | null
   prodat: EdielAgtRouteRuntime
   utilts: EdielAgtRouteRuntime
   issues: EdielAgtReadinessIssue[]
@@ -178,7 +177,7 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
       severity: 'error',
       code: 'agt_actor_environment_not_test',
       title: 'AGT ska köras i testmiljön i systemet',
-      description: 'Edielportalens AGT går mot produktionsadresser, men i systemet ska körningen hållas i testmiljön så att 91100 inte blandas med riktig drift.',
+      description: 'Edielportalens AGT kan gå mot särskilda testmotparter, men i systemet ska körningen hållas i testmiljön så att test-ID:n inte blandas med riktig drift.',
     })
   }
 
@@ -195,7 +194,7 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
   return issues
 }
 
-function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsRow | null, companyId?: string | null): EdielAgtReadinessIssue[] {
+function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsRow | null, systemTestSettings: EdielSystemTestSettings | null, companyId?: string | null): EdielAgtReadinessIssue[] {
   const issues: EdielAgtReadinessIssue[] = []
   const family = runtime.family
   const expectedRouteName = getEdielAgtRouteName(family)
@@ -205,7 +204,7 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
       severity: 'error',
       code: `agt_${family.toLowerCase()}_route_missing`,
       title: `${family}-route saknas`,
-      description: `Skapa runtime-routen ${expectedRouteName} mot Edielportalen ${EDIEL_AGT_PORTAL_EDIEL_ID}.`,
+      description: `Skapa runtime-routen ${expectedRouteName} mot DB-konfigurerad AGT/systemtestportal.`,
     })
     return issues
   }
@@ -228,12 +227,20 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
     })
   }
 
-  if (runtime.route.target_email !== EDIEL_AGT_PORTAL_SMTP) {
+  const configuredPortalEmail = systemTestSettings?.testPortalEmail ?? null
+  if (!configuredPortalEmail) {
+    issues.push({
+      severity: 'error',
+      code: `agt_${family.toLowerCase()}_systemtest_email_missing`,
+      title: 'Systemtestportalens SMTP saknas',
+      description: 'Spara AGT/systemtest-inställningar i databasen innan AGT-route används.',
+    })
+  } else if (runtime.route.target_email !== configuredPortalEmail) {
     issues.push({
       severity: 'error',
       code: `agt_${family.toLowerCase()}_target_email_wrong`,
       title: `${family}-route har fel SMTP-mottagare`,
-      description: `AGT-routen ska använda ${EDIEL_AGT_PORTAL_SMTP}.`,
+      description: `AGT-routen ska använda den DB-konfigurerade testportaladressen ${configuredPortalEmail}.`,
     })
   }
 
@@ -283,12 +290,20 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
     })
   }
 
-  if (normalized(runtime.profile.receiver_ediel_id) !== EDIEL_AGT_PORTAL_EDIEL_ID) {
+  const configuredPortalEdielId = normalized(systemTestSettings?.testPortalEdielId)
+  if (!configuredPortalEdielId) {
+    issues.push({
+      severity: 'error',
+      code: `agt_${family.toLowerCase()}_systemtest_receiver_missing`,
+      title: 'Systemtestportalens Ediel-ID saknas',
+      description: 'Spara testportalens Ediel-ID i systemtest-inställningar innan AGT används.',
+    })
+  } else if (normalized(runtime.profile.receiver_ediel_id) !== configuredPortalEdielId) {
     issues.push({
       severity: 'error',
       code: `agt_${family.toLowerCase()}_receiver_wrong`,
       title: `${family}-profil har fel mottagande Ediel-id`,
-      description: `Motparten i Edielportalens AGT ska vara Ediel-id ${EDIEL_AGT_PORTAL_EDIEL_ID}.`,
+      description: `Motparten ska vara DB-konfigurerad testportal ${configuredPortalEdielId}.`,
     })
   }
 
@@ -341,12 +356,20 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
       })
     }
 
-    if (normalized(runtime.profile.receiver_sub_address) !== EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS) {
+    const configuredReceiverSubaddress = normalized(systemTestSettings?.defaultReceiverSubaddress)
+    if (!configuredReceiverSubaddress) {
+      issues.push({
+        severity: 'warning',
+        code: 'agt_prodat_receiver_subaddress_not_configured',
+        title: 'PRODAT receiver subaddress saknas i systemtestinställningar',
+        description: 'Fyll i receiver subaddress för AGT PRODAT om portalen kräver subadress.',
+      })
+    } else if (normalized(runtime.profile.receiver_sub_address) !== configuredReceiverSubaddress) {
       issues.push({
         severity: 'error',
         code: 'agt_prodat_receiver_subaddress_wrong',
         title: 'PRODAT receiver subaddress saknas/fel',
-        description: `PRODAT AGT ska skicka till 91100 med mottagarsubadress ${EDIEL_AGT_PRODAT_RECEIVER_SUB_ADDRESS}.`,
+        description: `PRODAT AGT ska använda DB-konfigurerad mottagarsubadress ${configuredReceiverSubaddress}.`,
       })
     }
   }
@@ -367,6 +390,7 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
 
 export async function getEdielAgtSupplierRuntime(companyId?: string | null): Promise<EdielAgtSupplierRuntime> {
   const actor = await getActiveTestSupplierActor(companyId)
+  const systemTestSettings = await getEdielSystemTestSettings({ companyId, testSuite: 'AGT' })
   const [prodatRoute, utiltsRoute] = await Promise.all([
     getRouteByName(getEdielAgtRouteName('PRODAT'), companyId),
     getRouteByName(getEdielAgtRouteName('UTILTS'), companyId),
@@ -380,12 +404,13 @@ export async function getEdielAgtSupplierRuntime(companyId?: string | null): Pro
   const utilts = { family: 'UTILTS' as const, route: utiltsRoute, profile: utiltsProfile }
   const issues = [
     ...validateActor(actor),
-    ...validateRoute(prodat, actor, companyId),
-    ...validateRoute(utilts, actor, companyId),
+    ...validateRoute(prodat, actor, systemTestSettings, companyId),
+    ...validateRoute(utilts, actor, systemTestSettings, companyId),
   ]
 
   return {
     actor,
+    systemTestSettings,
     prodat,
     utilts,
     issues,

@@ -78,6 +78,13 @@ function isProduction(value: unknown): boolean {
   );
 }
 
+const KNOWN_TEST_EDIEL_IDS = new Set(["91100", "91109"]);
+
+function isKnownTestEdielId(value: unknown): boolean {
+  const normalized = text(value)?.toUpperCase() ?? "";
+  return KNOWN_TEST_EDIEL_IDS.has(normalized);
+}
+
 function addIssue(
   target: RouteDecisionIssue[],
   issue: Omit<RouteDecisionIssue, "severity"> & {
@@ -229,20 +236,13 @@ function productionGuardIssues(params: {
   const targetEmail = String(params.targetEmail ?? "").toLowerCase();
   const receiver = String(params.receiverEdielId ?? "").trim();
 
-  if (receiver === "91100") {
+  if (isKnownTestEdielId(receiver)) {
     addIssue(issues, {
-      code: "production_receiver_91100",
+      code: "production_receiver_known_test_id",
       message:
-        "Production får inte skicka till Edielportalen/testmottagare 91100.",
+        "Production får inte skicka till kända systemtest-/AGT-ID:n. Test-ID:n ska bara användas via DB-konfigurerade test-rutter i environment=test.",
       source: "production_guard",
-    });
-  }
-
-  if (receiver === "91109") {
-    addIssue(issues, {
-      code: "production_receiver_91109",
-      message: "Production får inte skicka till test-BRP/testmotpart 91109.",
-      source: "production_guard",
+      metadata: { receiverEdielId: receiver },
     });
   }
 
@@ -358,6 +358,8 @@ export async function logRouteDecision(
     receiver_source: decision.receiverSource ?? "unresolved",
     dynamic_receiver_strategy: decision.dynamicReceiverStrategy,
     route_profile_id: decision.edielRouteProfileId,
+    route_version: Number((decision.payload ?? {}).route_version ?? 1),
+    transport_profile_id: (decision.payload ?? {}).transport_profile_id ?? null,
     metering_point_id: input.meteringPointId ?? null,
     grid_owner_id: decision.resolvedGridOwnerId ?? input.gridOwnerId ?? null,
     validation_status:
@@ -706,10 +708,39 @@ export async function decideCommunicationRoute(
   const resolvedGridOwnerId = selectedGridOwnerId;
   const resolvedCounterpartyId = dynamicReceiver.counterpartyId ?? null;
 
-  const senderEdielId =
-    text(actorSetting?.ediel_id) ??
-    text(actorSetting?.actor_ediel_id) ??
-    text(profile?.sender_ediel_id);
+  if (isProduction(environment) && text(profile?.receiver_ediel_id) && dynamicReceiver.receiverSource === "not_required") {
+    addIssue(warnings, {
+      code: "production_fixed_receiver_route",
+      message:
+        "Production route använder fast mottagare. Kontrollera att processen verkligen kräver fixed_counterparty och inte vald nätägare/mätpunkt.",
+      severity: "warning",
+      source: "route_profile_resolver",
+    });
+  }
+
+  const senderFromActorSetting =
+    text(actorSetting?.ediel_id) ?? text(actorSetting?.actor_ediel_id);
+  const senderFromLegacyProfile = text(profile?.sender_ediel_id);
+  const senderEdielId = senderFromActorSetting ?? (!isProduction(environment) ? senderFromLegacyProfile : null);
+
+  if (isProduction(environment) && senderFromLegacyProfile && !senderFromActorSetting) {
+    addIssue(blockingReasons, {
+      code: "production_sender_not_from_actor_settings",
+      message:
+        "Production sender Ediel-ID måste hämtas från ediel_actor_settings för bolaget. Route profile får inte vara fallback source-of-truth.",
+      source: "actor_setting_resolver",
+    });
+    requiredAdminActions.push("Lägg in bolagets production Ediel-ID i Company → Ediel & Go-live.");
+  }
+
+  if (isProduction(environment) && senderEdielId && isKnownTestEdielId(senderEdielId)) {
+    addIssue(blockingReasons, {
+      code: "production_sender_known_test_id",
+      message: "Production sender får inte vara ett känt systemtest-/AGT-ID.",
+      source: "actor_setting_resolver",
+      metadata: { senderEdielId },
+    });
+  }
 
   const senderSubAddress =
     text(actorSetting?.sender_subaddress) ??
