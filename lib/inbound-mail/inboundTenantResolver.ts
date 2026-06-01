@@ -167,15 +167,11 @@ export async function resolveTenantForInboundEdiel(input: {
   environment?: string | null
   parsed: ParsedEdifactEnvelope
 }): Promise<InboundTenantResolution> {
-  if (input.mailboxCompanyId) {
-    return {
-      status: 'resolved',
-      companyId: input.mailboxCompanyId,
-      reasons: ['Mailbox är tenant-kopplad och vinner över svagare signaler.'],
-      candidates: [input.mailboxCompanyId],
-    }
-  }
-
+  // Mailbox is only transport. Tenant identity must come from the EDIFACT UNB
+  // receiver matched against configured ediel_actor_settings for the same
+  // environment. A company_id on the mailbox is treated as weak evidence only,
+  // never as an automatic tenant assignment.
+  const mailboxCompanyId = clean(input.mailboxCompanyId)
   const receiver = input.parsed.receiverEdielId
   const environment = clean(input.environment)
   if (!receiver) {
@@ -216,13 +212,26 @@ export async function resolveTenantForInboundEdiel(input: {
   const candidates = unique(evidence.map((item) => item.companyId))
 
   if (topCandidates.length === 1) {
+    const resolvedCompanyId = topCandidates[0].companyId
+
+    if (mailboxCompanyId && mailboxCompanyId !== resolvedCompanyId) {
+      return {
+        status: 'ambiguous',
+        companyId: null,
+        reasons: [
+          `Mailboxen är kopplad till ${mailboxCompanyId}, men UNB receiver ${receiver} matchade ${resolvedCompanyId} i ${environment}. Mailbox får inte override:a EDIFACT-tenant.`,
+        ],
+        candidates: unique([mailboxCompanyId, ...candidates]),
+      }
+    }
+
     return {
       status: 'resolved',
-      companyId: topCandidates[0].companyId,
+      companyId: resolvedCompanyId,
       reasons: [
         `UNB receiver ${receiver} matchade tenant i ${environment} via ${topCandidates[0].source}.`,
       ],
-      candidates,
+      candidates: unique([mailboxCompanyId, ...candidates]),
     }
   }
 
@@ -238,7 +247,10 @@ export async function resolveTenantForInboundEdiel(input: {
   return {
     status: 'unassigned',
     companyId: null,
-    reasons: [`UNB receiver ${receiver} kunde inte matchas till bolag i ${environment}.`],
-    candidates: [],
+    reasons: [
+      `UNB receiver ${receiver} kunde inte matchas till bolag i ${environment}.`,
+      ...(mailboxCompanyId ? ['Mailboxens company_id används inte som fallback utan verifierad UNB-match.'] : []),
+    ],
+    candidates: mailboxCompanyId ? [mailboxCompanyId] : [],
   }
 }

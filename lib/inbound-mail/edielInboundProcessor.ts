@@ -86,6 +86,7 @@ export async function processInboundEmailMessage(input: {
       tenantStatus: unresolvedTenantStatus,
       reasons: tenant.reasons,
       candidates: tenant.candidates,
+      environment: mailbox?.environment ?? null,
     })
     await updateInboundEmailProcessingStatus({
       inboundEmailMessageId: input.inboundEmailMessageId,

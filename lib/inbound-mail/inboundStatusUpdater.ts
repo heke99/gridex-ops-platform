@@ -248,6 +248,9 @@ export async function createInboundEdielMessage(input: {
     sender_sub_address: input.parsed.senderSubAddress,
     receiver_ediel_id: input.parsed.receiverEdielId,
     receiver_sub_address: input.parsed.receiverSubAddress,
+    parsed_unb_sender_ediel_id: input.parsed.senderEdielId,
+    parsed_unb_receiver_ediel_id: input.parsed.receiverEdielId,
+    resolved_company_id: input.companyId,
     interchange_reference: input.parsed.interchangeReference,
     transaction_reference: input.parsed.transactionReference,
     application_reference: input.parsed.applicationReference,
@@ -334,6 +337,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
   tenantStatus: 'unassigned' | 'ambiguous'
   reasons: string[]
   candidates: string[]
+  environment?: string | null
 }): Promise<string | null> {
   const payload = payloadForInbound({
     parsed: input.parsed,
@@ -352,6 +356,9 @@ export async function createUnresolvedInboundEdielMessage(input: {
     sender_sub_address: input.parsed.senderSubAddress,
     receiver_ediel_id: input.parsed.receiverEdielId,
     receiver_sub_address: input.parsed.receiverSubAddress,
+    parsed_unb_sender_ediel_id: input.parsed.senderEdielId,
+    parsed_unb_receiver_ediel_id: input.parsed.receiverEdielId,
+    resolved_company_id: input.companyId ?? null,
     interchange_reference: input.parsed.interchangeReference,
     transaction_reference: input.parsed.transactionReference,
     application_reference: input.parsed.applicationReference,
@@ -390,6 +397,17 @@ export async function createUnresolvedInboundEdielMessage(input: {
   await supabaseService.from('ediel_unresolved_items').insert({
     company_id: input.companyId ?? null,
     source_message_id: edielMessageId,
+    environment: input.environment ?? null,
+    raw_sender: input.parsed.senderEdielId,
+    raw_receiver: input.parsed.receiverEdielId,
+    raw_interchange_reference: input.parsed.interchangeReference,
+    raw_message_type: input.parsed.messageFamily,
+    parsed_sender_ediel_id: input.parsed.senderEdielId,
+    parsed_receiver_ediel_id: input.parsed.receiverEdielId,
+    parsed_subaddress: input.parsed.receiverSubAddress,
+    message_family: input.parsed.messageFamily,
+    message_code: input.parsed.messageCode,
+    reason: input.reasons.join(' ') || 'Tenant kunde inte lösas säkert från UNB receiver.',
     issue_type: resolutionStatus,
     severity: input.tenantStatus === 'ambiguous' ? 'critical' : 'warning',
     extracted_identifiers: {

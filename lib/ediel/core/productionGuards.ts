@@ -63,7 +63,7 @@ export function isTgtApplicationReference(value?: string | null): boolean {
 }
 
 export function isEdielPortalParty(value?: string | null): boolean {
-  return text(value) === '91100'
+  return ['91100', '91109'].includes(text(value))
 }
 
 function assertNoProductionTgtFields(params: {
@@ -140,7 +140,7 @@ export function evaluateEdielProductionSendLock(
     issues.push({
       code: 'ediel_portal_party_in_production',
       severity: 'blocked',
-      message: 'Produktionsmeddelande innehåller Edielportalens testpart 91100 som sender/receiver.',
+      message: 'Produktionsmeddelande innehåller Edielportal/testpart 91100 eller 91109 som sender/receiver.',
     })
   }
 

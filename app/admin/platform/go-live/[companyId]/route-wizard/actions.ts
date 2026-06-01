@@ -37,6 +37,31 @@ async function assertPlatformCompanyExists(companyId: string): Promise<void> {
   if (!data) throw new Error('Bolaget hittades inte eller är inte åtkomligt.')
 }
 
+async function getProductionActorSetting(companyId: string): Promise<{ edielId: string; senderSubAddress: string | null; actorSettingId: string }> {
+  const { data, error } = await supabaseService
+    .from('ediel_actor_settings')
+    .select('id,ediel_id,actor_ediel_id,sender_subaddress,sender_sub_address,is_active')
+    .eq('company_id', companyId)
+    .eq('environment', 'production')
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  const row = data as Record<string, unknown> | null
+  const edielId = String(row?.ediel_id ?? row?.actor_ediel_id ?? '').trim().toUpperCase()
+  if (!row || !edielId) {
+    throw new Error('Bolaget saknar aktivt production Ediel-ID i ediel_actor_settings. Lägg in Ediel-ID i Company → Ediel & Go-live innan route skapas.')
+  }
+
+  return {
+    edielId,
+    senderSubAddress: normalizeSubAddress(String(row.sender_subaddress ?? row.sender_sub_address ?? '').trim() || null),
+    actorSettingId: String(row.id),
+  }
+}
+
 function validateProductionRoute(input: {
   senderEdielId: string | null
   receiverEdielId: string | null
@@ -47,6 +72,7 @@ function validateProductionRoute(input: {
   if (!input.senderEdielId) blockers.push('Produktions Ediel-id saknas.')
   if (!input.receiverEdielId) blockers.push('Produktionsmotpartens Ediel-id saknas.')
   if (input.receiverEdielId === '91100') blockers.push('91100 är Edielportal/testsystem och får inte användas i production route.')
+  if (input.receiverEdielId === '91109') blockers.push('91109 är test-BRP/testmotpart och får inte användas i production route.')
   if (!input.targetEmail) blockers.push('Produktionsmailbox/mottagaradress saknas.')
   if (!input.applicationReference) blockers.push('Production Application Reference saknas.')
   if (String(input.applicationReference ?? '').toUpperCase().startsWith('23-DDQ')) blockers.push('Application Reference 23-DDQ är test/portal-referens och får inte användas i production route.')
@@ -60,17 +86,25 @@ export async function createProductionRouteFromWizardAction(formData: FormData) 
   if (!companyId) throw new Error('Bolag saknas.')
   await assertPlatformCompanyExists(companyId)
 
-  const senderEdielId = text(formData, 'sender_ediel_id')
+  const actorSetting = await getProductionActorSetting(companyId)
+  const frontendSenderEdielId = text(formData, 'sender_ediel_id')?.toUpperCase() ?? null
+  if (frontendSenderEdielId && frontendSenderEdielId !== actorSetting.edielId) {
+    throw new Error('Sender Ediel-ID får inte override:as i route-wizard. Ändra bolagets Ediel-ID i Company → Ediel & Go-live först.')
+  }
+
+  const senderEdielId = actorSetting.edielId
+  const senderSubAddress = normalizeSubAddress(text(formData, 'sender_sub_address')) ?? actorSetting.senderSubAddress
   const receiverEdielId = text(formData, 'receiver_ediel_id')
   const targetEmail = text(formData, 'target_email')
   const applicationReference = text(formData, 'application_reference')
   const blockers = validateProductionRoute({ senderEdielId, receiverEdielId, targetEmail, applicationReference })
   const wizardPayload = {
     senderEdielId,
+    actorSettingId: actorSetting.actorSettingId,
     receiverEdielId,
     targetEmail,
     applicationReference,
-    senderSubAddress: normalizeSubAddress(text(formData, 'sender_sub_address')),
+    senderSubAddress,
     receiverSubAddress: normalizeSubAddress(text(formData, 'receiver_sub_address')),
     receiverName: text(formData, 'receiver_name'),
     mailbox: text(formData, 'mailbox'),
@@ -130,10 +164,11 @@ export async function createProductionRouteFromWizardAction(formData: FormData) 
     .insert({
       company_id: companyId,
       communication_route_id: route.id,
+      actor_setting_id: actorSetting.actorSettingId,
       is_enabled: true,
       sender_ediel_id: senderEdielId,
       sender_name: text(formData, 'sender_name'),
-      sender_sub_address: normalizeSubAddress(text(formData, 'sender_sub_address')),
+      sender_sub_address: senderSubAddress,
       receiver_ediel_id: receiverEdielId,
       receiver_name: text(formData, 'receiver_name'),
       receiver_sub_address: normalizeSubAddress(text(formData, 'receiver_sub_address')),
@@ -164,7 +199,7 @@ export async function createProductionRouteFromWizardAction(formData: FormData) 
     .from('companies')
     .update({
       production_ediel_id: senderEdielId,
-      production_sender_sub_address: normalizeSubAddress(text(formData, 'sender_sub_address')),
+      production_sender_sub_address: senderSubAddress,
       production_mailbox: targetEmail,
       production_application_reference: applicationReference,
       production_counterparty_ediel_id: receiverEdielId,

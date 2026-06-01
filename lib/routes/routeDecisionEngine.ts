@@ -46,6 +46,17 @@ type RouteProfileRow = {
   environment: string | null
 }
 
+type ActorSettingRow = {
+  id: string
+  company_id: string | null
+  environment: string | null
+  ediel_id: string | null
+  actor_ediel_id: string | null
+  sender_subaddress: string | null
+  sender_sub_address: string | null
+  is_active: boolean | null
+}
+
 function text(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
@@ -135,6 +146,26 @@ async function findRouteProfile(routeId: string, companyId?: string | null): Pro
   return (data as RouteProfileRow | null) ?? null
 }
 
+async function findActiveActorSetting(params: {
+  companyId?: string | null
+  environment?: string | null
+}): Promise<ActorSettingRow | null> {
+  if (!params.companyId) return null
+
+  const { data, error } = await supabaseService
+    .from('ediel_actor_settings')
+    .select('id,company_id,environment,ediel_id,actor_ediel_id,sender_subaddress,sender_sub_address,is_active')
+    .eq('company_id', params.companyId)
+    .eq('environment', params.environment ?? 'test')
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as ActorSettingRow | null) ?? null
+}
+
 function productionGuardIssues(params: {
   environment?: string | null
   route?: RouteRow | null
@@ -152,6 +183,14 @@ function productionGuardIssues(params: {
     addIssue(issues, {
       code: 'production_receiver_91100',
       message: 'Production får inte skicka till Edielportalen/testmottagare 91100.',
+      source: 'production_guard',
+    })
+  }
+
+  if (receiver === '91109') {
+    addIssue(issues, {
+      code: 'production_receiver_91109',
+      message: 'Production får inte skicka till test-BRP/testmotpart 91109.',
       source: 'production_guard',
     })
   }
@@ -201,7 +240,7 @@ function compactPayload(decision: RouteDecisionOutput): Record<string, unknown> 
 }
 
 export async function logRouteDecision(input: RouteDecisionInput, decision: RouteDecisionOutput): Promise<void> {
-  const { error } = await supabaseService.from('route_decision_logs').insert({
+  const routeLogPayload = {
     company_id: input.companyId ?? null,
     customer_id: input.customerId ?? null,
     site_id: input.siteId ?? null,
@@ -231,9 +270,45 @@ export async function logRouteDecision(input: RouteDecisionInput, decision: Rout
     decision_trace: decision.decisionTrace,
     source_payload: input.payload ?? {},
     created_by: input.actorUserId ?? null,
-  })
+  }
 
-  if (error) console.warn('[routeDecisionEngine] Kunde inte logga route-beslut', error)
+  const { data, error } = await supabaseService
+    .from('route_decision_logs')
+    .insert(routeLogPayload)
+    .select('id')
+    .maybeSingle()
+
+  if (error) {
+    console.warn('[routeDecisionEngine] Kunde inte logga route-beslut', error)
+    return
+  }
+
+  const routeDecisionLogId = (data as { id?: string } | null)?.id ?? null
+  const routingDecisionPayload = {
+    route_decision_log_id: routeDecisionLogId,
+    company_id: input.companyId ?? null,
+    environment: input.environment ?? 'test',
+    message_family: decision.messageFamily,
+    message_code: decision.messageCode,
+    direction: 'outbound',
+    sender_ediel_id: decision.senderEdielId,
+    sender_subaddress: decision.senderSubAddress,
+    receiver_ediel_id: decision.receiverEdielId,
+    receiver_subaddress: decision.receiverSubAddress,
+    receiver_source: decision.gridOwnerAccessAgreementId ? 'grid_owner_agreement' : decision.edielRouteProfileId ? 'ediel_route_profile' : 'unresolved',
+    route_profile_id: decision.edielRouteProfileId,
+    metering_point_id: input.meteringPointId ?? null,
+    grid_owner_id: input.gridOwnerId ?? null,
+    validation_status: decision.decisionStatus === 'send' ? 'passed' : decision.decisionStatus === 'manual_review' ? 'warning' : 'blocked',
+    validation_errors: decision.blockingReasons,
+    validation_warnings: decision.warnings,
+    decision_trace: decision.decisionTrace,
+    is_dry_run: input.payload?.dryRun === true,
+    created_by: input.actorUserId ?? null,
+  }
+
+  const { error: routingDecisionError } = await supabaseService.from('ediel_routing_decisions').insert(routingDecisionPayload)
+  if (routingDecisionError) console.warn('[routeDecisionEngine] Kunde inte logga ediel_routing_decisions', routingDecisionError)
 }
 
 export async function createRouteAdminTasks(input: RouteDecisionInput, decision: RouteDecisionOutput): Promise<void> {
@@ -389,6 +464,25 @@ export async function decideCommunicationRoute(input: RouteDecisionInput): Promi
   }
 
   const profile = routeResult.route ? await findRouteProfile(routeResult.route.id, input.companyId ?? null) : null
+  const actorSetting = await findActiveActorSetting({ companyId: input.companyId ?? null, environment })
+
+  if (actorSetting) {
+    addTrace(trace, {
+      step: 'actor_setting_resolver',
+      status: 'success',
+      message: `Bolagets Ediel-ID hämtades från ediel_actor_settings för ${environment}.`,
+      metadata: { actorSettingId: actorSetting.id, edielId: actorSetting.ediel_id ?? actorSetting.actor_ediel_id },
+    })
+  }
+
+  if (!actorSetting && isProduction(environment)) {
+    addIssue(blockingReasons, {
+      code: 'missing_company_actor_setting',
+      message: 'Bolaget saknar aktiv production Ediel-aktör i ediel_actor_settings. Lägg in Ediel-ID i onboarding/go-live innan production-send.',
+      source: 'actor_setting_resolver',
+    })
+    requiredAdminActions.push('Lägg in bolagets production Ediel-ID i Company → Ediel & Go-live.')
+  }
 
   if (routeResult.route) {
     addTrace(trace, {
@@ -424,8 +518,15 @@ export async function decideCommunicationRoute(input: RouteDecisionInput): Promi
     text(profile?.receiver_sub_address) ??
     null
 
-  const senderEdielId = text(profile?.sender_ediel_id)
-  const senderSubAddress = text(profile?.sender_sub_address)
+  const senderEdielId =
+    text(actorSetting?.ediel_id) ??
+    text(actorSetting?.actor_ediel_id) ??
+    text(profile?.sender_ediel_id)
+
+  const senderSubAddress =
+    text(actorSetting?.sender_subaddress) ??
+    text(actorSetting?.sender_sub_address) ??
+    text(profile?.sender_sub_address)
   const messageVersion = agreementDecision.preferredMessageVersion ?? text(profile?.default_message_version)
 
   if (routeResult.route?.route_type === 'email_manual' && input.businessProcess === 'supplier_switch') {
@@ -440,7 +541,7 @@ export async function decideCommunicationRoute(input: RouteDecisionInput): Promi
     if (!senderEdielId) {
       addIssue(blockingReasons, {
         code: 'missing_sender_ediel_id',
-        message: 'sender Ediel-id saknas på route profile/actor settings.',
+        message: 'sender Ediel-id saknas. Lägg in bolagets Ediel-ID i ediel_actor_settings/onboarding eller komplettera route profile.',
         source: 'route_profile_resolver',
       })
     }
