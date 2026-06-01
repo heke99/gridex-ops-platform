@@ -9,7 +9,7 @@ import {
   navigationModeParam,
   normalizeAdminNavigationMode,
 } from '@/lib/admin/navigationPreferences'
-import { listPlatformCompanies } from '@/lib/tenant/scope'
+import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
 
 const ADMIN_COOKIE_MAX_AGE = 60 * 60 * 24 * 180
 
@@ -34,14 +34,13 @@ export async function updateAdminNavigationPreference(formData: FormData) {
   const admin = await requireAdminAccess()
   const mode = normalizeAdminNavigationMode(formStringValue(formData, 'mode')) ?? 'platform_view'
   const requestedCompanyId = formStringValue(formData, 'company_id')
+  const memberships = await listOperationalCompaniesForUser(admin.userId)
 
-  let selectedCompanyId = requestedCompanyId
-  if (selectedCompanyId && admin.isPlatformAdmin) {
-    const companies = await listPlatformCompanies()
-    const exists = companies.some((company) => company.id === selectedCompanyId)
-    if (!exists) selectedCompanyId = null
-  } else if (!admin.isPlatformAdmin) {
-    selectedCompanyId = null
+  let selectedCompanyId: string | null = null
+  if (mode === 'company_view') {
+    selectedCompanyId = memberships.some((company) => company.companyId === requestedCompanyId)
+      ? requestedCompanyId
+      : memberships[0]?.companyId ?? null
   }
 
   const cookieStore = await cookies()

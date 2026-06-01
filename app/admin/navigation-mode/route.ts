@@ -6,7 +6,7 @@ import {
   navigationModeParam,
   normalizeAdminNavigationMode,
 } from '@/lib/admin/navigationPreferences'
-import { listPlatformCompanies } from '@/lib/tenant/scope'
+import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,14 +24,13 @@ export async function GET(request: NextRequest) {
   const mode = normalizeAdminNavigationMode(request.nextUrl.searchParams.get('mode')) ?? 'platform_view'
   const requestedCompanyId = request.nextUrl.searchParams.get('company_id')?.trim() || null
   const next = safeNextPath(request.nextUrl.searchParams.get('next'), request)
+  const memberships = await listOperationalCompaniesForUser(admin.userId)
 
-  let selectedCompanyId = requestedCompanyId
-  if (selectedCompanyId && admin.isPlatformAdmin) {
-    const companies = await listPlatformCompanies()
-    const exists = companies.some((company) => company.id === selectedCompanyId)
-    if (!exists) selectedCompanyId = null
-  } else if (!admin.isPlatformAdmin) {
-    selectedCompanyId = null
+  let selectedCompanyId: string | null = null
+  if (mode === 'company_view') {
+    selectedCompanyId = memberships.some((company) => company.companyId === requestedCompanyId)
+      ? requestedCompanyId
+      : memberships[0]?.companyId ?? null
   }
 
   const response = NextResponse.redirect(next)
