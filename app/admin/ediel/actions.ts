@@ -3,8 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAnyPermissionServer } from "@/lib/auth/requirePermissionServer";
-import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess, type GuardResult } from "@/lib/admin/guards";
-import { assertUserCanOperateCompany, getOperationalCompanyScope } from "@/lib/tenant/scope";
+import {
+  isPlatformAdminContext,
+  requireAdminActionAccess,
+  requirePlatformAdminActionAccess,
+  type GuardResult,
+} from "@/lib/admin/guards";
+import {
+  assertUserCanOperateCompany,
+  getOperationalCompanyScope,
+} from "@/lib/tenant/scope";
 import {
   createAckDraftForMessage,
   createNegativeUtiltsResponse,
@@ -47,7 +55,10 @@ import {
 } from "@/lib/ediel/db";
 import { runEdielSelfTest } from "@/lib/ediel/selftest";
 import { buildInboundUtiltsMessageInput } from "@/lib/ediel/utilts";
-import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from "@/lib/ediel/utiltsEngine";
+import {
+  runUtiltsRuntimeForMessage,
+  serializeUtiltsRuntimeUtiltsErrMessageText,
+} from "@/lib/ediel/utiltsEngine";
 import {
   buildProdatZ03FromSwitch,
   buildProdatZ04FromSwitch,
@@ -103,7 +114,10 @@ import {
 import { parseEdifactMessageFacts } from "@/lib/ediel/core/edifactSegments";
 import { parseProdatMessage } from "@/lib/ediel/prodat/parser";
 import { supabaseService } from "@/lib/supabase/service";
-import { validateProdatPermissionMessage, type ProdatPermissionContext } from "@/lib/ediel/prodat/permissionEngine";
+import {
+  validateProdatPermissionMessage,
+  type ProdatPermissionContext,
+} from "@/lib/ediel/prodat/permissionEngine";
 import {
   attachAperakErrorDetailsToMessage,
   resolveAndStoreProdatAperakErrors,
@@ -125,6 +139,7 @@ import {
 } from "@/lib/ediel/agtEngine";
 import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustomer";
 import { getEdielAgtSupplierRuntime } from "@/lib/ediel/agtRuntime";
+import { requireEdielSystemTestRuntimeContext } from "@/lib/ediel/systemTestSettings";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 import { createSafeMasterdataProposalForMessage } from "@/lib/ediel/operationalVerification";
 import {
@@ -177,9 +192,15 @@ function isAgtL7OutboundMessage(message: EdielMessageRow): boolean {
 
 function isTestOrCertificationEdielMessage(message: EdielMessageRow): boolean {
   const receiverEdielId = String(message.receiver_ediel_id ?? "").trim();
-  const receiverEmail = String(message.receiver_email ?? "").trim().toLowerCase();
-  const applicationReference = String(message.application_reference ?? "").trim().toUpperCase();
-  const mailbox = String(message.mailbox ?? "").trim().toLowerCase();
+  const receiverEmail = String(message.receiver_email ?? "")
+    .trim()
+    .toLowerCase();
+  const applicationReference = String(message.application_reference ?? "")
+    .trim()
+    .toUpperCase();
+  const mailbox = String(message.mailbox ?? "")
+    .trim()
+    .toLowerCase();
 
   return (
     message.environment !== "production" ||
@@ -608,12 +629,17 @@ function effectiveTgtParsedPayloadForMessage(
   };
 }
 
-
-function extractFacilityIdsForTgtFieldFromText(rawText: string | null | undefined, fieldCode: string): string[] {
+function extractFacilityIdsForTgtFieldFromText(
+  rawText: string | null | undefined,
+  fieldCode: string,
+): string[] {
   const text = String(rawText ?? "");
   const escaped = fieldCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const values = new Set<string>();
-  const pattern = new RegExp(`(?:^|\\n|\\r|;|,)\\s*${escaped}[^\\n\\r;,]*?(735\\d{15})`, "gi");
+  const pattern = new RegExp(
+    `(?:^|\\n|\\r|;|,)\\s*${escaped}[^\\n\\r;,]*?(735\\d{15})`,
+    "gi",
+  );
 
   for (const match of text.matchAll(pattern)) {
     const value = String(match[1] ?? "").trim();
@@ -629,13 +655,21 @@ function fieldValuesFromTgtRow(
 ): string[] {
   const values = new Set<string>();
 
-  for (const value of fieldValuesFromTgtTestData(row.parsedPayload, fieldCodes)) {
+  for (const value of fieldValuesFromTgtTestData(
+    row.parsedPayload,
+    fieldCodes,
+  )) {
     if (value) values.add(value);
   }
 
-  const rawText = [row.title, row.sourceNote, row.rawText].filter(Boolean).join("\n");
+  const rawText = [row.title, row.sourceNote, row.rawText]
+    .filter(Boolean)
+    .join("\n");
   for (const fieldCode of fieldCodes) {
-    for (const value of extractFacilityIdsForTgtFieldFromText(rawText, fieldCode)) {
+    for (const value of extractFacilityIdsForTgtFieldFromText(
+      rawText,
+      fieldCode,
+    )) {
       values.add(value);
     }
   }
@@ -652,8 +686,8 @@ function findZ05FacilityMismatchTgtRowForMessage(
   if (family !== "PRODAT" || code !== "Z05") return null;
 
   const actualFacilityIds = new Set(
-    parseEdifactMessageFacts(message.raw_payload).lineItems
-      .map((line) => String(line.itemId ?? "").trim())
+    parseEdifactMessageFacts(message.raw_payload)
+      .lineItems.map((line) => String(line.itemId ?? "").trim())
       .filter((value) => /^735\d{15}$/.test(value)),
   );
 
@@ -661,12 +695,18 @@ function findZ05FacilityMismatchTgtRowForMessage(
 
   const candidates = rows
     .map((row) => {
-      const sentIds = fieldValuesFromTgtRow(row, ["209"]).filter((value) => /^735\d{15}$/.test(value));
-      const expectedIds = fieldValuesFromTgtRow(row, ["233"]).filter((value) => /^735\d{15}$/.test(value));
+      const sentIds = fieldValuesFromTgtRow(row, ["209"]).filter((value) =>
+        /^735\d{15}$/.test(value),
+      );
+      const expectedIds = fieldValuesFromTgtRow(row, ["233"]).filter((value) =>
+        /^735\d{15}$/.test(value),
+      );
       const hasPayloadMismatch =
         sentIds.length > 0 &&
         expectedIds.length > 0 &&
-        sentIds.some((id) => actualFacilityIds.has(id) && !expectedIds.includes(id));
+        sentIds.some(
+          (id) => actualFacilityIds.has(id) && !expectedIds.includes(id),
+        );
 
       if (!hasPayloadMismatch) return null;
 
@@ -676,7 +716,15 @@ function findZ05FacilityMismatchTgtRowForMessage(
         effectiveCode: effectiveTgtTestCaseCodeForMessageRow(message, row),
       };
     })
-    .filter((entry): entry is { row: EdielTgtDynamicTestDataSummary; score: number; effectiveCode: string } => Boolean(entry))
+    .filter(
+      (
+        entry,
+      ): entry is {
+        row: EdielTgtDynamicTestDataSummary;
+        score: number;
+        effectiveCode: string;
+      } => Boolean(entry),
+    )
     .sort((a, b) => {
       const aIs321 = a.effectiveCode === "3.2.1" ? 1 : 0;
       const bIs321 = b.effectiveCode === "3.2.1" ? 1 : 0;
@@ -690,24 +738,24 @@ function findZ05FacilityMismatchTgtRowForMessage(
   return candidates[0]?.row ?? null;
 }
 
-
 function minimalRequestedTgtCaseData(params: {
-  testSuite: EdielTestSuite
-  roleCode: EdielTestRoleCode
-  testCaseCode: string | null | undefined
-  title?: string | null
+  testSuite: EdielTestSuite;
+  roleCode: EdielTestRoleCode;
+  testCaseCode: string | null | undefined;
+  title?: string | null;
 }): EdielTgtCaseTestData | null {
-  const testCaseCode = String(params.testCaseCode ?? '').trim()
-  if (!testCaseCode) return null
+  const testCaseCode = String(params.testCaseCode ?? "").trim();
+  if (!testCaseCode) return null;
 
   return {
     suite: params.testSuite,
     roleCode: params.roleCode,
     testCaseCode,
     title: params.title ?? `TGT ${testCaseCode}`,
-    sourceNote: 'Minimal TGT-case marker from selected Edielportal test. Used when no dynamic testdata row has been imported yet.',
+    sourceNote:
+      "Minimal TGT-case marker from selected Edielportal test. Used when no dynamic testdata row has been imported yet.",
     groups: [],
-  }
+  };
 }
 
 async function resolveTgtTestDataForAckAction(params: {
@@ -721,29 +769,29 @@ async function resolveTgtTestDataForAckAction(params: {
   requestedTestData: EdielTgtCaseTestData | null;
 }> {
   const { message, requestedTestCaseCode } = params;
-  const testSuite: EdielTestSuite = params.testSuite ?? (params.message.message_family === "UTILTS" ? "UTILTS" : "PRODAT");
+  const testSuite: EdielTestSuite =
+    params.testSuite ??
+    (params.message.message_family === "UTILTS" ? "UTILTS" : "PRODAT");
   const roleCode = inferTgtRoleCodeForAckResolution({
     message,
     requestedRoleCode: params.roleCode,
   });
-  const fallbackStaticCaseCode = requestedTestCaseCode ?? fallbackStaticTgtCaseCodeForPermissionMessage(message);
+  const fallbackStaticCaseCode =
+    requestedTestCaseCode ??
+    fallbackStaticTgtCaseCodeForPermissionMessage(message);
 
   const requestedTestData = fallbackStaticCaseCode
-    ? await getEdielTgtDynamicTestDataForCase(
+    ? ((await getEdielTgtDynamicTestDataForCase(
         testSuite,
         roleCode,
         fallbackStaticCaseCode,
-      ) ??
-      getEdielTgtTestDataForCase(
-        testSuite,
-        roleCode,
-        fallbackStaticCaseCode,
-      ) ??
+      )) ??
+      getEdielTgtTestDataForCase(testSuite, roleCode, fallbackStaticCaseCode) ??
       minimalRequestedTgtCaseData({
         testSuite,
         roleCode,
         testCaseCode: fallbackStaticCaseCode,
-      })
+      }))
     : null;
 
   if (
@@ -840,50 +888,67 @@ async function resolveTgtTestDataForAckAction(params: {
   };
 }
 
-
 function isProdatPermissionMessage(message: EdielMessageRow): boolean {
-  if (String(message.message_family ?? '').toUpperCase() !== 'PRODAT') return false;
-  return ['Z13', 'Z14', 'Z15', 'Z18'].includes(String(message.message_code ?? '').toUpperCase());
+  if (String(message.message_family ?? "").toUpperCase() !== "PRODAT")
+    return false;
+  return ["Z13", "Z14", "Z15", "Z18"].includes(
+    String(message.message_code ?? "").toUpperCase(),
+  );
 }
 
 function inferTgtRoleCodeForAckResolution(params: {
   message: EdielMessageRow;
   requestedRoleCode?: EdielTestRoleCode | string | null;
 }): EdielTestRoleCode {
-  const rawRoleCode = params.requestedRoleCode ? String(params.requestedRoleCode) : null;
+  const rawRoleCode = params.requestedRoleCode
+    ? String(params.requestedRoleCode)
+    : null;
   if (rawRoleCode && isEdielTestRoleCode(rawRoleCode)) return rawRoleCode;
 
-  const applicationReference = String(params.message.application_reference ?? '').toUpperCase();
+  const applicationReference = String(
+    params.message.application_reference ?? "",
+  ).toUpperCase();
 
   // ESCO/permission tests use PRODAT as technical routing but DGI/DDQ in the
   // application reference and Z13/Z14/Z15/Z18 as business codes. Do not fall
   // back to supplier here, otherwise negative ESCO tests such as 8.2.1 are
   // matched against the wrong TGT dataset and can create a false positive APERAK.
-  if (isProdatPermissionMessage(params.message) || applicationReference.includes('-DGI-PRODAT')) {
-    return 'esco';
+  if (
+    isProdatPermissionMessage(params.message) ||
+    applicationReference.includes("-DGI-PRODAT")
+  ) {
+    return "esco";
   }
 
-  return 'supplier';
+  return "supplier";
 }
 
-function fallbackStaticTgtCaseCodeForPermissionMessage(message: EdielMessageRow): string | null {
+function fallbackStaticTgtCaseCodeForPermissionMessage(
+  message: EdielMessageRow,
+): string | null {
   if (!isProdatPermissionMessage(message)) return null;
 
-  const code = String(message.message_code ?? '').toUpperCase();
-  const raw = String(message.raw_payload ?? '').toUpperCase();
+  const code = String(message.message_code ?? "").toUpperCase();
+  const raw = String(message.raw_payload ?? "").toUpperCase();
   const parsed = parseEdifactMessageFacts(message.raw_payload);
-  const facilityIds = parsed.lineItems.map((line) => String(line.itemId ?? '').trim()).filter(Boolean);
+  const facilityIds = parsed.lineItems
+    .map((line) => String(line.itemId ?? "").trim())
+    .filter(Boolean);
 
-  if (code === 'Z14') {
+  if (code === "Z14") {
     // TGT 8.2.1 is portal -> actor only and uses the deliberately bad Z14V
     // object for test customer 71. This fallback is test-environment only and
     // exists to protect the backend when no imported TGT row is attached in UI.
-    if (String(message.environment ?? '').toLowerCase() === 'test' && facilityIds.includes('735999888000000710')) return '8.2.1';
-    if (raw.includes('S18') || raw.includes('Z14VH')) return '8.1.3';
-    return '8.1.1';
+    if (
+      String(message.environment ?? "").toLowerCase() === "test" &&
+      facilityIds.includes("735999888000000710")
+    )
+      return "8.2.1";
+    if (raw.includes("S18") || raw.includes("Z14VH")) return "8.1.3";
+    return "8.1.1";
   }
 
-  if (code === 'Z15') return '9.1.1';
+  if (code === "Z15") return "9.1.1";
   return null;
 }
 
@@ -891,7 +956,8 @@ function parseFileEngineMode(
   value: FormDataEntryValue | null,
 ): EdielFileEngineMode {
   const raw = formString(value);
-  if (raw === "agt" || raw === "internal_test" || raw === "production_dry_run") return raw;
+  if (raw === "agt" || raw === "internal_test" || raw === "production_dry_run")
+    return raw;
   return "tgt";
 }
 
@@ -1038,7 +1104,7 @@ async function revalidateRelatedMessage(messageId?: string | null) {
 
 async function requireScopedEdielMessageForAction(
   messageId: string,
-  context: GuardResult
+  context: GuardResult,
 ): Promise<EdielMessageRow> {
   const message = await getEdielMessageById(messageId);
   if (!message) throw new Error("Meddelandet hittades inte");
@@ -1051,7 +1117,9 @@ async function requireScopedEdielMessageForAction(
   }
 
   if (!isPlatformAdminContext(context)) {
-    throw new Error("Meddelandet saknar tenantkoppling och kan bara hanteras av platform admin.");
+    throw new Error(
+      "Meddelandet saknar tenantkoppling och kan bara hanteras av platform admin.",
+    );
   }
 
   return message;
@@ -1081,7 +1149,6 @@ export async function cancelEdielMessageAction(formData: FormData) {
   await revalidateRelatedMessage(edielMessageId);
   revalidateEdiel(edielMessageId);
 }
-
 
 async function safeDeleteFromTable(tableName: string, ids: string[]) {
   if (ids.length === 0) return;
@@ -1125,7 +1192,10 @@ export async function deleteEdielMessageAction(formData: FormData) {
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
-  const message = await requireScopedEdielMessageForAction(edielMessageId, context);
+  const message = await requireScopedEdielMessageForAction(
+    edielMessageId,
+    context,
+  );
   const companyId = message.company_id ?? null;
 
   let relatedQuery = supabaseService
@@ -1175,11 +1245,16 @@ export async function sendEdielMessageAction(formData: FormData) {
   const edielMessageId = formString(formData.get("edielMessageId"));
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
-  const message = await requireScopedEdielMessageForAction(edielMessageId, context);
+  const message = await requireScopedEdielMessageForAction(
+    edielMessageId,
+    context,
+  );
 
-  const messageCompanyId = typeof (message as unknown as { company_id?: unknown }).company_id === "string"
-    ? (message as unknown as { company_id: string }).company_id
-    : null;
+  const messageCompanyId =
+    typeof (message as unknown as { company_id?: unknown }).company_id ===
+    "string"
+      ? (message as unknown as { company_id: string }).company_id
+      : null;
 
   try {
     if (message.direction === "outbound" && messageCompanyId) {
@@ -1211,12 +1286,16 @@ export async function sendEdielMessageAction(formData: FormData) {
       });
 
       if (blockers.length > 0) {
-        throw new Error(`L7/Z09 preflight blockerar skick: ${blockers.join(" | ")}`);
+        throw new Error(
+          `L7/Z09 preflight blockerar skick: ${blockers.join(" | ")}`,
+        );
       }
     }
 
     if (
-      ["CONTRL", "APERAK", "UTILTS_ERR"].includes(String(message.message_family))
+      ["CONTRL", "APERAK", "UTILTS_ERR"].includes(
+        String(message.message_family),
+      )
     ) {
       if (!message.related_message_id) {
         throw new Error(
@@ -1224,7 +1303,10 @@ export async function sendEdielMessageAction(formData: FormData) {
         );
       }
 
-      const sourceMessage = await getEdielMessageById(message.related_message_id, { companyId: messageCompanyId });
+      const sourceMessage = await getEdielMessageById(
+        message.related_message_id,
+        { companyId: messageCompanyId },
+      );
       if (!sourceMessage)
         throw new Error("Källmeddelande för kvittensen hittades inte");
 
@@ -1301,15 +1383,24 @@ export async function pollMailboxAction(formData: FormData) {
   const scope = await getOperationalCompanyScope(context.userId);
   const requestedCompanyId = formString(formData.get("companyId"));
   const mailbox = formString(formData.get("mailbox"));
-  const mailboxId = formString(formData.get("mailboxId")) ?? formString(formData.get("mailbox_id"));
+  const mailboxId =
+    formString(formData.get("mailboxId")) ??
+    formString(formData.get("mailbox_id"));
   const communicationRouteId = formString(formData.get("communicationRouteId"));
-  const environment = formString(formData.get("environment")) === "production" ? "production" : formString(formData.get("environment")) === "test" ? "test" : null;
+  const environment =
+    formString(formData.get("environment")) === "production"
+      ? "production"
+      : formString(formData.get("environment")) === "test"
+        ? "test"
+        : null;
   const companyId = isPlatformAdminContext(context)
-    ? requestedCompanyId ?? scope.companyId
+    ? (requestedCompanyId ?? scope.companyId)
     : scope.companyId;
 
   if (!companyId && !communicationRouteId) {
-    throw new Error("Mailboximport måste köras mot ett valt bolag eller en tenant-kopplad route.");
+    throw new Error(
+      "Mailboximport måste köras mot ett valt bolag eller en tenant-kopplad route.",
+    );
   }
 
   if (companyId) {
@@ -1339,7 +1430,18 @@ export async function registerEdielFileAction(formData: FormData) {
     "communication.read",
   ]);
   const scope = await getOperationalCompanyScope(context.userId);
-  const companyId = isPlatformAdminContext(context) ? null : scope.companyId;
+  const requestedCompanyId = formString(formData.get("companyId"));
+  const mode = parseFileEngineMode(formData.get("mode"));
+  const companyId = isPlatformAdminContext(context)
+    ? (requestedCompanyId ?? scope.companyId)
+    : scope.companyId;
+
+  if ((mode === "tgt" || mode === "agt") && !companyId) {
+    throw new Error(
+      "Välj bolag innan systemtestfil importeras. TGT/AGT måste använda bolagets Ediel-ID från databasen.",
+    );
+  }
+
   if (companyId) {
     await requireCompanyOperationalForWrites(companyId);
   }
@@ -1352,8 +1454,17 @@ export async function registerEdielFileAction(formData: FormData) {
     throw new Error("Ladda upp en fil eller klistra in EDIFACT/CSV-innehåll.");
   }
 
-  const mode = parseFileEngineMode(formData.get("mode"));
-  const agtRuntime = mode === "agt" ? await getEdielAgtSupplierRuntime(companyId).catch(() => null) : null;
+  const systemTestContext =
+    mode === "tgt" || mode === "agt"
+      ? await requireEdielSystemTestRuntimeContext({
+          companyId,
+          testSuite: mode === "agt" ? "AGT" : "TGT",
+        })
+      : null;
+  const agtRuntime =
+    mode === "agt"
+      ? await getEdielAgtSupplierRuntime(companyId).catch(() => null)
+      : null;
 
   const message = await registerEdielFile({
     actorUserId: context.userId,
@@ -1367,8 +1478,21 @@ export async function registerEdielFileAction(formData: FormData) {
     senderEmail: formString(formData.get("senderEmail")),
     receiverEmail: formString(formData.get("receiverEmail")),
     subject: formString(formData.get("subject")),
-    ownActorEdielId: agtRuntime?.actor?.actor_ediel_id ?? null,
-    ownActorName: agtRuntime?.actor?.actor_name ?? agtRuntime?.actor?.sender_name ?? null,
+    ownActorEdielId:
+      systemTestContext?.actorEdielId ??
+      agtRuntime?.actor?.actor_ediel_id ??
+      null,
+    ownActorName:
+      systemTestContext?.actorName ??
+      agtRuntime?.actor?.actor_name ??
+      agtRuntime?.actor?.sender_name ??
+      null,
+    testPortalEdielId: systemTestContext?.testPortalEdielId ?? null,
+    testPortalName: systemTestContext?.testPortalName ?? null,
+    testPortalEmail: systemTestContext?.testPortalEmail ?? null,
+    testPortalReceiverSubAddress:
+      systemTestContext?.defaultReceiverSubaddress ?? null,
+    testPortalSenderSubAddress: systemTestContext?.senderSubaddress ?? null,
   });
 
   const createdMessage = await getEdielMessageById(message.id, { companyId });
@@ -1416,7 +1540,6 @@ export async function registerEdielFileAction(formData: FormData) {
   await revalidateRelatedMessage(message.id);
   revalidateEdiel(message.id);
 }
-
 
 export async function createEdielAgtRunAction(formData: FormData) {
   const context = await requireAnyPermissionServer([
@@ -1474,9 +1597,12 @@ export async function createEdielAgtOutboundCommandAction(formData: FormData) {
 }
 
 // Backwards-compatible action name. It sends immediately; it does not create a long-lived draft.
-export const createEdielAgtOutboundDraftAction = createEdielAgtOutboundCommandAction;
+export const createEdielAgtOutboundDraftAction =
+  createEdielAgtOutboundCommandAction;
 
-export async function createEdielAgtResponsesForInboundAction(formData: FormData) {
+export async function createEdielAgtResponsesForInboundAction(
+  formData: FormData,
+) {
   const context = await requireAnyPermissionServer([
     "communication.write",
     "communication.read",
@@ -1496,7 +1622,9 @@ export async function createEdielAgtResponsesForInboundAction(formData: FormData
   });
 
   await revalidateRelatedMessage(sourceMessageId);
-  await Promise.all(created.map((message) => revalidateRelatedMessage(message.id)));
+  await Promise.all(
+    created.map((message) => revalidateRelatedMessage(message.id)),
+  );
   revalidateEdiel(sourceMessageId);
 }
 
@@ -1510,6 +1638,18 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     roleCode,
     testCaseCode,
   );
+  const scope = await getOperationalCompanyScope(context.userId);
+  const requestedCompanyId = formString(formData.get("companyId"));
+  const companyId = requestedCompanyId ?? scope.companyId;
+
+  if (!companyId) {
+    throw new Error(
+      "Välj bolag innan TGT/systemtest startas. Testet måste använda bolagets Ediel-ID från databasen.",
+    );
+  }
+
+  await requireCompanyOperationalForWrites(companyId);
+  await requireEdielSystemTestRuntimeContext({ companyId, testSuite: "TGT" });
 
   if (!definition) {
     throw new Error(
@@ -1519,6 +1659,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
 
   const testRun = await createEdielTestRun({
     actorUserId: context.userId,
+    companyId,
     testSuite: definition.suite,
     roleCode: definition.roleCode,
     testCaseCode: definition.testCaseCode,
@@ -1549,29 +1690,36 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
   });
 
   if (autopilotResult) {
-    await supabaseService.from("audit_logs").insert({
-      action: "ediel.tgt_run.started",
-      entity_type: "ediel_test_run",
-      entity_id: testRun.id,
-      actor_user_id: context.userId,
-      metadata: {
-        testSuite: definition.suite,
-        roleCode: definition.roleCode,
-        testCaseCode: definition.testCaseCode,
-        autopilot: autopilotResult,
-      },
-    }).then((result: { error?: { code?: string } | null }) => {
-      const error = result.error ?? null;
-      if (error && error.code !== "42P01" && error.code !== "42703") {
-        console.warn("Audit log kunde inte sparas för TGT-start", error);
-      }
-    });
+    await supabaseService
+      .from("audit_logs")
+      .insert({
+        action: "ediel.tgt_run.started",
+        entity_type: "ediel_test_run",
+        entity_id: testRun.id,
+        actor_user_id: context.userId,
+        metadata: {
+          testSuite: definition.suite,
+          roleCode: definition.roleCode,
+          testCaseCode: definition.testCaseCode,
+          autopilot: autopilotResult,
+        },
+      })
+      .then((result: { error?: { code?: string } | null }) => {
+        const error = result.error ?? null;
+        if (error && error.code !== "42P01" && error.code !== "42703") {
+          console.warn("Audit log kunde inte sparas för TGT-start", error);
+        }
+      });
   }
 
   revalidateEdiel();
   revalidatePath("/admin/ediel/system-tests");
-  revalidatePath(`/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`);
-  redirect(`/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`);
+  revalidatePath(
+    `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`,
+  );
+  redirect(
+    `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`,
+  );
 }
 
 export async function attachEdielMessageToTestRunAction(formData: FormData) {
@@ -1671,7 +1819,10 @@ export async function saveEdielInboundMessageTestDataAction(
     );
   }
 
-  const sourceMessage = await requireScopedEdielMessageForAction(sourceMessageId, context);
+  const sourceMessage = await requireScopedEdielMessageForAction(
+    sourceMessageId,
+    context,
+  );
 
   const testCaseCode = inferInboundTgtTestCaseCode({
     provided: formString(formData.get("testCaseCode")),
@@ -1734,6 +1885,33 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   if (!stepNo) throw new Error("Välj vilket TGT-steg som ska genereras");
 
+  let companyId = formString(formData.get("companyId"));
+  if (testRunId) {
+    const { data, error } = await supabaseService
+      .from("ediel_test_runs")
+      .select("company_id")
+      .eq("id", testRunId)
+      .maybeSingle();
+    if (error) throw error;
+    companyId =
+      companyId ??
+      (typeof data?.company_id === "string" ? data.company_id : null);
+  }
+  if (!companyId) {
+    const scope = await getOperationalCompanyScope(context.userId);
+    companyId = scope.companyId;
+  }
+  if (!companyId) {
+    throw new Error(
+      "Välj bolag innan TGT-utkast skapas. Utkastet måste använda bolagets Ediel-ID från databasen.",
+    );
+  }
+  await requireCompanyOperationalForWrites(companyId);
+  const systemTestContext = await requireEdielSystemTestRuntimeContext({
+    companyId,
+    testSuite: "TGT",
+  });
+
   const importedTestData = await getEdielTgtDynamicTestDataForCase(
     testSuite,
     roleCode,
@@ -1747,6 +1925,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     testCaseCode,
     stepNo,
     importedTestData,
+    systemTestContext,
   });
 
   const blockingIssues = draft.validationIssues.filter(
@@ -1911,22 +2090,22 @@ export async function archiveOlderEdielTgtRunsForCaseAction(
 }
 
 function isActiveEdielAckMessage(message: EdielMessageRow): boolean {
-  const status = String(message.status ?? '').toLowerCase();
-  return !['cancelled', 'failed', 'error', 'rejected'].includes(status);
+  const status = String(message.status ?? "").toLowerCase();
+  return !["cancelled", "failed", "error", "rejected"].includes(status);
 }
 
 function isUtiltsErrAckMessage(message: EdielMessageRow): boolean {
   return (
-    String(message.message_family) === 'UTILTS_ERR' ||
-    (String(message.message_family) === 'UTILTS' &&
-      String(message.message_code ?? '').toUpperCase() === 'ERR')
+    String(message.message_family) === "UTILTS_ERR" ||
+    (String(message.message_family) === "UTILTS" &&
+      String(message.message_code ?? "").toUpperCase() === "ERR")
   );
 }
 
 function isOperationalAckMessage(message: EdielMessageRow): boolean {
   return (
-    String(message.message_family) === 'CONTRL' ||
-    String(message.message_family) === 'APERAK' ||
+    String(message.message_family) === "CONTRL" ||
+    String(message.message_family) === "APERAK" ||
     isUtiltsErrAckMessage(message)
   );
 }
@@ -1940,10 +2119,15 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
-  const sourceMessage = await requireScopedEdielMessageForAction(edielMessageId, context);
+  const sourceMessage = await requireScopedEdielMessageForAction(
+    edielMessageId,
+    context,
+  );
 
-  if (sourceMessage.direction !== 'inbound') {
-    throw new Error('Engine kan bara skapa TGT-svar från ett inbound-meddelande.');
+  if (sourceMessage.direction !== "inbound") {
+    throw new Error(
+      "Engine kan bara skapa TGT-svar från ett inbound-meddelande.",
+    );
   }
 
   const existingAckMessages = await listAckMessagesForSource({
@@ -1951,12 +2135,13 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     companyId: sourceMessage.company_id ?? null,
   });
   const activeAckMessages = existingAckMessages.filter(
-    (message) => isActiveEdielAckMessage(message) && isOperationalAckMessage(message),
+    (message) =>
+      isActiveEdielAckMessage(message) && isOperationalAckMessage(message),
   );
 
   const activeApplicationResponses = activeAckMessages.filter(
     (message) =>
-      String(message.message_family) === 'APERAK' ||
+      String(message.message_family) === "APERAK" ||
       isUtiltsErrAckMessage(message),
   );
 
@@ -1964,13 +2149,15 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     await createEdielMessageEvent({
       actorUserId: context.userId,
       edielMessageId,
-      eventType: 'manual_note',
-      eventStatus: 'info',
+      eventType: "manual_note",
+      eventStatus: "info",
       message:
-        'Engine kördes inte: det finns redan APERAK/UTILTS-ERR kopplat till detta inbound-meddelande. Skicka befintligt svar eller rensa fel testkoppling först.',
+        "Engine kördes inte: det finns redan APERAK/UTILTS-ERR kopplat till detta inbound-meddelande. Skicka befintligt svar eller rensa fel testkoppling först.",
       payload: {
-        phase: 'utilts_tgt_application_response_duplicate_guard',
-        existingAckMessageIds: activeApplicationResponses.map((message) => message.id),
+        phase: "utilts_tgt_application_response_duplicate_guard",
+        existingAckMessageIds: activeApplicationResponses.map(
+          (message) => message.id,
+        ),
         existingAckFamilies: activeApplicationResponses.map((message) => ({
           id: message.id,
           family: message.message_family,
@@ -1985,16 +2172,20 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     return;
   }
 
-  if (activeAckMessages.some((message) => String(message.message_family) === 'CONTRL')) {
+  if (
+    activeAckMessages.some(
+      (message) => String(message.message_family) === "CONTRL",
+    )
+  ) {
     await createEdielMessageEvent({
       actorUserId: context.userId,
       edielMessageId,
-      eventType: 'manual_note',
-      eventStatus: 'info',
+      eventType: "manual_note",
+      eventStatus: "info",
       message:
-        'CONTRL finns redan, men applikationssvaret saknas. Engine fortsätter och skapar saknad APERAK/UTILTS-ERR utan att dubbelskicka CONTRL.',
+        "CONTRL finns redan, men applikationssvaret saknas. Engine fortsätter och skapar saknad APERAK/UTILTS-ERR utan att dubbelskicka CONTRL.",
       payload: {
-        phase: 'utilts_tgt_missing_application_response_recovery',
+        phase: "utilts_tgt_missing_application_response_recovery",
         existingAckMessageIds: activeAckMessages.map((message) => message.id),
       },
     });
@@ -2027,13 +2218,18 @@ type UtiltsErrMessageTextParams = {
   testCaseCode?: string | null;
 };
 
-async function resolveUtiltsErrMessageTextForAckAction(params: UtiltsErrMessageTextParams): Promise<string | null> {
-  if (String(params.sourceMessage.message_family) !== 'UTILTS') {
+async function resolveUtiltsErrMessageTextForAckAction(
+  params: UtiltsErrMessageTextParams,
+): Promise<string | null> {
+  if (String(params.sourceMessage.message_family) !== "UTILTS") {
     return params.messageText ?? null;
   }
 
   const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
-  if (runtime.ackPlan.shouldSendUtiltsErr && runtime.ackPlan.utiltsErrCodes.length > 0) {
+  if (
+    runtime.ackPlan.shouldSendUtiltsErr &&
+    runtime.ackPlan.utiltsErrCodes.length > 0
+  ) {
     return serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan);
   }
 
@@ -2050,27 +2246,35 @@ async function resolveUtiltsErrMessageTextForAckAction(params: UtiltsErrMessageT
     tgtTestData: tgtResolution.testData,
   });
 
-  if (recommendation.action?.ackFamily === 'UTILTS_ERR') {
-    return recommendation.action.messageText ?? params.messageText ?? 'UTILTS process- eller funktionsfel';
+  if (recommendation.action?.ackFamily === "UTILTS_ERR") {
+    return (
+      recommendation.action.messageText ??
+      params.messageText ??
+      "UTILTS process- eller funktionsfel"
+    );
   }
 
   return params.messageText ?? null;
 }
-
 
 function edielIlikeLiteral(value: string): string {
   return value.replace(/[%_]/g, (match) => `\\${match}`);
 }
 
 function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
-  return Array.from(new Set(values.map((value) => String(value ?? '').trim()).filter(Boolean)));
+  return Array.from(
+    new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
+  );
 }
 
-async function resolveProdatPermissionContextForAck(message: EdielMessageRow): Promise<ProdatPermissionContext | null> {
-  if (String(message.message_family ?? '').toUpperCase() !== 'PRODAT') return null;
+async function resolveProdatPermissionContextForAck(
+  message: EdielMessageRow,
+): Promise<ProdatPermissionContext | null> {
+  if (String(message.message_family ?? "").toUpperCase() !== "PRODAT")
+    return null;
 
-  const code = String(message.message_code ?? '').toUpperCase();
-  if (code !== 'Z14' && code !== 'Z15') return null;
+  const code = String(message.message_code ?? "").toUpperCase();
+  if (code !== "Z14" && code !== "Z15") return null;
 
   const parsed = parseProdatMessage(message);
   const line = parsed.lineItems[0] ?? null;
@@ -2089,24 +2293,27 @@ async function resolveProdatPermissionContextForAck(message: EdielMessageRow): P
   if (identifiers.length === 0) {
     return {
       hasMatchingPriorPermissionFlow: false,
-      matchReason: 'Z14/Z15 saknar användbar referens för att hitta tidigare permission-flöde.',
+      matchReason:
+        "Z14/Z15 saknar användbar referens för att hitta tidigare permission-flöde.",
     };
   }
 
-  const priorCodes = code === 'Z14' ? ['Z13'] : ['Z18', 'Z14', 'Z13'];
+  const priorCodes = code === "Z14" ? ["Z13"] : ["Z18", "Z14", "Z13"];
   const currentCreatedAt = message.created_at ?? new Date().toISOString();
 
   let query = supabaseService
-    .from('ediel_messages')
-    .select('id,message_code,direction,status,external_reference,transaction_reference,correlation_reference,metering_point_id,customer_id,raw_payload,created_at')
-    .eq('message_family', 'PRODAT')
-    .in('message_code', priorCodes)
-    .not('status', 'in', '(cancelled,failed)')
-    .lte('created_at', currentCreatedAt)
-    .order('created_at', { ascending: false })
+    .from("ediel_messages")
+    .select(
+      "id,message_code,direction,status,external_reference,transaction_reference,correlation_reference,metering_point_id,customer_id,raw_payload,created_at",
+    )
+    .eq("message_family", "PRODAT")
+    .in("message_code", priorCodes)
+    .not("status", "in", "(cancelled,failed)")
+    .lte("created_at", currentCreatedAt)
+    .order("created_at", { ascending: false })
     .limit(50);
 
-  if (message.environment) query = query.eq('environment', message.environment);
+  if (message.environment) query = query.eq("environment", message.environment);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -2121,21 +2328,25 @@ async function resolveProdatPermissionContextForAck(message: EdielMessageRow): P
       candidate.metering_point_id,
       candidate.customer_id,
       candidate.raw_payload,
-    ].map((value) => String(value ?? '').toUpperCase()).join('\n');
+    ]
+      .map((value) => String(value ?? "").toUpperCase())
+      .join("\n");
 
-    return identifiers.some((identifier) => haystack.includes(identifier.toUpperCase()));
+    return identifiers.some((identifier) =>
+      haystack.includes(identifier.toUpperCase()),
+    );
   });
 
   if (matching) {
     return {
       hasMatchingPriorPermissionFlow: true,
-      matchReason: `Matchade tidigare ${String(matching.message_code ?? 'PRODAT')} ${String(matching.id ?? '')}`,
+      matchReason: `Matchade tidigare ${String(matching.message_code ?? "PRODAT")} ${String(matching.id ?? "")}`,
     };
   }
 
   return {
     hasMatchingPriorPermissionFlow: false,
-    matchReason: `Ingen tidigare ${priorCodes.join('/')} hittades för Z${code.slice(1)} via ${identifiers.join(', ')}.`,
+    matchReason: `Ingen tidigare ${priorCodes.join("/")} hittades för Z${code.slice(1)} via ${identifiers.join(", ")}.`,
   };
 }
 
@@ -2154,7 +2365,9 @@ async function resolveBackendAperakDecision(params: {
     const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
 
     if (runtime.ackPlan.shouldSendUtiltsErr) {
-      const codes = serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan) || "UTILTS_ERR";
+      const codes =
+        serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan) ||
+        "UTILTS_ERR";
 
       await createEdielMessageEvent({
         actorUserId: params.actorUserId,
@@ -2220,19 +2433,27 @@ async function resolveBackendAperakDecision(params: {
       );
     }
 
-    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === "negative") {
+    if (
+      runtime.ackPlan.shouldSendAperak &&
+      runtime.ackPlan.aperakOutcome === "negative"
+    ) {
       return {
         outcome: "negative",
-        applicationErrors: runtime.ackPlan.aperakApplicationErrors.map((error) => ({
-          ercCode: error.ercCode,
-          fieldCode: error.fieldCode ?? null,
-          text: error.text,
-          referenceQualifier: error.referenceQualifier ?? null,
-          referenceNumber: error.referenceNumber ?? null,
-          lineItemReference: error.lineItemReference ?? null,
-        })),
+        applicationErrors: runtime.ackPlan.aperakApplicationErrors.map(
+          (error) => ({
+            ercCode: error.ercCode,
+            fieldCode: error.fieldCode ?? null,
+            text: error.text,
+            referenceQualifier: error.referenceQualifier ?? null,
+            referenceNumber: error.referenceNumber ?? null,
+            lineItemReference: error.lineItemReference ?? null,
+          }),
+        ),
         backendRuleKeys: runtime.validation.issues
-          .filter((issue) => issue.severity === "error" && issue.kind === "application")
+          .filter(
+            (issue) =>
+              issue.severity === "error" && issue.kind === "application",
+          )
           .map((issue) => issue.code),
         backendIssueCount: runtime.validation.issues.length,
         backendUnmappedRuleKeys: [],
@@ -2240,7 +2461,10 @@ async function resolveBackendAperakDecision(params: {
       };
     }
 
-    if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === "positive") {
+    if (
+      runtime.ackPlan.shouldSendAperak &&
+      runtime.ackPlan.aperakOutcome === "positive"
+    ) {
       return {
         outcome: "positive",
         applicationErrors: null,
@@ -2279,7 +2503,9 @@ async function resolveBackendAperakDecision(params: {
     requestedTestCaseCode: params.testCaseCode ?? null,
   });
 
-  const permissionContext = await resolveProdatPermissionContextForAck(params.sourceMessage);
+  const permissionContext = await resolveProdatPermissionContextForAck(
+    params.sourceMessage,
+  );
   const permissionDecision = validateProdatPermissionMessage({
     message: params.sourceMessage,
     testData: tgtResolution.testData,
@@ -2291,13 +2517,17 @@ async function resolveBackendAperakDecision(params: {
       actorUserId: params.actorUserId,
       edielMessageId: params.sourceMessage.id,
       eventType: "manual_note",
-      eventStatus: permissionDecision.outcome === "negative" ? "warning" : "success",
+      eventStatus:
+        permissionDecision.outcome === "negative" ? "warning" : "success",
       message:
         permissionDecision.outcome === "negative"
           ? "PRODAT permission-engine valde negativ APERAK för Z14/Z15."
           : "PRODAT permission-engine valde positiv APERAK för tillståndsflödet.",
       payload: {
-        selectedTgtCaseCode: permissionDecision.selectedTgtCaseCode ?? tgtResolution.selectedRow?.testCaseCode ?? null,
+        selectedTgtCaseCode:
+          permissionDecision.selectedTgtCaseCode ??
+          tgtResolution.selectedRow?.testCaseCode ??
+          null,
         outcome: permissionDecision.outcome,
         issues: permissionDecision.issues,
         backendRuleKeys: permissionDecision.matchedRuleKeys,
@@ -2307,11 +2537,17 @@ async function resolveBackendAperakDecision(params: {
 
     return {
       outcome: permissionDecision.outcome,
-      applicationErrors: permissionDecision.applicationErrors.length > 0 ? permissionDecision.applicationErrors : null,
+      applicationErrors:
+        permissionDecision.applicationErrors.length > 0
+          ? permissionDecision.applicationErrors
+          : null,
       backendRuleKeys: permissionDecision.matchedRuleKeys,
       backendIssueCount: permissionDecision.issues.length,
       backendUnmappedRuleKeys: [],
-      selectedTgtCaseCode: permissionDecision.selectedTgtCaseCode ?? tgtResolution.selectedRow?.testCaseCode ?? null,
+      selectedTgtCaseCode:
+        permissionDecision.selectedTgtCaseCode ??
+        tgtResolution.selectedRow?.testCaseCode ??
+        null,
     };
   }
 
@@ -2404,7 +2640,10 @@ export async function createAckDraftAction(formData: FormData) {
     throw new Error("Ogiltig ackType");
   }
 
-  const sourceMessage = await requireScopedEdielMessageForAction(sourceMessageId, context);
+  const sourceMessage = await requireScopedEdielMessageForAction(
+    sourceMessageId,
+    context,
+  );
 
   const backendDecision =
     ackType === "APERAK"
@@ -2516,7 +2755,10 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
 
   if (!sourceMessageId) throw new Error("sourceMessageId saknas");
 
-  const sourceMessage = await requireScopedEdielMessageForAction(sourceMessageId, context);
+  const sourceMessage = await requireScopedEdielMessageForAction(
+    sourceMessageId,
+    context,
+  );
 
   const relatedAcks = await listAckMessagesForSource({
     sourceMessageId,
@@ -2554,7 +2796,8 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
       roleCode,
       testCaseCode,
       fallbackOutcome: recommendation.action.outcome ?? "positive",
-      fallbackApplicationErrors: recommendation.action.applicationErrors ?? null,
+      fallbackApplicationErrors:
+        recommendation.action.applicationErrors ?? null,
     });
 
     backendResolvedAperakErrors = backendDecision.applicationErrors ?? [];
@@ -2563,7 +2806,6 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     backendUnmappedRuleKeys = backendDecision.backendUnmappedRuleKeys;
     finalOutcome = backendDecision.outcome;
   }
-
 
   await removeReplaceableAckMessagesForSource({
     actorUserId: context.userId,
@@ -2665,7 +2907,11 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     });
 
     revalidateEdiel(sourceMessageId);
-    await Promise.all(ackMessageIds.map((ackMessageId) => revalidateRelatedMessage(ackMessageId)));
+    await Promise.all(
+      ackMessageIds.map((ackMessageId) =>
+        revalidateRelatedMessage(ackMessageId),
+      ),
+    );
     return;
   }
 
@@ -2775,7 +3021,10 @@ export async function createAndSendAckAction(formData: FormData) {
     throw new Error("Ogiltig ackType");
   }
 
-  const sourceMessage = await requireScopedEdielMessageForAction(sourceMessageId, context);
+  const sourceMessage = await requireScopedEdielMessageForAction(
+    sourceMessageId,
+    context,
+  );
 
   const backendDecision =
     ackType === "APERAK"
@@ -3235,11 +3484,19 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
-  const sourceMessage = await requireScopedEdielMessageForAction(edielMessageId, context);
-  const runtime = sourceMessage.message_family === "UTILTS"
-    ? runUtiltsRuntimeForMessage(sourceMessage)
-    : null;
-  const resolvedMessageText = messageText ?? (runtime ? serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan) : null);
+  const sourceMessage = await requireScopedEdielMessageForAction(
+    edielMessageId,
+    context,
+  );
+  const runtime =
+    sourceMessage.message_family === "UTILTS"
+      ? runUtiltsRuntimeForMessage(sourceMessage)
+      : null;
+  const resolvedMessageText =
+    messageText ??
+    (runtime
+      ? serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan)
+      : null);
 
   if (!resolvedMessageText) {
     await createEdielMessageEvent({
@@ -3247,7 +3504,8 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
       edielMessageId,
       eventType: "manual_note",
       eventStatus: "error",
-      message: "UTILTS_ERR stoppad: motorn kunde inte härleda STS-felkod och ingen manuell kod angavs.",
+      message:
+        "UTILTS_ERR stoppad: motorn kunde inte härleda STS-felkod och ingen manuell kod angavs.",
       payload: {
         phase: "utilts_err_create_preflight",
         runtimeClassification: runtime?.validation.classification ?? null,
@@ -3301,7 +3559,9 @@ export async function createProdatDraftAction(formData: FormData) {
     await assertUserCanOperateCompany(context.userId, companyId);
     await requireCompanyOperationalForWrites(companyId);
   } else if (!isPlatformAdminContext(context)) {
-    throw new Error("Switchärendet saknar tenantkoppling och kan bara hanteras av platform admin.");
+    throw new Error(
+      "Switchärendet saknar tenantkoppling och kan bara hanteras av platform admin.",
+    );
   }
 
   const meteringPoint = await getMeteringPointById(

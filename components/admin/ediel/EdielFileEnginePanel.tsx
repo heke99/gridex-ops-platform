@@ -8,10 +8,6 @@ import {
 } from "@/app/admin/ediel/actions";
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
-  EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-  EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
-  EDIEL_TGT_TESTSYSTEM_EMAIL,
-  GRIDEX_EDIEL_ID,
   getFileEngineTestcaseTemplates,
 } from "@/lib/ediel/fileEngine";
 import type { EdielMessageRow } from "@/lib/ediel/types";
@@ -69,8 +65,8 @@ export default function EdielFileEnginePanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <MiniBadge>TGT Gridcore-ID: {GRIDEX_EDIEL_ID}</MiniBadge>
-          <MiniBadge>Portal: {EDIEL_TGT_TESTSYSTEM_EDIEL_ID}</MiniBadge>
+          <MiniBadge>TGT-aktör: DB-konfigurerad</MiniBadge>
+          <MiniBadge>Portal: DB-konfigurerad</MiniBadge>
           <MiniBadge>Transport: file/manual_upload</MiniBadge>
         </div>
       </div>
@@ -199,7 +195,7 @@ export default function EdielFileEnginePanel({
               </span>
               <input
                 name="receiverEmail"
-                defaultValue={EDIEL_TGT_TESTSYSTEM_EMAIL}
+                placeholder="DB-konfigurerad portalmail används om fältet lämnas tomt"
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-500"
               />
             </label>
@@ -220,25 +216,27 @@ export default function EdielFileEnginePanel({
             </h3>
             <dl className="mt-3 grid gap-2 text-sm">
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-700">Gridcore/TGT Ediel-ID</dt>
-                <dd className="font-mono text-slate-900">{GRIDEX_EDIEL_ID}</dd>
+                <dt className="text-slate-700">Bolagets TGT Ediel-ID</dt>
+                <dd className="font-mono text-slate-900">
+                  Från ediel_actor_settings
+                </dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-700">Portal Ediel-ID</dt>
                 <dd className="font-mono text-slate-900">
-                  {EDIEL_TGT_TESTSYSTEM_EDIEL_ID}
+                  Från systemtestinställningar
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-700">Portal email</dt>
                 <dd className="font-mono text-slate-900">
-                  {EDIEL_TGT_TESTSYSTEM_EMAIL}
+                  Från systemtestinställningar
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-700">PRODAT subadress</dt>
                 <dd className="font-mono text-slate-900">
-                  {EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS}
+                  Från systemtestinställningar
                 </dd>
               </div>
               <div className="flex justify-between gap-4">

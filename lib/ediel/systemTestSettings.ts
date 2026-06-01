@@ -267,6 +267,41 @@ export async function saveEdielSystemTestSettings(
     .insert(payload);
   if (error) throw error;
 
+  await supabaseService
+    .from("audit_logs")
+    .insert({
+      company_id: companyId,
+      actor_user_id: input.actorUserId,
+      action: "ediel.system_test_settings.updated",
+      entity_type: "ediel_system_test_settings",
+      entity_id: companyId,
+      new_values: {
+        testSuite: suite,
+        testPortalCounterpartyId: portalCounterpartyId,
+        testBrpCounterpartyId: brpCounterpartyId,
+        defaultReceiverSubaddress: upper(input.defaultReceiverSubaddress),
+        defaultSenderSubaddress: upper(input.defaultSenderSubaddress),
+        routeProfileId: clean(input.routeProfileId),
+        transportProfileId: clean(input.transportProfileId),
+      },
+      metadata: {
+        source: "ediel_system_test_settings",
+      },
+    })
+    .then((result: { error?: { code?: string } | null }) => {
+      const auditError = result.error ?? null;
+      if (
+        auditError &&
+        auditError.code !== "42P01" &&
+        auditError.code !== "42703"
+      ) {
+        console.warn(
+          "Audit log kunde inte sparas för systemtestinställning",
+          auditError,
+        );
+      }
+    });
+
   const saved = await getEdielSystemTestSettings({
     companyId,
     testSuite: suite,
@@ -276,4 +311,93 @@ export async function saveEdielSystemTestSettings(
       "Systemtestinställningen sparades men kunde inte läsas tillbaka.",
     );
   return saved;
+}
+export type EdielSystemTestRuntimeContext = {
+  companyId: string;
+  testSuite: EdielSystemTestSuite;
+  actorSettingId: string | null;
+  actorEdielId: string;
+  actorName: string | null;
+  senderSubaddress: string | null;
+  testPortalEdielId: string;
+  testPortalName: string | null;
+  testPortalEmail: string | null;
+  defaultReceiverSubaddress: string | null;
+  testBrpEdielId: string | null;
+  testBrpName: string | null;
+};
+
+async function getActiveTestActorSetting(
+  companyId: string,
+): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabaseService
+    .from("ediel_actor_settings")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("environment", "test")
+    .eq("is_active", true)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingRelationError(error)) return null;
+    throw error;
+  }
+
+  return (data as Record<string, unknown> | null) ?? null;
+}
+
+export async function getEdielSystemTestRuntimeContext(params: {
+  companyId?: string | null;
+  testSuite?: EdielSystemTestSuite | string | null;
+}): Promise<EdielSystemTestRuntimeContext | null> {
+  const companyId = clean(params.companyId);
+  if (!companyId) return null;
+
+  const suite = (upper(params.testSuite) ?? "TGT") as EdielSystemTestSuite;
+  const [settings, actor] = await Promise.all([
+    getEdielSystemTestSettings({ companyId, testSuite: suite }),
+    getActiveTestActorSetting(companyId),
+  ]);
+
+  const actorEdielId = upper(actor?.ediel_id ?? actor?.actor_ediel_id);
+  const portalEdielId = upper(settings?.testPortalEdielId);
+
+  if (!actorEdielId || !portalEdielId) return null;
+
+  return {
+    companyId,
+    testSuite: suite,
+    actorSettingId: clean(actor?.id),
+    actorEdielId,
+    actorName: clean(
+      actor?.legal_name ?? actor?.actor_name ?? actor?.sender_name,
+    ),
+    senderSubaddress: upper(
+      settings?.defaultSenderSubaddress ??
+        actor?.sender_subaddress_prodat ??
+        actor?.sender_subaddress ??
+        actor?.sender_sub_address,
+    ),
+    testPortalEdielId: portalEdielId,
+    testPortalName: settings?.testPortalName ?? "Edielportalen systemtest",
+    testPortalEmail: settings?.testPortalEmail ?? null,
+    defaultReceiverSubaddress: upper(settings?.defaultReceiverSubaddress),
+    testBrpEdielId: upper(settings?.testBrpEdielId),
+    testBrpName: settings?.testBrpName ?? null,
+  };
+}
+
+export async function requireEdielSystemTestRuntimeContext(params: {
+  companyId?: string | null;
+  testSuite?: EdielSystemTestSuite | string | null;
+}): Promise<EdielSystemTestRuntimeContext> {
+  const context = await getEdielSystemTestRuntimeContext(params);
+  if (!context) {
+    throw new Error(
+      "Systemtest/TGT kräver aktiv test-aktör och DB-konfigurerad systemtestportal. Gå till Company → Ediel & Go-live → Testmiljö och spara bolagets Ediel-ID, testportal och eventuell test-BRP först.",
+    );
+  }
+  return context;
 }
