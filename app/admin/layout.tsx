@@ -3,11 +3,10 @@ import { cookies } from 'next/headers'
 import { isPlatformAdminContext, requireAdminAccess } from '@/lib/admin/guards'
 import { logoutAction } from '@/lib/auth/logoutAction'
 import AdminSidebar from '@/components/admin/AdminSidebar'
-import { getOperationalCompanyScope, listPlatformCompanies } from '@/lib/tenant/scope'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import {
  ADMIN_NAVIGATION_MODE_COOKIE,
- ADMIN_SELECTED_COMPANY_COOKIE,
  normalizeAdminNavigationMode,
 } from '@/lib/admin/navigationPreferences'
 
@@ -24,10 +23,16 @@ export default async function AdminLayout({
  const preferredMode = isPlatformAdmin
  ? normalizeAdminNavigationMode(cookieStore.get(ADMIN_NAVIGATION_MODE_COOKIE)?.value) ?? 'platform_view'
  : 'company_view'
- const selectedCompanyId = isPlatformAdmin ? cookieStore.get(ADMIN_SELECTED_COMPANY_COOKIE)?.value ?? null : null
  const scope = await getOperationalCompanyScope(admin.userId)
  const liveAccess = await getTenantLiveAccessForAdmin(admin)
- const companyOptions = isPlatformAdmin ? await listPlatformCompanies() : []
+ const selectedCompanyId = isPlatformAdmin && preferredMode === 'company_view' ? scope.companyId : null
+ const companyOptions = isPlatformAdmin && preferredMode === 'company_view'
+ ? scope.memberships.map((membership) => ({
+   id: membership.companyId,
+   name: membership.companyName,
+   status: membership.status,
+ }))
+ : []
  const workspaceName = isPlatformAdmin && preferredMode === 'company_view'
  ? scope.companyName ?? 'Välj bolag'
  : isPlatformAdmin ? 'Gridex Platform' : scope.companyName ?? 'Bolagsyta saknas'

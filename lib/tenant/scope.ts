@@ -83,41 +83,14 @@ async function isPlatformAdminUser(userId: string): Promise<boolean> {
     .some((role) => Boolean(role && PLATFORM_ADMIN_ROLES.has(role)))
 }
 
-async function getSelectedPlatformCompany(userId: string): Promise<CompanyMembershipSummary | null> {
+async function getSelectedMembershipCompany(
+  memberships: CompanyMembershipSummary[]
+): Promise<CompanyMembershipSummary | null> {
   const cookieStore = await cookies()
   const selectedCompanyId = cookieStore.get(ADMIN_SELECTED_COMPANY_COOKIE)?.value?.trim()
   if (!selectedCompanyId) return null
-  if (!(await isPlatformAdminUser(userId))) return null
 
-  const { data, error } = await supabaseService
-    .from('companies')
-    .select('id, name, slug, org_number, status')
-    .eq('id', selectedCompanyId)
-    .maybeSingle()
-
-  if (error) {
-    if (isMissingRelationError(error)) return null
-    throw error
-  }
-
-  const company = data as {
-    id?: string | null
-    name?: string | null
-    slug?: string | null
-    org_number?: string | null
-    status?: string | null
-  } | null
-
-  if (!company?.id || !company.name) return null
-
-  return {
-    companyId: company.id,
-    companyName: company.name,
-    companySlug: company.slug ?? null,
-    orgNumber: company.org_number ?? null,
-    membershipRole: 'platform_selected',
-    status: company.status ?? 'active',
-  }
+  return memberships.find((row) => row.companyId === selectedCompanyId) ?? null
 }
 
 export function isMissingRelationError(error: unknown): boolean {
@@ -166,16 +139,16 @@ export const getOperationalCompanyScope = cache(async function getOperationalCom
   userId: string
 ): Promise<OperationalCompanyScope> {
   const memberships = await listOperationalCompaniesForUser(userId)
-  const platformSelection = await getSelectedPlatformCompany(userId)
+  const selectedMembership = await getSelectedMembershipCompany(memberships)
 
-  if (platformSelection) {
+  if (selectedMembership) {
     return {
-      companyId: platformSelection.companyId,
-      companyName: platformSelection.companyName,
+      companyId: selectedMembership.companyId,
+      companyName: selectedMembership.companyName,
       memberships,
       requiresCompany: false,
       message: null,
-      selectedByPlatformAdmin: true,
+      selectedByPlatformAdmin: false,
     }
   }
 
@@ -186,7 +159,7 @@ export const getOperationalCompanyScope = cache(async function getOperationalCom
       memberships,
       requiresCompany: true,
       message:
-        'Kontot saknar aktiv bolagskoppling. Superadmin kan välja ett aktivt bolag i sidomenyns bolagsvy.',
+        'Kontot saknar aktiv bolagskoppling. Bolagsvy kräver ett aktivt medlemskap i ett elhandelsbolag.',
       selectedByPlatformAdmin: false,
     }
   }
