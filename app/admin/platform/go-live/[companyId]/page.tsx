@@ -3,7 +3,9 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getActorTestingSummary } from '@/lib/ediel/actorTesting'
 import { ActorCompanyIdentityCard,
-  ActorProfileGuide, EvidencePackage, GoLiveChecklist } from '@/components/admin/ediel/ActorTestingViews'
+  ActorProfileGuide, EvidencePackage } from '@/components/admin/ediel/ActorTestingViews'
+import { getCompanyProductionReadiness } from '@/lib/ediel/productionReadiness'
+import { ProductionReadinessPanel } from '@/components/admin/ediel/ProductionReadinessViews'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +13,10 @@ export default async function PlatformGoLiveCompanyPage({ params, searchParams }
   const admin = await requirePlatformAdminAccess()
   const { companyId } = await params
   const notice = searchParams ? await searchParams : {}
-  const summary = await getActorTestingSummary(companyId)
+  const [summary, readiness] = await Promise.all([
+    getActorTestingSummary(companyId),
+    getCompanyProductionReadiness(companyId),
+  ])
 
   if (!summary) {
     return <div className="p-8">Bolaget hittades inte.</div>
@@ -32,8 +37,8 @@ export default async function PlatformGoLiveCompanyPage({ params, searchParams }
           </div>
         ) : null}
         <ActorCompanyIdentityCard summary={summary} />
+        <ProductionReadinessPanel readiness={readiness} returnPath={`/admin/platform/go-live/${summary.company.id}`} canManageProduction />
         <ActorProfileGuide summary={summary} />
-        <GoLiveChecklist summary={summary} canActivateLive canPrepareProduction returnPath={`/admin/platform/go-live/${summary.company.id}`} />
         <EvidencePackage summary={summary} />
       </div>
     </div>

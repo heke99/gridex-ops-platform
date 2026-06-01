@@ -7,7 +7,6 @@ import { supabaseService } from '@/lib/supabase/service'
 import { updateEdielTestRunStatus } from '@/lib/ediel/db'
 import {
   buildActorTestResultEvidence,
-  getActorTestingSummary,
   getActorTestCase,
   mapTestStatusToRunStatus,
   userCanManageActorTestingForCompany,
@@ -15,6 +14,10 @@ import {
 } from '@/lib/ediel/actorTesting'
 import { logTenantGovernanceEvent } from '@/lib/tenant/governance'
 import { runActorTestAutomation, syncAllActorTestsForCompany } from '@/lib/ediel/actorTestingEngine'
+import {
+  getCompanyProductionReadiness,
+  runProductionDryRun,
+} from '@/lib/ediel/productionReadiness'
 
 function readRequiredString(formData: FormData, key: string): string {
   const value = String(formData.get(key) ?? '').trim()
@@ -54,6 +57,57 @@ function revalidateActorTestingViews(companyId: string) {
   revalidatePath('/admin/whitelabel/actor-testing')
   revalidatePath('/admin/whitelabel/go-live')
   revalidatePath('/admin/company-actor-status')
+}
+
+async function insertGoLiveEvent(input: {
+  companyId: string
+  eventType: string
+  fromStatus?: string | null
+  toStatus?: string | null
+  reason?: string | null
+  actorUserId: string
+  readinessCheckId?: string | null
+  metadata?: Record<string, unknown>
+}) {
+  try {
+    await supabaseService.from('ediel_go_live_events').insert({
+      company_id: input.companyId,
+      event_type: input.eventType,
+      from_status: input.fromStatus ?? null,
+      to_status: input.toStatus ?? null,
+      reason: input.reason ?? null,
+      actor_user_id: input.actorUserId,
+      readiness_check_id: input.readinessCheckId ?? null,
+      metadata: input.metadata ?? {},
+    })
+  } catch (error) {
+    console.warn('Could not store go-live event', error)
+  }
+}
+
+async function upsertProductionSendLock(input: {
+  companyId: string
+  locked: boolean
+  reason: string | null
+  actorUserId: string
+}) {
+  const now = new Date().toISOString()
+  try {
+    const { error } = await supabaseService.from('ediel_send_locks').upsert({
+      company_id: input.companyId,
+      environment: 'production',
+      locked: input.locked,
+      locked_reason: input.reason,
+      locked_by: input.locked ? input.actorUserId : null,
+      locked_at: input.locked ? now : null,
+      unlocked_by: input.locked ? null : input.actorUserId,
+      unlocked_at: input.locked ? null : now,
+      updated_at: now,
+    }, { onConflict: 'company_id,environment' })
+    if (error) console.warn('Could not upsert production send lock', error)
+  } catch (error) {
+    console.warn('Could not upsert production send lock', error)
+  }
 }
 
 export async function startActorTestAction(formData: FormData) {
@@ -477,16 +531,16 @@ export async function prepareProductionAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
   const admin = await requireActorTestingWriteAccess(companyId)
   const returnPath = readReturnPath(formData, companyId)
-  const summary = await getActorTestingSummary(companyId)
-  if (!summary) throw new Error('Bolaget hittades inte.')
+  const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true })
 
-  const status = summary.goLiveBlockers.length === 0 ? 'production_prepared' : 'blocked'
-  const reason = summary.goLiveBlockers.join(' · ') || null
+  const status = readiness.blockingIssues.length === 0 ? 'production_prepared' : 'blocked'
+  const reason = readiness.blockingIssues.map((issue) => issue.message).join(' · ') || null
 
   const { error } = await supabaseService
     .from('companies')
     .update({
       production_status: status,
+      ediel_production_status: status,
       live_blocked_reason: reason,
       updated_at: new Date().toISOString(),
     })
@@ -498,8 +552,9 @@ export async function prepareProductionAction(formData: FormData) {
     const { error: reviewError } = await supabaseService.from('company_go_live_reviews').insert({
       company_id: companyId,
       status,
-      blocker_summary: summary.goLiveBlockers,
+      blocker_summary: readiness.blockingIssues,
       reviewed_by: admin.userId,
+      metadata: { readinessCheckId: readiness.latestCheck.id, score: readiness.score },
     })
     if (reviewError) {
       console.warn('Could not store go-live preparation review', reviewError)
@@ -517,8 +572,20 @@ export async function prepareProductionAction(formData: FormData) {
       actorTesting: true,
       action: 'PRODUCTION_PREPARATION_REVIEWED',
       productionStatus: status,
-      blockers: summary.goLiveBlockers,
+      blockers: readiness.blockingIssues,
+      readinessCheckId: readiness.latestCheck.id,
     },
+  })
+
+  await insertGoLiveEvent({
+    companyId,
+    eventType: 'readiness_check_run',
+    fromStatus: readiness.summary.productionStatus,
+    toStatus: status,
+    reason,
+    actorUserId: admin.userId,
+    readinessCheckId: readiness.latestCheck.id,
+    metadata: { readiness },
   })
 
   revalidateActorTestingViews(companyId)
@@ -536,30 +603,34 @@ export async function activateLiveEdielAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess()
   const returnPath = readReturnPath(formData, companyId)
 
-  if (confirmation.toLocaleLowerCase('sv-SE') !== 'jag bekräftar') {
-    goLiveRedirect(companyId, 'error', 'Skriv “Jag bekräftar” för att aktivera live Ediel.', returnPath)
+  if (confirmation !== 'ACTIVATE PRODUCTION') {
+    goLiveRedirect(companyId, 'error', 'Skriv “ACTIVATE PRODUCTION” för att aktivera production Ediel.', returnPath)
   }
 
-  const summary = await getActorTestingSummary(companyId)
-  if (!summary) {
-    goLiveRedirect(companyId, 'error', 'Bolaget hittades inte.', returnPath)
-  }
+  const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true })
 
-  if (summary.goLiveBlockers.length > 0) {
-    const reason = summary.goLiveBlockers.join(' · ')
+  if (readiness.blockingIssues.length > 0) {
+    const reason = readiness.blockingIssues.map((issue) => issue.message).join(' · ')
     const now = new Date().toISOString()
     await supabaseService
       .from('companies')
-      .update({ production_status: 'blocked', live_ediel_enabled: false, live_blocked_reason: reason, updated_at: now })
+      .update({
+        production_status: 'blocked',
+        ediel_production_status: 'blocked',
+        live_ediel_enabled: false,
+        ediel_production_enabled: false,
+        live_blocked_reason: reason,
+        updated_at: now,
+      })
       .eq('id', companyId)
 
     try {
       await supabaseService.from('company_go_live_reviews').insert({
         company_id: companyId,
         status: 'blocked',
-        blocker_summary: summary.goLiveBlockers,
+        blocker_summary: readiness.blockingIssues,
         reviewed_by: admin.userId,
-        metadata: { source: 'activateLiveEdielAction', blockedAt: now },
+        metadata: { source: 'activateLiveEdielAction', blockedAt: now, readinessCheckId: readiness.latestCheck.id },
       })
     } catch (reviewError) {
       console.warn('Could not store blocked live activation review', reviewError)
@@ -570,6 +641,7 @@ export async function activateLiveEdielAction(formData: FormData) {
   }
 
   const now = new Date().toISOString()
+  const previousStatus = readiness.summary.productionStatus
   const { error } = await supabaseService
     .from('companies')
     .update({
@@ -579,6 +651,14 @@ export async function activateLiveEdielAction(formData: FormData) {
       live_approved_by: admin.userId,
       live_approved_at: now,
       live_blocked_reason: null,
+      ediel_production_status: 'live',
+      ediel_production_enabled: true,
+      ediel_production_enabled_by: admin.userId,
+      ediel_production_enabled_at: now,
+      ediel_production_paused_at: null,
+      ediel_production_paused_by: null,
+      ediel_production_pause_reason: null,
+      ediel_primary_production_route_profile_id: readiness.summary.activeProductionRouteProfileId,
       updated_at: now,
     })
     .eq('id', companyId)
@@ -593,6 +673,7 @@ export async function activateLiveEdielAction(formData: FormData) {
       reviewed_by: admin.userId,
       approved_by: admin.userId,
       approved_at: now,
+      metadata: { readinessCheckId: readiness.latestCheck.id, score: readiness.score },
     })
     if (reviewError) {
       console.warn('Could not store live activation review', reviewError)
@@ -610,9 +691,189 @@ export async function activateLiveEdielAction(formData: FormData) {
       actorTesting: true,
       action: 'LIVE_EDIEL_ACTIVATED',
       approvedAt: now,
+      readinessCheckId: readiness.latestCheck.id,
+    },
+  })
+
+  await upsertProductionSendLock({ companyId, locked: false, reason: null, actorUserId: admin.userId })
+  await insertGoLiveEvent({
+    companyId,
+    eventType: 'production_activated',
+    fromStatus: previousStatus,
+    toStatus: 'live',
+    reason: 'Production Ediel aktiverad av superadmin.',
+    actorUserId: admin.userId,
+    readinessCheckId: readiness.latestCheck.id,
+    metadata: {
+      readinessSnapshot: readiness,
+      routeProfileId: readiness.summary.activeProductionRouteProfileId,
+      environment: 'production',
     },
   })
 
   revalidateActorTestingViews(companyId)
   goLiveRedirect(companyId, 'live', 'Live Ediel aktiverades.', returnPath)
+}
+
+export async function runProductionReadinessAction(formData: FormData) {
+  const companyId = readRequiredString(formData, 'company_id')
+  const admin = await requirePlatformAdminActionAccess()
+  const returnPath = readReturnPath(formData, companyId)
+  const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true })
+
+  await insertGoLiveEvent({
+    companyId,
+    eventType: 'readiness_check_run',
+    fromStatus: readiness.summary.productionStatus,
+    toStatus: readiness.status,
+    reason: readiness.blockingIssues.length > 0 ? readiness.blockingIssues.map((issue) => issue.message).join(' · ') : 'Readiness check passerade utan blockerare.',
+    actorUserId: admin.userId,
+    readinessCheckId: readiness.latestCheck.id,
+    metadata: { readiness },
+  })
+
+  revalidateActorTestingViews(companyId)
+  goLiveRedirect(companyId, readiness.blockingIssues.length > 0 ? 'blocked' : 'prepared', readiness.blockingIssues.length > 0 ? 'Readiness check hittade blockerare.' : 'Readiness check är klar utan blockerare.', returnPath)
+}
+
+export async function runProductionDryRunAction(formData: FormData) {
+  const companyId = readRequiredString(formData, 'company_id')
+  const admin = await requirePlatformAdminActionAccess()
+  const returnPath = readReturnPath(formData, companyId)
+  const result = await runProductionDryRun(companyId, admin.userId)
+  revalidateActorTestingViews(companyId)
+  goLiveRedirect(companyId, result.success ? 'prepared' : 'blocked', result.success ? 'Production dry run kördes utan blockerande fel. Inget skick gjordes.' : 'Production dry run blockerades. Inget skick gjordes.', returnPath)
+}
+
+export async function pauseProductionEdielAction(formData: FormData) {
+  const companyId = readRequiredString(formData, 'company_id')
+  const reason = readRequiredString(formData, 'reason')
+  const admin = await requirePlatformAdminActionAccess()
+  const returnPath = readReturnPath(formData, companyId)
+  const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true })
+  const now = new Date().toISOString()
+
+  const { error } = await supabaseService
+    .from('companies')
+    .update({
+      production_status: 'paused',
+      ediel_production_status: 'paused',
+      ediel_production_enabled: false,
+      live_ediel_enabled: false,
+      live_blocked_reason: reason,
+      ediel_production_paused_at: now,
+      ediel_production_paused_by: admin.userId,
+      ediel_production_pause_reason: reason,
+      updated_at: now,
+    })
+    .eq('id', companyId)
+  if (error) throw error
+
+  await upsertProductionSendLock({ companyId, locked: true, reason, actorUserId: admin.userId })
+  await insertGoLiveEvent({
+    companyId,
+    eventType: 'production_paused',
+    fromStatus: readiness.summary.productionStatus,
+    toStatus: 'paused',
+    reason,
+    actorUserId: admin.userId,
+    readinessCheckId: readiness.latestCheck.id,
+    metadata: { inboundReceivingRemainsActive: true },
+  })
+
+  revalidateActorTestingViews(companyId)
+  goLiveRedirect(companyId, 'blocked', 'Production sending pausades. Inbound kan fortfarande tas emot och loggas.', returnPath)
+}
+
+export async function resumeProductionEdielAction(formData: FormData) {
+  const companyId = readRequiredString(formData, 'company_id')
+  const confirmation = String(formData.get('confirmation') ?? '').trim()
+  const admin = await requirePlatformAdminActionAccess()
+  const returnPath = readReturnPath(formData, companyId)
+  if (confirmation !== 'RESUME PRODUCTION') {
+    goLiveRedirect(companyId, 'error', 'Skriv “RESUME PRODUCTION” för att återuppta production sending.', returnPath)
+  }
+
+  const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true, ignorePaused: true })
+  if (readiness.blockingIssues.length > 0) {
+    goLiveRedirect(companyId, 'blocked', `Production kan inte återupptas: ${readiness.blockingIssues.map((issue) => issue.message).join(' · ')}`, returnPath)
+  }
+
+  const now = new Date().toISOString()
+  const { error } = await supabaseService
+    .from('companies')
+    .update({
+      production_status: 'live',
+      ediel_production_status: 'live',
+      ediel_production_enabled: true,
+      live_ediel_enabled: true,
+      live_blocked_reason: null,
+      ediel_production_enabled_by: admin.userId,
+      ediel_production_enabled_at: now,
+      ediel_production_paused_at: null,
+      ediel_production_paused_by: null,
+      ediel_production_pause_reason: null,
+      updated_at: now,
+    })
+    .eq('id', companyId)
+  if (error) throw error
+
+  await upsertProductionSendLock({ companyId, locked: false, reason: null, actorUserId: admin.userId })
+  await insertGoLiveEvent({
+    companyId,
+    eventType: 'production_resumed',
+    fromStatus: readiness.summary.productionStatus,
+    toStatus: 'live',
+    reason: 'Production sending återupptogs efter readiness check.',
+    actorUserId: admin.userId,
+    readinessCheckId: readiness.latestCheck.id,
+    metadata: { readinessSnapshot: readiness },
+  })
+
+  revalidateActorTestingViews(companyId)
+  goLiveRedirect(companyId, 'live', 'Production sending återupptogs.', returnPath)
+}
+
+export async function approveFirstLiveSendAction(formData: FormData) {
+  const companyId = readRequiredString(formData, 'company_id')
+  const confirmation = String(formData.get('confirmation') ?? '').trim()
+  const admin = await requirePlatformAdminActionAccess()
+  const returnPath = readReturnPath(formData, companyId)
+  if (confirmation !== 'APPROVE FIRST LIVE SEND') {
+    goLiveRedirect(companyId, 'error', 'Skriv “APPROVE FIRST LIVE SEND” för att godkänna första live-send.', returnPath)
+  }
+
+  const readiness = await getCompanyProductionReadiness(companyId, { checkedBy: admin.userId, persist: true })
+  if (!['ready', 'warning', 'live'].includes(readiness.status) || readiness.blockingIssues.length > 0) {
+    goLiveRedirect(companyId, 'blocked', 'Första live-send kan inte godkännas innan readiness saknar blockerare.', returnPath)
+  }
+
+  const now = new Date().toISOString()
+  const { error } = await supabaseService
+    .from('companies')
+    .update({
+      ediel_first_live_send_approved_at: now,
+      ediel_first_live_send_approved_by: admin.userId,
+      updated_at: now,
+    })
+    .eq('id', companyId)
+  if (error) throw error
+
+  await insertGoLiveEvent({
+    companyId,
+    eventType: 'first_live_send_approved',
+    fromStatus: readiness.summary.productionStatus,
+    toStatus: readiness.summary.productionStatus,
+    reason: 'Första production outbound-send godkänd av superadmin.',
+    actorUserId: admin.userId,
+    readinessCheckId: readiness.latestCheck.id,
+    metadata: {
+      edielId: readiness.summary.edielId,
+      routeProfileId: readiness.summary.activeProductionRouteProfileId,
+      mailboxId: readiness.summary.productionMailboxId,
+    },
+  })
+
+  revalidateActorTestingViews(companyId)
+  goLiveRedirect(companyId, 'prepared', 'Första live-send är godkänd.', returnPath)
 }
