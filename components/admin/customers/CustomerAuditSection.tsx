@@ -32,7 +32,7 @@ function resolveEntityTitle(params: {
 
  const meteringPoint = meteringPoints.find((row) => row.id === entry.entity_id)
  if (!meteringPoint) return 'Mätpunkt'
- return meteringPoint.meter_point_id
+ return meteringPoint.meter_point_id ?? meteringPoint.site_facility_id ?? 'Mätpunkt'
 }
 
 function resolveEntityKind(entry: MasterdataAuditEntry): string {

@@ -1,8 +1,8 @@
-'use server'
+"use server";
 
-import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { revalidatePath } from "next/cache";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdminActionAccess } from "@/lib/admin/guards";
 import {
   assertBillingUnderlayTenant,
   assertContractTenant,
@@ -10,20 +10,20 @@ import {
   assertMeteringPointTenant,
   assertPowerOfAttorneyTenant,
   loadCustomerTenantContext,
-} from '@/lib/tenant/entityGuards'
-import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
+} from "@/lib/tenant/entityGuards";
+import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions";
 import {
   getCustomerSiteById,
   getMeteringPointById,
   saveCustomerSite,
   saveMeteringPoint,
-} from '@/lib/masterdata/db'
+} from "@/lib/masterdata/db";
 import {
   customerSiteInputSchema,
   meteringPointInputSchema,
   parseCheckbox,
-} from '@/lib/masterdata/validators'
-import { supabaseService } from '@/lib/supabase/service'
+} from "@/lib/masterdata/validators";
+import { supabaseService } from "@/lib/supabase/service";
 import {
   createSupplierSwitchRequest,
   findCustomerSiteById,
@@ -36,184 +36,199 @@ import {
   syncCustomerOperationsForCustomer,
   syncCustomerOperationsForSite,
   syncOperationTasksFromReadiness,
-} from '@/lib/operations/db'
-import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
+} from "@/lib/operations/db";
+import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness";
 import type {
   CustomerAuthorizationDocumentRow,
   SupplierSwitchRequestType,
-} from '@/lib/operations/types'
+} from "@/lib/operations/types";
 import {
   createGridOwnerDataRequest,
   createPartnerExport,
   createOutboundRequest,
   findOpenOutboundBySource,
   updateGridOwnerDataRequestStatus,
-} from '@/lib/cis/db'
-import type { OutboundRequestType } from '@/lib/cis/types'
+} from "@/lib/cis/db";
+import type { OutboundRequestType } from "@/lib/cis/types";
 import {
   createCustomerInfoRequest,
   queueCustomerInfoRequestForDispatch,
-} from '@/lib/onboarding/infoRequests'
+} from "@/lib/onboarding/infoRequests";
 import {
   createMissingPowerOfAttorneyBlocker,
   ensureAuthorizationScopeFromPowerOfAttorney,
   getLatestSignedPowerOfAttorneyForCustomer,
   resolveCustomerBlockersAfterSignedPowerOfAttorney,
-} from '@/lib/operations/powerOfAttorneyWorkflow'
-import { decideCommunicationRoute, routeDecisionPayload } from '@/lib/routes/routeDecisionEngine'
-import type { BusinessProcess } from '@/lib/routes/routeDecisionTypes'
+} from "@/lib/operations/powerOfAttorneyWorkflow";
+import {
+  decideCommunicationRoute,
+  routeDecisionPayload,
+} from "@/lib/routes/routeDecisionEngine";
+import { createMissingCustomerDataTasks } from "@/lib/customers/dataTasks";
+import type { BusinessProcess } from "@/lib/routes/routeDecisionTypes";
 
 function formValue(formData: FormData, key: string): string | null {
-  const value = formData.get(key)
-  if (typeof value !== 'string') return null
-  return value
+  const value = formData.get(key);
+  if (typeof value !== "string") return null;
+  return value;
 }
 
 function normalizeUuidOrNull(value: string | null): string | null {
-  if (!value) return null
-  return value
+  if (!value) return null;
+  return value;
 }
 
 function normalizePriceAreaOrNull(
-  value: string | null
-): 'SE1' | 'SE2' | 'SE3' | 'SE4' | null {
-  if (!value) return null
-  if (value === 'SE1' || value === 'SE2' || value === 'SE3' || value === 'SE4') {
-    return value
+  value: string | null,
+): "SE1" | "SE2" | "SE3" | "SE4" | null {
+  if (!value) return null;
+  if (
+    value === "SE1" ||
+    value === "SE2" ||
+    value === "SE3" ||
+    value === "SE4"
+  ) {
+    return value;
   }
-  return null
+  return null;
 }
 
 function normalizeDateOrNull(value: string | null): string | null {
-  if (!value) return null
-  return value
+  if (!value) return null;
+  return value;
 }
 
 function normalizeNumberOrNull(value: string | null): number | null {
-  if (!value) return null
-  const parsed = Number(value.replace(',', '.'))
-  return Number.isFinite(parsed) ? parsed : null
+  if (!value) return null;
+  const parsed = Number(value.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function normalizeSupplierResponseStatus(value: string | null): string {
-  if (value === 'free_to_switch') return 'free_to_switch'
-  if (value === 'binding_period') return 'binding_period'
-  if (value === 'termination_fee') return 'termination_fee'
-  if (value === 'blocked') return 'blocked'
-  if (value === 'waiting_response') return 'waiting_response'
-  return 'manual_review'
+  if (value === "free_to_switch") return "free_to_switch";
+  if (value === "binding_period") return "binding_period";
+  if (value === "termination_fee") return "termination_fee";
+  if (value === "blocked") return "blocked";
+  if (value === "waiting_response") return "waiting_response";
+  return "manual_review";
 }
-
 
 function normalizeSwitchRequestType(
-  value: string | null
+  value: string | null,
 ): SupplierSwitchRequestType {
-  if (value === 'move_in') return 'move_in'
-  if (value === 'move_out_takeover') return 'move_out_takeover'
-  return 'switch'
+  if (value === "move_in") return "move_in";
+  if (value === "move_out_takeover") return "move_out_takeover";
+  return "switch";
 }
 
-function normalizeGridOwnerRequestScope(
-  value: string | null
-): BusinessProcess {
-  if (value === 'billing_underlay') return 'billing_underlay'
-  if (value === 'customer_masterdata') return 'customer_masterdata'
-  if (value === 'metering_access') return 'metering_access'
-  if (value === 'supplier_switch') return 'supplier_switch'
-  if (value === 'partner_export') return 'partner_export'
-  return 'meter_values'
+function normalizeGridOwnerRequestScope(value: string | null): BusinessProcess {
+  if (value === "billing_underlay") return "billing_underlay";
+  if (value === "customer_masterdata") return "customer_masterdata";
+  if (value === "metering_access") return "metering_access";
+  if (value === "supplier_switch") return "supplier_switch";
+  if (value === "partner_export") return "partner_export";
+  return "meter_values";
 }
 
-
-function normalizeDataRequestTarget(value: string | null): 'grid_owner' | 'current_supplier' | 'both' {
-  if (value === 'current_supplier') return 'current_supplier'
-  if (value === 'both') return 'both'
-  return 'grid_owner'
+function normalizeDataRequestTarget(
+  value: string | null,
+): "grid_owner" | "current_supplier" | "both" {
+  if (value === "current_supplier") return "current_supplier";
+  if (value === "both") return "both";
+  return "grid_owner";
 }
 
 function normalizeSimpleRequestStatus(value: string): string {
   switch (value) {
-    case 'z01_prepared':
-    case 'ready_to_send':
-      return 'ready_to_send'
-    case 'sent_to_grid_owner':
-    case 'sent':
-      return 'sent'
-    case 'waiting_for_contrl':
-    case 'waiting_for_aperak':
-    case 'waiting_for_z02':
-    case 'manual_review_required':
-      return 'waiting_response'
-    case 'z02_received':
-    case 'completed':
-      return 'received'
-    case 'negative_aperak':
-    case 'rejected':
-      return 'rejected'
-    case 'route_missing':
-    case 'blocked':
-    case 'missing_authorization':
-      return 'failed'
-    case 'cancelled':
-      return 'cancelled'
+    case "z01_prepared":
+    case "ready_to_send":
+      return "ready_to_send";
+    case "sent_to_grid_owner":
+    case "sent":
+      return "sent";
+    case "waiting_for_contrl":
+    case "waiting_for_aperak":
+    case "waiting_for_z02":
+    case "manual_review_required":
+      return "waiting_response";
+    case "z02_received":
+    case "completed":
+      return "received";
+    case "negative_aperak":
+    case "rejected":
+      return "rejected";
+    case "route_missing":
+    case "blocked":
+    case "missing_authorization":
+      return "failed";
+    case "cancelled":
+      return "cancelled";
     default:
-      return 'draft'
+      return "draft";
   }
 }
 
 function normalizePartnerExportKind(
-  value: string | null
-): 'billing_underlay' | 'meter_values' | 'customer_snapshot' {
-  if (value === 'meter_values') return 'meter_values'
-  if (value === 'customer_snapshot') return 'customer_snapshot'
-  return 'billing_underlay'
+  value: string | null,
+): "billing_underlay" | "meter_values" | "customer_snapshot" {
+  if (value === "meter_values") return "meter_values";
+  if (value === "customer_snapshot") return "customer_snapshot";
+  return "billing_underlay";
 }
 
 async function resolveActionGridOwnerId(params: {
-  companyId: string
-  customerId: string
-  siteId: string | null
-  meteringPointId: string | null
-  explicitGridOwnerId: string | null
+  companyId: string;
+  customerId: string;
+  siteId: string | null;
+  meteringPointId: string | null;
+  explicitGridOwnerId: string | null;
 }): Promise<string | null> {
-  if (params.explicitGridOwnerId) return params.explicitGridOwnerId
+  if (params.explicitGridOwnerId) return params.explicitGridOwnerId;
 
   if (params.meteringPointId) {
-    const point = await getMeteringPointById(supabaseService, params.meteringPointId, {
-      companyId: params.companyId,
-    })
-    if (point?.grid_owner_id) return point.grid_owner_id
+    const point = await getMeteringPointById(
+      supabaseService,
+      params.meteringPointId,
+      {
+        companyId: params.companyId,
+      },
+    );
+    if (point?.grid_owner_id) return point.grid_owner_id;
   }
 
   if (params.siteId) {
     const site = await getCustomerSiteById(supabaseService, params.siteId, {
       companyId: params.companyId,
-    })
-    if (site?.grid_owner_id) return site.grid_owner_id
+    });
+    if (site?.grid_owner_id) return site.grid_owner_id;
   }
 
-  return null
+  return null;
 }
 
-function messageCodeForBusinessProcess(process: BusinessProcess, action?: string | null): string | null {
-  if (process === 'customer_masterdata') return 'Z01'
-  if (process === 'supplier_switch') return 'Z03'
-  if (process === 'metering_access') return action === 'terminate_metering_access' ? 'Z18' : 'Z13'
-  return null
+function messageCodeForBusinessProcess(
+  process: BusinessProcess,
+  action?: string | null,
+): string | null {
+  if (process === "customer_masterdata") return "Z01";
+  if (process === "supplier_switch") return "Z03";
+  if (process === "metering_access")
+    return action === "terminate_metering_access" ? "Z18" : "Z13";
+  return null;
 }
 
 async function auditRouteDecisionForCustomerAction(params: {
-  actorUserId: string
-  companyId: string
-  customerId: string
-  siteId: string | null
-  meteringPointId: string | null
-  gridOwnerId: string | null
-  currentSupplierId?: string | null
-  businessProcess: BusinessProcess
-  requestedAction: string
-  messageCode?: string | null
-  payload?: Record<string, unknown>
+  actorUserId: string;
+  companyId: string;
+  customerId: string;
+  siteId: string | null;
+  meteringPointId: string | null;
+  gridOwnerId: string | null;
+  currentSupplierId?: string | null;
+  businessProcess: BusinessProcess;
+  requestedAction: string;
+  messageCode?: string | null;
+  payload?: Record<string, unknown>;
 }) {
   const decision = await decideCommunicationRoute({
     companyId: params.companyId,
@@ -224,18 +239,27 @@ async function auditRouteDecisionForCustomerAction(params: {
     currentSupplierId: params.currentSupplierId ?? null,
     businessProcess: params.businessProcess,
     requestedAction: params.requestedAction,
-    messageFamily: params.businessProcess === 'meter_values' || params.businessProcess === 'billing_underlay' ? 'UTILTS' : 'PRODAT',
-    messageCode: params.messageCode ?? messageCodeForBusinessProcess(params.businessProcess, params.requestedAction),
-    environment: 'test',
+    messageFamily:
+      params.businessProcess === "meter_values" ||
+      params.businessProcess === "billing_underlay"
+        ? "UTILTS"
+        : "PRODAT",
+    messageCode:
+      params.messageCode ??
+      messageCodeForBusinessProcess(
+        params.businessProcess,
+        params.requestedAction,
+      ),
+    environment: "test",
     payload: params.payload ?? {},
     actorUserId: params.actorUserId,
-  })
+  });
 
   await insertAuditLog({
     actorUserId: params.actorUserId,
-    entityType: 'customer',
+    entityType: "customer",
     entityId: params.customerId,
-    action: 'customer_business_route_decision',
+    action: "customer_business_route_decision",
     newValues: routeDecisionPayload(decision),
     metadata: {
       customerId: params.customerId,
@@ -247,50 +271,55 @@ async function auditRouteDecisionForCustomerAction(params: {
       requestedAction: params.requestedAction,
       businessProcess: params.businessProcess,
     },
-  })
+  });
 
-  return decision
+  return decision;
 }
 
-type JsonObject = Record<string, unknown>
+type JsonObject = Record<string, unknown>;
 
 function objectValue(value: unknown): JsonObject {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as JsonObject) : {}
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JsonObject)
+    : {};
 }
 
-function normalizeEdielMeteringMethod(value: string | null): 'Z01' | 'Z02' | 'Z03' | 'Z04' | null {
-  if (value === 'Z01' || value === 'Z02' || value === 'Z03' || value === 'Z04') return value
-  return null
+function normalizeEdielMeteringMethod(
+  value: string | null,
+): "Z01" | "Z02" | "Z03" | "Z04" | null {
+  if (value === "Z01" || value === "Z02" || value === "Z03" || value === "Z04")
+    return value;
+  return null;
 }
 
 async function applyEdielMeteringMethodToSwitchSnapshots(params: {
-  actorUserId: string
-  companyId: string
-  customerId: string
-  siteId: string
-  meteringPointId: string
-  edielMeteringMethod: 'Z01' | 'Z02' | 'Z03' | 'Z04' | null
+  actorUserId: string;
+  companyId: string;
+  customerId: string;
+  siteId: string;
+  meteringPointId: string;
+  edielMeteringMethod: "Z01" | "Z02" | "Z03" | "Z04" | null;
 }): Promise<{ updated: number }> {
-  if (!params.edielMeteringMethod) return { updated: 0 }
+  if (!params.edielMeteringMethod) return { updated: 0 };
 
   const { data: requests, error } = await supabaseService
-    .from('supplier_switch_requests')
-    .select('id,validation_snapshot')
-    .eq('company_id', params.companyId)
-    .eq('customer_id', params.customerId)
-    .eq('site_id', params.siteId)
-    .eq('metering_point_id', params.meteringPointId)
-    .order('created_at', { ascending: false })
-    .limit(25)
+    .from("supplier_switch_requests")
+    .select("id,validation_snapshot")
+    .eq("company_id", params.companyId)
+    .eq("customer_id", params.customerId)
+    .eq("site_id", params.siteId)
+    .eq("metering_point_id", params.meteringPointId)
+    .order("created_at", { ascending: false })
+    .limit(25);
 
-  if (error) throw error
+  if (error) throw error;
 
-  let updated = 0
+  let updated = 0;
 
   for (const request of requests ?? []) {
-    const snapshot = objectValue((request as JsonObject).validation_snapshot)
-    const portalData = objectValue(snapshot.portalData)
-    const testCaseOverrides = objectValue(portalData.testCaseOverrides)
+    const snapshot = objectValue((request as JsonObject).validation_snapshot);
+    const portalData = objectValue(snapshot.portalData);
+    const testCaseOverrides = objectValue(portalData.testCaseOverrides);
     const nextSnapshot = {
       ...snapshot,
       portalData: {
@@ -303,134 +332,163 @@ async function applyEdielMeteringMethodToSwitchSnapshots(params: {
       },
       edielMeteringMethodOverride: {
         value: params.edielMeteringMethod,
-        source: 'customer_metering_point_form',
+        source: "customer_metering_point_form",
         updatedAt: new Date().toISOString(),
         updatedBy: params.actorUserId,
       },
-    }
+    };
 
     const { error: updateError } = await supabaseService
-      .from('supplier_switch_requests')
+      .from("supplier_switch_requests")
       .update({
         validation_snapshot: nextSnapshot,
         updated_by: params.actorUserId,
       })
-      .eq('id', String((request as JsonObject).id))
+      .eq("id", String((request as JsonObject).id));
 
-    if (updateError) throw updateError
-    updated += 1
+    if (updateError) throw updateError;
+    updated += 1;
   }
 
-  return { updated }
+  return { updated };
 }
-
 
 function mapGridOwnerRequestScopeToOutboundType(
   value: string | null | undefined,
-  action?: string | null
+  action?: string | null,
 ): OutboundRequestType {
-  if (value === 'billing_underlay') return 'billing_underlay'
-  if (value === 'customer_masterdata') return 'customer_masterdata'
-  if (value === 'metering_access') {
-    return action === 'terminate_metering_access' ? 'metering_access_termination' : 'metering_access_request'
+  if (value === "billing_underlay") return "billing_underlay";
+  if (value === "customer_masterdata") return "customer_masterdata";
+  if (value === "metering_access") {
+    return action === "terminate_metering_access"
+      ? "metering_access_termination"
+      : "metering_access_request";
   }
-  if (value === 'supplier_switch') return 'switch_information_request'
-  if (value === 'partner_export') return 'partner_export'
-  if (value === 'ediel_ack') return 'ediel_ack'
-  return 'meter_values_request'
+  if (value === "supplier_switch") return "switch_information_request";
+  if (value === "partner_export") return "partner_export";
+  if (value === "ediel_ack") return "ediel_ack";
+  return "meter_values_request";
 }
 
 async function customerHasMeterValuesAccess(params: {
-  companyId: string
-  customerId: string
-  siteId: string | null
-  meteringPointId: string | null
+  companyId: string;
+  customerId: string;
+  siteId: string | null;
+  meteringPointId: string | null;
 }): Promise<{ ok: boolean; reason: string | null }> {
   const switchQuery = supabaseService
-    .from('supplier_switch_requests')
-    .select('id,status')
-    .eq('company_id', params.companyId)
-    .eq('customer_id', params.customerId)
-    .in('status', ['accepted', 'completed'])
-    .limit(1)
+    .from("supplier_switch_requests")
+    .select("id,status")
+    .eq("company_id", params.companyId)
+    .eq("customer_id", params.customerId)
+    .in("status", ["accepted", "completed"])
+    .limit(1);
 
-  if (params.siteId) switchQuery.eq('site_id', params.siteId)
-  if (params.meteringPointId) switchQuery.eq('metering_point_id', params.meteringPointId)
+  if (params.siteId) switchQuery.eq("site_id", params.siteId);
+  if (params.meteringPointId)
+    switchQuery.eq("metering_point_id", params.meteringPointId);
 
-  const { data: switchRows, error: switchError } = await switchQuery
-  if (switchError && !['42P01', '42703', 'PGRST205'].includes(String((switchError as { code?: string }).code ?? ''))) throw switchError
-  if ((switchRows ?? []).length > 0) return { ok: true, reason: null }
+  const { data: switchRows, error: switchError } = await switchQuery;
+  if (
+    switchError &&
+    !["42P01", "42703", "PGRST205"].includes(
+      String((switchError as { code?: string }).code ?? ""),
+    )
+  )
+    throw switchError;
+  if ((switchRows ?? []).length > 0) return { ok: true, reason: null };
 
   const permissionQuery = supabaseService
-    .from('metering_permissions')
-    .select('id,status')
-    .eq('company_id', params.companyId)
-    .eq('customer_id', params.customerId)
-    .in('status', ['approved', 'active', 'partially_approved', 'z14_received'])
-    .limit(1)
+    .from("metering_permissions")
+    .select("id,status")
+    .eq("company_id", params.companyId)
+    .eq("customer_id", params.customerId)
+    .in("status", ["approved", "active", "partially_approved", "z14_received"])
+    .limit(1);
 
-  if (params.siteId) permissionQuery.eq('site_id', params.siteId)
-  if (params.meteringPointId) permissionQuery.eq('metering_point_id', params.meteringPointId)
+  if (params.siteId) permissionQuery.eq("site_id", params.siteId);
+  if (params.meteringPointId)
+    permissionQuery.eq("metering_point_id", params.meteringPointId);
 
-  const { data: permissionRows, error: permissionError } = await permissionQuery
-  if (permissionError && !['42P01', '42703', 'PGRST205'].includes(String((permissionError as { code?: string }).code ?? ''))) throw permissionError
-  if ((permissionRows ?? []).length > 0) return { ok: true, reason: null }
+  const { data: permissionRows, error: permissionError } =
+    await permissionQuery;
+  if (
+    permissionError &&
+    !["42P01", "42703", "PGRST205"].includes(
+      String((permissionError as { code?: string }).code ?? ""),
+    )
+  )
+    throw permissionError;
+  if ((permissionRows ?? []).length > 0) return { ok: true, reason: null };
 
-  return { ok: false, reason: 'Saknar godkänd mätvärdesåtkomst eller aktiv leveransrelation.' }
+  return {
+    ok: false,
+    reason: "Saknar godkänd mätvärdesåtkomst eller aktiv leveransrelation.",
+  };
 }
 
 async function createCustomerActionTask(params: {
-  actorUserId: string
-  companyId: string
-  customerId: string
-  siteId: string | null
-  meteringPointId: string | null
-  taskType: string
-  title: string
-  description: string
-  metadata?: Record<string, unknown>
+  actorUserId: string;
+  companyId: string;
+  customerId: string;
+  siteId: string | null;
+  meteringPointId: string | null;
+  taskType: string;
+  title: string;
+  description: string;
+  metadata?: Record<string, unknown>;
 }) {
-  const { error } = await supabaseService.from('customer_operation_tasks').insert({
-    company_id: params.companyId,
-    customer_id: params.customerId,
-    site_id: params.siteId,
-    metering_point_id: params.meteringPointId,
-    task_type: params.taskType,
-    status: 'open',
-    priority: 'high',
-    title: params.title,
-    description: params.description,
-    metadata: params.metadata ?? {},
-    created_by: params.actorUserId,
-    updated_by: params.actorUserId,
-  })
+  const { error } = await supabaseService
+    .from("customer_operation_tasks")
+    .insert({
+      company_id: params.companyId,
+      customer_id: params.customerId,
+      site_id: params.siteId,
+      metering_point_id: params.meteringPointId,
+      task_type: params.taskType,
+      status: "open",
+      priority: "high",
+      title: params.title,
+      description: params.description,
+      metadata: params.metadata ?? {},
+      created_by: params.actorUserId,
+      updated_by: params.actorUserId,
+    });
 
-  if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
+  if (
+    error &&
+    !["42P01", "42703", "PGRST205"].includes(
+      String((error as { code?: string }).code ?? ""),
+    )
+  )
+    throw error;
 }
 
 function sanitizeFileName(value: string): string {
   return value
-    .normalize('NFKD')
-    .replace(/[^a-zA-Z0-9._-]/g, '_')
-    .replace(/_+/g, '_')
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .replace(/_+/g, "_");
 }
 
 function buildCustomerDocumentPath(params: {
-  customerId: string
-  siteId: string | null
-  documentType: 'power_of_attorney' | 'complete_agreement'
-  fileName: string
+  customerId: string;
+  siteId: string | null;
+  documentType: "power_of_attorney" | "complete_agreement";
+  fileName: string;
 }): string {
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-  const scope = params.siteId ? `site-${params.siteId}` : 'customer'
-  return `${params.customerId}/${scope}/${params.documentType}/${stamp}_${sanitizeFileName(params.fileName)}`
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const scope = params.siteId ? `site-${params.siteId}` : "customer";
+  return `${params.customerId}/${scope}/${params.documentType}/${stamp}_${sanitizeFileName(params.fileName)}`;
 }
 
 function toBoolean(formData: FormData, key: string): boolean {
-  return parseCheckbox(formData.get(key))
+  return parseCheckbox(formData.get(key));
 }
 
-function formatDocumentReference(doc: CustomerAuthorizationDocumentRow): Record<string, unknown> {
+function formatDocumentReference(
+  doc: CustomerAuthorizationDocumentRow,
+): Record<string, unknown> {
   return {
     id: doc.id,
     type: doc.document_type,
@@ -439,19 +497,19 @@ function formatDocumentReference(doc: CustomerAuthorizationDocumentRow): Record<
     storageBucket: doc.storage_bucket,
     reference: doc.reference,
     uploadedAt: doc.uploaded_at,
-  }
+  };
 }
 
 async function insertAuditLog(params: {
-  actorUserId: string
-  entityType: string
-  entityId: string
-  action: string
-  oldValues?: unknown
-  newValues?: unknown
-  metadata?: unknown
+  actorUserId: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  oldValues?: unknown;
+  newValues?: unknown;
+  metadata?: unknown;
 }) {
-  const { error } = await supabaseService.from('audit_logs').insert({
+  const { error } = await supabaseService.from("audit_logs").insert({
     actor_user_id: params.actorUserId,
     entity_type: params.entityType,
     entity_id: params.entityId,
@@ -459,153 +517,194 @@ async function insertAuditLog(params: {
     old_values: params.oldValues ?? null,
     new_values: params.newValues ?? null,
     metadata: params.metadata ?? null,
-  })
+  });
 
-  if (error) throw error
+  if (error) throw error;
 }
 
-export async function saveCustomerSiteAction(formData: FormData): Promise<void> {
-  const guard = await requireAdminActionAccess({ anyOf: ['sites.write', 'customers.write'] })
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const siteId = formValue(formData, 'id') || undefined
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  const siteFlowType = normalizeSwitchRequestType(formValue(formData, 'site_flow_type'))
+export async function saveCustomerSiteAction(
+  formData: FormData,
+): Promise<void> {
+  const guard = await requireAdminActionAccess({
+    anyOf: ["sites.write", "customers.write"],
+  });
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const siteId = formValue(formData, "id") || undefined;
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  const siteFlowType = normalizeSwitchRequestType(
+    formValue(formData, "site_flow_type"),
+  );
 
-  const before = siteId ? await getCustomerSiteById(supabase, siteId, { companyId }) : null
+  const before = siteId
+    ? await getCustomerSiteById(supabase, siteId, { companyId })
+    : null;
   if (siteId && (!before || before.customer_id !== customerId)) {
-    throw new Error('Anläggningen tillhör inte kunden eller bolaget.')
+    throw new Error("Anläggningen tillhör inte kunden eller bolaget.");
   }
 
-  const moveInDate = normalizeDateOrNull(formValue(formData, 'move_in_date'))
-  const street = formValue(formData, 'street') || undefined
-  const postalCode = formValue(formData, 'postal_code') || undefined
-  const city = formValue(formData, 'city') || undefined
+  const moveInDate = normalizeDateOrNull(formValue(formData, "move_in_date"));
+  const street = formValue(formData, "street") || undefined;
+  const postalCode = formValue(formData, "postal_code") || undefined;
+  const city = formValue(formData, "city") || undefined;
 
-  let movedFromStreet = formValue(formData, 'moved_from_street') || undefined
-  let movedFromPostalCode = formValue(formData, 'moved_from_postal_code') || undefined
-  let movedFromCity = formValue(formData, 'moved_from_city') || undefined
+  let movedFromStreet = formValue(formData, "moved_from_street") || undefined;
+  let movedFromPostalCode =
+    formValue(formData, "moved_from_postal_code") || undefined;
+  let movedFromCity = formValue(formData, "moved_from_city") || undefined;
   let movedFromSupplierName =
-    formValue(formData, 'moved_from_supplier_name') || undefined
+    formValue(formData, "moved_from_supplier_name") || undefined;
 
-  if (siteFlowType === 'move_in' || siteFlowType === 'move_out_takeover') {
+  if (siteFlowType === "move_in" || siteFlowType === "move_out_takeover") {
     if (!moveInDate) {
-      throw new Error('Inflytt eller övertag kräver datum')
+      throw new Error("Inflytt eller övertag kräver datum");
     }
 
     if (!street) {
-      throw new Error('Inflytt eller övertag kräver gatuadress')
+      throw new Error("Inflytt eller övertag kräver gatuadress");
     }
 
     if (!postalCode) {
-      throw new Error('Inflytt eller övertag kräver postnummer')
+      throw new Error("Inflytt eller övertag kräver postnummer");
     }
 
     if (!city) {
-      throw new Error('Inflytt eller övertag kräver stad')
+      throw new Error("Inflytt eller övertag kräver stad");
     }
   } else {
-    movedFromStreet = undefined
-    movedFromPostalCode = undefined
-    movedFromCity = undefined
-    movedFromSupplierName = undefined
+    movedFromStreet = undefined;
+    movedFromPostalCode = undefined;
+    movedFromCity = undefined;
+    movedFromSupplierName = undefined;
   }
 
-  let selectedGridOwnerId = normalizeUuidOrNull(formValue(formData, 'grid_owner_id'))
-  const newGridOwnerName = (formValue(formData, 'new_grid_owner_name') ?? '').trim()
-  const newGridOwnerEdielId = (formValue(formData, 'new_grid_owner_ediel_id') ?? '').trim() || null
-  const newGridOwnerOrgNumber = (formValue(formData, 'new_grid_owner_org_number') ?? '').trim() || null
+  let selectedGridOwnerId = normalizeUuidOrNull(
+    formValue(formData, "grid_owner_id"),
+  );
+  const newGridOwnerName = (
+    formValue(formData, "new_grid_owner_name") ?? ""
+  ).trim();
+  const newGridOwnerEdielId =
+    (formValue(formData, "new_grid_owner_ediel_id") ?? "").trim() || null;
+  const newGridOwnerOrgNumber =
+    (formValue(formData, "new_grid_owner_org_number") ?? "").trim() || null;
 
   if (!selectedGridOwnerId && newGridOwnerName) {
-    let existingGridOwner: { id: string } | null = null
+    let existingGridOwner: { id: string } | null = null;
 
     if (newGridOwnerEdielId) {
       const { data, error } = await supabaseService
-        .from('grid_owners')
-        .select('id')
-        .eq('ediel_id', newGridOwnerEdielId)
+        .from("grid_owners")
+        .select("id")
+        .eq("ediel_id", newGridOwnerEdielId)
         .limit(1)
-        .maybeSingle()
-      if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
-      existingGridOwner = (data as { id: string } | null) ?? null
+        .maybeSingle();
+      if (
+        error &&
+        !["42P01", "42703", "PGRST205"].includes(
+          String((error as { code?: string }).code ?? ""),
+        )
+      )
+        throw error;
+      existingGridOwner = (data as { id: string } | null) ?? null;
     }
 
     if (!existingGridOwner && newGridOwnerOrgNumber) {
       const { data, error } = await supabaseService
-        .from('grid_owners')
-        .select('id')
-        .eq('org_number', newGridOwnerOrgNumber)
+        .from("grid_owners")
+        .select("id")
+        .eq("org_number", newGridOwnerOrgNumber)
         .limit(1)
-        .maybeSingle()
-      if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
-      existingGridOwner = (data as { id: string } | null) ?? null
+        .maybeSingle();
+      if (
+        error &&
+        !["42P01", "42703", "PGRST205"].includes(
+          String((error as { code?: string }).code ?? ""),
+        )
+      )
+        throw error;
+      existingGridOwner = (data as { id: string } | null) ?? null;
     }
 
     if (!existingGridOwner) {
       const { data, error } = await supabaseService
-        .from('grid_owners')
+        .from("grid_owners")
         .insert({
           company_id: companyId,
           name: newGridOwnerName,
           owner_code: newGridOwnerEdielId ?? `NY-${Date.now()}`,
           org_number: newGridOwnerOrgNumber,
           ediel_id: newGridOwnerEdielId,
-          email: formValue(formData, 'new_grid_owner_email') || null,
-          phone: formValue(formData, 'new_grid_owner_phone') || null,
-          notes: formValue(formData, 'new_grid_owner_notes') || 'Skapad från kundkort/anläggning.',
+          email: formValue(formData, "new_grid_owner_email") || null,
+          phone: formValue(formData, "new_grid_owner_phone") || null,
+          notes:
+            formValue(formData, "new_grid_owner_notes") ||
+            "Skapad från kundkort/anläggning.",
           is_active: true,
           created_by: actor.id,
           updated_by: actor.id,
         })
-        .select('id')
-        .single()
-      if (error) throw error
-      existingGridOwner = data as { id: string }
+        .select("id")
+        .single();
+      if (error) throw error;
+      existingGridOwner = data as { id: string };
     }
 
-    selectedGridOwnerId = existingGridOwner.id
+    selectedGridOwnerId = existingGridOwner.id;
   }
 
   const parsed = customerSiteInputSchema.parse({
     id: siteId,
     company_id: companyId,
     customer_id: customerId,
-    site_name: formValue(formData, 'site_name') ?? '',
-    facility_id: formValue(formData, 'facility_id') || undefined,
-    site_type: formValue(formData, 'site_type') ?? 'consumption',
-    status: formValue(formData, 'status') ?? 'draft',
+    site_name: formValue(formData, "site_name") ?? "",
+    facility_id: formValue(formData, "facility_id") || undefined,
+    site_type: formValue(formData, "site_type") ?? "consumption",
+    status: formValue(formData, "status") ?? "draft",
     grid_owner_id: selectedGridOwnerId,
-    price_area_code: normalizePriceAreaOrNull(formValue(formData, 'price_area_code')),
+    price_area_code: normalizePriceAreaOrNull(
+      formValue(formData, "price_area_code"),
+    ),
     move_in_date: moveInDate || undefined,
-    annual_consumption_kwh: formValue(formData, 'annual_consumption_kwh'),
+    annual_consumption_kwh: formValue(formData, "annual_consumption_kwh"),
     current_supplier_name:
-      formValue(formData, 'current_supplier_name') || undefined,
+      formValue(formData, "current_supplier_name") || undefined,
     current_supplier_org_number:
-      formValue(formData, 'current_supplier_org_number') || undefined,
+      formValue(formData, "current_supplier_org_number") || undefined,
     street,
-    care_of: formValue(formData, 'care_of') || undefined,
+    care_of: formValue(formData, "care_of") || undefined,
     postal_code: postalCode,
     city,
-    country: formValue(formData, 'country') || 'SE',
+    country: formValue(formData, "country") || "SE",
     moved_from_street: movedFromStreet,
     moved_from_postal_code: movedFromPostalCode,
     moved_from_city: movedFromCity,
     moved_from_supplier_name: movedFromSupplierName,
-    internal_notes: formValue(formData, 'internal_notes') || undefined,
-  })
+    internal_notes: formValue(formData, "internal_notes") || undefined,
+  });
 
-  const savedSite = await saveCustomerSite(supabase, parsed)
+  const savedSite = await saveCustomerSite(supabase, parsed);
+
+  await createMissingCustomerDataTasks({
+    companyId,
+    customerId,
+    customerSiteId: savedSite.id,
+    facilityId: savedSite.facility_id,
+    gridOwnerId: savedSite.grid_owner_id,
+    actorUserId: actor.id,
+  });
+
   const readiness = await syncCustomerOperationsForSite(supabase, {
     customerId,
     siteId: savedSite.id,
-  })
+  });
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'customer_site',
+    entityType: "customer_site",
     entityId: savedSite.id,
-    action: before ? 'customer_site_updated' : 'customer_site_created',
+    action: before ? "customer_site_updated" : "customer_site_created",
     oldValues: before,
     newValues: savedSite,
     metadata: {
@@ -615,40 +714,48 @@ export async function saveCustomerSiteAction(formData: FormData): Promise<void> 
       siteFlowType,
       readiness,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
 }
 
-export async function saveMeteringPointAction(formData: FormData): Promise<void> {
-  const guard = await requireAdminActionAccess({ anyOf: ['metering_points.write', 'metering.write', 'customers.write'] })
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const meteringPointRowId = formValue(formData, 'id') || undefined
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+export async function saveMeteringPointAction(
+  formData: FormData,
+): Promise<void> {
+  const guard = await requireAdminActionAccess({
+    anyOf: ["metering_points.write", "metering.write", "customers.write"],
+  });
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const meteringPointRowId = formValue(formData, "id") || undefined;
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
 
   const before = meteringPointRowId
     ? await getMeteringPointById(supabase, meteringPointRowId, { companyId })
-    : null
+    : null;
   if (meteringPointRowId && !before) {
-    throw new Error('Mätpunkten tillhör inte kunden eller bolaget.')
+    throw new Error("Mätpunkten tillhör inte kunden eller bolaget.");
   }
 
   const meterPointIdentifier =
-    formValue(formData, 'meter_point_id')?.trim() ||
-    formValue(formData, 'metering_point_id')?.trim() ||
-    ''
+    formValue(formData, "meter_point_id")?.trim() ||
+    formValue(formData, "metering_point_id")?.trim() ||
+    "";
 
-  const siteId = formValue(formData, 'site_id') || before?.site_id || ''
-  const site = siteId ? await getCustomerSiteById(supabase, siteId, { companyId }) : null
+  const siteId = formValue(formData, "site_id") || before?.site_id || "";
+  const site = siteId
+    ? await getCustomerSiteById(supabase, siteId, { companyId })
+    : null;
   if (!site || site.customer_id !== customerId) {
-    throw new Error('Vald anläggning tillhör inte kunden eller bolaget.')
+    throw new Error("Vald anläggning tillhör inte kunden eller bolaget.");
   }
   if (before && before.site_id !== siteId) {
-    throw new Error('Mätpunkten kan inte flyttas till en annan anläggning via detta formulär.')
+    throw new Error(
+      "Mätpunkten kan inte flyttas till en annan anläggning via detta formulär.",
+    );
   }
 
   const parsedResult = meteringPointInputSchema.safeParse({
@@ -657,49 +764,69 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
     customer_id: customerId,
     site_id: siteId,
     meter_point_id: meterPointIdentifier,
-    site_facility_id: formValue(formData, 'site_facility_id') || undefined,
-    ediel_reference: formValue(formData, 'ediel_reference') || undefined,
-    status: formValue(formData, 'status') ?? 'draft',
-    measurement_type: formValue(formData, 'measurement_type') ?? 'consumption',
-    reading_frequency: formValue(formData, 'reading_frequency') ?? 'hourly',
-    grid_owner_id: normalizeUuidOrNull(formValue(formData, 'grid_owner_id')),
-    price_area_code: normalizePriceAreaOrNull(formValue(formData, 'price_area_code')),
-    start_date: formValue(formData, 'start_date') || undefined,
-    end_date: formValue(formData, 'end_date') || undefined,
-    is_settlement_relevant: parseCheckbox(formData.get('is_settlement_relevant')),
-  })
+    site_facility_id: formValue(formData, "site_facility_id") || undefined,
+    ediel_reference: formValue(formData, "ediel_reference") || undefined,
+    status: formValue(formData, "status") ?? "draft",
+    measurement_type: formValue(formData, "measurement_type") ?? "consumption",
+    reading_frequency: formValue(formData, "reading_frequency") ?? "hourly",
+    grid_owner_id: normalizeUuidOrNull(formValue(formData, "grid_owner_id")),
+    price_area_code: normalizePriceAreaOrNull(
+      formValue(formData, "price_area_code"),
+    ),
+    start_date: formValue(formData, "start_date") || undefined,
+    end_date: formValue(formData, "end_date") || undefined,
+    is_settlement_relevant: parseCheckbox(
+      formData.get("is_settlement_relevant"),
+    ),
+  });
 
   if (!parsedResult.success) {
     const details = parsedResult.error.issues
-      .map((issue) => `${issue.path.join('.') || 'fält'}: ${issue.message}`)
-      .join('; ')
-    throw new Error(`Kunde inte spara mätpunkten. Kontrollera formuläret. ${details}`)
+      .map((issue) => `${issue.path.join(".") || "fält"}: ${issue.message}`)
+      .join("; ");
+    throw new Error(
+      `Kunde inte spara mätpunkten. Kontrollera formuläret. ${details}`,
+    );
   }
 
-  const parsed = parsedResult.data
+  const parsed = parsedResult.data;
 
-  const savedMeteringPoint = await saveMeteringPoint(supabase, parsed)
+  const savedMeteringPoint = await saveMeteringPoint(supabase, parsed);
 
-  const edielMeteringMethod = normalizeEdielMeteringMethod(formValue(formData, 'ediel_metering_method'))
-  const edielMeteringMethodSync = await applyEdielMeteringMethodToSwitchSnapshots({
-    actorUserId: actor.id,
+  await createMissingCustomerDataTasks({
     companyId,
     customerId,
-    siteId: savedMeteringPoint.site_id,
+    customerSiteId: savedMeteringPoint.site_id,
     meteringPointId: savedMeteringPoint.id,
-    edielMeteringMethod,
-  })
+    facilityId: savedMeteringPoint.site_facility_id,
+    meterPointId: savedMeteringPoint.meter_point_id,
+    gridOwnerId: savedMeteringPoint.grid_owner_id,
+    actorUserId: actor.id,
+  });
+
+  const edielMeteringMethod = normalizeEdielMeteringMethod(
+    formValue(formData, "ediel_metering_method"),
+  );
+  const edielMeteringMethodSync =
+    await applyEdielMeteringMethodToSwitchSnapshots({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId: savedMeteringPoint.site_id,
+      meteringPointId: savedMeteringPoint.id,
+      edielMeteringMethod,
+    });
 
   const readiness = await syncCustomerOperationsForSite(supabase, {
     customerId,
     siteId: savedMeteringPoint.site_id,
-  })
+  });
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'metering_point',
+    entityType: "metering_point",
     entityId: savedMeteringPoint.id,
-    action: before ? 'metering_point_updated' : 'metering_point_created',
+    action: before ? "metering_point_updated" : "metering_point_created",
     oldValues: before,
     newValues: savedMeteringPoint,
     metadata: {
@@ -712,29 +839,29 @@ export async function saveMeteringPointAction(formData: FormData): Promise<void>
       edielMeteringMethod,
       edielMeteringMethodSync,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
 }
 
 export async function createCustomerInternalNoteAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const body = (formValue(formData, 'body') ?? '').trim()
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const body = (formValue(formData, "body") ?? "").trim();
 
   if (!customerId || !body) {
-    throw new Error('Customer ID eller anteckning saknas')
+    throw new Error("Customer ID eller anteckning saknas");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
 
   const { data, error } = await supabaseService
-    .from('customer_internal_notes')
+    .from("customer_internal_notes")
     .insert({
       company_id: companyId,
       customer_id: customerId,
@@ -742,148 +869,157 @@ export async function createCustomerInternalNoteAction(
       created_by: actor.id,
       updated_by: actor.id,
     })
-    .select('*')
-    .single()
+    .select("*")
+    .single();
 
-  if (error) throw error
+  if (error) throw error;
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'customer_internal_note',
+    entityType: "customer_internal_note",
     entityId: data.id,
-    action: 'customer_internal_note_created',
+    action: "customer_internal_note_created",
     newValues: data,
     metadata: {
       customerId,
       companyId,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath(`/admin/customers/${customerId}`);
 }
 
 export async function createPowerOfAttorneyAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const powerOfAttorneyId = formValue(formData, 'id') || undefined
-  const siteId = formValue(formData, 'site_id') || null
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const powerOfAttorneyId = formValue(formData, "id") || undefined;
+  const siteId = formValue(formData, "site_id") || null;
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
-  await assertPowerOfAttorneyTenant({ companyId, customerId, powerOfAttorneyId })
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  await assertPowerOfAttorneyTenant({
+    companyId,
+    customerId,
+    powerOfAttorneyId,
+  });
 
   const saved = await savePowerOfAttorney(supabase, {
     id: powerOfAttorneyId,
     customer_id: customerId,
     site_id: siteId,
     scope:
-      (formValue(formData, 'scope') as
-        | 'supplier_switch'
-        | 'meter_data'
-        | 'billing_handoff') ?? 'supplier_switch',
+      (formValue(formData, "scope") as
+        | "supplier_switch"
+        | "meter_data"
+        | "billing_handoff") ?? "supplier_switch",
     status:
-      (formValue(formData, 'status') as
-        | 'draft'
-        | 'sent'
-        | 'signed'
-        | 'expired'
-        | 'revoked') ?? 'draft',
+      (formValue(formData, "status") as
+        | "draft"
+        | "sent"
+        | "signed"
+        | "expired"
+        | "revoked") ?? "draft",
     signed_at:
-      formValue(formData, 'status') === 'signed'
+      formValue(formData, "status") === "signed"
         ? new Date().toISOString()
         : null,
-    valid_from: normalizeDateOrNull(formValue(formData, 'valid_from')),
-    valid_to: normalizeDateOrNull(formValue(formData, 'valid_to')),
-    document_path: formValue(formData, 'document_path') || null,
-    reference: formValue(formData, 'reference') || null,
-    notes: formValue(formData, 'notes') || null,
+    valid_from: normalizeDateOrNull(formValue(formData, "valid_from")),
+    valid_to: normalizeDateOrNull(formValue(formData, "valid_to")),
+    document_path: formValue(formData, "document_path") || null,
+    reference: formValue(formData, "reference") || null,
+    notes: formValue(formData, "notes") || null,
     companyId,
-  })
+  });
 
   const syncSummary = saved.site_id
     ? await syncCustomerOperationsForSite(supabase, {
         customerId,
         siteId: saved.site_id,
       })
-    : await syncCustomerOperationsForCustomer(supabase, customerId)
+    : await syncCustomerOperationsForCustomer(supabase, customerId);
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'power_of_attorney',
+    entityType: "power_of_attorney",
     entityId: saved.id,
-    action: 'power_of_attorney_saved',
+    action: "power_of_attorney_saved",
     newValues: saved,
     metadata: {
       customerId,
       siteId: saved.site_id,
       syncSummary,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
 }
 
 export async function uploadCustomerAuthorizationDocumentAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const siteId = formValue(formData, 'site_id') || null
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const siteId = formValue(formData, "site_id") || null;
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
   const documentType =
-    (formValue(formData, 'document_type') as 'power_of_attorney' | 'complete_agreement' | null) ??
-    'power_of_attorney'
-  const title = formValue(formData, 'title') || null
-  const reference = formValue(formData, 'reference') || null
-  const notes = formValue(formData, 'notes') || null
-  const validFrom = normalizeDateOrNull(formValue(formData, 'valid_from'))
-  const validTo = normalizeDateOrNull(formValue(formData, 'valid_to'))
-  const markAsSigned = toBoolean(formData, 'mark_as_signed')
-  const syncToPowerOfAttorney = toBoolean(formData, 'sync_to_power_of_attorney')
-  const fileValue = formData.get('document_file')
+    (formValue(formData, "document_type") as
+      | "power_of_attorney"
+      | "complete_agreement"
+      | null) ?? "power_of_attorney";
+  const title = formValue(formData, "title") || null;
+  const reference = formValue(formData, "reference") || null;
+  const notes = formValue(formData, "notes") || null;
+  const validFrom = normalizeDateOrNull(formValue(formData, "valid_from"));
+  const validTo = normalizeDateOrNull(formValue(formData, "valid_to"));
+  const markAsSigned = toBoolean(formData, "mark_as_signed");
+  const syncToPowerOfAttorney = toBoolean(
+    formData,
+    "sync_to_power_of_attorney",
+  );
+  const fileValue = formData.get("document_file");
 
   if (!customerId) {
-    throw new Error('Customer ID saknas')
+    throw new Error("Customer ID saknas");
   }
 
   if (!(fileValue instanceof File) || fileValue.size === 0) {
-    throw new Error('Du måste välja en fil att ladda upp')
+    throw new Error("Du måste välja en fil att ladda upp");
   }
 
-  const bucket = 'customer-documents'
+  const bucket = "customer-documents";
   const filePath = buildCustomerDocumentPath({
     customerId,
     siteId,
     documentType,
-    fileName: fileValue.name || 'document.pdf',
-  })
+    fileName: fileValue.name || "document.pdf",
+  });
 
   const uploadResult = await supabaseService.storage
     .from(bucket)
     .upload(filePath, fileValue, {
-      contentType: fileValue.type || 'application/octet-stream',
+      contentType: fileValue.type || "application/octet-stream",
       upsert: false,
-    })
+    });
 
-  if (uploadResult.error) throw uploadResult.error
+  if (uploadResult.error) throw uploadResult.error;
 
-  let savedPowerOfAttorneyId: string | null = null
+  let savedPowerOfAttorneyId: string | null = null;
 
-  if (syncToPowerOfAttorney || documentType === 'power_of_attorney') {
+  if (syncToPowerOfAttorney || documentType === "power_of_attorney") {
     const savedPowerOfAttorney = await savePowerOfAttorney(supabase, {
       customer_id: customerId,
       site_id: siteId,
-      scope: 'supplier_switch',
-      status: markAsSigned ? 'signed' : 'sent',
+      scope: "supplier_switch",
+      status: markAsSigned ? "signed" : "sent",
       signed_at: markAsSigned ? new Date().toISOString() : null,
       valid_from: validFrom,
       valid_to: validTo,
@@ -891,9 +1027,9 @@ export async function uploadCustomerAuthorizationDocumentAction(
       reference,
       notes,
       companyId,
-    })
+    });
 
-    savedPowerOfAttorneyId = savedPowerOfAttorney.id
+    savedPowerOfAttorneyId = savedPowerOfAttorney.id;
   }
 
   const savedDocument = await saveCustomerAuthorizationDocument(supabase, {
@@ -902,7 +1038,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
     site_id: siteId,
     power_of_attorney_id: savedPowerOfAttorneyId,
     document_type: documentType,
-    status: 'active',
+    status: "active",
     title,
     file_name: fileValue.name || null,
     mime_type: fileValue.type || null,
@@ -911,20 +1047,20 @@ export async function uploadCustomerAuthorizationDocumentAction(
     file_path: filePath,
     reference,
     notes,
-  })
+  });
 
   const syncSummary = siteId
     ? await syncCustomerOperationsForSite(supabase, {
         customerId,
         siteId,
       })
-    : await syncCustomerOperationsForCustomer(supabase, customerId)
+    : await syncCustomerOperationsForCustomer(supabase, customerId);
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'customer_authorization_document',
+    entityType: "customer_authorization_document",
     entityId: savedDocument.id,
-    action: 'customer_authorization_document_uploaded',
+    action: "customer_authorization_document_uploaded",
     newValues: savedDocument,
     metadata: {
       customerId,
@@ -933,140 +1069,152 @@ export async function uploadCustomerAuthorizationDocumentAction(
       linkedPowerOfAttorneyId: savedPowerOfAttorneyId,
       syncSummary,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
 }
 
 export async function runSwitchReadinessAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const siteId = formValue(formData, 'site_id') ?? ''
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const siteId = formValue(formData, "site_id") ?? "";
 
   if (!customerId || !siteId) {
-    throw new Error('Customer ID eller site ID saknas')
+    throw new Error("Customer ID eller site ID saknas");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
-  const site = await findCustomerSiteById(supabase, siteId)
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  const site = await findCustomerSiteById(supabase, siteId);
 
-  if (!site || site.company_id !== companyId || site.customer_id !== customerId) {
-    throw new Error('Anläggningen kunde inte hittas')
+  if (
+    !site ||
+    site.company_id !== companyId ||
+    site.customer_id !== customerId
+  ) {
+    throw new Error("Anläggningen kunde inte hittas");
   }
 
   const [meteringPoints, powersOfAttorney] = await Promise.all([
     listMeteringPointsForSite(supabase, siteId),
     listPowersOfAttorneyByCustomerId(supabase, customerId),
-  ])
+  ]);
 
   const readiness = evaluateSiteSwitchReadiness({
     site,
     meteringPoints,
     powersOfAttorney,
-  })
+  });
 
-  await syncOperationTasksFromReadiness(supabase, readiness)
+  await syncOperationTasksFromReadiness(supabase, readiness);
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'customer_site',
+    entityType: "customer_site",
     entityId: siteId,
-    action: 'switch_readiness_run',
+    action: "switch_readiness_run",
     metadata: {
       customerId,
       siteId,
       readiness,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
 }
 
 export async function createSupplierSwitchRequestAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const siteId = formValue(formData, 'site_id') ?? ''
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const siteId = formValue(formData, "site_id") ?? "";
   const requestType = normalizeSwitchRequestType(
-    formValue(formData, 'request_type')
-  )
+    formValue(formData, "request_type"),
+  );
   const requestedStartDate = normalizeDateOrNull(
-    formValue(formData, 'requested_start_date')
-  )
+    formValue(formData, "requested_start_date"),
+  );
 
   if (!customerId || !siteId) {
-    throw new Error('Customer ID eller site ID saknas')
+    throw new Error("Customer ID eller site ID saknas");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
-  const site = await findCustomerSiteById(supabase, siteId)
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  const site = await findCustomerSiteById(supabase, siteId);
 
-  if (!site || site.company_id !== companyId || site.customer_id !== customerId) {
-    throw new Error('Anläggningen kunde inte hittas')
+  if (
+    !site ||
+    site.company_id !== companyId ||
+    site.customer_id !== customerId
+  ) {
+    throw new Error("Anläggningen kunde inte hittas");
   }
 
-  const existingOpenRequest = await findOpenSupplierSwitchRequestForSite(supabase, {
-    customerId,
-    siteId,
-    companyId,
-  })
+  const existingOpenRequest = await findOpenSupplierSwitchRequestForSite(
+    supabase,
+    {
+      customerId,
+      siteId,
+      companyId,
+    },
+  );
 
   if (existingOpenRequest) {
-    revalidatePath(`/admin/customers/${customerId}`)
-    return
+    revalidatePath(`/admin/customers/${customerId}`);
+    return;
   }
 
   const [meteringPoints, powersOfAttorney] = await Promise.all([
     listMeteringPointsForSite(supabase, siteId),
     listPowersOfAttorneyByCustomerId(supabase, customerId),
-  ])
+  ]);
 
   const readiness = evaluateSiteSwitchReadiness({
     site,
     meteringPoints,
     powersOfAttorney,
-  })
+  });
 
-  await syncOperationTasksFromReadiness(supabase, readiness)
+  await syncOperationTasksFromReadiness(supabase, readiness);
 
   if (!readiness.isReady || !readiness.candidateMeteringPointId) {
     await insertAuditLog({
       actorUserId: actor.id,
-      entityType: 'customer_site',
+      entityType: "customer_site",
       entityId: siteId,
-      action: 'switch_request_blocked',
+      action: "switch_request_blocked",
       metadata: {
         customerId,
         siteId,
         readiness,
       },
-    })
+    });
 
-    revalidatePath(`/admin/customers/${customerId}`)
-    revalidatePath('/admin/operations')
-    revalidatePath('/admin/operations/tasks')
-    return
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/operations");
+    revalidatePath("/admin/operations/tasks");
+    return;
   }
 
   const meteringPoint =
-    meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ??
-    null
+    meteringPoints.find(
+      (point) => point.id === readiness.candidateMeteringPointId,
+    ) ?? null;
 
   if (!meteringPoint) {
-    throw new Error('Kunde inte hitta kandidat-mätpunkt för switchärendet')
+    throw new Error("Kunde inte hitta kandidat-mätpunkt för switchärendet");
   }
 
   const routeDecision = await auditRouteDecisionForCustomerAction({
@@ -1077,35 +1225,36 @@ export async function createSupplierSwitchRequestAction(
     meteringPointId: meteringPoint.id,
     gridOwnerId: meteringPoint.grid_owner_id ?? site.grid_owner_id ?? null,
     currentSupplierId: site.current_supplier_id ?? null,
-    businessProcess: 'supplier_switch',
-    requestedAction: 'start_supplier_switch',
-    messageCode: 'Z03',
+    businessProcess: "supplier_switch",
+    requestedAction: "start_supplier_switch",
+    messageCode: "Z03",
     payload: {
       requestType,
       requestedStartDate,
-      move_in: requestType === 'move_in' || requestType === 'move_out_takeover',
-      customer_change: requestType === 'move_in' || requestType === 'move_out_takeover',
+      move_in: requestType === "move_in" || requestType === "move_out_takeover",
+      customer_change:
+        requestType === "move_in" || requestType === "move_out_takeover",
     },
-  })
+  });
 
-  if (routeDecision.decisionStatus === 'blocked') {
+  if (routeDecision.decisionStatus === "blocked") {
     await insertAuditLog({
       actorUserId: actor.id,
-      entityType: 'customer_site',
+      entityType: "customer_site",
       entityId: siteId,
-      action: 'supplier_switch_route_blocked',
+      action: "supplier_switch_route_blocked",
       metadata: {
         customerId,
         siteId,
         meteringPointId: meteringPoint.id,
         decision: routeDecisionPayload(routeDecision),
       },
-    })
+    });
 
-    revalidatePath(`/admin/customers/${customerId}`)
-    revalidatePath('/admin/operations')
-    revalidatePath('/admin/operations/tasks')
-    return
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/operations");
+    revalidatePath("/admin/operations/tasks");
+    return;
   }
 
   const savedRequest = await createSupplierSwitchRequest(supabase, {
@@ -1114,66 +1263,72 @@ export async function createSupplierSwitchRequestAction(
     meteringPoint,
     requestType,
     requestedStartDate,
-  })
+  });
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'supplier_switch_request',
+    entityType: "supplier_switch_request",
     entityId: savedRequest.id,
-    action: 'supplier_switch_request_created',
+    action: "supplier_switch_request_created",
     newValues: savedRequest,
     metadata: {
       customerId,
       siteId,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/switches')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/switches");
 }
 
-
 export async function startAutomaticOnboardingAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const siteId = formValue(formData, 'site_id') ?? ''
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const siteId = formValue(formData, "site_id") ?? "";
 
   if (!customerId || !siteId) {
-    throw new Error('Kund eller anläggning saknas för automatisk onboarding.')
+    throw new Error("Kund eller anläggning saknas för automatisk onboarding.");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
-  const site = await findCustomerSiteById(supabase, siteId)
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  const site = await findCustomerSiteById(supabase, siteId);
 
-  if (!site || site.company_id !== companyId || site.customer_id !== customerId) {
-    throw new Error('Anläggningen kunde inte hittas för automatisk onboarding.')
+  if (
+    !site ||
+    site.company_id !== companyId ||
+    site.customer_id !== customerId
+  ) {
+    throw new Error(
+      "Anläggningen kunde inte hittas för automatisk onboarding.",
+    );
   }
 
   const [meteringPoints, powersOfAttorney] = await Promise.all([
     listMeteringPointsForSite(supabase, siteId),
     listPowersOfAttorneyByCustomerId(supabase, customerId),
-  ])
+  ]);
 
   const candidateMeteringPoint =
-    meteringPoints.find((point) => point.status === 'active') ??
-    meteringPoints.find((point) => point.status === 'pending_validation') ??
+    meteringPoints.find((point) => point.status === "active") ??
+    meteringPoints.find((point) => point.status === "pending_validation") ??
     meteringPoints[0] ??
-    null
+    null;
 
   const missingMasterdata =
     !site.facility_id?.trim() ||
     !candidateMeteringPoint?.meter_point_id?.trim() ||
     !(candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id) ||
-    !(candidateMeteringPoint?.price_area_code ?? site.price_area_code)
+    !(candidateMeteringPoint?.price_area_code ?? site.price_area_code);
 
   if (missingMasterdata) {
-    const gridOwnerId = candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null
+    const gridOwnerId =
+      candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null;
     const decision = await auditRouteDecisionForCustomerAction({
       actorUserId: actor.id,
       companyId,
@@ -1181,17 +1336,17 @@ export async function startAutomaticOnboardingAction(
       siteId,
       meteringPointId: candidateMeteringPoint?.id ?? null,
       gridOwnerId,
-      businessProcess: 'customer_masterdata',
-      requestedAction: 'automatic_onboarding_z01_first',
-      messageCode: 'Z01',
+      businessProcess: "customer_masterdata",
+      requestedAction: "automatic_onboarding_z01_first",
+      messageCode: "Z01",
       payload: {
-        reason: 'missing_masterdata_before_supplier_switch',
+        reason: "missing_masterdata_before_supplier_switch",
         facilityId: site.facility_id,
         meterPointId: candidateMeteringPoint?.meter_point_id ?? null,
       },
-    })
+    });
 
-    if (decision.decisionStatus !== 'blocked') {
+    if (decision.decisionStatus !== "blocked") {
       await createAndQueueCustomerMasterdataZ01({
         actorUserId: actor.id,
         companyId,
@@ -1200,65 +1355,74 @@ export async function startAutomaticOnboardingAction(
         meteringPointId: candidateMeteringPoint?.id ?? null,
         gridOwnerId,
         externalReference: null,
-        notes: 'Automatisk onboarding valde Z01 först eftersom kund-/anläggningsuppgifter saknas.',
-      })
+        notes:
+          "Automatisk onboarding valde Z01 först eftersom kund-/anläggningsuppgifter saknas.",
+      });
     }
 
     await insertAuditLog({
       actorUserId: actor.id,
-      entityType: 'customer_site',
+      entityType: "customer_site",
       entityId: siteId,
-      action: decision.decisionStatus === 'blocked' ? 'automatic_onboarding_blocked' : 'automatic_onboarding_z01_prepared',
+      action:
+        decision.decisionStatus === "blocked"
+          ? "automatic_onboarding_blocked"
+          : "automatic_onboarding_z01_prepared",
       metadata: {
         customerId,
         siteId,
         meteringPointId: candidateMeteringPoint?.id ?? null,
         decision: routeDecisionPayload(decision),
       },
-    })
+    });
 
-    revalidatePath(`/admin/customers/${customerId}`)
-    revalidatePath('/admin/customer-info-requests')
-    revalidatePath('/admin/operations')
-    revalidatePath('/admin/operations/tasks')
-    revalidatePath('/admin/outbound')
-    return
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/customer-info-requests");
+    revalidatePath("/admin/operations");
+    revalidatePath("/admin/operations/tasks");
+    revalidatePath("/admin/outbound");
+    return;
   }
 
   const readiness = evaluateSiteSwitchReadiness({
     site,
     meteringPoints,
     powersOfAttorney,
-  })
-  await syncOperationTasksFromReadiness(supabase, readiness)
+  });
+  await syncOperationTasksFromReadiness(supabase, readiness);
 
   if (!readiness.isReady || !readiness.candidateMeteringPointId) {
     await insertAuditLog({
       actorUserId: actor.id,
-      entityType: 'customer_site',
+      entityType: "customer_site",
       entityId: siteId,
-      action: 'automatic_onboarding_switch_blocked_by_readiness',
+      action: "automatic_onboarding_switch_blocked_by_readiness",
       metadata: {
         customerId,
         siteId,
         readiness,
       },
-    })
-    revalidatePath(`/admin/customers/${customerId}`)
-    revalidatePath('/admin/operations')
-    revalidatePath('/admin/operations/tasks')
-    return
+    });
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/operations");
+    revalidatePath("/admin/operations/tasks");
+    return;
   }
 
   const meteringPoint =
-    meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ??
-    null
+    meteringPoints.find(
+      (point) => point.id === readiness.candidateMeteringPointId,
+    ) ?? null;
 
   if (!meteringPoint) {
-    throw new Error('Kunde inte hitta kandidat-mätpunkt för automatisk onboarding.')
+    throw new Error(
+      "Kunde inte hitta kandidat-mätpunkt för automatisk onboarding.",
+    );
   }
 
-  const requestType: SupplierSwitchRequestType = site.move_in_date ? 'move_in' : 'switch'
+  const requestType: SupplierSwitchRequestType = site.move_in_date
+    ? "move_in"
+    : "switch";
   const decision = await auditRouteDecisionForCustomerAction({
     actorUserId: actor.id,
     companyId,
@@ -1267,41 +1431,44 @@ export async function startAutomaticOnboardingAction(
     meteringPointId: meteringPoint.id,
     gridOwnerId: meteringPoint.grid_owner_id ?? site.grid_owner_id ?? null,
     currentSupplierId: site.current_supplier_id ?? null,
-    businessProcess: 'supplier_switch',
-    requestedAction: 'automatic_onboarding_direct_z03',
-    messageCode: 'Z03',
+    businessProcess: "supplier_switch",
+    requestedAction: "automatic_onboarding_direct_z03",
+    messageCode: "Z03",
     payload: {
       requestType,
       requestedStartDate: site.move_in_date ?? null,
-      move_in: requestType === 'move_in',
-      customer_change: requestType === 'move_in',
+      move_in: requestType === "move_in",
+      customer_change: requestType === "move_in",
     },
-  })
+  });
 
-  if (decision.decisionStatus === 'blocked') {
+  if (decision.decisionStatus === "blocked") {
     await insertAuditLog({
       actorUserId: actor.id,
-      entityType: 'customer_site',
+      entityType: "customer_site",
       entityId: siteId,
-      action: 'automatic_onboarding_route_blocked',
+      action: "automatic_onboarding_route_blocked",
       metadata: {
         customerId,
         siteId,
         meteringPointId: meteringPoint.id,
         decision: routeDecisionPayload(decision),
       },
-    })
-    revalidatePath(`/admin/customers/${customerId}`)
-    revalidatePath('/admin/operations')
-    revalidatePath('/admin/operations/tasks')
-    return
+    });
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/operations");
+    revalidatePath("/admin/operations/tasks");
+    return;
   }
 
-  const existingOpenRequest = await findOpenSupplierSwitchRequestForSite(supabase, {
-    customerId,
-    siteId,
-    companyId,
-  })
+  const existingOpenRequest = await findOpenSupplierSwitchRequestForSite(
+    supabase,
+    {
+      customerId,
+      siteId,
+      companyId,
+    },
+  );
 
   if (!existingOpenRequest) {
     const savedRequest = await createSupplierSwitchRequest(supabase, {
@@ -1311,15 +1478,15 @@ export async function startAutomaticOnboardingAction(
       requestType,
       requestedStartDate: site.move_in_date ?? null,
       companyId,
-      automationOrigin: 'customer_card_automatic_onboarding',
+      automationOrigin: "customer_card_automatic_onboarding",
       automationKey: `automatic-onboarding:${customerId}:${siteId}:${meteringPoint.id}`,
-    })
+    });
 
     await insertAuditLog({
       actorUserId: actor.id,
-      entityType: 'supplier_switch_request',
+      entityType: "supplier_switch_request",
       entityId: savedRequest.id,
-      action: 'automatic_onboarding_z03_queued',
+      action: "automatic_onboarding_z03_queued",
       newValues: savedRequest,
       metadata: {
         customerId,
@@ -1327,89 +1494,88 @@ export async function startAutomaticOnboardingAction(
         meteringPointId: meteringPoint.id,
         decision: routeDecisionPayload(decision),
       },
-    })
+    });
   }
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/switches')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/switches");
 }
 
 export async function updateOperationTaskStatusAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const taskId = formValue(formData, 'task_id') ?? ''
-  const status = formValue(formData, 'status') ?? 'open'
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const taskId = formValue(formData, "task_id") ?? "";
+  const status = formValue(formData, "status") ?? "open";
 
   if (!customerId || !taskId) {
-    throw new Error('Kund eller uppgift saknas.')
+    throw new Error("Kund eller uppgift saknas.");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
   const { data: task, error: taskError } = await supabaseService
-    .from('customer_operation_tasks')
-    .select('id, company_id, customer_id')
-    .eq('id', taskId)
-    .eq('company_id', companyId)
-    .eq('customer_id', customerId)
-    .maybeSingle()
+    .from("customer_operation_tasks")
+    .select("id, company_id, customer_id")
+    .eq("id", taskId)
+    .eq("company_id", companyId)
+    .eq("customer_id", customerId)
+    .maybeSingle();
 
-  if (taskError) throw taskError
-  if (!task) throw new Error('Uppgiften tillhör inte kunden eller bolaget.')
+  if (taskError) throw taskError;
+  if (!task) throw new Error("Uppgiften tillhör inte kunden eller bolaget.");
 
   const payload: Record<string, unknown> = {
     status,
     updated_by: actor.id,
-  }
+  };
 
-  if (status === 'done') {
-    payload.resolved_at = new Date().toISOString()
+  if (status === "done") {
+    payload.resolved_at = new Date().toISOString();
   } else {
-    payload.resolved_at = null
+    payload.resolved_at = null;
   }
 
   const { data, error } = await supabaseService
-    .from('customer_operation_tasks')
+    .from("customer_operation_tasks")
     .update(payload)
-    .eq('id', taskId)
-    .eq('company_id', companyId)
-    .eq('customer_id', customerId)
-    .select('*')
-    .single()
+    .eq("id", taskId)
+    .eq("company_id", companyId)
+    .eq("customer_id", customerId)
+    .select("*")
+    .single();
 
-  if (error) throw error
+  if (error) throw error;
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'customer_operation_task',
+    entityType: "customer_operation_task",
     entityId: taskId,
-    action: 'customer_operation_task_status_updated',
+    action: "customer_operation_task_status_updated",
     newValues: data,
     metadata: {
       customerId,
       taskId,
       status,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
 }
 
-
 async function createAndQueueCustomerMasterdataZ01(params: {
-  actorUserId: string
-  companyId: string
-  customerId: string
-  siteId: string | null
-  meteringPointId: string | null
-  gridOwnerId: string | null
-  externalReference: string | null
-  notes: string | null
+  actorUserId: string;
+  companyId: string;
+  customerId: string;
+  siteId: string | null;
+  meteringPointId: string | null;
+  gridOwnerId: string | null;
+  externalReference: string | null;
+  notes: string | null;
 }) {
   const infoRequest = await createCustomerInfoRequest({
     companyId: params.companyId,
@@ -1418,65 +1584,74 @@ async function createAndQueueCustomerMasterdataZ01(params: {
     siteId: params.siteId,
     meteringPointId: params.meteringPointId,
     gridOwnerId: params.gridOwnerId,
-    requestType: 'z01_customer_masterdata',
-    targetPartyType: 'grid_owner',
+    requestType: "z01_customer_masterdata",
+    targetPartyType: "grid_owner",
     targetPartyName: null,
     currentSupplierName: null,
     externalReference: params.externalReference,
     requestedDataCategories: [
-      'facility_id',
-      'grid_area',
-      'annual_consumption',
-      'network_contract',
-      'customer_masterdata',
+      "facility_id",
+      "grid_area",
+      "annual_consumption",
+      "network_contract",
+      "customer_masterdata",
     ],
     notes: params.notes,
-  })
+  });
 
   return queueCustomerInfoRequestForDispatch({
     companyId: infoRequest.company_id,
     actorUserId: params.actorUserId,
     requestId: infoRequest.id,
-  })
+  });
 }
 
 export async function createGridOwnerDataRequestAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
 
   if (!customerId) {
-    throw new Error('Customer ID saknas')
+    throw new Error("Customer ID saknas");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  const siteId = formValue(formData, 'site_id') || null
-  const meteringPointId = formValue(formData, 'metering_point_id') || null
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
-  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
-  const rawGridOwnerId = formValue(formData, 'grid_owner_id') || null
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  const siteId = formValue(formData, "site_id") || null;
+  const meteringPointId = formValue(formData, "metering_point_id") || null;
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  await assertMeteringPointTenant({
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId,
+  });
+  const rawGridOwnerId = formValue(formData, "grid_owner_id") || null;
   const requestScope = normalizeGridOwnerRequestScope(
-    formValue(formData, 'request_scope')
-  )
+    formValue(formData, "request_scope"),
+  );
   const gridOwnerId = await resolveActionGridOwnerId({
     companyId,
     customerId,
     siteId,
     meteringPointId,
     explicitGridOwnerId: rawGridOwnerId,
-  })
+  });
   const requestedPeriodStart = normalizeDateOrNull(
-    formValue(formData, 'requested_period_start')
-  )
+    formValue(formData, "requested_period_start"),
+  );
   const requestedPeriodEnd = normalizeDateOrNull(
-    formValue(formData, 'requested_period_end')
-  )
-  const externalReference = formValue(formData, 'external_reference') || null
-  const notes = formValue(formData, 'notes') || null
-  const requestedAction = formValue(formData, 'business_action') || (requestScope === 'customer_masterdata' ? 'request_customer_masterdata' : `request_${requestScope}`)
+    formValue(formData, "requested_period_end"),
+  );
+  const externalReference = formValue(formData, "external_reference") || null;
+  const notes = formValue(formData, "notes") || null;
+  const requestedAction =
+    formValue(formData, "business_action") ||
+    (requestScope === "customer_masterdata"
+      ? "request_customer_masterdata"
+      : `request_${requestScope}`);
 
   const routeDecision = await auditRouteDecisionForCustomerAction({
     actorUserId: actor.id,
@@ -1494,17 +1669,22 @@ export async function createGridOwnerDataRequestAction(
       externalReference,
       notes,
     },
-  })
+  });
 
-  if (routeDecision.decisionStatus === 'blocked') {
-    revalidatePath(`/admin/customers/${customerId}`)
-    revalidatePath('/admin/operations')
-    revalidatePath('/admin/operations/tasks')
-    return
+  if (routeDecision.decisionStatus === "blocked") {
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/operations");
+    revalidatePath("/admin/operations/tasks");
+    return;
   }
 
-  if (requestScope === 'meter_values') {
-    const access = await customerHasMeterValuesAccess({ companyId, customerId, siteId, meteringPointId })
+  if (requestScope === "meter_values") {
+    const access = await customerHasMeterValuesAccess({
+      companyId,
+      customerId,
+      siteId,
+      meteringPointId,
+    });
     if (!access.ok) {
       await createCustomerActionTask({
         actorUserId: actor.id,
@@ -1512,26 +1692,38 @@ export async function createGridOwnerDataRequestAction(
         customerId,
         siteId,
         meteringPointId,
-        taskType: 'meter_values_access_missing',
-        title: 'Saknar godkänd mätvärdesåtkomst',
-        description: access.reason ?? 'Mätvärden kan inte hämtas utan aktiv leveransrelation eller godkänd mätvärdesåtkomst.',
-        metadata: { requestScope, requestedAction, routeDecision: routeDecisionPayload(routeDecision) },
-      })
+        taskType: "meter_values_access_missing",
+        title: "Saknar godkänd mätvärdesåtkomst",
+        description:
+          access.reason ??
+          "Mätvärden kan inte hämtas utan aktiv leveransrelation eller godkänd mätvärdesåtkomst.",
+        metadata: {
+          requestScope,
+          requestedAction,
+          routeDecision: routeDecisionPayload(routeDecision),
+        },
+      });
       await insertAuditLog({
         actorUserId: actor.id,
-        entityType: 'customer',
+        entityType: "customer",
         entityId: customerId,
-        action: 'meter_values_request_blocked_missing_access',
-        metadata: { customerId, siteId, meteringPointId, gridOwnerId, reason: access.reason },
-      })
-      revalidatePath(`/admin/customers/${customerId}`)
-      revalidatePath('/admin/operations')
-      revalidatePath('/admin/operations/tasks')
-      return
+        action: "meter_values_request_blocked_missing_access",
+        metadata: {
+          customerId,
+          siteId,
+          meteringPointId,
+          gridOwnerId,
+          reason: access.reason,
+        },
+      });
+      revalidatePath(`/admin/customers/${customerId}`);
+      revalidatePath("/admin/operations");
+      revalidatePath("/admin/operations/tasks");
+      return;
     }
   }
 
-  if (requestScope === 'customer_masterdata') {
+  if (requestScope === "customer_masterdata") {
     await createAndQueueCustomerMasterdataZ01({
       actorUserId: actor.id,
       companyId,
@@ -1541,26 +1733,35 @@ export async function createGridOwnerDataRequestAction(
       gridOwnerId,
       externalReference,
       notes,
-    })
+    });
 
-    const syncSummary = await syncCustomerOperationsForCustomer(supabase, customerId)
+    const syncSummary = await syncCustomerOperationsForCustomer(
+      supabase,
+      customerId,
+    );
     await insertAuditLog({
       actorUserId: actor.id,
-      entityType: 'customer_info_request',
+      entityType: "customer_info_request",
       entityId: customerId,
-      action: 'customer_masterdata_z01_prepared',
-      newValues: { customerId, siteId, meteringPointId, gridOwnerId, externalReference },
+      action: "customer_masterdata_z01_prepared",
+      newValues: {
+        customerId,
+        siteId,
+        meteringPointId,
+        gridOwnerId,
+        externalReference,
+      },
       metadata: { syncSummary },
-    })
+    });
 
-    revalidatePath(`/admin/customers/${customerId}`)
-    revalidatePath('/admin/customer-info-requests')
-    revalidatePath('/admin/operations')
-    revalidatePath('/admin/operations/tasks')
-    revalidatePath('/admin/outbound')
-    revalidatePath('/admin/outbound/unresolved')
-    revalidatePath('/admin/ediel')
-    return
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/customer-info-requests");
+    revalidatePath("/admin/operations");
+    revalidatePath("/admin/operations/tasks");
+    revalidatePath("/admin/outbound");
+    revalidatePath("/admin/outbound/unresolved");
+    revalidatePath("/admin/ediel");
+    return;
   }
 
   const saved = await createGridOwnerDataRequest({
@@ -1574,15 +1775,18 @@ export async function createGridOwnerDataRequestAction(
     requestedPeriodEnd,
     externalReference,
     notes,
-  })
+  });
 
   const existingOutbound = await findOpenOutboundBySource({
-    sourceType: 'grid_owner_data_request',
+    sourceType: "grid_owner_data_request",
     sourceId: saved.id,
-    requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope, requestedAction),
-  })
+    requestType: mapGridOwnerRequestScopeToOutboundType(
+      saved.request_scope,
+      requestedAction,
+    ),
+  });
 
-  let outbound = existingOutbound
+  let outbound = existingOutbound;
 
   if (!outbound) {
     outbound = await createOutboundRequest({
@@ -1591,11 +1795,14 @@ export async function createGridOwnerDataRequestAction(
       siteId: saved.site_id,
       meteringPointId: saved.metering_point_id,
       gridOwnerId: saved.grid_owner_id,
-      requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope, requestedAction),
-      sourceType: 'grid_owner_data_request',
+      requestType: mapGridOwnerRequestScopeToOutboundType(
+        saved.request_scope,
+        requestedAction,
+      ),
+      sourceType: "grid_owner_data_request",
       sourceId: saved.id,
       payload: {
-        queuedFrom: 'customer_data_request_create',
+        queuedFrom: "customer_data_request_create",
         requestScope: saved.request_scope,
         requestId: saved.id,
         requestedPeriodStart: saved.requested_period_start,
@@ -1605,16 +1812,20 @@ export async function createGridOwnerDataRequestAction(
       periodStart: saved.requested_period_start ?? null,
       periodEnd: saved.requested_period_end ?? null,
       externalReference: saved.external_reference ?? null,
-    })
+    });
   }
 
-  const syncSummary = await syncCustomerOperationsForCustomer(supabase, customerId)
+  const syncSummary = await syncCustomerOperationsForCustomer(
+    supabase,
+    customerId,
+  );
 
   await updateGridOwnerDataRequestStatus({
     actorUserId: actor.id,
     requestId: saved.id,
-    status: outbound.status === 'sent' ? 'sent' : 'pending',
-    externalReference: saved.external_reference ?? outbound.external_reference ?? null,
+    status: outbound.status === "sent" ? "sent" : "pending",
+    externalReference:
+      saved.external_reference ?? outbound.external_reference ?? null,
     responsePayload: {
       outboundRequestId: outbound.id,
       outboundStatus: outbound.status,
@@ -1623,13 +1834,13 @@ export async function createGridOwnerDataRequestAction(
       queuedAutomatically: true,
     },
     notes: saved.notes ?? null,
-  })
+  });
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'grid_owner_data_request',
+    entityType: "grid_owner_data_request",
     entityId: saved.id,
-    action: 'grid_owner_data_request_created',
+    action: "grid_owner_data_request_created",
     newValues: saved,
     metadata: {
       customerId,
@@ -1639,69 +1850,82 @@ export async function createGridOwnerDataRequestAction(
       outboundRequestId: outbound.id,
       syncSummary,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/metering')
-  revalidatePath('/admin/billing')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
-  revalidatePath('/admin/outbound')
-  revalidatePath('/admin/outbound/unresolved')
-  revalidatePath('/admin/ediel')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/metering");
+  revalidatePath("/admin/billing");
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
+  revalidatePath("/admin/outbound");
+  revalidatePath("/admin/outbound/unresolved");
+  revalidatePath("/admin/ediel");
 }
 
 export async function createAuthorizationRequestPackageAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const siteId = formValue(formData, 'site_id') || null
-  const selectedDocumentId = formValue(formData, 'authorization_document_id') || null
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const siteId = formValue(formData, "site_id") || null;
+  const selectedDocumentId =
+    formValue(formData, "authorization_document_id") || null;
 
   if (!customerId || !siteId) {
-    throw new Error('Customer eller anläggning saknas för request-paketet')
+    throw new Error("Customer eller anläggning saknas för request-paketet");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
-  const site = await findCustomerSiteById(supabase, siteId)
-  if (!site || site.company_id !== companyId || site.customer_id !== customerId) {
-    throw new Error('Anläggningen kunde inte hittas')
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  const site = await findCustomerSiteById(supabase, siteId);
+  if (
+    !site ||
+    site.company_id !== companyId ||
+    site.customer_id !== customerId
+  ) {
+    throw new Error("Anläggningen kunde inte hittas");
   }
 
   const [documents, meteringPoints] = await Promise.all([
-    listCustomerAuthorizationDocumentsByCustomerId(supabase, customerId, { companyId }),
+    listCustomerAuthorizationDocumentsByCustomerId(supabase, customerId, {
+      companyId,
+    }),
     listMeteringPointsForSite(supabase, siteId),
-  ])
+  ]);
 
   const authorizationDocument =
-    documents.find((row) => row.id === selectedDocumentId && row.site_id === siteId) ??
-    documents.find((row) => row.id === selectedDocumentId && row.site_id === null) ??
+    documents.find(
+      (row) => row.id === selectedDocumentId && row.site_id === siteId,
+    ) ??
+    documents.find(
+      (row) => row.id === selectedDocumentId && row.site_id === null,
+    ) ??
     documents.find((row) => row.site_id === siteId) ??
     documents.find((row) => row.site_id === null) ??
-    null
+    null;
 
   if (!authorizationDocument) {
-    throw new Error('Ingen uppladdad fullmakt eller avtal hittades att skicka med')
+    throw new Error(
+      "Ingen uppladdad fullmakt eller avtal hittades att skicka med",
+    );
   }
 
   const preferredMeteringPoint =
-    meteringPoints.find((row) => row.status === 'active') ??
-    meteringPoints.find((row) => row.status === 'pending_validation') ??
+    meteringPoints.find((row) => row.status === "active") ??
+    meteringPoints.find((row) => row.status === "pending_validation") ??
     meteringPoints[0] ??
-    null
+    null;
 
-  const requestNotes = formValue(formData, 'notes') || null
-  const requestReference = formValue(formData, 'external_reference') || null
+  const requestNotes = formValue(formData, "notes") || null;
+  const requestReference = formValue(formData, "external_reference") || null;
   const requestedPeriodStart = normalizeDateOrNull(
-    formValue(formData, 'requested_period_start')
-  )
+    formValue(formData, "requested_period_start"),
+  );
   const requestedPeriodEnd = normalizeDateOrNull(
-    formValue(formData, 'requested_period_end')
-  )
+    formValue(formData, "requested_period_end"),
+  );
 
   const requestPayload = {
     authorizationDocument: formatDocumentReference(authorizationDocument),
@@ -1712,33 +1936,35 @@ export async function createAuthorizationRequestPackageAction(
     meterPointId: preferredMeteringPoint?.meter_point_id ?? null,
     currentSupplierName: site.current_supplier_name,
     currentSupplierOrgNumber: site.current_supplier_org_number,
-    requestIntent: 'authorization_document_request_package',
+    requestIntent: "authorization_document_request_package",
     notes: requestNotes,
-  }
+  };
 
-  const createdGridOwnerRequests: string[] = []
+  const createdGridOwnerRequests: string[] = [];
 
   const maybeCreateGridOwnerRequest = async (
-    scope: 'customer_masterdata' | 'meter_values' | 'billing_underlay',
-    enabled: boolean
+    scope: "customer_masterdata" | "meter_values" | "billing_underlay",
+    enabled: boolean,
   ) => {
-    if (!enabled) return
+    if (!enabled) return;
 
-    if (scope === 'customer_masterdata') {
+    if (scope === "customer_masterdata") {
       const result = await createAndQueueCustomerMasterdataZ01({
         actorUserId: actor.id,
         companyId,
         customerId,
         siteId,
         meteringPointId: preferredMeteringPoint?.id ?? null,
-        gridOwnerId: preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
+        gridOwnerId:
+          preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
         externalReference: requestReference,
         notes: requestNotes
           ? `${requestNotes}\n\nBilaga: ${authorizationDocument.file_path}`
           : `Bilaga: ${authorizationDocument.file_path}`,
-      })
-      if (result.gridOwnerDataRequestId) createdGridOwnerRequests.push(result.gridOwnerDataRequestId)
-      return
+      });
+      if (result.gridOwnerDataRequestId)
+        createdGridOwnerRequests.push(result.gridOwnerDataRequestId);
+      return;
     }
 
     const saved = await createGridOwnerDataRequest({
@@ -1746,7 +1972,8 @@ export async function createAuthorizationRequestPackageAction(
       customerId,
       siteId,
       meteringPointId: preferredMeteringPoint?.id ?? null,
-      gridOwnerId: preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
+      gridOwnerId:
+        preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
       requestScope: scope,
       requestedPeriodStart,
       requestedPeriodEnd,
@@ -1754,7 +1981,7 @@ export async function createAuthorizationRequestPackageAction(
       notes: requestNotes
         ? `${requestNotes}\n\nBilaga: ${authorizationDocument.file_path}`
         : `Bilaga: ${authorizationDocument.file_path}`,
-    })
+    });
 
     const outbound = await createOutboundRequest({
       actorUserId: actor.id,
@@ -1762,8 +1989,11 @@ export async function createAuthorizationRequestPackageAction(
       siteId: saved.site_id,
       meteringPointId: saved.metering_point_id,
       gridOwnerId: saved.grid_owner_id,
-      requestType: mapGridOwnerRequestScopeToOutboundType(saved.request_scope, null),
-      sourceType: 'grid_owner_data_request',
+      requestType: mapGridOwnerRequestScopeToOutboundType(
+        saved.request_scope,
+        null,
+      ),
+      sourceType: "grid_owner_data_request",
       sourceId: saved.id,
       payload: {
         ...requestPayload,
@@ -1773,71 +2003,73 @@ export async function createAuthorizationRequestPackageAction(
       periodStart: saved.requested_period_start ?? null,
       periodEnd: saved.requested_period_end ?? null,
       externalReference: saved.external_reference ?? null,
-    })
+    });
 
     await updateGridOwnerDataRequestStatus({
       actorUserId: actor.id,
       requestId: saved.id,
-      status: outbound.status === 'sent' ? 'sent' : 'pending',
-      externalReference: saved.external_reference ?? outbound.external_reference ?? null,
+      status: outbound.status === "sent" ? "sent" : "pending",
+      externalReference:
+        saved.external_reference ?? outbound.external_reference ?? null,
       responsePayload: {
         outboundRequestId: outbound.id,
         authorizationDocumentId: authorizationDocument.id,
         queuedAutomatically: true,
       },
       notes: saved.notes ?? null,
-    })
+    });
 
-    createdGridOwnerRequests.push(saved.id)
-  }
+    createdGridOwnerRequests.push(saved.id);
+  };
 
   await maybeCreateGridOwnerRequest(
-    'customer_masterdata',
-    toBoolean(formData, 'include_customer_masterdata')
-  )
+    "customer_masterdata",
+    toBoolean(formData, "include_customer_masterdata"),
+  );
   await maybeCreateGridOwnerRequest(
-    'meter_values',
-    toBoolean(formData, 'include_meter_values')
-  )
+    "meter_values",
+    toBoolean(formData, "include_meter_values"),
+  );
   await maybeCreateGridOwnerRequest(
-    'billing_underlay',
-    toBoolean(formData, 'include_billing_underlay')
-  )
+    "billing_underlay",
+    toBoolean(formData, "include_billing_underlay"),
+  );
 
-  let currentSupplierOutboundId: string | null = null
+  let currentSupplierOutboundId: string | null = null;
 
-  if (toBoolean(formData, 'include_current_supplier_request')) {
+  if (toBoolean(formData, "include_current_supplier_request")) {
     const outbound = await createOutboundRequest({
       actorUserId: actor.id,
       customerId,
       siteId,
       meteringPointId: preferredMeteringPoint?.id ?? null,
-      gridOwnerId: preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
-      requestType: 'current_supplier_contract_information_request',
-      sourceType: 'manual',
+      gridOwnerId:
+        preferredMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null,
+      requestType: "current_supplier_contract_information_request",
+      sourceType: "manual",
       payload: {
         ...requestPayload,
-        requestScope: 'current_supplier_information_request',
+        requestScope: "current_supplier_information_request",
         supplierName: site.current_supplier_name,
         supplierOrgNumber: site.current_supplier_org_number,
         authorizationDocumentId: authorizationDocument.id,
       },
       externalReference: requestReference,
-    })
+    });
 
-    currentSupplierOutboundId = outbound.id
+    currentSupplierOutboundId = outbound.id;
   }
 
   const syncSummary = await syncCustomerOperationsForSite(supabase, {
     customerId,
     siteId,
-  })
+  });
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'customer_authorization_document',
+    entityType: "customer_authorization_document",
     entityId: authorizationDocument.id,
-    action: 'authorization_request_package_created',
+    action: "authorization_request_package_created",
     metadata: {
       customerId,
       siteId,
@@ -1846,60 +2078,68 @@ export async function createAuthorizationRequestPackageAction(
       currentSupplierOutboundId,
       syncSummary,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
-  revalidatePath('/admin/outbound')
-  revalidatePath('/admin/outbound/unresolved')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
+  revalidatePath("/admin/outbound");
+  revalidatePath("/admin/outbound/unresolved");
 }
 
 export async function createCustomerDataRequestPackageAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const customerId = formValue(formData, 'customer_id') ?? ''
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const customerId = formValue(formData, "customer_id") ?? "";
 
   if (!customerId) {
-    throw new Error('Kund saknas.')
+    throw new Error("Kund saknas.");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  const target = normalizeDataRequestTarget(formValue(formData, 'request_target'))
-  const siteId = formValue(formData, 'site_id') || null
-  const meteringPointId = formValue(formData, 'metering_point_id') || null
-  const gridOwnerId = formValue(formData, 'grid_owner_id') || null
-  const externalReference = formValue(formData, 'external_reference') || null
-  const notes = formValue(formData, 'notes') || null
-  const selectedPowerOfAttorneyId = formValue(formData, 'power_of_attorney_id') || null
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
-  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  const target = normalizeDataRequestTarget(
+    formValue(formData, "request_target"),
+  );
+  const siteId = formValue(formData, "site_id") || null;
+  const meteringPointId = formValue(formData, "metering_point_id") || null;
+  const gridOwnerId = formValue(formData, "grid_owner_id") || null;
+  const externalReference = formValue(formData, "external_reference") || null;
+  const notes = formValue(formData, "notes") || null;
+  const selectedPowerOfAttorneyId =
+    formValue(formData, "power_of_attorney_id") || null;
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  await assertMeteringPointTenant({
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId,
+  });
   await assertPowerOfAttorneyTenant({
     companyId,
     customerId,
     powerOfAttorneyId: selectedPowerOfAttorneyId,
-  })
+  });
 
   const signedPowerOfAttorney = selectedPowerOfAttorneyId
     ? await supabaseService
-        .from('powers_of_attorney')
-        .select('*')
-        .eq('id', selectedPowerOfAttorneyId)
-        .eq('company_id', companyId)
-        .eq('customer_id', customerId)
-        .eq('status', 'signed')
+        .from("powers_of_attorney")
+        .select("*")
+        .eq("id", selectedPowerOfAttorneyId)
+        .eq("company_id", companyId)
+        .eq("customer_id", customerId)
+        .eq("status", "signed")
         .maybeSingle()
         .then(({ data, error }) => {
-          if (error) throw error
-          return data
+          if (error) throw error;
+          return data;
         })
     : await getLatestSignedPowerOfAttorneyForCustomer({
         companyId,
         customerId,
         siteId,
-      })
+      });
 
   if (!signedPowerOfAttorney) {
     const blockerId = await createMissingPowerOfAttorneyBlocker({
@@ -1908,20 +2148,20 @@ export async function createCustomerDataRequestPackageAction(
       customerId,
       siteId,
       meteringPointId,
-      title: 'Saknar signerad fullmakt',
+      title: "Saknar signerad fullmakt",
       description:
-        'Begäran är stoppad. Ladda upp eller verifiera signerad fullmakt innan uppgifter begärs från nätägare eller nuvarande leverantör.',
+        "Begäran är stoppad. Ladda upp eller verifiera signerad fullmakt innan uppgifter begärs från nätägare eller nuvarande leverantör.",
       metadata: {
         requestedTarget: target,
         requestedAt: new Date().toISOString(),
       },
-    })
+    });
 
     await insertAuditLog({
       actorUserId: actor.id,
-      entityType: 'customer_info_request',
+      entityType: "customer_info_request",
       entityId: customerId,
-      action: 'customer_data_request_blocked_missing_power_of_attorney',
+      action: "customer_data_request_blocked_missing_power_of_attorney",
       metadata: {
         customerId,
         companyId,
@@ -1930,42 +2170,55 @@ export async function createCustomerDataRequestPackageAction(
         target,
         blockerId,
       },
-    })
+    });
 
-    revalidatePath(`/admin/customers/${customerId}`)
-    revalidatePath('/admin/customer-info-requests')
-    return
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/customer-info-requests");
+    return;
   }
 
-  const coversGridOwnerData = target === 'grid_owner' || target === 'both'
-  const coversCurrentSupplierContract = target === 'current_supplier' || target === 'both'
+  const coversGridOwnerData = target === "grid_owner" || target === "both";
+  const coversCurrentSupplierContract =
+    target === "current_supplier" || target === "both";
 
-  const authorizationScopeId = await ensureAuthorizationScopeFromPowerOfAttorney({
-    companyId,
-    actorUserId: actor.id,
-    customerId,
-    powerOfAttorneyId: String(signedPowerOfAttorney.id),
-    authorizationDocumentId: null,
-    coverage: {
-      coversGridOwnerData,
-      coversCurrentSupplierContract,
-      coversMeteringData: coversGridOwnerData,
+  const authorizationScopeId =
+    await ensureAuthorizationScopeFromPowerOfAttorney({
+      companyId,
+      actorUserId: actor.id,
+      customerId,
+      powerOfAttorneyId: String(signedPowerOfAttorney.id),
+      authorizationDocumentId: null,
+      coverage: {
+        coversGridOwnerData,
+        coversCurrentSupplierContract,
+        coversMeteringData: coversGridOwnerData,
+      },
+      validFrom:
+        (signedPowerOfAttorney as { valid_from?: string | null }).valid_from ??
+        null,
+      validTo:
+        (signedPowerOfAttorney as { valid_to?: string | null }).valid_to ??
+        null,
+      evidenceNote:
+        "Signerad fullmakt användes för uppgiftsbegäran från kundkortet.",
+    });
+
+  const blockerResult = await resolveCustomerBlockersAfterSignedPowerOfAttorney(
+    {
+      companyId,
+      actorUserId: actor.id,
+      customerId,
+      siteId,
+      powerOfAttorneyId: String(signedPowerOfAttorney.id),
     },
-    validFrom: (signedPowerOfAttorney as { valid_from?: string | null }).valid_from ?? null,
-    validTo: (signedPowerOfAttorney as { valid_to?: string | null }).valid_to ?? null,
-    evidenceNote: 'Signerad fullmakt användes för uppgiftsbegäran från kundkortet.',
-  })
+  );
 
-  const blockerResult = await resolveCustomerBlockersAfterSignedPowerOfAttorney({
-    companyId,
-    actorUserId: actor.id,
-    customerId,
-    siteId,
-    powerOfAttorneyId: String(signedPowerOfAttorney.id),
-  })
-
-  const createdRequestIds: string[] = []
-  const dispatchResults: Array<{ requestId: string; status: string; blockerReason: string | null }> = []
+  const createdRequestIds: string[] = [];
+  const dispatchResults: Array<{
+    requestId: string;
+    status: string;
+    blockerReason: string | null;
+  }> = [];
 
   if (coversGridOwnerData) {
     const request = await createCustomerInfoRequest({
@@ -1975,32 +2228,32 @@ export async function createCustomerDataRequestPackageAction(
       siteId,
       meteringPointId,
       gridOwnerId,
-      requestType: 'z01_customer_masterdata',
-      targetPartyType: 'grid_owner',
+      requestType: "z01_customer_masterdata",
+      targetPartyType: "grid_owner",
       requestedDataCategories: [
-        'facility_id',
-        'grid_area',
-        'annual_consumption',
-        'network_contract',
-        'customer_masterdata',
+        "facility_id",
+        "grid_area",
+        "annual_consumption",
+        "network_contract",
+        "customer_masterdata",
       ],
       externalReference,
       notes:
         notes ??
-        'Begäran om kund- och anläggningsuppgifter från nätägare. Systemet förbereder PRODAT Z01 när route finns.',
-    })
+        "Begäran om kund- och anläggningsuppgifter från nätägare. Systemet förbereder PRODAT Z01 när route finns.",
+    });
 
-    createdRequestIds.push(request.id)
+    createdRequestIds.push(request.id);
     const dispatch = await queueCustomerInfoRequestForDispatch({
       companyId,
       actorUserId: actor.id,
       requestId: request.id,
-    })
+    });
     dispatchResults.push({
       requestId: request.id,
       status: normalizeSimpleRequestStatus(dispatch.status),
       blockerReason: dispatch.blockerReason,
-    })
+    });
   }
 
   if (coversCurrentSupplierContract) {
@@ -2011,41 +2264,41 @@ export async function createCustomerDataRequestPackageAction(
       siteId,
       meteringPointId,
       gridOwnerId,
-      requestType: 'current_supplier_contract_info',
-      targetPartyType: 'current_supplier',
-      targetPartyName: formValue(formData, 'current_supplier_name') || null,
-      currentSupplierName: formValue(formData, 'current_supplier_name') || null,
+      requestType: "current_supplier_contract_info",
+      targetPartyType: "current_supplier",
+      targetPartyName: formValue(formData, "current_supplier_name") || null,
+      currentSupplierName: formValue(formData, "current_supplier_name") || null,
       requestedDataCategories: [
-        'current_supplier',
-        'binding_period',
-        'termination_notice',
-        'contract_end_date',
-        'break_fee',
+        "current_supplier",
+        "binding_period",
+        "termination_notice",
+        "contract_end_date",
+        "break_fee",
       ],
       externalReference,
       notes:
         notes ??
-        'Manuell begäran till nuvarande leverantör. Fullmakt ska bifogas vid kontakt.',
-    })
+        "Manuell begäran till nuvarande leverantör. Fullmakt ska bifogas vid kontakt.",
+    });
 
-    createdRequestIds.push(request.id)
+    createdRequestIds.push(request.id);
     const dispatch = await queueCustomerInfoRequestForDispatch({
       companyId,
       actorUserId: actor.id,
       requestId: request.id,
-    })
+    });
     dispatchResults.push({
       requestId: request.id,
       status: normalizeSimpleRequestStatus(dispatch.status),
       blockerReason: dispatch.blockerReason,
-    })
+    });
   }
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'customer_info_request',
+    entityType: "customer_info_request",
     entityId: customerId,
-    action: 'customer_data_request_package_created',
+    action: "customer_data_request_package_created",
     newValues: {
       target,
       requestIds: createdRequestIds,
@@ -2061,36 +2314,45 @@ export async function createCustomerDataRequestPackageAction(
       powerOfAttorneyId: String(signedPowerOfAttorney.id),
       resolvedPowerOfAttorneyBlockers: blockerResult.resolved,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/customer-info-requests')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/outbound')
-  revalidatePath('/admin/ediel')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/customer-info-requests");
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/outbound");
+  revalidatePath("/admin/ediel");
 }
 
-
-export async function registerCurrentSupplierResponseAction(formData: FormData): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const siteId = formValue(formData, 'site_id') ?? ''
-  const requestId = formValue(formData, 'customer_info_request_id') || null
+export async function registerCurrentSupplierResponseAction(
+  formData: FormData,
+): Promise<void> {
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const siteId = formValue(formData, "site_id") ?? "";
+  const requestId = formValue(formData, "customer_info_request_id") || null;
 
   if (!customerId || !siteId) {
-    throw new Error('Kund och anläggning krävs för leverantörssvar.')
+    throw new Error("Kund och anläggning krävs för leverantörssvar.");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
 
-  const responseStatus = normalizeSupplierResponseStatus(formValue(formData, 'response_status'))
-  const contractEndDate = normalizeDateOrNull(formValue(formData, 'contract_end_date'))
-  const noticePeriod = formValue(formData, 'notice_period') || null
-  const terminationFee = normalizeNumberOrNull(formValue(formData, 'termination_fee'))
-  const recommendedSwitchDate = normalizeDateOrNull(formValue(formData, 'recommended_switch_date'))
-  const responseNotes = formValue(formData, 'response_notes') || null
+  const responseStatus = normalizeSupplierResponseStatus(
+    formValue(formData, "response_status"),
+  );
+  const contractEndDate = normalizeDateOrNull(
+    formValue(formData, "contract_end_date"),
+  );
+  const noticePeriod = formValue(formData, "notice_period") || null;
+  const terminationFee = normalizeNumberOrNull(
+    formValue(formData, "termination_fee"),
+  );
+  const recommendedSwitchDate = normalizeDateOrNull(
+    formValue(formData, "recommended_switch_date"),
+  );
+  const responseNotes = formValue(formData, "response_notes") || null;
 
   const updatePayload: Record<string, unknown> = {
     current_supplier_response_status: responseStatus,
@@ -2100,18 +2362,18 @@ export async function registerCurrentSupplierResponseAction(formData: FormData):
     current_supplier_termination_fee: terminationFee,
     updated_by: actor.id,
     updated_at: new Date().toISOString(),
-  }
+  };
 
   const { data: site, error: siteError } = await supabaseService
-    .from('customer_sites')
+    .from("customer_sites")
     .update(updatePayload)
-    .eq('company_id', companyId)
-    .eq('customer_id', customerId)
-    .eq('id', siteId)
-    .select('*')
-    .single()
+    .eq("company_id", companyId)
+    .eq("customer_id", customerId)
+    .eq("id", siteId)
+    .select("*")
+    .single();
 
-  if (siteError) throw siteError
+  if (siteError) throw siteError;
 
   const responsePayload = {
     responseStatus,
@@ -2122,32 +2384,39 @@ export async function registerCurrentSupplierResponseAction(formData: FormData):
     responseNotes,
     registeredAt: new Date().toISOString(),
     registeredBy: actor.id,
-  }
+  };
 
   if (requestId) {
     const { data: request, error: requestError } = await supabaseService
-      .from('customer_info_requests')
-      .select('id, verified_payload, target_party_type, request_type')
-      .eq('company_id', companyId)
-      .eq('customer_id', customerId)
-      .eq('id', requestId)
-      .maybeSingle()
+      .from("customer_info_requests")
+      .select("id, verified_payload, target_party_type, request_type")
+      .eq("company_id", companyId)
+      .eq("customer_id", customerId)
+      .eq("id", requestId)
+      .maybeSingle();
 
-    if (requestError) throw requestError
-    if (!request) throw new Error('Uppgiftsbegäran tillhör inte kunden eller bolaget.')
+    if (requestError) throw requestError;
+    if (!request)
+      throw new Error("Uppgiftsbegäran tillhör inte kunden eller bolaget.");
 
-    const requestPayload = objectValue((request as JsonObject).verified_payload)
-    const nextStatus = responseStatus === 'waiting_response' ? 'manual_review_required' : 'completed'
-    const blockerReason = responseStatus === 'blocked'
-      ? 'Nuvarande leverantör har svarat att bytet kräver manuell kontroll.'
-      : responseStatus === 'binding_period'
-      ? 'Bindningstid finns. Kontrollera bytesdatum innan Z03 skickas.'
-      : responseStatus === 'termination_fee'
-      ? 'Brytavgift finns. Informera kund och kontrollera beslut innan Z03 skickas.'
-      : null
+    const requestPayload = objectValue(
+      (request as JsonObject).verified_payload,
+    );
+    const nextStatus =
+      responseStatus === "waiting_response"
+        ? "manual_review_required"
+        : "completed";
+    const blockerReason =
+      responseStatus === "blocked"
+        ? "Nuvarande leverantör har svarat att bytet kräver manuell kontroll."
+        : responseStatus === "binding_period"
+          ? "Bindningstid finns. Kontrollera bytesdatum innan Z03 skickas."
+          : responseStatus === "termination_fee"
+            ? "Brytavgift finns. Informera kund och kontrollera beslut innan Z03 skickas."
+            : null;
 
     const { error: updateRequestError } = await supabaseService
-      .from('customer_info_requests')
+      .from("customer_info_requests")
       .update({
         status: nextStatus,
         received_at: new Date().toISOString(),
@@ -2159,48 +2428,54 @@ export async function registerCurrentSupplierResponseAction(formData: FormData):
         updated_by: actor.id,
         updated_at: new Date().toISOString(),
       })
-      .eq('company_id', companyId)
-      .eq('id', requestId)
+      .eq("company_id", companyId)
+      .eq("id", requestId);
 
-    if (updateRequestError) throw updateRequestError
+    if (updateRequestError) throw updateRequestError;
 
-    await supabaseService.from('customer_info_request_events').insert({
+    await supabaseService.from("customer_info_request_events").insert({
       company_id: companyId,
       customer_info_request_id: requestId,
       customer_id: customerId,
-      event_type: 'current_supplier_response_registered',
-      message: 'Svar från nuvarande leverantör registrerades och preflight uppdaterades.',
+      event_type: "current_supplier_response_registered",
+      message:
+        "Svar från nuvarande leverantör registrerades och preflight uppdaterades.",
       payload: responsePayload,
       created_by: actor.id,
-    })
+    });
   }
 
-  const syncSummary = await syncCustomerOperationsForSite(supabaseService, { customerId, siteId })
+  const syncSummary = await syncCustomerOperationsForSite(supabaseService, {
+    customerId,
+    siteId,
+  });
 
-  if (['binding_period', 'termination_fee', 'blocked'].includes(responseStatus)) {
+  if (
+    ["binding_period", "termination_fee", "blocked"].includes(responseStatus)
+  ) {
     await createCustomerActionTask({
       actorUserId: actor.id,
       companyId,
       customerId,
       siteId,
       meteringPointId: null,
-      taskType: 'current_supplier_contract_risk',
-      title: 'Kontrollera nuvarande leverantör före byte',
+      taskType: "current_supplier_contract_risk",
+      title: "Kontrollera nuvarande leverantör före byte",
       description:
-        responseStatus === 'blocked'
-          ? 'Nuvarande leverantör har markerat att bytet kräver manuell kontroll.'
-          : responseStatus === 'termination_fee'
-          ? 'Brytavgift finns. Säkerställ kundens godkännande innan leverantörsbyte skickas.'
-          : 'Bindningstid finns. Kontrollera bytesdatum innan leverantörsbyte skickas.',
+        responseStatus === "blocked"
+          ? "Nuvarande leverantör har markerat att bytet kräver manuell kontroll."
+          : responseStatus === "termination_fee"
+            ? "Brytavgift finns. Säkerställ kundens godkännande innan leverantörsbyte skickas."
+            : "Bindningstid finns. Kontrollera bytesdatum innan leverantörsbyte skickas.",
       metadata: responsePayload,
-    })
+    });
   }
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'customer_site',
+    entityType: "customer_site",
     entityId: siteId,
-    action: 'current_supplier_response_registered',
+    action: "current_supplier_response_registered",
     newValues: site,
     metadata: {
       customerId,
@@ -2209,33 +2484,42 @@ export async function registerCurrentSupplierResponseAction(formData: FormData):
       response: responsePayload,
       syncSummary,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/customer-info-requests')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/customer-info-requests");
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
 }
 
 export async function createPartnerExportAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const supabase = await createSupabaseServerClient()
-  const customerId = formValue(formData, 'customer_id') ?? ''
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const supabase = await createSupabaseServerClient();
+  const customerId = formValue(formData, "customer_id") ?? "";
 
   if (!customerId) {
-    throw new Error('Customer ID saknas')
+    throw new Error("Customer ID saknas");
   }
 
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  const siteId = formValue(formData, 'site_id') || null
-  const meteringPointId = formValue(formData, 'metering_point_id') || null
-  const billingUnderlayId = formValue(formData, 'billing_underlay_id') || null
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
-  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
-  await assertBillingUnderlayTenant({ companyId, customerId, billingUnderlayId })
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  const siteId = formValue(formData, "site_id") || null;
+  const meteringPointId = formValue(formData, "metering_point_id") || null;
+  const billingUnderlayId = formValue(formData, "billing_underlay_id") || null;
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  await assertMeteringPointTenant({
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId,
+  });
+  await assertBillingUnderlayTenant({
+    companyId,
+    customerId,
+    billingUnderlayId,
+  });
 
   const saved = await createPartnerExport({
     actorUserId: actor.id,
@@ -2243,19 +2527,22 @@ export async function createPartnerExportAction(
     siteId,
     meteringPointId,
     billingUnderlayId,
-    exportKind: normalizePartnerExportKind(formValue(formData, 'export_kind')),
-    targetSystem: formValue(formData, 'target_system') || 'billing_partner',
-    externalReference: formValue(formData, 'external_reference') || null,
-    notes: formValue(formData, 'notes') || null,
-  })
+    exportKind: normalizePartnerExportKind(formValue(formData, "export_kind")),
+    targetSystem: formValue(formData, "target_system") || "billing_partner",
+    externalReference: formValue(formData, "external_reference") || null,
+    notes: formValue(formData, "notes") || null,
+  });
 
-  const syncSummary = await syncCustomerOperationsForCustomer(supabase, customerId)
+  const syncSummary = await syncCustomerOperationsForCustomer(
+    supabase,
+    customerId,
+  );
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'partner_export',
+    entityType: "partner_export",
     entityId: saved.id,
-    action: 'partner_export_created',
+    action: "partner_export_created",
     newValues: saved,
     metadata: {
       customerId,
@@ -2264,59 +2551,76 @@ export async function createPartnerExportAction(
       exportKind: saved.export_kind,
       syncSummary,
     },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/billing')
-  revalidatePath('/admin/partner-exports')
-  revalidatePath('/admin/operations')
-  revalidatePath('/admin/operations/tasks')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/billing");
+  revalidatePath("/admin/partner-exports");
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/operations/tasks");
 }
 function isDatabaseShapeError(error: unknown): boolean {
-  const maybe = error as { code?: string; message?: string } | null
+  const maybe = error as { code?: string; message?: string } | null;
   return Boolean(
     maybe &&
-      (maybe.code === '42P01' ||
-        maybe.code === '42703' ||
-        maybe.code === 'PGRST205' ||
-        /does not exist|schema cache|relation .* does not exist/i.test(maybe.message ?? ''))
-  )
+    (maybe.code === "42P01" ||
+      maybe.code === "42703" ||
+      maybe.code === "PGRST205" ||
+      /does not exist|schema cache|relation .* does not exist/i.test(
+        maybe.message ?? "",
+      )),
+  );
 }
 
 async function requireCustomerMutationContext(
   customerId: string,
-  guard: Awaited<ReturnType<typeof requireAdminActionAccess>>
-): Promise<{ customer: { id: string; company_id: string; status: string | null }; companyId: string }> {
-  return loadCustomerTenantContext(customerId, guard)
+  guard: Awaited<ReturnType<typeof requireAdminActionAccess>>,
+): Promise<{
+  customer: { id: string; company_id: string; status: string | null };
+  companyId: string;
+}> {
+  return loadCustomerTenantContext(customerId, guard);
 }
 
 async function insertCustomerCaseForLifecycle(params: {
-  actorUserId: string
-  companyId: string | null
-  customerId: string
-  scopeType: string
-  scopeId: string | null
-  decisionType: 'withdrawal' | 'rejected'
-  reason: string
-  billingBlocked: boolean
+  actorUserId: string;
+  companyId: string | null;
+  customerId: string;
+  scopeType: string;
+  scopeId: string | null;
+  decisionType: "withdrawal" | "rejected";
+  reason: string;
+  billingBlocked: boolean;
 }) {
   try {
-    await supabaseService.from('customer_cases').insert({
+    await supabaseService.from("customer_cases").insert({
       company_id: params.companyId,
       customer_id: params.customerId,
-      site_id: params.scopeType === 'site' ? params.scopeId : null,
-      metering_point_id: params.scopeType === 'metering_point' ? params.scopeId : null,
-      customer_contract_id: params.scopeType === 'contract' ? params.scopeId : null,
-      case_type: params.decisionType === 'withdrawal' ? 'withdrawal' : 'rejected_customer',
-      status: 'action_required',
-      priority: 'high',
-      title: params.decisionType === 'withdrawal' ? 'Kund har ångrat flödet' : 'Kund nekad eller avvisad',
+      site_id: params.scopeType === "site" ? params.scopeId : null,
+      metering_point_id:
+        params.scopeType === "metering_point" ? params.scopeId : null,
+      customer_contract_id:
+        params.scopeType === "contract" ? params.scopeId : null,
+      case_type:
+        params.decisionType === "withdrawal"
+          ? "withdrawal"
+          : "rejected_customer",
+      status: "action_required",
+      priority: "high",
+      title:
+        params.decisionType === "withdrawal"
+          ? "Kund har ångrat flödet"
+          : "Kund nekad eller avvisad",
       description: params.reason,
-      reason_category: params.decisionType === 'withdrawal' ? 'customer_withdrawal' : 'customer_rejected',
+      reason_category:
+        params.decisionType === "withdrawal"
+          ? "customer_withdrawal"
+          : "customer_rejected",
       billing_blocked: params.billingBlocked,
       billing_manual_review: params.billingBlocked,
-      source: 'customer_lifecycle_decision',
-      next_action: 'Kontrollera att leverantörsbyte, fakturering och export är stoppade på rätt nivå.',
+      source: "customer_lifecycle_decision",
+      next_action:
+        "Kontrollera att leverantörsbyte, fakturering och export är stoppade på rätt nivå.",
       metadata: {
         scopeType: params.scopeType,
         scopeId: params.scopeId,
@@ -2324,41 +2628,58 @@ async function insertCustomerCaseForLifecycle(params: {
       },
       created_by: params.actorUserId,
       updated_by: params.actorUserId,
-    })
+    });
   } catch (error) {
-    if (!isDatabaseShapeError(error)) throw error
+    if (!isDatabaseShapeError(error)) throw error;
   }
 }
 
 async function blockBillingForLifecycleDecision(params: {
-  companyId: string | null
-  customerId: string
-  scopeType: string
-  scopeId: string | null
-  reason: string
-  actorUserId: string
+  companyId: string | null;
+  customerId: string;
+  scopeType: string;
+  scopeId: string | null;
+  reason: string;
+  actorUserId: string;
 }) {
   const blocker = {
-    code: 'customer_lifecycle_blocked',
+    code: "customer_lifecycle_blocked",
     reason: params.reason,
     scopeType: params.scopeType,
     scopeId: params.scopeId,
     blockedAt: new Date().toISOString(),
     blockedBy: params.actorUserId,
-  }
+  };
 
-  const scopedUpdates: Array<{ table: string; column: string; value: string }> = []
-  if (params.scopeType === 'contract' && params.scopeId) {
-    scopedUpdates.push({ table: 'customer_contracts', column: 'id', value: params.scopeId })
+  const scopedUpdates: Array<{ table: string; column: string; value: string }> =
+    [];
+  if (params.scopeType === "contract" && params.scopeId) {
+    scopedUpdates.push({
+      table: "customer_contracts",
+      column: "id",
+      value: params.scopeId,
+    });
   }
-  if (params.scopeType === 'site' && params.scopeId) {
-    scopedUpdates.push({ table: 'billing_underlays', column: 'site_id', value: params.scopeId })
+  if (params.scopeType === "site" && params.scopeId) {
+    scopedUpdates.push({
+      table: "billing_underlays",
+      column: "site_id",
+      value: params.scopeId,
+    });
   }
-  if (params.scopeType === 'metering_point' && params.scopeId) {
-    scopedUpdates.push({ table: 'billing_underlays', column: 'metering_point_id', value: params.scopeId })
+  if (params.scopeType === "metering_point" && params.scopeId) {
+    scopedUpdates.push({
+      table: "billing_underlays",
+      column: "metering_point_id",
+      value: params.scopeId,
+    });
   }
-  if (params.scopeType === 'customer') {
-    scopedUpdates.push({ table: 'billing_underlays', column: 'customer_id', value: params.customerId })
+  if (params.scopeType === "customer") {
+    scopedUpdates.push({
+      table: "billing_underlays",
+      column: "customer_id",
+      value: params.customerId,
+    });
   }
 
   for (const update of scopedUpdates) {
@@ -2366,41 +2687,61 @@ async function blockBillingForLifecycleDecision(params: {
       let query = supabaseService
         .from(update.table)
         .update({
-          export_status: 'blocked',
-          status: update.table === 'billing_underlays' ? 'blocked' : undefined,
+          export_status: "blocked",
+          status: update.table === "billing_underlays" ? "blocked" : undefined,
           blocker_reasons: [blocker],
           billing_blocker_reasons: [blocker],
           updated_by: params.actorUserId,
         })
-        .eq(update.column, update.value)
+        .eq(update.column, update.value);
 
-      if (params.companyId) query = query.eq('company_id', params.companyId)
-      const { error } = await query
-      if (error && !isDatabaseShapeError(error)) throw error
+      if (params.companyId) query = query.eq("company_id", params.companyId);
+      const { error } = await query;
+      if (error && !isDatabaseShapeError(error)) throw error;
     } catch (error) {
-      if (!isDatabaseShapeError(error)) throw error
+      if (!isDatabaseShapeError(error)) throw error;
     }
   }
 }
 
-export async function savePowerOfAttorneyScopeAction(formData: FormData): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const powerOfAttorneyId = formValue(formData, 'power_of_attorney_id') ?? ''
-  const siteId = formValue(formData, 'site_id') || null
-  const meteringPointId = formValue(formData, 'metering_point_id') || null
-  const contractId = formValue(formData, 'contract_id') || null
-  const scopeType = formValue(formData, 'scope_type') || (meteringPointId ? 'metering_point' : siteId ? 'site' : contractId ? 'contract' : 'customer')
-  const validFrom = normalizeDateOrNull(formValue(formData, 'valid_from'))
-  const validTo = normalizeDateOrNull(formValue(formData, 'valid_to'))
+export async function savePowerOfAttorneyScopeAction(
+  formData: FormData,
+): Promise<void> {
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const powerOfAttorneyId = formValue(formData, "power_of_attorney_id") ?? "";
+  const siteId = formValue(formData, "site_id") || null;
+  const meteringPointId = formValue(formData, "metering_point_id") || null;
+  const contractId = formValue(formData, "contract_id") || null;
+  const scopeType =
+    formValue(formData, "scope_type") ||
+    (meteringPointId
+      ? "metering_point"
+      : siteId
+        ? "site"
+        : contractId
+          ? "contract"
+          : "customer");
+  const validFrom = normalizeDateOrNull(formValue(formData, "valid_from"));
+  const validTo = normalizeDateOrNull(formValue(formData, "valid_to"));
 
-  if (!customerId || !powerOfAttorneyId) throw new Error('Kund och fullmakt krävs.')
-  const { companyId } = await requireCustomerMutationContext(customerId, guard)
-  await assertPowerOfAttorneyTenant({ companyId, customerId, powerOfAttorneyId })
-  await assertCustomerSiteTenant({ companyId, customerId, siteId })
-  await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
-  await assertContractTenant({ companyId, customerId, contractId })
+  if (!customerId || !powerOfAttorneyId)
+    throw new Error("Kund och fullmakt krävs.");
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  await assertPowerOfAttorneyTenant({
+    companyId,
+    customerId,
+    powerOfAttorneyId,
+  });
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  await assertMeteringPointTenant({
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId,
+  });
+  await assertContractTenant({ companyId, customerId, contractId });
 
   const payload = {
     company_id: companyId,
@@ -2410,106 +2751,130 @@ export async function savePowerOfAttorneyScopeAction(formData: FormData): Promis
     site_id: siteId,
     metering_point_id: meteringPointId,
     customer_contract_id: contractId,
-    status: 'active',
+    status: "active",
     valid_from: validFrom,
     valid_to: validTo,
     created_by: actor.id,
     updated_by: actor.id,
-  }
+  };
 
   const { data, error } = await supabaseService
-    .from('power_of_attorney_scopes')
+    .from("power_of_attorney_scopes")
     .insert(payload)
-    .select('*')
-    .single()
+    .select("*")
+    .single();
 
-  if (error) throw error
+  if (error) throw error;
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'power_of_attorney_scope',
+    entityType: "power_of_attorney_scope",
     entityId: data.id,
-    action: 'power_of_attorney_scope_created',
+    action: "power_of_attorney_scope_created",
     newValues: data,
-    metadata: { customerId, powerOfAttorneyId, scopeType, siteId, meteringPointId, contractId },
-  })
+    metadata: {
+      customerId,
+      powerOfAttorneyId,
+      scopeType,
+      siteId,
+      meteringPointId,
+      contractId,
+    },
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath(`/admin/customers/${customerId}`);
 }
 
-export async function registerCustomerLifecycleDecisionAction(formData: FormData): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-  const actor = { id: guard.userId }
-  const customerId = formValue(formData, 'customer_id') ?? ''
-  const decisionType = formValue(formData, 'decision_type') === 'rejected' ? 'rejected' : 'withdrawal'
-  const scopeType = formValue(formData, 'scope_type') || 'customer'
-  const scopeId = formValue(formData, 'scope_id') || null
-  const reason = formValue(formData, 'reason')?.trim() || (decisionType === 'withdrawal' ? 'Kunden har ångrat flödet.' : 'Kunden är nekad/avvisad.')
-  const blockBilling = toBoolean(formData, 'block_billing')
+export async function registerCustomerLifecycleDecisionAction(
+  formData: FormData,
+): Promise<void> {
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actor = { id: guard.userId };
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const decisionType =
+    formValue(formData, "decision_type") === "rejected"
+      ? "rejected"
+      : "withdrawal";
+  const scopeType = formValue(formData, "scope_type") || "customer";
+  const scopeId = formValue(formData, "scope_id") || null;
+  const reason =
+    formValue(formData, "reason")?.trim() ||
+    (decisionType === "withdrawal"
+      ? "Kunden har ångrat flödet."
+      : "Kunden är nekad/avvisad.");
+  const blockBilling = toBoolean(formData, "block_billing");
 
-  if (!customerId) throw new Error('Kund saknas.')
-  const { customer, companyId } = await requireCustomerMutationContext(customerId, guard)
-  if (scopeType === 'site') {
-    await assertCustomerSiteTenant({ companyId, customerId, siteId: scopeId })
-  } else if (scopeType === 'metering_point') {
-    await assertMeteringPointTenant({ companyId, customerId, meteringPointId: scopeId })
-  } else if (scopeType === 'contract') {
-    await assertContractTenant({ companyId, customerId, contractId: scopeId })
+  if (!customerId) throw new Error("Kund saknas.");
+  const { customer, companyId } = await requireCustomerMutationContext(
+    customerId,
+    guard,
+  );
+  if (scopeType === "site") {
+    await assertCustomerSiteTenant({ companyId, customerId, siteId: scopeId });
+  } else if (scopeType === "metering_point") {
+    await assertMeteringPointTenant({
+      companyId,
+      customerId,
+      meteringPointId: scopeId,
+    });
+  } else if (scopeType === "contract") {
+    await assertContractTenant({ companyId, customerId, contractId: scopeId });
   }
-  const nextStatus = decisionType === 'withdrawal' ? 'cancelled' : 'rejected'
-  const now = new Date().toISOString()
+  const nextStatus = decisionType === "withdrawal" ? "cancelled" : "rejected";
+  const now = new Date().toISOString();
 
-  if (scopeType === 'customer') {
+  if (scopeType === "customer") {
     const { error } = await supabaseService
-      .from('customers')
+      .from("customers")
       .update({
         status: nextStatus,
         lifecycle_status_reason: reason,
         lifecycle_closed_at: now,
         updated_by: actor.id,
       })
-      .eq('id', customerId)
-      .eq('company_id', customer.company_id)
-    if (error) throw error
-  } else if (scopeType === 'contract' && scopeId) {
+      .eq("id", customerId)
+      .eq("company_id", customer.company_id);
+    if (error) throw error;
+  } else if (scopeType === "contract" && scopeId) {
     const { error } = await supabaseService
-      .from('customer_contracts')
+      .from("customer_contracts")
       .update({
-        status: decisionType === 'withdrawal' ? 'cancelled' : 'cancelled',
-        rejected_reason: decisionType === 'rejected' ? reason : null,
-        termination_reason: decisionType === 'withdrawal' ? 'customer_request' : 'other',
+        status: decisionType === "withdrawal" ? "cancelled" : "cancelled",
+        rejected_reason: decisionType === "rejected" ? reason : null,
+        termination_reason:
+          decisionType === "withdrawal" ? "customer_request" : "other",
         ends_at: now,
         updated_by: actor.id,
       })
-      .eq('id', scopeId)
-      .eq('customer_id', customerId)
-      .eq('company_id', customer.company_id)
-    if (error && !isDatabaseShapeError(error)) throw error
-  } else if (scopeType === 'site' && scopeId) {
+      .eq("id", scopeId)
+      .eq("customer_id", customerId)
+      .eq("company_id", customer.company_id);
+    if (error && !isDatabaseShapeError(error)) throw error;
+  } else if (scopeType === "site" && scopeId) {
     const { error } = await supabaseService
-      .from('customer_sites')
+      .from("customer_sites")
       .update({
-        status: 'closed',
+        status: "closed",
         closed_at: now,
         closed_reason: reason,
         updated_by: actor.id,
       })
-      .eq('id', scopeId)
-      .eq('customer_id', customerId)
-      .eq('company_id', customer.company_id)
-    if (error && !isDatabaseShapeError(error)) throw error
-  } else if (scopeType === 'metering_point' && scopeId) {
+      .eq("id", scopeId)
+      .eq("customer_id", customerId)
+      .eq("company_id", customer.company_id);
+    if (error && !isDatabaseShapeError(error)) throw error;
+  } else if (scopeType === "metering_point" && scopeId) {
     const { error } = await supabaseService
-      .from('metering_points')
+      .from("metering_points")
       .update({
-        status: 'closed',
+        status: "closed",
         closed_at: now,
         closed_reason: reason,
         updated_by: actor.id,
       })
-      .eq('id', scopeId)
-      .eq('company_id', customer.company_id)
-    if (error && !isDatabaseShapeError(error)) throw error
+      .eq("id", scopeId)
+      .eq("company_id", customer.company_id);
+    if (error && !isDatabaseShapeError(error)) throw error;
   }
 
   if (blockBilling) {
@@ -2520,7 +2885,7 @@ export async function registerCustomerLifecycleDecisionAction(formData: FormData
       scopeId,
       reason,
       actorUserId: actor.id,
-    })
+    });
   }
 
   await insertCustomerCaseForLifecycle({
@@ -2532,32 +2897,38 @@ export async function registerCustomerLifecycleDecisionAction(formData: FormData
     decisionType,
     reason,
     billingBlocked: blockBilling,
-  })
+  });
 
-  await supabaseService.from('customer_lifecycle_decisions').insert({
-    company_id: customer.company_id,
-    customer_id: customerId,
-    decision_type: decisionType,
-    scope_type: scopeType,
-    scope_id: scopeId,
-    reason,
-    billing_blocked: blockBilling,
-    created_by: actor.id,
-  }).then(({ error }) => {
-    if (error && !isDatabaseShapeError(error)) throw error
-  })
+  await supabaseService
+    .from("customer_lifecycle_decisions")
+    .insert({
+      company_id: customer.company_id,
+      customer_id: customerId,
+      decision_type: decisionType,
+      scope_type: scopeType,
+      scope_id: scopeId,
+      reason,
+      billing_blocked: blockBilling,
+      created_by: actor.id,
+    })
+    .then(({ error }) => {
+      if (error && !isDatabaseShapeError(error)) throw error;
+    });
 
   await insertAuditLog({
     actorUserId: actor.id,
-    entityType: 'customer_lifecycle_decision',
+    entityType: "customer_lifecycle_decision",
     entityId: customerId,
-    action: decisionType === 'withdrawal' ? 'customer_withdrawal_registered' : 'customer_rejection_registered',
+    action:
+      decisionType === "withdrawal"
+        ? "customer_withdrawal_registered"
+        : "customer_rejection_registered",
     oldValues: customer,
     newValues: { decisionType, scopeType, scopeId, reason, blockBilling },
     metadata: { customerId, scopeType, scopeId },
-  })
+  });
 
-  revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath('/admin/customers')
-  revalidatePath('/admin/billing/export-center')
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/billing/export-center");
 }

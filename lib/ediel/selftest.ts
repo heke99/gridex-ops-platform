@@ -83,6 +83,26 @@ function toIsoDate(value?: string | null): string {
   return value
 }
 
+function resolveSelfTestMeterPointId(meteringPoint: {
+  ediel_reference?: string | null
+  meter_point_id?: string | null
+  site_facility_id?: string | null
+} | null): string {
+  const meterPointId =
+    meteringPoint?.ediel_reference ??
+    meteringPoint?.meter_point_id ??
+    meteringPoint?.site_facility_id ??
+    null
+
+  if (!meterPointId) {
+    throw new Error(
+      'Self-test kräver anläggnings-ID eller mätpunktsreferens. Komplettera mätpunkten innan self-test körs.'
+    )
+  }
+
+  return meterPointId
+}
+
 function ensureActiveSuite(suite: string) {
   if (!(ACTIVE_EDIEL_TEST_SUITES as readonly string[]).includes(suite)) {
     throw new Error(`Self-test suite ${suite} ligger utanför aktiv release`)
@@ -294,10 +314,7 @@ async function runProdatInboundScenario(
     receiverEdielId: input.receiverEdielId ?? '00000',
     externalReference,
     transactionReference,
-    meterPointId:
-      meteringPoint.ediel_reference ??
-      meteringPoint.meter_point_id ??
-      meteringPoint.meter_point_id,
+    meterPointId: resolveSelfTestMeterPointId(meteringPoint),
     customerName:
       site.current_supplier_name ??
       site.site_name ??
@@ -534,11 +551,7 @@ async function runUtiltsInboundScenario(
     receiverEdielId: input.receiverEdielId ?? '00000',
     externalReference,
     transactionReference,
-    meterPointId:
-      meteringPoint?.ediel_reference ??
-      meteringPoint?.meter_point_id ??
-      meteringPoint?.meter_point_id ??
-      'UNKNOWN',
+    meterPointId: resolveSelfTestMeterPointId(meteringPoint),
     periodStart: toIsoDate(request.requested_period_start),
     periodEnd: toIsoDate(request.requested_period_end),
     quantity,
