@@ -49,6 +49,7 @@ import {
 import { sendEdielMessageViaSmtp, type EdielSmtpMimeMode } from '@/lib/ediel/transport'
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder'
 import { evaluateEdielProductionSendLock } from '@/lib/ediel/core/productionGuards'
+import { assertCompanyCanSendProductionEdiel } from '@/lib/ediel/productionReadiness'
 
 export type {
   AckFamily,
@@ -280,6 +281,52 @@ export async function sendQueuedEdielMessage(params: {
       },
     })
     throw new Error('Meddelandet stoppades av production send-lock och skickades inte.')
+  }
+
+  if (message.environment === 'production') {
+    if (!message.company_id) {
+      throw new Error('Produktionsmeddelande saknar company_id och kan inte skickas tenant-säkert.')
+    }
+
+    try {
+      await assertCompanyCanSendProductionEdiel({
+        actorUserId,
+        companyId: message.company_id,
+        message,
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      await createEdielMessageEvent({
+        actorUserId,
+        edielMessageId: message.id,
+        eventType: 'manual_note',
+        eventStatus: 'error',
+        message: `Production outbound guard blockerade skick: ${errorMessage}`,
+        payload: {
+          phase: 'production_outbound_guard',
+          environment: message.environment,
+          communicationRouteId: message.communication_route_id,
+          errorMessage,
+        },
+      }).catch(() => null)
+      await updateEdielMessageStatus({
+        actorUserId,
+        edielMessageId: message.id,
+        status: 'failed',
+        failureReason: errorMessage,
+        failedAt: new Date().toISOString(),
+        validationReport: {
+          ...(message.validation_report ?? {}),
+          payloadPreflight: preflight,
+          productionSendLock: sendLock,
+          productionOutboundGuard: {
+            status: 'blocked',
+            errorMessage,
+          },
+        },
+      })
+      throw error
+    }
   }
 
   if (preflight.blocking) {
