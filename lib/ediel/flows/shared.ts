@@ -170,7 +170,12 @@ export async function findOrCreateDataRequestOutbound(params: {
 
 export async function finalizeOutboundDraft(params: {
   actorUserId: string
-  requestType: 'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
+  requestType:
+    | 'supplier_switch'
+    | 'customer_masterdata'
+    | 'metering_access'
+    | 'meter_values'
+    | 'billing_underlay'
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
   draft: CreateEdielMessageInput
   outboundRequestId?: string | null

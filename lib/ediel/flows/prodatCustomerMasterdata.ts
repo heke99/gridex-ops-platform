@@ -7,6 +7,8 @@ import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/type
 import { updateGridOwnerDataRequestStatus } from '@/lib/cis/db-data'
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
+import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
+import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import type { CreateEdielMessageInput, EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
@@ -15,12 +17,6 @@ import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegi
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import { renderProdat26A } from '@/lib/ediel/prodatEngine'
-import {
-  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
-  EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-  EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
-  EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
-} from '@/lib/ediel/fileEngine'
 import {
   ensureActorUserId,
   finalizeOutboundDraft,
@@ -138,20 +134,18 @@ function buildProdatZ01Draft(params: {
     }
 
     const messageVersionToken = params.messageVersion === '26A' ? 'E2SE6A' : params.messageVersion
-    const isEdielPortalTgt = params.routeContext.receiverEdielId === EDIEL_TGT_TESTSYSTEM_EDIEL_ID
+    const isEdielPortalTgt = isEdielPortalParty(params.routeContext.receiverEdielId)
     const senderSubAddress = isEdielPortalTgt
-      ? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS
+      ? 'PRODAT'
       : params.routeContext.senderSubAddress ?? 'PRODAT'
     const receiverSubAddress = isEdielPortalTgt
-      ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS
+      ? 'PRODAT'
       : params.routeContext.receiverSubAddress ?? 'PRODAT'
     const applicationReference = params.routeContext.applicationReference ??
-      (isEdielPortalTgt
-        ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
-        : buildDefaultApplicationReference({
-            actorSubAddress: senderSubAddress,
-            process: 'PRODAT',
-          }))
+      buildDefaultApplicationReference({
+        actorSubAddress: senderSubAddress,
+        process: 'PRODAT',
+      })
 
     const rendered = renderProdat26A({
       context: {
@@ -337,13 +331,24 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     preferredRouteId: outbound.communication_route_id,
     explicitEnvironment: params.environment ?? null,
   })
-  const routeContext = await resolveCanonicalOutboundContext({
+  const routeContext = await resolveDecisionBackedOutboundContext({
     requestType: 'customer_masterdata',
     gridOwner,
     preferredRouteId: outbound.communication_route_id,
     companyId: dataRequest.company_id ?? null,
+    customerId: dataRequest.customer_id,
+    siteId: dataRequest.site_id,
+    meteringPointId: dataRequest.metering_point_id,
+    dataRequestId: dataRequest.id,
+    outboundRequestId: outbound.id,
     environment,
+    messageFamily: 'PRODAT',
+    messageCode: 'Z01',
     messageStandard: 'edifact',
+    actorUserId,
+    payload: {
+      requestScope: dataRequest.request_scope,
+    },
   })
 
   const refs = buildCanonicalOutboundReferences({

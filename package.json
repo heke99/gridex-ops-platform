@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "security:rbac": "node scripts/security-audit-rbac.mjs",
-    "ediel:rule-regression": "node scripts/ediel-rule-regression.cjs"
+    "ediel:rule-regression": "node scripts/ediel-rule-regression.cjs",
+    "ediel:production-readiness-regression": "node scripts/ediel-production-readiness-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
