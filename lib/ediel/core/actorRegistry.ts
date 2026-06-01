@@ -43,15 +43,18 @@ export async function resolveCanonicalActorContext(
     )
   }
 
-  const senderEdielId = trimOrNull(actor.actor_ediel_id)
+  const senderEdielId = trimOrNull(actor.ediel_id) ?? trimOrNull(actor.actor_ediel_id)
   if (!senderEdielId) {
     throw new Error(
-      `Aktiv ediel_actor_settings för ${environment} saknar actor_ediel_id.`
+      `Aktiv ediel_actor_settings för ${environment} saknar ediel_id/actor_ediel_id.`
     )
   }
 
-  const senderName = trimOrNull(actor.sender_name) ?? trimOrNull(actor.actor_name)
-  const senderSubAddress = trimOrNull(actor.sender_sub_address)
+  const senderName = trimOrNull(actor.sender_name) ?? trimOrNull(actor.legal_name) ?? trimOrNull(actor.actor_name)
+  const senderSubAddress =
+    trimOrNull(actor.sender_subaddress_prodat) ??
+    trimOrNull(actor.sender_subaddress) ??
+    trimOrNull(actor.sender_sub_address)
   const defaultApplicationReference =
     trimOrNull(actor.default_application_reference) ??
     buildDefaultApplicationReference({

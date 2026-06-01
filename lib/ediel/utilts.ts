@@ -91,6 +91,26 @@ export type UtiltsOutboundDraftInput = {
   payload?: Record<string, unknown>
 }
 
+
+function requireOutboundEdielId(value: string | null | undefined, label: 'sender' | 'receiver'): string {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  if (!normalized) {
+    throw new Error(
+      label === 'sender'
+        ? 'Bolaget saknar Ediel-ID för vald miljö. Kontrollera ediel_actor_settings innan UTILTS skapas.'
+        : 'Mottagare kunde inte lösas för vald Ediel-rutt. Välj nätägare/motpart innan UTILTS skapas.'
+    )
+  }
+  if (/^0{5,}$/.test(normalized)) {
+    throw new Error(
+      label === 'sender'
+        ? 'Ogiltigt dummy-värde för avsändarens Ediel-ID. Sender måste komma från route engine/ediel_actor_settings.'
+        : 'Ogiltigt dummy-värde för mottagarens Ediel-ID. Receiver måste komma från route engine eller vald nätägare/motpart.'
+    )
+  }
+  return normalized
+}
+
 function splitEdifactSegments(rawPayload: string): string[] {
   return rawPayload
     .split("'")
@@ -461,10 +481,15 @@ export async function buildUtiltsOutboundDraft(
       environment: 'test',
     })) ?? 'E5SE5A'
 
+  const senderEdielId = requireOutboundEdielId(input.senderEdielId, 'sender')
+  const receiverEdielId = requireOutboundEdielId(input.receiverEdielId, 'receiver')
+  const senderSubAddress = input.senderSubAddress ?? 'UTILTS'
+  const receiverSubAddress = input.receiverSubAddress ?? 'UTILTS'
+
   const applicationReference =
     input.applicationReference ??
     buildDefaultApplicationReference({
-      actorSubAddress: input.senderSubAddress ?? 'GRIDEX',
+      actorSubAddress: senderSubAddress,
       process: 'UTILTS',
     })
 
@@ -477,10 +502,10 @@ export async function buildUtiltsOutboundDraft(
   }
 
   const envelope = buildEdifactEnvelope({
-    senderEdielId: input.senderEdielId ?? '00000',
-    senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
-    receiverEdielId: input.receiverEdielId ?? '00000',
-    receiverSubAddress: input.receiverSubAddress ?? 'DDQ',
+    senderEdielId,
+    senderSubAddress,
+    receiverEdielId,
+    receiverSubAddress,
     applicationReference,
     testFlag: 1,
     messageTypeToken: `UTILTS:D:02B:UN:${messageVersion}`,
@@ -510,12 +535,12 @@ export async function buildUtiltsOutboundDraft(
     status: 'draft',
     transportType: 'smtp',
     mailbox: input.mailbox ?? null,
-    senderEdielId: input.senderEdielId ?? null,
+    senderEdielId,
     senderName: input.senderName ?? null,
-    receiverEdielId: input.receiverEdielId ?? null,
+    receiverEdielId,
     receiverName: input.receiverName ?? null,
-    senderSubAddress: input.senderSubAddress ?? 'GRIDEX',
-    receiverSubAddress: input.receiverSubAddress ?? 'DDQ',
+    senderSubAddress,
+    receiverSubAddress,
     receiverEmail: input.receiverEmail ?? null,
     subject: input.subject ?? `UTILTS ${input.code} ${externalReference}`.trim(),
     fileName: inferEdielFileName({

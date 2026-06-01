@@ -13,6 +13,7 @@ import {
   type EdielRouteRuntimeRow,
 } from '@/lib/ediel/config'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
+import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 
 export type CanonicalRouteRequestType =
   | 'supplier_switch'
@@ -144,11 +145,9 @@ export async function resolveCanonicalRouteContext(params: {
 
   const targetSystem = String(route.target_system ?? '').toLowerCase()
   const isEdielPortalTgtRoute = targetSystem.includes('ediel_portal_tgt') || targetSystem.includes('tgt')
-  const senderEdielId = trimOrNull(routeRuntime?.sender_ediel_id) ?? actor.senderEdielId
+  const senderEdielId = actor.senderEdielId
   const senderName = trimOrNull(routeRuntime?.sender_name) ?? actor.senderName
-  const senderSubAddress = isEdielPortalTgtRoute
-    ? null
-    : trimOrNull(routeRuntime?.sender_sub_address) ?? actor.senderSubAddress
+  const senderSubAddress = trimOrNull(routeRuntime?.sender_sub_address) ?? actor.senderSubAddress
 
   const receiverEdielId =
     trimOrNull(routeRuntime?.receiver_ediel_id) ??
@@ -179,7 +178,7 @@ export async function resolveCanonicalRouteContext(params: {
     const normalizedApplicationReference = String(applicationReference ?? '').toUpperCase()
     const normalizedReceiverEmail = String(route.target_email ?? '').toLowerCase()
 
-    if (isEdielPortalTgtRoute || receiverEdielId === '91100' || normalizedReceiverEmail.endsWith('@ediel.se')) {
+    if (isEdielPortalTgtRoute || isEdielPortalParty(receiverEdielId) || normalizedReceiverEmail.endsWith('@ediel.se')) {
       throw new Error(
         `Produktionsruntime får inte använda Edielportalens TGT-route (${route.route_name}). Välj testmiljö eller en riktig motpartsroute.`
       )

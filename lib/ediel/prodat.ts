@@ -25,7 +25,6 @@ import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
   EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
-  EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
 } from '@/lib/ediel/fileEngine'
 
 export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10' | 'Z13' | 'Z14' | 'Z15' | 'Z18'
@@ -672,27 +671,15 @@ function buildProdatSwitchOutboundDraft(
         environment: 'test',
       })) ?? '26A'
 
-    const isEdielPortalTgt = input.receiverEdielId === EDIEL_TGT_TESTSYSTEM_EDIEL_ID
+    const senderSubAddress = input.senderSubAddress ?? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS
+    const receiverSubAddress = input.receiverSubAddress ?? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS
 
     const applicationReference =
       input.applicationReference ??
-      (isEdielPortalTgt
-        ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
-        : buildDefaultApplicationReference({
-            actorSubAddress: input.senderSubAddress ?? 'GRIDEX',
-            process: 'PRODAT',
-          }))
-
-    // Ediel's PRODAT 26.A examples for Z03 use UNB sender subaddress PRODAT
-    // and receiver subaddress PRODAT. This is EDIFACT addressing and is separate
-    // from the SMTP mailbox/S/MIME recipient certificate. Force it for TGT so
-    // stale route profiles cannot reintroduce 92825:ZZ + 91100:ZZ:PRODAT.
-    const senderSubAddress = isEdielPortalTgt
-      ? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS
-      : input.senderSubAddress ?? 'GRIDEX'
-    const receiverSubAddress = isEdielPortalTgt
-      ? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS
-      : input.receiverSubAddress ?? 'PRODAT'
+      buildDefaultApplicationReference({
+        actorSubAddress: senderSubAddress,
+        process: 'PRODAT',
+      })
 
     const prodatRendered = renderProdatSegments({
       code,

@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
+import { isEdielPortalParty } from "@/lib/ediel/core/productionGuards";
 import { resolveDynamicReceiver } from "@/lib/routes/dynamicReceiverResolver";
 import { resolveGridOwnerAgreementReference } from "@/lib/routes/agreementReferenceResolver";
 import {
@@ -54,6 +55,8 @@ type ActorSettingRow = {
   ediel_id: string | null;
   actor_ediel_id: string | null;
   sender_subaddress: string | null;
+  sender_subaddress_prodat?: string | null;
+  sender_subaddress_utilts?: string | null;
   sender_sub_address: string | null;
   is_active: boolean | null;
 };
@@ -78,11 +81,8 @@ function isProduction(value: unknown): boolean {
   );
 }
 
-const KNOWN_TEST_EDIEL_IDS = new Set(["91100", "91109"]);
-
 function isKnownTestEdielId(value: unknown): boolean {
-  const normalized = text(value)?.toUpperCase() ?? "";
-  return KNOWN_TEST_EDIEL_IDS.has(normalized);
+  return isEdielPortalParty(text(value));
 }
 
 function addIssue(
@@ -210,7 +210,7 @@ async function findActiveActorSetting(params: {
   const { data, error } = await supabaseService
     .from("ediel_actor_settings")
     .select(
-      "id,company_id,environment,ediel_id,actor_ediel_id,sender_subaddress,sender_sub_address,is_active",
+      "id,company_id,environment,ediel_id,actor_ediel_id,sender_subaddress,sender_subaddress_prodat,sender_subaddress_utilts,sender_sub_address,is_active",
     )
     .eq("company_id", params.companyId)
     .eq("environment", params.environment ?? "test")
@@ -743,9 +743,19 @@ export async function decideCommunicationRoute(
   }
 
   const senderSubAddress =
-    text(actorSetting?.sender_subaddress) ??
-    text(actorSetting?.sender_sub_address) ??
-    text(profile?.sender_sub_address);
+    messageFamily === "PRODAT"
+      ? text(actorSetting?.sender_subaddress_prodat) ??
+        text(actorSetting?.sender_subaddress) ??
+        text(actorSetting?.sender_sub_address) ??
+        text(profile?.sender_sub_address)
+      : messageFamily === "UTILTS"
+        ? text(actorSetting?.sender_subaddress_utilts) ??
+          text(actorSetting?.sender_subaddress) ??
+          text(actorSetting?.sender_sub_address) ??
+          text(profile?.sender_sub_address)
+        : text(actorSetting?.sender_subaddress) ??
+          text(actorSetting?.sender_sub_address) ??
+          text(profile?.sender_sub_address);
   const messageVersion =
     agreementDecision.preferredMessageVersion ??
     text(profile?.default_message_version);
@@ -880,4 +890,13 @@ export function routeDecisionPayload(
   decision: RouteDecisionOutput,
 ): Record<string, unknown> {
   return compactPayload(decision);
+}
+
+
+// Public wrapper kept for the Ediel hardening architecture: callers should route
+// through this backend decision engine before any EDIFACT builder receives sender/receiver data.
+export async function resolveEdielRoute(
+  input: RouteDecisionInput,
+): Promise<RouteDecisionOutput> {
+  return decideCommunicationRoute(input);
 }

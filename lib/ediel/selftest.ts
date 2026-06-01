@@ -17,6 +17,7 @@ import {
   createCanonicalAckMessage,
   registerInboundCanonicalMessage,
 } from '@/lib/ediel/core/kernel'
+import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import { parseInboundProdat } from '@/lib/ediel/prodat'
 import { buildInboundUtiltsMessageInput } from '@/lib/ediel/utilts'
 import {
@@ -101,6 +102,23 @@ function resolveSelfTestMeterPointId(meteringPoint: {
   }
 
   return meterPointId
+}
+
+
+async function resolveSelfTestReceiverEdielId(params: {
+  companyId?: string | null
+  explicitReceiverEdielId?: string | null
+}): Promise<string> {
+  const explicit = params.explicitReceiverEdielId?.trim()
+  if (explicit && !/^0{5,}$/.test(explicit)) return explicit
+  if (!params.companyId) {
+    throw new Error('Self-test kräver company_id för att hämta mottagarens Ediel-ID från ediel_actor_settings.')
+  }
+  const actor = await resolveCanonicalActorContext('test', params.companyId)
+  if (!actor.senderEdielId) {
+    throw new Error('Self-test kunde inte hämta bolagets test-Ediel-ID från ediel_actor_settings.')
+  }
+  return actor.senderEdielId
 }
 
 function ensureActiveSuite(suite: string) {
@@ -306,12 +324,17 @@ async function runProdatInboundScenario(
     ? await getGridOwnerById(supabase, switchRequest.grid_owner_id)
     : null
 
+  const receiverEdielId = await resolveSelfTestReceiverEdielId({
+    companyId: (switchRequest as { company_id?: string | null }).company_id ?? null,
+    explicitReceiverEdielId: input.receiverEdielId ?? null,
+  })
+
   const externalReference = `SELFTEST-${code}-${switchRequest.id}-${nowCompact()}`
   const transactionReference = `TX-${code}-${nowCompact()}`
   const rawPayload = buildProdatInboundRaw({
     code,
     senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? '99999',
-    receiverEdielId: input.receiverEdielId ?? '00000',
+    receiverEdielId,
     externalReference,
     transactionReference,
     meterPointId: resolveSelfTestMeterPointId(meteringPoint),
@@ -366,7 +389,7 @@ async function runProdatInboundScenario(
         transportType: 'manual_upload',
         mailbox: input.mailbox ?? null,
         senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? null,
-        receiverEdielId: input.receiverEdielId ?? null,
+        receiverEdielId,
         senderEmail: input.senderEmail ?? null,
         receiverEmail: input.receiverEmail ?? null,
         externalReference,
@@ -545,10 +568,15 @@ async function runUtiltsInboundScenario(
         ? 321.123
         : undefined
 
+  const receiverEdielId = await resolveSelfTestReceiverEdielId({
+    companyId: (request as { company_id?: string | null }).company_id ?? null,
+    explicitReceiverEdielId: input.receiverEdielId ?? null,
+  })
+
   const rawPayload = buildUtiltsInboundRaw({
     code,
     senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? '99999',
-    receiverEdielId: input.receiverEdielId ?? '00000',
+    receiverEdielId,
     externalReference,
     transactionReference,
     meterPointId: resolveSelfTestMeterPointId(meteringPoint),
@@ -604,7 +632,7 @@ async function runUtiltsInboundScenario(
     gridOwnerDataRequestId: request.id,
     mailbox: input.mailbox ?? null,
     senderEdielId: input.senderEdielId ?? gridOwner?.ediel_id ?? '99999',
-    receiverEdielId: input.receiverEdielId ?? '00000',
+    receiverEdielId,
     senderEmail: input.senderEmail ?? null,
     receiverEmail: input.receiverEmail ?? null,
     externalReference,
