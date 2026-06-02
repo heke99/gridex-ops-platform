@@ -1019,7 +1019,7 @@ async function withAcceptedInboundVersions(
 
 export async function sendEdielMessageViaSmtp(
   message: EdielMessageRow,
-  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | null }
+  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null }
 ): Promise<{
   accepted: string[]
   rejected: string[]
