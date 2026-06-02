@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { importP12Certificate } from '@/lib/ediel/security/importP12Certificate'
+import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -49,6 +50,10 @@ export async function importEdielP12CertificateAction(formData: FormData) {
     password,
     displayName,
   })
+  const status = evaluateCertificateStatus({
+    valid_from: metadata.validFrom,
+    valid_to: metadata.validTo,
+  })
 
   const now = new Date().toISOString()
   const { data, error } = await supabaseService
@@ -73,8 +78,8 @@ export async function importEdielP12CertificateAction(formData: FormData) {
       certificate_valid_from: metadata.validFrom,
       certificate_valid_to: metadata.validTo,
       secret_reference: metadata.p12SecretReference,
-      encryption_status: 'valid',
-      status: 'active',
+      encryption_status: status.isUsableForSmime ? 'valid' : status.status,
+      status: status.status === 'renewal_available' ? 'active' : status.status,
       last_validation_at: now,
       created_by: context.userId,
       updated_by: context.userId,
@@ -83,6 +88,7 @@ export async function importEdielP12CertificateAction(formData: FormData) {
         importedFileSize: file.size,
         privateMaterialStoredAsSecretReferenceOnly: true,
         passwordStored: false,
+        certificateStatus: status,
       },
     })
     .select('id')
@@ -100,6 +106,7 @@ export async function importEdielP12CertificateAction(formData: FormData) {
       environment,
       scope,
       fileName: file.name,
+      certificateStatus: status,
     },
     created_by: context.userId,
   })

@@ -2,6 +2,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { importEdielP12CertificateAction } from '@/app/admin/ediel/certificates/actions'
+import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,9 @@ export default async function EdielCertificatesPage() {
               <tr><th className="p-4">Certificate</th><th className="p-4">Scope</th><th className="p-4">Bolag</th><th className="p-4">Giltigt</th><th className="p-4">Förnyelse</th><th className="p-4">Status</th></tr>
             </thead>
             <tbody>
-              {(data ?? []).map((row) => (
+              {(data ?? []).map((row) => {
+                const certStatus = evaluateCertificateStatus(row)
+                return (
                 <tr key={row.id} className="border-t border-slate-100">
                   <td className="p-4">
                     <div className="font-semibold text-slate-950">{row.display_name ?? 'Ediel certifikat'}</div>
@@ -58,11 +61,14 @@ export default async function EdielCertificatesPage() {
                   <td className="p-4">{row.company_id ?? 'Platform'}</td>
                   <td className="p-4">{row.valid_from ?? row.certificate_valid_from ?? '—'} → {row.valid_to ?? row.certificate_valid_to ?? '—'}</td>
                   <td className="p-4 text-xs text-slate-700">
-                    Renewal {row.renewal_window_days ?? 60} d · warning {row.warning_days_before_expiry ?? 45} d · critical {row.critical_days_before_expiry ?? 14} d
+                    Förnyelse från {certStatus.renewalAvailableFrom ?? '—'} · {certStatus.daysUntilExpiry ?? '—'} dagar kvar
                   </td>
-                  <td className="p-4">{row.encryption_status ?? row.status}</td>
+                  <td className="p-4">
+                    <div className="font-semibold text-slate-950">{certStatus.status}</div>
+                    <div className="mt-1 text-xs text-slate-600">{certStatus.message}</div>
+                  </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

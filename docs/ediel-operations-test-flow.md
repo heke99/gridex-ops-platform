@@ -25,6 +25,7 @@ The new migration is idempotent and only creates missing runtime tables/columns 
 5. Open `/admin/ediel/test-center` and choose the appropriate security mode:
    - `Kör okrypterat test` for `encryption_mode=none` test routes.
    - `Kör krypterat test` for `encryption_mode=smime` routes with a valid certificate.
+   - Verify the created `ediel_test_runs` row stores `encryption_mode`, `route_profile_id`, `certificate_fingerprint_sha256`, `expected_flow`, `actual_flow`, `raw_edifact` when an outbound builder exists, and `encrypted_payload_ref` when S/MIME packaging was prepared.
 6. Open `/admin/ediel/system-tests` for existing system tests and `/admin/ediel/agt` for AGT supplier regression.
 7. Run supplier PRODAT cases L1, L2, L3, L4, L5 and L7 from the existing AGT workspace.
 8. Run UTILTS regressions UL1, UL2, UL3, UL4 and UL6 from the existing UTILTS/system-test workspace.
@@ -41,7 +42,29 @@ The new migration is idempotent and only creates missing runtime tables/columns 
    - E66-KVART and E66-SCH have separate `utiltsSubtype`/`measurementResolution`;
    - tenant resolution works without subaddress when route does not require it;
    - missing subaddress blocks outbound only when `subaddress_required=true`;
+   - production PRODAT cannot be sent unencrypted unless a superadmin override has reason and future expiry;
+   - inbound S/MIME without decrypt credentials remains manual review and does not update business state;
    - unsafe tenant or object matches become unresolved items.
+
+## Production readiness checklist
+
+Before production:
+
+1. Confirm `ediel@gridex.se` is registered as technical Ediel SMTP/IMAP address.
+2. Confirm shared mailbox is accepted for multiple tenant Ediel IDs.
+3. Confirm Gridex is transport provider only, not Ediel ombud.
+4. Configure each tenant/company Ediel ID and actor role.
+5. Confirm SPF, DKIM and DMARC status for `gridex.se`.
+6. Confirm SMTP/TLS and IMAP polling are working.
+7. Upload and validate Expisoft/Ediel `.p12` in `/admin/ediel/certificates`.
+8. Link certificate to encrypted route profiles.
+9. Confirm certificate status is active or renewal_available, not expired/validation_failed.
+10. Confirm tenant resolution matches exactly from UNB/NAD/Application Reference/message family/business code/environment/route.
+11. Confirm routes exist for PRODAT, UTILTS, APERAK, CONTRL and UTILTS-ERR where relevant.
+12. Confirm subaddress is empty by default unless the receiver/route explicitly requires it.
+13. Run L1-L7, UL1-UL6, E3-E8 and UE1-UE2 in both raw and S/MIME test mode where route/certificate policy allows.
+14. Confirm production PRODAT is blocked without S/MIME unless the emergency override has reason and automatic expiry.
+15. Confirm unresolved queue catches unknown Ediel IDs, missing route, missing certificate, unknown metering point and unsafe tenant matches.
 
 ## Test-center case families
 

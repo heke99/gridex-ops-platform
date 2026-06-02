@@ -476,11 +476,16 @@ function CustomerLookupProblem({
 function CustomerWorkspaceTabNav({
  customerId,
  activeTab,
+ isPlatformAdmin,
 }: {
  customerId: string
  activeTab: CustomerWorkspaceTab
+ isPlatformAdmin: boolean
 }) {
  const groups = ['Start', 'Drift', 'Kunddata', 'Historik'] as const
+ const visibleTabs = CUSTOMER_WORKSPACE_TABS.filter(
+ (tab) => isPlatformAdmin || tab.id !== 'ediel-operations'
+ )
 
  return (
  <section className="sticky top-3 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur ">
@@ -498,7 +503,8 @@ function CustomerWorkspaceTabNav({
 
  <div className="mt-4 space-y-3">
  {groups.map((group) => {
- const tabs = CUSTOMER_WORKSPACE_TABS.filter((tab) => tab.group === group)
+ const tabs = visibleTabs.filter((tab) => tab.group === group)
+ if (tabs.length === 0) return null
  return (
  <div key={group} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 ">{group}</div>
@@ -1379,11 +1385,13 @@ export default async function CustomerAdminDetailPage({
  const resolvedSearchParams = await searchParams
  const editSiteId = resolvedSearchParams.editSite ?? null
  const editMeteringPointId = resolvedSearchParams.editMeteringPoint ?? null
- const activeTab: CustomerWorkspaceTab = editSiteId
+ const requestedTab: CustomerWorkspaceTab = editSiteId
  ? 'sites'
  : editMeteringPointId
  ? 'metering-points'
  : normalizeWorkspaceTab(resolvedSearchParams.tab)
+ const activeTab: CustomerWorkspaceTab =
+ !isPlatformAdmin && requestedTab === 'ediel-operations' ? 'overview' : requestedTab
 
  const supabase = await createSupabaseServerClient()
  const tenantScope = await resolveAdminTenantReadScope(access)
@@ -1451,7 +1459,7 @@ export default async function CustomerAdminDetailPage({
  }
 
  const customerCompanyId = tenantScope.isPlatformAdmin ? customer.company_id : tenantScope.companyId
- const needsEdielData = ['overview', 'switch-operations', 'ediel-operations'].includes(activeTab)
+ const needsEdielData = ['overview', 'switch-operations'].includes(activeTab) || (isPlatformAdmin && activeTab === 'ediel-operations')
  const needsGridOwners = needsEdielData || ['data-requests', 'billing-metering', 'sites', 'metering-points'].includes(activeTab)
  const needsPriceAreas = ['sites', 'metering-points'].includes(activeTab)
  const needsContractOffers = activeTab === 'profile'
@@ -1962,7 +1970,7 @@ const analytics = needsAnalyticsData && customerCompanyId
  </div>
  </section>
 
- <CustomerWorkspaceTabNav customerId={id} activeTab={activeTab} />
+ <CustomerWorkspaceTabNav customerId={id} activeTab={activeTab} isPlatformAdmin={isPlatformAdmin} />
 
  {activeTab === 'overview' ? (
  <SectionAnchor
@@ -2047,9 +2055,11 @@ contracts={customerContracts as CustomerContractRow[]}
  <Link href={customerTabHref(id, 'billing-metering')} className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 ">
  Nätägaruppgifter
  </Link>
+ {isPlatformAdmin ? (
  <Link href={customerTabHref(id, 'ediel-operations')} className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 ">
  Ediel
  </Link>
+ ) : null}
  </div>
  </div>
 
@@ -2121,7 +2131,7 @@ contracts={customerContracts as CustomerContractRow[]}
  </SectionAnchor>
  ) : null}
 
- {activeTab === 'ediel-operations' ? (
+ {isPlatformAdmin && activeTab === 'ediel-operations' ? (
  <SectionAnchor id="ediel-operations" title="Ediel" description="Skapa, validera och följ Ediel-flödet för kundens switchar och nätägarrelaterade meddelanden.">
  <CustomerEdielOperationsCard customerId={id} sites={sites} meteringPoints={meteringPoints} gridOwners={gridOwners} switchRequests={switchRequests} dataRequests={dataRequests} communicationRoutes={edielData.communicationRoutes} routeProfiles={edielData.routeProfiles} edielMessages={edielData.edielMessages} recommendationRoutes={edielData.recommendationRoutes} isPlatformAdmin={isPlatformAdmin} />
  </SectionAnchor>

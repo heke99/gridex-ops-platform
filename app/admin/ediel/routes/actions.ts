@@ -159,12 +159,25 @@ async function upsertEdielRouteProfileLocal(input: {
   encryptionMode: EdielEncryptionMode | null
   signingMode: string | null
   certificateId: string | null
+  allowUnencryptedProduction: boolean
+  allowUnencryptedProductionExpiresAt: string | null
+  allowUnencryptedProductionReason: string | null
   payloadFormat: EdielPayloadFormat
   notes: string | null
 }) {
   const supabase = await createSupabaseServerClient()
   const existing = await getEdielRouteProfileByCommunicationRouteId(input.communicationRouteId, { companyId: input.companyId })
   const actorDefaults = await getActorDefaults(input.environment, input.companyId)
+
+  if (input.allowUnencryptedProduction) {
+    if (!input.allowUnencryptedProductionExpiresAt || !input.allowUnencryptedProductionReason) {
+      throw new Error('Okrypterad produktion kräver både utgångstid och orsak.')
+    }
+    const expiresAt = new Date(input.allowUnencryptedProductionExpiresAt)
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+      throw new Error('Override för okrypterad produktion måste ha en framtida utgångstid.')
+    }
+  }
 
   const senderSubAddress = coalesceString(
     input.senderSubAddress,
@@ -232,6 +245,17 @@ async function upsertEdielRouteProfileLocal(input: {
     encryption_mode: input.encryptionMode ?? existing?.encryption_mode ?? null,
     signing_mode: input.signingMode ?? existing?.signing_mode ?? 'none',
     certificate_id: input.certificateId ?? existing?.certificate_id ?? null,
+    allow_unencrypted_production: input.allowUnencryptedProduction,
+    allow_unencrypted_production_expires_at: input.allowUnencryptedProduction
+      ? input.allowUnencryptedProductionExpiresAt
+      : null,
+    allow_unencrypted_production_reason: input.allowUnencryptedProduction
+      ? input.allowUnencryptedProductionReason
+      : null,
+    allow_unencrypted_production_granted_by: input.allowUnencryptedProduction
+      ? input.actorUserId
+      : null,
+    security_policy_status: input.allowUnencryptedProduction ? 'emergency_override' : 'not_checked',
     payload_format: input.payloadFormat,
     notes: coalesceString(input.notes, existing?.notes ?? null),
     updated_by: input.actorUserId,
@@ -245,15 +269,41 @@ async function upsertEdielRouteProfileLocal(input: {
       .eq('id', existing.id)
 
     if (error) throw error
+    if (input.allowUnencryptedProduction) {
+      await supabase.from('ediel_go_live_events').insert({
+        company_id: input.companyId,
+        event_type: 'production_smime_override_granted',
+        reason: input.allowUnencryptedProductionReason,
+        actor_user_id: input.actorUserId,
+        metadata: {
+          routeProfileId: existing.id,
+          communicationRouteId: input.communicationRouteId,
+          expiresAt: input.allowUnencryptedProductionExpiresAt,
+        },
+      })
+    }
     return
   }
 
-  const { error } = await supabase.from('ediel_route_profiles').insert({
+  const { data: inserted, error } = await supabase.from('ediel_route_profiles').insert({
     ...payload,
     created_by: input.actorUserId,
-  })
+  }).select('id').single()
 
   if (error) throw error
+  if (input.allowUnencryptedProduction) {
+    await supabase.from('ediel_go_live_events').insert({
+      company_id: input.companyId,
+      event_type: 'production_smime_override_granted',
+      reason: input.allowUnencryptedProductionReason,
+      actor_user_id: input.actorUserId,
+      metadata: {
+        routeProfileId: inserted?.id ?? null,
+        communicationRouteId: input.communicationRouteId,
+        expiresAt: input.allowUnencryptedProductionExpiresAt,
+      },
+    })
+  }
 }
 
 export async function saveEdielRouteProfileAction(formData: FormData) {
@@ -297,6 +347,9 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     encryptionMode: normalizeEncryptionMode(stringValue(formData, 'encryptionMode')),
     signingMode: stringValue(formData, 'signingMode') === 'smime' ? 'smime' : 'none',
     certificateId: stringValue(formData, 'certificateId'),
+    allowUnencryptedProduction: boolValue(formData, 'allowUnencryptedProduction'),
+    allowUnencryptedProductionExpiresAt: stringValue(formData, 'allowUnencryptedProductionExpiresAt'),
+    allowUnencryptedProductionReason: stringValue(formData, 'allowUnencryptedProductionReason'),
     payloadFormat: normalizePayloadFormat(stringValue(formData, 'payloadFormat')),
     notes: stringValue(formData, 'notes'),
   })
@@ -416,6 +469,9 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
     encryptionMode: normalizeEncryptionMode(stringValue(formData, 'encryptionMode')),
     signingMode: stringValue(formData, 'signingMode') === 'smime' ? 'smime' : 'none',
     certificateId: stringValue(formData, 'certificateId'),
+    allowUnencryptedProduction: boolValue(formData, 'allowUnencryptedProduction'),
+    allowUnencryptedProductionExpiresAt: stringValue(formData, 'allowUnencryptedProductionExpiresAt'),
+    allowUnencryptedProductionReason: stringValue(formData, 'allowUnencryptedProductionReason'),
     payloadFormat: normalizePayloadFormat(stringValue(formData, 'payloadFormat')),
     notes: stringValue(formData, 'profile_notes'),
   })
@@ -507,6 +563,9 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
     encryptionMode: existingProfile?.encryption_mode ?? null,
     signingMode: existingProfile?.signing_mode ?? 'none',
     certificateId: existingProfile?.certificate_id ?? null,
+    allowUnencryptedProduction: existingProfile?.allow_unencrypted_production === true,
+    allowUnencryptedProductionExpiresAt: existingProfile?.allow_unencrypted_production_expires_at ?? null,
+    allowUnencryptedProductionReason: existingProfile?.allow_unencrypted_production_reason ?? null,
     payloadFormat: existingProfile?.payload_format ?? 'edifact',
     notes: existingProfile?.notes ?? null,
   })
@@ -560,6 +619,9 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
     encryptionMode: existingProfile?.encryption_mode ?? null,
     signingMode: existingProfile?.signing_mode ?? 'none',
     certificateId: existingProfile?.certificate_id ?? null,
+    allowUnencryptedProduction: existingProfile?.allow_unencrypted_production === true,
+    allowUnencryptedProductionExpiresAt: existingProfile?.allow_unencrypted_production_expires_at ?? null,
+    allowUnencryptedProductionReason: existingProfile?.allow_unencrypted_production_reason ?? null,
     payloadFormat: existingProfile?.payload_format ?? 'edifact',
     notes: existingProfile?.notes ?? null,
   })

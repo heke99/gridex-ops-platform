@@ -612,6 +612,7 @@ Subadress krävs för denna route
  <Field label="Kryptering" value={runtime?.encryption_mode ?? null} />
 <Field label="Signering" value={runtime?.signing_mode ?? null} />
 <Field label="Certifikat" value={runtime?.certificate_id ?? null} />
+<Field label="Okrypterad produktion" value={runtime?.allow_unencrypted_production ? `Ja till ${runtime.allow_unencrypted_production_expires_at ?? 'utgångstid saknas'}` : 'Nej'} />
  <Field label="Versionsstyrning" value={runtime?.default_message_version ?? null} />
  <Field label="Mottagande system" value={route.target_system} />
  <Field label="Endpoint" value={route.endpoint} />
@@ -747,6 +748,12 @@ Lämna sender/application reference/mailbox tomt endast om aktiv aktörsidentite
 <option value="smime">signering: smime</option>
 </select>
 <input name="certificateId" defaultValue={runtime?.certificate_id ?? ''} placeholder="Certificate id" className={textInputClassName()} />
+<label className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">
+<input type="checkbox" name="allowUnencryptedProduction" value="true" defaultChecked={runtime?.allow_unencrypted_production === true} className="h-4 w-4 rounded border-red-300" />
+Nöd-override: tillåt okrypterad production PRODAT
+</label>
+<input name="allowUnencryptedProductionExpiresAt" type="datetime-local" defaultValue={runtime?.allow_unencrypted_production_expires_at ? runtime.allow_unencrypted_production_expires_at.slice(0, 16) : ''} placeholder="Override expires" className={textInputClassName()} />
+<input name="allowUnencryptedProductionReason" defaultValue={runtime?.allow_unencrypted_production_reason ?? ''} placeholder="Orsak krävs för nöd-override" className={`${textInputClassName()} md:col-span-2`} />
  <select name="environment" defaultValue={runtime?.environment ?? 'test'} className={selectClassName()}>
  <option value="test">test</option>
  <option value="production">production</option>

@@ -297,7 +297,7 @@ export default async function AdminDashboardPage() {
  <MetricCard label="Avtal" value={contracts} hint="Aktiva och historiska avtal" href="/admin/contracts" />
  <MetricCard label="Anläggningar" value={sites} hint="Kopplade uttagspunkter" href="/admin/customers" />
  <MetricCard label="Mätpunkter" value={meteringPoints} hint="Fakturagrundande mätpunkter" href="/admin/metering" />
- <MetricCard label="Edielärenden" value={ediel.ackPendingMessages} hint={`${ediel.ackOverdueMessages} försenade kvittenser`} href="/admin/ediel/control-tower" tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
+<MetricCard label={isPlatformAdmin ? 'Edielärenden' : 'Tekniska kvittenser'} value={ediel.ackPendingMessages} hint={isPlatformAdmin ? `${ediel.ackOverdueMessages} försenade kvittenser` : 'Visas som åtgärder när något behöver hanteras'} href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
  <MetricCard label="Uppgifter" value={pendingTasks} hint="Öppna operationsuppgifter" href="/admin/work-queue" tone={pendingTasks > 0 ? 'amber' : 'emerald'} />
  </section>
 
@@ -325,7 +325,8 @@ export default async function AdminDashboardPage() {
  </div>
  </section>
 
- <section className="grid gap-5 xl:grid-cols-3">
+<section className="grid gap-5 xl:grid-cols-3">
+{isPlatformAdmin ? (
  <WorkAreaCard
  eyebrow="Ediel Center"
  title="Liveflöde, kvittenser och route-hälsa"
@@ -337,6 +338,19 @@ export default async function AdminDashboardPage() {
  <ActionLine label="Felade meddelanden" value={ediel.failedMessages} tone={ediel.failedMessages > 0 ? 'red' : 'emerald'} />
  <ActionLine label="Aktiva Ediel-routes" value={ediel.activeRoutes} tone={ediel.activeRoutes > 0 ? 'emerald' : 'amber'} />
  </WorkAreaCard>
+) : (
+<WorkAreaCard
+eyebrow="Dagens åtgärder"
+title="Det som behöver hanteras"
+text="Här ser bolagsanvändaren praktiska uppgifter: kunder som saknar data, negativa kvittenser som kräver åtgärd och mätvärden som saknas. Rå Ediel-teknik ligger i superadmin."
+href="/admin/work-queue"
+cta="Öppna åtgärder"
+>
+<ActionLine label="Åtgärder" value={pendingTasks} tone={pendingTasks > 0 ? 'amber' : 'emerald'} />
+<ActionLine label="Negativa kvittenser" value={negativeAcknowledgements} tone={negativeAcknowledgements > 0 ? 'red' : 'emerald'} />
+<ActionLine label="Mätvärden saknas" value={missingMeteringValues} tone={missingMeteringValues > 0 ? 'red' : 'emerald'} />
+</WorkAreaCard>
+)}
 
  <WorkAreaCard
  eyebrow="Kunder & avtal"

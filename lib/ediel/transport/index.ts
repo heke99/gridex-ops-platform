@@ -30,6 +30,8 @@ import { inferInboundAiListExternalReference } from '@/lib/ediel/core/referenceR
 import { resolveInboundAcceptedVersions } from '@/lib/ediel/core/kernel'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { supabaseService } from '@/lib/supabase/service'
+import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'
+import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 
 const execFileAsync = promisify(execFile)
 
@@ -346,6 +348,51 @@ function isEdifactMessage(message: EdielMessageRow): boolean {
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex')
+}
+
+async function assertRouteTransportSecurity(params: {
+  message: EdielMessageRow
+  routeProfile: Awaited<ReturnType<typeof getEdielRouteProfileByCommunicationRouteId>> | null
+}) {
+  const { message, routeProfile } = params
+  if (message.environment !== 'production') return
+
+  const security = evaluateProductionTransportSecurity({
+    runtime: {
+      environment: message.environment,
+      message_standard: message.message_standard,
+      message_family: String(message.message_family),
+      encryption_mode: routeProfile?.encryption_mode ?? null,
+      certificate_id: routeProfile?.certificate_id ?? null,
+      allow_unencrypted_production: routeProfile?.allow_unencrypted_production ?? false,
+      allow_unencrypted_production_expires_at: routeProfile?.allow_unencrypted_production_expires_at ?? null,
+      allow_unencrypted_production_reason: routeProfile?.allow_unencrypted_production_reason ?? null,
+    },
+    messageFamily: String(message.message_family),
+  })
+
+  if (!security.ok) {
+    throw new Error(
+      security.issues
+        .filter((issue) => issue.severity === 'error')
+        .map((issue) => `${issue.key}: ${issue.label}. ${issue.resolution}`)
+        .join(' | ') || 'Ediel transport security blockerade utskick.'
+    )
+  }
+
+  if (routeProfile?.encryption_mode === 'smime' && routeProfile.certificate_id) {
+    const { data, error } = await supabaseService
+      .from('ediel_certificates')
+      .select('id,valid_from,valid_to,certificate_valid_from,certificate_valid_to,renewal_window_days,warning_days_before_expiry,critical_days_before_expiry,status')
+      .eq('id', routeProfile.certificate_id)
+      .maybeSingle()
+
+    if (error) throw error
+    const certStatus = evaluateCertificateStatus(data ?? {})
+    if (!data || !certStatus.isUsableForSmime) {
+      throw new Error(`S/MIME-certifikat saknas eller är inte användbart: ${certStatus.message}`)
+    }
+  }
 }
 
 async function storeTransportPayloadSnapshot(input: {
@@ -1037,6 +1084,7 @@ export async function sendEdielMessageViaSmtp(
         companyId: message.company_id ?? null,
       })
     : null
+  await assertRouteTransportSecurity({ message, routeProfile })
 
   const host = requireEnv('EDIEL_SMTP_HOST', routeProfile?.smtp_host ?? null)
   const port = resolveSmtpPort(routeProfile?.smtp_port ?? null)

@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
+import { supabaseService } from '@/lib/supabase/service'
+import { prepareEdielTestCenterRunAction } from '@/app/admin/ediel/test-center/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +23,18 @@ const testCases = [
 
 export default async function EdielTestCenterPage() {
   const context = await requirePlatformAdminAccess()
+  const [{ data: companies }, { data: recentRuns }] = await Promise.all([
+    supabaseService
+      .from('companies')
+      .select('id,name')
+      .order('name', { ascending: true })
+      .limit(100),
+    supabaseService
+      .from('ediel_test_runs')
+      .select('id,company_id,test_case_code,test_suite,role_code,status,encryption_mode,certificate_fingerprint_sha256,route_profile_id,created_at,failure_reason')
+      .order('created_at', { ascending: false })
+      .limit(8),
+  ])
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -46,6 +60,66 @@ export default async function EdielTestCenterPage() {
               </Link>
             ))}
           </div>
+        </section>
+
+        <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">Starta test-run</p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Enkelt testval, backend äger Ediel-reglerna</h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+            Välj bolag, roll, testfall och transportläge. Backend hämtar route/certifikat från konfigurationen, lagrar expected flow och använder befintliga builders/parsers när testfallet kan förbereda outbound EDIFACT.
+          </p>
+          <form action={prepareEdielTestCenterRunAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <select name="companyId" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" required>
+              <option value="">Välj bolag/tenant</option>
+              {(companies ?? []).map((company) => (
+                <option key={company.id} value={company.id}>{company.name ?? company.id}</option>
+              ))}
+            </select>
+            <select name="roleCode" defaultValue="supplier" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="supplier">Elleverantör</option>
+              <option value="esco">Energitjänsteföretag / DGI</option>
+            </select>
+            <select name="testSuite" defaultValue="PRODAT" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="PRODAT">PRODAT</option>
+              <option value="UTILTS">UTILTS</option>
+            </select>
+            <select name="testCaseCode" defaultValue="L1" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="L1">L1 - Z03</option>
+              <option value="L2">L2 - Z04</option>
+              <option value="L3">L3 - Z05</option>
+              <option value="L4">L4 - Z06</option>
+              <option value="L5">L5 - Z10</option>
+              <option value="L7">L7 - Z09</option>
+              <option value="UL1">UL1 - S03</option>
+              <option value="UL2">UL2 - E66-KVART</option>
+              <option value="UL3">UL3 - E66-SCH</option>
+              <option value="UL4">UL4 - S02</option>
+              <option value="UL6">UL6 - E31-SCH</option>
+              <option value="E3">E3</option>
+              <option value="E4">E4</option>
+              <option value="E5">E5</option>
+              <option value="E6">E6</option>
+              <option value="E7">E7</option>
+              <option value="E8">E8</option>
+              <option value="UE1">UE1</option>
+              <option value="UE2">UE2</option>
+            </select>
+            <select name="environment" defaultValue="test" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="test">test</option>
+              <option value="production">production-like test</option>
+            </select>
+            <select name="encryptionMode" defaultValue="none" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="none">Kör okrypterat test</option>
+              <option value="smime">Kör krypterat test</option>
+            </select>
+            <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              <input type="checkbox" name="productionLike" value="true" className="h-4 w-4 rounded border-slate-300" />
+              Produktionslikt test
+            </label>
+            <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
+              Förbered test-run
+            </button>
+          </form>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -96,6 +170,26 @@ export default async function EdielTestCenterPage() {
                 `ediel_test_runs` lagrar encryption_mode, certificate_id, certificate_fingerprint_sha256, route_profile_id, expected_flow, actual_flow, raw_edifact och encrypted_payload_ref.
               </p>
             </div>
+          </div>
+        </section>
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">Senaste test-runs</h2>
+          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-100 text-left text-xs uppercase tracking-[0.14em] text-slate-600">
+                <tr><th className="p-3">Test</th><th className="p-3">Transport</th><th className="p-3">Route</th><th className="p-3">Status</th></tr>
+              </thead>
+              <tbody>
+                {(recentRuns ?? []).map((run) => (
+                  <tr key={run.id} className="border-t border-slate-100">
+                    <td className="p-3 font-semibold">{run.test_suite} {run.test_case_code}<div className="text-xs font-normal text-slate-500">{run.role_code}</div></td>
+                    <td className="p-3">{run.encryption_mode ?? 'none'}<div className="font-mono text-xs text-slate-500">{run.certificate_fingerprint_sha256 ?? 'utan certfingerprint'}</div></td>
+                    <td className="p-3 font-mono text-xs">{run.route_profile_id ?? 'route ej vald'}</td>
+                    <td className="p-3">{run.status}{run.failure_reason ? <div className="text-xs text-red-700">{run.failure_reason}</div> : null}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       </main>
