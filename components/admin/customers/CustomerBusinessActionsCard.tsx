@@ -81,7 +81,7 @@ export default function CustomerBusinessActionsCard({
   const missingBusinessData = [primaryPoint ? null : 'Anläggnings-id', gridOwnerId ? null : 'Nätägare'].filter((value): value is string => Boolean(value))
   const businessActionId = `${customerId}:${primarySite?.id ?? 'no-site'}:${primaryPoint?.id ?? 'no-meter'}`
 
-  function BusinessActionHiddenFields({ action }: { action: string }) {
+  const renderBusinessActionHiddenFields = (action: string) => {
     return (
       <>
         <input type="hidden" name="customer_id" value={customerId} />
@@ -93,14 +93,11 @@ export default function CustomerBusinessActionsCard({
     )
   }
 
-  function MissingSwitchRequestNotice() {
-    if (activeSwitchRequest) return null
-    return (
-      <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-        Starta eller välj ett affärsärende först så backend kan koppla åtgärden tenant-säkert.
-      </p>
-    )
-  }
+  const missingSwitchRequestNotice = activeSwitchRequest ? null : (
+    <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+      Starta eller välj ett affärsärende först så backend kan koppla åtgärden tenant-säkert.
+    </p>
+  )
 
   return (
     <section className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm">
@@ -153,18 +150,18 @@ export default function CustomerBusinessActionsCard({
 
         <ActionShell title="Registrera ånger" text="Stoppar kundflödet internt och låter backend avgöra om avslut eller manuell uppgift behövs.">
           <form action={registerCancellationBusinessAction} className="mt-4">
-            <BusinessActionHiddenFields action="register_cancellation" />
+            {renderBusinessActionHiddenFields('register_cancellation')}
             <input type="hidden" name="reason" value="Kunden har registrerat ånger från kundkortets affärsåtgärder." />
-            <MissingSwitchRequestNotice />
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Registrera ånger" pendingLabel="Registrerar…" />
           </form>
         </ActionShell>
 
         <ActionShell title="Avsluta avtal" text="Påbörjar avslut och loggar händelsen på kundkortet. Backend avgör om marknadsmeddelande behövs.">
           <form action={endAgreementBusinessAction} className="mt-4">
-            <BusinessActionHiddenFields action={`end_agreement:${activeContract?.id ?? 'customer'}`} />
+            {renderBusinessActionHiddenFields(`end_agreement:${activeContract?.id ?? 'customer'}`)}
             <input type="hidden" name="reason" value="Avslut av avtal påbörjat från kundkortets affärsåtgärder." />
-            <MissingSwitchRequestNotice />
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Avsluta avtal" pendingLabel="Startar avslut…" />
           </form>
         </ActionShell>
@@ -198,8 +195,8 @@ export default function CustomerBusinessActionsCard({
 
         <ActionShell title="Begär mätvärdesåtkomst" text="Begär mätvärdesåtkomst hos nätägaren. Kräver avtal/fullmakt och komplett anläggningsdata.">
           <form action={requestMeteringAccessBusinessAction} className="mt-4">
-            <BusinessActionHiddenFields action="request_metering_access" />
-            <MissingSwitchRequestNotice />
+            {renderBusinessActionHiddenFields('request_metering_access')}
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Begär åtkomst" pendingLabel="Kontrollerar…" />
           </form>
         </ActionShell>
@@ -219,7 +216,7 @@ export default function CustomerBusinessActionsCard({
 
         <ActionShell title="Begär historiska mätvärden" text="Kräver avslutad period senast igår och högst tre år bakåt.">
           <form action={requestHistoricalMeteringAccessBusinessAction} className="mt-4">
-            <BusinessActionHiddenFields action="request_historical_metering_access" />
+            {renderBusinessActionHiddenFields('request_historical_metering_access')}
             <div className="mb-4 grid gap-2">
               <label className="text-xs font-semibold text-slate-700">Startdatum
                 <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="date" name="requested_period_start" required />
@@ -228,15 +225,15 @@ export default function CustomerBusinessActionsCard({
                 <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="date" name="requested_period_end" required />
               </label>
             </div>
-            <MissingSwitchRequestNotice />
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Begär historik" pendingLabel="Kontrollerar…" />
           </form>
         </ActionShell>
 
         <ActionShell title="Avsluta mätvärdesåtkomst" text="Avslutar kundens mätvärdestillgång och väntar på bekräftelse från nätägaren.">
           <form action={terminateMeteringAccessBusinessAction} className="mt-4">
-            <BusinessActionHiddenFields action="terminate_metering_access" />
-            <MissingSwitchRequestNotice />
+            {renderBusinessActionHiddenFields('terminate_metering_access')}
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Avsluta åtkomst" pendingLabel="Kontrollerar…" />
           </form>
         </ActionShell>

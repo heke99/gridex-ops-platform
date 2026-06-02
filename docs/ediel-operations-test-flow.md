@@ -8,8 +8,10 @@ Run migrations in timestamp order. For this branch, run the new patch after all 
 2. `supabase/migrations/20260602090000_ediel_operations_platform_core.sql`
 3. `supabase/migrations/20260602093200_ediel_operations_rls_completion.sql`
 4. `supabase/migrations/20260602101500_ediel_shared_mailbox_subaddress_security.sql`
+5. `supabase/migrations/20260602143000_ediel_environment_business_action_locks.sql`
 
 The new migration is idempotent and only creates missing runtime tables/columns for payloads, queue, send locks, dedupe, energy-service permissions, metering batches/values, customer communications, certificates, IT-system profiles, optional route subaddress policy, shared `ediel@gridex.se` mailbox and encrypted/unencrypted test-run storage.
+The latest environment/lock patch adds strict `environment_type` values (`tgt_test`, `agt_test`, `bilateral_test`, `production`), AGT run locks, AGT readiness rows, unlinked test-message storage and outbound idempotency metadata.
 
 ## Manual browser flow
 
@@ -27,19 +29,29 @@ The new migration is idempotent and only creates missing runtime tables/columns 
    - Set mailbox email, normally `ediel@gridex.se`, and environment `test` or `production`.
    - Verify subject, issuer, serial, SHA-256 fingerprint and validity are stored while PIN/private key are not stored in DB columns.
    - Verify the certificate is saved as mailbox default (`ediel_mailboxes.encryption_mode=smime`, `certificate_id=...`) and existing route profiles using the same mailbox/environment inherit the same certificate so it does not need to be set per tenant route.
-5. Open `/admin/ediel/test-center` and choose the appropriate security mode:
+5. Open `/admin/ediel/test-center` and choose the appropriate environment/security mode:
+   - `TGT / systemtest` stores `environment_type=tgt_test`.
+   - `AGT / aktörtest` stores `environment_type=agt_test` and creates an active lock per company/actor role/message family.
+   - `Bilateralt test` stores `environment_type=bilateral_test`.
+   - `Produktion` stores `environment_type=production`; use only with production readiness/shadow-mode controls.
    - `Kör okrypterat test` for `encryption_mode=none` test routes.
    - `Kör krypterat test` for `encryption_mode=smime` routes with a valid certificate.
    - Verify the created `ediel_test_runs` row stores `encryption_mode`, `route_profile_id`, `certificate_fingerprint_sha256`, `expected_flow`, `actual_flow`, `raw_edifact` when an outbound builder exists, and `encrypted_payload_ref` when S/MIME packaging was prepared.
+   - For AGT, verify starting a second active test for the same company/role/message family shows: `Ett AGT-test är redan aktivt`.
 6. Open `/admin/ediel/system-tests` for existing system tests and `/admin/ediel/agt` for AGT supplier regression.
 7. Run supplier PRODAT cases L1, L2, L3, L4, L5 and L7 from the existing AGT workspace.
 8. Run UTILTS regressions UL1, UL2, UL3, UL4 and UL6 from the existing UTILTS/system-test workspace.
-9. For energy-service flows, create or select a tenant/customer/metering point, then use backend business actions:
+9. For customer-card business flows, create or select a tenant/customer/metering point and open the customer card overview. Ordinary company users should see business buttons only, not raw EDIFACT controls. Verify:
+   - `Starta leverantörsbyte` creates the switch request, runs backend `actionPreflight`, then queues the backend-selected PRODAT flow.
+   - `Registrera ånger`, `Avsluta avtal`, `Begär mätvärdesåtkomst`, `Begär historiska mätvärden`, `Avsluta mätvärdesåtkomst` and `Skicka bekräftelsemail` call backend business action modules.
+   - Form posts do not include `company_id`; backend resolves tenant from authenticated user and customer ownership.
+   - Re-submitting the same action uses the business-action idempotency key and does not create duplicate outbound sends.
+10. For energy-service flows, create or select a tenant/customer/metering point, then use backend business actions:
    - `requestMeteringAccess` for Z13V.
    - `requestHistoricalMeteringAccess` for Z13VH period validation.
    - `terminateMeteringAccess` for Z18V.
-10. Import inbound Z14/Z15/UTILTS E66 messages through the mailbox cron or inbound message tools.
-11. Confirm:
+11. Import inbound Z14/Z15/UTILTS E66 messages through the mailbox cron or inbound message tools.
+12. Confirm:
    - syntax errors produce negative CONTRL only;
    - PRODAT business errors produce negative APERAK;
    - UTILTS functional/process errors produce UTILTS-ERR;
@@ -67,7 +79,7 @@ Before production:
 10. Confirm tenant resolution matches exactly from UNB/NAD/Application Reference/message family/business code/environment/route.
 11. Confirm routes exist for PRODAT, UTILTS, APERAK, CONTRL and UTILTS-ERR where relevant.
 12. Confirm subaddress is empty by default unless the receiver/route explicitly requires it.
-13. Run L1-L7, UL1-UL6, E3-E8 and UE1-UE2 in both raw and S/MIME test mode where route/certificate policy allows.
+13. Run L1-L7, UL1-UL6, E3-E8 and UE1-UE2 in both raw and S/MIME test mode where route/certificate policy allows. Use `agt_test` for actor approval runs and `tgt_test` for system-combination proof.
 14. Confirm production PRODAT is blocked without S/MIME unless the emergency override has reason and automatic expiry.
 15. Confirm unresolved queue catches unknown Ediel IDs, missing route, missing certificate, unknown metering point and unsafe tenant matches.
 
