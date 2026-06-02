@@ -32,6 +32,7 @@ import { autoAttachImportedMessageToActiveTgtRun, runTgtAutopilotForRun } from '
 import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
 import type { EdielMessageRow, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome } from '@/lib/ediel/core/ackPolicy'
+import { saveEdielSystemTestSettings } from '@/lib/ediel/systemTestSettings'
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
@@ -72,6 +73,393 @@ function normalizeCode(value: string | null | undefined): string {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function formBool(value: FormDataEntryValue | null): boolean {
+  return typeof value === 'string' && ['true', 'on', '1'].includes(value.trim().toLowerCase())
+}
+
+async function upsertSystemTestMailbox(params: {
+  actorUserId: string
+  email: string
+  encryptionMode: 'none' | 'smime'
+  certificateId?: string | null
+}) {
+  const payload = {
+    company_id: null,
+    mailbox_name: `Gridex shared Ediel mailbox (test)`,
+    email_address: params.email,
+    environment: 'test',
+    is_active: true,
+    poll_interval_minutes: 5,
+    mailbox_type: 'platform_shared',
+    transport_mode: 'smtp_imap',
+    tls_required: true,
+    smtp_from: params.email,
+    signing_mode: params.encryptionMode === 'smime' ? 'smime' : 'none',
+    encryption_mode: params.encryptionMode,
+    certificate_id: params.certificateId ?? null,
+    security_status: params.encryptionMode === 'smime' ? 'certificate_configured' : 'test_unencrypted_allowed',
+    metadata: {
+      source: 'admin_ediel_system_tests_simple_setup',
+      shared_transport_only: true,
+      gridex_is_ediel_agent: false,
+    },
+    updated_at: new Date().toISOString(),
+  }
+
+  const existing = await supabaseService
+    .from('ediel_mailboxes')
+    .select('id')
+    .is('company_id', null)
+    .eq('environment', 'test')
+    .ilike('email_address', params.email)
+    .limit(1)
+    .maybeSingle()
+
+  if (existing.error && !['42P01', '42703', 'PGRST204'].includes(existing.error.code ?? '')) throw existing.error
+
+  if (existing.data?.id) {
+    const { error } = await supabaseService
+      .from('ediel_mailboxes')
+      .update(payload)
+      .eq('id', existing.data.id)
+    if (error) throw error
+    return String(existing.data.id)
+  }
+
+  const { data, error } = await supabaseService
+    .from('ediel_mailboxes')
+    .insert({ ...payload, created_by: params.actorUserId })
+    .select('id')
+    .single()
+  if (error) throw error
+  return String(data.id)
+}
+
+async function upsertSimpleActorSetting(params: {
+  actorUserId: string
+  companyId: string
+  actorRole: 'supplier' | 'esco'
+  edielId: string
+  mailbox: string
+}) {
+  const actorSubrole = params.actorRole === 'esco' ? 'DGI' : 'DDQ'
+  const payload = {
+    company_id: params.companyId,
+    environment: 'test',
+    actor_role: params.actorRole === 'esco' ? 'energy_service_company' : 'supplier',
+    role: params.actorRole,
+    actor_ediel_id: params.edielId,
+    ediel_id: params.edielId,
+    sender_subaddress: null,
+    sender_sub_address: null,
+    mailbox: params.mailbox,
+    is_active: true,
+    default_application_reference: params.actorRole === 'esco' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT',
+    application_reference: params.actorRole === 'esco' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT',
+    metadata: {
+      source: 'admin_ediel_system_tests_simple_setup',
+      simpleSystemTestsSetup: true,
+      actorSubrole,
+    },
+    updated_by: params.actorUserId,
+    updated_at: new Date().toISOString(),
+  }
+
+  const existing = await supabaseService
+    .from('ediel_actor_settings')
+    .select('id')
+    .eq('company_id', params.companyId)
+    .eq('environment', 'test')
+    .eq('role', params.actorRole)
+    .limit(1)
+    .maybeSingle()
+  if (existing.error && !['42P01', '42703', 'PGRST204'].includes(existing.error.code ?? '')) throw existing.error
+
+  if (existing.data?.id) {
+    const { error } = await supabaseService
+      .from('ediel_actor_settings')
+      .update(payload)
+      .eq('id', existing.data.id)
+    if (error) throw error
+    return String(existing.data.id)
+  }
+
+  const { data, error } = await supabaseService
+    .from('ediel_actor_settings')
+    .insert({ ...payload, created_by: params.actorUserId })
+    .select('id')
+    .single()
+  if (error) throw error
+  return String(data.id)
+}
+
+async function upsertSimpleSystemTestRoute(params: {
+  actorUserId: string
+  companyId: string
+  actorRole: 'supplier' | 'esco'
+  messageFamily: 'PRODAT' | 'UTILTS'
+  senderEdielId: string
+  receiverEdielId: string
+  smtpTo: string
+  mailbox: string
+  receiverMessageSubaddress?: string | null
+  subaddressRequired: boolean
+  encryptionMode: 'none' | 'smime'
+  certificateId?: string | null
+  mailboxId?: string | null
+}) {
+  const routeScope = params.messageFamily === 'PRODAT' ? 'metering_access' : 'meter_values'
+  const appRef =
+    params.messageFamily === 'PRODAT'
+      ? params.actorRole === 'esco' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT'
+      : params.actorRole === 'esco' ? null : '23-DDQ-E66-S'
+  const routeName = `AGT ${params.actorRole === 'esco' ? 'DGI' : 'DDQ'} ${params.messageFamily}`
+
+  const existingRoute = await supabaseService
+    .from('communication_routes')
+    .select('id')
+    .eq('company_id', params.companyId)
+    .eq('route_name', routeName)
+    .limit(1)
+    .maybeSingle()
+  if (existingRoute.error && !['42P01', '42703', 'PGRST204'].includes(existingRoute.error.code ?? '')) throw existingRoute.error
+
+  let communicationRouteId = typeof existingRoute.data?.id === 'string' ? existingRoute.data.id : null
+  const routePayload = {
+    company_id: params.companyId,
+    route_name: routeName,
+    is_active: true,
+    route_scope: routeScope,
+    route_type: 'ediel_partner',
+    target_system: 'ediel_portalen_agt',
+    target_email: params.smtpTo,
+    endpoint: params.smtpTo,
+    supported_payload_version: params.messageFamily,
+    environment_type: 'agt_test',
+    counterparty_ediel_id: params.receiverEdielId,
+    market_party_role: 'test_portal',
+    notes: 'Skapad från enkel System Tests setup.',
+    updated_by: params.actorUserId,
+  }
+
+  if (communicationRouteId) {
+    const { error } = await supabaseService.from('communication_routes').update(routePayload).eq('id', communicationRouteId)
+    if (error) throw error
+  } else {
+    const { data, error } = await supabaseService.from('communication_routes').insert({ ...routePayload, created_by: params.actorUserId }).select('id').single()
+    if (error) throw error
+    communicationRouteId = String(data.id)
+  }
+
+  const profilePayload = {
+    company_id: params.companyId,
+    communication_route_id: communicationRouteId,
+    environment: 'test',
+    environment_type: 'agt_test',
+    actor_role: params.actorRole === 'esco' ? 'energy_service_company' : 'supplier',
+    actor_subrole: params.actorRole === 'esco' ? 'DGI' : 'DDQ',
+    message_family: params.messageFamily,
+    sender_ediel_id: params.senderEdielId,
+    sender_subaddress: null,
+    sender_sub_address: null,
+    receiver_ediel_id: params.receiverEdielId,
+    receiver_subaddress: null,
+    receiver_sub_address: null,
+    receiver_message_subaddress: params.receiverMessageSubaddress ?? null,
+    subaddress_required: params.subaddressRequired,
+    application_reference: appRef,
+    mailbox_id: params.mailboxId ?? null,
+    mailbox: params.mailbox,
+    transport_mode: 'smtp_imap',
+    smtp_from: params.mailbox,
+    smtp_to: params.smtpTo,
+    encryption_mode: params.encryptionMode,
+    signing_mode: params.encryptionMode === 'smime' ? 'smime' : 'none',
+    tls_required: true,
+    certificate_id: params.certificateId ?? null,
+    allow_unencrypted_test: true,
+    allow_unencrypted_production: false,
+    is_active: true,
+    is_enabled: true,
+    security_policy_status: params.encryptionMode === 'smime' ? 'certificate_configured' : 'test_unencrypted_allowed',
+    payload_format: 'edifact',
+    message_standard: 'edifact',
+    ack_mode: 'default',
+    notes: 'Skapad från enkel System Tests setup.',
+    updated_by: params.actorUserId,
+    updated_at: new Date().toISOString(),
+  }
+
+  const existingProfile = await supabaseService
+    .from('ediel_route_profiles')
+    .select('id')
+    .eq('company_id', params.companyId)
+    .eq('communication_route_id', communicationRouteId)
+    .eq('message_family', params.messageFamily)
+    .limit(1)
+    .maybeSingle()
+  if (existingProfile.error && !['42P01', '42703', 'PGRST204'].includes(existingProfile.error.code ?? '')) throw existingProfile.error
+
+  if (existingProfile.data?.id) {
+    const { error } = await supabaseService.from('ediel_route_profiles').update(profilePayload).eq('id', existingProfile.data.id)
+    if (error) throw error
+    return String(existingProfile.data.id)
+  }
+
+  const { data, error } = await supabaseService.from('ediel_route_profiles').insert({ ...profilePayload, created_by: params.actorUserId }).select('id').single()
+  if (error) throw error
+  return String(data.id)
+}
+
+export async function saveSimpleSystemTestCompanySetupAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const companyId = formString(formData.get('companyId'))
+  const actorRole = formString(formData.get('actorRole')) === 'supplier' ? 'supplier' : 'esco'
+  const edielId = formString(formData.get('edielId'))
+  const mailbox = formString(formData.get('mailbox')) ?? 'ediel@gridex.se'
+  const portalEdielId = formString(formData.get('portalEdielId')) ?? '91100'
+  const portalEmail = formString(formData.get('portalEmail')) ?? '91100@ediel.se'
+  const testBrpEdielId = formString(formData.get('testBrpEdielId')) ?? (actorRole === 'supplier' ? '91109' : null)
+  const encryptionMode = formString(formData.get('encryptionMode')) === 'smime' ? 'smime' : 'none'
+  const certificateId = formString(formData.get('certificateId'))
+  const prodatSubaddress = formString(formData.get('prodatSubaddress'))
+  const prodatSubaddressRequired = formBool(formData.get('prodatSubaddressRequired'))
+
+  if (!companyId) throw new Error('Välj bolag.')
+  if (!edielId) throw new Error('Fyll i Div3rsa/bolagets Ediel-ID.')
+  if (encryptionMode === 'smime' && !certificateId) throw new Error('Krypterat test kräver certificate id.')
+
+  const mailboxId = await upsertSystemTestMailbox({
+    actorUserId: context.userId,
+    email: mailbox,
+    encryptionMode,
+    certificateId,
+  })
+  await upsertSimpleActorSetting({
+    actorUserId: context.userId,
+    companyId,
+    actorRole,
+    edielId,
+    mailbox,
+  })
+
+  const prodatRouteProfileId = await upsertSimpleSystemTestRoute({
+    actorUserId: context.userId,
+    companyId,
+    actorRole,
+    messageFamily: 'PRODAT',
+    senderEdielId: edielId,
+    receiverEdielId: portalEdielId,
+    smtpTo: portalEmail,
+    mailbox,
+    receiverMessageSubaddress: prodatSubaddress,
+    subaddressRequired: prodatSubaddressRequired,
+    encryptionMode,
+    certificateId,
+    mailboxId,
+  })
+  const utiltsRouteProfileId = await upsertSimpleSystemTestRoute({
+    actorUserId: context.userId,
+    companyId,
+    actorRole,
+    messageFamily: 'UTILTS',
+    senderEdielId: edielId,
+    receiverEdielId: portalEdielId,
+    smtpTo: portalEmail,
+    mailbox,
+    receiverMessageSubaddress: null,
+    subaddressRequired: false,
+    encryptionMode,
+    certificateId,
+    mailboxId,
+  })
+
+  await Promise.all([
+    saveEdielSystemTestSettings({
+      companyId,
+      actorUserId: context.userId,
+      testSuite: 'AGT',
+      testPortalEdielId: portalEdielId,
+      testPortalName: 'Edielportalen AGT',
+      testPortalEmail: portalEmail,
+      testBrpEdielId,
+      testBrpName: testBrpEdielId ? 'Edielportalen test-BRP' : null,
+      defaultReceiverSubaddress: prodatSubaddress,
+      defaultSenderSubaddress: null,
+      routeProfileId: prodatRouteProfileId,
+      isActive: true,
+    }),
+    saveEdielSystemTestSettings({
+      companyId,
+      actorUserId: context.userId,
+      testSuite: 'TGT',
+      testPortalEdielId: portalEdielId,
+      testPortalName: 'Edielportalen TGT',
+      testPortalEmail: portalEmail,
+      testBrpEdielId,
+      testBrpName: testBrpEdielId ? 'Edielportalen test-BRP' : null,
+      defaultReceiverSubaddress: prodatSubaddress,
+      defaultSenderSubaddress: null,
+      routeProfileId: prodatRouteProfileId,
+      isActive: true,
+    }),
+  ])
+
+  for (const messageFamily of ['PRODAT', 'UTILTS'] as const) {
+    const { error } = await supabaseService.from('ediel_agt_readiness').upsert({
+      company_id: companyId,
+      actor_role: actorRole,
+      message_family: messageFamily,
+      test_resource_name: 'Edielportalen',
+      test_resource_email: portalEmail,
+      test_resource_confirmed: true,
+      ediel_portal_login_confirmed: true,
+      application_system_selected: true,
+      edi_system_selected: true,
+      readiness_status: 'portal_ready',
+      needs_retest: false,
+      retest_reason: null,
+      updated_by: context.userId,
+      updated_at: new Date().toISOString(),
+      readiness_snapshot: {
+        source: 'admin_ediel_system_tests_simple_setup',
+        actorRole,
+        edielId,
+        mailbox,
+        portalEdielId,
+        portalEmail,
+        encryptionMode,
+      },
+    }, { onConflict: 'company_id,actor_role,message_family' })
+    if (error && !['42P01', '42703', 'PGRST204'].includes(error.code ?? '')) throw error
+  }
+
+  await supabaseService.from('audit_logs').insert({
+    company_id: companyId,
+    actor_user_id: context.userId,
+    action: 'ediel.system_tests.simple_setup_saved',
+    entity_type: 'ediel_system_tests',
+    entity_id: companyId,
+    metadata: {
+      actorRole,
+      edielId,
+      mailbox,
+      portalEdielId,
+      portalEmail,
+      prodatRouteProfileId,
+      utiltsRouteProfileId,
+      encryptionMode,
+    },
+  }).then(({ error }) => {
+    if (error && !['42P01', '42703', 'PGRST204'].includes(error.code ?? '')) throw error
+  })
+
+  revalidatePath('/admin/ediel/system-tests')
+  revalidatePath('/admin/ediel/routes')
+  revalidatePath('/admin/ediel/control-tower')
+  redirect(`/admin/ediel/system-tests?companyId=${encodeURIComponent(companyId)}&packet=esco&role=${actorRole}`)
 }
 
 
