@@ -2,14 +2,20 @@ import {
   createCustomerDataRequestPackageAction,
   createGridOwnerDataRequestAction,
   createSupplierSwitchRequestAction,
-  registerCustomerLifecycleDecisionAction,
   startAutomaticOnboardingAction,
 } from '@/app/admin/customers/[id]/actions'
-import { sendCustomerConfirmationBusinessAction } from '@/app/admin/customers/[id]/business-actions'
+import {
+  endAgreementBusinessAction,
+  registerCancellationBusinessAction,
+  requestHistoricalMeteringAccessBusinessAction,
+  requestMeteringAccessBusinessAction,
+  sendCustomerConfirmationBusinessAction,
+  terminateMeteringAccessBusinessAction,
+} from '@/app/admin/customers/[id]/business-actions'
 import { missingBusinessDataMessage } from '@/lib/ediel/statusUi'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
-import type { PowerOfAttorneyRow } from '@/lib/operations/types'
+import type { PowerOfAttorneyRow, SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type { CustomerInfoRequestRow } from '@/lib/onboarding/infoRequests'
 import SubmitButton from '@/components/admin/customers/document-card/SubmitButton'
 
@@ -20,6 +26,7 @@ type Props = {
   powersOfAttorney?: PowerOfAttorneyRow[]
   infoRequests?: CustomerInfoRequestRow[]
   contracts?: CustomerContractRow[]
+  switchRequests?: SupplierSwitchRequestRow[]
 }
 
 function siteLabel(site: CustomerSiteRow | null): string {
@@ -49,6 +56,7 @@ export default function CustomerBusinessActionsCard({
   powersOfAttorney = [],
   infoRequests = [],
   contracts = [],
+  switchRequests = [],
 }: Props) {
   const primarySite = sites.find((site) => site.status === 'active') ?? sites[0] ?? null
   const primaryPoint = primarySite
@@ -62,7 +70,34 @@ export default function CustomerBusinessActionsCard({
   const supplierInfoIsOpen = infoRequests.some((row) => row.target_party_type === 'current_supplier' && !['completed', 'cancelled', 'rejected'].includes(row.status))
   const supplierName = primarySite?.current_supplier_name ?? ''
   const activeContract = contracts.find((contract) => ['active', 'signed', 'pending_signature'].includes(String(contract.status ?? ''))) ?? contracts[0] ?? null
+  const activeSwitchRequest =
+    switchRequests.find((request) =>
+      request.site_id === primarySite?.id &&
+      ['queued', 'validated', 'ready_to_send', 'submitted', 'waiting_response', 'cancellation_requested'].includes(String(request.status ?? ''))
+    ) ??
+    switchRequests.find((request) => ['queued', 'validated', 'ready_to_send', 'submitted', 'waiting_response'].includes(String(request.status ?? ''))) ??
+    switchRequests[0] ??
+    null
   const missingBusinessData = [primaryPoint ? null : 'Anläggnings-id', gridOwnerId ? null : 'Nätägare'].filter((value): value is string => Boolean(value))
+  const businessActionId = `${customerId}:${primarySite?.id ?? 'no-site'}:${primaryPoint?.id ?? 'no-meter'}`
+
+  const renderBusinessActionHiddenFields = (action: string) => {
+    return (
+      <>
+        <input type="hidden" name="customer_id" value={customerId} />
+        <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
+        <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ''} />
+        <input type="hidden" name="switch_request_id" value={activeSwitchRequest?.id ?? ''} />
+        <input type="hidden" name="idempotency_key" value={`${action}:${businessActionId}:${activeSwitchRequest?.id ?? 'no-switch'}`} />
+      </>
+    )
+  }
+
+  const missingSwitchRequestNotice = activeSwitchRequest ? null : (
+    <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+      Starta eller välj ett affärsärende först så backend kan koppla åtgärden tenant-säkert.
+    </p>
+  )
 
   return (
     <section className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm">
@@ -114,22 +149,19 @@ export default function CustomerBusinessActionsCard({
         </ActionShell>
 
         <ActionShell title="Registrera ånger" text="Stoppar kundflödet internt och låter backend avgöra om avslut eller manuell uppgift behövs.">
-          <form action={registerCustomerLifecycleDecisionAction} className="mt-4">
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="decision_type" value="withdrawal" />
-            <input type="hidden" name="scope_type" value="customer" />
+          <form action={registerCancellationBusinessAction} className="mt-4">
+            {renderBusinessActionHiddenFields('register_cancellation')}
             <input type="hidden" name="reason" value="Kunden har registrerat ånger från kundkortets affärsåtgärder." />
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Registrera ånger" pendingLabel="Registrerar…" />
           </form>
         </ActionShell>
 
         <ActionShell title="Avsluta avtal" text="Påbörjar avslut och loggar händelsen på kundkortet. Backend avgör om marknadsmeddelande behövs.">
-          <form action={registerCustomerLifecycleDecisionAction} className="mt-4">
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="decision_type" value="withdrawal" />
-            <input type="hidden" name="scope_type" value={activeContract ? 'contract' : 'customer'} />
-            <input type="hidden" name="scope_id" value={activeContract?.id ?? ''} />
+          <form action={endAgreementBusinessAction} className="mt-4">
+            {renderBusinessActionHiddenFields(`end_agreement:${activeContract?.id ?? 'customer'}`)}
             <input type="hidden" name="reason" value="Avslut av avtal påbörjat från kundkortets affärsåtgärder." />
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Avsluta avtal" pendingLabel="Startar avslut…" />
           </form>
         </ActionShell>
@@ -162,14 +194,9 @@ export default function CustomerBusinessActionsCard({
         </ActionShell>
 
         <ActionShell title="Begär mätvärdesåtkomst" text="Begär mätvärdesåtkomst hos nätägaren. Kräver avtal/fullmakt och komplett anläggningsdata.">
-          <form action={createGridOwnerDataRequestAction} className="mt-4">
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
-            <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ''} />
-            <input type="hidden" name="grid_owner_id" value={gridOwnerId} />
-            <input type="hidden" name="request_scope" value="metering_access" />
-            <input type="hidden" name="business_action" value="request_metering_access" />
-            <input type="hidden" name="notes" value="Kundkort: begär mätvärdesåtkomst." />
+          <form action={requestMeteringAccessBusinessAction} className="mt-4">
+            {renderBusinessActionHiddenFields('request_metering_access')}
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Begär åtkomst" pendingLabel="Kontrollerar…" />
           </form>
         </ActionShell>
@@ -188,14 +215,8 @@ export default function CustomerBusinessActionsCard({
         </ActionShell>
 
         <ActionShell title="Begär historiska mätvärden" text="Kräver avslutad period senast igår och högst tre år bakåt.">
-          <form action={createGridOwnerDataRequestAction} className="mt-4">
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
-            <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ''} />
-            <input type="hidden" name="grid_owner_id" value={gridOwnerId} />
-            <input type="hidden" name="request_scope" value="meter_values" />
-            <input type="hidden" name="business_action" value="request_historical_metering_access" />
-            <input type="hidden" name="notes" value="Kundkort: begär historiska mätvärden." />
+          <form action={requestHistoricalMeteringAccessBusinessAction} className="mt-4">
+            {renderBusinessActionHiddenFields('request_historical_metering_access')}
             <div className="mb-4 grid gap-2">
               <label className="text-xs font-semibold text-slate-700">Startdatum
                 <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="date" name="requested_period_start" required />
@@ -204,19 +225,15 @@ export default function CustomerBusinessActionsCard({
                 <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="date" name="requested_period_end" required />
               </label>
             </div>
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Begär historik" pendingLabel="Kontrollerar…" />
           </form>
         </ActionShell>
 
         <ActionShell title="Avsluta mätvärdesåtkomst" text="Avslutar kundens mätvärdestillgång och väntar på bekräftelse från nätägaren.">
-          <form action={createGridOwnerDataRequestAction} className="mt-4">
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
-            <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ''} />
-            <input type="hidden" name="grid_owner_id" value={gridOwnerId} />
-            <input type="hidden" name="request_scope" value="metering_access" />
-            <input type="hidden" name="business_action" value="terminate_metering_access" />
-            <input type="hidden" name="notes" value="Kundkort: avsluta mätvärdesåtkomst." />
+          <form action={terminateMeteringAccessBusinessAction} className="mt-4">
+            {renderBusinessActionHiddenFields('terminate_metering_access')}
+            {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Avsluta åtkomst" pendingLabel="Kontrollerar…" />
           </form>
         </ActionShell>
@@ -225,6 +242,7 @@ export default function CustomerBusinessActionsCard({
           <form action={sendCustomerConfirmationBusinessAction} className="mt-4">
             <input type="hidden" name="customer_id" value={customerId} />
             <input type="hidden" name="event" value="supplier_switch_started" />
+            <input type="hidden" name="idempotency_key" value={`send_customer_confirmation:${businessActionId}:supplier_switch_started`} />
             <SubmitButton idleLabel="Skicka bekräftelse" pendingLabel="Köar…" />
           </form>
         </ActionShell>
