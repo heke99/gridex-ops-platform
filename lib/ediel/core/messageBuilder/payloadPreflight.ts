@@ -464,7 +464,8 @@ function validateEdifactPayload(params: {
   for (const segment of rawSegments) {
     const tag = segment.split('+')[0]?.toUpperCase() ?? ''
     if (!IDENTIFIER_QUALIFIERS.has(tag)) continue
-    for (const value of segment.split('+').slice(1)) {
+    const values = tag === 'NAD' ? segment.split('+').slice(2, 3) : segment.split('+').slice(1)
+    for (const value of values) {
       const candidate = splitComposite(value)[0] ?? null
       if (candidate && /^[A-Za-z0-9ÅÄÖåäö _.-]{4,}$/.test(candidate)) {
         checkIdentifierCharacters({ issues, value: candidate, segment, label: `${tag} identifierare` })
