@@ -901,7 +901,7 @@ export default async function EdielSystemTestsPage({
   const role = String(query.role ?? "")
     .trim()
     .toLowerCase();
-  const selectedActorRole = role === "supplier" ? "supplier" : "esco";
+  const selectedActorRole: "esco" | "supplier" = role === "supplier" ? "supplier" : "esco";
   const packet = normalizePacket(query.packet);
   const family = normalizeFamily(query.family);
   const testType = normalizeTestType(query.testType);
