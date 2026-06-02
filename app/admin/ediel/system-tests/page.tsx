@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
+import { supabaseService } from "@/lib/supabase/service";
 import { listEdielMessages, listEdielTestRuns } from "@/lib/ediel/db";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
 import {
@@ -14,12 +15,19 @@ import {
   type EdielTgtTestCaseDefinition,
 } from "@/lib/ediel/tgtRegistry";
 import { createEdielTgtRunFromTemplateAction } from "@/app/admin/ediel/actions";
+import { saveSimpleSystemTestCompanySetupAction } from "@/app/admin/ediel/system-tests/actions";
 
 export const dynamic = "force-dynamic";
 
 type Tone = "emerald" | "amber" | "red" | "slate" | "blue";
 type TestRunList = Awaited<ReturnType<typeof listEdielTestRuns>>;
 type MessageList = Awaited<ReturnType<typeof listEdielMessages>>;
+type CompanyOption = {
+  id: string;
+  name: string | null;
+  ediel_id?: string | null;
+  org_number?: string | null;
+};
 type FilterPacket =
   | "all"
   | "u3"
@@ -502,6 +510,7 @@ function QuickFilters({
   direction,
   suite,
   role,
+  companyId,
 }: {
   packet: FilterPacket;
   status: FilterStatus;
@@ -511,8 +520,9 @@ function QuickFilters({
   direction: FilterDirection;
   suite: string;
   role: string;
+  companyId: string | null;
 }) {
-  const base = `/admin/ediel/system-tests?status=${encodeURIComponent(status)}&family=${encodeURIComponent(family)}&testType=${encodeURIComponent(testType)}&direction=${encodeURIComponent(direction)}${suite ? `&suite=${encodeURIComponent(suite)}` : ""}${role ? `&role=${encodeURIComponent(role)}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+  const base = `/admin/ediel/system-tests?status=${encodeURIComponent(status)}&family=${encodeURIComponent(family)}&testType=${encodeURIComponent(testType)}&direction=${encodeURIComponent(direction)}${companyId ? `&companyId=${encodeURIComponent(companyId)}` : ""}${suite ? `&suite=${encodeURIComponent(suite)}` : ""}${role ? `&role=${encodeURIComponent(role)}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
   const items: Array<{ key: FilterPacket; label: string }> = [
     { key: "u3", label: "U3 alla" },
     { key: "u31", label: "U3.1 korrekta" },
@@ -542,9 +552,16 @@ function QuickFilters({
   );
 }
 
-function StartRunForm({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
+function StartRunForm({
+  testCase,
+  companyId,
+}: {
+  testCase: EdielTgtTestCaseDefinition;
+  companyId: string | null;
+}) {
   return (
     <form action={createEdielTgtRunFromTemplateAction} className="flex flex-wrap items-center gap-2">
+      {companyId ? <input type="hidden" name="companyId" value={companyId} /> : null}
       <input type="hidden" name="testSuite" value={testCase.suite} />
       <input type="hidden" name="roleCode" value={testCase.roleCode} />
       <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
@@ -568,10 +585,12 @@ function TestCard({
   testCase,
   activeRuns,
   messages,
+  companyId,
 }: {
   testCase: EdielTgtTestCaseDefinition;
   activeRuns: TestRunList;
   messages: MessageList;
+  companyId: string | null;
 }) {
   const status = statusForCase(testCase, activeRuns, messages);
   const caseRuns = runsForCase(testCase, activeRuns);
@@ -638,7 +657,7 @@ function TestCard({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <StartRunForm testCase={testCase} />
+        <StartRunForm testCase={testCase} companyId={companyId} />
         <Link
           href={`/admin/ediel/system-tests/cases/${encodeURIComponent(testCase.testCaseCode)}`}
           className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
@@ -647,6 +666,83 @@ function TestCard({
         </Link>
       </div>
     </div>
+  );
+}
+
+function SimpleCompanySetupPanel({
+  companies,
+  selectedCompanyId,
+  selectedCompany,
+  runtime,
+}: {
+  companies: CompanyOption[];
+  selectedCompanyId: string | null;
+  selectedCompany: CompanyOption | null;
+  runtime: EdielSystemTestRuntimeContext | null;
+}) {
+  const defaultEdielId = runtime?.actorEdielId ?? selectedCompany?.ediel_id ?? "";
+
+  return (
+    <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
+            Enkel testsetup
+          </p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">
+            Kör alla tester här som Div3rsa eller valt bolag
+          </h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+            Fyll i saknade uppgifter här en gång. Systemet sparar aktör,
+            Edielportalen-route, shared mailbox, readiness och systemtestinställning
+            så knapparna nedan kan köra testerna direkt från denna sida.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+          <div className="font-bold text-slate-950">Aktuell runtime</div>
+          <div>Bolag: {selectedCompany?.name ?? selectedCompanyId ?? "saknas"}</div>
+          <div>Aktör Ediel-ID: {runtime?.actorEdielId ?? "saknas"}</div>
+          <div>Portal: {runtime?.testPortalEdielId ?? "91100"} · {runtime?.testPortalEmail ?? "91100@ediel.se"}</div>
+        </div>
+      </div>
+
+      <form action={saveSimpleSystemTestCompanySetupAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <select name="companyId" defaultValue={selectedCompanyId ?? ""} required className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="">Välj bolag</option>
+          {companies.map((company) => (
+            <option key={company.id} value={company.id}>
+              {company.name ?? company.id}{company.org_number ? ` · ${company.org_number}` : ""}
+            </option>
+          ))}
+        </select>
+        <select name="actorRole" defaultValue="esco" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="esco">Energitjänsteföretag / DGI</option>
+          <option value="supplier">Elleverantör / DDQ</option>
+        </select>
+        <input name="edielId" defaultValue={defaultEdielId} required placeholder="Bolagets Ediel-ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input name="mailbox" defaultValue="ediel@gridex.se" required placeholder="Teknisk mailbox" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input name="portalEdielId" defaultValue={runtime?.testPortalEdielId ?? "91100"} required placeholder="Edielportalen Ediel-ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input name="portalEmail" defaultValue={runtime?.testPortalEmail ?? "91100@ediel.se"} required placeholder="Edielportalen e-post" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input name="testBrpEdielId" defaultValue="91109" placeholder="Test-BRP (bara leverantör)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <select name="encryptionMode" defaultValue="none" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="none">Okrypterat test</option>
+          <option value="smime">Krypterat S/MIME-test</option>
+        </select>
+        <input name="certificateId" placeholder="Certificate ID om S/MIME" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input name="prodatSubaddress" placeholder="PRODAT subadress om krävs, annars tom" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          <input type="checkbox" name="prodatSubaddressRequired" />
+          PRODAT subadress krävs
+        </label>
+        <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
+          Spara och gör redo för tester
+        </button>
+      </form>
+
+      <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
+        Efter sparning: välj testkort nedan och klicka <strong>Starta testkörning</strong>. Allt sker från denna sida.
+      </div>
+    </section>
   );
 }
 
@@ -712,6 +808,7 @@ export default async function EdielSystemTestsPage({
 }: {
   searchParams?: Promise<{
     q?: string;
+    companyId?: string;
     suite?: string;
     role?: string;
     packet?: string;
@@ -723,11 +820,28 @@ export default async function EdielSystemTestsPage({
 }) {
   const context = await requirePlatformAdminAccess();
   const scope = await getOperationalCompanyScope(context.userId);
+  const query = searchParams ? await searchParams : {};
+  const companiesResult = await supabaseService
+    .from("companies")
+    .select("id,name,ediel_id,org_number")
+    .order("name", { ascending: true })
+    .limit(200);
+  const companies = ((companiesResult.data ?? []) as CompanyOption[]);
+  const div3rsaCompany =
+    companies.find((company) => String(company.name ?? "").toLowerCase().includes("div3rsa")) ??
+    companies.find((company) => String(company.name ?? "").toLowerCase().includes("diversa")) ??
+    null;
+  const selectedCompanyId =
+    String(query.companyId ?? "").trim() ||
+    scope.companyId ||
+    div3rsaCompany?.id ||
+    companies[0]?.id ||
+    null;
+  const selectedCompany = companies.find((company) => company.id === selectedCompanyId) ?? null;
   const systemTestRuntime = await getEdielSystemTestRuntimeContext({
-    companyId: scope.companyId,
+    companyId: selectedCompanyId,
     testSuite: "TGT",
   }).catch(() => null);
-  const query = searchParams ? await searchParams : {};
   const q = String(query.q ?? "")
     .trim()
     .toUpperCase();
@@ -793,6 +907,13 @@ export default async function EdielSystemTestsPage({
         workspaceMode="platform"
       />
 
+      <SimpleCompanySetupPanel
+        companies={companies}
+        selectedCompanyId={selectedCompanyId}
+        selectedCompany={selectedCompany}
+        runtime={systemTestRuntime}
+      />
+
       <IdentityPanel runtime={systemTestRuntime} />
 
       <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white p-5">
@@ -829,6 +950,7 @@ export default async function EdielSystemTestsPage({
               testCase={testCase}
               activeRuns={testRunsForCards}
               messages={messages}
+              companyId={selectedCompanyId}
             />
           ))}
         </div>
@@ -863,11 +985,13 @@ export default async function EdielSystemTestsPage({
             direction={direction}
             suite={suite}
             role={role}
+            companyId={selectedCompanyId}
           />
         </div>
 
         <form className="mt-4 grid gap-3 md:grid-cols-8">
           <input type="hidden" name="packet" value={packet} />
+          {selectedCompanyId ? <input type="hidden" name="companyId" value={selectedCompanyId} /> : null}
           <input
             name="q"
             defaultValue={q}
@@ -988,6 +1112,7 @@ export default async function EdielSystemTestsPage({
                   testCase={testCase}
                   activeRuns={testRunsForCards}
                   messages={messages}
+                  companyId={selectedCompanyId}
                 />
               ))}
             </div>
