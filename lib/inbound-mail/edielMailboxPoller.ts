@@ -790,7 +790,7 @@ async function storeMailboxFetchMessage(input: {
         ? [{
             filename: 'smime.p7m',
             mimeType: 'application/pkcs7-mime',
-            sizeBytes: Buffer.byteLength(rawEmail, 'utf8'),
+            sizeBytes: Buffer.byteLength(rawEmail ?? '', 'utf8'),
             rawText: smime.decryptedText ?? null,
             isEdifactCandidate: Boolean(parsedMime.rawEdifactPayload),
             metadata: {
@@ -805,7 +805,7 @@ async function storeMailboxFetchMessage(input: {
   })
 
   if (!stored.deduped && smime.detected) {
-    await supabaseService.from('ediel_message_payloads').insert({
+    const { error: payloadError } = await supabaseService.from('ediel_message_payloads').insert({
       company_id: null,
       ediel_message_id: null,
       payload_kind: 'inbound_smime',
@@ -824,9 +824,10 @@ async function storeMailboxFetchMessage(input: {
         environment: input.mailbox.environment,
       },
       status: smime.securityStatus === 'decrypted' ? 'stored' : 'manual_review',
-    }).catch((error) => {
-      console.warn('[inbound-mail] Kunde inte spara S/MIME payload-spår', error)
     })
+    if (payloadError) {
+      console.warn('[inbound-mail] Kunde inte spara S/MIME payload-spår', payloadError)
+    }
   }
 
   return stored
