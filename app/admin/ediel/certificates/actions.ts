@@ -7,6 +7,7 @@ import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { importP12Certificate, importPublicCertificatePem } from '@/lib/ediel/security/importP12Certificate'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
+import { invalidateEdielAgtReadiness } from '@/lib/ediel/testing/retestInvalidation'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -131,6 +132,40 @@ async function applyCertificateAsMailboxDefault(input: {
     },
     created_by: input.actorUserId,
   })
+}
+
+async function invalidateRoutesForCertificateChange(input: {
+  mailboxEmail: string
+  environment: 'test' | 'production'
+  certificateId: string
+  actorUserId: string
+}) {
+  const { data, error } = await supabaseService
+    .from('ediel_route_profiles')
+    .select('company_id,message_family,actor_role')
+    .eq('environment', input.environment)
+    .ilike('mailbox', input.mailboxEmail)
+
+  if (error) {
+    if (isSchemaCompatibilityError(error)) return
+    throw error
+  }
+
+  const seen = new Set<string>()
+  for (const row of data ?? []) {
+    const companyId = typeof row.company_id === 'string' ? row.company_id : null
+    if (!companyId || seen.has(companyId)) continue
+    seen.add(companyId)
+    await invalidateEdielAgtReadiness({
+      companyId,
+      actorRole: typeof row.actor_role === 'string' ? row.actor_role : null,
+      messageFamily: typeof row.message_family === 'string' ? row.message_family : null,
+      sourceType: 'certificate_change',
+      sourceId: input.certificateId,
+      reason: 'S/MIME-certifikat eller mailbox-default ändrades och AGT behöver verifieras på nytt.',
+      actorUserId: input.actorUserId,
+    })
+  }
 }
 
 async function insertCertificateRecord(input: {
@@ -435,6 +470,13 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
     created_by: context.userId,
   }).then(({ error }) => {
     if (error && !isSchemaCompatibilityError(error)) throw error
+  })
+
+  await invalidateRoutesForCertificateChange({
+    mailboxEmail,
+    environment,
+    certificateId: data.id,
+    actorUserId: context.userId,
   })
 
   revalidatePath('/admin/ediel/certificates')

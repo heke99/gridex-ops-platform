@@ -50,6 +50,8 @@ import { sendEdielMessageViaSmtp, type EdielSmtpMimeMode } from '@/lib/ediel/tra
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder'
 import { evaluateEdielProductionSendLock } from '@/lib/ediel/core/productionGuards'
 import { assertCompanyCanSendProductionEdiel } from '@/lib/ediel/productionReadiness'
+import { isProductionShadowMessage, markProductionShadowPrepared } from '@/lib/ediel/productionShadow'
+import { recordEdielExchangeLog } from '@/lib/ediel/operations/exchangeLog'
 
 export type {
   AckFamily,
@@ -347,6 +349,18 @@ export async function sendQueuedEdielMessage(params: {
     throw new Error('Meddelandet stoppades av payload preflight och skickades inte.')
   }
 
+  if (isProductionShadowMessage(message)) {
+    await markProductionShadowPrepared({
+      actorUserId,
+      message,
+    })
+    const refreshed = await getEdielMessageById(message.id)
+    if (!refreshed) {
+      throw new Error('Kunde inte läsa tillbaka shadow-förberett meddelande.')
+    }
+    return refreshed
+  }
+
   if (message.status === 'draft') {
     await updateEdielMessageStatus({
       actorUserId,
@@ -363,6 +377,28 @@ export async function sendQueuedEdielMessage(params: {
     actorUserId,
     smtpMimeMode: params.smtpMimeMode,
   })
+
+  await recordEdielExchangeLog({
+    companyId: message.company_id ?? null,
+    environmentType: message.environment === 'production' ? 'production' : 'agt_test',
+    edielMessageId: message.id,
+    routeProfileId: message.communication_route_id ?? null,
+    direction: 'outbound',
+    exchangeKind: 'smtp_send',
+    rawPayload: message.raw_payload ?? null,
+    senderEdielId: message.sender_ediel_id ?? null,
+    receiverEdielId: message.receiver_ediel_id ?? null,
+    interchangeReference: message.interchange_reference ?? null,
+    messageReference: message.message_reference ?? null,
+    messageType: message.message_family ?? null,
+    businessCode: message.message_code ?? null,
+    ackStatus: message.ack_status ?? null,
+    metadata: {
+      smtpMimeMode: params.smtpMimeMode ?? null,
+      statusBeforeSend: message.status,
+    },
+    actorUserId,
+  }).catch(() => null)
 
   const refreshed = await getEdielMessageById(message.id)
   if (!refreshed) {

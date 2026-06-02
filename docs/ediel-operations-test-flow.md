@@ -38,20 +38,29 @@ The latest environment/lock patch adds strict `environment_type` values (`tgt_te
    - `Kör krypterat test` for `encryption_mode=smime` routes with a valid certificate.
    - Verify the created `ediel_test_runs` row stores `encryption_mode`, `route_profile_id`, `certificate_fingerprint_sha256`, `expected_flow`, `actual_flow`, `raw_edifact` when an outbound builder exists, and `encrypted_payload_ref` when S/MIME packaging was prepared.
    - For AGT, verify starting a second active test for the same company/role/message family shows: `Ett AGT-test är redan aktivt`.
-6. Open `/admin/ediel/system-tests` for existing system tests and `/admin/ediel/agt` for AGT supplier regression.
-7. Run supplier PRODAT cases L1, L2, L3, L4, L5 and L7 from the existing AGT workspace.
-8. Run UTILTS regressions UL1, UL2, UL3, UL4 and UL6 from the existing UTILTS/system-test workspace.
-9. For customer-card business flows, create or select a tenant/customer/metering point and open the customer card overview. Ordinary company users should see business buttons only, not raw EDIFACT controls. Verify:
+6. Open `/admin/ediel/readiness` and verify:
+   - AGT readiness can be saved per company, actor role and message family.
+   - `needs_retest` blocks AGT until readiness is re-saved after a route/certificate/security change.
+   - Active AGT locks are visible.
+   - System clock health can be checked for `production`, `agt_test`, `tgt_test` and `bilateral_test`.
+7. Open `/admin/ediel/mailboxes` and verify:
+   - `ediel@gridex.se` is shown as shared transport.
+   - TLS, S/MIME mode, certificate id, SMTP/IMAP and polling status are visible.
+   - The page links to inbound mail diagnostics.
+8. Open `/admin/ediel/system-tests` for existing system tests and `/admin/ediel/agt` for AGT supplier regression.
+9. Run supplier PRODAT cases L1, L2, L3, L4, L5 and L7 from the existing AGT workspace.
+10. Run UTILTS regressions UL1, UL2, UL3, UL4 and UL6 from the existing UTILTS/system-test workspace.
+11. For customer-card business flows, create or select a tenant/customer/metering point and open the customer card overview. Ordinary company users should see business buttons only, not raw EDIFACT controls. Verify:
    - `Starta leverantörsbyte` creates the switch request, runs backend `actionPreflight`, then queues the backend-selected PRODAT flow.
    - `Registrera ånger`, `Avsluta avtal`, `Begär mätvärdesåtkomst`, `Begär historiska mätvärden`, `Avsluta mätvärdesåtkomst` and `Skicka bekräftelsemail` call backend business action modules.
    - Form posts do not include `company_id`; backend resolves tenant from authenticated user and customer ownership.
    - Re-submitting the same action uses the business-action idempotency key and does not create duplicate outbound sends.
-10. For energy-service flows, create or select a tenant/customer/metering point, then use backend business actions:
+12. For energy-service flows, create or select a tenant/customer/metering point, then use backend business actions:
    - `requestMeteringAccess` for Z13V.
    - `requestHistoricalMeteringAccess` for Z13VH period validation.
    - `terminateMeteringAccess` for Z18V.
-11. Import inbound Z14/Z15/UTILTS E66 messages through the mailbox cron or inbound message tools.
-12. Confirm:
+13. Import inbound Z14/Z15/UTILTS E66 messages through the mailbox cron or inbound message tools.
+14. Confirm:
    - syntax errors produce negative CONTRL only;
    - PRODAT business errors produce negative APERAK;
    - UTILTS functional/process errors produce UTILTS-ERR;
@@ -62,6 +71,17 @@ The latest environment/lock patch adds strict `environment_type` values (`tgt_te
    - production PRODAT cannot be sent unencrypted unless a superadmin override has reason and future expiry;
    - inbound S/MIME without decrypt credentials remains manual review and does not update business state;
    - unsafe tenant or object matches become unresolved items.
+15. In `/admin/ediel/control-tower`, confirm:
+   - unresolved items link to `/admin/ediel/unresolved`;
+   - mailbox/readiness quick links are visible;
+   - exchange/evidence rows are written for inbound/outbound processing when the new migration is applied;
+   - ACK SLA monitor can create `ediel_ack_sla_events` for overdue rows from `ediel_overdue_message_acks_v`;
+   - dead-letter rows are created for retryable inbound processing failures.
+16. For production readiness, run `/admin/platform/go-live` and confirm:
+   - production S/MIME certificate status is checked;
+   - TLS is required;
+   - latest system clock health is shown/used;
+   - production shadow messages are logged as `production_shadow` exchange events and SMTP delivery is skipped.
 
 ## Production readiness checklist
 
@@ -82,6 +102,8 @@ Before production:
 13. Run L1-L7, UL1-UL6, E3-E8 and UE1-UE2 in both raw and S/MIME test mode where route/certificate policy allows. Use `agt_test` for actor approval runs and `tgt_test` for system-combination proof.
 14. Confirm production PRODAT is blocked without S/MIME unless the emergency override has reason and automatic expiry.
 15. Confirm unresolved queue catches unknown Ediel IDs, missing route, missing certificate, unknown metering point and unsafe tenant matches.
+16. Confirm route/certificate/security changes invalidate relevant AGT readiness and create retest invalidation audit rows.
+17. Confirm production shadow mode builds and validates EDIFACT, stores evidence, and does not deliver SMTP until go-live is active.
 
 ## Test-center case families
 

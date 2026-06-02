@@ -1,5 +1,10 @@
-import { requestMeteringAccess } from '@/lib/operations/businessActions/requestMeteringAccess'
+import { actionPreflight } from '@/lib/operations/businessActions/actionPreflight'
 import { decideBusinessAction } from '@/lib/operations/businessActions/actionDecisionEngine'
+import { prepareAndQueueEdielZ13 } from '@/lib/ediel/orchestrator'
+import {
+  acquireBusinessActionIdempotencyKey,
+  buildBusinessActionIdempotencyKey,
+} from '@/lib/operations/businessActions/idempotency'
 
 function dateOnly(value: string): Date {
   const date = new Date(`${value.slice(0, 10)}T00:00:00.000Z`)
@@ -7,7 +12,13 @@ function dateOnly(value: string): Date {
   return date
 }
 
-export async function requestHistoricalMeteringAccess(input: Parameters<typeof requestMeteringAccess>[0] & {
+export async function requestHistoricalMeteringAccess(input: {
+  actorUserId: string
+  customerId: string
+  switchRequestId: string
+  siteId?: string | null
+  meteringPointId?: string | null
+  idempotencyKey?: string | null
   startDate: string
   endDate: string
 }) {
@@ -27,10 +38,45 @@ export async function requestHistoricalMeteringAccess(input: Parameters<typeof r
     }
   }
 
-  return requestMeteringAccess({
+  const preflight = await actionPreflight({
     ...input,
-    idempotencyKey:
-      input.idempotencyKey ??
-      `request_historical_metering_access:${input.switchRequestId}:${input.startDate}:${input.endDate}`,
+    actionType: 'request_historical_metering_access',
+    historicalStartDate: input.startDate,
+    historicalEndDate: input.endDate,
   })
+  const decision = decideBusinessAction('request_historical_metering_access')
+  if (!preflight.ok) return { ok: false, preflight, decision, message: 'Kan inte begära historiska mätvärden' }
+
+  const idempotency = await acquireBusinessActionIdempotencyKey({
+    companyId: preflight.companyId,
+    actorUserId: input.actorUserId,
+    action: decision.operation,
+    key: buildBusinessActionIdempotencyKey({
+      companyId: preflight.companyId,
+      action: decision.operation,
+      customerId: input.customerId,
+      siteId: preflight.siteId,
+      meteringPointId: preflight.meteringPointId,
+      switchRequestId: input.switchRequestId,
+      periodStart: input.startDate,
+      periodEnd: input.endDate,
+      explicitKey: input.idempotencyKey,
+    }),
+    metadata: {
+      switchRequestId: input.switchRequestId,
+      historicalStartDate: input.startDate,
+      historicalEndDate: input.endDate,
+    },
+  })
+
+  if (!idempotency.acquired) {
+    return { ok: true, preflight, decision, duplicate: true, message: 'Historisk mätvärdesbegäran är redan köad.' }
+  }
+
+  const message = await prepareAndQueueEdielZ13({
+    actorUserId: input.actorUserId,
+    switchRequestId: input.switchRequestId,
+  })
+
+  return { ok: true, preflight, decision, message }
 }

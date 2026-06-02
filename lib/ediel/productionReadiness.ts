@@ -2,6 +2,8 @@ import { supabaseService } from "@/lib/supabase/service";
 import { isMissingRelationError } from "@/lib/tenant/scope";
 import type { EdielMessageRow } from "@/lib/ediel/types";
 import { ACTOR_TEST_CASES } from "@/lib/ediel/actorTesting";
+import { evaluateCertificateStatus } from "@/lib/ediel/security/certificateStatus";
+import { getLatestSystemClockHealth } from "@/lib/ediel/operations/runtimeHealth";
 
 export type ProductionReadinessStatus =
   | "ready"
@@ -164,6 +166,10 @@ type RouteProfileRow = Record<string, unknown> & {
   route_version?: number | string | null;
   is_test_route?: boolean | null;
   is_production_route?: boolean | null;
+  certificate_id?: string | null;
+  encryption_mode?: string | null;
+  signing_mode?: string | null;
+  tls_required?: boolean | null;
 };
 
 type ActorSettingRow = Record<string, unknown> & {
@@ -203,6 +209,10 @@ type MailboxRow = Record<string, unknown> & {
   last_successful_poll_at?: string | null;
   last_poll_status?: string | null;
   locked_at?: string | null;
+  certificate_id?: string | null;
+  encryption_mode?: string | null;
+  signing_mode?: string | null;
+  tls_required?: boolean | null;
 };
 
 type SendLockRow = Record<string, unknown> & {
@@ -703,6 +713,20 @@ export async function getCompanyProductionReadiness(
     ) ??
     null;
   const sendLock = locks[0] ?? null;
+  const certificateId =
+    text(productionRoute?.certificate_id) ?? text(productionMailbox?.certificate_id);
+  const certificateRows = certificateId
+    ? await safeSelect<Record<string, unknown>>("ediel_certificates", (query) =>
+        query.select("*").eq("id", certificateId).limit(1),
+      )
+    : [];
+  const certificateStatus = certificateRows[0]
+    ? evaluateCertificateStatus(certificateRows[0])
+    : null;
+  const latestClockHealth = await getLatestSystemClockHealth({
+    companyId,
+    environmentType: "production",
+  }).catch(() => null) as Record<string, unknown> | null;
 
   const [
     latestInbound,
@@ -863,6 +887,73 @@ export async function getCompanyProductionReadiness(
       "production_actor_missing",
       "Production actor settings saknas",
       "Skapa eller synka en aktiv actor settings-rad med environment=production.",
+    );
+
+  if (productionRoute && productionRoute.tls_required !== false)
+    pass(
+      "route",
+      "production_tls_required",
+      "TLS krävs på production route",
+      "Production route är markerad med TLS-krav.",
+    );
+  else
+    block(
+      "route",
+      "production_tls_not_required",
+      "TLS-krav saknas",
+      "Production transport måste kräva TLS.",
+    );
+
+  if ((productionRoute?.encryption_mode ?? productionMailbox?.encryption_mode) === "smime")
+    pass(
+      "safety",
+      "production_smime_default",
+      "S/MIME är default för production",
+      "Production PRODAT-route/mailbox använder S/MIME.",
+    );
+  else
+    block(
+      "safety",
+      "production_smime_missing",
+      "S/MIME saknas för production",
+      "Production PRODAT ska som default vara S/MIME-krypterad.",
+    );
+
+  if (certificateStatus?.isUsableForSmime)
+    pass(
+      "safety",
+      "production_certificate_active",
+      "Certifikat är aktivt",
+      certificateStatus.message,
+    );
+  else
+    block(
+      "safety",
+      "production_certificate_missing_or_invalid",
+      "Certifikat saknas eller är ogiltigt",
+      certificateStatus?.message ?? "Koppla ett aktivt S/MIME-certifikat till production route eller mailbox.",
+    );
+
+  if (!latestClockHealth)
+    warn(
+      "safety",
+      "time_sync_unknown",
+      "Klocksynk okänd",
+      "Kör system clock health check innan kritiska production-sändningar.",
+    );
+  else if (latestClockHealth.status === "critical")
+    block(
+      "safety",
+      "time_sync_critical",
+      "Klocksynk kritisk",
+      "Runtime/server time drift är kritisk och production-sändning ska stoppas.",
+    );
+  else
+    pass(
+      "safety",
+      "time_sync_checked",
+      "Klocksynk kontrollerad",
+      `Senaste klockstatus: ${String(latestClockHealth.status ?? "okänd")}.`,
     );
   if (
     actorEdielId &&

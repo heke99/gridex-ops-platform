@@ -14,7 +14,7 @@ export async function startSupplierSwitch(input: {
   meteringPointId?: string | null
   idempotencyKey?: string | null
 }) {
-  const preflight = await actionPreflight(input)
+  const preflight = await actionPreflight({ ...input, actionType: 'start_supplier_switch' })
   const decision = decideBusinessAction('start_supplier_switch')
   if (!preflight.ok) return { ok: false, preflight, decision, message: 'Kan inte starta leverantörsbyte' }
 
