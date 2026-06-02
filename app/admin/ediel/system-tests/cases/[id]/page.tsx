@@ -122,10 +122,19 @@ function expectedResponseText(testCase: EdielTgtTestCaseDefinition): string {
 
 function StartRunForm({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
   return (
-    <form action={createEdielTgtRunFromTemplateAction}>
+    <form action={createEdielTgtRunFromTemplateAction} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="testSuite" value={testCase.suite} />
       <input type="hidden" name="roleCode" value={testCase.roleCode} />
       <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+      <select
+        name="encryptionMode"
+        defaultValue="none"
+        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+        title="Välj transportläge för just denna testkörning"
+      >
+        <option value="none">Okrypterat test</option>
+        <option value="smime">Krypterat test</option>
+      </select>
       <button
         type="submit"
         className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"

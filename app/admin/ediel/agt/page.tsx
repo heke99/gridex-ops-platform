@@ -615,12 +615,21 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
                     Öppna testmotor
                   </Link>
 
-                  <form action={createAgtSupplierTestRunAction}>
+                  <form action={createAgtSupplierTestRunAction} className="flex flex-wrap items-center gap-2">
                     <input
                       type="hidden"
                       name="test_case_code"
                       value={testCase.testCaseCode}
                     />
+                    <select
+                      name="encryption_mode"
+                      defaultValue="none"
+                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+                      title="Välj transportläge för just denna AGT-körning"
+                    >
+                      <option value="none">Okrypterat test</option>
+                      <option value="smime">Krypterat test</option>
+                    </select>
                     <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                       Skapa run {testCase.testCaseCode}
                     </button>

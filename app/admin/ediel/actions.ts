@@ -1633,6 +1633,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode")) ?? "";
+  const encryptionMode = formString(formData.get("encryptionMode")) === "smime" ? "smime" : "none";
   const definition = getEdielTgtTestCaseByCode(
     testSuite,
     roleCode,
@@ -1673,6 +1674,11 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     ].join("\n"),
     status: "running",
     startedAt: new Date().toISOString(),
+    actorRole: definition.roleCode,
+    messageFamily: definition.suite,
+    businessCode: definition.expectedSteps[0]?.code ?? null,
+    encryptionMode,
+    expectedFlow: definition.expectedSteps,
   });
 
   const autopilotResult = await runTgtAutopilotForRun({
