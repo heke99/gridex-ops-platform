@@ -189,6 +189,7 @@ export async function createProductionRouteFromWizardAction(
       : null;
   const targetEmail = text(formData, "target_email");
   const applicationReference = text(formData, "application_reference");
+  const encryptionMode = text(formData, "encryption_mode") ?? "smime";
   const blockers = validateProductionRoute({
     senderEdielId,
     receiverEdielId,
@@ -210,6 +211,7 @@ export async function createProductionRouteFromWizardAction(
     ),
     receiverName: text(formData, "receiver_name"),
     mailbox: text(formData, "mailbox"),
+    encryptionMode,
     smtpHost: text(formData, "smtp_host"),
     smtpPort: intValue(formData, "smtp_port"),
     defaultMessageVersion: text(formData, "default_message_version"),
@@ -298,6 +300,10 @@ export async function createProductionRouteFromWizardAction(
       default_test_flag: 0,
       default_timezone: 1,
       environment: "production",
+      environment_type: "production",
+      is_production_route: true,
+      production_mode: "shadow",
+      message_family: "PRODAT",
       message_standard: "edifact",
       ack_mode: normalizeAckMode(text(formData, "ack_mode")),
       smtp_host: text(formData, "smtp_host"),
@@ -305,7 +311,10 @@ export async function createProductionRouteFromWizardAction(
       imap_host: text(formData, "imap_host"),
       imap_port: intValue(formData, "imap_port"),
       mailbox: text(formData, "mailbox"),
-      encryption_mode: text(formData, "encryption_mode") ?? "none",
+      encryption_mode: encryptionMode,
+      signing_mode: encryptionMode === "smime" ? "smime" : "none",
+      tls_required: true,
+      allow_unencrypted_production: false,
       payload_format: "edifact",
       notes:
         text(formData, "notes") ??
@@ -329,6 +338,7 @@ export async function createProductionRouteFromWizardAction(
       production_application_reference: applicationReference,
       production_counterparty_ediel_id:
         receiverSource === "fixed_counterparty" ? receiverEdielId : null,
+      ediel_primary_production_route_profile_id: profile.id,
       live_blocked_reason: null,
       updated_at: now,
     })

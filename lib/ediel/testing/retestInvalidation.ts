@@ -67,7 +67,7 @@ export async function invalidateEdielAgtReadiness(input: {
         sourceId: input.sourceId ?? null,
         reason: input.reason,
       },
-      created_by: input.actorUserId ?? null,
+      actor_user_id: input.actorUserId ?? null,
     })
     .then(({ error: auditError }) => {
       if (auditError && !isSchemaCompatibilityError(auditError)) throw auditError

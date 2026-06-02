@@ -329,13 +329,22 @@ export type EdielSystemTestRuntimeContext = {
 
 async function getActiveTestActorSetting(
   companyId: string,
+  actorRole?: string | null,
 ): Promise<Record<string, unknown> | null> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from("ediel_actor_settings")
     .select("*")
     .eq("company_id", companyId)
     .eq("environment", "test")
     .eq("is_active", true)
+
+  const role = clean(actorRole);
+  if (role) {
+    const dbActorRole = role === "esco" ? "energy_service_company" : role;
+    query = query.or(`role.eq.${role},actor_role.eq.${dbActorRole}`);
+  }
+
+  const { data, error } = await query
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -351,6 +360,7 @@ async function getActiveTestActorSetting(
 export async function getEdielSystemTestRuntimeContext(params: {
   companyId?: string | null;
   testSuite?: EdielSystemTestSuite | string | null;
+  actorRole?: string | null;
 }): Promise<EdielSystemTestRuntimeContext | null> {
   const companyId = clean(params.companyId);
   if (!companyId) return null;
@@ -358,7 +368,7 @@ export async function getEdielSystemTestRuntimeContext(params: {
   const suite = (upper(params.testSuite) ?? "TGT") as EdielSystemTestSuite;
   const [settings, actor] = await Promise.all([
     getEdielSystemTestSettings({ companyId, testSuite: suite }),
-    getActiveTestActorSetting(companyId),
+    getActiveTestActorSetting(companyId, params.actorRole),
   ]);
 
   const actorEdielId = upper(actor?.ediel_id ?? actor?.actor_ediel_id);
@@ -392,6 +402,7 @@ export async function getEdielSystemTestRuntimeContext(params: {
 export async function requireEdielSystemTestRuntimeContext(params: {
   companyId?: string | null;
   testSuite?: EdielSystemTestSuite | string | null;
+  actorRole?: string | null;
 }): Promise<EdielSystemTestRuntimeContext> {
   const context = await getEdielSystemTestRuntimeContext(params);
   if (!context) {

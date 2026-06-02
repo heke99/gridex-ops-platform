@@ -130,8 +130,6 @@ async function updateWithFallback(params: {
     if (!isSchemaCompatibilityError(result.error) || !missingColumn || !(missingColumn in payload)) throw result.error
     delete payload[missingColumn]
   }
-
-  throw new Error(`Kunde inte uppdatera ${params.table}.`)
 }
 
 async function insertWithFallback(params: {
@@ -339,12 +337,12 @@ async function upsertSimpleSystemTestRoute(params: {
   certificateId?: string | null
   mailboxId?: string | null
 }) {
-  const routeScope = params.messageFamily === 'PRODAT' ? 'metering_access' : 'meter_values'
+  const routeScope = params.messageFamily === 'PRODAT' ? 'supplier_switch' : 'meter_values'
   const appRef =
     params.messageFamily === 'PRODAT'
       ? params.actorRole === 'esco' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT'
-      : params.actorRole === 'esco' ? null : '23-DDQ-E66-S'
-  const routeName = `AGT ${params.actorRole === 'esco' ? 'DGI' : 'DDQ'} ${params.messageFamily}`
+      : params.actorRole === 'esco' ? '23-DGI-E66-S' : '23-DDQ-E66-S'
+  const routeName = `TGT ${params.actorRole === 'esco' ? 'DGI' : 'DDQ'} ${params.messageFamily}`
 
   const existingRoute = await supabaseService
     .from('communication_routes')
@@ -362,11 +360,11 @@ async function upsertSimpleSystemTestRoute(params: {
     is_active: true,
     route_scope: routeScope,
     route_type: 'ediel_partner',
-    target_system: 'ediel_portalen_agt',
+    target_system: 'ediel_portalen_tgt',
     target_email: params.smtpTo,
     endpoint: params.smtpTo,
     supported_payload_version: params.messageFamily,
-    environment_type: 'agt_test',
+    environment_type: 'tgt_test',
     counterparty_ediel_id: params.receiverEdielId,
     market_party_role: 'test_portal',
     notes: 'Skapad från enkel System Tests setup.',
@@ -417,9 +415,8 @@ async function upsertSimpleSystemTestRoute(params: {
     company_id: params.companyId,
     communication_route_id: communicationRouteId,
     environment: 'test',
-    environment_type: 'agt_test',
+    environment_type: 'tgt_test',
     actor_role: params.actorRole === 'esco' ? 'energy_service_company' : 'supplier',
-    actor_subrole: params.actorRole === 'esco' ? 'DGI' : 'DDQ',
     message_family: params.messageFamily,
     sender_ediel_id: params.senderEdielId,
     sender_subaddress: null,
@@ -548,16 +545,13 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
   const mailbox = formString(formData.get('mailbox')) ?? 'ediel@gridex.se'
   const portalEdielId = formString(formData.get('portalEdielId')) ?? '91100'
   const portalEmail = formString(formData.get('portalEmail')) ?? '91100@ediel.se'
-  const testBrpEdielId = actorRole === 'supplier'
-    ? (formString(formData.get('testBrpEdielId')) ?? '91109')
-    : null
+  const testBrpEdielId = formString(formData.get('testBrpEdielId')) ?? (actorRole === 'supplier' ? '91109' : null)
   const encryptionMode = formString(formData.get('encryptionMode')) === 'smime' ? 'smime' : 'none'
   const certificateId = formString(formData.get('certificateId'))
   const prodatSubaddress = formString(formData.get('prodatSubaddress'))
   const prodatSubaddressRequired = formBool(formData.get('prodatSubaddressRequired'))
 
-  const packet = actorRole === 'supplier' ? 'agt' : 'esco'
-  const baseRedirect = `/admin/ediel/system-tests?${companyId ? `companyId=${encodeURIComponent(companyId)}&` : ''}packet=${packet}&role=${actorRole}`
+  const baseRedirect = `/admin/ediel/system-tests?${companyId ? `companyId=${encodeURIComponent(companyId)}&` : ''}packet=esco&role=${actorRole}`
 
   let redirectUrl = baseRedirect
   try {
@@ -801,7 +795,7 @@ async function auditSystemTestMaintenance(params: {
   await supabaseService.from('audit_logs').insert({
     action: params.action,
     entity_type: 'ediel_system_test',
-    entity_id: params.testRunId ?? params.edielMessageId ?? null,
+    entity_id: params.testRunId ?? params.edielMessageId ?? 'system-test-maintenance',
     actor_user_id: params.actorUserId,
     metadata: {
       testRunId: params.testRunId ?? null,
@@ -1276,6 +1270,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
   const roleRaw = String(formString(formData.get('roleCode')) ?? 'esco').trim().toLowerCase()
   const suite: EdielTestSuite = suiteRaw === 'PRODAT' || suiteRaw === 'UTILTS' || suiteRaw === 'AI_LIST' || suiteRaw === 'NBS_XML' ? suiteRaw : 'OTHER'
   const roleCode: EdielTestRoleCode = roleRaw === 'supplier' || roleRaw === 'grid_owner' || roleRaw === 'balance_responsible' || roleRaw === 'esco' ? roleRaw : 'esco'
+  const companyId = formString(formData.get('companyId'))
   const mailbox = formString(formData.get('mailbox'))
   const mailboxLabel = mailbox ?? 'aktiv testmailbox'
   const limitRaw = formString(formData.get('limit'))
@@ -1293,7 +1288,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
   let targetRunId: string | null = null
 
   try {
-    const existingRuns = await listEdielTestRuns().catch(() => [])
+    const existingRuns = await listEdielTestRuns({ companyId }).catch(() => [])
     const activeRun = existingRuns.find((run) =>
       normalizeCode(run.test_suite) === normalizeCode(definition.suite) &&
       normalizeCode(run.role_code) === normalizeCode(definition.roleCode) &&
@@ -1318,6 +1313,11 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
         ].join('\n'),
         status: 'running',
         startedAt,
+        companyId,
+        actorRole: definition.roleCode,
+        messageFamily: definition.suite,
+        businessCode: definition.expectedSteps[0]?.code ?? null,
+        environmentType: 'tgt_test',
       })
       targetRunId = createdRun.id
     }
@@ -1346,6 +1346,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(formData: FormData) 
     for (const message of messagesForSync) {
       const attachResult = await autoAttachImportedMessageToActiveTgtRun({
         edielMessage: message,
+        companyId,
         explicitTestCaseCode: definition.testCaseCode,
       })
 

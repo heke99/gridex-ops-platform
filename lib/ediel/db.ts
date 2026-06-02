@@ -1227,6 +1227,8 @@ export async function attachEdielMessageToTestRun(
         artifact_type: 'rulebook_message_validation',
         title: 'Rulebook-validering för kopplat Ediel-meddelande',
         payload: { parsed, validation },
+        parsed_payload: parsed ?? {},
+        validation_report: validation ?? {},
       }).then(({ error: artifactError }) => {
         if (artifactError && artifactError.code !== '23505') console.warn('Rulebook artifact could not be created', artifactError)
       })

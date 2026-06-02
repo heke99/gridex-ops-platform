@@ -1651,7 +1651,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
   }
 
   await requireCompanyOperationalForWrites(companyId);
-  await requireEdielSystemTestRuntimeContext({ companyId, testSuite: "TGT" });
+  await requireEdielSystemTestRuntimeContext({ companyId, testSuite: "TGT", actorRole: roleCode });
 
   if (!definition) {
     throw new Error(

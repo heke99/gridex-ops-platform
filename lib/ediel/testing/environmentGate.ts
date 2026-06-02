@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { getCompanyProductionReadiness } from '@/lib/ediel/productionReadiness'
 
 export type EdielEnvironmentType = 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production'
 
@@ -76,7 +77,13 @@ export async function evaluateEdielEnvironmentGate(input: {
   }
 
   if (environmentType === 'production') {
-    warnings.push('Produktionskörning kräver go-live checklist, aktiv route och shadow/live-läge enligt production guard.')
+    const readiness = await getCompanyProductionReadiness(input.companyId)
+    if (readiness.blockingIssues.length > 0) {
+      blockingIssues.push(...readiness.blockingIssues.map((issue) => issue.message))
+    }
+    if (readiness.warningIssues.length > 0) {
+      warnings.push(...readiness.warningIssues.map((issue) => issue.message))
+    }
   }
 
   return {

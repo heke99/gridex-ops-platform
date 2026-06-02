@@ -919,7 +919,7 @@ export async function getCompanyProductionReadiness(
       "Production PRODAT ska som default vara S/MIME-krypterad.",
     );
 
-  if (certificateStatus?.isUsableForSmime)
+  if (certificateStatus?.isUsableForSmime && !["critical", "expired"].includes(certificateStatus.status))
     pass(
       "safety",
       "production_certificate_active",
