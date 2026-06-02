@@ -2,7 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { prepareEdielTestCenterRunAction } from '@/app/admin/ediel/test-center/actions'
+import { prepareEdielTestCenterRunAction, releaseEdielTestRunLockAction } from '@/app/admin/ediel/test-center/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +43,16 @@ type RecentRunRow = {
   failure_reason?: string | null
 }
 
+type ActiveLockRow = {
+  id: string
+  company_id: string | null
+  actor_role: string
+  message_family: string
+  environment_type: string
+  locked_at: string | null
+  expires_at: string | null
+}
+
 async function listRecentRuns(): Promise<{
   runs: RecentRunRow[]
   warning: string | null
@@ -71,18 +81,30 @@ async function listRecentRuns(): Promise<{
   }
 }
 
+async function listActiveLocks(): Promise<ActiveLockRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_test_run_locks')
+    .select('id,company_id,actor_role,message_family,environment_type,locked_at,expires_at')
+    .is('released_at', null)
+    .order('locked_at', { ascending: false })
+    .limit(20)
+  if (error) return []
+  return (data ?? []) as ActiveLockRow[]
+}
+
 export default async function EdielTestCenterPage({ searchParams }: TestCenterPageProps) {
   const context = await requirePlatformAdminAccess()
   const resolvedSearchParams = await searchParams
   const runStatus = resolvedSearchParams?.runStatus === 'success' ? 'success' : resolvedSearchParams?.runStatus === 'error' ? 'error' : null
   const runMessage = resolvedSearchParams?.runMessage ?? null
-  const [{ data: companies }, recentRunsResult] = await Promise.all([
+  const [{ data: companies }, recentRunsResult, activeLocks] = await Promise.all([
     supabaseService
       .from('companies')
       .select('id,name')
       .order('name', { ascending: true })
       .limit(100),
     listRecentRuns(),
+    listActiveLocks(),
   ])
   const recentRuns = recentRunsResult.runs
 
@@ -199,6 +221,29 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
             </button>
           </form>
         </section>
+
+        {activeLocks.length > 0 ? (
+          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-800">AGT test lock</p>
+            <h2 className="mt-2 text-xl font-black text-amber-950">Ett AGT-test är redan aktivt</h2>
+            <p className="mt-2 text-sm leading-6 text-amber-900">
+              Avsluta eller markera det som misslyckat innan du startar ett nytt.
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {activeLocks.map((lock) => (
+                <div key={lock.id} className="rounded-2xl border border-amber-300 bg-white p-4">
+                  <div className="font-bold text-slate-950">{lock.environment_type} · {lock.actor_role} · {lock.message_family}</div>
+                  <div className="mt-1 text-xs text-slate-600">Bolag: {lock.company_id ?? '—'} · Expires: {lock.expires_at ?? '—'}</div>
+                  <form action={releaseEdielTestRunLockAction} className="mt-3 flex gap-2">
+                    <input type="hidden" name="lockId" value={lock.id} />
+                    <input type="hidden" name="releaseReason" value="Manual release from Test Center." />
+                    <button className="rounded-xl border border-amber-300 px-3 py-2 text-xs font-bold text-amber-900">Släpp lås</button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">

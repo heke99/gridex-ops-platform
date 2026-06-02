@@ -312,7 +312,7 @@ export default async function EdielControlTowerPage() {
           <StatCard label="Försenade kvittenser" value={overdueAcks} href="/admin/ediel/messages" tone={overdueAcks > 0 ? 'danger' : 'success'} />
           <StatCard label="Negativa APERAK" value={negativeAperaks} href="/admin/ediel/messages" tone={negativeAperaks > 0 ? 'warning' : 'success'} />
           <StatCard label="Dubblett/blockerat" value={duplicateBlocked} href="/admin/ediel/messages" tone={duplicateBlocked > 0 ? 'warning' : 'success'} />
-          <StatCard label="Oupplösta Ediel" value={unresolvedEdielItems} href="/admin/ediel/messages" tone={unresolvedEdielItems > 0 ? 'danger' : 'success'} />
+          <StatCard label="Oupplösta Ediel" value={unresolvedEdielItems} href="/admin/ediel/unresolved" tone={unresolvedEdielItems > 0 ? 'danger' : 'success'} />
           <StatCard label="Outbound köad" value={outboundQueued} href="/admin/ediel/messages?direction=outbound" tone={outboundQueued > 0 ? 'warning' : 'success'} />
           <StatCard label="Outbound saknar route" value={unresolvedRoutes} href="/admin/outbound/unresolved" tone={unresolvedRoutes > 0 ? 'danger' : 'success'} />
           <StatCard
@@ -389,6 +389,8 @@ export default async function EdielControlTowerPage() {
             {tenantScope.isPlatformAdmin ? (
               <>
                 <Link href="/admin/ediel/routes" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Adressering & routes</Link>
+                <Link href="/admin/ediel/mailboxes" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Mailbox & polling</Link>
+                <Link href="/admin/ediel/readiness" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Readiness</Link>
                 <Link href="/admin/ediel/settings" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Ediel-inställningar</Link>
                 <Link href="/admin/ediel/system-tests" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Systemtest & ACK</Link>
               </>

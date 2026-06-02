@@ -433,6 +433,12 @@ export default async function AdminEdielRoutesPage() {
  <option value="test">test</option>
  <option value="production">production</option>
  </select>
+ <select name="environmentType" defaultValue="agt_test" className={selectClassName()}>
+ <option value="tgt_test">tgt_test</option>
+ <option value="agt_test">agt_test</option>
+ <option value="bilateral_test">bilateral_test</option>
+ <option value="production">production</option>
+ </select>
  <input
  name="target_system"
  defaultValue="ediel"
@@ -756,6 +762,12 @@ Nöd-override: tillåt okrypterad production PRODAT
 <input name="allowUnencryptedProductionReason" defaultValue={runtime?.allow_unencrypted_production_reason ?? ''} placeholder="Orsak krävs för nöd-override" className={`${textInputClassName()} md:col-span-2`} />
  <select name="environment" defaultValue={runtime?.environment ?? 'test'} className={selectClassName()}>
  <option value="test">test</option>
+ <option value="production">production</option>
+ </select>
+ <select name="environmentType" defaultValue={(runtime as Record<string, unknown> | null)?.environment_type as string ?? (runtime?.environment === 'production' ? 'production' : 'agt_test')} className={selectClassName()}>
+ <option value="tgt_test">tgt_test</option>
+ <option value="agt_test">agt_test</option>
+ <option value="bilateral_test">bilateral_test</option>
  <option value="production">production</option>
  </select>
  <select name="defaultTestFlag" defaultValue={runtime?.default_test_flag ?? 1} className={selectClassName()}>

@@ -8,6 +8,7 @@ import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatu
 import { createSmimeEncryptedPayloadReference } from '@/lib/ediel/transport/smime'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
+import { assertEdielEnvironmentGate } from '@/lib/ediel/testing/environmentGate'
 
 type TestEncryptionMode = 'none' | 'smime'
 export type EdielEnvironmentType = 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production'
@@ -234,6 +235,13 @@ export async function prepareEdielTestRunTransportMetadata(input: {
       throw new Error(`Testet kan inte startas förrän certifikat/route är komplett: ${certStatus.message}`)
     }
   }
+
+  await assertEdielEnvironmentGate({
+    companyId: input.companyId,
+    actorRole: roleCode,
+    messageFamily,
+    environmentType,
+  })
 
   await acquireAgtRunLock({
     companyId: input.companyId,

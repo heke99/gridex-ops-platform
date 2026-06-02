@@ -9,6 +9,7 @@ import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { saveCommunicationRoute } from '@/lib/cis/db'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
+import { invalidateEdielAgtReadiness } from '@/lib/ediel/testing/retestInvalidation'
 import type {
   EdielEncryptionMode,
   EdielPayloadFormat,
@@ -149,6 +150,7 @@ async function upsertEdielRouteProfileLocal(input: {
   defaultTestFlag: 0 | 1
   defaultTimezone: number | null
   environment: 'test' | 'production'
+  environmentType: 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production'
   messageStandard: 'edifact' | 'xml' | 'ai_list'
   ackMode: EdielRouteProfileAckMode
   smtpHost: string | null
@@ -235,6 +237,7 @@ async function upsertEdielRouteProfileLocal(input: {
     default_test_flag: input.defaultTestFlag ?? existing?.default_test_flag ?? actorDefaults?.testFlag ?? 1,
     default_timezone: input.defaultTimezone ?? existing?.default_timezone ?? actorDefaults?.timezone ?? 1,
     environment: input.environment,
+    environment_type: input.environmentType,
     message_standard: input.messageStandard,
     ack_mode: input.ackMode,
     smtp_host: coalesceString(input.smtpHost, existing?.smtp_host ?? null),
@@ -318,6 +321,9 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
   await assertCommunicationRouteBelongsToCompany(supabase, communicationRouteId, companyId)
   const environment =
     (stringValue(formData, 'environment') as 'test' | 'production' | null) ?? 'test'
+  const environmentType =
+    (stringValue(formData, 'environmentType') as 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production' | null) ??
+    (environment === 'production' ? 'production' : 'agt_test')
 
   await upsertEdielRouteProfileLocal({
     actorUserId: userId,
@@ -337,6 +343,7 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     defaultTestFlag: intValue(formData, 'defaultTestFlag') === 0 ? 0 : 1,
     defaultTimezone: intValue(formData, 'defaultTimezone'),
     environment,
+    environmentType,
     messageStandard: normalizeMessageStandard(stringValue(formData, 'messageStandard')),
     ackMode: normalizeAckMode(stringValue(formData, 'ackMode')),
     smtpHost: stringValue(formData, 'smtpHost'),
@@ -352,6 +359,14 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     allowUnencryptedProductionReason: stringValue(formData, 'allowUnencryptedProductionReason'),
     payloadFormat: normalizePayloadFormat(stringValue(formData, 'payloadFormat')),
     notes: stringValue(formData, 'notes'),
+  })
+
+  await invalidateEdielAgtReadiness({
+    companyId,
+    sourceType: 'route_change',
+    sourceId: communicationRouteId,
+    reason: 'Route profile/adressering ändrades och AGT behöver verifieras på nytt.',
+    actorUserId: userId,
   })
 
   revalidateEdielPaths(
@@ -405,6 +420,14 @@ export async function saveEdielCommunicationRouteAction(formData: FormData) {
     notes: stringValue(formData, 'route_notes'),
   })
 
+  await invalidateEdielAgtReadiness({
+    companyId,
+    sourceType: 'route_change',
+    sourceId: saved.id,
+    reason: 'Communication route ändrades och AGT behöver verifieras på nytt.',
+    actorUserId: userId,
+  })
+
   revalidateEdielPaths(stringValue(formData, 'customerId'), saved.id)
 }
 
@@ -414,6 +437,9 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
   const { userId, companyId } = await getActorContext()
   const environment =
     (stringValue(formData, 'environment') as 'test' | 'production' | null) ?? 'test'
+  const environmentType =
+    (stringValue(formData, 'environmentType') as 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production' | null) ??
+    (environment === 'production' ? 'production' : 'agt_test')
 
   const routeName =
     stringValue(formData, 'route_name') ??
@@ -459,6 +485,7 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
     defaultTestFlag: intValue(formData, 'defaultTestFlag') === 0 ? 0 : 1,
     defaultTimezone: intValue(formData, 'defaultTimezone'),
     environment,
+    environmentType,
     messageStandard: normalizeMessageStandard(stringValue(formData, 'messageStandard')),
     ackMode: normalizeAckMode(stringValue(formData, 'ackMode')),
     smtpHost: stringValue(formData, 'smtpHost'),
@@ -474,6 +501,14 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
     allowUnencryptedProductionReason: stringValue(formData, 'allowUnencryptedProductionReason'),
     payloadFormat: normalizePayloadFormat(stringValue(formData, 'payloadFormat')),
     notes: stringValue(formData, 'profile_notes'),
+  })
+
+  await invalidateEdielAgtReadiness({
+    companyId,
+    sourceType: 'route_change',
+    sourceId: saved.id,
+    reason: 'Ny Ediel bootstrap-route skapades och AGT behöver verifieras.',
+    actorUserId: userId,
   })
 
   revalidateEdielPaths(null, saved.id)
@@ -553,6 +588,7 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
     defaultTestFlag: existingProfile?.default_test_flag ?? 1,
     defaultTimezone: existingProfile?.default_timezone ?? 1,
     environment: existingProfile?.environment ?? 'test',
+    environmentType: ((existingProfile as Record<string, unknown> | null)?.environment_type as 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production' | undefined) ?? (existingProfile?.environment === 'production' ? 'production' : 'agt_test'),
     messageStandard: existingProfile?.message_standard ?? 'edifact',
     ackMode: existingProfile?.ack_mode ?? 'default',
     smtpHost: existingProfile?.smtp_host ?? null,
@@ -609,6 +645,7 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
     defaultTestFlag: existingProfile?.default_test_flag ?? 1,
     defaultTimezone: existingProfile?.default_timezone ?? 1,
     environment: existingProfile?.environment ?? 'test',
+    environmentType: ((existingProfile as Record<string, unknown> | null)?.environment_type as 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production' | undefined) ?? (existingProfile?.environment === 'production' ? 'production' : 'agt_test'),
     messageStandard: existingProfile?.message_standard ?? 'edifact',
     ackMode: existingProfile?.ack_mode ?? 'default',
     smtpHost: existingProfile?.smtp_host ?? null,

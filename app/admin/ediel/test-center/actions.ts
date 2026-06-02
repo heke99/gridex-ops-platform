@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { prepareEdielTestRunTransportMetadata } from '@/lib/ediel/testing/testRunTransportMetadata'
+import { supabaseService } from '@/lib/supabase/service'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -48,4 +49,26 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
     message = error instanceof Error ? error.message : String(error)
   }
   redirect(`/admin/ediel/test-center?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
+}
+
+export async function releaseEdielTestRunLockAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const lockId = stringValue(formData, 'lockId')
+  if (!lockId) throw new Error('Testlås saknas.')
+
+  const { error } = await supabaseService
+    .from('ediel_test_run_locks')
+    .update({
+      released_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      metadata: {
+        releasedBy: context.userId,
+        releaseReason: stringValue(formData, 'releaseReason') ?? 'Manual release from Test Center.',
+      },
+    })
+    .eq('id', lockId)
+
+  if (error) throw error
+  revalidatePath('/admin/ediel/test-center')
+  revalidatePath('/admin/ediel/readiness')
 }

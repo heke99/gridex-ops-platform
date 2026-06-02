@@ -14,7 +14,7 @@ export async function requestMeteringAccess(input: {
   meteringPointId?: string | null
   idempotencyKey?: string | null
 }) {
-  const preflight = await actionPreflight(input)
+  const preflight = await actionPreflight({ ...input, actionType: 'request_metering_access' })
   const decision = decideBusinessAction('request_metering_access')
   if (!preflight.ok) return { ok: false, preflight, decision, message: 'Kan inte begära mätvärden' }
 

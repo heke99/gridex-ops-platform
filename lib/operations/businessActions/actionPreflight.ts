@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { evaluateEdielDeadline } from '@/lib/ediel/calendar/deadlineCalculator'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 
 export type BusinessActionPreflightIssue = {
@@ -22,6 +23,10 @@ export async function actionPreflight(input: {
   customerId: string
   siteId?: string | null
   meteringPointId?: string | null
+  actionType?: string | null
+  requestedDate?: string | null
+  historicalStartDate?: string | null
+  historicalEndDate?: string | null
 }): Promise<BusinessActionPreflightResult> {
   const scopedCompanyId = await requireOperationalCompanyId(input.actorUserId)
   const { data: customer, error: customerError } = await supabaseService
@@ -65,6 +70,28 @@ export async function actionPreflight(input: {
   if (!meteringPoint?.id) issues.push({ code: 'metering_point_missing', label: 'Anläggnings-id', blocking: true })
   const gridOwnerId = String(meteringPoint?.grid_owner_id ?? site?.grid_owner_id ?? '').trim() || null
   if (!gridOwnerId) issues.push({ code: 'grid_owner_missing', label: 'Nätägare', blocking: true })
+
+  if (input.actionType) {
+    const deadline = await evaluateEdielDeadline({
+      actionType: input.actionType,
+      messageFamily: 'PRODAT',
+      businessCode:
+        input.actionType === 'request_historical_metering_access'
+          ? 'Z13VH'
+          : input.actionType === 'terminate_metering_access'
+            ? 'Z18'
+            : input.actionType === 'start_supplier_switch'
+              ? 'Z03'
+              : 'Z13',
+      requestedDate: input.requestedDate,
+      historicalStartDate: input.historicalStartDate,
+      historicalEndDate: input.historicalEndDate,
+    })
+
+    for (const message of deadline.issues) {
+      issues.push({ code: 'market_deadline_failed', label: message, blocking: true })
+    }
+  }
 
   return {
     ok: !issues.some((issue) => issue.blocking),
