@@ -59,7 +59,6 @@ import {
   runUtiltsRuntimeForMessage,
   serializeUtiltsRuntimeUtiltsErrMessageText,
 } from "@/lib/ediel/utiltsEngine";
-import { formatErrorMessage } from "@/lib/errors";
 import {
   buildProdatZ03FromSwitch,
   buildProdatZ04FromSwitch,
@@ -140,7 +139,10 @@ import {
 } from "@/lib/ediel/agtEngine";
 import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustomer";
 import { getEdielAgtSupplierRuntime } from "@/lib/ediel/agtRuntime";
-import { requireEdielSystemTestRuntimeContext } from "@/lib/ediel/systemTestSettings";
+import {
+  getEdielSystemTestSettings,
+  requireEdielSystemTestRuntimeContext,
+} from "@/lib/ediel/systemTestSettings";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 import { createSafeMasterdataProposalForMessage } from "@/lib/ediel/operationalVerification";
 import {
@@ -1337,12 +1339,11 @@ export async function sendEdielMessageAction(formData: FormData) {
     await sendQueuedEdielMessage({
       actorUserId: context.userId,
       edielMessageId,
-      smtpMimeMode: "ediel-singlepart-base64",
     });
 
     await revalidateRelatedMessage(edielMessageId);
   } catch (error) {
-    const errorMessage = formatErrorMessage(error, "Skick stoppades av ett okänt fel.");
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     try {
       await createEdielMessageEvent({
@@ -1531,7 +1532,7 @@ export async function registerEdielFileAction(formData: FormData) {
           message: "Aktörstest-synk kunde inte slutföras automatiskt.",
           payload: {
             actorTesting: true,
-            error: formatErrorMessage(error, "Importen misslyckades av ett okänt fel."),
+            error: error instanceof Error ? error.message : String(error),
           },
         });
       });
@@ -1590,7 +1591,6 @@ export async function createEdielAgtOutboundCommandAction(formData: FormData) {
   const sent = await sendQueuedEdielMessage({
     actorUserId: context.userId,
     edielMessageId: message.id,
-    smtpMimeMode: "ediel-singlepart-base64",
   });
 
   await revalidateRelatedMessage(sent.id);
@@ -1651,6 +1651,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
   }
 
   await requireCompanyOperationalForWrites(companyId);
+  const systemTestSettings = await getEdielSystemTestSettings({ companyId, testSuite: "TGT" });
   await requireEdielSystemTestRuntimeContext({ companyId, testSuite: "TGT", actorRole: roleCode });
 
   if (!definition) {
@@ -1679,6 +1680,8 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     messageFamily: definition.suite,
     businessCode: definition.expectedSteps[0]?.code ?? null,
     encryptionMode,
+    routeProfileId: systemTestSettings?.routeProfileId ?? null,
+    environmentType: "tgt_test",
     expectedFlow: definition.expectedSteps,
   });
 
@@ -1686,7 +1689,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     actorUserId: context.userId,
     testRunId: testRun.id,
   }).catch(async (error) => {
-    const message = formatErrorMessage(error, "Okänt autopilotfel.");
+    const message = error instanceof Error ? error.message : String(error);
     await updateEdielTestRunStatus({
       actorUserId: context.userId,
       testRunId: testRun.id,
@@ -3304,7 +3307,6 @@ async function createAndSendTgtAperakPreset(params: {
   await sendQueuedEdielMessage({
     actorUserId: params.actorUserId,
     edielMessageId: ackMessage.id,
-    smtpMimeMode: "ediel-singlepart-base64",
   });
 
   await createEdielMessageEvent({

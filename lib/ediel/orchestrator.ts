@@ -10,7 +10,6 @@ import {
   type EdielAckScope,
 } from '@/lib/ediel/ack'
 import { createEdielMessageEvent, getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
-import { formatErrorMessage } from '@/lib/errors'
 import {
   createCanonicalAckMessage,
   resolveCanonicalOutboundContext,
@@ -53,6 +52,7 @@ import { evaluateEdielProductionSendLock } from '@/lib/ediel/core/productionGuar
 import { assertCompanyCanSendProductionEdiel } from '@/lib/ediel/productionReadiness'
 import { isProductionShadowMessage, markProductionShadowPrepared } from '@/lib/ediel/productionShadow'
 import { recordEdielExchangeLog } from '@/lib/ediel/operations/exchangeLog'
+import { assertEdielSendContextConsistency } from '@/lib/ediel/sendContextConsistency'
 
 export type {
   AckFamily,
@@ -298,7 +298,7 @@ export async function sendQueuedEdielMessage(params: {
         message,
       })
     } catch (error) {
-      const errorMessage = formatErrorMessage(error, 'Production outbound guard blockerade skick av ett okänt fel.')
+      const errorMessage = error instanceof Error ? error.message : String(error)
       await createEdielMessageEvent({
         actorUserId,
         edielMessageId: message.id,
@@ -374,9 +374,32 @@ export async function sendQueuedEdielMessage(params: {
     )
   }
 
+  const sendConsistency = await assertEdielSendContextConsistency({
+    message,
+    actorUserId,
+    smtpMimeModeOverride: params.smtpMimeMode,
+  })
+
+  await createEdielMessageEvent({
+    actorUserId,
+    edielMessageId: message.id,
+    eventType: 'manual_note',
+    eventStatus: 'success',
+    message: 'Ediel send context verifierades före SMTP-skick.',
+    payload: {
+      phase: 'send_context_consistency',
+      selectedEncryptionMode: sendConsistency.selectedEncryptionMode,
+      resolvedEncryptionMode: sendConsistency.resolvedEncryptionMode,
+      resolvedSmtpMimeMode: sendConsistency.resolvedSmtpMimeMode,
+      linkedTestRunIds: sendConsistency.linkedTestRunIds,
+      routeProfileId: sendConsistency.routeProfileId,
+      communicationRouteId: sendConsistency.communicationRouteId,
+    },
+  }).catch(() => null)
+
   await sendEdielMessageViaSmtp(message, {
     actorUserId,
-    smtpMimeMode: params.smtpMimeMode,
+    smtpMimeMode: sendConsistency.resolvedSmtpMimeMode,
   })
 
   await recordEdielExchangeLog({
@@ -396,6 +419,11 @@ export async function sendQueuedEdielMessage(params: {
     ackStatus: message.ack_status ?? null,
     metadata: {
       smtpMimeMode: params.smtpMimeMode ?? null,
+      resolvedSmtpMimeMode: sendConsistency.resolvedSmtpMimeMode,
+      selectedEncryptionMode: sendConsistency.selectedEncryptionMode,
+      resolvedEncryptionMode: sendConsistency.resolvedEncryptionMode,
+      linkedTestRunIds: sendConsistency.linkedTestRunIds,
+      routeProfileId: sendConsistency.routeProfileId,
       statusBeforeSend: message.status,
     },
     actorUserId,
