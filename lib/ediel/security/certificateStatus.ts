@@ -15,6 +15,7 @@ export type CertificateRenewalStatus =
   | 'expiring'
   | 'critical'
   | 'expired'
+  | 'pending_identifier'
   | 'validation_failed'
 
 export type CertificateStatusEvaluation = {
@@ -48,6 +49,18 @@ export function evaluateCertificateStatus(
   const renewalWindowDays = input.renewal_window_days ?? 60
   const warningDays = input.warning_days_before_expiry ?? 45
   const criticalDays = input.critical_days_before_expiry ?? 14
+
+  if (String(input.status ?? '').toLowerCase() === 'pending_identifier') {
+    return {
+      status: 'pending_identifier',
+      isUsableForSmime: false,
+      validFrom: validFrom?.toISOString() ?? null,
+      validTo: validTo?.toISOString() ?? null,
+      daysUntilExpiry: null,
+      renewalAvailableFrom: null,
+      message: 'Unik identifierare är sparad. Väntar på certifikat/PEM/P12 innan S/MIME kan användas.',
+    }
+  }
 
   if (String(input.status ?? '').toLowerCase() === 'validation_failed') {
     return {

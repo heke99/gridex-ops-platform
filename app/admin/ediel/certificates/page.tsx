@@ -42,6 +42,14 @@ function textFromMetadata(row: CertificateDisplayRow, key: string): string | nul
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function uniqueIdentifierFromMetadata(row: CertificateDisplayRow): string | null {
+  return (
+    textFromMetadata(row, 'uniqueIdentifier') ??
+    textFromMetadata(row, 'certificateUniqueIdentifier') ??
+    textFromMetadata(row, 'expisoftUniqueIdentifier')
+  )
+}
+
 async function listCertificateRows(): Promise<{
   rows: CertificateDisplayRow[]
   warning: string | null
@@ -125,8 +133,14 @@ export default async function EdielCertificatesPage({ searchParams }: Certificat
               placeholder="Klistra in PEM-certifikat (-----BEGIN CERTIFICATE-----...) eller base64-kodad .p12/.pfx"
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2 xl:col-span-4"
             />
+            <textarea
+              name="uniqueIdentifier"
+              rows={3}
+              placeholder="Eller klistra bara in Unika identifieraren här (ingen PDF behövs). Den sparas som väntande identifierare tills certifikatet finns."
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2 xl:col-span-4"
+            />
             <p className="text-xs leading-5 text-slate-600 md:col-span-2 xl:col-span-4">
-              När certifikatet sparas sätts mailboxens encryption_mode till smime för vald miljö. Route-profiler som använder samma mailbox kan lämna Certificate id tomt och ärver mailbox-defaulten.
+              När ett riktigt certifikat sparas sätts mailboxens encryption_mode till smime för vald miljö. Om du bara sparar Unika identifieraren påverkas inte kryptering ännu; den används som spårning inför certifikatbeställning/aktivering.
             </p>
             <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
               Spara certifikat och mailbox-default
@@ -147,12 +161,16 @@ export default async function EdielCertificatesPage({ searchParams }: Certificat
                 const subject = row.subject ?? textFromMetadata(row, 'subject') ?? 'Subject saknas'
                 const scope = row.scope ?? textFromMetadata(row, 'scope') ?? 'platform_shared'
                 const environment = row.environment ?? textFromMetadata(row, 'environment') ?? 'test'
+                const uniqueIdentifier = uniqueIdentifierFromMetadata(row)
                 return (
                 <tr key={row.id} className="border-t border-slate-100">
                   <td className="p-4">
                     <div className="font-semibold text-slate-950">{displayName}</div>
                     <div className="mt-1 font-mono text-xs text-slate-600">{fingerprint ?? 'Fingerprint saknas'}</div>
                     <div className="mt-1 text-xs text-slate-600">{subject}</div>
+                    {uniqueIdentifier ? (
+                      <div className="mt-1 text-xs font-semibold text-amber-700">Unik identifierare: {uniqueIdentifier}</div>
+                    ) : null}
                   </td>
                   <td className="p-4">{scope} · {environment}</td>
                   <td className="p-4">{row.company_id ?? 'Platform'}</td>

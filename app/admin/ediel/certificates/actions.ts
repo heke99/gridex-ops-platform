@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { createHash } from 'crypto'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { importP12Certificate, importPublicCertificatePem } from '@/lib/ediel/security/importP12Certificate'
@@ -36,6 +37,16 @@ function cleanPastedCertificate(value: string | null): string | null {
   if (!value) return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function cleanUniqueIdentifier(value: string | null): string | null {
+  if (!value) return null
+  const trimmed = value.trim().replace(/\s+/g, ' ')
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function identifierFingerprint(value: string): string {
+  return `UNIQUE-ID-${createHash('sha256').update(value).digest('hex').slice(0, 32).toUpperCase()}`
 }
 
 function decodePastedP12(value: string): Buffer {
@@ -212,6 +223,87 @@ async function insertCertificateRecord(input: {
   return legacy.data
 }
 
+async function registerCertificateUniqueIdentifier(input: {
+  actorUserId: string
+  scope: string
+  environment: 'test' | 'production'
+  displayName: string | null
+  mailboxEmail: string
+  uniqueIdentifier: string
+}) {
+  const now = new Date().toISOString()
+  const fingerprint = identifierFingerprint(`${input.environment}:${input.mailboxEmail}:${input.uniqueIdentifier}`)
+  const displayName = input.displayName ?? `Unik identifierare ${input.mailboxEmail}`
+  const metadata = {
+    uniqueIdentifier: input.uniqueIdentifier,
+    certificateUniqueIdentifier: input.uniqueIdentifier,
+    mailboxEmail: input.mailboxEmail,
+    scope: input.scope,
+    environment: input.environment,
+    displayName,
+    pendingCertificateMaterial: true,
+    privateMaterialStoredAsSecretReferenceOnly: true,
+    passwordStored: false,
+    note: 'Endast Unika identifieraren är sparad. Detta är inte ett användbart S/MIME-certifikat ännu.',
+  }
+
+  const rich = await supabaseService
+    .from('ediel_certificates')
+    .insert({
+      company_id: null,
+      scope: input.scope,
+      environment: input.environment,
+      certificate_type: 'smime',
+      display_name: displayName,
+      subject: `Unik identifierare: ${input.uniqueIdentifier}`,
+      issuer: null,
+      serial_number: input.uniqueIdentifier,
+      fingerprint_sha256: fingerprint,
+      certificate_fingerprint: fingerprint,
+      public_certificate_pem: null,
+      p12_secret_reference: `pending://ediel-certificates/${fingerprint}/unique-identifier`,
+      private_key_secret_reference: null,
+      p12_alias: null,
+      valid_from: null,
+      valid_to: null,
+      certificate_valid_from: null,
+      certificate_valid_to: null,
+      secret_reference: `pending://ediel-certificates/${fingerprint}/unique-identifier`,
+      encryption_status: 'pending_identifier',
+      status: 'pending_identifier',
+      last_validation_at: now,
+      created_by: input.actorUserId,
+      updated_by: input.actorUserId,
+      metadata,
+    })
+    .select('id')
+    .single()
+
+  if (!rich.error) return rich.data
+  if (!isSchemaCompatibilityError(rich.error)) throw rich.error
+
+  const legacy = await supabaseService
+    .from('ediel_certificates')
+    .insert({
+      company_id: null,
+      certificate_fingerprint: fingerprint,
+      certificate_valid_from: null,
+      certificate_valid_to: null,
+      secret_reference: `pending://ediel-certificates/${fingerprint}/unique-identifier`,
+      encryption_status: 'pending_identifier',
+      status: 'pending_identifier',
+      last_validation_at: now,
+      created_by: input.actorUserId,
+      updated_by: input.actorUserId,
+      metadata,
+    })
+    .select('id')
+    .single()
+
+  if (legacy.error) throw legacy.error
+  return legacy.data
+}
+
 async function importEdielP12Certificate(formData: FormData): Promise<{ id: string; mailboxDefaultApplied: boolean }> {
   const context = await requirePlatformAdminActionAccess()
   const file = formData.get('certificateFile')
@@ -221,10 +313,43 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
   const scope = normalizeScope(stringValue(formData, 'scope'))
   const mailboxEmail = normalizeMailboxEmail(stringValue(formData, 'mailboxEmail'))
   const pastedCertificate = cleanPastedCertificate(stringValue(formData, 'certificateText'))
+  const uniqueIdentifier = cleanUniqueIdentifier(stringValue(formData, 'uniqueIdentifier'))
   const hasFile = file instanceof File && file.size > 0
 
-  if (!hasFile && !pastedCertificate) {
-    throw new Error('Ladda upp en .p12/.pfx-fil eller klistra in certifikatet.')
+  if (!hasFile && !pastedCertificate && !uniqueIdentifier) {
+    throw new Error('Ladda upp/klistra in certifikat eller klistra in Unika identifieraren.')
+  }
+
+  if (!hasFile && !pastedCertificate && uniqueIdentifier) {
+    const data = await registerCertificateUniqueIdentifier({
+      actorUserId: context.userId,
+      scope,
+      environment,
+      displayName,
+      mailboxEmail,
+      uniqueIdentifier,
+    })
+
+    await supabaseService.from('ediel_certificate_events').insert({
+      certificate_id: data.id,
+      company_id: null,
+      event_type: 'imported',
+      message: 'Unika identifieraren sparades. Väntar på certifikatmaterial innan S/MIME kan användas.',
+      metadata: {
+        uniqueIdentifier,
+        mailboxEmail,
+        environment,
+        scope,
+        pendingCertificateMaterial: true,
+      },
+      created_by: context.userId,
+    }).then(({ error }) => {
+      if (error && !isSchemaCompatibilityError(error)) throw error
+    })
+
+    revalidatePath('/admin/ediel/certificates')
+    revalidatePath('/admin/ediel/control-tower')
+    return { id: data.id, mailboxDefaultApplied: false }
   }
 
   const importSource: 'file' | 'paste' = hasFile ? 'file' : 'paste'
@@ -330,6 +455,6 @@ export async function importEdielP12CertificateAction(formData: FormData) {
     'success',
     result.mailboxDefaultApplied
       ? 'Certifikatet sparades och kopplades som mailbox-default.'
-      : 'Certifikatet sparades, men mailbox-default kunde inte kopplas. Kör senaste Supabase-migrationen för att aktivera gemensam mailbox-kryptering.'
+      : 'Uppgiften sparades. Om detta bara var Unika identifieraren aktiveras S/MIME först när certifikat/PEM/P12 finns.'
   )
 }
