@@ -14,7 +14,8 @@ import {
   listEdielTestRuns,
   updateEdielMessageStatus,
 } from '@/lib/ediel/db'
-import { resolveCanonicalOutboundContext, createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
+import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
+import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import {
   ensureActorUserId,
   finalizeOutboundDraft,
@@ -777,13 +778,25 @@ export async function prepareAndQueueUtiltsE73(params: {
     explicitEnvironment: params.environment ?? null,
   })
 
-  const routeContext = await resolveCanonicalOutboundContext({
+  const routeContext = await resolveDecisionBackedOutboundContext({
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
     companyId: dataRequest.company_id ?? null,
+    customerId: dataRequest.customer_id,
+    siteId: dataRequest.site_id,
+    meteringPointId: dataRequest.metering_point_id,
+    dataRequestId: dataRequest.id,
     environment,
+    messageFamily: 'UTILTS',
+    messageCode: 'E73',
     messageStandard: 'edifact',
+    actorUserId,
+    payload: {
+      requestScope: dataRequest.request_scope,
+      requestedPeriodStart: dataRequest.requested_period_start,
+      requestedPeriodEnd: dataRequest.requested_period_end,
+    },
   })
 
   const outbound = await findOrCreateDataRequestOutbound({
@@ -925,13 +938,25 @@ export async function prepareAndQueueUtiltsE66(params: {
     explicitEnvironment: params.environment ?? null,
   })
 
-  const routeContext = await resolveCanonicalOutboundContext({
+  const routeContext = await resolveDecisionBackedOutboundContext({
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
     companyId: dataRequest.company_id ?? null,
+    customerId: dataRequest.customer_id,
+    siteId: dataRequest.site_id,
+    meteringPointId: dataRequest.metering_point_id,
+    dataRequestId: dataRequest.id,
     environment,
+    messageFamily: 'UTILTS',
+    messageCode: 'E66',
     messageStandard: 'edifact',
+    actorUserId,
+    payload: {
+      requestScope: dataRequest.request_scope,
+      requestedPeriodStart: dataRequest.requested_period_start,
+      requestedPeriodEnd: dataRequest.requested_period_end,
+    },
   })
 
   const outbound = await findOrCreateDataRequestOutbound({

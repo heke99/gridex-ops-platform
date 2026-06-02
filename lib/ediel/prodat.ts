@@ -2,6 +2,7 @@
 
 import type {
   CreateEdielMessageInput,
+  EdielEnvironment,
   EdielKnownMessageCode,
   EdielMessageFamily,
 } from '@/lib/ediel/types'
@@ -21,11 +22,6 @@ import {
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { renderProdat26A } from '@/lib/ediel/prodatEngine'
-import {
-  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
-  EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
-  EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
-} from '@/lib/ediel/fileEngine'
 
 export type ProdatSwitchCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10' | 'Z13' | 'Z14' | 'Z15' | 'Z18'
 
@@ -80,6 +76,7 @@ type BaseSwitchOutboundInput = {
   transactionReference?: string | null
   correlationReference?: string | null
   routeDefaultMessageVersion?: string | null
+  environment?: EdielEnvironment | null
 }
 
 const PRODAT_CODES: readonly ProdatSwitchCode[] = ['Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'] as const
@@ -661,6 +658,8 @@ function buildProdatSwitchOutboundDraft(
       refs.transactionReference ?? input.transactionReference ?? input.switchRequest.id
     )
 
+    const environment = input.environment ?? 'test'
+    const testFlag = environment === 'production' ? 0 : 1
     const messageVersion =
       (await resolveCanonicalOutboundVersion({
         family: 'PRODAT',
@@ -668,11 +667,11 @@ function buildProdatSwitchOutboundDraft(
         fallback: '26A',
         standard: 'edifact',
         routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
-        environment: 'test',
+        environment,
       })) ?? '26A'
 
-    const senderSubAddress = input.senderSubAddress ?? EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS
-    const receiverSubAddress = input.receiverSubAddress ?? EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS
+    const senderSubAddress = input.senderSubAddress ?? 'PRODAT'
+    const receiverSubAddress = input.receiverSubAddress ?? 'PRODAT'
 
     const applicationReference =
       input.applicationReference ??
@@ -699,7 +698,7 @@ function buildProdatSwitchOutboundDraft(
       receiverEdielId: input.receiverEdielId,
       receiverSubAddress,
       applicationReference,
-      testFlag: 1,
+      testFlag,
       messageTypeToken: `PRODAT:D:97A:UN:${messageVersion === '26A' ? 'E2SE6A' : messageVersion}`,
       segments: prodatRendered.segments,
     })
@@ -750,8 +749,8 @@ function buildProdatSwitchOutboundDraft(
       messageCode: code,
       messageVersion,
       processType: deriveProcessLabel(code),
-      environment: 'test',
-      testFlag: 1,
+      environment,
+      testFlag,
       status: 'draft',
       transportType: 'smtp',
       mailbox: input.mailbox ?? null,

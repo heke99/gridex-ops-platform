@@ -19,7 +19,8 @@ import {
   type ProdatSwitchCode,
 } from '@/lib/ediel/prodat'
 import { linkEdielMessage } from '@/lib/ediel/db'
-import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
+import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
+import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import type {
@@ -44,7 +45,7 @@ type PrepareProdatSwitchParams = {
   forceRegenerate?: boolean
 }
 
-type RouteContext = Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
+type RouteContext = Awaited<ReturnType<typeof resolveDecisionBackedOutboundContext>>
 
 type BuildDraftInput = {
   actorUserId: string
@@ -92,6 +93,12 @@ function eventMessage(code: ProdatSwitchCode): string {
   return 'Ediel PRODAT Z18 begäran om avslut av rapportering förberett via canonical kernel.'
 }
 
+function routeProcessForCode(code: ProdatSwitchCode): 'supplier_switch' | 'metering_access' {
+  return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
+    ? 'metering_access'
+    : 'supplier_switch'
+}
+
 function buildDraftForCode(
   code: ProdatSwitchCode,
   input: BuildDraftInput
@@ -109,6 +116,7 @@ function buildDraftForCode(
     mailbox: input.routeContext.mailbox,
     routeDefaultMessageVersion: input.routeContext.defaultMessageVersion,
     applicationReference: input.routeContext.applicationReference,
+    environment: input.routeContext.environment,
     switchRequest: input.switchRequest,
     site: input.site,
     meteringPoint: input.meteringPoint,
@@ -161,17 +169,30 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     params.switchRequestId
   )
 
-  const routeContext = await resolveCanonicalOutboundContext({
-    requestType: 'supplier_switch',
+  const routeProcess = routeProcessForCode(params.messageCode)
+  const routeContext = await resolveDecisionBackedOutboundContext({
+    requestType: routeProcess,
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
     companyId: switchRequest.company_id ?? site.company_id ?? null,
+    customerId: switchRequest.customer_id,
+    siteId: switchRequest.site_id,
+    meteringPointId: switchRequest.metering_point_id,
+    supplierSwitchRequestId: switchRequest.id,
     environment: params.environment ?? 'test',
+    messageFamily: 'PRODAT',
+    messageCode: params.messageCode,
     messageStandard: 'edifact',
+    actorUserId,
+    payload: {
+      requestType: switchRequest.request_type,
+      cancellation_requested: switchRequest.status === 'cancellation_requested',
+      move_in: switchRequest.request_type === 'move_in',
+    },
   })
 
   const forceCreateNewAttempt =
-    Boolean(params.forceRegenerate) && routeContext.receiverEdielId === '91100'
+    Boolean(params.forceRegenerate) && isEdielPortalParty(routeContext.receiverEdielId)
 
   const externalReference = forceCreateNewAttempt
     ? makeTgtRetryReference(params.messageCode, switchRequest.id)
@@ -210,7 +231,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
 
   const message = await finalizeOutboundDraft({
     actorUserId,
-    requestType: 'supplier_switch',
+    requestType: routeProcess,
     routeContext,
     draft,
     outboundRequestId: outbound.id,

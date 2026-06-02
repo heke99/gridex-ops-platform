@@ -46,6 +46,10 @@ type RouteProfileRow = {
   ack_mode: string | null;
   mailbox: string | null;
   environment: string | null;
+  route_version?: number | null;
+  transport_profile_id?: string | null;
+  is_test_route?: boolean | null;
+  is_production_route?: boolean | null;
 };
 
 type ActorSettingRow = {
@@ -182,12 +186,15 @@ async function findRoute(params: {
 async function findRouteProfile(
   routeId: string,
   companyId?: string | null,
+  environment?: string | null,
 ): Promise<RouteProfileRow | null> {
   let query = supabaseService
     .from("ediel_route_profiles")
     .select("*")
     .eq("communication_route_id", routeId)
     .eq("is_enabled", true);
+
+  if (environment) query = query.eq("environment", environment);
 
   if (companyId)
     query = query.or(`company_id.is.null,company_id.eq.${companyId}`);
@@ -620,7 +627,7 @@ export async function decideCommunicationRoute(
   }
 
   const profile = routeResult.route
-    ? await findRouteProfile(routeResult.route.id, input.companyId ?? null)
+    ? await findRouteProfile(routeResult.route.id, input.companyId ?? null, environment)
     : null;
   const actorSetting = await findActiveActorSetting({
     companyId: input.companyId ?? null,
@@ -670,6 +677,37 @@ export async function decideCommunicationRoute(
       source: "route_profile_resolver",
     });
     requiredAdminActions.push("Skapa eller aktivera Ediel route profile.");
+  }
+
+  if (profile && isProduction(environment)) {
+    if (profile.environment !== "production" || profile.is_production_route === false) {
+      addIssue(blockingReasons, {
+        code: "production_route_profile_not_production",
+        message: "Production-send kräver aktiv production route profile. Test- eller blandprofil får inte användas.",
+        source: "route_profile_resolver",
+      });
+      requiredAdminActions.push("Koppla en aktiv production route profile.");
+    }
+
+    if (!profile.transport_profile_id) {
+      addIssue(blockingReasons, {
+        code: "missing_production_transport_profile",
+        message: "Production-send kräver aktiv transportprofil på route profile.",
+        source: "transport_profile_resolver",
+      });
+      requiredAdminActions.push("Koppla production transportprofil till route profile.");
+    }
+  }
+
+  if (profile && !isProduction(environment)) {
+    if (profile.environment !== "test" || profile.is_test_route === false) {
+      addIssue(blockingReasons, {
+        code: "test_route_profile_not_test",
+        message: "Testsend kräver aktiv test route profile och får inte använda production-route.",
+        source: "route_profile_resolver",
+      });
+      requiredAdminActions.push("Koppla en aktiv test route profile.");
+    }
   }
 
   const expectedAppRef = expectedApplicationReference(routeScope);
@@ -877,6 +915,8 @@ export async function decideCommunicationRoute(
       selected_grid_owner_id: dynamicReceiver.gridOwnerId,
       selected_grid_owner_name: dynamicReceiver.receiverName,
       reference_requirements: agreementDecision.referenceRequirements,
+      route_version: profile?.route_version ?? 1,
+      transport_profile_id: profile?.transport_profile_id ?? null,
     },
   };
 
