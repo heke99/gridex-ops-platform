@@ -385,7 +385,7 @@ export function buildDocumentTimelineItems(params: {
       }
       if (switchEdielMessageId) {
         links.push({
-          label: `Ediel Z03 ${switchEdielMessageId}`,
+          label: `Marknadsmeddelande ${switchEdielMessageId}`,
           href: '/admin/ediel/messages',
         })
       }
@@ -403,7 +403,7 @@ export function buildDocumentTimelineItems(params: {
             ? `Köade outbound för uppgiftsbegäran: ${createdGridOwnerOutboundIds.join(', ')}.`
             : null,
           switchRequestId ? `Kopplade switchärende ${switchRequestId}.` : null,
-          switchEdielMessageId ? `Ediel Z03 skapades: ${switchEdielMessageId}.` : null,
+          switchEdielMessageId ? `Marknadsmeddelande skapades: ${switchEdielMessageId}.` : null,
           warnings.length ? `Begränsningar: ${warnings.join(' ')}` : null,
           blockedReasons.length ? `Blockeringar: ${blockedReasons.join(' ')}` : null,
         ]

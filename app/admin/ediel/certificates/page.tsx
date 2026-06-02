@@ -2,6 +2,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { importEdielP12CertificateAction } from '@/app/admin/ediel/certificates/actions'
+import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,12 +19,13 @@ export default async function EdielCertificatesPage() {
       <AdminHeader title="Ediel certifikat" subtitle="S/MIME-certifikatmetadata. Nycklar lagras bara via secret_reference." userEmail={context.email} workspaceName="Platform" workspaceMode="platform" />
       <main className="space-y-6 p-8">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-xl font-black text-slate-950">Upload .p12</h1>
+          <h1 className="text-xl font-black text-slate-950">Lägg till certifikat</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Superadmin kan registrera Expisoft/Ediel S/MIME-certifikat. PIN används bara vid import/validering och sparas inte. Privat material refereras via secret_reference.
+            Superadmin kan registrera Expisoft/Ediel S/MIME-certifikat via fil eller inklistrad text. Klistra in PEM-certifikat för publik kryptering eller base64-kodad .p12/.pfx med PIN. Certifikatet sparas som gemensam default för vald mailbox och miljö, så routes som använder samma e-post ärver krypteringen.
           </p>
           <form action={importEdielP12CertificateAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <input name="displayName" placeholder="Certificate name" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="mailboxEmail" defaultValue="ediel@gridex.se" placeholder="Mailbox/e-post" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <select name="scope" defaultValue="platform_shared" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
               <option value="platform_shared">platform_shared</option>
               <option value="tenant_owned">tenant_owned</option>
@@ -35,8 +37,17 @@ export default async function EdielCertificatesPage() {
             </select>
             <input name="password" type="password" placeholder="PIN/lösenord" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <input name="certificateFile" type="file" accept=".p12,.pfx" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2" />
+            <textarea
+              name="certificateText"
+              rows={8}
+              placeholder="Klistra in PEM-certifikat (-----BEGIN CERTIFICATE-----...) eller base64-kodad .p12/.pfx"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2 xl:col-span-4"
+            />
+            <p className="text-xs leading-5 text-slate-600 md:col-span-2 xl:col-span-4">
+              När certifikatet sparas sätts mailboxens encryption_mode till smime för vald miljö. Route-profiler som använder samma mailbox kan lämna Certificate id tomt och ärver mailbox-defaulten.
+            </p>
             <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
-              Upload .p12 och validera
+              Spara certifikat och mailbox-default
             </button>
           </form>
         </section>
@@ -47,7 +58,9 @@ export default async function EdielCertificatesPage() {
               <tr><th className="p-4">Certificate</th><th className="p-4">Scope</th><th className="p-4">Bolag</th><th className="p-4">Giltigt</th><th className="p-4">Förnyelse</th><th className="p-4">Status</th></tr>
             </thead>
             <tbody>
-              {(data ?? []).map((row) => (
+              {(data ?? []).map((row) => {
+                const certStatus = evaluateCertificateStatus(row)
+                return (
                 <tr key={row.id} className="border-t border-slate-100">
                   <td className="p-4">
                     <div className="font-semibold text-slate-950">{row.display_name ?? 'Ediel certifikat'}</div>
@@ -58,11 +71,14 @@ export default async function EdielCertificatesPage() {
                   <td className="p-4">{row.company_id ?? 'Platform'}</td>
                   <td className="p-4">{row.valid_from ?? row.certificate_valid_from ?? '—'} → {row.valid_to ?? row.certificate_valid_to ?? '—'}</td>
                   <td className="p-4 text-xs text-slate-700">
-                    Renewal {row.renewal_window_days ?? 60} d · warning {row.warning_days_before_expiry ?? 45} d · critical {row.critical_days_before_expiry ?? 14} d
+                    Förnyelse från {certStatus.renewalAvailableFrom ?? '—'} · {certStatus.daysUntilExpiry ?? '—'} dagar kvar
                   </td>
-                  <td className="p-4">{row.encryption_status ?? row.status}</td>
+                  <td className="p-4">
+                    <div className="font-semibold text-slate-950">{certStatus.status}</div>
+                    <div className="mt-1 text-xs text-slate-600">{certStatus.message}</div>
+                  </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

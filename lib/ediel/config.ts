@@ -74,6 +74,9 @@ export type EdielRouteRuntimeRow = {
   certificate_id?: string | null
   allow_unencrypted_test?: boolean | null
   allow_unencrypted_production?: boolean | null
+  allow_unencrypted_production_expires_at?: string | null
+  allow_unencrypted_production_granted_by?: string | null
+  allow_unencrypted_production_reason?: string | null
   security_policy_status?: string | null
   smtp_host?: string | null
   smtp_port?: number | null
@@ -116,6 +119,87 @@ function effectiveReceiverSubaddress(runtime: EdielRouteRuntimeRow): string | nu
 
 function effectiveSenderSubaddress(runtime: EdielRouteRuntimeRow): string | null {
   return sanitize(runtime.sender_subaddress) ?? sanitize(runtime.sender_sub_address)
+}
+
+export type EdielProductionTransportSecurityResult = {
+  ok: boolean
+  issues: EdielRouteRuntimeIssue[]
+  overrideActive: boolean
+  overrideExpiresAt: string | null
+}
+
+export function hasActiveUnencryptedProductionOverride(
+  runtime: Pick<
+    EdielRouteRuntimeRow,
+    | 'allow_unencrypted_production'
+    | 'allow_unencrypted_production_expires_at'
+    | 'allow_unencrypted_production_reason'
+  >,
+  now: Date = new Date()
+): boolean {
+  if (runtime.allow_unencrypted_production !== true) return false
+  if (!sanitize(runtime.allow_unencrypted_production_reason)) return false
+
+  const expiresAt = sanitize(runtime.allow_unencrypted_production_expires_at)
+  if (!expiresAt) return false
+  const parsed = new Date(expiresAt)
+  if (Number.isNaN(parsed.getTime())) return false
+  return parsed.getTime() > now.getTime()
+}
+
+export function evaluateProductionTransportSecurity(params: {
+  runtime: Pick<
+    EdielRouteRuntimeRow,
+    | 'environment'
+    | 'message_standard'
+    | 'encryption_mode'
+    | 'certificate_id'
+    | 'allow_unencrypted_production'
+    | 'allow_unencrypted_production_expires_at'
+    | 'allow_unencrypted_production_reason'
+  > & { message_family?: string | null }
+  messageFamily?: string | null
+  now?: Date
+}): EdielProductionTransportSecurityResult {
+  const runtime = params.runtime
+  const issues: EdielRouteRuntimeIssue[] = []
+  const overrideActive = hasActiveUnencryptedProductionOverride(runtime, params.now)
+  const family = sanitize(params.messageFamily ?? runtime.message_family)?.toUpperCase()
+  const encryptionMode = sanitize(runtime.encryption_mode)?.toLowerCase()
+
+  if (runtime.environment !== 'production' || runtime.message_standard !== 'edifact') {
+    return {
+      ok: true,
+      issues,
+      overrideActive,
+      overrideExpiresAt: sanitize(runtime.allow_unencrypted_production_expires_at),
+    }
+  }
+
+  if (family === 'PRODAT' && encryptionMode !== 'smime' && !overrideActive) {
+    issues.push({
+      key: 'production_prodat_smime_required',
+      severity: 'error',
+      label: 'Produktion PRODAT kräver S/MIME',
+      resolution: 'Koppla ett giltigt certifikat och sätt encryption_mode=smime, eller använd tidsbegränsad superadmin-override med orsak.',
+    })
+  }
+
+  if (encryptionMode === 'smime' && !sanitize(runtime.certificate_id)) {
+    issues.push({
+      key: 'certificate_missing',
+      severity: 'error',
+      label: 'Certifikat saknas',
+      resolution: 'Länka ett aktivt S/MIME-certifikat till routeprofilen innan krypterat utskick.',
+    })
+  }
+
+  return {
+    ok: issues.every((issue) => issue.severity !== 'error'),
+    issues,
+    overrideActive,
+    overrideExpiresAt: sanitize(runtime.allow_unencrypted_production_expires_at),
+  }
 }
 
 export async function getActiveEdielActorSettings(
@@ -312,29 +396,7 @@ export function buildEdielRouteRuntimeIssues(params: {
     }
   }
 
-  if (params.runtime.environment === 'production' && params.runtime.message_standard === 'edifact') {
-    const family = sanitize((params.runtime as unknown as { message_family?: string | null }).message_family)?.toUpperCase()
-    const encryptionMode = sanitize(params.runtime.encryption_mode)?.toLowerCase()
-    const emergencyOverride = params.runtime.allow_unencrypted_production === true
-
-    if (family === 'PRODAT' && encryptionMode !== 'smime' && !emergencyOverride) {
-      issues.push({
-        key: 'production_prodat_smime_required',
-        severity: 'error',
-        label: 'Produktion PRODAT kräver S/MIME',
-        resolution: 'Koppla ett giltigt certifikat och sätt encryption_mode=smime, eller använd tidsbegränsad superadmin-override.',
-      })
-    }
-
-    if (encryptionMode === 'smime' && !sanitize(params.runtime.certificate_id)) {
-      issues.push({
-        key: 'certificate_missing',
-        severity: 'error',
-        label: 'Certifikat saknas',
-        resolution: 'Länka ett aktivt S/MIME-certifikat till routeprofilen innan krypterat utskick.',
-      })
-    }
-  }
+  issues.push(...evaluateProductionTransportSecurity({ runtime: params.runtime }).issues)
 
   if (!sanitize(params.runtime.application_reference)) {
     issues.push({

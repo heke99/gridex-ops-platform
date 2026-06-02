@@ -30,6 +30,8 @@ import { inferInboundAiListExternalReference } from '@/lib/ediel/core/referenceR
 import { resolveInboundAcceptedVersions } from '@/lib/ediel/core/kernel'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { supabaseService } from '@/lib/supabase/service'
+import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'
+import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 
 const execFileAsync = promisify(execFile)
 
@@ -280,14 +282,22 @@ function buildOuterSmimeMime(params: {
 
 async function encryptSmimeEnvelopedData(params: {
   innerMime: Buffer
-  recipientCertPath: string
+  recipientCertPath?: string | null
+  recipientCertificatePem?: string | null
 }): Promise<Buffer> {
   const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-smime-'))
   const inputPath = join(tempDir, 'inner.mime')
   const outputPath = join(tempDir, 'smime.der')
+  const certPath = params.recipientCertPath ?? join(tempDir, 'recipient.pem')
 
   try {
     await writeFile(inputPath, params.innerMime)
+    if (!params.recipientCertPath) {
+      if (!params.recipientCertificatePem?.includes('BEGIN CERTIFICATE')) {
+        throw new Error('S/MIME recipient certificate saknas.')
+      }
+      await writeFile(certPath, params.recipientCertificatePem, 'utf8')
+    }
 
     try {
       await execFileAsync('openssl', [
@@ -301,7 +311,7 @@ async function encryptSmimeEnvelopedData(params: {
         inputPath,
         '-out',
         outputPath,
-        params.recipientCertPath,
+        certPath,
       ])
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
@@ -346,6 +356,89 @@ function isEdifactMessage(message: EdielMessageRow): boolean {
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex')
+}
+
+function normalizeRouteEncryptionMode(value: string | null | undefined): 'none' | 'smime' | 'pgp' | null {
+  if (value === 'none' || value === 'smime' || value === 'pgp') return value
+  return null
+}
+
+async function resolveMailboxSecurityDefaults(params: {
+  mailbox?: string | null
+  environment?: string | null
+}): Promise<{
+  encryptionMode: string | null
+  certificateId: string | null
+} | null> {
+  const mailbox = String(params.mailbox ?? '').trim()
+  const environment = String(params.environment ?? '').trim()
+  if (!mailbox || !environment) return null
+
+  const { data, error } = await supabaseService
+    .from('ediel_mailboxes')
+    .select('encryption_mode,certificate_id')
+    .ilike('email_address', mailbox)
+    .eq('environment', environment)
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+  return {
+    encryptionMode: String(data.encryption_mode ?? '') || null,
+    certificateId: String(data.certificate_id ?? '') || null,
+  }
+}
+
+async function assertRouteTransportSecurity(params: {
+  message: EdielMessageRow
+  routeProfile: Awaited<ReturnType<typeof getEdielRouteProfileByCommunicationRouteId>> | null
+  effectiveEncryptionMode?: string | null
+  effectiveCertificateId?: string | null
+}) {
+  const { message, routeProfile } = params
+  if (message.environment !== 'production') return
+  const effectiveEncryptionMode = params.effectiveEncryptionMode ?? routeProfile?.encryption_mode ?? null
+  const effectiveCertificateId = params.effectiveCertificateId ?? routeProfile?.certificate_id ?? null
+
+  const security = evaluateProductionTransportSecurity({
+    runtime: {
+      environment: message.environment,
+      message_standard: message.message_standard,
+      message_family: String(message.message_family),
+      encryption_mode: normalizeRouteEncryptionMode(effectiveEncryptionMode),
+      certificate_id: effectiveCertificateId,
+      allow_unencrypted_production: routeProfile?.allow_unencrypted_production ?? false,
+      allow_unencrypted_production_expires_at: routeProfile?.allow_unencrypted_production_expires_at ?? null,
+      allow_unencrypted_production_reason: routeProfile?.allow_unencrypted_production_reason ?? null,
+    },
+    messageFamily: String(message.message_family),
+  })
+
+  if (!security.ok) {
+    throw new Error(
+      security.issues
+        .filter((issue) => issue.severity === 'error')
+        .map((issue) => `${issue.key}: ${issue.label}. ${issue.resolution}`)
+        .join(' | ') || 'Ediel transport security blockerade utskick.'
+    )
+  }
+
+  if (effectiveEncryptionMode === 'smime' && effectiveCertificateId) {
+    const { data, error } = await supabaseService
+      .from('ediel_certificates')
+      .select('id,valid_from,valid_to,certificate_valid_from,certificate_valid_to,renewal_window_days,warning_days_before_expiry,critical_days_before_expiry,status')
+      .eq('id', effectiveCertificateId)
+      .maybeSingle()
+
+    if (error) throw error
+    const certStatus = evaluateCertificateStatus(data ?? {})
+    if (!data || !certStatus.isUsableForSmime) {
+      throw new Error(`S/MIME-certifikat saknas eller är inte användbart: ${certStatus.message}`)
+    }
+  }
 }
 
 async function storeTransportPayloadSnapshot(input: {
@@ -1037,6 +1130,24 @@ export async function sendEdielMessageViaSmtp(
         companyId: message.company_id ?? null,
       })
     : null
+  const mailboxSecurity = await resolveMailboxSecurityDefaults({
+    mailbox: routeProfile?.mailbox ?? message.mailbox ?? null,
+    environment: message.environment,
+  })
+  const effectiveEncryptionMode =
+    routeProfile?.encryption_mode ??
+    mailboxSecurity?.encryptionMode ??
+    'none'
+  const effectiveCertificateId =
+    routeProfile?.certificate_id ??
+    mailboxSecurity?.certificateId ??
+    null
+  await assertRouteTransportSecurity({
+    message,
+    routeProfile,
+    effectiveEncryptionMode,
+    effectiveCertificateId,
+  })
 
   const host = requireEnv('EDIEL_SMTP_HOST', routeProfile?.smtp_host ?? null)
   const port = resolveSmtpPort(routeProfile?.smtp_port ?? null)
@@ -1066,7 +1177,7 @@ export async function sendEdielMessageViaSmtp(
       direction: message.direction,
       extension,
     })
-  const routeEncryptionMode = routeProfile?.encryption_mode ?? 'none'
+  const routeEncryptionMode = effectiveEncryptionMode
   const mimeMode = resolveSmtpMimeMode(params?.smtpMimeMode, routeEncryptionMode)
   const edifactPayloadMode =
     mimeMode === 'ediel-singlepart-lines' || mimeMode === 'nodemailer-attachment'
@@ -1171,7 +1282,17 @@ export async function sendEdielMessageViaSmtp(
       throw new Error('S/MIME-läget stöder just nu EDIFACT. Använd ediel-singlepart-base64 för XML/AI-listor tills separat XML-S/MIME är byggt.')
     }
 
-    const recipientCertPath = requireEnv('EDIEL_SMIME_RECIPIENT_CERT_PATH')
+    const recipientCertPath = optionalEnv('EDIEL_SMIME_RECIPIENT_CERT_PATH', null)
+    let recipientCertificatePem: string | null = null
+    if (!recipientCertPath && effectiveCertificateId) {
+      const { data, error } = await supabaseService
+        .from('ediel_certificates')
+        .select('public_certificate_pem')
+        .eq('id', effectiveCertificateId)
+        .maybeSingle()
+      if (error) throw error
+      recipientCertificatePem = String(data?.public_certificate_pem ?? '') || null
+    }
     const innerMime = buildInnerEdifactMimeForSmime({
       filename: fileName,
       decodedPayload: normalizedPayload,
@@ -1180,6 +1301,7 @@ export async function sendEdielMessageViaSmtp(
     const encryptedDer = await encryptSmimeEnvelopedData({
       innerMime,
       recipientCertPath,
+      recipientCertificatePem,
     })
     const rawMime = buildOuterSmimeMime({
       from,
@@ -1221,7 +1343,8 @@ export async function sendEdielMessageViaSmtp(
       message: 'S/MIME envelope byggt enligt Ediel-regler före SMTP-skickning.',
       payload: {
         mimeMode,
-        recipientCertPath,
+        recipientCertPath: recipientCertPath ?? 'database:ediel_certificates.public_certificate_pem',
+        certificateId: effectiveCertificateId,
         outerContentType: 'application/pkcs7-mime; smime-type=enveloped-data; name=smime.p7m',
         outerContentTransferEncoding: 'base64',
         outerContentDisposition: 'attachment; filename=smime.p7m',

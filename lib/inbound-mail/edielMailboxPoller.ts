@@ -1,8 +1,10 @@
 import { ImapFlow } from 'imapflow'
+import { createHash } from 'crypto'
 import { extractEdifactPayload, parseEdifactPayload } from '@/lib/inbound-mail/edielEmailParser'
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
 import { createInboundOverdueTasks } from '@/lib/inbound-mail/inboundOverdueMonitor'
 import { supabaseService } from '@/lib/supabase/service'
+import { unpackInboundSmimeIfNeeded } from '@/lib/ediel/transport/smime'
 
 export type EdielMailboxRow = {
   id: string
@@ -451,6 +453,10 @@ function headerParam(header: string | null | undefined, name: string): string | 
   }
 }
 
+function sha256(value: string | Buffer): string {
+  return createHash('sha256').update(value).digest('hex')
+}
+
 function splitMimeParts(rawEmail: string | null): { bodyText: string | null; bodyHtml: string | null; attachments: InboundEmailAttachmentInput[]; rawEdifactPayload: string | null } {
   if (!rawEmail) return { bodyText: null, bodyHtml: null, attachments: [], rawEdifactPayload: null }
 
@@ -760,9 +766,11 @@ async function storeMailboxFetchMessage(input: {
 
   const subject = stringOrNull(envelope?.subject) ?? extractHeader(rawEmail, 'Subject')
   const internalDate = input.message.internalDate instanceof Date ? input.message.internalDate.toISOString() : null
-  const parsedMime = splitMimeParts(rawEmail)
+  const smime = await unpackInboundSmimeIfNeeded({ rawEmail })
+  const parseSource = smime.decryptedText ?? rawEmail
+  const parsedMime = splitMimeParts(parseSource)
 
-  return storeInboundEmail({
+  const stored = await storeInboundEmail({
     mailboxId: input.mailbox.id,
     companyId: isPlatformSharedMailbox(input.mailbox) ? null : input.mailbox.company_id,
     environment: input.mailbox.environment,
@@ -773,11 +781,56 @@ async function storeMailboxFetchMessage(input: {
     receivedAt: internalDate,
     rawEmail,
     rawEdifactPayload: parsedMime.rawEdifactPayload,
-    bodyText: parsedMime.bodyText ?? rawEmail,
+    bodyText: parsedMime.bodyText ?? parseSource,
     bodyHtml: parsedMime.bodyHtml,
     hasAttachments: parsedMime.attachments.length > 0,
-    attachments: parsedMime.attachments,
+    attachments: [
+      ...parsedMime.attachments,
+      ...(smime.detected
+        ? [{
+            filename: 'smime.p7m',
+            mimeType: 'application/pkcs7-mime',
+            sizeBytes: Buffer.byteLength(rawEmail ?? '', 'utf8'),
+            rawText: smime.decryptedText ?? null,
+            isEdifactCandidate: Boolean(parsedMime.rawEdifactPayload),
+            metadata: {
+              securityStatus: smime.securityStatus,
+              encryptedPayloadRef: smime.encryptedPayloadRef,
+              smimeValidationError: smime.validationError,
+              decryptedPayloadStoredInBodyText: Boolean(smime.decryptedText),
+            },
+          }]
+        : []),
+    ],
   })
+
+  if (!stored.deduped && smime.detected) {
+    const { error: payloadError } = await supabaseService.from('ediel_message_payloads').insert({
+      company_id: null,
+      ediel_message_id: null,
+      payload_kind: 'inbound_smime',
+      raw_payload: smime.decryptedText ?? null,
+      raw_payload_hash: smime.decryptedText ? sha256(smime.decryptedText) : null,
+      encryption_mode: 'smime',
+      signing_mode: 'none',
+      security_status: smime.securityStatus,
+      encrypted_payload_ref: smime.encryptedPayloadRef,
+      decrypted_payload_ref: smime.decryptedText ? `inbound-decrypted://${stored.id}` : null,
+      smime_verified_at: smime.securityStatus === 'decrypted' ? nowIso() : null,
+      smime_validation_error: smime.validationError,
+      metadata: {
+        inboundEmailMessageId: stored.id,
+        mailboxId: input.mailbox.id,
+        environment: input.mailbox.environment,
+      },
+      status: smime.securityStatus === 'decrypted' ? 'stored' : 'manual_review',
+    })
+    if (payloadError) {
+      console.warn('[inbound-mail] Kunde inte spara S/MIME payload-spår', payloadError)
+    }
+  }
+
+  return stored
 }
 
 export async function pollEdielMailbox(input: {

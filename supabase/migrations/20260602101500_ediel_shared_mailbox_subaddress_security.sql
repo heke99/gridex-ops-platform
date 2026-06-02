@@ -18,6 +18,9 @@ alter table if exists public.ediel_route_profiles
   add column if not exists certificate_id uuid,
   add column if not exists allow_unencrypted_test boolean not null default true,
   add column if not exists allow_unencrypted_production boolean not null default false,
+  add column if not exists allow_unencrypted_production_expires_at timestamptz,
+  add column if not exists allow_unencrypted_production_granted_by uuid,
+  add column if not exists allow_unencrypted_production_reason text,
   add column if not exists security_policy_status text not null default 'not_checked';
 
 update public.ediel_route_profiles

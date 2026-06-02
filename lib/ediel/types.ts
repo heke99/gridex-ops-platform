@@ -327,6 +327,18 @@ export type EdielTestRunRow = {
   completed_at: string | null;
   failure_reason: string | null;
   notes: string | null;
+  actor_role?: string | null;
+  message_family?: string | null;
+  business_code?: string | null;
+  encryption_mode?: "none" | "smime" | string | null;
+  certificate_id?: string | null;
+  certificate_fingerprint_sha256?: string | null;
+  route_profile_id?: string | null;
+  expected_flow?: unknown;
+  actual_flow?: unknown;
+  raw_edifact?: string | null;
+  encrypted_payload_ref?: string | null;
+  production_like?: boolean | null;
 
   created_at: string;
   updated_at: string;
@@ -444,6 +456,9 @@ export type EdielRouteProfileRow = {
   certificate_id?: string | null;
   allow_unencrypted_test?: boolean | null;
   allow_unencrypted_production?: boolean | null;
+  allow_unencrypted_production_expires_at?: string | null;
+  allow_unencrypted_production_granted_by?: string | null;
+  allow_unencrypted_production_reason?: string | null;
   security_policy_status?: string | null;
   payload_format: EdielPayloadFormat;
   notes: string | null;
@@ -578,6 +593,18 @@ export type CreateEdielTestRunInput = {
   completedAt?: string | null;
   failureReason?: string | null;
   notes?: string | null;
+  actorRole?: string | null;
+  messageFamily?: string | null;
+  businessCode?: string | null;
+  encryptionMode?: "none" | "smime" | string | null;
+  certificateId?: string | null;
+  certificateFingerprintSha256?: string | null;
+  routeProfileId?: string | null;
+  expectedFlow?: unknown;
+  actualFlow?: unknown;
+  rawEdifact?: string | null;
+  encryptedPayloadRef?: string | null;
+  productionLike?: boolean | null;
 };
 
 export type UpdateEdielTestRunStatusInput = {

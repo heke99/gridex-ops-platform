@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { importP12Certificate } from '@/lib/ediel/security/importP12Certificate'
+import { importP12Certificate, importPublicCertificatePem } from '@/lib/ediel/security/importP12Certificate'
+import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -26,6 +27,83 @@ function isP12File(file: File): boolean {
   return name.endsWith('.p12') || name.endsWith('.pfx')
 }
 
+function normalizeMailboxEmail(value: string | null): string {
+  return (value ?? 'ediel@gridex.se').trim().toLowerCase() || 'ediel@gridex.se'
+}
+
+function cleanPastedCertificate(value: string | null): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function decodePastedP12(value: string): Buffer {
+  const compact = value
+    .replace(/-----BEGIN [^-]+-----/g, '')
+    .replace(/-----END [^-]+-----/g, '')
+    .replace(/\s+/g, '')
+  const buffer = Buffer.from(compact, 'base64')
+  if (buffer.length === 0) throw new Error('Inklistrad base64 för .p12/.pfx är tom.')
+  return buffer
+}
+
+async function applyCertificateAsMailboxDefault(input: {
+  mailboxEmail: string
+  environment: 'test' | 'production'
+  certificateId: string
+  actorUserId: string
+  source: 'file' | 'paste'
+}) {
+  const { error } = await supabaseService
+    .from('ediel_mailboxes')
+    .update({
+      encryption_mode: 'smime',
+      signing_mode: 'smime',
+      certificate_id: input.certificateId,
+      security_status: 'certificate_configured',
+      updated_at: new Date().toISOString(),
+      metadata: {
+        scope: 'platform_shared',
+        shared_transport_only: true,
+        default_certificate_source: input.source,
+        certificate_id: input.certificateId,
+      },
+    })
+    .is('company_id', null)
+    .eq('environment', input.environment)
+    .ilike('email_address', input.mailboxEmail)
+
+  if (error) throw error
+
+  const { error: routeError } = await supabaseService
+    .from('ediel_route_profiles')
+    .update({
+      encryption_mode: 'smime',
+      signing_mode: 'smime',
+      certificate_id: input.certificateId,
+      security_policy_status: 'mailbox_default_certificate',
+      updated_at: new Date().toISOString(),
+      updated_by: input.actorUserId,
+    })
+    .eq('environment', input.environment)
+    .ilike('mailbox', input.mailboxEmail)
+
+  if (routeError) throw routeError
+
+  await supabaseService.from('ediel_certificate_events').insert({
+    certificate_id: input.certificateId,
+    company_id: null,
+    event_type: 'linked_to_route',
+    message: `Certifikatet sparades som gemensam S/MIME-default för ${input.mailboxEmail} (${input.environment}).`,
+    metadata: {
+      mailboxEmail: input.mailboxEmail,
+      environment: input.environment,
+      appliesToRoutesUsingSameMailbox: true,
+    },
+    created_by: input.actorUserId,
+  })
+}
+
 export async function importEdielP12CertificateAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
   const file = formData.get('certificateFile')
@@ -33,21 +111,48 @@ export async function importEdielP12CertificateAction(formData: FormData) {
   const displayName = stringValue(formData, 'displayName')
   const environment = normalizeEnvironment(stringValue(formData, 'environment'))
   const scope = normalizeScope(stringValue(formData, 'scope'))
+  const mailboxEmail = normalizeMailboxEmail(stringValue(formData, 'mailboxEmail'))
+  const pastedCertificate = cleanPastedCertificate(stringValue(formData, 'certificateText'))
+  const hasFile = file instanceof File && file.size > 0
 
-  if (!(file instanceof File)) {
-    throw new Error('Välj en .p12-fil att ladda upp.')
-  }
-  if (!isP12File(file)) {
-    throw new Error('Certifikatuppladdning stöder bara .p12/.pfx.')
-  }
-  if (!password) {
-    throw new Error('PIN/lösenord krävs för att validera P12-filen.')
+  if (!hasFile && !pastedCertificate) {
+    throw new Error('Ladda upp en .p12/.pfx-fil eller klistra in certifikatet.')
   }
 
-  const metadata = await importP12Certificate({
-    p12Bytes: Buffer.from(await file.arrayBuffer()),
-    password,
-    displayName,
+  const importSource: 'file' | 'paste' = hasFile ? 'file' : 'paste'
+  const metadata =
+    hasFile
+      ? await (async () => {
+          if (!isP12File(file)) {
+            throw new Error('Certifikatuppladdning stöder bara .p12/.pfx.')
+          }
+          if (!password) {
+            throw new Error('PIN/lösenord krävs för att validera P12-filen.')
+          }
+          return importP12Certificate({
+            p12Bytes: Buffer.from(await file.arrayBuffer()),
+            password,
+            displayName,
+          })
+        })()
+      : pastedCertificate?.includes('BEGIN CERTIFICATE')
+        ? await importPublicCertificatePem({
+            publicCertificatePem: pastedCertificate,
+            displayName,
+          })
+        : await (async () => {
+            if (!password) {
+              throw new Error('PIN/lösenord krävs när inklistrat innehåll är base64-kodad .p12/.pfx.')
+            }
+            return importP12Certificate({
+              p12Bytes: decodePastedP12(pastedCertificate ?? ''),
+              password,
+              displayName,
+            })
+          })()
+  const status = evaluateCertificateStatus({
+    valid_from: metadata.validFrom,
+    valid_to: metadata.validTo,
   })
 
   const now = new Date().toISOString()
@@ -58,7 +163,7 @@ export async function importEdielP12CertificateAction(formData: FormData) {
       scope,
       environment,
       certificate_type: 'smime',
-      display_name: displayName ?? file.name,
+      display_name: displayName ?? (hasFile && file instanceof File ? file.name : `Inklistrat certifikat ${mailboxEmail}`),
       subject: metadata.subject,
       issuer: metadata.issuer,
       serial_number: metadata.serialNumber,
@@ -73,22 +178,33 @@ export async function importEdielP12CertificateAction(formData: FormData) {
       certificate_valid_from: metadata.validFrom,
       certificate_valid_to: metadata.validTo,
       secret_reference: metadata.p12SecretReference,
-      encryption_status: 'valid',
-      status: 'active',
+      encryption_status: status.isUsableForSmime ? 'valid' : status.status,
+      status: status.status === 'renewal_available' ? 'active' : status.status,
       last_validation_at: now,
       created_by: context.userId,
       updated_by: context.userId,
       metadata: {
-        importedFileName: file.name,
-        importedFileSize: file.size,
+        importedFileName: hasFile && file instanceof File ? file.name : null,
+        importedFileSize: hasFile && file instanceof File ? file.size : null,
+        importedByPaste: importSource === 'paste',
+        mailboxEmail,
         privateMaterialStoredAsSecretReferenceOnly: true,
         passwordStored: false,
+        certificateStatus: status,
       },
     })
     .select('id')
     .single()
 
   if (error) throw error
+
+  await applyCertificateAsMailboxDefault({
+    mailboxEmail,
+    environment,
+    certificateId: data.id,
+    actorUserId: context.userId,
+    source: importSource,
+  })
 
   await supabaseService.from('ediel_certificate_events').insert({
     certificate_id: data.id,
@@ -99,7 +215,10 @@ export async function importEdielP12CertificateAction(formData: FormData) {
       fingerprintSha256: metadata.fingerprintSha256,
       environment,
       scope,
-      fileName: file.name,
+      fileName: hasFile && file instanceof File ? file.name : null,
+      importedByPaste: importSource === 'paste',
+      mailboxEmail,
+      certificateStatus: status,
     },
     created_by: context.userId,
   })

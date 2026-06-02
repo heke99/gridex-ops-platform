@@ -362,7 +362,7 @@ export default function UploadForm({
  defaultChecked
  className="mt-1"
  />
- <span>Köa supplier-switch outbound och Ediel Z03 direkt från verifierad fullmakt.</span>
+ <span>Starta leverantörsbyte direkt från verifierad fullmakt. Backend väljer rätt marknadsmeddelande.</span>
  </label>
  </div>
 

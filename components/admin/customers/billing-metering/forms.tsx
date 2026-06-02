@@ -171,7 +171,7 @@ export function SmartOutboundForm({
  className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm "
  >
  <option value="supplier_switch">Leverantörsbyte</option>
- <option value="customer_masterdata">Kund- och anläggningsdata (Z01)</option>
+ <option value="customer_masterdata">Kund- och anläggningsdata</option>
  <option value="meter_values">Mätvärden</option>
  <option value="billing_underlay">Faktureringsunderlag</option>
  </select>
@@ -311,7 +311,7 @@ export function SmartDataRequestForm({
  >
  <option value="meter_values">Mätvärden</option>
  <option value="billing_underlay">Faktureringsunderlag</option>
- <option value="customer_masterdata">Kund- och anläggningsdata (Z01)</option>
+ <option value="customer_masterdata">Kund- och anläggningsdata</option>
  </select>
  </label>
 
