@@ -60,6 +60,7 @@ export type ProductionReadinessResult = {
     productionMailboxId: string | null;
     latestInbound: MessageSnapshot | null;
     latestOutbound: MessageSnapshot | null;
+    priorProductionSentCount: number;
     latestPollAt: string | null;
     latestPollStatus: string | null;
     unresolvedItems: number;
@@ -919,7 +920,7 @@ export async function getCompanyProductionReadiness(
       "Production PRODAT ska som default vara S/MIME-krypterad.",
     );
 
-  if (certificateStatus?.isUsableForSmime && !["critical", "expired"].includes(certificateStatus.status))
+  if (certificateStatus?.isUsableForSmime)
     pass(
       "safety",
       "production_certificate_active",

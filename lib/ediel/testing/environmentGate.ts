@@ -81,8 +81,8 @@ export async function evaluateEdielEnvironmentGate(input: {
     if (readiness.blockingIssues.length > 0) {
       blockingIssues.push(...readiness.blockingIssues.map((issue) => issue.message))
     }
-    if (readiness.warningIssues.length > 0) {
-      warnings.push(...readiness.warningIssues.map((issue) => issue.message))
+    if (readiness.warnings.length > 0) {
+      warnings.push(...readiness.warnings.map((issue) => issue.message))
     }
   }
 
