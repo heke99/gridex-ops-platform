@@ -10,7 +10,8 @@ import {
 } from '@/lib/ediel/ack'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
-import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
+import { getEdielAgtRuntime, getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
+import { normalizeActorRole, normalizeActorSubrole, roleCodeForActorRole } from '@/lib/ediel/actorRoles'
 import {
   attachEdielMessageToTestRun,
   createEdielMessage,
@@ -158,12 +159,26 @@ async function resolveAgtActorRuntime(params?: {
   actorEdielId?: string | null
   companyId?: string | null
   balanceResponsibleEdielId?: string | null
+  actorRole?: string | null
+  actorSubrole?: string | null
+  messageFamily?: string | null
 }): Promise<EdielAgtActorRuntime> {
   const explicitActorEdielId = trimOrNull(params?.actorEdielId)
   const explicitActorName = trimOrNull(params?.actorName)
+  const actorRole = normalizeActorRole(params?.actorRole ?? 'supplier')
+  const actorSubrole = normalizeActorSubrole(params?.actorSubrole, actorRole)
   const [actor, agtRuntime] = await Promise.all([
-    resolveCanonicalActorContext('test', params?.companyId ?? null).catch(() => null),
-    getEdielAgtSupplierRuntime(params?.companyId ?? null).catch(() => null),
+    resolveCanonicalActorContext('test', params?.companyId ?? null, {
+      environmentType: 'agt_test',
+      actorRole,
+      actorSubrole,
+      messageFamily: params?.messageFamily ?? 'PRODAT',
+    }).catch(() => null),
+    getEdielAgtRuntime({
+      companyId: params?.companyId ?? null,
+      actorRole,
+      actorSubrole,
+    }).catch(() => null),
   ])
   const activeActor = agtRuntime?.actor ?? actor?.actor ?? null
   const agtNotes = parseAgtActorNotes(activeActor)
@@ -178,9 +193,9 @@ async function resolveAgtActorRuntime(params?: {
     receiverSubAddress: trimOrNull(agtRuntime?.systemTestSettings?.defaultReceiverSubaddress) ?? trimOrNull(agtRuntime?.prodat.profile?.receiver_sub_address),
     receiverEdielId: trimOrNull(agtRuntime?.systemTestSettings?.testPortalEdielId) ?? trimOrNull(agtRuntime?.prodat.profile?.receiver_ediel_id) ?? '',
     receiverEmail: trimOrNull(agtRuntime?.systemTestSettings?.testPortalEmail) ?? trimOrNull(agtRuntime?.prodat.route?.target_email) ?? '',
-    applicationReference: agtRuntime?.prodat.profile?.application_reference ?? '23-DDQ-PRODAT',
-    mailbox: activeActor?.mailbox ?? actor?.mailbox ?? 'agt-file-engine',
-    smtpFromEmail: activeActor?.smtp_from_email ?? actor?.smtpFromEmail ?? null,
+    applicationReference: agtRuntime?.prodat.profile?.application_reference ?? actor?.defaultApplicationReference ?? (actorSubrole === 'DGI' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT'),
+    mailbox: activeActor?.mailbox ?? activeActor?.registered_smtp_address ?? actor?.mailbox ?? 'agt-file-engine',
+    smtpFromEmail: activeActor?.smtp_from_email ?? activeActor?.registered_smtp_address ?? actor?.smtpFromEmail ?? null,
     balanceResponsibleEdielId: trimOrNull(params?.balanceResponsibleEdielId) ?? agtNotes.balanceResponsibleEdielId,
   }
 }
@@ -190,7 +205,10 @@ export async function getEdielAgtReadiness(params?: {
   actorEdielId?: string | null
   companyId?: string | null
   balanceResponsibleEdielId?: string | null
+  actorRole?: string | null
+  actorSubrole?: string | null
 }): Promise<EdielAgtReadiness> {
+  const actorRole = normalizeActorRole(params?.actorRole ?? 'supplier')
   const actor = await resolveAgtActorRuntime(params)
   const issues: EdielAgtReadinessIssue[] = []
 
@@ -230,7 +248,7 @@ export async function getEdielAgtReadiness(params?: {
     })
   }
 
-  if (!trimOrNull(actor.balanceResponsibleEdielId)) {
+  if (actorRole === 'supplier' && !trimOrNull(actor.balanceResponsibleEdielId)) {
     issues.push({
       severity: 'warning',
       code: 'agt_balance_responsible_missing',
@@ -457,7 +475,7 @@ function buildAgtProdatOutboundInput(params: {
     senderSubAddress: params.actor.senderSubAddress,
     receiverEdielId: params.actor.receiverEdielId,
     receiverSubAddress: params.actor.receiverSubAddress,
-    applicationReference: params.actor.applicationReference ?? '23-DDQ-PRODAT',
+    applicationReference: params.actor.applicationReference ?? definition.applicationReference,
     testFlag: 1,
     messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A',
     segments: rendered.segments,
@@ -473,7 +491,7 @@ function buildAgtProdatOutboundInput(params: {
     messageFamily: 'PRODAT',
     messageCode: code,
     messageVersion: '26A',
-    processType: `agt_supplier_${definition.testCaseCode.toLowerCase()}`,
+    processType: `agt_${definition.actorRole}_${definition.testCaseCode.toLowerCase()}`,
     environment: 'test',
     testFlag: 1,
     status: 'prepared',
@@ -494,7 +512,7 @@ function buildAgtProdatOutboundInput(params: {
     externalReference,
     correlationReference: transactionReference,
     transactionReference,
-    applicationReference: params.actor.applicationReference ?? '23-DDQ-PRODAT',
+    applicationReference: params.actor.applicationReference ?? definition.applicationReference,
     rawPayload: envelope.raw,
     parsedPayload: {
       agt: true,
@@ -502,6 +520,8 @@ function buildAgtProdatOutboundInput(params: {
       agtTestCaseCode: definition.testCaseCode,
       agtPortalTitle: definition.portalTitle,
       agtScenario: definition.scenario,
+      agtActorRole: definition.actorRole,
+      agtActorSubrole: definition.actorSubrole,
       generator: 'ediel.agtEngine.buildAgtProdatOutboundInput',
       actorEdielId: params.actor.actorEdielId,
       portalEdielId: params.actor.receiverEdielId,
@@ -551,8 +571,15 @@ async function assertStrictAgtOutboundRoute(params: {
   companyId?: string | null
   actorEdielId?: string | null
   testCaseCode: string
+  actorRole?: string | null
+  actorSubrole?: string | null
+  expectedApplicationReference?: string | null
 }) {
-  const runtime = await getEdielAgtSupplierRuntime(params.companyId ?? null)
+  const runtime = await getEdielAgtRuntime({
+    companyId: params.companyId ?? null,
+    actorRole: params.actorRole ?? 'supplier',
+    actorSubrole: params.actorSubrole ?? null,
+  })
   const actorEdielId = trimOrNull(params.actorEdielId) ?? trimOrNull(runtime.actor?.actor_ediel_id)
   const prodat = runtime.prodat
   const strictIssues: string[] = []
@@ -592,12 +619,14 @@ async function assertStrictAgtOutboundRoute(params: {
     strictIssues.push(`AGT PRODAT receiver_ediel_id måste matcha DB-konfigurerad testportal ${expectedPortalEdielId}.`)
   }
 
-  if (upper(prodat.profile?.application_reference) !== EDIEL_AGT_PRODAT_APPLICATION_REFERENCE) {
-    strictIssues.push(`AGT PRODAT Application Reference måste vara ${EDIEL_AGT_PRODAT_APPLICATION_REFERENCE}.`)
+  const expectedApplicationReference = params.expectedApplicationReference ?? EDIEL_AGT_PRODAT_APPLICATION_REFERENCE
+  if (upper(prodat.profile?.application_reference) !== upper(expectedApplicationReference)) {
+    strictIssues.push(`AGT PRODAT Application Reference måste vara ${expectedApplicationReference}.`)
   }
 
-  const expectedReceiverSubaddress = upper(runtime.systemTestSettings?.defaultReceiverSubaddress)
-  if (expectedReceiverSubaddress && upper(prodat.profile?.receiver_sub_address) !== expectedReceiverSubaddress) {
+  const expectedReceiverSubaddress = upper(runtime.systemTestSettings?.defaultReceiverSubaddress ?? 'PRODAT')
+  const actualReceiverSubaddress = upper(prodat.profile?.receiver_message_subaddress ?? prodat.profile?.receiver_subaddress ?? prodat.profile?.receiver_sub_address)
+  if (expectedReceiverSubaddress && actualReceiverSubaddress !== expectedReceiverSubaddress) {
     strictIssues.push(`AGT PRODAT receiver_sub_address måste matcha DB-konfigurerad mottagarsubadress ${expectedReceiverSubaddress}.`)
   }
 
@@ -607,21 +636,25 @@ async function assertStrictAgtOutboundRoute(params: {
 
   const uniqueIssues = Array.from(new Set(strictIssues.filter(Boolean)))
   if (uniqueIssues.length > 0) {
-    throw new Error(`L1/L7 AGT preflight stoppade skick: ${uniqueIssues.join(' | ')}`)
+    throw new Error(`AGT outbound preflight stoppade ${params.testCaseCode}: ${uniqueIssues.join(' | ')}`)
   }
 }
 
-export async function createEdielSupplierAgtOutboundCommand(params: {
+export async function createEdielAgtOutboundCommand(params: {
   actorUserId: string
   testRunId?: string | null
   testCaseCode: string
+  roleCode?: EdielTestRunRow['role_code'] | string | null
+  actorRole?: string | null
+  actorSubrole?: string | null
   actorName?: string | null
   actorEdielId?: string | null
   companyId?: string | null
   balanceResponsibleEdielId?: string | null
 }): Promise<EdielMessageRow> {
+  const roleCode = roleCodeForActorRole(params.roleCode ?? params.actorRole ?? 'supplier')
   const definition = getEdielAgtTestCaseByCode({
-    roleCode: 'supplier',
+    roleCode,
     testCaseCode: params.testCaseCode,
   })
 
@@ -635,12 +668,14 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     actorEdielId: params.actorEdielId ?? null,
     companyId: params.companyId ?? null,
     balanceResponsibleEdielId: params.balanceResponsibleEdielId ?? null,
+    actorRole: definition.actorRole,
+    actorSubrole: definition.actorSubrole,
   })
   if (!readiness.isReadyForAgt) {
     throw new Error(readiness.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.description).join(' | '))
   }
 
-  if (!trimOrNull(readiness.actor.balanceResponsibleEdielId)) {
+  if (definition.actorRole === 'supplier' && !trimOrNull(readiness.actor.balanceResponsibleEdielId)) {
     throw new Error('Outbound AGT PRODAT kräver NAD+Z02. Fyll i balansansvarig/BRP Ediel-id i AGT-runtime innan du skickar L1/L7. Detta stoppar bara felaktig outbound-payload, inte L2-L5 inbound-testerna.')
   }
 
@@ -648,6 +683,9 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     companyId: params.companyId ?? null,
     actorEdielId: readiness.actor.actorEdielId,
     testCaseCode: definition.testCaseCode,
+    actorRole: definition.actorRole,
+    actorSubrole: definition.actorSubrole,
+    expectedApplicationReference: definition.applicationReference,
   })
 
   const input = buildAgtProdatOutboundInput({
@@ -693,7 +731,7 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     edielMessageId: message.id,
     eventType: 'prepared',
     eventStatus: 'success',
-    message: `AGT ${definition.testCaseCode} ${definition.messageCode} outbound-kommando renderades för direkt skick. Meddelandet sparas endast som audit/logg efter kommandot, inte som långlivad testdraft.`,
+      message: `AGT ${definition.testCaseCode} ${definition.messageCode} outbound-kommando renderades för dry-run/förberett skick. Meddelandet sparas som audit/logg och skickas inte utan separat transportbeslut.`,
     payload: {
       agt: true,
       testCaseCode: definition.testCaseCode,
@@ -704,6 +742,23 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
   })
 
   return message
+}
+
+export async function createEdielSupplierAgtOutboundCommand(params: {
+  actorUserId: string
+  testRunId?: string | null
+  testCaseCode: string
+  actorName?: string | null
+  actorEdielId?: string | null
+  companyId?: string | null
+  balanceResponsibleEdielId?: string | null
+}): Promise<EdielMessageRow> {
+  return createEdielAgtOutboundCommand({
+    ...params,
+    roleCode: 'supplier',
+    actorRole: 'supplier',
+    actorSubrole: 'DDQ',
+  })
 }
 
 async function getActiveRunById(testRunId: string | null | undefined): Promise<EdielTestRunRow | null> {

@@ -4,9 +4,17 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import {
+  applicationReferenceForActor,
+  normalizeActorRole as normalizeCanonicalActorRole,
+  normalizeActorSubrole as normalizeCanonicalActorSubrole,
+  normalizeEnvironmentType,
+} from '@/lib/ediel/actorRoles'
 
 const ENVIRONMENTS = new Set(['test', 'production'])
-const ACTOR_ROLES = new Set(['supplier', 'grid_owner', 'esco', 'brp', 'agent', 'other'])
+const ACTOR_ROLES = new Set(['supplier', 'grid_owner', 'energy_service_company', 'brp', 'system_supplier'])
+const ENVIRONMENT_TYPES = new Set(['tgt_test', 'agt_test', 'bilateral_test', 'production'])
+const PRODUCTION_MODES = new Set(['disabled', 'shadow', 'active'])
 
 function text(value: FormDataEntryValue | null): string {
   return String(value ?? '').trim()
@@ -23,8 +31,26 @@ function normalizeEnvironment(value: string): 'test' | 'production' {
 }
 
 function normalizeActorRole(value: string): string {
-  if (ACTOR_ROLES.has(value)) return value
+  const normalized = normalizeCanonicalActorRole(value)
+  if (ACTOR_ROLES.has(normalized)) return normalized
   throw new Error('Ogiltig aktörsroll.')
+}
+
+function normalizeActorSubrole(value: string, actorRole: string, applicationReference?: string | null): 'DDQ' | 'DGI' | null {
+  const normalized = normalizeCanonicalActorSubrole(value, actorRole, applicationReference)
+  if (normalized === 'DDQ' || normalized === 'DGI') return normalized
+  return null
+}
+
+function normalizeActorEnvironmentType(value: string, environment: 'test' | 'production'): 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production' {
+  const normalized = normalizeEnvironmentType(value, environment)
+  if (ENVIRONMENT_TYPES.has(normalized)) return normalized
+  throw new Error('Ogiltig Ediel environment_type.')
+}
+
+function normalizeProductionMode(value: string): 'disabled' | 'shadow' | 'active' {
+  if (PRODUCTION_MODES.has(value)) return value as 'disabled' | 'shadow' | 'active'
+  return 'disabled'
 }
 
 function assertEdielId(value: string, label: string): string {
@@ -92,36 +118,49 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
     const name = await companyName(companyId)
     const environment = normalizeEnvironment(text(formData.get('environment')) || 'test')
     const actorRole = normalizeActorRole(text(formData.get('actor_role')) || 'supplier')
+    const environmentType = normalizeActorEnvironmentType(text(formData.get('environment_type')) || '', environment)
     const edielId = assertEdielId(text(formData.get('ediel_id')), 'Ediel ID')
     const senderSubaddress = assertSubaddress(nullableText(formData.get('sender_subaddress')))
     const receiverSubaddress = assertSubaddress(nullableText(formData.get('receiver_subaddress')))
-    const applicationReference = nullableText(formData.get('application_reference'))?.toUpperCase() ?? null
+    const requestedApplicationReference = nullableText(formData.get('application_reference'))?.toUpperCase() ?? null
+    const actorSubrole = normalizeActorSubrole(text(formData.get('actor_subrole')), actorRole, requestedApplicationReference)
+    const applicationReference =
+      requestedApplicationReference ??
+      applicationReferenceForActor({ actorRole, actorSubrole, messageFamily: 'PRODAT' })
     const isActive = formData.get('is_active') !== null
+    const registeredSmtpAddress = nullableText(formData.get('registered_smtp_address'))?.toLowerCase() ?? null
+    const contactEmail = nullableText(formData.get('contact_email'))?.toLowerCase() ?? null
+    const testResourceEmail = nullableText(formData.get('test_resource_email'))?.toLowerCase() ?? null
 
-    const duplicate = await supabaseService
+    let duplicateQuery = supabaseService
       .from('ediel_actor_settings')
       .select('id,company_id')
       .eq('environment', environment)
+      .eq('environment_type', environmentType)
       .eq('ediel_id', edielId)
       .eq('actor_role', actorRole)
       .eq('is_active', true)
       .neq('company_id', companyId)
       .limit(1)
+    duplicateQuery = actorSubrole ? duplicateQuery.eq('actor_subrole', actorSubrole) : duplicateQuery.is('actor_subrole', null)
+    const duplicate = await duplicateQuery
 
     if (duplicate.error) throw duplicate.error
     if ((duplicate.data ?? []).length > 0) {
-      throw new Error('Ediel ID används redan av ett annat bolag i samma miljö och roll.')
+      throw new Error('Ediel ID används redan av ett annat bolag i samma miljö, environment_type, roll och subroll.')
     }
 
-    const existing = await supabaseService
+    let existingQuery = supabaseService
       .from('ediel_actor_settings')
       .select('id')
       .eq('company_id', companyId)
       .eq('environment', environment)
+      .eq('environment_type', environmentType)
       .eq('actor_role', actorRole)
       .order('updated_at', { ascending: false })
       .limit(1)
-      .maybeSingle()
+    existingQuery = actorSubrole ? existingQuery.eq('actor_subrole', actorSubrole) : existingQuery.is('actor_subrole', null)
+    const existing = await existingQuery.maybeSingle()
 
     if (existing.error) throw existing.error
 
@@ -132,16 +171,33 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
       ediel_id: edielId,
       actor_role: actorRole,
       role: actorRole,
+      actor_subrole: actorSubrole,
+      sub_role: actorSubrole,
       environment,
+      environment_type: environmentType,
       sender_sub_address: senderSubaddress,
       sender_subaddress: senderSubaddress,
       receiver_subaddress: receiverSubaddress,
       default_application_reference: applicationReference,
       application_reference: applicationReference,
+      registered_smtp_address: registeredSmtpAddress,
+      smtp_from_email: registeredSmtpAddress,
+      contact_email: contactEmail,
+      smtp_reply_to_email: contactEmail,
+      test_resource_name: nullableText(formData.get('test_resource_name')),
+      test_resource_email: testResourceEmail,
+      is_ombud: formData.get('is_ombud') !== null,
+      prodat_enabled: formData.get('prodat_enabled') !== null,
+      utilts_enabled: formData.get('utilts_enabled') !== null,
+      approved_it_system_profile_id: nullableText(formData.get('approved_it_system_profile_id')),
+      default_supplier_brp_ediel_id: nullableText(formData.get('default_supplier_brp_ediel_id'))?.toUpperCase() ?? null,
+      default_supplier_brp_name: nullableText(formData.get('default_supplier_brp_name')),
+      production_mode: normalizeProductionMode(text(formData.get('production_mode'))),
+      status: isActive ? 'active' : 'inactive',
       is_active: isActive,
       valid_from: dateOrNull(formData.get('valid_from')),
       valid_to: dateOrNull(formData.get('valid_to')),
-      metadata: { managedFrom: 'company_card', batch: 'batch_1_2' },
+      metadata: { managedFrom: 'company_card', batch: 'dual_role_completion', actorRole, actorSubrole, environmentType },
       updated_by: admin.userId,
       updated_at: new Date().toISOString(),
     }
@@ -167,6 +223,7 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
   }
 
   revalidatePath(`/admin/companies/${companyId}`)
+  revalidatePath(`/admin/companies/${companyId}/ediel`)
   redirect(`/admin/companies/${companyId}?success=${encodeURIComponent(redirectMessage)}#ediel-actor`)
 }
 

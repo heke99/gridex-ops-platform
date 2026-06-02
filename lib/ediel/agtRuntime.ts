@@ -1,6 +1,13 @@
 import type { EdielActorSettingsRow, EdielRouteProfileRow } from '@/lib/ediel/types'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  applicationReferenceForActor,
+  normalizeActorRole,
+  normalizeActorSubrole,
+  supplierBrpRelevantForRole,
+} from '@/lib/ediel/actorRoles'
+import {
+  EDIEL_AGT_DGI_PRODAT_APPLICATION_REFERENCE,
   EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID,
   getEdielAgtRouteName,
@@ -72,16 +79,28 @@ function parseAgtActorNotes(actor?: Pick<EdielActorSettingsRow, 'notes' | 'brp_e
   }
 }
 
-async function getActiveTestSupplierActor(companyId?: string | null): Promise<EdielActorSettingsRow | null> {
+async function getActiveTestActor(params: {
+  companyId?: string | null
+  actorRole?: string | null
+  actorSubrole?: string | null
+}): Promise<EdielActorSettingsRow | null> {
+  const actorRole = normalizeActorRole(params.actorRole ?? 'supplier')
+  const actorSubrole = normalizeActorSubrole(params.actorSubrole, actorRole)
   let query = supabaseService
     .from('ediel_actor_settings')
     .select('*')
     .eq('environment', 'test')
+    .eq('environment_type', 'agt_test')
     .eq('is_active', true)
 
-  if (companyId) {
-    query = query.eq('company_id', companyId)
+  if (params.companyId) {
+    query = query.eq('company_id', params.companyId)
   }
+  query =
+    actorRole === 'energy_service_company'
+      ? query.or('actor_role.in.(energy_service_company,esco,service_provider),actor_role.is.null')
+      : query.or(`actor_role.eq.${actorRole},actor_role.is.null`)
+  if (actorSubrole) query = query.eq('actor_subrole', actorSubrole)
 
   const { data, error } = await query
     .order('updated_at', { ascending: false })
@@ -111,17 +130,33 @@ async function getRouteByName(routeName: string, companyId?: string | null): Pro
   return (data as CommunicationRouteLite | null) ?? null
 }
 
-async function getRouteProfile(routeId: string | null, companyId?: string | null): Promise<EdielRouteProfileRow | null> {
+async function getRouteProfile(params: {
+  routeId: string | null
+  companyId?: string | null
+  actorRole?: string | null
+  actorSubrole?: string | null
+  family?: 'PRODAT' | 'UTILTS'
+}): Promise<EdielRouteProfileRow | null> {
+  const routeId = params.routeId
   if (!routeId) return null
+  const actorRole = normalizeActorRole(params.actorRole ?? 'supplier')
+  const actorSubrole = normalizeActorSubrole(params.actorSubrole, actorRole)
 
   let query = supabaseService
     .from('ediel_route_profiles')
     .select('*')
     .eq('communication_route_id', routeId)
+    .eq('environment_type', 'agt_test')
 
-  if (companyId) {
-    query = query.or(`company_id.is.null,company_id.eq.${companyId}`)
+  if (params.companyId) {
+    query = query.or(`company_id.is.null,company_id.eq.${params.companyId}`)
   }
+  query =
+    actorRole === 'energy_service_company'
+      ? query.or('actor_role.in.(energy_service_company,esco,service_provider),actor_role.is.null')
+      : query.or(`actor_role.eq.${actorRole},actor_role.is.null`)
+  if (actorSubrole) query = query.eq('actor_subrole', actorSubrole)
+  if (params.family) query = query.eq('message_family', params.family)
 
   const { data, error } = await query
     .order('updated_at', { ascending: false })
@@ -132,8 +167,13 @@ async function getRouteProfile(routeId: string | null, companyId?: string | null
   return (data as EdielRouteProfileRow | null) ?? null
 }
 
-function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIssue[] {
+function validateActor(
+  actor: EdielActorSettingsRow | null,
+  params: { actorRole?: string | null; actorSubrole?: string | null }
+): EdielAgtReadinessIssue[] {
   const issues: EdielAgtReadinessIssue[] = []
+  const expectedActorRole = normalizeActorRole(params.actorRole ?? 'supplier')
+  const expectedSubrole = normalizeActorSubrole(params.actorSubrole, expectedActorRole)
 
   if (!actor) {
     issues.push({
@@ -150,7 +190,7 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
       severity: 'error',
       code: 'agt_actor_ediel_id_missing',
       title: 'Aktörens Ediel-id saknas',
-      description: 'Fyll i leverantörens riktiga Ediel-id på aktörskortet.',
+      description: 'Fyll i aktörens riktiga Ediel-id på aktörskortet.',
     })
   }
 
@@ -159,16 +199,26 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
       severity: 'error',
       code: 'agt_actor_is_tgt_system_supplier',
       title: 'Gridcore/TGT-id används som aktör',
-      description: `Ediel-id ${EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID} är systemleverantörens TGT-identitet och får inte användas som avsändare i leverantörens AGT.`,
+      description: `Ediel-id ${EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID} är systemleverantörens TGT-identitet och får inte användas som avsändare i tenantens AGT.`,
     })
   }
 
-  if (actor.actor_role !== 'supplier') {
+  if (normalizeActorRole(actor.actor_role) !== expectedActorRole) {
     issues.push({
       severity: 'warning',
-      code: 'agt_actor_role_not_supplier',
-      title: 'Aktörsrollen är inte leverantör',
-      description: 'För leverantörs-AGT ska aktörskortet ha rollen supplier.',
+      code: 'agt_actor_role_mismatch',
+      title: 'Aktörsrollen matchar inte valt AGT-flöde',
+      description: `Aktörskortet ska ha rollen ${expectedActorRole} för valt testflöde.`,
+    })
+  }
+
+  const actualSubrole = normalizeActorSubrole(actor.actor_subrole ?? actor.sub_role, actor.actor_role)
+  if (expectedSubrole && actualSubrole !== expectedSubrole) {
+    issues.push({
+      severity: 'warning',
+      code: 'agt_actor_subrole_mismatch',
+      title: 'Aktörens subroll matchar inte valt AGT-flöde',
+      description: `Aktörskortet ska ha subrollen ${expectedSubrole}.`,
     })
   }
 
@@ -182,7 +232,7 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
   }
 
   const agtNotes = parseAgtActorNotes(actor)
-  if (blank(agtNotes.balanceResponsibleEdielId)) {
+  if (supplierBrpRelevantForRole(expectedActorRole) && blank(agtNotes.balanceResponsibleEdielId)) {
     issues.push({
       severity: 'warning',
       code: 'agt_balance_responsible_missing',
@@ -194,10 +244,18 @@ function validateActor(actor: EdielActorSettingsRow | null): EdielAgtReadinessIs
   return issues
 }
 
-function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsRow | null, systemTestSettings: EdielSystemTestSettings | null, companyId?: string | null): EdielAgtReadinessIssue[] {
+function validateRoute(
+  runtime: EdielAgtRouteRuntime,
+  actor: EdielActorSettingsRow | null,
+  systemTestSettings: EdielSystemTestSettings | null,
+  companyId: string | null | undefined,
+  params: { actorRole?: string | null; actorSubrole?: string | null }
+): EdielAgtReadinessIssue[] {
   const issues: EdielAgtReadinessIssue[] = []
   const family = runtime.family
   const expectedRouteName = getEdielAgtRouteName(family)
+  const expectedActorRole = normalizeActorRole(params.actorRole ?? 'supplier')
+  const expectedSubrole = normalizeActorSubrole(params.actorSubrole, expectedActorRole)
 
   if (!runtime.route) {
     issues.push({
@@ -308,7 +366,7 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
   }
 
   const senderFromProfile = normalized(runtime.profile.sender_ediel_id)
-  const actorEdielId = normalized(actor?.actor_ediel_id)
+  const actorEdielId = normalized(actor?.ediel_id ?? actor?.actor_ediel_id)
   if (blank(runtime.profile.sender_ediel_id)) {
     issues.push({
       severity: 'error',
@@ -337,17 +395,26 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
   }
 
   if (family === 'PRODAT') {
+    const expectedApplicationReference =
+      applicationReferenceForActor({
+        actorRole: expectedActorRole,
+        actorSubrole: expectedSubrole,
+        messageFamily: 'PRODAT',
+      }) ??
+      (expectedActorRole === 'energy_service_company'
+        ? EDIEL_AGT_DGI_PRODAT_APPLICATION_REFERENCE
+        : EDIEL_AGT_PRODAT_APPLICATION_REFERENCE)
     // Sender subaddress is tenant specific; leave it blank only when Edielregistret has no subaddress for that actor.
-    if (normalized(runtime.profile.application_reference) !== EDIEL_AGT_PRODAT_APPLICATION_REFERENCE) {
+    if (normalized(runtime.profile.application_reference) !== expectedApplicationReference) {
       issues.push({
         severity: 'error',
         code: 'agt_prodat_application_reference_wrong',
         title: 'PRODAT Application Reference saknas/fel',
-        description: `Leverantörs-AGT PRODAT ska använda Application Reference ${EDIEL_AGT_PRODAT_APPLICATION_REFERENCE}.`,
+        description: `AGT PRODAT ska använda Application Reference ${expectedApplicationReference}.`,
       })
     }
 
-    if (blank(runtime.profile.mailbox) && blank(actor?.mailbox)) {
+    if (blank(runtime.profile.mailbox) && blank(actor?.mailbox) && blank(actor?.registered_smtp_address)) {
       issues.push({
         severity: 'error',
         code: 'agt_prodat_mailbox_missing',
@@ -356,7 +423,7 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
       })
     }
 
-    const configuredReceiverSubaddress = normalized(systemTestSettings?.defaultReceiverSubaddress)
+    const configuredReceiverSubaddress = normalized(systemTestSettings?.defaultReceiverSubaddress ?? 'PRODAT')
     if (!configuredReceiverSubaddress) {
       issues.push({
         severity: 'warning',
@@ -364,7 +431,7 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
         title: 'PRODAT receiver subaddress saknas i systemtestinställningar',
         description: 'Fyll i receiver subaddress för AGT PRODAT om portalen kräver subadress.',
       })
-    } else if (normalized(runtime.profile.receiver_sub_address) !== configuredReceiverSubaddress) {
+    } else if (normalized(runtime.profile.receiver_message_subaddress ?? runtime.profile.receiver_subaddress ?? runtime.profile.receiver_sub_address) !== configuredReceiverSubaddress) {
       issues.push({
         severity: 'error',
         code: 'agt_prodat_receiver_subaddress_wrong',
@@ -375,12 +442,17 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
   }
 
   if (family === 'UTILTS') {
-    if (!blank(runtime.profile.sender_sub_address) || !blank(runtime.profile.receiver_sub_address)) {
+    if (
+      runtime.profile.subaddress_required === true ||
+      !blank(runtime.profile.receiver_message_subaddress) ||
+      !blank(runtime.profile.receiver_subaddress) ||
+      !blank(runtime.profile.receiver_sub_address)
+    ) {
       issues.push({
         severity: 'error',
         code: 'agt_utilts_subaddress_should_be_blank',
         title: 'UTILTS ska inte använda subadress',
-        description: 'För UTILTS AGT ska sender_sub_address och receiver_sub_address lämnas tomma.',
+        description: 'För UTILTS AGT ska receiver-subadress lämnas tom och subaddress_required vara false.',
       })
     }
   }
@@ -388,24 +460,31 @@ function validateRoute(runtime: EdielAgtRouteRuntime, actor: EdielActorSettingsR
   return issues
 }
 
-export async function getEdielAgtSupplierRuntime(companyId?: string | null): Promise<EdielAgtSupplierRuntime> {
-  const actor = await getActiveTestSupplierActor(companyId)
+export async function getEdielAgtRuntime(params?: {
+  companyId?: string | null
+  actorRole?: string | null
+  actorSubrole?: string | null
+}): Promise<EdielAgtSupplierRuntime> {
+  const companyId = params?.companyId ?? null
+  const actorRole = params?.actorRole ?? 'supplier'
+  const actorSubrole = params?.actorSubrole ?? (normalizeActorRole(actorRole) === 'energy_service_company' ? 'DGI' : 'DDQ')
+  const actor = await getActiveTestActor({ companyId, actorRole, actorSubrole })
   const systemTestSettings = await getEdielSystemTestSettings({ companyId, testSuite: 'AGT' })
   const [prodatRoute, utiltsRoute] = await Promise.all([
     getRouteByName(getEdielAgtRouteName('PRODAT'), companyId),
     getRouteByName(getEdielAgtRouteName('UTILTS'), companyId),
   ])
   const [prodatProfile, utiltsProfile] = await Promise.all([
-    getRouteProfile(prodatRoute?.id ?? null, companyId),
-    getRouteProfile(utiltsRoute?.id ?? null, companyId),
+    getRouteProfile({ routeId: prodatRoute?.id ?? null, companyId, actorRole, actorSubrole, family: 'PRODAT' }),
+    getRouteProfile({ routeId: utiltsRoute?.id ?? null, companyId, actorRole, actorSubrole, family: 'UTILTS' }),
   ])
 
   const prodat = { family: 'PRODAT' as const, route: prodatRoute, profile: prodatProfile }
   const utilts = { family: 'UTILTS' as const, route: utiltsRoute, profile: utiltsProfile }
   const issues = [
-    ...validateActor(actor),
-    ...validateRoute(prodat, actor, systemTestSettings, companyId),
-    ...validateRoute(utilts, actor, systemTestSettings, companyId),
+    ...validateActor(actor, { actorRole, actorSubrole }),
+    ...validateRoute(prodat, actor, systemTestSettings, companyId, { actorRole, actorSubrole }),
+    ...validateRoute(utilts, actor, systemTestSettings, companyId, { actorRole, actorSubrole }),
   ]
 
   return {
@@ -416,4 +495,8 @@ export async function getEdielAgtSupplierRuntime(companyId?: string | null): Pro
     issues,
     isReady: !issues.some((issue) => issue.severity === 'error'),
   }
+}
+
+export async function getEdielAgtSupplierRuntime(companyId?: string | null): Promise<EdielAgtSupplierRuntime> {
+  return getEdielAgtRuntime({ companyId, actorRole: 'supplier', actorSubrole: 'DDQ' })
 }

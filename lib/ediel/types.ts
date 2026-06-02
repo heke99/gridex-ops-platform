@@ -6,6 +6,14 @@ export type EdielMessageStandard = "edifact" | "xml" | "ai_list";
 
 export type EdielEnvironment = "test" | "production";
 
+export type EdielEnvironmentType =
+  | "tgt_test"
+  | "agt_test"
+  | "bilateral_test"
+  | "production";
+
+export type EdielActorSubrole = "DDQ" | "DGI";
+
 export type EdielMessageFamily =
   | "PRODAT"
   | "UTILTS"
@@ -171,6 +179,7 @@ export type EdielMessageRow = {
   environment: EdielEnvironment;
   test_flag: 0 | 1;
   status: EdielMessageStatus;
+  environment_type?: EdielEnvironmentType | string | null;
 
   transport_type: EdielTransportType;
   mailbox: string | null;
@@ -292,7 +301,10 @@ export type EdielTestRoleCode =
   | "supplier"
   | "grid_owner"
   | "balance_responsible"
-  | "esco";
+  | "brp"
+  | "esco"
+  | "energy_service_company"
+  | "system_supplier";
 
 export type EdielTestSuite =
   | "PRODAT"
@@ -339,6 +351,12 @@ export type EdielTestRunRow = {
   raw_edifact?: string | null;
   encrypted_payload_ref?: string | null;
   production_like?: boolean | null;
+  environment_type?: EdielEnvironmentType | string | null;
+  actor_profile_id?: string | null;
+  actor_subrole?: EdielActorSubrole | string | null;
+  route_snapshot?: Record<string, unknown> | null;
+  actor_snapshot?: Record<string, unknown> | null;
+  security_snapshot?: Record<string, unknown> | null;
 
   created_at: string;
   updated_at: string;
@@ -361,7 +379,10 @@ export type EdielActorRole =
   | "supplier"
   | "grid_owner"
   | "balance_responsible"
-  | "service_provider";
+  | "brp"
+  | "energy_service_company"
+  | "service_provider"
+  | "system_supplier";
 
 export type EdielActorSettingsRow = {
   id: string;
@@ -379,7 +400,22 @@ export type EdielActorSettingsRow = {
   production_status?: string | null;
   test_status?: string | null;
   environment: EdielEnvironment;
+  environment_type?: EdielEnvironmentType | string | null;
   is_active: boolean;
+  actor_subrole?: EdielActorSubrole | string | null;
+  sub_role?: EdielActorSubrole | string | null;
+  registered_smtp_address?: string | null;
+  contact_email?: string | null;
+  test_resource_name?: string | null;
+  test_resource_email?: string | null;
+  is_ombud?: boolean | null;
+  prodat_enabled?: boolean | null;
+  utilts_enabled?: boolean | null;
+  approved_it_system_profile_id?: string | null;
+  default_supplier_brp_ediel_id?: string | null;
+  default_supplier_brp_name?: string | null;
+  production_mode?: "disabled" | "shadow" | "active" | string | null;
+  status?: string | null;
   sender_name: string | null;
   sender_sub_address: string | null;
   sender_subaddress?: string | null;
@@ -422,10 +458,16 @@ export type EdielRouteProfileRow = {
   id: string;
   company_id?: string | null;
   communication_route_id: string;
+  actor_setting_id?: string | null;
+  actor_profile_id?: string | null;
+  actor_role?: EdielActorRole | string | null;
+  actor_subrole?: EdielActorSubrole | string | null;
   is_enabled: boolean;
   is_active?: boolean | null;
+  environment_type?: EdielEnvironmentType | string | null;
   message_family?: string | null;
   message_code?: string | null;
+  business_code?: string | null;
   sender_ediel_id: string | null;
   sender_sub_address: string | null;
   sender_subaddress?: string | null;
@@ -441,6 +483,7 @@ export type EdielRouteProfileRow = {
   mailbox_id?: string | null;
   transport_type?: string | null;
   transport_mode?: string | null;
+  default_brp_ediel_id?: string | null;
   ack_policy?: string | null;
   application_reference: string | null;
   smtp_from?: string | null;
@@ -506,6 +549,7 @@ export type CreateEdielMessageInput = {
   environment?: EdielEnvironment;
   testFlag?: 0 | 1;
   status?: EdielMessageStatus;
+  environmentType?: EdielEnvironmentType | string | null;
 
   transportType?: EdielTransportType;
   mailbox?: string | null;
@@ -605,6 +649,12 @@ export type CreateEdielTestRunInput = {
   rawEdifact?: string | null;
   encryptedPayloadRef?: string | null;
   productionLike?: boolean | null;
+  environmentType?: EdielEnvironmentType | string | null;
+  actorProfileId?: string | null;
+  actorSubrole?: EdielActorSubrole | string | null;
+  routeSnapshot?: Record<string, unknown> | null;
+  actorSnapshot?: Record<string, unknown> | null;
+  securitySnapshot?: Record<string, unknown> | null;
 };
 
 export type UpdateEdielTestRunStatusInput = {

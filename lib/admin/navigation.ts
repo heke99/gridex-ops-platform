@@ -134,7 +134,12 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Meddelanden, kvittenser och blockers',
     items: [
       { key: 'ediel.control_tower', label: 'Control Tower', href: '/admin/ediel/control-tower', description: 'ACK-kedjor, dubbletter och blockeringar', pageKey: 'ediel.control_tower', platformOnly: true },
+      { key: 'ediel.readiness', label: 'Readiness', href: '/admin/ediel/readiness', description: 'Actor profiles, tester, routes och production readiness', pageKey: 'ediel.control_tower', platformOnly: true },
+      { key: 'ediel.go_live', label: 'Ediel go-live', href: '/admin/ediel/go-live', description: 'Production readiness, dry-run och live-spärrar', pageKey: 'platform.go_live', platformOnly: true },
+      { key: 'ediel.exchange_log', label: 'Exchange-log', href: '/admin/ediel/exchange-log', description: 'Teknisk Ediel-tidslinje och message events', pageKey: 'ediel.control_tower', platformOnly: true },
       { key: 'ediel.messages', label: 'Meddelanden', href: '/admin/ediel/messages', description: 'Inkommande och utgående Ediel', pageKey: 'ediel.workspace', platformOnly: true },
+      { key: 'ediel.mailboxes', label: 'Mailboxes', href: '/admin/ediel/mailboxes', description: 'Shared mailboxar, poll-runs och S/MIME-defaults', pageKey: 'ediel.routes', platformOnly: true },
+      { key: 'ediel.dead_letter', label: 'Dead-letter', href: '/admin/ediel/dead-letter', description: 'Felade Ediel-, inbound- och integration deliveries', pageKey: 'ediel.control_tower', platformOnly: true },
       { key: 'ediel.workspace', label: 'Ediel workspace', href: '/admin/ediel', description: 'PRODAT, UTILTS, CONTRL och APERAK', pageKey: 'ediel.workspace', platformOnly: true },
       { key: 'ediel.test_center', label: 'Test Center', href: '/admin/ediel/test-center', description: 'L1-L7, UL1-UL6, E3-E8 och UE1-UE2', pageKey: 'platform.actor_testing', platformOnly: true },
       { key: 'ediel.system_tests', label: 'Systemtest', href: '/admin/ediel/system-tests', description: 'TGT/AGT-testcenter med filtrering och körbara testfall', pageKey: 'platform.actor_testing', platformOnly: true },

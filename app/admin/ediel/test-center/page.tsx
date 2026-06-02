@@ -3,22 +3,37 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { prepareEdielTestCenterRunAction } from '@/app/admin/ediel/test-center/actions'
+import { listEdielAgt2026Cases } from '@/lib/ediel/agtRegistry'
 
 export const dynamic = 'force-dynamic'
 
-const tabs = [
-  { title: 'Leverantör PRODAT', cases: 'L1, L2, L3, L4, L5, L7', href: '/admin/ediel/agt' },
-  { title: 'Leverantör UTILTS', cases: 'UL1, UL2, UL3, UL4, UL6', href: '/admin/ediel/system-tests' },
-  { title: 'Energitjänsteföretag PRODAT', cases: 'E3, E4, E5, E6, E7, E8', href: '/admin/ediel/system-tests' },
-  { title: 'Energitjänsteföretag UTILTS', cases: 'UE1, UE2', href: '/admin/ediel/system-tests' },
-  { title: 'Transport & kryptering', cases: 'Okrypterat testläge och S/MIME testläge', href: '/admin/ediel/routes' },
-]
+const testCaseGroups = [
+  { key: 'supplier-prodat', title: 'Leverantör PRODAT', roleCode: 'supplier', suite: 'PRODAT', href: '/admin/ediel/agt' },
+  { key: 'supplier-utilts', title: 'Leverantör UTILTS', roleCode: 'supplier', suite: 'UTILTS', href: '/admin/ediel/system-tests' },
+  { key: 'dgi-prodat', title: 'Energitjänsteföretag PRODAT', roleCode: 'esco', suite: 'PRODAT', href: '/admin/ediel/system-tests' },
+  { key: 'dgi-utilts', title: 'Energitjänsteföretag UTILTS', roleCode: 'esco', suite: 'UTILTS', href: '/admin/ediel/system-tests' },
+].map((group) => ({
+  ...group,
+  cases: listEdielAgt2026Cases({ roleCode: group.roleCode, suite: group.suite as 'PRODAT' | 'UTILTS' }),
+}))
 
-const testCases = [
-  { group: 'Leverantör AGT', cases: 'L1, L2, L3, L4, L5, L7', family: 'PRODAT' },
-  { group: 'Leverantör UTILTS', cases: 'UL1, UL2, UL3, UL4, UL6', family: 'UTILTS' },
-  { group: 'Energitjänsteföretag PRODAT', cases: 'E3, E4, E5, E6, E7, E8', family: 'PRODAT' },
-  { group: 'Energitjänsteföretag UTILTS', cases: 'UE1, UE2', family: 'UTILTS' },
+const transportGroup = {
+  title: 'Transport & kryptering',
+  cases: 'Okrypterat testläge och S/MIME testläge',
+  href: '/admin/ediel/routes',
+}
+
+const testCaseOptions = listEdielAgt2026Cases().map((testCase) => ({
+  value: testCase.testCaseCode,
+  label: `${testCase.testCaseCode} - ${testCase.messageCode}${testCase.messageVariant ? ` ${testCase.messageVariant}` : ''}`,
+  roleCode: testCase.roleCode,
+  suite: testCase.suite,
+  title: testCase.title,
+}))
+
+const roleOptions = [
+  { value: 'supplier', label: 'Elleverantör / DDQ' },
+  { value: 'esco', label: 'Energitjänsteföretag / DGI' },
 ]
 
 export default async function EdielTestCenterPage() {
@@ -31,7 +46,7 @@ export default async function EdielTestCenterPage() {
       .limit(100),
     supabaseService
       .from('ediel_test_runs')
-      .select('id,company_id,test_case_code,test_suite,role_code,status,encryption_mode,certificate_fingerprint_sha256,route_profile_id,created_at,failure_reason')
+      .select('id,company_id,test_case_code,test_suite,role_code,actor_subrole,environment_type,status,encryption_mode,certificate_fingerprint_sha256,route_profile_id,created_at,failure_reason')
       .order('created_at', { ascending: false })
       .limit(8),
   ])
@@ -52,12 +67,35 @@ export default async function EdielTestCenterPage() {
             Välj flöde nedan. Rå EDIFACT, parsed view, CONTRL, APERAK, UTILTS-ERR och felorsak visas i respektive befintlig test-/AGT-arbetsyta.
           </p>
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {tabs.map((tab) => (
-              <Link key={tab.title} href={tab.href} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">{tab.cases}</p>
-                <h2 className="mt-2 text-lg font-black text-slate-950">{tab.title}</h2>
-                <p className="mt-2 text-sm font-medium text-slate-700">Öppna testarbetsyta</p>
+            {testCaseGroups.map((group) => (
+              <Link key={group.key} href={group.href} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">{group.cases.map((testCase) => testCase.testCaseCode).join(', ')}</p>
+                <h2 className="mt-2 text-lg font-black text-slate-950">{group.title}</h2>
+                <p className="mt-2 text-sm font-medium text-slate-700">{group.roleCode} · {group.suite} · {group.cases.length} testfall</p>
               </Link>
+            ))}
+            <Link href={transportGroup.href} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">{transportGroup.cases}</p>
+              <h2 className="mt-2 text-lg font-black text-slate-950">{transportGroup.title}</h2>
+              <p className="mt-2 text-sm font-medium text-slate-700">Routes, S/MIME och dry-run transport</p>
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {testCaseGroups.map((group) => (
+              <div key={`${group.key}-expected`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="text-sm font-black text-slate-950">{group.title}</div>
+                <div className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-600">{group.roleCode} · {group.suite}</div>
+                <ol className="mt-3 space-y-1 text-xs font-semibold text-slate-700">
+                  {group.cases.slice(0, 4).map((testCase) => (
+                    <li key={testCase.testCaseCode}>{testCase.testCaseCode}: {testCase.direction === 'actor_to_portal' ? 'actor skickar' : 'portal skickar'} · {testCase.applicationReference}</li>
+                  ))}
+                  {group.cases.length > 4 ? <li>+ {group.cases.length - 4} fler</li> : null}
+                </ol>
+                {group.roleCode === 'esco' ? (
+                  <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">BRP krävs inte för DGI-flöden</p>
+                ) : null}
+              </div>
             ))}
           </div>
         </section>
@@ -76,33 +114,20 @@ export default async function EdielTestCenterPage() {
               ))}
             </select>
             <select name="roleCode" defaultValue="supplier" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="supplier">Elleverantör</option>
-              <option value="esco">Energitjänsteföretag / DGI</option>
+              {roleOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
             <select name="testSuite" defaultValue="PRODAT" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
               <option value="PRODAT">PRODAT</option>
               <option value="UTILTS">UTILTS</option>
             </select>
             <select name="testCaseCode" defaultValue="L1" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="L1">L1 - Z03</option>
-              <option value="L2">L2 - Z04</option>
-              <option value="L3">L3 - Z05</option>
-              <option value="L4">L4 - Z06</option>
-              <option value="L5">L5 - Z10</option>
-              <option value="L7">L7 - Z09</option>
-              <option value="UL1">UL1 - S03</option>
-              <option value="UL2">UL2 - E66-KVART</option>
-              <option value="UL3">UL3 - E66-SCH</option>
-              <option value="UL4">UL4 - S02</option>
-              <option value="UL6">UL6 - E31-SCH</option>
-              <option value="E3">E3</option>
-              <option value="E4">E4</option>
-              <option value="E5">E5</option>
-              <option value="E6">E6</option>
-              <option value="E7">E7</option>
-              <option value="E8">E8</option>
-              <option value="UE1">UE1</option>
-              <option value="UE2">UE2</option>
+              {testCaseOptions.map((option) => (
+                <option key={`${option.roleCode}-${option.suite}-${option.value}`} value={option.value}>
+                  {option.label} · {option.roleCode} · {option.suite}
+                </option>
+              ))}
             </select>
             <select name="environment" defaultValue="test" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
               <option value="test">test</option>
@@ -138,11 +163,12 @@ export default async function EdielTestCenterPage() {
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {testCases.map((item) => (
-              <div key={item.group} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-black text-slate-950">{item.group}</div>
-                <div className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-600">{item.family}</div>
-                <div className="mt-3 text-sm text-slate-700">{item.cases}</div>
+            {testCaseGroups.map((group) => (
+              <div key={`${group.key}-transport`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-black text-slate-950">{group.title}</div>
+                <div className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-600">{group.suite}</div>
+                <div className="mt-3 text-sm text-slate-700">{group.cases.map((testCase) => testCase.testCaseCode).join(', ')}</div>
+                <div className="mt-2 text-xs font-semibold text-slate-600">{group.cases.filter((testCase) => testCase.scenario === 'actor_sends_and_receives_ack').length} outbound-preflight · {group.cases.filter((testCase) => testCase.scenario === 'portal_sends_actor_answers').length} inboundväntande</div>
               </div>
             ))}
           </div>
@@ -182,7 +208,7 @@ export default async function EdielTestCenterPage() {
               <tbody>
                 {(recentRuns ?? []).map((run) => (
                   <tr key={run.id} className="border-t border-slate-100">
-                    <td className="p-3 font-semibold">{run.test_suite} {run.test_case_code}<div className="text-xs font-normal text-slate-500">{run.role_code}</div></td>
+                    <td className="p-3 font-semibold">{run.test_suite} {run.test_case_code}<div className="text-xs font-normal text-slate-500">{run.role_code} / {run.actor_subrole ?? 'subroll saknas'} · {run.environment_type ?? 'env_type saknas'}</div></td>
                     <td className="p-3">{run.encryption_mode ?? 'none'}<div className="font-mono text-xs text-slate-500">{run.certificate_fingerprint_sha256 ?? 'utan certfingerprint'}</div></td>
                     <td className="p-3 font-mono text-xs">{run.route_profile_id ?? 'route ej vald'}</td>
                     <td className="p-3">{run.status}{run.failure_reason ? <div className="text-xs text-red-700">{run.failure_reason}</div> : null}</td>

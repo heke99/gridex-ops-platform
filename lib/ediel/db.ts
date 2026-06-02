@@ -2,6 +2,7 @@
 
 import { supabaseService } from '@/lib/supabase/service'
 import { assertNoTgtLeakageInProductionInput } from '@/lib/ediel/core/productionGuards'
+import { normalizeEnvironmentType } from '@/lib/ediel/actorRoles'
 import { findRulebookTestCase } from '@/lib/ediel/rulebook/testCaseMatcher'
 import { parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
@@ -376,6 +377,7 @@ export async function createEdielMessage(
     message_version: input.messageVersion ?? null,
     process_type: input.processType ?? null,
     environment: input.environment ?? 'test',
+    environment_type: input.environmentType ?? normalizeEnvironmentType(null, input.environment ?? 'test'),
     test_flag: input.testFlag ?? 1,
     status: input.status ?? 'draft',
 
@@ -983,7 +985,10 @@ export async function createEdielTestRun(
     completed_at: input.completedAt ?? null,
     failure_reason: input.failureReason ?? null,
     notes: input.notes ?? null,
+    environment_type: input.environmentType ?? normalizeEnvironmentType(null, input.productionLike ? 'production' : 'test'),
+    actor_profile_id: input.actorProfileId ?? null,
     actor_role: input.actorRole ?? null,
+    actor_subrole: input.actorSubrole ?? null,
     message_family: input.messageFamily ?? null,
     business_code: input.businessCode ?? null,
     encryption_mode: input.encryptionMode ?? 'none',
@@ -995,6 +1000,9 @@ export async function createEdielTestRun(
     raw_edifact: input.rawEdifact ?? null,
     encrypted_payload_ref: input.encryptedPayloadRef ?? null,
     production_like: input.productionLike ?? false,
+    route_snapshot: input.routeSnapshot ?? {},
+    actor_snapshot: input.actorSnapshot ?? {},
+    security_snapshot: input.securitySnapshot ?? {},
     created_by: input.actorUserId ?? null,
     updated_by: input.actorUserId ?? null,
   })

@@ -1,13 +1,14 @@
 import { createHash } from 'crypto'
 import { createEdielTestRun } from '@/lib/ediel/db'
 import { getEdielAgtTestCaseByCode } from '@/lib/ediel/agtRegistry'
-import { createEdielSupplierAgtOutboundCommand } from '@/lib/ediel/agtEngine'
+import { createEdielAgtOutboundCommand } from '@/lib/ediel/agtEngine'
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 import { createSmimeEncryptedPayloadReference } from '@/lib/ediel/transport/smime'
 import { supabaseService } from '@/lib/supabase/service'
-import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
+import { normalizeActorRole, normalizeActorSubrole, normalizeEnvironmentType } from '@/lib/ediel/actorRoles'
+import type { EdielEnvironmentType, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
 type TestEncryptionMode = 'none' | 'smime'
 
@@ -34,6 +35,9 @@ function normalizeEncryptionMode(value?: string | null): TestEncryptionMode {
 async function resolveRouteProfile(input: {
   companyId: string
   environment: 'test' | 'production'
+  environmentType: EdielEnvironmentType
+  actorRole: string | null
+  actorSubrole: string | null
   messageFamily: string | null
   businessCode: string | null
 }) {
@@ -42,12 +46,20 @@ async function resolveRouteProfile(input: {
     .select('*')
     .eq('company_id', input.companyId)
     .eq('environment', input.environment)
+    .eq('environment_type', input.environmentType)
     .eq('is_enabled', true)
     .order('updated_at', { ascending: false })
     .limit(1)
 
   if (input.messageFamily) query = query.eq('message_family', input.messageFamily)
   if (input.businessCode) query = query.or(`business_code.eq.${input.businessCode},message_code.eq.${input.businessCode},business_code.is.null,message_code.is.null`)
+  if (input.actorRole) {
+    const actorRole = normalizeActorRole(input.actorRole)
+    query = actorRole === 'energy_service_company'
+      ? query.or('actor_role.in.(energy_service_company,esco,service_provider),actor_role.is.null')
+      : query.or(`actor_role.eq.${actorRole},actor_role.is.null`)
+  }
+  if (input.actorSubrole) query = query.or(`actor_subrole.eq.${input.actorSubrole},actor_subrole.is.null`)
 
   const { data, error } = await query.maybeSingle()
   if (error) throw error
@@ -123,10 +135,23 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     'messageFamily' in definition ? String(definition.messageFamily) : String(definition.suite)
   const businessCode =
     'messageCode' in definition ? String(definition.messageCode) : (definition.expectedSteps[0]?.code ?? null)
+  const actorRole = agtDefinition?.actorRole ?? (roleCode === 'esco' ? 'energy_service_company' : roleCode)
+  const actorSubrole = agtDefinition?.actorSubrole ?? normalizeActorSubrole(null, actorRole)
+  const environmentType = normalizeEnvironmentType(
+    input.productionLike || environment === 'production'
+      ? 'production'
+      : agtDefinition
+        ? 'agt_test'
+        : 'tgt_test',
+    environment
+  )
   const expectedFlow = expectedFlowFromSteps(definition.expectedSteps as Array<Record<string, unknown>>)
   const routeProfile = await resolveRouteProfile({
     companyId: input.companyId,
     environment,
+    environmentType,
+    actorRole,
+    actorSubrole,
     messageFamily,
     businessCode,
   })
@@ -166,7 +191,9 @@ export async function prepareEdielTestRunTransportMetadata(input: {
       ...(Array.isArray(definition.notes) ? definition.notes : []),
       'Test Center: transportläge sparat före skick. Samma builder/parser ska användas vid actual send.',
     ].join('\n'),
-    actorRole: roleCode,
+    actorRole,
+    actorSubrole,
+    environmentType,
     messageFamily,
     businessCode,
     encryptionMode: effectiveEncryption,
@@ -176,6 +203,17 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     expectedFlow,
     actualFlow: [],
     productionLike: input.productionLike ?? false,
+    routeSnapshot: routeProfile ?? {},
+    actorSnapshot: {
+      actorRole,
+      actorSubrole,
+      roleCode,
+    },
+    securitySnapshot: {
+      encryptionMode: effectiveEncryption,
+      certificateId: effectiveCertificateId,
+      certificateFingerprintSha256: String(certificate?.fingerprint_sha256 ?? certificate?.certificate_fingerprint ?? '') || null,
+    },
   })
 
   let rawEdifact: string | null = null
@@ -183,10 +221,13 @@ export async function prepareEdielTestRunTransportMetadata(input: {
   let actualFlow: Array<Record<string, unknown>> = []
 
   if (agtDefinition?.scenario === 'actor_sends_and_receives_ack') {
-    const message = await createEdielSupplierAgtOutboundCommand({
+    const message = await createEdielAgtOutboundCommand({
       actorUserId: input.actorUserId,
       testRunId: run.id,
       testCaseCode,
+      roleCode,
+      actorRole,
+      actorSubrole,
       companyId: input.companyId,
     })
     rawEdifact = message.raw_payload ?? null

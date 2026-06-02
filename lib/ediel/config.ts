@@ -1,9 +1,17 @@
 // lib/ediel/config.ts
 
 import { supabaseService } from '@/lib/supabase/service'
+import {
+  normalizeActorRole,
+  normalizeActorSubrole,
+  normalizeEnvironmentType,
+} from '@/lib/ediel/actorRoles'
 import type {
+  EdielActorRole,
+  EdielActorSubrole,
   EdielActorSettingsRow,
   EdielEnvironment,
+  EdielEnvironmentType,
   EdielMessageStandard,
   EdielRouteProfileAckMode,
 } from '@/lib/ediel/types'
@@ -37,6 +45,11 @@ export type EdielRouteRuntimeRow = {
   route_profile_id: string
   communication_route_id: string
   environment: EdielEnvironment
+  environment_type?: EdielEnvironmentType | string | null
+  actor_setting_id?: string | null
+  actor_profile_id?: string | null
+  actor_role?: EdielActorRole | string | null
+  actor_subrole?: EdielActorSubrole | string | null
   message_standard: EdielMessageStandard
   ack_mode: EdielRouteProfileAckMode
   payload_format: 'edifact' | 'xml' | 'raw'
@@ -51,6 +64,8 @@ export type EdielRouteRuntimeRow = {
   receiver_name: string | null
   mailbox: string | null
   application_reference: string | null
+  business_code?: string | null
+  default_brp_ediel_id?: string | null
   route_profile_notes: string | null
   is_enabled: boolean
   route_name: string
@@ -204,17 +219,43 @@ export function evaluateProductionTransportSecurity(params: {
 
 export async function getActiveEdielActorSettings(
   environment: EdielEnvironment = 'test',
-  companyId?: string | null
+  companyId?: string | null,
+  options?: {
+    environmentType?: EdielEnvironmentType | string | null
+    actorRole?: string | null
+    actorSubrole?: string | null
+  }
 ): Promise<EdielActorSettingsRow | null> {
   const scopedCompanyId = sanitize(companyId)
+  const environmentType = options?.environmentType
+    ? normalizeEnvironmentType(options.environmentType, environment)
+    : null
+  const actorRole = options?.actorRole ? normalizeActorRole(options.actorRole) : null
+  const actorSubrole = normalizeActorSubrole(options?.actorSubrole, actorRole)
+
+  function applyFilters<T extends { eq: (column: string, value: string | boolean) => T; in: (column: string, values: string[]) => T }>(query: T): T {
+    let filtered = query
+    if (environmentType) filtered = filtered.eq('environment_type', environmentType)
+    if (actorRole) {
+      const roles =
+        actorRole === 'energy_service_company'
+          ? ['energy_service_company', 'esco', 'service_provider']
+          : [actorRole]
+      filtered = filtered.in('actor_role', roles)
+    }
+    if (actorSubrole) filtered = filtered.eq('actor_subrole', actorSubrole)
+    return filtered
+  }
 
   if (scopedCompanyId) {
-    const scoped = await supabaseService
+    const scopedQuery = supabaseService
       .from('ediel_actor_settings')
       .select('*')
       .eq('environment', environment)
       .eq('company_id', scopedCompanyId)
       .eq('is_active', true)
+
+    const scoped = await applyFilters(scopedQuery)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -227,12 +268,14 @@ export async function getActiveEdielActorSettings(
     return (scoped.data as EdielActorSettingsRow | null) ?? null
   }
 
-  const { data, error } = await supabaseService
+  const globalQuery = supabaseService
     .from('ediel_actor_settings')
     .select('*')
     .eq('environment', environment)
     .is('company_id', null)
     .eq('is_active', true)
+
+  const { data, error } = await applyFilters(globalQuery)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()

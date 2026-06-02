@@ -12,12 +12,14 @@ import {
 import { getActorTestingSummary, getActorTestingStatusLabel, getProductionReadinessLabel } from '@/lib/ediel/actorTesting'
 import { getCompanyActorConfiguration, type CompanyActorConfiguration, type EdielConfigRow } from '@/lib/ediel/companyActorConfiguration'
 import { CopyButton, CopyDnsRecordsButton } from '@/components/admin/email/CopyButtons'
+import { CompanyActorProfilesPanel } from '@/components/admin/ediel/CompanyActorProfilesPanel'
+import { normalizeActorRole, normalizeActorSubrole } from '@/lib/ediel/actorRoles'
 import { getCompanyEmailSettings, getEffectiveSender, type CompanyEmailSettings } from '@/lib/email/companyEmailSettings'
 import { getCompanyDnsRecords, type CompanyEmailDnsRecord } from '@/lib/email/dnsRecords'
 import { getEmailEventRules, type EmailEventRule } from '@/lib/email/emailEvents'
 import { DEFAULT_EMAIL_TEMPLATES, EMAIL_TEMPLATE_VARIABLES, getCompanyEmailTemplates, type CompanyEmailTemplate } from '@/lib/email/emailTemplates'
 import { getCompanyCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
-import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
+import { saveCompanyBrpAction } from './ediel-actions'
 import {
   checkCompanyDomainVerificationAction,
   resetEmailTemplateAction,
@@ -180,14 +182,23 @@ function ConfigTable({ title, rows, columns }: { title: string; rows: EdielConfi
 }
 
 function CompanyEdielConfiguration({ company, config }: { company: GovernanceCompany; config: CompanyActorConfiguration }) {
-  const actor = config.actors[0] ?? null
+  const supplierActor = config.actors.find((row) => {
+    const role = normalizeActorRole(rowText(row, 'actor_role', 'role'))
+    const subrole = normalizeActorSubrole(rowText(row, 'actor_subrole', 'sub_role'), role, rowText(row, 'application_reference', 'default_application_reference'))
+    return role === 'supplier' && subrole === 'DDQ'
+  }) ?? null
+  const dgiActor = config.actors.find((row) => {
+    const role = normalizeActorRole(rowText(row, 'actor_role', 'role'))
+    const subrole = normalizeActorSubrole(rowText(row, 'actor_subrole', 'sub_role'), role, rowText(row, 'application_reference', 'default_application_reference'))
+    return role === 'energy_service_company' && subrole === 'DGI'
+  }) ?? null
   const brp = config.brpSettings.find((row) => rowBool(row, 'is_default')) ?? config.brpSettings[0] ?? null
   const sharedMailbox = config.mailboxes.find((row) => {
     const metadata = row.metadata
     return metadata && typeof metadata === 'object' && (metadata as Record<string, unknown>).scope === 'platform_shared'
   })
   const readiness = {
-    actor: Boolean(rowText(actor, 'ediel_id', 'actor_ediel_id')),
+    actor: Boolean(rowText(supplierActor, 'ediel_id', 'actor_ediel_id')) && Boolean(rowText(dgiActor, 'ediel_id', 'actor_ediel_id')),
     brp: Boolean(rowText(brp, 'brp_ediel_id')),
     mailbox: Boolean(sharedMailbox),
     route: config.routeProfiles.some((row) => rowBool(row, 'is_active') || rowBool(row, 'is_enabled')),
@@ -222,23 +233,7 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
         </nav>
       </div>
 
-      <section id="ediel-actor" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-black text-slate-950">Ediel actor</h2>
-        <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">Plattformen sparar bolagets Ediel ID per miljö. Mailboxen är bara transportkanal.</p>
-        <form action={saveCompanyEdielActorAction} className="mt-5 grid gap-4 md:grid-cols-2">
-          <input type="hidden" name="company_id" value={company.id} />
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Miljö</span><select name="environment" defaultValue={rowText(actor, 'environment') ?? 'test'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="test">test</option><option value="production">production</option></select></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Aktörsroll</span><select name="actor_role" defaultValue={rowText(actor, 'actor_role', 'role') ?? 'supplier'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="supplier">supplier</option><option value="grid_owner">grid_owner</option><option value="esco">esco</option><option value="brp">brp</option><option value="agent">agent</option><option value="other">other</option></select></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Ediel ID</span><input name="ediel_id" defaultValue={rowText(actor, 'ediel_id', 'actor_ediel_id') ?? ''} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Application reference</span><input name="application_reference" defaultValue={rowText(actor, 'application_reference', 'default_application_reference') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Sender subaddress</span><input name="sender_subaddress" defaultValue={rowText(actor, 'sender_subaddress', 'sender_sub_address') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Receiver subaddress</span><input name="receiver_subaddress" defaultValue={rowText(actor, 'receiver_subaddress', 'receiver_sub_address') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig från</span><input type="date" name="valid_from" defaultValue={rowText(actor, 'valid_from') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig till</span><input type="date" name="valid_to" defaultValue={rowText(actor, 'valid_to') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="flex items-center gap-2 text-sm font-bold text-slate-800"><input type="checkbox" name="is_active" defaultChecked={actor ? rowBool(actor, 'is_active') : true} /> Aktiv</label>
-          <div className="md:col-span-2"><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Spara Ediel actor</button></div>
-        </form>
-      </section>
+      <CompanyActorProfilesPanel company={company} config={config} />
 
       <section id="brp" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-black text-slate-950">BRP / balancing</h2>

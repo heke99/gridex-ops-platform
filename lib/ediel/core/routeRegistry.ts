@@ -5,6 +5,7 @@ import type { CommunicationRouteRow } from '@/lib/cis/types'
 import type { GridOwnerRow } from '@/lib/masterdata/types'
 import type {
   EdielEnvironment,
+  EdielEnvironmentType,
   EdielMessageStandard,
   EdielRouteProfileAckMode,
 } from '@/lib/ediel/types'
@@ -14,6 +15,7 @@ import {
 } from '@/lib/ediel/config'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
+import { normalizeEnvironmentType } from '@/lib/ediel/actorRoles'
 
 export type CanonicalRouteRequestType =
   | 'supplier_switch'
@@ -42,9 +44,11 @@ export type CanonicalRouteContext = {
   applicationReference: string | null
   defaultMessageVersion: string | null
   ackMode: EdielRouteProfileAckMode
+  encryptionMode: 'none' | 'smime' | 'pgp' | string | null
   payloadFormat: 'edifact' | 'xml' | 'raw' | null
   messageStandard: EdielMessageStandard
   environment: EdielEnvironment
+  environmentType: EdielEnvironmentType
   routeKey: string
   routeDecisionReason: string
   routeSelectionSource: 'explicit_route' | 'auto_route'
@@ -122,11 +126,21 @@ export async function resolveCanonicalRouteContext(params: {
   preferredRouteId?: string | null
   companyId?: string | null
   environment?: EdielEnvironment
+  environmentType?: string | null
+  actorRole?: string | null
+  actorSubrole?: string | null
   messageStandard?: EdielMessageStandard
 }): Promise<CanonicalRouteContext> {
   const environment = params.environment ?? 'test'
   const companyId = trimOrNull(params.companyId)
-  const actor = await resolveCanonicalActorContext(environment, companyId)
+  const environmentType = normalizeEnvironmentType(params.environmentType, environment)
+  const messageFamily = isProdatRouteRequestType(params.requestType) ? 'PRODAT' : params.requestType === 'meter_values' || params.requestType === 'billing_underlay' ? 'UTILTS' : null
+  const actor = await resolveCanonicalActorContext(environment, companyId, {
+    environmentType,
+    actorRole: params.actorRole ?? (params.requestType === 'metering_access' ? 'energy_service_company' : 'supplier'),
+    actorSubrole: params.actorSubrole ?? (params.requestType === 'metering_access' ? 'DGI' : null),
+    messageFamily,
+  })
   const resolvedRoute = await resolveCommunicationRoute({
     requestType: params.requestType,
     gridOwnerId: params.gridOwner?.id ?? null,
@@ -173,9 +187,9 @@ export async function resolveCanonicalRouteContext(params: {
     trimOrNull(routeRuntime?.receiver_message_subaddress) ?? receiverSubAddress
   const subaddressRequired = routeRuntime?.subaddress_required === true
 
-  if (subaddressRequired && !receiverMessageSubAddress && !senderSubAddress) {
+  if (subaddressRequired && !receiverMessageSubAddress) {
     throw new Error(
-      'Route saknar registrerad subadress. Kontrollera route-inställningar innan meddelandet skickas.'
+      'Route kräver mottagar-subadress men receiver_message_subaddress/receiver_subaddress saknas. Kontrollera route-inställningar innan meddelandet skickas.'
     )
   }
 
@@ -209,6 +223,14 @@ export async function resolveCanonicalRouteContext(params: {
   const defaultMessageVersion = trimOrNull(routeRuntime?.default_message_version)
   const ackMode = routeRuntime?.ack_mode ?? 'default'
   const messageStandard = params.messageStandard ?? routeRuntime?.message_standard ?? 'edifact'
+  const routeEncryptionMode = trimOrNull(routeRuntime?.encryption_mode)?.toLowerCase() ?? null
+  const encryptionMode = routeEncryptionMode ?? (environment === 'production' && messageFamily === 'PRODAT' ? 'smime' : null)
+
+  if (environment === 'production' && messageFamily === 'PRODAT' && encryptionMode !== 'smime') {
+    throw new Error(
+      `Production PRODAT kräver S/MIME. Route ${route.route_name} har encryption_mode=${encryptionMode ?? 'saknas'}.`
+    )
+  }
 
   const routeKey = [
     params.requestType,
@@ -217,6 +239,7 @@ export async function resolveCanonicalRouteContext(params: {
     receiverMessageSubAddress ?? receiverSubAddress ?? 'no-subaddress',
     applicationReference ?? 'default-application-reference',
     messageStandard,
+    encryptionMode ?? 'default-encryption',
     environment,
     defaultMessageVersion ?? 'default-version',
   ].join('|')
@@ -246,9 +269,11 @@ export async function resolveCanonicalRouteContext(params: {
     applicationReference,
     defaultMessageVersion,
     ackMode,
+    encryptionMode,
     payloadFormat: routeRuntime?.payload_format ?? null,
     messageStandard,
     environment,
+    environmentType,
     routeKey,
     routeDecisionReason,
     routeSelectionSource: resolvedRoute.source,

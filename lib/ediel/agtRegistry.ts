@@ -3,6 +3,7 @@ import type {
   EdielTestRoleCode,
   EdielTestSuite,
 } from "@/lib/ediel/types";
+import { roleCodeForActorRole } from "@/lib/ediel/actorRoles";
 
 export type EdielAgtScenario =
   | "actor_sends_and_receives_ack"
@@ -38,7 +39,10 @@ export type EdielAgtProdatOutboundTemplate = {
 
 export type EdielAgtTestCaseDefinition = {
   suite: Extract<EdielTestSuite, "PRODAT" | "UTILTS">;
-  roleCode: Extract<EdielTestRoleCode, "supplier">;
+  roleCode: Extract<EdielTestRoleCode, "supplier" | "esco">;
+  actorRole: "supplier" | "energy_service_company";
+  actorSubrole: "DDQ" | "DGI";
+  applicationReference: string;
   approvalVersion: string;
   testCaseCode: string;
   title: string;
@@ -62,6 +66,7 @@ export type EdielAgtCase = EdielAgtTestCaseDefinition;
 export const EDIEL_AGT_APPROVAL_VERSION_2026A = "2026A";
 export const EDIEL_AGT_APPROVAL_VERSION_LABEL_2026A = "AGT 2026A";
 export const EDIEL_AGT_PRODAT_APPLICATION_REFERENCE = "23-DDQ-PRODAT";
+export const EDIEL_AGT_DGI_PRODAT_APPLICATION_REFERENCE = "23-DGI-PRODAT";
 export const EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID = "92825";
 
 const EDIEL_AGT_L1_Z03_2026A_TEMPLATE: EdielAgtProdatOutboundTemplate = {
@@ -106,6 +111,9 @@ function prodatPortalToActor(params: {
   return {
     suite: "PRODAT",
     roleCode: "supplier",
+    actorRole: "supplier",
+    actorSubrole: "DDQ",
+    applicationReference: EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
     approvalVersion: EDIEL_AGT_APPROVAL_VERSION_2026A,
     testCaseCode: params.testCaseCode,
     title: params.title,
@@ -146,6 +154,9 @@ function utiltsPortalToActor(params: {
   return {
     suite: "UTILTS",
     roleCode: "supplier",
+    actorRole: "supplier",
+    actorSubrole: "DDQ",
+    applicationReference: "23-DDQ-UTILTS",
     approvalVersion: EDIEL_AGT_APPROVAL_VERSION_2026A,
     testCaseCode: params.testCaseCode,
     title: params.title,
@@ -190,6 +201,9 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
   {
     suite: "PRODAT",
     roleCode: "supplier",
+    actorRole: "supplier",
+    actorSubrole: "DDQ",
+    applicationReference: EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
     approvalVersion: EDIEL_AGT_APPROVAL_VERSION_2026A,
     testCaseCode: "L1",
     title: "PRODAT L1 · Z03",
@@ -265,6 +279,9 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
   {
     suite: "PRODAT",
     roleCode: "supplier",
+    actorRole: "supplier",
+    actorSubrole: "DDQ",
+    applicationReference: EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
     approvalVersion: EDIEL_AGT_APPROVAL_VERSION_2026A,
     testCaseCode: "L7",
     title: "PRODAT L7 · Z09",
@@ -354,6 +371,194 @@ export const EDIEL_AGT_SUPPLIER_2026A_CASES: EdielAgtTestCaseDefinition[] = [
   }),
 ];
 
+function dgiActorProdat(params: {
+  testCaseCode: string;
+  messageCode: "Z13" | "Z18";
+  messageVariant: string;
+  title: string;
+  purpose: string;
+  instruction: string;
+}): EdielAgtTestCaseDefinition {
+  return {
+    suite: "PRODAT",
+    roleCode: "esco",
+    actorRole: "energy_service_company",
+    actorSubrole: "DGI",
+    applicationReference: EDIEL_AGT_DGI_PRODAT_APPLICATION_REFERENCE,
+    approvalVersion: EDIEL_AGT_APPROVAL_VERSION_2026A,
+    testCaseCode: params.testCaseCode,
+    title: params.title,
+    portalTitle: params.title,
+    purpose: params.purpose,
+    agtInstruction: params.instruction,
+    notes: [
+      "Energitjänsteföretaget skickar PRODAT mot Edielportalen som DGI.",
+      "BRP är inte relevant för DGI-AGT om inte ett specifikt testfall uttryckligen kräver det.",
+      "Portalen svarar med positiv CONTRL om CONTRL är begärd och därefter negativ APERAK.",
+    ],
+    messageFamily: "PRODAT",
+    messageCode: params.messageCode,
+    messageVariant: params.messageVariant,
+    prodatOutboundTemplate: null,
+    scenario: "actor_sends_and_receives_ack",
+    direction: "actor_to_portal",
+    expectedResponses: ["positive_contrl", "negative_aperak"],
+    expectedSteps: [
+      actorOutbound(1, "PRODAT", params.messageCode, `DGI skickar ${params.messageCode}${params.messageVariant}`),
+      portalInbound(2, "CONTRL", "CONTRL", "Edielportalen skickar positiv CONTRL om begärd"),
+      portalInbound(3, "APERAK", "APERAK", "Edielportalen skickar negativ APERAK"),
+    ],
+  };
+}
+
+function dgiPortalProdat(params: {
+  testCaseCode: string;
+  messageCode: "Z14" | "Z15";
+  messageVariant: string;
+  title: string;
+  purpose: string;
+  instruction: string;
+}): EdielAgtTestCaseDefinition {
+  return {
+    suite: "PRODAT",
+    roleCode: "esco",
+    actorRole: "energy_service_company",
+    actorSubrole: "DGI",
+    applicationReference: EDIEL_AGT_DGI_PRODAT_APPLICATION_REFERENCE,
+    approvalVersion: EDIEL_AGT_APPROVAL_VERSION_2026A,
+    testCaseCode: params.testCaseCode,
+    title: params.title,
+    portalTitle: params.title,
+    purpose: params.purpose,
+    agtInstruction: params.instruction,
+    notes: [
+      "Edielportalen agerar nätägare och skickar till DGI-aktören.",
+      "Systemet ska svara med positiv CONTRL om syntaxen är OK och negativ APERAK när testobjektet inte kan identifieras i produktionsapplikationen.",
+      "Supplier-BRP får inte blockera DGI-testet.",
+    ],
+    messageFamily: "PRODAT",
+    messageCode: params.messageCode,
+    messageVariant: params.messageVariant,
+    scenario: "portal_sends_actor_answers",
+    direction: "portal_to_actor",
+    expectedResponses: ["positive_contrl", "negative_aperak"],
+    expectedSteps: [
+      portalInbound(1, "PRODAT", params.messageCode, `Edielportalen skickar ${params.messageCode}${params.messageVariant}`),
+      actorOutbound(2, "CONTRL", "CONTRL", "Positiv CONTRL till Edielportalen"),
+      actorOutbound(3, "APERAK", "APERAK", "Negativ APERAK till Edielportalen"),
+    ],
+  };
+}
+
+function dgiPortalUtilts(params: {
+  testCaseCode: string;
+  messageVariant: string;
+  title: string;
+  purpose: string;
+  instruction: string;
+}): EdielAgtTestCaseDefinition {
+  return {
+    suite: "UTILTS",
+    roleCode: "esco",
+    actorRole: "energy_service_company",
+    actorSubrole: "DGI",
+    applicationReference: "23-DGI-UTILTS",
+    approvalVersion: EDIEL_AGT_APPROVAL_VERSION_2026A,
+    testCaseCode: params.testCaseCode,
+    title: params.title,
+    portalTitle: params.title,
+    purpose: params.purpose,
+    agtInstruction: params.instruction,
+    notes: [
+      "Edielportalen skickar UTILTS E66 till DGI-aktören.",
+      "DGI ska svara med positiv CONTRL och negativ UTILTS/UTILTS_ERR. Därefter kan Edielportalen skicka APERAK tillbaka.",
+      "BRP är inte relevant för DGI UTILTS-AGT.",
+    ],
+    messageFamily: "UTILTS",
+    messageCode: "E66",
+    messageVariant: params.messageVariant,
+    scenario: "portal_sends_actor_answers",
+    direction: "portal_to_actor",
+    expectedResponses: ["positive_contrl", "negative_utilts", "inbound_aperak"],
+    expectedSteps: [
+      portalInbound(1, "UTILTS", "E66", `Edielportalen skickar E66 ${params.messageVariant}`),
+      actorOutbound(2, "CONTRL", "CONTRL", "Positiv CONTRL till Edielportalen"),
+      actorOutbound(3, "UTILTS_ERR", "UTILTS_ERR", "Negativ UTILTS/UTILTS_ERR till Edielportalen"),
+      portalInbound(4, "APERAK", "APERAK", "Edielportalen skickar APERAK på negativ UTILTS"),
+    ],
+  };
+}
+
+export const EDIEL_AGT_ENERGY_SERVICE_COMPANY_2026A_CASES: EdielAgtTestCaseDefinition[] = [
+  dgiActorProdat({
+    testCaseCode: "E3",
+    messageCode: "Z13",
+    messageVariant: "V",
+    title: "PRODAT E3 · Z13V",
+    purpose: "Verifierar att energitjänsteföretag/DGI kan skicka begäran om mätvärdestillgång och hantera portalens kvittenser.",
+    instruction: "Starta E3 i Edielportalen. Skicka därefter outbound Z13V från Gridex med DGI-profil och 23-DGI-PRODAT.",
+  }),
+  dgiActorProdat({
+    testCaseCode: "E4",
+    messageCode: "Z13",
+    messageVariant: "VH",
+    title: "PRODAT E4 · Z13VH",
+    purpose: "Verifierar att energitjänsteföretag/DGI kan begära historisk mätvärdestillgång.",
+    instruction: "Starta E4 i Edielportalen. Skicka därefter outbound Z13VH från Gridex med DGI-profil och 23-DGI-PRODAT.",
+  }),
+  dgiPortalProdat({
+    testCaseCode: "E5",
+    messageCode: "Z14",
+    messageVariant: "V",
+    title: "PRODAT E5 · Z14V",
+    purpose: "Verifierar att DGI kan ta emot Z14V och svara med positiv CONTRL samt negativ APERAK i AGT.",
+    instruction: "Starta E5 i Edielportalen. Vänta på inbound Z14V, importera med motorläge AGT och skapa svar från inbound-raden.",
+  }),
+  dgiPortalProdat({
+    testCaseCode: "E6",
+    messageCode: "Z14",
+    messageVariant: "N",
+    title: "PRODAT E6 · Z14N",
+    purpose: "Verifierar att DGI kan ta emot avslag Z14N och svara med korrekt AGT-kvittens.",
+    instruction: "Starta E6 i Edielportalen. Vänta på inbound Z14N, importera med motorläge AGT och skapa svar från inbound-raden.",
+  }),
+  dgiPortalProdat({
+    testCaseCode: "E7",
+    messageCode: "Z15",
+    messageVariant: "V",
+    title: "PRODAT E7 · Z15V",
+    purpose: "Verifierar att DGI kan ta emot tillståndsavslut Z15V och svara med korrekt AGT-kvittens.",
+    instruction: "Starta E7 i Edielportalen. Vänta på inbound Z15V, importera med motorläge AGT och skapa svar från inbound-raden.",
+  }),
+  dgiActorProdat({
+    testCaseCode: "E8",
+    messageCode: "Z18",
+    messageVariant: "V",
+    title: "PRODAT E8 · Z18V",
+    purpose: "Verifierar att DGI kan begära avslut av mätvärdestillgång med Z18V.",
+    instruction: "Starta E8 i Edielportalen. Skicka därefter outbound Z18V från Gridex med DGI-profil och 23-DGI-PRODAT.",
+  }),
+  dgiPortalUtilts({
+    testCaseCode: "UE1",
+    messageVariant: "KVART",
+    title: "UTILTS UE1 · E66 KVART",
+    purpose: "Verifierar att DGI kan ta emot kvartsvärden och svara med korrekt negativ UTILTS/UTILTS_ERR i AGT.",
+    instruction: "Starta UE1 i Edielportalen. Vänta på inbound E66-KVART och skapa CONTRL + negativ UTILTS/UTILTS_ERR.",
+  }),
+  dgiPortalUtilts({
+    testCaseCode: "UE2",
+    messageVariant: "SCH",
+    title: "UTILTS UE2 · E66 SCH",
+    purpose: "Verifierar att DGI kan ta emot schablon/timserie och svara med korrekt negativ UTILTS/UTILTS_ERR i AGT.",
+    instruction: "Starta UE2 i Edielportalen. Vänta på inbound E66-SCH och skapa CONTRL + negativ UTILTS/UTILTS_ERR.",
+  }),
+];
+
+export const EDIEL_AGT_2026A_CASES: EdielAgtTestCaseDefinition[] = [
+  ...EDIEL_AGT_SUPPLIER_2026A_CASES,
+  ...EDIEL_AGT_ENERGY_SERVICE_COMPANY_2026A_CASES,
+];
+
 export function isEdielAgtRunApprovalVersion(
   value: string | null | undefined,
 ): boolean {
@@ -373,6 +578,19 @@ export function listEdielSupplierAgt2026Cases(params?: {
   const suite = params?.suite ?? null;
   return EDIEL_AGT_SUPPLIER_2026A_CASES.filter(
     (testCase) => !suite || testCase.suite === suite,
+  );
+}
+
+export function listEdielAgt2026Cases(params?: {
+  suite?: "PRODAT" | "UTILTS" | null;
+  roleCode?: EdielTestRoleCode | string | null;
+}): EdielAgtTestCaseDefinition[] {
+  const suite = params?.suite ?? null;
+  const roleCode = params?.roleCode ? roleCodeForActorRole(params.roleCode) : null;
+  return EDIEL_AGT_2026A_CASES.filter(
+    (testCase) =>
+      (!suite || testCase.suite === suite) &&
+      (!roleCode || testCase.roleCode === roleCode),
   );
 }
 
@@ -396,14 +614,14 @@ export function getEdielAgtTestCaseByCode(params: {
 }): EdielAgtTestCaseDefinition | null {
   const suite = params.suite ? String(params.suite).toUpperCase() : null;
   const roleCode = params.roleCode
-    ? String(params.roleCode).toLowerCase()
+    ? roleCodeForActorRole(String(params.roleCode))
     : "supplier";
   const testCaseCode = String(params.testCaseCode ?? "")
     .trim()
     .toUpperCase();
 
   return (
-    EDIEL_AGT_SUPPLIER_2026A_CASES.find(
+    EDIEL_AGT_2026A_CASES.find(
       (testCase) =>
         testCase.testCaseCode === testCaseCode &&
         (!suite || testCase.suite === suite) &&
@@ -432,7 +650,9 @@ export function inferEdielAgtCaseForInboundMessage(params: {
     .toUpperCase();
   if (explicit)
     return getEdielAgtTestCaseByCode({
-      roleCode: "supplier",
+      roleCode: params.applicationReference?.toUpperCase().includes("DGI")
+        ? "esco"
+        : "supplier",
       testCaseCode: explicit,
     });
 
@@ -444,6 +664,14 @@ export function inferEdielAgtCaseForInboundMessage(params: {
     .toUpperCase();
 
   if (family === "PRODAT") {
+    const isDgi = String(params.applicationReference ?? "").toUpperCase().includes("DGI");
+    if (isDgi) {
+      if (code === "Z14") {
+        if (rawContains(params.rawPayload, ["Z14N", " CAV+N", "+N'"])) return getEdielAgtTestCaseByCode({ roleCode: "esco", testCaseCode: "E6" });
+        return getEdielAgtTestCaseByCode({ roleCode: "esco", testCaseCode: "E5" });
+      }
+      if (code === "Z15") return getEdielAgtTestCaseByCode({ roleCode: "esco", testCaseCode: "E7" });
+    }
     if (code === "Z04") return getEdielAgtSupplier2026ACase("L2");
     if (code === "Z05") return getEdielAgtSupplier2026ACase("L3");
     if (code === "Z06") return getEdielAgtSupplier2026ACase("L4");
@@ -451,6 +679,13 @@ export function inferEdielAgtCaseForInboundMessage(params: {
   }
 
   if (family === "UTILTS") {
+    const isDgi = String(params.applicationReference ?? "").toUpperCase().includes("DGI");
+    if (isDgi && code === "E66") {
+      if (rawContains(params.rawPayload, ["SCH"]))
+        return getEdielAgtTestCaseByCode({ roleCode: "esco", testCaseCode: "UE2" });
+      if (rawContains(params.rawPayload, ["KVART", ":15:804", ":PT15M", "15M"]))
+        return getEdielAgtTestCaseByCode({ roleCode: "esco", testCaseCode: "UE1" });
+    }
     if (code === "S03") return getEdielAgtSupplier2026ACase("UL1");
     if (code === "S02") return getEdielAgtSupplier2026ACase("UL4");
     if (code === "E31") return getEdielAgtSupplier2026ACase("UL6");
@@ -466,7 +701,7 @@ export function inferEdielAgtCaseForInboundMessage(params: {
   if (family === "CONTRL" || family === "APERAK") {
     const raw =
       `${params.rawPayload ?? ""} ${params.applicationReference ?? ""}`.toUpperCase();
-    const candidates = EDIEL_AGT_SUPPLIER_2026A_CASES.filter((testCase) =>
+    const candidates = EDIEL_AGT_2026A_CASES.filter((testCase) =>
       raw.includes(testCase.testCaseCode),
     );
     return candidates[0] ?? null;
