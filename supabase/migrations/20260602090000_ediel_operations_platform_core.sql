@@ -74,6 +74,18 @@ create table if not exists public.ediel_send_locks (
   updated_at timestamptz not null default now()
 );
 
+alter table if exists public.ediel_send_locks
+  add column if not exists company_id uuid null,
+  add column if not exists ediel_message_id uuid null,
+  add column if not exists lock_key text null,
+  add column if not exists status text not null default 'active',
+  add column if not exists locked_by text null,
+  add column if not exists locked_at timestamptz not null default now(),
+  add column if not exists expires_at timestamptz null,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now();
+
 create unique index if not exists ediel_send_locks_active_key_uidx
   on public.ediel_send_locks(company_id, lock_key)
   where status = 'active';
