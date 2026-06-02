@@ -27,6 +27,7 @@ import {
 } from '@/app/admin/ediel/actions'
 import type { EdielMessageEventRow, EdielMessageRow } from '@/lib/ediel/types'
 import { evaluateProdatPortalReadiness } from '@/lib/ediel/prodatPortalReadiness'
+import { validateEdielSendContext } from '@/lib/ediel/sendContextConsistency'
 
 export const dynamic = 'force-dynamic'
 
@@ -210,6 +211,13 @@ function summarizeRouteRuntime(routeRuntime: Record<string, unknown> | null) {
  ? routeRuntime.transport_type
  : null
 
+ const encryptionMode =
+ typeof routeRuntime.encryptionMode === 'string'
+ ? routeRuntime.encryptionMode
+ : typeof routeRuntime.encryption_mode === 'string'
+ ? routeRuntime.encryption_mode
+ : null
+
  const defaultMessageVersion =
  typeof routeRuntime.defaultMessageVersion === 'string'
  ? routeRuntime.defaultMessageVersion
@@ -222,6 +230,7 @@ function summarizeRouteRuntime(routeRuntime: Record<string, unknown> | null) {
  receiverEdielId ? `Mottagare: ${receiverEdielId}` : null,
  applicationReference ? `Application ref: ${applicationReference}` : null,
  transportType ? `Transport: ${transportType}` : null,
+ encryptionMode ? `Kryptering: ${encryptionMode}` : null,
  defaultMessageVersion ? `Route default version: ${defaultMessageVersion}` : null,
  ].filter((value): value is string => Boolean(value))
 }
@@ -348,6 +357,24 @@ export default async function AdminEdielMessageDetailPage({
  }),
  ])
 
+ const sendReadiness =
+ message.direction === 'outbound'
+ ? await validateEdielSendContext({ message }).catch((error) => ({
+ ok: false,
+ blockingIssues: [{ code: 'send_readiness_error', message: error instanceof Error ? error.message : 'Kunde inte verifiera send readiness.', severity: 'blocking' as const }],
+ warnings: [],
+ selectedEncryptionMode: null,
+ resolvedEncryptionMode: 'none' as const,
+ resolvedSmtpMimeMode: 'ediel-singlepart-base64' as const,
+ sendButtonLabel: 'Skick blockerat',
+ linkedTestRun: null,
+ linkedTestRunIds: [],
+ routeProfile: null,
+ routeProfileId: null,
+ communicationRouteId: null,
+ }))
+ : null
+
  const canonicalAckState = getCanonicalAckState(ackState ?? message)
  const duplicateBlockEvents = getDuplicateBlockEvents(events)
  const ackConflictEvents = getAckConflictEvents(events)
@@ -405,14 +432,21 @@ export default async function AdminEdielMessageDetailPage({
  message.direction === 'outbound' ? (
  <form action={sendEdielMessageAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
  <input type="hidden" name="edielMessageId" value={message.id} />
- <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
- AGT/TGT skickas okrypterat som application/EDIFACT base64
- </div>
+{sendReadiness?.ok ? (
+<div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+Transport verifierad: {sendReadiness.resolvedEncryptionMode === 'smime' ? 'krypterat S/MIME' : 'okrypterat EDIFACT'} · {sendReadiness.resolvedSmtpMimeMode}
+</div>
+) : (
+<div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
+{sendReadiness?.blockingIssues.map((issue) => issue.message).join(' ') ?? 'Skick blockerat av okänd send readiness.'}
+</div>
+)}
  <button
  type="submit"
- className="mt-2 rounded-2xl bg-white border border-slate-300 px-4 py-2 text-sm font-medium text-slate-900"
+disabled={!sendReadiness?.ok}
+className={`mt-2 rounded-2xl border px-4 py-2 text-sm font-medium ${sendReadiness?.ok ? 'bg-white border-slate-300 text-slate-900' : 'cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400'}`}
  >
- Skicka okrypterat EDIFACT
+{sendReadiness?.sendButtonLabel ?? 'Skick blockerat'}
  </button>
  </form>
  ) : null}

@@ -11,6 +11,7 @@ import {
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
+import { supabaseService } from '@/lib/supabase/service'
 import {
   attachEdielMessageToTestRun,
   createEdielMessage,
@@ -650,12 +651,44 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     testCaseCode: definition.testCaseCode,
   })
 
+  const run = params.testRunId
+    ? await getActiveRunById(params.testRunId)
+    : await findActiveAgtRunForDefinition(definition)
   const input = buildAgtProdatOutboundInput({
     actorUserId: params.actorUserId,
     definition,
     actor: readiness.actor,
     companyId: params.companyId ?? null,
   })
+  const routeProfileId = String(run?.route_profile_id ?? '').trim()
+  if (routeProfileId) {
+    const { data: routeProfile, error } = await supabaseService
+      .from('ediel_route_profiles')
+      .select('id,communication_route_id,mailbox,encryption_mode,certificate_id')
+      .eq('id', routeProfileId)
+      .eq('company_id', run?.company_id ?? params.companyId ?? '')
+      .maybeSingle()
+    if (error) throw error
+    if (routeProfile?.communication_route_id) {
+      input.communicationRouteId = String(routeProfile.communication_route_id)
+      input.mailbox = String(routeProfile.mailbox ?? input.mailbox ?? '')
+      input.validationReport = {
+        ...(input.validationReport ?? {}),
+        lockedSendContext: {
+          source: 'ediel_test_runs',
+          testRunId: run?.id ?? null,
+          testSuite: run?.test_suite ?? null,
+          testCaseCode: run?.test_case_code ?? definition.testCaseCode,
+          roleCode: run?.role_code ?? 'supplier',
+          encryptionMode: run?.encryption_mode ?? null,
+          routeProfileId,
+          communicationRouteId: String(routeProfile.communication_route_id),
+          routeEncryptionMode: routeProfile.encryption_mode ?? null,
+          certificateId: routeProfile.certificate_id ?? null,
+        },
+      }
+    }
+  }
 
   if (definition.testCaseCode === 'L7' && definition.approvalVersion === '2026A') {
     const raw = input.rawPayload ?? ''
@@ -665,10 +698,6 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
   }
 
   const message = await createEdielMessage(input)
-
-  const run = params.testRunId
-    ? await getActiveRunById(params.testRunId)
-    : await findActiveAgtRunForDefinition(definition)
 
   if (run) {
     const step = findStep(definition, {

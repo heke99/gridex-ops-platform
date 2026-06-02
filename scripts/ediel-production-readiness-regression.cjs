@@ -50,6 +50,8 @@ const {
   deriveProductionReadinessStatus,
   evaluateProductionSendGuardSnapshot,
 } = require('../lib/ediel/productionReadiness.ts')
+const { supabaseService } = require('../lib/supabase/service.ts')
+const { validateEdielSendContext } = require('../lib/ediel/sendContextConsistency.ts')
 
 const issue = {
   code: 'missing_ediel_id',
@@ -217,4 +219,107 @@ assert.strictEqual(
   'test environment is not blocked by production guard'
 )
 
-console.log('ediel production readiness regression passed')
+function installSupabaseMock(fixtures) {
+  supabaseService.from = function from(table) {
+    const state = { table, filters: [], inFilter: null, limitValue: null }
+    const builder = {
+      select() { return builder },
+      order() { return builder },
+      limit(value) { state.limitValue = value; return builder },
+      eq(column, value) { state.filters.push({ column, value }); return builder },
+      ilike(column, value) { state.filters.push({ column, value }); return builder },
+      in(column, values) { state.inFilter = { column, values }; return builder },
+      maybeSingle() {
+        const rows = applyFilters(fixtures[state.table] ?? [], state)
+        return Promise.resolve({ data: rows[0] ?? null, error: null })
+      },
+      then(resolve, reject) {
+        const rows = applyFilters(fixtures[state.table] ?? [], state)
+        return Promise.resolve({ data: rows, error: null }).then(resolve, reject)
+      },
+    }
+    return builder
+  }
+}
+
+function applyFilters(rows, state) {
+  let result = rows
+  for (const filter of state.filters) {
+    result = result.filter((row) => row[filter.column] === filter.value)
+  }
+  if (state.inFilter) {
+    const allowed = new Set(state.inFilter.values)
+    result = result.filter((row) => allowed.has(row[state.inFilter.column]))
+  }
+  return state.limitValue ? result.slice(0, state.limitValue) : result
+}
+
+function message(overrides = {}) {
+  return {
+    id: 'm1',
+    company_id: 'c1',
+    direction: 'outbound',
+    message_standard: 'edifact',
+    message_family: 'PRODAT',
+    message_code: 'Z03',
+    environment: 'test',
+    communication_route_id: 'cr1',
+    mailbox: 'ediel@example.test',
+    validation_report: {},
+    ...overrides,
+  }
+}
+
+async function validateWithRun(runOverrides, messageOverrides = {}, routeOverrides = {}, override) {
+  installSupabaseMock({
+    ediel_test_run_messages: [{ ediel_message_id: 'm1', test_run_id: 'r1', created_at: '2026-01-01T00:00:00Z' }],
+    ediel_test_runs: [{
+      id: 'r1',
+      company_id: 'c1',
+      role_code: 'supplier',
+      test_suite: 'PRODAT',
+      test_case_code: 'L1',
+      message_family: 'PRODAT',
+      encryption_mode: 'smime',
+      route_profile_id: 'rp1',
+      environment_type: 'agt_test',
+      ...runOverrides,
+    }],
+    ediel_route_profiles: [{
+      id: 'rp1',
+      company_id: 'c1',
+      communication_route_id: 'cr1',
+      encryption_mode: 'smime',
+      mailbox: 'ediel@example.test',
+      ...routeOverrides,
+    }],
+    ediel_mailboxes: [{ email_address: 'ediel@example.test', environment: 'test', is_active: true, encryption_mode: 'smime' }],
+  })
+  return validateEdielSendContext({ message: message(messageOverrides), smtpMimeModeOverride: override })
+}
+
+async function runSendConsistencyRegression() {
+  let result = await validateWithRun({ encryption_mode: 'smime' })
+  assert.strictEqual(result.ok, true, 'encrypted run with S/MIME route is sendable')
+  assert.strictEqual(result.resolvedSmtpMimeMode, 'ediel-smime-enveloped', 'encrypted run resolves S/MIME')
+
+  result = await validateWithRun({ encryption_mode: 'smime' }, {}, {}, 'ediel-singlepart-base64')
+  assert(result.blockingIssues.some((issue) => issue.code === 'transport_security_mismatch'), 'encrypted run blocks base64 override')
+
+  result = await validateWithRun({ encryption_mode: 'none' }, {}, { encryption_mode: 'none' })
+  assert.strictEqual(result.ok, true, 'unencrypted run remains sendable on unencrypted route')
+  assert.strictEqual(result.resolvedSmtpMimeMode, 'ediel-singlepart-base64', 'unencrypted run resolves base64')
+
+  result = await validateWithRun({ company_id: 'other-company' })
+  assert(result.blockingIssues.some((issue) => issue.code === 'tenant_mismatch'), 'tenant mismatch blocks send')
+
+  result = await validateWithRun({ environment_type: 'production' })
+  assert(result.blockingIssues.some((issue) => issue.code === 'environment_mismatch'), 'environment mismatch blocks send')
+}
+
+runSendConsistencyRegression().then(() => {
+  console.log('ediel production readiness regression passed')
+}).catch((error) => {
+  console.error(error)
+  process.exit(1)
+})

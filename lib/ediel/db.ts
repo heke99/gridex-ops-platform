@@ -1022,6 +1022,7 @@ export async function createEdielTestRun(
     certificate_id: input.certificateId ?? null,
     certificate_fingerprint_sha256: input.certificateFingerprintSha256 ?? null,
     route_profile_id: input.routeProfileId ?? null,
+    environment_type: input.environmentType ?? null,
     expected_flow: input.expectedFlow ?? [],
     actual_flow: input.actualFlow ?? [],
     raw_edifact: input.rawEdifact ?? null,
@@ -1227,8 +1228,6 @@ export async function attachEdielMessageToTestRun(
         artifact_type: 'rulebook_message_validation',
         title: 'Rulebook-validering för kopplat Ediel-meddelande',
         payload: { parsed, validation },
-        parsed_payload: parsed ?? {},
-        validation_report: validation ?? {},
       }).then(({ error: artifactError }) => {
         if (artifactError && artifactError.code !== '23505') console.warn('Rulebook artifact could not be created', artifactError)
       })

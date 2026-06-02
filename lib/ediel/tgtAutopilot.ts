@@ -23,7 +23,6 @@ import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   resolveEdielTgtProdatApplicationReference,
 } from "@/lib/ediel/fileEngine";
-import { formatErrorMessage } from "@/lib/errors";
 import type {
   CreateEdielMessageInput,
   EdielMessageFamily,
@@ -440,7 +439,7 @@ export async function runTgtAutopilotForRun(params: {
         description: `Skapade Gridex-utkast för steg ${step.stepNo}.`,
       };
     } catch (error) {
-      const message = formatErrorMessage(error, "TGT-autopilot kunde inte skapa nästa steg.");
+      const message = error instanceof Error ? error.message : String(error);
       if (message.startsWith("TGT-utkastet är blockerat:")) {
         return {
           testRunId: params.testRunId,
