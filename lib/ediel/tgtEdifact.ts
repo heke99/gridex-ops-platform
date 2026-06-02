@@ -8,7 +8,10 @@ import type {
   EdielTestRoleCode,
   EdielTestSuite,
 } from "@/lib/ediel/types";
-import { EDIEL_TGT_PRODAT_APPLICATION_REFERENCE } from "@/lib/ediel/fileEngine";
+import {
+  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+  resolveEdielTgtProdatApplicationReference,
+} from "@/lib/ediel/fileEngine";
 import {
   getEdielTgtTestCaseByCode,
   type EdielTgtExpectedStep,
@@ -1552,7 +1555,7 @@ function expectedZ09LineDateSegments(
 }
 
 function serializeEdifactSegments(segments: string[]): string {
-  return [`UNA:+.? '`, ...segments.map((segment) => `${segment}'`)].join("\n");
+  return [`UNA:+.? '`, ...segments.map((segment) => `${segment}'`)].join("");
 }
 
 function buildUnb(params: {
@@ -2711,6 +2714,7 @@ export function validateEdielTgtDraft(
     actorEdielId?: string | null;
     testPortalEdielId?: string | null;
     receiverSubaddress?: string | null;
+    applicationReference?: string | null;
   },
 ): EdielTgtDraftValidationIssue[] {
   const issues: EdielTgtDraftValidationIssue[] = [];
@@ -2719,6 +2723,9 @@ export function validateEdielTgtDraft(
     expected?.actorEdielId?.trim().toUpperCase() ?? null;
   const expectedPortalEdielId =
     expected?.testPortalEdielId?.trim().toUpperCase() ?? null;
+  const expectedApplicationReference =
+    expected?.applicationReference?.trim().toUpperCase() ??
+    EDIEL_TGT_PRODAT_APPLICATION_REFERENCE;
   const expectedReceiverSubaddress =
     expected?.receiverSubaddress?.trim().toUpperCase() ?? null;
   const parsed = parseEdifactSegments(rawPayload);
@@ -2814,14 +2821,14 @@ export function validateEdielTgtDraft(
   }
   if (
     step.family === "PRODAT" &&
-    !normalized.includes(EDIEL_TGT_PRODAT_APPLICATION_REFERENCE)
+    !normalized.includes(expectedApplicationReference)
   ) {
     pushIssue(
       issues,
       "error",
       "missing_application_reference",
       "Saknar Application Reference",
-      `PRODAT TGT ska använda ${EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}.`,
+      `PRODAT TGT ska använda ${expectedApplicationReference}.`,
     );
   }
 
@@ -2963,6 +2970,11 @@ export function buildEdielTgtDraft(
     step.family === "PRODAT"
       ? buildPortalProdatSegments(params, step, refs)
       : null;
+  const prodatApplicationReference = resolveEdielTgtProdatApplicationReference({
+    roleCode: params.roleCode,
+    testCaseCode: params.testCaseCode,
+    messageCode: step.code,
+  });
   const rawPayload =
     step.family === "PRODAT"
       ? buildInterchange({
@@ -2971,7 +2983,7 @@ export function buildEdielTgtDraft(
           senderSubAddress: testSenderSubaddress(params),
           receiverEdielId: testPortalId(params),
           receiverSubAddress: testReceiverSubaddress(params),
-          applicationReference: EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+          applicationReference: prodatApplicationReference,
           family: "PRODAT",
           version: "26A",
           bodySegments: portalBuild?.bodySegments ?? [],
@@ -2988,6 +3000,7 @@ export function buildEdielTgtDraft(
       actorEdielId: testActorId(params),
       testPortalEdielId: testPortalId(params),
       receiverSubaddress: testReceiverSubaddress(params),
+      applicationReference: prodatApplicationReference,
     },
   );
   const hasErrors = validationIssues.some(
@@ -3050,7 +3063,7 @@ export function buildEdielTgtDraft(
         step.family === "PRODAT" ||
         step.family === "APERAK" ||
         step.family === "UTILTS_ERR"
-          ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
+          ? prodatApplicationReference
           : step.family === "UTILTS" && step.code === "E31"
             ? "23-DDQ-E31-S"
             : step.family === "UTILTS"
