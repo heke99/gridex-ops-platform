@@ -35,6 +35,20 @@ function configuredValueMatches(configured: unknown, observed: unknown): boolean
   return configuredValue === observedValue
 }
 
+function configuredSubaddressMatches(params: {
+  configured: unknown
+  observed: unknown
+  required?: unknown
+}): boolean {
+  const configuredValue = upper(params.configured)
+  const observedValue = upper(params.observed)
+  const required = params.required === true
+
+  if (required && !observedValue) return false
+  if (!configuredValue || !observedValue) return true
+  return configuredValue === observedValue
+}
+
 function bestCandidateEvidence(evidence: TenantCandidateEvidence[]): TenantCandidateEvidence[] {
   const byCompany = new Map<string, TenantCandidateEvidence>()
 
@@ -54,7 +68,7 @@ async function actorSettingEvidence(input: {
 }): Promise<TenantCandidateEvidence[]> {
   const { data, error } = await supabaseService
     .from('ediel_actor_settings')
-    .select('id,company_id,ediel_id,actor_ediel_id,receiver_subaddress,receiver_sub_address,sender_subaddress,sender_sub_address,application_reference,default_application_reference,is_active')
+    .select('id,company_id,ediel_id,actor_ediel_id,receiver_subaddress,receiver_sub_address,sender_subaddress,sender_sub_address,receiver_message_subaddress,subaddress_required,application_reference,default_application_reference,is_active')
     .eq('environment', input.environment)
     .limit(1000)
 
@@ -71,9 +85,18 @@ async function actorSettingEvidence(input: {
     const actorIds = [row.ediel_id, row.actor_ediel_id].map(upper).filter(Boolean)
     if (!actorIds.includes(receiver)) return []
 
-    const actorSubAddress = row.receiver_subaddress ?? row.receiver_sub_address ?? row.sender_subaddress ?? row.sender_sub_address
+    const actorSubAddress =
+      row.receiver_message_subaddress ??
+      row.receiver_subaddress ??
+      row.receiver_sub_address ??
+      row.sender_subaddress ??
+      row.sender_sub_address
     const actorApplicationReference = row.application_reference ?? row.default_application_reference
-    if (!configuredValueMatches(actorSubAddress, receiverSubAddress)) return []
+    if (!configuredSubaddressMatches({
+      configured: actorSubAddress,
+      observed: receiverSubAddress,
+      required: row.subaddress_required,
+    })) return []
     if (!configuredValueMatches(actorApplicationReference, applicationReference)) return []
 
     let score = 70
@@ -105,7 +128,7 @@ async function routeProfileEvidence(input: {
 }): Promise<TenantCandidateEvidence[]> {
   const { data, error } = await supabaseService
     .from('ediel_route_profiles')
-    .select('id,company_id,own_ediel_id,own_subaddress,receiver_ediel_id,receiver_sub_address,receiver_subaddress,application_reference,message_family,message_code,is_active,is_enabled')
+    .select('id,company_id,own_ediel_id,own_subaddress,receiver_ediel_id,receiver_sub_address,receiver_subaddress,receiver_message_subaddress,subaddress_required,application_reference,message_family,message_code,is_active,is_enabled')
     .eq('environment', input.environment)
     .limit(1000)
 
@@ -131,9 +154,13 @@ async function routeProfileEvidence(input: {
     if (!matchedProfileKey) return []
 
     const profileSubAddress = matchedProfileKey === 'own_ediel_id'
-      ? row.own_subaddress
-      : row.receiver_sub_address ?? row.receiver_subaddress
-    if (!configuredValueMatches(profileSubAddress, receiverSubAddress)) return []
+      ? row.own_subaddress ?? row.receiver_message_subaddress
+      : row.receiver_message_subaddress ?? row.receiver_sub_address ?? row.receiver_subaddress
+    if (!configuredSubaddressMatches({
+      configured: profileSubAddress,
+      observed: receiverSubAddress,
+      required: row.subaddress_required,
+    })) return []
     if (!configuredValueMatches(row.application_reference, applicationReference)) return []
     if (!configuredValueMatches(row.message_family, messageFamily)) return []
     if (!configuredValueMatches(row.message_code, messageCode)) return []

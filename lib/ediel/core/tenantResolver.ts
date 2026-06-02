@@ -54,6 +54,20 @@ function upper(value: unknown): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
+function subaddressMatches(params: {
+  configured: unknown
+  observed: unknown
+  required?: unknown
+}): boolean {
+  const configured = upper(params.configured)
+  const observed = upper(params.observed)
+  const required = params.required === true
+
+  if (required && !observed) return false
+  if (!configured || !observed) return true
+  return configured === observed
+}
+
 function compactEvidence(evidence: TenantEvidence[]): TenantEvidence[] {
   const byKey = new Map<string, TenantEvidence>()
 
@@ -159,10 +173,21 @@ async function evidenceFromRouteProfiles(
     if (!ownIds.includes(receiver)) return []
 
     let score = 100
-    const profileSub = upper(row.own_subaddress ?? row.receiver_sub_address)
+    const profileSub = upper(
+      row.own_subaddress ??
+      row.receiver_message_subaddress ??
+      row.receiver_subaddress ??
+      row.receiver_sub_address
+    )
     const profileApp = upper(row.application_reference)
     const profileFamily = upper(row.message_family)
     const profileCode = upper(row.message_code)
+
+    if (!subaddressMatches({
+      configured: profileSub,
+      observed: receiverSub,
+      required: row.subaddress_required,
+    })) return []
 
     if (receiverSub && profileSub && receiverSub === profileSub) score += 40
     if (appRef && profileApp && appRef === profileApp) score += 35
@@ -170,7 +195,6 @@ async function evidenceFromRouteProfiles(
     if (code && profileCode && code === profileCode) score += 10
     if (message.mailbox && trimOrNull(row.mailbox) === message.mailbox) score += 20
 
-    if (profileSub && receiverSub && profileSub !== receiverSub) return []
     if (profileApp && appRef && profileApp !== appRef) return []
     if (profileFamily && family && profileFamily !== family) return []
     if (profileCode && code && profileCode !== code) return []
@@ -181,6 +205,7 @@ async function evidenceFromRouteProfiles(
       score,
       details: {
         routeProfileId: row.id,
+        subaddressRequired: row.subaddress_required === true,
         receiverEdielId: snapshot.receiver,
         receiverSubAddress: snapshot.receiverSubAddress,
         applicationReference: snapshot.applicationReference,
@@ -215,8 +240,18 @@ async function evidenceFromActorSettings(
     const actorIds = [row.ediel_id, row.actor_ediel_id].map(upper).filter(Boolean)
     if (!actorIds.includes(receiver)) return []
 
-    const actorSub = upper(row.receiver_subaddress ?? row.receiver_sub_address ?? row.sender_subaddress ?? row.sender_sub_address)
-    if (actorSub && receiverSub && actorSub !== receiverSub) return []
+    const actorSub = upper(
+      row.receiver_message_subaddress ??
+      row.receiver_subaddress ??
+      row.receiver_sub_address ??
+      row.sender_subaddress ??
+      row.sender_sub_address
+    )
+    if (!subaddressMatches({
+      configured: actorSub,
+      observed: receiverSub,
+      required: row.subaddress_required,
+    })) return []
 
     return [{
       companyId,
@@ -224,6 +259,7 @@ async function evidenceFromActorSettings(
       score: actorSub && receiverSub ? 90 : 70,
       details: {
         actorSettingId: row.id,
+        subaddressRequired: row.subaddress_required === true,
         receiverEdielId: snapshot.receiver,
         receiverSubAddress: snapshot.receiverSubAddress,
       },

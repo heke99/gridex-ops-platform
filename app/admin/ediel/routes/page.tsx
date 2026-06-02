@@ -323,8 +323,8 @@ export default async function AdminEdielRoutesPage() {
  <p className="mt-2 text-sm leading-6 text-slate-700">Bolagsnamn, organisationsnummer, Ediel-id, miljö, mailbox, Application Reference och roll ska komma från tenant-konfiguration.</p>
  </div>
  <div className="rounded-2xl border border-slate-200 bg-white p-4">
- <div className="text-sm font-semibold text-slate-950">Nätägare</div>
- <p className="mt-2 text-sm leading-6 text-slate-700">Spara Ediel-id, nätområde, subaddress, processer och teknisk mottagning så Z03/Z09/UTILTS-flöden hamnar rätt.</p>
+<div className="text-sm font-semibold text-slate-950">Nätägare</div>
+<p className="mt-2 text-sm leading-6 text-slate-700">Spara Ediel-id, nätområde, optional subaddress, processer och teknisk mottagning så Z03/Z09/UTILTS-flöden hamnar rätt.</p>
  </div>
  <div className="rounded-2xl border border-slate-200 bg-white p-4">
  <div className="text-sm font-semibold text-slate-950">Leverantörer och BRP</div>
@@ -332,7 +332,7 @@ export default async function AdminEdielRoutesPage() {
  </div>
  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
  <div className="text-sm font-semibold text-amber-950">Preflight före aktivering</div>
- <p className="mt-2 text-sm leading-6 text-amber-800">Route får inte vara aktiv om Ediel-id, mottagare, version, transport, ack-policy eller company/tenant-koppling saknas.</p>
+<p className="mt-2 text-sm leading-6 text-amber-800">Route får inte vara aktiv om Ediel-id, mottagare, version, transport, ack-policy eller company/tenant-koppling saknas. Subadress krävs bara när routeprofilen uttryckligen säger det.</p>
  </div>
  </div>
  </section>
@@ -485,10 +485,16 @@ export default async function AdminEdielRoutesPage() {
  <input
  name="receiverSubAddress"
  className={textInputClassName()}
- placeholder="Mottagarens subadress"
+placeholder="Mottagarens subadress (optional)"
  />
+<input
+name="receiverMessageSubAddress"
+className={textInputClassName()}
+placeholder="Message-subadress, t.ex. PRODAT"
+/>
  <input
  name="mailbox"
+defaultValue="ediel@gridex.se"
  className={textInputClassName()}
  placeholder="Mailbox (tomt = aktörens standard)"
  />
@@ -521,6 +527,10 @@ export default async function AdminEdielRoutesPage() {
  <option value="xml">xml</option>
  <option value="ai_list">ai_list</option>
  </select>
+<label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+<input type="checkbox" name="subaddressRequired" value="true" className="h-4 w-4 rounded border-slate-300" />
+Subadress krävs för denna route
+</label>
  </div>
 
  <button className="mt-4 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white">
@@ -593,10 +603,15 @@ export default async function AdminEdielRoutesPage() {
  <Field label="Sender Ediel-id" value={runtime?.sender_ediel_id ?? null} />
  <Field label="Mottagare Ediel-id (profil)" value={runtime?.receiver_ediel_id ?? null} />
  <Field label="Application Reference" value={runtime?.application_reference ?? null} />
+<Field label="Subadress krävs" value={runtime?.subaddress_required ? 'Ja' : 'Nej'} />
+<Field label="Receiver subadress" value={runtime?.receiver_subaddress ?? runtime?.receiver_sub_address ?? null} />
+<Field label="Receiver message-subadress" value={runtime?.receiver_message_subaddress ?? null} />
  <Field label="Ack-mode" value={runtime?.ack_mode ?? null} />
  <Field label="Meddelandestandard" value={runtime?.message_standard ?? null} />
  <Field label="Payload-format" value={runtime?.payload_format ?? null} />
  <Field label="Kryptering" value={runtime?.encryption_mode ?? null} />
+<Field label="Signering" value={runtime?.signing_mode ?? null} />
+<Field label="Certifikat" value={runtime?.certificate_id ?? null} />
  <Field label="Versionsstyrning" value={runtime?.default_message_version ?? null} />
  <Field label="Mottagande system" value={route.target_system} />
  <Field label="Endpoint" value={route.endpoint} />
@@ -691,7 +706,7 @@ export default async function AdminEdielRoutesPage() {
  Ediel route profile
  </div>
  <p className="mb-3 text-xs text-slate-700">
- Lämna sender/application reference/mailbox tomt endast om aktiv aktörsidentitet ska vara default i vald miljö.
+Lämna sender/application reference/mailbox tomt endast om aktiv aktörsidentitet ska vara default i vald miljö. Subadress är optional och används inte för tenant-resolve om routen inte kräver den.
  </p>
 
  <div className="grid gap-3 md:grid-cols-2">
@@ -700,7 +715,8 @@ export default async function AdminEdielRoutesPage() {
  <input name="senderName" defaultValue={runtime?.sender_name ?? ''} placeholder="Sender name" className={textInputClassName()} />
  <input name="receiverName" defaultValue={runtime?.receiver_name ?? ''} placeholder="Mottagarens namn" className={textInputClassName()} />
  <input name="senderSubAddress" defaultValue={runtime?.sender_sub_address ?? ''} placeholder="Sender subaddress" className={textInputClassName()} />
- <input name="receiverSubAddress" defaultValue={runtime?.receiver_sub_address ?? ''} placeholder="Mottagarens subadress" className={textInputClassName()} />
+<input name="receiverSubAddress" defaultValue={runtime?.receiver_subaddress ?? runtime?.receiver_sub_address ?? ''} placeholder="Mottagarens subadress (optional)" className={textInputClassName()} />
+<input name="receiverMessageSubAddress" defaultValue={runtime?.receiver_message_subaddress ?? ''} placeholder="Message-subadress, t.ex. PRODAT" className={textInputClassName()} />
  <input name="mailbox" defaultValue={runtime?.mailbox ?? ''} placeholder="Mailbox" className={textInputClassName()} />
  <input name="applicationReference" defaultValue={runtime?.application_reference ?? ''} placeholder="Application reference" className={textInputClassName()} />
  <input name="defaultMessageVersion" defaultValue={runtime?.default_message_version ?? ''} placeholder="Standardversion" className={textInputClassName()} />
@@ -726,6 +742,11 @@ export default async function AdminEdielRoutesPage() {
  <option value="smime">smime</option>
  <option value="pgp">pgp</option>
  </select>
+<select name="signingMode" defaultValue={runtime?.signing_mode ?? 'none'} className={selectClassName()}>
+<option value="none">signering: none</option>
+<option value="smime">signering: smime</option>
+</select>
+<input name="certificateId" defaultValue={runtime?.certificate_id ?? ''} placeholder="Certificate id" className={textInputClassName()} />
  <select name="environment" defaultValue={runtime?.environment ?? 'test'} className={selectClassName()}>
  <option value="test">test</option>
  <option value="production">production</option>
@@ -746,6 +767,10 @@ export default async function AdminEdielRoutesPage() {
  <input type="checkbox" name="isEnabled" value="true" defaultChecked={runtime?.is_enabled ?? false} className="h-4 w-4 rounded border-slate-300" />
  Ediel-profil aktiv
  </label>
+<label className="mt-3 ml-4 inline-flex items-center gap-2 text-sm text-slate-700">
+<input type="checkbox" name="subaddressRequired" value="true" defaultChecked={runtime?.subaddress_required === true} className="h-4 w-4 rounded border-slate-300" />
+Subadress krävs
+</label>
 
  <div className="mt-4">
  <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white">

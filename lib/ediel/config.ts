@@ -46,6 +46,8 @@ export type EdielRouteRuntimeRow = {
   default_timezone?: number | null
   receiver_ediel_id: string | null
   receiver_sub_address: string | null
+  receiver_subaddress?: string | null
+  receiver_message_subaddress?: string | null
   receiver_name: string | null
   mailbox: string | null
   application_reference: string | null
@@ -65,6 +67,14 @@ export type EdielRouteRuntimeRow = {
   sender_ediel_id?: string | null
   sender_name?: string | null
   sender_sub_address?: string | null
+  sender_subaddress?: string | null
+  subaddress_required?: boolean | null
+  signing_mode?: 'none' | 'smime' | string | null
+  tls_required?: boolean | null
+  certificate_id?: string | null
+  allow_unencrypted_test?: boolean | null
+  allow_unencrypted_production?: boolean | null
+  security_policy_status?: string | null
   smtp_host?: string | null
   smtp_port?: number | null
   imap_host?: string | null
@@ -90,6 +100,22 @@ function sanitize(value?: string | null): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function routeRequiresSubaddress(runtime: EdielRouteRuntimeRow): boolean {
+  return runtime.subaddress_required === true
+}
+
+function effectiveReceiverSubaddress(runtime: EdielRouteRuntimeRow): string | null {
+  return (
+    sanitize(runtime.receiver_message_subaddress) ??
+    sanitize(runtime.receiver_subaddress) ??
+    sanitize(runtime.receiver_sub_address)
+  )
+}
+
+function effectiveSenderSubaddress(runtime: EdielRouteRuntimeRow): string | null {
+  return sanitize(runtime.sender_subaddress) ?? sanitize(runtime.sender_sub_address)
 }
 
 export async function getActiveEdielActorSettings(
@@ -271,6 +297,43 @@ export function buildEdielRouteRuntimeIssues(params: {
       label: 'mailbox saknas',
       resolution: 'Fyll i mailbox på routeprofilen så rätt Ediel-brevlåda används.',
     })
+  }
+
+  if (routeRequiresSubaddress(params.runtime)) {
+    const senderSubaddress = effectiveSenderSubaddress(params.runtime)
+    const receiverSubaddress = effectiveReceiverSubaddress(params.runtime)
+    if (!senderSubaddress && !receiverSubaddress) {
+      issues.push({
+        key: 'subaddress_required_missing',
+        severity: 'error',
+        label: 'Route saknar registrerad subadress',
+        resolution: 'Kontrollera route-inställningar innan meddelandet skickas. Den här routen är markerad som subadresskrävande.',
+      })
+    }
+  }
+
+  if (params.runtime.environment === 'production' && params.runtime.message_standard === 'edifact') {
+    const family = sanitize((params.runtime as unknown as { message_family?: string | null }).message_family)?.toUpperCase()
+    const encryptionMode = sanitize(params.runtime.encryption_mode)?.toLowerCase()
+    const emergencyOverride = params.runtime.allow_unencrypted_production === true
+
+    if (family === 'PRODAT' && encryptionMode !== 'smime' && !emergencyOverride) {
+      issues.push({
+        key: 'production_prodat_smime_required',
+        severity: 'error',
+        label: 'Produktion PRODAT kräver S/MIME',
+        resolution: 'Koppla ett giltigt certifikat och sätt encryption_mode=smime, eller använd tidsbegränsad superadmin-override.',
+      })
+    }
+
+    if (encryptionMode === 'smime' && !sanitize(params.runtime.certificate_id)) {
+      issues.push({
+        key: 'certificate_missing',
+        severity: 'error',
+        label: 'Certifikat saknas',
+        resolution: 'Länka ett aktivt S/MIME-certifikat till routeprofilen innan krypterat utskick.',
+      })
+    }
   }
 
   if (!sanitize(params.runtime.application_reference)) {

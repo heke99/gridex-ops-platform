@@ -2,6 +2,7 @@
 
 import nodemailer from 'nodemailer'
 import { execFile } from 'child_process'
+import { createHash } from 'crypto'
 import { promisify } from 'util'
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
@@ -330,14 +331,48 @@ export function isSupportedSmtpMimeMode(value: string | null | undefined): value
   )
 }
 
-function resolveSmtpMimeMode(_override?: string | null): EdielSmtpMimeMode {
-  // PRODAT TGT should now only be sent through S/MIME encrypted transport.
-  // Diagnostic/plain modes remain in this file only for historical inspection and are no longer exposed.
+function resolveSmtpMimeMode(
+  override?: string | null,
+  encryptionMode?: string | null
+): EdielSmtpMimeMode {
+  if (isSupportedSmtpMimeMode(override)) return override
+  if (String(encryptionMode ?? '').toLowerCase() === 'smime') return 'ediel-smime-enveloped'
   return 'ediel-singlepart-base64'
 }
 
 function isEdifactMessage(message: EdielMessageRow): boolean {
   return message.message_standard === 'edifact' || message.mime_type?.toLowerCase().includes('edifact') === true
+}
+
+function sha256(value: string | Buffer): string {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+async function storeTransportPayloadSnapshot(input: {
+  message: EdielMessageRow
+  payloadKind: 'raw_edifact' | 'smime_enveloped'
+  rawPayload?: string | null
+  encryptedPayloadRef?: string | null
+  encryptionMode: 'none' | 'smime'
+  certificateFingerprint?: string | null
+  metadata?: Record<string, unknown>
+}) {
+  const rawPayloadHash = input.rawPayload ? sha256(input.rawPayload) : null
+  await supabaseService.from('ediel_message_payloads').insert({
+    company_id: input.message.company_id ?? null,
+    ediel_message_id: input.message.id,
+    payload_kind: input.payloadKind,
+    raw_payload: input.rawPayload ?? null,
+    raw_payload_hash: rawPayloadHash,
+    encryption_mode: input.encryptionMode,
+    signing_mode: 'none',
+    security_status: input.encryptionMode === 'smime' ? 'encrypted' : 'stored',
+    certificate_fingerprint: input.certificateFingerprint ?? null,
+    certificate_fingerprint_sha256: input.certificateFingerprint ?? null,
+    encrypted_payload_ref: input.encryptedPayloadRef ?? null,
+    metadata: input.metadata ?? {},
+    status: 'stored',
+  })
 }
 
 function buildSinglePartEdielMime(params: {
@@ -984,7 +1019,7 @@ async function withAcceptedInboundVersions(
 
 export async function sendEdielMessageViaSmtp(
   message: EdielMessageRow,
-  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | null }
+  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null }
 ): Promise<{
   accepted: string[]
   rejected: string[]
@@ -1031,7 +1066,8 @@ export async function sendEdielMessageViaSmtp(
       direction: message.direction,
       extension,
     })
-  const mimeMode = resolveSmtpMimeMode(params?.smtpMimeMode)
+  const routeEncryptionMode = routeProfile?.encryption_mode ?? 'none'
+  const mimeMode = resolveSmtpMimeMode(params?.smtpMimeMode, routeEncryptionMode)
   const edifactPayloadMode =
     mimeMode === 'ediel-singlepart-lines' || mimeMode === 'nodemailer-attachment'
       ? 'lines'
@@ -1085,6 +1121,23 @@ export async function sendEdielMessageViaSmtp(
       receiverSubAddress: message.receiver_sub_address,
       applicationReference: message.application_reference,
     },
+  })
+
+  await storeTransportPayloadSnapshot({
+    message,
+    payloadKind: 'raw_edifact',
+    rawPayload: normalizedPayload,
+    encryptionMode: mimeMode === 'ediel-smime-enveloped' ? 'smime' : 'none',
+    certificateFingerprint: null,
+    metadata: {
+      phase: 'smtp_prepare',
+      mimeMode,
+      routeProfileId: routeProfile?.id ?? null,
+      routeEncryptionMode,
+      canonicalRawEdifactBeforePackaging: true,
+    },
+  }).catch((error) => {
+    console.warn('[ediel-transport] Could not store raw payload snapshot', error)
   })
 
   let result: SmtpSendResult
@@ -1141,6 +1194,24 @@ export async function sendEdielMessageViaSmtp(
     decodedPayloadPreview = safePreview(normalizedPayload, 900)
     encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
     encryptedPayloadLength = encryptedDer.length
+    const encryptedPayloadRef = `smtp-smime://${message.id}/${sha256(encryptedDer).slice(0, 24)}`
+
+    await storeTransportPayloadSnapshot({
+      message,
+      payloadKind: 'smime_enveloped',
+      rawPayload: null,
+      encryptedPayloadRef,
+      encryptionMode: 'smime',
+      certificateFingerprint: null,
+      metadata: {
+        mimeMode,
+        encryptedPayloadLength,
+        encryptedPayloadSha256: sha256(encryptedDer),
+        recipientCertPath,
+      },
+    }).catch((error) => {
+      console.warn('[ediel-transport] Could not store S/MIME payload snapshot', error)
+    })
 
     await createEdielMessageEvent({
       actorUserId,

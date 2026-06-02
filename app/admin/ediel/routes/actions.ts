@@ -142,6 +142,8 @@ async function upsertEdielRouteProfileLocal(input: {
   receiverEdielId: string | null
   receiverName: string | null
   receiverSubAddress: string | null
+  receiverMessageSubAddress: string | null
+  subaddressRequired: boolean
   applicationReference: string | null
   defaultMessageVersion: string | null
   defaultTestFlag: 0 | 1
@@ -155,6 +157,8 @@ async function upsertEdielRouteProfileLocal(input: {
   imapPort: number | null
   mailbox: string | null
   encryptionMode: EdielEncryptionMode | null
+  signingMode: string | null
+  certificateId: string | null
   payloadFormat: EdielPayloadFormat
   notes: string | null
 }) {
@@ -189,6 +193,19 @@ async function upsertEdielRouteProfileLocal(input: {
       input.receiverSubAddress,
       existing?.receiver_sub_address ?? null
     ),
+    receiver_subaddress: coalesceString(
+      input.receiverSubAddress,
+      existing?.receiver_subaddress ?? null,
+      existing?.receiver_sub_address ?? null
+    ),
+    receiver_message_subaddress: coalesceString(
+      input.receiverMessageSubAddress,
+      existing?.receiver_message_subaddress ?? null,
+      input.receiverSubAddress,
+      existing?.receiver_subaddress ?? null,
+      existing?.receiver_sub_address ?? null
+    ),
+    subaddress_required: input.subaddressRequired,
     application_reference: coalesceString(
       input.applicationReference,
       existing?.application_reference ?? null,
@@ -213,6 +230,8 @@ async function upsertEdielRouteProfileLocal(input: {
     imap_port: input.imapPort ?? existing?.imap_port ?? null,
     mailbox: coalesceString(input.mailbox, existing?.mailbox ?? null, actorDefaults?.mailbox),
     encryption_mode: input.encryptionMode ?? existing?.encryption_mode ?? null,
+    signing_mode: input.signingMode ?? existing?.signing_mode ?? 'none',
+    certificate_id: input.certificateId ?? existing?.certificate_id ?? null,
     payload_format: input.payloadFormat,
     notes: coalesceString(input.notes, existing?.notes ?? null),
     updated_by: input.actorUserId,
@@ -261,6 +280,8 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     receiverEdielId: stringValue(formData, 'receiverEdielId'),
     receiverName: stringValue(formData, 'receiverName'),
     receiverSubAddress: stringValue(formData, 'receiverSubAddress'),
+    receiverMessageSubAddress: stringValue(formData, 'receiverMessageSubAddress'),
+    subaddressRequired: boolValue(formData, 'subaddressRequired'),
     applicationReference: stringValue(formData, 'applicationReference'),
     defaultMessageVersion: stringValue(formData, 'defaultMessageVersion'),
     defaultTestFlag: intValue(formData, 'defaultTestFlag') === 0 ? 0 : 1,
@@ -274,6 +295,8 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     imapPort: intValue(formData, 'imapPort'),
     mailbox: stringValue(formData, 'mailbox'),
     encryptionMode: normalizeEncryptionMode(stringValue(formData, 'encryptionMode')),
+    signingMode: stringValue(formData, 'signingMode') === 'smime' ? 'smime' : 'none',
+    certificateId: stringValue(formData, 'certificateId'),
     payloadFormat: normalizePayloadFormat(stringValue(formData, 'payloadFormat')),
     notes: stringValue(formData, 'notes'),
   })
@@ -376,6 +399,8 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
     receiverEdielId: stringValue(formData, 'receiverEdielId'),
     receiverName: stringValue(formData, 'receiverName'),
     receiverSubAddress: stringValue(formData, 'receiverSubAddress'),
+    receiverMessageSubAddress: stringValue(formData, 'receiverMessageSubAddress'),
+    subaddressRequired: boolValue(formData, 'subaddressRequired'),
     applicationReference: stringValue(formData, 'applicationReference'),
     defaultMessageVersion: stringValue(formData, 'defaultMessageVersion'),
     defaultTestFlag: intValue(formData, 'defaultTestFlag') === 0 ? 0 : 1,
@@ -389,6 +414,8 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
     imapPort: intValue(formData, 'imapPort'),
     mailbox: stringValue(formData, 'mailbox'),
     encryptionMode: normalizeEncryptionMode(stringValue(formData, 'encryptionMode')),
+    signingMode: stringValue(formData, 'signingMode') === 'smime' ? 'smime' : 'none',
+    certificateId: stringValue(formData, 'certificateId'),
     payloadFormat: normalizePayloadFormat(stringValue(formData, 'payloadFormat')),
     notes: stringValue(formData, 'profile_notes'),
   })
@@ -463,6 +490,8 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
     receiverEdielId: existingProfile?.receiver_ediel_id ?? null,
     receiverName: existingProfile?.receiver_name ?? null,
     receiverSubAddress: existingProfile?.receiver_sub_address ?? null,
+    receiverMessageSubAddress: existingProfile?.receiver_message_subaddress ?? null,
+    subaddressRequired: existingProfile?.subaddress_required === true,
     applicationReference: existingProfile?.application_reference ?? null,
     defaultMessageVersion: existingProfile?.default_message_version ?? null,
     defaultTestFlag: existingProfile?.default_test_flag ?? 1,
@@ -476,6 +505,8 @@ export async function quickFixEdielRouteActivationAction(formData: FormData) {
     imapPort: existingProfile?.imap_port ?? null,
     mailbox: existingProfile?.mailbox ?? null,
     encryptionMode: existingProfile?.encryption_mode ?? null,
+    signingMode: existingProfile?.signing_mode ?? 'none',
+    certificateId: existingProfile?.certificate_id ?? null,
     payloadFormat: existingProfile?.payload_format ?? 'edifact',
     notes: existingProfile?.notes ?? null,
   })
@@ -512,6 +543,8 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
     receiverEdielId: receiverEdielId ?? existingProfile?.receiver_ediel_id ?? null,
     receiverName: existingProfile?.receiver_name ?? null,
     receiverSubAddress: existingProfile?.receiver_sub_address ?? null,
+    receiverMessageSubAddress: existingProfile?.receiver_message_subaddress ?? null,
+    subaddressRequired: existingProfile?.subaddress_required === true,
     applicationReference: existingProfile?.application_reference ?? null,
     defaultMessageVersion: existingProfile?.default_message_version ?? null,
     defaultTestFlag: existingProfile?.default_test_flag ?? 1,
@@ -525,6 +558,8 @@ export async function quickFixEdielProfileBasicsAction(formData: FormData) {
     imapPort: existingProfile?.imap_port ?? null,
     mailbox: mailbox ?? existingProfile?.mailbox ?? null,
     encryptionMode: existingProfile?.encryption_mode ?? null,
+    signingMode: existingProfile?.signing_mode ?? 'none',
+    certificateId: existingProfile?.certificate_id ?? null,
     payloadFormat: existingProfile?.payload_format ?? 'edifact',
     notes: existingProfile?.notes ?? null,
   })
