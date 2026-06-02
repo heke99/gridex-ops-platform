@@ -35,6 +35,8 @@ export type CanonicalRouteContext = {
   receiverEdielId: string
   receiverName: string | null
   receiverSubAddress: string | null
+  receiverMessageSubAddress: string | null
+  subaddressRequired: boolean
   receiverEmail: string | null
   mailbox: string | null
   applicationReference: string | null
@@ -147,7 +149,10 @@ export async function resolveCanonicalRouteContext(params: {
   const isEdielPortalTgtRoute = targetSystem.includes('ediel_portal_tgt') || targetSystem.includes('tgt')
   const senderEdielId = actor.senderEdielId
   const senderName = trimOrNull(routeRuntime?.sender_name) ?? actor.senderName
-  const senderSubAddress = trimOrNull(routeRuntime?.sender_sub_address) ?? actor.senderSubAddress
+  const senderSubAddress =
+    trimOrNull(routeRuntime?.sender_subaddress) ??
+    trimOrNull(routeRuntime?.sender_sub_address) ??
+    actor.senderSubAddress
 
   const receiverEdielId =
     trimOrNull(routeRuntime?.receiver_ediel_id) ??
@@ -162,10 +167,20 @@ export async function resolveCanonicalRouteContext(params: {
   const receiverName =
     trimOrNull(routeRuntime?.receiver_name) ?? trimOrNull(params.gridOwner?.name)
   const receiverSubAddress =
-    trimOrNull(routeRuntime?.receiver_sub_address) ??
-    (isEdielPortalTgtRoute && isProdatRouteRequestType(params.requestType)
-      ? 'PRODAT'
-      : 'EDIEL')
+    trimOrNull(routeRuntime?.receiver_subaddress) ??
+    trimOrNull(routeRuntime?.receiver_sub_address)
+  const receiverMessageSubAddress =
+    trimOrNull(routeRuntime?.receiver_message_subaddress) ?? receiverSubAddress
+  const subaddressRequired = routeRuntime?.subaddress_required === true
+
+  if (subaddressRequired && !receiverMessageSubAddress && !senderSubAddress) {
+    throw new Error(
+      'Route saknar registrerad subadress. Kontrollera route-inställningar innan meddelandet skickas.'
+    )
+  }
+
+  // Edielportalen PRODAT can use values such as 91100:ZZ:PRODAT, but the
+  // route must carry that value explicitly; we do not synthesize subaddress.
   const mailbox = trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox
   const applicationReference =
     trimOrNull(routeRuntime?.application_reference) ??
@@ -199,7 +214,7 @@ export async function resolveCanonicalRouteContext(params: {
     params.requestType,
     route.id,
     receiverEdielId,
-    receiverSubAddress,
+    receiverMessageSubAddress ?? receiverSubAddress ?? 'no-subaddress',
     applicationReference ?? 'default-application-reference',
     messageStandard,
     environment,
@@ -208,10 +223,10 @@ export async function resolveCanonicalRouteContext(params: {
 
   const routeDecisionReason =
     resolvedRoute.source === 'explicit_route'
-      ? `Explicit route ${route.route_name} valdes för ${params.requestType}. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverSubAddress}, mailbox ${mailbox ?? '—'} application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
+      ? `Explicit route ${route.route_name} valdes för ${params.requestType}. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverMessageSubAddress ?? receiverSubAddress ?? 'ingen'}, mailbox ${mailbox ?? '—'} application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
       : `Route ${route.route_name} valdes automatiskt för ${params.requestType}${
           params.gridOwner?.name ? ` mot ${params.gridOwner.name}` : ''
-        }. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverSubAddress}, mailbox ${mailbox ?? '—'} application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
+        }. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverMessageSubAddress ?? receiverSubAddress ?? 'ingen'}, mailbox ${mailbox ?? '—'} application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
 
   return {
     companyId: companyId ?? route.company_id ?? null,
@@ -224,6 +239,8 @@ export async function resolveCanonicalRouteContext(params: {
     receiverEdielId,
     receiverName,
     receiverSubAddress,
+    receiverMessageSubAddress,
+    subaddressRequired,
     receiverEmail: trimOrNull(route.target_email),
     mailbox,
     applicationReference,
