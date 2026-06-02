@@ -318,7 +318,7 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       inboundCode: 'Z14',
       inboundVariant: 'Z14V',
       purpose: 'Verifierar korrekt uppstart av mätvärdesåtkomst för energitjänsteföretag.',
-      testDataHint: 'S8.1.1. Energitjänsteföretag skickar Z13V, portalen svarar med positiv Z14V.',
+      testDataHint: 'S8.1.1. Energitjänsteföretag skickar Z13V, portalen svarar med positiv Z14V. Testkunden Anna Andersson/195503072026 kommer från Edielportalens fasta TGT-testdata, inte från riktig kunddata.',
     }),
     prodatEscoStartCase({
       testCaseCode: '8.1.2',
@@ -1143,7 +1143,6 @@ export function evaluateEdielTgtRun(
   const candidates = messages
     .filter((message) => {
       if (message.status === 'cancelled') return false
-      if (testRun.company_id && message.company_id && message.company_id !== testRun.company_id) return false
       if (message.message_family !== 'PRODAT' && message.message_family !== 'UTILTS' && message.message_family !== 'APERAK' && message.message_family !== 'CONTRL' && message.message_family !== 'UTILTS_ERR') {
         return false
       }

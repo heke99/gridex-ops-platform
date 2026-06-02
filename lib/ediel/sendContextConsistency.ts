@@ -153,7 +153,7 @@ export async function validateEdielSendContext(params: {
     addIssue(blockingIssues, 'route_profile_missing', 'Sending blocked: selected test run has a route profile, but the outbound message cannot resolve it.')
   }
   if (routeProfile?.communication_route_id && !params.message.communication_route_id) {
-    addIssue(blockingIssues, 'message_route_missing', 'Sending blocked: generated outbound message did not inherit the selected route profile.')
+    addIssue(blockingIssues, 'message_route_missing', 'Sending blocked: generated outbound message did not inherit the selected route profile. Create a new draft from the test run so route, encryption and mailbox are locked before sending.')
   }
   if (selectedEncryptionMode === 'smime' && !routeProfile && !mailboxEncryption) {
     addIssue(blockingIssues, 'encrypted_transport_unresolved', 'Sending blocked: encrypted test run cannot resolve route or mailbox encryption settings.')

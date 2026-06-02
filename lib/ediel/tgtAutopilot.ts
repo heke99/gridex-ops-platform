@@ -15,6 +15,7 @@ import {
 } from "@/lib/ediel/tgtRegistry";
 import { buildEdielTgtDraft } from "@/lib/ediel/tgtEdifact";
 import { getEdielTgtDynamicTestDataForCase } from "@/lib/ediel/tgtTestDataStore";
+import { supabaseService } from "@/lib/supabase/service";
 import {
   requireEdielSystemTestRuntimeContext,
   type EdielSystemTestRuntimeContext,
@@ -358,6 +359,36 @@ async function createDraftForStep(params: {
     importedTestData,
     systemTestContext,
   });
+  const routeProfileId = String(params.evaluation.testRun.route_profile_id ?? "").trim();
+  if (routeProfileId) {
+    const { data: routeProfile, error } = await supabaseService
+      .from("ediel_route_profiles")
+      .select("id,communication_route_id,mailbox,encryption_mode,certificate_id")
+      .eq("id", routeProfileId)
+      .eq("company_id", params.evaluation.testRun.company_id ?? "")
+      .maybeSingle();
+    if (error) throw error;
+    if (routeProfile?.communication_route_id) {
+      draft.messageInput.communicationRouteId = String(routeProfile.communication_route_id);
+      draft.messageInput.mailbox = String(routeProfile.mailbox ?? draft.messageInput.mailbox ?? "");
+      draft.messageInput.validationReport = {
+        ...(draft.messageInput.validationReport ?? {}),
+        lockedSendContext: {
+          source: "ediel_test_runs",
+          testRunId: params.evaluation.testRun.id,
+          testSuite: params.evaluation.testRun.test_suite,
+          testCaseCode: params.evaluation.testRun.test_case_code,
+          roleCode: params.evaluation.testRun.role_code,
+          encryptionMode: params.evaluation.testRun.encryption_mode ?? null,
+          routeProfileId,
+          communicationRouteId: String(routeProfile.communication_route_id),
+          routeEncryptionMode: routeProfile.encryption_mode ?? null,
+          certificateId: routeProfile.certificate_id ?? null,
+        },
+      };
+    }
+  }
+
   const blockingIssues = draft.validationIssues.filter(
     (issue) => issue.severity === "error",
   );
