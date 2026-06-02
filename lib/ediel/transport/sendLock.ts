@@ -6,6 +6,6 @@ export function assertEdielSendLock(message: EdielMessageRow): void {
   const preflight = preflightEdielMessageRow(message, 'send')
   const lock = evaluateEdielProductionSendLock(message, preflight)
   if (lock.status === 'blocked') {
-    throw new Error(lock.reasons.join(' | ') || 'Ediel send lock blockerade utskick.')
+    throw new Error(lock.issues.map((issue) => issue.message).join(' | ') || 'Ediel send lock blockerade utskick.')
   }
 }
