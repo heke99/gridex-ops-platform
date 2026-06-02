@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { prepareEdielTestRunTransportMetadata } from '@/lib/ediel/testing/testRunTransportMetadata'
 
@@ -12,29 +13,37 @@ function stringValue(formData: FormData, key: string): string | null {
 }
 
 export async function prepareEdielTestCenterRunAction(formData: FormData) {
-  const context = await requirePlatformAdminActionAccess()
-  const companyId = stringValue(formData, 'companyId')
-  const testSuite = stringValue(formData, 'testSuite') ?? 'PRODAT'
-  const roleCode = stringValue(formData, 'roleCode') ?? 'supplier'
-  const testCaseCode = stringValue(formData, 'testCaseCode')
-  const environment = stringValue(formData, 'environment') === 'production' ? 'production' : 'test'
-  const encryptionMode = stringValue(formData, 'encryptionMode') ?? 'none'
+  let status: 'success' | 'error' = 'success'
+  let message = 'Test-run förbereddes. Du kan fortsätta i AGT/Systemtester.'
+  try {
+    const context = await requirePlatformAdminActionAccess()
+    const companyId = stringValue(formData, 'companyId')
+    const testSuite = stringValue(formData, 'testSuite') ?? 'PRODAT'
+    const roleCode = stringValue(formData, 'roleCode') ?? 'supplier'
+    const testCaseCode = stringValue(formData, 'testCaseCode')
+    const environment = stringValue(formData, 'environment') === 'production' ? 'production' : 'test'
+    const encryptionMode = stringValue(formData, 'encryptionMode') ?? 'none'
 
-  if (!companyId) throw new Error('Välj bolag/tenant.')
-  if (!testCaseCode) throw new Error('Välj testfall.')
+    if (!companyId) throw new Error('Välj bolag/tenant.')
+    if (!testCaseCode) throw new Error('Välj testfall.')
 
-  await prepareEdielTestRunTransportMetadata({
-    actorUserId: context.userId,
-    companyId,
-    testSuite,
-    roleCode,
-    testCaseCode,
-    environment,
-    productionLike: formData.get('productionLike') === 'true',
-    encryptionMode,
-  })
+    await prepareEdielTestRunTransportMetadata({
+      actorUserId: context.userId,
+      companyId,
+      testSuite,
+      roleCode,
+      testCaseCode,
+      environment,
+      productionLike: formData.get('productionLike') === 'true',
+      encryptionMode,
+    })
 
-  revalidatePath('/admin/ediel/test-center')
-  revalidatePath('/admin/ediel/system-tests')
-  revalidatePath('/admin/ediel/agt')
+    revalidatePath('/admin/ediel/test-center')
+    revalidatePath('/admin/ediel/system-tests')
+    revalidatePath('/admin/ediel/agt')
+  } catch (error) {
+    status = 'error'
+    message = error instanceof Error ? error.message : String(error)
+  }
+  redirect(`/admin/ediel/test-center?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
 }
