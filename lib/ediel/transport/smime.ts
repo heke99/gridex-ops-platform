@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { promisify } from 'util'
+import { formatErrorMessage } from '@/lib/errors'
 
 const execFileAsync = promisify(execFile)
 
@@ -109,7 +110,7 @@ export async function unpackInboundSmimeIfNeeded(input: {
       decryptedText: null,
       encryptedPayloadRef,
       securityStatus: 'decrypt_failed',
-      validationError: error instanceof Error ? error.message : String(error),
+      validationError: formatErrorMessage(error, 'S/MIME-dekryptering misslyckades.'),
     }
   } finally {
     await rm(tempDir, { recursive: true, force: true })

@@ -8,6 +8,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { importP12Certificate, importPublicCertificatePem } from '@/lib/ediel/security/importP12Certificate'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 import { invalidateEdielAgtReadiness } from '@/lib/ediel/testing/retestInvalidation'
+import { formatErrorMessage } from '@/lib/errors'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -489,7 +490,7 @@ export async function importEdielP12CertificateAction(formData: FormData) {
   try {
     result = await importEdielP12Certificate(formData)
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const message = formatErrorMessage(error, 'Certifikatet kunde inte importeras.')
     certificateRedirect('error', message)
   }
 

@@ -1,4 +1,5 @@
 import forge from 'node-forge'
+import { formatErrorMessage } from '@/lib/errors'
 
 export type ImportedP12CertificateMetadata = {
   fingerprintSha256: string
@@ -92,7 +93,7 @@ async function parsePublicCertificatePem(input: {
       displayName: input.displayName,
     })
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error)
+    const detail = formatErrorMessage(error, 'Okänt certifikatfel.')
     throw new Error(`Det inklistrade PEM-certifikatet kunde inte läsas. ${detail}`)
   }
 }
@@ -142,7 +143,7 @@ export async function importP12Certificate(input: {
       displayName: input.displayName,
     })
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error)
+    const detail = formatErrorMessage(error, 'Okänt P12-fel.')
     throw new Error(`P12-certifikatet kunde inte öppnas med angiven PIN. Kontrollera PIN och att filen är en giltig .p12/.pfx. ${detail}`)
   }
 }

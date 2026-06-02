@@ -22,6 +22,7 @@ import {
   updateGridOwnerDataRequestStatus,
   updateOutboundRequestStatus,
 } from "@/lib/cis/db";
+import { formatErrorMessage } from "@/lib/errors";
 import type {
   GridOwnerDataRequestRow,
   OutboundRequestRow,
@@ -325,7 +326,7 @@ async function syncActorTestingAckSafely(params: {
       payload: {
         actorTestingGlobalHook: true,
         phase: params.phase,
-        error: error instanceof Error ? error.message : String(error),
+        error: formatErrorMessage(error, "Aktörstest-synk för kvittens misslyckades."),
       },
     }).catch(() => null);
 

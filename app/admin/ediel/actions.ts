@@ -59,6 +59,7 @@ import {
   runUtiltsRuntimeForMessage,
   serializeUtiltsRuntimeUtiltsErrMessageText,
 } from "@/lib/ediel/utiltsEngine";
+import { formatErrorMessage } from "@/lib/errors";
 import {
   buildProdatZ03FromSwitch,
   buildProdatZ04FromSwitch,
@@ -1341,7 +1342,7 @@ export async function sendEdielMessageAction(formData: FormData) {
 
     await revalidateRelatedMessage(edielMessageId);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = formatErrorMessage(error, "Skick stoppades av ett okänt fel.");
 
     try {
       await createEdielMessageEvent({
@@ -1530,7 +1531,7 @@ export async function registerEdielFileAction(formData: FormData) {
           message: "Aktörstest-synk kunde inte slutföras automatiskt.",
           payload: {
             actorTesting: true,
-            error: error instanceof Error ? error.message : String(error),
+            error: formatErrorMessage(error, "Importen misslyckades av ett okänt fel."),
           },
         });
       });
@@ -1685,7 +1686,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     actorUserId: context.userId,
     testRunId: testRun.id,
   }).catch(async (error) => {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = formatErrorMessage(error, "Okänt autopilotfel.");
     await updateEdielTestRunStatus({
       actorUserId: context.userId,
       testRunId: testRun.id,

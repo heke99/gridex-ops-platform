@@ -10,6 +10,7 @@ import {
   type EdielAckScope,
 } from '@/lib/ediel/ack'
 import { createEdielMessageEvent, getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
+import { formatErrorMessage } from '@/lib/errors'
 import {
   createCanonicalAckMessage,
   resolveCanonicalOutboundContext,
@@ -297,7 +298,7 @@ export async function sendQueuedEdielMessage(params: {
         message,
       })
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorMessage = formatErrorMessage(error, 'Production outbound guard blockerade skick av ett okänt fel.')
       await createEdielMessageEvent({
         actorUserId,
         edielMessageId: message.id,

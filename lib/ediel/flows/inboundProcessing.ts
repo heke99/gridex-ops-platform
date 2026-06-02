@@ -14,6 +14,7 @@ import {
 } from "@/lib/ediel/types";
 import { runInboundEdielMailEngine } from "@/lib/inbound-mail/edielMailboxPoller";
 import { ensureActorUserId } from "@/lib/ediel/flows/shared";
+import { formatErrorMessage } from "@/lib/errors";
 import {
   createSupplierSwitchEvent,
   updateSupplierSwitchRequestStatus,
@@ -216,7 +217,7 @@ async function syncActorTestingGlobally(params: {
       payload: {
         actorTestingGlobalHook: true,
         phase: params.phase,
-        error: error instanceof Error ? error.message : String(error),
+        error: formatErrorMessage(error, "Aktörstest-synk misslyckades."),
       },
     }).catch(() => null);
 

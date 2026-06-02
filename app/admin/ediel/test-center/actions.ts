@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { prepareEdielTestRunTransportMetadata } from '@/lib/ediel/testing/testRunTransportMetadata'
 import { supabaseService } from '@/lib/supabase/service'
+import { formatErrorMessage } from '@/lib/errors'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -46,7 +47,7 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
     revalidatePath('/admin/ediel/agt')
   } catch (error) {
     status = 'error'
-    message = error instanceof Error ? error.message : String(error)
+    message = formatErrorMessage(error, 'Test-run kunde inte förberedas.')
   }
   redirect(`/admin/ediel/test-center?runStatus=${status}&runMessage=${encodeURIComponent(message)}`)
 }
