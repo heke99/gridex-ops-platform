@@ -13,7 +13,8 @@ export const dynamic = 'force-dynamic'
 
 type CountFilter = {
  column: string
- value: string | number | boolean | null
+ value: string | number | boolean | null | Array<string | number | boolean>
+ op?: 'eq' | 'in' | 'gt' | 'gte' | 'lt' | 'lte' | 'is'
 }
 
 const EMPTY_EDIEL_SUMMARY: EdielSummary = {
@@ -71,9 +72,21 @@ async function safeCount(
  }
 
  for (const filter of filters) {
- query = filter.value === null
- ? query.is(filter.column, null)
- : query.eq(filter.column, filter.value)
+ if (filter.op === 'in') {
+ query = query.in(filter.column, Array.isArray(filter.value) ? filter.value : [])
+ } else if (filter.op === 'gt') {
+ query = query.gt(filter.column, filter.value as string | number)
+ } else if (filter.op === 'gte') {
+ query = query.gte(filter.column, filter.value as string | number)
+ } else if (filter.op === 'lt') {
+ query = query.lt(filter.column, filter.value as string | number)
+ } else if (filter.op === 'lte') {
+ query = query.lte(filter.column, filter.value as string | number)
+ } else if (filter.op === 'is' || filter.value === null) {
+ query = query.is(filter.column, filter.value as null)
+ } else {
+ query = query.eq(filter.column, filter.value)
+ }
  }
 
  const { count, error } = await query
@@ -176,6 +189,9 @@ export default async function AdminDashboardPage() {
  const supabase = await createSupabaseServerClient()
  const companyScope = await getOperationalCompanyScope(context.userId)
  const companyId = companyScope.companyId
+ const today = new Date().toISOString().slice(0, 10)
+ const inThirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+ const latestMeteringSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
  const [
  ediel,
@@ -191,6 +207,13 @@ export default async function AdminDashboardPage() {
  outboundQueue,
  meteringValues,
  billingUnderlays,
+ ongoingSupplierSwitches,
+ waitingForGridOwner,
+ negativeAcknowledgements,
+ missingMeteringValues,
+ customersActionRequired,
+ latestMeteringValues,
+ upcomingTerminations,
  companies,
  networkOwners,
  suppliers,
@@ -208,6 +231,13 @@ export default async function AdminDashboardPage() {
  safeCount(supabase, 'outbound_requests', companyId),
  safeCount(supabase, 'metering_values', companyId),
  safeCount(supabase, 'billing_underlays', companyId),
+ safeCount(supabase, 'supplier_switch_requests', companyId, [{ column: 'status', op: 'in', value: ['draft', 'queued', 'submitted', 'accepted', 'cancellation_requested', 'cancellation_sent', 'manual_followup_required'] }]),
+ safeCount(supabase, 'grid_owner_data_requests', companyId, [{ column: 'status', op: 'in', value: ['sent', 'waiting_response', 'queued'] }]),
+ safeCount(supabase, 'ediel_messages', companyId, [{ column: 'ack_outcome', value: 'negative' }]),
+ safeCount(supabase, 'data_quality_issues', companyId, [{ column: 'status', value: 'open' }, { column: 'issue_type', value: 'missing_metering_values' }]),
+ safeCount(supabase, 'customer_operation_tasks', companyId, [{ column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] }]),
+ safeCount(supabase, 'metering_values', companyId, [{ column: 'created_at', op: 'gte', value: latestMeteringSince }]),
+ safeCount(supabase, 'customer_contracts', companyId, [{ column: 'ends_at', op: 'gte', value: today }, { column: 'ends_at', op: 'lte', value: inThirtyDays }]),
  isPlatformAdmin ? safeCount(supabase, 'companies') : Promise.resolve(0),
  isPlatformAdmin ? safeCount(supabase, 'grid_owners') : Promise.resolve(0),
  isPlatformAdmin ? safeCount(supabase, 'electricity_suppliers') : Promise.resolve(0),
@@ -264,6 +294,30 @@ export default async function AdminDashboardPage() {
  <MetricCard label="Mätpunkter" value={meteringPoints} hint="Fakturagrundande mätpunkter" href="/admin/metering" />
  <MetricCard label="Edielärenden" value={ediel.ackPendingMessages} hint={`${ediel.ackOverdueMessages} försenade kvittenser`} href="/admin/ediel/control-tower" tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
  <MetricCard label="Uppgifter" value={pendingTasks} hint="Öppna operationsuppgifter" href="/admin/work-queue" tone={pendingTasks > 0 ? 'amber' : 'emerald'} />
+ </section>
+
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="flex flex-wrap items-start justify-between gap-4">
+ <div>
+ <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Elbolagets arbetsläge</p>
+ <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Få knappar, tydliga statusar</h2>
+ <p className="mt-2 max-w-4xl text-sm font-bold leading-6 text-slate-700">
+ Handläggare ska se affärsläge, inte EDIFACT-segment. Tekniska detaljer ligger i superadmin-vyerna.
+ </p>
+ </div>
+ <Link href="/admin/work-queue" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800">
+ Öppna åtgärder
+ </Link>
+ </div>
+ <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-7">
+ <MetricCard label="Pågående leverantörsbyten" value={ongoingSupplierSwitches} hint="Startade eller väntande byten" href="/admin/operations/switches" tone={ongoingSupplierSwitches > 0 ? 'amber' : 'emerald'} />
+ <MetricCard label="Väntar på nätägare" value={waitingForGridOwner} hint="Begäran skickad, svar saknas" href="/admin/customer-info-requests" tone={waitingForGridOwner > 0 ? 'amber' : 'emerald'} />
+ <MetricCard label="Negativa kvittenser" value={negativeAcknowledgements} hint="Avvisat - åtgärd krävs" href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={negativeAcknowledgements > 0 ? 'red' : 'emerald'} />
+ <MetricCard label="Mätvärden saknas" value={missingMeteringValues} hint="Öppna datakvalitetsärenden" href="/admin/outbound/missing-meter-values" tone={missingMeteringValues > 0 ? 'red' : 'emerald'} />
+ <MetricCard label="Kunder med åtgärd krävs" value={customersActionRequired} hint="Öppna eller blockerade uppgifter" href="/admin/work-queue" tone={customersActionRequired > 0 ? 'amber' : 'emerald'} />
+ <MetricCard label="Senaste mottagna mätvärden" value={latestMeteringValues} hint="Mottagna senaste 7 dagarna" href="/admin/metering" tone={latestMeteringValues > 0 ? 'emerald' : 'amber'} />
+ <MetricCard label="Kommande avslut" value={upcomingTerminations} hint="Avtal som slutar inom 30 dagar" href="/admin/contracts" tone={upcomingTerminations > 0 ? 'amber' : 'emerald'} />
+ </div>
  </section>
 
  <section className="grid gap-5 xl:grid-cols-3">

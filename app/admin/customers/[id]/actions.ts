@@ -98,6 +98,38 @@ function normalizeDateOrNull(value: string | null): string | null {
   return value;
 }
 
+function validateHistoricalMeteringPeriod(params: {
+  requestedAction: string;
+  startDate: string | null;
+  endDate: string | null;
+}) {
+  if (params.requestedAction !== "request_historical_metering_access") return;
+  if (!params.startDate || !params.endDate) {
+    throw new Error("Historisk begäran kräver både startdatum och slutdatum.");
+  }
+
+  const start = new Date(`${params.startDate.slice(0, 10)}T00:00:00.000Z`);
+  const end = new Date(`${params.endDate.slice(0, 10)}T00:00:00.000Z`);
+  const yesterday = new Date();
+  yesterday.setUTCHours(0, 0, 0, 0);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const oldest = new Date(yesterday);
+  oldest.setUTCFullYear(oldest.getUTCFullYear() - 3);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    throw new Error("Historisk period har ogiltigt datumformat.");
+  }
+  if (start > yesterday || end > yesterday) {
+    throw new Error("Historisk period måste sluta senast igår.");
+  }
+  if (end < start) {
+    throw new Error("Slutdatum måste vara samma dag eller senare än startdatum.");
+  }
+  if (start < oldest) {
+    throw new Error("Historisk period får vara högst tre år bakåt.");
+  }
+}
+
 function normalizeNumberOrNull(value: string | null): number | null {
   if (!value) return null;
   const parsed = Number(value.replace(",", "."));
@@ -1652,6 +1684,11 @@ export async function createGridOwnerDataRequestAction(
     (requestScope === "customer_masterdata"
       ? "request_customer_masterdata"
       : `request_${requestScope}`);
+  validateHistoricalMeteringPeriod({
+    requestedAction,
+    startDate: requestedPeriodStart,
+    endDate: requestedPeriodEnd,
+  });
 
   const routeDecision = await auditRouteDecisionForCustomerAction({
     actorUserId: actor.id,

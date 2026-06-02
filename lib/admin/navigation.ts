@@ -136,7 +136,9 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'ediel.control_tower', label: 'Control Tower', href: '/admin/ediel/control-tower', description: 'ACK-kedjor, dubbletter och blockeringar', pageKey: 'ediel.control_tower', platformOnly: true },
       { key: 'ediel.messages', label: 'Meddelanden', href: '/admin/ediel/messages', description: 'Inkommande och utgående Ediel', pageKey: 'ediel.workspace', platformOnly: true },
       { key: 'ediel.workspace', label: 'Ediel workspace', href: '/admin/ediel', description: 'PRODAT, UTILTS, CONTRL och APERAK', pageKey: 'ediel.workspace', platformOnly: true },
+      { key: 'ediel.test_center', label: 'Test Center', href: '/admin/ediel/test-center', description: 'L1-L7, UL1-UL6, E3-E8 och UE1-UE2', pageKey: 'platform.actor_testing', platformOnly: true },
       { key: 'ediel.system_tests', label: 'Systemtest', href: '/admin/ediel/system-tests', description: 'TGT/AGT-testcenter med filtrering och körbara testfall', pageKey: 'platform.actor_testing', platformOnly: true },
+      { key: 'ediel.unresolved', label: 'Unresolved', href: '/admin/ediel/unresolved', description: 'Osäkra tenant-, route- och objektmatchningar', pageKey: 'ediel.control_tower', platformOnly: true },
       { key: 'ediel.rule_center', label: 'Regelcenter', href: '/admin/platform/ediel/rules', description: 'Ediel-regler, versioner och runtime-styrning', pageKey: 'platform.ediel.runtime', platformOnly: true },
       { key: 'ediel.ai_list', label: 'AI-lista', href: '/admin/ediel/ai-list', description: 'AI/BI-listor och avvikelsekontroll', pageKey: 'ediel.workspace', platformOnly: true },
       { key: 'ediel.agt', label: 'Aktörstester', href: '/admin/ediel/agt', description: 'AGT-status och testpaket', pageKey: 'platform.actor_testing', platformOnly: true },
@@ -148,6 +150,8 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Teknisk adressering och nätägaravtal',
     items: [
       { key: 'communication_routes', label: 'Communication routes', href: '/admin/ediel/routes', description: 'Routes och Ediel route profiles', pageKey: 'ediel.routes', platformOnly: true },
+      { key: 'ediel.actors', label: 'Aktörer', href: '/admin/ediel/actors', description: 'Ediel-ID, roller, subadresser och miljö', pageKey: 'ediel.routes', platformOnly: true },
+      { key: 'ediel.certificates', label: 'Certifikat', href: '/admin/ediel/certificates', description: 'S/MIME-certifikatmetadata och status', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'grid_owner_agreements', label: 'Nätägaravtal', href: '/admin/agreements/grid-owners', description: 'Avtal och referenskrav per nätägare', platformOnly: true },
       { key: 'ediel_settings', label: 'Application Reference', href: '/admin/ediel/settings', description: 'Aktörsidentitet, subadresser och regler', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'platform_runtime', label: 'Route decision logs', href: '/admin/platform/ediel/runtime', description: 'Runtimekontroll och guardrails', pageKey: 'platform.ediel.runtime', platformOnly: true },
