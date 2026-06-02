@@ -1,6 +1,7 @@
 // lib/ediel/transport.ts
 
 import nodemailer from 'nodemailer'
+import forge from 'node-forge'
 import { execFile } from 'child_process'
 import { createHash } from 'crypto'
 import { promisify } from 'util'
@@ -289,14 +290,21 @@ async function encryptSmimeEnvelopedData(params: {
   const inputPath = join(tempDir, 'inner.mime')
   const outputPath = join(tempDir, 'smime.der')
   const certPath = params.recipientCertPath ?? join(tempDir, 'recipient.pem')
+  let recipientCertificatePem = params.recipientCertificatePem ?? null
 
   try {
     await writeFile(inputPath, params.innerMime)
     if (!params.recipientCertPath) {
-      if (!params.recipientCertificatePem?.includes('BEGIN CERTIFICATE')) {
+      if (!recipientCertificatePem?.includes('BEGIN CERTIFICATE')) {
         throw new Error('S/MIME recipient certificate saknas.')
       }
-      await writeFile(certPath, params.recipientCertificatePem, 'utf8')
+      await writeFile(certPath, recipientCertificatePem, 'utf8')
+    } else if (!recipientCertificatePem) {
+      try {
+        recipientCertificatePem = await readFile(params.recipientCertPath, 'utf8')
+      } catch {
+        recipientCertificatePem = null
+      }
     }
 
     try {
@@ -314,8 +322,14 @@ async function encryptSmimeEnvelopedData(params: {
         certPath,
       ])
     } catch (error) {
+      if (recipientCertificatePem?.includes('BEGIN CERTIFICATE')) {
+        return encryptSmimeEnvelopedDataWithForge({
+          innerMime: params.innerMime,
+          recipientCertificatePem,
+        })
+      }
       const detail = error instanceof Error ? error.message : String(error)
-      throw new Error(`S/MIME-kryptering misslyckades via OpenSSL. Kontrollera EDIEL_SMIME_RECIPIENT_CERT_PATH och att openssl finns installerat. ${detail}`)
+      throw new Error(`S/MIME-kryptering misslyckades via OpenSSL och ingen användbar PEM-fallback fanns. Kontrollera certifikat i route/databas eller EDIEL_SMIME_RECIPIENT_CERT_PATH. ${detail}`)
     }
 
     return await readFile(outputPath)
@@ -324,6 +338,24 @@ async function encryptSmimeEnvelopedData(params: {
   }
 }
 
+function encryptSmimeEnvelopedDataWithForge(params: {
+  innerMime: Buffer
+  recipientCertificatePem: string
+}): Buffer {
+  try {
+    const certificate = forge.pki.certificateFromPem(params.recipientCertificatePem)
+    const envelope = forge.pkcs7.createEnvelopedData()
+    envelope.addRecipient(certificate)
+    const content = forge.util.createBuffer()
+    content.putBytes(params.innerMime.toString('binary'))
+    envelope.content = content
+    envelope.encrypt()
+    return Buffer.from(forge.asn1.toDer(envelope.toAsn1()).getBytes(), 'binary')
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(`S/MIME-kryptering misslyckades med Node/forge-fallback. ${detail}`)
+  }
+}
 function buildAsciiMessageId(): string {
   const stamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)
   const random = Math.random().toString(36).slice(2, 10)
@@ -1282,9 +1314,9 @@ export async function sendEdielMessageViaSmtp(
       throw new Error('S/MIME-läget stöder just nu EDIFACT. Använd ediel-singlepart-base64 för XML/AI-listor tills separat XML-S/MIME är byggt.')
     }
 
-    const recipientCertPath = optionalEnv('EDIEL_SMIME_RECIPIENT_CERT_PATH', null)
+    const configuredRecipientCertPath = optionalEnv('EDIEL_SMIME_RECIPIENT_CERT_PATH', null)
     let recipientCertificatePem: string | null = null
-    if (!recipientCertPath && effectiveCertificateId) {
+    if (effectiveCertificateId) {
       const { data, error } = await supabaseService
         .from('ediel_certificates')
         .select('public_certificate_pem')
@@ -1296,6 +1328,7 @@ export async function sendEdielMessageViaSmtp(
         throw new Error(`S/MIME-certifikat ${effectiveCertificateId} saknar publik PEM. Importera mottagarens publika certifikat/P12 igen innan krypterat skick.`)
       }
     }
+    const recipientCertPath = recipientCertificatePem ? null : configuredRecipientCertPath
     const innerMime = buildInnerEdifactMimeForSmime({
       filename: fileName,
       decodedPayload: normalizedPayload,
