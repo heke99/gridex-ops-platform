@@ -27,5 +27,10 @@ export async function requestHistoricalMeteringAccess(input: Parameters<typeof r
     }
   }
 
-  return requestMeteringAccess(input)
+  return requestMeteringAccess({
+    ...input,
+    idempotencyKey:
+      input.idempotencyKey ??
+      `request_historical_metering_access:${input.switchRequestId}:${input.startDate}:${input.endDate}`,
+  })
 }

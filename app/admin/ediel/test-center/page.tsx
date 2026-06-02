@@ -35,6 +35,7 @@ type RecentRunRow = {
   test_suite: string
   role_code: string
   status: string
+  environment_type?: string | null
   encryption_mode?: string | null
   certificate_fingerprint_sha256?: string | null
   route_profile_id?: string | null
@@ -48,7 +49,7 @@ async function listRecentRuns(): Promise<{
 }> {
   const rich = await supabaseService
     .from('ediel_test_runs')
-    .select('id,company_id,test_case_code,test_suite,role_code,status,encryption_mode,certificate_fingerprint_sha256,route_profile_id,created_at,failure_reason')
+    .select('id,company_id,test_case_code,test_suite,role_code,status,environment_type,encryption_mode,certificate_fingerprint_sha256,route_profile_id,created_at,failure_reason')
     .order('created_at', { ascending: false })
     .limit(8)
 
@@ -179,9 +180,11 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
               <option value="UE1">UE1</option>
               <option value="UE2">UE2</option>
             </select>
-            <select name="environment" defaultValue="test" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="test">test</option>
-              <option value="production">production-like test</option>
+            <select name="environmentType" defaultValue="agt_test" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="tgt_test">TGT / systemtest</option>
+              <option value="agt_test">AGT / aktörtest</option>
+              <option value="bilateral_test">Bilateralt test</option>
+              <option value="production">Produktion</option>
             </select>
             <select name="encryptionMode" defaultValue="none" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
               <option value="none">Kör okrypterat test</option>
@@ -252,12 +255,13 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
           <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
             <table className="min-w-full text-sm">
               <thead className="bg-slate-100 text-left text-xs uppercase tracking-[0.14em] text-slate-600">
-                <tr><th className="p-3">Test</th><th className="p-3">Transport</th><th className="p-3">Route</th><th className="p-3">Status</th></tr>
+                <tr><th className="p-3">Test</th><th className="p-3">Miljö</th><th className="p-3">Transport</th><th className="p-3">Route</th><th className="p-3">Status</th></tr>
               </thead>
               <tbody>
                 {recentRuns.map((run) => (
                   <tr key={run.id} className="border-t border-slate-100">
                     <td className="p-3 font-semibold">{run.test_suite} {run.test_case_code}<div className="text-xs font-normal text-slate-500">{run.role_code}</div></td>
+                    <td className="p-3">{run.environment_type ?? 'legacy test/prod'}</td>
                     <td className="p-3">{run.encryption_mode ?? 'none'}<div className="font-mono text-xs text-slate-500">{run.certificate_fingerprint_sha256 ?? 'utan certfingerprint'}</div></td>
                     <td className="p-3 font-mono text-xs">{run.route_profile_id ?? 'route ej vald'}</td>
                     <td className="p-3">{run.status}{run.failure_reason ? <div className="text-xs text-red-700">{run.failure_reason}</div> : null}</td>

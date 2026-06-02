@@ -21,7 +21,8 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
     const testSuite = stringValue(formData, 'testSuite') ?? 'PRODAT'
     const roleCode = stringValue(formData, 'roleCode') ?? 'supplier'
     const testCaseCode = stringValue(formData, 'testCaseCode')
-    const environment = stringValue(formData, 'environment') === 'production' ? 'production' : 'test'
+    const environmentType = stringValue(formData, 'environmentType') ?? 'agt_test'
+    const environment = environmentType === 'production' ? 'production' : 'test'
     const encryptionMode = stringValue(formData, 'encryptionMode') ?? 'none'
 
     if (!companyId) throw new Error('Välj bolag/tenant.')
@@ -34,6 +35,7 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
       roleCode,
       testCaseCode,
       environment,
+      environmentType,
       productionLike: formData.get('productionLike') === 'true',
       encryptionMode,
     })

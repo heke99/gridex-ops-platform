@@ -10,6 +10,19 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
 type TestEncryptionMode = 'none' | 'smime'
+export type EdielEnvironmentType = 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production'
+
+function normalizeEnvironmentType(value?: string | null): EdielEnvironmentType {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  if (normalized === 'production') return 'production'
+  if (normalized === 'bilateral_test') return 'bilateral_test'
+  if (normalized === 'tgt_test' || normalized === 'test' || normalized === 'production-like test') return 'tgt_test'
+  return 'agt_test'
+}
+
+function legacyEnvironmentForType(value: EdielEnvironmentType): 'test' | 'production' {
+  return value === 'production' ? 'production' : 'test'
+}
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex')
@@ -34,22 +47,36 @@ function normalizeEncryptionMode(value?: string | null): TestEncryptionMode {
 async function resolveRouteProfile(input: {
   companyId: string
   environment: 'test' | 'production'
+  environmentType: EdielEnvironmentType
   messageFamily: string | null
   businessCode: string | null
 }) {
-  let query = supabaseService
-    .from('ediel_route_profiles')
-    .select('*')
-    .eq('company_id', input.companyId)
-    .eq('environment', input.environment)
-    .eq('is_enabled', true)
-    .order('updated_at', { ascending: false })
-    .limit(1)
+  const buildQuery = (useEnvironmentType: boolean) => {
+    let query = supabaseService
+      .from('ediel_route_profiles')
+      .select('*')
+      .eq('company_id', input.companyId)
+      .eq('is_enabled', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
 
-  if (input.messageFamily) query = query.eq('message_family', input.messageFamily)
-  if (input.businessCode) query = query.or(`business_code.eq.${input.businessCode},message_code.eq.${input.businessCode},business_code.is.null,message_code.is.null`)
+    query = useEnvironmentType
+      ? query.eq('environment_type', input.environmentType)
+      : query.eq('environment', input.environment)
 
-  const { data, error } = await query.maybeSingle()
+    if (input.messageFamily) query = query.eq('message_family', input.messageFamily)
+    if (input.businessCode) query = query.or(`business_code.eq.${input.businessCode},message_code.eq.${input.businessCode},business_code.is.null,message_code.is.null`)
+    return query
+  }
+
+  let { data, error } = await buildQuery(true).maybeSingle()
+
+  if (error && ['42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) {
+    const fallback = await buildQuery(false).maybeSingle()
+    data = fallback.data
+    error = fallback.error
+  }
+
   if (error) throw error
   return data as Record<string, unknown> | null
 }
@@ -84,6 +111,60 @@ async function resolveMailboxSecurity(input: {
   return data as { encryption_mode?: string | null; certificate_id?: string | null } | null
 }
 
+async function acquireAgtRunLock(input: {
+  companyId: string
+  actorRole: string
+  messageFamily: string
+  environmentType: EdielEnvironmentType
+  actorUserId: string
+}): Promise<void> {
+  if (input.environmentType !== 'agt_test') return
+
+  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+  const lockKey = {
+    company_id: input.companyId,
+    actor_role: input.actorRole,
+    message_family: input.messageFamily,
+    environment_type: input.environmentType,
+    locked_at: new Date().toISOString(),
+    expires_at: expiresAt,
+  }
+
+  const { data: existing, error: existingError } = await supabaseService
+    .from('ediel_test_run_locks')
+    .select('id,active_test_run_id,locked_at,expires_at,released_at')
+    .eq('company_id', input.companyId)
+    .eq('actor_role', input.actorRole)
+    .eq('message_family', input.messageFamily)
+    .eq('environment_type', input.environmentType)
+    .is('released_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .limit(1)
+    .maybeSingle()
+
+  if (existingError && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(existingError.code ?? '')) {
+    throw existingError
+  }
+
+  if (existing?.id) {
+    throw new Error('Ett AGT-test är redan aktivt. Avsluta eller markera det som misslyckat innan du startar ett nytt.')
+  }
+
+  const { error } = await supabaseService
+    .from('ediel_test_run_locks')
+    .insert({
+      ...lockKey,
+      metadata: {
+        actorUserId: input.actorUserId,
+        source: 'test_center',
+      },
+    })
+
+  if (error && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) {
+    throw error
+  }
+}
+
 function expectedFlowFromSteps(steps: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
   return steps.map((step) => ({
     stepNo: step.stepNo ?? null,
@@ -104,13 +185,15 @@ export async function prepareEdielTestRunTransportMetadata(input: {
   roleCode: string
   testCaseCode: string
   environment?: 'test' | 'production'
+  environmentType?: EdielEnvironmentType | string | null
   productionLike?: boolean
   encryptionMode?: string | null
 }) {
   const suite = normalizeSuite(input.testSuite)
   const roleCode = normalizeRole(input.roleCode)
   const testCaseCode = input.testCaseCode.trim().toUpperCase()
-  const environment = input.environment ?? 'test'
+  const environmentType = normalizeEnvironmentType(input.environmentType ?? input.environment)
+  const environment = input.environment ?? legacyEnvironmentForType(environmentType)
   const agtDefinition = getEdielAgtTestCaseByCode({ suite, roleCode, testCaseCode })
   const tgtDefinition = agtDefinition ? null : getEdielTgtTestCaseByCode(suite, roleCode, testCaseCode)
   const definition = agtDefinition ?? tgtDefinition
@@ -127,6 +210,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
   const routeProfile = await resolveRouteProfile({
     companyId: input.companyId,
     environment,
+    environmentType,
     messageFamily,
     businessCode,
   })
@@ -151,6 +235,14 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     }
   }
 
+  await acquireAgtRunLock({
+    companyId: input.companyId,
+    actorRole: roleCode,
+    messageFamily,
+    environmentType,
+    actorUserId: input.actorUserId,
+  })
+
   const run = await createEdielTestRun({
     actorUserId: input.actorUserId,
     companyId: input.companyId,
@@ -165,6 +257,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
       definition.purpose,
       ...(Array.isArray(definition.notes) ? definition.notes : []),
       'Test Center: transportläge sparat före skick. Samma builder/parser ska användas vid actual send.',
+      `Environment type: ${environmentType}. Legacy environment: ${environment}.`,
     ].join('\n'),
     actorRole: roleCode,
     messageFamily,
@@ -229,12 +322,13 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     }]
   }
 
-  const { data, error } = await supabaseService
+  let updateResult = await supabaseService
     .from('ediel_test_runs')
     .update({
       raw_edifact: rawEdifact,
       encrypted_payload_ref: encryptedPayloadRef,
       actual_flow: actualFlow,
+      environment_type: environmentType,
       updated_by: input.actorUserId,
       updated_at: new Date().toISOString(),
     })
@@ -242,6 +336,38 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     .select('*')
     .single()
 
-  if (error) throw error
-  return data
+  if (updateResult.error && ['42703', 'PGRST204', 'PGRST205'].includes(updateResult.error.code ?? '')) {
+    updateResult = await supabaseService
+      .from('ediel_test_runs')
+      .update({
+        raw_edifact: rawEdifact,
+        encrypted_payload_ref: encryptedPayloadRef,
+        actual_flow: actualFlow,
+        updated_by: input.actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', run.id)
+      .select('*')
+      .single()
+  }
+
+  if (updateResult.error) throw updateResult.error
+
+  if (environmentType === 'agt_test') {
+    await supabaseService
+      .from('ediel_test_run_locks')
+      .update({ active_test_run_id: run.id, updated_at: new Date().toISOString() })
+      .eq('company_id', input.companyId)
+      .eq('actor_role', roleCode)
+      .eq('message_family', messageFamily)
+      .eq('environment_type', environmentType)
+      .is('released_at', null)
+      .then(({ error }) => {
+        if (error && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) {
+          throw error
+        }
+      })
+  }
+
+  return updateResult.data
 }

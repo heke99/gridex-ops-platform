@@ -66,6 +66,8 @@ import {
 } from "@/lib/routes/routeDecisionEngine";
 import { createMissingCustomerDataTasks } from "@/lib/customers/dataTasks";
 import type { BusinessProcess } from "@/lib/routes/routeDecisionTypes";
+import { actionPreflight } from "@/lib/operations/businessActions/actionPreflight";
+import { startSupplierSwitch } from "@/lib/operations/businessActions/startSupplierSwitch";
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -1249,6 +1251,33 @@ export async function createSupplierSwitchRequestAction(
     throw new Error("Kunde inte hitta kandidat-mätpunkt för switchärendet");
   }
 
+  const preflight = await actionPreflight({
+    actorUserId: actor.id,
+    customerId,
+    siteId,
+    meteringPointId: meteringPoint.id,
+  });
+
+  if (!preflight.ok) {
+    await insertAuditLog({
+      actorUserId: actor.id,
+      entityType: "customer_site",
+      entityId: siteId,
+      action: "supplier_switch_business_preflight_blocked",
+      metadata: {
+        customerId,
+        siteId,
+        meteringPointId: meteringPoint.id,
+        issues: preflight.issues,
+      },
+    });
+
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/operations");
+    revalidatePath("/admin/operations/tasks");
+    return;
+  }
+
   const routeDecision = await auditRouteDecisionForCustomerAction({
     actorUserId: actor.id,
     companyId,
@@ -1309,9 +1338,20 @@ export async function createSupplierSwitchRequestAction(
     },
   });
 
+  await startSupplierSwitch({
+    actorUserId: actor.id,
+    customerId,
+    switchRequestId: savedRequest.id,
+    siteId,
+    meteringPointId: meteringPoint.id,
+    idempotencyKey: `start_supplier_switch:${customerId}:${siteId}:${meteringPoint.id}:${savedRequest.id}`,
+  });
+
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath("/admin/operations");
   revalidatePath("/admin/operations/switches");
+  revalidatePath("/admin/outbound");
+  revalidatePath("/admin/ediel");
 }
 
 export async function startAutomaticOnboardingAction(
