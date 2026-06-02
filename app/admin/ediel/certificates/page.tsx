@@ -6,18 +6,100 @@ import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatu
 
 export const dynamic = 'force-dynamic'
 
-export default async function EdielCertificatesPage() {
-  const context = await requirePlatformAdminAccess()
-  const { data } = await supabaseService
+type CertificatesPageProps = {
+  searchParams?: Promise<{
+    certStatus?: string
+    certMessage?: string
+  }>
+}
+
+type CertificateDisplayRow = {
+  id: string
+  company_id?: string | null
+  scope?: string | null
+  environment?: string | null
+  display_name?: string | null
+  subject?: string | null
+  issuer?: string | null
+  serial_number?: string | null
+  fingerprint_sha256?: string | null
+  certificate_fingerprint?: string | null
+  valid_from?: string | null
+  valid_to?: string | null
+  certificate_valid_from?: string | null
+  certificate_valid_to?: string | null
+  encryption_status?: string | null
+  last_validation_at?: string | null
+  status?: string | null
+  renewal_window_days?: number | null
+  warning_days_before_expiry?: number | null
+  critical_days_before_expiry?: number | null
+  metadata?: Record<string, unknown> | null
+}
+
+function textFromMetadata(row: CertificateDisplayRow, key: string): string | null {
+  const value = row.metadata?.[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+async function listCertificateRows(): Promise<{
+  rows: CertificateDisplayRow[]
+  warning: string | null
+}> {
+  const rich = await supabaseService
     .from('ediel_certificates')
-    .select('id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry')
+    .select('id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, metadata')
     .order('updated_at', { ascending: false })
     .limit(100)
+
+  if (!rich.error) {
+    return { rows: (rich.data ?? []) as CertificateDisplayRow[], warning: null }
+  }
+
+  const legacy = await supabaseService
+    .from('ediel_certificates')
+    .select('id, company_id, certificate_fingerprint, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, metadata')
+    .order('updated_at', { ascending: false })
+    .limit(100)
+
+  if (legacy.error) {
+    return {
+      rows: [],
+      warning: `Kunde inte läsa certifikat: ${legacy.error.message}`,
+    }
+  }
+
+  return {
+    rows: (legacy.data ?? []) as CertificateDisplayRow[],
+    warning: 'Databasen saknar några nya certifikatkolumner. Certifikaten visas från legacyfält/metadata. Kör senaste Supabase-migrationen för full funktion.',
+  }
+}
+
+export default async function EdielCertificatesPage({ searchParams }: CertificatesPageProps) {
+  const context = await requirePlatformAdminAccess()
+  const resolvedSearchParams = await searchParams
+  const certStatus = resolvedSearchParams?.certStatus === 'success' ? 'success' : resolvedSearchParams?.certStatus === 'error' ? 'error' : null
+  const certMessage = resolvedSearchParams?.certMessage ?? null
+  const { rows, warning } = await listCertificateRows()
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader title="Ediel certifikat" subtitle="S/MIME-certifikatmetadata. Nycklar lagras bara via secret_reference." userEmail={context.email} workspaceName="Platform" workspaceMode="platform" />
       <main className="space-y-6 p-8">
+        {certStatus && certMessage ? (
+          <section className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+            certStatus === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-red-200 bg-red-50 text-red-800'
+          }`}>
+            {certMessage}
+          </section>
+        ) : null}
+        {warning ? (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+            {warning}
+          </section>
+        ) : null}
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h1 className="text-xl font-black text-slate-950">Lägg till certifikat</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
@@ -58,16 +140,21 @@ export default async function EdielCertificatesPage() {
               <tr><th className="p-4">Certificate</th><th className="p-4">Scope</th><th className="p-4">Bolag</th><th className="p-4">Giltigt</th><th className="p-4">Förnyelse</th><th className="p-4">Status</th></tr>
             </thead>
             <tbody>
-              {(data ?? []).map((row) => {
+              {rows.map((row) => {
                 const certStatus = evaluateCertificateStatus(row)
+                const displayName = row.display_name ?? textFromMetadata(row, 'displayName') ?? 'Ediel certifikat'
+                const fingerprint = row.fingerprint_sha256 ?? row.certificate_fingerprint ?? textFromMetadata(row, 'fingerprintSha256')
+                const subject = row.subject ?? textFromMetadata(row, 'subject') ?? 'Subject saknas'
+                const scope = row.scope ?? textFromMetadata(row, 'scope') ?? 'platform_shared'
+                const environment = row.environment ?? textFromMetadata(row, 'environment') ?? 'test'
                 return (
                 <tr key={row.id} className="border-t border-slate-100">
                   <td className="p-4">
-                    <div className="font-semibold text-slate-950">{row.display_name ?? 'Ediel certifikat'}</div>
-                    <div className="mt-1 font-mono text-xs text-slate-600">{row.fingerprint_sha256 ?? row.certificate_fingerprint}</div>
-                    <div className="mt-1 text-xs text-slate-600">{row.subject ?? 'Subject saknas'}</div>
+                    <div className="font-semibold text-slate-950">{displayName}</div>
+                    <div className="mt-1 font-mono text-xs text-slate-600">{fingerprint ?? 'Fingerprint saknas'}</div>
+                    <div className="mt-1 text-xs text-slate-600">{subject}</div>
                   </td>
-                  <td className="p-4">{row.scope ?? 'platform_shared'} · {row.environment ?? 'test'}</td>
+                  <td className="p-4">{scope} · {environment}</td>
                   <td className="p-4">{row.company_id ?? 'Platform'}</td>
                   <td className="p-4">{row.valid_from ?? row.certificate_valid_from ?? '—'} → {row.valid_to ?? row.certificate_valid_to ?? '—'}</td>
                   <td className="p-4 text-xs text-slate-700">
