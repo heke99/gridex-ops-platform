@@ -1,10 +1,4 @@
-import { execFile } from 'child_process'
-import { mkdtemp, rm, writeFile } from 'fs/promises'
-import { tmpdir } from 'os'
-import { join } from 'path'
-import { promisify } from 'util'
-
-const execFileAsync = promisify(execFile)
+import forge from 'node-forge'
 
 export type ImportedP12CertificateMetadata = {
   fingerprintSha256: string
@@ -19,24 +13,56 @@ export type ImportedP12CertificateMetadata = {
   p12Alias: string | null
 }
 
-function cleanLine(value: string | undefined, prefix: string): string | null {
-  if (!value?.startsWith(prefix)) return null
-  const text = value.slice(prefix.length).trim()
-  return text.length > 0 ? text : null
-}
-
-function parseOpenSslDate(value: string | null): string | null {
-  if (!value) return null
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
-}
-
 function normalizeFingerprint(value: string | null): string {
   const normalized = String(value ?? '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase()
   if (normalized.length !== 64) {
     throw new Error('Kunde inte läsa SHA-256 fingerprint från P12-certifikatet.')
   }
   return normalized
+}
+
+function attributeName(attribute: forge.pki.CertificateField): string {
+  return attribute.shortName ?? attribute.name ?? attribute.type ?? 'attr'
+}
+
+function formatDistinguishedName(attributes: forge.pki.CertificateField[]): string | null {
+  const parts = attributes
+    .map((attribute) => {
+      const value = typeof attribute.value === 'string' ? attribute.value.trim() : String(attribute.value ?? '').trim()
+      return value ? `${attributeName(attribute)}=${value}` : null
+    })
+    .filter((value): value is string => Boolean(value))
+  return parts.length > 0 ? parts.join(', ') : null
+}
+
+function certificateFingerprintSha256(cert: forge.pki.Certificate): string {
+  const asn1 = forge.pki.certificateToAsn1(cert)
+  const der = forge.asn1.toDer(asn1).getBytes()
+  const md = forge.md.sha256.create()
+  md.update(der)
+  return normalizeFingerprint(md.digest().toHex())
+}
+
+function metadataFromCertificate(input: {
+  certificate: forge.pki.Certificate
+  publicCertificatePem: string
+  p12SecretReference: string
+  privateKeySecretReference: string
+  displayName?: string | null
+}): ImportedP12CertificateMetadata {
+  const fingerprint = certificateFingerprintSha256(input.certificate)
+  return {
+    fingerprintSha256: fingerprint,
+    subject: formatDistinguishedName(input.certificate.subject.attributes),
+    issuer: formatDistinguishedName(input.certificate.issuer.attributes),
+    serialNumber: input.certificate.serialNumber?.toUpperCase() ?? null,
+    validFrom: input.certificate.validity.notBefore.toISOString(),
+    validTo: input.certificate.validity.notAfter.toISOString(),
+    publicCertificatePem: input.publicCertificatePem,
+    p12SecretReference: input.p12SecretReference,
+    privateKeySecretReference: input.privateKeySecretReference,
+    p12Alias: input.displayName?.trim() || null,
+  }
 }
 
 function secretReferenceForFingerprint(fingerprint: string, kind: 'p12' | 'private-key'): string {
@@ -55,42 +81,19 @@ async function parsePublicCertificatePem(input: {
     throw new Error('Inklistrat certifikat måste innehålla BEGIN CERTIFICATE eller vara base64-kodad .p12/.pfx.')
   }
 
-  const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-public-cert-'))
-  const certPath = join(tempDir, 'certificate.pem')
-
   try {
-    await writeFile(certPath, input.publicCertificatePem, { mode: 0o600 })
-    const x509 = await execFileAsync('openssl', [
-      'x509',
-      '-in',
-      certPath,
-      '-noout',
-      '-subject',
-      '-issuer',
-      '-serial',
-      '-fingerprint',
-      '-sha256',
-      '-startdate',
-      '-enddate',
-    ])
-
-    const lines = x509.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-    const fingerprint = normalizeFingerprint(cleanLine(lines.find((line) => line.startsWith('sha256 Fingerprint=')) ?? lines.find((line) => line.startsWith('SHA256 Fingerprint=')), 'sha256 Fingerprint=') ?? cleanLine(lines.find((line) => line.startsWith('SHA256 Fingerprint=')), 'SHA256 Fingerprint='))
-
-    return {
-      fingerprintSha256: fingerprint,
-      subject: cleanLine(lines.find((line) => line.startsWith('subject=')), 'subject='),
-      issuer: cleanLine(lines.find((line) => line.startsWith('issuer=')), 'issuer='),
-      serialNumber: cleanLine(lines.find((line) => line.startsWith('serial=')), 'serial='),
-      validFrom: parseOpenSslDate(cleanLine(lines.find((line) => line.startsWith('notBefore=')), 'notBefore=')),
-      validTo: parseOpenSslDate(cleanLine(lines.find((line) => line.startsWith('notAfter=')), 'notAfter=')),
+    const certificate = forge.pki.certificateFromPem(input.publicCertificatePem)
+    const fingerprint = certificateFingerprintSha256(certificate)
+    return metadataFromCertificate({
+      certificate,
       publicCertificatePem: input.publicCertificatePem,
       p12SecretReference: publicCertificateSecretReference(fingerprint),
       privateKeySecretReference: '',
-      p12Alias: input.displayName?.trim() || null,
-    }
-  } finally {
-    await rm(tempDir, { recursive: true, force: true })
+      displayName: input.displayName,
+    })
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(`Det inklistrade PEM-certifikatet kunde inte läsas. ${detail}`)
   }
 }
 
@@ -113,68 +116,33 @@ export async function importP12Certificate(input: {
     throw new Error('PIN/lösenord krävs för att validera P12-certifikatet.')
   }
 
-  const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-p12-'))
-  const p12Path = join(tempDir, 'certificate.p12')
-  const passwordPath = join(tempDir, 'pin.txt')
-  const certPath = join(tempDir, 'certificate.pem')
-
   try {
-    await writeFile(p12Path, input.p12Bytes, { mode: 0o600 })
-    await writeFile(passwordPath, input.password, { mode: 0o600 })
+    const p12Der = input.p12Bytes.toString('binary')
+    const p12Asn1 = forge.asn1.fromDer(p12Der)
+    const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, input.password)
+    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag] ?? []
+    const keyBags = [
+      ...(p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag] ?? []),
+      ...(p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] ?? []),
+    ]
+    const certificate = certBags.find((bag) => bag.cert)?.cert
 
-    let publicCertificatePem: string
-    try {
-      const extracted = await execFileAsync('openssl', [
-        'pkcs12',
-        '-in',
-        p12Path,
-        '-clcerts',
-        '-nokeys',
-        '-passin',
-        `file:${passwordPath}`,
-      ])
-      publicCertificatePem = extracted.stdout
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error)
-      throw new Error(`P12-certifikatet kunde inte öppnas med angiven PIN. ${detail}`)
-    }
-
-    if (!publicCertificatePem.includes('BEGIN CERTIFICATE')) {
+    if (!certificate) {
       throw new Error('P12-filen innehåller inget publikt certifikat.')
     }
 
-    await writeFile(certPath, publicCertificatePem, { mode: 0o600 })
+    const publicCertificatePem = forge.pki.certificateToPem(certificate)
+    const fingerprint = certificateFingerprintSha256(certificate)
 
-    const x509 = await execFileAsync('openssl', [
-      'x509',
-      '-in',
-      certPath,
-      '-noout',
-      '-subject',
-      '-issuer',
-      '-serial',
-      '-fingerprint',
-      '-sha256',
-      '-startdate',
-      '-enddate',
-    ])
-
-    const lines = x509.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-    const fingerprint = normalizeFingerprint(cleanLine(lines.find((line) => line.startsWith('sha256 Fingerprint=')) ?? lines.find((line) => line.startsWith('SHA256 Fingerprint=')), 'sha256 Fingerprint=') ?? cleanLine(lines.find((line) => line.startsWith('SHA256 Fingerprint=')), 'SHA256 Fingerprint='))
-
-    return {
-      fingerprintSha256: fingerprint,
-      subject: cleanLine(lines.find((line) => line.startsWith('subject=')), 'subject='),
-      issuer: cleanLine(lines.find((line) => line.startsWith('issuer=')), 'issuer='),
-      serialNumber: cleanLine(lines.find((line) => line.startsWith('serial=')), 'serial='),
-      validFrom: parseOpenSslDate(cleanLine(lines.find((line) => line.startsWith('notBefore=')), 'notBefore=')),
-      validTo: parseOpenSslDate(cleanLine(lines.find((line) => line.startsWith('notAfter=')), 'notAfter=')),
+    return metadataFromCertificate({
+      certificate,
       publicCertificatePem,
       p12SecretReference: secretReferenceForFingerprint(fingerprint, 'p12'),
-      privateKeySecretReference: secretReferenceForFingerprint(fingerprint, 'private-key'),
-      p12Alias: input.displayName?.trim() || null,
-    }
-  } finally {
-    await rm(tempDir, { recursive: true, force: true })
+      privateKeySecretReference: keyBags.length > 0 ? secretReferenceForFingerprint(fingerprint, 'private-key') : '',
+      displayName: input.displayName,
+    })
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(`P12-certifikatet kunde inte öppnas med angiven PIN. Kontrollera PIN och att filen är en giltig .p12/.pfx. ${detail}`)
   }
 }
