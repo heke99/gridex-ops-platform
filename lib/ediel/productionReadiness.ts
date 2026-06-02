@@ -602,6 +602,7 @@ export async function getCompanyProductionReadiness(
         productionMailboxId: null,
         latestInbound: null,
         latestOutbound: null,
+        priorProductionSentCount: 0,
         latestPollAt: null,
         latestPollStatus: null,
         unresolvedItems: 0,
@@ -1487,6 +1488,7 @@ export async function getCompanyProductionReadiness(
       productionMailboxId: productionMailbox?.id ?? null,
       latestInbound,
       latestOutbound,
+      priorProductionSentCount,
       latestPollAt:
         text(productionMailbox?.last_successful_poll_at) ??
         text(productionMailbox?.last_poll_at) ??
@@ -1645,8 +1647,7 @@ export async function assertCompanyCanSendProductionEdiel(params: {
     routeBelongsToCompany,
     actorBelongsToCompany,
     firstLiveSendApprovedAt: readiness.summary.firstLiveSendApprovedAt,
-    priorProductionSentCount:
-      readiness.summary.latestOutbound?.status === "sent" ? 1 : 0,
+    priorProductionSentCount: readiness.summary.priorProductionSentCount,
   });
 
   if (issues.length > 0) {
