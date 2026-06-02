@@ -107,6 +107,10 @@ function pickPayload(payload: Record<string, unknown>, keys: string[]): Record<s
   return Object.fromEntries(keys.filter((key) => key in payload).map((key) => [key, payload[key]]))
 }
 
+function fallbackActorName(actorRole: 'supplier' | 'esco', edielId: string): string {
+  return `${actorRole === 'esco' ? 'DGI' : 'DDQ'} testaktör ${edielId}`
+}
+
 async function updateWithFallback(params: {
   table: string
   id: string
@@ -240,11 +244,15 @@ async function upsertSimpleActorSetting(params: {
   actorRole: 'supplier' | 'esco'
   edielId: string
   mailbox: string
+  actorName: string
 }) {
   const actorSubrole = params.actorRole === 'esco' ? 'DGI' : 'DDQ'
   const payload = {
     company_id: params.companyId,
     environment: 'test',
+    actor_name: params.actorName,
+    legal_name: params.actorName,
+    sender_name: params.actorName,
     actor_role: params.actorRole === 'esco' ? 'energy_service_company' : 'supplier',
     role: params.actorRole,
     actor_ediel_id: params.edielId,
@@ -282,6 +290,9 @@ async function upsertSimpleActorSetting(params: {
       fallbackPayload: pickPayload(payload, [
         'company_id',
         'environment',
+        'actor_name',
+        'legal_name',
+        'sender_name',
         'actor_role',
         'role',
         'actor_ediel_id',
@@ -305,6 +316,9 @@ async function upsertSimpleActorSetting(params: {
     fallbackPayload: pickPayload({ ...payload, created_by: params.actorUserId }, [
       'company_id',
       'environment',
+        'actor_name',
+        'legal_name',
+        'sender_name',
       'actor_role',
       'role',
       'actor_ediel_id',
@@ -559,6 +573,17 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
     if (!edielId) throw new Error('Fyll i Div3rsa/bolagets Ediel-ID.')
     if (encryptionMode === 'smime' && !certificateId) throw new Error('Krypterat test kräver vald krypteringsversion/certifikat.')
 
+  const companyResult = await supabaseService
+    .from('companies')
+    .select('name')
+    .eq('id', companyId)
+    .maybeSingle()
+  if (companyResult.error && !isSchemaCompatibilityError(companyResult.error)) throw companyResult.error
+  const actorName =
+    typeof companyResult.data?.name === 'string' && companyResult.data.name.trim()
+      ? companyResult.data.name.trim()
+      : fallbackActorName(actorRole, edielId)
+
   const mailboxId = await upsertSystemTestMailbox({
     actorUserId: context.userId,
     email: mailbox,
@@ -571,6 +596,7 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
     actorRole,
     edielId,
     mailbox,
+    actorName,
   })
 
   const prodatRouteProfileId = await upsertSimpleSystemTestRoute({
