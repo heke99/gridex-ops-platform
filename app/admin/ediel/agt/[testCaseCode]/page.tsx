@@ -570,7 +570,7 @@ export default async function AgtCasePage({
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <form action={createAgtSupplierTestRunAction}>
+            <form action={createAgtSupplierTestRunAction} className="flex flex-wrap items-center gap-2">
               <input
                 type="hidden"
                 name="test_case_code"
@@ -579,6 +579,15 @@ export default async function AgtCasePage({
               {companyId ? (
                 <input type="hidden" name="company_id" value={companyId} />
               ) : null}
+              <select
+                name="encryption_mode"
+                defaultValue="none"
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+                title="Välj transportläge för just denna AGT-körning"
+              >
+                <option value="none">Okrypterat test</option>
+                <option value="smime">Krypterat test</option>
+              </select>
               <button className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
                 {run ? "Skapa ny run" : "Skapa run"}
               </button>

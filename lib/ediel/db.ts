@@ -88,6 +88,19 @@ function cleanObject<T extends Record<string, unknown>>(value: T): T {
   return Object.fromEntries(entries) as T
 }
 
+function isSchemaCompatibilityError(error: unknown): boolean {
+  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {}
+  const code = String(record.code ?? '')
+  const message = String(record.message ?? record.details ?? '')
+  return (
+    code === 'PGRST204' ||
+    code === '42703' ||
+    /column .* does not exist/i.test(message) ||
+    /Could not find .* column/i.test(message) ||
+    /schema cache/i.test(message)
+  )
+}
+
 function applyCompanyScope<T>(query: T, companyId?: string | null): T {
   const normalized = typeof companyId === 'string' && companyId.trim().length > 0 ? companyId.trim() : null
   if (!normalized) return query
@@ -967,7 +980,21 @@ export async function linkEdielMessage(
 export async function createEdielTestRun(
   input: CreateEdielTestRunInput
 ): Promise<EdielTestRunRow> {
-  const payload = cleanObject({
+  const legacyTransportMetadata = {
+    actorRole: input.actorRole ?? null,
+    messageFamily: input.messageFamily ?? null,
+    businessCode: input.businessCode ?? null,
+    encryptionMode: input.encryptionMode ?? 'none',
+    certificateId: input.certificateId ?? null,
+    certificateFingerprintSha256: input.certificateFingerprintSha256 ?? null,
+    routeProfileId: input.routeProfileId ?? null,
+    expectedFlow: input.expectedFlow ?? [],
+    actualFlow: input.actualFlow ?? [],
+    rawEdifactStored: Boolean(input.rawEdifact),
+    encryptedPayloadRef: input.encryptedPayloadRef ?? null,
+    productionLike: input.productionLike ?? false,
+  }
+  const basePayload = cleanObject({
     company_id: input.companyId ?? null,
     approval_version: input.approvalVersion ?? null,
     role_code: input.roleCode,
@@ -983,6 +1010,11 @@ export async function createEdielTestRun(
     completed_at: input.completedAt ?? null,
     failure_reason: input.failureReason ?? null,
     notes: input.notes ?? null,
+    created_by: input.actorUserId ?? null,
+    updated_by: input.actorUserId ?? null,
+  })
+  const extendedPayload = cleanObject({
+    ...basePayload,
     actor_role: input.actorRole ?? null,
     message_family: input.messageFamily ?? null,
     business_code: input.businessCode ?? null,
@@ -995,18 +1027,31 @@ export async function createEdielTestRun(
     raw_edifact: input.rawEdifact ?? null,
     encrypted_payload_ref: input.encryptedPayloadRef ?? null,
     production_like: input.productionLike ?? false,
-    created_by: input.actorUserId ?? null,
-    updated_by: input.actorUserId ?? null,
   })
 
-  const { data, error } = await supabaseService
+  let result = await supabaseService
     .from('ediel_test_runs')
-    .insert(payload)
+    .insert(extendedPayload)
     .select('*')
     .single()
 
-  if (error) throw error
-  const row = data as EdielTestRunRow
+  if (result.error && isSchemaCompatibilityError(result.error)) {
+    result = await supabaseService
+      .from('ediel_test_runs')
+      .insert({
+        ...basePayload,
+        notes: [
+          input.notes ?? null,
+          `Transport metadata: ${JSON.stringify(legacyTransportMetadata)}`,
+          'Databasen saknar nya test-run transportkolumner. Kör senaste migrationen för full krypteringsmetadata.',
+        ].filter(Boolean).join('\n'),
+      })
+      .select('*')
+      .single()
+  }
+
+  if (result.error) throw result.error
+  const row = result.data as EdielTestRunRow
 
   const rulebookCase = findRulebookTestCase(input.testCaseCode)
   if (rulebookCase) {

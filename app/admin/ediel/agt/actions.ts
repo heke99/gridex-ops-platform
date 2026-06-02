@@ -671,6 +671,7 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
   const actorUserId = context.userId;
   const companyId = await resolveAgtCompanyIdForAction(context, formData);
   const testCaseCode = upper(formData, "test_case_code") ?? "";
+  const encryptionMode = value(formData, "encryption_mode") === "smime" ? "smime" : "none";
   const testCase = getEdielAgtSupplier2026ACase(testCaseCode);
 
   if (!testCase) {
@@ -707,6 +708,11 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
     approvalVersion: testCase.approvalVersion,
     notes: `${testCase.notes} Skapad som aktiv AGT-körning från leverantörens AGT-sida.`,
     status: "running",
+    actorRole: testCase.roleCode,
+    messageFamily: testCase.messageFamily,
+    businessCode: testCase.messageCode,
+    encryptionMode,
+    expectedFlow: testCase.expectedSteps,
   });
 
   revalidateAgt();

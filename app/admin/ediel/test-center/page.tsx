@@ -21,20 +21,69 @@ const testCases = [
   { group: 'Energitjänsteföretag UTILTS', cases: 'UE1, UE2', family: 'UTILTS' },
 ]
 
-export default async function EdielTestCenterPage() {
+type TestCenterPageProps = {
+  searchParams?: Promise<{
+    runStatus?: string
+    runMessage?: string
+  }>
+}
+
+type RecentRunRow = {
+  id: string
+  company_id?: string | null
+  test_case_code: string
+  test_suite: string
+  role_code: string
+  status: string
+  encryption_mode?: string | null
+  certificate_fingerprint_sha256?: string | null
+  route_profile_id?: string | null
+  created_at?: string | null
+  failure_reason?: string | null
+}
+
+async function listRecentRuns(): Promise<{
+  runs: RecentRunRow[]
+  warning: string | null
+}> {
+  const rich = await supabaseService
+    .from('ediel_test_runs')
+    .select('id,company_id,test_case_code,test_suite,role_code,status,encryption_mode,certificate_fingerprint_sha256,route_profile_id,created_at,failure_reason')
+    .order('created_at', { ascending: false })
+    .limit(8)
+
+  if (!rich.error) return { runs: (rich.data ?? []) as RecentRunRow[], warning: null }
+
+  const legacy = await supabaseService
+    .from('ediel_test_runs')
+    .select('id,company_id,test_case_code,test_suite,role_code,status,created_at,failure_reason')
+    .order('created_at', { ascending: false })
+    .limit(8)
+
+  if (legacy.error) {
+    return { runs: [], warning: `Kunde inte läsa senaste test-runs: ${legacy.error.message}` }
+  }
+
+  return {
+    runs: (legacy.data ?? []) as RecentRunRow[],
+    warning: 'Databasen saknar nya test-run transportkolumner. Gamla AGT/Systemtester fungerar, men kör senaste migrationen för att visa krypteringsmetadata här.',
+  }
+}
+
+export default async function EdielTestCenterPage({ searchParams }: TestCenterPageProps) {
   const context = await requirePlatformAdminAccess()
-  const [{ data: companies }, { data: recentRuns }] = await Promise.all([
+  const resolvedSearchParams = await searchParams
+  const runStatus = resolvedSearchParams?.runStatus === 'success' ? 'success' : resolvedSearchParams?.runStatus === 'error' ? 'error' : null
+  const runMessage = resolvedSearchParams?.runMessage ?? null
+  const [{ data: companies }, recentRunsResult] = await Promise.all([
     supabaseService
       .from('companies')
       .select('id,name')
       .order('name', { ascending: true })
       .limit(100),
-    supabaseService
-      .from('ediel_test_runs')
-      .select('id,company_id,test_case_code,test_suite,role_code,status,encryption_mode,certificate_fingerprint_sha256,route_profile_id,created_at,failure_reason')
-      .order('created_at', { ascending: false })
-      .limit(8),
+    listRecentRuns(),
   ])
+  const recentRuns = recentRunsResult.runs
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -46,6 +95,20 @@ export default async function EdielTestCenterPage() {
         workspaceMode="platform"
       />
       <main className="space-y-6 p-8">
+        {runStatus && runMessage ? (
+          <section className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+            runStatus === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-red-200 bg-red-50 text-red-800'
+          }`}>
+            {runMessage}
+          </section>
+        ) : null}
+        {recentRunsResult.warning ? (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+            {recentRunsResult.warning}
+          </section>
+        ) : null}
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-black text-slate-950">Testfamiljer</h1>
           <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-700">
@@ -59,6 +122,18 @@ export default async function EdielTestCenterPage() {
                 <p className="mt-2 text-sm font-medium text-slate-700">Öppna testarbetsyta</p>
               </Link>
             ))}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">Rekommenderat arbetssätt</p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Kör fortsatt från gamla AGT/Systemtester</h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-emerald-900">
+            Det gamla flödet är fortfarande primärt för själva körningen. Test Center är en kontroll-/transportyta där du kan förbereda krypteringsmetadata och se status. För smidig körning: öppna AGT för L1-L7 eller Systemtester för TGT/UTILTS och kör testen därifrån.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/admin/ediel/agt" className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">Öppna AGT</Link>
+            <Link href="/admin/ediel/system-tests" className="rounded-xl border border-emerald-300 bg-white px-4 py-2 text-sm font-bold text-emerald-800">Öppna Systemtester</Link>
           </div>
         </section>
 
@@ -180,7 +255,7 @@ export default async function EdielTestCenterPage() {
                 <tr><th className="p-3">Test</th><th className="p-3">Transport</th><th className="p-3">Route</th><th className="p-3">Status</th></tr>
               </thead>
               <tbody>
-                {(recentRuns ?? []).map((run) => (
+                {recentRuns.map((run) => (
                   <tr key={run.id} className="border-t border-slate-100">
                     <td className="p-3 font-semibold">{run.test_suite} {run.test_case_code}<div className="text-xs font-normal text-slate-500">{run.role_code}</div></td>
                     <td className="p-3">{run.encryption_mode ?? 'none'}<div className="font-mono text-xs text-slate-500">{run.certificate_fingerprint_sha256 ?? 'utan certfingerprint'}</div></td>
