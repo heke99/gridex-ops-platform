@@ -43,6 +43,64 @@ function secretReferenceForFingerprint(fingerprint: string, kind: 'p12' | 'priva
   return `secret://ediel-certificates/${fingerprint}/${kind}`
 }
 
+function publicCertificateSecretReference(fingerprint: string): string {
+  return `secret://ediel-certificates/${fingerprint}/public-certificate`
+}
+
+async function parsePublicCertificatePem(input: {
+  publicCertificatePem: string
+  displayName?: string | null
+}): Promise<ImportedP12CertificateMetadata> {
+  if (!input.publicCertificatePem.includes('BEGIN CERTIFICATE')) {
+    throw new Error('Inklistrat certifikat måste innehålla BEGIN CERTIFICATE eller vara base64-kodad .p12/.pfx.')
+  }
+
+  const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-public-cert-'))
+  const certPath = join(tempDir, 'certificate.pem')
+
+  try {
+    await writeFile(certPath, input.publicCertificatePem, { mode: 0o600 })
+    const x509 = await execFileAsync('openssl', [
+      'x509',
+      '-in',
+      certPath,
+      '-noout',
+      '-subject',
+      '-issuer',
+      '-serial',
+      '-fingerprint',
+      '-sha256',
+      '-startdate',
+      '-enddate',
+    ])
+
+    const lines = x509.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+    const fingerprint = normalizeFingerprint(cleanLine(lines.find((line) => line.startsWith('sha256 Fingerprint=')) ?? lines.find((line) => line.startsWith('SHA256 Fingerprint=')), 'sha256 Fingerprint=') ?? cleanLine(lines.find((line) => line.startsWith('SHA256 Fingerprint=')), 'SHA256 Fingerprint='))
+
+    return {
+      fingerprintSha256: fingerprint,
+      subject: cleanLine(lines.find((line) => line.startsWith('subject=')), 'subject='),
+      issuer: cleanLine(lines.find((line) => line.startsWith('issuer=')), 'issuer='),
+      serialNumber: cleanLine(lines.find((line) => line.startsWith('serial=')), 'serial='),
+      validFrom: parseOpenSslDate(cleanLine(lines.find((line) => line.startsWith('notBefore=')), 'notBefore=')),
+      validTo: parseOpenSslDate(cleanLine(lines.find((line) => line.startsWith('notAfter=')), 'notAfter=')),
+      publicCertificatePem: input.publicCertificatePem,
+      p12SecretReference: publicCertificateSecretReference(fingerprint),
+      privateKeySecretReference: '',
+      p12Alias: input.displayName?.trim() || null,
+    }
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
+}
+
+export async function importPublicCertificatePem(input: {
+  publicCertificatePem: string
+  displayName?: string | null
+}): Promise<ImportedP12CertificateMetadata> {
+  return parsePublicCertificatePem(input)
+}
+
 export async function importP12Certificate(input: {
   p12Bytes: Buffer
   password: string

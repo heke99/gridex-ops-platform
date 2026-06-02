@@ -21,7 +21,12 @@ The new migration is idempotent and only creates missing runtime tables/columns 
    - `Subadress krävs` is off by default;
    - routes that require subaddress have either receiver subaddress or receiver message-subaddress;
    - Edielportalen PRODAT can be configured explicitly, e.g. receiver `91100` and message-subaddress `PRODAT`.
-4. Open `/admin/ediel/certificates`, upload a `.p12`, enter PIN and verify subject, issuer, serial, SHA-256 fingerprint and validity are stored while PIN/private key are not stored in DB columns.
+4. Open `/admin/ediel/certificates`, either upload a `.p12/.pfx` or paste a certificate:
+   - Paste PEM (`-----BEGIN CERTIFICATE-----`) for public S/MIME encryption certificate.
+   - Paste base64-encoded `.p12/.pfx` together with PIN when private container validation is needed.
+   - Set mailbox email, normally `ediel@gridex.se`, and environment `test` or `production`.
+   - Verify subject, issuer, serial, SHA-256 fingerprint and validity are stored while PIN/private key are not stored in DB columns.
+   - Verify the certificate is saved as mailbox default (`ediel_mailboxes.encryption_mode=smime`, `certificate_id=...`) and existing route profiles using the same mailbox/environment inherit the same certificate so it does not need to be set per tenant route.
 5. Open `/admin/ediel/test-center` and choose the appropriate security mode:
    - `Kör okrypterat test` for `encryption_mode=none` test routes.
    - `Kör krypterat test` for `encryption_mode=smime` routes with a valid certificate.

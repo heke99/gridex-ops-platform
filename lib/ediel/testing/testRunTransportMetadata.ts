@@ -65,6 +65,25 @@ async function resolveCertificate(certificateId?: string | null) {
   return data as Record<string, unknown> | null
 }
 
+async function resolveMailboxSecurity(input: {
+  mailbox?: string | null
+  environment: 'test' | 'production'
+}) {
+  const mailbox = String(input.mailbox ?? '').trim()
+  if (!mailbox) return null
+  const { data, error } = await supabaseService
+    .from('ediel_mailboxes')
+    .select('encryption_mode,certificate_id')
+    .eq('environment', input.environment)
+    .eq('is_active', true)
+    .ilike('email_address', mailbox)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data as { encryption_mode?: string | null; certificate_id?: string | null } | null
+}
+
 function expectedFlowFromSteps(steps: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
   return steps.map((step) => ({
     stepNo: step.stepNo ?? null,
@@ -111,8 +130,19 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     messageFamily,
     businessCode,
   })
-  const effectiveEncryption = normalizeEncryptionMode(input.encryptionMode ?? String(routeProfile?.encryption_mode ?? 'none'))
-  const certificate = await resolveCertificate(String(routeProfile?.certificate_id ?? '') || null)
+  const mailboxSecurity = await resolveMailboxSecurity({
+    mailbox: String(routeProfile?.mailbox ?? ''),
+    environment,
+  })
+  const effectiveEncryption = normalizeEncryptionMode(
+    input.encryptionMode ??
+    String(routeProfile?.encryption_mode ?? mailboxSecurity?.encryption_mode ?? 'none')
+  )
+  const effectiveCertificateId =
+    String(routeProfile?.certificate_id ?? '') ||
+    String(mailboxSecurity?.certificate_id ?? '') ||
+    null
+  const certificate = await resolveCertificate(effectiveCertificateId)
 
   if (effectiveEncryption === 'smime') {
     const certStatus = evaluateCertificateStatus(certificate ?? {})
@@ -140,7 +170,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     messageFamily,
     businessCode,
     encryptionMode: effectiveEncryption,
-    certificateId: String(routeProfile?.certificate_id ?? '') || null,
+    certificateId: effectiveCertificateId,
     certificateFingerprintSha256: String(certificate?.fingerprint_sha256 ?? certificate?.certificate_fingerprint ?? '') || null,
     routeProfileId: String(routeProfile?.id ?? '') || null,
     expectedFlow,
