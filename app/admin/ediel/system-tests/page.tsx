@@ -28,6 +28,17 @@ type CompanyOption = {
   ediel_id?: string | null;
   org_number?: string | null;
 };
+type CertificateOption = {
+  id: string;
+  display_name?: string | null;
+  fingerprint_sha256?: string | null;
+  certificate_fingerprint?: string | null;
+  valid_to?: string | null;
+  certificate_valid_to?: string | null;
+  status?: string | null;
+  environment?: string | null;
+  scope?: string | null;
+};
 type FilterPacket =
   | "all"
   | "u3"
@@ -671,14 +682,20 @@ function TestCard({
 
 function SimpleCompanySetupPanel({
   companies,
+  certificates,
   selectedCompanyId,
   selectedCompany,
   runtime,
+  setupStatus,
+  setupMessage,
 }: {
   companies: CompanyOption[];
+  certificates: CertificateOption[];
   selectedCompanyId: string | null;
   selectedCompany: CompanyOption | null;
   runtime: EdielSystemTestRuntimeContext | null;
+  setupStatus: "success" | "error" | null;
+  setupMessage: string | null;
 }) {
   const defaultEdielId = runtime?.actorEdielId ?? selectedCompany?.ediel_id ?? "";
 
@@ -706,6 +723,16 @@ function SimpleCompanySetupPanel({
         </div>
       </div>
 
+      {setupStatus && setupMessage ? (
+        <div className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+          setupStatus === "success"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+            : "border-red-200 bg-red-50 text-red-800"
+        }`}>
+          {setupMessage}
+        </div>
+      ) : null}
+
       <form action={saveSimpleSystemTestCompanySetupAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <select name="companyId" defaultValue={selectedCompanyId ?? ""} required className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
           <option value="">Välj bolag</option>
@@ -728,7 +755,20 @@ function SimpleCompanySetupPanel({
           <option value="none">Okrypterat test</option>
           <option value="smime">Krypterat S/MIME-test</option>
         </select>
-        <input name="certificateId" placeholder="Certificate ID om S/MIME" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <select name="certificateId" defaultValue="" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="">Välj krypteringsversion/certifikat om S/MIME</option>
+          {certificates.map((certificate) => {
+            const fingerprint = certificate.fingerprint_sha256 ?? certificate.certificate_fingerprint ?? "";
+            const label = [
+              certificate.display_name ?? "S/MIME certifikat",
+              certificate.environment ?? "test",
+              certificate.status ?? "status okänd",
+              fingerprint ? fingerprint.slice(0, 12) : null,
+              certificate.valid_to ?? certificate.certificate_valid_to ? `giltigt till ${(certificate.valid_to ?? certificate.certificate_valid_to)?.slice(0, 10)}` : null,
+            ].filter(Boolean).join(" · ");
+            return <option key={certificate.id} value={certificate.id}>{label}</option>;
+          })}
+        </select>
         <input name="prodatSubaddress" placeholder="PRODAT subadress om krävs, annars tom" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
         <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
           <input type="checkbox" name="prodatSubaddressRequired" />
@@ -809,6 +849,8 @@ export default async function EdielSystemTestsPage({
   searchParams?: Promise<{
     q?: string;
     companyId?: string;
+    setupStatus?: string;
+    setupMessage?: string;
     suite?: string;
     role?: string;
     packet?: string;
@@ -821,12 +863,20 @@ export default async function EdielSystemTestsPage({
   const context = await requirePlatformAdminAccess();
   const scope = await getOperationalCompanyScope(context.userId);
   const query = searchParams ? await searchParams : {};
-  const companiesResult = await supabaseService
-    .from("companies")
-    .select("id,name,ediel_id,org_number")
-    .order("name", { ascending: true })
-    .limit(200);
+  const [companiesResult, certificatesResult] = await Promise.all([
+    supabaseService
+      .from("companies")
+      .select("*")
+      .order("name", { ascending: true })
+      .limit(200),
+    supabaseService
+      .from("ediel_certificates")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
   const companies = ((companiesResult.data ?? []) as CompanyOption[]);
+  const certificates = certificatesResult.error ? [] : ((certificatesResult.data ?? []) as CertificateOption[]);
   const div3rsaCompany =
     companies.find((company) => String(company.name ?? "").toLowerCase().includes("div3rsa")) ??
     companies.find((company) => String(company.name ?? "").toLowerCase().includes("diversa")) ??
@@ -909,9 +959,12 @@ export default async function EdielSystemTestsPage({
 
       <SimpleCompanySetupPanel
         companies={companies}
+        certificates={certificates}
         selectedCompanyId={selectedCompanyId}
         selectedCompany={selectedCompany}
         runtime={systemTestRuntime}
+        setupStatus={query.setupStatus === "success" ? "success" : query.setupStatus === "error" ? "error" : null}
+        setupMessage={query.setupMessage ?? null}
       />
 
       <IdentityPanel runtime={systemTestRuntime} />

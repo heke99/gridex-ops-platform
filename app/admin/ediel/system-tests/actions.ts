@@ -79,6 +79,84 @@ function formBool(value: FormDataEntryValue | null): boolean {
   return typeof value === 'string' && ['true', 'on', '1'].includes(value.trim().toLowerCase())
 }
 
+function isSchemaCompatibilityError(error: unknown): boolean {
+  const maybe = error as { code?: string; message?: string; details?: string } | null
+  const text = `${maybe?.message ?? ''} ${maybe?.details ?? ''}`
+  return (
+    maybe?.code === '42P01' ||
+    maybe?.code === '42703' ||
+    maybe?.code === 'PGRST204' ||
+    maybe?.code === 'PGRST205' ||
+    /column .* does not exist|schema cache|could not find|does not exist/i.test(text)
+  )
+}
+
+function missingColumnFromError(error: unknown): string | null {
+  const maybe = error as { message?: string; details?: string } | null
+  const text = `${maybe?.message ?? ''} ${maybe?.details ?? ''}`
+  return (
+    text.match(/'([^']+)' column/i)?.[1] ??
+    text.match(/column "([^"]+)"/i)?.[1] ??
+    text.match(/column ([a-zA-Z0-9_]+) does not exist/i)?.[1] ??
+    null
+  )
+}
+
+function pickPayload(payload: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+  return Object.fromEntries(keys.filter((key) => key in payload).map((key) => [key, payload[key]]))
+}
+
+async function updateWithFallback(params: {
+  table: string
+  id: string
+  richPayload: Record<string, unknown>
+  fallbackPayload: Record<string, unknown>
+}) {
+  let payload = { ...params.richPayload }
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const result = await supabaseService.from(params.table).update(payload).eq('id', params.id)
+    if (!result.error) return
+    const missingColumn = missingColumnFromError(result.error)
+    if (!isSchemaCompatibilityError(result.error) || !missingColumn || !(missingColumn in payload)) break
+    delete payload[missingColumn]
+  }
+
+  payload = { ...params.fallbackPayload }
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const result = await supabaseService.from(params.table).update(payload).eq('id', params.id)
+    if (!result.error) return
+    const missingColumn = missingColumnFromError(result.error)
+    if (!isSchemaCompatibilityError(result.error) || !missingColumn || !(missingColumn in payload)) throw result.error
+    delete payload[missingColumn]
+  }
+}
+
+async function insertWithFallback(params: {
+  table: string
+  richPayload: Record<string, unknown>
+  fallbackPayload: Record<string, unknown>
+}) {
+  let payload = { ...params.richPayload }
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const result = await supabaseService.from(params.table).insert(payload).select('id').single()
+    if (!result.error) return String(result.data.id)
+    const missingColumn = missingColumnFromError(result.error)
+    if (!isSchemaCompatibilityError(result.error) || !missingColumn || !(missingColumn in payload)) break
+    delete payload[missingColumn]
+  }
+
+  payload = { ...params.fallbackPayload }
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const result = await supabaseService.from(params.table).insert(payload).select('id').single()
+    if (!result.error) return String(result.data.id)
+    const missingColumn = missingColumnFromError(result.error)
+    if (!isSchemaCompatibilityError(result.error) || !missingColumn || !(missingColumn in payload)) throw result.error
+    delete payload[missingColumn]
+  }
+
+  throw new Error(`Kunde inte spara ${params.table}.`)
+}
+
 async function upsertSystemTestMailbox(params: {
   actorUserId: string
   email: string
@@ -120,21 +198,39 @@ async function upsertSystemTestMailbox(params: {
   if (existing.error && !['42P01', '42703', 'PGRST204'].includes(existing.error.code ?? '')) throw existing.error
 
   if (existing.data?.id) {
-    const { error } = await supabaseService
-      .from('ediel_mailboxes')
-      .update(payload)
-      .eq('id', existing.data.id)
-    if (error) throw error
+    await updateWithFallback({
+      table: 'ediel_mailboxes',
+      id: String(existing.data.id),
+      richPayload: payload,
+      fallbackPayload: pickPayload(payload, [
+        'company_id',
+        'mailbox_name',
+        'email_address',
+        'environment',
+        'is_active',
+        'poll_interval_minutes',
+        'metadata',
+        'updated_at',
+      ]),
+    })
     return String(existing.data.id)
   }
 
-  const { data, error } = await supabaseService
-    .from('ediel_mailboxes')
-    .insert({ ...payload, created_by: params.actorUserId })
-    .select('id')
-    .single()
-  if (error) throw error
-  return String(data.id)
+  return insertWithFallback({
+    table: 'ediel_mailboxes',
+    richPayload: { ...payload, created_by: params.actorUserId },
+    fallbackPayload: pickPayload({ ...payload, created_by: params.actorUserId }, [
+      'company_id',
+      'mailbox_name',
+      'email_address',
+      'environment',
+      'is_active',
+      'poll_interval_minutes',
+      'metadata',
+      'created_by',
+      'updated_at',
+    ]),
+  })
 }
 
 async function upsertSimpleActorSetting(params: {
@@ -178,21 +274,51 @@ async function upsertSimpleActorSetting(params: {
   if (existing.error && !['42P01', '42703', 'PGRST204'].includes(existing.error.code ?? '')) throw existing.error
 
   if (existing.data?.id) {
-    const { error } = await supabaseService
-      .from('ediel_actor_settings')
-      .update(payload)
-      .eq('id', existing.data.id)
-    if (error) throw error
+    await updateWithFallback({
+      table: 'ediel_actor_settings',
+      id: String(existing.data.id),
+      richPayload: payload,
+      fallbackPayload: pickPayload(payload, [
+        'company_id',
+        'environment',
+        'actor_role',
+        'role',
+        'actor_ediel_id',
+        'ediel_id',
+        'sender_subaddress',
+        'sender_sub_address',
+        'is_active',
+        'default_application_reference',
+        'application_reference',
+        'metadata',
+        'updated_by',
+        'updated_at',
+      ]),
+    })
     return String(existing.data.id)
   }
 
-  const { data, error } = await supabaseService
-    .from('ediel_actor_settings')
-    .insert({ ...payload, created_by: params.actorUserId })
-    .select('id')
-    .single()
-  if (error) throw error
-  return String(data.id)
+  return insertWithFallback({
+    table: 'ediel_actor_settings',
+    richPayload: { ...payload, created_by: params.actorUserId },
+    fallbackPayload: pickPayload({ ...payload, created_by: params.actorUserId }, [
+      'company_id',
+      'environment',
+      'actor_role',
+      'role',
+      'actor_ediel_id',
+      'ediel_id',
+      'sender_subaddress',
+      'sender_sub_address',
+      'is_active',
+      'default_application_reference',
+      'application_reference',
+      'metadata',
+      'created_by',
+      'updated_by',
+      'updated_at',
+    ]),
+  })
 }
 
 async function upsertSimpleSystemTestRoute(params: {
@@ -245,12 +371,43 @@ async function upsertSimpleSystemTestRoute(params: {
   }
 
   if (communicationRouteId) {
-    const { error } = await supabaseService.from('communication_routes').update(routePayload).eq('id', communicationRouteId)
-    if (error) throw error
+    await updateWithFallback({
+      table: 'communication_routes',
+      id: communicationRouteId,
+      richPayload: routePayload,
+      fallbackPayload: pickPayload(routePayload, [
+        'company_id',
+        'route_name',
+        'is_active',
+        'route_scope',
+        'route_type',
+        'target_system',
+        'target_email',
+        'endpoint',
+        'supported_payload_version',
+        'notes',
+        'updated_by',
+      ]),
+    })
   } else {
-    const { data, error } = await supabaseService.from('communication_routes').insert({ ...routePayload, created_by: params.actorUserId }).select('id').single()
-    if (error) throw error
-    communicationRouteId = String(data.id)
+    communicationRouteId = await insertWithFallback({
+      table: 'communication_routes',
+      richPayload: { ...routePayload, created_by: params.actorUserId },
+      fallbackPayload: pickPayload({ ...routePayload, created_by: params.actorUserId }, [
+        'company_id',
+        'route_name',
+        'is_active',
+        'route_scope',
+        'route_type',
+        'target_system',
+        'target_email',
+        'endpoint',
+        'supported_payload_version',
+        'notes',
+        'created_by',
+        'updated_by',
+      ]),
+    })
   }
 
   const profilePayload = {
@@ -303,14 +460,81 @@ async function upsertSimpleSystemTestRoute(params: {
   if (existingProfile.error && !['42P01', '42703', 'PGRST204'].includes(existingProfile.error.code ?? '')) throw existingProfile.error
 
   if (existingProfile.data?.id) {
-    const { error } = await supabaseService.from('ediel_route_profiles').update(profilePayload).eq('id', existingProfile.data.id)
-    if (error) throw error
+    await updateWithFallback({
+      table: 'ediel_route_profiles',
+      id: String(existingProfile.data.id),
+      richPayload: profilePayload,
+      fallbackPayload: pickPayload(profilePayload, [
+        'company_id',
+        'communication_route_id',
+        'environment',
+        'route_name',
+        'route_type',
+        'is_enabled',
+        'is_active',
+        'sender_ediel_id',
+        'sender_sub_address',
+        'sender_subaddress',
+        'receiver_ediel_id',
+        'receiver_sub_address',
+        'receiver_subaddress',
+        'receiver_message_subaddress',
+        'subaddress_required',
+        'application_reference',
+        'mailbox_id',
+        'mailbox',
+        'encryption_mode',
+        'payload_format',
+        'message_standard',
+        'ack_mode',
+        'default_message_version',
+        'default_test_flag',
+        'default_timezone',
+        'notes',
+        'metadata',
+        'updated_by',
+        'updated_at',
+      ]),
+    })
     return String(existingProfile.data.id)
   }
 
-  const { data, error } = await supabaseService.from('ediel_route_profiles').insert({ ...profilePayload, created_by: params.actorUserId }).select('id').single()
-  if (error) throw error
-  return String(data.id)
+  return insertWithFallback({
+    table: 'ediel_route_profiles',
+    richPayload: { ...profilePayload, created_by: params.actorUserId },
+    fallbackPayload: pickPayload({ ...profilePayload, created_by: params.actorUserId }, [
+      'company_id',
+      'communication_route_id',
+      'environment',
+      'route_name',
+      'route_type',
+      'is_enabled',
+      'is_active',
+      'sender_ediel_id',
+      'sender_sub_address',
+      'sender_subaddress',
+      'receiver_ediel_id',
+      'receiver_sub_address',
+      'receiver_subaddress',
+      'receiver_message_subaddress',
+      'subaddress_required',
+      'application_reference',
+      'mailbox_id',
+      'mailbox',
+      'encryption_mode',
+      'payload_format',
+      'message_standard',
+      'ack_mode',
+      'default_message_version',
+      'default_test_flag',
+      'default_timezone',
+      'notes',
+      'metadata',
+      'created_by',
+      'updated_by',
+      'updated_at',
+    ]),
+  })
 }
 
 export async function saveSimpleSystemTestCompanySetupAction(formData: FormData) {
@@ -327,9 +551,13 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
   const prodatSubaddress = formString(formData.get('prodatSubaddress'))
   const prodatSubaddressRequired = formBool(formData.get('prodatSubaddressRequired'))
 
-  if (!companyId) throw new Error('Välj bolag.')
-  if (!edielId) throw new Error('Fyll i Div3rsa/bolagets Ediel-ID.')
-  if (encryptionMode === 'smime' && !certificateId) throw new Error('Krypterat test kräver certificate id.')
+  const baseRedirect = `/admin/ediel/system-tests?${companyId ? `companyId=${encodeURIComponent(companyId)}&` : ''}packet=esco&role=${actorRole}`
+
+  let redirectUrl = baseRedirect
+  try {
+    if (!companyId) throw new Error('Välj bolag.')
+    if (!edielId) throw new Error('Fyll i Div3rsa/bolagets Ediel-ID.')
+    if (encryptionMode === 'smime' && !certificateId) throw new Error('Krypterat test kräver vald krypteringsversion/certifikat.')
 
   const mailboxId = await upsertSystemTestMailbox({
     actorUserId: context.userId,
@@ -459,7 +687,11 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
   revalidatePath('/admin/ediel/system-tests')
   revalidatePath('/admin/ediel/routes')
   revalidatePath('/admin/ediel/control-tower')
-  redirect(`/admin/ediel/system-tests?companyId=${encodeURIComponent(companyId)}&packet=esco&role=${actorRole}`)
+  redirectUrl = `${baseRedirect}&setupStatus=success&setupMessage=${encodeURIComponent('Sparat. Tester är redo att köras från denna sida.')}`
+  } catch (error) {
+    redirectUrl = `${baseRedirect}&setupStatus=error&setupMessage=${encodeURIComponent(errorMessage(error))}`
+  }
+  redirect(redirectUrl)
 }
 
 
