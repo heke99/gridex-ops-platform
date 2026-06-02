@@ -189,9 +189,14 @@ export default async function AdminDashboardPage() {
  const supabase = await createSupabaseServerClient()
  const companyScope = await getOperationalCompanyScope(context.userId)
  const companyId = companyScope.companyId
- const today = new Date().toISOString().slice(0, 10)
- const inThirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
- const latestMeteringSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+ const todayDate = new Date()
+ const inThirtyDaysDate = new Date(todayDate)
+ inThirtyDaysDate.setUTCDate(inThirtyDaysDate.getUTCDate() + 30)
+ const latestMeteringSinceDate = new Date(todayDate)
+ latestMeteringSinceDate.setUTCDate(latestMeteringSinceDate.getUTCDate() - 7)
+ const today = todayDate.toISOString().slice(0, 10)
+ const inThirtyDays = inThirtyDaysDate.toISOString().slice(0, 10)
+ const latestMeteringSince = latestMeteringSinceDate.toISOString()
 
  const [
  ediel,
