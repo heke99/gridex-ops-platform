@@ -5,6 +5,7 @@ import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireOperationalCompanyId } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
+import { formatErrorMessage } from "@/lib/errors";
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -673,7 +674,7 @@ export async function applyEdielRuleTemplateAction(
       skippedCount: 0,
       createdRules: [],
       skippedRules: [],
-      error: error instanceof Error ? error.message : "Okänt fel",
+      error: formatErrorMessage(error, "Okänt fel"),
     };
   }
 }

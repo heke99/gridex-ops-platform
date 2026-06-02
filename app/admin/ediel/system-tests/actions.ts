@@ -33,6 +33,7 @@ import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAuto
 import type { EdielMessageRow, EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome } from '@/lib/ediel/core/ackPolicy'
 import { saveEdielSystemTestSettings } from '@/lib/ediel/systemTestSettings'
+import { formatErrorMessage } from '@/lib/errors'
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') return null
@@ -72,7 +73,7 @@ function normalizeCode(value: string | null | undefined): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+  return formatErrorMessage(error, 'Okänt fel i systemtestflödet.')
 }
 
 function formBool(value: FormDataEntryValue | null): boolean {
@@ -129,6 +130,8 @@ async function updateWithFallback(params: {
     if (!isSchemaCompatibilityError(result.error) || !missingColumn || !(missingColumn in payload)) throw result.error
     delete payload[missingColumn]
   }
+
+  throw new Error(`Kunde inte uppdatera ${params.table}.`)
 }
 
 async function insertWithFallback(params: {
@@ -545,13 +548,16 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
   const mailbox = formString(formData.get('mailbox')) ?? 'ediel@gridex.se'
   const portalEdielId = formString(formData.get('portalEdielId')) ?? '91100'
   const portalEmail = formString(formData.get('portalEmail')) ?? '91100@ediel.se'
-  const testBrpEdielId = formString(formData.get('testBrpEdielId')) ?? (actorRole === 'supplier' ? '91109' : null)
+  const testBrpEdielId = actorRole === 'supplier'
+    ? (formString(formData.get('testBrpEdielId')) ?? '91109')
+    : null
   const encryptionMode = formString(formData.get('encryptionMode')) === 'smime' ? 'smime' : 'none'
   const certificateId = formString(formData.get('certificateId'))
   const prodatSubaddress = formString(formData.get('prodatSubaddress'))
   const prodatSubaddressRequired = formBool(formData.get('prodatSubaddressRequired'))
 
-  const baseRedirect = `/admin/ediel/system-tests?${companyId ? `companyId=${encodeURIComponent(companyId)}&` : ''}packet=esco&role=${actorRole}`
+  const packet = actorRole === 'supplier' ? 'agt' : 'esco'
+  const baseRedirect = `/admin/ediel/system-tests?${companyId ? `companyId=${encodeURIComponent(companyId)}&` : ''}packet=${packet}&role=${actorRole}`
 
   let redirectUrl = baseRedirect
   try {

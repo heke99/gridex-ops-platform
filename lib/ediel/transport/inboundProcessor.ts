@@ -4,6 +4,7 @@ import { canonicalizeEdifact } from '@/lib/ediel/core/canonicalizeEdifact'
 import { validateEdifactEnvelope } from '@/lib/ediel/core/edifactValidation'
 import { recordEdielExchangeLog } from '@/lib/ediel/operations/exchangeLog'
 import { createEdielDeadLetterItem } from '@/lib/ediel/transport/deadLetter'
+import { formatErrorMessage } from '@/lib/errors'
 
 export async function processInboundEdifactMessage(params: {
   actorUserId: string
@@ -51,7 +52,7 @@ export async function processInboundEdifactMessage(params: {
       source: 'inbound_mail',
       edielMessageId: params.message.id,
       errorCode: 'inbound_processing_failed',
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorMessage: formatErrorMessage(error, 'Inbound processing misslyckades.'),
       retryable: true,
       replayRequiresApproval: params.message.environment === 'production',
       metadata: {

@@ -16,6 +16,7 @@ import {
 } from "@/lib/ediel/core/kernel";
 import { createEdielMessageEvent } from "@/lib/ediel/db";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
+import { formatErrorMessage } from "@/lib/errors";
 
 export const GRIDEX_TGT_EDIEL_ID = "92825";
 // Backwards-compatible alias used by the TGT/file-engine views only.
@@ -932,7 +933,7 @@ export async function registerEdielFile(
         payload: {
           actorTestingGlobalHook: true,
           source: "file_engine_register",
-          error: error instanceof Error ? error.message : String(error),
+          error: formatErrorMessage(error, "Aktörstest-synk misslyckades."),
         },
       }).catch(() => null);
     }

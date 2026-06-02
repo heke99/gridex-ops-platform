@@ -11,6 +11,7 @@ import {
   updateEdielMessageStatus,
   createEdielMessageEvent,
 } from '@/lib/ediel/db'
+import { formatErrorMessage } from '@/lib/errors'
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
 import {
   ACTIVE_EDIEL_MESSAGE_FAMILIES,
@@ -314,7 +315,7 @@ async function encryptSmimeEnvelopedData(params: {
         certPath,
       ])
     } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error)
+      const detail = formatErrorMessage(error, 'Okänt OpenSSL-fel.')
       throw new Error(`S/MIME-kryptering misslyckades via OpenSSL. Kontrollera EDIEL_SMIME_RECIPIENT_CERT_PATH och att openssl finns installerat. ${detail}`)
     }
 

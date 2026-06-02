@@ -685,6 +685,7 @@ function SimpleCompanySetupPanel({
   certificates,
   selectedCompanyId,
   selectedCompany,
+  selectedActorRole,
   runtime,
   setupStatus,
   setupMessage,
@@ -693,11 +694,13 @@ function SimpleCompanySetupPanel({
   certificates: CertificateOption[];
   selectedCompanyId: string | null;
   selectedCompany: CompanyOption | null;
+  selectedActorRole: "esco" | "supplier";
   runtime: EdielSystemTestRuntimeContext | null;
   setupStatus: "success" | "error" | null;
   setupMessage: string | null;
 }) {
   const defaultEdielId = runtime?.actorEdielId ?? selectedCompany?.ediel_id ?? "";
+  const defaultTestBrpEdielId = selectedActorRole === "supplier" ? "91109" : "";
 
   return (
     <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
@@ -742,7 +745,7 @@ function SimpleCompanySetupPanel({
             </option>
           ))}
         </select>
-        <select name="actorRole" defaultValue="esco" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+        <select name="actorRole" defaultValue={selectedActorRole} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
           <option value="esco">Energitjänsteföretag / DGI</option>
           <option value="supplier">Elleverantör / DDQ</option>
         </select>
@@ -750,7 +753,7 @@ function SimpleCompanySetupPanel({
         <input name="mailbox" defaultValue="ediel@gridex.se" required placeholder="Teknisk mailbox" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
         <input name="portalEdielId" defaultValue={runtime?.testPortalEdielId ?? "91100"} required placeholder="Edielportalen Ediel-ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
         <input name="portalEmail" defaultValue={runtime?.testPortalEmail ?? "91100@ediel.se"} required placeholder="Edielportalen e-post" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-        <input name="testBrpEdielId" defaultValue="91109" placeholder="Test-BRP (bara leverantör)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input name="testBrpEdielId" defaultValue={defaultTestBrpEdielId} placeholder="Test-BRP (bara leverantör)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
         <select name="encryptionMode" defaultValue="none" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
           <option value="none">Okrypterat test</option>
           <option value="smime">Krypterat S/MIME-test</option>
@@ -901,6 +904,7 @@ export default async function EdielSystemTestsPage({
   const role = String(query.role ?? "")
     .trim()
     .toLowerCase();
+  const selectedActorRole: "esco" | "supplier" = role === "supplier" ? "supplier" : "esco";
   const packet = normalizePacket(query.packet);
   const family = normalizeFamily(query.family);
   const testType = normalizeTestType(query.testType);
@@ -962,6 +966,7 @@ export default async function EdielSystemTestsPage({
         certificates={certificates}
         selectedCompanyId={selectedCompanyId}
         selectedCompany={selectedCompany}
+        selectedActorRole={selectedActorRole}
         runtime={systemTestRuntime}
         setupStatus={query.setupStatus === "success" ? "success" : query.setupStatus === "error" ? "error" : null}
         setupMessage={query.setupMessage ?? null}
