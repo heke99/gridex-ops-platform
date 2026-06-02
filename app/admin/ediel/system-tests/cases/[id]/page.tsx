@@ -120,9 +120,10 @@ function expectedResponseText(testCase: EdielTgtTestCaseDefinition): string {
   return "Förväntat svar följer stegen nedan.";
 }
 
-function StartRunForm({ testCase }: { testCase: EdielTgtTestCaseDefinition }) {
+function StartRunForm({ testCase, companyId }: { testCase: EdielTgtTestCaseDefinition; companyId: string | null }) {
   return (
     <form action={createEdielTgtRunFromTemplateAction} className="flex flex-wrap items-center gap-2">
+      {companyId ? <input type="hidden" name="companyId" value={companyId} /> : null}
       <input type="hidden" name="testSuite" value={testCase.suite} />
       <input type="hidden" name="roleCode" value={testCase.roleCode} />
       <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
@@ -583,17 +584,17 @@ function StepCard({ step }: { step: EdielTgtExpectedStep }) {
 
 export default async function SystemTestCasePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ companyId?: string }>;
 }) {
   const { id } = await params;
+  const query = searchParams ? await searchParams : {};
   const testCaseCode = id;
   const context = await requirePlatformAdminAccess();
   const scope = await getOperationalCompanyScope(context.userId);
-  const systemTestRuntime = await getEdielSystemTestRuntimeContext({
-    companyId: scope.companyId,
-    testSuite: "TGT",
-  }).catch(() => null);
+  const selectedCompanyId = String(query.companyId ?? "").trim() || scope.companyId || null;
   const testCase = findDefinition(testCaseCode);
 
   if (!testCase) {
@@ -611,7 +612,7 @@ export default async function SystemTestCasePage({
           Systemtest och välj ett testfall från listan.
         </section>
         <Link
-          href="/admin/ediel/system-tests"
+          href={`/admin/ediel/system-tests${selectedCompanyId ? `?companyId=${encodeURIComponent(selectedCompanyId)}` : ""}`}
           className="inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
         >
           Tillbaka till Systemtest
@@ -620,9 +621,15 @@ export default async function SystemTestCasePage({
     );
   }
 
+  const systemTestRuntime = await getEdielSystemTestRuntimeContext({
+    companyId: selectedCompanyId,
+    testSuite: "TGT",
+    actorRole: testCase.roleCode,
+  }).catch(() => null);
+
   const [runs, messages] = await Promise.all([
-    listEdielTestRuns().catch(() => []),
-    listEdielMessages({ limit: 300 }).catch(() => []),
+    listEdielTestRuns({ companyId: selectedCompanyId }).catch(() => []),
+    listEdielMessages({ companyId: selectedCompanyId, limit: 300 }).catch(() => []),
   ]);
 
   const matchingRuns = runs.filter(
@@ -643,6 +650,7 @@ export default async function SystemTestCasePage({
       );
       const linkMessageRows = await listEdielMessagesByIds(
         links.map((link) => link.ediel_message_id),
+        { companyId: selectedCompanyId },
       ).catch(() => []);
       const messagesById = new Map(
         linkMessageRows.map((message) => [message.id, message]),
@@ -733,9 +741,9 @@ export default async function SystemTestCasePage({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <StartRunForm testCase={testCase} />
+            <StartRunForm testCase={testCase} companyId={selectedCompanyId} />
             <Link
-              href="/admin/ediel/system-tests"
+              href={`/admin/ediel/system-tests${selectedCompanyId ? `?companyId=${encodeURIComponent(selectedCompanyId)}` : ""}`}
               className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
               Tillbaka
@@ -793,6 +801,7 @@ export default async function SystemTestCasePage({
           action={pollAndSyncTgtSystemTestMailboxAction}
           className="mt-4 grid gap-3 md:grid-cols-[1fr_160px_auto] md:items-end"
         >
+          {selectedCompanyId ? <input type="hidden" name="companyId" value={selectedCompanyId} /> : null}
           <input type="hidden" name="testSuite" value={testCase.suite} />
           <input type="hidden" name="roleCode" value={testCase.roleCode} />
           <input

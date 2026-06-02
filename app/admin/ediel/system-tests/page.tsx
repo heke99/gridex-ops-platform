@@ -148,7 +148,7 @@ function compareCase(
 }
 
 function normalizePacket(value: string | undefined): FilterPacket {
-  const normalized = String(value ?? "u3").toLowerCase();
+  const normalized = String(value ?? "all").toLowerCase();
   if (
     normalized === "all" ||
     normalized === "u3" ||
@@ -165,7 +165,7 @@ function normalizePacket(value: string | undefined): FilterPacket {
     normalized === "tgt"
   )
     return normalized;
-  return "u3";
+  return "all";
 }
 
 function normalizeFamily(value: string | undefined): FilterFamily {
@@ -541,8 +541,6 @@ function QuickFilters({
     { key: "esco", label: "Alla energitjänsteföretag" },
     { key: "e", label: "E3–E8 PRODAT ESCO" },
     { key: "ue", label: "UE1–UE2 UTILTS ESCO" },
-    { key: "l", label: "L1–L7 Leverantör AGT" },
-    { key: "ul", label: "UL1–UL6 UTILTS AGT" },
     { key: "utilts", label: "Alla UTILTS" },
     { key: "prodat", label: "Alla PRODAT" },
     { key: "all", label: "Alla testfall" },
@@ -670,7 +668,7 @@ function TestCard({
       <div className="mt-4 flex flex-wrap gap-2">
         <StartRunForm testCase={testCase} companyId={companyId} />
         <Link
-          href={`/admin/ediel/system-tests/cases/${encodeURIComponent(testCase.testCaseCode)}`}
+          href={`/admin/ediel/system-tests/cases/${encodeURIComponent(testCase.testCaseCode)}${companyId ? `?companyId=${encodeURIComponent(companyId)}` : ""}`}
           className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
         >
           Öppna & kör
@@ -714,15 +712,15 @@ function SimpleCompanySetupPanel({
           </h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
             Fyll i saknade uppgifter här en gång. Systemet sparar aktör,
-            Edielportalen-route, shared mailbox, readiness och systemtestinställning
-            så knapparna nedan kan köra testerna direkt från denna sida.
+            Edielportalen-route, shared mailbox och systemtestinställning
+            så TGT-knapparna nedan kan köra testerna direkt från denna sida.
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
           <div className="font-bold text-slate-950">Aktuell runtime</div>
           <div>Bolag: {selectedCompany?.name ?? selectedCompanyId ?? "saknas"}</div>
           <div>Aktör Ediel-ID: {runtime?.actorEdielId ?? "saknas"}</div>
-          <div>Portal: {runtime?.testPortalEdielId ?? "91100"} · {runtime?.testPortalEmail ?? "91100@ediel.se"}</div>
+          <div>Portal: {runtime?.testPortalEdielId ?? "saknas"} · {runtime?.testPortalEmail ?? "saknas"}</div>
         </div>
       </div>
 
@@ -891,10 +889,6 @@ export default async function EdielSystemTestsPage({
     companies[0]?.id ||
     null;
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId) ?? null;
-  const systemTestRuntime = await getEdielSystemTestRuntimeContext({
-    companyId: selectedCompanyId,
-    testSuite: "TGT",
-  }).catch(() => null);
   const q = String(query.q ?? "")
     .trim()
     .toUpperCase();
@@ -905,6 +899,11 @@ export default async function EdielSystemTestsPage({
     .trim()
     .toLowerCase();
   const selectedActorRole: "esco" | "supplier" = role === "supplier" ? "supplier" : "esco";
+  const systemTestRuntime = await getEdielSystemTestRuntimeContext({
+    companyId: selectedCompanyId,
+    testSuite: "TGT",
+    actorRole: selectedActorRole,
+  }).catch(() => null);
   const packet = normalizePacket(query.packet);
   const family = normalizeFamily(query.family);
   const testType = normalizeTestType(query.testType);
@@ -912,8 +911,8 @@ export default async function EdielSystemTestsPage({
   const status = normalizeStatus(query.status);
 
   const [testRuns, messages] = await Promise.all([
-    listEdielTestRuns().catch(() => []),
-    listEdielMessages({ limit: 300 }).catch(() => []),
+    listEdielTestRuns({ companyId: selectedCompanyId }).catch(() => []),
+    listEdielMessages({ companyId: selectedCompanyId, limit: 300 }).catch(() => []),
   ]);
   const testRunsForCards = testRuns as TestRunList;
 

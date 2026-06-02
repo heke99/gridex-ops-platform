@@ -147,6 +147,8 @@ export async function attachRulebookArtifact(input: {
     artifact_type: input.artifactType,
     title: input.title,
     payload: input.payload,
+    parsed_payload: input.payload.parsed ?? input.payload,
+    validation_report: input.payload.validation ?? input.payload,
     created_by: input.actorUserId ?? null,
   })
 }

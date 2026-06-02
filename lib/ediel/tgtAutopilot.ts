@@ -542,11 +542,12 @@ export async function createMockPortalMessageForNextStep(params: {
 
 export async function autoAttachImportedMessageToActiveTgtRun(params: {
   edielMessage: EdielMessageRow;
+  companyId?: string | null;
   explicitTestCaseCode?: string | null;
 }): Promise<EdielTgtAutopilotResult | null> {
   const [runs, messages] = await Promise.all([
-    listEdielTestRuns(),
-    listEdielMessages({ limit: 300 }),
+    listEdielTestRuns({ companyId: params.companyId }),
+    listEdielMessages({ companyId: params.companyId, limit: 300 }),
   ]);
   const explicitCode = String(params.explicitTestCaseCode ?? "")
     .trim()

@@ -600,6 +600,7 @@ export type CreateEdielTestRunInput = {
   certificateId?: string | null;
   certificateFingerprintSha256?: string | null;
   routeProfileId?: string | null;
+  environmentType?: "tgt_test" | "agt_test" | "bilateral_test" | "production" | string | null;
   expectedFlow?: unknown;
   actualFlow?: unknown;
   rawEdifact?: string | null;

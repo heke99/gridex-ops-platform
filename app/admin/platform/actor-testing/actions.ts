@@ -640,6 +640,23 @@ export async function activateLiveEdielAction(formData: FormData) {
     goLiveRedirect(companyId, 'blocked', `Live är blockerat: ${reason}`, returnPath)
   }
 
+  if (!['allowed', 'warning'].includes(readiness.latestDryRun.status ?? '')) {
+    const reason = 'Kör production dry run utan blockerare innan live aktiveras.'
+    await supabaseService
+      .from('companies')
+      .update({
+        production_status: 'blocked',
+        ediel_production_status: 'blocked',
+        live_ediel_enabled: false,
+        ediel_production_enabled: false,
+        live_blocked_reason: reason,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', companyId)
+    revalidateActorTestingViews(companyId)
+    goLiveRedirect(companyId, 'blocked', `Live är blockerat: ${reason}`, returnPath)
+  }
+
   const now = new Date().toISOString()
   const previousStatus = readiness.summary.productionStatus
   const { error } = await supabaseService
