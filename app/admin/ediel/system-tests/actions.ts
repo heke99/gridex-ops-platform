@@ -444,6 +444,12 @@ async function upsertSimpleSystemTestRoute(params: {
   const environmentType = params.environmentType ?? (testSuiteType === 'AGT' ? 'agt_test' : 'tgt_test')
   const targetSystem = params.targetSystem ?? (testSuiteType === 'AGT' ? 'ediel_portalen_agt' : 'ediel_portalen_tgt')
   const routeScope = params.messageFamily === 'PRODAT' ? 'supplier_switch' : 'meter_values'
+  const routeTransportSecurityMode = params.messageFamily === 'PRODAT' && params.encryptionMode === 'smime'
+    ? 'required_encrypted'
+    : 'unencrypted'
+  const securityPolicyStatus = params.messageFamily === 'PRODAT' && params.encryptionMode === 'smime'
+    ? 'certificate_configured'
+    : 'test_unencrypted_allowed'
   const appRef = params.applicationReference ?? (
     params.messageFamily === 'PRODAT'
       ? params.actorRole === 'esco' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT'
@@ -475,6 +481,7 @@ async function upsertSimpleSystemTestRoute(params: {
     endpoint: params.smtpTo,
     supported_payload_version: params.messageFamily,
     environment_type: environmentType,
+    transport_security_mode: routeTransportSecurityMode,
     counterparty_ediel_id: params.receiverEdielId,
     market_party_role: 'test_portal',
     notes: 'Skapad från enkel System Tests setup.',
@@ -512,6 +519,7 @@ async function upsertSimpleSystemTestRoute(params: {
         'endpoint',
         'supported_payload_version',
         'environment_type',
+        'transport_security_mode',
         'counterparty_ediel_id',
         'market_party_role',
         'notes',
@@ -534,6 +542,7 @@ async function upsertSimpleSystemTestRoute(params: {
         'endpoint',
         'supported_payload_version',
         'environment_type',
+        'transport_security_mode',
         'counterparty_ediel_id',
         'market_party_role',
         'notes',
@@ -566,6 +575,7 @@ async function upsertSimpleSystemTestRoute(params: {
     mailbox_id: params.mailboxId ?? null,
     mailbox: params.mailbox,
     transport_mode: 'smtp_imap',
+    transport_security_mode: routeTransportSecurityMode,
     smtp_provider: params.smtpProvider ?? 'strato',
     smtp_from: params.mailbox,
     smtp_to: params.smtpTo,
@@ -580,7 +590,7 @@ async function upsertSimpleSystemTestRoute(params: {
     allow_unencrypted_production: false,
     is_active: true,
     is_enabled: true,
-    security_policy_status: params.encryptionMode === 'smime' ? 'certificate_configured' : 'test_unencrypted_allowed',
+    security_policy_status: securityPolicyStatus,
     payload_format: 'edifact',
     message_standard: 'edifact',
     ack_mode: 'default',
@@ -602,6 +612,8 @@ async function upsertSimpleSystemTestRoute(params: {
       certificateEnvironment: params.certificateEnvironment ?? (testSuiteType === 'AGT' ? 'production' : 'test'),
       transportEnvironment: params.transportEnvironment ?? (testSuiteType === 'AGT' ? 'production_smtp' : 'test'),
       smtpProvider: params.smtpProvider ?? 'strato',
+      transportSecurityMode: routeTransportSecurityMode,
+      securityPolicyStatus,
     },
     updated_by: params.actorUserId,
     updated_at: new Date().toISOString(),
@@ -655,6 +667,7 @@ async function upsertSimpleSystemTestRoute(params: {
         'receiver_certificate_id',
         'certificate_environment',
         'transport_environment',
+        'transport_security_mode',
         'allow_unencrypted_test',
         'allow_unencrypted_production',
         'security_policy_status',
@@ -709,6 +722,7 @@ async function upsertSimpleSystemTestRoute(params: {
       'receiver_certificate_id',
       'certificate_environment',
       'transport_environment',
+      'transport_security_mode',
       'allow_unencrypted_test',
       'allow_unencrypted_production',
       'security_policy_status',
