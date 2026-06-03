@@ -1,8 +1,8 @@
 export type EdielSystemTestSetupPackage =
   | 'agt_dgi_prodat_e3_e8'
-  | 'agt_dgi_utilts_ue1_ue2'
   | 'tgt_dgi_utilts_u3'
   | 'agt_ddq_prodat_l'
+  | 'agt_dgi_utilts_ue1_ue2'
   | 'tgt_ddq_prodat_utilts'
   | 'custom'
 
@@ -199,12 +199,11 @@ export function isAgtSystemTestCase(input: {
     'E7',
     'E8',
   ])
-  const agtEscoUtiltsCodes = new Set(['UE1', 'UE2'])
+  if (role === 'esco' && suite === 'UTILTS' && (code === 'UE1' || code === 'UE2')) return true
   return (
     role === 'esco' &&
-    ((suite === 'PRODAT' &&
-      (agtEscoProdatCodes.has(code) || ['E3', 'E4', 'E5', 'E6', 'E7', 'E8'].some((prefix) => code.startsWith(`${prefix}.`)))) ||
-      (suite === 'UTILTS' && agtEscoUtiltsCodes.has(code)))
+    suite === 'PRODAT' &&
+    (agtEscoProdatCodes.has(code) || ['E3', 'E4', 'E5', 'E6', 'E7', 'E8'].some((prefix) => code.startsWith(`${prefix}.`)))
   )
 }
 
