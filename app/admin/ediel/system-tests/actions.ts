@@ -5,13 +5,7 @@ import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveOutboundRecipientCertificate } from '@/lib/ediel/security/outboundRecipientCertificate'
-import { edielSmtpConfig } from '@/lib/ediel/mailReadiness'
-import {
-  edielComposite,
-  getEdielSystemTestPackage,
-  type EdielLogicalTestSuite,
-  type EdielSystemTestSetupPackage,
-} from '@/lib/ediel/systemTestPackages'
+import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expisoftCertificateDirectory'
 import { activeRulebookRules, defaultApplicationReferenceForProcess } from '@/lib/ediel/rulebook/rulebook'
 import { STATIC_FIELD_RULES } from '@/lib/ediel/rulebook/fieldMatrix'
 import { STATIC_CODE_RULES } from '@/lib/ediel/rulebook/codeRules'
@@ -117,6 +111,81 @@ function pickPayload(payload: Record<string, unknown>, keys: string[]): Record<s
 
 function fallbackActorName(actorRole: 'supplier' | 'esco', edielId: string): string {
   return `${actorRole === 'esco' ? 'DGI' : 'DDQ'} testaktör ${edielId}`
+}
+
+async function resolveEffectiveSystemTestCertificateId(params: {
+  certificateId?: string | null
+  companyId: string
+  portalEmail: string
+  portalEdielId: string
+  receiverSubaddress?: string | null
+}): Promise<string> {
+  const certificateEnvironment = 'production'
+  const explicitCertificateId = formString(params.certificateId ?? null)
+  if (explicitCertificateId) {
+    await resolveOutboundRecipientCertificate({
+      certificateId: explicitCertificateId,
+      receiverEdielId: params.portalEdielId,
+      receiverSubaddress: params.receiverSubaddress,
+      messageFamily: 'PRODAT',
+      messageType: 'PRODAT',
+      environment: certificateEnvironment,
+      smtpTo: params.portalEmail,
+    })
+    return explicitCertificateId
+  }
+
+  let existingLookupError: string | null = null
+  try {
+    const existingCertificate = await resolveOutboundRecipientCertificate({
+      receiverEdielId: params.portalEdielId,
+      receiverSubaddress: params.receiverSubaddress,
+      messageFamily: 'PRODAT',
+      messageType: 'PRODAT',
+      environment: certificateEnvironment,
+      smtpTo: params.portalEmail,
+    })
+    if (existingCertificate.id) return existingCertificate.id
+  } catch (error) {
+    existingLookupError = errorMessage(error)
+  }
+
+  let lookupResult: Awaited<ReturnType<typeof fetchReceiverCertificatesFromExpisoft>>
+  try {
+    lookupResult = await fetchReceiverCertificatesFromExpisoft({
+      smtpEmail: params.portalEmail,
+      edielId: params.portalEdielId,
+      subaddress: params.receiverSubaddress,
+      companyId: params.companyId,
+      forceRefresh: false,
+    })
+  } catch (error) {
+    throw new Error(
+      `Krypterat PRODAT-test kräver mottagarens publika certifikat. Systemet hittade inget användbart lokalt certifikat${existingLookupError ? ` (${existingLookupError})` : ''} och försökte hämta från Expisoft med mail=${params.portalEmail}, men lookup misslyckades: ${errorMessage(error)}`,
+    )
+  }
+
+  const validCertificate = lookupResult.certificates.find((certificate) =>
+    certificate.status === 'valid' && Boolean(certificate.certificateId),
+  )
+  const effectiveCertificateId = formString(validCertificate?.certificateId ?? null)
+  if (!effectiveCertificateId) {
+    throw new Error(
+      `Krypterat PRODAT-test kräver mottagarens publika certifikat. Systemet hittade inget användbart lokalt certifikat${existingLookupError ? ` (${existingLookupError})` : ''} och försökte hämta från Expisoft med mail=${params.portalEmail} (${lookupResult.ldapUrl}) men hittade inget giltigt certifikat. Hittade ${lookupResult.certificatesFound} certifikat.`,
+    )
+  }
+
+  await resolveOutboundRecipientCertificate({
+    certificateId: effectiveCertificateId,
+    receiverEdielId: params.portalEdielId,
+    receiverSubaddress: params.receiverSubaddress,
+    messageFamily: 'PRODAT',
+    messageType: 'PRODAT',
+    environment: certificateEnvironment,
+    smtpTo: params.portalEmail,
+  })
+
+  return effectiveCertificateId
 }
 
 async function updateWithFallback(params: {
@@ -349,37 +418,30 @@ async function upsertSimpleActorSetting(params: {
 async function upsertSimpleSystemTestRoute(params: {
   actorUserId: string
   companyId: string
-  setupPackage: EdielSystemTestSetupPackage
-  testSuiteType: EdielLogicalTestSuite
   actorRole: 'supplier' | 'esco'
   messageFamily: 'PRODAT' | 'UTILTS'
-  applicationReference: string
-  targetSystem: string
-  environmentType: 'agt_test' | 'tgt_test'
-  routeName: string
   senderEdielId: string
   receiverEdielId: string
   smtpTo: string
-  smtpFrom: string
-  smtpProvider: string
   mailbox: string
   receiverMessageSubaddress?: string | null
   subaddressRequired: boolean
   encryptionMode: 'none' | 'smime'
-  certificateEnvironment: string
-  transportEnvironment: string
   certificateId?: string | null
   mailboxId?: string | null
 }) {
   const routeScope = params.messageFamily === 'PRODAT' ? 'supplier_switch' : 'meter_values'
-  const receiverPreview = edielComposite(params.receiverEdielId, params.receiverMessageSubaddress)
-  const ldapLookupMail = params.smtpTo
+  const appRef =
+    params.messageFamily === 'PRODAT'
+      ? params.actorRole === 'esco' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT'
+      : params.actorRole === 'esco' ? '23-DGI-E66-S' : '23-DDQ-E66-S'
+  const routeName = `TGT ${params.actorRole === 'esco' ? 'DGI' : 'DDQ'} ${params.messageFamily}`
 
   const existingRoute = await supabaseService
     .from('communication_routes')
     .select('id')
     .eq('company_id', params.companyId)
-    .eq('route_name', params.routeName)
+    .eq('route_name', routeName)
     .limit(1)
     .maybeSingle()
   if (existingRoute.error && !['42P01', '42703', 'PGRST204'].includes(existingRoute.error.code ?? '')) throw existingRoute.error
@@ -387,18 +449,18 @@ async function upsertSimpleSystemTestRoute(params: {
   let communicationRouteId = typeof existingRoute.data?.id === 'string' ? existingRoute.data.id : null
   const routePayload = {
     company_id: params.companyId,
-    route_name: params.routeName,
+    route_name: routeName,
     is_active: true,
     route_scope: routeScope,
     route_type: 'ediel_partner',
-    target_system: params.targetSystem,
+    target_system: 'ediel_portalen_tgt',
     target_email: params.smtpTo,
     endpoint: params.smtpTo,
     supported_payload_version: params.messageFamily,
-    environment_type: params.environmentType,
+    environment_type: 'tgt_test',
     counterparty_ediel_id: params.receiverEdielId,
     market_party_role: 'test_portal',
-    notes: `Skapad från enkel System Tests setup (${params.setupPackage}).`,
+    notes: 'Skapad från enkel System Tests setup.',
     updated_by: params.actorUserId,
   }
 
@@ -446,7 +508,7 @@ async function upsertSimpleSystemTestRoute(params: {
     company_id: params.companyId,
     communication_route_id: communicationRouteId,
     environment: 'test',
-    environment_type: params.environmentType,
+    environment_type: 'tgt_test',
     actor_role: params.actorRole === 'esco' ? 'energy_service_company' : 'supplier',
     message_family: params.messageFamily,
     sender_ediel_id: params.senderEdielId,
@@ -457,45 +519,25 @@ async function upsertSimpleSystemTestRoute(params: {
     receiver_sub_address: params.receiverMessageSubaddress ?? null,
     receiver_message_subaddress: params.receiverMessageSubaddress ?? null,
     subaddress_required: params.subaddressRequired,
-    application_reference: params.applicationReference,
+    application_reference: appRef,
     mailbox_id: params.mailboxId ?? null,
     mailbox: params.mailbox,
     transport_mode: 'smtp_imap',
-    smtp_provider: params.smtpProvider,
-    smtp_from: params.smtpFrom,
+    smtp_from: params.mailbox,
     smtp_to: params.smtpTo,
     encryption_mode: params.encryptionMode,
-    signing_mode: 'none',
+    signing_mode: params.encryptionMode === 'smime' ? 'smime' : 'none',
     tls_required: true,
     certificate_id: params.certificateId ?? null,
-    certificate_environment: params.certificateEnvironment,
-    transport_environment: params.transportEnvironment,
     allow_unencrypted_test: true,
     allow_unencrypted_production: false,
     is_active: true,
     is_enabled: true,
-    target_system: params.targetSystem,
-    route_name: params.routeName,
-    transport_security_mode: params.encryptionMode === 'smime' ? 'required_encrypted' : 'unencrypted',
-    certificate_required: params.messageFamily === 'PRODAT' && params.encryptionMode === 'smime',
     security_policy_status: params.encryptionMode === 'smime' ? 'certificate_configured' : 'test_unencrypted_allowed',
     payload_format: 'edifact',
     message_standard: 'edifact',
     ack_mode: 'default',
-    notes: `Skapad från enkel System Tests setup (${params.setupPackage}).`,
-    metadata: {
-      setupPackage: params.setupPackage,
-      testSuiteType: params.testSuiteType,
-      actorRole: params.actorRole,
-      messageFamily: params.messageFamily,
-      receiverPreview,
-      ldapLookupMail,
-      expisoftLdapUrl: `ldap://sodir01.expisoft.se:389/c=se?userCertificate?sub?mail=${ldapLookupMail}`,
-      source: 'admin_ediel_system_tests_simple_setup',
-      certificateEnvironment: params.certificateEnvironment,
-      transportEnvironment: params.transportEnvironment,
-      smtpProvider: params.smtpProvider,
-    },
+    notes: 'Skapad från enkel System Tests setup.',
     updated_by: params.actorUserId,
     updated_at: new Date().toISOString(),
   }
@@ -534,25 +576,10 @@ async function upsertSimpleSystemTestRoute(params: {
         'application_reference',
         'mailbox_id',
         'mailbox',
-        'smtp_provider',
-        'smtp_from',
-        'smtp_to',
         'encryption_mode',
-        'signing_mode',
-        'tls_required',
-        'certificate_id',
-        'certificate_environment',
-        'transport_environment',
-        'allow_unencrypted_test',
-        'allow_unencrypted_production',
         'payload_format',
         'message_standard',
         'ack_mode',
-        'target_system',
-        'route_name',
-        'transport_security_mode',
-        'certificate_required',
-        'security_policy_status',
         'default_message_version',
         'default_test_flag',
         'default_timezone',
@@ -587,25 +614,10 @@ async function upsertSimpleSystemTestRoute(params: {
       'application_reference',
       'mailbox_id',
       'mailbox',
-      'smtp_provider',
-      'smtp_from',
-      'smtp_to',
       'encryption_mode',
-      'signing_mode',
-      'tls_required',
-      'certificate_id',
-      'certificate_environment',
-      'transport_environment',
-      'allow_unencrypted_test',
-      'allow_unencrypted_production',
       'payload_format',
       'message_standard',
       'ack_mode',
-      'target_system',
-      'route_name',
-      'transport_security_mode',
-      'certificate_required',
-      'security_policy_status',
       'default_message_version',
       'default_test_flag',
       'default_timezone',
@@ -621,29 +633,16 @@ async function upsertSimpleSystemTestRoute(params: {
 export async function saveSimpleSystemTestCompanySetupAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
   const companyId = formString(formData.get('companyId'))
-  const packageDefinition = getEdielSystemTestPackage(formString(formData.get('setupPackage')))
-  const actorRole = formString(formData.get('actorRole')) === 'supplier'
-    ? 'supplier'
-    : formString(formData.get('actorRole')) === 'esco'
-      ? 'esco'
-      : packageDefinition.actorRole
-  const messageFamily = (formString(formData.get('messageFamily')) ?? packageDefinition.messageFamily).toUpperCase() === 'UTILTS' ? 'UTILTS' : 'PRODAT'
-  const testSuiteType = (formString(formData.get('testSuiteType')) ?? packageDefinition.testSuiteType).toUpperCase() === 'TGT' ? 'TGT' : 'AGT'
+  const actorRole = formString(formData.get('actorRole')) === 'supplier' ? 'supplier' : 'esco'
   const edielId = formString(formData.get('edielId'))
-  const smtpConfig = edielSmtpConfig()
-  const mailbox = formString(formData.get('mailbox')) ?? smtpConfig.from
-  const portalEdielId = formString(formData.get('portalEdielId')) ?? packageDefinition.portalEdielId
-  const portalEmail = formString(formData.get('portalEmail')) ?? packageDefinition.portalEmail
-  const applicationReference = formString(formData.get('applicationReference')) ?? packageDefinition.applicationReference
-  const testBrpEdielId = formString(formData.get('testBrpEdielId')) ?? (actorRole === 'supplier' ? packageDefinition.testBrpEdielId : null)
-  const encryptionMode = formString(formData.get('encryptionMode')) === 'smime' || (messageFamily === 'PRODAT' && packageDefinition.encryptionMode === 'smime') ? 'smime' : 'none'
+  const mailbox = formString(formData.get('mailbox')) ?? 'ediel@gridex.se'
+  const portalEdielId = formString(formData.get('portalEdielId')) ?? '91100'
+  const portalEmail = formString(formData.get('portalEmail')) ?? '91100@ediel.se'
+  const testBrpEdielId = formString(formData.get('testBrpEdielId')) ?? (actorRole === 'supplier' ? '91109' : null)
+  const encryptionMode = formString(formData.get('encryptionMode')) === 'smime' ? 'smime' : 'none'
   const certificateId = formString(formData.get('certificateId'))
-  const receiverSubaddress = formString(formData.get('receiverSubaddress')) ?? formString(formData.get('prodatSubaddress')) ?? packageDefinition.receiverSubaddress
-  const receiverSubaddressRequired = formBool(formData.get('receiverSubaddressRequired')) || formBool(formData.get('prodatSubaddressRequired')) || packageDefinition.receiverSubaddressRequired
-  const certificateEnvironment = formString(formData.get('certificateEnvironment')) ?? packageDefinition.certificateEnvironment
-  const transportEnvironment = formString(formData.get('transportEnvironment')) ?? packageDefinition.transportEnvironment
-  const smtpProvider = formString(formData.get('smtpProvider')) ?? packageDefinition.smtpProvider
-  const createBothRoutes = formBool(formData.get('createBothRoutes'))
+  const prodatSubaddress = formString(formData.get('prodatSubaddress'))
+  const prodatSubaddressRequired = formBool(formData.get('prodatSubaddressRequired'))
 
   const baseRedirect = `/admin/ediel/system-tests?${companyId ? `companyId=${encodeURIComponent(companyId)}&` : ''}packet=esco&role=${actorRole}`
 
@@ -651,24 +650,16 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
   try {
     if (!companyId) throw new Error('Välj bolag.')
     if (!edielId) throw new Error('Fyll i Div3rsa/bolagets Ediel-ID.')
-    if (messageFamily === 'PRODAT' && portalEdielId === '91100' && receiverSubaddress !== 'PRODAT') {
-      throw new Error('PRODAT mot Edielportalen måste ha receiver subaddress PRODAT. Annars blir mottagaren 91100:ZZ och AGT E3-E8 får fel route.')
-    }
-    if (messageFamily === 'PRODAT' && receiverSubaddressRequired && !receiverSubaddress) {
-      throw new Error('PRODAT-route kräver receiver subaddress men fältet saknas.')
-    }
-    if (messageFamily === 'PRODAT' && encryptionMode === 'smime') {
-      if (!certificateId) throw new Error('Krypterat test kräver mottagarens publika krypteringscertifikat.')
-      await resolveOutboundRecipientCertificate({
-        certificateId,
-        receiverEdielId: portalEdielId,
-        receiverSubaddress,
-        messageFamily: 'PRODAT',
-        messageType: 'PRODAT',
-        environment: certificateEnvironment === 'production' ? 'production' : 'test',
-        smtpTo: portalEmail,
-      })
-    }
+    const effectiveProdatSubaddress = prodatSubaddress ?? (portalEdielId === '91100' ? 'PRODAT' : null)
+    const effectiveCertificateId = encryptionMode === 'smime'
+      ? await resolveEffectiveSystemTestCertificateId({
+          certificateId,
+          companyId,
+          portalEmail,
+          portalEdielId,
+          receiverSubaddress: effectiveProdatSubaddress,
+        })
+      : null
 
   const companyResult = await supabaseService
     .from('companies')
@@ -685,7 +676,7 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
     actorUserId: context.userId,
     email: mailbox,
     encryptionMode,
-    certificateId,
+    certificateId: effectiveCertificateId,
   })
   await upsertSimpleActorSetting({
     actorUserId: context.userId,
@@ -696,105 +687,73 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
     actorName,
   })
 
-  const routeProfileId = await upsertSimpleSystemTestRoute({
+  const prodatRouteProfileId = await upsertSimpleSystemTestRoute({
     actorUserId: context.userId,
     companyId,
-    setupPackage: packageDefinition.value,
-    testSuiteType,
     actorRole,
-    messageFamily,
-    applicationReference,
-    targetSystem: testSuiteType === 'AGT' ? 'ediel_portalen_agt' : 'ediel_portalen_tgt',
-    environmentType: testSuiteType === 'AGT' ? 'agt_test' : 'tgt_test',
-    routeName: packageDefinition.value === 'custom'
-      ? `${testSuiteType} ${actorRole === 'esco' ? 'DGI' : 'DDQ'} ${messageFamily} - Edielportalen`
-      : packageDefinition.routeName,
+    messageFamily: 'PRODAT',
     senderEdielId: edielId,
     receiverEdielId: portalEdielId,
     smtpTo: portalEmail,
-    smtpFrom: smtpConfig.from,
-    smtpProvider,
     mailbox,
-    receiverMessageSubaddress: messageFamily === 'PRODAT' ? receiverSubaddress : null,
-    subaddressRequired: messageFamily === 'PRODAT' ? receiverSubaddressRequired : false,
+    receiverMessageSubaddress: effectiveProdatSubaddress,
+    subaddressRequired: prodatSubaddressRequired || Boolean(effectiveProdatSubaddress),
     encryptionMode,
-    certificateEnvironment,
-    transportEnvironment,
-    certificateId: messageFamily === 'PRODAT' ? certificateId : null,
+    certificateId: effectiveCertificateId,
     mailboxId,
   })
-  let secondaryRouteProfileId: string | null = null
-  if (createBothRoutes) {
-    const secondaryFamily = messageFamily === 'PRODAT' ? 'UTILTS' : 'PRODAT'
-    secondaryRouteProfileId = await upsertSimpleSystemTestRoute({
-      actorUserId: context.userId,
-      companyId,
-      setupPackage: packageDefinition.value,
-      testSuiteType,
-      actorRole,
-      messageFamily: secondaryFamily,
-      applicationReference: secondaryFamily === 'PRODAT'
-        ? actorRole === 'esco' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT'
-        : actorRole === 'esco' ? '23-DGI-E66-S' : '23-DDQ-E66-S',
-      targetSystem: testSuiteType === 'AGT' ? 'ediel_portalen_agt' : 'ediel_portalen_tgt',
-      environmentType: testSuiteType === 'AGT' ? 'agt_test' : 'tgt_test',
-      routeName: `${testSuiteType} ${actorRole === 'esco' ? 'DGI' : 'DDQ'} ${secondaryFamily} - Edielportalen`,
-      senderEdielId: edielId,
-      receiverEdielId: portalEdielId,
-      smtpTo: portalEmail,
-      smtpFrom: smtpConfig.from,
-      smtpProvider,
-      mailbox,
-      receiverMessageSubaddress: secondaryFamily === 'PRODAT' ? receiverSubaddress : null,
-      subaddressRequired: secondaryFamily === 'PRODAT',
-      encryptionMode: secondaryFamily === 'PRODAT' ? encryptionMode : 'none',
-      certificateEnvironment,
-      transportEnvironment,
-      certificateId: secondaryFamily === 'PRODAT' ? certificateId : null,
-      mailboxId,
-    })
-  }
+  const utiltsRouteProfileId = await upsertSimpleSystemTestRoute({
+    actorUserId: context.userId,
+    companyId,
+    actorRole,
+    messageFamily: 'UTILTS',
+    senderEdielId: edielId,
+    receiverEdielId: portalEdielId,
+    smtpTo: portalEmail,
+    mailbox,
+    receiverMessageSubaddress: null,
+    subaddressRequired: false,
+    encryptionMode,
+    certificateId: null,
+    mailboxId,
+  })
 
   await Promise.all([
     saveEdielSystemTestSettings({
       companyId,
       actorUserId: context.userId,
-      testSuite: testSuiteType,
+      testSuite: 'AGT',
       testPortalEdielId: portalEdielId,
-      testPortalName: `Edielportalen ${testSuiteType}`,
+      testPortalName: 'Edielportalen AGT',
       testPortalEmail: portalEmail,
       testBrpEdielId,
       testBrpName: testBrpEdielId ? 'Edielportalen test-BRP' : null,
-      defaultReceiverSubaddress: messageFamily === 'PRODAT' ? receiverSubaddress : null,
+      defaultReceiverSubaddress: effectiveProdatSubaddress,
       defaultSenderSubaddress: null,
-      routeProfileId,
-      setupPackage: packageDefinition.value,
-      actorRole,
-      messageFamily,
-      applicationReference,
-      environmentType: testSuiteType === 'AGT' ? 'agt_test' : 'tgt_test',
-      certificateEnvironment,
-      transportEnvironment,
-      smtpProvider,
-      metadata: {
-        setupPackage: packageDefinition.value,
-        selectedRouteProfileId: routeProfileId,
-        secondaryRouteProfileId,
-        receiverPreview: edielComposite(portalEdielId, messageFamily === 'PRODAT' ? receiverSubaddress : null),
-        ldapLookupMail: portalEmail,
-        expisoftLdapUrl: `ldap://sodir01.expisoft.se:389/c=se?userCertificate?sub?mail=${portalEmail}`,
-        brpUsed: Boolean(testBrpEdielId),
-      },
+      routeProfileId: prodatRouteProfileId,
+      isActive: true,
+    }),
+    saveEdielSystemTestSettings({
+      companyId,
+      actorUserId: context.userId,
+      testSuite: 'TGT',
+      testPortalEdielId: portalEdielId,
+      testPortalName: 'Edielportalen TGT',
+      testPortalEmail: portalEmail,
+      testBrpEdielId,
+      testBrpName: testBrpEdielId ? 'Edielportalen test-BRP' : null,
+      defaultReceiverSubaddress: effectiveProdatSubaddress,
+      defaultSenderSubaddress: null,
+      routeProfileId: prodatRouteProfileId,
       isActive: true,
     }),
   ])
 
-  const readinessFamilies = Array.from(new Set([messageFamily, secondaryRouteProfileId ? (messageFamily === 'PRODAT' ? 'UTILTS' : 'PRODAT') : null].filter(Boolean))) as Array<'PRODAT' | 'UTILTS'>
-  for (const readinessFamily of readinessFamilies) {
+  for (const messageFamily of ['PRODAT', 'UTILTS'] as const) {
     const { error } = await supabaseService.from('ediel_agt_readiness').upsert({
       company_id: companyId,
       actor_role: actorRole,
-      message_family: readinessFamily,
+      message_family: messageFamily,
       test_resource_name: 'Edielportalen',
       test_resource_email: portalEmail,
       test_resource_confirmed: true,
@@ -814,10 +773,8 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
         portalEdielId,
         portalEmail,
         encryptionMode,
-        setupPackage: packageDefinition.value,
-        testSuiteType,
-        certificateEnvironment,
-        transportEnvironment,
+        effectiveCertificateId,
+        certificateAutoResolved: Boolean(effectiveCertificateId && effectiveCertificateId !== certificateId),
       },
     }, { onConflict: 'company_id,actor_role,message_family' })
     if (error && !['42P01', '42703', 'PGRST204'].includes(error.code ?? '')) throw error
@@ -835,12 +792,10 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
       mailbox,
       portalEdielId,
       portalEmail,
-      setupPackage: packageDefinition.value,
-      routeProfileId,
-      secondaryRouteProfileId,
+      prodatRouteProfileId,
+      utiltsRouteProfileId,
       encryptionMode,
-      certificateEnvironment,
-      transportEnvironment,
+      effectiveCertificateId,
     },
   }).then(({ error }) => {
     if (error && !['42P01', '42703', 'PGRST204'].includes(error.code ?? '')) throw error
