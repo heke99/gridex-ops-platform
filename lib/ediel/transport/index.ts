@@ -62,6 +62,28 @@ function requireActorUserId(value?: string | null): string {
   return trimmed
 }
 
+
+function routeText(routeProfile: Record<string, unknown> | null | undefined, column: string): string | null {
+  const value = routeProfile?.[column]
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function routeMetadataText(routeProfile: Record<string, unknown> | null | undefined, key: string): string | null {
+  const metadata = routeProfile?.metadata
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null
+  const value = (metadata as Record<string, unknown>)[key]
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function routeCertificateEnvironment(routeProfile: Record<string, unknown> | null | undefined, fallbackEnvironment?: string | null): string | null {
+  return (
+    routeText(routeProfile, 'certificate_environment') ??
+    routeMetadataText(routeProfile, 'certificateEnvironment') ??
+    routeMetadataText(routeProfile, 'certificate_environment') ??
+    (fallbackEnvironment && fallbackEnvironment.trim().length > 0 ? fallbackEnvironment.trim() : null)
+  )
+}
+
 function sanitizeMimeHeader(value: string | null | undefined, fallback = ''): string {
   const text = String(value ?? fallback).trim()
   return text.replace(/[\r\n]+/g, ' ').trim() || fallback
@@ -1437,6 +1459,7 @@ export async function sendEdielMessageViaSmtp(
       businessCode: String(message.message_code ?? routeProfile?.business_code ?? ''),
       messageType: String(message.message_family ?? routeProfile?.message_family ?? ''),
       environment: message.environment,
+      certificateEnvironment: routeCertificateEnvironment(routeProfile as Record<string, unknown> | null, message.environment),
       routeProfileId: routeProfile?.id ?? null,
       smtpTo: message.receiver_email,
     })

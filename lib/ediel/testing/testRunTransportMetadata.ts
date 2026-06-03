@@ -13,6 +13,28 @@ import { assertEdielEnvironmentGate } from '@/lib/ediel/testing/environmentGate'
 type TestEncryptionMode = 'none' | 'smime'
 export type EdielEnvironmentType = 'tgt_test' | 'agt_test' | 'bilateral_test' | 'production'
 
+
+function routeText(routeProfile: Record<string, unknown> | null | undefined, column: string): string | null {
+  const value = routeProfile?.[column]
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function routeMetadataText(routeProfile: Record<string, unknown> | null | undefined, key: string): string | null {
+  const metadata = routeProfile?.metadata
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null
+  const value = (metadata as Record<string, unknown>)[key]
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function routeCertificateEnvironment(routeProfile: Record<string, unknown> | null | undefined, fallbackEnvironment?: string | null): string | null {
+  return (
+    routeText(routeProfile, 'certificate_environment') ??
+    routeMetadataText(routeProfile, 'certificateEnvironment') ??
+    routeMetadataText(routeProfile, 'certificate_environment') ??
+    (fallbackEnvironment && fallbackEnvironment.trim().length > 0 ? fallbackEnvironment.trim() : null)
+  )
+}
+
 function normalizeEnvironmentType(value?: string | null): EdielEnvironmentType {
   const normalized = String(value ?? '').trim().toLowerCase()
   if (normalized === 'production') return 'production'
@@ -243,6 +265,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
         receiverSubaddress: routeReceiverSubaddress(routeProfile),
         messageType: messageFamily,
         environment,
+        certificateEnvironment: routeCertificateEnvironment(routeProfile, environment),
         routeProfileId: String(routeProfile?.id ?? '') || null,
         smtpTo: String(routeProfile?.smtp_to ?? ''),
       })

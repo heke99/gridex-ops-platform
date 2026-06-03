@@ -28,6 +28,7 @@ import {
 import type { EdielMessageEventRow, EdielMessageRow } from '@/lib/ediel/types'
 import { evaluateProdatPortalReadiness } from '@/lib/ediel/prodatPortalReadiness'
 import { validateEdielSendContext } from '@/lib/ediel/sendContextConsistency'
+import { EdielSendButton } from '@/components/admin/ediel/EdielSendButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -441,13 +442,13 @@ Transport verifierad: {sendReadiness.resolvedEncryptionMode === 'smime' ? 'krypt
 {sendReadiness?.blockingIssues.map((issue) => issue.message).join(' ') ?? 'Skick blockerat av okänd send readiness.'}
 </div>
 )}
- <button
- type="submit"
-disabled={!sendReadiness?.ok}
-className={`mt-2 rounded-2xl border px-4 py-2 text-sm font-medium ${sendReadiness?.ok ? 'bg-white border-slate-300 text-slate-900' : 'cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400'}`}
- >
-{sendReadiness?.sendButtonLabel ?? 'Skick blockerat'}
- </button>
+ <div className="mt-2">
+ <EdielSendButton
+ disabled={!sendReadiness?.ok}
+ label={sendReadiness?.sendButtonLabel ?? 'Skick blockerat'}
+ pendingLabel="Skickar till Ediel…"
+ />
+ </div>
  </form>
  ) : null}
 
@@ -728,12 +729,11 @@ className={`mt-2 rounded-2xl border px-4 py-2 text-sm font-medium ${sendReadines
  {ack.direction === 'outbound' && ['draft', 'queued', 'prepared'].includes(String(ack.status)) ? (
  <form action={sendEdielMessageAction}>
  <input type="hidden" name="edielMessageId" value={ack.id} />
- <button
- type="submit"
- className="rounded-xl bg-white border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-50"
- >
- Skicka till Edielportalen
- </button>
+ <EdielSendButton
+ label="Skicka till Edielportalen"
+ pendingLabel="Skickar…"
+ className="rounded-xl bg-white border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+ />
  </form>
  ) : null}
  </div>

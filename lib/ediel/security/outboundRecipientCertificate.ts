@@ -142,6 +142,7 @@ export async function resolveOutboundRecipientCertificate(input: {
   businessCode?: string | null
   messageType?: string | null
   environment?: string | null
+  certificateEnvironment?: string | null
   routeProfileId?: string | null
   smtpTo?: string | null
 }): Promise<OutboundRecipientCertificate> {
@@ -151,6 +152,7 @@ export async function resolveOutboundRecipientCertificate(input: {
   const messageFamily = String(input.messageFamily ?? input.messageType ?? '').trim().toUpperCase()
   const businessCode = String(input.businessCode ?? '').trim().toUpperCase()
   const environment = String(input.environment ?? '').trim().toLowerCase()
+  const certificateEnvironment = String(input.certificateEnvironment ?? '').trim().toLowerCase() || environment
 
   if (!certificateId) {
     if (input.routeProfileId) {
@@ -196,7 +198,7 @@ export async function resolveOutboundRecipientCertificate(input: {
       .order('valid_to', { ascending: false, nullsFirst: false })
       .limit(20)
 
-    if (environment) query = query.eq('environment', environment)
+    if (certificateEnvironment) query = query.eq('environment', certificateEnvironment)
     if (receiverSubaddress) query = query.eq('owner_subaddress', receiverSubaddress)
 
     const { data: candidates, error: lookupError } = await query
@@ -283,7 +285,11 @@ export async function resolveOutboundRecipientCertificate(input: {
     )
   }
 
-  if (certEnvironment && environment && certEnvironment !== environment) {
+  if (certEnvironment && certificateEnvironment && certEnvironment !== certificateEnvironment) {
+    throw new Error(`Sändning stoppad: certifikatet är för ${certEnvironment}, men routen kräver certifikatmiljö ${certificateEnvironment}.`)
+  }
+
+  if (certEnvironment && environment && certEnvironment !== environment && certificateEnvironment === environment) {
     throw new Error(`Sändning stoppad: certifikatet är för ${certEnvironment}, men meddelandet skickas i ${environment}.`)
   }
 

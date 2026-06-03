@@ -1374,8 +1374,9 @@ export async function sendEdielMessageAction(formData: FormData) {
 
     revalidateEdiel(edielMessageId);
     await revalidateRelatedMessage(edielMessageId);
-    return;
   }
+
+  redirect(`/admin/ediel/messages/${edielMessageId}`);
 }
 
 export async function pollMailboxAction(formData: FormData) {
