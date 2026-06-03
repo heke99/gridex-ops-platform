@@ -31,6 +31,11 @@ function isP12File(file: File): boolean {
   return name.endsWith('.p12') || name.endsWith('.pfx')
 }
 
+function isPublicCertificateFile(file: File): boolean {
+  const name = file.name.toLowerCase()
+  return name.endsWith('.pem') || name.endsWith('.cer') || name.endsWith('.crt')
+}
+
 function normalizeMailboxEmail(value: string | null): string {
   return (value ?? 'ediel@gridex.se').trim().toLowerCase() || 'ediel@gridex.se'
 }
@@ -219,14 +224,14 @@ async function insertCertificateRecord(input: {
     is_private_material_available: input.isPrivateMaterialAvailable,
     source: input.isPrivateMaterialAvailable ? 'p12_import' : 'pem_import',
     needs_verification: !input.ownerEdielId || (input.usage === 'outbound_recipient' && !input.ownerSubaddress && input.messageType === 'PRODAT'),
-    p12_secret_reference: input.metadata.p12SecretReference ?? `public://ediel-certificates/${input.metadata.fingerprintSha256}/certificate`,
+    p12_secret_reference: input.metadata.p12SecretReference ?? null,
     private_key_secret_reference: input.metadata.privateKeySecretReference,
     p12_alias: input.metadata.p12Alias,
     valid_from: input.metadata.validFrom,
     valid_to: input.metadata.validTo,
     certificate_valid_from: input.metadata.validFrom,
     certificate_valid_to: input.metadata.validTo,
-    secret_reference: input.metadata.p12SecretReference ?? `public://ediel-certificates/${input.metadata.fingerprintSha256}/certificate`,
+    secret_reference: input.metadata.p12SecretReference ?? (input.isPrivateMaterialAvailable ? null : `public://ediel-certificates/${input.metadata.fingerprintSha256}/certificate`),
     encryption_status: input.status.isUsableForSmime ? 'valid' : input.status.status,
     status: input.status.status === 'renewal_available' ? 'active' : input.status.status,
     last_validation_at: now,
@@ -427,8 +432,14 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
   const metadata =
     hasFile
       ? await (async () => {
+          if (isPublicCertificateFile(file)) {
+            return importPublicCertificatePem({
+              publicCertificatePem: Buffer.from(await file.arrayBuffer()).toString('utf8'),
+              displayName,
+            })
+          }
           if (!isP12File(file)) {
-            throw new Error('Certifikatuppladdning stöder bara .p12/.pfx.')
+            throw new Error('Certifikatuppladdning stöder .p12/.pfx för privata certifikat och .pem/.cer/.crt för mottagarens publika certifikat.')
           }
           if (!password) {
             throw new Error('PIN/lösenord krävs för att validera P12-filen.')
@@ -467,6 +478,9 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
 
   if (hasPrivateMaterial && usage === 'outbound_recipient') {
     throw new Error('P12/PFX med privat nyckel får inte importeras som mottagarcertifikat. Importera mottagarens publika .cer/.pem som outbound_recipient i stället.')
+  }
+  if (!hasPrivateMaterial && usage !== 'outbound_recipient') {
+    throw new Error('Publikt PEM/CER utan privat nyckel får bara importeras som mottagarens publika certifikat (usage=outbound_recipient). För inbound_private/sender_signing krävs vårt privata P12/PFX.')
   }
 
   const data = await insertCertificateRecord({

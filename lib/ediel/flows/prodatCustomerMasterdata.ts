@@ -137,10 +137,10 @@ function buildProdatZ01Draft(params: {
     const isEdielPortalTgt = isEdielPortalParty(params.routeContext.receiverEdielId)
     const senderSubAddress = isEdielPortalTgt
       ? 'PRODAT'
-      : params.routeContext.senderSubAddress ?? 'PRODAT'
+      : params.routeContext.senderSubAddress
     const receiverSubAddress = isEdielPortalTgt
       ? 'PRODAT'
-      : params.routeContext.receiverSubAddress ?? 'PRODAT'
+      : params.routeContext.receiverSubAddress
     const applicationReference = params.routeContext.applicationReference ??
       buildDefaultApplicationReference({
         actorSubAddress: senderSubAddress,

@@ -14,7 +14,9 @@ import type {
   EdielEncryptionMode,
   EdielPayloadFormat,
   EdielRouteProfileAckMode,
+  EdielTransportSecurityMode,
 } from '@/lib/ediel/types'
+import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -137,6 +139,8 @@ async function upsertEdielRouteProfileLocal(input: {
   companyId: string
   communicationRouteId: string
   isEnabled: boolean
+  messageFamily?: string | null
+  businessCode?: string | null
   senderEdielId: string | null
   senderName: string | null
   senderSubAddress: string | null
@@ -161,6 +165,9 @@ async function upsertEdielRouteProfileLocal(input: {
   encryptionMode: EdielEncryptionMode | null
   signingMode: string | null
   certificateId: string | null
+  receiverCertificateId?: string | null
+  transportSecurityMode?: EdielTransportSecurityMode | string | null
+  certificateRequired?: boolean
   allowUnencryptedProduction: boolean
   allowUnencryptedProductionExpiresAt: string | null
   allowUnencryptedProductionReason: string | null
@@ -186,11 +193,22 @@ async function upsertEdielRouteProfileLocal(input: {
     existing?.sender_sub_address ?? null,
     actorDefaults?.senderSubAddress
   )
+  const requestedMessageFamily = coalesceString(input.messageFamily, existing?.message_family ?? null)
+  const transportSecurityMode = normalizeTransportSecurityMode(
+    input.transportSecurityMode ??
+    (input.environment === 'production' && (requestedMessageFamily ?? '').toUpperCase() === 'PRODAT'
+      ? 'required_encrypted'
+      : input.encryptionMode === 'smime'
+        ? 'required_encrypted'
+        : 'unencrypted')
+  )
 
   const payload = {
     company_id: input.companyId,
     communication_route_id: input.communicationRouteId,
     is_enabled: input.isEnabled,
+    message_family: requestedMessageFamily,
+    business_code: coalesceString(input.businessCode, existing?.business_code ?? null),
     sender_ediel_id: coalesceString(
       input.senderEdielId,
       existing?.sender_ediel_id ?? null,
@@ -246,8 +264,17 @@ async function upsertEdielRouteProfileLocal(input: {
     imap_port: input.imapPort ?? existing?.imap_port ?? null,
     mailbox: coalesceString(input.mailbox, existing?.mailbox ?? null, actorDefaults?.mailbox),
     encryption_mode: input.encryptionMode ?? existing?.encryption_mode ?? null,
+    transport_security_mode: transportSecurityMode,
     signing_mode: input.signingMode ?? existing?.signing_mode ?? 'none',
-    certificate_id: input.certificateId ?? existing?.certificate_id ?? null,
+    certificate_id: input.receiverCertificateId ?? input.certificateId ?? existing?.receiver_certificate_id ?? existing?.certificate_id ?? null,
+    receiver_certificate_id: input.receiverCertificateId ?? input.certificateId ?? existing?.receiver_certificate_id ?? existing?.certificate_id ?? null,
+    certificate_required:
+      input.certificateRequired ??
+      (
+        transportSecurityMode === 'required_encrypted' ||
+        transportSecurityMode === 'encrypted' ||
+        existing?.certificate_required === true
+      ),
     allow_unencrypted_production: input.allowUnencryptedProduction,
     allow_unencrypted_production_expires_at: input.allowUnencryptedProduction
       ? input.allowUnencryptedProductionExpiresAt
@@ -258,7 +285,13 @@ async function upsertEdielRouteProfileLocal(input: {
     allow_unencrypted_production_granted_by: input.allowUnencryptedProduction
       ? input.actorUserId
       : null,
-    security_policy_status: input.allowUnencryptedProduction ? 'emergency_override' : 'not_checked',
+    security_policy_status: input.allowUnencryptedProduction
+      ? 'emergency_override'
+      : transportSecurityMode === 'needs_verification'
+        ? 'needs_verification'
+        : transportSecurityMode === 'unencrypted'
+          ? 'test_unencrypted_allowed'
+          : 'receiver_certificate_required',
     payload_format: input.payloadFormat,
     notes: coalesceString(input.notes, existing?.notes ?? null),
     updated_by: input.actorUserId,
@@ -330,6 +363,8 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     companyId,
     communicationRouteId,
     isEnabled: boolValue(formData, 'isEnabled'),
+    messageFamily: stringValue(formData, 'messageFamily'),
+    businessCode: stringValue(formData, 'businessCode'),
     senderEdielId: stringValue(formData, 'senderEdielId'),
     senderName: stringValue(formData, 'senderName'),
     senderSubAddress: stringValue(formData, 'senderSubAddress'),
@@ -354,6 +389,9 @@ export async function saveEdielRouteProfileAction(formData: FormData) {
     encryptionMode: normalizeEncryptionMode(stringValue(formData, 'encryptionMode')),
     signingMode: stringValue(formData, 'signingMode') === 'smime' ? 'smime' : 'none',
     certificateId: stringValue(formData, 'certificateId'),
+    receiverCertificateId: stringValue(formData, 'receiverCertificateId'),
+    transportSecurityMode: stringValue(formData, 'transportSecurityMode'),
+    certificateRequired: boolValue(formData, 'certificateRequired'),
     allowUnencryptedProduction: boolValue(formData, 'allowUnencryptedProduction'),
     allowUnencryptedProductionExpiresAt: stringValue(formData, 'allowUnencryptedProductionExpiresAt'),
     allowUnencryptedProductionReason: stringValue(formData, 'allowUnencryptedProductionReason'),
@@ -472,6 +510,8 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
     companyId,
     communicationRouteId: saved.id,
     isEnabled: true,
+    messageFamily: stringValue(formData, 'messageFamily'),
+    businessCode: stringValue(formData, 'businessCode'),
     senderEdielId: stringValue(formData, 'senderEdielId'),
     senderName: stringValue(formData, 'senderName'),
     senderSubAddress: stringValue(formData, 'senderSubAddress'),
@@ -496,6 +536,9 @@ export async function createEdielBootstrapRouteAction(formData: FormData) {
     encryptionMode: normalizeEncryptionMode(stringValue(formData, 'encryptionMode')),
     signingMode: stringValue(formData, 'signingMode') === 'smime' ? 'smime' : 'none',
     certificateId: stringValue(formData, 'certificateId'),
+    receiverCertificateId: stringValue(formData, 'receiverCertificateId'),
+    transportSecurityMode: stringValue(formData, 'transportSecurityMode'),
+    certificateRequired: boolValue(formData, 'certificateRequired'),
     allowUnencryptedProduction: boolValue(formData, 'allowUnencryptedProduction'),
     allowUnencryptedProductionExpiresAt: stringValue(formData, 'allowUnencryptedProductionExpiresAt'),
     allowUnencryptedProductionReason: stringValue(formData, 'allowUnencryptedProductionReason'),

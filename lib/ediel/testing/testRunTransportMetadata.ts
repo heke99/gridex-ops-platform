@@ -45,6 +45,16 @@ function normalizeEncryptionMode(value?: string | null): TestEncryptionMode {
   return value === 'smime' ? 'smime' : 'none'
 }
 
+function recordText(value: unknown, ...keys: string[]): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  for (const key of keys) {
+    const raw = record[key]
+    if (typeof raw === 'string' && raw.trim().length > 0) return raw.trim()
+  }
+  return null
+}
+
 async function resolveRouteProfile(input: {
   companyId: string
   environment: 'test' | 'production'
@@ -225,7 +235,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
   )
   // Test runs must lock the receiver public route certificate only.
   // Mailbox certificate is private/inbound material and must not be used as outbound recipient.
-  const effectiveCertificateId = String(routeProfile?.certificate_id ?? '') || null
+  const effectiveCertificateId = String(routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? '') || null
   const certificate = effectiveEncryption === 'smime'
     ? await resolveOutboundRecipientCertificate({
         certificateId: effectiveCertificateId,
@@ -274,7 +284,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     businessCode,
     encryptionMode: effectiveEncryption,
     certificateId: effectiveCertificateId,
-    certificateFingerprintSha256: String((certificate as any)?.fingerprintSha256 ?? (certificate as any)?.fingerprint_sha256 ?? (certificate as any)?.certificate_fingerprint ?? '') || null,
+    certificateFingerprintSha256: recordText(certificate, 'fingerprintSha256', 'fingerprint_sha256', 'certificate_fingerprint'),
     routeProfileId: String(routeProfile?.id ?? '') || null,
     expectedFlow,
     actualFlow: [],
@@ -312,7 +322,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     if (effectiveEncryption === 'smime' && rawEdifact) {
       const encrypted = await createSmimeEncryptedPayloadReference({
         rawEdifact,
-        publicCertificatePem: String((certificate as any)?.publicCertificatePem ?? (certificate as any)?.public_certificate_pem ?? ''),
+        publicCertificatePem: recordText(certificate, 'publicCertificatePem', 'public_certificate_pem') ?? '',
         filename: message.file_name,
       })
       encryptedPayloadRef = encrypted.encryptedPayloadRef

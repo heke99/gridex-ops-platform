@@ -120,6 +120,16 @@ export default async function EdielCertificatesPage({ searchParams }: Certificat
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
 Superadmin kan registrera S/MIME-certifikat. Importera vårt P12/PFX som privat inbound/signering. Importera mottagarens publika PEM/CER som outbound_recipient. Systemet kopplar inte längre P12/mailbox-certifikat till outbound routes automatiskt.
           </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-sm font-black text-slate-950">Vårt privata certifikat för inkommande dekryptering/signering</div>
+              <p className="mt-2 text-xs leading-5 text-slate-700">Välj usage inbound_private eller sender_signing och ladda upp .p12/.pfx. Det blir inte valbart som mottagarcertifikat.</p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="text-sm font-black text-emerald-950">Mottagarens publika certifikat för utgående kryptering</div>
+              <p className="mt-2 text-xs leading-5 text-emerald-900">Välj usage outbound_recipient, purpose encryption, ägare Ediel-ID/subadress och klistra in PEM/CER. Detta är enda certifikattypen som får länkas till krypterade outbound routes.</p>
+            </div>
+          </div>
           <form action={importEdielP12CertificateAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <input name="displayName" placeholder="Certificate name" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <input name="mailboxEmail" defaultValue="ediel@gridex.se" placeholder="Mailbox/e-post" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
@@ -152,7 +162,7 @@ Superadmin kan registrera S/MIME-certifikat. Importera vårt P12/PFX som privat 
               <option value="">Generellt</option>
             </select>
             <input name="password" type="password" placeholder="PIN/lösenord endast för P12/PFX" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <input name="certificateFile" type="file" accept=".p12,.pfx" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2" />
+            <input name="certificateFile" type="file" accept=".p12,.pfx,.pem,.cer,.crt" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2" />
             <textarea
               name="certificateText"
               rows={8}

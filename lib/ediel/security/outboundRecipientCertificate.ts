@@ -103,11 +103,17 @@ function inferEnvironment(row: CertificateRow): string | null {
 }
 
 function hasPrivateMaterial(row: CertificateRow): boolean {
+  const secretReference = textFrom(row, 'secret_reference', 'secretReference')
+  const secretLooksPrivate = Boolean(
+    secretReference &&
+      !secretReference.startsWith('public://') &&
+      !secretReference.startsWith('pending://'),
+  )
   return Boolean(
     boolFrom(row, 'is_private_material_available', 'isPrivateMaterialAvailable', 'privateMaterialStoredAsSecretReferenceOnly') ||
       textFrom(row, 'p12_secret_reference', 'p12SecretReference') ||
       textFrom(row, 'private_key_secret_reference', 'privateKeySecretReference') ||
-      textFrom(row, 'secret_reference', 'secretReference'),
+      secretLooksPrivate,
   )
 }
 
@@ -132,32 +138,89 @@ export async function resolveOutboundRecipientCertificate(input: {
   certificateId?: string | null
   receiverEdielId?: string | null
   receiverSubaddress?: string | null
+  messageFamily?: string | null
+  businessCode?: string | null
   messageType?: string | null
   environment?: string | null
   routeProfileId?: string | null
   smtpTo?: string | null
 }): Promise<OutboundRecipientCertificate> {
-  const certificateId = String(input.certificateId ?? '').trim()
-  const receiverEdielId = String(input.receiverEdielId ?? '').trim()
+  let certificateId = String(input.certificateId ?? '').trim()
+  let receiverEdielId = String(input.receiverEdielId ?? '').trim()
   const receiverSubaddress = normalizeEdielSubaddress(input.receiverSubaddress)
-  const messageType = String(input.messageType ?? '').trim().toUpperCase()
+  const messageFamily = String(input.messageFamily ?? input.messageType ?? '').trim().toUpperCase()
+  const businessCode = String(input.businessCode ?? '').trim().toUpperCase()
   const environment = String(input.environment ?? '').trim().toLowerCase()
 
   if (!certificateId) {
-    const receiverAddress = (fullEdielAddress(receiverEdielId, 'ZZ', receiverSubaddress) ?? receiverEdielId) || 'mottagaren'
-    throw new Error(
-      `Sändning stoppad: mottagarcertifikat saknas för ${receiverAddress}. Importera mottagarens publika S/MIME-krypteringscertifikat och koppla det till routen.`,
-    )
+    if (input.routeProfileId) {
+      const { data: routeProfile, error: routeError } = await supabaseService
+        .from('ediel_route_profiles')
+        .select('receiver_certificate_id,certificate_id,receiver_ediel_id,receiver_subaddress,receiver_sub_address,receiver_message_subaddress')
+        .eq('id', input.routeProfileId)
+        .maybeSingle()
+      if (routeError) throw routeError
+      const route = (routeProfile ?? {}) as Record<string, unknown>
+      certificateId =
+        text(route.receiver_certificate_id) ??
+        text(route.certificate_id) ??
+        ''
+      receiverEdielId = receiverEdielId || text(route.receiver_ediel_id) || ''
+    }
   }
 
-  const { data, error } = await supabaseService
-    .from('ediel_certificates')
-    .select('*')
-    .eq('id', certificateId)
-    .maybeSingle()
+  let data: CertificateRow | null = null
+  if (certificateId) {
+    const byId = await supabaseService
+      .from('ediel_certificates')
+      .select('*')
+      .eq('id', certificateId)
+      .maybeSingle()
 
-  if (error) throw error
-  if (!data) throw new Error(`Sändning stoppad: certifikatet ${certificateId} finns inte.`)
+    if (byId.error) throw byId.error
+    data = (byId.data as CertificateRow | null) ?? null
+    if (!data) throw new Error(`Sändning stoppad: certifikatet ${certificateId} finns inte.`)
+  } else {
+    const receiverAddress = (fullEdielAddress(receiverEdielId, 'ZZ', receiverSubaddress) ?? receiverEdielId) || 'mottagaren'
+    if (!receiverEdielId) {
+      throw new Error('Sändning stoppad: route saknar receiver_ediel_id och kan inte slå upp mottagarcertifikat.')
+    }
+
+    let query = supabaseService
+      .from('ediel_certificates')
+      .select('*')
+      .eq('usage', 'outbound_recipient')
+      .eq('owner_ediel_id', receiverEdielId)
+      .in('purpose', ['encryption', 'both'])
+      .in('status', ['active', 'renewal_available'])
+      .order('valid_to', { ascending: false, nullsFirst: false })
+      .limit(20)
+
+    if (environment) query = query.eq('environment', environment)
+    if (receiverSubaddress) query = query.eq('owner_subaddress', receiverSubaddress)
+
+    const { data: candidates, error: lookupError } = await query
+    if (lookupError) throw lookupError
+
+    const usable = ((candidates ?? []) as CertificateRow[]).find((candidate) => {
+      const family = normalize(textFrom(candidate, 'message_family', 'messageFamily') ?? textFrom(candidate, 'message_type', 'messageType'))
+      const code = normalize(textFrom(candidate, 'business_code', 'businessCode'))
+      if (family && messageFamily && family !== normalize(messageFamily)) return false
+      if (code && businessCode && code !== normalize(businessCode) && code !== '*') return false
+      if (!textFrom(candidate, 'public_certificate_pem', 'publicCertificatePem')?.includes('BEGIN CERTIFICATE')) return false
+      const status = evaluateCertificateStatus(candidate)
+      return status.isUsableForSmime
+    }) ?? null
+
+    data = usable
+    certificateId = text(usable?.id) ?? ''
+
+    if (!data || !certificateId) {
+      throw new Error(
+        `Sändning stoppad: mottagarcertifikat saknas för ${receiverAddress}. Importera mottagarens publika S/MIME-krypteringscertifikat och koppla det till routen.`,
+      )
+    }
+  }
 
   const row = data as CertificateRow
   const usage = inferUsage(row)

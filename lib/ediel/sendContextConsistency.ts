@@ -1,5 +1,10 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow, EdielRouteProfileRow, EdielTestRunMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
+import {
+  isAgtPortalProdatAddress,
+  normalizeTransportSecurityMode,
+  transportSecurityModeToEncryptionMode,
+} from '@/lib/ediel/partyRegistry'
 
 export type EdielResolvedSmtpMimeMode = 'ediel-singlepart-base64' | 'ediel-smime-enveloped'
 
@@ -88,23 +93,6 @@ async function getRouteProfileForMessage(message: EdielMessageRow, run: EdielTes
   return (data as EdielRouteProfileRow | null) ?? null
 }
 
-async function getMailboxEncryption(message: EdielMessageRow, routeProfile: EdielRouteProfileRow | null): Promise<'none' | 'smime' | null> {
-  const mailbox = String(routeProfile?.mailbox ?? message.mailbox ?? '').trim()
-  const environment = String(message.environment ?? '').trim()
-  if (!mailbox || !environment) return null
-  const { data, error } = await supabaseService
-    .from('ediel_mailboxes')
-    .select('encryption_mode')
-    .ilike('email_address', mailbox)
-    .eq('environment', environment)
-    .eq('is_active', true)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error) throw error
-  return normalizeEncryptionMode((data as { encryption_mode?: unknown } | null)?.encryption_mode)
-}
-
 function addIssue(target: EdielSendConsistencyIssue[], code: string, message: string, severity: 'blocking' | 'warning' = 'blocking') {
   target.push({ code, message, severity })
 }
@@ -116,14 +104,32 @@ export async function validateEdielSendContext(params: {
   const linkedRuns = await listLinkedTestRuns(params.message.id)
   const linkedTestRun = linkedRuns[0] ?? null
   const routeProfile = await getRouteProfileForMessage(params.message, linkedTestRun)
-  const mailboxEncryption = await getMailboxEncryption(params.message, routeProfile)
+  const rawRouteTransportSecurityMode = routeProfile?.transport_security_mode ?? routeProfile?.transport_mode ?? null
+  const routeTransportSecurityMode = rawRouteTransportSecurityMode
+    ? normalizeTransportSecurityMode(rawRouteTransportSecurityMode)
+    : null
   const routeEncryption = normalizeEncryptionMode(routeProfile?.encryption_mode)
   const selectedEncryptionMode = normalizeEncryptionMode(linkedTestRun?.encryption_mode)
-  const resolvedEncryptionMode = routeEncryption ?? mailboxEncryption ?? 'none'
+  const routeTransportEncryption = transportSecurityModeToEncryptionMode(routeTransportSecurityMode)
+  const resolvedEncryptionMode = selectedEncryptionMode ?? routeTransportEncryption ?? routeEncryption ?? 'none'
   const resolvedSmtpMimeMode = resolveSmtpMimeMode(resolvedEncryptionMode, params.smtpMimeModeOverride)
   const finalEncryptionMode: 'none' | 'smime' = resolvedSmtpMimeMode === 'ediel-smime-enveloped' ? 'smime' : 'none'
   const blockingIssues: EdielSendConsistencyIssue[] = []
   const warnings: EdielSendConsistencyIssue[] = []
+  const receiverSubaddress =
+    routeProfile?.receiver_message_subaddress ??
+    routeProfile?.receiver_subaddress ??
+    routeProfile?.receiver_sub_address ??
+    params.message.receiver_sub_address ??
+    null
+  const agtPortalUnencryptedAllowed =
+    routeProfile?.allow_unencrypted_test === true &&
+    isAgtPortalProdatAddress({
+      receiverEdielId: routeProfile?.receiver_ediel_id ?? params.message.receiver_ediel_id ?? null,
+      receiverSubaddress,
+      messageFamily: String(params.message.message_family ?? routeProfile?.message_family ?? ''),
+      environment: params.message.environment,
+    })
 
   for (const run of linkedRuns) {
     const runEncryption = normalizeEncryptionMode(run.encryption_mode)
@@ -155,8 +161,25 @@ export async function validateEdielSendContext(params: {
   if (routeProfile?.communication_route_id && !params.message.communication_route_id) {
     addIssue(blockingIssues, 'message_route_missing', 'Sending blocked: generated outbound message did not inherit the selected route profile. Create a new draft from the test run so route, encryption and mailbox are locked before sending.')
   }
-  if (selectedEncryptionMode === 'smime' && !routeProfile && !mailboxEncryption) {
+  if (selectedEncryptionMode === 'smime' && !routeProfile) {
     addIssue(blockingIssues, 'encrypted_transport_unresolved', 'Sending blocked: encrypted test run cannot resolve route or mailbox encryption settings.')
+  }
+  if (routeTransportSecurityMode === 'needs_verification') {
+    addIssue(blockingIssues, 'transport_security_needs_verification', 'Sending blocked: route transport security is marked needs_verification.')
+  }
+  if (routeTransportSecurityMode === 'required_encrypted' && finalEncryptionMode !== 'smime' && !agtPortalUnencryptedAllowed) {
+    addIssue(blockingIssues, 'required_encrypted_route_mismatch', 'Sending blocked: this route requires encrypted S/MIME transport.')
+  }
+  if (routeTransportSecurityMode === 'unencrypted' && finalEncryptionMode === 'smime') {
+    addIssue(blockingIssues, 'unencrypted_route_mismatch', 'Sending blocked: this route is explicitly unencrypted but the message is configured as S/MIME.')
+  }
+  if (
+    params.message.environment === 'production' &&
+    String(params.message.message_family ?? '').toUpperCase() === 'PRODAT' &&
+    finalEncryptionMode !== 'smime' &&
+    routeProfile?.allow_unencrypted_production !== true
+  ) {
+    addIssue(blockingIssues, 'production_prodat_requires_smime', 'Sending blocked: real grid owner PRODAT requires required_encrypted/S/MIME.')
   }
 
   return {

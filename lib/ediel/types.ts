@@ -415,6 +415,11 @@ export type EdielRouteProfileAckMode =
   | "contrl_and_aperak";
 
 export type EdielEncryptionMode = "none" | "smime" | "pgp";
+export type EdielTransportSecurityMode =
+  | "required_encrypted"
+  | "encrypted"
+  | "unencrypted"
+  | "needs_verification";
 
 export type EdielPayloadFormat = "edifact" | "xml" | "raw";
 
@@ -426,6 +431,9 @@ export type EdielRouteProfileRow = {
   is_active?: boolean | null;
   message_family?: string | null;
   message_code?: string | null;
+  business_code?: string | null;
+  party_id?: string | null;
+  party_address_id?: string | null;
   sender_ediel_id: string | null;
   sender_sub_address: string | null;
   sender_subaddress?: string | null;
@@ -441,6 +449,7 @@ export type EdielRouteProfileRow = {
   mailbox_id?: string | null;
   transport_type?: string | null;
   transport_mode?: string | null;
+  transport_security_mode?: EdielTransportSecurityMode | string | null;
   ack_policy?: string | null;
   application_reference: string | null;
   smtp_from?: string | null;
@@ -454,6 +463,8 @@ export type EdielRouteProfileRow = {
   signing_mode?: "none" | "smime" | string | null;
   tls_required?: boolean | null;
   certificate_id?: string | null;
+  receiver_certificate_id?: string | null;
+  certificate_required?: boolean | null;
   allow_unencrypted_test?: boolean | null;
   allow_unencrypted_production?: boolean | null;
   allow_unencrypted_production_expires_at?: string | null;
@@ -533,6 +544,13 @@ export type CreateEdielMessageInput = {
   relatedMessageId?: string | null;
 
   communicationRouteId?: string | null;
+  partyId?: string | null;
+  partyAddressId?: string | null;
+  transportSecurityMode?: EdielTransportSecurityMode | string | null;
+  routeTransportSecurityMode?: EdielTransportSecurityMode | string | null;
+  wasSmimeEncrypted?: boolean | null;
+  expectedReceiverCertificateId?: string | null;
+  cmsExpectedReceiverPresent?: boolean | null;
   outboundRequestId?: string | null;
   switchRequestId?: string | null;
   gridOwnerDataRequestId?: string | null;

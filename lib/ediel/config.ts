@@ -16,6 +16,7 @@ import {
   type ResolvedInboundEdielMessageRuleRow,
   type ResolvedVersionWindow,
 } from '@/lib/ediel/core/versionRegistry'
+import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 
 type ResolveMessageVersionInput = {
   family: string
@@ -41,6 +42,7 @@ export type EdielRouteRuntimeRow = {
   ack_mode: EdielRouteProfileAckMode
   payload_format: 'edifact' | 'xml' | 'raw'
   encryption_mode: 'none' | 'smime' | 'pgp' | null
+  transport_security_mode?: 'required_encrypted' | 'encrypted' | 'unencrypted' | 'needs_verification' | string | null
   default_message_version: string | null
   default_test_flag: 0 | 1
   default_timezone?: number | null
@@ -64,6 +66,8 @@ export type EdielRouteRuntimeRow = {
   supported_payload_version: string | null
   communication_route_notes: string | null
 
+  message_family?: string | null
+  business_code?: string | null
   sender_ediel_id?: string | null
   sender_name?: string | null
   sender_sub_address?: string | null
@@ -72,6 +76,8 @@ export type EdielRouteRuntimeRow = {
   signing_mode?: 'none' | 'smime' | string | null
   tls_required?: boolean | null
   certificate_id?: string | null
+  receiver_certificate_id?: string | null
+  certificate_required?: boolean | null
   allow_unencrypted_test?: boolean | null
   allow_unencrypted_production?: boolean | null
   allow_unencrypted_production_expires_at?: string | null
@@ -82,6 +88,8 @@ export type EdielRouteRuntimeRow = {
   smtp_port?: number | null
   imap_host?: string | null
   imap_port?: number | null
+  party_id?: string | null
+  party_address_id?: string | null
 }
 
 export type EdielRouteRuntimeIssue = {
@@ -153,6 +161,7 @@ export function evaluateProductionTransportSecurity(params: {
     | 'environment'
     | 'message_standard'
     | 'encryption_mode'
+    | 'transport_security_mode'
     | 'certificate_id'
     | 'allow_unencrypted_production'
     | 'allow_unencrypted_production_expires_at'
@@ -165,7 +174,13 @@ export function evaluateProductionTransportSecurity(params: {
   const issues: EdielRouteRuntimeIssue[] = []
   const overrideActive = hasActiveUnencryptedProductionOverride(runtime, params.now)
   const family = sanitize(params.messageFamily ?? runtime.message_family)?.toUpperCase()
-  const encryptionMode = sanitize(runtime.encryption_mode)?.toLowerCase()
+  const transportSecurityMode = normalizeTransportSecurityMode(runtime.transport_security_mode)
+  const encryptionMode =
+    transportSecurityMode === 'required_encrypted' || transportSecurityMode === 'encrypted'
+      ? 'smime'
+      : transportSecurityMode === 'unencrypted'
+        ? 'none'
+        : sanitize(runtime.encryption_mode)?.toLowerCase()
 
   if (runtime.environment !== 'production' || runtime.message_standard !== 'edifact') {
     return {
@@ -182,6 +197,15 @@ export function evaluateProductionTransportSecurity(params: {
       severity: 'error',
       label: 'Produktion PRODAT kräver S/MIME',
       resolution: 'Koppla ett giltigt certifikat och sätt encryption_mode=smime, eller använd tidsbegränsad superadmin-override med orsak.',
+    })
+  }
+
+  if (transportSecurityMode === 'needs_verification') {
+    issues.push({
+      key: 'transport_security_needs_verification',
+      severity: 'error',
+      label: 'Transport security är inte verifierad',
+      resolution: 'Verifiera route, SMTP, subadress och mottagarcertifikat innan utskick.',
     })
   }
 

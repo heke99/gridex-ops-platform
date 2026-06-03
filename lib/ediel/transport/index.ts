@@ -39,6 +39,10 @@ import {
   resolveOutboundRecipientCertificate,
   routeReceiverSubaddress,
 } from '@/lib/ediel/security/outboundRecipientCertificate'
+import {
+  isAgtPortalProdatAddress,
+  normalizeTransportSecurityMode,
+} from '@/lib/ediel/partyRegistry'
 
 const execFileAsync = promisify(execFile)
 
@@ -444,6 +448,20 @@ function normalizeRouteEncryptionMode(value: string | null | undefined): 'none' 
   return null
 }
 
+function encryptionModeFromMimeMode(value?: string | null): 'none' | 'smime' | null {
+  if (value === 'ediel-smime-enveloped') return 'smime'
+  if (
+    value === 'ediel-singlepart-base64' ||
+    value === 'ediel-singlepart-lines' ||
+    value === 'ediel-singlepart-compact' ||
+    value === 'nodemailer-attachment' ||
+    value === 'ediel-multipart-validation-base64'
+  ) {
+    return 'none'
+  }
+  return null
+}
+
 async function resolveMailboxSecurityDefaults(params: {
   mailbox?: string | null
   environment?: string | null
@@ -480,9 +498,50 @@ async function assertRouteTransportSecurity(params: {
   effectiveCertificateId?: string | null
 }) {
   const { message, routeProfile } = params
-  if (message.environment !== 'production') return
   const effectiveEncryptionMode = params.effectiveEncryptionMode ?? routeProfile?.encryption_mode ?? null
-  const effectiveCertificateId = params.effectiveCertificateId ?? routeProfile?.certificate_id ?? null
+  const effectiveCertificateId = params.effectiveCertificateId ?? routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
+  const receiverSubaddress = routeReceiverSubaddress(routeProfile) ?? message.receiver_sub_address ?? null
+  const rawTransportSecurityMode = routeProfile?.transport_security_mode ?? routeProfile?.transport_mode ?? null
+  const transportSecurityMode = rawTransportSecurityMode
+    ? normalizeTransportSecurityMode(rawTransportSecurityMode)
+    : null
+  const agtPortalUnencryptedAllowed =
+    effectiveEncryptionMode === 'none' &&
+    routeProfile?.allow_unencrypted_test === true &&
+    isAgtPortalProdatAddress({
+      receiverEdielId: routeProfile?.receiver_ediel_id ?? message.receiver_ediel_id ?? null,
+      receiverSubaddress,
+      messageFamily: String(message.message_family ?? routeProfile?.message_family ?? ''),
+      environment: message.environment,
+    })
+
+  if (transportSecurityMode === 'needs_verification') {
+    throw new Error('Sändning stoppad: transport security är inte verifierad för routen.')
+  }
+
+  if (transportSecurityMode === 'required_encrypted' && effectiveEncryptionMode !== 'smime' && !agtPortalUnencryptedAllowed) {
+    throw new Error('Sändning stoppad: routen kräver S/MIME-kryptering.')
+  }
+
+  if (transportSecurityMode === 'unencrypted' && effectiveEncryptionMode === 'smime') {
+    throw new Error('Sändning stoppad: routen är explicit okrypterad men meddelandet försöker skickas som S/MIME.')
+  }
+
+  if (
+    String(message.message_family ?? '').toUpperCase() === 'PRODAT' &&
+    message.environment === 'production' &&
+    effectiveEncryptionMode !== 'smime' &&
+    routeProfile?.allow_unencrypted_production !== true
+  ) {
+    throw new Error('Sändning stoppad: real grid owner PRODAT i produktion kräver required_encrypted/S/MIME.')
+  }
+
+  if (message.environment !== 'production') {
+    if (effectiveEncryptionMode === 'smime' && !effectiveCertificateId) {
+      throw new Error('Sändning stoppad: krypterat Ediel-test kräver mottagarens publika S/MIME-certifikat på routen.')
+    }
+    return
+  }
 
   const security = evaluateProductionTransportSecurity({
     runtime: {
@@ -1211,18 +1270,19 @@ export async function sendEdielMessageViaSmtp(
         companyId: message.company_id ?? null,
       })
     : null
-  const mailboxSecurity = await resolveMailboxSecurityDefaults({
-    mailbox: routeProfile?.mailbox ?? message.mailbox ?? null,
-    environment: message.environment,
-  })
+  const overrideEncryptionMode = encryptionModeFromMimeMode(params?.smtpMimeMode)
   const effectiveEncryptionMode =
-    routeProfile?.encryption_mode ??
-    mailboxSecurity?.encryptionMode ??
+    overrideEncryptionMode ??
+    (routeProfile?.transport_security_mode === 'required_encrypted' || routeProfile?.transport_security_mode === 'encrypted'
+      ? 'smime'
+      : routeProfile?.transport_security_mode === 'unencrypted'
+        ? 'none'
+        : routeProfile?.encryption_mode) ??
     'none'
   // Outbound S/MIME encryption must use the receiver route certificate only.
   // The shared mailbox certificate is our own/private transport material and must never
   // be used as recipientCertificatePem for another Ediel party.
-  const effectiveCertificateId = routeProfile?.certificate_id ?? null
+  const effectiveCertificateId = routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
   await assertRouteTransportSecurity({
     message,
     routeProfile,
@@ -1338,6 +1398,8 @@ export async function sendEdielMessageViaSmtp(
   let encodedPayloadPreview: string | null = null
   let encryptedPayloadLength: number | null = null
   let innerMimePreview: string | null = null
+  let usedReceiverCertificateId: string | null = null
+  let cmsExpectedReceiverPresent: boolean | null = null
 
   if (mimeMode === 'nodemailer-attachment') {
     result = await transporter.sendMail({
@@ -1371,12 +1433,15 @@ export async function sendEdielMessageViaSmtp(
       certificateId: effectiveCertificateId,
       receiverEdielId: routeProfile?.receiver_ediel_id ?? message.receiver_ediel_id ?? null,
       receiverSubaddress,
+      messageFamily: String(message.message_family ?? routeProfile?.message_family ?? ''),
+      businessCode: String(message.message_code ?? routeProfile?.business_code ?? ''),
       messageType: String(message.message_family ?? routeProfile?.message_family ?? ''),
       environment: message.environment,
       routeProfileId: routeProfile?.id ?? null,
       smtpTo: message.receiver_email,
     })
     const recipientCertificatePem = outboundRecipientCertificate.publicCertificatePem
+    usedReceiverCertificateId = outboundRecipientCertificate.id
     const recipientCertPath = null
     const innerMime = buildInnerEdifactMimeForSmime({
       filename: fileName,
@@ -1392,6 +1457,7 @@ export async function sendEdielMessageViaSmtp(
       encryptedDer,
       expectedSerialNumber: outboundRecipientCertificate.serialNumber,
     })
+    cmsExpectedReceiverPresent = cmsRecipientInfo.expectedReceiverPresent
     if (!cmsRecipientInfo.expectedReceiverPresent) {
       await createEdielMessageEvent({
         actorUserId,
@@ -1403,7 +1469,14 @@ export async function sendEdielMessageViaSmtp(
           expectedReceiverAddress: fullEdielAddress(routeProfile?.receiver_ediel_id ?? message.receiver_ediel_id ?? null, 'ZZ', receiverSubaddress),
           expectedReceiverCertificate: describeCertificate(outboundRecipientCertificate.raw),
           actualCmsRecipientSerials: cmsRecipientInfo.serialNumbers,
+          actual_cms_recipient_serial: cmsRecipientInfo.serialNumbers[0] ?? null,
           cmsExpectedReceiverPresent: false,
+          expected_receiver_certificate_id: outboundRecipientCertificate.id,
+          expected_receiver_certificate_subject: outboundRecipientCertificate.subject,
+          expected_receiver_certificate_issuer: outboundRecipientCertificate.issuer,
+          expected_receiver_certificate_serial: outboundRecipientCertificate.serialNumber,
+          expected_receiver_certificate_fingerprint: outboundRecipientCertificate.fingerprintSha256,
+          block_reason: 'cms_expected_receiver_missing',
         },
       })
       throw new Error(
@@ -1439,7 +1512,13 @@ export async function sendEdielMessageViaSmtp(
         recipientCertPath,
         expectedReceiverCertificate: describeCertificate(outboundRecipientCertificate.raw),
         actualCmsRecipientSerials: cmsRecipientInfo.serialNumbers,
+        actual_cms_recipient_serial: cmsRecipientInfo.serialNumbers[0] ?? null,
         cmsExpectedReceiverPresent: cmsRecipientInfo.expectedReceiverPresent,
+        expected_receiver_certificate_id: outboundRecipientCertificate.id,
+        expected_receiver_certificate_subject: outboundRecipientCertificate.subject,
+        expected_receiver_certificate_issuer: outboundRecipientCertificate.issuer,
+        expected_receiver_certificate_serial: outboundRecipientCertificate.serialNumber,
+        expected_receiver_certificate_fingerprint: outboundRecipientCertificate.fingerprintSha256,
       },
     }).catch((error) => {
       console.warn('[ediel-transport] Could not store S/MIME payload snapshot', error)
@@ -1617,6 +1696,22 @@ export async function sendEdielMessageViaSmtp(
 
     throw new Error(`SMTP accepterade inte mottagaren. accepted=${accepted.join(',') || 'tomt'} rejected=${rejected.join(',') || 'tomt'}`)
   }
+  await supabaseService
+    .from('ediel_messages')
+    .update({
+      transport_security_mode: mimeMode === 'ediel-smime-enveloped' ? 'required_encrypted' : 'unencrypted',
+      route_transport_security_mode: routeProfile?.transport_security_mode ?? routeProfile?.encryption_mode ?? null,
+      was_smime_encrypted: mimeMode === 'ediel-smime-enveloped',
+      expected_receiver_certificate_id: usedReceiverCertificateId,
+      cms_expected_receiver_present: cmsExpectedReceiverPresent,
+      updated_by: actorUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', message.id)
+    .then(({ error }) => {
+      if (error) console.warn('[ediel-transport] Could not persist transport audit fields', error)
+    })
+
   await updateEdielMessageStatus({
     actorUserId,
     edielMessageId: message.id,
@@ -1649,6 +1744,9 @@ export async function sendEdielMessageViaSmtp(
       encodedPayloadPreview,
       encryptedPayloadLength,
       innerMimePreview,
+      wasSmimeEncrypted: mimeMode === 'ediel-smime-enveloped',
+      certificateId: usedReceiverCertificateId,
+      cmsExpectedReceiverPresent,
     },
   })
 

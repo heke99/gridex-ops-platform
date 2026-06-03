@@ -717,6 +717,8 @@ Lämna sender/application reference/mailbox tomt endast om aktiv aktörsidentite
  </p>
 
  <div className="grid gap-3 md:grid-cols-2">
+ <input name="messageFamily" defaultValue={runtime?.message_family ?? 'PRODAT'} placeholder="Message family, t.ex. PRODAT" className={textInputClassName()} />
+ <input name="businessCode" defaultValue={runtime?.business_code ?? ''} placeholder="Business code, tomt/* = hela familjen" className={textInputClassName()} />
  <input name="senderEdielId" defaultValue={runtime?.sender_ediel_id ?? ''} placeholder="Sender Ediel-id" className={textInputClassName()} />
  <input name="receiverEdielId" defaultValue={runtime?.receiver_ediel_id ?? ''} placeholder="Mottagare Ediel-id" className={textInputClassName()} />
  <input name="senderName" defaultValue={runtime?.sender_name ?? ''} placeholder="Sender name" className={textInputClassName()} />
@@ -753,7 +755,15 @@ Lämna sender/application reference/mailbox tomt endast om aktiv aktörsidentite
 <option value="none">signering: none</option>
 <option value="smime">signering: smime</option>
 </select>
-<input name="certificateId" defaultValue={runtime?.certificate_id ?? ''} placeholder="Certificate id" className={textInputClassName()} />
+<select name="transportSecurityMode" defaultValue={runtime?.transport_security_mode ?? ''} className={selectClassName()}>
+<option value="">Transport security: auto</option>
+<option value="required_encrypted">required_encrypted</option>
+<option value="encrypted">encrypted</option>
+<option value="unencrypted">unencrypted</option>
+<option value="needs_verification">needs_verification</option>
+</select>
+<input name="receiverCertificateId" defaultValue={runtime?.receiver_certificate_id ?? runtime?.certificate_id ?? ''} placeholder="Receiver public certificate id" className={textInputClassName()} />
+<input name="certificateId" defaultValue={runtime?.certificate_id ?? ''} placeholder="Legacy certificate id (receiver only)" className={textInputClassName()} />
 <label className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">
 <input type="checkbox" name="allowUnencryptedProduction" value="true" defaultChecked={runtime?.allow_unencrypted_production === true} className="h-4 w-4 rounded border-red-300" />
 Nöd-override: tillåt okrypterad production PRODAT
@@ -789,6 +799,10 @@ Nöd-override: tillåt okrypterad production PRODAT
 <label className="mt-3 ml-4 inline-flex items-center gap-2 text-sm text-slate-700">
 <input type="checkbox" name="subaddressRequired" value="true" defaultChecked={runtime?.subaddress_required === true} className="h-4 w-4 rounded border-slate-300" />
 Subadress krävs
+</label>
+<label className="mt-3 ml-4 inline-flex items-center gap-2 text-sm text-slate-700">
+<input type="checkbox" name="certificateRequired" value="true" defaultChecked={runtime?.certificate_required === true} className="h-4 w-4 rounded border-slate-300" />
+Mottagarcertifikat krävs
 </label>
 
  <div className="mt-4">

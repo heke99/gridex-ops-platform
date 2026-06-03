@@ -422,6 +422,7 @@ async function upsertRouteProfile(input: {
   defaultMessageVersion: string | null;
   ackMode: EdielRouteProfileAckMode;
   mailbox: string | null;
+  smtpTo: string | null;
 }) {
   const existing = await supabaseService
     .from("ediel_route_profiles")
@@ -439,6 +440,9 @@ async function upsertRouteProfile(input: {
     company_id: input.companyId,
     communication_route_id: input.routeId,
     is_enabled: true,
+    is_active: true,
+    message_family: input.family,
+    business_code: null,
     sender_ediel_id: input.senderEdielId,
     sender_name: input.senderName,
     sender_sub_address:
@@ -446,6 +450,9 @@ async function upsertRouteProfile(input: {
     receiver_ediel_id: input.receiverEdielId,
     receiver_name: input.receiverName,
     receiver_sub_address: isProdat ? input.receiverSubAddress : null,
+    receiver_subaddress: isProdat ? input.receiverSubAddress : null,
+    receiver_message_subaddress: isProdat ? input.receiverSubAddress : null,
+    subaddress_required: isProdat,
     receiver_source: "fixed_counterparty",
     dynamic_receiver_strategy: "resolve_from_counterparty_id",
     is_test_route: true,
@@ -463,6 +470,12 @@ async function upsertRouteProfile(input: {
     imap_port: null,
     mailbox: input.mailbox,
     encryption_mode: "none",
+    transport_security_mode: isProdat ? "encrypted" : "unencrypted",
+    certificate_required: false,
+    allow_unencrypted_test: true,
+    allow_unencrypted_production: false,
+    smtp_to: input.smtpTo,
+    security_policy_status: isProdat ? "agt_dual_mode_requires_test_run_selection" : "test_unencrypted_allowed",
     payload_format: "edifact",
     notes: `${input.family} AGT route profile. Sender-id och eventuell sender-subadress kommer från aktiv SaaS-tenant/Edielregistret, inte från Gridcore/TGT-konstant.`,
     updated_by: input.actorUserId,
@@ -545,6 +558,7 @@ async function upsertAgtRoute(input: {
     defaultMessageVersion: input.defaultMessageVersion,
     ackMode: input.family === "PRODAT" ? "contrl_and_aperak" : "default",
     mailbox: input.mailbox,
+    smtpTo: input.targetEmail,
   });
 }
 
@@ -673,6 +687,13 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
   const testCaseCode = upper(formData, "test_case_code") ?? "";
   const encryptionMode = value(formData, "encryption_mode") === "smime" ? "smime" : "none";
   const testCase = getEdielAgtSupplier2026ACase(testCaseCode);
+  const runtime = await getEdielAgtSupplierRuntime(companyId);
+  const routeProfile =
+    testCase?.suite === "PRODAT"
+      ? runtime.prodat.profile
+      : testCase?.suite === "UTILTS"
+        ? runtime.utilts.profile
+        : null;
 
   if (!testCase) {
     throw new Error(`Okänt AGT 2026A leverantörstest: ${testCaseCode}`);
@@ -712,6 +733,11 @@ export async function createAgtSupplierTestRunAction(formData: FormData) {
     messageFamily: testCase.messageFamily,
     businessCode: testCase.messageCode,
     encryptionMode,
+    certificateId: encryptionMode === "smime"
+      ? routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
+      : null,
+    routeProfileId: routeProfile?.id ?? null,
+    environmentType: "agt_test",
     expectedFlow: testCase.expectedSteps,
   });
 

@@ -664,7 +664,7 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
   if (routeProfileId) {
     const { data: routeProfile, error } = await supabaseService
       .from('ediel_route_profiles')
-      .select('id,communication_route_id,mailbox,encryption_mode,certificate_id')
+      .select('id,communication_route_id,mailbox,encryption_mode,transport_security_mode,certificate_id,receiver_certificate_id,party_id,party_address_id')
       .eq('id', routeProfileId)
       .eq('company_id', run?.company_id ?? params.companyId ?? '')
       .maybeSingle()
@@ -672,6 +672,10 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     if (routeProfile?.communication_route_id) {
       input.communicationRouteId = String(routeProfile.communication_route_id)
       input.mailbox = String(routeProfile.mailbox ?? input.mailbox ?? '')
+      input.partyId = typeof routeProfile.party_id === 'string' ? routeProfile.party_id : null
+      input.partyAddressId = typeof routeProfile.party_address_id === 'string' ? routeProfile.party_address_id : null
+      input.routeTransportSecurityMode = String(routeProfile.transport_security_mode ?? routeProfile.encryption_mode ?? 'unencrypted')
+      input.transportSecurityMode = run?.encryption_mode === 'smime' ? 'required_encrypted' : 'unencrypted'
       input.validationReport = {
         ...(input.validationReport ?? {}),
         lockedSendContext: {
@@ -683,8 +687,10 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
           encryptionMode: run?.encryption_mode ?? null,
           routeProfileId,
           communicationRouteId: String(routeProfile.communication_route_id),
+          transportSecurityMode: input.transportSecurityMode,
+          routeTransportSecurityMode: input.routeTransportSecurityMode,
           routeEncryptionMode: routeProfile.encryption_mode ?? null,
-          certificateId: routeProfile.certificate_id ?? null,
+          certificateId: routeProfile.receiver_certificate_id ?? routeProfile.certificate_id ?? null,
         },
       }
     }

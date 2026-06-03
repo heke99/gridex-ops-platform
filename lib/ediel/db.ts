@@ -429,6 +429,13 @@ export async function createEdielMessage(
     related_message_id: input.relatedMessageId ?? null,
 
     communication_route_id: input.communicationRouteId ?? null,
+    party_id: input.partyId ?? null,
+    party_address_id: input.partyAddressId ?? null,
+    transport_security_mode: input.transportSecurityMode ?? null,
+    route_transport_security_mode: input.routeTransportSecurityMode ?? null,
+    was_smime_encrypted: input.wasSmimeEncrypted ?? null,
+    expected_receiver_certificate_id: input.expectedReceiverCertificateId ?? null,
+    cms_expected_receiver_present: input.cmsExpectedReceiverPresent ?? null,
     outbound_request_id: input.outboundRequestId ?? null,
     switch_request_id: input.switchRequestId ?? null,
     grid_owner_data_request_id: input.gridOwnerDataRequestId ?? null,
